@@ -347,20 +347,25 @@ struct gkyl_gyrokinetic_positivity {
 enum gkyl_gyrokinetic_damping_type {
   GKYL_GK_DAMPING_NONE = 0,
   GKYL_GK_DAMPING_USER_INPUT,
-  GKYL_GK_DAMPING_LOSS_CONE,
+  GKYL_GK_DAMPING_LOW_PASS_FILTER,
 };
 
 struct gkyl_gyrokinetic_damping {
   // Add a damping term to the RHS of the gyrokinetic equation
   //   df/dt = - rate(z) * f
   // with the function rate(z) being:
-  //   - a function given by the user (type = GKYL_PROPORTIONAL_TERM_USER_INPUT).
-  //   - I_loss(z) * scale_factor * scale_profile(z), where I_loss(z) is =1 in the loss
-  //     cone and 0 in the confined region (type = GKYL_PROPORTIONAL_TERM_LOSS_CONE).
+  //   - a function given by the user (type = GKYL_GK_DAMPING_USER_INPUT).
+  //   Alternativly, a low-pass filter can be applied (type = GKYL_GK_DAMPING_LOW_PASS_FILTER), which projects f to a lower-dimensional function fbar(z) and applies the damping as df/dt = - rate(z) * (f - fbar).
   enum gkyl_gyrokinetic_damping_type type;
+
+  double rate_const;
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
   void *rate_profile_ctx; // Context for rate_profile function.
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
+  bool write_rate; // Whether to write damping-rate diagnostics.
+  bool write_fbar; // For low-pass filter damping, write fbar diagnostics each output frame.
+  bool cellwise_const; // For low-pass filter damping, whether fbar uses a single value per cell.
+  bool do_not_reset_fbar; // On runtime reset, preserve the existing low-pass-filter fbar instead of reinitializing from f.
 };
 
 enum gkyl_gyrokinetic_fdot_multiplier_type {
@@ -1439,6 +1444,18 @@ void gkyl_gyrokinetic_app_reset_species_collisionless(gkyl_gyrokinetic_app* app,
  */
 void gkyl_gyrokinetic_app_reset_species_positivity(gkyl_gyrokinetic_app* app, double tm,
   const char *species_name, struct gkyl_gyrokinetic_positivity pos_inp);
+
+/**
+ * Reset the damping for a given species.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param species_name Name of the species to reset.
+ * @param damping_inp Input parameters for damping terms.
+ */
+void
+gkyl_gyrokinetic_app_reset_species_damping(gkyl_gyrokinetic_app* app, double tm,
+  const char *species_name, struct gkyl_gyrokinetic_damping damping_inp);
 
 /**
  * Reset the field solver.

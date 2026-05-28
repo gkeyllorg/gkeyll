@@ -465,7 +465,7 @@ create_ctx(void)
   int poly_order = 1;
 
   double t_end = 1e-8;
-  int num_frames = 10;
+  int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -608,6 +608,14 @@ int main(int argc, char **argv)
       .write_diagnostics = true,
     },
 
+    .damping = {
+      .type = GKYL_GK_DAMPING_LOW_PASS_FILTER,
+      .rate_const = 1e-6,
+      .write_rate = true,
+      .write_fbar = true,
+      .cellwise_const = true,
+    },
+    
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,

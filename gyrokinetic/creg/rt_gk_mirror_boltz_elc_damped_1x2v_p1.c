@@ -704,12 +704,10 @@ int main(int argc, char **argv)
     },
 
     .damping = {
-//      .type = GKYL_GK_DAMPING_USER_INPUT,
-//      .rate_profile = loss_cone_damping_rate_profile,
-//      .rate_profile_ctx = &ctx,
-      .type = GKYL_GK_DAMPING_LOSS_CONE,
+      .type = GKYL_GK_DAMPING_USER_INPUT,
       .rate_profile = loss_cone_damping_rate_scaling,
       .rate_profile_ctx = &ctx,
+      .write_rate = true,
     },
 
     .bcs = {

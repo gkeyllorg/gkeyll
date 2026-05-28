@@ -3,6 +3,7 @@
 static void
 gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array *fbar_in[], struct gkyl_array *fbar_out[],
   struct gkyl_array **bflux_in[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   struct gkyl_array **bflux_in_neut[], struct gkyl_array **bflux_out_neut[], 
@@ -18,7 +19,8 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   app->stat.nfeuler += 1;
 
   // Compute the time rate of change of the distributions, df/dt.
-  gyrokinetic_rhs(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, st);
+  gyrokinetic_rhs(app, tcurr, dt, fin, fbar_in, fout, bflux_out, fin_neut, fout_neut,
+    bflux_out_neut, st);
 
   struct timespec wst = gkyl_wall_clock();
   // Complete update of distribution functions.
@@ -26,6 +28,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_step_f(gks, fout[i], dta, fin[i]);
+    gk_species_damping_forward_euler(gks, fin[i], fbar_in[i], fbar_out[i], dta);
     gk_species_bflux_accumulate(app, &gks->bflux, bflux_out[i], 1.0, bflux_in[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
@@ -46,6 +49,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
   // from the actual time-step.
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
+  const struct gkyl_array *fbar_in[app->num_species];
+  struct gkyl_array *fbar_out[app->num_species];
   struct gkyl_array **bflux_in[app->num_species];
   struct gkyl_array **bflux_out[app->num_species];
 
@@ -67,6 +72,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           struct gk_species *gks = &app->species[i];
           fin[i] = gks->f;
           fout[i] = gks->f1;
+          fbar_in[i] = gks->damping.fbar;
+          fbar_out[i] = gks->damping.fbar1;
           // Boundary fluxes.
           bflux_in[i] = gks->bflux.f;
           bflux_out[i] = gks->bflux.f1;
@@ -86,7 +93,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, bflux_in, tcurr);
         }
 
-        gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out,
+        gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, fbar_in, fbar_out, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
         dt = st.dt_actual;
 
@@ -125,6 +132,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           struct gk_species *gks = &app->species[i];
           fin[i] = gks->f1;
           fout[i] = gks->fnew;
+          fbar_in[i] = gks->damping.fbar1;
+          fbar_out[i] = gks->damping.fbarnew;
           // Boundary fluxes.
           bflux_in[i] = gks->bflux.f1;
           bflux_out[i] = gks->bflux.fnew;
@@ -138,7 +147,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           bflux_out_neut[i] = gkns->bflux.fnew;
         }
 
-        gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out,
+        gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, fbar_in, fbar_out, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
 
         if (st.dt_actual < dt) {
@@ -168,6 +177,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           for (int i=0; i<app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
             gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
+            gk_species_damping_combine(gks, gks->damping.fbar1, 3.0/4.0, gks->damping.fbar,
+              1.0/4.0, gks->damping.fbarnew, &gks->local_ext);
             gk_species_bflux_set(app, &gks->bflux, gks->bflux.f1, 1.0/4.0, gks->bflux.fnew);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
@@ -197,6 +208,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           struct gk_species *gks = &app->species[i];
           fin[i] = gks->f1;
           fout[i] = gks->fnew;
+          fbar_in[i] = gks->damping.fbar1;
+          fbar_out[i] = gks->damping.fbarnew;
           // Boundary fluxes.
           bflux_in[i] = gks->bflux.f1;
           bflux_out[i] = gks->bflux.fnew;
@@ -210,7 +223,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           bflux_out_neut[i] = gkns->bflux.fnew;
         }
 
-        gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out,
+        gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, fbar_in, fbar_out, bflux_in, bflux_out,
           fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
 
         if (st.dt_actual < dt) {
@@ -242,6 +255,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             // Step f.
             gk_species_combine(gks, gks->f1, 1.0/3.0, gks->f, 2.0/3.0, gks->fnew, &gks->local_ext);
             gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
+            gk_species_damping_combine(gks, gks->damping.fbar, 1.0/3.0, gks->damping.fbar1,
+              2.0/3.0, gks->damping.fbarnew, &gks->local_ext);
+            gk_species_damping_copy_range(gks, gks->damping.fbar1, gks->damping.fbar,
+              &gks->local_ext);
             // Step boundary fluxes.
             gk_species_bflux_set(app, &gks->bflux, gks->bflux.f, 2.0/3.0, gks->bflux.fnew);
             gk_species_bflux_calc_voltime_integrated_mom(app, gks, &gks->bflux, tcurr);

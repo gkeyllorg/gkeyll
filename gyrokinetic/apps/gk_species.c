@@ -75,7 +75,8 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
 
 static double
 gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   // Gyroaverage the potential if needed.
   species->gyroaverage(app, species, app->field->phi_smooth, species->gyro_phi);
@@ -88,7 +89,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   // Damping term.
   gk_species_damping_advance(app, species, &species->damping, app->field->phi_smooth, fin,
-    species->lte.f_lte, rhs, species->cflrate);
+    fbar_in, species->lte.f_lte, rhs, species->cflrate);
 
   // LBO Collisions.
   gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
@@ -174,7 +175,8 @@ gk_species_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *sp
 
 static double
 gk_species_rhs_static(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   double omega_cfl = 1/DBL_MAX;
   return app->cfl/omega_cfl;
@@ -1495,6 +1497,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
 
   // Damping term -nu*f on RHS.
+  gks->damping = (struct gk_damping) { };
   gk_species_damping_init(app, gks, &gks->damping);
 
   // Function multiplying df/dt.
@@ -1722,6 +1725,9 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
   if (gks->info.init_from_file.type == 0)
     gk_species_projection_calc(app, gks, &gks->proj_init, gks->f, t0);
 
+  // Initialize fbar for low-pass filter damping
+  gk_species_damping_set_fbar_to_f(gks, &gks->damping, gks->f);
+
   // We are pre-computing source for now as it is time-independent.
   gk_species_source_calc(app, gks, &gks->src, gks->lte.f_lte, t0);
 }
@@ -1772,9 +1778,10 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
 
 double
 gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  return species->rhs_func(app, species, fin, rhs, bflux_moms);
+  return species->rhs_func(app, species, fin, fbar_in, rhs, bflux_moms);
 }
 
 double

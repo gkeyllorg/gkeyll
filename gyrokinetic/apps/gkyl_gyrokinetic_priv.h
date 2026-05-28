@@ -837,15 +837,36 @@ struct gk_source {
 struct gk_damping {
   enum gkyl_gyrokinetic_damping_type type; // Type of damping term.
   bool evolve; // Whether the source is time dependent.
+  bool write_rate; // Whether to write damping-rate diagnostics.
+  bool write_fbar; // Whether to write low-pass-filter fbar diagnostics.
+  bool cellwise_const; // Whether low-pass-filter fbar is stored as one value per cell.
+  bool do_not_reset_fbar; // Whether runtime reset should preserve existing fbar.
   struct gkyl_array *rate; // Damping rate.
   struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
-  struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
-  double *bmag_max; // Maximum magnetic field amplitude.
-  double *bmag_max_coord; // Location of bmag_max.
-  double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
-  struct gkyl_array *scale_prof; // Conf-space scaling factor profile.
+  // Low-pass filter variables
+  bool fbar_initialized; // Whether fbar is allocated/owned and should be released.
+  struct gkyl_array *fbar; // Filtered/averaged distribution function.
+  struct gkyl_array *fbar1, *fbarnew; // SSPRK3 stage arrays for filtered distribution.
+  struct gkyl_array *fbar_host; // Host copy of fbar for use in IO.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*write_rate_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*write_fbar_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*advance_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp, 
+    const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+    struct gkyl_array *f_buffer,
+    struct gkyl_array *rhs, struct gkyl_array *cflrate);
+  void (*set_fbar_to_f_func)(const struct gk_species *gks, struct gk_damping *damp,
+    const struct gkyl_array *f);
+  void (*calc_fbar_rhs_func)(const struct gk_damping *damp,
+    const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar);
+  void (*forward_euler_func)(struct gk_species *gks, const struct gkyl_array *fin,
+    const struct gkyl_array *fbar_in, struct gkyl_array *fbar_out, double dt);
+  void (*combine_func)(struct gk_species *gks, struct gkyl_array *fout, double c1,
+    const struct gkyl_array *f1, double c2, const struct gkyl_array *f2,
+    const struct gkyl_range *rng);
+  void (*copy_func)(struct gk_species *gks, struct gkyl_array *fout,
+    const struct gkyl_array *fin, const struct gkyl_range *range);
 };
 
 struct gk_fdot_multiplier {
@@ -1077,7 +1098,8 @@ struct gk_species {
 
   // Pointer to various functions selected at runtime.
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
-    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+    const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+    struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   double (*rhs_implicit_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt);
   void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
@@ -2835,6 +2857,18 @@ void gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const str
 void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_damping *damp);
 
 /**
+ * Initialize filtered distribution function from initial distribution.
+ * Should be called after initial conditions are applied to f.
+ *
+ * @param gks Pointer to species.
+ * @param damp Species damping object.
+ * @param f Initial distribution function.
+ */
+void gk_species_damping_set_fbar_to_f(const struct gk_species *gks, struct gk_damping *damp, 
+  const struct gkyl_array *f);
+
+
+/**
  * Compute species applied source term.
  *
  * @param app gyrokinetic app object.
@@ -2842,12 +2876,14 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
  * @param damp Species damping object.
  * @param phi Current electrostatic potential.
  * @param fin Current distribution function.
+ * @param fbar_in Filtered distribution corresponding to fin RK stage.
  * @param f_buffer Phase-space buffer.
  * @param rhs df/dt damping term gets added to.
  * @param cflrate CFL frequency in phase space.
  */
 void gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
-  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *f_buffer,
   struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
@@ -2861,12 +2897,71 @@ void gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_speci
 void gk_species_damping_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
 
 /**
+ * Compute filtered distribution RHS for low-pass filter damping:
+ *   d(fbar)/dt = rate * (f - fbar).
+ *
+ * @param damp Species damping object.
+ * @param fin Current distribution function f.
+ * @param fbar_in Current filtered distribution function fbar.
+ * @param rhs_fbar RHS buffer for fbar.
+ */
+void gk_species_damping_calc_fbar_rhs(const struct gk_damping *damp,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in, struct gkyl_array *rhs_fbar);
+
+/**
+ * Take a forward-Euler substep for the filtered distribution.
+ *
+ * This is a runtime-dispatched no-op unless the damping type enables
+ * filtered-state evolution (currently low-pass filter).
+ *
+ * @param gks Species object.
+ * @param fin Current distribution function f.
+ * @param fbar_in Current filtered distribution state.
+ * @param fbar_out Output filtered distribution state after FE substep.
+ * @param dt Time-step for substep.
+ */
+void gk_species_damping_forward_euler(struct gk_species *gks,
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *fbar_out, double dt);
+
+/**
+ * Combine filtered distributions like gk_species_combine.
+ *
+ * This is runtime-dispatched and a no-op unless the damping type enables
+ * filtered-state evolution (currently low-pass filter).
+ */
+void gk_species_damping_combine(struct gk_species *gks, struct gkyl_array *fout, double c1,
+  const struct gkyl_array *f1, double c2, const struct gkyl_array *f2,
+  const struct gkyl_range *rng);
+
+/**
+ * Copy filtered distribution ranges like gk_species_copy_range.
+ *
+ * This is runtime-dispatched and a no-op unless the damping type enables
+ * filtered-state evolution (currently low-pass filter).
+ */
+void gk_species_damping_copy_range(struct gk_species *gks, struct gkyl_array *fout,
+  const struct gkyl_array *fin, const struct gkyl_range *range);
+
+/**
  * Release species damping object.
  *
  * @param app gyrokinetic app object.
  * @param damp Species damping object to release.
  */
 void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct gk_damping *damp);
+
+/**
+ * Reset species damping object.
+ *
+ * @param app gyrokinetic app object.
+ * @param tm Time.
+ * @param gks Species object.
+ * @param damp Species damping object.
+ * @param damp_inp New damping input.
+ */
+void gk_species_damping_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
+  struct gk_damping *damp, struct gkyl_gyrokinetic_damping damp_inp);
 
 /** gk_species_fdot_multiplier API */
 
@@ -3082,12 +3177,14 @@ void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *spe
  * @param app gyrokinetic app object.
  * @param species Pointer to species.
  * @param fin Input distribution function.
+ * @param fbar_in Input filtered distribution for the current RK stage.
  * @param rhs On output, the RHS from the species object.
  * @param bflux_moms Output boundary flux moments.
  * @return Maximum stable time-step.
  */
 double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+  const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**
  * Compute the *implicit* RHS from species distribution function
@@ -4200,6 +4297,7 @@ void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr
  * @param tcurr Current simulation time.
  * @param dt Suggested time step.
  * @param fin Input array of charged-species distribution functions.
+ * @param fbar_in Input array of charged-species filtered distributions.
  * @param fout Output array of charged-species distribution functions.
  * @param bflux_out Output array of charged-species boundary fluxes.
  * @param fin_neut Input array of neutral-species distribution functions.
@@ -4208,7 +4306,8 @@ void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr
  * @param st Time stepping status object.
  */
 void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
+  const struct gkyl_array *fin[], const struct gkyl_array *fbar_in[],
+  struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
   struct gkyl_update_status *st); 
 
