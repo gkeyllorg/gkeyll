@@ -509,7 +509,7 @@ euler_sync_patches(const struct gkyl_block_topo* ptopo, const struct euler_patch
 void
 euler_patch_data_write(const char* file_nm, const struct euler_patch_data* pdata)
 {
-  gkyl_grid_sub_array_write(&pdata->grid, &pdata->range, 0, pdata->f[0], file_nm);
+  // gkyl_grid_sub_array_write(&pdata->grid, &pdata->range, 0, pdata->f[0], file_nm);
 }
 
 double

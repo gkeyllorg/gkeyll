@@ -277,7 +277,7 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
 void
 block_data_write(const char *fileNm, const struct block_data *bdata)
 { 
-  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f[0], fileNm);
+  // gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f[0], fileNm);
 }
 
 double
