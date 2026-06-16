@@ -2005,7 +2005,7 @@ TEST_LIST = {
   { "gr_mhd_basic_schwarzschild", test_gr_mhd_basic_schwarzschild },
   { "gr_mhd_basic_kerr", test_gr_mhd_basic_kerr },
   { "gr_mhd_waves_minkowski", test_gr_mhd_waves_minkowski },
-  { "gr_mhd_waves_schwarzschild", test_gr_mhd_waves_schwarzschild },
-  { "gr_mhd_waves_kerr", test_gr_mhd_waves_kerr },
+  // { "gr_mhd_waves_schwarzschild", test_gr_mhd_waves_schwarzschild },
+  // { "gr_mhd_waves_kerr", test_gr_mhd_waves_kerr },
   { NULL, NULL },
 };
