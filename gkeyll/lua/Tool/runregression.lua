@@ -43,12 +43,17 @@ GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "runregression"
 -- log -- and its default input is that very same runregression_0.log -- so it
 -- must not open a log file of its own.  Detect that command here and disable
 -- file logging for it (messages still go to stdout).
+-- Likewise, a help query (-h/--help anywhere on the command line) only prints
+-- usage and exits; it must not clobber a previous run's runregression_0.log.
 local isUpdateTimings = false
+local isHelpQuery     = false
 for i = 1, #GKYL_COMMANDS_L do
-   if GKYL_COMMANDS_L[i] == "update-timings" then isUpdateTimings = true; break end
+   local arg = GKYL_COMMANDS_L[i]
+   if arg == "update-timings" then isUpdateTimings = true end
+   if arg == "-h" or arg == "--help" then isHelpQuery = true end
 end
 
-local log = Logger { logToFile = not isUpdateTimings }
+local log = Logger { logToFile = not (isUpdateTimings or isHelpQuery) }
 local verboseLog = function (msg) end -- default: no verbose output
 local verboseLogger = function (msg) log(msg) end
 
@@ -383,6 +388,7 @@ end
 -- run's log (see that file's header for how to regenerate it).
 local testCost     = {}  -- testCost[test.name]     = recorded wall-clock seconds
 local testTimedOut = {}  -- testTimedOut[test.name] = true if it timed out in that run
+local testNumSteps = {}  -- testNumSteps[test.name] = recorded step count (nil if unknown)
 do
    local ok, costList = pcall(require, "Tool.test_costs")
    if ok and type(costList) == "table" then
@@ -390,9 +396,87 @@ do
          if e.name then
             testCost[e.name]     = e.cost or 0
             testTimedOut[e.name] = e.timed_out or false
+            testNumSteps[e.name] = e.num_steps
          end
       end
    end
+end
+
+-- When true, the recorded num_steps cap is ignored and every test runs to
+-- completion (set from the 'run --free-steps' flag in run_action).
+local freeSteps = false
+
+-- Global cap on the number of steps any single test may take (set from the
+-- 'run --step-max N' option; nil = no cap).  Applied on top of the per-test
+-- recorded num_steps: the effective cap is the smaller of the two.
+local stepMax = nil
+
+-- Returns the ' -s <steps>' argument string that caps a test's step count.
+-- The cap is the smaller of the per-test recorded num_steps (skipped when
+-- --free-steps) and the global --step-max; "" when neither applies.
+-- A recorded cap of 0 yields '-s 0' (run no time steps): used for simulations
+-- that abort on their first step, so the test exits cleanly instead of failing.
+-- Both the Lua app script CLI and the C test arg parser accept '-s N'.
+local function stepArgFor(testName)
+   local cap
+   if not freeSteps then cap = testNumSteps[testName] end
+   if stepMax and stepMax > 0 then
+      if cap == nil or stepMax < cap then cap = stepMax end
+   end
+   if cap and cap >= 0 then return string.format(" -s %d", math.floor(cap)) end
+   return ""
+end
+
+-- True if a run that took 'observed' steps was limited by --step-max rather
+-- than reaching its natural end.  Such a count is artificial, so it must not be
+-- persisted as the test's num_steps (it would shrink the recorded value and
+-- cap every future run at the smoke-test limit).
+local function cappedByStepMax(observed)
+   return observed ~= nil and stepMax ~= nil and stepMax > 0 and observed >= stepMax
+end
+
+-- The num_steps value to persist for a run that took 'observed' steps: the
+-- observed count for a natural completion, or nil when --step-max capped it
+-- (mergeTiming then keeps any previously recorded natural count).
+local function stepsToRecord(observed)
+   if cappedByStepMax(observed) then return nil end
+   return observed
+end
+
+-- The ' ... steps' suffix appended to a completion log line.  A natural count
+-- uses the ', N steps' form parsed by update-timings; a --step-max-capped run
+-- uses a non-parseable '[step cap N]' form so update-timings does not persist
+-- the artificial count.
+local function stepLogSuffix(observed)
+   if observed == nil then return "" end
+   if cappedByStepMax(observed) then
+      return string.format(" [step cap %d]", math.floor(observed))
+   end
+   return string.format(", %d steps", math.floor(observed))
+end
+
+-- Parse the number of *successful* simulation steps from a captured run log.
+-- Every layer's run driver (and the Lua app wrappers) print "Number of update
+-- calls N" once the simulation finishes; N is the number of time steps taken.
+-- Returns the last occurrence (nil if the line is absent, e.g. on a crash or
+-- timeout before the summary is written).
+--
+-- When a step's update method fails the simulation prints "Aborting
+-- simulation" but the failed step is still counted in N.  That step produced no
+-- valid result, so we report N-1 (the successful count) -- a simulation that
+-- aborts on its very first step therefore records 0, and stepArgFor caps it at
+-- '-s 0' next time so it exits cleanly instead of re-triggering the failure.
+local function parseStepCount(runlog)
+   if not runlog then return nil end
+   local steps
+   for n in runlog:gmatch("Number of update calls%s+(%d+)") do
+      steps = tonumber(n)
+   end
+   if steps and runlog:find("Aborting simulation", 1, true) then
+      steps = steps - 1
+      if steps < 0 then steps = 0 end
+   end
+   return steps
 end
 
 -- Sort a list of test descriptors in place by increasing recorded cost.
@@ -405,6 +489,143 @@ local function sortByCost(tests)
       if ca ~= cb then return ca < cb end
       return a.name < b.name
    end)
+end
+
+-- ---- test_costs.lua (re)writer ---------------------------------------------
+-- Helpers to load, merge, and write the committed cost table.  Shared by the
+-- 'update-timings' command and the automatic refresh that runs after
+-- 'run create'.  Tests that time out are recorded with timed_out=true and the
+-- MAXIMUM observed cost, so the skip-on-timeout logic in run_action keeps
+-- working across runs (replaces the old auto-ignore-list mechanism).
+
+-- Header written at the top of test_costs.lua.
+local TEST_COSTS_HEADER = [[
+-- Gkyl ------------------------------------------------------------------------
+--
+-- Regression-test cost table, ordered by increasing execution time.
+--
+-- Maintained automatically: refreshed after every 'runregression run create'
+-- and regenerable from a run log via 'runregression update-timings'.  Both
+-- paths MERGE into this table, keeping the maximum observed cost for tests
+-- that time out (timed_out=true) so they are skipped when their cost exceeds
+-- a future '--timeout'.  runregression also loads this to launch tests
+-- cheapest-first, so short tests finish early and the long tail runs last.
+--
+-- Each entry: { name = <test.name>, cost = <wall-clock seconds>,
+--   timed_out = <bool>, num_steps = <integer or nil> }.
+-- 'name' matches RegressionData.name / the runregression log label exactly,
+--   e.g. "moments/luareg/rt_5m_burch.lua" or "moments/creg/rt_10m_sodshock".
+-- Tests not present here (new tests with no recorded cost) are treated as
+--   cost 0 by runregression and run first.
+-- Timed-out tests carry timed_out=true and cost = the largest runtime/limit
+--   observed for them so far.
+-- num_steps is the total number of time steps the simulation took on the last
+--   clean completion.  runregression passes it through as '-s num_steps' so the
+--   test runs for exactly that many steps (use 'run --free-steps' to ignore the
+--   cap and run to completion).  nil means no count is recorded yet, so the test
+--   runs free and its observed step count is captured for next time.
+--------------------------------------------------------------------------------
+
+]]
+
+-- Absolute path of the committed cost table in the source tree.
+local function testCostsPath()
+   return configVals.source_dir .. "/gkeyll/lua/Tool/test_costs.lua"
+end
+
+-- Load the committed test_costs.lua into a name -> {cost, timed_out} map.
+-- Returns an empty map if the file is missing or malformed.
+local function loadTestCostsMap()
+   local byName = {}
+   local f = loadfile(testCostsPath())
+   if f then
+      local ok, costList = pcall(f)
+      if ok and type(costList) == "table" then
+         for _, e in ipairs(costList) do
+            if e.name then
+               byName[e.name] = {
+                  cost = e.cost or 0, timed_out = e.timed_out or false,
+                  num_steps = e.num_steps,
+               }
+            end
+         end
+      end
+   end
+   return byName
+end
+
+-- Merge one observation into the map using the maximum-observed-cost rule:
+--   * a timed-out observation keeps max(existing, observed) and flags timed_out;
+--   * a clean completion is authoritative -- its real cost, timed_out=false.
+-- num_steps (the total step count printed by the simulation) is updated when a
+-- new value is observed and otherwise carried over from the previous entry, so
+-- a timeout (which prints no step summary) never erases a known good count.
+local function mergeTiming(byName, nm, cost, timedOut, numSteps)
+   local prev    = byName[nm]
+   local keptNum = numSteps or (prev and prev.num_steps)
+   if timedOut then
+      local prevCost = prev and prev.cost or 0
+      byName[nm] = { cost = math.max(prevCost, cost), timed_out = true, num_steps = keptNum }
+   else
+      byName[nm] = { cost = cost, timed_out = false, num_steps = keptNum }
+   end
+end
+
+-- Write a name -> {cost, timed_out} map to test_costs.lua, sorted cheapest-first
+-- (ties broken on name).  Returns (ok, count, errMsg).
+local function writeTestCostsMap(byName)
+   local entries = {}
+   for nm, e in pairs(byName) do
+      entries[#entries + 1] = {
+         name = nm, cost = e.cost, timed_out = e.timed_out, num_steps = e.num_steps,
+      }
+   end
+   table.sort(entries, function(a, b)
+      if a.cost ~= b.cost then return a.cost < b.cost end
+      return a.name < b.name
+   end)
+
+   local outPath = testCostsPath()
+   local out = io.open(outPath, "w")
+   if not out then
+      return false, 0, string.format("Could not open '%s' for writing.", outPath)
+   end
+   out:write(TEST_COSTS_HEADER)
+   out:write("return {\n")
+
+   -- Pre-render every field and measure the widest in each column so the entries
+   -- line up as even columns in the committed file.
+   local rows = {}
+   local wName, wCost, wTimed, wSteps = 0, 0, 0, 0
+   for _, e in ipairs(entries) do
+      local r = {
+         name  = string.format("%q", e.name),
+         cost  = string.format("%.3f", e.cost),
+         timed = tostring(e.timed_out),
+         steps = e.num_steps and string.format("%d", math.floor(e.num_steps)) or "nil",
+      }
+      rows[#rows + 1] = r
+      if #r.name  > wName  then wName  = #r.name  end
+      if #r.cost  > wCost  then wCost  = #r.cost  end
+      if #r.timed > wTimed then wTimed = #r.timed end
+      if #r.steps > wSteps then wSteps = #r.steps end
+   end
+
+   -- Left-justify (names/booleans) and right-justify (numbers, so digits line
+   -- up) to the measured column widths.  The comma is appended before padding so
+   -- it hugs each value while the next key still starts in a fixed column.
+   local function ljust(s, w) return s .. string.rep(" ", w - #s) end
+   local function rjust(s, w) return string.rep(" ", w - #s) .. s end
+
+   for _, r in ipairs(rows) do
+      out:write(string.format(
+         "   { name = %s cost = %s, timed_out = %s num_steps = %s },\n",
+         ljust(r.name .. ",", wName + 1), rjust(r.cost, wCost),
+         ljust(r.timed .. ",", wTimed + 1), rjust(r.steps, wSteps)))
+   end
+   out:write("}\n")
+   out:close()
+   return true, #entries, nil
 end
 
 -- ---- Test classification predicates ----------------------------------------
@@ -606,6 +827,29 @@ local function loadConfigure(args)
 
    if args.verbose then
       verboseLog = verboseLogger
+   end
+
+   -- The committed test_costs.lua in the source tree is authoritative for the
+   -- per-test step cap (and the cost-ordering data): it is the file that
+   -- 'run create' and 'update-timings' write, and the one the developer edits.
+   -- The module-level 'require "Tool.test_costs"' near the top loads the
+   -- *installed* copy instead, which can be stale relative to the source after a
+   -- 'create' without a reinstall -- causing '-s num_steps' to use an old value
+   -- (e.g. a leftover step cap of 1).  Now that source_dir is known, re-read the
+   -- source copy and override, so the cap matches what the user sees in the
+   -- repo.  Tables are cleared in place to preserve the upvalue references used
+   -- by stepArgFor / sortByCost.  A missing or malformed source file leaves the
+   -- installed values untouched.
+   local srcCosts = loadTestCostsMap()
+   if next(srcCosts) ~= nil then
+      for k in pairs(testCost)     do testCost[k]     = nil end
+      for k in pairs(testTimedOut) do testTimedOut[k] = nil end
+      for k in pairs(testNumSteps) do testNumSteps[k] = nil end
+      for nm, e in pairs(srcCosts) do
+         testCost[nm]     = e.cost or 0
+         testTimedOut[nm] = e.timed_out or false
+         testNumSteps[nm] = e.num_steps
+      end
    end
 
    -- Load per-layer ignore and MOAT lists.
@@ -922,8 +1166,12 @@ local function prepareLuaRun(test, timeoutSecs, mode)
    local gkylExec = GKYL_EXEC_PATH .. "/gkeyll"
    local modeFlag = ""
    if mode == "cpu" and GPU_BUILD then modeFlag = " -G" end
+   -- Cap the run at the recorded step count (-s num_steps) unless free-running.
+   -- Args after the input file are forwarded to the app's script CLI, which
+   -- parses '-s N'.
+   local stepArg = stepArgFor(test.name)
    local innerCmd = string.format(
-      "cd '%s' && '%s' '%s'%s 2>&1", runDir, gkylExec, test.file, modeFlag)
+      "cd '%s' && '%s' '%s'%s%s 2>&1", runDir, gkylExec, test.file, modeFlag, stepArg)
    local cmd = wrapWithTimeout(innerCmd, timeoutSecs or 0, runDir)
 
    return { cmd = cmd, runDir = runDir, test = test }
@@ -979,7 +1227,9 @@ local function prepareCRun(test, timeoutSecs, mode, skipCompile)
 
    local binPath  = runDir .. "/" .. testname
    local gpuFlag  = (mode == "gpu") and " -g" or ""
-   local innerCmd = string.format("cd '%s' && '%s'%s 2>&1", runDir, binPath, gpuFlag)
+   -- Cap the run at the recorded step count (-s num_steps) unless free-running.
+   local stepArg  = stepArgFor(test.name)
+   local innerCmd = string.format("cd '%s' && '%s'%s%s 2>&1", runDir, binPath, gpuFlag, stepArg)
    local cmd      = wrapWithTimeout(innerCmd, timeoutSecs or 0, runDir)
 
    return {
@@ -1074,7 +1324,9 @@ local function finalizeCCompile(item, timeoutSecs)
       end
    end
 
-   local innerCmd = string.format("cd '%s' && '%s' 2>&1", runDir, binPath)
+   -- Cap the run at the recorded step count (-s num_steps) unless free-running.
+   local stepArg  = stepArgFor(test.name)
+   local innerCmd = string.format("cd '%s' && '%s'%s 2>&1", runDir, binPath, stepArg)
    local cmd      = wrapWithTimeout(innerCmd, timeoutSecs or 0, runDir)
    return {
       compileFailed = false,
@@ -1165,7 +1417,8 @@ local function runLuaTest(test, timeoutSecs, mode)
    local prep = prepareLuaRun(test, timeoutSecs, mode)
    if prep.mpiSkip then
       log(string.format("**** NOT RUNNING PARALLEL TEST %s\n", test.name))
-      return 0, "", prep.runDir, false
+      -- 5th return value flags an MPI-skip so callers don't record a 0s timing.
+      return 0, "", prep.runDir, false, true
    end
 
    local results = executeBatch({ prep })
@@ -1174,11 +1427,12 @@ local function runLuaTest(test, timeoutSecs, mode)
    if r.timedOut then
       log(string.format("... TIMED OUT after %.3f sec\n", r.runtm))
    else
-      log(string.format("... completed in %.3f sec\n", r.runtm))
+      log(string.format("... completed in %.3f sec%s\n", r.runtm,
+         stepLogSuffix(parseStepCount(r.runlog))))
    end
    verboseLog(r.runlog)
 
-   return r.runtm, r.runlog, prep.runDir, r.timedOut
+   return r.runtm, r.runlog, prep.runDir, r.timedOut, false
 end
 
 -- Runs a single C regression test (thin wrapper over prepareCRun + executeBatch).
@@ -1220,7 +1474,8 @@ local function runCTest(test, timeoutSecs, mode, skipCompile, keepBinary)
    if r.timedOut then
       log(string.format("... TIMED OUT after %.3f sec\n", r.runtm))
    else
-      log(string.format("... completed in %.3f sec\n", r.runtm))
+      log(string.format("... completed in %.3f sec%s\n", r.runtm,
+         stepLogSuffix(parseStepCount(r.runlog))))
    end
    verboseLog(r.runlog)
 
@@ -1575,109 +1830,6 @@ local function list_unit_tests(args)
    return luaUnitTests, cxxUnitTests
 end
 
--- ---- Ignore-list updater ----------------------------------------------------
--- Called after a run with --timeout when some tests exceeded the limit.
--- Merges timed-out names into the layer's per-suite ignore files and writes
--- them back so subsequent runs automatically skip those tests.
---
--- Lua timeouts  → luareg/ignore_lua_tests.lua  (tests / gpu keys)
--- C timeouts    → creg/ignore_c_tests.lua       (tests / gpu keys)
---
--- Re-reads each file from disk before writing: manual edits made after this
--- process started are preserved.
-local function updateIgnoreTests(layer, newLuaNames, newCNames,
-      newGpuLuaNames, newGpuCNames)
-   newGpuLuaNames = newGpuLuaNames or {}
-   newGpuCNames   = newGpuCNames   or {}
-
-   local srcBase    = configVals.source_dir .. "/" .. layer.src
-   local luaIgnFile = srcBase .. "/luareg/ignore_lua_tests.lua"
-   local cIgnFile   = srcBase .. "/creg/ignore_c_tests.lua"
-
-   -- Adds entries from newList into existingList (no duplicates).
-   -- Returns count of entries actually added.
-   local function mergeList(existingList, newList)
-      local set = {}
-      for _, v in ipairs(existingList) do set[v] = true end
-      local added = 0
-      for _, v in ipairs(newList) do
-         if not set[v] then
-            set[v] = true
-            table.insert(existingList, v)
-            added = added + 1
-         end
-      end
-      return added
-   end
-
-   -- Write { tests = {...}, gpu = {...} } to path with a header comment.
-   local function writeIgnoreFile(path, header, tbl)
-      local f = io.open(path, "w")
-      f:write(header)
-      f:write("return {\n")
-      f:write("   tests = {\n")
-      for _, v in ipairs(tbl.tests) do f:write(string.format("      %q,\n", v)) end
-      f:write("   },\n")
-      f:write("   gpu = {\n")
-      for _, v in ipairs(tbl.gpu)   do f:write(string.format("      %q,\n", v)) end
-      f:write("   },\n")
-      f:write("}\n")
-      f:close()
-   end
-
-   -- ---- Lua ignore file ----
-   if #newLuaNames > 0 or #newGpuLuaNames > 0 then
-      local existing = { tests = {}, gpu = {} }
-      local gi = loadfile(luaIgnFile)
-      if gi then
-         local ok, loaded = pcall(gi)
-         if ok and type(loaded) == "table" then existing = loaded end
-      end
-      existing.tests = existing.tests or {}
-      existing.gpu   = existing.gpu   or {}
-
-      local addedTests = mergeList(existing.tests, newLuaNames)
-      local addedGpu   = mergeList(existing.gpu,   newGpuLuaNames)
-      if addedTests > 0 or addedGpu > 0 then
-         writeIgnoreFile(luaIgnFile,
-            "-- Tests skipped by the Lua regression suite.\n"
-            .. "-- Remove an entry manually to re-enable the test.\n"
-            .. "-- gpu: Lua tests whose GPU variant timed out"
-            .. " (CPU variant still runs).\n",
-            existing)
-         log(string.format(
-            "[ignore] Updated %s (+%d timed-out, +%d GPU timed-out)\n",
-            luaIgnFile, addedTests, addedGpu))
-      end
-   end
-
-   -- ---- C ignore file ----
-   if #newCNames > 0 or #newGpuCNames > 0 then
-      local existing = { tests = {}, gpu = {} }
-      local gi = loadfile(cIgnFile)
-      if gi then
-         local ok, loaded = pcall(gi)
-         if ok and type(loaded) == "table" then existing = loaded end
-      end
-      existing.tests = existing.tests or {}
-      existing.gpu   = existing.gpu   or {}
-
-      local addedTests = mergeList(existing.tests, newCNames)
-      local addedGpu   = mergeList(existing.gpu,   newGpuCNames)
-      if addedTests > 0 or addedGpu > 0 then
-         writeIgnoreFile(cIgnFile,
-            "-- Tests skipped by the C regression suite.\n"
-            .. "-- Remove an entry manually to re-enable the test.\n"
-            .. "-- gpu: C tests whose GPU variant timed out"
-            .. " (CPU variant still runs).\n",
-            existing)
-         log(string.format(
-            "[ignore] Updated %s (+%d timed-out, +%d GPU timed-out)\n",
-            cIgnFile, addedTests, addedGpu))
-      end
-   end
-end
-
 -- ---- Command action functions -----------------------------------------------
 
 -- 'configure' command: set up the regression system for this machine.
@@ -1811,6 +1963,28 @@ end
 local function run_action(args, name)
    loadConfigure(args)
 
+   -- When --free-steps is set, ignore the recorded num_steps cap (stepArgFor
+   -- reads this module-level flag).  --step-max, if also given, still applies as
+   -- a hard cap -- so 'run --free-steps --step-max 100' ignores test_costs but
+   -- still limits every test to 100 steps.
+   freeSteps = args.free_steps and true or false
+
+   -- --step-max caps every test at N steps (stepArgFor reads this module-level
+   -- value); 0 means no cap.  Runs that hit the cap do not update num_steps.
+   stepMax = (args.step_max and args.step_max > 0) and args.step_max or nil
+
+   if freeSteps then
+      if stepMax then
+         log(string.format(
+            "--free-steps: ignoring recorded num_steps; capped only by --step-max (%d steps)\n",
+            stepMax))
+      else
+         log("--free-steps: running every test to completion (ignoring num_steps cap)\n")
+      end
+   elseif stepMax then
+      log(string.format("--step-max: capping every test at %d steps\n", stepMax))
+   end
+
    local luaTests, cTests = list_tests(detectedLayer, args)
 
    -- Tag every test with its type so a single combined list can dispatch the
@@ -1881,12 +2055,15 @@ local function run_action(args, name)
       postRun = check_action
    end
 
-   -- Track timed-out tests per layer so we can update ignoretests.lua.
-   local timedOutByLayer = {}
-   local gpuTimedOutByLayer = {}
-   for _, L in ipairs(LAYERS) do
-      timedOutByLayer[L.name]    = { lua = {}, c = {} }
-      gpuTimedOutByLayer[L.name] = { lua = {}, c = {} }
+   -- Collect this run's per-test CPU timings so 'run create' can refresh
+   -- test_costs.lua afterwards.  Each entry: { name, cost, timed_out }.
+   -- Timed-out tests are recorded here (timed_out=true) instead of being added
+   -- to an ignore list; the cost merge keeps the maximum observed value.
+   local runTimings = {}
+   local function recordTiming(name, cost, timedOut, numSteps)
+      runTimings[#runTimings + 1] =
+         { name = name, cost = cost, timed_out = timedOut and true or false,
+           num_steps = numSteps }
    end
 
    -- Helper: should this test get a GPU run?
@@ -2001,10 +2178,13 @@ local function run_action(args, name)
             -- For 'create', always force CPU to produce deterministic baselines.
             local cpuMode = (GPU_BUILD and GPU_LAYERS[test.layer]) and "cpu" or nil
 
-            local runtm, runlog, runDir, timedOut = runLuaTest(test, timeoutSecs, cpuMode)
+            local runtm, runlog, runDir, timedOut, mpiSkip =
+               runLuaTest(test, timeoutSecs, cpuMode)
+            if not mpiSkip then
+               recordTiming(test.name, runtm, timedOut, stepsToRecord(parseStepCount(runlog)))
+            end
 
             if timedOut then
-               table.insert(timedOutByLayer[test.layer].lua, stripext(basename(test.file)))
                insertRegressionData(
                   test.layer, runID, test.name, "lua", -3, runtm, "TIMED OUT")
                layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
@@ -2022,8 +2202,6 @@ local function run_action(args, name)
                      runLuaTest, {test, timeoutSecs, "gpu"})
 
                   if gpuStatus == -3 then
-                     table.insert(gpuTimedOutByLayer[test.layer].lua,
-                        stripext(basename(test.file)))
                      layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
                   elseif gpuStatus == -5 or gpuStatus == 0 then
                      layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
@@ -2055,12 +2233,12 @@ local function run_action(args, name)
                   test.layer, runID, test.name, "c", -4, runtm, runlog)
                layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
             elseif timedOut then
-               table.insert(timedOutByLayer[test.layer].c,
-                  stripext(basename(test.src)))
+               recordTiming(test.name, runtm, true, stepsToRecord(parseStepCount(runlog)))
                insertRegressionData(
                   test.layer, runID, test.name, "c", -3, runtm, "TIMED OUT")
                layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
             else
+               recordTiming(test.name, runtm, false, stepsToRecord(parseStepCount(runlog)))
                local status, checkLog = postRun(test, runDir, "c")
                checkLog = checkLog or ""
 
@@ -2075,8 +2253,6 @@ local function run_action(args, name)
                      runCTest, {test, timeoutSecs, "gpu", true})
 
                   if gpuStatus == -3 then
-                     table.insert(gpuTimedOutByLayer[test.layer].c,
-                        stripext(basename(test.src)))
                      layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
                   elseif gpuStatus == -5 or gpuStatus == 0 then
                      layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
@@ -2132,15 +2308,17 @@ local function run_action(args, name)
 
       -- Helper: collect results for a single Lua test prep + batch result.
       local function collectLua(prep, r)
-         local test = prep.test
+         local test  = prep.test
+         local steps = parseStepCount(r.runlog)
+         recordTiming(test.name, r.runtm, r.timedOut, stepsToRecord(steps))
          if r.timedOut then
             log(string.format("\n[Lua] %s TIMED OUT (%.3f sec)\n", test.name, r.runtm))
-            table.insert(timedOutByLayer[test.layer].lua, stripext(basename(test.file)))
             insertRegressionData(
                test.layer, runID, test.name, "lua", -3, r.runtm, "TIMED OUT")
             layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
          else
-            log(string.format("\n[Lua] %s completed (%.3f sec)\n", test.name, r.runtm))
+            log(string.format("\n[Lua] %s completed (%.3f sec%s)\n", test.name, r.runtm,
+               stepLogSuffix(steps)))
             verboseLog(r.runlog)
             local status, checkLog = postRun(test, prep.runDir, "lua")
             checkLog = checkLog or ""
@@ -2151,8 +2329,6 @@ local function run_action(args, name)
                   test, prep.runDir, "lua",
                   runLuaTest, {test, timeoutSecs, "gpu"})
                if gpuStatus == -3 then
-                  table.insert(gpuTimedOutByLayer[test.layer].lua,
-                     stripext(basename(test.file)))
                   layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
                elseif gpuStatus == -5 or gpuStatus == 0 then
                   layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
@@ -2173,14 +2349,16 @@ local function run_action(args, name)
          local test     = prep.test
          local testname = stripext(basename(test.src))
          local runDir   = prep.runDir
+         local steps    = parseStepCount(r.runlog)
+         recordTiming(test.name, r.runtm, r.timedOut, stepsToRecord(steps))
          if r.timedOut then
             log(string.format("\n[C] %s TIMED OUT (%.3f sec)\n", test.name, r.runtm))
-            table.insert(timedOutByLayer[test.layer].c, testname)
             insertRegressionData(
                test.layer, runID, test.name, "c", -3, r.runtm, "TIMED OUT")
             layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
          else
-            log(string.format("\n[C] %s completed (%.3f sec)\n", test.name, r.runtm))
+            log(string.format("\n[C] %s completed (%.3f sec%s)\n", test.name, r.runtm,
+               stepLogSuffix(steps)))
             verboseLog(r.runlog)
             local status, checkLog = postRun(test, runDir, "c")
             checkLog = checkLog or ""
@@ -2192,7 +2370,6 @@ local function run_action(args, name)
                   test, runDir, "c",
                   runCTest, {test, timeoutSecs, "gpu", true})
                if gpuStatus == -3 then
-                  table.insert(gpuTimedOutByLayer[test.layer].c, testname)
                   layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
                elseif gpuStatus == -5 or gpuStatus == 0 then
                   layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
@@ -2324,15 +2501,25 @@ local function run_action(args, name)
    log(string.format(
       "\nAll regression tests completed in %.3f secs\n", Time.clock() - tmStart))
 
-   -- Update ignoretests.lua for any layers that had timed-out tests.
-   if timeoutSecs > 0 then
-      for _, layer in ipairs(LAYERS) do
-         local to    = timedOutByLayer[layer.name]
-         local gpuTo = gpuTimedOutByLayer[layer.name]
-         if #to.lua > 0 or #to.c > 0
-            or #gpuTo.lua > 0 or #gpuTo.c > 0 then
-            updateIgnoreTests(layer, to.lua, to.c, gpuTo.lua, gpuTo.c)
-         end
+   -- Refresh test_costs.lua after creating baselines.  We MERGE this run's
+   -- timings into the committed table (keeping the maximum observed cost for
+   -- timed-out tests, flagged timed_out=true) so that a later run with a
+   -- '--timeout' skips tests whose recorded cost exceeds it.  This replaces the
+   -- old behaviour of adding timed-out tests to an ignore list.  The file is
+   -- written via writeTestCostsMap, which lays the entries out in aligned
+   -- columns.  Only 'create' regenerates timings; 'check' never rewrites it.
+   if args.create and #runTimings > 0 then
+      local byName = loadTestCostsMap()
+      for _, e in ipairs(runTimings) do
+         mergeTiming(byName, e.name, e.cost, e.timed_out, e.num_steps)
+      end
+      local ok, count, err = writeTestCostsMap(byName)
+      if ok then
+         log(string.format(
+            "[timings] Updated test_costs.lua (%d tests) from %d new timing(s)\n",
+            count, #runTimings))
+      else
+         log(string.format("[timings] %s\n", err))
       end
    end
 
@@ -2377,9 +2564,10 @@ local function rununit_action(args, name)
 end
 
 -- ---- update-timings command -------------------------------------------------
--- Parses a runregression 'run' log and regenerates Tool/test_costs.lua with
--- fresh per-test wall-clock costs.  runregression.lua loads that table to
--- launch tests cheapest-first (see the cost-based ordering block near the top).
+-- Parses a runregression 'run' log and merges per-test wall-clock costs into
+-- Tool/test_costs.lua (keeping the maximum observed cost for timed-out tests).
+-- runregression.lua loads that table to launch tests cheapest-first and to skip
+-- tests whose cost exceeds a '--timeout' (see the cost-based ordering block).
 --
 -- The relevant log lines (written by collectLua / collectC) look like:
 --   [Lua] <layer>/luareg/<test>.lua completed (1.234 sec)
@@ -2400,86 +2588,49 @@ local function updatetimings_action(args, name)
       os.exit(1)
    end
 
-   -- Parse every 'completed' / 'TIMED OUT' line.  If a test appears more than
-   -- once (e.g. re-run within the same log) the last occurrence wins.
-   local costByName = {}  -- name -> { cost = <float>, timed_out = <bool> }
+   -- Parse every 'completed' / 'TIMED OUT' line and MERGE it into the existing
+   -- committed table, keeping the maximum observed cost for timed-out tests
+   -- (see mergeTiming).  If a test appears more than once in the log the last
+   -- occurrence wins for a clean completion; timed-out lines accumulate the max.
+   local byName = loadTestCostsMap()
+   local nParsed = 0
    for line in lf:lines() do
+      -- 'completed' lines carry an optional ', N steps' suffix written by
+      -- collectLua/collectC; capture it when present so num_steps is refreshed.
       local tname, secs =
-         line:match("^%[%a+%]%s+(%S+)%s+completed%s+%(([%d%.]+)%s+sec%)")
-      local timedOut = false
-      if not tname then
+         line:match("^%[%a+%]%s+(%S+)%s+completed%s+%(([%d%.]+)%s+sec")
+      local steps, timedOut = nil, false
+      if tname then
+         steps = tonumber(
+            line:match("completed%s+%([%d%.]+%s+sec,%s+(%d+)%s+steps%)"))
+      else
          tname, secs =
             line:match("^%[%a+%]%s+(%S+)%s+TIMED OUT%s+%(([%d%.]+)%s+sec%)")
          timedOut = true
       end
       if tname and secs then
-         costByName[tname] = {
-            cost      = tonumber(secs),
-            timed_out = timedOut,
-         }
+         mergeTiming(byName, tname, tonumber(secs), timedOut, steps)
+         nParsed = nParsed + 1
       end
    end
    lf:close()
 
-   -- Flatten to a list and sort by increasing cost (ties broken on name) so the
-   -- regenerated table matches the cheapest-first ordering convention.
-   local entries = {}
-   for nm, e in pairs(costByName) do
-      entries[#entries + 1] = { name = nm, cost = e.cost, timed_out = e.timed_out }
-   end
-   if #entries == 0 then
+   if nParsed == 0 then
       log(string.format(
          "No 'completed'/'TIMED OUT' lines found in '%s'; nothing to update.\n",
          logFile))
       os.exit(1)
    end
-   table.sort(entries, function(a, b)
-      if a.cost ~= b.cost then return a.cost < b.cost end
-      return a.name < b.name
-   end)
 
-   -- Write the regenerated table back into the source tree so it can be
-   -- committed.  test_costs.lua lives at source_dir/gkeyll/lua/Tool/.
-   local outPath = configVals.source_dir .. "/gkeyll/lua/Tool/test_costs.lua"
-   local out = io.open(outPath, "w")
-   if not out then
-      log(string.format("Could not open '%s' for writing.\n", outPath))
+   local ok, count, err = writeTestCostsMap(byName)
+   if not ok then
+      log(err .. "\n")
       os.exit(1)
    end
 
-   out:write([[
--- Gkyl ------------------------------------------------------------------------
---
--- Regression-test cost table, ordered by increasing execution time.
---
--- Auto-generated from a 'runregression run ... --jobs N' log by parsing the
--- per-test '... completed (N sec)' / 'TIMED OUT (N sec)' lines.
--- runregression.lua loads this to launch tests cheapest-first, so short
--- tests finish early and the long tail of expensive tests runs last.
---
--- Regenerate with:  gkeyll runregression update-timings [-f <logfile>]
---
--- Each entry: { name = <test.name>, cost = <wall-clock seconds>, timed_out = <bool> }.
--- 'name' matches RegressionData.name / the runregression log label exactly,
---   e.g. "moments/luareg/rt_5m_burch.lua" or "moments/creg/rt_10m_sodshock".
--- Tests not present here (new tests with no recorded cost) are treated as
---   cost 0 by runregression and run first.
--- Timed-out tests are listed last (cost = timeout limit, timed_out = true).
---------------------------------------------------------------------------------
-
-return {
-]])
-   for _, e in ipairs(entries) do
-      out:write(string.format(
-         "   { name = %q, cost = %.3f, timed_out = %s },\n",
-         e.name, e.cost, tostring(e.timed_out)))
-   end
-   out:write("}\n")
-   out:close()
-
    log(string.format(
-      "Updated timings for %d test(s) from '%s'\n  -> %s\n",
-      #entries, logFile, outPath))
+      "Updated timings (%d total, %d parsed) from '%s'\n  -> %s\n",
+      count, nParsed, logFile, testCostsPath()))
 end
 
 -- ---- CLI parser -------------------------------------------------------------
@@ -2583,7 +2734,8 @@ c_run:option("-t --timeout",
    "Per-test timeout in seconds (0 = unlimited).\n"
    .. "Tests whose recorded cost (Tool/test_costs.lua) exceeds the timeout\n"
    .. "are skipped up front and never launched.\n"
-   .. "Timed-out tests are added to ignoretests.lua automatically.")
+   .. "On 'create', any test that times out is recorded in test_costs.lua\n"
+   .. "with timed_out=true and its maximum observed cost (not ignored).")
    :convert(tonumber)
    :default(0)
 c_run:option("--gpu-tol",
@@ -2593,6 +2745,18 @@ c_run:option("--gpu-tol",
    :default(1e-7)
 c_run:flag("--no-gpu",
    "Skip GPU testing even on a GPU build.")
+c_run:flag("--free-steps",
+   "Run each test to completion, ignoring the recorded num_steps cap in\n"
+   .. "Tool/test_costs.lua. By default every test is run with '-s num_steps'\n"
+   .. "(the step count from its last clean completion) so it takes a fixed\n"
+   .. "number of steps; use this to re-bootstrap or refresh those counts.")
+c_run:option("--step-max",
+   "Cap every test at N simulation steps (0 = no cap), passed as '-s N'.\n"
+   .. "The effective cap is the smaller of N and a test's recorded num_steps.\n"
+   .. "Runs that hit this cap do NOT update the recorded num_steps, so a quick\n"
+   .. "capped smoke-test cannot shrink the committed step counts.")
+   :convert(tonumber)
+   :default(0)
 c_run:option("-j --jobs",
    "Concurrent tests per batch (0 = physical core count, 1 = serial).\n"
    .. "C compilation is always serial; GPU variants always run serially.")
@@ -2607,12 +2771,13 @@ c_run:command("create",
    .. "On GPU builds, create always runs in CPU mode so baselines are deterministic.")
 
 -- 'update-timings' command ----------------------------------------------------
--- Regenerates Tool/test_costs.lua from a previous 'run' log so tests can be
--- launched cheapest-first on the next run.
+-- Merges a previous 'run' log into Tool/test_costs.lua so tests can be launched
+-- cheapest-first on the next run.  ('run create' refreshes this automatically.)
 local c_uptim = parser:command("update-timings",
    "Update Tool/test_costs.lua from a runregression run log.\n"
-   .. "Parses the per-test 'completed'/'TIMED OUT (N sec)' lines and rewrites\n"
-   .. "the cost table in the source tree (cheapest-first ordering).")
+   .. "Parses the per-test 'completed'/'TIMED OUT (N sec)' lines and merges\n"
+   .. "them into the cost table, keeping the maximum observed cost for\n"
+   .. "timed-out tests (cheapest-first ordering).")
    :action(updatetimings_action)
 c_uptim:option("-f --file",
    "Log file to parse (default: ./runregression_0.log).")
