@@ -1089,10 +1089,13 @@ local function executeBatch(items)
    for _, item in ipairs(items) do
       local sf = io.open(item.runDir .. "/_rr_batch_item.sh", "w")
       sf:write("#!/bin/sh\n")
-      sf:write("echo __START__:$(date +%s)\n")
+      -- Use Perl's Time::HiRes for sub-second wall-clock resolution; plain
+      -- 'date +%s' only has whole-second granularity (and macOS BSD date lacks
+      -- '%N').  Perl is always present on macOS and Linux (see TIMEOUT_CMD note).
+      sf:write("echo __START__:$(perl -MTime::HiRes -e 'printf \"%.6f\", Time::HiRes::time()')\n")
       -- item.cmd already ends with '; echo __EXIT__:$?' from wrapWithTimeout.
       sf:write(item.cmd .. "\n")
-      sf:write("echo __END__:$(date +%s)\n")
+      sf:write("echo __END__:$(perl -MTime::HiRes -e 'printf \"%.6f\", Time::HiRes::time()')\n")
       sf:close()
    end
 
@@ -1120,14 +1123,14 @@ local function executeBatch(items)
       local raw = rf and rf:read("*a") or ""
       if rf then rf:close() end
 
-      local startEpoch = tonumber(raw:match("__START__:(%d+)"))
-      local endEpoch   = tonumber(raw:match("__END__:(%d+)"))
+      local startEpoch = tonumber(raw:match("__START__:([%d%.]+)"))
+      local endEpoch   = tonumber(raw:match("__END__:([%d%.]+)"))
       local runtm = (startEpoch and endEpoch) and (endEpoch - startEpoch) or 0
 
       -- Strip timing markers first so they don't interfere with EXIT parsing.
       local stripped = raw
-         :gsub("\n?__START__:%d+\n?", "\n")
-         :gsub("\n?__END__:%d+\n?",   "\n")
+         :gsub("\n?__START__:[%d%.]+\n?", "\n")
+         :gsub("\n?__END__:[%d%.]+\n?",   "\n")
       local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$")) or 0
       local runlog   = stripped:gsub("\n?__EXIT__:%d+%s*$", "")
 
