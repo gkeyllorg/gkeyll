@@ -1973,7 +1973,19 @@ local function run_action(args, name)
    -- value); 0 means no cap.  Runs that hit the cap do not update num_steps.
    stepMax = (args.step_max and args.step_max > 0) and args.step_max or nil
 
-   if freeSteps then
+   -- --steps N forces every test to run exactly N steps.  It is implemented by
+   -- ignoring the recorded num_steps (like --free-steps) and capping every test
+   -- at N (like --step-max), so it takes precedence over both flags.  Because it
+   -- reuses --step-max's cap, the committed num_steps are likewise left untouched.
+   local forceSteps = (args.steps and args.steps > 0) and args.steps or nil
+   if forceSteps then
+      freeSteps = true
+      stepMax   = forceSteps
+   end
+
+   if forceSteps then
+      log(string.format("--steps: forcing every test to run %d steps\n", forceSteps))
+   elseif freeSteps then
       if stepMax then
          log(string.format(
             "--free-steps: ignoring recorded num_steps; capped only by --step-max (%d steps)\n",
@@ -2755,6 +2767,14 @@ c_run:option("--step-max",
    .. "The effective cap is the smaller of N and a test's recorded num_steps.\n"
    .. "Runs that hit this cap do NOT update the recorded num_steps, so a quick\n"
    .. "capped smoke-test cannot shrink the committed step counts.")
+   :convert(tonumber)
+   :default(0)
+c_run:option("-s --steps",
+   "Force every test to run exactly N simulation steps (0 = off), passed as '-s N'.\n"
+   .. "Overrides the recorded num_steps in Tool/test_costs.lua (like --free-steps)\n"
+   .. "and caps every test at N (like --step-max N), so every test runs N steps\n"
+   .. "regardless of its committed count.  Runs do NOT update the recorded\n"
+   .. "num_steps, so an ad-hoc step count cannot alter the committed table.")
    :convert(tonumber)
    :default(0)
 c_run:option("-j --jobs",

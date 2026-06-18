@@ -146,7 +146,7 @@ create_ctx(void)
   printf("nu_ion = %g\n", nu_ion);
   printf("1/nu_ion = %g\n", 1.0/nu_ion);
 
-  double t_end = 10e-11;
+  double t_end = 1e-6;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
