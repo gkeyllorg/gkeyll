@@ -31,6 +31,7 @@ return {
       "rt_gk_step_out_2x2v_p1",
       "rt_gk_step_2x2v_p1_cons",
       "rt_gk_multib_step_sol_1x2v_p1",
+      "rt_gk_multib_step_eirene_2x2v_p1",
    },
    gpu = {
    },
