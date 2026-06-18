@@ -35,6 +35,7 @@ return {
       "rt_can_pb_bgk_surf_cylindrical_sodshock_im_2x3v_p1",
       "rt_can_pb_bgk_surf_cylindrical_sodshock_im_1x3v_p1",
       "rt_vlasov_sr_twostream_1x3v",
+      "rt_dg_5m_mom_beach_p2",
    },
    gpu = {
    },
