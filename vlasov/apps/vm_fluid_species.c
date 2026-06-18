@@ -91,8 +91,8 @@ vm_fluid_species_euler_write(gkyl_vlasov_app *app, struct vm_fluid_species *f,
   snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, f->info.name, frame);
 
   // copy data to single array and then from device to host (if on GPUs) before writing it out
-  gkyl_array_set(f->prim_vars, 1.0, f->u); 
-  gkyl_array_set_offset(f->prim_vars, 1.0, f->p, 3*app->confBasis.num_basis); 
+  gkyl_array_set_offset(f->prim_vars, 1.0, f->u, 0);
+  gkyl_array_set_offset(f->prim_vars, 1.0, f->p, 3*app->confBasis.num_basis);
   if (app->use_gpu) {
     gkyl_array_copy(f->prim_vars_host, f->prim_vars);
   }
