@@ -561,10 +561,10 @@ create_ctx(void)
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_fdp = GKYL_GK_FDOT_MULTIPLIER_NONE;
 
   // Calculate phase structure
-  double t_end = ((tau_oap + tau_fdp)*num_cycles + tau_fdp_extra) * 0.129534;
+  double t_end = (tau_oap + tau_fdp)*num_cycles + tau_fdp_extra;
   double tau_pair = tau_oap+tau_fdp; // Duration of an OAP+FDP pair.
   int num_phases = 2*num_cycles + 1;
-  int num_frames = 1;
+  int num_frames = num_cycles * (num_frames_oap + num_frames_fdp) + num_frames_fdp_extra;
 
   struct gk_poa_phase_params *poa_phases = gkyl_malloc(num_phases * sizeof(struct gk_poa_phase_params));
   for (int i=0; i<(num_phases-1)/2; i++) {

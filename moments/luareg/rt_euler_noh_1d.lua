@@ -23,7 +23,7 @@ Nx = 100 -- Cell count (x-direction).
 Lx = 1.0 -- Domain size (x-direction).
 cfl_frac = 0.9 -- CFL coefficient.
 
-t_end = (1.0) * 0.775194 -- Final simulation time.
+t_end = 1.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

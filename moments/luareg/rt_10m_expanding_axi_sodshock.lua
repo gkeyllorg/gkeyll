@@ -25,7 +25,7 @@ Ltheta = 2.0 * pi -- Domain size (angular direction).
 k0 = 0.1 -- Closure parameter.
 cfl_frac = 0.9 -- CFL coefficient.
 
-t_end = (0.2) * 0.532387 -- Final simulation time.
+t_end = 0.2 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

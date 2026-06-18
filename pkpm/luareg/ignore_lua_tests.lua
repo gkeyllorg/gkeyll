@@ -12,10 +12,6 @@ return {
       "rt_pkpm_periodic_es_shock_p2",
       "rt_pkpm_es_shock_p2",
       "rt_pkpm_periodic_es_shock_p1",
-      "rt_pkpm_periodic_neut_sodshock_p2",
-      "rt_pkpm_neut_sodshock_p2",
-      "rt_pkpm_wall_p2",
-      "rt_pkpm_travel_pulse_p2",
    },
    gpu = {
    },

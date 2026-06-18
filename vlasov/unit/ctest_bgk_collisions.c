@@ -75,7 +75,7 @@ test_bgk_explicit_1x1v()
   gkyl_range_iter_init(&it, &prange);
   double cellav_fac = 1.0/sqrt(pow(2.0, cdim));
   while (gkyl_range_iter_next(&it)) {
-    long ploc = gkyl_range_idx(&prange, &it);
+    long ploc = gkyl_range_idx(&prange, it.idx);
     double *o = gkyl_array_fetch(out, ploc);
     double *fm = gkyl_array_fetch(nufM, ploc);
     for (int k=0; k<pbasis.num_basis; ++k)
@@ -141,7 +141,7 @@ test_bgk_implicit_1x1v()
   struct gkyl_range_iter it;
   gkyl_range_iter_init(&it, &prange);
   while (gkyl_range_iter_next(&it)) {
-    long ploc = gkyl_range_idx(&prange, &it);
+    long ploc = gkyl_range_idx(&prange, it.idx);
     double *o = gkyl_array_fetch(out, ploc);
     double *fm = gkyl_array_fetch(nufM, ploc);
     for (int k=0; k<pbasis.num_basis; ++k)

@@ -152,7 +152,7 @@ create_ctx(void)
 
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = (6.0e-6) * 0.0766088; // Final simulation time.
+  double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;

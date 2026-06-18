@@ -32,7 +32,7 @@ Lx100 = Lx / 100.0 -- Domain size over 100 (x-direction).
 x_last_edge = Lx - Lx / Nx -- Location of center of last upper cell (low density side).
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = (5.0e-9) * 0.0476455 -- Final simulation time.
+t_end = 5.0e-9 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

@@ -36,7 +36,7 @@ cfl_frac = 0.95 -- CFL coefficient.
 
 reinit_freq = 10 -- Spacetime reinitialization frequency.
 
-t_end = (50.0) * 0.0736377 -- Final simulation time.
+t_end = 50.0 -- Final simulation time.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.

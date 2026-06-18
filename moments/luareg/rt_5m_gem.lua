@@ -43,7 +43,7 @@ Lx = 25.6 * di -- Domain size (x-direction).
 Ly = 12.8 * di -- Domain size (y-direction).
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = (25.0 / omega_ci) * 0.0799361 -- Final simulation time.
+t_end = 25.0 / omega_ci -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

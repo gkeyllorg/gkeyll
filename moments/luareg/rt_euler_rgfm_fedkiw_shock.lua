@@ -26,7 +26,7 @@ Lx = 1.0 -- Domain size (x-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 reinit_freq = 3 -- Reinitialization frequency (for level set).
 
-t_end = (0.0012) * 0.0264831 -- Final simulation time.
+t_end = 0.0012 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

@@ -104,7 +104,7 @@ create_ctx(void)
   double n_src = pow(n0,2.0)*8e-21; // Source number density.
   double T_src = 10.0*eV; // Source temperature.
 
-  int Nz = 14; // Number of cells along magnetic field.
+  int Nz = 16; // Number of cells along magnetic field.
   int Nvpar = 8; // Number of cells in vpar.
   int Nmu = 4; // Number of cells in mu.
   int Nv = 16; // Number of cells in neutral v.

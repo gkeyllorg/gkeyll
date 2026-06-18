@@ -19,19 +19,9 @@ return {
       "rt_gk_sheath_3x2v_p1",
       "rt_gk_ltx_1x2v_p1",
       "rt_gk_multib_asdex_2x2v_p1",
-      "rt_gk_bgk_periodic_sodshock_1x2v_p1",
-      "rt_gk_bgk_im_periodic_sodshock_1x2v_p1",
-      "rt_gk_wham_1xIC_2x2v_p1",
-      "rt_gk_neut_step_2x3v_p1",
-      "rt_gk_sheath_3x2v_p1_cons",
-      "rt_gk_wham_nonuniformx_2x2v_p1",
-      "rt_gk_tcv_iwl_adapt_source_3x2v_p1",
-      "rt_gk_tcv_core_3x2v_p1",
-      "rt_gk_tcv_iwl_adapt_source_2x2v_p1",
-      "rt_gk_step_out_2x2v_p1",
-      "rt_gk_step_2x2v_p1_cons",
-      "rt_gk_multib_step_sol_1x2v_p1",
-      "rt_gk_multib_step_eirene_2x2v_p1",
+      "rt_gk_bgk_periodic_sodshock_1x2v_p1",    -- crashes compareFiles (C assertion in gkyl_aligned_free_)
+      "rt_gk_bgk_im_periodic_sodshock_1x2v_p1", -- crashes compareFiles (C assertion in gkyl_aligned_free_)
+      "rt_gk_wham_1xIC_2x2v_p1",                -- crashes compareFiles (C assertion in gkyl_aligned_free_)
    },
    gpu = {
    },

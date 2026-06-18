@@ -117,7 +117,7 @@ create_ctx(void)
   double vpar_max_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double mu_max_ion = 0.75 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
 
-  double t_end = (1.0e-10) * 0.641711; // Final simulation time.
+  double t_end = 1.0e-10; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;

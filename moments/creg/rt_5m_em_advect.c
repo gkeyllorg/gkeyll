@@ -79,7 +79,7 @@ create_ctx(void)
   double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
   double cfl_frac = 0.001; // CFL coefficient. Set to be small to compare with analytic result. 
 
-  double t_end = 0.486693; // Final simulation time.
+  double t_end = 100.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

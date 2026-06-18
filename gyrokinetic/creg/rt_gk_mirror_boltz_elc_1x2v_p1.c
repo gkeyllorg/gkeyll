@@ -509,7 +509,7 @@ create_ctx(void)
   int Nmu = 24;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 4.99111e-08;
+  double t_end = 1.0e-7;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;

@@ -1869,15 +1869,15 @@ local function config_action(args, name)
    configure(prefix, mpiexec, sourceDir, args)
 end
 
--- 'clear' command: remove all files created by the runregression system.
+-- 'clean' command: remove all files created by the runregression system.
 -- This deletes:
 --   * the gkeyll-results/ tree (per-layer databases, luareg/creg run and
 --     accepted scratch dirs, and every .gkyl output file they contain)
 --   * the configuration file written by 'configure' (both the preferred
 --     gkeyll-results location and the legacy ~/runregression.config.lua)
--- After 'clear' the system is back to an unconfigured state; re-run
+-- After 'clean' the system is back to an unconfigured state; re-run
 -- 'configure' to use it again.
-local function clear_action(args, name)
+local function clean_action(args, name)
    -- Determine the results directory to remove.  Prefer the path recorded in
    -- the config file (authoritative); fall back to the location derived from
    -- config.mak so we can still clean up when the config file is absent.
@@ -1905,7 +1905,7 @@ local function clear_action(args, name)
    end
 
    if #targets == 0 then
-      log("Nothing to clear: no runregression configuration or results found.\n")
+      log("Nothing to clean: no runregression configuration or results found.\n")
       return
    end
 
@@ -1933,7 +1933,7 @@ local function clear_action(args, name)
       end
       log(string.format("Removed %s\n", t.path))
    end
-   log("runregression cleared.\n")
+   log("runregression cleaned.\n")
 end
 
 -- 'list' command: print all regression tests that would be run.
@@ -2090,7 +2090,7 @@ local function run_action(args, name)
    end
 
    -- Helper: run the GPU variant of a test after the CPU run.
-   -- Saves CPU .gkyl files to _cpu_output/, clears .gkyl, runs GPU, compares.
+   -- Saves CPU .gkyl files to _cpu_output/, cleans .gkyl, runs GPU, compares.
    -- Returns: gpuStatus, gpuRuntime, cpuGpuDiff.
    local function runGpuVariant(test, runDir, testType, runFn, runArgs)
       local cpuOutputDir = runDir .. "/_cpu_output"
@@ -2683,16 +2683,16 @@ c_conf:flag("--drop-tables",
    "Drop and re-create all SQL tables\n"
    .. "(erases existing regression data).", false)
 
--- 'clear' command -------------------------------------------------------------
+-- 'clean' command -------------------------------------------------------------
 -- Removes all files created by the runregression system: the gkeyll-results/
 -- tree (databases, run/accepted scratch dirs, and all .gkyl output files) and
 -- the configuration file(s).
-local c_clear = parser:command("clear",
+local c_clean = parser:command("clean",
    "Remove all runregression configuration and result files.\n"
    .. "Deletes the gkeyll-results/ tree (databases, scratch dirs, .gkyl\n"
    .. "files) and the configuration file. Use 'configure' to set up again.")
-   :action(clear_action)
-c_clear:flag("-y --yes", "Do not prompt for confirmation before deleting.", false)
+   :action(clean_action)
+c_clean:flag("-y --yes", "Do not prompt for confirmation before deleting.", false)
 
 -- 'list' command --------------------------------------------------------------
 -- Lists all regression tests that would be run (useful for inspection).
