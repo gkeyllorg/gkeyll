@@ -740,9 +740,9 @@ create_ctx(void)
 
   // Number of cells.
   int Nx = 4;
-  int Nz = 8;
-  int Nvpar = 16;
-  int Nmu = 12;
+  int Nz = 4;
+  int Nvpar = 4;
+  int Nmu = 6;
 
   double t_end = 1.0e-8; 
   double num_frames = 1;

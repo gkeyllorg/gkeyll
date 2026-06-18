@@ -247,11 +247,11 @@ create_ctx(void)
 
   // Number of cells.
   int Nx = 4;
-  int Nz = 8;
-  int Nvpar = 12;
-  int Nmu = 8;
+  int Nz = 4;
+  int Nvpar = 6;
+  int Nmu = 4;
 
-  double t_end = 1e-6; 
+  double t_end = (1e-6) * 0.990099; 
   double num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.

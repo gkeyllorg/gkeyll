@@ -465,7 +465,7 @@ struct gk_app_ctx create_ctx(void)
   double mu_max_elc   = 1.5*me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 6.*vti;
   double mu_max_ion   = 1.5*mi*pow(4*vti,2)/(2*B0);
-  double t_end = 25*0.00551633e-6;
+  double t_end = 2e-8;
   int num_frames = 1;
   double write_phase_freq = 0.2;
   int int_diag_calc_num = num_frames*100;
@@ -788,6 +788,10 @@ main(int argc, char **argv)
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
     },
+    .print_verbosity = {
+      .enabled = true,
+      .frequency = 1,
+    }
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

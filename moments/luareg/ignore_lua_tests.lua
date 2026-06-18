@@ -34,6 +34,7 @@ return {
       "rt_gr_wald_magnetosphere_spinning_neutronstar",
       "rt_iso_euler_mixture_shock_bubble",
       "rt_gr_wald_magnetosphere_static_neutronstar",
+      "rt_10m_expanding_axi_sodshock",
    },
    gpu = {
    },

@@ -110,8 +110,8 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 256; // Cell count (x-direction).
-  int Ny = 256; // Cell count (y-direction).
+  int Nx = 16; // Cell count (x-direction).
+  int Ny = 16; // Cell count (y-direction).
   double Lx = 10.0; // Domain size (x-direction).
   double Ly = 10.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
@@ -119,7 +119,7 @@ create_ctx(void)
   enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
   int reinit_freq = 10; // Spacetime reinitialization frequency.
 
-  double t_end = 50.0; // Final simulation time.
+  double t_end = 1.91747; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

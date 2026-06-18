@@ -127,7 +127,7 @@ create_ctx(void)
   double floor_src = 0.1; // Minimum source intensity.
 
   // Simulation parameters.
-  int Nx = 16; // Cell count (configuration space: x-direction).
+  int Nx = 8; // Cell count (configuration space: x-direction).
   int Nz = 8; // Cell count (configuration space: z-direction).
   int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
@@ -138,7 +138,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
-  double t_end = 6.0e-6; // Final simulation time.
+  double t_end = ((6.0e-6) * 0.0359389) * 0.990099; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;

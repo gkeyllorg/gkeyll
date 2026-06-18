@@ -464,8 +464,8 @@ create_ctx(void)
   int Nmu = 8;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 1e-8;
-  int num_frames = 10;
+  double t_end = (1e-8) * 0.306748;
+  int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.

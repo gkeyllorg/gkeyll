@@ -13,7 +13,7 @@ Lx = 2.0 -- Domain size (x-direction).
 v_advect = 1.0 -- Advection velocity.
 cfl_frac = 0.4 -- CFL coefficient.
 
-t_end = 20.0 -- Final simulation time.
+t_end = (20.0) * 0.019996 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

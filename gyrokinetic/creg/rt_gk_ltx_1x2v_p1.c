@@ -406,9 +406,9 @@ create_ctx(void)
   double Ti_src = 40*eV;
 
   // Grid parameters
-  int Nz = 64;
+  int Nz = 16;
   int Nvpar = 16;
-  int Nmu = 45;
+  int Nmu = 11;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
@@ -416,7 +416,7 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(1.5*4*vti,2)/(2*B0);
 
-  double t_end = 6.0e-8;
+  double t_end = (6.0e-8) * 0.181488;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;

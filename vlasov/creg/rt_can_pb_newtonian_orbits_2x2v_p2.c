@@ -82,9 +82,9 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nr = 16; // Cell count (configuration space: radial direction).
-  int Ntheta = 32; // Cell count (configuration space: azimuthal angular direction).
+  int Ntheta = 16; // Cell count (configuration space: azimuthal angular direction).
   int Nvr = 8; // Cell count (velocity space: radial direction).
-  int Nvtheta = 32; // Cell count (velocity space: azimuthal angular direction).
+  int Nvtheta = 16; // Cell count (velocity space: azimuthal angular direction).
   double Lr_min = 0.5; // Domain size radius min (configuration space: radial direction).
   double Lr_max = 2.0; // Domain size radius max (configuration space: radial direction).
   double Ltheta_min = 0.0; // Domain size minimum (configuration space: azimuthal angular direction).

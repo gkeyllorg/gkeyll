@@ -79,14 +79,14 @@ create_ctx(void)
   double pr = 1.0; // Right/outer fluid pressure.
 
   // Simulation parameters.
-  int Nr = 128; // Cell count (radial direction).
+  int Nr = 16; // Cell count (radial direction).
   int Ntheta = 128 * 6; // Cell count (angular direction).
   double Lr = 1.0; // Domain size (radial direction).
   double Ltheta = 2.0 * pi; // Domain size (angular direction).
   double k0 = 0.1; // Closure parameter.
   double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 0.2; // Final simulation time.
+  double t_end = 0.108801; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

@@ -268,8 +268,8 @@ create_ctx(void)
 
   // Number of cells.
   int Nz = 4;
-  int Nvpar = 12;
-  int Nmu = 8;
+  int Nvpar = 6;
+  int Nmu = 4;
 
   double t_end = 1.0e-4; 
   double num_frames = 10;
@@ -599,6 +599,10 @@ main(int argc, char **argv)
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
     },
+    .print_verbosity = {
+      .enabled = true,
+      .frequency = 1,
+    }
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

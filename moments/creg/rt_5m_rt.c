@@ -98,13 +98,13 @@ create_ctx(void)
   double grav = g_hat * omega_ci * vAi; // Gravitational acceleration.
 
   // Simulation parameters.
-  int Nx = 64; // Cell count (x-direction).
+  int Nx = 32; // Cell count (x-direction).
   int Ny = 64; // Cell count (y-direction).
   double Lx = 3.0; // Domain size (x-direction).
   double Ly = 3.75; // Domain size (y-direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 250.0; // Final simulation time.
+  double t_end = 4.6875; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.

@@ -126,7 +126,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 4; // Cell count (configuration space: x-direction).
   int Ny = 2; // Cell count (configuration space: y-direction).
-  int Nz = 8; // Cell count (configuration space: z-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
   int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 50.0 * rho_s; // Domain size (configuration space: x-direction).
@@ -139,7 +139,7 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 0.50; // CFL coefficient.
 
-  double t_end = 6.0e-6; // Final simulation time.
+  double t_end = (6.0e-6) * 0.990099; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;

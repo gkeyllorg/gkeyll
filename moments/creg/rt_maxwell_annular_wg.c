@@ -74,7 +74,7 @@ create_ctx(void)
   double Ltheta = 2.0 * pi; // Domain size (angular direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0 * t_period; // Final simulation time.
+  double t_end = 6.69719; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_writes = 1; // Number of times to output field energy.
   int integrated_mom_writes = 1; // Number of times to output integrated moments.

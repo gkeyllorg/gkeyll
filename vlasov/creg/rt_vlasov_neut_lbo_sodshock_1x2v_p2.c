@@ -74,7 +74,7 @@ create_ctx(void)
   double nu = 100.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
+  int Nx = 16; // Cell count (configuration space: x-direction).
   int Nvx = 16; // Cell count (velocity space: vx-direction).
   int Nvy = 16; // Cell count (velocity space: vy-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
@@ -83,7 +83,7 @@ create_ctx(void)
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.1; // Final simulation time.
+  double t_end = 0.00619296; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

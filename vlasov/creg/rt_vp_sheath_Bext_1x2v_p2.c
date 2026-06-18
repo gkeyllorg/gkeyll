@@ -98,7 +98,7 @@ create_ctx(void)
   double omega_pe = sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
 
   // Simulation parameters.
-  int Nx = 64; // Cell count (configuration space: x-direction).
+  int Nx = 32; // Cell count (configuration space: x-direction).
   int Nvx = 16; // Cell count (velocity space: vx-direction).
   int Nvy = 16; // Cell count (velocity space: vy-direction).
   double Lx = 128.0 * lambda_D; // Domain size (configuration space: x-direction).
@@ -109,7 +109,7 @@ create_ctx(void)
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 100.0 / omega_pe; // Final simulation time.
+  double t_end = 1.00048e-10; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

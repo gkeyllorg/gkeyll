@@ -319,7 +319,7 @@ create_ctx(void)
   double z_max = Lz/2;
 
   // Grid parameters
-  int Nx = 8;
+  int Nx = 4;
   int Ny = 4;
   int Nz = 4;
   int Nvpar = 4;

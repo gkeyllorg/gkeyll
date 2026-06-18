@@ -124,8 +124,8 @@ create_ctx(void)
   double nu_ion = 0.01 * omega_ci / sqrt(mass_ion); // Ion collision frequency.
 
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
-  int Ny = 32; // Cell count (configuration space: y-direction).
+  int Nx = 8; // Cell count (configuration space: x-direction).
+  int Ny = 16; // Cell count (configuration space: y-direction).
   int Nvx = 16; // Cell count (velocity space: vx-direction).
   double Lx = 20.48 * d_i; // Domain size (configuration space: x-direction).
   double Ly = 20.48 * d_i; // Domain size (configuration space: y-direction).
@@ -134,7 +134,7 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 75.0 / omega_ci; // Final simulation time.
+  double t_end = 53.3333; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

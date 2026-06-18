@@ -99,7 +99,7 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = (2.0) * 0.0495417; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;

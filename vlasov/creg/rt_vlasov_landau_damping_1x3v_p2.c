@@ -76,9 +76,9 @@ create_ctx(void)
   double k0 = 0.3; // Perturbed wave number.
 
   // Simulation parameters.
-  int Nx = 8; // Cell count (configuration space: x-direction).
-  int Nvx = 8; // Cell count (velocity space: vx-direction).
-  int Nvy = 8; // Cell count (velocity space: vy-direction).
+  int Nx = 4; // Cell count (configuration space: x-direction).
+  int Nvx = 4; // Cell count (velocity space: vx-direction).
+  int Nvy = 4; // Cell count (velocity space: vy-direction).
   int Nvz = 8; // Cell count (velocity space: vz-direction).
   double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
   double vx_max = 6.0 * vt; // Domain boundary (velocity space: vx-direction).
@@ -87,7 +87,7 @@ create_ctx(void)
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 20.0; // Final simulation time.
+  double t_end = 3.47859; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

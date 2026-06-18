@@ -524,12 +524,12 @@ create_ctx(void)
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int Nx = 2;
   int Ny = 2;
-  int Nz = 32;
-  int Nvpar = 10; // Number of cells in the paralell velocity direction 96
-  int Nmu = 10;  // Number of cells in the mu direction 192
+  int Nz = 4;
+  int Nvpar = 5; // Number of cells in the paralell velocity direction 96
+  int Nmu = 5;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 1e-9;
+  double t_end = (1e-9) * 0.990099;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;

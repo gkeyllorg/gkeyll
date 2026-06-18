@@ -141,14 +141,14 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nx = 64; // Cell count (x-direction).
-  int Ny = 128; // Cell count (y-direction).
+  int Ny = 64; // Cell count (y-direction).
   double Lx = 6.4 * l; // Domain size (x-direction).
   double Ly = 12.8 * l; // Domain size (y-direction).
   double k0_elc = 1.0; // Closure parameter for electrons.
   double k0_ion = 1.0 / 6.0; // Closure parameter for ions.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 1100.0; // Final simulation time.
+  double t_end = 57.2078; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

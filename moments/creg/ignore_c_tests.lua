@@ -44,6 +44,9 @@ return {
       "rt_gr_multifluid_brio_wu",
       "rt_gr_blackhole_spinning",
       "rt_gr_blackhole_static",
+      "rt_gr_wald_magnetosphere_spinning_neutronstar",
+      "rt_gr_wald_magnetosphere_static_neutronstar",
+      "rt_10m_burch",
    },
    gpu = {
    },

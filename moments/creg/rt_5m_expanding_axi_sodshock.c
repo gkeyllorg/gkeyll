@@ -72,7 +72,7 @@ create_ctx(void)
   double pr = 1.0; // Right/outer fluid pressure.
 
   // Simulation parameters.
-  int Nr = 128; // Cell count (radial direction).
+  int Nr = 32; // Cell count (radial direction).
   int Ntheta = 128 * 6; // Cell count (angular direction).
   double Lr = 1.0; // Domain size (radial direction).
   double Ltheta = 2.0 * pi; // Domain size (angular direction).

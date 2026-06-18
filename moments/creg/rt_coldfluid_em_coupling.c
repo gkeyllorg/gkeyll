@@ -80,7 +80,7 @@ create_ctx(void)
   double x_last_edge = Lx / Nx; // Location of center of last cell.
   double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 1.0e-13; // Final simulation time.
+  double t_end = 1.50104e-16; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.

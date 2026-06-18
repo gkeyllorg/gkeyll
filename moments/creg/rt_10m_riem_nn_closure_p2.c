@@ -97,12 +97,12 @@ create_ctx(void)
   double rhor_elc = rhor_ion * mass_elc / mass_ion; // Right electron mass density.
 
   // Simulation parameters.
-  int Nx = 1024; // Cell count (x-direction).
+  int Nx = 64; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double k0 = 500.0; // Closure parameter.
   double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 10.0; // Final simulation time.
+  double t_end = 0.103906; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

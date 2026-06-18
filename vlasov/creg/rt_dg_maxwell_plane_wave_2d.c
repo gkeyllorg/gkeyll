@@ -75,14 +75,14 @@ create_ctx(void)
   double k_yn = k_wave_y / k_norm; // Normalized wave number (y-direction).
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (x-direction).
+  int Nx = 64; // Cell count (x-direction).
   int Ny = 128; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Ly = 1.0; // Domain size (y-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 0.078125; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

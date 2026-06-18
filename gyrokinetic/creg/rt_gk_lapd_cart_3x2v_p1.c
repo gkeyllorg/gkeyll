@@ -115,10 +115,10 @@ create_ctx(void)
   double floor_src = 0.01; // Minimum source intensity.
 
   // Simulation parameters.
-  int Nx = 10; // Cell count (configuration space: x-direction).
-  int Ny = 10; // Cell count (configuration space: y-direction).
-  int Nz = 8; // Cell count (configuration space: z-direction).
-  int Nvpar = 8; // Cell count (velocity space: parallel velocity direction).
+  int Nx = 5; // Cell count (configuration space: x-direction).
+  int Ny = 5; // Cell count (configuration space: y-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
+  int Nvpar = 4; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 100.0 * rho_s; // Domain size (configuration space: x-direction).
   double Ly = 100.0 * rho_s; // Domain size (configuration space: y-direction).

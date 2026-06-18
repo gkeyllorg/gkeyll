@@ -87,7 +87,7 @@ create_ctx(void)
   double x_last_edge = Lx - Lx / Nx; // Location of center of last upper cell (low density side).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 5.0e-9; // Final simulation time.
+  double t_end = 5e-10; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

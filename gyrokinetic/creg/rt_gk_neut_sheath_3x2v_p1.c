@@ -136,7 +136,7 @@ create_ctx(void)
   // Grid parameters.
   int Nx = 4; // Number of cells along x.
   int Ny = 2; // Number of cells along y.
-  int Nz = 8; // Number of cells along z.
+  int Nz = 4; // Number of cells along z.
   int Nvpar = 6; // Number of cells along vpar.
   int Nmu = 4; // Number of cells along mu.
   double Lx = 50.0*rho_s; // Domain length along x.
@@ -151,7 +151,7 @@ create_ctx(void)
   double cfl_frac = 0.50; // CFL coefficient.
 
   double t_end = 2.0e-7; // Final simulation time.
-  int num_frames = 2; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.

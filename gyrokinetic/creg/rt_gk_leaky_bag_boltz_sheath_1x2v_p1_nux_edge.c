@@ -77,8 +77,8 @@ create_ctx(void)
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 3; // Final simulation time.
-  int num_frames = 5; // Number of output frames.
+  double t_end = (3) * 0.0161394; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.

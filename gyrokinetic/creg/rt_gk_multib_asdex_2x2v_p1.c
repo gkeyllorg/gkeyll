@@ -926,8 +926,8 @@ create_ctx(void)
   int Npsi_core = 18;
   int Ntheta_divertor = 4;
   int Ntheta_sol = 8;
-  int Nvpar = 16; // Number of cells in vpar.
-  int Nmu = 8; // Number of cells in mu.
+  int Nvpar = 4; // Number of cells in vpar.
+  int Nmu = 4; // Number of cells in mu.
 
   // Adjust psi_min_core to ensure that dx_core = dx_sol.
   // we need ((psi_sep-shift_fac_core * psi_min_core)/Npsi_core) / ((psi_max_sol-psi_sep)/Npsi_sol) = 1
@@ -990,7 +990,7 @@ create_ctx(void)
   printf("  Ntheta_divertor = %d\n",Ntheta_divertor);
   printf("  Ntheta_sol      = %d\n",Ntheta_sol     );
 
-  double t_end = 1.0e-7;
+  double t_end = (1.0e-7) * 0.990099;
   double num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;

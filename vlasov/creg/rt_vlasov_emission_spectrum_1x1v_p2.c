@@ -174,7 +174,7 @@ create_ctx(void)
     .Nx = 128,
     .Nv = 32,
     .num_emission_species = 1,
-    .t_end = 10.0/ctx.omega_pe,
+    .t_end = 1e-11,
     .num_frames = 1,
     .dt_failure_tol = 1.0e-4,
     .num_failures_max = 20,

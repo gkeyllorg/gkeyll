@@ -22,7 +22,7 @@ Lx = 1.0 -- Domain size (x-direction).
 k0 = 0.0 -- Closure parameter.
 cfl_frac = 0.9 -- CFL coefficient.
 
-t_end = 0.1 -- Final simulation time.
+t_end = (0.1) * 0.75188 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

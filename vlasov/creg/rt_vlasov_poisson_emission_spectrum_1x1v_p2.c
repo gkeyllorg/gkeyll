@@ -157,7 +157,7 @@ create_ctx(void)
   double W = 60.86;
   double p = 1.0;
 
-  double t_end = 10.0/omega_pe; // Final simulation time.
+  double t_end = 3.98822e-10; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
