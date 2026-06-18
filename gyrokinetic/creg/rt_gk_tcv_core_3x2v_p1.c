@@ -465,7 +465,7 @@ struct gk_app_ctx create_ctx(void)
   double mu_max_elc   = 1.5*me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 6.*vti;
   double mu_max_ion   = 1.5*mi*pow(4*vti,2)/(2*B0);
-  double t_end = 2e-8;
+  double t_end = 1e-5;
   int num_frames = 1;
   double write_phase_freq = 0.2;
   int int_diag_calc_num = num_frames*100;
