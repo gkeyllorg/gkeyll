@@ -38,7 +38,17 @@ local sql = require "sqlite3"
 -- (each test run redirects output to its own scratch directory).
 GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "runregression"
 
-local log = Logger { logToFile = true }
+-- The Logger created below opens (and truncates) GKYL_OUT_PREFIX.."_0.log" for
+-- this invocation.  The 'update-timings' command only *reads* a previous run's
+-- log -- and its default input is that very same runregression_0.log -- so it
+-- must not open a log file of its own.  Detect that command here and disable
+-- file logging for it (messages still go to stdout).
+local isUpdateTimings = false
+for i = 1, #GKYL_COMMANDS_L do
+   if GKYL_COMMANDS_L[i] == "update-timings" then isUpdateTimings = true; break end
+end
+
+local log = Logger { logToFile = not isUpdateTimings }
 local verboseLog = function (msg) end -- default: no verbose output
 local verboseLogger = function (msg) log(msg) end
 
@@ -2326,6 +2336,112 @@ local function rununit_action(args, name)
    log(string.format("All unit tests completed in %.3f secs\n", Time.clock() - tmStart))
 end
 
+-- ---- update-timings command -------------------------------------------------
+-- Parses a runregression 'run' log and regenerates Tool/test_costs.lua with
+-- fresh per-test wall-clock costs.  runregression.lua loads that table to
+-- launch tests cheapest-first (see the cost-based ordering block near the top).
+--
+-- The relevant log lines (written by collectLua / collectC) look like:
+--   [Lua] <layer>/luareg/<test>.lua completed (1.234 sec)
+--   [C] <layer>/creg/<test> TIMED OUT (120.000 sec)
+-- The captured name matches RegressionData.name / the 'name' field in
+-- test_costs.lua exactly.  Costs are floored to whole seconds to match the
+-- existing table format (sub-second tests therefore sort as cost 0).
+local function updatetimings_action(args, name)
+   loadConfigure(args)
+
+   -- Read the log.  This command does not open a log file of its own (see the
+   -- isUpdateTimings guard at the top), so the input -- including the default
+   -- runregression_0.log -- is left intact and can be read directly here.
+   local logFile = args.file or (lfs.currentdir() .. "/runregression_0.log")
+   local lf = io.open(logFile, "r")
+   if not lf then
+      log(string.format("Could not open log file '%s'.\n", logFile))
+      os.exit(1)
+   end
+
+   -- Parse every 'completed' / 'TIMED OUT' line.  If a test appears more than
+   -- once (e.g. re-run within the same log) the last occurrence wins.
+   local costByName = {}  -- name -> { cost = <int>, timed_out = <bool> }
+   for line in lf:lines() do
+      local tname, secs =
+         line:match("^%[%a+%]%s+(%S+)%s+completed%s+%(([%d%.]+)%s+sec%)")
+      local timedOut = false
+      if not tname then
+         tname, secs =
+            line:match("^%[%a+%]%s+(%S+)%s+TIMED OUT%s+%(([%d%.]+)%s+sec%)")
+         timedOut = true
+      end
+      if tname and secs then
+         costByName[tname] = {
+            cost      = math.floor(tonumber(secs)),
+            timed_out = timedOut,
+         }
+      end
+   end
+   lf:close()
+
+   -- Flatten to a list and sort by increasing cost (ties broken on name) so the
+   -- regenerated table matches the cheapest-first ordering convention.
+   local entries = {}
+   for nm, e in pairs(costByName) do
+      entries[#entries + 1] = { name = nm, cost = e.cost, timed_out = e.timed_out }
+   end
+   if #entries == 0 then
+      log(string.format(
+         "No 'completed'/'TIMED OUT' lines found in '%s'; nothing to update.\n",
+         logFile))
+      os.exit(1)
+   end
+   table.sort(entries, function(a, b)
+      if a.cost ~= b.cost then return a.cost < b.cost end
+      return a.name < b.name
+   end)
+
+   -- Write the regenerated table back into the source tree so it can be
+   -- committed.  test_costs.lua lives at source_dir/gkeyll/lua/Tool/.
+   local outPath = configVals.source_dir .. "/gkeyll/lua/Tool/test_costs.lua"
+   local out = io.open(outPath, "w")
+   if not out then
+      log(string.format("Could not open '%s' for writing.\n", outPath))
+      os.exit(1)
+   end
+
+   out:write([[
+-- Gkyl ------------------------------------------------------------------------
+--
+-- Regression-test cost table, ordered by increasing execution time.
+--
+-- Auto-generated from a 'runregression run ... --jobs N' log by parsing the
+-- per-test '... completed (N sec)' / 'TIMED OUT (N sec)' lines.
+-- runregression.lua loads this to launch tests cheapest-first, so short
+-- tests finish early and the long tail of expensive tests runs last.
+--
+-- Regenerate with:  gkeyll runregression update-timings [-f <logfile>]
+--
+-- Each entry: { name = <test.name>, cost = <wall-clock seconds>, timed_out = <bool> }.
+-- 'name' matches RegressionData.name / the runregression log label exactly,
+--   e.g. "moments/luareg/rt_5m_burch.lua" or "moments/creg/rt_10m_sodshock".
+-- Tests not present here (new tests with no recorded cost) are treated as
+--   cost 0 by runregression and run first.
+-- Timed-out tests are listed last (cost = timeout limit, timed_out = true).
+--------------------------------------------------------------------------------
+
+return {
+]])
+   for _, e in ipairs(entries) do
+      out:write(string.format(
+         "   { name = %q, cost = %d, timed_out = %s },\n",
+         e.name, e.cost, tostring(e.timed_out)))
+   end
+   out:write("}\n")
+   out:close()
+
+   log(string.format(
+      "Updated timings for %d test(s) from '%s'\n  -> %s\n",
+      #entries, logFile, outPath))
+end
+
 -- ---- CLI parser -------------------------------------------------------------
 
 local parser = argparse()
@@ -2447,6 +2563,17 @@ c_run:command("check",
 c_run:command("create",
    "Run tests and save output as accepted baselines.\n"
    .. "On GPU builds, create always runs in CPU mode so baselines are deterministic.")
+
+-- 'update-timings' command ----------------------------------------------------
+-- Regenerates Tool/test_costs.lua from a previous 'run' log so tests can be
+-- launched cheapest-first on the next run.
+local c_uptim = parser:command("update-timings",
+   "Update Tool/test_costs.lua from a runregression run log.\n"
+   .. "Parses the per-test 'completed'/'TIMED OUT (N sec)' lines and rewrites\n"
+   .. "the cost table in the source tree (cheapest-first ordering).")
+   :action(updatetimings_action)
+c_uptim:option("-f --file",
+   "Log file to parse (default: ./runregression_0.log).")
 
 -- 'listunit' command ----------------------------------------------------------
 parser:command("listunit", "List all unit tests")
