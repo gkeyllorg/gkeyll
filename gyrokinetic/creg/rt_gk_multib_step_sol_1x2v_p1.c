@@ -272,7 +272,7 @@ create_ctx(void)
   int Nmu = 4;
 
   double t_end = 1.0e-4; 
-  double num_frames = 10;
+  double num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
