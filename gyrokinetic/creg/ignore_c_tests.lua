@@ -22,6 +22,7 @@ return {
       "rt_gk_bgk_periodic_sodshock_1x2v_p1",    -- crashes compareFiles (C assertion in gkyl_aligned_free_)
       "rt_gk_bgk_im_periodic_sodshock_1x2v_p1", -- crashes compareFiles (C assertion in gkyl_aligned_free_)
       "rt_gk_wham_1xIC_2x2v_p1",                -- crashes compareFiles (C assertion in gkyl_aligned_free_)
+      "rt_gk_multib_step_eirene_2x2v_p1", -- Failing to read geometry. There is a missing geometry file
    },
    gpu = {
    },
