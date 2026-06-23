@@ -990,7 +990,7 @@ create_ctx(void)
   printf("  Ntheta_divertor = %d\n",Ntheta_divertor);
   printf("  Ntheta_sol      = %d\n",Ntheta_sol     );
 
-  double t_end = (1.0e-7) * 0.990099;
+  double t_end = 1.0e-7;
   double num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;

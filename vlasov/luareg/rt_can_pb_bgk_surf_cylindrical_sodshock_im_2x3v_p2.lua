@@ -23,7 +23,7 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nr = 32 -- Cell count (configuration space: radial direction).
+Nr = 8 -- Cell count (configuration space: radial direction).
 Ntheta = 1 -- Cell count (configuration space: angular direction).
 Nvr = 4 -- Cell count (velocity space: radial direction).
 Nvtheta = 4 -- Cell count (velocity space: angular direction).
@@ -38,7 +38,7 @@ basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = (0.1) * 0.708383 -- Final simulation time.
+t_end = 0.1 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

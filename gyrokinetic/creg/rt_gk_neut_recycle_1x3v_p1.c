@@ -104,7 +104,7 @@ create_ctx(void)
   double n_src = pow(n0,2.0)*8e-21; // Source number density.
   double T_src = 10.0*eV; // Source temperature.
 
-  int Nz = 14; // Number of cells along magnetic field.
+  int Nz = 16; // Number of cells along magnetic field.
   int Nvpar = 8; // Number of cells in vpar.
   int Nmu = 4; // Number of cells in mu.
   int Nv = 16; // Number of cells in neutral v.
@@ -116,7 +116,7 @@ create_ctx(void)
   double mu_max_ion = 12.0*mass_ion*pow(vti,2)/(2.0*B0); // Maximum ion mu.
   double v_max_neut = 4.0 * vtn; // Maximum neutral velocity.
  
-  double t_end = .00625*Lz/c_s; // Final simulation time.
+  double t_end = .1*Lz/c_s; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.

@@ -60,7 +60,7 @@ k0_elc = 1.0 -- Closure parameter for electrons.
 k0_ion = 1.0 / 6.0 -- Closure parameter for ions.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = (1100.0) * 0.0517688 -- Final simulation time.
+t_end = 1100.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

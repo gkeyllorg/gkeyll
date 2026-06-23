@@ -30,7 +30,7 @@ Ly = 0.089 -- Domain size (y-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 reinit_freq = 3 -- Reinitialization frequency (for level set).
 
-t_end = (0.4) * 0.0706215 -- Final simulation time.
+t_end = 0.4 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

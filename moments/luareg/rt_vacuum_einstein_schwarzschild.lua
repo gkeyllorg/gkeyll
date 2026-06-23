@@ -16,8 +16,8 @@ spacetime_slicing = G0.SpacetimeSlicing.OnePlusLog -- Spacetime slicing conditio
 spacetime_evolution = G0.SpacetimeEvolution.Einstein -- Spacetime evolution system.
 
 -- Simulation parameters.
-Nx = 256 -- Cell count (x-direction).
-Ny = 256 -- Cell count (y-direction).
+Nx = 64 -- Cell count (x-direction).
+Ny = 64 -- Cell count (y-direction).
 Lx = 10.0 -- Domain size (x-direction).
 Ly = 10.0 -- Domain size (y-direction).
 cfl_frac = 0.8 -- CFL coefficient.

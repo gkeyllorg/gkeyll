@@ -85,13 +85,13 @@ create_ctx(void)
   double p_bub = 1.0 / gas_gamma1; // Bubble fluid pressure.
 
   // Simulation parameters.
-  int Nx = 81; // Cell count (x-direction).
+  int Nx = 89; // Cell count (x-direction).
   int Ny = 89; // Cell count (y-direction).
   double Lx = 0.325; // Domain size (x-direction).
   double Ly = 0.089; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 0.0152071; // Final simulation time.
+  double t_end = 0.4; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

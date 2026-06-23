@@ -272,7 +272,7 @@ create_ctx(void)
   int Nmu = 4;
 
   double t_end = 1.0e-4; 
-  double num_frames = 10;
+  double num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -599,10 +599,6 @@ main(int argc, char **argv)
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
     },
-    .print_verbosity = {
-      .enabled = true,
-      .frequency = 1,
-    }
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
