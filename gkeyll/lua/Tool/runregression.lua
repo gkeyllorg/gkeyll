@@ -1567,9 +1567,17 @@ local function compareFiles(f1, f2, absTol, relTol)
       local g1, a1 = G0.Zero.arrayNewFromFile(f1)
       local g2, a2 = G0.Zero.arrayNewFromFile(f2)
       if not g1 or not g2 then
+         -- Fail closed: an unreadable run output must never count as a pass.
+         -- A baseline (f1) that is unreadable means the baseline itself is
+         -- broken; a run file (f2) that is unreadable means the simulation
+         -- produced corrupt/truncated output -- a real failure, not a file
+         -- format we can wave through. (Hardened grader requirement: a student
+         -- whose reimplementation corrupts output must score a failure, not a
+         -- pass via this branch.)
          verboseLog(string.format(
-            "    ... skipping %s (unsupported file format)\n", shortPath(f1)))
-         return true
+            "    ... unreadable .gkyl: %s and/or %s\n",
+            shortPath(f1), shortPath(f2)))
+         return false, "unreadable .gkyl"
       end
 
       if not G0.Zero.rectGridCmp(g1, g2) then
