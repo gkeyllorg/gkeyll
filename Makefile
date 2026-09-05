@@ -268,10 +268,10 @@ everything: regression unit gkeyll ## Build everything, including unit, regressi
 core:  ## Build core infrastructure code
 	cd core && $(MAKE) -f Makefile-core
 
-core-unit: ## Build core unit tests
+core-unit: core ## Build core unit tests
 	cd core && $(MAKE) -f Makefile-core unit
 
-core-regression: ## Build core regression tests
+core-regression: core ## Build core regression tests
 	cd core && $(MAKE) -f Makefile-core regression
 
 core-install: ## Install core infrastructure code
@@ -402,7 +402,7 @@ pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 gkeyll: ${BUILD_APP} ## Build Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll gkeyll
 
-gkeyll-install: ${BUILD_APP}-install gkeyll ## Install Gkeyll executable
+gkeyll-install: ${BUILD_APP}-install ## Install Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll install
 
 ## Targets to build things all parts of the code
@@ -418,7 +418,9 @@ clean:
 	rm -rf ${BUILD_DIR}
 
 # Check everything
-check: unit unit-run ## Build (if needed) and run all unit tests
+check: ## Build (if needed) and run all unit tests
+	$(MAKE) unit
+	$(MAKE) unit-run
 
 # Run all unit tests
 unit-run: ## Run all unit tests without (re)building them

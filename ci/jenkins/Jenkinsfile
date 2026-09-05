@@ -1,0 +1,177 @@
+// Jenkins pipeline for Gkeyll, built/run on our own persistent machines
+// (see ci/jenkins/README.md for how the Jenkins job driving this is set up).
+//
+// Unlike a shared, long-lived gkylsoft/, each build clones the repo fresh
+// and builds its own dependencies from scratch into its own workspace
+// (mirroring .github/workflows/mac_build.yml), then actually runs the unit
+// tests rather than just building them.
+//
+// Scripted (not declarative) pipeline, since we run the same steps in
+// parallel across a set of named nodes that will grow over time and may mix
+// operating systems (hence the per-node mkdeps/configure script choice).
+
+// Layers with a runregression MOAT (Mother Of All Tests) subset.
+def REGRESSION_LAYERS = ['moments', 'vlasov', 'gyrokinetic', 'pkpm']
+
+def buildAndTest(String mkdepsScript, String configureScript) {
+    stage('Environment') {
+        sh 'printenv'
+    }
+    stage('Clean') {
+        // The workspace (and its build/ and gkylsoft/ dirs) persists across
+        // builds for a given branch/PR, so a build interrupted or racing
+        // mid-compile can leave stale/corrupted files behind that a later
+        // incremental step wrongly treats as up to date (e.g. missing
+        // symbols at link time, without ever recompiling/reinstalling).
+        // Wipe both every run so each build is truly from scratch: the
+        // install-deps scripts already re-download/rebuild everything
+        // unconditionally, but don't clear their install prefix first, so a
+        // stale gkylsoft/ could otherwise mix old and new files.
+        sh 'make clean'
+        sh 'rm -rf "$WORKSPACE/gkylsoft"'
+        // Side workspace used to build a same-session `main` baseline for
+        // the regression-diff stage below (PR builds only).
+        sh 'rm -rf "$WORKSPACE/_main_baseline"'
+    }
+    stage('Dependencies') {
+        // Build gkylsoft/ from scratch inside this build's own workspace
+        // (rather than a shared, fixed path) so that concurrent builds for
+        // different branches/PRs on the same node never share or clobber
+        // each other's dependency trees.
+        sh "PREFIX=\"\$WORKSPACE/gkylsoft\" ./machines/${mkdepsScript}"
+    }
+    stage('Configure') {
+        sh "PREFIX=\"\$WORKSPACE/gkylsoft\" ./machines/${configureScript}"
+    }
+    stage('Unit tests') {
+        sh 'make -j3 check'
+    }
+    stage('Regression build') {
+        sh 'make -j3 regression'
+    }
+    stage('Install') {
+        // Needed by 'gkeyll runregression': it compiles C regression tests
+        // on the fly using the installed share/Makefile, and 'gkeyll' itself
+        // is the interpreter runregression runs as.
+        //
+        // Use 'install' (from the generated alltargets.mak), not
+        // 'gkeyll-install' (defined directly in the top-level Makefile):
+        // the latter has two independent prerequisite chains that both
+        // rebuild the same build/**/libg0*.so files, which can race under
+        // -j and fail with e.g. "cp: .../libg0vlasov.so: No such file or
+        // directory" when nothing has pre-built them yet.
+        sh 'make -j3 install'
+    }
+
+    if (env.CHANGE_ID) {
+        // Only PR builds run the regression-diff stages below: they compare
+        // against a baseline built from the PR's target branch, which is
+        // meaningless for a build *of* that branch itself.
+        stage('Regression baseline (main)') {
+            buildRegressionBaseline(mkdepsScript, configureScript, env.CHANGE_TARGET ?: 'main')
+        }
+        stage('Regression tests (MOAT)') {
+            def gkeyll = "\$WORKSPACE/gkylsoft/gkeyll/bin/gkeyll"
+            def resultsDir = "\$WORKSPACE/gkylsoft/gkeyll-results"
+            def baselineResultsDir = "\$WORKSPACE/_main_baseline/gkylsoft/gkeyll-results"
+            sh "\"${gkeyll}\" runregression configure --source-dir \"\$WORKSPACE\" --prefix \"\$WORKSPACE/gkylsoft\""
+            // Move (not copy) the main-branch baseline's accepted outputs
+            // into the PR's own results tree: _main_baseline is scratch
+            // space nothing else reads afterward and gets wiped by the next
+            // build's Clean stage anyway, so moving avoids briefly doubling
+            // disk usage on what can be a large number of regression files.
+            def moveCmd = "set -e\n"
+            for (layer in REGRESSION_LAYERS) {
+                for (kind in ['luareg-accepted', 'creg-accepted']) {
+                    moveCmd += "if [ -d \"${baselineResultsDir}/${layer}/${kind}\" ]; then rm -rf \"${resultsDir}/${layer}/${kind}\"; mv \"${baselineResultsDir}/${layer}/${kind}\" \"${resultsDir}/${layer}/${kind}\"; fi\n"
+                }
+            }
+            sh moveCmd
+            sh "\"${gkeyll}\" runregression run --moat check --timeout 300 --jobs 0"
+            sh "\"${gkeyll}\" \"\$WORKSPACE/ci/jenkins/check_regression_results.lua\" \"${resultsDir}\" \"\$WORKSPACE/ci/jenkins/expected_regression_diffs.txt\""
+        }
+    } else {
+        // Cheap hygiene check for `main`-branch builds: a leftover
+        // acknowledgment entry from a just-merged PR would otherwise
+        // silently mask a real future regression on the same test name.
+        stage('Check for stale regression acknowledgments') {
+            sh '''
+                if grep -qE '^[^#[:space:]]' ci/jenkins/expected_regression_diffs.txt 2>/dev/null; then
+                    echo "WARNING: ci/jenkins/expected_regression_diffs.txt still has active entries on main -- clear it out now that the PR that added them is merged (see ci/jenkins/README.md)."
+                fi
+            '''
+        }
+    }
+}
+
+// Builds `baseBranch` (normally the PR's target branch) from scratch in a
+// side workspace and runs the MOAT regression suite's 'create' step there,
+// producing accepted baselines generated on this exact node/build -- so the
+// PR's own MOAT 'check' run (see buildAndTest) has something to diff against
+// without relying on a stale or cross-machine-generated baseline.
+def buildRegressionBaseline(String mkdepsScript, String configureScript, String baseBranch) {
+    dir('_main_baseline') {
+        checkout([$class: 'GitSCM',
+            branches: [[name: "*/${baseBranch}"]],
+            userRemoteConfigs: [[url: 'https://github.com/gkeyllorg/gkeyll']],
+        ])
+        sh "PREFIX=\"\$WORKSPACE/_main_baseline/gkylsoft\" ./machines/${mkdepsScript}"
+        sh "PREFIX=\"\$WORKSPACE/_main_baseline/gkylsoft\" ./machines/${configureScript}"
+        // See the comment on the 'Install' stage above re: install vs gkeyll-install.
+        sh 'make -j3 install'
+        def gkeyll = "\$WORKSPACE/_main_baseline/gkylsoft/gkeyll/bin/gkeyll"
+        sh "\"${gkeyll}\" runregression configure --source-dir \"\$WORKSPACE/_main_baseline\" --prefix \"\$WORKSPACE/_main_baseline/gkylsoft\""
+        sh "\"${gkeyll}\" runregression run --moat create --timeout 300"
+    }
+}
+
+properties([disableConcurrentBuilds(abortPrevious: true)])
+
+// Jenkins node label -> config to use on that machine (machines/ has a
+// mkdeps/configure script variant per OS/site). This map is shared across
+// every independent Jenkins controller building this repo (see
+// ci/jenkins/README.md) — add a node here once it's registered as a Jenkins
+// agent under whichever controller owns it, using whichever scripts match
+// its OS, e.g.:
+//   'workstation-node': [mkdeps: 'mkdeps.linux.sh', configure: 'configure.linux.cpu.sh'],
+//
+// allowedPrAuthors (optional): restricts this node to only building PRs
+// authored by one of the listed GitHub usernames — for personal machines
+// that shouldn't run arbitrary contributors' PR code. Omit it (as for a
+// shared/team node) to build PRs from anyone. Builds of `main` itself are
+// never restricted, since there's no CHANGE_AUTHOR for those.
+def nodes = [
+    'manauref_lt1': [mkdeps: 'mkdeps.macos.sh', configure: 'configure.macos.sh', allowedPrAuthors: ['manauref']],
+]
+
+// Every controller running this Jenkinsfile shares the `nodes` map above,
+// but only owns a subset of those labels as actual agents. Each controller
+// declares its own subset via a global environment variable (Manage Jenkins
+// -> System -> Global properties -> Environment variables), set once locally
+// and NOT committed to the repo -- see ci/jenkins/README.md. Without this, a
+// controller would try node(label) for a label it has no agent for and hang
+// forever waiting for an executor that will never exist.
+def ownedLabels = (env.CI_OWNED_NODE_LABELS ?: '').split(',').collect { it.trim() }.findAll { it }
+if (!ownedLabels) {
+    error("CI_OWNED_NODE_LABELS is not set on this controller (Manage Jenkins -> System -> Global properties -> Environment variables). Set it to a comma-separated list of the node label(s) this controller owns, e.g. 'manauref_lt1'. See ci/jenkins/README.md.")
+}
+def myNodes = nodes.findAll { label, cfg -> ownedLabels.contains(label) }
+
+def branches = myNodes.collectEntries { label, cfg ->
+    [(label): {
+        if (env.CHANGE_AUTHOR && cfg.allowedPrAuthors && !cfg.allowedPrAuthors.contains(env.CHANGE_AUTHOR)) {
+            echo "Skipping ${label}: PR author '${env.CHANGE_AUTHOR}' is not in this node's allowedPrAuthors ${cfg.allowedPrAuthors}."
+            return
+        }
+        node(label) {
+            checkout scm
+            try {
+                buildAndTest(cfg.mkdeps, cfg.configure)
+            } finally {
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'build/**/*.log,gkylsoft/gkeyll-results/**/*.txt,gkylsoft/gkeyll-results/**/regressiondb'
+            }
+        }
+    }]
+}
+
+parallel(branches)

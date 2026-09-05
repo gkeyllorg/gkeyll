@@ -1,0 +1,13 @@
+# Tests whose MOAT regression output is expected to change in the current
+# PR (e.g. because of an intentional physics/algorithm change), one
+# "<layer>/<test-name>" per line with a short reason. Jenkins compares the
+# PR's MOAT run against a baseline built fresh from the PR's target branch,
+# so any test listed here is exempted from failing the build; unlisted
+# failures/diffs still fail it. See ci/jenkins/README.md.
+#
+# Clear this file back out (remove your lines) once the PR is merged --
+# otherwise a real future regression on the same test name could be
+# silently masked.
+#
+# Example:
+# gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
