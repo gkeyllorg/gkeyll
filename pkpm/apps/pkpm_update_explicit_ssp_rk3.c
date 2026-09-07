@@ -38,7 +38,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app* app, double dt0)
           for (int i=0; i<ns; ++i) {
             pkpm_fluid_species_limiter(app, &app->species[i], fout[i], fluidout[i]);
           }
-          pkpm_field_limiter(app, app->field, app->field->emnew);
+          pkpm_field_limiter(app, app->field, app->field->em1);
 
           dt = st.dt_actual;
           state = RK_STAGE_2;
