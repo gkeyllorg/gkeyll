@@ -175,7 +175,8 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, num_nodes);
   gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev,
     *conf_range, *phase_range, up->vmap->on_dev, up->jacob_pos->on_dev, up->jacob_vel_surf->on_dev, poisson_tensor_conf->on_dev,
-    hamil->on_dev, qmem->on_dev, pot_tot->on_dev, rad->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev);
+    hamil->on_dev, qmem ? qmem->on_dev : 0, pot_tot ? pot_tot->on_dev : 0, rad ? rad->on_dev : 0,
+    fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev);
 }
 
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
@@ -378,6 +379,45 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
           up->hamil_alpha_quad[0] = tensor_hamil_phase_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[1] = tensor_hamil_phase_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[2] = tensor_hamil_phase_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+      }
+      else if (model_id == GKYL_MODEL_TRIAD) {
+        // Triad bracket on the tensor p=1 hybrid (sparse or dense velocity-space
+        // Hamiltonian): per-node inverse velocity-map Jacobians of the C^1 cubic
+        // map and the cubic vmap in the omega = v.Pi momentum factor.
+        if ( use_lo ) {
+          up->hamil_alpha_quad[0] = hamil_sparse ?
+            tensor_nc_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+            tensor_nc_hamil_vel_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = hamil_sparse ?
+            tensor_nc_hamil_vel_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+            tensor_nc_hamil_vel_dense_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = hamil_sparse ?
+            tensor_nc_hamil_vel_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+            tensor_nc_hamil_vel_dense_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          up->hamil_alpha_quad[0] = hamil_sparse ?
+            tensor_nc_hamil_vel_sparse_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+            tensor_nc_hamil_vel_dense_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = hamil_sparse ?
+            tensor_nc_hamil_vel_sparse_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+            tensor_nc_hamil_vel_dense_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = hamil_sparse ?
+            tensor_nc_hamil_vel_sparse_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+            tensor_nc_hamil_vel_dense_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+      }
+      else if (model_id == GKYL_MODEL_TRIAD_GR) {
+        if ( use_lo ) {
+          up->hamil_alpha_quad[0] = tensor_nc_hamil_phase_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = tensor_nc_hamil_phase_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = tensor_nc_hamil_phase_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          up->hamil_alpha_quad[0] = tensor_nc_hamil_phase_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = tensor_nc_hamil_phase_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = tensor_nc_hamil_phase_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
         }
       }
 

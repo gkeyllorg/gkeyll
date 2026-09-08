@@ -26,6 +26,11 @@ gkyl_prim_lbo_vlasov_set_cu_dev_ptrs(struct prim_lbo_type_vlasov *prim_vlasov, i
       cross_prim_kernels = ser_cross_prim_kernels;
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      self_prim_kernels = ten_self_prim_kernels;
+      cross_prim_kernels = ten_cross_prim_kernels;
+      break;
+
     default:
       assert(false);
       break;    

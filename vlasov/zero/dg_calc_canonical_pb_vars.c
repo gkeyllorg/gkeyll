@@ -13,6 +13,12 @@ gkyl_dg_calc_canonical_pb_vars*
 gkyl_dg_calc_canonical_pb_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, bool use_gpu)
 {
+  // The Serendipity canonical-PB moment tables have no 3x3v row (only the
+  // tensor p=1 hybrid is generated in 3x3v); fail loudly instead of indexing
+  // past the table, on both host and device.
+  assert(!(phase_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY
+    && conf_basis->ndim == 3 && phase_basis->ndim == 6));
+
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
     return gkyl_dg_calc_canonical_pb_vars_cu_dev_new(phase_grid, 
@@ -31,6 +37,8 @@ gkyl_dg_calc_canonical_pb_vars_new(const struct gkyl_rect_grid *phase_grid,
 
   up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(phase_basis->b_type, cv_index[cdim].vdim[vdim], cdim, poly_order);
   up->canonical_pb_covariant_u_i = choose_canonical_pb_m1i_contra_to_cov_kern(phase_basis->b_type, cv_index[cdim].vdim[vdim], cdim, poly_order);
+  assert(up->canonical_pb_pressure);
+  assert(up->canonical_pb_covariant_u_i);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);

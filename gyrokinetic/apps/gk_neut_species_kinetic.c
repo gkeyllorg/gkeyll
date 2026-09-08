@@ -813,20 +813,29 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   }
 
   // Conf-space Poisson tensor: assembled from the GK geometry's nodal Cartesian
-  // tangents via the b-aligned triad construction. Built on the host (the
-  // nodal geometry arrays are host-side) and copied to the device.
+  // tangents via the b-aligned triad construction. The construction runs on
+  // the host; on GPUs the geometry's nodal arrays live on the device, so take
+  // host copies of the tangents and bhat first, and copy the result back.
   int num_pt_indices[3] = { 1, 6, 18 };
   s->conf_poisson_tensor = mkarr(app->use_gpu, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
   s->conf_poisson_tensor_host = s->conf_poisson_tensor;
+  struct gkyl_array *dxdz_nodal_host = app->gk_geom->geo_int.dxdz_nodal;
+  struct gkyl_array *bcart_nodal_host = app->gk_geom->geo_int.bcart_nodal;
   if (app->use_gpu) {
     s->conf_poisson_tensor_host = mkarr(false, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
+    dxdz_nodal_host = mkarr(false, app->gk_geom->geo_int.dxdz_nodal->ncomp, app->gk_geom->geo_int.dxdz_nodal->size);
+    bcart_nodal_host = mkarr(false, app->gk_geom->geo_int.bcart_nodal->ncomp, app->gk_geom->geo_int.bcart_nodal->size);
+    gkyl_array_copy(dxdz_nodal_host, app->gk_geom->geo_int.dxdz_nodal);
+    gkyl_array_copy(bcart_nodal_host, app->gk_geom->geo_int.bcart_nodal);
   }
   gkyl_vlasov_triad_geom_from_tangents_interior(&app->grid, &app->local, app->basis,
     &s->grid, &s->local, s->basis, &app->gk_geom->nrange_int,
-    app->gk_geom->geo_int.dxdz_nodal, app->gk_geom->geo_int.bcart_nodal,
+    dxdz_nodal_host, bcart_nodal_host,
     true, s->conf_poisson_tensor_host);
   if (app->use_gpu) {
     gkyl_array_copy(s->conf_poisson_tensor, s->conf_poisson_tensor_host);
+    gkyl_array_release(dxdz_nodal_host);
+    gkyl_array_release(bcart_nodal_host);
   }
 
   // Distribution function with the velocity-space Jacobian divided out,

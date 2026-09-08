@@ -24,9 +24,9 @@ gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs(struct mom_type_bcorr_lbo_vlasov* mom_
     mom_bcorr_lbo_vlasov_kernels = ser_mom_bcorr_lbo_vlasov_kernels;
     break;
 
-  // case GKYL_BASIS_MODAL_TENSOR:
-  //   mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels;
-  //   break;
+  case GKYL_BASIS_MODAL_TENSOR:
+    mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels;
+    break;
 
   default:
     assert(false);

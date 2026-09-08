@@ -229,6 +229,36 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         }
         if (has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];
       }
+      else if (model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR) {
+        if (model_id == GKYL_MODEL_TRIAD) {
+          vlasov->hamil_vol = (hamil_id == GKYL_HAMIL_VEL_SPARSE) ?
+            tensor_nc_hamil_vel_sparse_vol_kernels[kernel_index].kernels[poly_order] :
+            tensor_nc_hamil_vel_dense_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        else if (model_id == GKYL_MODEL_TRIAD_GR) {
+          // GR triads use the full phase-space Hamiltonian
+          vlasov->hamil_vol = tensor_nc_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if ( use_lo ) {
+          stream_surf_from_flux_x_kernels = tensor_stream_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = tensor_stream_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = tensor_stream_surf_z_kernels;
+
+          stream_boundary_surf_from_flux_x_kernels = tensor_stream_boundary_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = tensor_stream_boundary_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = tensor_stream_boundary_surf_z_kernels;
+        }
+        else {
+          stream_surf_from_flux_x_kernels = tensor_stream_ho_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = tensor_stream_ho_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = tensor_stream_ho_surf_z_kernels;
+
+          stream_boundary_surf_from_flux_x_kernels = tensor_stream_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = tensor_stream_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = tensor_stream_boundary_ho_surf_z_kernels;
+        }
+      }
       else {
         // Canonical-PB models: only the p=1 tensor hybrid has a phase-space
         // Hamiltonian representation; volume keeps the inline phase-Hamiltonian
@@ -385,9 +415,10 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->jacob_pos = inp->pos_map->jacob_pos->on_dev;
   struct gkyl_array *poisson_tensor_conf_ho = gkyl_array_acquire(inp->poisson_tensor_conf);
   struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
-  struct gkyl_array *qmem_ho = gkyl_array_acquire(inp->qmem); 
-  struct gkyl_array *pot_tot_ho = gkyl_array_acquire(inp->pot_tot); 
-  struct gkyl_array *rad_ho = gkyl_array_acquire(inp->rad);
+  // Optional force/drag inputs (absent e.g. for gyrokinetic neutral species).
+  struct gkyl_array *qmem_ho = inp->qmem ? gkyl_array_acquire(inp->qmem) : 0; 
+  struct gkyl_array *pot_tot_ho = inp->pot_tot ? gkyl_array_acquire(inp->pot_tot) : 0; 
+  struct gkyl_array *rad_ho = inp->rad ? gkyl_array_acquire(inp->rad) : 0;
   vlasov->conf_flux_surf = 0;
   struct gkyl_array *conf_flux_surf_ho = 0;
   vlasov->use_conf_flux_surf = false;
@@ -401,9 +432,9 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   // store pointers to on_dev for copying over to device. 
   vlasov->poisson_tensor_conf = poisson_tensor_conf_ho->on_dev; 
   vlasov->hamil = hamil_ho->on_dev; 
-  vlasov->qmem = qmem_ho->on_dev; 
-  vlasov->pot_tot = pot_tot_ho->on_dev; 
-  vlasov->rad = rad_ho->on_dev; 
+  vlasov->qmem = qmem_ho ? qmem_ho->on_dev : 0; 
+  vlasov->pot_tot = pot_tot_ho ? pot_tot_ho->on_dev : 0; 
+  vlasov->rad = rad_ho ? rad_ho->on_dev : 0; 
   vlasov->vel_flux_surf = vel_flux_surf_ho->on_dev; 
   vlasov->f_no_J =f_no_J_ho->on_dev; 
   vlasov->eqn.num_equations = 1;

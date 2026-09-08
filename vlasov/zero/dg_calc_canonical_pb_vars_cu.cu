@@ -15,75 +15,6 @@ extern "C" {
 }
 
 
-__global__ void
-gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_canonical_pb_vars *up, 
-  const struct gkyl_range conf_range, const struct gkyl_range phase_range,  const struct gkyl_range phase_ext_range, 
-  struct gkyl_array *hamil,
-  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
-{
-  int pdim = up->pdim;
-  int cdim = up->cdim;
-  int vdim = pdim - cdim;
-  int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
-  double xc[GKYL_MAX_DIM];
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < phase_range.volume;
-      linc1 += gridDim.x*blockDim.x)
-  {
-    // inverse index from linc1 to idx
-    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
-    // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&phase_range, linc1, idx);  
-    long loc_phase = gkyl_range_idx(&phase_range, idx);
-    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
-
-    double* alpha_surf_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase);
-    double* sgn_alpha_surf_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase);
-    int* const_sgn_alpha_d = (int*) gkyl_array_fetch(const_sgn_alpha, loc_phase);
-    for (int dir = 0; dir<vdim; ++dir) {
-      const_sgn_alpha_d[dir+cdim] = up->alpha_surf[dir+cdim](xc, up->phase_grid.dx, 
-        (const double*) gkyl_array_cfetch(hamil, loc_phase),
-        alpha_surf_d, sgn_alpha_surf_d);
-    }
-    for (int dir = 0; dir<cdim; ++dir) {
-      const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
-        (const double*) gkyl_array_cfetch(hamil, loc_phase),
-        alpha_surf_d, sgn_alpha_surf_d);
-
-      // If the phase space index is at the local configuration space upper value, we
-      // we are at the configuration space upper edge and we also need to evaluate 
-      // alpha = +1 to avoid evaluating the geometry information in the ghost cells 
-      // where it is not defined when computing the final surface alpha we need
-      // (since the surface alpha array stores only the *lower* surface expansion)
-      if (idx[dir] == conf_range.upper[dir]) {
-        gkyl_copy_int_arr(pdim, idx, idx_edge);
-        idx_edge[dir] = idx_edge[dir]+1;
-        long loc_phase_ext = gkyl_range_idx(&phase_ext_range, idx_edge);
-
-        double* alpha_surf_ext_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase_ext);
-        double* sgn_alpha_surf_ext_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
-        int* const_sgn_alpha_ext_d = (int*) gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
-        const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->phase_grid.dx, 
-          (const double*) gkyl_array_fetch(hamil, loc_phase),
-          alpha_surf_ext_d, sgn_alpha_surf_ext_d);
-      }  
-    }
-  }
-}
-// Host-side wrapper
-void 
-gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(struct gkyl_dg_calc_canonical_pb_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,  const struct gkyl_range *phase_ext_range, 
-  struct gkyl_array *hamil,
-  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
-{
-  int nblocks = phase_range->nblocks;
-  int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, *phase_range, *phase_ext_range, 
-    hamil->on_dev, alpha_surf->on_dev, sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev);
-}
-
 /* Convert the bulk velocity from contravariant to covaraint components for can-pb*/
 __global__ void
 gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel(struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range conf_range,
@@ -181,13 +112,6 @@ __global__ static void
 {
   up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(b_type, cv_index, cdim, poly_order);
   up->canonical_pb_covariant_u_i = choose_canonical_pb_m1i_contra_to_cov_kern(b_type, cv_index, cdim, poly_order);
-  for (int d=0; d<cdim; ++d) {  
-    up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(b_type, d, cv_index, cdim, vdim, poly_order);
-    up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(b_type, d, cv_index, cdim, vdim, poly_order);
-  }
-  for (int d=0; d<vdim; ++d) {  
-    up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(b_type, d, cv_index, cdim, vdim, poly_order);
-  }
 }
 
 

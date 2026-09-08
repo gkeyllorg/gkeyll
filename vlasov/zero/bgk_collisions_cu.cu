@@ -88,7 +88,7 @@ gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned pol
       array_acc1(pnum_basis, out_d, 1.0/(1.0 + nu_d[0]*cellav_fac*dt), nufM_d);
 
       // Calculate and add -nu*f.
-      double incr[160]; // mul_op assigns, but need increment, so use a buffer.
+      double incr[216]; // mul_op assigns, but need increment, so use a buffer.
       mul_op(nu_d, fin_d, incr);
       array_acc1(pnum_basis, out_d, -1.0/(1.0 + nu_d[0]*cellav_fac*dt), incr);
 
@@ -99,7 +99,7 @@ gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned pol
       array_acc1(pnum_basis, out_d, 1., nufM_d);
 
       // Calculate -nu*f.
-      double incr[160]; // mul_op assigns, but need increment, so use a buffer.
+      double incr[216]; // mul_op assigns, but need increment, so use a buffer.
       mul_op(nu_d, fin_d, incr);
       array_acc1(pnum_basis, out_d, -1., incr);
 

@@ -26,6 +26,12 @@ gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
+    // Kernel availability is checked on the host so unsupported bases fail
+    // with an assert here rather than a NULL device function pointer.
+    int cdim_h = cbasis->ndim, vdim_h = pbasis->ndim-cdim_h, po_h = cbasis->poly_order;
+    assert(cv_index[cdim_h].vdim[vdim_h] != -1);
+    assert(NULL != ((cbasis->b_type == GKYL_BASIS_MODAL_TENSOR) ?
+      ten_mom_bcorr_lbo_vlasov_kernels : ser_mom_bcorr_lbo_vlasov_kernels)[cv_index[cdim_h].vdim[vdim_h]].kernels[po_h]);
     return gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(cbasis, pbasis, vBoundary);
   } 
 #endif  

@@ -285,8 +285,9 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
     gkyl_array_release(lte_moms->hamil);
     gkyl_array_release(lte_moms->gamma_inv);
   }
-  else if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB 
-        || lte_moms->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
+  else if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB) {
+    // Only the non-relativistic canonical-PB model allocates the metric and
+    // covariant-moment work arrays in the constructor (CANONICAL_PB_GR does not).
     gkyl_array_release(lte_moms->h_ij);
     gkyl_array_release(lte_moms->h_ij_inv);
     gkyl_array_release(lte_moms->det_h);

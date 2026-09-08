@@ -30,6 +30,7 @@ v_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
     case GKYL_F_MOMENT_M1:
     case GKYL_F_MOMENT_M1_FROM_H:
     case GKYL_F_MOMENT_M3:
+    case GKYL_F_MOMENT_ENERGY_FLUX:
       num_mom = vdim;
       break;
 
@@ -133,6 +134,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       break;
 
     case GKYL_F_MOMENT_M3:
+    case GKYL_F_MOMENT_ENERGY_FLUX:
       if (hamil_id != GKYL_HAMIL_PHASE && model_id != GKYL_MODEL_TRIAD_GR) {
         mom_vlasov->momt.kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
@@ -274,6 +276,8 @@ set_int_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_momen
 
     case GKYL_BASIS_MODAL_TENSOR:
       int_five_moments_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_int_five_moments_kernels : tensor_hamil_vel_dense_int_five_moments_kernels;
+      // Phase-space Hamiltonian integrated moments: p=1 tensor hybrid only.
+      int_five_moments_hamil_phase_kernels = tensor_hamil_phase_int_five_moments_kernels;
       break;
 
     default:
@@ -287,12 +291,7 @@ set_int_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_momen
         mom_vlasov->momt.kernel = int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
-        if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-          mom_vlasov->momt.kernel = int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-        }
-        else {
-          assert(false); 
-        }
+        mom_vlasov->momt.kernel = int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       } 
       mom_vlasov->momt.num_mom = 2+vdim;
       break;

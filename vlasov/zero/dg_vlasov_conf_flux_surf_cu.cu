@@ -308,6 +308,32 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
           up->hamil_alpha_quad[2] = tensor_hamil_phase_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
         }
       }
+      else if (model_id == GKYL_MODEL_TRIAD) {
+        // Triad bracket on the tensor p=1 hybrid (sparse or dense velocity-space
+        // Hamiltonian): per-node inverse velocity-map Jacobians of the C^1 cubic map.
+        if ( use_lo ) {
+          up->hamil_alpha_quad[0] = hamil_sparse ?
+            tensor_hamil_vel_sparse_alpha_quad_x_kernels[kernel_index].kernels[poly_order] :
+            tensor_hamil_vel_dense_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = hamil_sparse ?
+            tensor_hamil_vel_sparse_alpha_quad_y_kernels[kernel_index].kernels[poly_order] :
+            tensor_hamil_vel_dense_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = hamil_sparse ?
+            tensor_hamil_vel_sparse_alpha_quad_z_kernels[kernel_index].kernels[poly_order] :
+            tensor_hamil_vel_dense_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          up->hamil_alpha_quad[0] = hamil_sparse ?
+            tensor_hamil_vel_sparse_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order] :
+            tensor_hamil_vel_dense_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = hamil_sparse ?
+            tensor_hamil_vel_sparse_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order] :
+            tensor_hamil_vel_dense_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = hamil_sparse ?
+            tensor_hamil_vel_sparse_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order] :
+            tensor_hamil_vel_dense_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+        }
+      }
 
       break;
 
