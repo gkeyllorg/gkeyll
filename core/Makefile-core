@@ -1,10 +1,13 @@
 # -*- makefile-gmake -*-
 
 SRC_DIRS := minus $(KERNELS_DIR) zero apps
+ifdef USING_LAPACK_LITE
+	SRC_DIRS += minus/lapack_lite
+endif
+
 UNIT_DIRS := unit
 
 PREFIX ?= ${HOME}/gkylsoft
-
 
 LLIB := ../$(BUILD_DIR)/core/libg0core.so
 SLLIB := 
@@ -35,11 +38,11 @@ REGS := $(patsubst %.c,../${BUILD_DIR}/core/%,$(wildcard creg/rt_*.c))
 
 KERN_INC_DIRS = $(shell find $(KERNELS_DIR) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
-EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC_DIR} -I${SUPERLU_INC_DIR}
-INCS := ${EXT_INCS} -Iminus -Iminus/STC/include -Izero -Iapps $(KERN_INCLUDES) -Ilua/Comm -Ilua/Tool
+EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC_DIR} 
+INCS := ${EXT_INCS} -Iminus -Iminus/lapack_lite -Iminus/STC/include -Izero -Iapps $(KERN_INCLUDES) -Ilua/Comm -Ilua/Tool
 
-EXEC_LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR}
-EXEC_EXT_LIBS = ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_LIB_DIRS = -L${LAPACK_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR}
+EXEC_EXT_LIBS = ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = -L../${BUILD_DIR}/core ${LLIB} ${SLLIB} ${EXEC_EXT_LIBS}
 
 LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/core
@@ -130,13 +133,13 @@ $(LLIB): $(OBJS)
 
 ifeq ($(UNAME),Linux)
 ifdef USING_NVCC
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${CORE_LINK_CU_OBJS}  -Xlinker=-soname -Xlinker=libg0core.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${CORE_LINK_CU_OBJS}  -Xlinker=-soname -Xlinker=libg0core.so -L${LAPACK_LIB_DIR}  -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
 else
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} -Wl,-soname,libg0core.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${MPI_RPATH} ${CUDA_LIBS} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} -Wl,-soname,libg0core.so -L${LAPACK_LIB_DIR}  -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${MPI_RPATH} ${CUDA_LIBS} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 endif
 else
 ## Darwin
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} -Wl,-install_name,@rpath/libg0core.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} -Wl,-install_name,@rpath/libg0core.so -L${LAPACK_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 endif
 
 .PHONY: check valcheck
