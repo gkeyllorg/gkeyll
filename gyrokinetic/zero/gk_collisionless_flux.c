@@ -140,14 +140,18 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
       double *yfieldR = gkyl_array_fetch(yfield, loc_phase);
 
       if (idx[dir] == phase_range->lower[dir]) {
-        // Special case: this cell's own lower face is the domain/block
-        // lower boundary. Use the dedicated lower-boundary kernel (chosen
-        // from periodic/nonperiodic/multib variants based on the BC type),
-        // as opposed to the plain interior kernel used below.
+        // Lower domain boundary.
         cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_d);
       }
-      else if (idx[dir] == phase_range->upper[dir]) {
+      else {
+        // Interior cell surface.
+        cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_d);
+      }
+
+      if (idx[dir] == phase_range->upper[dir]) {
+        // Upper domain boundary.
         // Special case: if the phase space index is at the local configuration
         // space upper value, this (last interior) cell also owns an *extra*
         // face beyond itself: the domain/block upper boundary face, into the
@@ -184,11 +188,6 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
         cflrate_ext_d[0] = GKYL_MAX2(cflrate_ext_d[0], up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_ext_d));
       }  
-      else {
-        // Interior, lower cell surface.
-        cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_d);
-      }
 
     }
   }
