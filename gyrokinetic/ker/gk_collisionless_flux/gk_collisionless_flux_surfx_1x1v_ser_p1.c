@@ -23,8 +23,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfx_1x1v_ser_p1(
   // JfR: distribution times total jacobian in right cell.
   // yfieldL: Yushmanov field (gradient of Yushmanov potential) in left cell.
   // yfieldR: Yushmanov field (gradient of Yushmanov potential) in right cell.
-  // flux_surf: output surface phase space flux in each direction (cdim + 1 components).
-  //            Note: Each cell owns their *lower* edge surface evaluation.
+  // flux_surf: surface phase space flux in each direction.
 
   double rdx2 = 2.0/dxv[0];
   double rdvpar2 = 2.0/dxv[1];

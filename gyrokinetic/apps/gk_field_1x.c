@@ -21,10 +21,10 @@ gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
   gkyl_dg_div_op_range(app->species[0].m0.mem_geo, &app->basis, 0, field->phi_smooth, 0, field->rho_c, 0,
                        field->epsilon, &app->local);
 
-//  // Apply periodic BCs to phi.
-//  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
-//  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
-//    num_periodic_dir, app->periodic_dirs, field->phi_smooth);
+  // Apply periodic BCs to phi.
+  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+    num_periodic_dir, app->periodic_dirs, field->phi_smooth);
 }
 
 static void

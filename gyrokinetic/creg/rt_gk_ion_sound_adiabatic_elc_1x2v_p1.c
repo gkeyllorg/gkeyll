@@ -65,8 +65,8 @@ create_ctx(void)
   double mass_elc = 1.0 / 1836.16; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
-  double Te = 1.0; // Electron temperature.
   double Ti = 1.0; // Ion temperature.
+  double Te = Ti/(pow(0.8,2)/16); // Electron temperature.
   double n0 = 1.0; // Reference number density.
   double B0 = 1.0; // Reference magnetic field strength.
 
@@ -90,7 +90,7 @@ create_ctx(void)
   double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 20.0; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  int num_frames = 10; // Number of output frames.
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -163,7 +163,15 @@ void
 evalIonUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   // Set ion parallel velocity.
-  fout[0] = 0.0;
+  struct ion_sound_ctx *app = ctx;
+
+  double Ti = app->Ti;
+  double Te = app->Te;
+  double mass_ion = app->mass_ion;
+
+  double c_s = sqrt((Te+3*Ti)/mass_ion);
+
+  fout[0] = 0.4*c_s;
 }
 
 void

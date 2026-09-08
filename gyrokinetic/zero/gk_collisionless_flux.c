@@ -47,10 +47,10 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
     for (int d=0; d<cdim; ++d) {
       // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
       up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[d]);
-      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_boundary_conf_kern(d, cdim, vdim,
+        poly_order, bctype_conf[d], GKYL_LOWER_EDGE);
+      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_boundary_conf_kern(d, cdim, vdim,
+        poly_order, bctype_conf[GKYL_MAX_CDIM+d], GKYL_UPPER_EDGE);
     }
     up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
   }
@@ -58,10 +58,10 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
     for (int d=0; d<cdim; ++d) {
       // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
       up->flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[d]);
-      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_boundary_conf_kern_no_by(d, cdim, vdim,
+        poly_order, bctype_conf[d], GKYL_LOWER_EDGE);                                 
+      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_boundary_conf_kern_no_by(d, cdim, vdim,
+        poly_order, bctype_conf[GKYL_MAX_CDIM+d], GKYL_UPPER_EDGE);
     }
     up->flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
   }
@@ -140,28 +140,29 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
       double *yfieldR = gkyl_array_fetch(yfield, loc_phase);
 
       if (idx[dir] == phase_range->lower[dir]) {
-        // Lower domain/block boundary.
+        // Special case: this cell's own lower face is the domain/block
+        // lower boundary. Use the dedicated lower-boundary kernel (chosen
+        // from periodic/nonperiodic/multib variants based on the BC type),
+        // as opposed to the plain interior kernel used below.
         cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_d);
-      } else {
-        // Interior, lower cell surface.
-        cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_d);
       }
-
-      // Upper domain/block boundary.
-      // If the phase space index is at the local configuration space upper value, we
-      // we are at the configuration space upper edge and we also need to evaluate 
-      // alpha = +1 to avoid evaluating the geometry information in the ghost cells 
-      // where it is not defined when computing the final surface alpha we need
-      // (since the surface alpha array stores only the *lower* surface expansion)
-      if (idx[dir] == phase_range->upper[dir]) {
+      else if (idx[dir] == phase_range->upper[dir]) {
+        // Special case: if the phase space index is at the local configuration
+        // space upper value, this (last interior) cell also owns an *extra*
+        // face beyond itself: the domain/block upper boundary face, into the
+        // ghost/ext range. We also need to evaluate alpha = +1 there to avoid
+        // evaluating the geometry information in the ghost cells where it is
+        // not defined when computing the final surface alpha we need (since
+        // the surface alpha array stores only the *lower* surface expansion).
+        // Use the dedicated upper-boundary kernel, symmetric with the lower
+        // boundary case above.
         gkyl_copy_int_arr(pdim, idx, idx_edge);
         idx_edge[dir] = idx_edge[dir]+1;
         long loc_conf_ext = gkyl_range_idx(conf_ext_range, idx_edge);
         long loc_phase_ext = gkyl_range_idx(phase_ext_range, idx_edge);
 
-        double *cflrate_ext_d = gkyl_array_fetch(cflrate, loc_phase_ext);
+        double *cflrate_ext_d = gkyl_array_fetch(cflrate, loc_phase);
 
         const double *fL = gkyl_array_cfetch(fin, loc_phase);
         const double *fR = gkyl_array_cfetch(fin, loc_phase_ext);
@@ -180,9 +181,15 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
         double* flux_surf_ext_d = gkyl_array_fetch(flux_surf, loc_phase_ext);
 
-        cflrate_ext_d[0] += up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_ext_d);
+        cflrate_ext_d[0] = GKYL_MAX2(cflrate_ext_d[0], up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_ext_d));
       }  
+      else {
+        // Interior, lower cell surface.
+        cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_d);
+      }
+
     }
   }
 
