@@ -672,11 +672,13 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
 
   if (enable_limits_min_B || enable_limits_max_B)
   {
-    // Set a minimum cell size on the edges
-    // Assume that at inflection points, Theta = theta. This should be true
+    // Set a minimum cell size on the edges.
     double Theta_left  = interval_lower;
     double Theta_right = interval_upper;
-    double theta_middle = 0.5 * (interval_lower + interval_upper);
+    double dB_this_region = fabs(gpm->constB_ctx->bmag_extrema[region+1] - gpm->constB_ctx->bmag_extrema[region]);
+    double theta_bound_lower = theta_lo + (dB_global_lower / dB_cell) * theta_dxi;
+    double theta_bound_upper = theta_lo + ((dB_global_lower + dB_this_region) / dB_cell) * theta_dxi;
+    double theta_middle = 0.5 * (theta_bound_lower + theta_bound_upper);
 
     bool left_is_maximum = gpm->constB_ctx->min_or_max[region];
     bool right_is_maximum = gpm->constB_ctx->min_or_max[region+1];
@@ -695,29 +697,29 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
 
     double right_straight_line_value, left_straight_line_value;
     if (left_is_maximum){
-      left_straight_line_value = max_slope_max_B * theta + (1-max_slope_max_B) * Theta_left;
+      left_straight_line_value = Theta_left + max_slope_max_B * (theta - theta_bound_lower);
     }
     else {
-      left_straight_line_value = max_slope_min_B * theta + (1-max_slope_min_B) * Theta_left;
+      left_straight_line_value = Theta_left + max_slope_min_B * (theta - theta_bound_lower);
     }
 
     if (right_is_maximum){
-      right_straight_line_value = max_slope_max_B * theta + (1-max_slope_max_B) * Theta_right;
+      right_straight_line_value = Theta_right + max_slope_max_B * (theta - theta_bound_upper);
     }
     else {
-      right_straight_line_value = max_slope_min_B * theta + (1-max_slope_min_B) * Theta_right;
+      right_straight_line_value = Theta_right + max_slope_min_B * (theta - theta_bound_upper);
     }
 
-    if ( fout[0] < right_straight_line_value && 
-      ((right_is_maximum && enable_limits_max_B) || 
-      ((!right_is_maximum) && enable_limits_min_B))) 
+    if ( fout[0] < right_straight_line_value &&
+      ((right_is_maximum && enable_limits_max_B) ||
+      ((!right_is_maximum) && enable_limits_min_B)))
     {
       fout[0] = right_straight_line_value;
     }
 
-    if (fout[0] > left_straight_line_value && 
+    if (fout[0] > left_straight_line_value &&
       ((left_is_maximum && enable_limits_max_B) ||
-      ((!left_is_maximum) && enable_limits_min_B))) 
+      ((!left_is_maximum) && enable_limits_min_B)))
     {
       fout[0] = left_straight_line_value;
     }
