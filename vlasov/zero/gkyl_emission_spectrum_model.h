@@ -8,8 +8,10 @@
 struct gkyl_emission_spectrum_model;
 
 typedef void (*emission_spectrum_dist_func_t)(double t, const double *xn, double *fout, void *ctx);
-typedef void (*emission_spectrum_norm_func_t)(double *out,
-  struct gkyl_emission_spectrum_model *spectrum, const double *flux, double effective_delta);
+typedef void (*emission_spectrum_norm_func_t)(
+  double *out, struct gkyl_emission_spectrum_model *spectrum, const double *flux,
+  double effective_delta
+);
 
 // Base model type
 struct gkyl_emission_spectrum_model {
@@ -104,8 +106,8 @@ static void gkyl_emission_spectrum_maxwellian_free(const struct gkyl_ref_count *
 
 // Model distribution functions
 
-GKYL_CU_D static void gkyl_emission_spectrum_chung_everhart_dist(
-  double t, const double *xn, double *fout, void *ctx)
+GKYL_CU_D static void
+gkyl_emission_spectrum_chung_everhart_dist(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_emission_spectrum_model *spectrum = (struct gkyl_emission_spectrum_model *)ctx;
   const struct gkyl_emission_spectrum_chung_everhart *model =
@@ -125,8 +127,8 @@ GKYL_CU_D static void gkyl_emission_spectrum_chung_everhart_dist(
   fout[0] = E / pow(E + phi, 4);
 }
 
-GKYL_CU_D static void gkyl_emission_spectrum_gaussian_dist(
-  double t, const double *xn, double *fout, void *ctx)
+GKYL_CU_D static void
+gkyl_emission_spectrum_gaussian_dist(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_emission_spectrum_model *spectrum = (struct gkyl_emission_spectrum_model *)ctx;
   const struct gkyl_emission_spectrum_gaussian *model =
@@ -147,8 +149,8 @@ GKYL_CU_D static void gkyl_emission_spectrum_gaussian_dist(
   fout[0] = exp(-pow(log(E / E_0), 2) / (2.0 * pow(tau, 2)));
 }
 
-GKYL_CU_D static void gkyl_emission_spectrum_maxwellian_dist(
-  double t, const double *xn, double *fout, void *ctx)
+GKYL_CU_D static void
+gkyl_emission_spectrum_maxwellian_dist(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_emission_spectrum_model *spectrum = (struct gkyl_emission_spectrum_model *)ctx;
   const struct gkyl_emission_spectrum_maxwellian *model =
@@ -168,8 +170,10 @@ GKYL_CU_D static void gkyl_emission_spectrum_maxwellian_dist(
 }
 
 // Chung-Everhart normalization factor
-GKYL_CU_D static void gkyl_emission_spectrum_chung_everhart_norm(double *out,
-  struct gkyl_emission_spectrum_model *spectrum, const double *flux, double effective_delta)
+GKYL_CU_D static void gkyl_emission_spectrum_chung_everhart_norm(
+  double *out, struct gkyl_emission_spectrum_model *spectrum, const double *flux,
+  double effective_delta
+)
 {
   const struct gkyl_emission_spectrum_chung_everhart *model =
     container_of(spectrum, struct gkyl_emission_spectrum_chung_everhart, spectrum);
@@ -181,8 +185,10 @@ GKYL_CU_D static void gkyl_emission_spectrum_chung_everhart_norm(double *out,
 }
 
 // Gaussian normalization factor
-GKYL_CU_D static void gkyl_emission_spectrum_gaussian_norm(double *out,
-  struct gkyl_emission_spectrum_model *spectrum, const double *flux, double effective_delta)
+GKYL_CU_D static void gkyl_emission_spectrum_gaussian_norm(
+  double *out, struct gkyl_emission_spectrum_model *spectrum, const double *flux,
+  double effective_delta
+)
 {
   const struct gkyl_emission_spectrum_gaussian *model =
     container_of(spectrum, struct gkyl_emission_spectrum_gaussian, spectrum);
@@ -196,8 +202,10 @@ GKYL_CU_D static void gkyl_emission_spectrum_gaussian_norm(double *out,
 }
 
 // Maxwellian normalization factor */
-GKYL_CU_D static void gkyl_emission_spectrum_maxwellian_norm(double *out,
-  struct gkyl_emission_spectrum_model *spectrum, const double *flux, double effective_delta)
+GKYL_CU_D static void gkyl_emission_spectrum_maxwellian_norm(
+  double *out, struct gkyl_emission_spectrum_model *spectrum, const double *flux,
+  double effective_delta
+)
 {
   const struct gkyl_emission_spectrum_maxwellian *model =
     container_of(spectrum, struct gkyl_emission_spectrum_maxwellian, spectrum);
@@ -215,8 +223,8 @@ GKYL_CU_D static void gkyl_emission_spectrum_maxwellian_norm(double *out,
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_chung_everhart_new(
-  double charge, double phi, bool use_gpu);
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_chung_everhart_new(double charge, double phi, bool use_gpu);
 
 /**
  * Create the emission spectrum model using the logarithmic Gaussian distribution
@@ -227,8 +235,8 @@ struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_chung_everhart_new(
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_gaussian_new(
-  double charge, double E_0, double tau, bool use_gpu);
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_gaussian_new(double charge, double E_0, double tau, bool use_gpu);
 
 /**
  * Create the emission spectrum model using the Maxwellian distribution
@@ -238,8 +246,8 @@ struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_gaussian_new(
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_maxwellian_new(
-  double charge, double vt, bool use_gpu);
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_maxwellian_new(double charge, double vt, bool use_gpu);
 
 /**
  * Acquire pointer to model object. Delete using the release()
@@ -248,8 +256,8 @@ struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_maxwellian_new(
  * @param model Model object.
  * @return Acquired model obj pointer
  */
-struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_model_acquire(
-  const struct gkyl_emission_spectrum_model *model);
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_model_acquire(const struct gkyl_emission_spectrum_model *model);
 
 /**
  * Delete model object
@@ -267,7 +275,8 @@ void gkyl_emission_spectrum_model_release(const struct gkyl_emission_spectrum_mo
  * @return New model
  */
 struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_chung_everhart_cu_dev_new(
-  struct gkyl_emission_spectrum_chung_everhart *model, double charge, double phi);
+  struct gkyl_emission_spectrum_chung_everhart *model, double charge, double phi
+);
 
 /**
  * Create the emission spectrum model using the logarithmic Gaussian distribution on NV-GPU
@@ -279,7 +288,8 @@ struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_chung_everhart_cu_de
  * @return New model
  */
 struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_gaussian_cu_dev_new(
-  struct gkyl_emission_spectrum_gaussian *model, double charge, double E_0, double tau);
+  struct gkyl_emission_spectrum_gaussian *model, double charge, double E_0, double tau
+);
 
 /**
  * Create the emission spectrum model using the Maxwellian distribution on NV-GPU
@@ -290,4 +300,5 @@ struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_gaussian_cu_dev_new(
  * @return New model
  */
 struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_maxwellian_cu_dev_new(
-  struct gkyl_emission_spectrum_maxwellian *model, double charge, double vt);
+  struct gkyl_emission_spectrum_maxwellian *model, double charge, double vt
+);

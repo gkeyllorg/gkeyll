@@ -22,7 +22,8 @@ typedef struct gkyl_dg_calc_gk_neut_hamil gkyl_dg_calc_gk_neut_hamil;
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_gk_neut_hamil *gkyl_dg_calc_gk_neut_hamil_new(
-  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *basis, int cdim, bool use_gpu);
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *basis, int cdim, bool use_gpu
+);
 
 /**
  * Compute the Hamiltonian
@@ -33,9 +34,10 @@ struct gkyl_dg_calc_gk_neut_hamil *gkyl_dg_calc_gk_neut_hamil_new(
  * @param gij     Input array (6-vector) of geometric coefficients
  * @param hamil   Output array of Hamiltonian in phase space grid
  */
-void gkyl_dg_calc_gk_neut_hamil_calc(struct gkyl_dg_calc_gk_neut_hamil *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array *gij, struct gkyl_array *hamil);
+void gkyl_dg_calc_gk_neut_hamil_calc(
+  struct gkyl_dg_calc_gk_neut_hamil *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_array *gij, struct gkyl_array *hamil
+);
 
 /**
  * Delete pointer to updater.

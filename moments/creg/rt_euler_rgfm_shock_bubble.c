@@ -103,7 +103,8 @@ struct shock_bubble_ctx create_ctx(void)
   double bub_loc_y = 0.5 * Ly; // Bubble location (y-direction).
   double bub_rad = 0.025; // Bubble radius.
 
-  struct shock_bubble_ctx ctx = { .gas_gamma1 = gas_gamma1,
+  struct shock_bubble_ctx ctx = {
+    .gas_gamma1 = gas_gamma1,
     .gas_gamma2 = gas_gamma2,
     .rho_pre = rho_pre,
     .u_pre = u_pre,
@@ -132,13 +133,15 @@ struct shock_bubble_ctx create_ctx(void)
     .x_loc = x_loc,
     .bub_loc_x = bub_loc_x,
     .bub_loc_y = bub_loc_y,
-    .bub_rad = bub_rad };
+    .bub_rad = bub_rad
+  };
 
   return ctx;
 }
 
 void evalEulerRGFMInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double x = xn[0], y = xn[1];
   struct shock_bubble_ctx *app = ctx;
@@ -251,7 +254,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
 }
 
 void calc_field_energy(
-  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc)
+  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
@@ -259,7 +263,8 @@ void calc_field_energy(
 }
 
 void calc_integrated_mom(
-  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc)
+  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
@@ -293,14 +298,16 @@ int main(int argc, char **argv)
   struct gkyl_wv_eqn *euler_rgfm =
     gkyl_wv_euler_rgfm_new(2, gas_gamma_s, ctx.reinit_freq, app_args.use_gpu);
 
-  struct gkyl_moment_species fluid = { .name = "euler_rgfm",
+  struct gkyl_moment_species fluid = {
+    .name = "euler_rgfm",
     .equation = euler_rgfm,
 
     .init = evalEulerRGFMInit,
     .ctx = &ctx,
 
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT } };
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
+    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT}
+  };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -310,7 +317,7 @@ int main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX, NY };
+  int cells[] = {NX, NY};
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -332,12 +339,12 @@ int main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -352,8 +359,7 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -362,18 +368,17 @@ int main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = { 0.0, 0.0 },
-    .upper = { ctx.Lx, ctx.Ly },
-    .cells = { NX, NY },
+    .lower = {0.0, 0.0},
+    .upper = {ctx.Lx, ctx.Ly},
+    .cells = {NX, NY},
 
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
-    .species = { fluid },
+    .species = {fluid},
 
-    .parallelism = { .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
-      .comm = comm }
+    .parallelism =
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
   };
 
   // Create app object.
@@ -391,8 +396,10 @@ int main(int argc, char **argv)
       gkyl_moment_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+      gkyl_moment_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -465,7 +472,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);

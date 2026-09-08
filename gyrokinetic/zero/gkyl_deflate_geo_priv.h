@@ -22,36 +22,49 @@ typedef struct {
 } deflate_geo_surf_kernel_dim_list;
 
 static const deflate_geo_surf_kernel_dim_list ser_deflate_surf_geo_kernel_list[] = {
-  { .list = { { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL } } },
-  { .list = { { NULL, deflate_geo_surfx_1x_ser_p1, NULL }, { NULL, NULL, NULL },
-      { NULL, NULL, NULL } } },
-  { .list = { { NULL, deflate_geo_surfx_2x_ser_p1, NULL },
-      { NULL, deflate_geo_surfy_2x_ser_p1, NULL }, { NULL, NULL, NULL } } }
+  {.list = {{NULL, NULL, NULL}, {NULL, NULL, NULL}, {NULL, NULL, NULL}}},
+  {.list = {{NULL, deflate_geo_surfx_1x_ser_p1, NULL}, {NULL, NULL, NULL}, {NULL, NULL, NULL}}},
+  {.list =
+     {{NULL, deflate_geo_surfx_2x_ser_p1, NULL},
+      {NULL, deflate_geo_surfy_2x_ser_p1, NULL},
+      {NULL, NULL, NULL}}}
 };
 
-GKYL_CU_DH static const deflate_geo_kernel_remx_list ser_deflate_geo_kernel_rem_list[] = {
-  // don't remove x
-  {.list =
-      {// don't remove y
+GKYL_CU_DH static const deflate_geo_kernel_remx_list ser_deflate_geo_kernel_rem_list[] =
+  {
+    // don't remove x
+    {.list =
+       {// don't remove y
         {.list = {{NULL, NULL, NULL}, {NULL, NULL, NULL}, {NULL, NULL, NULL}, {NULL, NULL, NULL}}},
 
         // remove y
-        {.list = {{NULL, NULL, NULL}, {NULL, NULL, NULL},
-           {NULL, deflate_geo_2x_ser_p1_remy, deflate_geo_2x_ser_p2_remy}, {NULL, NULL, NULL}}}
+        {.list =
+           {{NULL, NULL, NULL},
+            {NULL, NULL, NULL},
+            {NULL, deflate_geo_2x_ser_p1_remy, deflate_geo_2x_ser_p2_remy},
+            {NULL, NULL, NULL}}}
 
-      }},
-  // remove x
-  {.list =
-      {// don't remove y
-        {.list = {{NULL, NULL, NULL}, {NULL, NULL, NULL},
-           {NULL, deflate_geo_2x_ser_p1_remx, deflate_geo_2x_ser_p2_remx}, {NULL, NULL, NULL}}},
+       }},
+    // remove x
+    {
+      .list =
+        {
+          // don't remove y
+          {.list =
+             {{NULL, NULL, NULL},
+              {NULL, NULL, NULL},
+              {NULL, deflate_geo_2x_ser_p1_remx, deflate_geo_2x_ser_p2_remx},
+              {NULL, NULL, NULL}}},
 
-        // remove y
-        {.list = {{NULL, NULL, NULL},
-           {NULL, deflate_geo_1x_ser_p1_remxy, deflate_geo_1x_ser_p2_remxy}, {NULL, NULL, NULL},
-           {NULL, NULL, NULL}}}
+          // remove y
+          {.list =
+             {{NULL, NULL, NULL},
+              {NULL, deflate_geo_1x_ser_p1_remxy, deflate_geo_1x_ser_p2_remxy},
+              {NULL, NULL, NULL},
+              {NULL, NULL, NULL}}}
 
-      }}
+        }
+    }
 
 };
 
@@ -77,7 +90,8 @@ struct gkyl_deflate_geo_surf {
 };
 
 GKYL_CU_DH static deflate_geo_kernel deflate_geo_choose_kernel(
-  const int *rem_dirs, const int cdim, const int basis_type, const int poly_order)
+  const int *rem_dirs, const int cdim, const int basis_type, const int poly_order
+)
 {
   switch (basis_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -93,7 +107,8 @@ GKYL_CU_DH static deflate_geo_kernel deflate_geo_choose_kernel(
 }
 
 GKYL_CU_DH static deflate_geo_kernel deflate_geo_surf_choose_kernel(
-  const int dir, const int cdim, const int basis_type, const int poly_order)
+  const int dir, const int cdim, const int basis_type, const int poly_order
+)
 {
   switch (basis_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

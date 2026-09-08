@@ -28,7 +28,8 @@ static void gkyl_position_map_free(const struct gkyl_ref_count *ref);
  * @param bmag_ctx Context for the magnetic field calculation
  */
 static void calculate_mirror_throat_location_polynomial(
-  struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
+  struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx
+)
 {
   // Parameters to use for the midpoint rule root finding algorithm to find the throat of the mirror
   int itterations = 10;
@@ -125,7 +126,8 @@ static void position_map_constB_z_polynomial(double t, const double *xn, double 
  * @param bmag_ctx Context for the magnetic field calculation
  */
 static void calculate_optimal_mapping_polynomial(
-  struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
+  struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx
+)
 {
   // Could be refined further by doing midpoint root finding for maximum dB/dz
   // Expander region
@@ -287,8 +289,9 @@ static void find_B_field_extrema(struct gkyl_position_map *gpm)
     xp[Z_IDX] = theta;
     gkyl_calc_bmag_global(0.0, xp, &bmag_vals[i], bmag_ctx);
     dbmag_vals[i] = calc_bmag_global_derivative(theta, gpm);
-    if (i == 0)
+    if (i == 0) {
       continue;
+    }
 
     // Minima
     if (dbmag_vals[i] > 0 && dbmag_vals[i - 1] < 0) {
@@ -542,7 +545,7 @@ static void position_map_constB_z_numeric(double t, const double *xn, double *fo
 
   double dB_target, dB_global_lower, B_lower_region;
   double interval_lower, interval_upper, interval_lower_eval, interval_upper_eval;
-  struct opt_Theta_ctx ridders_ctx = { .gpm = gpm, .bmag_ctx = gpm->bmag_ctx };
+  struct opt_Theta_ctx ridders_ctx = {.gpm = gpm, .bmag_ctx = gpm->bmag_ctx};
   dB_target = dB_cell * it;
 
   bool outside_region = true; // Asuume that we identified the region incorrectly
@@ -602,17 +605,21 @@ static void position_map_constB_z_numeric(double t, const double *xn, double *fo
         fout[0] = interval_upper;
         return;
       } else {
-        fprintf(stderr,
+        fprintf(
+          stderr,
           "Warning: Unexpected interval evaluation state in position_map_constB_z_numeric. Using "
-          "theta directly.\n");
+          "theta directly.\n"
+        );
         fout[0] = theta;
         return;
       }
     }
   }
 
-  struct gkyl_qr_res res = gkyl_ridders(position_map_numeric_optimization_function, &ridders_ctx,
-    interval_lower, interval_upper, interval_lower_eval, interval_upper_eval, 10, 1e-6);
+  struct gkyl_qr_res res = gkyl_ridders(
+    position_map_numeric_optimization_function, &ridders_ctx, interval_lower, interval_upper,
+    interval_lower_eval, interval_upper_eval, 10, 1e-6
+  );
   double Theta = res.res;
   fout[0] = Theta * gpm->constB_ctx->map_strength + theta * (1 - gpm->constB_ctx->map_strength);
 
@@ -653,7 +660,7 @@ static void position_map_constB_z_numeric(double t, const double *xn, double *fo
     }
 
     if (fout[0] < right_straight_line_value && ((right_is_maximum && enable_limits_max_B) ||
-                                                 ((!right_is_maximum) && enable_limits_min_B))) {
+                                                ((!right_is_maximum) && enable_limits_min_B))) {
       fout[0] = right_straight_line_value;
     }
 
@@ -705,8 +712,8 @@ double gaussian_norm_wrapper(double z, void *ctx)
  * @param fout Non-uniform coordinate
  * @param ctx The context for the position map
  */
-static void position_map_constB_z_numeric_moving_average(
-  double t, const double *xn, double *fout, void *ctx)
+static void
+position_map_constB_z_numeric_moving_average(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_position_map *gpm = ctx;
   if (gpm->constB_ctx->gaussian_std == 0.0) {
@@ -737,9 +744,7 @@ static void position_map_constB_z_numeric_moving_average(
 
   // Keep sigma fixed at the original gaussian_std
   // This maintains consistent smoothing behavior even at boundaries
-  struct gaussian_weight_ctx gw_ctx = {
-    .gpm = gpm, .theta_c = theta_c, .wd2 = wd2, .sigma = sigma
-  };
+  struct gaussian_weight_ctx gw_ctx = {.gpm = gpm, .theta_c = theta_c, .wd2 = wd2, .sigma = sigma};
 
   struct gkyl_qr_res res =
     gkyl_dbl_exp(position_map_constB_z_numeric_dbl_exp_wrapper, &gw_ctx, rng_lo, rng_up, 7, 1e-16);

@@ -34,7 +34,7 @@ static void test_gauss_quad_ndim_ho()
   const double *xp = gkyl_gauss_ordinates[nquad];
   const double *wp = gkyl_gauss_weights[nquad];
 
-  int shape[2] = { nquad, nquad };
+  int shape[2] = {nquad, nquad};
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, 2, shape);
 
@@ -45,8 +45,9 @@ static void test_gauss_quad_ndim_ho()
   while (gkyl_range_iter_next(&iter)) {
     long lidx = gkyl_range_idx(&qrange, iter.idx);
 
-    for (int d = 0; d < 2; ++d)
+    for (int d = 0; d < 2; ++d) {
       TEST_CHECK(gkyl_compare_double(xp[iter.idx[d]], x[2 * lidx + d], 1e-14));
+    }
 
     area += w[lidx];
   }
@@ -57,5 +58,8 @@ static void test_gauss_quad_ndim_ho()
   gkyl_free(w);
 }
 
-TEST_LIST = { { "gauss_quad_basic_ho", test_gauss_quad_basic_ho },
-  { "gauss_quad_ndim_ho", test_gauss_quad_ndim_ho }, { NULL, NULL } };
+TEST_LIST = {
+  {"gauss_quad_basic_ho", test_gauss_quad_basic_ho},
+  {"gauss_quad_ndim_ho", test_gauss_quad_ndim_ho},
+  {NULL, NULL}
+};

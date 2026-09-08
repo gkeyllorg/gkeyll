@@ -16,6 +16,7 @@
  * @param vel_map Velocity space mapping object.
  * @param use_gpu bool to determine if on GPU
  */
-struct gkyl_mom_type *gkyl_mom_bcorr_lbo_gyrokinetic_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, double mass, const struct gkyl_velocity_map *vel_map,
-  bool use_gpu);
+struct gkyl_mom_type *gkyl_mom_bcorr_lbo_gyrokinetic_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass,
+  const struct gkyl_velocity_map *vel_map, bool use_gpu
+);

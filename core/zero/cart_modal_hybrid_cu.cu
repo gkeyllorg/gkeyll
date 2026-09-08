@@ -12,7 +12,8 @@ extern "C" {
 }
 
 __global__ void static gkyl_cart_modal_hybrid_cu_dev_kern(
-  struct gkyl_basis *basis, int cdim, int vdim)
+  struct gkyl_basis *basis, int cdim, int vdim
+)
 {
   assert(ev_list[cdim].ev[vdim]);
 

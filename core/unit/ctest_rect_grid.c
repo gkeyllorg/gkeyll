@@ -6,8 +6,8 @@
 
 void test_grid_2d_ho()
 {
-  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
-  int cells[] = { 20, 20 };
+  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  int cells[] = {20, 20};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
@@ -26,15 +26,16 @@ void test_grid_2d_ho()
   gkyl_rect_grid_extents(&grid, 0, x_ext);
   gkyl_rect_grid_extents(&grid, 1, y_ext);
 
-  for (int i = x_ext[0]; i <= x_ext[1]; ++i)
+  for (int i = x_ext[0]; i <= x_ext[1]; ++i) {
     for (int j = y_ext[0]; j <= y_ext[1]; ++j) {
-      gkyl_rect_grid_cell_center(&grid, (int[2]){ i, j }, xc);
+      gkyl_rect_grid_cell_center(&grid, (int[2]){i, j}, xc);
 
       TEST_CHECK(xc[0] == 1.0 + (i - 0.5) * grid.dx[0]);
       TEST_CHECK(xc[1] == 1.0 + (j - 0.5) * grid.dx[1]);
     }
+  }
 
-  double xn[2] = { 0.0, 0.0 };
+  double xn[2] = {0.0, 0.0};
   int idx[2];
 
   xn[0] = grid.lower[0] + 0.5 * grid.dx[0];
@@ -49,8 +50,8 @@ void test_grid_2d_ho()
 
   TEST_CHECK(gkyl_rect_grid_cmp(&grid, &grid) == true);
 
-  double lower2[] = { 1.0, 0.5 }, upper2[] = { 2.5, 5.0 };
-  int cells2[] = { 20, 19 };
+  double lower2[] = {1.0, 0.5}, upper2[] = {2.5, 5.0};
+  int cells2[] = {20, 19};
   struct gkyl_rect_grid grid2;
   gkyl_rect_grid_init(&grid2, 2, lower2, upper2, cells2);
 
@@ -65,38 +66,42 @@ void test_grid_2d_ho()
  */
 void test_find_cell_1d_ho()
 {
-  double lower[] = { 0.0 }, upper[] = { 5.0 };
-  int cells[] = { 5 };
-  double point[] = { 2.5 };
-  bool pick_lower[1] = { false };
-  const int known_index[1] = { -1 };
-  int cell_index[] = { 0 };
+  double lower[] = {0.0}, upper[] = {5.0};
+  int cells[] = {5};
+  double point[] = {2.5};
+  bool pick_lower[1] = {false};
+  const int known_index[1] = {-1};
+  int cell_index[] = {0};
   struct gkyl_rect_grid grid;
 
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index, cell_index);
-  int correct_index[1] = { 3 };
-  for (int i = 0; i < 1; i++)
+  int correct_index[1] = {3};
+  for (int i = 0; i < 1; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 
   point[0] = 2.0 + 1e-15;
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index, cell_index);
-  for (int i = 0; i < 1; i++)
+  for (int i = 0; i < 1; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 
   pick_lower[0] = true;
   correct_index[0] = 2;
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index, cell_index);
-  for (int i = 0; i < 1; i++)
+  for (int i = 0; i < 1; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 
   int idx = 1;
   correct_index[0] = idx;
   point[0] = 0.2;
-  const int known_index2[1] = { idx };
+  const int known_index2[1] = {idx};
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index2, cell_index);
-  for (int i = 0; i < 1; i++)
+  for (int i = 0; i < 1; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 }
 
 /* Test rect_grid find cell in 2D
@@ -107,42 +112,46 @@ void test_find_cell_1d_ho()
  */
 void test_find_cell_2d_ho()
 {
-  double lower[] = { 0.0, -10.0 }, upper[] = { 5.0, 10.0 };
-  int cells[] = { 5, 20 };
-  double point[] = { 2.5, 1.3 };
-  bool pick_lower[2] = { false, false };
-  const int known_index[2] = { -1, -1 };
-  int cell_index[] = { 0, 0 };
+  double lower[] = {0.0, -10.0}, upper[] = {5.0, 10.0};
+  int cells[] = {5, 20};
+  double point[] = {2.5, 1.3};
+  bool pick_lower[2] = {false, false};
+  const int known_index[2] = {-1, -1};
+  int cell_index[] = {0, 0};
   struct gkyl_rect_grid grid;
 
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index, cell_index);
-  int correct_index[2] = { 3, 12 };
-  for (int i = 0; i < 2; i++)
+  int correct_index[2] = {3, 12};
+  for (int i = 0; i < 2; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 
   point[0] = 2.0;
   point[1] = 1.0;
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index, cell_index);
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 2; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 
   pick_lower[0] = pick_lower[1] = true;
   correct_index[0] = 2;
   correct_index[1] = 11;
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index, cell_index);
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 2; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 
   pick_lower[0] = pick_lower[1] = false;
   int idx = 18;
   correct_index[0] = 3;
   correct_index[1] = idx;
   point[1] = 7.5;
-  const int known_index2[2] = { -1, idx };
+  const int known_index2[2] = {-1, idx};
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index2, cell_index);
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 2; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 }
 
 /* Test rect_grid find cell in 3D
@@ -153,32 +162,35 @@ void test_find_cell_2d_ho()
  */
 void test_find_cell_3d_ho()
 {
-  double lower[] = { 0.0, -10.0, 1.3 }, upper[] = { 5.0, 10.0, 2.5 };
-  int cells[] = { 5, 20, 100 };
-  double point[] = { 2.5, 1.3, 1.4 };
-  bool pick_lower[3] = { false, false, false };
-  const int known_index[] = { -1, -1, -1 };
-  int cell_index[] = { 0, 0, 0 };
+  double lower[] = {0.0, -10.0, 1.3}, upper[] = {5.0, 10.0, 2.5};
+  int cells[] = {5, 20, 100};
+  double point[] = {2.5, 1.3, 1.4};
+  bool pick_lower[3] = {false, false, false};
+  const int known_index[] = {-1, -1, -1};
+  int cell_index[] = {0, 0, 0};
   struct gkyl_rect_grid grid;
 
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index, cell_index);
-  int correct_index[] = { 3, 12, 9 };
-  for (int i = 0; i < 3; i++)
+  int correct_index[] = {3, 12, 9};
+  for (int i = 0; i < 3; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 
   point[0] = 2.0;
   point[1] = 1.0 + 1e-15;
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index, cell_index);
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 
   pick_lower[0] = pick_lower[1] = pick_lower[2] = true;
   correct_index[0] = 2;
   correct_index[1] = 11;
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index, cell_index);
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 
   pick_lower[0] = pick_lower[1] = pick_lower[2] = false;
   correct_index[0] = 3;
@@ -187,16 +199,17 @@ void test_find_cell_3d_ho()
   correct_index[2] = idx2;
   point[1] = 7.5;
   point[2] = 1.71;
-  const int known_index2[] = { -1, idx, idx2 };
+  const int known_index2[] = {-1, idx, idx2};
   gkyl_rect_grid_find_cell(&grid, point, pick_lower, known_index2, cell_index);
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++) {
     TEST_CHECK(cell_index[i] == correct_index[i]);
+  }
 }
 
 void test_grid_io_ho()
 {
-  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
-  int cells[] = { 20, 20 };
+  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  int cells[] = {20, 20};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
@@ -223,8 +236,8 @@ int cu_rect_grid_test(const struct gkyl_rect_grid grid);
 
 void test_grid_2d_dev()
 {
-  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
-  int cells[] = { 20, 20 };
+  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  int cells[] = {20, 20};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
@@ -234,10 +247,14 @@ void test_grid_2d_dev()
 
 #endif
 
-TEST_LIST = { { "grid_2d_ho", test_grid_2d_ho }, { "grid_find_cell_1d_ho", test_find_cell_1d_ho },
-  { "grid_find_cell_2d_ho", test_find_cell_2d_ho },
-  { "grid_find_cell_3d_ho", test_find_cell_3d_ho }, { "grid_io_ho", test_grid_io_ho },
+TEST_LIST = {
+  {"grid_2d_ho", test_grid_2d_ho},
+  {"grid_find_cell_1d_ho", test_find_cell_1d_ho},
+  {"grid_find_cell_2d_ho", test_find_cell_2d_ho},
+  {"grid_find_cell_3d_ho", test_find_cell_3d_ho},
+  {"grid_io_ho", test_grid_io_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "grid_2d_dev", test_grid_2d_dev },
+  {"grid_2d_dev", test_grid_2d_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

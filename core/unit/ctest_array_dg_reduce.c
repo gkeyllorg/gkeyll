@@ -13,8 +13,8 @@ void test_reduce_dg(bool use_gpu)
 {
   int poly_order = 1;
   int ncomp = 3;
-  double lower[] = { -M_PI }, upper[] = { M_PI };
-  int cells[] = { 20 };
+  double lower[] = {-M_PI}, upper[] = {M_PI};
+  int cells[] = {20};
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
@@ -33,8 +33,9 @@ void test_reduce_dg(bool use_gpu)
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
   int ghost[ndim];
-  for (int d = 0; d < ndim; d++)
+  for (int d = 0; d < ndim; d++) {
     ghost[d] = 1;
+  }
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -51,8 +52,9 @@ void test_reduce_dg(bool use_gpu)
 
   // Create range to loop over nodes.
   int qshape[GKYL_MAX_DIM];
-  for (int i = 0; i < ndim; ++i)
+  for (int i = 0; i < ndim; ++i) {
     qshape[i] = num_quad;
+  }
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, ndim, qshape);
 
@@ -64,8 +66,9 @@ void test_reduce_dg(bool use_gpu)
   while (gkyl_range_iter_next(&iter)) {
     long linc = gkyl_range_idx(&qrange, iter.idx);
     double *nod = gkyl_array_fetch(nodes, linc);
-    for (int i = 0; i < ndim; ++i)
+    for (int i = 0; i < ndim; ++i) {
       nod[i] = ordinates1[iter.idx[i] - qrange.lower[i]];
+    }
   }
 
   // Populate arr with a function evaluated at nodes (transformed to modal).
@@ -91,12 +94,14 @@ void test_reduce_dg(bool use_gpu)
       for (size_t k = 0; k < num_nodes; k++) {
         const double *nod = gkyl_array_cfetch(nodes, k);
         double x[GKYL_MAX_DIM];
-        for (int d = 0; d < ndim; d++)
+        for (int d = 0; d < ndim; d++) {
           x[d] = xc[d] + 0.5 * grid.dx[0] * nod[d];
+        }
 
         arr_nodal[k] = (ci + 1);
-        for (int d = 0; d < ndim; d++)
+        for (int d = 0; d < ndim; d++) {
           arr_nodal[k] *= sin(((d + 1) * 2.0 * M_PI / (upper[d] - lower[d])) * x[d]);
+        }
 
         arr_max[ci] = GKYL_MAX2(arr_max[ci], arr_nodal[k]);
         arr_min[ci] = GKYL_MIN2(arr_min[ci], arr_nodal[k]);
@@ -169,8 +174,8 @@ void test_reduce_dg_range(bool use_gpu)
 {
   int poly_order = 1;
   int ncomp = 3;
-  double lower[] = { -M_PI }, upper[] = { M_PI };
-  int cells[] = { 20 };
+  double lower[] = {-M_PI}, upper[] = {M_PI};
+  int cells[] = {20};
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
@@ -189,8 +194,9 @@ void test_reduce_dg_range(bool use_gpu)
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
   int ghost[ndim];
-  for (int d = 0; d < ndim; d++)
+  for (int d = 0; d < ndim; d++) {
     ghost[d] = 1;
+  }
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -207,8 +213,9 @@ void test_reduce_dg_range(bool use_gpu)
 
   // Create range to loop over nodes.
   int qshape[GKYL_MAX_DIM];
-  for (int i = 0; i < ndim; ++i)
+  for (int i = 0; i < ndim; ++i) {
     qshape[i] = num_quad;
+  }
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, ndim, qshape);
 
@@ -220,8 +227,9 @@ void test_reduce_dg_range(bool use_gpu)
   while (gkyl_range_iter_next(&iter)) {
     long linc = gkyl_range_idx(&qrange, iter.idx);
     double *nod = gkyl_array_fetch(nodes, linc);
-    for (int i = 0; i < ndim; ++i)
+    for (int i = 0; i < ndim; ++i) {
       nod[i] = ordinates1[iter.idx[i] - qrange.lower[i]];
+    }
   }
 
   // Populate arr with a function evaluated at nodes (transformed to modal).
@@ -246,12 +254,14 @@ void test_reduce_dg_range(bool use_gpu)
       for (size_t k = 0; k < num_nodes; k++) {
         const double *nod = gkyl_array_cfetch(nodes, k);
         double x[GKYL_MAX_DIM];
-        for (int d = 0; d < ndim; d++)
+        for (int d = 0; d < ndim; d++) {
           x[d] = xc[d] + 0.5 * grid.dx[0] * nod[d];
+        }
 
         arr_nodal[k] = (ci + 1);
-        for (int d = 0; d < ndim; d++)
+        for (int d = 0; d < ndim; d++) {
           arr_nodal[k] *= sin(((d + 1) * 2.0 * M_PI / (upper[d] - lower[d])) * x[d]);
+        }
 
         arr_max[ci] = GKYL_MAX2(arr_max[ci], arr_nodal[k]);
         arr_min[ci] = GKYL_MIN2(arr_min[ci], arr_nodal[k]);
@@ -344,10 +354,12 @@ void test_reduce_dg_range_dev()
 
 #endif
 
-TEST_LIST = { { "array_reduce_dg_ho", test_reduce_dg_ho },
-  { "array_reduce_dg_range_ho", test_reduce_dg_range_ho },
+TEST_LIST = {
+  {"array_reduce_dg_ho", test_reduce_dg_ho},
+  {"array_reduce_dg_range_ho", test_reduce_dg_range_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "array_reduce_dg_dev", test_reduce_dg_dev },
-  { "array_reduce_dg_range_dev", test_reduce_dg_range_dev },
+  {"array_reduce_dg_dev", test_reduce_dg_dev},
+  {"array_reduce_dg_range_dev", test_reduce_dg_range_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

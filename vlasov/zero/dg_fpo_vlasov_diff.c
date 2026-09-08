@@ -27,7 +27,8 @@ void gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count *ref)
 }
 
 void gkyl_fpo_vlasov_diff_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_diff_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_diff_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.g)) {
@@ -41,11 +42,13 @@ void gkyl_fpo_vlasov_diff_set_auxfields(
 }
 
 struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_new(
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  if (use_gpu) {
     return gkyl_dg_fpo_vlasov_diff_cu_dev_new(pbasis, phase_range);
+  }
 #endif
 
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff = gkyl_malloc(sizeof(struct dg_fpo_vlasov_diff));
@@ -134,13 +137,17 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_new(
   fpo_vlasov_diff->boundary_surf[2][2] = CK(boundary_surf_zz_kernels, cdim, poly_order);
 
   // ensure non-NULL pointers
-  for (int i = 0; i < vdim; ++i)
-    for (int j = 0; j < vdim; ++j)
+  for (int i = 0; i < vdim; ++i) {
+    for (int j = 0; j < vdim; ++j) {
       assert(fpo_vlasov_diff->surf[i][j]);
+    }
+  }
 
-  for (int i = 0; i < vdim; ++i)
-    for (int j = 0; j < vdim; ++j)
+  for (int i = 0; i < vdim; ++i) {
+    for (int j = 0; j < vdim; ++j) {
       assert(fpo_vlasov_diff->boundary_surf[i][j]);
+    }
+  }
 
   fpo_vlasov_diff->auxfields.g = 0;
   fpo_vlasov_diff->phase_range = *phase_range;
@@ -156,7 +163,8 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_new(
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_cu_dev_new(
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range
+)
 {
   assert(false);
   return 0;

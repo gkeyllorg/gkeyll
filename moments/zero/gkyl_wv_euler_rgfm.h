@@ -26,8 +26,8 @@ struct gkyl_wv_euler_rgfm_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the Euler Riemann ghost fluid equations object.
 */
-struct gkyl_wv_eqn *gkyl_wv_euler_rgfm_new(
-  int num_species, double *gas_gamma_s, int reinit_freq, bool use_gpu);
+struct gkyl_wv_eqn *
+gkyl_wv_euler_rgfm_new(int num_species, double *gas_gamma_s, int reinit_freq, bool use_gpu);
 
 /**
 * Create a new Euler Riemann ghost fluid equations object, from an input context struct.

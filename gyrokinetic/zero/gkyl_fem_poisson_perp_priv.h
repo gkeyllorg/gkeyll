@@ -36,52 +36,59 @@ typedef struct {
 
 // Serendipity local-to-global kernels.
 GKYL_CU_D static const local2global_kern_bcx_list_2x ser_loc2glob_list_2x[] = { // periodicx
-  { .list = { { NULL, NULL },
-      { fem_poisson_perp_local_to_global_2x_ser_p1_inx_periodicx,
-        fem_poisson_perp_local_to_global_2x_ser_p1_upx_periodicx },
-      { NULL, NULL } } },
+  {.list =
+     {{NULL, NULL},
+      {fem_poisson_perp_local_to_global_2x_ser_p1_inx_periodicx,
+       fem_poisson_perp_local_to_global_2x_ser_p1_upx_periodicx},
+      {NULL, NULL}}},
   // nonperiodicx
-  { .list = { { NULL, NULL },
-      { fem_poisson_perp_local_to_global_2x_ser_p1_inx_nonperiodicx,
-        fem_poisson_perp_local_to_global_2x_ser_p1_upx_nonperiodicx },
-      { NULL, NULL } } }
+  {.list =
+     {{NULL, NULL},
+      {fem_poisson_perp_local_to_global_2x_ser_p1_inx_nonperiodicx,
+       fem_poisson_perp_local_to_global_2x_ser_p1_upx_nonperiodicx},
+      {NULL, NULL}}}
 };
 
-GKYL_CU_D static const local2global_kern_bcx_list_3x ser_loc2glob_list_3x[] = { // periodicx
-  {.list =
-      {// periodicy
-        {.list = {{NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_iny_periodicy,
-             fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_upy_periodicy,
-             fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_upy_periodicy},
-           {NULL, NULL, NULL, NULL}}},
-        // nonperiodicy
-        {.list = {{NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_iny_nonperiodicy,
-             fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_iny_nonperiodicy,
-             fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_upy_nonperiodicy,
-             fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
-           {NULL, NULL, NULL, NULL}}}}},
-  // nonperiodicx
-  {.list = {// periodicy
-     {.list = {{NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_iny_periodicy,
-          fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_iny_periodicy,
-          fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_upy_periodicy,
-          fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_upy_periodicy},
-        {NULL, NULL, NULL, NULL}}},
-     // nonperiodicy
-     {.list = {{NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_iny_nonperiodicy,
-          fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_iny_nonperiodicy,
-          fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_upy_nonperiodicy,
-          fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
-        {NULL, NULL, NULL, NULL}}}}}};
+GKYL_CU_D static const local2global_kern_bcx_list_3x
+  ser_loc2glob_list_3x[] =
+    { // periodicx
+      {.list =
+         {// periodicy
+          {.list =
+             {{NULL, NULL, NULL, NULL},
+              {fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_iny_periodicy,
+               fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_iny_periodicy,
+               fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_upy_periodicy,
+               fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_upy_periodicy},
+              {NULL, NULL, NULL, NULL}}},
+          // nonperiodicy
+          {.list =
+             {{NULL, NULL, NULL, NULL},
+              {fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_iny_nonperiodicy,
+               fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_iny_nonperiodicy,
+               fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_upy_nonperiodicy,
+               fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
+              {NULL, NULL, NULL, NULL}}}
+         }},
+      // nonperiodicx
+      {
+        .list =
+          {// periodicy
+           {.list =
+              {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_iny_periodicy, fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_iny_periodicy, fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_upy_periodicy, fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_upy_periodicy}, {NULL, NULL, NULL, NULL}}
+           },
+           // nonperiodicy
+           {.list = {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_iny_nonperiodicy, fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_iny_nonperiodicy, fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_upy_nonperiodicy, fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy}, {NULL, NULL, NULL, NULL}}
+           }
+          }
+      }
+};
 
 // Function pointer type for lhs kernels.
-typedef void (*lhsstencil_t)(const double *epsilon, const double *kSq, const double *dx,
-  const double *bcVals, const long *globalIdxs, void *out);
+typedef void (*lhsstencil_t)(
+  const double *epsilon, const double *kSq, const double *dx, const double *bcVals,
+  const long *globalIdxs, void *out
+);
 
 // For use in kernel tables.
 typedef struct {
@@ -103,29 +110,33 @@ typedef struct {
 
 // Serendipity lhs kernels.
 GKYL_CU_D static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = { // periodicx
-  { .list = { { NULL, NULL, NULL },
-      { fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
-        fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_periodicx,
-        fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_periodicx },
-      { NULL, NULL, NULL } } },
+  {.list =
+     {{NULL, NULL, NULL},
+      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
+       fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_periodicx,
+       fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_periodicx},
+      {NULL, NULL, NULL}}},
   // dirichletx-dirichletx
-  { .list = { { NULL, NULL, NULL },
-      { fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
-        fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx,
-        fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_dirichletx },
-      { NULL, NULL, NULL } } },
+  {.list =
+     {{NULL, NULL, NULL},
+      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
+       fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx,
+       fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_dirichletx},
+      {NULL, NULL, NULL}}},
   // dirichletx-neumannx
-  { .list = { { NULL, NULL, NULL },
-      { fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
-        fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx,
-        fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_neumannx },
-      { NULL, NULL, NULL } } },
+  {.list =
+     {{NULL, NULL, NULL},
+      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
+       fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx,
+       fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_neumannx},
+      {NULL, NULL, NULL}}},
   // neumannx-dirichletx
-  { .list = { { NULL, NULL, NULL },
-      { fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
-        fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_neumannx,
-        fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_dirichletx },
-      { NULL, NULL, NULL } } }
+  {.list =
+     {{NULL, NULL, NULL},
+      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
+       fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_neumannx,
+       fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_dirichletx},
+      {NULL, NULL, NULL}}}
 };
 
 GKYL_CU_D static const lhsstencil_kern_bcx_list_3x ser_lhsstencil_list_3x[] = { // periodicx
@@ -329,8 +340,10 @@ GKYL_CU_D static const lhsstencil_kern_bcx_list_3x ser_lhsstencil_list_3x[] = { 
         {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}}};
 
 // Function pointer type for rhs source kernels.
-typedef void (*srcstencil_t)(const double *epsilon, const double *dx, const double *rho,
-  const double *bcVals, long perpOff, const long *globalIdxs, double *bsrc);
+typedef void (*srcstencil_t)(
+  const double *epsilon, const double *dx, const double *rho, const double *bcVals, long perpOff,
+  const long *globalIdxs, double *bsrc
+);
 
 // For use in kernel tables.
 typedef struct {
@@ -352,29 +365,33 @@ typedef struct {
 
 // Serendipity src kernels.
 GKYL_CU_D static const srcstencil_kern_bcx_list_2x ser_srcstencil_list_2x[] = { // periodicx
-  { .list = { { NULL, NULL, NULL },
-      { fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
-        fem_poisson_perp_src_stencil_2x_ser_p1_lox_periodicx,
-        fem_poisson_perp_src_stencil_2x_ser_p1_upx_periodicx },
-      { NULL, NULL, NULL } } },
+  {.list =
+     {{NULL, NULL, NULL},
+      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
+       fem_poisson_perp_src_stencil_2x_ser_p1_lox_periodicx,
+       fem_poisson_perp_src_stencil_2x_ser_p1_upx_periodicx},
+      {NULL, NULL, NULL}}},
   // dirichletx-dirichletx
-  { .list = { { NULL, NULL, NULL },
-      { fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
-        fem_poisson_perp_src_stencil_2x_ser_p1_lox_dirichletx,
-        fem_poisson_perp_src_stencil_2x_ser_p1_upx_dirichletx },
-      { NULL, NULL, NULL } } },
+  {.list =
+     {{NULL, NULL, NULL},
+      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
+       fem_poisson_perp_src_stencil_2x_ser_p1_lox_dirichletx,
+       fem_poisson_perp_src_stencil_2x_ser_p1_upx_dirichletx},
+      {NULL, NULL, NULL}}},
   // dirichletx-neumannx
-  { .list = { { NULL, NULL, NULL },
-      { fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
-        fem_poisson_perp_src_stencil_2x_ser_p1_lox_dirichletx,
-        fem_poisson_perp_src_stencil_2x_ser_p1_upx_neumannx },
-      { NULL, NULL, NULL } } },
+  {.list =
+     {{NULL, NULL, NULL},
+      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
+       fem_poisson_perp_src_stencil_2x_ser_p1_lox_dirichletx,
+       fem_poisson_perp_src_stencil_2x_ser_p1_upx_neumannx},
+      {NULL, NULL, NULL}}},
   // neumannx-dirichletx
-  { .list = { { NULL, NULL, NULL },
-      { fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
-        fem_poisson_perp_src_stencil_2x_ser_p1_lox_neumannx,
-        fem_poisson_perp_src_stencil_2x_ser_p1_upx_dirichletx },
-      { NULL, NULL, NULL } } }
+  {.list =
+     {{NULL, NULL, NULL},
+      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
+       fem_poisson_perp_src_stencil_2x_ser_p1_lox_neumannx,
+       fem_poisson_perp_src_stencil_2x_ser_p1_upx_dirichletx},
+      {NULL, NULL, NULL}}}
 };
 
 GKYL_CU_D static const srcstencil_kern_bcx_list_3x ser_srcstencil_list_3x[] = { // periodicx
@@ -579,25 +596,27 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_3x ser_srcstencil_list_3x[] = { 
 
 // Function pointer type for sol kernels.
 typedef void (*solstencil_t)(
-  const double *sol_nodal_global, long perpOff, const long *globalIdxs, double *sol_modal_local);
+  const double *sol_nodal_global, long perpOff, const long *globalIdxs, double *sol_modal_local
+);
 
 typedef struct {
   solstencil_t kernels[3];
 } solstencil_kern_list;
 
 GKYL_CU_D static const solstencil_kern_list ser_solstencil_list[] = {
-  { NULL, NULL, NULL },
+  {NULL, NULL, NULL},
   // 1x kernels
-  { NULL, NULL, NULL }, // 0
+  {NULL, NULL, NULL}, // 0
   // 2x kernels
-  { NULL, fem_poisson_perp_sol_stencil_2x_ser_p1, NULL }, // 1
+  {NULL, fem_poisson_perp_sol_stencil_2x_ser_p1, NULL}, // 1
   // 3x kernels
-  { NULL, fem_poisson_perp_sol_stencil_3x_ser_p1, NULL } // 2
+  {NULL, fem_poisson_perp_sol_stencil_3x_ser_p1, NULL} // 2
 };
 
 // Function pointer type for kernels that enforce biasing in LHS matrix.
 typedef void (*bias_lhs_t)(
-  const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+  const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri
+);
 
 // For use in kernel tables.
 typedef struct {
@@ -619,52 +638,59 @@ typedef struct {
 
 // Serendipity bias_lhs kernels.
 static const bias_lhs_kern_bcx_list_2x ser_bias_lhs_list_2x[] = { // periodicx
-  { .list = { { NULL, NULL },
-      { fem_poisson_perp_bias_line_lhs_2x_ser_p1_inx,
-        fem_poisson_perp_bias_line_lhs_2x_ser_p1_upx_periodicx },
-      { NULL, NULL } } },
+  {.list =
+     {{NULL, NULL},
+      {fem_poisson_perp_bias_line_lhs_2x_ser_p1_inx,
+       fem_poisson_perp_bias_line_lhs_2x_ser_p1_upx_periodicx},
+      {NULL, NULL}}},
   // nonperiodicx
-  { .list = { { NULL, NULL },
-      { fem_poisson_perp_bias_line_lhs_2x_ser_p1_inx,
-        fem_poisson_perp_bias_line_lhs_2x_ser_p1_upx_nonperiodicx },
-      { NULL, NULL } } }
+  {.list =
+     {{NULL, NULL},
+      {fem_poisson_perp_bias_line_lhs_2x_ser_p1_inx,
+       fem_poisson_perp_bias_line_lhs_2x_ser_p1_upx_nonperiodicx},
+      {NULL, NULL}}}
 };
 
-static const bias_lhs_kern_bcx_list_3x ser_bias_lhs_list_3x[] = { // periodicx
-  {.list =
-      {// periodicy
-        {.list = {{NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
-             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_iny,
-             fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_periodicy,
-             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_upy_periodicy},
-           {NULL, NULL, NULL, NULL}}},
-        // nonperiodicy
-        {.list = {{NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
-             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_iny,
-             fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_nonperiodicy,
-             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
-           {NULL, NULL, NULL, NULL}}}}},
-  // nonperiodicx
-  {.list = {// periodicy
-     {.list = {{NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
-          fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_iny,
-          fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_periodicy,
-          fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_upy_periodicy},
-        {NULL, NULL, NULL, NULL}}},
-     // nonperiodicy
-     {.list = {{NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
-          fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_iny,
-          fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_nonperiodicy,
-          fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
-        {NULL, NULL, NULL, NULL}}}}}};
+static const bias_lhs_kern_bcx_list_3x
+  ser_bias_lhs_list_3x[] =
+    { // periodicx
+      {.list =
+         {// periodicy
+          {.list =
+             {{NULL, NULL, NULL, NULL},
+              {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
+               fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_iny,
+               fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_periodicy,
+               fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_upy_periodicy},
+              {NULL, NULL, NULL, NULL}}},
+          // nonperiodicy
+          {.list =
+             {{NULL, NULL, NULL, NULL},
+              {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
+               fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_iny,
+               fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_nonperiodicy,
+               fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
+              {NULL, NULL, NULL, NULL}}}
+         }},
+      // nonperiodicx
+      {
+        .list =
+          {// periodicy
+           {.list =
+              {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_upy_periodicy}, {NULL, NULL, NULL, NULL}}
+           },
+           // nonperiodicy
+           {.list = {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy}, {NULL, NULL, NULL, NULL}}
+           }
+          }
+      }
+};
 
 // Function pointer type for kernels that enforce biasing in RHS source.
-typedef void (*bias_src_t)(const int *edge, const int *perp_dirs, double val, long perpOff,
-  const long *globalIdxs, double *bsrc);
+typedef void (*bias_src_t)(
+  const int *edge, const int *perp_dirs, double val, long perpOff, const long *globalIdxs,
+  double *bsrc
+);
 
 // For use in kernel tables.
 typedef struct {
@@ -686,48 +712,53 @@ typedef struct {
 
 // Serendipity bias_src kernels.
 GKYL_CU_D static const bias_src_kern_bcx_list_2x ser_bias_src_list_2x[] = { // periodicx
-  { .list = { { NULL, NULL },
-      { fem_poisson_perp_bias_line_src_2x_ser_p1_inx,
-        fem_poisson_perp_bias_line_src_2x_ser_p1_upx_periodicx },
-      { NULL, NULL } } },
+  {.list =
+     {{NULL, NULL},
+      {fem_poisson_perp_bias_line_src_2x_ser_p1_inx,
+       fem_poisson_perp_bias_line_src_2x_ser_p1_upx_periodicx},
+      {NULL, NULL}}},
   // nonperiodicx
-  { .list = { { NULL, NULL },
-      { fem_poisson_perp_bias_line_src_2x_ser_p1_inx,
-        fem_poisson_perp_bias_line_src_2x_ser_p1_upx_nonperiodicx },
-      { NULL, NULL } } }
+  {.list =
+     {{NULL, NULL},
+      {fem_poisson_perp_bias_line_src_2x_ser_p1_inx,
+       fem_poisson_perp_bias_line_src_2x_ser_p1_upx_nonperiodicx},
+      {NULL, NULL}}}
 };
 
-GKYL_CU_D static const bias_src_kern_bcx_list_3x ser_bias_src_list_3x[] = { // periodicx
-  {.list =
-      {// periodicy
-        {.list = {{NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
-             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_iny,
-             fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_periodicy,
-             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_upy_periodicy},
-           {NULL, NULL, NULL, NULL}}},
-        // nonperiodicy
-        {.list = {{NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
-             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_iny,
-             fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_nonperiodicy,
-             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
-           {NULL, NULL, NULL, NULL}}}}},
-  // nonperiodicx
-  {.list = {// periodicy
-     {.list = {{NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
-          fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_iny,
-          fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_periodicy,
-          fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_upy_periodicy},
-        {NULL, NULL, NULL, NULL}}},
-     // nonperiodicy
-     {.list = {{NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
-          fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_iny,
-          fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_nonperiodicy,
-          fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
-        {NULL, NULL, NULL, NULL}}}}}};
+GKYL_CU_D static const bias_src_kern_bcx_list_3x
+  ser_bias_src_list_3x[] =
+    { // periodicx
+      {.list =
+         {// periodicy
+          {.list =
+             {{NULL, NULL, NULL, NULL},
+              {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
+               fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_iny,
+               fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_periodicy,
+               fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_upy_periodicy},
+              {NULL, NULL, NULL, NULL}}},
+          // nonperiodicy
+          {.list =
+             {{NULL, NULL, NULL, NULL},
+              {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
+               fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_iny,
+               fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_nonperiodicy,
+               fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
+              {NULL, NULL, NULL, NULL}}}
+         }},
+      // nonperiodicx
+      {
+        .list =
+          {// periodicy
+           {.list =
+              {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_upy_periodicy}, {NULL, NULL, NULL, NULL}}
+           },
+           // nonperiodicy
+           {.list = {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy}, {NULL, NULL, NULL, NULL}}
+           }
+          }
+      }
+};
 
 // "Choose Kernel" based on polyorder, stencil location and BCs.
 #define CK2x(lst, poly_order, loc, bcx) lst[bcx].list[poly_order].kernels[loc]
@@ -822,12 +853,14 @@ struct gkyl_fem_poisson_perp {
   bias_src_func_t bias_line_src; // Function to enforce biasing in RHS source.
 };
 
-void fem_poisson_perp_choose_kernels_cu(const struct gkyl_basis *basis,
-  const struct gkyl_poisson_bc *bcs, const bool *isdirperiodic,
-  struct gkyl_fem_poisson_perp_kernels *kers);
+void fem_poisson_perp_choose_kernels_cu(
+  const struct gkyl_basis *basis, const struct gkyl_poisson_bc *bcs, const bool *isdirperiodic,
+  struct gkyl_fem_poisson_perp_kernels *kers
+);
 
 static long gkyl_fem_poisson_perp_global_num_nodes(
-  int ndim, int poly_order, int basis_type, const int *num_cells, bool *isdirperiodic)
+  int ndim, int poly_order, int basis_type, const int *num_cells, bool *isdirperiodic
+)
 {
   if (ndim == 2) {
     if (poly_order == 1) {
@@ -855,21 +888,24 @@ static long gkyl_fem_poisson_perp_global_num_nodes(
 }
 
 GKYL_CU_D static void fem_poisson_perp_choose_local2global_kernels(
-  const struct gkyl_basis *basis, const bool *isdirperiodic, local2global_t *l2gout)
+  const struct gkyl_basis *basis, const bool *isdirperiodic, local2global_t *l2gout
+)
 {
   int poly_order = basis->poly_order;
   int ndim = basis->ndim;
   int ndim_perp = ndim - 1;
 
-  int bckey[GKYL_MAX_CDIM] = { -1 };
-  for (int d = 0; d < ndim_perp; d++)
+  int bckey[GKYL_MAX_CDIM] = {-1};
+  for (int d = 0; d < ndim_perp; d++) {
     bckey[d] = isdirperiodic[d] ? 0 : 1;
+  }
 
   switch (basis->b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
-    for (int k = 0; k < GKYL_IPOW(2, ndim_perp); k++)
+    for (int k = 0; k < GKYL_IPOW(2, ndim_perp); k++) {
       l2gout[k] = ndim == 2 ? CK2x(ser_loc2glob_list_2x, poly_order, k, bckey[0]) :
                               CK3x(ser_loc2glob_list_3x, poly_order, k, bckey[0], bckey[1]);
+    }
     break;
     //    case GKYL_BASIS_MODAL_TENSOR:
     //      break;
@@ -880,13 +916,14 @@ GKYL_CU_D static void fem_poisson_perp_choose_local2global_kernels(
 }
 
 GKYL_CU_D static void fem_poisson_perp_choose_lhs_kernels(
-  const struct gkyl_basis *basis, const struct gkyl_poisson_bc *bcs, lhsstencil_t *lhsout)
+  const struct gkyl_basis *basis, const struct gkyl_poisson_bc *bcs, lhsstencil_t *lhsout
+)
 {
   int poly_order = basis->poly_order;
   int ndim = basis->ndim;
   int ndim_perp = ndim - 1;
 
-  int bckey[GKYL_MAX_CDIM] = { -1, -1, -1 };
+  int bckey[GKYL_MAX_CDIM] = {-1, -1, -1};
   for (int d = 0; d < ndim_perp; d++) {
     if (bcs->lo_type[d] == GKYL_POISSON_PERIODIC && bcs->up_type[d] == GKYL_POISSON_PERIODIC) {
       bckey[d] = 0;
@@ -906,9 +943,10 @@ GKYL_CU_D static void fem_poisson_perp_choose_lhs_kernels(
 
   switch (basis->b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
-    for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++)
+    for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++) {
       lhsout[k] = ndim == 2 ? CK2x(ser_lhsstencil_list_2x, poly_order, k, bckey[0]) :
                               CK3x(ser_lhsstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
+    }
     break;
     //    case GKYL_BASIS_MODAL_TENSOR:
     //      break;
@@ -919,13 +957,14 @@ GKYL_CU_D static void fem_poisson_perp_choose_lhs_kernels(
 }
 
 GKYL_CU_D static void fem_poisson_perp_choose_src_kernels(
-  const struct gkyl_basis *basis, const struct gkyl_poisson_bc *bcs, srcstencil_t *srcout)
+  const struct gkyl_basis *basis, const struct gkyl_poisson_bc *bcs, srcstencil_t *srcout
+)
 {
   int poly_order = basis->poly_order;
   int ndim = basis->ndim;
   int ndim_perp = ndim - 1;
 
-  int bckey[GKYL_MAX_CDIM] = { -1, -1, -1 };
+  int bckey[GKYL_MAX_CDIM] = {-1, -1, -1};
   for (int d = 0; d < ndim_perp; d++) {
     if (bcs->lo_type[d] == GKYL_POISSON_PERIODIC && bcs->up_type[d] == GKYL_POISSON_PERIODIC) {
       bckey[d] = 0;
@@ -945,9 +984,10 @@ GKYL_CU_D static void fem_poisson_perp_choose_src_kernels(
 
   switch (basis->b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
-    for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++)
+    for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++) {
       srcout[k] = ndim == 2 ? CK2x(ser_srcstencil_list_2x, poly_order, k, bckey[0]) :
                               CK3x(ser_srcstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
+    }
     break;
     //    case GKYL_BASIS_MODAL_TENSOR:
     //      break;
@@ -977,15 +1017,17 @@ GKYL_CU_D static solstencil_t fem_poisson_perp_choose_sol_kernels(const struct g
 }
 
 GKYL_CU_D static void fem_poisson_perp_choose_bias_lhs_kernels(
-  const struct gkyl_basis *basis, const bool *isdirperiodic, bias_lhs_t *blhs_out)
+  const struct gkyl_basis *basis, const bool *isdirperiodic, bias_lhs_t *blhs_out
+)
 {
   int poly_order = basis->poly_order;
   int ndim = basis->ndim;
   int ndim_perp = ndim - 1;
 
-  int bckey[GKYL_MAX_CDIM] = { -1 };
-  for (int d = 0; d < ndim_perp; d++)
+  int bckey[GKYL_MAX_CDIM] = {-1};
+  for (int d = 0; d < ndim_perp; d++) {
     bckey[d] = isdirperiodic[d] ? 0 : 1;
+  }
 
   switch (basis->b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -1006,15 +1048,17 @@ GKYL_CU_D static void fem_poisson_perp_choose_bias_lhs_kernels(
 }
 
 GKYL_CU_D static void fem_poisson_perp_choose_bias_src_kernels(
-  const struct gkyl_basis *basis, const bool *isdirperiodic, bias_src_t *bsrc_out)
+  const struct gkyl_basis *basis, const bool *isdirperiodic, bias_src_t *bsrc_out
+)
 {
   int poly_order = basis->poly_order;
   int ndim = basis->ndim;
   int ndim_perp = ndim - 1;
 
-  int bckey[GKYL_MAX_CDIM] = { -1 };
-  for (int d = 0; d < ndim_perp; d++)
+  int bckey[GKYL_MAX_CDIM] = {-1};
+  for (int d = 0; d < ndim_perp; d++) {
     bckey[d] = isdirperiodic[d] ? 0 : 1;
+  }
 
   switch (basis->b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -1041,8 +1085,9 @@ GKYL_CU_DH static inline int idx_to_inup_ker(const int dim, const int *num_cells
   // elsewhere.
   int iout = 0;
   for (int d = 0; d < dim; d++) {
-    if (idx[d] == num_cells[d])
+    if (idx[d] == num_cells[d]) {
       iout += (int)(pow(2, d) + 0.5);
+    }
   }
   return iout;
 }
@@ -1072,7 +1117,8 @@ GKYL_CU_DH static inline int idx_to_inloup_ker(const int dim, const int *num_cel
  * @param kSq Linear Helmholtz term.
  */
 void gkyl_fem_poisson_perp_update_lhs_cu(
-  gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq);
+  gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq
+);
 
 /**
  * Assign the right-side vector on the device.

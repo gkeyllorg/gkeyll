@@ -54,9 +54,9 @@ void test_cusolver_qr()
   e = 5.0;
   r = 18.0;
   l = 12.0;
-  int cooRowInd[] = { 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4 };
-  int colInd[] = { 0, 2, 3, 0, 1, 1, 2, 3, 4, 0, 1, 4 };
-  double Aval[] = { s, u, u, l, u, l, p, e, u, l, l, r };
+  int cooRowInd[] = {0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4};
+  int colInd[] = {0, 2, 3, 0, 1, 1, 2, 3, 4, 0, 1, 4};
+  double Aval[] = {s, u, u, l, u, l, p, e, u, l, l, r};
 
   cusolverSpCreate(&cusolverH);
   cusparseCreate(&cusparseH);
@@ -91,7 +91,7 @@ void test_cusolver_qr()
   cusolverSpCreateCsrqrInfo(&info);
 
   // allocate rhs vector
-  double b[] = { 1.0, 1.0, 1.0, 1.0, 1.0 };
+  double b[] = {1.0, 1.0, 1.0, 1.0, 1.0};
   double *b_cu;
   b_cu = (double *)gkyl_cu_malloc(sizeof(double) * m);
   gkyl_cu_memcpy(b_cu, b, sizeof(double) * m, GKYL_CU_MEMCPY_H2D);
@@ -104,13 +104,15 @@ void test_cusolver_qr()
   cusolverSpXcsrqrAnalysisBatched(cusolverH, m, n, nnz, A, csrRowPtr_cu, colInd_cu, info);
 
   // prepare working space
-  cusolverSpDcsrqrBufferInfoBatched(cusolverH, m, n, nnz, A, Aval_cu, csrRowPtr_cu, colInd_cu, nrhs,
-    info, &size_internal, &size_qr);
+  cusolverSpDcsrqrBufferInfoBatched(
+    cusolverH, m, n, nnz, A, Aval_cu, csrRowPtr_cu, colInd_cu, nrhs, info, &size_internal, &size_qr
+  );
 
   // numerical factorization
   buffer_qr = (void *)gkyl_cu_malloc(size_qr);
   cusolverSpDcsrqrsvBatched(
-    cusolverH, m, n, nnz, A, Aval_cu, csrRowPtr_cu, colInd_cu, b_cu, x_cu, nrhs, info, buffer_qr);
+    cusolverH, m, n, nnz, A, Aval_cu, csrRowPtr_cu, colInd_cu, b_cu, x_cu, nrhs, info, buffer_qr
+  );
 
   cudaStreamSynchronize(stream);
 
@@ -200,15 +202,20 @@ void test_cusolver_ops()
   int nfail = 0;
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
   GKYL_CU_CHECK(
-    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14), &nfail);
+    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14), &nfail);
+    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14), &nfail);
+    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14), &nfail);
+    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14), &nfail);
+    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14), &nfail
+  );
 
   gkyl_culinsolver_prob_release(prob);
 }
@@ -280,37 +287,52 @@ void test_cusolver_ops_multiple_rhs()
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
   // 1st problem
   GKYL_CU_CHECK(
-    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14), &nfail);
+    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14), &nfail);
+    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14), &nfail);
+    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14), &nfail);
+    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14), &nfail);
+    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14), &nfail
+  );
   // 2nd problem
   GKYL_CU_CHECK(
-    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 5), 1e-14), &nfail);
+    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 5), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 6), 1e-14), &nfail);
+    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 6), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 7), 1e-14), &nfail);
+    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 7), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 8), 1e-14), &nfail);
+    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 8), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 9), 1e-14), &nfail);
+    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 9), 1e-14), &nfail
+  );
   // 3rd problem
   GKYL_CU_CHECK(
-    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 10), 1e-14), &nfail);
+    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 10), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 11), 1e-14), &nfail);
+    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 11), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 12), 1e-14), &nfail);
+    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 12), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 13), 1e-14), &nfail);
+    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 13), 1e-14), &nfail
+  );
   GKYL_CU_CHECK(
-    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 14), 1e-14), &nfail);
+    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 14), 1e-14), &nfail
+  );
 
   gkyl_culinsolver_prob_release(prob);
 }
@@ -331,18 +353,19 @@ double superlu_test_answer(double s, double u, double p, double e, double r, dou
           (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2)));
     break;
   case 2:
-    sol = -((-(e * pow(l, 2) * r) + e * l * r * s + pow(l, 2) * r * u - e * r * s * u +
-              pow(l, 2) * pow(u, 2) - l * pow(u, 3)) /
-            (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2))));
+    sol =
+      -((-(e * pow(l, 2) * r) + e * l * r * s + pow(l, 2) * r * u - e * r * s * u +
+         pow(l, 2) * pow(u, 2) - l * pow(u, 3)) /
+        (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2))));
     break;
   case 3:
     sol = (-(pow(l, 2) * p) + pow(l, 2) * r + l * p * s + p * r * s + pow(l, 2) * u + l * p * u -
-            p * s * u - l * pow(u, 2)) /
+           p * s * u - l * pow(u, 2)) /
           (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2));
     break;
   case 4:
     sol = (e * pow(l, 2) * p - e * l * p * s - e * pow(l, 2) * u - e * l * p * u -
-            pow(l, 2) * p * u + e * p * s * u + e * l * pow(u, 2) + l * p * pow(u, 2)) /
+           pow(l, 2) * p * u + e * p * s * u + e * l * pow(u, 2) + l * p * pow(u, 2)) /
           (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2)));
     break;
   }
@@ -398,8 +421,9 @@ void test_cusolver_ops_multiple_prob()
 
   // Allocate the A matrix from triples.
   gkyl_culinsolver_amat_from_triples(prob, tri_arr);
-  for (size_t k = 0; k < nprob; k++)
+  for (size_t k = 0; k < nprob; k++) {
     gkyl_mat_triples_release(tri_arr[k]);
+  }
   gkyl_free(tri_arr);
 
   // Create right-hand side matrix B = transpose([1,1,1,1,1]).
@@ -425,10 +449,15 @@ void test_cusolver_ops_multiple_prob()
     e = 5.0 * (k + 1) / nprob;
     r = 18.0 * (k + 1) / nprob;
     l = 12.0 * (k + 1) / nprob;
-    for (int i = 0; i < m; i++)
-      GKYL_CU_CHECK(gkyl_compare_double(superlu_test_answer(s, u, p, e, r, l, i),
-                      gkyl_culinsolver_get_sol_lin(prob, k * 5 + i), 1e-10),
-        &nfail);
+    for (int i = 0; i < m; i++) {
+      GKYL_CU_CHECK(
+        gkyl_compare_double(
+          superlu_test_answer(s, u, p, e, r, l, i), gkyl_culinsolver_get_sol_lin(prob, k * 5 + i),
+          1e-10
+        ),
+        &nfail
+      );
+    }
   }
 
   gkyl_culinsolver_prob_release(prob);
@@ -455,9 +484,9 @@ void test_cusolver_rf()
   e = 5.0;
   r = 18.0;
   l = 12.0;
-  double h_csrValA[] = { s, u, u, l, u, l, p, e, u, l, l, r };
-  int h_csrRowIndA[] = { 0, 3, 5, 7, 9, 12 };
-  int h_csrColIndA[] = { 0, 2, 3, 0, 1, 1, 2, 3, 4, 0, 1, 4 };
+  double h_csrValA[] = {s, u, u, l, u, l, p, e, u, l, l, r};
+  int h_csrRowIndA[] = {0, 3, 5, 7, 9, 12};
+  int h_csrColIndA[] = {0, 2, 3, 0, 1, 1, 2, 3, 4, 0, 1, 4};
 
   int rowsA = 5; // number of rows of A
   int colsA = rowsA; // number of columns of A
@@ -498,13 +527,12 @@ void test_cusolver_rf()
   checkCuda(cudaGetLastError());
 
   // Allocate rhs vector (host only for now).
-  double h_b[] = { 1.0, 1.0, 1.0, 1.0, 1.0 };
+  double h_b[] = {1.0, 1.0, 1.0, 1.0, 1.0};
 
   // reorder to reduce zero fill-in
   // Qreorder = symrcm(A) or Qreroder = symamd(A)
   int *h_Qreorder = (int *)gkyl_malloc(sizeof(int) * colsA);
-  cusolverSpXcsrsymrcmHost(
-    cusolverSpH, rowsA, nnzA, descrA, h_csrRowIndA, h_csrColIndA, h_Qreorder);
+  cusolverSpXcsrsymrcmHost(cusolverSpH, rowsA, nnzA, descrA, h_csrRowIndA, h_csrColIndA, h_Qreorder);
   //  cusolverSpXcsrsymamdHost(cusolverSpH, rowsA, nnzA,
   //    descrA, h_csrRowIndA, h_csrColIndA, h_Qreorder);
 
@@ -515,8 +543,10 @@ void test_cusolver_rf()
   memcpy(h_csrColIndB, h_csrColIndA, sizeof(int) * nnzA);
 
   size_t size_perm = 0;
-  cusolverSpXcsrperm_bufferSizeHost(cusolverSpH, rowsA, colsA, nnzA, descrA, h_csrRowIndB,
-    h_csrColIndB, h_Qreorder, h_Qreorder, &size_perm);
+  cusolverSpXcsrperm_bufferSizeHost(
+    cusolverSpH, rowsA, colsA, nnzA, descrA, h_csrRowIndB, h_csrColIndB, h_Qreorder, h_Qreorder,
+    &size_perm
+  );
 
   void *buffer_cpu =
     NULL; // working space for permutation (B = Q*A*Q^T) and LU w/ partial pivoting in cusolverSp.
@@ -524,15 +554,19 @@ void test_cusolver_rf()
 
   // h_mapBfromA = Identity
   int *h_mapBfromA = (int *)gkyl_malloc(sizeof(int) * nnzA);
-  for (int j = 0; j < nnzA; j++)
+  for (int j = 0; j < nnzA; j++) {
     h_mapBfromA[j] = j;
-  cusolverSpXcsrpermHost(cusolverSpH, rowsA, colsA, nnzA, descrA, h_csrRowIndB, h_csrColIndB,
-    h_Qreorder, h_Qreorder, h_mapBfromA, buffer_cpu);
+  }
+  cusolverSpXcsrpermHost(
+    cusolverSpH, rowsA, colsA, nnzA, descrA, h_csrRowIndB, h_csrColIndB, h_Qreorder, h_Qreorder,
+    h_mapBfromA, buffer_cpu
+  );
 
   // B = A( mapBfromA )
   double *h_csrValB = (double *)gkyl_malloc(sizeof(double) * nnzA);
-  for (int j = 0; j < nnzA; j++)
+  for (int j = 0; j < nnzA; j++) {
     h_csrValB[j] = h_csrValA[h_mapBfromA[j]];
+  }
 
   // ................ Solve A*x = b by LU(B) in cusolverSp ................ //
 
@@ -546,16 +580,21 @@ void test_cusolver_rf()
   // Workspace for LU(B).
   size_t size_internal = 0;
   size_t size_lu = 0; // Size of working space for csrlu.
-  cusolverSpDcsrluBufferInfoHost(cusolverSpH, rowsA, nnzA, descrA, h_csrValB, h_csrRowIndB,
-    h_csrColIndB, info, &size_internal, &size_lu);
+  cusolverSpDcsrluBufferInfoHost(
+    cusolverSpH, rowsA, nnzA, descrA, h_csrValB, h_csrRowIndB, h_csrColIndB, info, &size_internal,
+    &size_lu
+  );
 
-  if (buffer_cpu)
+  if (buffer_cpu) {
     free(buffer_cpu);
+  }
   buffer_cpu = (void *)gkyl_malloc(sizeof(char) * size_lu);
 
   // Compute Ppivot*B = L*U.
-  cusolverSpDcsrluFactorHost(cusolverSpH, rowsA, nnzA, descrA, h_csrValB, h_csrRowIndB,
-    h_csrColIndB, info, pivot_threshold, buffer_cpu);
+  cusolverSpDcsrluFactorHost(
+    cusolverSpH, rowsA, nnzA, descrA, h_csrValB, h_csrRowIndB, h_csrColIndB, info, pivot_threshold,
+    buffer_cpu
+  );
 
   // Check if the matrix is singular \n");
   cusolverSpDcsrluZeroPivotHost(cusolverSpH, info, tol, &singularity);
@@ -567,15 +606,17 @@ void test_cusolver_rf()
   // Solve A*x = b, i.e. solve B*(Qx) = Q*b.
   double *h_bhat = (double *)gkyl_malloc(sizeof(double) * rowsA); // b_hat = Q*b.
   double *h_xhat = (double *)gkyl_malloc(sizeof(double) * colsA); // Q*x_hat = x.
-  for (int j = 0; j < rowsA; j++)
+  for (int j = 0; j < rowsA; j++) {
     h_bhat[j] = h_b[h_Qreorder[j]]; // b_hat = Q*b
+  }
   // B*x_hat = b_hat.
   cusolverSpDcsrluSolveHost(cusolverSpH, rowsA, h_bhat, h_xhat, info, buffer_cpu);
 
   // x = Q^T * x_hat
   double *h_x = (double *)gkyl_malloc(sizeof(double) * colsA); // x = A \ b
-  for (int j = 0; j < rowsA; j++)
+  for (int j = 0; j < rowsA; j++) {
     h_x[h_Qreorder[j]] = h_xhat[j];
+  }
 
   // .............. Extract P, Q, L and U from P*B*Q^T = L*U .............. //
 
@@ -592,8 +633,10 @@ void test_cusolver_rf()
   int *h_csrRowIndU = (int *)gkyl_malloc(sizeof(int) * (rowsA + 1));
   int *h_csrColIndU = (int *)gkyl_malloc(sizeof(int) * nnzU);
 
-  cusolverSpDcsrluExtractHost(cusolverSpH, h_Plu, h_Qlu, descrA, h_csrValL, h_csrRowIndL,
-    h_csrColIndL, descrA, h_csrValU, h_csrRowIndU, h_csrColIndU, info, buffer_cpu);
+  cusolverSpDcsrluExtractHost(
+    cusolverSpH, h_Plu, h_Qlu, descrA, h_csrValL, h_csrRowIndL, h_csrColIndL, descrA, h_csrValU,
+    h_csrRowIndU, h_csrColIndU, info, buffer_cpu
+  );
 
   /*  B = Qreorder*A*Qreorder^T
    *  Plu*B*Qlu^T = L*U
@@ -611,13 +654,15 @@ void test_cusolver_rf()
 
   // P = Plu*Qreroder.
   // Gather operation, P = Qreorder(Plu).
-  for (int j = 0; j < rowsA; j++)
+  for (int j = 0; j < rowsA; j++) {
     h_P[j] = h_Qreorder[h_Plu[j]];
+  }
 
   // Q = Qlu*Qreorder.
   // Gather operation, Q = Qreorder(Qlu).
-  for (int j = 0; j < colsA; j++)
+  for (int j = 0; j < colsA; j++) {
     h_Q[j] = h_Qreorder[h_Qlu[j]];
+  }
 
   // ............... Create cusolverRf handle ................ //
   cusolverRfHandle_t cusolverRfH = NULL; // Refactorization object.
@@ -632,14 +677,17 @@ void test_cusolver_rf()
 
   // Matrix mode: L and U are CSR format, and L has implicit unit diagonal
   cusolverRfSetMatrixFormat(
-    cusolverRfH, CUSOLVERRF_MATRIX_FORMAT_CSR, CUSOLVERRF_UNIT_DIAGONAL_ASSUMED_L);
+    cusolverRfH, CUSOLVERRF_MATRIX_FORMAT_CSR, CUSOLVERRF_UNIT_DIAGONAL_ASSUMED_L
+  );
 
   // Fast mode for matrix assembling
   cusolverRfSetResetValuesFastMode(cusolverRfH, CUSOLVERRF_RESET_VALUES_FAST_MODE_ON);
 
   // ............... Assemble P*A*Q = L*U .................. //
-  cusolverRfSetupHost(rowsA, nnzA, h_csrRowIndA, h_csrColIndA, h_csrValA, nnzL, h_csrRowIndL,
-    h_csrColIndL, h_csrValL, nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q, cusolverRfH);
+  cusolverRfSetupHost(
+    rowsA, nnzA, h_csrRowIndA, h_csrColIndA, h_csrValA, nnzL, h_csrRowIndL, h_csrColIndL, h_csrValL,
+    nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q, cusolverRfH
+  );
 
   cudaDeviceSynchronize();
 
@@ -673,7 +721,8 @@ void test_cusolver_rf()
   gkyl_cu_memcpy(d_x, h_b, sizeof(double) * rowsA, GKYL_CU_MEMCPY_H2D);
 
   double *d_T = (double *)gkyl_cu_malloc(
-    sizeof(double) * rowsA * 1); // Working space in cusolverRfSolve, |d_T| = n * nrhs.
+    sizeof(double) * rowsA * 1
+  ); // Working space in cusolverRfSolve, |d_T| = n * nrhs.
   cusolverRfSolve(cusolverRfH, d_P, d_Q, 1, d_T, rowsA, d_x, rowsA);
 
   cudaDeviceSynchronize();

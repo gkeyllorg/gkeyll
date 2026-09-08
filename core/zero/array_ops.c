@@ -27,13 +27,14 @@ struct gkyl_array *gkyl_array_clear(struct gkyl_array *out, double val)
 #endif
 
   double *out_d = out->data;
-  for (size_t i = 0; i < NELM(out); ++i)
+  for (size_t i = 0; i < NELM(out); ++i) {
     out_d[i] = val;
+  }
   return out;
 }
 
-struct gkyl_array *gkyl_array_accumulate(
-  struct gkyl_array *out, double a, const struct gkyl_array *inp)
+struct gkyl_array *
+gkyl_array_accumulate(struct gkyl_array *out, double a, const struct gkyl_array *inp)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size && out->elemsz == inp->elemsz);
@@ -48,13 +49,15 @@ struct gkyl_array *gkyl_array_accumulate(
 
   double *out_d = out->data;
   const double *inp_d = inp->data;
-  for (size_t i = 0; i < NELM(out); ++i)
+  for (size_t i = 0; i < NELM(out); ++i) {
     out_d[i] += a * inp_d[i];
+  }
   return out;
 }
 
 struct gkyl_array *gkyl_array_accumulate_offset(
-  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff)
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
+)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size);
@@ -71,14 +74,18 @@ struct gkyl_array *gkyl_array_accumulate_offset(
   const double *inp_d = inp->data;
   if (NCOM(out) < NCOM(inp)) {
     // Interpret offset as offset in input components.
-    for (size_t i = 0; i < out->size; ++i)
-      for (size_t c = 0; c < NCOM(out); ++c)
+    for (size_t i = 0; i < out->size; ++i) {
+      for (size_t c = 0; c < NCOM(out); ++c) {
         out_d[i * NCOM(out) + c] += a * inp_d[i * NCOM(inp) + c + coff];
+      }
+    }
   } else {
     // Interpret offset as offset in output components.
-    for (size_t i = 0; i < out->size; ++i)
-      for (size_t c = 0; c < NCOM(inp); ++c)
+    for (size_t i = 0; i < out->size; ++i) {
+      for (size_t c = 0; c < NCOM(inp); ++c) {
         out_d[i * NCOM(out) + c + coff] += a * inp_d[i * NCOM(inp) + c];
+      }
+    }
   }
   return out;
 }
@@ -98,13 +105,14 @@ struct gkyl_array *gkyl_array_set(struct gkyl_array *out, double a, const struct
 
   double *out_d = out->data;
   const double *inp_d = inp->data;
-  for (size_t i = 0; i < NELM(out); ++i)
+  for (size_t i = 0; i < NELM(out); ++i) {
     out_d[i] = a * inp_d[i];
+  }
   return out;
 }
 
-struct gkyl_array *gkyl_array_set_offset(
-  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff)
+struct gkyl_array *
+gkyl_array_set_offset(struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size);
@@ -121,14 +129,18 @@ struct gkyl_array *gkyl_array_set_offset(
   const double *inp_d = inp->data;
   if (NCOM(out) < NCOM(inp)) {
     // Interpret offset as offset in input components.
-    for (size_t i = 0; i < out->size; ++i)
-      for (size_t c = 0; c < NCOM(out); ++c)
+    for (size_t i = 0; i < out->size; ++i) {
+      for (size_t c = 0; c < NCOM(out); ++c) {
         out_d[i * NCOM(out) + c] = a * inp_d[i * NCOM(inp) + c + coff];
+      }
+    }
   } else {
     // Interpret offset as offset in output components.
-    for (size_t i = 0; i < out->size; ++i)
-      for (size_t c = 0; c < NCOM(inp); ++c)
+    for (size_t i = 0; i < out->size; ++i) {
+      for (size_t c = 0; c < NCOM(inp); ++c) {
         out_d[i * NCOM(out) + c + coff] = a * inp_d[i * NCOM(inp) + c];
+      }
+    }
   }
   return out;
 }
@@ -158,14 +170,16 @@ struct gkyl_array *gkyl_array_scale_by_cell(struct gkyl_array *out, const struct
 
   double *out_d = out->data;
   const double *a_d = a->data;
-  for (size_t i = 0; i < out->size; ++i)
-    for (size_t c = 0; c < NCOM(out); ++c)
+  for (size_t i = 0; i < out->size; ++i) {
+    for (size_t c = 0; c < NCOM(out); ++c) {
       out_d[i * NCOM(out) + c] = a_d[i] * out_d[i * NCOM(out) + c];
+    }
+  }
   return out;
 }
 
-struct gkyl_array *gkyl_array_min_by_cell(
-  struct gkyl_array *out, const struct gkyl_array *inp, double a)
+struct gkyl_array *
+gkyl_array_min_by_cell(struct gkyl_array *out, const struct gkyl_array *inp, double a)
 {
   assert(out->type == GKYL_DOUBLE);
 #ifdef GKYL_HAVE_CUDA
@@ -177,13 +191,15 @@ struct gkyl_array *gkyl_array_min_by_cell(
 
   double *out_d = out->data;
   const double *inp_d = inp->data;
-  for (size_t i = 0; i < NELM(out); ++i)
+  for (size_t i = 0; i < NELM(out); ++i) {
     out_d[i] = fmin(inp_d[i], a);
+  }
   return out;
 }
 
 struct gkyl_array *gkyl_array_min_by_cell_range(
-  struct gkyl_array *out, const struct gkyl_array *inp, double a, const struct gkyl_range *range)
+  struct gkyl_array *out, const struct gkyl_array *inp, double a, const struct gkyl_range *range
+)
 {
   assert(out->type == GKYL_DOUBLE);
 #ifdef GKYL_HAVE_CUDA
@@ -200,8 +216,9 @@ struct gkyl_array *gkyl_array_min_by_cell_range(
     long start = gkyl_range_idx(range, iter.idx);
     double *out_d = gkyl_array_fetch(out, start);
     const double *inp_d = gkyl_array_cfetch(inp, start);
-    for (size_t c = 0; c < NCOM(out); ++c)
+    for (size_t c = 0; c < NCOM(out); ++c) {
       out_d[c] = fmin(inp_d[c], a);
+    }
   }
   return out;
 }
@@ -219,9 +236,11 @@ struct gkyl_array *gkyl_array_divide_by_cell(struct gkyl_array *out, const struc
 
   double *out_d = out->data;
   const double *a_d = a->data;
-  for (size_t i = 0; i < out->size; ++i)
-    for (size_t c = 0; c < NCOM(out); ++c)
+  for (size_t i = 0; i < out->size; ++i) {
+    for (size_t c = 0; c < NCOM(out); ++c) {
       out_d[i * NCOM(out) + c] = out_d[i * NCOM(out) + c] / a_d[i];
+    }
+  }
   return out;
 }
 
@@ -237,8 +256,9 @@ struct gkyl_array *gkyl_array_invert_by_cell(struct gkyl_array *out, const struc
 
   double *out_d = out->data;
   const double *inp_d = inp->data;
-  for (size_t i = 0; i < NELM(out); ++i)
+  for (size_t i = 0; i < NELM(out); ++i) {
     out_d[i] = 1.0 / inp_d[i];
+  }
   return out;
 }
 
@@ -254,14 +274,15 @@ struct gkyl_array *gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned 
 #endif
 
   double *out_d = out->data;
-  for (size_t i = 0; i < out->size; ++i)
+  for (size_t i = 0; i < out->size; ++i) {
     out_d[i * NCOM(out) + k] = a + out_d[i * NCOM(out) + k];
+  }
   return out;
 }
 
 // range based methods
-struct gkyl_array *gkyl_array_clear_range(
-  struct gkyl_array *out, double val, const struct gkyl_range *range)
+struct gkyl_array *
+gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_range *range)
 {
   assert(out->type == GKYL_DOUBLE);
 
@@ -286,7 +307,8 @@ struct gkyl_array *gkyl_array_clear_range(
 }
 
 struct gkyl_array *gkyl_array_accumulate_range(
-  struct gkyl_array *out, double a, const struct gkyl_array *inp, const struct gkyl_range *range)
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, const struct gkyl_range *range
+)
 {
   assert(out->type == GKYL_DOUBLE);
 
@@ -314,8 +336,10 @@ struct gkyl_array *gkyl_array_accumulate_range(
   return out;
 }
 
-struct gkyl_array *gkyl_array_accumulate_offset_range(struct gkyl_array *out, double a,
-  const struct gkyl_array *inp, int coff, const struct gkyl_range *range)
+struct gkyl_array *gkyl_array_accumulate_offset_range(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff,
+  const struct gkyl_range *range
+)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size);
@@ -354,7 +378,8 @@ struct gkyl_array *gkyl_array_accumulate_offset_range(struct gkyl_array *out, do
 }
 
 struct gkyl_array *gkyl_array_set_range(
-  struct gkyl_array *out, double a, const struct gkyl_array *inp, const struct gkyl_range *range)
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, const struct gkyl_range *range
+)
 {
   assert(out->type == GKYL_DOUBLE && inp->type == GKYL_DOUBLE);
   assert(out->size == inp->size);
@@ -381,9 +406,10 @@ struct gkyl_array *gkyl_array_set_range(
   return out;
 }
 
-struct gkyl_array *gkyl_array_set_range_to_range(struct gkyl_array *out, double a,
-  const struct gkyl_array *inp, const struct gkyl_range *out_range,
-  const struct gkyl_range *inp_range)
+struct gkyl_array *gkyl_array_set_range_to_range(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp,
+  const struct gkyl_range *out_range, const struct gkyl_range *inp_range
+)
 {
   assert(out->elemsz == inp->elemsz);
   assert((inp_range->volume < 1) || (out_range->volume == inp_range->volume));
@@ -410,8 +436,9 @@ struct gkyl_array *gkyl_array_set_range_to_range(struct gkyl_array *out, double 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, inp_range);
   while (gkyl_range_iter_next(&iter)) {
-    for (int d = 0; d < out_range->ndim; ++d)
+    for (int d = 0; d < out_range->ndim; ++d) {
       idx_out[d] = iloLocal_out[d] + (iter.idx[d] - iloLocal_inp[d]);
+    }
 
     long linidx_inp = gkyl_range_idx(inp_range, iter.idx);
     long linidx_out = gkyl_range_idx(out_range, idx_out);
@@ -421,8 +448,10 @@ struct gkyl_array *gkyl_array_set_range_to_range(struct gkyl_array *out, double 
   return out;
 }
 
-struct gkyl_array *gkyl_array_set_offset_range(struct gkyl_array *out, double a,
-  const struct gkyl_array *inp, int coff, const struct gkyl_range *range)
+struct gkyl_array *gkyl_array_set_offset_range(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff,
+  const struct gkyl_range *range
+)
 {
   assert(out->type == GKYL_DOUBLE && inp->type == GKYL_DOUBLE);
   assert(out->size == inp->size);
@@ -460,8 +489,8 @@ struct gkyl_array *gkyl_array_set_offset_range(struct gkyl_array *out, double a,
   return out;
 }
 
-struct gkyl_array *gkyl_array_scale_range(
-  struct gkyl_array *out, double a, const struct gkyl_range *range)
+struct gkyl_array *
+gkyl_array_scale_range(struct gkyl_array *out, double a, const struct gkyl_range *range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -473,8 +502,8 @@ struct gkyl_array *gkyl_array_scale_range(
   return gkyl_array_set_range(out, a, out, range);
 }
 
-struct gkyl_array *gkyl_array_shiftc_range(
-  struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range)
+struct gkyl_array *
+gkyl_array_shiftc_range(struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(k < NCOM(out));
@@ -497,7 +526,8 @@ struct gkyl_array *gkyl_array_shiftc_range(
 }
 
 struct gkyl_array *gkyl_array_copy_range(
-  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range)
+  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
+)
 {
   assert(out->size == inp->size && out->elemsz == inp->elemsz);
 
@@ -519,9 +549,10 @@ struct gkyl_array *gkyl_array_copy_range(
   return out;
 }
 
-struct gkyl_array *gkyl_array_copy_range_to_range(struct gkyl_array *out,
-  const struct gkyl_array *inp, const struct gkyl_range *out_range,
-  const struct gkyl_range *inp_range)
+struct gkyl_array *gkyl_array_copy_range_to_range(
+  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *out_range,
+  const struct gkyl_range *inp_range
+)
 {
   assert(out->elemsz == inp->elemsz);
   assert((inp_range->volume < 1) || (out_range->volume == inp_range->volume));
@@ -545,8 +576,9 @@ struct gkyl_array *gkyl_array_copy_range_to_range(struct gkyl_array *out,
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, inp_range);
   while (gkyl_range_iter_next(&iter)) {
-    for (int d = 0; d < out_range->ndim; ++d)
+    for (int d = 0; d < out_range->ndim; ++d) {
       idx_out[d] = iloLocal_out[d] + (iter.idx[d] - iloLocal_inp[d]);
+    }
 
     long linidx_inp = gkyl_range_idx(inp_range, iter.idx);
     long linidx_out = gkyl_range_idx(out_range, idx_out);
@@ -556,7 +588,8 @@ struct gkyl_array *gkyl_array_copy_range_to_range(struct gkyl_array *out,
 }
 
 void gkyl_array_copy_to_buffer(
-  void *data, const struct gkyl_array *arr, const struct gkyl_range *range)
+  void *data, const struct gkyl_array *arr, const struct gkyl_range *range
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
@@ -580,7 +613,8 @@ void gkyl_array_copy_to_buffer(
 }
 
 void gkyl_array_copy_from_buffer(
-  struct gkyl_array *arr, const void *data, const struct gkyl_range *range)
+  struct gkyl_array *arr, const void *data, const struct gkyl_range *range
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
@@ -603,8 +637,10 @@ void gkyl_array_copy_from_buffer(
 #undef _F
 }
 
-void gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
-  const struct gkyl_range *range, struct gkyl_array_copy_func *cf)
+void gkyl_array_copy_to_buffer_fn(
+  void *data, const struct gkyl_array *arr, const struct gkyl_range *range,
+  struct gkyl_array_copy_func *cf
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
@@ -627,8 +663,10 @@ void gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
   }
 }
 
-void gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr, int dir,
-  const struct gkyl_range *range, struct gkyl_array_copy_func *cf)
+void gkyl_array_flip_copy_to_buffer_fn(
+  void *data, const struct gkyl_array *arr, int dir, const struct gkyl_range *range,
+  struct gkyl_array_copy_func *cf
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
@@ -664,40 +702,51 @@ void gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
 
 static double calc_rel_diff(double a, double b)
 {
-  if (isnan(a) || isnan(b))
+  if (isnan(a) || isnan(b)) {
     return DBL_MAX;
+  }
 
   double absa = fabs(a), absb = fabs(b), diff = fabs(a - b);
-  if (a == b)
+  if (a == b) {
     return 0;
-  if (a == 0 || b == 0 || (absa + absb < DBL_MIN))
+  }
+  if (a == 0 || b == 0 || (absa + absb < DBL_MIN)) {
     return diff;
+  }
   return diff / fmin(absa + absb, DBL_MAX);
 }
 
 struct gkyl_array_diff gkyl_array_diff(
-  const struct gkyl_array *arr1, const struct gkyl_array *arr2, const struct gkyl_range *range)
+  const struct gkyl_array *arr1, const struct gkyl_array *arr2, const struct gkyl_range *range
+)
 {
-  struct gkyl_array_diff incompat = { .is_compatible = false,
+  struct gkyl_array_diff incompat = {
+    .is_compatible = false,
     .max_abs_diff = DBL_MAX,
     .min_abs_diff = DBL_MAX,
     .max_rel_diff = DBL_MAX,
-    .min_rel_diff = DBL_MAX };
+    .min_rel_diff = DBL_MAX
+  };
 
-  if ((arr1->type != GKYL_DOUBLE) && (arr2->type != GKYL_DOUBLE))
+  if ((arr1->type != GKYL_DOUBLE) && (arr2->type != GKYL_DOUBLE)) {
     return incompat;
+  }
 
-  if (gkyl_array_is_cu_dev(arr1) || gkyl_array_is_cu_dev(arr2))
+  if (gkyl_array_is_cu_dev(arr1) || gkyl_array_is_cu_dev(arr2)) {
     return incompat;
+  }
 
-  if (arr1->elemsz != arr2->elemsz)
+  if (arr1->elemsz != arr2->elemsz) {
     return incompat;
+  }
 
-  if (arr1->ncomp != arr2->ncomp)
+  if (arr1->ncomp != arr2->ncomp) {
     return incompat;
+  }
 
-  if (arr1->size != arr2->size)
+  if (arr1->size != arr2->size) {
     return incompat;
+  }
 
   double max_abs_diff = -DBL_MAX, max_rel_diff = -DBL_MAX;
   double min_abs_diff = DBL_MAX, min_rel_diff = DBL_MAX;
@@ -718,15 +767,17 @@ struct gkyl_array_diff gkyl_array_diff(
     }
   }
 
-  return (struct gkyl_array_diff){ .is_compatible = true,
+  return (struct gkyl_array_diff
+  ){.is_compatible = true,
     .max_abs_diff = max_abs_diff,
     .min_abs_diff = min_abs_diff,
     .max_rel_diff = max_rel_diff,
-    .min_rel_diff = min_rel_diff };
+    .min_rel_diff = min_rel_diff};
 }
 
 struct gkyl_array *gkyl_array_max_by_cell_per_cell_avg_range(
-  struct gkyl_array *out, const struct gkyl_array *inp, struct gkyl_range *range)
+  struct gkyl_array *out, const struct gkyl_array *inp, struct gkyl_range *range
+)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size && out->elemsz == inp->elemsz);

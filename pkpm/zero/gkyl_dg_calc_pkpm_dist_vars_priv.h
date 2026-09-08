@@ -10,15 +10,17 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*pkpm_dist_mirror_force_t)(const double *w, const double *dxv,
-  const double *pkpm_prim, const double *nu_prim_moms_sum, const double *div_b,
-  const double *pkpm_accel_vars, const double *f, const double *F_k_p_1,
-  double *GKYL_RESTRICT g_dist_source, double *GKYL_RESTRICT F_k_m_1);
+typedef void (*pkpm_dist_mirror_force_t)(
+  const double *w, const double *dxv, const double *pkpm_prim, const double *nu_prim_moms_sum,
+  const double *div_b, const double *pkpm_accel_vars, const double *f, const double *F_k_p_1,
+  double *GKYL_RESTRICT g_dist_source, double *GKYL_RESTRICT F_k_m_1
+);
 
-typedef void (*pkpm_dist_div_ppar_t)(const double *w, const double *dxv, const double *bvar_surf_l,
-  const double *bvar_surf_c, const double *bvar_surf_r, const double *fl, const double *fc,
-  const double *fr, const double *bvar_c, const double *pkpm_max_b,
-  double *GKYL_RESTRICT pkpm_div_ppar);
+typedef void (*pkpm_dist_div_ppar_t)(
+  const double *w, const double *dxv, const double *bvar_surf_l, const double *bvar_surf_c,
+  const double *bvar_surf_r, const double *fl, const double *fc, const double *fr,
+  const double *bvar_c, const double *pkpm_max_b, double *GKYL_RESTRICT pkpm_div_ppar
+);
 
 // for use in kernel tables
 typedef struct {
@@ -42,63 +44,63 @@ struct gkyl_dg_calc_pkpm_dist_vars {
 // PKPM distribution function source in mirror force and vperp characteristics (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_pkpm_dist_mirror_force_kern_list
   ser_pkpm_dist_mirror_force_kernels[] = {
-    { NULL, pkpm_dist_mirror_force_1x1v_ser_p1, pkpm_dist_mirror_force_1x1v_ser_p2 }, // 0
-    { NULL, pkpm_dist_mirror_force_2x1v_ser_p1, NULL }, // 1
-    { NULL, pkpm_dist_mirror_force_3x1v_ser_p1, NULL } // 2
-  };
+    {NULL, pkpm_dist_mirror_force_1x1v_ser_p1, pkpm_dist_mirror_force_1x1v_ser_p2}, // 0
+    {NULL, pkpm_dist_mirror_force_2x1v_ser_p1, NULL}, // 1
+    {NULL, pkpm_dist_mirror_force_3x1v_ser_p1, NULL} // 2
+};
 
 // PKPM distribution function source in mirror force and vperp characteristics (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_pkpm_dist_mirror_force_kern_list
   ten_pkpm_dist_mirror_force_kernels[] = {
-    { NULL, pkpm_dist_mirror_force_1x1v_ser_p1, pkpm_dist_mirror_force_1x1v_tensor_p2 }, // 0
-    { NULL, pkpm_dist_mirror_force_2x1v_ser_p1, pkpm_dist_mirror_force_2x1v_tensor_p2 }, // 1
-    { NULL, pkpm_dist_mirror_force_3x1v_ser_p1, NULL } // 2
-  };
+    {NULL, pkpm_dist_mirror_force_1x1v_ser_p1, pkpm_dist_mirror_force_1x1v_tensor_p2}, // 0
+    {NULL, pkpm_dist_mirror_force_2x1v_ser_p1, pkpm_dist_mirror_force_2x1v_tensor_p2}, // 1
+    {NULL, pkpm_dist_mirror_force_3x1v_ser_p1, NULL} // 2
+};
 
 // PKPM consistent div(p_par b) (in x) kernels (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_pkpm_dist_div_ppar_kern_list ser_pkpm_dist_div_ppar_x_kernels[] = {
-  { NULL, pkpm_dist_div_ppar_x_1x1v_ser_p1, pkpm_dist_div_ppar_x_1x1v_ser_p2 }, // 0
-  { NULL, pkpm_dist_div_ppar_x_2x1v_ser_p1, NULL }, // 1
-  { NULL, pkpm_dist_div_ppar_x_3x1v_ser_p1, NULL } // 2
+  {NULL, pkpm_dist_div_ppar_x_1x1v_ser_p1, pkpm_dist_div_ppar_x_1x1v_ser_p2}, // 0
+  {NULL, pkpm_dist_div_ppar_x_2x1v_ser_p1, NULL}, // 1
+  {NULL, pkpm_dist_div_ppar_x_3x1v_ser_p1, NULL} // 2
 };
 
 // PKPM consistent div(p_par b) (in y) kernels (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_pkpm_dist_div_ppar_kern_list ser_pkpm_dist_div_ppar_y_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, pkpm_dist_div_ppar_y_2x1v_ser_p1, NULL }, // 1
-  { NULL, pkpm_dist_div_ppar_y_3x1v_ser_p1, NULL } // 2
+  {NULL, NULL, NULL}, // 0
+  {NULL, pkpm_dist_div_ppar_y_2x1v_ser_p1, NULL}, // 1
+  {NULL, pkpm_dist_div_ppar_y_3x1v_ser_p1, NULL} // 2
 };
 
 // PKPM consistent div(p_par b) (in z) kernels (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_pkpm_dist_div_ppar_kern_list ser_pkpm_dist_div_ppar_z_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, pkpm_dist_div_ppar_z_3x1v_ser_p1, NULL } // 2
+  {NULL, NULL, NULL}, // 0
+  {NULL, NULL, NULL}, // 1
+  {NULL, pkpm_dist_div_ppar_z_3x1v_ser_p1, NULL} // 2
 };
 
 // PKPM consistent div(p_par b) (in x) kernels (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_pkpm_dist_div_ppar_kern_list ten_pkpm_dist_div_ppar_x_kernels[] = {
-  { NULL, pkpm_dist_div_ppar_x_1x1v_ser_p1, pkpm_dist_div_ppar_x_1x1v_tensor_p2 }, // 0
-  { NULL, pkpm_dist_div_ppar_x_2x1v_ser_p1, pkpm_dist_div_ppar_x_2x1v_tensor_p2 }, // 1
-  { NULL, pkpm_dist_div_ppar_x_3x1v_ser_p1, NULL } // 2
+  {NULL, pkpm_dist_div_ppar_x_1x1v_ser_p1, pkpm_dist_div_ppar_x_1x1v_tensor_p2}, // 0
+  {NULL, pkpm_dist_div_ppar_x_2x1v_ser_p1, pkpm_dist_div_ppar_x_2x1v_tensor_p2}, // 1
+  {NULL, pkpm_dist_div_ppar_x_3x1v_ser_p1, NULL} // 2
 };
 
 // PKPM consistent div(p_par b) (in y) kernels (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_pkpm_dist_div_ppar_kern_list ten_pkpm_dist_div_ppar_y_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, pkpm_dist_div_ppar_y_2x1v_ser_p1, pkpm_dist_div_ppar_y_2x1v_tensor_p2 }, // 1
-  { NULL, pkpm_dist_div_ppar_y_3x1v_ser_p1, NULL } // 2
+  {NULL, NULL, NULL}, // 0
+  {NULL, pkpm_dist_div_ppar_y_2x1v_ser_p1, pkpm_dist_div_ppar_y_2x1v_tensor_p2}, // 1
+  {NULL, pkpm_dist_div_ppar_y_3x1v_ser_p1, NULL} // 2
 };
 
 // PKPM consistent div(p_par b) (in z) kernels (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_pkpm_dist_div_ppar_kern_list ten_pkpm_dist_div_ppar_z_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, pkpm_dist_div_ppar_z_3x1v_ser_p1, NULL } // 2
+  {NULL, NULL, NULL}, // 0
+  {NULL, NULL, NULL}, // 1
+  {NULL, pkpm_dist_div_ppar_z_3x1v_ser_p1, NULL} // 2
 };
 
-GKYL_CU_D static pkpm_dist_mirror_force_t choose_pkpm_dist_mirror_force_kern(
-  enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_dist_mirror_force_t
+choose_pkpm_dist_mirror_force_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -113,29 +115,31 @@ GKYL_CU_D static pkpm_dist_mirror_force_t choose_pkpm_dist_mirror_force_kern(
   }
 }
 
-GKYL_CU_D static pkpm_dist_div_ppar_t choose_pkpm_dist_div_ppar_kern(
-  int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_dist_div_ppar_t
+choose_pkpm_dist_div_ppar_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
-    if (dir == 0)
+    if (dir == 0) {
       return ser_pkpm_dist_div_ppar_x_kernels[cdim - 1].kernels[poly_order];
-    else if (dir == 1)
+    } else if (dir == 1) {
       return ser_pkpm_dist_div_ppar_y_kernels[cdim - 1].kernels[poly_order];
-    else if (dir == 2)
+    } else if (dir == 2) {
       return ser_pkpm_dist_div_ppar_z_kernels[cdim - 1].kernels[poly_order];
-    else
+    } else {
       return NULL;
+    }
     break;
   case GKYL_BASIS_MODAL_TENSOR:
-    if (dir == 0)
+    if (dir == 0) {
       return ten_pkpm_dist_div_ppar_x_kernels[cdim - 1].kernels[poly_order];
-    else if (dir == 1)
+    } else if (dir == 1) {
       return ten_pkpm_dist_div_ppar_y_kernels[cdim - 1].kernels[poly_order];
-    else if (dir == 2)
+    } else if (dir == 2) {
       return ten_pkpm_dist_div_ppar_z_kernels[cdim - 1].kernels[poly_order];
-    else
+    } else {
       return NULL;
+    }
     break;
   default:
     assert(false);

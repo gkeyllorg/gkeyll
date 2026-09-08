@@ -10,17 +10,20 @@
 static inline int calc_cuts(int ndim, const int *cuts)
 {
   int tc = 1;
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     tc *= cuts[d];
+  }
   return tc;
 }
 
 // simple linear search to check if val occurs in lst
 static bool has_int(int n, int val, const int *lst)
 {
-  for (int i = 0; i < n; ++i)
-    if (val == lst[i])
+  for (int i = 0; i < n; ++i) {
+    if (val == lst[i]) {
       return true;
+    }
+  }
   return false;
 }
 
@@ -89,11 +92,12 @@ static int moment_multib_data_write(const char *fname, struct moment_multib_outp
     struct gkyl_msgpack_data *amet = moment_multib_meta(meta);
     if (amet) {
       status = gkyl_header_meta_write_fp(
-        &(struct gkyl_array_header_info){
-          .file_type = gkyl_file_type_int[GKYL_MULTI_BLOCK_DATA_FILE],
+        &(struct gkyl_array_header_info
+        ){.file_type = gkyl_file_type_int[GKYL_MULTI_BLOCK_DATA_FILE],
           .meta_size = amet->meta_sz,
-          .meta = amet->meta },
-        fp);
+          .meta = amet->meta},
+        fp
+      );
       MPACK_FREE(amet->meta);
       gkyl_free(amet);
     } else {
@@ -105,7 +109,8 @@ static int moment_multib_data_write(const char *fname, struct moment_multib_outp
 
 // construct single-block App for given block ID
 static struct gkyl_moment_app *singleb_app_new(
-  const struct gkyl_moment_multib *mbinp, int bid, const struct gkyl_moment_multib_app *mbapp)
+  const struct gkyl_moment_multib *mbinp, int bid, const struct gkyl_moment_multib_app *mbapp
+)
 {
   int ndim = gkyl_block_geom_ndim(mbapp->block_geom);
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
@@ -137,8 +142,9 @@ static struct gkyl_moment_app *singleb_app_new(
   app_inp.use_hybrid_flux_kep = mbinp->use_hybrid_flux_kep;
 
   app_inp.num_skip_dirs = mbinp->num_skip_dirs;
-  for (int d = 0; d < 3; ++d)
+  for (int d = 0; d < 3; ++d) {
     app_inp.skip_dirs[d] = mbinp->skip_dirs[d];
+  }
 
   int num_species = app_inp.num_species = mbinp->num_species;
   // construct each species input block
@@ -161,11 +167,12 @@ static struct gkyl_moment_app *singleb_app_new(
     // choose proper block-specific species input
     const struct gkyl_moment_multib_species_pb *sp_pb = &sp->blocks[0];
     if (!sp->duplicate_across_blocks) {
-      for (int i = 0; i < num_blocks; ++i)
+      for (int i = 0; i < num_blocks; ++i) {
         if (bid == sp->blocks[i].block_id) {
           sp_pb = &sp->blocks[i];
           break;
         }
+      }
     }
 
     species_inp.ctx = sp_pb->ctx;
@@ -192,12 +199,13 @@ static struct gkyl_moment_app *singleb_app_new(
     for (int i = 0; i < sp->num_physical_bcs; ++i) {
       if (bid == sp->bcs[i].bidx) {
         int e = sp->bcs[i].edge;
-        if (sp->bcs[i].dir == 0)
+        if (sp->bcs[i].dir == 0) {
           species_inp.bcx[e] = sp->bcs[i].bc_type;
-        else if (sp->bcs[i].dir == 1)
+        } else if (sp->bcs[i].dir == 1) {
           species_inp.bcy[e] = sp->bcs[i].bc_type;
-        else
+        } else {
           species_inp.bcz[e] = sp->bcs[i].bc_type;
+        }
       }
     }
 
@@ -221,11 +229,12 @@ static struct gkyl_moment_app *singleb_app_new(
     // choose proper block-specific field input
     const struct gkyl_moment_multib_field_pb *fld_pb = &fld->blocks[0];
     if (!fld->duplicate_across_blocks) {
-      for (int i = 0; i < num_blocks; ++i)
+      for (int i = 0; i < num_blocks; ++i) {
         if (bid == fld->blocks[i].block_id) {
           fld_pb = &fld->blocks[i];
           break;
         }
+      }
     }
 
     field_inp.ctx = fld_pb->ctx;
@@ -256,12 +265,13 @@ static struct gkyl_moment_app *singleb_app_new(
     for (int i = 0; i < fld->num_physical_bcs; ++i) {
       if (bid == fld->bcs[i].bidx) {
         int e = fld->bcs[i].edge;
-        if (fld->bcs[i].dir == 0)
+        if (fld->bcs[i].dir == 0) {
           field_inp.bcx[e] = fld->bcs[i].bc_type;
-        else if (fld->bcs[i].dir == 1)
+        } else if (fld->bcs[i].dir == 1) {
           field_inp.bcy[e] = fld->bcs[i].bc_type;
-        else
+        } else {
           field_inp.bcz[e] = fld->bcs[i].bc_type;
+        }
       }
     }
 
@@ -273,8 +283,9 @@ static struct gkyl_moment_app *singleb_app_new(
 
   struct gkyl_app_parallelism_inp parallel_inp = {};
   //  parallel_inp.use_gpu = mbinp->use_gpu; // MF 2024/09/18: moments don't have use_gpu.
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     parallel_inp.cuts[d] = bgi->cuts[d];
+  }
   parallel_inp.comm = comm;
   // copy parallelism input into app input.
   memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
@@ -291,8 +302,9 @@ struct gkyl_moment_multib_app *gkyl_moment_multib_app_new(const struct gkyl_mome
 
   int tot_max[2];
   calc_tot_and_max_cuts(mbinp->block_geom, tot_max);
-  if ((num_ranks > tot_max[0]) || (num_ranks < tot_max[1]))
+  if ((num_ranks > tot_max[0]) || (num_ranks < tot_max[1])) {
     return 0;
+  }
 
   struct gkyl_moment_multib_app *mbapp = gkyl_malloc(sizeof(*mbapp));
   strcpy(mbapp->name, mbinp->name);
@@ -343,14 +355,16 @@ struct gkyl_moment_multib_app *gkyl_moment_multib_app_new(const struct gkyl_mome
 
     bool status;
     mbapp->block_comms[i] = gkyl_comm_create_comm_from_ranks(
-      mbinp->comm, branks[i], rank_list, mbapp->decomp[i], &status);
+      mbinp->comm, branks[i], rank_list, mbapp->decomp[i], &status
+    );
   }
   gkyl_free(rank_list);
   mbapp->num_local_blocks = num_local_blocks;
 
   printf("Rank %d handles %d Apps\n", my_rank, num_local_blocks);
-  for (int i = 0; i < num_local_blocks; ++i)
+  for (int i = 0; i < num_local_blocks; ++i) {
     printf("  Rank %d handles block %d\n", my_rank, mbapp->local_blocks[i]);
+  }
 
   mbapp->num_species = 0;
   mbapp->singleb_apps = 0;
@@ -360,15 +374,18 @@ struct gkyl_moment_multib_app *gkyl_moment_multib_app_new(const struct gkyl_mome
     mbapp->singleb_apps = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_moment_app *));
   }
 
-  if (!mbinp->field.blocks)
+  if (!mbinp->field.blocks) {
     mbapp->has_field = false;
+  }
 
-  for (int i = 0; i < mbinp->num_species; ++i)
+  for (int i = 0; i < mbinp->num_species; ++i) {
     strcpy(mbapp->species_name[i], mbinp->species[i].name);
+  }
 
   // create single-block App for all local blocks this rank handles
-  for (int i = 0; i < num_local_blocks; ++i)
+  for (int i = 0; i < num_local_blocks; ++i) {
     mbapp->singleb_apps[i] = singleb_app_new(mbinp, mbapp->local_blocks[i], mbapp);
+  }
 
   // construct send/recv lists for each block this rank handles
   mbapp->send_conn = gkyl_malloc(sizeof(struct gkyl_multib_comm_conn *[num_local_blocks]));
@@ -391,48 +408,52 @@ void gkyl_moment_multib_app_apply_ic(gkyl_moment_multib_app *app, double t0)
 {
   app->tcurr = t0;
   gkyl_moment_multib_app_apply_ic_field(app, t0);
-  for (int i = 0; i < app->num_species; ++i)
+  for (int i = 0; i < app->num_species; ++i) {
     gkyl_moment_multib_app_apply_ic_species(app, i, t0);
+  }
 }
 
 void gkyl_moment_multib_app_apply_ic_field(gkyl_moment_multib_app *app, double t0)
 {
   app->tcurr = t0;
-  for (int i = 0; i < app->num_local_blocks; ++i)
+  for (int i = 0; i < app->num_local_blocks; ++i) {
     gkyl_moment_app_apply_ic_field(app->singleb_apps[i], t0);
+  }
   gkyl_comm_barrier(app->comm);
 }
 
 void gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app *app, int sidx, double t0)
 {
   app->tcurr = t0;
-  for (int i = 0; i < app->num_local_blocks; ++i)
+  for (int i = 0; i < app->num_local_blocks; ++i) {
     gkyl_moment_app_apply_ic_species(app->singleb_apps[i], sidx, t0);
+  }
   gkyl_comm_barrier(app->comm);
 }
 
-struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_field(
-  gkyl_moment_multib_app *app, int frame)
+struct gkyl_app_restart_status
+gkyl_moment_multib_app_from_frame_field(gkyl_moment_multib_app *app, int frame)
 {
   // TODO
   return (struct gkyl_app_restart_status){};
 }
 
-struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_species(
-  gkyl_moment_multib_app *app, int sidx, int frame)
+struct gkyl_app_restart_status
+gkyl_moment_multib_app_from_frame_species(gkyl_moment_multib_app *app, int sidx, int frame)
 {
   // TODO
   return (struct gkyl_app_restart_status){};
 }
 
 // private function to handle variable argument list for printing
-static void v_moment_app_cout(
-  const gkyl_moment_multib_app *app, FILE *fp, const char *fmt, va_list argp)
+static void
+v_moment_app_cout(const gkyl_moment_multib_app *app, FILE *fp, const char *fmt, va_list argp)
 {
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
-  if ((rank == 0) && fp)
+  if ((rank == 0) && fp) {
     vfprintf(fp, fmt, argp);
+  }
 }
 
 void gkyl_moment_multib_app_cout(const gkyl_moment_multib_app *app, FILE *fp, const char *fmt, ...)
@@ -457,14 +478,16 @@ void gkyl_moment_multib_app_write_topo(const gkyl_moment_multib_app *app)
 void gkyl_moment_multib_app_write(const gkyl_moment_multib_app *app, double tm, int frame)
 {
   gkyl_moment_multib_app_write_field(app, tm, frame);
-  for (int i = 0; i < app->num_species; ++i)
+  for (int i = 0; i < app->num_species; ++i) {
     gkyl_moment_multib_app_write_species(app, i, tm, frame);
+  }
 }
 
 void gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, double tm, int frame)
 {
-  for (int i = 0; i < app->num_local_blocks; ++i)
+  for (int i = 0; i < app->num_local_blocks; ++i) {
     gkyl_moment_app_write_field(app->singleb_apps[i], tm, frame);
+  }
 
   if (app->has_field) {
     int rank;
@@ -473,10 +496,11 @@ void gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, doubl
       cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
       cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
 
-      moment_multib_data_write(file_name.str, (struct moment_multib_output_meta){ .frame = frame,
-                                                .stime = tm,
-                                                .topo_file_name = topo_file_name.str,
-                                                .app_name = app->name });
+      moment_multib_data_write(
+        file_name.str,
+        (struct moment_multib_output_meta
+        ){.frame = frame, .stime = tm, .topo_file_name = topo_file_name.str, .app_name = app->name}
+      );
 
       cstr_drop(&topo_file_name);
       cstr_drop(&file_name);
@@ -487,10 +511,12 @@ void gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, doubl
 }
 
 void gkyl_moment_multib_app_write_species(
-  const gkyl_moment_multib_app *app, int sidx, double tm, int frame)
+  const gkyl_moment_multib_app *app, int sidx, double tm, int frame
+)
 {
-  for (int i = 0; i < app->num_local_blocks; ++i)
+  for (int i = 0; i < app->num_local_blocks; ++i) {
     gkyl_moment_app_write_species(app->singleb_apps[i], sidx, tm, frame);
+  }
 
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
@@ -498,9 +524,11 @@ void gkyl_moment_multib_app_write_species(
     cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species_name[sidx], frame);
     cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
 
-    moment_multib_data_write(file_name.str,
-      (struct moment_multib_output_meta){
-        .frame = frame, .stime = tm, .topo_file_name = topo_file_name.str, .app_name = app->name });
+    moment_multib_data_write(
+      file_name.str,
+      (struct moment_multib_output_meta
+      ){.frame = frame, .stime = tm, .topo_file_name = topo_file_name.str, .app_name = app->name}
+    );
 
     cstr_drop(&topo_file_name);
     cstr_drop(&file_name);
@@ -553,8 +581,9 @@ struct gkyl_moment_stat gkyl_moment_multib_app_stat(gkyl_moment_multib_app *app)
 void gkyl_moment_multib_app_release(gkyl_moment_multib_app *mbapp)
 {
   if (mbapp->singleb_apps) {
-    for (int i = 0; i < mbapp->num_local_blocks; ++i)
+    for (int i = 0; i < mbapp->num_local_blocks; ++i) {
       gkyl_moment_app_release(mbapp->singleb_apps[i]);
+    }
     gkyl_free(mbapp->singleb_apps);
 
     for (int i = 0; i < mbapp->num_local_blocks; ++i) {
@@ -568,12 +597,14 @@ void gkyl_moment_multib_app_release(gkyl_moment_multib_app *mbapp)
 
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
 
-  for (int i = 0; i < num_blocks; ++i)
+  for (int i = 0; i < num_blocks; ++i) {
     gkyl_rect_decomp_release(mbapp->decomp[i]);
+  }
   gkyl_free(mbapp->decomp);
 
-  for (int i = 0; i < num_blocks; ++i)
+  for (int i = 0; i < num_blocks; ++i) {
     gkyl_comm_release(mbapp->block_comms[i]);
+  }
   gkyl_free(mbapp->block_comms);
   gkyl_comm_release(mbapp->comm);
 

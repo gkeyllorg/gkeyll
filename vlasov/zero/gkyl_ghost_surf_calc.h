@@ -18,7 +18,8 @@ typedef struct gkyl_ghost_surf_calc gkyl_ghost_surf_calc;
  * @param use_gpu bool to determine if on GPU
  */
 struct gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_dg_eqn *equation, int cdim, bool use_gpu);
+  const struct gkyl_rect_grid *grid, const struct gkyl_dg_eqn *equation, int cdim, bool use_gpu
+);
 
 /**
  * Create new updater on CUDA device to update equations in the ghost cells using DG algorithm.
@@ -27,7 +28,8 @@ struct gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_new(
  * @param equation Equation object
  */
 struct gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_cu_dev_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_dg_eqn *equation, int cdim);
+  const struct gkyl_rect_grid *grid, const struct gkyl_dg_eqn *equation, int cdim
+);
 
 /**
  * Compute RHS of DG update in the ghost cells. The update_rng MUST be the external range
@@ -39,12 +41,16 @@ struct gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_cu_dev_new(
  * @param fIn Input to updater
  * @param rhs RHS output
  */
-void gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc, const struct gkyl_range *phase_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *rhs);
+void gkyl_ghost_surf_calc_advance(
+  gkyl_ghost_surf_calc *gcalc, const struct gkyl_range *phase_rng, const struct gkyl_array *fIn,
+  struct gkyl_array *rhs
+);
 
 // CUDA call
-void gkyl_ghost_surf_calc_advance_cu(gkyl_ghost_surf_calc *gcalc,
-  const struct gkyl_range *phase_rng, const struct gkyl_array *fIn, struct gkyl_array *rhs);
+void gkyl_ghost_surf_calc_advance_cu(
+  gkyl_ghost_surf_calc *gcalc, const struct gkyl_range *phase_rng, const struct gkyl_array *fIn,
+  struct gkyl_array *rhs
+);
 
 /**
  * Delete updater.

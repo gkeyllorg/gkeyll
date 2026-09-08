@@ -163,10 +163,12 @@ void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct
   // pressure, primitive variables, and acceleration variables
   // also stores kernels for computing source terms, integrated variables
   // Two instances, one over extended range and one over local range for ease of handling boundary conditions
-  s->calc_pkpm_vars_ext = gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local_ext,
-    s->equation, app->geom, limiter_fac, app->use_gpu);
+  s->calc_pkpm_vars_ext = gkyl_dg_calc_pkpm_vars_new(
+    &app->grid, &app->confBasis, &app->local_ext, s->equation, app->geom, limiter_fac, app->use_gpu
+  );
   s->calc_pkpm_vars = gkyl_dg_calc_pkpm_vars_new(
-    &app->grid, &app->confBasis, &app->local, s->equation, app->geom, limiter_fac, app->use_gpu);
+    &app->grid, &app->confBasis, &app->local, s->equation, app->geom, limiter_fac, app->use_gpu
+  );
   // updater for computing pkpm distribution function variables
   // div(p_par b_hat) for self-consistent total pressure force and distribution function sources for
   // Laguerre couplings and vperp characteristics
@@ -188,9 +190,10 @@ void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct
   }
 
   // by default, we do not have zero-flux boundary conditions in any direction
-  bool is_zero_flux[GKYL_MAX_DIM] = { false };
+  bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
-  struct gkyl_dg_vlasov_pkpm_auxfields vlasov_pkpm_inp = { .bvar = app->field->bvar,
+  struct gkyl_dg_vlasov_pkpm_auxfields vlasov_pkpm_inp = {
+    .bvar = app->field->bvar,
     .bvar_surf = app->field->bvar_surf,
     .pkpm_prim = s->pkpm_prim,
     .pkpm_prim_surf = s->pkpm_prim_surf,
@@ -198,16 +201,21 @@ void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct
     .pkpm_lax = s->pkpm_lax,
     .div_b = app->field->div_b,
     .pkpm_accel_vars = s->pkpm_accel,
-    .g_dist_source = s->g_dist_source };
-  struct gkyl_dg_euler_pkpm_auxfields euler_pkpm_inp = { .vlasov_pkpm_moms = s->pkpm_moms.marr,
+    .g_dist_source = s->g_dist_source
+  };
+  struct gkyl_dg_euler_pkpm_auxfields euler_pkpm_inp = {
+    .vlasov_pkpm_moms = s->pkpm_moms.marr,
     .pkpm_prim = s->pkpm_prim,
     .pkpm_prim_surf = s->pkpm_prim_surf,
     .pkpm_p_ij = s->pkpm_p_ij,
     .pkpm_lax = s->pkpm_lax,
-    .pkpm_penalization = s->pkpm_penalization };
+    .pkpm_penalization = s->pkpm_penalization
+  };
   // create solver
-  s->slvr = gkyl_dg_updater_pkpm_new(&app->grid, &s->grid, &app->confBasis, &app->basis,
-    &app->local, &s->local, is_zero_flux, &vlasov_pkpm_inp, &euler_pkpm_inp, app->use_gpu);
+  s->slvr = gkyl_dg_updater_pkpm_new(
+    &app->grid, &s->grid, &app->confBasis, &app->basis, &app->local, &s->local, is_zero_flux,
+    &vlasov_pkpm_inp, &euler_pkpm_inp, app->use_gpu
+  );
 
   // array for storing F_0^2 (0th Laguerre coefficient) in each cell
   s->L2_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
@@ -237,8 +245,10 @@ void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct
     if (app->use_gpu) {
       s->app_accel_host = mkarr(false, 3 * app->confBasis.num_basis, app->local_ext.volume);
     }
-    s->app_accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      app->confBasis.poly_order + 1, 3, s->info.app_accel, s->info.app_accel_ctx);
+    s->app_accel_proj = gkyl_proj_on_basis_new(
+      &app->grid, &app->confBasis, app->confBasis.poly_order + 1, 3, s->info.app_accel,
+      s->info.app_accel_ctx
+    );
   }
 
   // determine collision type to use in PKPM update
@@ -257,49 +267,59 @@ void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct
     int szD = cdim;
     s->diffD = mkarr(app->use_gpu, szD, 1);
     struct gkyl_array *diffD_host = s->diffD;
-    if (app->use_gpu)
+    if (app->use_gpu) {
       diffD_host = mkarr(false, szD, 1);
+    }
     // Set diffusion coefficient in each direction to input value.
     gkyl_array_clear(diffD_host, 0.);
-    for (int d = 0; d < cdim; d++)
+    for (int d = 0; d < cdim; d++) {
       gkyl_array_shiftc(diffD_host, s->info.diffusion.D, d);
+    }
 
     if (app->use_gpu) { // note: diffD_host is same as diffD when not on GPUs
       gkyl_array_copy(s->diffD, diffD_host);
       gkyl_array_release(diffD_host);
     }
 
-    bool is_zero_flux[GKYL_MAX_CDIM] = { false };
-    s->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(&app->grid, &app->confBasis, true, num_eqn,
-      NULL, s->info.diffusion.order, &app->local, is_zero_flux, app->use_gpu);
+    bool is_zero_flux[GKYL_MAX_CDIM] = {false};
+    s->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(
+      &app->grid, &app->confBasis, true, num_eqn, NULL, s->info.diffusion.order, &app->local,
+      is_zero_flux, app->use_gpu
+    );
   }
 
   // determine which directions are not periodic and get non-periodic BC info
   // also create local skin-ghost ranges for ease of handling non-periodic BCs
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = { 1, 1, 1 };
-  for (int d = 0; d < num_periodic_dir; ++d)
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  for (int d = 0; d < num_periodic_dir; ++d) {
     is_np[app->periodic_dirs[d]] = 0;
+  }
 
   for (int dir = 0; dir < cdim; ++dir) {
     s->lower_bc[dir] = s->upper_bc[dir] = GKYL_SPECIES_COPY;
     if (is_np[dir]) {
       const enum gkyl_species_bc_type *bc;
-      if (dir == 0)
+      if (dir == 0) {
         bc = s->info.bcx;
-      else if (dir == 1)
+      } else if (dir == 1) {
         bc = s->info.bcy;
-      else
+      } else {
         bc = s->info.bcz;
+      }
 
       s->lower_bc[dir] = bc[0];
       s->upper_bc[dir] = bc[1];
     }
     // Create local lower skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&s->lower_skin_dist[dir], &s->lower_ghost_dist[dir], dir,
-      GKYL_LOWER_EDGE, &s->local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &s->lower_skin_dist[dir], &s->lower_ghost_dist[dir], dir, GKYL_LOWER_EDGE, &s->local_ext,
+      ghost
+    );
     // Create local upper skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&s->upper_skin_dist[dir], &s->upper_ghost_dist[dir], dir,
-      GKYL_UPPER_EDGE, &s->local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &s->upper_skin_dist[dir], &s->upper_ghost_dist[dir], dir, GKYL_UPPER_EDGE, &s->local_ext,
+      ghost
+    );
   }
 
   // allocate buffer for applying BCs
@@ -346,12 +366,15 @@ void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct
     }
 
     // Distribution function non-periodic lower boundary conditions
-    s->bc_lo_dist[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype_dist, app->basis_on_dev.basis,
-      &s->lower_skin_dist[d], &s->lower_ghost_dist[d], s->f->ncomp, app->cdim, app->use_gpu);
+    s->bc_lo_dist[d] = gkyl_bc_basic_new(
+      d, GKYL_LOWER_EDGE, bctype_dist, app->basis_on_dev.basis, &s->lower_skin_dist[d],
+      &s->lower_ghost_dist[d], s->f->ncomp, app->cdim, app->use_gpu
+    );
     // Momentum non-periodic lower boundary conditions
-    s->bc_lo_fluid[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype_fluid,
-      app->basis_on_dev.confBasis, &app->lower_skin[d], &app->lower_ghost[d], s->fluid->ncomp,
-      app->cdim, app->use_gpu);
+    s->bc_lo_fluid[d] = gkyl_bc_basic_new(
+      d, GKYL_LOWER_EDGE, bctype_fluid, app->basis_on_dev.confBasis, &app->lower_skin[d],
+      &app->lower_ghost[d], s->fluid->ncomp, app->cdim, app->use_gpu
+    );
 
     // Upper BC updater. Copy BCs by default.
     if (s->upper_bc[d] == GKYL_SPECIES_COPY) {
@@ -370,12 +393,15 @@ void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct
     }
 
     // Distribution function non-periodic upper boundary conditions
-    s->bc_up_dist[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype_dist, app->basis_on_dev.basis,
-      &s->upper_skin_dist[d], &s->upper_ghost_dist[d], s->f->ncomp, app->cdim, app->use_gpu);
+    s->bc_up_dist[d] = gkyl_bc_basic_new(
+      d, GKYL_UPPER_EDGE, bctype_dist, app->basis_on_dev.basis, &s->upper_skin_dist[d],
+      &s->upper_ghost_dist[d], s->f->ncomp, app->cdim, app->use_gpu
+    );
     // Momentum non-periodic upper boundary conditions
-    s->bc_up_fluid[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype_fluid,
-      app->basis_on_dev.confBasis, &app->upper_skin[d], &app->upper_ghost[d], s->fluid->ncomp,
-      app->cdim, app->use_gpu);
+    s->bc_up_fluid[d] = gkyl_bc_basic_new(
+      d, GKYL_UPPER_EDGE, bctype_fluid, app->basis_on_dev.confBasis, &app->upper_skin[d],
+      &app->upper_ghost[d], s->fluid->ncomp, app->cdim, app->use_gpu
+    );
   }
 }
 
@@ -384,10 +410,13 @@ void pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, dou
   int poly_order = app->poly_order;
   gkyl_proj_on_basis *proj_dist;
   proj_dist = gkyl_proj_on_basis_new(
-    &species->grid, &app->basis, 8, 2, species->info.init_dist, species->info.ctx_dist);
+    &species->grid, &app->basis, 8, 2, species->info.init_dist, species->info.ctx_dist
+  );
   gkyl_proj_on_basis *proj_fluid;
-  proj_fluid = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, poly_order + 1, 3,
-    species->info.init_fluid, species->info.ctx_fluid);
+  proj_fluid = gkyl_proj_on_basis_new(
+    &app->grid, &app->confBasis, poly_order + 1, 3, species->info.init_fluid,
+    species->info.ctx_fluid
+  );
 
   // run updaters; need to project onto extended range for ease of handling
   // subsequent operations over extended range such as primitive variable computations
@@ -410,20 +439,25 @@ void pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, dou
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
   gkyl_bc_basic_buffer_fixed_func(
-    species->bc_lo_dist[0], species->bc_buffer_lo_fixed_dist, species->f);
+    species->bc_lo_dist[0], species->bc_buffer_lo_fixed_dist, species->f
+  );
   gkyl_bc_basic_buffer_fixed_func(
-    species->bc_up_dist[0], species->bc_buffer_up_fixed_dist, species->f);
+    species->bc_up_dist[0], species->bc_buffer_up_fixed_dist, species->f
+  );
   gkyl_bc_basic_buffer_fixed_func(
-    species->bc_lo_fluid[0], species->bc_buffer_lo_fixed_fluid, species->fluid);
+    species->bc_lo_fluid[0], species->bc_buffer_lo_fixed_fluid, species->fluid
+  );
   gkyl_bc_basic_buffer_fixed_func(
-    species->bc_up_fluid[0], species->bc_buffer_up_fixed_fluid, species->fluid);
+    species->bc_up_fluid[0], species->bc_buffer_up_fixed_fluid, species->fluid
+  );
 }
 
 void pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *species, double tm)
 {
   if (species->has_app_accel) {
     gkyl_proj_on_basis_advance(
-      species->app_accel_proj, tm, &app->local_ext, species->app_accel_host);
+      species->app_accel_proj, tm, &app->local_ext, species->app_accel_host
+    );
     if (app->use_gpu) {
       // note: app_accel_host is same as app_accel when not on GPUs
       gkyl_array_copy(species->app_accel, species->app_accel_host);
@@ -431,8 +465,10 @@ void pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *specie
   }
 }
 
-void pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *fluidin)
+void pkpm_species_calc_pkpm_vars(
+  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin
+)
 {
   struct timespec tm = gkyl_wall_clock();
 
@@ -445,56 +481,68 @@ void pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *specie
   pkpm_species_moment_calc(&species->pkpm_moms, species->local_ext, app->local_ext, fin);
 
   // Compute div(p_par b_hat) for consistent pressure force in vpar acceleration
-  gkyl_dg_calc_pkpm_dist_vars_div_ppar(species->calc_pkpm_dist_vars, &app->local, &species->local,
-    app->field->bvar_surf, app->field->bvar, fin, app->field->max_b, species->pkpm_div_ppar);
+  gkyl_dg_calc_pkpm_dist_vars_div_ppar(
+    species->calc_pkpm_dist_vars, &app->local, &species->local, app->field->bvar_surf,
+    app->field->bvar, fin, app->field->max_b, species->pkpm_div_ppar
+  );
   gkyl_array_scale(species->pkpm_div_ppar, species->info.mass);
 
   // Compute p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij in the volume
-  gkyl_dg_calc_pkpm_vars_pressure(species->calc_pkpm_vars, &app->local_ext, app->field->bvar,
-    species->pkpm_moms.marr, species->pkpm_p_ij);
+  gkyl_dg_calc_pkpm_vars_pressure(
+    species->calc_pkpm_vars, &app->local_ext, app->field->bvar, species->pkpm_moms.marr,
+    species->pkpm_p_ij
+  );
 
   // Compute primitive variables in both the volume and on surfaces
   if (species->bc_is_absorb) {
-    gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars, species->pkpm_moms.marr, fluidin,
-      species->pkpm_p_ij, species->pkpm_div_ppar, species->cell_avg_prim, species->pkpm_prim,
-      species->pkpm_prim_surf);
+    gkyl_dg_calc_pkpm_vars_advance(
+      species->calc_pkpm_vars, species->pkpm_moms.marr, fluidin, species->pkpm_p_ij,
+      species->pkpm_div_ppar, species->cell_avg_prim, species->pkpm_prim, species->pkpm_prim_surf
+    );
   } else {
-    gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars_ext, species->pkpm_moms.marr, fluidin,
-      species->pkpm_p_ij, species->pkpm_div_ppar, species->cell_avg_prim, species->pkpm_prim,
-      species->pkpm_prim_surf);
+    gkyl_dg_calc_pkpm_vars_advance(
+      species->calc_pkpm_vars_ext, species->pkpm_moms.marr, fluidin, species->pkpm_p_ij,
+      species->pkpm_div_ppar, species->cell_avg_prim, species->pkpm_prim, species->pkpm_prim_surf
+    );
   }
 
   // Compute the penalization terms, both the maximum speed used in Lax fluxes
   // and the total momentum penalization (either 10 moment Roe solve or Lax penalization)
   gkyl_array_clear(species->pkpm_lax, 0.0);
   gkyl_array_clear(species->pkpm_penalization, 0.0);
-  gkyl_dg_calc_pkpm_vars_penalization(species->calc_pkpm_vars, &app->local, &app->local_ext,
-    species->pkpm_moms.marr, species->pkpm_p_ij, species->pkpm_prim, fluidin, species->pkpm_lax,
-    species->pkpm_penalization);
+  gkyl_dg_calc_pkpm_vars_penalization(
+    species->calc_pkpm_vars, &app->local, &app->local_ext, species->pkpm_moms.marr,
+    species->pkpm_p_ij, species->pkpm_prim, fluidin, species->pkpm_lax, species->pkpm_penalization
+  );
 
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
 void pkpm_species_calc_pkpm_update_vars(
-  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin)
+  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin
+)
 {
   struct timespec tm = gkyl_wall_clock();
 
   gkyl_array_clear(species->pkpm_accel, 0.0); // Incremented in each dimension, so clear beforehand
-  gkyl_dg_calc_pkpm_vars_accel(species->calc_pkpm_vars, &app->local, species->pkpm_prim_surf,
-    species->pkpm_prim, app->field->bvar, app->field->div_b, species->lbo.nu_sum,
-    species->pkpm_accel);
+  gkyl_dg_calc_pkpm_vars_accel(
+    species->calc_pkpm_vars, &app->local, species->pkpm_prim_surf, species->pkpm_prim,
+    app->field->bvar, app->field->div_b, species->lbo.nu_sum, species->pkpm_accel
+  );
 
   // Calculate distrbution functions for coupling different Laguerre moments
-  gkyl_dg_calc_pkpm_dist_vars_mirror_force(species->calc_pkpm_dist_vars, &app->local,
-    &species->local, species->pkpm_prim, species->lbo.nu_prim_moms, app->field->div_b,
-    species->pkpm_accel, fin, species->F_k_p_1, species->g_dist_source, species->F_k_m_1);
+  gkyl_dg_calc_pkpm_dist_vars_mirror_force(
+    species->calc_pkpm_dist_vars, &app->local, &species->local, species->pkpm_prim,
+    species->lbo.nu_prim_moms, app->field->div_b, species->pkpm_accel, fin, species->F_k_p_1,
+    species->g_dist_source, species->F_k_m_1
+  );
 
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
-void pkpm_fluid_species_limiter(gkyl_pkpm_app *app, struct pkpm_species *species,
-  struct gkyl_array *fin, struct gkyl_array *fluid)
+void pkpm_fluid_species_limiter(
+  gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *fin, struct gkyl_array *fluid
+)
 {
   if (species->limit_fluid) {
     struct timespec tm = gkyl_wall_clock();
@@ -502,12 +550,16 @@ void pkpm_fluid_species_limiter(gkyl_pkpm_app *app, struct pkpm_species *species
     // Compute the PKPM moments from the kinetic equation
     pkpm_species_moment_calc(&species->pkpm_moms, species->local, app->local, fin);
     // Compute the flow velocity
-    gkyl_dg_calc_pkpm_vars_u(species->calc_pkpm_vars, species->pkpm_moms.marr, fluid,
-      species->cell_avg_prim, species->pkpm_u);
+    gkyl_dg_calc_pkpm_vars_u(
+      species->calc_pkpm_vars, species->pkpm_moms.marr, fluid, species->cell_avg_prim,
+      species->pkpm_u
+    );
 
     // Limit the slopes of the solution of the fluid system
-    gkyl_dg_calc_pkpm_vars_limiter(species->calc_pkpm_vars, &app->local, species->pkpm_u,
-      species->pkpm_moms.marr, species->pkpm_p_ij, fluid);
+    gkyl_dg_calc_pkpm_vars_limiter(
+      species->calc_pkpm_vars, &app->local, species->pkpm_u, species->pkpm_moms.marr,
+      species->pkpm_p_ij, fluid
+    );
 
     app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 
@@ -518,17 +570,21 @@ void pkpm_fluid_species_limiter(gkyl_pkpm_app *app, struct pkpm_species *species
 
 // Compute the RHS for species update, returning maximum stable
 // time-step.
-double pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *fluidin, const struct gkyl_array *em,
-  struct gkyl_array *rhs_f, struct gkyl_array *rhs_fluid)
+double pkpm_species_rhs(
+  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, const struct gkyl_array *em, struct gkyl_array *rhs_f,
+  struct gkyl_array *rhs_fluid
+)
 {
   gkyl_array_clear(species->cflrate_f, 0.0);
   gkyl_array_clear(species->cflrate_fluid, 0.0);
   gkyl_array_clear(rhs_f, 0.0);
   gkyl_array_clear(rhs_fluid, 0.0);
 
-  gkyl_dg_updater_pkpm_advance(species->slvr, &species->local, &app->local, fin, fluidin,
-    species->cflrate_f, species->cflrate_fluid, rhs_f, rhs_fluid);
+  gkyl_dg_updater_pkpm_advance(
+    species->slvr, &species->local, &app->local, fin, fluidin, species->cflrate_f,
+    species->cflrate_fluid, rhs_f, rhs_fluid
+  );
 
   if (species->collision_id == GKYL_LBO_COLLISIONS) {
     pkpm_species_lbo_rhs(app, species, &species->lbo, fin, rhs_f);
@@ -536,7 +592,8 @@ double pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
 
   if (species->has_diffusion) {
     gkyl_dg_updater_diffusion_fluid_advance(
-      species->diff_slvr, &app->local, species->diffD, fluidin, species->cflrate_fluid, rhs_fluid);
+      species->diff_slvr, &app->local, species->diffD, fluidin, species->cflrate_fluid, rhs_fluid
+    );
   }
 
   // If PKPM update is fully explicit, include the fluid-EM coupling in fluid update
@@ -553,24 +610,26 @@ double pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
       gkyl_array_accumulate_range(species->qmem, qbym, app->field->ext_em, &app->local);
     }
 
-    gkyl_dg_calc_pkpm_vars_source(species->calc_pkpm_vars, &app->local, species->qmem,
-      species->pkpm_moms.marr, fluidin, rhs_fluid);
+    gkyl_dg_calc_pkpm_vars_source(
+      species->calc_pkpm_vars, &app->local, species->qmem, species->pkpm_moms.marr, fluidin,
+      rhs_fluid
+    );
   }
 
   app->stat.n_species_omega_cfl += 1;
   struct timespec tm = gkyl_wall_clock();
+  gkyl_array_reduce_range(species->omegaCfl_ptr_dist, species->cflrate_f, GKYL_MAX, &species->local);
   gkyl_array_reduce_range(
-    species->omegaCfl_ptr_dist, species->cflrate_f, GKYL_MAX, &species->local);
-  gkyl_array_reduce_range(
-    species->omegaCfl_ptr_fluid, species->cflrate_fluid, GKYL_MAX, &app->local);
+    species->omegaCfl_ptr_fluid, species->cflrate_fluid, GKYL_MAX, &app->local
+  );
 
   double omegaCfl_ho_dist[1];
   double omegaCfl_ho_fluid[1];
   if (app->use_gpu) {
+    gkyl_cu_memcpy(omegaCfl_ho_dist, species->omegaCfl_ptr_dist, sizeof(double), GKYL_CU_MEMCPY_D2H);
     gkyl_cu_memcpy(
-      omegaCfl_ho_dist, species->omegaCfl_ptr_dist, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    gkyl_cu_memcpy(
-      omegaCfl_ho_fluid, species->omegaCfl_ptr_fluid, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      omegaCfl_ho_fluid, species->omegaCfl_ptr_fluid, sizeof(double), GKYL_CU_MEMCPY_D2H
+    );
   } else {
     omegaCfl_ho_dist[0] = species->omegaCfl_ptr_dist[0];
     omegaCfl_ho_fluid[0] = species->omegaCfl_ptr_fluid[0];
@@ -585,17 +644,20 @@ double pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
 void pkpm_species_apply_bc(
-  gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *f)
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *f
+)
 {
   struct timespec wst = gkyl_wall_clock();
 
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
   gkyl_comm_array_per_sync(
-    species->comm, &species->local, &species->local_ext, num_periodic_dir, app->periodic_dirs, f);
+    species->comm, &species->local, &species->local_ext, num_periodic_dir, app->periodic_dirs, f
+  );
 
-  int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
-  for (int d = 0; d < num_periodic_dir; ++d)
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  for (int d = 0; d < num_periodic_dir; ++d) {
     is_np_bc[app->periodic_dirs[d]] = 0;
+  }
 
   for (int d = 0; d < cdim; ++d) {
     if (is_np_bc[d]) {
@@ -643,17 +705,20 @@ void pkpm_species_apply_bc(
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
 void pkpm_fluid_species_apply_bc(
-  gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *fluid)
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *fluid
+)
 {
   struct timespec wst = gkyl_wall_clock();
 
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
   gkyl_comm_array_per_sync(
-    app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, fluid);
+    app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, fluid
+  );
 
-  int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
-  for (int d = 0; d < num_periodic_dir; ++d)
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  for (int d = 0; d < num_periodic_dir; ++d) {
     is_np_bc[app->periodic_dirs[d]] = 0;
+  }
 
   for (int d = 0; d < cdim; ++d) {
     if (is_np_bc[d]) {
@@ -703,14 +768,14 @@ void pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_speci
   gkyl_dg_calc_l2_range(&app->basis, 0, species->L2_f, 0, species->f, species->local);
   gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
 
-  double L2[1] = { 0.0 };
+  double L2[1] = {0.0};
   if (app->use_gpu) {
     gkyl_array_reduce_range(species->red_L2_f, species->L2_f, GKYL_SUM, &species->local);
     gkyl_cu_memcpy(L2, species->red_L2_f, sizeof(double), GKYL_CU_MEMCPY_D2H);
   } else {
     gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, &species->local);
   }
-  double L2_global[1] = { 0.0 };
+  double L2_global[1] = {0.0};
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
 
   gkyl_dynvec_append(species->integ_L2_f, tm, L2_global);

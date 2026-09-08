@@ -2,10 +2,12 @@
 #include <gkyl_bc_emission.h>
 
 // ctx with models specified by user
-struct gkyl_bc_emission_ctx *gkyl_bc_emission_new(int num_species, double t_bound, bool elastic,
+struct gkyl_bc_emission_ctx *gkyl_bc_emission_new(
+  int num_species, double t_bound, bool elastic,
   struct gkyl_emission_spectrum_model *spectrum_model[],
   struct gkyl_emission_yield_model *yield_model[],
-  struct gkyl_emission_elastic_model *elastic_model, char in_species[][128])
+  struct gkyl_emission_elastic_model *elastic_model, char in_species[][128]
+)
 {
   struct gkyl_bc_emission_ctx *ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_ctx));
 
@@ -17,15 +19,17 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_new(int num_species, double t_boun
     ctx->yield_model[i] = gkyl_emission_yield_model_acquire(yield_model[i]);
     strcpy(ctx->in_species[i], in_species[i]);
   }
-  if (elastic)
+  if (elastic) {
     ctx->elastic_model = gkyl_emission_elastic_model_acquire(elastic_model);
+  }
 
   return ctx;
 }
 
 // SEE copper preset
 struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_copper_new(
-  int num_species, double t_bound, char in_species[][128], bool use_gpu)
+  int num_species, double t_bound, char in_species[][128], bool use_gpu
+)
 {
   struct gkyl_bc_emission_ctx *ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_ctx));
 
@@ -65,7 +69,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_copper_new(
 
 // SEE oxidized lithium preset
 struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_oxidized_new(
-  int num_species, double t_bound, char in_species[][128], bool use_gpu)
+  int num_species, double t_bound, char in_species[][128], bool use_gpu
+)
 {
   struct gkyl_bc_emission_ctx *ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_ctx));
 
@@ -100,7 +105,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_oxidize
 
 // SEE oxidized lithium preset
 struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_clean_new(
-  int num_species, double t_bound, char in_species[][128], bool use_gpu)
+  int num_species, double t_bound, char in_species[][128], bool use_gpu
+)
 {
   struct gkyl_bc_emission_ctx *ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_ctx));
 
@@ -131,7 +137,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_clean_n
 
 // Ion-impact SEE copper preset
 struct gkyl_bc_emission_ctx *gkyl_bc_emission_ion_impact_copper_new(
-  int num_species, double t_bound, char in_species[][128], bool use_gpu)
+  int num_species, double t_bound, char in_species[][128], bool use_gpu
+)
 {
   struct gkyl_bc_emission_ctx *ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_ctx));
 
@@ -167,8 +174,9 @@ void gkyl_bc_emission_release(struct gkyl_bc_emission_ctx *ctx)
     gkyl_emission_spectrum_model_release(ctx->spectrum_model[i]);
     gkyl_emission_yield_model_release(ctx->yield_model[i]);
   }
-  if (ctx->elastic)
+  if (ctx->elastic) {
     gkyl_emission_elastic_model_release(ctx->elastic_model);
+  }
   // Release ctx memory.
   gkyl_free(ctx);
 }

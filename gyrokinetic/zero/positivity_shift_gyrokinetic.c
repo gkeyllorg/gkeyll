@@ -7,7 +7,8 @@
 struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
   struct gkyl_basis cbasis, struct gkyl_basis pbasis, struct gkyl_rect_grid grid, double mass,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
-  const struct gkyl_range *conf_rng_ext, bool use_gpu)
+  const struct gkyl_range *conf_rng_ext, bool use_gpu
+)
 {
   // Allocate space for new updater.
   struct gkyl_positivity_shift_gyrokinetic *up = gkyl_malloc(sizeof(*up));
@@ -36,7 +37,7 @@ struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
     up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_positivity_shift_gyrokinetic_kernels));
 
     up->ffloor = gkyl_cu_malloc(sizeof(double[1]));
-    double ffloor_zero[] = { 0. }; // Gets updated after 1st call to _advance.
+    double ffloor_zero[] = {0.}; // Gets updated after 1st call to _advance.
     gkyl_cu_memcpy(up->ffloor, ffloor_zero, sizeof(double[1]), GKYL_CU_MEMCPY_H2D);
 
     up->shiftedf = gkyl_array_cu_dev_new(GKYL_INT, 1, conf_rng_ext->volume);
@@ -51,10 +52,11 @@ struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
   return up;
 }
 
-void gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic *up,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
-  struct gkyl_array *GKYL_RESTRICT delta_m0)
+void gkyl_positivity_shift_gyrokinetic_advance(
+  gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *phase_rng, struct gkyl_array *GKYL_RESTRICT distf,
+  struct gkyl_array *GKYL_RESTRICT m0, struct gkyl_array *GKYL_RESTRICT delta_m0
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -70,9 +72,10 @@ void gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d = 0; d < conf_rng->ndim; ++d)
+  int rem_dir[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < conf_rng->ndim; ++d) {
     rem_dir[d] = 1;
+  }
 
   gkyl_range_iter_init(&conf_iter, conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
@@ -106,56 +109,65 @@ void gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic
 
       // Contribution to the old number density from this v-space cell.
       double m0phase_in_c[num_cbasis];
-      for (int k = 0; k < num_cbasis; k++)
+      for (int k = 0; k < num_cbasis; k++) {
         m0phase_in_c[k] = 0.0;
+      }
       up->kernels->m0(up->grid.dx, vmap_c, up->mass, bmag_c, distf_c, m0phase_in_c);
 
       // Add to the old number density.
-      for (int k = 0; k < num_cbasis; k++)
+      for (int k = 0; k < num_cbasis; k++) {
         m0in_c[k] += m0phase_in_c[k];
+      }
 
       // Shift f if needed.
       bool shifted_node = false;
 
       // Divide by jacobtot and jacobvel so that we are shifting just f.
       up->kernels->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
-      for (int k = 0; k < distf->ncomp; k++)
+      for (int k = 0; k < distf->ncomp; k++) {
         distf_c[k] /= jacobvel_c[0];
+      }
       // Shift f to enforce positivity if needed.
       shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
       // Multiply by jacobtot and jacobvel to compute M0.
       up->kernels->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
-      for (int k = 0; k < distf->ncomp; k++)
+      for (int k = 0; k < distf->ncomp; k++) {
         distf_c[k] *= jacobvel_c[0];
+      }
 
       if (shifted_node) {
         // Compute the new number density in this phase-space cell.
         double m0phase_out_c[num_cbasis];
-        for (int k = 0; k < num_cbasis; k++)
+        for (int k = 0; k < num_cbasis; k++) {
           m0phase_out_c[k] = 0.0;
+        }
         up->kernels->m0(up->grid.dx, vmap_c, up->mass, bmag_c, distf_c, m0phase_out_c);
 
         if (m0phase_in_c[0] > 0.0 && m0phase_out_c[0] > 0.0) {
           // Rescale f in this cell so it keeps the same cell-averaged density.
           double m0ratio = m0phase_in_c[0] / m0phase_out_c[0];
 
-          for (unsigned int k = 0; k < distf->ncomp; ++k)
+          for (unsigned int k = 0; k < distf->ncomp; ++k) {
             distf_c[k] *= m0ratio;
+          }
 
           // Add contribution from this phase-space cell to the new number density.
-          for (unsigned int k = 0; k < m0->ncomp; ++k)
+          for (unsigned int k = 0; k < m0->ncomp; ++k) {
             m0_c[k] += m0ratio * m0phase_out_c[k];
+          }
         } else {
           // Add contribution from this phase-space cell to the new number density.
-          for (int k = 0; k < num_cbasis; k++)
+          for (int k = 0; k < num_cbasis; k++) {
             m0_c[k] += m0phase_out_c[k];
+          }
 
           shiftedf = true;
         }
       } else {
         // Add contribution from this phase-space cell to the new number density.
-        for (int k = 0; k < num_cbasis; k++)
+        for (int k = 0; k < num_cbasis; k++) {
           m0_c[k] += m0phase_in_c[k];
+        }
       }
 
       distf_max = GKYL_MAX2(distf_max, distf_c[0]);
@@ -175,11 +187,13 @@ void gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic
           up->kernels->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
         }
 
-        for (int k = 0; k < num_cbasis; k++)
+        for (int k = 0; k < num_cbasis; k++) {
           m0_c[k] = m0in_c[k];
+        }
       } else {
-        for (int k = 0; k < num_cbasis; k++)
+        for (int k = 0; k < num_cbasis; k++) {
           delta_m0_c[k] = m0_c[k] - m0in_c[k];
+        }
       }
     }
   }
@@ -187,17 +201,19 @@ void gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic
   up->ffloor[0] = up->ffloor_fac * distf_max * up->cellav_fac;
 }
 
-void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gyrokinetic *up,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  const struct gkyl_array *GKYL_RESTRICT delta_m0s,
+void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(
+  gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *phase_rng, const struct gkyl_array *GKYL_RESTRICT delta_m0s,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
   const struct gkyl_array *GKYL_RESTRICT delta_m0r_tot, const struct gkyl_array *GKYL_RESTRICT m0s,
-  struct gkyl_array *GKYL_RESTRICT fs)
+  struct gkyl_array *GKYL_RESTRICT fs
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(
-      up, conf_rng, phase_rng, delta_m0s, delta_m0s_tot, delta_m0r_tot, m0s, fs);
+      up, conf_rng, phase_rng, delta_m0s, delta_m0s_tot, delta_m0r_tot, m0s, fs
+    );
     return;
   }
 #endif
@@ -205,9 +221,10 @@ void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shi
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d = 0; d < conf_rng->ndim; ++d)
+  int rem_dir[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < conf_rng->ndim; ++d) {
     rem_dir[d] = 1;
+  }
 
   int num_cbasis = up->num_cbasis;
 
@@ -230,8 +247,9 @@ void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shi
       //   - Delta n_s,tot = sum of Delta n for species with same charge sign.
       //   - Delta n_r,tot = sum of Delta n for species with opposite charge sign.
       double delta_m0fac_c[num_cbasis];
-      for (int k = 0; k < num_cbasis; k++)
+      for (int k = 0; k < num_cbasis; k++) {
         delta_m0fac_c[k] = delta_m0r_tot_c[k] - delta_m0s_tot_c[k];
+      }
 
       up->kernels->conf_mul_op(delta_m0fac_c, delta_m0s_c, delta_m0fac_c);
 
@@ -240,8 +258,9 @@ void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shi
 
       up->kernels->conf_mul_op(delta_m0fac_c, delta_m0s_tot_inv_c, delta_m0fac_c);
 
-      for (int k = 0; k < num_cbasis; k++)
+      for (int k = 0; k < num_cbasis; k++) {
         delta_m0fac_c[k] += m0s_c[k];
+      }
 
       double m0s_inv_c[num_cbasis];
       up->kernels->conf_inv_op(m0s_c, m0s_inv_c);

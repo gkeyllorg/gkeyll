@@ -15,8 +15,8 @@ typedef struct gkyl_proj_exp_on_basis gkyl_proj_exp_on_basis;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_proj_exp_on_basis *gkyl_proj_exp_on_basis_new(
-  const struct gkyl_basis *basis, int num_quad, bool use_gpu);
+gkyl_proj_exp_on_basis *
+gkyl_proj_exp_on_basis_new(const struct gkyl_basis *basis, int num_quad, bool use_gpu);
 
 /**
  * Compute alpha*exp(beta*fIn) via quadrature.
@@ -26,9 +26,10 @@ gkyl_proj_exp_on_basis *gkyl_proj_exp_on_basis_new(
  * @param fIn Input scalar field.
  * @param fOut Ouput scalar field.
  */
-void gkyl_proj_exp_on_basis_advance(const gkyl_proj_exp_on_basis *up,
-  const struct gkyl_range *range, double alpha, double beta, const struct gkyl_array *fIn,
-  struct gkyl_array *fOut);
+void gkyl_proj_exp_on_basis_advance(
+  const gkyl_proj_exp_on_basis *up, const struct gkyl_range *range, double alpha, double beta,
+  const struct gkyl_array *fIn, struct gkyl_array *fOut
+);
 
 /**
  * Delete updater.

@@ -16,14 +16,16 @@ void gkyl_lbo_pkpm_diff_free(const struct gkyl_ref_count *ref)
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_lbo_pkpm_diff *lbo_pkpm_diff = container_of(base, struct dg_lbo_pkpm_diff, eqn);
 
-  if (GKYL_IS_CU_ALLOC(lbo_pkpm_diff->eqn.flags))
+  if (GKYL_IS_CU_ALLOC(lbo_pkpm_diff->eqn.flags)) {
     gkyl_cu_free(lbo_pkpm_diff->eqn.on_dev);
+  }
 
   gkyl_free(lbo_pkpm_diff);
 }
 
 void gkyl_lbo_pkpm_diff_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_pkpm_diff_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_pkpm_diff_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.nuSum) && gkyl_array_is_cu_dev(auxin.nuPrimMomsSum)) {
@@ -37,9 +39,10 @@ void gkyl_lbo_pkpm_diff_set_auxfields(
   lbo_pkpm_diff->auxfields.nuPrimMomsSum = auxin.nuPrimMomsSum;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_diff_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_rect_grid *pgrid, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_diff_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -108,9 +111,10 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_diff_new(const struct gkyl_basis *cbasis,
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_diff_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_rect_grid *pgrid)
+struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_diff_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid
+)
 {
   assert(false);
   return 0;

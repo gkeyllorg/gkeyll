@@ -39,11 +39,12 @@ typedef struct gkyl_deflated_fem_poisson gkyl_deflated_fem_poisson;
  * @param use_gpu Boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_deflated_fem_poisson *gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
-  struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, struct gkyl_range local,
-  struct gkyl_range global_sub_range, struct gkyl_array *epsilon, struct gkyl_array *kSq,
-  struct gkyl_poisson_bc poisson_bc, struct gkyl_poisson_bias_plane_list *bias_plane_list,
-  bool use_gpu);
+struct gkyl_deflated_fem_poisson *gkyl_deflated_fem_poisson_new(
+  struct gkyl_rect_grid grid, struct gkyl_basis *basis_on_dev, struct gkyl_basis basis,
+  struct gkyl_range local, struct gkyl_range global_sub_range, struct gkyl_array *epsilon,
+  struct gkyl_array *kSq, struct gkyl_poisson_bc poisson_bc,
+  struct gkyl_poisson_bias_plane_list *bias_plane_list, bool use_gpu
+);
 
 /**
  * Solve the poisson equation for the given charge density
@@ -53,8 +54,10 @@ struct gkyl_deflated_fem_poisson *gkyl_deflated_fem_poisson_new(struct gkyl_rect
  * @param phibc Spatially varying BC as a DG (volume) field, defined in the whole domain.
  * @param phi DG field solution to poison problem (phi).
  */
-void gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct gkyl_array *rhs,
-  struct gkyl_array *phibc, struct gkyl_array *phi);
+void gkyl_deflated_fem_poisson_advance(
+  struct gkyl_deflated_fem_poisson *up, struct gkyl_array *rhs, struct gkyl_array *phibc,
+  struct gkyl_array *phi
+);
 
 /**
  * Delete updater.

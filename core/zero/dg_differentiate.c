@@ -6,8 +6,10 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-void gkyl_dg_differentiate_op_local(const struct gkyl_basis *basis, int dir, int diff_order,
-  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp)
+void gkyl_dg_differentiate_op_local(
+  const struct gkyl_basis *basis, int dir, int diff_order, double dx, int c_oop,
+  struct gkyl_array *out, int c_iop, const struct gkyl_array *inp
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -41,14 +43,16 @@ void gkyl_dg_differentiate_op_local(const struct gkyl_basis *basis, int dir, int
   }
 }
 
-void gkyl_dg_differentiate_op_local_range(const struct gkyl_basis *basis, int dir, int diff_order,
-  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp,
-  const struct gkyl_range *range)
+void gkyl_dg_differentiate_op_local_range(
+  const struct gkyl_basis *basis, int dir, int diff_order, double dx, int c_oop,
+  struct gkyl_array *out, int c_iop, const struct gkyl_array *inp, const struct gkyl_range *range
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
     return gkyl_dg_differentiate_op_local_range_cu(
-      basis, dir, diff_order, dx, c_oop, out, c_iop, inp, range);
+      basis, dir, diff_order, dx, c_oop, out, c_iop, inp, range
+    );
   }
 #endif
   int num_basis = basis->num_basis;

@@ -6,9 +6,10 @@
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_wv_vacuum_einstein_priv.h>
 
-void gkyl_vacuum_einstein_flux(double excision_threshold,
-  enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution,
-  const double q[64], double flux[64])
+void gkyl_vacuum_einstein_flux(
+  double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing,
+  enum gkyl_spacetime_evolution spacetime_evolution, const double q[64], double flux[64]
+)
 {
   double spatial_metric[3][3];
   spatial_metric[0][0] = q[0];
@@ -336,11 +337,11 @@ void gkyl_vacuum_einstein_inv_spatial_metric(const double q[64], double ***inv_s
   spatial_metric[2][2] = q[8];
 
   double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                                                 (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
                        (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                                                 (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
                        (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                                                 (spatial_metric[1][1] * spatial_metric[2][0])));
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -382,13 +383,14 @@ void gkyl_vacuum_einstein_inv_spatial_metric(const double q[64], double ***inv_s
     for (int j = 0; j < 3; j++) {
       (*inv_spatial_metric)[i][j] =
         (1.0 / spatial_det) * ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-                                (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+                               (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 }
 
 static inline double gkyl_vacuum_einstein_max_abs_speed(
-  double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, const double q[64])
+  double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, const double q[64]
+)
 {
   double lapse = q[9];
 
@@ -451,8 +453,8 @@ static inline double gkyl_vacuum_einstein_max_abs_speed(
   }
 }
 
-static inline void cons_to_riem(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 64; i++) {
@@ -460,8 +462,8 @@ static inline void cons_to_riem(
   }
 }
 
-static inline void riem_to_cons(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 64; i++) {
@@ -469,8 +471,10 @@ static inline void riem_to_cons(
   }
 }
 
-static void vacuum_einstein_wall(const struct gkyl_wv_eqn *eqn, double t, int nc,
-  const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
+static void vacuum_einstein_wall(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   // Set spatial metric tensor.
   ghost[0] = 1.0;
@@ -555,9 +559,10 @@ static void vacuum_einstein_wall(const struct gkyl_wv_eqn *eqn, double t, int nc
   ghost[63] = 0.0;
 }
 
-static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
-  double *GKYL_RESTRICT qlocal)
+static inline void rot_to_local(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
+)
 {
   // Temporary arrays to store rotated column vectors.
   double r1[3], r2[3], r3[3];
@@ -819,9 +824,10 @@ static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau
   qlocal[63] = shiftder_v3[2];
 }
 
-static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
-  double *GKYL_RESTRICT qglobal)
+static inline void rot_to_global(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
+)
 {
   // Temporary arrays to store rotated column vectors.
   double r1[3], r2[3], r3[3];
@@ -1083,8 +1089,10 @@ static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *ta
   qglobal[63] = shiftder_v3[2];
 }
 
-static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-  const double *qr, double *waves, double *s)
+static double wave_lax(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_vacuum_einstein *vacuum_einstein =
     container_of(eqn, struct wv_vacuum_einstein, eqn);
@@ -1129,8 +1137,10 @@ static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const
   return s[1];
 }
 
-static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+static void qfluct_lax(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[64];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -1142,22 +1152,27 @@ static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const do
   }
 }
 
-static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-  const double *qr, double *waves, double *s)
+static double wave_hll(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_vacuum_einstein *vacuum_einstein =
     container_of(eqn, struct wv_vacuum_einstein, eqn);
@@ -1259,8 +1274,10 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
   return fmax(fabs(sl), fabs(sr));
 }
 
-static void qfluct_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+static void qfluct_hll(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[64];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -1272,9 +1289,10 @@ static void qfluct_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const do
   }
 }
 
-static double wave_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_hll_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return wave_hll(eqn, delta, ql, qr, waves, s);
@@ -1285,9 +1303,11 @@ static double wave_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
   return 0.0; // Unreachable code.
 }
 
-static void qfluct_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_hll_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
@@ -1296,8 +1316,8 @@ static void qfluct_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
   }
 }
 
-static double flux_jump(
-  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   const struct wv_vacuum_einstein *vacuum_einstein =
     container_of(eqn, struct wv_vacuum_einstein, eqn);
@@ -1354,14 +1374,14 @@ static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_vacuum_einstein_max_abs_speed(excision_threshold, spacetime_slicing, q);
 }
 
-static inline void vacuum_einstein_cons_to_diag(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
+static inline void
+vacuum_einstein_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   diag[0] = qin[9];
 }
 
-static inline void vacuum_einstein_source(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
+static inline void
+vacuum_einstein_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   const struct wv_vacuum_einstein *vacuum_einstein =
     container_of(eqn, struct wv_vacuum_einstein, eqn);
@@ -1828,16 +1848,17 @@ void gkyl_vacuum_einstein_free(const struct gkyl_ref_count *ref)
   gkyl_free(vacuum_einstein);
 }
 
-struct gkyl_wv_eqn *gkyl_wv_vacuum_einstein_new(double excision_threshold,
-  enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution,
-  bool use_gpu)
+struct gkyl_wv_eqn *gkyl_wv_vacuum_einstein_new(
+  double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing,
+  enum gkyl_spacetime_evolution spacetime_evolution, bool use_gpu
+)
 {
-  return gkyl_wv_vacuum_einstein_inew(
-    &(struct gkyl_wv_vacuum_einstein_inp){ .excision_threshold = excision_threshold,
-      .spacetime_slicing = spacetime_slicing,
-      .spacetime_evolution = spacetime_evolution,
-      .rp_type = WV_VACUUM_EINSTEIN_RP_HLL,
-      .use_gpu = use_gpu });
+  return gkyl_wv_vacuum_einstein_inew(&(struct gkyl_wv_vacuum_einstein_inp
+  ){.excision_threshold = excision_threshold,
+    .spacetime_slicing = spacetime_slicing,
+    .spacetime_evolution = spacetime_evolution,
+    .rp_type = WV_VACUUM_EINSTEIN_RP_HLL,
+    .use_gpu = use_gpu});
 }
 
 struct gkyl_wv_eqn *gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp *inp)
@@ -1904,8 +1925,8 @@ enum gkyl_spacetime_slicing gkyl_wv_vacuum_einstein_spacetime_slicing(const stru
   return spacetime_slicing;
 }
 
-enum gkyl_spacetime_evolution gkyl_wv_vacuum_einstein_spacetime_evolution(
-  const struct gkyl_wv_eqn *eqn)
+enum gkyl_spacetime_evolution
+gkyl_wv_vacuum_einstein_spacetime_evolution(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_vacuum_einstein *vacuum_einstein =
     container_of(eqn, struct wv_vacuum_einstein, eqn);

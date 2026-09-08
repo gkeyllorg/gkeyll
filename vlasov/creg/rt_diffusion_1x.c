@@ -32,8 +32,7 @@ void D(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, voi
   fout[0] = x + 2.0;
 }
 
-void eval_advect_vel(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void eval_advect_vel(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
   double x = xn[0];
@@ -44,7 +43,7 @@ void eval_advect_vel(
 
 struct sim_ctx create_ctx(void)
 {
-  struct sim_ctx ctx = { .Lx = 2 };
+  struct sim_ctx ctx = {.Lx = 2};
   return ctx;
 }
 
@@ -63,7 +62,8 @@ int main(int argc, char **argv)
   double c = 1.0;
   struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
 
-  struct gkyl_vlasov_fluid_species f = { .name = "f",
+  struct gkyl_vlasov_fluid_species f = {
+    .name = "f",
 
     .charge = 0.0,
     .mass = 1.0,
@@ -71,32 +71,33 @@ int main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalInit,
     .equation = advect,
-    .advection = { .velocity = eval_advect_vel, .velocity_ctx = &ctx },
-    .diffusion = { .Dij = D, .Dij_ctx = 0 } };
+    .advection = {.velocity = eval_advect_vel, .velocity_ctx = &ctx},
+    .diffusion = {.Dij = D, .Dij_ctx = 0}
+  };
 
   // VM app
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
     .vdim = 0,
-    .lower = { -2 },
-    .upper = { 2 },
-    .cells = { 256 },
+    .lower = {-2},
+    .upper = {2},
+    .cells = {256},
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = {0},
 
     .num_species = 0,
     .species = {},
     .num_fluid_species = 1,
-    .fluid_species = { f },
+    .fluid_species = {f},
     .cfl_frac = 0.5,
 
     .skip_field = true,
 
-    .parallelism = { .use_gpu = app_args.use_gpu }
+    .parallelism = {.use_gpu = app_args.use_gpu}
   };
 
   // create app object

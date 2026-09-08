@@ -20,8 +20,9 @@ void test_reduce_ho()
 
   for (size_t i = 0; i < arr->size; ++i) {
     double *d = gkyl_array_fetch(arr, i);
-    for (size_t c = 0; c < ncomp; ++c)
+    for (size_t c = 0; c < ncomp; ++c) {
       d[c] = 0.5 * i + 0.1 * c;
+    }
   }
 
   double amin[ncomp], amax[ncomp];
@@ -38,7 +39,7 @@ void test_reduce_ho()
 
 void test_reduce_range_ho()
 {
-  int shape[] = { 10, 20 };
+  int shape[] = {10, 20};
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
 
@@ -76,7 +77,7 @@ void test_reduce_range_ho()
 
 void test_sum_reduce_range_ho()
 {
-  int shape[] = { 10, 20 };
+  int shape[] = {10, 20};
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
 
@@ -192,8 +193,8 @@ void test_array_reduce_range_1d_max_dev()
   double *a1max = gkyl_malloc(numComp * sizeof(double));
   double *a1max_cu = (double *)gkyl_cu_malloc(numComp * sizeof(double));
 
-  int lower[] = { 1 }, upper[] = { numCells };
-  int sublower[] = { 3 }, subupper[] = { 7 };
+  int lower[] = {1}, upper[] = {numCells};
+  int sublower[] = {3}, subupper[] = {7};
   struct gkyl_range range, subrange;
   gkyl_range_init(&range, 1, lower, upper);
   gkyl_sub_range_init(&subrange, &range, sublower, subupper);
@@ -224,10 +225,10 @@ void test_array_reduce_range_1d_max_dev()
 
 void test_array_reduce_range_2d_max_dev()
 {
-  int cells[] = { 8, 10 };
-  int ghost[] = { 1, 0 };
-  double lower[] = { 0., -1. };
-  double upper[] = { 1., 1. };
+  int cells[] = {8, 10};
+  int ghost[] = {1, 0};
+  double lower[] = {0., -1.};
+  double upper[] = {1., 1.};
 
   struct gkyl_rect_grid grid;
   struct gkyl_range range, range_ext;
@@ -292,10 +293,10 @@ void test_array_reduce_range_2d_max_dev()
 
 void test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
 {
-  int cells[] = { NX, NY, VX, VY };
-  int ghost[] = { 1, 1, 0, 0 };
-  double lower[] = { 0.0, 0.0, 0.0, 0.0 };
-  double upper[] = { 1.0, 1.0, 1.0, 1.0 };
+  int cells[] = {NX, NY, VX, VY};
+  int ghost[] = {1, 1, 0, 0};
+  double lower[] = {0.0, 0.0, 0.0, 0.0};
+  double upper[] = {1.0, 1.0, 1.0, 1.0};
 
   int ndim = 4;
   struct gkyl_rect_grid grid;
@@ -337,8 +338,9 @@ void test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
 
   struct timespec tm = gkyl_wall_clock();
 
-  for (int i = 0; i < 100; ++i)
+  for (int i = 0; i < 100; ++i) {
     gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, &range);
+  }
   double red_tm = gkyl_time_diff_now_sec(tm);
 
   // printf("100 reductions on (%d,%d,%d,%d) took %g sec\n", NX, NY, VX, VY,
@@ -367,17 +369,20 @@ void test_array_reduce_range_max_timer_32x32x32x32_dev()
 
 #endif
 
-TEST_LIST = { { "array_reduce_dummy_ho", test_array_reduce_dummy_ho },
-  { "array_reduce_ho", test_reduce_ho }, { "array_reduce_range_ho", test_reduce_range_ho },
-  { "array_reduce_sum_range_ho", test_sum_reduce_range_ho },
+TEST_LIST = {
+  {"array_reduce_dummy_ho", test_array_reduce_dummy_ho},
+  {"array_reduce_ho", test_reduce_ho},
+  {"array_reduce_range_ho", test_reduce_range_ho},
+  {"array_reduce_sum_range_ho", test_sum_reduce_range_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "array_reduce_max_dev", test_array_reduce_max_dev },
-  { "array_reduce_max_big_dev", test_array_reduce_max_big_dev },
-  { "array_reduce_range_1d_max_dev", test_array_reduce_range_1d_max_dev },
-  { "array_reduce_range_2d_max_dev", test_array_reduce_range_2d_max_dev },
-  { "array_reduce_range_max_timer_32x32x40x40_dev",
-    test_array_reduce_range_max_timer_32x32x40x40_dev },
-  { "array_reduce_range_max_timer_32x32x32x32_dev",
-    test_array_reduce_range_max_timer_32x32x32x32_dev },
+  {"array_reduce_max_dev", test_array_reduce_max_dev},
+  {"array_reduce_max_big_dev", test_array_reduce_max_big_dev},
+  {"array_reduce_range_1d_max_dev", test_array_reduce_range_1d_max_dev},
+  {"array_reduce_range_2d_max_dev", test_array_reduce_range_2d_max_dev},
+  {"array_reduce_range_max_timer_32x32x40x40_dev", test_array_reduce_range_max_timer_32x32x40x40_dev
+  },
+  {"array_reduce_range_max_timer_32x32x32x32_dev", test_array_reduce_range_max_timer_32x32x32x32_dev
+  },
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

@@ -11,8 +11,9 @@
 void prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_prim_lbo_type *prim_ty = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(prim_ty->flag))
+  if (GKYL_IS_CU_ALLOC(prim_ty->flag)) {
     gkyl_cu_free(prim_ty->on_dev);
+  }
 
   struct prim_lbo_type_gyrokinetic *gk =
     container_of(prim_ty, struct prim_lbo_type_gyrokinetic, prim);
@@ -20,7 +21,8 @@ void prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu)
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 

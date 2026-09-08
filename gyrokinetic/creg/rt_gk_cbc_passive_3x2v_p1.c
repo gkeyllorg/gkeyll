@@ -19,12 +19,16 @@ double interp_1x_lut(double x, double *lut_grid, double *lut_val, int N)
   double x_max = lut_grid[N - 1];
   // Clamp values if x goes outside of the LUT range.
   if (x <= x_min || x >= x_max) {
-    fprintf(stderr, "Warning: x = %g out of LUT range [%g, %g]. Clamping to boundaries.\n", x,
-      x_min, x_max);
-    if (x <= x_min)
+    fprintf(
+      stderr, "Warning: x = %g out of LUT range [%g, %g]. Clamping to boundaries.\n", x, x_min,
+      x_max
+    );
+    if (x <= x_min) {
       return lut_val[0];
-    if (x >= x_max)
+    }
+    if (x >= x_max) {
       return lut_val[N - 1];
+    }
   }
   // Assume uniform spacing of the lookup table.
   double dx = (x_max - x_min) / (N - 1);
@@ -136,7 +140,7 @@ double dZdtheta(double r, double theta, void *ctx)
 double Jr(double r, double theta, void *ctx)
 {
   return R_rtheta(r, theta, ctx) * (dRdr(r, theta, ctx) * dZdtheta(r, theta, ctx) -
-                                     dRdtheta(r, theta, ctx) * dZdr(r, theta, ctx));
+                                    dRdtheta(r, theta, ctx) * dZdr(r, theta, ctx));
 }
 
 struct integrand_ctx {
@@ -165,7 +169,7 @@ double integrand_JoRsq(double t, void *int_ctx)
 double intdPsidr(double r, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  struct integrand_ctx tmp_ctx = { .app_ctx = app, .r = r };
+  struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
   struct gkyl_qr_res integral;
   integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., 2. * M_PI, 7, 1e-10);
   return integral.res;
@@ -174,7 +178,7 @@ double intdPsidr(double r, void *ctx)
 double dPsidr(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  struct integrand_ctx tmp_ctx = { .app_ctx = app, .r = r };
+  struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
   struct gkyl_qr_res integral;
   double integral_val = interp_1x_lut(r, app->r_lut, app->dPsidr_int_lut, app->psi_lut_size);
   double R = R_rtheta(r, theta, ctx);
@@ -195,7 +199,7 @@ double integrant_dpsi(double r, void *int_ctx)
 double intPsi(double r0, double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  struct integrand_ctx tmp_ctx = { .app_ctx = app, .theta = theta };
+  struct integrand_ctx tmp_ctx = {.app_ctx = app, .theta = theta};
   struct gkyl_qr_res integral;
   integral = gkyl_dbl_exp(integrant_dpsi, &tmp_ctx, r0, r, 7, 1e-10);
   return integral.res;
@@ -204,11 +208,12 @@ double intPsi(double r0, double r, double theta, void *ctx)
 double compute_alpha_integral(double r, double twrap, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  struct integrand_ctx tmp_ctx = { .app_ctx = app, .r = r };
+  struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
   struct gkyl_qr_res integral;
 
-  if (twrap == 0.0)
+  if (twrap == 0.0) {
     return 0.0;
+  }
 
   if (0. < twrap) {
     integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., twrap, 7, 1e-10);
@@ -223,10 +228,12 @@ double alpha(double r, double theta, double phi, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double twrap = theta;
-  while (twrap < -M_PI)
+  while (twrap < -M_PI) {
     twrap = twrap + 2. * M_PI;
-  while (M_PI < twrap)
+  }
+  while (M_PI < twrap) {
     twrap = twrap - 2. * M_PI;
+  }
 
   double integral_val = compute_alpha_integral(r, twrap, ctx);
 
@@ -307,16 +314,18 @@ void eval_distf_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTR
 
   // Gaussian in conf-space, constant in v-space.
 
-  double loc[] = { 0.0, 0.0, 0.0 };
-  double sig[] = { Lx / 7.0, Ly / 7.0, Lz / 10.0 };
+  double loc[] = {0.0, 0.0, 0.0};
+  double sig[] = {Lx / 7.0, Ly / 7.0, Lz / 10.0};
 
-  fout[0] =
-    exp(-pow(x - loc[0], 2) / (2.0 * pow(sig[0], 2)) - pow(y - loc[1], 2) / (2.0 * pow(sig[1], 2)) -
-        pow(z - loc[2], 2) / (2.0 * pow(sig[2], 2)));
+  fout[0] = exp(
+    -pow(x - loc[0], 2) / (2.0 * pow(sig[0], 2)) - pow(y - loc[1], 2) / (2.0 * pow(sig[1], 2)) -
+    pow(z - loc[2], 2) / (2.0 * pow(sig[2], 2))
+  );
 }
 
 void passive_velocity_elc(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double x = xn[0], y = xn[1], z = xn[2];
 
@@ -448,7 +457,8 @@ struct gk_app_ctx create_ctx(void)
   // printf("Cy = %1.2g, q0 = %1.2g, qL = %1.2g, qR = %1.2g, s0 = %1.2g\n", Cy, q0, qL, qR, s0);
   // printf("epsilon = %1.2g, rho_star = 1/%2.2g\n", inv_asp_ratio, 1/rhostar);
 
-  struct gk_app_ctx ctx = { .cdim = cdim,
+  struct gk_app_ctx ctx = {
+    .cdim = cdim,
     .vdim = vdim,
     .a_shift = a_shift,
     .R_axis = R_axis,
@@ -486,7 +496,7 @@ struct gk_app_ctx create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = { Nx, Ny, Nz, Nvpar, Nmu },
+    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .vpar_max_elc = vpar_max_elc,
     .mu_max_elc = mu_max_elc,
@@ -496,7 +506,8 @@ struct gk_app_ctx create_ctx(void)
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .psi_lut_size = psi_lut_nfact * Nx };
+    .psi_lut_size = psi_lut_nfact * Nx
+  };
   return ctx;
 }
 
@@ -506,8 +517,9 @@ int main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args.trace_mem) {
@@ -518,16 +530,19 @@ int main(int argc, char **argv)
   struct gk_app_ctx ctx = create_ctx(); // context for init functions
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d = 0; d < ctx.cdim; d++)
+  for (int d = 0; d < ctx.cdim; d++) {
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d = 0; d < ctx.vdim; d++)
+  }
+  for (int d = 0; d < ctx.vdim; d++) {
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim + d]);
+  }
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
   int my_rank = 0;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     gkyl_comm_get_rank(comm, &my_rank);
+  }
 #endif
 
   // Populate lookup tables to avoid integral redundancy in the geom and IC evaluations.
@@ -545,34 +560,39 @@ int main(int argc, char **argv)
   }
 
   // electrons
-  struct gkyl_gyrokinetic_species elc = { .name = "elc",
+  struct gkyl_gyrokinetic_species elc = {
+    .name = "elc",
     .charge = ctx.qe,
     .mass = ctx.me,
     .vdim = ctx.vdim,
-    .lower = { -ctx.vpar_max_elc, 0.0 },
-    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
-    .cells = { cells_v[0], cells_v[1] },
+    .lower = {-ctx.vpar_max_elc, 0.0},
+    .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
+    .cells = {cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
 
-    .projection = { .proj_id = GKYL_PROJ_FUNC, .func = eval_distf_elc, .ctx_func = &ctx },
+    .projection = {.proj_id = GKYL_PROJ_FUNC, .func = eval_distf_elc, .ctx_func = &ctx},
 
-    .collisionless = { .type = GKYL_GK_COLLISIONLESS_PASSIVE,
-      .passive_speeds = passive_velocity_elc,
-      .passive_speeds_ctx = &ctx,
-      .write_diagnostics = true },
+    .collisionless =
+      {.type = GKYL_GK_COLLISIONLESS_PASSIVE,
+       .passive_speeds = passive_velocity_elc,
+       .passive_speeds_ctx = &ctx,
+       .write_diagnostics = true},
 
-    .bcs = { { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY },
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT } },
+    .bcs =
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY},
+       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT}},
 
     .num_diag_moments = 5,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
-      GKYL_F_MOMENT_M2 },
+    .diag_moments =
+      {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
+       GKYL_F_MOMENT_M2},
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2 },
-    .boundary_flux_diagnostics = {
-      .num_integrated_diag_moments = 1, .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2 } } };
+    .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2},
+    .boundary_flux_diagnostics =
+      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2}}
+  };
 
   // field
   struct gkyl_gyrokinetic_field field = {
@@ -580,7 +600,8 @@ int main(int argc, char **argv)
   };
 
   // Geometry
-  struct gkyl_gyrokinetic_geometry geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gyrokinetic_geometry geometry = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = &ctx,
     .bfield_func = bfield_func, // magnetic field magnitude
@@ -588,48 +609,56 @@ int main(int argc, char **argv)
     .parallel_lower_bc_shift_func = bc_shift_func_lo,
     .parallel_upper_bc_shift_func = bc_shift_func_up,
     .parallel_lower_bc_shift_ctx = &ctx,
-    .parallel_upper_bc_shift_ctx = &ctx };
+    .parallel_upper_bc_shift_ctx = &ctx
+  };
 
   // Parallelism
-  struct gkyl_app_parallelism_inp parallelism = { .comm = comm,
-    .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
-    .use_gpu = app_args.use_gpu };
+  struct gkyl_app_parallelism_inp parallelism = {
+    .comm = comm,
+    .cuts = {app_args.cuts[0], app_args.cuts[1], app_args.cuts[2]},
+    .use_gpu = app_args.use_gpu
+  };
 
   // GK app
-  struct gkyl_gk app_inp = { .cfl_frac = 1.0,
+  struct gkyl_gk app_inp = {
+    .cfl_frac = 1.0,
 
     .cdim = ctx.cdim,
-    .lower = { ctx.x_min, ctx.y_min, ctx.z_min },
-    .upper = { ctx.x_max, ctx.y_max, ctx.z_max },
-    .cells = { cells_x[0], cells_x[1], cells_x[2] },
+    .lower = {ctx.x_min, ctx.y_min, ctx.z_min},
+    .upper = {ctx.x_max, ctx.y_max, ctx.z_max},
+    .cells = {cells_x[0], cells_x[1], cells_x[2]},
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
     .geometry = geometry,
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
+    .periodic_dirs = {1},
 
     .num_species = 1,
-    .species = { elc },
+    .species = {elc},
 
     .field = field,
 
-    .parallelism = parallelism };
+    .parallelism = parallelism
+  };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
 
-  struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-    .time_stepping = { .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps } };
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_inp = app_inp,
+    .time_stepping =
+      {.t_end = ctx.t_end,
+       .num_frames = ctx.num_frames,
+       .write_phase_freq = ctx.write_phase_freq,
+       .int_diag_calc_num = ctx.int_diag_calc_num,
+       .dt_failure_tol = ctx.dt_failure_tol,
+       .num_failures_max = ctx.num_failures_max,
+       .is_restart = app_args.is_restart,
+       .restart_frame = app_args.restart_frame,
+       .num_steps = app_args.num_steps}
+  };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 

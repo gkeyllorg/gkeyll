@@ -12,7 +12,7 @@ struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app, do
   const struct gkyl_array *fluidin[nfs];
   struct gkyl_array *fout[ns];
   struct gkyl_array *fluidout[nfs];
-  struct gkyl_update_status st = { .success = true };
+  struct gkyl_update_status st = {.success = true};
 
   // Time-stepper state.
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
@@ -54,8 +54,9 @@ struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app, do
 
         if (st.dt_actual < dt) {
           // Recalculate the field.
-          for (int i = 0; i < ns; ++i)
+          for (int i = 0; i < ns; ++i) {
             fin[i] = app->species[i].f;
+          }
           vp_calc_field(app, tcurr, fin);
 
           // collect stats
@@ -68,9 +69,12 @@ struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app, do
           state = RK_STAGE_1; // restart from stage 1
 
         } else {
-          for (int i = 0; i < ns; ++i)
-            array_combine(app->species[i].f1, 3.0 / 4.0, app->species[i].f, 1.0 / 4.0,
-              app->species[i].fnew, &app->species[i].local_ext);
+          for (int i = 0; i < ns; ++i) {
+            array_combine(
+              app->species[i].f1, 3.0 / 4.0, app->species[i].f, 1.0 / 4.0, app->species[i].fnew,
+              &app->species[i].local_ext
+            );
+          }
 
           // Compute the fields and apply BCs.
           for (int i = 0; i < ns; ++i) {
@@ -98,8 +102,9 @@ struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app, do
 
         if (st.dt_actual < dt) {
           // Recalculate the field.
-          for (int i = 0; i < ns; ++i)
+          for (int i = 0; i < ns; ++i) {
             fin[i] = app->species[i].f;
+          }
           vp_calc_field(app, tcurr, fin);
 
           // collect stats
@@ -114,10 +119,11 @@ struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app, do
           app->stat.nstage_2_fail += 1;
         } else {
           for (int i = 0; i < ns; ++i) {
-            array_combine(app->species[i].f1, 1.0 / 3.0, app->species[i].f, 2.0 / 3.0,
-              app->species[i].fnew, &app->species[i].local_ext);
-            gkyl_array_copy_range(
-              app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
+            array_combine(
+              app->species[i].f1, 1.0 / 3.0, app->species[i].f, 2.0 / 3.0, app->species[i].fnew,
+              &app->species[i].local_ext
+            );
+            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
           }
 
           // Compute the fields and apply BCs

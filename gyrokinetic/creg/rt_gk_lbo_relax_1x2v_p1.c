@@ -90,7 +90,8 @@ struct lbo_relax_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct lbo_relax_ctx ctx = { .cdim = cdim,
+  struct lbo_relax_ctx ctx = {
+    .cdim = cdim,
     .vdim = vdim,
     .mass = mass,
     .charge = charge,
@@ -107,7 +108,7 @@ struct lbo_relax_ctx create_ctx(void)
     .Nvpar = Nvpar,
     .Nmu = Nmu,
     .Lz = Lz,
-    .cells = { Nz, Nvpar, Nmu },
+    .cells = {Nz, Nvpar, Nmu},
     .vpar_max = vpar_max,
     .mu_max = mu_max,
     .poly_order = poly_order,
@@ -117,7 +118,8 @@ struct lbo_relax_ctx create_ctx(void)
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   return ctx;
 }
@@ -191,8 +193,8 @@ void evalBumpNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   fout[0] = nu;
 }
 
-static inline void mapc2p(
-  double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
+static inline void
+mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
 {
   // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
   xp[0] = zc[0];
@@ -218,8 +220,9 @@ int main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args.trace_mem) {
@@ -230,57 +233,62 @@ int main(int argc, char **argv)
   struct lbo_relax_ctx ctx = create_ctx(); // Context for init functions.
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d = 0; d < ctx.cdim; d++)
+  for (int d = 0; d < ctx.cdim; d++) {
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d = 0; d < ctx.vdim; d++)
+  }
+  for (int d = 0; d < ctx.vdim; d++) {
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim + d]);
+  }
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Top hat species.
-  struct gkyl_gyrokinetic_species square = { .name = "square",
+  struct gkyl_gyrokinetic_species square = {
+    .name = "square",
     .charge = ctx.charge,
     .mass = ctx.mass,
     .vdim = ctx.vdim,
-    .lower = { -ctx.vpar_max, 0.0 },
-    .upper = { ctx.vpar_max, ctx.mu_max },
-    .cells = { cells_v[0], cells_v[1] },
+    .lower = {-ctx.vpar_max, 0.0},
+    .upper = {ctx.vpar_max, ctx.mu_max},
+    .cells = {cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
 
-    .projection = { .proj_id = GKYL_PROJ_FUNC, .func = evalTopHatInit, .ctx_func = &ctx },
+    .projection = {.proj_id = GKYL_PROJ_FUNC, .func = evalTopHatInit, .ctx_func = &ctx},
 
-    .collisionless = { .type = GKYL_GK_COLLISIONLESS_ES },
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalTopHatNu,
-      .self_nu_ctx = &ctx },
+    .collisions =
+      {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalTopHatNu, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-      GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP } };
+    .diag_moments =
+      {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
+       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP}
+  };
 
   // Bump species.
-  struct gkyl_gyrokinetic_species bump = { .name = "bump",
+  struct gkyl_gyrokinetic_species bump = {
+    .name = "bump",
     .charge = ctx.charge,
     .mass = ctx.mass,
     .vdim = ctx.vdim,
-    .lower = { -ctx.vpar_max, 0.0 },
-    .upper = { ctx.vpar_max, ctx.mu_max },
-    .cells = { cells_v[0], cells_v[1] },
+    .lower = {-ctx.vpar_max, 0.0},
+    .upper = {ctx.vpar_max, ctx.mu_max},
+    .cells = {cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
 
-    .projection = { .proj_id = GKYL_PROJ_FUNC, .func = evalBumpInit, .ctx_func = &ctx },
+    .projection = {.proj_id = GKYL_PROJ_FUNC, .func = evalBumpInit, .ctx_func = &ctx},
 
-    .collisionless = { .type = GKYL_GK_COLLISIONLESS_ES },
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalBumpNu,
-      .self_nu_ctx = &ctx },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalBumpNu, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-      GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP } };
+    .diag_moments =
+      {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
+       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP}
+  };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
@@ -298,53 +306,58 @@ int main(int argc, char **argv)
   struct gkyl_gk app_inp = {
 
     .cdim = ctx.cdim,
-    .lower = { 0.0 },
-    .upper = { ctx.Lz },
-    .cells = { cells_x[0] },
+    .lower = {0.0},
+    .upper = {ctx.Lz},
+    .cells = {cells_x[0]},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-      .world = { 0.0, 0.0 },
+    .geometry =
+      {.geometry_id = GKYL_GEOMETRY_MAPC2P,
+       .world = {0.0, 0.0},
 
-      .mapc2p = mapc2p,
-      .c2p_ctx = &ctx,
-      .bfield_func = bfield_func,
-      .bfield_ctx = &ctx },
+       .mapc2p = mapc2p,
+       .c2p_ctx = &ctx,
+       .bfield_func = bfield_func,
+       .bfield_ctx = &ctx},
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = {0},
 
     .num_species = 2,
-    .species = { square, bump },
+    .species = {square, bump},
 
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
-  struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-    .time_stepping = { .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps } };
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_inp = app_inp,
+    .time_stepping =
+      {.t_end = ctx.t_end,
+       .num_frames = ctx.num_frames,
+       .write_phase_freq = ctx.write_phase_freq,
+       .int_diag_calc_num = ctx.int_diag_calc_num,
+       .dt_failure_tol = ctx.dt_failure_tol,
+       .num_failures_max = ctx.num_failures_max,
+       .is_restart = app_args.is_restart,
+       .restart_frame = app_args.restart_frame,
+       .num_steps = app_args.num_steps}
+  };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   return 0;

@@ -25,8 +25,10 @@ void gkyl_maxwell_free(const struct gkyl_ref_count *ref)
   gkyl_free(maxwell);
 }
 
-struct gkyl_dg_eqn *gkyl_dg_maxwell_new(const struct gkyl_basis *cbasis, double lightSpeed,
-  double elcErrorSpeedFactor, double mgnErrorSpeedFactor, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_maxwell_new(
+  const struct gkyl_basis *cbasis, double lightSpeed, double elcErrorSpeedFactor,
+  double mgnErrorSpeedFactor, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -74,14 +76,17 @@ struct gkyl_dg_eqn *gkyl_dg_maxwell_new(const struct gkyl_basis *cbasis, double 
   maxwell->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   maxwell->surf[0] = CK(surf_x_kernels, cdim, poly_order);
-  if (cdim > 1)
+  if (cdim > 1) {
     maxwell->surf[1] = CK(surf_y_kernels, cdim, poly_order);
-  if (cdim > 2)
+  }
+  if (cdim > 2) {
     maxwell->surf[2] = CK(surf_z_kernels, cdim, poly_order);
+  }
 
   // ensure non-NULL pointers
-  for (int i = 0; i < cdim; ++i)
+  for (int i = 0; i < cdim; ++i) {
     assert(maxwell->surf[i]);
+  }
 
   maxwell->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(maxwell->eqn.flags);
@@ -93,8 +98,10 @@ struct gkyl_dg_eqn *gkyl_dg_maxwell_new(const struct gkyl_basis *cbasis, double 
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis *cbasis, double lightSpeed,
-  double elcErrorSpeedFactor, double mgnErrorSpeedFactor)
+struct gkyl_dg_eqn *gkyl_dg_maxwell_cu_dev_new(
+  const struct gkyl_basis *cbasis, double lightSpeed, double elcErrorSpeedFactor,
+  double mgnErrorSpeedFactor
+)
 {
   assert(false);
   return 0;

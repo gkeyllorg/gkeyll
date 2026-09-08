@@ -76,7 +76,8 @@ struct einstein_conformal_gowdywave_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct einstein_conformal_gowdywave_ctx ctx = { .pi = pi,
+  struct einstein_conformal_gowdywave_ctx ctx = {
+    .pi = pi,
     .tau0 = tau0,
     .spacetime = spacetime,
     .excision_threshold = excision_threshold,
@@ -90,13 +91,15 @@ struct einstein_conformal_gowdywave_ctx create_ctx(void)
     .field_energy_calcs = field_energy_calcs,
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   return ctx;
 }
 
 void evalVacuumEinsteinConformalInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double x = xn[0];
   struct einstein_conformal_gowdywave_ctx *app = ctx;
@@ -154,38 +157,48 @@ void evalVacuumEinsteinConformalInit(
 
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_spatial_metric);
   spacetime->extrinsic_curvature_tensor_func(
-    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &conformal_extrinsic_curvature);
+    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &conformal_extrinsic_curvature
+  );
 
   spacetime->conformal_factor_func(spacetime, 0.0, x, 0.0, 0.0, &conformal_fact);
   spacetime->bssn_conformal_factor_func(spacetime, 0.0, x, 0.0, 0.0, &bssn_conformal_fact);
 
   spacetime->conformal_factor_der_func(
-    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &conformal_fact_der);
+    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &conformal_fact_der
+  );
   spacetime->bssn_conformal_factor_der_func(
-    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &bssn_conformal_fact_der);
+    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &bssn_conformal_fact_der
+  );
   spacetime->bssn_conformal_factor_der2_func(
-    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &bssn_conformal_fact_der2);
+    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &bssn_conformal_fact_der2
+  );
 
-  spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-    pow(10.0, -8.0), &conformal_lapse_der);
-  spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-    pow(10.0, -8.0), &conformal_shift_der);
-  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0),
-    pow(10.0, -8.0), pow(10.0, -8.0), &conformal_spatial_metric_der);
+  spacetime->lapse_function_der_func(
+    spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+    &conformal_lapse_der
+  );
+  spacetime->shift_vector_der_func(
+    spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+    &conformal_shift_der
+  );
+  spacetime->spatial_metric_tensor_der_func(
+    spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+    &conformal_spatial_metric_der
+  );
 
   double lambda = (-2.0 * pi * tau0 * jn(0, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0) *
-                    (cos(2.0 * pi * x) * cos(2.0 * pi * x))) +
+                   (cos(2.0 * pi * x) * cos(2.0 * pi * x))) +
                   (2.0 * (pi * pi) * (tau0 * tau0) *
-                    ((jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) +
-                      (jn(1, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0)))) -
+                   ((jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) +
+                    (jn(1, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0)))) -
                   (0.5 * (((2.0 * pi) * (2.0 * pi)) * ((jn(0, 2.0 * pi) * jn(0, 2.0 * pi)) +
-                                                        (jn(1, 2.0 * pi) * jn(1, 2.0 * pi))))) +
+                                                       (jn(1, 2.0 * pi) * jn(1, 2.0 * pi))))) +
                   (pi * jn(0, 2.0 * pi) * jn(1, 2.0 * pi));
   double lambda_dt =
     2.0 * (pi * pi) * tau0 *
     ((jn(1, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0)) * (1.0 + cos(4.0 * pi * x)) +
-      (2.0 * (jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) *
-        (sin(2.0 * pi * x) * sin(2.0 * pi * x))));
+     (2.0 * (jn(0, 2.0 * pi * tau0) * jn(0, 2.0 * pi * tau0)) *
+      (sin(2.0 * pi * x) * sin(2.0 * pi * x))));
   double lambda_dx =
     4.0 * (pi * pi * tau0) * jn(0, 2.0 * pi * tau0) * jn(1, 2.0 * pi * tau0) * sin(4.0 * pi * x);
 
@@ -432,7 +445,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
 }
 
 void calc_field_energy(
-  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc)
+  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
@@ -440,7 +454,8 @@ void calc_field_energy(
 }
 
 void calc_integrated_mom(
-  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc)
+  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
@@ -469,9 +484,11 @@ int main(int argc, char **argv)
 
   // Conformal Einstein equations.
   struct gkyl_wv_eqn *vacuum_einstein_conformal = gkyl_wv_vacuum_einstein_conformal_new(
-    ctx.excision_threshold, ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
+    ctx.excision_threshold, ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu
+  );
 
-  struct gkyl_moment_species einstein_conformal = { .name = "vacuum_einstein_conformal",
+  struct gkyl_moment_species einstein_conformal = {
+    .name = "vacuum_einstein_conformal",
     .equation = vacuum_einstein_conformal,
 
     .init = evalVacuumEinsteinConformalInit,
@@ -481,7 +498,8 @@ int main(int argc, char **argv)
     .has_vacuum_einstein_conformal = true,
     .vacuum_einstein_conformal_excision_threshold = ctx.excision_threshold,
     .vacuum_einstein_conformal_spacetime_slicing = ctx.spacetime_slicing,
-    .vacuum_einstein_conformal_spacetime_evolution = ctx.spacetime_evolution };
+    .vacuum_einstein_conformal_spacetime_evolution = ctx.spacetime_evolution
+  };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -491,7 +509,7 @@ int main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX };
+  int cells[] = {NX};
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -513,12 +531,12 @@ int main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -533,19 +551,19 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
 
   // Moment app.
-  struct gkyl_moment app_inp = { .name = "vacuum_einstein_conformal_gowdywave",
+  struct gkyl_moment app_inp = {
+    .name = "vacuum_einstein_conformal_gowdywave",
 
     .ndim = 1,
-    .lower = { -0.5 * ctx.Lx },
-    .upper = { 0.5 * ctx.Lx },
-    .cells = { NX },
+    .lower = {-0.5 * ctx.Lx},
+    .upper = {0.5 * ctx.Lx},
+    .cells = {NX},
 
     .scheme_type = GKYL_MOMENT_WAVE_PROP,
     .mp_recon = app_args.mp_recon,
@@ -553,12 +571,13 @@ int main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
-    .species = { einstein_conformal },
+    .species = {einstein_conformal},
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = {0},
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm } };
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+  };
 
   // Create app object.
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
@@ -573,8 +592,10 @@ int main(int argc, char **argv)
       gkyl_moment_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+      gkyl_moment_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -647,7 +668,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);

@@ -55,8 +55,8 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
  * @param inp Input parameters defined in gkyl_loss_cone_mask_gyrokinetic_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_loss_cone_mask_gyrokinetic *gkyl_loss_cone_mask_gyrokinetic_inew(
-  const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp);
+struct gkyl_loss_cone_mask_gyrokinetic *
+gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp);
 
 /**
  * Compute projection of the loss cone masking function on the phase-space basis.
@@ -68,9 +68,11 @@ struct gkyl_loss_cone_mask_gyrokinetic *gkyl_loss_cone_mask_gyrokinetic_inew(
  * @param phi_m Electrostatic potential at the mirror throat (on GPU if use_gpu=true).
  * @param mask_out Output masking function.
  */
-void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out);
+void gkyl_loss_cone_mask_gyrokinetic_advance(
+  gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *phi, const double *phi_m,
+  struct gkyl_array *mask_out
+);
 
 /**
  * Delete updater.

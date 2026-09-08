@@ -12,9 +12,10 @@
  * @param fname Name of output file (include .gkyl extension)
  * @return Status flag: 0 if write succeeded, 'errno' otherwise
  */
-int gkyl_comm_array_write(struct gkyl_comm *comm, const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *range, const struct gkyl_msgpack_data *meta,
-  const struct gkyl_array *arr, const char *fname);
+int gkyl_comm_array_write(
+  struct gkyl_comm *comm, const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_msgpack_data *meta, const struct gkyl_array *arr, const char *fname
+);
 
 /**
  * Read array data from .gkyl format. The input grid must be
@@ -28,5 +29,7 @@ int gkyl_comm_array_write(struct gkyl_comm *comm, const struct gkyl_rect_grid *g
  * @param fname Name of output file (include .gkyl extension)
  * @return Status flag: 0 if write succeeded, 'errno' otherwise
  */
-int gkyl_comm_array_read(struct gkyl_comm *comm, const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *range, struct gkyl_array *arr, const char *fname);
+int gkyl_comm_array_read(
+  struct gkyl_comm *comm, const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char *fname
+);

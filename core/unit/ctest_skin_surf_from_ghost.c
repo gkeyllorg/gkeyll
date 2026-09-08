@@ -30,7 +30,8 @@ void eval_field(double t, const double *xn, double *restrict fout, void *ctx)
 
 // Function to set up and test the ghost-to-skin surface copy updater
 void test_ssfg(
-  int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir, bool control)
+  int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir, bool control
+)
 {
   double lower[cdim], upper[cdim];
   int cells[cdim];
@@ -72,7 +73,7 @@ void test_ssfg(
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, cdim, poly_order);
 
-  int ghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
+  int ghost[GKYL_MAX_CDIM] = {1, 1, 1};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -122,8 +123,9 @@ void test_ssfg(
   // Initialize the skin-surf updater and call it if control is false
   gkyl_skin_surf_from_ghost *up =
     gkyl_skin_surf_from_ghost_new(dir, edge, basis, &skin_r, &ghost_r, use_gpu);
-  if (!control) // to test identity operation
+  if (!control) { // to test identity operation
     gkyl_skin_surf_from_ghost_advance(up, field);
+  }
   gkyl_skin_surf_from_ghost_release(up);
 
   // Copy field values back to host for checking
@@ -229,8 +231,10 @@ double eval_f(const double *phi, const double x, const double y, const double z,
 }
 
 // List of tests for the test framework
-TEST_LIST = { { "test_ssfg_ho", test_ssfg_ho },
+TEST_LIST = {
+  {"test_ssfg_ho", test_ssfg_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_ssfg_dev", test_ssfg_dev },
+  {"test_ssfg_dev", test_ssfg_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

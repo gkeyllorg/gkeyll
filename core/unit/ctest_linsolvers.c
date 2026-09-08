@@ -39,12 +39,15 @@ void test_slu_example_ho()
   /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
   m = n = 5;
   nnz = 12;
-  if (!(a = doubleMalloc(nnz)))
+  if (!(a = doubleMalloc(nnz))) {
     ABORT("Malloc fails for a[].");
-  if (!(asub = intMalloc(nnz)))
+  }
+  if (!(asub = intMalloc(nnz))) {
     ABORT("Malloc fails for asub[].");
-  if (!(xa = intMalloc(n + 1)))
+  }
+  if (!(xa = intMalloc(n + 1))) {
     ABORT("Malloc fails for xa[].");
+  }
 
   s = 19.0;
   u = 21.0;
@@ -89,17 +92,21 @@ void test_slu_example_ho()
 
   /* Create right-hand side matrix B. */
   nrhs = 1;
-  if (!(rhs = doubleMalloc(m * nrhs)))
+  if (!(rhs = doubleMalloc(m * nrhs))) {
     ABORT("Malloc fails for rhs[].");
+  }
   /* B : transpose([1,1,1,1,1]);*/
-  for (i = 0; i < m; ++i)
+  for (i = 0; i < m; ++i) {
     rhs[i] = 1.0;
+  }
   dCreate_Dense_Matrix(&B, m, nrhs, rhs, m, SLU_DN, SLU_D, SLU_GE);
 
-  if (!(perm_r = intMalloc(m)))
+  if (!(perm_r = intMalloc(m))) {
     ABORT("Malloc fails for perm_r[].");
-  if (!(perm_c = intMalloc(n)))
+  }
+  if (!(perm_c = intMalloc(n))) {
     ABORT("Malloc fails for perm_c[].");
+  }
 
   /* Set the default input options. */
   set_default_options(&options);
@@ -315,15 +322,20 @@ void test_superlu_ops_basic_update_amat_ho()
 
   // Solution is: (1/prob_fac)*[-1/32, 11/168, 3/224, 1/16, 11/336].
   TEST_CHECK(
-    gkyl_compare((1.0 / prob_fac) * (-1.0 / 32.0), gkyl_superlu_get_rhs_lin(sluprob, 0), 1e-14));
+    gkyl_compare((1.0 / prob_fac) * (-1.0 / 32.0), gkyl_superlu_get_rhs_lin(sluprob, 0), 1e-14)
+  );
   TEST_CHECK(
-    gkyl_compare((1.0 / prob_fac) * (11.0 / 168.0), gkyl_superlu_get_rhs_lin(sluprob, 1), 1e-14));
+    gkyl_compare((1.0 / prob_fac) * (11.0 / 168.0), gkyl_superlu_get_rhs_lin(sluprob, 1), 1e-14)
+  );
   TEST_CHECK(
-    gkyl_compare((1.0 / prob_fac) * (3.0 / 224.0), gkyl_superlu_get_rhs_lin(sluprob, 2), 1e-14));
+    gkyl_compare((1.0 / prob_fac) * (3.0 / 224.0), gkyl_superlu_get_rhs_lin(sluprob, 2), 1e-14)
+  );
   TEST_CHECK(
-    gkyl_compare((1.0 / prob_fac) * (1.0 / 16.0), gkyl_superlu_get_rhs_lin(sluprob, 3), 1e-14));
+    gkyl_compare((1.0 / prob_fac) * (1.0 / 16.0), gkyl_superlu_get_rhs_lin(sluprob, 3), 1e-14)
+  );
   TEST_CHECK(
-    gkyl_compare((1.0 / prob_fac) * (11.0 / 336.0), gkyl_superlu_get_rhs_lin(sluprob, 4), 1e-14));
+    gkyl_compare((1.0 / prob_fac) * (11.0 / 336.0), gkyl_superlu_get_rhs_lin(sluprob, 4), 1e-14)
+  );
 
   gkyl_mat_triples_release(tri_arr[0]);
   gkyl_free(tri_arr);
@@ -347,18 +359,19 @@ double superlu_test_answer(double s, double u, double p, double e, double r, dou
           (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2)));
     break;
   case 2:
-    sol = -((-(e * pow(l, 2) * r) + e * l * r * s + pow(l, 2) * r * u - e * r * s * u +
-              pow(l, 2) * pow(u, 2) - l * pow(u, 3)) /
-            (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2))));
+    sol =
+      -((-(e * pow(l, 2) * r) + e * l * r * s + pow(l, 2) * r * u - e * r * s * u +
+         pow(l, 2) * pow(u, 2) - l * pow(u, 3)) /
+        (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2))));
     break;
   case 3:
     sol = (-(pow(l, 2) * p) + pow(l, 2) * r + l * p * s + p * r * s + pow(l, 2) * u + l * p * u -
-            p * s * u - l * pow(u, 2)) /
+           p * s * u - l * pow(u, 2)) /
           (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2));
     break;
   case 4:
     sol = (e * pow(l, 2) * p - e * l * p * s - e * pow(l, 2) * u - e * l * p * u -
-            pow(l, 2) * p * u + e * p * s * u + e * l * pow(u, 2) + l * p * pow(u, 2)) /
+           pow(l, 2) * p * u + e * p * s * u + e * l * pow(u, 2) + l * p * pow(u, 2)) /
           (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2)));
     break;
   }
@@ -413,8 +426,9 @@ void test_superlu_ops_multiple_prob_ho()
 
   // Allocate the A matrix from triples.
   gkyl_superlu_amat_from_triples(prob, tri_arr);
-  for (size_t k = 0; k < nprob; k++)
+  for (size_t k = 0; k < nprob; k++) {
     gkyl_mat_triples_release(tri_arr[k]);
+  }
   gkyl_free(tri_arr);
 
   // Create right-hand side matrix B = transpose([1,1,1,1,1]).
@@ -438,9 +452,11 @@ void test_superlu_ops_multiple_prob_ho()
     e = 5.0 * (k + 1) / nprob;
     r = 18.0 * (k + 1) / nprob;
     l = 12.0 * (k + 1) / nprob;
-    for (int i = 0; i < m; i++)
-      TEST_CHECK(gkyl_compare_double(superlu_test_answer(s, u, p, e, r, l, i),
-        gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10));
+    for (int i = 0; i < m; i++) {
+      TEST_CHECK(gkyl_compare_double(
+        superlu_test_answer(s, u, p, e, r, l, i), gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10
+      ));
+    }
   }
 
   gkyl_superlu_prob_release(prob);
@@ -515,17 +531,20 @@ void test_superlu_ops_multiple_prob_update_amat_ho()
     e = 5.0 * (k + 1) / nprob;
     r = 18.0 * (k + 1) / nprob;
     l = 12.0 * (k + 1) / nprob;
-    for (int i = 0; i < m; i++)
-      TEST_CHECK(gkyl_compare_double(superlu_test_answer(s, u, p, e, r, l, i),
-        gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10));
+    for (int i = 0; i < m; i++) {
+      TEST_CHECK(gkyl_compare_double(
+        superlu_test_answer(s, u, p, e, r, l, i), gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10
+      ));
+    }
   }
 
   // Now update the LHS matrix. Multiply it by a constant, and multiply the RHS
   // by 2X that constant, so the solution should be the same but divided by 2.
   double prob_fac = 1.3;
   double *prob_fac_per_rhs = (double *)gkyl_malloc(nprob * sizeof(double));
-  for (int k = 0; k < nprob; k++)
+  for (int k = 0; k < nprob; k++) {
     prob_fac_per_rhs[k] = (k + 1) * prob_fac;
+  }
 
   for (size_t k = 0; k < nprob; k++) {
     struct gkyl_mat_triples *tri = tri_arr[k];
@@ -579,36 +598,43 @@ void test_superlu_ops_multiple_prob_update_amat_ho()
     e = fac * 5.0 * (k + 1) / nprob;
     r = fac * 18.0 * (k + 1) / nprob;
     l = fac * 12.0 * (k + 1) / nprob;
-    for (int i = 0; i < m; i++)
-      TEST_CHECK(gkyl_compare_double(superlu_test_answer(s, u, p, e, r, l, i),
-        gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10));
+    for (int i = 0; i < m; i++) {
+      TEST_CHECK(gkyl_compare_double(
+        superlu_test_answer(s, u, p, e, r, l, i), gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10
+      ));
+    }
   }
 
   gkyl_free(prob_fac_per_rhs);
-  for (size_t k = 0; k < nprob; k++)
+  for (size_t k = 0; k < nprob; k++) {
     gkyl_mat_triples_release(tri_arr[k]);
+  }
 
   gkyl_free(tri_arr);
   gkyl_mat_triples_release(triRHS);
   gkyl_superlu_prob_release(prob);
 }
 
-TEST_LIST = { { "slu_example_ho", test_slu_example_ho },
-  { "superlu_ops_basic_ho", test_superlu_ops_basic_ho },
-  { "superlu_ops_basic_update_amat_ho", test_superlu_ops_basic_update_amat_ho },
-  { "superlu_ops_separateLU_ho", test_superlu_ops_separateLU_ho },
-  { "superlu_ops_multiple_prob_ho", test_superlu_ops_multiple_prob_ho },
-  { "superlu_ops_multiple_prob_update_amat_ho", test_superlu_ops_multiple_prob_update_amat_ho },
+TEST_LIST = {
+  {"slu_example_ho", test_slu_example_ho},
+  {"superlu_ops_basic_ho", test_superlu_ops_basic_ho},
+  {"superlu_ops_basic_update_amat_ho", test_superlu_ops_basic_update_amat_ho},
+  {"superlu_ops_separateLU_ho", test_superlu_ops_separateLU_ho},
+  {"superlu_ops_multiple_prob_ho", test_superlu_ops_multiple_prob_ho},
+  {"superlu_ops_multiple_prob_update_amat_ho", test_superlu_ops_multiple_prob_update_amat_ho},
 #ifdef GKYL_HAVE_CUDA
 #ifdef GKYL_HAVE_CUDSS
-  { "cudss_simple_dev", test_cudss_simple_dev }, { "cudss_ops_dev", test_cudss_ops_dev },
-  { "cudss_ops_update_amat_dev", test_cudss_ops_update_amat_dev },
-  { "cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs_dev },
+  {"cudss_simple_dev", test_cudss_simple_dev},
+  {"cudss_ops_dev", test_cudss_ops_dev},
+  {"cudss_ops_update_amat_dev", test_cudss_ops_update_amat_dev},
+  {"cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs_dev},
 #else
-  { "cusolver_qr_dev", test_cusolver_qr_dev }, { "cusolver_rf_dev", test_cusolver_rf_dev },
-  { "cusolver_ops_dev", test_cusolver_ops_dev },
-  { "cusolver_ops_multiple_rhs_dev", test_cusolver_ops_multiple_rhs_dev },
-  { "cusolver_ops_multiple_prob_dev", test_cusolver_ops_multiple_prob_dev },
+  {"cusolver_qr_dev", test_cusolver_qr_dev},
+  {"cusolver_rf_dev", test_cusolver_rf_dev},
+  {"cusolver_ops_dev", test_cusolver_ops_dev},
+  {"cusolver_ops_multiple_rhs_dev", test_cusolver_ops_multiple_rhs_dev},
+  {"cusolver_ops_multiple_prob_dev", test_cusolver_ops_multiple_prob_dev},
 #endif
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

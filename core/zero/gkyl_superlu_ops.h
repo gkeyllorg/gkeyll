@@ -73,7 +73,8 @@ void gkyl_superlu_solve(struct gkyl_superlu_prob *prob);
  * @param tri coordinates & values of non-zero entries in A matrix (triplets).
  */
 void gkyl_superlu_amat_update_from_triples(
-  struct gkyl_superlu_prob *prob, struct gkyl_mat_triples **tri);
+  struct gkyl_superlu_prob *prob, struct gkyl_mat_triples **tri
+);
 
 /**
  * Obtain the RHS ielement-th value of the jprob-th linear problem.

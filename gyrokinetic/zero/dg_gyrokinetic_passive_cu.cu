@@ -14,8 +14,8 @@ extern "C" {
 // Required because the equation object lives on the device and its members
 // cannot be modified without a __global__ kernel.
 __global__ static void gkyl_gyrokinetic_passive_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *flux_surf,
-  const struct gkyl_array *speeds)
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *flux_surf, const struct gkyl_array *speeds
+)
 {
   struct dg_gyrokinetic_passive *gkp = container_of(eqn, struct dg_gyrokinetic_passive, eqn);
   gkp->auxfields.flux_surf = flux_surf;
@@ -24,16 +24,20 @@ __global__ static void gkyl_gyrokinetic_passive_set_auxfields_cu_kernel(
 
 // Host-side wrapper for gkyl_gyrokinetic_passive_set_auxfields_cu_kernel.
 void gkyl_gyrokinetic_passive_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_passive_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_passive_auxfields auxin
+)
 {
   gkyl_gyrokinetic_passive_set_auxfields_cu_kernel<<<1, 1> > >(
-    eqn, auxin.flux_surf->on_dev, auxin.speeds->on_dev);
+    eqn, auxin.flux_surf->on_dev, auxin.speeds->on_dev
+  );
 }
 
 // CUDA kernel to set device function pointers and zero auxfields.
 // Doing function-pointer work here avoids troublesome cudaMemcpyFromSymbol.
-__global__ static void dg_gyrokinetic_passive_set_cu_dev_ptrs(struct dg_gyrokinetic_passive *gkp,
-  enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim, int poly_order)
+__global__ static void dg_gyrokinetic_passive_set_cu_dev_ptrs(
+  struct dg_gyrokinetic_passive *gkp, enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim,
+  int poly_order
+)
 {
   gkp->auxfields.flux_surf = 0;
   gkp->auxfields.speeds = 0;
@@ -80,10 +84,11 @@ __global__ static void dg_gyrokinetic_passive_set_cu_dev_ptrs(struct dg_gyrokine
   }
 }
 
-struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_passive_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const double charge, const double mass,
-  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
+struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_passive_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const double charge,
+  const double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map
+)
 {
   struct dg_gyrokinetic_passive *gkp = (struct dg_gyrokinetic_passive *)gkyl_malloc(sizeof(*gkp));
 
@@ -118,7 +123,8 @@ struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_passive_cu_dev_new(const struct gkyl_bas
   gkyl_cu_memcpy(gkp_cu, gkp, sizeof(struct dg_gyrokinetic_passive), GKYL_CU_MEMCPY_H2D);
 
   dg_gyrokinetic_passive_set_cu_dev_ptrs<<<1, 1> > >(
-    gkp_cu, cbasis->b_type, cv_index_gkp[cdim].vdim[vdim], cdim, vdim, poly_order);
+    gkp_cu, cbasis->b_type, cv_index_gkp[cdim].vdim[vdim], cdim, vdim, poly_order
+  );
 
   // Set on_dev pointer to the device struct.
   gkp->eqn.on_dev = &gkp_cu->eqn;

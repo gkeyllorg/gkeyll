@@ -10,8 +10,8 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_util.h>
 
-struct gkyl_mom_type *gkyl_dg_updater_moment_gyrokinetic_acquire_type(
-  const gkyl_dg_updater_moment *moment)
+struct gkyl_mom_type *
+gkyl_dg_updater_moment_gyrokinetic_acquire_type(const gkyl_dg_updater_moment *moment)
 {
   return gkyl_mom_type_acquire(moment->type);
 }
@@ -25,17 +25,21 @@ struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_gyrokinetic_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range, double mass,
   double charge, const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
-  struct gkyl_array *phi, enum gkyl_distribution_moments mom_type, bool is_integrated, bool use_gpu)
+  struct gkyl_array *phi, enum gkyl_distribution_moments mom_type, bool is_integrated, bool use_gpu
+)
 {
   gkyl_dg_updater_moment *up = gkyl_malloc(sizeof(gkyl_dg_updater_moment));
   up->use_gpu = use_gpu;
 
-  if (is_integrated)
+  if (is_integrated) {
     up->type = gkyl_int_mom_gyrokinetic_new(
-      conf_basis, phase_basis, conf_range, mass, charge, vel_map, gk_geom, phi, mom_type, use_gpu);
-  else
+      conf_basis, phase_basis, conf_range, mass, charge, vel_map, gk_geom, phi, mom_type, use_gpu
+    );
+  } else {
     up->type = gkyl_mom_gyrokinetic_new(
-      conf_basis, phase_basis, conf_range, mass, charge, vel_map, gk_geom, phi, mom_type, use_gpu);
+      conf_basis, phase_basis, conf_range, mass, charge, vel_map, gk_geom, phi, mom_type, use_gpu
+    );
+  }
 
   up->up_moment = gkyl_mom_calc_new(grid, up->type, use_gpu);
 
@@ -44,22 +48,25 @@ struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_gyrokinetic_new(
   return up;
 }
 
-void gkyl_dg_updater_moment_gyrokinetic_advance(struct gkyl_dg_updater_moment *moment,
-  const struct gkyl_range *update_phase_rng, const struct gkyl_range *update_conf_rng,
-  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT mout)
+void gkyl_dg_updater_moment_gyrokinetic_advance(
+  struct gkyl_dg_updater_moment *moment, const struct gkyl_range *update_phase_rng,
+  const struct gkyl_range *update_conf_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT mout
+)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (moment->use_gpu)
+  if (moment->use_gpu) {
     gkyl_mom_calc_advance_cu(moment->up_moment, update_phase_rng, update_conf_rng, fIn, mout);
-  else
+  } else {
     gkyl_mom_calc_advance(moment->up_moment, update_phase_rng, update_conf_rng, fIn, mout);
+  }
   moment->moment_tm += gkyl_time_diff_now_sec(wst);
 }
 
-struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_gyrokinetic_get_tm(
-  const gkyl_dg_updater_moment *moment)
+struct gkyl_dg_updater_moment_tm
+gkyl_dg_updater_moment_gyrokinetic_get_tm(const gkyl_dg_updater_moment *moment)
 {
-  return (struct gkyl_dg_updater_moment_tm){ .moment_tm = moment->moment_tm };
+  return (struct gkyl_dg_updater_moment_tm){.moment_tm = moment->moment_tm};
 }
 
 void gkyl_dg_updater_moment_gyrokinetic_release(gkyl_dg_updater_moment *moment)

@@ -30,10 +30,11 @@ void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *c
 static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a;
-  if (use_gpu)
+  if (use_gpu) {
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
+  } else {
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  }
   return a;
 }
 
@@ -43,10 +44,10 @@ void test_3x2v_p1(bool use_gpu)
   int cdim = 3, vdim = 2;
   int pdim = cdim + vdim;
 
-  int cells[] = { 8, 8, 8, 8, 8 };
-  int ghost[] = { 1, 1, 1, 0, 0 };
-  double lower[] = { 0., 0., 0., -1., 0. };
-  double upper[] = { 1., 1., 1., 1., 1. };
+  int cells[] = {8, 8, 8, 8, 8};
+  int ghost[] = {1, 1, 1, 0, 0};
+  double lower[] = {0., 0., 0., -1., 0.};
+  double upper[] = {1., 1., 1., 1., 1.};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -66,7 +67,7 @@ void test_3x2v_p1(bool use_gpu)
     velCells[d] = cells[cdim + d];
   }
   struct gkyl_rect_grid velGrid;
-  int velGhost[] = { 0, 0 };
+  int velGhost[] = {0, 0};
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
@@ -88,8 +89,9 @@ void test_3x2v_p1(bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = { 0.0, 0.0 },
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = {0.0, 0.0},
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude
@@ -106,7 +108,8 @@ void test_3x2v_p1(bool use_gpu)
     .geo_local_ext = confRange_ext,
     .geo_global = confRange,
     .geo_global_ext = confRange_ext,
-    .geo_basis = confBasis };
+    .geo_basis = confBasis
+  };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
@@ -119,16 +122,19 @@ void test_3x2v_p1(bool use_gpu)
     .flux_surf = flux_surf, .phi = phi, .apar = apar, .apardot = apardot
   };
 
-  const bool is_zero_flux[GKYL_MAX_DIM] = { false };
+  const bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = {};
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
-    c2p_in, phaseGrid, velGrid, phaseRange, phaseRange_ext, velLocal, velLocal_ext, false);
+    c2p_in, phaseGrid, velGrid, phaseRange, phaseRange_ext, velLocal, velLocal_ext, false
+  );
 
   struct gkyl_dg_updater_gyrokinetic *up;
-  up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, &phaseRange,
-    is_zero_flux, 1.0, 1.0, GKYL_GK_COLLISIONLESS_ES, gk_geom, gvm, &aux, use_gpu);
+  up = gkyl_dg_updater_gyrokinetic_new(
+    &phaseGrid, &confBasis, &basis, &confRange, &phaseRange, is_zero_flux, 1.0, 1.0,
+    GKYL_GK_COLLISIONLESS_ES, gk_geom, gvm, &aux, use_gpu
+  );
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate;
@@ -175,8 +181,10 @@ void test_gyrokinetic_kern_tm_3x2v_p1_dev()
   test_3x2v_p1(true);
 }
 
-TEST_LIST = { { "test_gyrokinetic_kern_tm_3x2v_p1_ho", test_gyrokinetic_kern_tm_3x2v_p1_ho },
+TEST_LIST = {
+  {"test_gyrokinetic_kern_tm_3x2v_p1_ho", test_gyrokinetic_kern_tm_3x2v_p1_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_gyrokinetic_kern_tm_3x2v_p1_dev", test_gyrokinetic_kern_tm_3x2v_p1_dev },
+  {"test_gyrokinetic_kern_tm_3x2v_p1_dev", test_gyrokinetic_kern_tm_3x2v_p1_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

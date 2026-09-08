@@ -14,12 +14,16 @@ gkyl_gk_collisionless_passive_flux *gkyl_gk_collisionless_passive_flux_new(
   const double charge, const double mass, const struct gk_geometry *gk_geom,
   const struct gkyl_dg_geom *dg_geom, const struct gkyl_gk_dg_geom *gk_dg_geom,
   const struct gkyl_velocity_map *vel_map, const enum gkyl_gyrokinetic_bc_type *bctype_conf,
-  bool use_gpu)
+  bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
-    return gkyl_gk_collisionless_passive_flux_cu_dev_new(phase_grid, conf_basis, phase_basis,
-      passive_speeds, charge, mass, gk_geom, dg_geom, gk_dg_geom, vel_map, bctype_conf);
+  if (use_gpu) {
+    return gkyl_gk_collisionless_passive_flux_cu_dev_new(
+      phase_grid, conf_basis, phase_basis, passive_speeds, charge, mass, gk_geom, dg_geom,
+      gk_dg_geom, vel_map, bctype_conf
+    );
+  }
 #endif
 
   gkyl_gk_collisionless_passive_flux *up = gkyl_malloc(sizeof(gkyl_gk_collisionless_passive_flux));
@@ -48,9 +52,11 @@ gkyl_gk_collisionless_passive_flux *gkyl_gk_collisionless_passive_flux_new(
     up->flux_surf[d] =
       choose_gk_collisionless_passive_flux_surf_conf_kern(d, cdim, vdim, poly_order);
     up->flux_surf_edge_lo[d] = choose_gk_collisionless_passive_flux_edge_lo_surf_conf_kern(
-      d, cdim, vdim, poly_order, bctype_conf[d]);
+      d, cdim, vdim, poly_order, bctype_conf[d]
+    );
     up->flux_surf_edge_up[d] = choose_gk_collisionless_passive_flux_edge_up_surf_conf_kern(
-      d, cdim, vdim, poly_order, bctype_conf[GKYL_MAX_CDIM + d]);
+      d, cdim, vdim, poly_order, bctype_conf[GKYL_MAX_CDIM + d]
+    );
   }
 
   up->flags = 0;
@@ -60,15 +66,18 @@ gkyl_gk_collisionless_passive_flux *gkyl_gk_collisionless_passive_flux_new(
   return up;
 }
 
-void gkyl_gk_collisionless_passive_flux_surf(gkyl_gk_collisionless_passive_flux *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range,
-  const struct gkyl_array *fin, struct gkyl_array *flux_surf, struct gkyl_array *cflrate)
+void gkyl_gk_collisionless_passive_flux_surf(
+  gkyl_gk_collisionless_passive_flux *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_ext_range,
+  const struct gkyl_range *phase_ext_range, const struct gkyl_array *fin,
+  struct gkyl_array *flux_surf, struct gkyl_array *cflrate
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_gk_collisionless_passive_flux_surf_cu(
-      up, conf_range, phase_range, conf_ext_range, phase_ext_range, fin, flux_surf, cflrate);
+      up, conf_range, phase_range, conf_ext_range, phase_ext_range, fin, flux_surf, cflrate
+    );
     return;
   }
 #endif
@@ -84,8 +93,9 @@ void gkyl_gk_collisionless_passive_flux_surf(gkyl_gk_collisionless_passive_flux 
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(pdim, iter.idx, idx);
 
-    for (int d = cdim; d < pdim; d++)
+    for (int d = cdim; d < pdim; d++) {
       idx_vel[d - cdim] = iter.idx[d];
+    }
 
     long loc_conf = gkyl_range_idx(conf_range, idx);
     long loc_vel = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
@@ -122,14 +132,16 @@ void gkyl_gk_collisionless_passive_flux_surf(gkyl_gk_collisionless_passive_flux 
 
       if (idx[dir] == phase_range->lower[dir]) {
         // Lower domain boundary.
-        cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d,
-          up->charge, up->mass, dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d,
-          speeds_L, speeds_R, fL, fR, flux_surf_d);
+        cflrate_d[0] += up->flux_surf_edge_lo[dir](
+          xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass, dgs, gkdgs, bmag_d,
+          jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, speeds_L, speeds_R, fL, fR, flux_surf_d
+        );
       } else {
         // Interior lower surface.
-        cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge,
-          up->mass, dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, speeds_L, speeds_R,
-          fL, fR, flux_surf_d);
+        cflrate_d[0] += up->flux_surf[dir](
+          xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass, dgs, gkdgs, bmag_d,
+          jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, speeds_L, speeds_R, fL, fR, flux_surf_d
+        );
       }
 
       // Upper domain boundary: also compute the upper-edge surface expansion
@@ -164,10 +176,14 @@ void gkyl_gk_collisionless_passive_flux_surf(gkyl_gk_collisionless_passive_flux 
 
         double *flux_surf_ghost_d = gkyl_array_fetch(flux_surf, loc_phase_ghost);
 
-        cflrate_ghost_d[0] = GKYL_MAX2(cflrate_ghost_d[0],
-          up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-            dgs_ghost, gkdgs_ghost, bmag_d, jacgeo_rat_surf_skin, jacgeo_rat_surf_ghost,
-            speeds_skin, speeds_ghost, f_skin, f_ghost, flux_surf_ghost_d));
+        cflrate_ghost_d[0] = GKYL_MAX2(
+          cflrate_ghost_d[0],
+          up->flux_surf_edge_up[dir](
+            xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass, dgs_ghost, gkdgs_ghost,
+            bmag_d, jacgeo_rat_surf_skin, jacgeo_rat_surf_ghost, speeds_skin, speeds_ghost, f_skin,
+            f_ghost, flux_surf_ghost_d
+          )
+        );
       }
     }
     // No vpar loop: passive advection has no velocity-space component.
@@ -181,7 +197,8 @@ void gkyl_gk_collisionless_passive_flux_release(gkyl_gk_collisionless_passive_fl
   gkyl_gk_dg_geom_release(up->gk_dg_geom);
   gkyl_velocity_map_release(up->vel_map);
 
-  if (GKYL_IS_CU_ALLOC(up->flags))
+  if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);
+  }
   gkyl_free(up);
 }

@@ -12,11 +12,12 @@
  * @return Pointer to Vlasov primitive moment object
  */
 struct gkyl_prim_lbo_type *gkyl_prim_lbo_vlasov_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu);
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu
+);
 
 /**
  * Create a new Vlasov primitive type object on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_vlasov_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+struct gkyl_prim_lbo_type *
+gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);

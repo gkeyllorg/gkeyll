@@ -31,9 +31,10 @@ struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the general relativistic Euler equations object in the tetrad basis with ultra-relativistic equation of state.
 */
-struct gkyl_wv_eqn *gkyl_wv_gr_ultra_rel_euler_tetrad_new(double gas_gamma,
-  enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
-  bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_gr_ultra_rel_euler_tetrad_new(
+  double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq,
+  struct gkyl_gr_spacetime *spacetime, bool use_gpu
+);
 
 /**
 * Create a new general relativistic Euler equations object in the tetrad basis with ultra-relativistic equation of state, from an input context struct.
@@ -41,8 +42,8 @@ struct gkyl_wv_eqn *gkyl_wv_gr_ultra_rel_euler_tetrad_new(double gas_gamma,
 * @param inp Input context struct.
 * @return Pointer to the general relativistic Euler equations object in the tetrad basis with ultra-relativistic equation of state.
 */
-struct gkyl_wv_eqn *gkyl_wv_gr_ultra_rel_euler_tetrad_inew(
-  const struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp *inp);
+struct gkyl_wv_eqn *
+gkyl_wv_gr_ultra_rel_euler_tetrad_inew(const struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp *inp);
 
 /**
 * Get adiabatic index.
@@ -58,8 +59,8 @@ double gkyl_wv_gr_ultra_rel_euler_tetrad_gas_gamma(const struct gkyl_wv_eqn *eqn
 * @param eqn General relativistic Euler equations object in the tetrad basis with ultra-relativistic equation of state.
 * @return Spacetime gauge choice.
 */
-enum gkyl_spacetime_gauge gkyl_wv_gr_ultra_rel_euler_tetrad_spacetime_gauge(
-  const struct gkyl_wv_eqn *eqn);
+enum gkyl_spacetime_gauge
+gkyl_wv_gr_ultra_rel_euler_tetrad_spacetime_gauge(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get spacetime reinitialization frequency.
@@ -75,5 +76,5 @@ int gkyl_wv_gr_ultra_rel_euler_tetrad_reinit_freq(const struct gkyl_wv_eqn *eqn)
 * @param eqn General relativistic Euler equations object in the tetrad basis with ultra-relativistic equation of state.
 * @return Pointer to the base spacetime object.
 */
-struct gkyl_gr_spacetime *gkyl_wv_gr_ultra_rel_euler_tetrad_spacetime(
-  const struct gkyl_wv_eqn *eqn);
+struct gkyl_gr_spacetime *gkyl_wv_gr_ultra_rel_euler_tetrad_spacetime(const struct gkyl_wv_eqn *eqn
+);

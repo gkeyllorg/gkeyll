@@ -36,10 +36,12 @@ typedef struct gkyl_fem_poisson gkyl_fem_poisson;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_fem_poisson *gkyl_fem_poisson_new(const struct gkyl_range *solve_range,
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
+struct gkyl_fem_poisson *gkyl_fem_poisson_new(
+  const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
   struct gkyl_poisson_bias_plane_list *bias_plane_list, struct gkyl_array *epsilon_var,
-  struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu);
+  struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu
+);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -50,7 +52,8 @@ struct gkyl_fem_poisson *gkyl_fem_poisson_new(const struct gkyl_range *solve_ran
                 domain but really only applicable to and used in the skin cell.
  */
 void gkyl_fem_poisson_set_rhs(
-  gkyl_fem_poisson *up, struct gkyl_array *rhsin, const struct gkyl_array *phibc);
+  gkyl_fem_poisson *up, struct gkyl_array *rhsin, const struct gkyl_array *phibc
+);
 
 /**
  * Solve the linear problem.

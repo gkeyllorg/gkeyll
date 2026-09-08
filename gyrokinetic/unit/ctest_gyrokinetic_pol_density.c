@@ -18,10 +18,11 @@
 static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
-  if (on_gpu)
+  if (on_gpu) {
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
+  } else {
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  }
   return a;
 }
 
@@ -48,9 +49,9 @@ void evalFunc3x_quad(double t, const double *xn, double *restrict fout, void *ct
 
 void test_1x_flat(bool use_gpu)
 {
-  int cells[] = { 8 };
+  int cells[] = {8};
   int poly_order = 1;
-  double lower[] = { 0.0 }, upper[] = { 1.0 };
+  double lower[] = {0.0}, upper[] = {1.0};
   int dim = sizeof(lower) / sizeof(lower[0]);
 
   // Grids.
@@ -61,7 +62,7 @@ void test_1x_flat(bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -128,9 +129,9 @@ void test_pol_density_1x_flat_dev()
 
 void test_1x_quad(bool use_gpu)
 {
-  int cells[] = { 8 };
+  int cells[] = {8};
   int poly_order = 1;
-  double lower[] = { 0.0 }, upper[] = { 1.0 };
+  double lower[] = {0.0}, upper[] = {1.0};
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
@@ -140,7 +141,7 @@ void test_1x_quad(bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -247,9 +248,9 @@ void test_pol_density_1x_quad_dev()
 
 void test_2x_quad(bool use_gpu)
 {
-  int cells[] = { 7, 7 };
+  int cells[] = {7, 7};
   int poly_order = 1;
-  double lower[] = { 0.0, 0.0 }, upper[] = { 1.0, 1.0 };
+  double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
   double time = 0.0;
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
@@ -260,7 +261,7 @@ void test_2x_quad(bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -362,9 +363,9 @@ void test_pol_density_2x_quad_dev()
 
 void test_3x_flat(bool use_gpu)
 {
-  int cells[] = { 7, 7, 7 };
+  int cells[] = {7, 7, 7};
   int poly_order = 1;
-  double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
+  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
   double time = 0.0;
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
@@ -375,7 +376,7 @@ void test_3x_flat(bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -447,14 +448,16 @@ void test_pol_density_3x_flat_dev()
   test_3x_flat(true);
 }
 
-TEST_LIST = { { "test_pol_density_1x_flat_ho", test_pol_density_1x_flat_ho },
-  { "test_pol_density_1x_quad_ho", test_pol_density_1x_quad_ho },
-  { "test_pol_density_2x_quad_ho", test_pol_density_2x_quad_ho },
-  { "test_pol_density_3x_flat_ho", test_pol_density_3x_flat_ho },
+TEST_LIST = {
+  {"test_pol_density_1x_flat_ho", test_pol_density_1x_flat_ho},
+  {"test_pol_density_1x_quad_ho", test_pol_density_1x_quad_ho},
+  {"test_pol_density_2x_quad_ho", test_pol_density_2x_quad_ho},
+  {"test_pol_density_3x_flat_ho", test_pol_density_3x_flat_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_pol_density_1x_flat_dev", test_pol_density_1x_flat_dev },
-  { "test_pol_density_1x_quad_dev", test_pol_density_1x_quad_dev },
-  { "test_pol_density_2x_quad_dev", test_pol_density_2x_quad_dev },
-  { "test_pol_density_3x_flat_dev", test_pol_density_3x_flat_dev },
+  {"test_pol_density_1x_flat_dev", test_pol_density_1x_flat_dev},
+  {"test_pol_density_1x_quad_dev", test_pol_density_1x_quad_dev},
+  {"test_pol_density_2x_quad_dev", test_pol_density_2x_quad_dev},
+  {"test_pol_density_3x_flat_dev", test_pol_density_3x_flat_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

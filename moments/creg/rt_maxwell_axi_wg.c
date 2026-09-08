@@ -56,25 +56,26 @@ int main(int argc, char **argv)
 
     .ndim = 3,
     // grid in computational space
-    .lower = { 2.0, -0.05, 0.0 },
-    .upper = { 5.0, 0.05, 10.0 },
-    .cells = { NX, NY, NZ },
+    .lower = {2.0, -0.05, 0.0},
+    .upper = {5.0, 0.05, 10.0},
+    .cells = {NX, NY, NZ},
 
     .mapc2p = mapc2p, // mapping of computational to physical space
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 2 },
+    .periodic_dirs = {2},
 
     .cfl_frac = 0.9,
 
-    .field = { .epsilon0 = 1.0,
-      .mu0 = 1.0,
+    .field =
+      {.epsilon0 = 1.0,
+       .mu0 = 1.0,
 
-      .limiter = GKYL_NO_LIMITER,
-      .init = evalFieldInit,
+       .limiter = GKYL_NO_LIMITER,
+       .init = evalFieldInit,
 
-      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
-      .bcy = { GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE } }
+       .bcx = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL},
+       .bcy = {GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE}}
   };
 
   // create app object

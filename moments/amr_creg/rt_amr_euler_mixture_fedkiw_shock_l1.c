@@ -68,7 +68,8 @@ struct amr_fedkiw_shock_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct amr_fedkiw_shock_ctx ctx = { .gas_gamma1 = gas_gamma1,
+  struct amr_fedkiw_shock_ctx ctx = {
+    .gas_gamma1 = gas_gamma1,
     .gas_gamma2 = gas_gamma2,
     .rhol = rhol,
     .ul = ul,
@@ -90,13 +91,15 @@ struct amr_fedkiw_shock_ctx create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   return ctx;
 }
 
 void evalEulerMixtureInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double x = xn[0];
   struct amr_fedkiw_shock_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -182,7 +185,8 @@ int main(int argc, char **argv)
   gas_gamma_s[0] = ctx.gas_gamma1;
   gas_gamma_s[1] = ctx.gas_gamma2;
 
-  struct euler_mixture1d_single_init init = { .base_Nx = ctx.Nx,
+  struct euler_mixture1d_single_init init = {
+    .base_Nx = ctx.Nx,
     .ref_factor = ctx.ref_factor,
 
     .coarse_x1 = 0.0,
@@ -203,7 +207,8 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+    .num_failures_max = ctx.num_failures_max
+  };
 
   euler_mixture1d_run_single(argc, argv, &init);
 

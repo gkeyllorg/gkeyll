@@ -86,7 +86,8 @@ struct em_advect_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct em_advect_ctx ctx = { .pi = pi,
+  struct em_advect_ctx ctx = {
+    .pi = pi,
     .gas_gamma = gas_gamma,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -105,7 +106,8 @@ struct em_advect_ctx create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   return ctx;
 }
@@ -159,7 +161,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
 }
 
 void evalExternalFieldInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct em_advect_ctx *app = ctx;
 
@@ -222,7 +225,7 @@ int main(int argc, char **argv)
   }
 #endif
 
-  int ccells[] = { NX };
+  int ccells[] = {NX};
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -245,18 +248,18 @@ int main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){.mpi_comm = MPI_COMM_WORLD});
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -271,8 +274,7 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -280,16 +282,19 @@ int main(int argc, char **argv)
   // Electron/ion equations.
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
-  struct gkyl_moment_species elc = { .name = "elc",
+  struct gkyl_moment_species elc = {
+    .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .equation = elc_euler,
 
     .init = evalElcInit,
-    .ctx = &ctx };
+    .ctx = &ctx
+  };
 
   // Field.
-  struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
+  struct gkyl_moment_field field = {
+    .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .mag_error_speed_fact = 1.0,
 
@@ -300,26 +305,27 @@ int main(int argc, char **argv)
 
     .ext_em = evalExternalFieldInit,
     .ext_em_ctx = &ctx,
-    .ext_em_evolve = true };
+    .ext_em_evolve = true
+  };
 
   // Moment app.
   struct gkyl_moment app_inp = {
 
     .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
-    .cells = { NX },
+    .lower = {0.0},
+    .upper = {ctx.Lx},
+    .cells = {NX},
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = {0},
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
-    .species = { elc },
+    .species = {elc},
 
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // Create app object.
@@ -332,7 +338,7 @@ int main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  struct gkyl_tm_trigger io_trig = {.dt = t_end / num_frames};
 
   // Initialize simulation.
   gkyl_moment_app_apply_ic(app, t_curr);
@@ -372,7 +378,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
         break;
       }
     } else {

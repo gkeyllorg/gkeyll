@@ -21,9 +21,10 @@ typedef struct gkyl_dg_basis_op_mem gkyl_dg_basis_op_mem;
  * @param rng Range object (should contain coord).
  * @param out Evaluation of the array at coord (on GPU if arr is on GPU).
  **/
-void gkyl_dg_basis_ops_eval_array_at_coord_comp(const struct gkyl_array *arr, const double *coord,
-  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, const struct gkyl_range *rng,
-  double *out);
+void gkyl_dg_basis_ops_eval_array_at_coord_comp(
+  const struct gkyl_array *arr, const double *coord, const struct gkyl_basis *basis,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *rng, double *out
+);
 
 /**
  * Evaluate laplacian, given expansion at point in the logical cell
@@ -104,8 +105,10 @@ void gkyl_dg_calc_cubic_1d(const double val[2], const double grad[2], double *co
  * @param gradxy gradxy[i] is the xy- (cross) derivative at node i
  * @param coeff On output, the DG expansion coefficients for p=3 tensor basis.
  */
-void gkyl_dg_calc_cubic_2d(const double val[4], const double gradx[4], const double grady[4],
-  const double gradxy[4], double *coeff);
+void gkyl_dg_calc_cubic_2d(
+  const double val[4], const double gradx[4], const double grady[4], const double gradxy[4],
+  double *coeff
+);
 
 /**
  * Allocate memory for use in the computing 1D cubic reconstruction
@@ -144,8 +147,10 @@ void gkyl_dg_basis_op_mem_release(gkyl_dg_basis_op_mem *mem);
  * @param nodal_vals Array holding nodal values
  * @param cubic On output, DG expansions of cubic
  */
-void gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells, double dx,
-  const struct gkyl_array *nodal_vals, struct gkyl_array *cubic);
+void gkyl_dg_calc_cubic_1d_from_nodal_vals(
+  gkyl_dg_basis_op_mem *mem, int cells, double dx, const struct gkyl_array *nodal_vals,
+  struct gkyl_array *cubic
+);
 
 /**
  * Compute cubic expansion from 2D nodal values. Note that the
@@ -159,8 +164,10 @@ void gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells,
  * @param nodal_vals Array holding nodal values
  * @param cubic On output, DG expansions of cubic
  */
-void gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], double dx[2],
-  const struct gkyl_array *nodal_vals, struct gkyl_array *cubic);
+void gkyl_dg_calc_cubic_2d_from_nodal_vals(
+  gkyl_dg_basis_op_mem *mem, int cells[2], double dx[2], const struct gkyl_array *nodal_vals,
+  struct gkyl_array *cubic
+);
 
 /**
  * Create a wrapper to the cubic interpolation from a given set of
@@ -171,8 +178,8 @@ void gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[
  * @param nodal_vals Array holding nodal values
  * @return Struct with context and function pointer
  */
-struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_array *nodal_vals);
+struct gkyl_basis_ops_evalf *
+gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid, const struct gkyl_array *nodal_vals);
 
 /**
  * Write the cubic DG representation to specified file.
@@ -189,8 +196,8 @@ bool gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf,
  * @param evf Memory to acquire
  * @retrun Pointer to newly acquired memory
  */
-struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_acquire(
-  const struct gkyl_basis_ops_evalf *evf);
+struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_acquire(const struct gkyl_basis_ops_evalf *evf
+);
 
 /**
  * Release memory allocated for cubic interpolation.

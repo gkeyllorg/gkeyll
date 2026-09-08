@@ -11,17 +11,20 @@
 static inline int calc_cuts(int ndim, const int *cuts)
 {
   int tc = 1;
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     tc *= cuts[d];
+  }
   return tc;
 }
 
 // Simple linear search to check if val occurs in lst.
 static bool has_int(int n, int val, const int *lst)
 {
-  for (int i = 0; i < n; ++i)
-    if (val == lst[i])
+  for (int i = 0; i < n; ++i) {
+    if (val == lst[i]) {
       return true;
+    }
+  }
   return false;
 }
 
@@ -45,7 +48,8 @@ static void calc_tot_and_max_cuts(const struct gkyl_gk_block_geom *gk_block_geom
 // Construct single-block App geometry for given block ID.
 static struct gkyl_gyrokinetic_app *singleb_app_new_geom(
   const struct gkyl_gyrokinetic_multib *mbinp, int bid,
-  const struct gkyl_gyrokinetic_multib_app *mbapp)
+  const struct gkyl_gyrokinetic_multib_app *mbapp
+)
 {
   // For kinetic simulations, block dimension defined configuration-space dimensionality.
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
@@ -75,8 +79,10 @@ static struct gkyl_gyrokinetic_app *singleb_app_new_geom(
   // Set z dir grid extents based on tokamak global normalization
   if (bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK ||
       bgi->geometry.geometry_id == GKYL_GEOMETRY_FROMFILE) {
-    gkyl_gk_geometry_tok_set_grid_extents(bgi->geometry.efit_info, bgi->geometry.tok_grid_info,
-      &app_inp.lower[cdim - 1], &app_inp.upper[cdim - 1]);
+    gkyl_gk_geometry_tok_set_grid_extents(
+      bgi->geometry.efit_info, bgi->geometry.tok_grid_info, &app_inp.lower[cdim - 1],
+      &app_inp.upper[cdim - 1]
+    );
     gkyl_gk_block_geom_reset_block_extents(mbapp->gk_block_geom, bid, app_inp.lower, app_inp.upper);
   }
 
@@ -93,15 +99,17 @@ static struct gkyl_gyrokinetic_app *singleb_app_new_geom(
 
   struct gkyl_app_parallelism_inp parallel_inp = {};
   parallel_inp.use_gpu = mbinp->use_gpu;
-  for (int d = 0; d < cdim; ++d)
+  for (int d = 0; d < cdim; ++d) {
     parallel_inp.cuts[d] = bgi->cuts[d];
+  }
   parallel_inp.comm = comm;
   // Copy parallelism input into app input.
   memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
 
   app_inp.num_periodic_dir = mbinp->num_periodic_dir;
-  for (int i = 0; i < mbinp->cdim; i++)
+  for (int i = 0; i < mbinp->cdim; i++) {
     app_inp.periodic_dirs[i] = mbinp->periodic_dirs[i];
+  }
 
   app_inp.metadata.num_attributes = mbapp->io_meta_basic_len;
   app_inp.metadata.attributes = mbapp->io_meta_basic;
@@ -110,8 +118,10 @@ static struct gkyl_gyrokinetic_app *singleb_app_new_geom(
 }
 
 // Construct single-block App solver for given block ID.
-static void singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
-  const struct gkyl_gyrokinetic_multib_app *mbapp, struct gkyl_gyrokinetic_app *app)
+static void singleb_app_new_solver(
+  const struct gkyl_gyrokinetic_multib *mbinp, int bid,
+  const struct gkyl_gyrokinetic_multib_app *mbapp, struct gkyl_gyrokinetic_app *app
+)
 {
   // For kinetic simulations, block dimension defined configuration-space dimensionality.
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
@@ -205,8 +215,9 @@ static void singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, 
       gkyl_multib_conn_get_num_connected(mbapp->block_topo, bid, pardir, 0, GKYL_CONN_ABOVE);
 
     int bc_count_sp[num_blocks];
-    for (int i = 0; i < num_blocks; i++)
+    for (int i = 0; i < num_blocks; i++) {
       bc_count_sp[i] = 0;
+    }
 
     if (cdim == 3) {
       if (num_below > 0) {
@@ -233,8 +244,9 @@ static void singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, 
         species_inp.bcs[bc_count_sp[bid]].aux_profile = sp->bcs[i].aux_profile;
         species_inp.bcs[bc_count_sp[bid]].aux_ctx = sp->bcs[i].aux_ctx;
         species_inp.bcs[bc_count_sp[bid]].projection = sp->bcs[i].projection;
-        for (int k = 0; k < 3; ++k)
+        for (int k = 0; k < 3; ++k) {
           species_inp.bcs[bc_count_sp[bid]].value[k] = sp->bcs[i].value[k];
+        }
 
         bc_count_sp[bid] += 1;
       }
@@ -292,8 +304,9 @@ static void singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, 
 
     // Set species physical BCs.
     int bc_count_nsp[num_blocks];
-    for (int i = 0; i < num_blocks; i++)
+    for (int i = 0; i < num_blocks; i++) {
       bc_count_nsp[i] = 0;
+    }
 
     for (int i = 0; i < nsp->num_physical_bcs; ++i) {
       if (bid == nsp->bcs[i].bidx) {
@@ -303,8 +316,9 @@ static void singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, 
         neut_species_inp.bcs[bc_count_nsp[bid]].aux_profile = nsp->bcs[i].aux_profile;
         neut_species_inp.bcs[bc_count_nsp[bid]].aux_ctx = nsp->bcs[i].aux_ctx;
         neut_species_inp.bcs[bc_count_nsp[bid]].projection = nsp->bcs[i].projection;
-        for (int k = 0; k < 3; ++k)
+        for (int k = 0; k < 3; ++k) {
           neut_species_inp.bcs[bc_count_nsp[bid]].value[k] = nsp->bcs[i].value[k];
+        }
 
         bc_count_nsp[bid] += 1;
       }
@@ -312,7 +326,8 @@ static void singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, 
 
     // Copy neutral species input into app input.
     memcpy(
-      &app_inp.neut_species[i], &neut_species_inp, sizeof(struct gkyl_gyrokinetic_neut_species));
+      &app_inp.neut_species[i], &neut_species_inp, sizeof(struct gkyl_gyrokinetic_neut_species)
+    );
   }
 
   // Initialize the single-block field solver (only used for num_blocks=1).
@@ -336,20 +351,23 @@ static void singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, 
       field_inp.poisson_bcs[2 * d + i].dir = d;
       field_inp.poisson_bcs[2 * d + i].edge = i == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
       field_inp.poisson_bcs[2 * d + i].type = GKYL_BC_GK_FIELD_DIRICHLET;
-      for (int k = 0; k < 3; ++k)
+      for (int k = 0; k < 3; ++k) {
         field_inp.poisson_bcs[i].value[k] = -1.0e3;
+      }
     }
   }
 
   for (int i = 0; i < fld->num_physical_bcs; i++) {
     if (bid == fld->bcs[i].bidx) {
       struct gkyl_gyrokinetic_bc *bc_curr = gk_fetch_bc_with_dir_edge(
-        field_inp.poisson_bcs, 2 * cdim, fld->bcs[i].dir, fld->bcs[i].edge);
+        field_inp.poisson_bcs, 2 * cdim, fld->bcs[i].dir, fld->bcs[i].edge
+      );
       bc_curr->type = fld->bcs[i].type;
       bc_curr->aux_profile = fld->bcs[i].aux_profile;
       bc_curr->aux_ctx = fld->bcs[i].aux_ctx;
-      for (int k = 0; k < 3; ++k)
+      for (int k = 0; k < 3; ++k) {
         bc_curr->value[k] = fld->bcs[i].value[k];
+      }
     }
   }
 
@@ -392,8 +410,8 @@ static void singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, 
   gkyl_gyrokinetic_app_new_solver(&app_inp, app);
 }
 
-gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new_geom(
-  const struct gkyl_gyrokinetic_multib *mbinp)
+gkyl_gyrokinetic_multib_app *
+gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp)
 {
   int my_rank, num_ranks;
   gkyl_comm_get_rank(mbinp->comm, &my_rank);
@@ -402,9 +420,11 @@ gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new_geom(
   int tot_max[2];
   calc_tot_and_max_cuts(mbinp->gk_block_geom, tot_max);
   if ((num_ranks > tot_max[0]) || (num_ranks < tot_max[1])) {
-    fprintf(stderr, "\nSpecified %d total cuts but provided %d processes, \
+    fprintf(
+      stderr, "\nSpecified %d total cuts but provided %d processes, \
 and the maximum number of cuts in a block is %d\n\n",
-      tot_max[0], num_ranks, tot_max[1]);
+      tot_max[0], num_ranks, tot_max[1]
+    );
     return 0;
   }
 
@@ -461,14 +481,16 @@ and the maximum number of cuts in a block is %d\n\n",
 
     bool status;
     mbapp->block_comms[i] = gkyl_comm_create_comm_from_ranks(
-      mbinp->comm, branks[i], rank_list, mbapp->decomp[i], &status);
+      mbinp->comm, branks[i], rank_list, mbapp->decomp[i], &status
+    );
   }
 
   mbapp->num_local_blocks = num_local_blocks;
 
   printf("Rank %d handles %d Apps\n", my_rank, num_local_blocks);
-  for (int i = 0; i < num_local_blocks; ++i)
+  for (int i = 0; i < num_local_blocks; ++i) {
     printf("  Rank %d handles block %d\n", my_rank, mbapp->local_blocks[i]);
+  }
 
   mbapp->num_species = 0;
   mbapp->num_neut_species = 0;
@@ -484,24 +506,27 @@ and the maximum number of cuts in a block is %d\n\n",
     mbapp->singleb_apps = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_gyrokinetic_app *));
   }
 
-  for (int i = 0; i < mbinp->num_species; ++i)
+  for (int i = 0; i < mbinp->num_species; ++i) {
     strcpy(mbapp->species_name[i], mbinp->species[i].name);
+  }
 
-  for (int i = 0; i < mbinp->num_neut_species; ++i)
+  for (int i = 0; i < mbinp->num_neut_species; ++i) {
     strcpy(mbapp->neut_species_name[i], mbinp->neut_species[i].name);
+  }
 
   // Write the block topo file.
   gkyl_gyrokinetic_multib_app_write_topo(mbapp);
 
   // Create single-block grids and geometries.
-  for (int i = 0; i < num_local_blocks; ++i)
+  for (int i = 0; i < num_local_blocks; ++i) {
     mbapp->singleb_apps[i] = singleb_app_new_geom(mbinp, mbapp->local_blocks[i], mbapp);
+  }
 
   return mbapp;
 }
 
-gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new(
-  const struct gkyl_gyrokinetic_multib *mbinp)
+gkyl_gyrokinetic_multib_app *
+gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp)
 {
   int my_rank, num_ranks;
   gkyl_comm_get_rank(mbinp->comm, &my_rank);
@@ -510,9 +535,11 @@ gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new(
   int tot_max[2];
   calc_tot_and_max_cuts(mbinp->gk_block_geom, tot_max);
   if ((num_ranks > tot_max[0]) || (num_ranks < tot_max[1])) {
-    fprintf(stderr, "\nSpecified %d total cuts but provided %d processes, \
+    fprintf(
+      stderr, "\nSpecified %d total cuts but provided %d processes, \
 and the maximum number of cuts in a block is %d\n\n",
-      tot_max[0], num_ranks, tot_max[1]);
+      tot_max[0], num_ranks, tot_max[1]
+    );
     return 0;
   }
 
@@ -569,7 +596,8 @@ and the maximum number of cuts in a block is %d\n\n",
 
     bool status;
     mbapp->block_comms[i] = gkyl_comm_create_comm_from_ranks(
-      mbinp->comm, branks[i], rank_list, mbapp->decomp[i], &status);
+      mbinp->comm, branks[i], rank_list, mbapp->decomp[i], &status
+    );
   }
 
   mbapp->num_local_blocks = num_local_blocks;
@@ -584,26 +612,30 @@ and the maximum number of cuts in a block is %d\n\n",
   const char *build_id = GIT_COMMIT_ID;
   const char *build_date = GKYL_BUILD_DATE;
   struct gkyl_msgpack_map_elem io_meta_default[] = {
-    { .key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id },
-    { .key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date },
-    { .key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1 },
-    { .key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo }
+    {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
+    {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
+    {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
+    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo}
   };
-  const struct gkyl_msgpack_map_elem *io_meta_union[] = { io_meta_default,
-    mbinp->metadata.attributes };
-  int io_meta_union_len[] = { sizeof(io_meta_default) / sizeof(io_meta_default[0]),
-    mbinp->metadata.num_attributes };
+  const struct gkyl_msgpack_map_elem *io_meta_union[] = {
+    io_meta_default, mbinp->metadata.attributes
+  };
+  int io_meta_union_len[] = {
+    sizeof(io_meta_default) / sizeof(io_meta_default[0]), mbinp->metadata.num_attributes
+  };
 
-  mbapp->io_meta_basic =
-    gkyl_msgpack_map_elem_union(sizeof(io_meta_union) / sizeof(io_meta_union[0]), io_meta_union_len,
-      io_meta_union, &mbapp->io_meta_basic_len);
+  mbapp->io_meta_basic = gkyl_msgpack_map_elem_union(
+    sizeof(io_meta_union) / sizeof(io_meta_union[0]), io_meta_union_len, io_meta_union,
+    &mbapp->io_meta_basic_len
+  );
 
   // Write the block topo file.
   gkyl_gyrokinetic_multib_app_write_topo(mbapp);
 
   printf("Rank %d handles %d Apps\n", my_rank, num_local_blocks);
-  for (int i = 0; i < num_local_blocks; ++i)
+  for (int i = 0; i < num_local_blocks; ++i) {
     printf("  Rank %d handles block %d\n", my_rank, mbapp->local_blocks[i]);
+  }
 
   mbapp->num_species = 0;
   mbapp->num_neut_species = 0;
@@ -619,15 +651,18 @@ and the maximum number of cuts in a block is %d\n\n",
     mbapp->singleb_apps = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_gyrokinetic_app *));
   }
 
-  for (int i = 0; i < mbinp->num_species; ++i)
+  for (int i = 0; i < mbinp->num_species; ++i) {
     strcpy(mbapp->species_name[i], mbinp->species[i].name);
+  }
 
-  for (int i = 0; i < mbinp->num_neut_species; ++i)
+  for (int i = 0; i < mbinp->num_neut_species; ++i) {
     strcpy(mbapp->neut_species_name[i], mbinp->neut_species[i].name);
+  }
 
   // Create single-block grids and geometries.
-  for (int i = 0; i < num_local_blocks; ++i)
+  for (int i = 0; i < num_local_blocks; ++i) {
     mbapp->singleb_apps[i] = singleb_app_new_geom(mbinp, mbapp->local_blocks[i], mbapp);
+  }
 
   // Set bmag_ref.
   double bmag_min_local = DBL_MAX;
@@ -636,8 +671,7 @@ and the maximum number of cuts in a block is %d\n\n",
     double bmag_min = gkyl_gk_geometry_reduce_bmag(mbapp->singleb_apps[i]->gk_geom, GKYL_MIN);
     bmag_min_local = GKYL_MIN2(bmag_min_local, bmag_min);
   }
-  gkyl_comm_allreduce_host(
-    mbapp->comm, GKYL_DOUBLE, GKYL_MIN, 1, &bmag_min_local, &bmag_min_global);
+  gkyl_comm_allreduce_host(mbapp->comm, GKYL_DOUBLE, GKYL_MIN, 1, &bmag_min_local, &bmag_min_global);
 
   double bmag_max_local = -DBL_MAX;
   double bmag_max_global;
@@ -645,13 +679,12 @@ and the maximum number of cuts in a block is %d\n\n",
     double bmag_max = gkyl_gk_geometry_reduce_bmag(mbapp->singleb_apps[i]->gk_geom, GKYL_MAX);
     bmag_max_local = GKYL_MAX2(bmag_max_local, bmag_max);
   }
-  gkyl_comm_allreduce_host(
-    mbapp->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
+  gkyl_comm_allreduce_host(mbapp->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
 
   mbapp->bmag_ref = (bmag_max_global + bmag_min_global) / 2.0;
 
   // Create connections needed for conf-space syncs.
-  int ghost[] = { 1, 1, 1 };
+  int ghost[] = {1, 1, 1};
   mbapp->mbcc_sync_conf = gkyl_malloc(sizeof(struct gkyl_mbcc_sr));
   mbapp->mbcc_sync_conf->send =
     gkyl_malloc(mbapp->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
@@ -663,14 +696,18 @@ and the maximum number of cuts in a block is %d\n\n",
 
     gkyl_rrobin_decomp_getranks(mbapp->round_robin, bid, rank_list);
     int brank = -1;
-    for (int i = 0; i < branks[bid]; ++i)
-      if (rank_list[i] == my_rank)
+    for (int i = 0; i < branks[bid]; ++i) {
+      if (rank_list[i] == my_rank) {
         brank = i;
+      }
+    }
 
     mbapp->mbcc_sync_conf->recv[bI] = gkyl_multib_comm_conn_new_recv(
-      bid, brank, ghost, &mbapp->block_topo->conn[bid], mbapp->decomp);
+      bid, brank, ghost, &mbapp->block_topo->conn[bid], mbapp->decomp
+    );
     mbapp->mbcc_sync_conf->send[bI] = gkyl_multib_comm_conn_new_send(
-      bid, brank, ghost, &mbapp->block_topo->conn[bid], mbapp->decomp);
+      bid, brank, ghost, &mbapp->block_topo->conn[bid], mbapp->decomp
+    );
 
     struct gkyl_multib_comm_conn *mbcc_s = mbapp->mbcc_sync_conf->send[bI],
                                  *mbcc_r = mbapp->mbcc_sync_conf->recv[bI];
@@ -708,8 +745,10 @@ and the maximum number of cuts in a block is %d\n\n",
     jacs_vol[b] = sbapp->gk_geom->geo_int.jacobgeo_ghost;
   }
   // Sync across blocks.
-  gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
-    mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs_vol, jacs_vol);
+  gkyl_multib_comm_conn_array_transfer(
+    mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks, mbapp->mbcc_sync_conf->send,
+    mbapp->mbcc_sync_conf->recv, jacs_vol, jacs_vol
+  );
 
   // Sync the surface conf-space Jacobian, compute its reciprocal, and
   // store its product with the Jacobian of this block (in the ghost cell).
@@ -722,10 +761,13 @@ and the maximum number of cuts in a block is %d\n\n",
       jacs[b] = geo_surf.jacobgeo_ratio;
       gkyl_array_copy_range(jacs[b], geo_surf.jacobgeo, &sbapp->local_lower_skin[d]);
       gkyl_array_copy_range_to_range(
-        jacs[b], geo_surf.jacobgeo, &sbapp->local_upper_skin[d], &sbapp->local_upper_ghost[d]);
+        jacs[b], geo_surf.jacobgeo, &sbapp->local_upper_skin[d], &sbapp->local_upper_ghost[d]
+      );
     }
-    gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
-      mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
+    gkyl_multib_comm_conn_array_transfer(
+      mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks, mbapp->mbcc_sync_conf->send,
+      mbapp->mbcc_sync_conf->recv, jacs, jacs
+    );
 
     for (int b = 0; b < mbapp->num_local_blocks; ++b) {
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
@@ -736,22 +778,32 @@ and the maximum number of cuts in a block is %d\n\n",
       // Compute 1/jacobgeo in ghost cells.
       gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]);
       gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]);
-      gkyl_dg_inv_op_range(&sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo,
-        &sbapp->local_lower_ghost[d]);
-      gkyl_dg_inv_op_range(&sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo,
-        &sbapp->local_upper_ghost[d]);
+      gkyl_dg_inv_op_range(
+        &sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo,
+        &sbapp->local_lower_ghost[d]
+      );
+      gkyl_dg_inv_op_range(
+        &sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo,
+        &sbapp->local_upper_ghost[d]
+      );
       // Multiply by the Jacobian of this block.
       gkyl_array_copy_range_to_range(
-        jacgeo, geo_surf.jacobgeo, &sbapp->local_lower_ghost[d], &sbapp->local_lower_skin[d]);
+        jacgeo, geo_surf.jacobgeo, &sbapp->local_lower_ghost[d], &sbapp->local_lower_skin[d]
+      );
       gkyl_array_copy_range(jacgeo, geo_surf.jacobgeo, &sbapp->local_upper_ghost[d]);
-      gkyl_dg_mul_op_range(&sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, 0,
-        geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]);
-      gkyl_dg_mul_op_range(&sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, 0,
-        geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]);
+      gkyl_dg_mul_op_range(
+        &sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, 0,
+        geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]
+      );
+      gkyl_dg_mul_op_range(
+        &sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, 0,
+        geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]
+      );
       // Set the ratio to 1 in the interior (shouldn't be in use).
       gkyl_array_clear_range(geo_surf.jacobgeo_ratio, 0.0, &sbapp->local);
       gkyl_array_shiftc_range(
-        geo_surf.jacobgeo_ratio, pow(sqrt(2.0), sbapp->cdim), 0, &sbapp->local);
+        geo_surf.jacobgeo_ratio, pow(sqrt(2.0), sbapp->cdim), 0, &sbapp->local
+      );
 
       gkyl_array_release(jacgeo);
     }
@@ -769,11 +821,13 @@ and the maximum number of cuts in a block is %d\n\n",
         struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
         deltats[b] = geo_surf.deltats;
         gkyl_array_copy_range_to_range(
-          deltats[b], deltats[b], &sbapp->local_upper_skin[d], &sbapp->local_upper_ghost[d]);
+          deltats[b], deltats[b], &sbapp->local_upper_skin[d], &sbapp->local_upper_ghost[d]
+        );
       }
-      gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks,
-        mbapp->local_blocks, mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, deltats,
-        deltats);
+      gkyl_multib_comm_conn_array_transfer(
+        mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks, mbapp->mbcc_sync_conf->send,
+        mbapp->mbcc_sync_conf->recv, deltats, deltats
+      );
     }
     // Accumulate the appropriate shift
     for (int b = 0; b < mbapp->num_local_blocks; ++b) {
@@ -783,11 +837,13 @@ and the maximum number of cuts in a block is %d\n\n",
       struct gkyl_array *buffer = mkarr(sbapp->use_gpu, delta_ts->ncomp, delta_ts->size);
 
       gkyl_array_copy_range_to_range(
-        buffer, delta_ts, &sbapp->local_upper_skin[par_dir], &sbapp->local_upper_ghost[par_dir]);
+        buffer, delta_ts, &sbapp->local_upper_skin[par_dir], &sbapp->local_upper_ghost[par_dir]
+      );
       gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_upper_skin[par_dir]);
 
       gkyl_array_copy_range_to_range(
-        buffer, delta_ts, &sbapp->local_lower_skin[par_dir], &sbapp->local_lower_ghost[par_dir]);
+        buffer, delta_ts, &sbapp->local_lower_skin[par_dir], &sbapp->local_lower_ghost[par_dir]
+      );
       gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_lower_skin[par_dir]);
 
       gkyl_array_release(buffer);
@@ -801,8 +857,9 @@ and the maximum number of cuts in a block is %d\n\n",
   }
 
   // Create the rest of the single-block solvers.
-  for (int i = 0; i < num_local_blocks; ++i)
+  for (int i = 0; i < num_local_blocks; ++i) {
     singleb_app_new_solver(mbinp, mbapp->local_blocks[i], mbapp, mbapp->singleb_apps[i]);
+  }
 
   // Create the MB field app.
   mbapp->field = gk_multib_field_new(mbinp, mbapp);
@@ -900,7 +957,8 @@ and the maximum number of cuts in a block is %d\n\n",
         struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
         int d = 0;
         gkyl_array_scale_range(
-          sbapp->species[i].anom_diff.diffD, sbapp->grid.dx[sbapp->cdim - 1], &sbapp->global);
+          sbapp->species[i].anom_diff.diffD, sbapp->grid.dx[sbapp->cdim - 1], &sbapp->global
+        );
       }
 
       // Sync
@@ -909,16 +967,19 @@ and the maximum number of cuts in a block is %d\n\n",
         struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
         gkad_nu[b] = sbapp->species[i].anom_diff.diffD;
       }
-      gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks,
-        mbapp->local_blocks, mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, gkad_nu,
-        gkad_nu);
+      gkyl_multib_comm_conn_array_transfer(
+        mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks, mbapp->mbcc_sync_conf->send,
+        mbapp->mbcc_sync_conf->recv, gkad_nu, gkad_nu
+      );
 
       // Multiply by diffD dz after the transfer to achieve rescaling
       for (int b = 0; b < mbapp->num_local_blocks; ++b) {
         struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
         int d = 0;
-        gkyl_array_scale_range(sbapp->species[i].anom_diff.diffD,
-          1.0 / sbapp->grid.dx[sbapp->cdim - 1], &sbapp->global_ext);
+        gkyl_array_scale_range(
+          sbapp->species[i].anom_diff.diffD, 1.0 / sbapp->grid.dx[sbapp->cdim - 1],
+          &sbapp->global_ext
+        );
       }
     }
   }
@@ -930,8 +991,10 @@ and the maximum number of cuts in a block is %d\n\n",
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
       jacs_inv_vol[b] = sbapp->gk_geom->geo_int.jacobgeo_inv;
     }
-    gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
-      mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs_inv_vol, jacs_inv_vol);
+    gkyl_multib_comm_conn_array_transfer(
+      mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks, mbapp->mbcc_sync_conf->send,
+      mbapp->mbcc_sync_conf->recv, jacs_inv_vol, jacs_inv_vol
+    );
   }
 
   mbapp->stat = (struct gkyl_gyrokinetic_stat){};
@@ -945,8 +1008,10 @@ and the maximum number of cuts in a block is %d\n\n",
   return mbapp;
 }
 
-void gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app *app, double tcurr,
-  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
+void gyrokinetic_multib_calc_field(
+  struct gkyl_gyrokinetic_multib_app *app, double tcurr, const struct gkyl_array *fin[],
+  struct gkyl_array **bflux[]
+)
 {
   struct timespec wtm = gkyl_wall_clock();
   // Compute fields.
@@ -957,8 +1022,10 @@ void gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app *app, doub
   app->stat.field_tm += gkyl_time_diff_now_sec(wtm);
 }
 
-static void gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app *app, double tcurr,
-  struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
+static void gyrokinetic_multib_apply_bc(
+  struct gkyl_gyrokinetic_multib_app *app, double tcurr, struct gkyl_array *distf[],
+  struct gkyl_array *distf_neut[]
+)
 {
   // Apply boundary conditions in each block (including intrablock sync).
   for (int b = 0; b < app->num_local_blocks; ++b) {
@@ -983,8 +1050,10 @@ static void gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app *app,
       int li_charged = b * app->num_species;
       fs[b] = distf[li_charged + i];
     }
-    gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
-      app->mbcc_sync_charged[i].send, app->mbcc_sync_charged[i].recv, fs, fs);
+    gkyl_multib_comm_conn_array_transfer(
+      app->comm, app->num_local_blocks, app->local_blocks, app->mbcc_sync_charged[i].send,
+      app->mbcc_sync_charged[i].recv, fs, fs
+    );
   }
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 
@@ -998,16 +1067,19 @@ static void gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app *app,
         int li_neut = b * app->num_neut_species;
         fs[b] = distf_neut[li_neut + i];
       }
-      gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
-        app->mbcc_sync_neut[i].send, app->mbcc_sync_neut[i].recv, fs, fs);
+      gkyl_multib_comm_conn_array_transfer(
+        app->comm, app->num_local_blocks, app->local_blocks, app->mbcc_sync_neut[i].send,
+        app->mbcc_sync_neut[i].recv, fs, fs
+      );
     }
   }
   app->stat.neut_species_bc_tm += gkyl_time_diff_now_sec(wst_neut);
 }
 
-void gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_app *app,
-  double tcurr, struct gkyl_array *distf[], struct gkyl_array **bflux[],
-  struct gkyl_array *distf_neut[])
+void gyrokinetic_multib_calc_field_and_apply_bc(
+  struct gkyl_gyrokinetic_multib_app *app, double tcurr, struct gkyl_array *distf[],
+  struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]
+)
 {
   // Compute fields and apply BCs.
 
@@ -1052,7 +1124,8 @@ void gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app *app, doub
 }
 
 void gkyl_gyrokinetic_multib_app_apply_ic_species(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double t0)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double t0
+)
 {
   app->tcurr = t0;
   for (int b = 0; b < app->num_local_blocks; ++b) {
@@ -1062,7 +1135,8 @@ void gkyl_gyrokinetic_multib_app_apply_ic_species(
 }
 
 void gkyl_gyrokinetic_multib_app_apply_ic_neut_species(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double t0)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double t0
+)
 {
   app->tcurr = t0;
   for (int b = 0; b < app->num_local_blocks; ++b) {
@@ -1071,29 +1145,31 @@ void gkyl_gyrokinetic_multib_app_apply_ic_neut_species(
   gkyl_comm_barrier(app->comm);
 }
 
-struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_file_field(
-  gkyl_gyrokinetic_multib_app *app, const char *fname)
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_multib_app_from_file_field(gkyl_gyrokinetic_multib_app *app, const char *fname)
 {
   // TO DO
   return (struct gkyl_app_restart_status){};
 }
 
 struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_file_species(
-  gkyl_gyrokinetic_multib_app *app, int sidx, const char *fname)
+  gkyl_gyrokinetic_multib_app *app, int sidx, const char *fname
+)
 {
   // TO DO
   return (struct gkyl_app_restart_status){};
 }
 
 struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_file_neut_species(
-  gkyl_gyrokinetic_multib_app *app, int sidx, const char *fname)
+  gkyl_gyrokinetic_multib_app *app, int sidx, const char *fname
+)
 {
   // TO DO
   return (struct gkyl_app_restart_status){};
 }
 
-struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_read_from_frame(
-  gkyl_gyrokinetic_multib_app *app, int frame)
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
   for (int b = 0; b < app->num_local_blocks; ++b) {
@@ -1152,22 +1228,23 @@ struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_read_from_frame(
   return rstat;
 }
 
-struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_frame_field(
-  gkyl_gyrokinetic_multib_app *app, int frame)
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_multib_app_from_frame_field(gkyl_gyrokinetic_multib_app *app, int frame)
 {
   // TO DO
   return (struct gkyl_app_restart_status){};
 }
 
-struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_frame_species(
-  gkyl_gyrokinetic_multib_app *app, int sidx, int frame)
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_multib_app_from_frame_species(gkyl_gyrokinetic_multib_app *app, int sidx, int frame)
 {
   // TO DO
   return (struct gkyl_app_restart_status){};
 }
 
 struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_frame_neut_species(
-  gkyl_gyrokinetic_multib_app *app, int sidx, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, int frame
+)
 {
   // TO DO
   return (struct gkyl_app_restart_status){};
@@ -1175,16 +1252,19 @@ struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_frame_neut_speci
 
 // private function to handle variable argument list for printing
 static void v_gyrokinetic_multib_app_cout(
-  const gkyl_gyrokinetic_multib_app *app, FILE *fp, const char *fmt, va_list argp)
+  const gkyl_gyrokinetic_multib_app *app, FILE *fp, const char *fmt, va_list argp
+)
 {
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
-  if ((rank == 0) && fp)
+  if ((rank == 0) && fp) {
     vfprintf(fp, fmt, argp);
+  }
 }
 
 void gkyl_gyrokinetic_multib_app_cout(
-  const gkyl_gyrokinetic_multib_app *app, FILE *fp, const char *fmt, ...)
+  const gkyl_gyrokinetic_multib_app *app, FILE *fp, const char *fmt, ...
+)
 {
   va_list argp;
   va_start(argp, fmt);
@@ -1228,11 +1308,11 @@ void gkyl_gyrokinetic_multib_app_write_field_energy(gkyl_gyrokinetic_multib_app 
   }
 }
 
-void gkyl_gyrokinetic_multib_app_write_eirene(
-  gkyl_gyrokinetic_multib_app *app, double tm, int frame)
+void gkyl_gyrokinetic_multib_app_write_eirene(gkyl_gyrokinetic_multib_app *app, double tm, int frame)
 {
-  for (int b = 0; b < app->num_local_blocks; ++b)
+  for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_eirene_diagnostics(app->singleb_apps[b], tm, frame);
+  }
 
   struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
   cstr fileNm = cstr_from_fmt("%snew_data_flag", sbapp->eirene->info.output_data_path);
@@ -1240,8 +1320,9 @@ void gkyl_gyrokinetic_multib_app_write_eirene(
   gkyl_comm_get_rank(app->comm, &rank);
   if (0 == rank) {
     FILE *fp = fopen(fileNm.str, "w");
-    if (fp == NULL)
+    if (fp == NULL) {
       return;
+    }
     fprintf(fp, "%d\n", frame);
     fclose(fp);
   }
@@ -1249,24 +1330,28 @@ void gkyl_gyrokinetic_multib_app_write_eirene(
 }
 
 void gkyl_gyrokinetic_multib_app_calc_eirene_integrated_diagnostics(
-  gkyl_gyrokinetic_multib_app *app, double tm)
+  gkyl_gyrokinetic_multib_app *app, double tm
+)
 {
-  for (int b = 0; b < app->num_local_blocks; ++b)
+  for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_calc_eirene_integrated_diagnostics(app->singleb_apps[b], tm);
+  }
 }
 
-void gkyl_gyrokinetic_multib_app_write_eirene_integrated_diagnostics(
-  gkyl_gyrokinetic_multib_app *app)
+void gkyl_gyrokinetic_multib_app_write_eirene_integrated_diagnostics(gkyl_gyrokinetic_multib_app *app
+)
 {
-  for (int b = 0; b < app->num_local_blocks; ++b)
+  for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_eirene_integrated_diagnostics(app->singleb_apps[b]);
+  }
 }
 
 //
 // ............. Species outputs ............... //
 //
 void gkyl_gyrokinetic_multib_app_write_species(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species(app->singleb_apps[b], sidx, tm, frame);
@@ -1274,7 +1359,8 @@ void gkyl_gyrokinetic_multib_app_write_species(
 }
 
 void gkyl_gyrokinetic_multib_app_write_neut_species(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species(app->singleb_apps[b], sidx, tm, frame);
@@ -1282,7 +1368,8 @@ void gkyl_gyrokinetic_multib_app_write_neut_species(
 }
 
 void gkyl_gyrokinetic_multib_app_write_species_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_mom(app->singleb_apps[b], sidx, tm, frame);
@@ -1290,7 +1377,8 @@ void gkyl_gyrokinetic_multib_app_write_species_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_write_neut_species_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species_mom(app->singleb_apps[b], sidx, tm, frame);
@@ -1298,7 +1386,8 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_calc_species_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_calc_species_integrated_mom(app->singleb_apps[b], sidx, tm);
@@ -1306,7 +1395,8 @@ void gkyl_gyrokinetic_multib_app_calc_species_integrated_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_calc_neut_species_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(app->singleb_apps[b], sidx, tm);
@@ -1314,7 +1404,8 @@ void gkyl_gyrokinetic_multib_app_calc_neut_species_integrated_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_calc_species_boundary_flux_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(app->singleb_apps[b], sidx, tm);
@@ -1322,7 +1413,8 @@ void gkyl_gyrokinetic_multib_app_calc_species_boundary_flux_integrated_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_write_species_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx)
+  gkyl_gyrokinetic_multib_app *app, int sidx
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_integrated_mom(app->singleb_apps[b], sidx);
@@ -1330,7 +1422,8 @@ void gkyl_gyrokinetic_multib_app_write_species_integrated_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_write_neut_species_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx)
+  gkyl_gyrokinetic_multib_app *app, int sidx
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species_integrated_mom(app->singleb_apps[b], sidx);
@@ -1338,7 +1431,8 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_integrated_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx)
+  gkyl_gyrokinetic_multib_app *app, int sidx
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(app->singleb_apps[b], sidx);
@@ -1349,7 +1443,8 @@ void gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(
 // ............. Source outputs ............... //
 //
 void gkyl_gyrokinetic_multib_app_write_species_source(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_source(app->singleb_apps[b], sidx, tm, frame);
@@ -1357,7 +1452,8 @@ void gkyl_gyrokinetic_multib_app_write_species_source(
 }
 
 void gkyl_gyrokinetic_multib_app_write_neut_species_source(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species_source(app->singleb_apps[b], sidx, tm, frame);
@@ -1365,7 +1461,8 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_source(
 }
 
 void gkyl_gyrokinetic_multib_app_write_species_source_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_source_mom(app->singleb_apps[b], sidx, tm, frame);
@@ -1373,7 +1470,8 @@ void gkyl_gyrokinetic_multib_app_write_species_source_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_write_neut_species_source_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species_source_mom(app->singleb_apps[b], sidx, tm, frame);
@@ -1381,7 +1479,8 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_source_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_calc_species_source_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_calc_species_source_integrated_mom(app->singleb_apps[b], sidx, tm);
@@ -1389,7 +1488,8 @@ void gkyl_gyrokinetic_multib_app_calc_species_source_integrated_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_calc_neut_species_source_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(app->singleb_apps[b], sidx, tm);
@@ -1397,7 +1497,8 @@ void gkyl_gyrokinetic_multib_app_calc_neut_species_source_integrated_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx)
+  gkyl_gyrokinetic_multib_app *app, int sidx
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_source_integrated_mom(app->singleb_apps[b], sidx);
@@ -1405,7 +1506,8 @@ void gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx)
+  gkyl_gyrokinetic_multib_app *app, int sidx
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(app->singleb_apps[b], sidx);
@@ -1416,20 +1518,22 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(
 // ............. BGK Source outputs ............... //
 //
 void gkyl_gyrokinetic_multib_app_calc_species_source_bgk_integrated_diagnostics(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_calc_species_source_bgk_integrated_diagnostics(
-      app->singleb_apps[b], sidx, tm);
+      app->singleb_apps[b], sidx, tm
+    );
   }
 }
 
 void gkyl_gyrokinetic_multib_app_write_species_source_bgk_integrated_diagnostics(
-  gkyl_gyrokinetic_multib_app *app, int sidx)
+  gkyl_gyrokinetic_multib_app *app, int sidx
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
-    gkyl_gyrokinetic_app_write_species_source_bgk_integrated_diagnostics(
-      app->singleb_apps[b], sidx);
+    gkyl_gyrokinetic_app_write_species_source_bgk_integrated_diagnostics(app->singleb_apps[b], sidx);
   }
 }
 
@@ -1437,7 +1541,8 @@ void gkyl_gyrokinetic_multib_app_write_species_source_bgk_integrated_diagnostics
 // ............. LTE outputs ............... //
 //
 void gkyl_gyrokinetic_multib_app_write_species_lte_max_corr_status(
-  gkyl_gyrokinetic_multib_app *app, int sidx)
+  gkyl_gyrokinetic_multib_app *app, int sidx
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_lte_max_corr_status(app->singleb_apps[b], sidx);
@@ -1445,7 +1550,8 @@ void gkyl_gyrokinetic_multib_app_write_species_lte_max_corr_status(
 }
 
 void gkyl_gyrokinetic_multib_app_write_neut_species_lte_max_corr_status(
-  gkyl_gyrokinetic_multib_app *app, int sidx)
+  gkyl_gyrokinetic_multib_app *app, int sidx
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(app->singleb_apps[b], sidx);
@@ -1456,7 +1562,8 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_lte_max_corr_status(
 // ............. Collision outputs ............... //
 //
 void gkyl_gyrokinetic_multib_app_write_species_lbo_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_lbo_mom(app->singleb_apps[b], sidx, tm, frame);
@@ -1464,7 +1571,8 @@ void gkyl_gyrokinetic_multib_app_write_species_lbo_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_write_species_bgk_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_bgk_mom(app->singleb_apps[b], sidx, tm, frame);
@@ -1475,7 +1583,8 @@ void gkyl_gyrokinetic_multib_app_write_species_bgk_mom(
 // ............. Radiation outputs ............... //
 //
 void gkyl_gyrokinetic_multib_app_write_species_rad_drag(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_rad_drag(app->singleb_apps[b], sidx, tm, frame);
@@ -1483,7 +1592,8 @@ void gkyl_gyrokinetic_multib_app_write_species_rad_drag(
 }
 
 void gkyl_gyrokinetic_multib_app_write_species_rad_emissivity(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_rad_emissivity(app->singleb_apps[b], sidx, tm, frame);
@@ -1491,7 +1601,8 @@ void gkyl_gyrokinetic_multib_app_write_species_rad_emissivity(
 }
 
 void gkyl_gyrokinetic_multib_app_calc_species_rad_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(app->singleb_apps[b], sidx, tm);
@@ -1499,7 +1610,8 @@ void gkyl_gyrokinetic_multib_app_calc_species_rad_integrated_mom(
 }
 
 void gkyl_gyrokinetic_multib_app_write_species_rad_integrated_mom(
-  gkyl_gyrokinetic_multib_app *app, int sidx)
+  gkyl_gyrokinetic_multib_app *app, int sidx
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_rad_integrated_mom(app->singleb_apps[b], sidx);
@@ -1510,7 +1622,8 @@ void gkyl_gyrokinetic_multib_app_write_species_rad_integrated_mom(
 // ............. Functions that group several outputs for a single species ............... //
 //
 void gkyl_gyrokinetic_multib_app_write_species_phase(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   gkyl_gyrokinetic_multib_app_write_species(app, sidx, tm, frame);
 
@@ -1520,7 +1633,8 @@ void gkyl_gyrokinetic_multib_app_write_species_phase(
 }
 
 void gkyl_gyrokinetic_multib_app_write_neut_species_phase(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   gkyl_gyrokinetic_multib_app_write_neut_species(app, sidx, tm, frame);
 
@@ -1528,7 +1642,8 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_phase(
 }
 
 void gkyl_gyrokinetic_multib_app_write_species_conf(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species_conf(app->singleb_apps[b], sidx, tm, frame);
@@ -1536,7 +1651,8 @@ void gkyl_gyrokinetic_multib_app_write_species_conf(
 }
 
 void gkyl_gyrokinetic_multib_app_write_neut_species_conf(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame)
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+)
 {
   for (int b = 0; b < app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species_conf(app->singleb_apps[b], sidx, tm, frame);
@@ -1637,8 +1753,8 @@ void gkyl_gyrokinetic_multib_app_write(gkyl_gyrokinetic_multib_app *app, double 
 // ............. End of write functions ............... //
 //
 
-struct gkyl_update_status gkyl_gyrokinetic_multib_update(
-  gkyl_gyrokinetic_multib_app *app, double dt)
+struct gkyl_update_status
+gkyl_gyrokinetic_multib_update(gkyl_gyrokinetic_multib_app *app, double dt)
 {
   app->stat.nup += 1;
   struct timespec wst = gkyl_wall_clock();
@@ -1649,8 +1765,9 @@ struct gkyl_update_status gkyl_gyrokinetic_multib_update(
   app->stat.time_loop_tm += gkyl_time_diff_now_sec(wst);
 
   // Check for any CUDA errors during time step
-  if (app->use_gpu)
+  if (app->use_gpu) {
     checkCuda(cudaGetLastError());
+  }
 
   return status;
 }
@@ -1778,177 +1895,239 @@ void gkyl_gyrokinetic_multib_app_print_timings(gkyl_gyrokinetic_multib_app *app,
 
   gkyl_gyrokinetic_multib_app_cout(app, iostream, "Timing:\n");
   gkyl_gyrokinetic_multib_app_cout(
-    app, iostream, "  - Time loop:                         %.4e sec.\n", stat->time_loop_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Forward Euler:                   %.4e sec. / %4.2f %%.\n", stat->fwd_euler_tm,
-    ratio_to_percent(stat->fwd_euler_tm, stat->time_loop_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Collision moments (charged):   %.4e sec. / %4.2f %%.\n", stat->species_coll_mom_tm,
-    ratio_to_percent(stat->species_coll_mom_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Reaction moments (charged):    %.4e sec. / %4.2f %%.\n", stat->species_react_mom_tm,
-    ratio_to_percent(stat->species_react_mom_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Collision moments (neutral):   %.4e sec. / %4.2f %%.\n",
-    stat->neut_species_coll_mom_tm,
-    ratio_to_percent(stat->neut_species_coll_mom_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Reaction moments (neutral):    %.4e sec. / %4.2f %%.\n",
-    stat->neut_species_react_mom_tm,
-    ratio_to_percent(stat->neut_species_react_mom_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Radiation moments:             %.4e sec. / %4.2f %%.\n", stat->species_rad_mom_tm,
-    ratio_to_percent(stat->species_rad_mom_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Species gyroaverage:           %.4e sec. / %4.2f %%.\n", stat->species_gyroavg_tm,
-    ratio_to_percent(stat->species_gyroavg_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Collisionless terms (charged): %.4e sec. / %4.2f %%.\n",
-    stat->species_collisionless_tm,
-    ratio_to_percent(stat->species_collisionless_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Collision terms (charged):     %.4e sec. / %4.2f %%.\n", stat->species_coll_tm,
-    ratio_to_percent(stat->species_coll_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Diffusion (charged):           %.4e sec. / %4.2f %%.\n", stat->species_diffusion_tm,
-    ratio_to_percent(stat->species_diffusion_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Radiation terms:               %.4e sec. / %4.2f %%.\n", stat->species_rad_tm,
-    ratio_to_percent(stat->species_rad_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Reaction terms (charged):      %.4e sec. / %4.2f %%.\n", stat->species_react_tm,
-    ratio_to_percent(stat->species_react_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Boundary fluxes (charged):     %.4e sec. / %4.2f %%.\n", bflux_tm,
-    ratio_to_percent(bflux_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ omega_cfl (charged):           %.4e sec. / %4.2f %%.\n", stat->species_omega_cfl_tm,
-    ratio_to_percent(stat->species_omega_cfl_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Sources (charged):             %.4e sec. / %4.2f %%.\n", stat->species_src_tm,
-    ratio_to_percent(stat->species_src_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Collisionless terms (neutral): %.4e sec. / %4.2f %%.\n",
-    stat->neut_species_collisionless_tm,
-    ratio_to_percent(stat->neut_species_collisionless_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Collision terms (neutral):     %.4e sec. / %4.2f %%.\n", stat->neut_species_coll_tm,
-    ratio_to_percent(stat->neut_species_coll_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Reaction terms (neutral):      %.4e sec. / %4.2f %%.\n", stat->neut_species_react_tm,
-    ratio_to_percent(stat->neut_species_react_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ omega_cfl (neutral):           %.4e sec. / %4.2f %%.\n",
-    stat->neut_species_omega_cfl_tm,
-    ratio_to_percent(stat->neut_species_omega_cfl_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Sources (neutral):             %.4e sec. / %4.2f %%.\n", stat->neut_species_src_tm,
-    ratio_to_percent(stat->neut_species_src_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Time step reduction:           %.4e sec. / %4.2f %%.\n", stat->dfdt_dt_reduce_tm,
-    ratio_to_percent(stat->dfdt_dt_reduce_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Step f:                        %.4e sec. / %4.2f %%.\n", stat->fwd_euler_step_f_tm,
-    ratio_to_percent(stat->fwd_euler_step_f_tm, stat->fwd_euler_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Accounted for:                 %4.2f %%.\n",
-    ratio_to_percent(stat->fwd_euler_sum_tm, stat->fwd_euler_tm, 100.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Field solves:                    %.4e sec. / %4.2f %%.\n", stat->field_tm,
-    ratio_to_percent(stat->field_tm, stat->time_loop_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Phi eqn RHS:                   %.4e sec. / %4.2f %%.\n", stat->field_phi_rhs_tm,
-    ratio_to_percent(stat->field_phi_rhs_tm, stat->field_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Phi eqn solve:                 %.4e sec. / %4.2f %%.\n", stat->field_phi_solve_tm,
-    ratio_to_percent(stat->field_phi_solve_tm, stat->field_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Accounted for:                 %4.2f %%.\n",
-    ratio_to_percent(stat->field_sum_tm, stat->field_tm, 100.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Boundary conditions::            %.4e sec. / %4.2f %%.\n", stat->bc_tm,
-    ratio_to_percent(stat->bc_tm, stat->time_loop_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Species (charged):             %.4e sec. / %4.2f %%.\n", stat->species_bc_tm,
-    ratio_to_percent(stat->species_bc_tm, stat->bc_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Species (neutral):             %.4e sec. / %4.2f %%.\n", stat->neut_species_bc_tm,
-    ratio_to_percent(stat->neut_species_bc_tm, stat->bc_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Accounted for:                 %4.2f %%.\n",
-    ratio_to_percent(stat->bc_sum_tm, stat->bc_tm, 100.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Time rate diagnostics:           %.4e sec. / %4.2f %%.\n", stat->time_rate_diags_tm,
-    ratio_to_percent(stat->time_rate_diags_tm, stat->time_loop_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Charged species:               %.4e sec. / %4.2f %%.\n", stat->fdot_tm,
-    ratio_to_percent(stat->fdot_tm, stat->time_rate_diags_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Phi:                           %.4e sec. / %4.2f %%.\n", stat->phidot_tm,
-    ratio_to_percent(stat->phidot_tm, stat->time_rate_diags_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Accounted for:                 %4.2f %%.\n",
-    ratio_to_percent(stat->time_rate_diags_sum_tm, stat->time_rate_diags_tm, 100.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Positivity shift:                %.4e sec. / %4.2f %%.\n", stat->pos_shift_tm,
-    ratio_to_percent(stat->pos_shift_tm, stat->time_loop_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Species (charged):             %.4e sec. / %4.2f %%.\n", stat->species_pos_shift_tm,
-    ratio_to_percent(stat->species_pos_shift_tm, stat->pos_shift_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Species (neutral):             %.4e sec. / %4.2f %%.\n",
-    stat->neut_species_pos_shift_tm,
-    ratio_to_percent(stat->neut_species_pos_shift_tm, stat->pos_shift_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Quasineutrality:               %.4e sec. / %4.2f %%.\n", stat->pos_shift_quasineut_tm,
-    ratio_to_percent(stat->pos_shift_quasineut_tm, stat->pos_shift_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "      ^ Accounted for:                 %4.2f %%.\n",
-    ratio_to_percent(stat->pos_shift_sum_tm, stat->pos_shift_tm, 100.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Time stepper arithmetic:         %.4e sec. / %4.2f %%.\n",
-    stat->time_stepper_arithmetic_tm,
-    ratio_to_percent(stat->time_stepper_arithmetic_tm, stat->time_loop_tm, 0.0));
-
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Accounted for:                   %4.2f %%.\n",
-    ratio_to_percent(stat->time_stepper_sum_tm, stat->time_loop_tm, 100.0));
+    app, iostream, "  - Time loop:                         %.4e sec.\n", stat->time_loop_tm
+  );
   gkyl_gyrokinetic_multib_app_cout(
-    app, iostream, "  - I/O:                               %.4e sec.\n", stat->io_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * f write (charged):               %.4e sec. / %4.2f %%.\n", stat->species_io_tm,
-    ratio_to_percent(stat->species_io_tm, stat->io_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Species diag calc (charged):     %.4e sec. / %4.2f %%.\n", stat->species_diag_calc_tm,
-    ratio_to_percent(stat->species_diag_calc_tm, stat->io_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Species diag write (charged):    %.4e sec. / %4.2f %%.\n", stat->species_diag_io_tm,
-    ratio_to_percent(stat->species_diag_io_tm, stat->io_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * f write (neutral):               %.4e sec. / %4.2f %%.\n", stat->neut_species_io_tm,
-    ratio_to_percent(stat->neut_species_io_tm, stat->io_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Species diag calc (neutral):     %.4e sec. / %4.2f %%.\n",
+    app, iostream, "    * Forward Euler:                   %.4e sec. / %4.2f %%.\n",
+    stat->fwd_euler_tm, ratio_to_percent(stat->fwd_euler_tm, stat->time_loop_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Collision moments (charged):   %.4e sec. / %4.2f %%.\n",
+    stat->species_coll_mom_tm, ratio_to_percent(stat->species_coll_mom_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Reaction moments (charged):    %.4e sec. / %4.2f %%.\n",
+    stat->species_react_mom_tm,
+    ratio_to_percent(stat->species_react_mom_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Collision moments (neutral):   %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_coll_mom_tm,
+    ratio_to_percent(stat->neut_species_coll_mom_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Reaction moments (neutral):    %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_react_mom_tm,
+    ratio_to_percent(stat->neut_species_react_mom_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Radiation moments:             %.4e sec. / %4.2f %%.\n",
+    stat->species_rad_mom_tm, ratio_to_percent(stat->species_rad_mom_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Species gyroaverage:           %.4e sec. / %4.2f %%.\n",
+    stat->species_gyroavg_tm, ratio_to_percent(stat->species_gyroavg_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Collisionless terms (charged): %.4e sec. / %4.2f %%.\n",
+    stat->species_collisionless_tm,
+    ratio_to_percent(stat->species_collisionless_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Collision terms (charged):     %.4e sec. / %4.2f %%.\n",
+    stat->species_coll_tm, ratio_to_percent(stat->species_coll_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Diffusion (charged):           %.4e sec. / %4.2f %%.\n",
+    stat->species_diffusion_tm,
+    ratio_to_percent(stat->species_diffusion_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Radiation terms:               %.4e sec. / %4.2f %%.\n",
+    stat->species_rad_tm, ratio_to_percent(stat->species_rad_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Reaction terms (charged):      %.4e sec. / %4.2f %%.\n",
+    stat->species_react_tm, ratio_to_percent(stat->species_react_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Boundary fluxes (charged):     %.4e sec. / %4.2f %%.\n", bflux_tm,
+    ratio_to_percent(bflux_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ omega_cfl (charged):           %.4e sec. / %4.2f %%.\n",
+    stat->species_omega_cfl_tm,
+    ratio_to_percent(stat->species_omega_cfl_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Sources (charged):             %.4e sec. / %4.2f %%.\n",
+    stat->species_src_tm, ratio_to_percent(stat->species_src_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Collisionless terms (neutral): %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_collisionless_tm,
+    ratio_to_percent(stat->neut_species_collisionless_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Collision terms (neutral):     %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_coll_tm,
+    ratio_to_percent(stat->neut_species_coll_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Reaction terms (neutral):      %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_react_tm,
+    ratio_to_percent(stat->neut_species_react_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ omega_cfl (neutral):           %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_omega_cfl_tm,
+    ratio_to_percent(stat->neut_species_omega_cfl_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Sources (neutral):             %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_src_tm, ratio_to_percent(stat->neut_species_src_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Time step reduction:           %.4e sec. / %4.2f %%.\n",
+    stat->dfdt_dt_reduce_tm, ratio_to_percent(stat->dfdt_dt_reduce_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Step f:                        %.4e sec. / %4.2f %%.\n",
+    stat->fwd_euler_step_f_tm, ratio_to_percent(stat->fwd_euler_step_f_tm, stat->fwd_euler_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Accounted for:                 %4.2f %%.\n",
+    ratio_to_percent(stat->fwd_euler_sum_tm, stat->fwd_euler_tm, 100.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Field solves:                    %.4e sec. / %4.2f %%.\n", stat->field_tm,
+    ratio_to_percent(stat->field_tm, stat->time_loop_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Phi eqn RHS:                   %.4e sec. / %4.2f %%.\n",
+    stat->field_phi_rhs_tm, ratio_to_percent(stat->field_phi_rhs_tm, stat->field_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Phi eqn solve:                 %.4e sec. / %4.2f %%.\n",
+    stat->field_phi_solve_tm, ratio_to_percent(stat->field_phi_solve_tm, stat->field_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Accounted for:                 %4.2f %%.\n",
+    ratio_to_percent(stat->field_sum_tm, stat->field_tm, 100.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Boundary conditions::            %.4e sec. / %4.2f %%.\n", stat->bc_tm,
+    ratio_to_percent(stat->bc_tm, stat->time_loop_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Species (charged):             %.4e sec. / %4.2f %%.\n",
+    stat->species_bc_tm, ratio_to_percent(stat->species_bc_tm, stat->bc_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Species (neutral):             %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_bc_tm, ratio_to_percent(stat->neut_species_bc_tm, stat->bc_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Accounted for:                 %4.2f %%.\n",
+    ratio_to_percent(stat->bc_sum_tm, stat->bc_tm, 100.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Time rate diagnostics:           %.4e sec. / %4.2f %%.\n",
+    stat->time_rate_diags_tm, ratio_to_percent(stat->time_rate_diags_tm, stat->time_loop_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Charged species:               %.4e sec. / %4.2f %%.\n", stat->fdot_tm,
+    ratio_to_percent(stat->fdot_tm, stat->time_rate_diags_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Phi:                           %.4e sec. / %4.2f %%.\n",
+    stat->phidot_tm, ratio_to_percent(stat->phidot_tm, stat->time_rate_diags_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Accounted for:                 %4.2f %%.\n",
+    ratio_to_percent(stat->time_rate_diags_sum_tm, stat->time_rate_diags_tm, 100.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Positivity shift:                %.4e sec. / %4.2f %%.\n",
+    stat->pos_shift_tm, ratio_to_percent(stat->pos_shift_tm, stat->time_loop_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Species (charged):             %.4e sec. / %4.2f %%.\n",
+    stat->species_pos_shift_tm,
+    ratio_to_percent(stat->species_pos_shift_tm, stat->pos_shift_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Species (neutral):             %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_pos_shift_tm,
+    ratio_to_percent(stat->neut_species_pos_shift_tm, stat->pos_shift_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Quasineutrality:               %.4e sec. / %4.2f %%.\n",
+    stat->pos_shift_quasineut_tm,
+    ratio_to_percent(stat->pos_shift_quasineut_tm, stat->pos_shift_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "      ^ Accounted for:                 %4.2f %%.\n",
+    ratio_to_percent(stat->pos_shift_sum_tm, stat->pos_shift_tm, 100.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Time stepper arithmetic:         %.4e sec. / %4.2f %%.\n",
+    stat->time_stepper_arithmetic_tm,
+    ratio_to_percent(stat->time_stepper_arithmetic_tm, stat->time_loop_tm, 0.0)
+  );
+
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Accounted for:                   %4.2f %%.\n",
+    ratio_to_percent(stat->time_stepper_sum_tm, stat->time_loop_tm, 100.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "  - I/O:                               %.4e sec.\n", stat->io_tm
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * f write (charged):               %.4e sec. / %4.2f %%.\n",
+    stat->species_io_tm, ratio_to_percent(stat->species_io_tm, stat->io_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Species diag calc (charged):     %.4e sec. / %4.2f %%.\n",
+    stat->species_diag_calc_tm, ratio_to_percent(stat->species_diag_calc_tm, stat->io_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Species diag write (charged):    %.4e sec. / %4.2f %%.\n",
+    stat->species_diag_io_tm, ratio_to_percent(stat->species_diag_io_tm, stat->io_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * f write (neutral):               %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_io_tm, ratio_to_percent(stat->neut_species_io_tm, stat->io_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Species diag calc (neutral):     %.4e sec. / %4.2f %%.\n",
     stat->neut_species_diag_calc_tm,
-    ratio_to_percent(stat->neut_species_diag_calc_tm, stat->io_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Species diag write (neutral):    %.4e sec. / %4.2f %%.\n", stat->neut_species_diag_io_tm,
-    ratio_to_percent(stat->neut_species_diag_io_tm, stat->io_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Field write:                     %.4e sec. / %4.2f %%.\n", stat->field_io_tm,
-    ratio_to_percent(stat->field_io_tm, stat->io_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Field diag calc:                 %.4e sec. / %4.2f %%.\n", stat->field_diag_calc_tm,
-    ratio_to_percent(stat->field_diag_calc_tm, stat->io_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Field diag write:                %.4e sec. / %4.2f %%.\n", stat->field_diag_io_tm,
-    ratio_to_percent(stat->field_diag_io_tm, stat->io_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Common write:                    %.4e sec. / %4.2f %%.\n", stat->app_io_tm,
-    ratio_to_percent(stat->app_io_tm, stat->io_tm, 0.0));
-  gkyl_gyrokinetic_multib_app_cout(app, iostream,
-    "    * Accounted for:                   %4.2f %%.\n",
-    ratio_to_percent(stat->io_sum_tm, stat->io_tm, 100.0));
+    ratio_to_percent(stat->neut_species_diag_calc_tm, stat->io_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Species diag write (neutral):    %.4e sec. / %4.2f %%.\n",
+    stat->neut_species_diag_io_tm, ratio_to_percent(stat->neut_species_diag_io_tm, stat->io_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Field write:                     %.4e sec. / %4.2f %%.\n",
+    stat->field_io_tm, ratio_to_percent(stat->field_io_tm, stat->io_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Field diag calc:                 %.4e sec. / %4.2f %%.\n",
+    stat->field_diag_calc_tm, ratio_to_percent(stat->field_diag_calc_tm, stat->io_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Field diag write:                %.4e sec. / %4.2f %%.\n",
+    stat->field_diag_io_tm, ratio_to_percent(stat->field_diag_io_tm, stat->io_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Common write:                    %.4e sec. / %4.2f %%.\n",
+    stat->app_io_tm, ratio_to_percent(stat->app_io_tm, stat->io_tm, 0.0)
+  );
+  gkyl_gyrokinetic_multib_app_cout(
+    app, iostream, "    * Accounted for:                   %4.2f %%.\n",
+    ratio_to_percent(stat->io_sum_tm, stat->io_tm, 100.0)
+  );
 }
 
 void gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app *app)
@@ -1974,10 +2153,10 @@ void gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app *app)
     struct timespec wtm = gkyl_wall_clock();
     if (app->is_first_dt_write_call) {
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size." }
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size."}
       };
-      int io_meta_len[] = { app->io_meta_basic_len, 1 };
-      const struct gkyl_msgpack_map_elem *io_meta[] = { app->io_meta_basic, io_meta_phi };
+      int io_meta_len[] = {app->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem *io_meta[] = {app->io_meta_basic, io_meta_phi};
       struct gkyl_msgpack_data *mt =
         gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -2001,19 +2180,22 @@ void gkyl_gyrokinetic_multib_app_save_dt(gkyl_gyrokinetic_multib_app *app, doubl
 void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app *mbapp)
 {
   if (mbapp->singleb_apps) {
-    for (int i = 0; i < mbapp->num_local_blocks; ++i)
+    for (int i = 0; i < mbapp->num_local_blocks; ++i) {
       gkyl_gyrokinetic_app_release_geom(mbapp->singleb_apps[i]);
+    }
     gkyl_free(mbapp->singleb_apps);
   }
 
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
 
-  for (int i = 0; i < num_blocks; ++i)
+  for (int i = 0; i < num_blocks; ++i) {
     gkyl_comm_release(mbapp->block_comms[i]);
+  }
   gkyl_free(mbapp->block_comms);
 
-  for (int i = 0; i < num_blocks; ++i)
+  for (int i = 0; i < num_blocks; ++i) {
     gkyl_rect_decomp_release(mbapp->decomp[i]);
+  }
   gkyl_free(mbapp->decomp);
 
   gkyl_free(mbapp->local_blocks);
@@ -2061,8 +2243,9 @@ void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app *mbapp)
   gkyl_free(mbapp->mbcc_sync_conf);
 
   if (mbapp->singleb_apps) {
-    for (int i = 0; i < mbapp->num_local_blocks; ++i)
+    for (int i = 0; i < mbapp->num_local_blocks; ++i) {
       gkyl_gyrokinetic_app_release(mbapp->singleb_apps[i]);
+    }
     gkyl_free(mbapp->singleb_apps);
   }
 
@@ -2070,12 +2253,14 @@ void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app *mbapp)
 
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
 
-  for (int i = 0; i < num_blocks; ++i)
+  for (int i = 0; i < num_blocks; ++i) {
     gkyl_comm_release(mbapp->block_comms[i]);
+  }
   gkyl_free(mbapp->block_comms);
 
-  for (int i = 0; i < num_blocks; ++i)
+  for (int i = 0; i < num_blocks; ++i) {
     gkyl_rect_decomp_release(mbapp->decomp[i]);
+  }
   gkyl_free(mbapp->decomp);
 
   gkyl_free(mbapp->local_blocks);

@@ -15,8 +15,10 @@ extern "C" {
 // CUDA kernel to set pointer to nuSum and nuPrimMomsSum (collision frequency * primitive moments)
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_lbo_pkpm_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
-  const struct gkyl_array *nuSum, const struct gkyl_array *nuPrimMomsSum)
+__global__ static void gkyl_lbo_pkpm_drag_set_auxfields_cu_kernel(
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum,
+  const struct gkyl_array *nuPrimMomsSum
+)
 {
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag = container_of(eqn, struct dg_lbo_pkpm_drag, eqn);
   lbo_pkpm_drag->auxfields.nuSum = nuSum;
@@ -25,16 +27,19 @@ __global__ static void gkyl_lbo_pkpm_drag_set_auxfields_cu_kernel(const struct g
 
 // Host-side wrapper for device kernels setting nuSum and nuPrimMomsSum.
 void gkyl_lbo_pkpm_drag_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_pkpm_drag_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_pkpm_drag_auxfields auxin
+)
 {
   gkyl_lbo_pkpm_drag_set_auxfields_cu_kernel<<<1, 1> > >(
-    eqn, auxin.nuSum->on_dev, auxin.nuPrimMomsSum->on_dev);
+    eqn, auxin.nuSum->on_dev, auxin.nuPrimMomsSum->on_dev
+  );
 }
 
 // CUDA kernel to set device pointers to range object and Vlasov PKPM LBO drag kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void dg_lbo_pkpm_drag_set_cu_dev_ptrs(
-  struct dg_lbo_pkpm_drag *lbo_pkpm_drag, enum gkyl_basis_type b_type, int cdim, int poly_order)
+  struct dg_lbo_pkpm_drag *lbo_pkpm_drag, enum gkyl_basis_type b_type, int cdim, int poly_order
+)
 {
   lbo_pkpm_drag->auxfields.nuSum = 0;
   lbo_pkpm_drag->auxfields.nuPrimMomsSum = 0;
@@ -73,9 +78,10 @@ __global__ static void dg_lbo_pkpm_drag_set_cu_dev_ptrs(
   lbo_pkpm_drag->boundary_surf = CK(boundary_surf_vpar_kernels, cdim, poly_order);
 }
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_drag_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_rect_grid *pgrid)
+struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_drag_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid
+)
 {
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag =
     (struct dg_lbo_pkpm_drag *)gkyl_malloc(sizeof(struct dg_lbo_pkpm_drag));
@@ -100,7 +106,8 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_drag_cu_dev_new(const struct gkyl_basis *cb
     (struct dg_lbo_pkpm_drag *)gkyl_cu_malloc(sizeof(struct dg_lbo_pkpm_drag));
 
   gkyl_cu_memcpy(
-    lbo_pkpm_drag_cu, lbo_pkpm_drag, sizeof(struct dg_lbo_pkpm_drag), GKYL_CU_MEMCPY_H2D);
+    lbo_pkpm_drag_cu, lbo_pkpm_drag, sizeof(struct dg_lbo_pkpm_drag), GKYL_CU_MEMCPY_H2D
+  );
 
   dg_lbo_pkpm_drag_set_cu_dev_ptrs<<<1, 1> > >(lbo_pkpm_drag_cu, cbasis->b_type, cdim, poly_order);
 

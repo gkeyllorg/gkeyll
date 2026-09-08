@@ -43,9 +43,10 @@ gkyl_kep_scheme *gkyl_kep_scheme_new(const struct gkyl_kep_scheme_inp *inp);
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *alpha, struct gkyl_array *cflrate,
-  struct gkyl_array *rhs);
+void gkyl_kep_scheme_advance(
+  const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng, const struct gkyl_array *fIn,
+  struct gkyl_array *alpha, struct gkyl_array *cflrate, struct gkyl_array *rhs
+);
 
 /**
  * Compute an estimate of maximum stable time-step for given input
@@ -56,7 +57,8 @@ void gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range
  * @return maximum stable time-step
  */
 double gkyl_kep_scheme_max_dt(
-  const gkyl_kep_scheme *kep, const struct gkyl_range *update_range, const struct gkyl_array *qin);
+  const gkyl_kep_scheme *kep, const struct gkyl_range *update_range, const struct gkyl_array *qin
+);
 
 /**
  * Delete updater.

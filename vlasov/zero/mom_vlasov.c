@@ -11,13 +11,16 @@
 void gkyl_mom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(momt->flags))
+  if (GKYL_IS_CU_ALLOC(momt->flags)) {
     gkyl_cu_free(momt->on_dev);
+  }
   gkyl_free(momt);
 }
 
-struct gkyl_mom_type *gkyl_mom_vlasov_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type, bool use_gpu)
+struct gkyl_mom_type *gkyl_mom_vlasov_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  enum gkyl_distribution_moments mom_type, bool use_gpu
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -103,7 +106,7 @@ struct gkyl_mom_type *gkyl_mom_vlasov_new(const struct gkyl_basis *cbasis,
 
     mom_vm->kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
-    int m3ijk_count[] = { 1, 4, 10 };
+    int m3ijk_count[] = {1, 4, 10};
     mom_vm->momt.num_mom = m3ijk_count[vdim - 1];
   } else if (mom_type ==
              GKYL_F_MOMENT_M0M1M2) { // Zeroth, First, and Second moment computed together
@@ -126,8 +129,10 @@ struct gkyl_mom_type *gkyl_mom_vlasov_new(const struct gkyl_basis *cbasis,
   return &mom_vm->momt;
 }
 
-struct gkyl_mom_type *gkyl_int_mom_vlasov_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type, bool use_gpu)
+struct gkyl_mom_type *gkyl_int_mom_vlasov_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  enum gkyl_distribution_moments mom_type, bool use_gpu
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 

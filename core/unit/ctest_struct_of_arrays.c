@@ -64,8 +64,9 @@ void test_array_container_accumulate_ho()
   for (int k = 0; k < num_containers; k++) {
     struct gkyl_array_container *arrc1 = &acs1[k];
     double *arr1_d = arrc1->arr->data;
-    for (unsigned i = 0; i < arrc1->arr->size; ++i)
+    for (unsigned i = 0; i < arrc1->arr->size; ++i) {
       TEST_CHECK(gkyl_compare(arr1_d[i], 2.0 * (k * 100.0 + i * 1.0), 1e-14));
+    }
   }
 
   // Free objects.
@@ -135,8 +136,9 @@ void test_container_pack_accumulate_ho()
     for (int k = 0; k < num_containers; k++) {
       struct gkyl_array_container *arrc1 = &acs1[k];
       double *arr1_d = arrc1->arr->data;
-      for (unsigned i = 0; i < arrc1->arr->size; ++i)
+      for (unsigned i = 0; i < arrc1->arr->size; ++i) {
         TEST_CHECK(gkyl_compare(arr1_d[i], 2.0 * (k * 100.0 + i * 1.0), 1e-14));
+      }
     }
   }
 
@@ -215,8 +217,9 @@ void test_array_bag_accumulate_ho()
       struct gkyl_array_bag *innerbag1 = &bag1->bag[k], *innerbag2 = &bag2->bag[k];
       struct gkyl_array *arr1 = innerbag1->arr, *arr2 = innerbag2->arr;
       double *arr1_d = arr1->data;
-      for (unsigned i = 0; i < arr1->size; ++i)
+      for (unsigned i = 0; i < arr1->size; ++i) {
         TEST_CHECK(gkyl_compare(arr1_d[i], 2.0 * (k * 100.0 + i * 1.0), 1e-14));
+      }
     }
   }
 
@@ -238,24 +241,33 @@ void test_array_bag_accumulate_ho()
 #ifdef GKYL_HAVE_CUDA
 
 /* Function signatures of kernel calls */
-void test_array_container_accumulate_dev_assign_cu(int arr_ncomp, int arr_size, int num_containers,
-  struct gkyl_array_container *acs1, struct gkyl_array_container *acs2);
+void test_array_container_accumulate_dev_assign_cu(
+  int arr_ncomp, int arr_size, int num_containers, struct gkyl_array_container *acs1,
+  struct gkyl_array_container *acs2
+);
 
-void test_array_container_accumulate_dev_accumulate_cu(int arr_ncomp, int arr_size,
-  int num_containers, struct gkyl_array_container *acs1, double a,
-  struct gkyl_array_container *acs2);
+void test_array_container_accumulate_dev_accumulate_cu(
+  int arr_ncomp, int arr_size, int num_containers, struct gkyl_array_container *acs1, double a,
+  struct gkyl_array_container *acs2
+);
 
 int test_array_container_accumulate_dev_check_cu(
-  int arr_ncomp, int arr_size, int num_containers, struct gkyl_array_container *acs1);
+  int arr_ncomp, int arr_size, int num_containers, struct gkyl_array_container *acs1
+);
 
-void test_array_bag_accumulate_dev_assign_cu(int arr_ncomp, int arr_size, int num_bags,
-  struct gkyl_array_bag *bag1, struct gkyl_array_bag *bag2);
+void test_array_bag_accumulate_dev_assign_cu(
+  int arr_ncomp, int arr_size, int num_bags, struct gkyl_array_bag *bag1,
+  struct gkyl_array_bag *bag2
+);
 
-void test_array_bag_accumulate_dev_accumulate_cu(int arr_ncomp, int arr_size, int num_bags,
-  struct gkyl_array_bag *bag1, double a, struct gkyl_array_bag *bag2);
+void test_array_bag_accumulate_dev_accumulate_cu(
+  int arr_ncomp, int arr_size, int num_bags, struct gkyl_array_bag *bag1, double a,
+  struct gkyl_array_bag *bag2
+);
 
 int test_array_bag_accumulate_dev_check_cu(
-  int arr_ncomp, int arr_size, int num_bags, struct gkyl_array_bag *bag1);
+  int arr_ncomp, int arr_size, int num_bags, struct gkyl_array_bag *bag1
+);
 
 void test_array_container_accumulate_dev()
 {
@@ -294,9 +306,11 @@ void test_array_container_accumulate_dev()
   struct gkyl_array_container *acs2 =
     gkyl_cu_malloc(num_containers * sizeof(struct gkyl_array_container));
   gkyl_cu_memcpy(
-    acs1, acs1_dev, num_containers * sizeof(struct gkyl_array_container), GKYL_CU_MEMCPY_H2D);
+    acs1, acs1_dev, num_containers * sizeof(struct gkyl_array_container), GKYL_CU_MEMCPY_H2D
+  );
   gkyl_cu_memcpy(
-    acs2, acs2_dev, num_containers * sizeof(struct gkyl_array_container), GKYL_CU_MEMCPY_H2D);
+    acs2, acs2_dev, num_containers * sizeof(struct gkyl_array_container), GKYL_CU_MEMCPY_H2D
+  );
   // We can free the _dev ones because we don't need them anymore.
   gkyl_free(acs1_dev);
   gkyl_free(acs2_dev);
@@ -306,7 +320,8 @@ void test_array_container_accumulate_dev()
 
   // Accumulate arrays.
   test_array_container_accumulate_dev_accumulate_cu(
-    arr_ncomp, arr_size, num_containers, acs1, 0.5, acs2);
+    arr_ncomp, arr_size, num_containers, acs1, 0.5, acs2
+  );
 
   // Check results.
   int nfail =
@@ -378,10 +393,14 @@ void test_container_pack_accumulate_dev()
   for (int j = 0; j < num_packs; j++) {
     cp1[j].ac = gkyl_cu_malloc(num_containers * sizeof(struct gkyl_array_container));
     cp2[j].ac = gkyl_cu_malloc(num_containers * sizeof(struct gkyl_array_container));
-    gkyl_cu_memcpy(cp1[j].ac, cp1_dev[j].ac, num_containers * sizeof(struct gkyl_array_container),
-      GKYL_CU_MEMCPY_H2D);
-    gkyl_cu_memcpy(cp2[j].ac, cp2_dev[j].ac, num_containers * sizeof(struct gkyl_array_container),
-      GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(
+      cp1[j].ac, cp1_dev[j].ac, num_containers * sizeof(struct gkyl_array_container),
+      GKYL_CU_MEMCPY_H2D
+    );
+    gkyl_cu_memcpy(
+      cp2[j].ac, cp2_dev[j].ac, num_containers * sizeof(struct gkyl_array_container),
+      GKYL_CU_MEMCPY_H2D
+    );
   }
   // We can free the _dev ones because we don't need them anymore.
   for (int j = 0; j < num_packs; j++) {
@@ -399,7 +418,8 @@ void test_container_pack_accumulate_dev()
 
     // Accumulate arrays.
     test_array_container_accumulate_dev_accumulate_cu(
-      arr_ncomp, arr_size, num_containers, acs1, 0.5, acs2);
+      arr_ncomp, arr_size, num_containers, acs1, 0.5, acs2
+    );
 
     // Check results.
     int nfail =
@@ -482,9 +502,11 @@ void test_array_bag_accumulate_dev()
     ab2[j].bag = gkyl_cu_malloc(num_arrays * sizeof(struct gkyl_array_bag));
 
     gkyl_cu_memcpy(
-      ab1[j].bag, ab1_dev[j].bag, num_arrays * sizeof(struct gkyl_array_bag), GKYL_CU_MEMCPY_H2D);
+      ab1[j].bag, ab1_dev[j].bag, num_arrays * sizeof(struct gkyl_array_bag), GKYL_CU_MEMCPY_H2D
+    );
     gkyl_cu_memcpy(
-      ab2[j].bag, ab2_dev[j].bag, num_arrays * sizeof(struct gkyl_array_bag), GKYL_CU_MEMCPY_H2D);
+      ab2[j].bag, ab2_dev[j].bag, num_arrays * sizeof(struct gkyl_array_bag), GKYL_CU_MEMCPY_H2D
+    );
   }
   // We can free the _dev ones because we don't need them anymore.
   for (int j = 0; j < num_bags; j++) {
@@ -502,7 +524,8 @@ void test_array_bag_accumulate_dev()
 
     // Accumulate arrays.
     test_array_bag_accumulate_dev_accumulate_cu(
-      arr_ncomp, arr_size, num_arrays, bag1->bag, 0.5, bag2->bag);
+      arr_ncomp, arr_size, num_arrays, bag1->bag, 0.5, bag2->bag
+    );
 
     // Check results.
     int nfail = test_array_bag_accumulate_dev_check_cu(arr_ncomp, arr_size, num_arrays, bag1->bag);
@@ -534,12 +557,14 @@ void test_array_bag_accumulate_dev()
 
 #endif
 
-TEST_LIST = { { "array_container_accumulate_ho", test_array_container_accumulate_ho },
-  { "container_pack_accumulate_ho", test_container_pack_accumulate_ho },
-  { "array_bag_accumulate_ho", test_array_bag_accumulate_ho },
+TEST_LIST = {
+  {"array_container_accumulate_ho", test_array_container_accumulate_ho},
+  {"container_pack_accumulate_ho", test_container_pack_accumulate_ho},
+  {"array_bag_accumulate_ho", test_array_bag_accumulate_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "array_container_accumulate_dev", test_array_container_accumulate_dev },
-  { "container_pack_accumulate_dev", test_container_pack_accumulate_dev },
-  { "array_bag_accumulate_dev", test_array_bag_accumulate_dev },
+  {"array_container_accumulate_dev", test_array_container_accumulate_dev},
+  {"container_pack_accumulate_dev", test_container_pack_accumulate_dev},
+  {"array_bag_accumulate_dev", test_array_bag_accumulate_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

@@ -47,8 +47,8 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
  * @param inp Input parameters defined in gkyl_vlasov_lte_proj_on_basis_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_vlasov_lte_proj_on_basis *gkyl_vlasov_lte_proj_on_basis_inew(
-  const struct gkyl_vlasov_lte_proj_on_basis_inp *inp);
+struct gkyl_vlasov_lte_proj_on_basis *
+gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_inp *inp);
 
 /**
  * Compute projection of LTE (local thermodynamic equilibrium) distribution on basis. 
@@ -65,23 +65,26 @@ struct gkyl_vlasov_lte_proj_on_basis *gkyl_vlasov_lte_proj_on_basis_inew(
  *                 Note: LTE moments are defined in stationary frame (frame moving at V_drift)
  * @param f_lte Output LTE distribution function
  */
-void gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *moms_lte, struct gkyl_array *f_lte);
+void gkyl_vlasov_lte_proj_on_basis_advance(
+  gkyl_vlasov_lte_proj_on_basis *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *moms_lte, struct gkyl_array *f_lte
+);
 
 /**
  * Host-side wrapper for initial canonical-pb vars
  */
-void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
-  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h);
+void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(
+  gkyl_vlasov_lte_proj_on_basis *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *h_ij, const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h
+);
 
 /**
  * Host-side wrapper for projection of LTE distribution function on device
  */
-void gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *moms_lte, struct gkyl_array *f_lte);
+void gkyl_vlasov_lte_proj_on_basis_advance_cu(
+  gkyl_vlasov_lte_proj_on_basis *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *moms_lte, struct gkyl_array *f_lte
+);
 
 /**
  * Delete updater.

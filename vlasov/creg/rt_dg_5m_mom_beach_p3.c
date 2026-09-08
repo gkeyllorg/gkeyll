@@ -100,7 +100,8 @@ struct mom_beach_ctx create_ctx(void)
     (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
   double omega_drive = pi / 10.0 / deltaT; // Drive current angular frequency.
 
-  struct mom_beach_ctx ctx = { .pi = pi,
+  struct mom_beach_ctx ctx = {
+    .pi = pi,
     .gas_gamma = gas_gamma,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -123,7 +124,8 @@ struct mom_beach_ctx create_ctx(void)
     .num_failures_max = num_failures_max,
     .deltaT = deltaT,
     .factor = factor,
-    .omega_drive = omega_drive };
+    .omega_drive = omega_drive
+  };
 
   return ctx;
 }
@@ -266,17 +268,20 @@ int main(int argc, char **argv)
   // Electron equations.
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
-  struct gkyl_vlasov_fluid_species elc = { .name = "elc",
+  struct gkyl_vlasov_fluid_species elc = {
+    .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .equation = elc_euler,
     .init = evalElcInit,
     .ctx = &ctx,
 
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY}
+  };
 
   // Field.
-  struct gkyl_vlasov_field field = { .epsilon0 = ctx.epsilon0,
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
@@ -288,7 +293,8 @@ int main(int argc, char **argv)
     .app_current_ctx = &ctx,
     .app_current_evolve = true,
 
-    .bcx = { GKYL_FIELD_COPY, GKYL_FIELD_COPY } };
+    .bcx = {GKYL_FIELD_COPY, GKYL_FIELD_COPY}
+  };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -297,7 +303,7 @@ int main(int argc, char **argv)
   }
 #endif
 
-  int cells[] = { NX };
+  int cells[] = {NX};
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -319,12 +325,12 @@ int main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -339,8 +345,7 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -350,9 +355,9 @@ int main(int argc, char **argv)
 
     .cdim = 1,
     .vdim = 0,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
-    .cells = { NX },
+    .lower = {0.0},
+    .upper = {ctx.Lx},
+    .cells = {NX},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
@@ -365,11 +370,11 @@ int main(int argc, char **argv)
     .species = {},
 
     .num_fluid_species = 1,
-    .fluid_species = { elc },
+    .fluid_species = {elc},
 
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // Create app object.
@@ -387,8 +392,10 @@ int main(int argc, char **argv)
       gkyl_vlasov_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+      gkyl_vlasov_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -470,7 +477,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_vlasov_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
         break;
       }
     } else {
@@ -494,17 +502,21 @@ int main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
     gkyl_vlasov_app_cout(
-      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]
+    );
     gkyl_vlasov_app_cout(
-      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]
+    );
   }
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
   gkyl_vlasov_app_cout(
-    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
+  );
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_vlasov_app_cout(
-    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
+  );
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);

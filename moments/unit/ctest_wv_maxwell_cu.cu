@@ -29,29 +29,30 @@ __global__ void ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail
   double Ex = 1.0, Ey = 0.1, Ez = 0.2;
   double Bx = 10.0, By = 10.1, Bz = 10.2;
   double phi = 0.01, psi = 0.02;
-  double q[8] = { Ex, Ey, Ez, Bx, By, Bz, phi, psi };
+  double q[8] = {Ex, Ey, Ez, Bx, By, Bz, phi, psi};
 
-  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
-  double fluxes[3][8] = { { e_fact * c2 * q[6], c2 * q[5], -c2 * q[4],
+  double fluxes[3][8] = {
+    {e_fact * c2 * q[6], c2 * q[5], -c2 * q[4],
 
-                            b_fact * q[7], -q[2], q[1],
+     b_fact * q[7], -q[2], q[1],
 
-                            e_fact * q[0], b_fact * c2 * q[3] },
-    { -c2 * q[5], e_fact * c2 * q[6], c2 * q[3],
+     e_fact * q[0], b_fact * c2 * q[3]},
+    {-c2 * q[5], e_fact * c2 * q[6], c2 * q[3],
 
-      q[2], b_fact * q[7], -q[0],
+     q[2], b_fact * q[7], -q[0],
 
-      e_fact * q[1], b_fact * c2 * q[4] },
-    { c2 * q[4], -c2 * q[3], e_fact * c2 * q[6],
+     e_fact * q[1], b_fact * c2 * q[4]},
+    {c2 * q[4], -c2 * q[3], e_fact * c2 * q[6],
 
-      -q[1], q[0], b_fact * q[7],
+     -q[1], q[0], b_fact * q[7],
 
-      e_fact * q[2], b_fact * c2 * q[5] }
+     e_fact * q[2], b_fact * c2 * q[5]}
 
   };
 
@@ -80,8 +81,9 @@ __global__ void ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail
     eqn->rotate_to_local_func(eqn, tau1[d], tau2[d], norm[d], q, q_l);
     eqn->rotate_to_global_func(eqn, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-    for (int m = 0; m < 8; ++m)
+    for (int m = 0; m < 8; ++m) {
       GKYL_CU_CHECK(q[m] == q_g[m], nfail);
+    }
   }
 }
 

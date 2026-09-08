@@ -6,9 +6,11 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef double (*dg_cx_react_ratef_t)(const double a, const double b, double vt_sq_ion_min,
-  double vt_sq_neut_min, const double *maxwellian_moms_ion, const double *maxwellian_moms_neut,
-  const double *u_ion, double *GKYL_RESTRICT v_sigma_cx);
+typedef double (*dg_cx_react_ratef_t)(
+  const double a, const double b, double vt_sq_ion_min, double vt_sq_neut_min,
+  const double *maxwellian_moms_ion, const double *maxwellian_moms_neut, const double *u_ion,
+  double *GKYL_RESTRICT v_sigma_cx
+);
 
 // for use in kernel tables
 typedef struct {
@@ -21,9 +23,9 @@ typedef struct {
 // Serendipity basis kernels
 //
 GKYL_CU_D static const gkyl_cx_react_rate_kern_list ser_cx_react_rate_kernels[] = {
-  { sigma_cx_1x_ser_p1, sigma_cx_1x_ser_p2 }, // 0
-  { sigma_cx_2x_ser_p1, sigma_cx_2x_ser_p2 }, // 4
-  { sigma_cx_3x_ser_p1, NULL } // 5
+  {sigma_cx_1x_ser_p1, sigma_cx_1x_ser_p2}, // 0
+  {sigma_cx_2x_ser_p1, sigma_cx_2x_ser_p2}, // 4
+  {sigma_cx_3x_ser_p1, NULL} // 5
 };
 
 struct gkyl_dg_cx {
@@ -99,7 +101,9 @@ struct gkyl_dg_cx *gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
  * @param coef_cx Output reaction rate coefficient
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
  */
-void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
+void gkyl_dg_cx_coll_cu(
+  const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
   struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
-  struct gkyl_array *cflrate);
+  struct gkyl_array *cflrate
+);
 #endif

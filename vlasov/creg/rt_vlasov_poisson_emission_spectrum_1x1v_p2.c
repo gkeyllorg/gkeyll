@@ -54,8 +54,7 @@ static inline double sq(double x)
   return x * x;
 }
 
-void evalDistFuncElc(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
@@ -66,7 +65,8 @@ void evalDistFuncElc(
 }
 
 void evalDistFuncElcSource(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
@@ -80,8 +80,7 @@ void evalDistFuncElcSource(
   }
 }
 
-void evalDistFuncIon(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
@@ -92,7 +91,8 @@ void evalDistFuncIon(
 }
 
 void evalDistFuncIonSource(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
@@ -168,7 +168,8 @@ struct sheath_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct sheath_ctx ctx = { .cdim = cdim,
+  struct sheath_ctx ctx = {
+    .cdim = cdim,
     .vdim = vdim,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -201,18 +202,20 @@ struct sheath_ctx create_ctx(void)
     .p = p,
     .Nx = Nx,
     .Nvx = Nvx,
-    .cells = { Nx, Nvx },
+    .cells = {Nx, Nvx},
     .num_emission_species = 1,
     .t_end = t_end,
     .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
   return ctx;
 }
 
 void calc_integrated_diagnostics(
-  struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_calc)
+  struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_field_energy(app, t_curr);
@@ -257,17 +260,20 @@ int main(int argc, char **argv)
   struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d = 0; d < ctx.cdim; d++)
+  for (int d = 0; d < ctx.cdim; d++) {
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d = 0; d < ctx.vdim; d++)
+  }
+  for (int d = 0; d < ctx.vdim; d++) {
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim + d]);
+  }
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_vlasov_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  char in_species[1][128] = { "elc" };
+  char in_species[1][128] = {"elc"};
   struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_secondary_electron_copper_new(
-    ctx.num_emission_species, 0.0, in_species, app_args.use_gpu);
+    ctx.num_emission_species, 0.0, in_species, app_args.use_gpu
+  );
   /* struct gkyl_spectrum_model *spectrum_model[1]; */
   /* spectrum_model[0] = gkyl_spectrum_chung_everhart_new(ctx.q0, ctx.phi, app_args.use_gpu); */
   /* struct gkyl_yield_model *yield_model[1]; */
@@ -276,69 +282,77 @@ int main(int argc, char **argv)
   /* struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(ctx.num_emission_species, 0.0, true, spectrum_model, yield_model, elastic_model, in_species); */
 
   // electrons
-  struct gkyl_vlasov_species elc = { .name = "elc",
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
     .charge = ctx.chargeElc,
     .mass = ctx.massElc,
-    .lower = { -4.0 * ctx.vte },
-    .upper = { 4.0 * ctx.vte },
-    .cells = { cells_v[0] },
+    .lower = {-4.0 * ctx.vte},
+    .upper = {4.0 * ctx.vte},
+    .cells = {cells_v[0]},
 
     .num_init = 1,
-    .projection[0] = { .proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncElc, .ctx_func = &ctx },
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncElc, .ctx_func = &ctx},
 
-    .source = { .source_id = GKYL_BFLUX_SOURCE,
-      .source_length = ctx.Ls,
-      .source_species = "ion",
-      .num_sources = 1,
-      .projection[0] = { .proj_id = GKYL_PROJ_FUNC,
-        .func = evalDistFuncElcSource,
-        .ctx_func = &ctx } },
+    .source =
+      {.source_id = GKYL_BFLUX_SOURCE,
+       .source_length = ctx.Ls,
+       .source_species = "ion",
+       .num_sources = 1,
+       .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncElcSource, .ctx_func = &ctx}
+      },
 
-    .bcx = { .lower = { .type = GKYL_SPECIES_REFLECT },
-      .upper = { .type = GKYL_SPECIES_EMISSION, .aux_ctx = bc_ctx } },
+    .bcx =
+      {.lower = {.type = GKYL_SPECIES_REFLECT},
+       .upper = {.type = GKYL_SPECIES_EMISSION, .aux_ctx = bc_ctx}},
 
     .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 } };
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2}
+  };
 
   // ions
-  struct gkyl_vlasov_species ion = { .name = "ion",
+  struct gkyl_vlasov_species ion = {
+    .name = "ion",
     .charge = ctx.chargeIon,
     .mass = ctx.massIon,
-    .lower = { -4.0 * ctx.vti },
-    .upper = { 4.0 * ctx.vti },
-    .cells = { cells_v[0] },
+    .lower = {-4.0 * ctx.vti},
+    .upper = {4.0 * ctx.vti},
+    .cells = {cells_v[0]},
 
     .num_init = 1,
-    .projection[0] = { .proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncIon, .ctx_func = &ctx },
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncIon, .ctx_func = &ctx},
 
-    .source = { .source_id = GKYL_BFLUX_SOURCE,
-      .source_length = ctx.Ls,
-      .source_species = "ion",
-      .num_sources = 1,
-      .projection[0] = { .proj_id = GKYL_PROJ_FUNC,
-        .func = evalDistFuncIonSource,
-        .ctx_func = &ctx } },
+    .source =
+      {.source_id = GKYL_BFLUX_SOURCE,
+       .source_length = ctx.Ls,
+       .source_species = "ion",
+       .num_sources = 1,
+       .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncIonSource, .ctx_func = &ctx}
+      },
 
-    .bcx = { .lower = { .type = GKYL_SPECIES_REFLECT }, .upper = { .type = GKYL_SPECIES_ABSORB } },
+    .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_ABSORB}},
 
     .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 } };
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2}
+  };
 
   // Field.
-  struct gkyl_vlasov_field field = { .epsilon0 = ctx.epsilon0,
-    .poisson_bcs = { .lo_type = { GKYL_POISSON_NEUMANN },
-      .up_type = { GKYL_POISSON_DIRICHLET },
-      .lo_value = { 0.0 },
-      .up_value = { 0.0 } } };
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = ctx.epsilon0,
+    .poisson_bcs =
+      {.lo_type = {GKYL_POISSON_NEUMANN},
+       .up_type = {GKYL_POISSON_DIRICHLET},
+       .lo_value = {0.0},
+       .up_value = {0.0}}
+  };
 
   // VM app
   struct gkyl_vm app_inp = {
 
     .cdim = ctx.cdim,
     .vdim = ctx.vdim,
-    .lower = { -ctx.Lx },
-    .upper = { ctx.Lx },
-    .cells = { cells_x[0] },
+    .lower = {-ctx.Lx},
+    .upper = {ctx.Lx},
+    .cells = {cells_x[0]},
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -346,11 +360,11 @@ int main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 2,
-    .species = { elc, ion },
+    .species = {elc, ion},
     .field = field,
     .is_electrostatic = true,
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
 
   };
 
@@ -368,8 +382,10 @@ int main(int argc, char **argv)
       gkyl_vlasov_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+      gkyl_vlasov_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -430,7 +446,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_vlasov_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
         calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
         write_data(&trig_write, app, t_curr, true);
         break;
@@ -452,17 +469,21 @@ int main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
     gkyl_vlasov_app_cout(
-      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]
+    );
     gkyl_vlasov_app_cout(
-      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]
+    );
   }
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
   gkyl_vlasov_app_cout(
-    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
+  );
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_vlasov_app_cout(
-    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
+  );
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);

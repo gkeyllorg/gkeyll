@@ -21,7 +21,7 @@ struct range *range_new(int value)
 {
   struct range *rng = gkyl_malloc(sizeof(*rng));
   rng->value = value;
-  rng->ref_count = (struct gkyl_ref_count){ range_free, 1 };
+  rng->ref_count = (struct gkyl_ref_count){range_free, 1};
   return rng;
 }
 
@@ -51,4 +51,4 @@ void test_ref_count_ho()
   TEST_CHECK(free_called == 1);
 }
 
-TEST_LIST = { { "ref_count_ho", test_ref_count_ho }, { NULL, NULL } };
+TEST_LIST = {{"ref_count_ho", test_ref_count_ho}, {NULL, NULL}};

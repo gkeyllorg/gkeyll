@@ -23,7 +23,8 @@ void gkyl_gk_anomalous_diffusion_free(const struct gkyl_ref_count *ref)
 }
 
 void gkyl_gk_anomalous_diffusion_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_gk_anomalous_diffusion_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_gk_anomalous_diffusion_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.nu) && gkyl_array_is_cu_dev(auxin.jacobgeo_inv)) {
@@ -37,14 +38,16 @@ void gkyl_gk_anomalous_diffusion_set_auxfields(
   diffusion->auxfields.jacobgeo_inv = auxin.jacobgeo_inv;
 }
 
-struct gkyl_dg_eqn *gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis,
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_gk_anomalous_diffusion_new(
+  const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
+  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower,
+  enum gkyl_gyrokinetic_bc_type bc_x_upper, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
-    return gkyl_gk_anomalous_diffusion_cu_dev_new(
-      basis, cbasis, conf_range, bc_x_lower, bc_x_upper);
+  if (use_gpu) {
+    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, bc_x_lower, bc_x_upper);
+  }
 #endif
 
   struct gk_anomalous_diffusion *diffusion = gkyl_malloc(sizeof(struct gk_anomalous_diffusion));

@@ -53,10 +53,11 @@ struct gkyl_velocity_map {
  * @param use_gpu Whether to create a device copy of this new object.
  * @return New velocity map object.
  */
-struct gkyl_velocity_map *gkyl_velocity_map_new(struct gkyl_mapc2p_inp mapc2p_in,
-  struct gkyl_rect_grid grid, struct gkyl_rect_grid grid_vel, struct gkyl_range local,
-  struct gkyl_range local_ext, struct gkyl_range local_vel, struct gkyl_range local_ext_vel,
-  bool use_gpu);
+struct gkyl_velocity_map *gkyl_velocity_map_new(
+  struct gkyl_mapc2p_inp mapc2p_in, struct gkyl_rect_grid grid, struct gkyl_rect_grid grid_vel,
+  struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_range local_vel,
+  struct gkyl_range local_ext_vel, bool use_gpu
+);
 
 /**
  * Write the velocity map and its jacobian to file.
@@ -66,8 +67,10 @@ struct gkyl_velocity_map *gkyl_velocity_map_new(struct gkyl_mapc2p_inp mapc2p_in
  * @param app_name Name of the app.
  * @param species_name Name of the species.
  */
-void gkyl_velocity_map_write(const struct gkyl_velocity_map *gvm, struct gkyl_comm *species_comm,
-  const char *app_name, const char *species_name);
+void gkyl_velocity_map_write(
+  const struct gkyl_velocity_map *gvm, struct gkyl_comm *species_comm, const char *app_name,
+  const char *species_name
+);
 
 /**
  * Evaluate the velocity mappings at the v-space boundary to get the
@@ -87,7 +90,8 @@ void gkyl_velocity_map_get_boundary_values(const struct gkyl_velocity_map *gvm, 
  * @param dv_m Min/Max velocity cell length on the grid.
  */
 void gkyl_velocity_map_reduce_dv(
-  const struct gkyl_velocity_map *gvm, enum gkyl_array_op op, double *dv_m);
+  const struct gkyl_velocity_map *gvm, enum gkyl_array_op op, double *dv_m
+);
 
 /**
  * Reduce (i.e. get the min or max) the cell length in physical
@@ -98,8 +102,10 @@ void gkyl_velocity_map_reduce_dv(
  * @param range_vel Velocity range to get min/max dv from.
  * @param dv_m Min/Max velocity cell length on the grid.
  */
-void gkyl_velocity_map_reduce_dv_range(const struct gkyl_velocity_map *gvm, enum gkyl_array_op op,
-  double *dv_m, struct gkyl_range range_vel);
+void gkyl_velocity_map_reduce_dv_range(
+  const struct gkyl_velocity_map *gvm, enum gkyl_array_op op, double *dv_m,
+  struct gkyl_range range_vel
+);
 
 /**
  * Evaluate the velocity mapping at a specific computational (velocity) coordinate.

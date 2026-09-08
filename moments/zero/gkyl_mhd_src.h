@@ -42,8 +42,10 @@ gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp, const struct gkyl_ra
  * @param mes
  * @param dt
  */
-void gkyl_mhd_src_advance(const gkyl_mhd_src *mes, double dt, const struct gkyl_range *update_rng,
-  struct gkyl_array *q, const struct gkyl_array *app_accel);
+void gkyl_mhd_src_advance(
+  const gkyl_mhd_src *mes, double dt, const struct gkyl_range *update_rng, struct gkyl_array *q,
+  const struct gkyl_array *app_accel
+);
 
 /**
  * Delete updater.
@@ -68,4 +70,5 @@ void gkyl_mhd_src_set_glm_ch(struct gkyl_mhd_src *up, double glm_ch);
  * @param q_array input field
  */
 double gkyl_mhd_src_calc_divB(
-  const gkyl_mhd_src *up, const struct gkyl_range *update_range, struct gkyl_array *q_array);
+  const gkyl_mhd_src *up, const struct gkyl_range *update_range, struct gkyl_array *q_array
+);

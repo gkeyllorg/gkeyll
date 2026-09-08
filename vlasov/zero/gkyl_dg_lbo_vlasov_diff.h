@@ -21,9 +21,10 @@ struct gkyl_dg_lbo_vlasov_diff_auxfields {
  * @param pgrid Phase-space grid object.
  * @return Pointer to LBO equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_rect_grid *pgrid, bool use_gpu);
+struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid, bool use_gpu
+);
 
 /**
  * Create a new LBO equation object that lives on NV-GPU
@@ -34,9 +35,10 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis *cbasis,
  * @param pgrid Phase-space grid object.
  * @return Pointer to LBO equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_rect_grid *pgrid);
+struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid
+);
 
 /**
  * Set auxiliary fields needed in updating the diffusion flux term.
@@ -46,7 +48,8 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_cu_dev_new(const struct gkyl_basis *
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_lbo_vlasov_diff_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_diff_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_diff_auxfields auxin
+);
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -58,6 +61,7 @@ void gkyl_lbo_vlasov_diff_set_auxfields(
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_lbo_vlasov_diff_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_diff_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_diff_auxfields auxin
+);
 
 #endif

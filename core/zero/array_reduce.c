@@ -29,39 +29,46 @@ void gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_arra
 
   switch (op) {
   case GKYL_MIN:
-    for (long k = 0; k < nc; ++k)
+    for (long k = 0; k < nc; ++k) {
       out[k] = DBL_MAX;
+    }
     for (size_t i = 0; i < arr->size; ++i) {
       const double *d = gkyl_array_cfetch(arr, i);
-      for (long k = 0; k < nc; ++k)
+      for (long k = 0; k < nc; ++k) {
         out[k] = fmin(out[k], d[k]);
+      }
     }
     break;
 
   case GKYL_MAX:
-    for (long k = 0; k < nc; ++k)
+    for (long k = 0; k < nc; ++k) {
       out[k] = -DBL_MAX;
+    }
     for (size_t i = 0; i < arr->size; ++i) {
       const double *d = gkyl_array_cfetch(arr, i);
-      for (long k = 0; k < nc; ++k)
+      for (long k = 0; k < nc; ++k) {
         out[k] = fmax(out[k], d[k]);
+      }
     }
     break;
 
   case GKYL_SUM:
-    for (long k = 0; k < nc; ++k)
+    for (long k = 0; k < nc; ++k) {
       out[k] = 0;
+    }
     for (size_t i = 0; i < arr->size; ++i) {
       const double *d = gkyl_array_cfetch(arr, i);
-      for (long k = 0; k < nc; ++k)
+      for (long k = 0; k < nc; ++k) {
         out[k] += d[k];
+      }
     }
     break;
   }
 }
 
 void gkyl_array_reduce_range(
-  double *res, const struct gkyl_array *arr, enum gkyl_array_op op, const struct gkyl_range *range)
+  double *res, const struct gkyl_array *arr, enum gkyl_array_op op, const struct gkyl_range *range
+)
 {
   assert(arr->type == GKYL_DOUBLE);
 
@@ -88,36 +95,42 @@ void gkyl_array_reduce_range(
 
   switch (op) {
   case GKYL_MIN:
-    for (long i = 0; i < n; ++i)
+    for (long i = 0; i < n; ++i) {
       res[i] = DBL_MAX;
+    }
 
     while (gkyl_range_iter_next(&iter)) {
       long start = gkyl_range_idx(range, iter.idx);
       const double *d = gkyl_array_cfetch(arr, start);
-      for (long i = 0; i < n; ++i)
+      for (long i = 0; i < n; ++i) {
         res[i] = fmin(res[i], d[i]);
+      }
     }
     break;
   case GKYL_MAX:
-    for (long i = 0; i < n; ++i)
+    for (long i = 0; i < n; ++i) {
       res[i] = -DBL_MAX;
+    }
 
     while (gkyl_range_iter_next(&iter)) {
       long start = gkyl_range_idx(range, iter.idx);
       const double *d = gkyl_array_cfetch(arr, start);
-      for (long i = 0; i < n; ++i)
+      for (long i = 0; i < n; ++i) {
         res[i] = fmax(res[i], d[i]);
+      }
     }
     break;
   case GKYL_SUM:
-    for (long i = 0; i < n; ++i)
+    for (long i = 0; i < n; ++i) {
       res[i] = 0;
+    }
 
     while (gkyl_range_iter_next(&iter)) {
       long start = gkyl_range_idx(range, iter.idx);
       const double *d = gkyl_array_cfetch(arr, start);
-      for (long i = 0; i < n; ++i)
+      for (long i = 0; i < n; ++i) {
         res[i] += d[i];
+      }
     }
     break;
   }

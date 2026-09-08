@@ -1,8 +1,7 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-void vm_species_source_init(
-  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src)
+void vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src)
 {
   int vdim = app->vdim;
   src->calc_bflux = false;
@@ -62,7 +61,8 @@ void vm_species_source_init(
 }
 
 void vm_species_source_calc(
-  gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src, double tm)
+  gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src, double tm
+)
 {
   if (s->source_id) {
     if (src->num_sources > 1) {
@@ -78,8 +78,10 @@ void vm_species_source_calc(
 }
 
 // computes rhs of the boundary flux
-void vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
-  struct vm_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
+void vm_species_source_rhs(
+  gkyl_vlasov_app *app, const struct vm_species *species, struct vm_source *src,
+  const struct gkyl_array *fin[], struct gkyl_array *rhs[]
+)
 {
   int species_idx;
   species_idx = vm_find_species_idx(app, species->info.name);
@@ -87,7 +89,7 @@ void vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *specie
   if (src->calc_bflux) {
     src->scale_factor = 0.0;
     double z[app->confBasis.num_basis];
-    double red_mom[1] = { 0.0 };
+    double red_mom[1] = {0.0};
 
     for (int d = 0; d < app->cdim; ++d) {
       gkyl_array_reduce(src->scale_ptr, src->source_species->bflux.mom_arr[2 * d], GKYL_SUM);
@@ -96,7 +98,7 @@ void vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *specie
       } else {
         red_mom[0] = src->scale_ptr[0];
       }
-      double red_mom_global[1] = { 0.0 };
+      double red_mom_global[1] = {0.0};
       gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
       src->scale_factor += red_mom_global[0];
       gkyl_array_reduce(src->scale_ptr, src->source_species->bflux.mom_arr[2 * d + 1], GKYL_SUM);

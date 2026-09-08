@@ -48,12 +48,15 @@ struct gkyl_dg_recomb *gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool u
   long sz = data.NT * data.NN;
   double minmax[2];
 
-  if (data.logT == NULL)
+  if (data.logT == NULL) {
     fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file.");
-  if (data.logN == NULL)
+  }
+  if (data.logN == NULL) {
     fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file.");
-  if (data.logData == NULL)
+  }
+  if (data.logData == NULL) {
     fprintf(stderr, "Unable to load ADAS 'recomb_<elem>.npy' file.");
+  }
 
   minmax_from_numpy(data.logT, data.NT, minmax);
   fclose(data.logT);
@@ -72,12 +75,14 @@ struct gkyl_dg_recomb *gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool u
   }
 
   struct gkyl_range range_nodal;
-  gkyl_range_init_from_shape(&range_nodal, 2, (int[]){ data.NT, data.NN });
+  gkyl_range_init_from_shape(&range_nodal, 2, (int[]){data.NT, data.NN});
 
   // allocate grid and DG array
   struct gkyl_rect_grid tn_grid;
-  gkyl_rect_grid_init(&tn_grid, 2, (double[]){ logTmin, logNmin }, (double[]){ logTmax, logNmax },
-    (int[]){ data.NT - 1, data.NN - 1 });
+  gkyl_rect_grid_init(
+    &tn_grid, 2, (double[]){logTmin, logNmin}, (double[]){logTmax, logNmax},
+    (int[]){data.NT - 1, data.NN - 1}
+  );
 
   if (use_gpu) {
     // allocate device basis if we are using GPUs
@@ -86,10 +91,11 @@ struct gkyl_dg_recomb *gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool u
     up->basis_on_dev = &up->adas_basis;
   }
   gkyl_cart_modal_serendip(&up->adas_basis, 2, 1);
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cart_modal_serendip_cu_dev(up->basis_on_dev, 2, 1);
+  }
 
-  int ghost[GKYL_MAX_DIM] = { 1, 1 };
+  int ghost[GKYL_MAX_DIM] = {1, 1};
   struct gkyl_range modal_range;
   struct gkyl_range modal_range_ext;
   gkyl_create_grid_ranges(&tn_grid, ghost, &modal_range_ext, &modal_range);
@@ -101,7 +107,8 @@ struct gkyl_dg_recomb *gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool u
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
   gkyl_nodal_ops_n2m(
-    n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg, false);
+    n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg, false
+  );
   gkyl_nodal_ops_release(n2m);
 
   // ADAS data pointers
@@ -133,8 +140,10 @@ struct gkyl_dg_recomb *gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool u
   return up;
 }
 
-void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up, const struct gkyl_array *prim_vars_elc,
-  struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
+void gkyl_dg_recomb_coll(
+  const struct gkyl_dg_recomb *up, const struct gkyl_array *prim_vars_elc,
+  struct gkyl_array *coef_recomb, struct gkyl_array *cflrate
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(coef_recomb)) {
@@ -143,9 +152,10 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up, const struct gkyl_arra
 #endif
 
   struct gkyl_range_iter conf_iter, vel_iter;
-  int rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d = 0; d < up->conf_rng->ndim; ++d)
+  int rem_dir[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < up->conf_rng->ndim; ++d) {
     rem_dir[d] = 1;
+  }
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
@@ -172,8 +182,9 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up, const struct gkyl_arra
     } else if (log_Te_av > up->maxLogTe) {
       t_idx = up->resTe;
       log_Te_av = up->maxLogTe;
-    } else
+    } else {
       t_idx = (log_Te_av - up->minLogTe) / (up->dlogTe) + 1;
+    }
     cell_center = (t_idx - 0.5) * up->dlogTe + up->minLogTe;
     cell_vals_2d[0] = 2.0 * (log_Te_av - cell_center) / up->dlogTe; // Te value on cell interval
 
@@ -183,8 +194,9 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up, const struct gkyl_arra
     } else if (log_m0_av > up->maxLogM0) {
       m0_idx = up->resM0;
       log_m0_av = up->maxLogM0;
-    } else
+    } else {
       m0_idx = (log_m0_av - up->minLogM0) / (up->dlogM0) + 1;
+    }
     cell_center = (m0_idx - 0.5) * up->dlogM0 + up->minLogM0;
     cell_vals_2d[1] = 2.0 * (log_m0_av - cell_center) / up->dlogM0; // M0 value on cell interval
 
@@ -192,7 +204,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up, const struct gkyl_arra
       coef_recomb_d[0] = 0.0;
     } else {
       double *recomb_dat_d =
-        gkyl_array_fetch(up->recomb_data, gkyl_range_idx(&up->adas_rng, (int[2]){ t_idx, m0_idx }));
+        gkyl_array_fetch(up->recomb_data, gkyl_range_idx(&up->adas_rng, (int[2]){t_idx, m0_idx}));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
       coef_recomb_d[0] = pow(10.0, adas_eval) / cell_av_fac;
     }

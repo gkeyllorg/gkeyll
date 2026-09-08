@@ -14,8 +14,9 @@ __global__ void ker_dev_cu_malloc_array(double **arr, int narr, int nelem, int *
 
   for (int k = 0; k < narr; k++) {
     double *arr_d = arr[k];
-    for (int i = 0; i < nelem; i++)
+    for (int i = 0; i < nelem; i++) {
       GKYL_CU_CHECK(arr_d[i] == (double)(nelem * k + i), nfail);
+    }
   }
 }
 

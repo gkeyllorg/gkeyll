@@ -22,9 +22,11 @@ struct gkyl_wv_apply_bc {
   struct gkyl_range skin, ghost; // skin and ghost ranges
 };
 
-gkyl_wv_apply_bc *gkyl_wv_apply_bc_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_wv_eqn *eqn, const struct gkyl_wave_geom *geom, int dir,
-  enum gkyl_edge_loc edge, const int *nghost, wv_bc_func_t bcfunc, void *ctx)
+gkyl_wv_apply_bc *gkyl_wv_apply_bc_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_wv_eqn *eqn,
+  const struct gkyl_wave_geom *geom, int dir, enum gkyl_edge_loc edge, const int *nghost,
+  wv_bc_func_t bcfunc, void *ctx
+)
 {
   gkyl_wv_apply_bc *up = gkyl_malloc(sizeof(gkyl_wv_apply_bc));
 
@@ -47,8 +49,9 @@ gkyl_wv_apply_bc *gkyl_wv_apply_bc_new(const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
-  const struct gkyl_range *update_rng, struct gkyl_array *out)
+void gkyl_wv_apply_bc_advance(
+  const gkyl_wv_apply_bc *bc, double tm, const struct gkyl_range *update_rng, struct gkyl_array *out
+)
 {
   enum gkyl_edge_loc edge = bc->edge;
   int dir = bc->dir, ndim = bc->grid.ndim, ncomp = out->ncomp;
@@ -57,10 +60,12 @@ void gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
   double skin_local[meqn], ghost_local[meqn];
 
   // return immediately if update region does not touch boundary
-  if ((edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir]))
+  if ((edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir])) {
     return;
-  if ((edge == GKYL_UPPER_EDGE) && (update_rng->upper[dir] < bc->range.upper[dir]))
+  }
+  if ((edge == GKYL_UPPER_EDGE) && (update_rng->upper[dir] < bc->range.upper[dir])) {
     return;
+  }
 
   // compute intersection for region to update
   struct gkyl_range up_range;
@@ -104,20 +109,24 @@ void gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
     const struct gkyl_wave_cell_geom *wg = gkyl_wave_geom_get(bc->geom, eidx);
 
     // rotate skin data to local coordinates
-    gkyl_wv_eqn_rotate_to_local(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir],
-      gkyl_array_fetch(out, sloc), skin_local);
+    gkyl_wv_eqn_rotate_to_local(
+      bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir], gkyl_array_fetch(out, sloc), skin_local
+    );
 
     // apply boundary condition in local coordinates
     bc->bcfunc(bc->eqn, tm, ncomp, skin_local, ghost_local, bc->ctx);
 
     // rotate back to global
-    gkyl_wv_eqn_rotate_to_global(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir], ghost_local,
-      gkyl_array_fetch(out, gloc));
+    gkyl_wv_eqn_rotate_to_global(
+      bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir], ghost_local, gkyl_array_fetch(out, gloc)
+    );
   }
 }
 
-void gkyl_wv_apply_bc_to_buff(const gkyl_wv_apply_bc *bc, double tm,
-  const struct gkyl_range *update_rng, const struct gkyl_array *inp, double *buffer)
+void gkyl_wv_apply_bc_to_buff(
+  const gkyl_wv_apply_bc *bc, double tm, const struct gkyl_range *update_rng,
+  const struct gkyl_array *inp, double *buffer
+)
 {
   enum gkyl_edge_loc edge = bc->edge;
   int dir = bc->dir, ndim = bc->grid.ndim, ncomp = inp->ncomp;
@@ -126,10 +135,12 @@ void gkyl_wv_apply_bc_to_buff(const gkyl_wv_apply_bc *bc, double tm,
   double skin_local[meqn], ghost_local[meqn];
 
   // return immediately if update region does not touch boundary
-  if ((edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir]))
+  if ((edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir])) {
     return;
-  if ((edge == GKYL_UPPER_EDGE) && (update_rng->upper[dir] < bc->range.upper[dir]))
+  }
+  if ((edge == GKYL_UPPER_EDGE) && (update_rng->upper[dir] < bc->range.upper[dir])) {
     return;
+  }
 
   // compute intersection for region to update
   struct gkyl_range up_range;
@@ -169,8 +180,10 @@ void gkyl_wv_apply_bc_to_buff(const gkyl_wv_apply_bc *bc, double tm,
     const struct gkyl_wave_cell_geom *wgs = gkyl_wave_geom_get(bc->geom, sidx);
 
     // rotate skin data to local coordinates of skin-cell edge
-    gkyl_wv_eqn_rotate_to_local(bc->eqn, wgs->tau1[dir], wgs->tau2[dir], wgs->norm[dir],
-      gkyl_array_cfetch(inp, sloc), skin_local);
+    gkyl_wv_eqn_rotate_to_local(
+      bc->eqn, wgs->tau1[dir], wgs->tau2[dir], wgs->norm[dir], gkyl_array_cfetch(inp, sloc),
+      skin_local
+    );
 
     // apply boundary condition in local coordinates
     bc->bcfunc(bc->eqn, tm, ncomp, skin_local, ghost_local, bc->ctx);
@@ -178,7 +191,8 @@ void gkyl_wv_apply_bc_to_buff(const gkyl_wv_apply_bc *bc, double tm,
     // rotate back to global coordinates as defined on ghost cell edge
     const struct gkyl_wave_cell_geom *wgg = gkyl_wave_geom_get(bc->geom, gidx);
     gkyl_wv_eqn_rotate_to_global(
-      bc->eqn, wgg->tau1[dir], wgg->tau2[dir], wgg->norm[dir], ghost_local, buffer + meqn * count);
+      bc->eqn, wgg->tau1[dir], wgg->tau2[dir], wgg->norm[dir], ghost_local, buffer + meqn * count
+    );
 
     count += 1;
   }

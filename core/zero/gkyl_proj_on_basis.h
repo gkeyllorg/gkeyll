@@ -51,8 +51,10 @@ gkyl_proj_on_basis *gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp 
  * @param ctx Context for function evaluation. Can be NULL.
  * @return New updater pointer.
  */
-gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, int num_quad, int num_ret_vals, evalf_t eval, void *ctx);
+gkyl_proj_on_basis *gkyl_proj_on_basis_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_quad, int num_ret_vals,
+  evalf_t eval, void *ctx
+);
 
 /**
  * Compute projection on basis. The update_rng MUST be a sub-range of
@@ -65,8 +67,10 @@ gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
  * @param update_rng Range on which to run projection.
  * @param out Output array
  */
-void gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *pob, double tm,
-  const struct gkyl_range *update_rng, struct gkyl_array *out);
+void gkyl_proj_on_basis_advance(
+  const gkyl_proj_on_basis *pob, double tm, const struct gkyl_range *update_rng,
+  struct gkyl_array *out
+);
 
 /**
  * Perform the quadrature in the proj_on_basis procedure.
@@ -77,7 +81,8 @@ void gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *pob, double tm,
  * @param f Output projected function in one cell.
  */
 void gkyl_proj_on_basis_quad(
-  const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double *f);
+  const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double *f
+);
 
 /**
  * Return the total number of quadrature points/ordinates.

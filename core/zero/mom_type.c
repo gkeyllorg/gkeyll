@@ -17,8 +17,10 @@ void gkyl_mom_type_release(const struct gkyl_mom_type *momt)
   gkyl_ref_count_dec(&momt->ref_count);
 }
 
-void gkyl_mom_type_calc(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double *GKYL_RESTRICT out, void *param)
+void gkyl_mom_type_calc(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *GKYL_RESTRICT out, void *param
+)
 {
   momt->kernel(momt, xc, dx, idx, f, out, param);
 }

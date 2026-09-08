@@ -16,10 +16,11 @@
 static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
-  if (on_gpu)
+  if (on_gpu) {
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
+  } else {
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  }
   return a;
 }
 
@@ -50,16 +51,17 @@ void eval_distf_1x2v(double t, const double *xn, double *restrict fout, void *ct
             exp(-(pow(vx - ux, 2) + pow(vy - uy, 2)) / (2.0 * vtsq));
 
   // Intentionally set some places to be negative.
-  if (fabs(vx) > 0.8 * tctx->vx_max || fabs(vy) > 0.8 * tctx->vy_max)
+  if (fabs(vx) > 0.8 * tctx->vx_max || fabs(vy) > 0.8 * tctx->vy_max) {
     fout[0] = -0.2 * (n0 / pow(2.0 * M_PI * vtsq, vdim / 2.0));
+  }
 }
 
 void test_1x2v(int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double vx_max = 6.0, vy_max = 6.0;
-  double lower[] = { 0.0, -vx_max, -vy_max }, upper[] = { 1.0, vx_max, vy_max };
-  int cells[] = { 2, 12, 8 };
+  double lower[] = {0.0, -vx_max, -vy_max}, upper[] = {1.0, vx_max, vy_max};
+  int cells[] = {2, 12, 8};
 
   int ndim = sizeof(cells) / sizeof(cells[0]);
   int vdim = ndim - cdim;
@@ -100,26 +102,29 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Basis functions.
   struct gkyl_basis basis, confBasis;
-  if (poly_order == 1)
+  if (poly_order == 1) {
     gkyl_cart_modal_tensor(&basis, ndim, poly_order);
-  else
+  } else {
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = { 0 };
-  for (int d = 0; d < cdim; d++)
+  int confGhost[GKYL_MAX_CDIM] = {0};
+  for (int d = 0; d < cdim; d++) {
     confGhost[d] = 1;
+  }
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[3] = { 0 };
+  int velGhost[3] = {0};
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[GKYL_MAX_DIM] = { 0 };
-  for (int d = 0; d < cdim; d++)
+  int ghost[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < cdim; d++) {
     ghost[d] = confGhost[d];
+  }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -127,8 +132,9 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_array *distf_ho, *distf;
   distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   distf_ho = distf;
-  if (use_gpu)
+  if (use_gpu) {
     distf_ho = mkarr(false, distf->ncomp, distf->size);
+  }
   gkyl_proj_on_basis *proj_distf =
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_distf_1x2v, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
@@ -136,7 +142,8 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Compute M0 of the original f.
   struct gkyl_dg_updater_moment *m0_mom_up = gkyl_dg_updater_moment_new(
-    &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0, false, use_gpu);
+    &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0, false, use_gpu
+  );
   struct gkyl_array *m0_pre = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
   gkyl_dg_updater_moment_advance(m0_mom_up, &local, &confLocal, distf, m0_pre);
 
@@ -147,23 +154,26 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Compute the integrated moments of the original f.
   struct gkyl_dg_updater_moment *int_mom_up = gkyl_dg_updater_moment_new(
-    &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
+    &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0M1M2, true, use_gpu
+  );
 
   int num_mom = gkyl_dg_updater_moment_num_mom(int_mom_up);
   struct gkyl_array *intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
   double *red_intmom;
-  if (use_gpu)
+  if (use_gpu) {
     red_intmom = gkyl_cu_malloc(sizeof(double[num_mom]));
-  else
+  } else {
     red_intmom = gkyl_malloc(sizeof(double[num_mom]));
+  }
 
   gkyl_dg_updater_moment_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
   gkyl_array_reduce_range(red_intmom, intmom_grid, GKYL_SUM, &confLocal);
   double intmom_pre[num_mom];
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intmom_pre, red_intmom, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intmom_pre, red_intmom, sizeof(double[num_mom]));
+  }
 
   //  printf("\nintmom_pre = %16.14e %16.14e %16.14e %16.14e\n",intmom_pre[0],intmom_pre[1],intmom_pre[2],intmom_pre[3]);
   //  // Write distribution function to file.
@@ -204,20 +214,22 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_dg_updater_moment_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
   gkyl_array_reduce_range(red_intmom, intmom_grid, GKYL_SUM, &confLocal);
   double intmom_post[num_mom];
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intmom_post, red_intmom, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intmom_post, red_intmom, sizeof(double[num_mom]));
+  }
 
   // Compute the integrated moments of the shift.
   struct gkyl_array *ps_intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
   gkyl_dg_updater_moment_advance(int_mom_up, &local, &confLocal, deltaf, ps_intmom_grid);
   gkyl_array_reduce_range(red_intmom, ps_intmom_grid, GKYL_SUM, &confLocal);
   double intmom_shift[num_mom];
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intmom_shift, red_intmom, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intmom_shift, red_intmom, sizeof(double[num_mom]));
+  }
 
   //  printf("intmom_post = %16.14e %16.14e %16.14e %16.14e\n",intmom_post[0],intmom_post[1],intmom_post[2],intmom_post[3]);
   //  printf("intmom_shift = %16.14e %16.14e %16.14e %16.14e\n",intmom_shift[0],intmom_shift[1],intmom_shift[2],intmom_shift[3]);
@@ -229,16 +241,20 @@ void test_1x2v(int poly_order, bool use_gpu)
   // Check the integrated moments.
   TEST_CHECK(gkyl_compare(intmom_shift[0], -4.22405166400353e-16, 1e-10));
   TEST_MSG(
-    "intmom_shift[0]: produced: %.14e | expected: %.14e", intmom_shift[0], -4.22405166400353e-16);
+    "intmom_shift[0]: produced: %.14e | expected: %.14e", intmom_shift[0], -4.22405166400353e-16
+  );
   TEST_CHECK(gkyl_compare(intmom_shift[1], 4.16333634234434e-16, 1e-10));
   TEST_MSG(
-    "intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1], 4.16333634234434e-16);
+    "intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1], 4.16333634234434e-16
+  );
   TEST_CHECK(gkyl_compare(intmom_shift[2], 1.38777878078145e-17, 1e-10));
   TEST_MSG(
-    "intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2], 1.38777878078145e-17);
+    "intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2], 1.38777878078145e-17
+  );
   TEST_CHECK(gkyl_compare(intmom_shift[3], 2.09905432920501e+01, 1e-10));
   TEST_MSG(
-    "intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3], 2.09905432920501e+01);
+    "intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3], 2.09905432920501e+01
+  );
 
   gkyl_array_release(distf);
   gkyl_array_release(deltaf);
@@ -270,8 +286,10 @@ void test_positivity_shift_vlasov_1x2v_dev()
   test_1x2v(1, true);
 }
 
-TEST_LIST = { { "test_positivity_shift_vlasov_1x2v_ho", test_positivity_shift_vlasov_1x2v_ho },
+TEST_LIST = {
+  {"test_positivity_shift_vlasov_1x2v_ho", test_positivity_shift_vlasov_1x2v_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_positivity_shift_vlasov_1x2v_dev", test_positivity_shift_vlasov_1x2v_dev },
+  {"test_positivity_shift_vlasov_1x2v_dev", test_positivity_shift_vlasov_1x2v_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

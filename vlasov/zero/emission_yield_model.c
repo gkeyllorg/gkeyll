@@ -3,14 +3,16 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_new(double charge,
-  double deltahat_ts, double Ehat_ts, double t1, double t2, double t3, double t4, double s,
-  bool use_gpu)
+struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_new(
+  double charge, double deltahat_ts, double Ehat_ts, double t1, double t2, double t3, double t4,
+  double s, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     return gkyl_emission_yield_furman_pivi_cu_dev_new(
-      charge, deltahat_ts, Ehat_ts, t1, t2, t3, t4, s);
+      charge, deltahat_ts, Ehat_ts, t1, t2, t3, t4, s
+    );
   }
 #endif
   struct gkyl_emission_yield_furman_pivi *model =
@@ -33,8 +35,10 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_new(double cha
   return &model->yield;
 }
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_schou_new(double charge, double int_wall,
-  double a2, double a3, double a4, double a5, double nw, bool use_gpu)
+struct gkyl_emission_yield_model *gkyl_emission_yield_schou_new(
+  double charge, double int_wall, double a2, double a3, double a4, double a5, double nw,
+  bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -59,14 +63,16 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_schou_new(double charge, d
   return &model->yield;
 }
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_schou_srim_new(double charge, double int_wall,
-  double lorentz_norm, double E0, double tau, double alpha, double beta, double gauss_norm,
-  double gauss_E0, double gauss_tau, bool use_gpu)
+struct gkyl_emission_yield_model *gkyl_emission_yield_schou_srim_new(
+  double charge, double int_wall, double lorentz_norm, double E0, double tau, double alpha,
+  double beta, double gauss_norm, double gauss_E0, double gauss_tau, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     return gkyl_emission_yield_schou_srim_cu_dev_new(
-      charge, int_wall, lorentz_norm, E0, tau, alpha, beta, gauss_norm, gauss_E0, gauss_tau);
+      charge, int_wall, lorentz_norm, E0, tau, alpha, beta, gauss_norm, gauss_E0, gauss_tau
+    );
   }
 #endif
   struct gkyl_emission_yield_schou_srim *model =
@@ -91,8 +97,8 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_schou_srim_new(double char
   return &model->yield;
 }
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_constant_new(
-  double charge, double delta, bool use_gpu)
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_constant_new(double charge, double delta, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -118,8 +124,8 @@ bool gkyl_emission_yield_model_is_cu_dev(const struct gkyl_emission_yield_model 
   return GKYL_IS_CU_ALLOC(model->flags);
 }
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_model_acquire(
-  const struct gkyl_emission_yield_model *model)
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_model_acquire(const struct gkyl_emission_yield_model *model)
 {
   gkyl_ref_count_inc(&model->ref_count);
   return (struct gkyl_emission_yield_model *)model;

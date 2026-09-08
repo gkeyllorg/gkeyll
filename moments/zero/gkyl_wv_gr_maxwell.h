@@ -35,9 +35,10 @@ struct gkyl_wv_gr_maxwell_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the general relativistic Maxwell equations object.
 */
-struct gkyl_wv_eqn *gkyl_wv_gr_maxwell_new(double light_speed, double e_fact, double b_fact,
-  enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
-  bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_gr_maxwell_new(
+  double light_speed, double e_fact, double b_fact, enum gkyl_spacetime_gauge spacetime_gauge,
+  int reinit_freq, struct gkyl_gr_spacetime *spacetime, bool use_gpu
+);
 
 /**
 * Create a new general relativistic Maxwell equations object, from an input context struct.

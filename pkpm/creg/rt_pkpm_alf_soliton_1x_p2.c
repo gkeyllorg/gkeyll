@@ -71,8 +71,7 @@ static inline double tanh2(double x)
   return tanh(x) * tanh(x);
 }
 
-void evalDistFuncElc(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_alf_ctx *app = ctx;
 
@@ -102,8 +101,7 @@ void evalDistFuncElc(
   fout[0] = fv;
   fout[1] = vt_elc * vt_elc * fv;
 }
-void evalDistFuncIon(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_alf_ctx *app = ctx;
 
@@ -282,7 +280,8 @@ struct pkpm_alf_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   double init_dt = (Lx / Nx) / (5.0);
 
-  struct pkpm_alf_ctx ctx = { .epsilon0 = epsilon0,
+  struct pkpm_alf_ctx ctx = {
+    .epsilon0 = epsilon0,
     .mu0 = mu0,
     .chargeElc = chargeElc,
     .massElc = massElc,
@@ -308,7 +307,8 @@ struct pkpm_alf_ctx create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .init_dt = init_dt };
+    .init_dt = init_dt
+  };
   return ctx;
 }
 
@@ -345,49 +345,57 @@ int main(int argc, char **argv)
   }
 
   // electrons
-  struct gkyl_pkpm_species elc = { .name = "elc",
+  struct gkyl_pkpm_species elc = {
+    .name = "elc",
     .charge = ctx.chargeElc,
     .mass = ctx.massElc,
-    .lower = { -6.0 * ctx.vt_elc },
-    .upper = { 6.0 * ctx.vt_elc },
-    .cells = { VX },
+    .lower = {-6.0 * ctx.vt_elc},
+    .upper = {6.0 * ctx.vt_elc},
+    .cells = {VX},
 
     .ctx_dist = &ctx,
     .ctx_fluid = &ctx,
     .init_dist = evalDistFuncElc,
     .init_fluid = evalFluidElc,
 
-    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
+    .collisions =
+      {.collision_id = GKYL_LBO_COLLISIONS,
 
-      .ctx = &ctx,
-      .self_nu = evalNuElc } };
+       .ctx = &ctx,
+       .self_nu = evalNuElc}
+  };
 
   // ions
-  struct gkyl_pkpm_species ion = { .name = "ion",
+  struct gkyl_pkpm_species ion = {
+    .name = "ion",
     .charge = ctx.chargeIon,
     .mass = ctx.massIon,
-    .lower = { -6.0 * ctx.vt_ion },
-    .upper = { 6.0 * ctx.vt_ion },
-    .cells = { VX },
+    .lower = {-6.0 * ctx.vt_ion},
+    .upper = {6.0 * ctx.vt_ion},
+    .cells = {VX},
 
     .ctx_dist = &ctx,
     .ctx_fluid = &ctx,
     .init_dist = evalDistFuncIon,
     .init_fluid = evalFluidIon,
 
-    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
+    .collisions =
+      {.collision_id = GKYL_LBO_COLLISIONS,
 
-      .ctx = &ctx,
-      .self_nu = evalNuIon } };
+       .ctx = &ctx,
+       .self_nu = evalNuIon}
+  };
 
   // field
-  struct gkyl_pkpm_field field = { .epsilon0 = 1.0,
+  struct gkyl_pkpm_field field = {
+    .epsilon0 = 1.0,
     .mu0 = 1.0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc };
+    .init = evalFieldFunc
+  };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -401,18 +409,18 @@ int main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){.mpi_comm = MPI_COMM_WORLD});
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -420,7 +428,7 @@ int main(int argc, char **argv)
   int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
-  int ccells[] = { NX };
+  int ccells[] = {NX};
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
   int ncuts = 1;
   for (int d = 0; d < cdim; d++) {
@@ -429,8 +437,7 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -440,9 +447,9 @@ int main(int argc, char **argv)
 
     .cdim = 1,
     .vdim = 1,
-    .lower = { -ctx.Lx },
-    .upper = { ctx.Lx },
-    .cells = { NX },
+    .lower = {-ctx.Lx},
+    .upper = {ctx.Lx},
+    .cells = {NX},
     .poly_order = 2,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
@@ -450,13 +457,13 @@ int main(int argc, char **argv)
     // .use_explicit_source = true,
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = {0},
 
     .num_species = 2,
-    .species = { elc, ion },
+    .species = {elc, ion},
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // create app object
@@ -470,7 +477,7 @@ int main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  struct gkyl_tm_trigger io_trig = {.dt = t_end / num_frames};
 
   // initialize simulation
   gkyl_pkpm_app_apply_ic(app, t_curr);
@@ -507,7 +514,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_pkpm_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_pkpm_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
         break;
       }
     } else {
@@ -528,24 +536,31 @@ int main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
     gkyl_pkpm_app_cout(
-      app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+      app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]
+    );
     gkyl_pkpm_app_cout(
-      app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+      app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]
+    );
   }
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_pkpm_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
   gkyl_pkpm_app_cout(
-    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
+  );
   gkyl_pkpm_app_cout(
-    app, stdout, "Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
+    app, stdout, "Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm
+  );
   gkyl_pkpm_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_pkpm_app_cout(app, stdout, "Species PKPM Vars took %g secs\n", stat.species_pkpm_vars_tm);
   gkyl_pkpm_app_cout(
-    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
+  );
   gkyl_pkpm_app_cout(
-    app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm);
+    app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm
+  );
   gkyl_pkpm_app_cout(
-    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm
+  );
 
   gkyl_pkpm_app_cout(app, stdout, "Species BCs took %g secs\n", stat.species_bc_tm);
   gkyl_pkpm_app_cout(app, stdout, "Fluid Species BCs took %g secs\n", stat.fluid_species_bc_tm);
@@ -563,8 +578,9 @@ int main(int argc, char **argv)
 
 mpifinalize:;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   return 0;

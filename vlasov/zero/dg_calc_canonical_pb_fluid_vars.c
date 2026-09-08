@@ -12,12 +12,14 @@
 gkyl_dg_calc_canonical_pb_fluid_vars *gkyl_dg_calc_canonical_pb_fluid_vars_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_ext_range,
-  const struct gkyl_wv_eqn *wv_eqn, bool use_gpu)
+  const struct gkyl_wv_eqn *wv_eqn, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     return gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(
-      conf_grid, conf_basis, conf_range, conf_ext_range, wv_eqn);
+      conf_grid, conf_basis, conf_range, conf_ext_range, wv_eqn
+    );
   }
 #endif
   gkyl_dg_calc_canonical_pb_fluid_vars *up =
@@ -56,8 +58,9 @@ gkyl_dg_calc_canonical_pb_fluid_vars *gkyl_dg_calc_canonical_pb_fluid_vars_new(
       gkyl_range_init(&up->x_local, 1, &conf_range->lower[0], &conf_range->upper[0]);
       gkyl_range_init(&up->x_local_ext, 1, &conf_ext_range->lower[0], &conf_ext_range->upper[0]);
       // Integration over y only, (x,y) to (x).
-      int int_dim_y[] = { 0, 1, 0 };
-      struct gkyl_array_average_inp inp_int_y = { .grid = &up->conf_grid,
+      int int_dim_y[] = {0, 1, 0};
+      struct gkyl_array_average_inp inp_int_y = {
+        .grid = &up->conf_grid,
         .basis = up->conf_basis,
         .basis_avg = basis_x,
         .local = conf_range,
@@ -65,7 +68,8 @@ gkyl_dg_calc_canonical_pb_fluid_vars *gkyl_dg_calc_canonical_pb_fluid_vars_new(
         .local_avg_ext = &up->x_local_ext,
         .weight = NULL,
         .avg_dim = int_dim_y,
-        .use_gpu = use_gpu };
+        .use_gpu = use_gpu
+      };
       up->int_y = gkyl_array_average_inew(&inp_int_y);
       up->phi_zonal = gkyl_array_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
       up->n_zonal = gkyl_array_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
@@ -97,12 +101,14 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_array *phi,
   struct gkyl_array *alpha_surf, struct gkyl_array *sgn_alpha_surf,
-  struct gkyl_array *const_sgn_alpha)
+  struct gkyl_array *const_sgn_alpha
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_surf)) {
     return gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu(
-      up, conf_range, conf_ext_range, phi, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
+      up, conf_range, conf_ext_range, phi, alpha_surf, sgn_alpha_surf, const_sgn_alpha
+    );
   }
 #endif
   int cdim = up->cdim;
@@ -122,8 +128,10 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(
 
     // Fill in the configuration space alpha_surf
     for (int dir = 0; dir < cdim; ++dir) {
-      const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->conf_grid.dx,
-        (const double *)gkyl_array_cfetch(phi, loc), alpha_surf_d, sgn_alpha_surf_d);
+      const_sgn_alpha_d[dir] = up->alpha_surf[dir](
+        xc, up->conf_grid.dx, (const double *)gkyl_array_cfetch(phi, loc), alpha_surf_d,
+        sgn_alpha_surf_d
+      );
 
       // If the configuration space index is at the local configuration space upper value, we
       // we are at the configuration space upper edge and we also need to evaluate
@@ -138,16 +146,20 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(
         double *alpha_surf_ext_d = gkyl_array_fetch(alpha_surf, loc_ext);
         double *sgn_alpha_surf_ext_d = gkyl_array_fetch(sgn_alpha_surf, loc_ext);
         int *const_sgn_alpha_ext_d = gkyl_array_fetch(const_sgn_alpha, loc_ext);
-        const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->conf_grid.dx,
-          (const double *)gkyl_array_cfetch(phi, loc), alpha_surf_ext_d, sgn_alpha_surf_ext_d);
+        const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](
+          xc, up->conf_grid.dx, (const double *)gkyl_array_cfetch(phi, loc), alpha_surf_ext_d,
+          sgn_alpha_surf_ext_d
+        );
       }
     }
   }
 }
 
-void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *phi, const struct gkyl_array *n0,
-  const struct gkyl_array *fluid, struct gkyl_array *rhs)
+void gkyl_canonical_pb_fluid_vars_source(
+  struct gkyl_dg_calc_canonical_pb_fluid_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *phi, const struct gkyl_array *n0, const struct gkyl_array *fluid,
+  struct gkyl_array *rhs
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(rhs)) {
@@ -198,11 +210,13 @@ void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_
 
     double *rhs_d = gkyl_array_fetch(rhs, loc);
 
-    up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, phi_d, n0_d,
+    up->canonical_pb_fluid_source(
+      up->conf_grid.dx, up->alpha, phi_d, n0_d,
       up->adiabatic_coupling_phi_n ?
         (const double *)gkyl_array_cfetch(up->adiabatic_coupling_phi_n, loc) :
         0,
-      rhs_d);
+      rhs_d
+    );
   }
 }
 

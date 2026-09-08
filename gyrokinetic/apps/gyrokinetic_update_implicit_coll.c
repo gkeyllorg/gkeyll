@@ -7,7 +7,7 @@ void gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
   // Add contribution from implicit collision terms.
   double tcurr = app->tcurr, dt = dt0;
 
-  struct gkyl_update_status st = { .success = true };
+  struct gkyl_update_status st = {.success = true};
 
   const int ns = app->num_species;
   struct gkyl_array *fin[ns];
@@ -39,7 +39,8 @@ void gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
 
   // Compute df/dt from implicit terms.
   gyrokinetic_rhs_implicit(
-    app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, &st);
+    app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, &st
+  );
 
   // Apply boundary conditions and copy solution.
   gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);

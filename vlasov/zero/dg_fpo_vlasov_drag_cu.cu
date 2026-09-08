@@ -16,7 +16,8 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void gkyl_fpo_vlasov_drag_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *h)
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *h
+)
 {
   struct dg_fpo_vlasov_drag *fpo_vlasov_drag = container_of(eqn, struct dg_fpo_vlasov_drag, eqn);
   fpo_vlasov_drag->auxfields.h = h;
@@ -24,7 +25,8 @@ __global__ static void gkyl_fpo_vlasov_drag_set_auxfields_cu_kernel(
 
 //// Host-side wrapper for device kernels setting g (second Rosenbluth potential).
 void gkyl_fpo_vlasov_drag_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_drag_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_drag_auxfields auxin
+)
 {
   gkyl_fpo_vlasov_drag_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.h->on_dev);
 }
@@ -32,7 +34,8 @@ void gkyl_fpo_vlasov_drag_set_auxfields_cu(
 // CUDA kernel to set device pointers to range object and vlasov fpo kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void dg_fpo_vlasov_drag_set_cu_dev_ptrs(
-  struct dg_fpo_vlasov_drag *fpo_vlasov_drag, enum gkyl_basis_type b_type, int cdim, int poly_order)
+  struct dg_fpo_vlasov_drag *fpo_vlasov_drag, enum gkyl_basis_type b_type, int cdim, int poly_order
+)
 {
   fpo_vlasov_drag->auxfields.h = 0;
 
@@ -73,7 +76,8 @@ __global__ static void dg_fpo_vlasov_drag_set_cu_dev_ptrs(
 }
 
 struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_cu_dev_new(
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range
+)
 {
   struct dg_fpo_vlasov_drag *fpo_vlasov_drag =
     (struct dg_fpo_vlasov_drag *)gkyl_malloc(sizeof(struct dg_fpo_vlasov_drag));
@@ -97,10 +101,12 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_cu_dev_new(
     (struct dg_fpo_vlasov_drag *)gkyl_cu_malloc(sizeof(struct dg_fpo_vlasov_drag));
 
   gkyl_cu_memcpy(
-    fpo_vlasov_drag_cu, fpo_vlasov_drag, sizeof(struct dg_fpo_vlasov_drag), GKYL_CU_MEMCPY_H2D);
+    fpo_vlasov_drag_cu, fpo_vlasov_drag, sizeof(struct dg_fpo_vlasov_drag), GKYL_CU_MEMCPY_H2D
+  );
 
   dg_fpo_vlasov_drag_set_cu_dev_ptrs<<<1, 1> > >(
-    fpo_vlasov_drag_cu, pbasis->b_type, cdim, poly_order);
+    fpo_vlasov_drag_cu, pbasis->b_type, cdim, poly_order
+  );
 
   fpo_vlasov_drag->eqn.on_dev = &fpo_vlasov_drag_cu->eqn;
 

@@ -7,10 +7,11 @@ extern "C" {
 #include <gkyl_range.h>
 }
 
-__global__ static void gkyl_proj_powsqrt_on_basis_advance_cu_ker(int num_quad,
-  const struct gkyl_range range, const struct gkyl_array *GKYL_RESTRICT basis_at_ords,
+__global__ static void gkyl_proj_powsqrt_on_basis_advance_cu_ker(
+  int num_quad, const struct gkyl_range range, const struct gkyl_array *GKYL_RESTRICT basis_at_ords,
   const struct gkyl_array *GKYL_RESTRICT weights, double expIn,
-  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT fOut)
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT fOut
+)
 {
   int num_basis = basis_at_ords->ncomp;
   int tot_quad = basis_at_ords->size;
@@ -25,8 +26,9 @@ __global__ static void gkyl_proj_powsqrt_on_basis_advance_cu_ker(int num_quad,
     const double *fIn_d = (const double *)gkyl_array_cfetch(fIn, linidx);
 
     double *fOut_d = (double *)gkyl_array_fetch(fOut, linidx);
-    for (int k = 0; k < num_basis; ++k)
+    for (int k = 0; k < num_basis; ++k) {
       fOut_d[k] = 0.0;
+    }
 
     // Compute expansion coefficients of fOut using quadrature.
     const double *w_d = (const double *)weights->data;
@@ -37,25 +39,30 @@ __global__ static void gkyl_proj_powsqrt_on_basis_advance_cu_ker(int num_quad,
 
       // Evaluate input function f at quad point.
       double fIn_q = 0.;
-      for (int k = 0; k < num_basis; ++k)
+      for (int k = 0; k < num_basis; ++k) {
         fIn_q += fIn_d[k] * b_ord[k];
+      }
 
       // Evaluate pow(sqrt()) at quad point.
       double fOut_o = fIn_q < 0. ? 1.e-40 : pow(sqrt(fIn_q), expIn);
 
       // Compute expansion coefficients.
       double tmp = w_d[n] * fOut_o;
-      for (int k = 0; k < num_basis; ++k)
+      for (int k = 0; k < num_basis; ++k) {
         fOut_d[k] += tmp * bo_d[k + num_basis * n];
+      }
     }
   }
 }
 
-void gkyl_proj_powsqrt_on_basis_advance_cu(const gkyl_proj_powsqrt_on_basis *up,
-  const struct gkyl_range *range, double expIn, const struct gkyl_array *fIn,
-  struct gkyl_array *fOut)
+void gkyl_proj_powsqrt_on_basis_advance_cu(
+  const gkyl_proj_powsqrt_on_basis *up, const struct gkyl_range *range, double expIn,
+  const struct gkyl_array *fIn, struct gkyl_array *fOut
+)
 {
   int nblocks = range->nblocks, nthreads = range->nthreads;
-  gkyl_proj_powsqrt_on_basis_advance_cu_ker<<<nblocks, nthreads> > >(up->num_quad, *range,
-    up->basis_at_ords->on_dev, up->weights->on_dev, expIn, fIn->on_dev, fOut->on_dev);
+  gkyl_proj_powsqrt_on_basis_advance_cu_ker<<<nblocks, nthreads> > >(
+    up->num_quad, *range, up->basis_at_ords->on_dev, up->weights->on_dev, expIn, fIn->on_dev,
+    fOut->on_dev
+  );
 }

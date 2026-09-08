@@ -34,7 +34,8 @@ struct gkyl_dg_updater_diffusion_gyrokinetic *gkyl_dg_updater_diffusion_gyrokine
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir, int diff_order,
   const struct gkyl_range *diff_range, const bool *is_zero_flux_bc, const struct gkyl_array *coeff,
-  const struct gkyl_array *jacobgeo_inv, bool use_gpu);
+  const struct gkyl_array *jacobgeo_inv, bool use_gpu
+);
 
 /**
  * Acquire gyrokinetic diffusion equation object.
@@ -43,8 +44,8 @@ struct gkyl_dg_updater_diffusion_gyrokinetic *gkyl_dg_updater_diffusion_gyrokine
  * 
  * @return gyrokinetic diffusion equation object.
  */
-struct gkyl_dg_eqn *gkyl_dg_updater_diffusion_gyrokinetic_acquire_eqn(
-  const gkyl_dg_updater_diffusion_gyrokinetic *up);
+struct gkyl_dg_eqn *
+gkyl_dg_updater_diffusion_gyrokinetic_acquire_eqn(const gkyl_dg_updater_diffusion_gyrokinetic *up);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -58,9 +59,11 @@ struct gkyl_dg_eqn *gkyl_dg_updater_diffusion_gyrokinetic_acquire_eqn(
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_diffusion_gyrokinetic_advance(struct gkyl_dg_updater_diffusion_gyrokinetic *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
-  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs);
+void gkyl_dg_updater_diffusion_gyrokinetic_advance(
+  struct gkyl_dg_updater_diffusion_gyrokinetic *up, const struct gkyl_range *update_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
+  struct gkyl_array *GKYL_RESTRICT rhs
+);
 
 /**
  * Return total time spent in diffusion terms
@@ -68,13 +71,14 @@ void gkyl_dg_updater_diffusion_gyrokinetic_advance(struct gkyl_dg_updater_diffus
  * @param diffusion Updater object
  * @return timers
  */
-struct gkyl_dg_updater_diffusion_gyrokinetic_tm gkyl_dg_updater_diffusion_gyrokinetic_get_tm(
-  const struct gkyl_dg_updater_diffusion_gyrokinetic *up);
+struct gkyl_dg_updater_diffusion_gyrokinetic_tm
+gkyl_dg_updater_diffusion_gyrokinetic_get_tm(const struct gkyl_dg_updater_diffusion_gyrokinetic *up
+);
 
 /**
  * Delete updater.
  *
  * @param diffusion Updater to delete.
  */
-void gkyl_dg_updater_diffusion_gyrokinetic_release(
-  struct gkyl_dg_updater_diffusion_gyrokinetic *up);
+void gkyl_dg_updater_diffusion_gyrokinetic_release(struct gkyl_dg_updater_diffusion_gyrokinetic *up
+);

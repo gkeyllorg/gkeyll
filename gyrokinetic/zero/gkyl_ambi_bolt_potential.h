@@ -20,8 +20,10 @@ typedef struct gkyl_ambi_bolt_potential gkyl_ambi_bolt_potential;
  * @param use_gpu Boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_ambi_bolt_potential *gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, double mass_e, double charge_e, double temp_e, bool use_gpu);
+gkyl_ambi_bolt_potential *gkyl_ambi_bolt_potential_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, double mass_e, double charge_e,
+  double temp_e, bool use_gpu
+);
 
 /**
  * Compute the ion density and electrostatic potential at the sheath entrance.
@@ -43,11 +45,12 @@ gkyl_ambi_bolt_potential *gkyl_ambi_bolt_potential_new(const struct gkyl_rect_gr
  * @param Jm0i Ion number density times the conf-space Jacobian.
  * @param sheath_vals Ion number density and potential at the sheath entrance.
  */
-void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up,
-  enum gkyl_edge_loc edge, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
-  const struct gkyl_array *gammai, const struct gkyl_array *m0i, const struct gkyl_array *Jm0i,
-  struct gkyl_array *sheath_vals);
+void gkyl_ambi_bolt_potential_sheath_calc(
+  struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, const struct gkyl_array *cmag,
+  const struct gkyl_array *jacobtot_inv, const struct gkyl_array *gammai,
+  const struct gkyl_array *m0i, const struct gkyl_array *Jm0i, struct gkyl_array *sheath_vals
+);
 
 /**
  * Compute the electrostatic potential in the domain as
@@ -61,9 +64,11 @@ void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up,
  * @param sheath_vals Ion number density and potential at the sheath entrance.
  * @param phi electrostatic potential.
  */
-void gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
-  const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
-  const struct gkyl_array *m0i, const struct gkyl_array *sheath_vals, struct gkyl_array *phi);
+void gkyl_ambi_bolt_potential_phi_calc(
+  struct gkyl_ambi_bolt_potential *up, const struct gkyl_range *local_r,
+  const struct gkyl_range *extlocal_r, const struct gkyl_array *m0i,
+  const struct gkyl_array *sheath_vals, struct gkyl_array *phi
+);
 
 /**
  * Delete updater.

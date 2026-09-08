@@ -7,7 +7,8 @@
 #include <gkyl_array_ops_priv.h>
 
 gkyl_bgk_collisions *gkyl_bgk_collisions_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu)
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu
+)
 {
   gkyl_bgk_collisions *up = gkyl_malloc(sizeof(gkyl_bgk_collisions));
 
@@ -22,24 +23,28 @@ gkyl_bgk_collisions *gkyl_bgk_collisions_new(
 
   int poly_order = cbasis->poly_order;
   up->pb_type = pbasis->b_type;
-  if (!up->use_gpu)
+  if (!up->use_gpu) {
     up->mul_op = choose_mul_conf_phase_kern(up->pb_type, up->cdim, up->vdim, poly_order);
+  }
 
   up->cellav_fac = 1. / sqrt(pow(2, up->cdim));
 
   return up;
 }
 
-void gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up, const struct gkyl_range *crange,
-  const struct gkyl_range *prange, const struct gkyl_array *nu, const struct gkyl_array *nufM,
-  const struct gkyl_array *fin, bool implicit_step, double dt, struct gkyl_array *out,
-  struct gkyl_array *cflfreq)
+void gkyl_bgk_collisions_advance(
+  const gkyl_bgk_collisions *up, const struct gkyl_range *crange, const struct gkyl_range *prange,
+  const struct gkyl_array *nu, const struct gkyl_array *nufM, const struct gkyl_array *fin,
+  bool implicit_step, double dt, struct gkyl_array *out, struct gkyl_array *cflfreq
+)
 {
   // Compute nu*f_M - nu*f, and its contribution to the CFL rate.
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
     return gkyl_bgk_collisions_advance_cu(
-      up, crange, prange, nu, nufM, fin, implicit_step, dt, out, cflfreq);
+      up, crange, prange, nu, nufM, fin, implicit_step, dt, out, cflfreq
+    );
+  }
 #endif
 
   struct gkyl_range_iter piter;
@@ -57,7 +62,8 @@ void gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up, const struct gky
 
       // Add nu*f_M.
       array_acc1(
-        up->pnum_basis, out_d, 1. / (1.0 + nu_d[0] * cellav_fac_dt), gkyl_array_cfetch(nufM, ploc));
+        up->pnum_basis, out_d, 1. / (1.0 + nu_d[0] * cellav_fac_dt), gkyl_array_cfetch(nufM, ploc)
+      );
 
       // Calculate and add -nu*f.
       double incr[160]; // mul_op assigns, but need increment, so use a buffer.

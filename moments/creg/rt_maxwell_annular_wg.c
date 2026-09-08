@@ -79,7 +79,8 @@ struct annular_wg_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct annular_wg_ctx ctx = { .pi = pi,
+  struct annular_wg_ctx ctx = {
+    .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .w_mode = w_mode,
@@ -97,7 +98,8 @@ struct annular_wg_ctx create_ctx(void)
     .field_energy_writes = field_energy_writes,
     .integrated_mom_writes = integrated_mom_writes,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   return ctx;
 }
@@ -134,8 +136,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-static inline void mapc2p(
-  double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
+static inline void
+mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
 {
   double r = zc[0], theta = zc[1];
 
@@ -193,14 +195,16 @@ int main(int argc, char **argv)
   int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
 
   // Field.
-  struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
+  struct gkyl_moment_field field = {
+    .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
 
     .limiter = GKYL_NO_LIMITER,
     .init = evalFieldInit,
     .ctx = &ctx,
 
-    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL } };
+    .bcx = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL}
+  };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -210,7 +214,7 @@ int main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NR, NTHETA };
+  int cells[] = {NR, NTHETA};
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -232,12 +236,12 @@ int main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -252,8 +256,7 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -262,22 +265,21 @@ int main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = { 2.0, 0.0 },
-    .upper = { 2.0 + ctx.Lr, ctx.Ltheta },
-    .cells = { NR, NTHETA },
+    .lower = {2.0, 0.0},
+    .upper = {2.0 + ctx.Lr, ctx.Ltheta},
+    .cells = {NR, NTHETA},
 
     .mapc2p = mapc2p,
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
+    .periodic_dirs = {1},
 
     .cfl_frac = ctx.cfl_frac,
 
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
-      .comm = comm }
+    .parallelism =
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
   };
 
   // Create app object.
@@ -295,8 +297,10 @@ int main(int argc, char **argv)
       gkyl_moment_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+      gkyl_moment_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -369,7 +373,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
         break;
       }
     } else {

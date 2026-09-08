@@ -95,7 +95,8 @@ struct sodshock_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct sodshock_ctx ctx = { .mass = mass,
+  struct sodshock_ctx ctx = {
+    .mass = mass,
     .charge = charge,
     .nl = nl,
     .Tl = Tl,
@@ -121,13 +122,13 @@ struct sodshock_ctx create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   return ctx;
 }
 
-void evalDensityInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sodshock_ctx *app = ctx;
   double x = xn[0];
@@ -206,8 +207,7 @@ void evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[0] = nu;
 }
 
-void evalHamiltonian(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalHamiltonian(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double p_x_dot = xn[1], p_y_dot = xn[2];
 
@@ -274,7 +274,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr
 }
 
 void calc_field_energy(
-  struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc)
+  struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_field_energy(app, t_curr);
@@ -282,7 +283,8 @@ void calc_field_energy(
 }
 
 void calc_integrated_mom(
-  struct gkyl_tm_trigger *imt, gkyl_vlasov_app *app, double t_curr, bool force_calc)
+  struct gkyl_tm_trigger *imt, gkyl_vlasov_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
@@ -290,7 +292,8 @@ void calc_integrated_mom(
 }
 
 void calc_integrated_L2_f(
-  struct gkyl_tm_trigger *l2t, gkyl_vlasov_app *app, double t_curr, bool force_calc)
+  struct gkyl_tm_trigger *l2t, gkyl_vlasov_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
@@ -325,7 +328,7 @@ int main(int argc, char **argv)
   }
 #endif
 
-  int ccells[] = { NX };
+  int ccells[] = {NX};
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -348,18 +351,18 @@ int main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){.mpi_comm = MPI_COMM_WORLD});
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -374,20 +377,20 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
 
   // Neutral species.
-  struct gkyl_vlasov_species neut = { .name = "neut",
+  struct gkyl_vlasov_species neut = {
+    .name = "neut",
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .charge = ctx.charge,
     .mass = ctx.mass,
-    .lower = { -ctx.vx_max, -ctx.vy_max },
-    .upper = { ctx.vx_max, ctx.vy_max },
-    .cells = { NVX, NVY },
+    .lower = {-ctx.vx_max, -ctx.vy_max},
+    .upper = {ctx.vx_max, ctx.vy_max},
+    .cells = {NVX, NVY},
 
     .hamil = evalHamiltonian,
     .hamil_ctx = &ctx,
@@ -400,38 +403,40 @@ int main(int argc, char **argv)
     .output_f_lte = true,
 
     .num_init = 1,
-    .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
-      .density = evalDensityInit,
-      .ctx_density = &ctx,
-      .temp = evalTempInit,
-      .ctx_temp = &ctx,
-      .V_drift = evalVDriftInit,
-      .ctx_V_drift = &ctx,
-      .correct_all_moms = true,
-      .iter_eps = 0.0,
-      .max_iter = 0,
-      .use_last_converged = false },
-    .collisions = { .collision_id = GKYL_BGK_COLLISIONS,
-      .self_nu = evalNu,
-      .ctx = &ctx,
-      .has_implicit_coll_scheme = true,
-      .correct_all_moms = true,
-      .iter_eps = 0.0,
-      .max_iter = 0,
-      .use_last_converged = false },
+    .projection[0] =
+      {.proj_id = GKYL_PROJ_VLASOV_LTE,
+       .density = evalDensityInit,
+       .ctx_density = &ctx,
+       .temp = evalTempInit,
+       .ctx_temp = &ctx,
+       .V_drift = evalVDriftInit,
+       .ctx_V_drift = &ctx,
+       .correct_all_moms = true,
+       .iter_eps = 0.0,
+       .max_iter = 0,
+       .use_last_converged = false},
+    .collisions =
+      {.collision_id = GKYL_BGK_COLLISIONS,
+       .self_nu = evalNu,
+       .ctx = &ctx,
+       .has_implicit_coll_scheme = true,
+       .correct_all_moms = true,
+       .iter_eps = 0.0,
+       .max_iter = 0,
+       .use_last_converged = false},
 
     .num_diag_moments = 4,
-    .diag_moments = {
-      GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE, GKYL_F_MOMENT_ENERGY } };
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE, GKYL_F_MOMENT_ENERGY}
+  };
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
     .vdim = 2,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
-    .cells = { NX },
+    .lower = {0.0},
+    .upper = {ctx.Lx},
+    .cells = {NX},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
@@ -441,11 +446,11 @@ int main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = { neut },
+    .species = {neut},
 
     .skip_field = true,
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // Create app object.
@@ -463,8 +468,10 @@ int main(int argc, char **argv)
       gkyl_vlasov_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+      gkyl_vlasov_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -546,7 +553,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_vlasov_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);
@@ -576,17 +584,21 @@ int main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
     gkyl_vlasov_app_cout(
-      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]
+    );
     gkyl_vlasov_app_cout(
-      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]
+    );
   }
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
   gkyl_vlasov_app_cout(
-    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
+  );
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_vlasov_app_cout(
-    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
+  );
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);

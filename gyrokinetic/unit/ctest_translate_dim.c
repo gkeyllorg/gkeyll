@@ -13,17 +13,20 @@
 static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
-  if (on_gpu)
+  if (on_gpu) {
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
+  } else {
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  }
   return a;
 }
 
-void create_lower_dim_objects(int cdim_tar, struct gkyl_rect_grid grid_tar, int poly_order,
-  struct gkyl_rect_grid *grid, struct gkyl_rect_grid *confGrid, struct gkyl_basis *basis,
-  struct gkyl_basis *confBasis, struct gkyl_range *confLocal, struct gkyl_range *confLocal_ext,
-  struct gkyl_range *local, struct gkyl_range *local_ext)
+void create_lower_dim_objects(
+  int cdim_tar, struct gkyl_rect_grid grid_tar, int poly_order, struct gkyl_rect_grid *grid,
+  struct gkyl_rect_grid *confGrid, struct gkyl_basis *basis, struct gkyl_basis *confBasis,
+  struct gkyl_range *confLocal, struct gkyl_range *confLocal_ext, struct gkyl_range *local,
+  struct gkyl_range *local_ext
+)
 {
   // Create lower dimensional grid, basis and range based on the target
   // dimensionality and grid.
@@ -31,8 +34,8 @@ void create_lower_dim_objects(int cdim_tar, struct gkyl_rect_grid grid_tar, int 
   const int cdim = cdim_tar - 1;
   const int vdim = ndim - cdim;
 
-  double confLower[GKYL_MAX_CDIM] = { 0.0 }, confUpper[GKYL_MAX_CDIM] = { 0.0 };
-  int confCells[GKYL_MAX_CDIM] = { 0 };
+  double confLower[GKYL_MAX_CDIM] = {0.0}, confUpper[GKYL_MAX_CDIM] = {0.0};
+  int confCells[GKYL_MAX_CDIM] = {0};
   confLower[cdim - 1] = grid_tar.lower[cdim_tar - 1];
   confUpper[cdim - 1] = grid_tar.upper[cdim_tar - 1];
   confCells[cdim - 1] = grid_tar.cells[cdim_tar - 1];
@@ -42,8 +45,8 @@ void create_lower_dim_objects(int cdim_tar, struct gkyl_rect_grid grid_tar, int 
     confCells[0] = grid_tar.cells[0];
   }
 
-  double lower[GKYL_MAX_DIM] = { 0.0 }, upper[GKYL_MAX_DIM] = { 0.0 };
-  int cells[GKYL_MAX_DIM] = { 0 };
+  double lower[GKYL_MAX_DIM] = {0.0}, upper[GKYL_MAX_DIM] = {0.0};
+  int cells[GKYL_MAX_DIM] = {0};
   for (int d = 0; d < cdim; d++) {
     lower[d] = confLower[d];
     upper[d] = confUpper[d];
@@ -60,19 +63,21 @@ void create_lower_dim_objects(int cdim_tar, struct gkyl_rect_grid grid_tar, int 
   gkyl_rect_grid_init(confGrid, cdim, confLower, confUpper, confCells);
 
   // Basis functions.
-  if (poly_order == 1)
+  if (poly_order == 1) {
     gkyl_cart_modal_gkhybrid(basis, cdim, vdim);
-  else
+  } else {
     gkyl_cart_modal_serendip(basis, ndim, poly_order);
+  }
   gkyl_cart_modal_serendip(confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = { 1 };
+  int confGhost[GKYL_MAX_CDIM] = {1};
   gkyl_create_grid_ranges(confGrid, confGhost, confLocal_ext, confLocal);
 
-  int ghost[GKYL_MAX_DIM] = { 0 };
-  for (int d = 0; d < cdim; d++)
+  int ghost[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < cdim; d++) {
     ghost[d] = confGhost[d];
+  }
   gkyl_create_grid_ranges(grid, ghost, local_ext, local);
 }
 
@@ -116,8 +121,8 @@ void test_2x2v(int poly_order, bool use_gpu)
   const int cdim = 2;
   double vpar_max = 6.0;
   double mu_max = 36.0;
-  double lower[] = { 0.1, -M_PI, -vpar_max, 0.0 }, upper[] = { 1.0, M_PI, vpar_max, mu_max };
-  int cells[] = { 2, 4, 6, 4 };
+  double lower[] = {0.1, -M_PI, -vpar_max, 0.0}, upper[] = {1.0, M_PI, vpar_max, mu_max};
+  int cells[] = {2, 4, 6, 4};
 
   const int ndim = sizeof(cells) / sizeof(cells[0]);
   const int vdim = ndim - cdim;
@@ -133,8 +138,8 @@ void test_2x2v(int poly_order, bool use_gpu)
     .mu_max = mu_max // Maximum mu of the grid.
   };
 
-  double confLower[GKYL_MAX_CDIM] = { 0.0 }, confUpper[GKYL_MAX_CDIM] = { 0.0 };
-  int confCells[GKYL_MAX_CDIM] = { 0 };
+  double confLower[GKYL_MAX_CDIM] = {0.0}, confUpper[GKYL_MAX_CDIM] = {0.0};
+  int confCells[GKYL_MAX_CDIM] = {0};
   for (int d = 0; d < cdim; d++) {
     confLower[d] = lower[d];
     confUpper[d] = upper[d];
@@ -149,20 +154,22 @@ void test_2x2v(int poly_order, bool use_gpu)
 
   // Basis functions.
   struct gkyl_basis basis, confBasis;
-  if (poly_order == 1)
+  if (poly_order == 1) {
     gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
-  else
+  } else {
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = { 1 };
+  int confGhost[GKYL_MAX_CDIM] = {1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[GKYL_MAX_DIM] = { 0 };
-  for (int d = 0; d < cdim; d++)
+  int ghost[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < cdim; d++) {
     ghost[d] = confGhost[d];
+  }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -171,8 +178,10 @@ void test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_basis basis_low, confBasis_low;
   struct gkyl_range confLocal_low, confLocal_ext_low;
   struct gkyl_range local_low, local_ext_low;
-  create_lower_dim_objects(cdim, grid, poly_order, &grid_low, &confGrid_low, &basis_low,
-    &confBasis_low, &confLocal_low, &confLocal_ext_low, &local_low, &local_ext_low);
+  create_lower_dim_objects(
+    cdim, grid, poly_order, &grid_low, &confGrid_low, &basis_low, &confBasis_low, &confLocal_low,
+    &confLocal_ext_low, &local_low, &local_ext_low
+  );
 
   // Create donor distribution function arrays.
   struct gkyl_array *distf_low_ho, *distf_low;
@@ -182,7 +191,8 @@ void test_2x2v(int poly_order, bool use_gpu)
 
   // Project the donor distribution.
   gkyl_proj_on_basis *proj_distf_low = gkyl_proj_on_basis_new(
-    &grid_low, &basis_low, poly_order + 1, 1, eval_distf_2x2v_low, &proj_ctx);
+    &grid_low, &basis_low, poly_order + 1, 1, eval_distf_2x2v_low, &proj_ctx
+  );
   gkyl_proj_on_basis_advance(proj_distf_low, 0.0, &local_low, distf_low_ho);
   gkyl_array_copy(distf_low, distf_low_ho);
 
@@ -211,20 +221,22 @@ void test_2x2v(int poly_order, bool use_gpu)
 
   // How DG coefficients of the higher dim field are mapped to those of the
   // lower dim field. If <0, its amplitude is 0.
-  int dg_map[] = { 0, -1, 1, 2, 3, -1, -1, 4, -1, 5, 6, -1, -1, -1, 7, -1, 8, -1, 9, 10, -1, -1, 11,
-    -1 };
+  int dg_map[] = {0,  -1, 1, 2,  3, -1, -1, 4,  -1, 5,  6,  -1,
+                  -1, -1, 7, -1, 8, -1, 9,  10, -1, -1, 11, -1};
 
   // Check coefficients of the higher dimensional field.
-  int pidx_do[GKYL_MAX_DIM] = { -1 };
+  int pidx_do[GKYL_MAX_DIM] = {-1};
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
   while (gkyl_range_iter_next(&iter)) {
     // Translate the target idx to the donor idx:
-    for (int d = 0; d < cdim_do - 1; d++)
+    for (int d = 0; d < cdim_do - 1; d++) {
       pidx_do[d] = iter.idx[d];
+    }
     pidx_do[cdim_do - 1] = iter.idx[cdim - 1];
-    for (int d = 0; d < vdim_do; d++)
+    for (int d = 0; d < vdim_do; d++) {
       pidx_do[cdim_do + d] = iter.idx[cdim + d];
+    }
 
     long plinidx_tar = gkyl_range_idx(&local, iter.idx);
     long plinidx_do = gkyl_range_idx(&local_low, pidx_do);
@@ -233,10 +245,11 @@ void test_2x2v(int poly_order, bool use_gpu)
     const double *flow_c = gkyl_array_cfetch(distf_low_ho, plinidx_do);
 
     for (int k = 0; k < basis.num_basis; k++) {
-      if (dg_map[k] < 0)
+      if (dg_map[k] < 0) {
         TEST_CHECK(gkyl_compare(f_c[k], 0.0, 1e-16));
-      else
+      } else {
         TEST_CHECK(gkyl_compare(f_c[k], 1.4142135623730951 * flow_c[dg_map[k]], 1e-14));
+      }
     }
   }
 
@@ -277,9 +290,8 @@ void test_3x2v(int poly_order, bool use_gpu)
   const int cdim = 3;
   double vpar_max = 6.0;
   double mu_max = 36.0;
-  double lower[] = { 0.1, -0.3, -M_PI, -vpar_max, 0.0 },
-         upper[] = { 1.0, 0.3, M_PI, vpar_max, mu_max };
-  int cells[] = { 2, 2, 4, 6, 4 };
+  double lower[] = {0.1, -0.3, -M_PI, -vpar_max, 0.0}, upper[] = {1.0, 0.3, M_PI, vpar_max, mu_max};
+  int cells[] = {2, 2, 4, 6, 4};
 
   const int ndim = sizeof(cells) / sizeof(cells[0]);
   const int vdim = ndim - cdim;
@@ -295,8 +307,8 @@ void test_3x2v(int poly_order, bool use_gpu)
     .mu_max = mu_max // Maximum mu of the grid.
   };
 
-  double confLower[GKYL_MAX_CDIM] = { 0.0 }, confUpper[GKYL_MAX_CDIM] = { 0.0 };
-  int confCells[GKYL_MAX_CDIM] = { 0 };
+  double confLower[GKYL_MAX_CDIM] = {0.0}, confUpper[GKYL_MAX_CDIM] = {0.0};
+  int confCells[GKYL_MAX_CDIM] = {0};
   for (int d = 0; d < cdim; d++) {
     confLower[d] = lower[d];
     confUpper[d] = upper[d];
@@ -311,20 +323,22 @@ void test_3x2v(int poly_order, bool use_gpu)
 
   // Basis functions.
   struct gkyl_basis basis, confBasis;
-  if (poly_order == 1)
+  if (poly_order == 1) {
     gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
-  else
+  } else {
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = { 1 };
+  int confGhost[GKYL_MAX_CDIM] = {1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[GKYL_MAX_DIM] = { 0 };
-  for (int d = 0; d < cdim; d++)
+  int ghost[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < cdim; d++) {
     ghost[d] = confGhost[d];
+  }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -333,8 +347,10 @@ void test_3x2v(int poly_order, bool use_gpu)
   struct gkyl_basis basis_low, confBasis_low;
   struct gkyl_range confLocal_low, confLocal_ext_low;
   struct gkyl_range local_low, local_ext_low;
-  create_lower_dim_objects(cdim, grid, poly_order, &grid_low, &confGrid_low, &basis_low,
-    &confBasis_low, &confLocal_low, &confLocal_ext_low, &local_low, &local_ext_low);
+  create_lower_dim_objects(
+    cdim, grid, poly_order, &grid_low, &confGrid_low, &basis_low, &confBasis_low, &confLocal_low,
+    &confLocal_ext_low, &local_low, &local_ext_low
+  );
 
   // Create donor distribution function arrays.
   struct gkyl_array *distf_low_ho, *distf_low;
@@ -344,7 +360,8 @@ void test_3x2v(int poly_order, bool use_gpu)
 
   // Project the donor distribution.
   gkyl_proj_on_basis *proj_distf_low = gkyl_proj_on_basis_new(
-    &grid_low, &basis_low, poly_order + 1, 1, eval_distf_3x2v_low, &proj_ctx);
+    &grid_low, &basis_low, poly_order + 1, 1, eval_distf_3x2v_low, &proj_ctx
+  );
   gkyl_proj_on_basis_advance(proj_distf_low, 0.0, &local_low, distf_low_ho);
   gkyl_array_copy(distf_low, distf_low_ho);
 
@@ -373,21 +390,23 @@ void test_3x2v(int poly_order, bool use_gpu)
 
   // How DG coefficients of the higher dim field are mapped to those of the
   // lower dim field. If <0, its amplitude is 0.
-  int dg_map[] = { 0, 1, -1, 2, 3, 4, -1, 5, -1, 6, -1, 7, 8, -1, 9, 10, -1, -1, 11, -1, -1, 12, -1,
-    13, -1, 14, -1, -1, -1, 15, -1, -1, 16, 17, -1, 18, 19, -1, 20, -1, 21, -1, 22, -1, -1, 23, -1,
-    -1 };
+  int dg_map[] = {0,  1,  -1, 2,  3,  4,  -1, 5,  -1, 6,  -1, 7,  8,  -1, 9,  10,
+                  -1, -1, 11, -1, -1, 12, -1, 13, -1, 14, -1, -1, -1, 15, -1, -1,
+                  16, 17, -1, 18, 19, -1, 20, -1, 21, -1, 22, -1, -1, 23, -1, -1};
 
   // Check coefficients of the higher dimensional field.
-  int pidx_do[GKYL_MAX_DIM] = { -1 };
+  int pidx_do[GKYL_MAX_DIM] = {-1};
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
   while (gkyl_range_iter_next(&iter)) {
     // Translate the target idx to the donor idx:
-    for (int d = 0; d < cdim_do - 1; d++)
+    for (int d = 0; d < cdim_do - 1; d++) {
       pidx_do[d] = iter.idx[d];
+    }
     pidx_do[cdim_do - 1] = iter.idx[cdim - 1];
-    for (int d = 0; d < vdim_do; d++)
+    for (int d = 0; d < vdim_do; d++) {
       pidx_do[cdim_do + d] = iter.idx[cdim + d];
+    }
 
     long plinidx_tar = gkyl_range_idx(&local, iter.idx);
     long plinidx_do = gkyl_range_idx(&local_low, pidx_do);
@@ -396,10 +415,11 @@ void test_3x2v(int poly_order, bool use_gpu)
     const double *flow_c = gkyl_array_cfetch(distf_low_ho, plinidx_do);
 
     for (int k = 0; k < basis.num_basis; k++) {
-      if (dg_map[k] < 0)
+      if (dg_map[k] < 0) {
         TEST_CHECK(gkyl_compare(f_c[k], 0.0, 1e-16));
-      else
+      } else {
         TEST_CHECK(gkyl_compare(f_c[k], 1.4142135623730951 * flow_c[dg_map[k]], 1e-14));
+      }
     }
   }
 
@@ -431,10 +451,12 @@ void test_translate_dim_3x2v_dev()
   test_3x2v(1, true);
 }
 
-TEST_LIST = { { "test_translate_dim_2x2v_ho", test_translate_dim_2x2v_ho },
-  { "test_translate_dim_3x2v_ho", test_translate_dim_3x2v_ho },
+TEST_LIST = {
+  {"test_translate_dim_2x2v_ho", test_translate_dim_2x2v_ho},
+  {"test_translate_dim_3x2v_ho", test_translate_dim_3x2v_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_translate_dim_2x2v_dev", test_translate_dim_2x2v_dev },
-  { "test_translate_dim_3x2v_dev", test_translate_dim_3x2v_dev },
+  {"test_translate_dim_2x2v_dev", test_translate_dim_2x2v_dev},
+  {"test_translate_dim_3x2v_dev", test_translate_dim_3x2v_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

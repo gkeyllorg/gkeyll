@@ -31,8 +31,10 @@ struct gkyl_bc_basic {
  * @param num_comp Number of components (DOFs) within a cell.
  * @return Pointer to array_copy_func which can be passed to array_copy_fn methods.
  */
-struct gkyl_array_copy_func *gkyl_bc_basic_create_arr_copy_func_cu(int dir, enum gkyl_edge_loc edge,
-  int cdim, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int num_comp);
+struct gkyl_array_copy_func *gkyl_bc_basic_create_arr_copy_func_cu(
+  int dir, enum gkyl_edge_loc edge, int cdim, enum gkyl_bc_basic_type bctype,
+  const struct gkyl_basis *basis, int num_comp
+);
 
 #endif
 
@@ -49,8 +51,9 @@ GKYL_CU_D static void copy_bc(size_t nc, double *out, const double *inp, void *c
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int num_comp = mc->ncomp;
-  for (int c = 0; c < num_comp; ++c)
+  for (int c = 0; c < num_comp; ++c) {
     out[c] = inp[c];
+  }
 }
 
 GKYL_CU_D static void reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
@@ -65,8 +68,9 @@ GKYL_CU_D static void species_absorb_bc(size_t nc, double *out, const double *in
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int num_comp = mc->ncomp;
-  for (int c = 0; c < num_comp; ++c)
+  for (int c = 0; c < num_comp; ++c) {
     out[c] = 0.0;
+  }
 }
 
 GKYL_CU_D static void species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
@@ -170,11 +174,15 @@ GKYL_CU_D static void conf_boundary_value_bc(size_t nc, double *out, const doubl
 enum { M_EX, M_EY, M_EZ, M_BX, M_BY, M_BZ }; // components of EM field
 GKYL_CU_D static const int m_flip_even[3][3] = {
   // zero tangent E and zero normal B
-  { M_BX, M_EY, M_EZ }, { M_BY, M_EX, M_EZ }, { M_BZ, M_EX, M_EY }
+  {M_BX, M_EY, M_EZ},
+  {M_BY, M_EX, M_EZ},
+  {M_BZ, M_EX, M_EY}
 };
 GKYL_CU_D static const int m_flip_odd[3][3] = {
   // zero gradient
-  { M_EX, M_BY, M_BZ }, { M_EY, M_BX, M_BZ }, { M_EZ, M_BX, M_BY }
+  {M_EX, M_BY, M_BZ},
+  {M_EY, M_BX, M_BZ},
+  {M_EZ, M_BX, M_BY}
 };
 
 // Maxwell's perfect electrical conductor (zero normal B and zero tangent E)
@@ -200,11 +208,15 @@ GKYL_CU_D static void maxwell_pec_bc(size_t nc, double *out, const double *inp, 
 
 GKYL_CU_D static const int m_sym_flip_even[3][3] = {
   // zero tangent B and zero normal E
-  { M_EX, M_BY, M_BZ }, { M_EY, M_BX, M_BZ }, { M_EZ, M_BX, M_BY }
+  {M_EX, M_BY, M_BZ},
+  {M_EY, M_BX, M_BZ},
+  {M_EZ, M_BX, M_BY}
 };
 GKYL_CU_D static const int m_sym_flip_odd[3][3] = {
   // zero gradient
-  { M_BX, M_EY, M_EZ }, { M_BY, M_EX, M_EZ }, { M_BZ, M_EX, M_EY }
+  {M_BX, M_EY, M_EZ},
+  {M_BY, M_EX, M_EZ},
+  {M_BZ, M_EX, M_EY}
 };
 
 // Maxwell's symmetry BC (zero normal E and zero tangent B)
@@ -263,10 +275,11 @@ GKYL_CU_D static void pkpm_mom_reflect_bc(size_t nc, double *out, const double *
   // reflect normal component (zero normal) and zero gradient in other components
   for (int i = 0; i < 3; ++i) {
     int loc = nbasis * i;
-    if (i == dir)
+    if (i == dir) {
       mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
-    else
+    } else {
       mc->basis->flip_odd_sign(dir, &inp[loc], &out[loc]);
+    }
   }
 }
 

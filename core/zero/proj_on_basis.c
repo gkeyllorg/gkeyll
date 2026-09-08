@@ -29,14 +29,18 @@ static inline void c2p_identity(const double *xcomp, double *xphys, void *ctx)
 {
   struct gkyl_rect_grid *grid = ctx;
   int ndim = grid->ndim;
-  for (int d = 0; d < ndim; d++)
+  for (int d = 0; d < ndim; d++) {
     xphys[d] = xcomp[d];
+  }
 }
 
-struct gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, int num_quad, int num_ret_vals, evalf_t eval, void *ctx)
+struct gkyl_proj_on_basis *gkyl_proj_on_basis_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_quad, int num_ret_vals,
+  evalf_t eval, void *ctx
+)
 {
-  return gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = grid,
+  return gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
+  ){.grid = grid,
     .basis = basis,
     .qtype = GKYL_GAUSS_QUAD,
     .num_quad = num_quad,
@@ -44,7 +48,7 @@ struct gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *g
     .eval = eval,
     .ctx = ctx,
     .c2p_func = 0,
-    .c2p_func_ctx = NULL });
+    .c2p_func_ctx = NULL});
 }
 
 struct gkyl_proj_on_basis *gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
@@ -90,8 +94,9 @@ struct gkyl_proj_on_basis *gkyl_proj_on_basis_inew(const struct gkyl_proj_on_bas
 
   // create range to loop over quadrature points
   int qshape[GKYL_MAX_DIM];
-  for (int i = 0; i < inp->grid->ndim; ++i)
+  for (int i = 0; i < inp->grid->ndim; ++i) {
     qshape[i] = num_quad;
+  }
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, inp->grid->ndim, qshape);
 
@@ -109,20 +114,23 @@ struct gkyl_proj_on_basis *gkyl_proj_on_basis_inew(const struct gkyl_proj_on_bas
 
     // set ordinates
     double *ord = gkyl_array_fetch(up->ordinates, node);
-    for (int i = 0; i < inp->grid->ndim; ++i)
+    for (int i = 0; i < inp->grid->ndim; ++i) {
       ord[i] = ordinates1[iter.idx[i] - qrange.lower[i]];
+    }
 
     // set weights
     double *wgt = gkyl_array_fetch(up->weights, node);
     wgt[0] = 1.0;
-    for (int i = 0; i < qrange.ndim; ++i)
+    for (int i = 0; i < qrange.ndim; ++i) {
       wgt[0] *= weights1[iter.idx[i] - qrange.lower[i]];
+    }
   }
 
   // pre-compute basis functions at ordinates
   up->basis_at_ords = gkyl_array_new(GKYL_DOUBLE, inp->basis->num_basis, tot_quad);
-  for (int n = 0; n < tot_quad; ++n)
+  for (int n = 0; n < tot_quad; ++n) {
     inp->basis->eval(gkyl_array_fetch(up->ordinates, n), gkyl_array_fetch(up->basis_at_ords, n));
+  }
 
   return up;
 }
@@ -137,16 +145,20 @@ double *gkyl_proj_on_basis_fetch_ordinate(const struct gkyl_proj_on_basis *up, l
   return gkyl_array_fetch(up->ordinates, node);
 }
 
-static inline void log_to_comp(int ndim, const double *eta, const double *GKYL_RESTRICT dx,
-  const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xout)
+static inline void log_to_comp(
+  int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
+  double *GKYL_RESTRICT xout
+)
 {
   // Convert logical to computational coordinates.
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
+  }
 }
 
 void gkyl_proj_on_basis_quad(
-  const struct gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double *f)
+  const struct gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double *f
+)
 {
   int num_basis = up->num_basis;
   int tot_quad = up->tot_quad;
@@ -161,20 +173,24 @@ void gkyl_proj_on_basis_quad(
   // where c0, c1, ... are components of f (num_ret_vals)
   int offset = 0;
   for (int n = 0; n < num_ret_vals; ++n) {
-    for (int k = 0; k < num_basis; ++k)
+    for (int k = 0; k < num_basis; ++k) {
       f[offset + k] = 0.0;
+    }
 
     for (int imu = 0; imu < tot_quad; ++imu) {
       double tmp = weights[imu] * func_at_ords[n + num_ret_vals * imu];
-      for (int k = 0; k < num_basis; ++k)
+      for (int k = 0; k < num_basis; ++k) {
         f[offset + k] += tmp * basis_at_ords[k + num_basis * imu];
+      }
     }
     offset += num_basis;
   }
 }
 
-void gkyl_proj_on_basis_advance(const struct gkyl_proj_on_basis *up, double tm,
-  const struct gkyl_range *update_range, struct gkyl_array *arr)
+void gkyl_proj_on_basis_advance(
+  const struct gkyl_proj_on_basis *up, double tm, const struct gkyl_range *update_range,
+  struct gkyl_array *arr
+)
 {
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
 

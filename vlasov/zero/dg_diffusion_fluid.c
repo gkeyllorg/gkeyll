@@ -24,7 +24,8 @@ void gkyl_dg_diffusion_fluid_free(const struct gkyl_ref_count *ref)
 }
 
 void gkyl_dg_diffusion_fluid_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_fluid_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_fluid_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.D)) {
@@ -37,14 +38,17 @@ void gkyl_dg_diffusion_fluid_set_auxfields(
   diffusion->auxfields.D = auxin.D;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_diffusion_fluid_new(const struct gkyl_basis *basis, bool is_diff_const,
-  int num_equations, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
-  bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_fluid_new(
+  const struct gkyl_basis *basis, bool is_diff_const, int num_equations, const bool *diff_in_dir,
+  int diff_order, const struct gkyl_range *diff_range, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  if (use_gpu) {
     return gkyl_dg_diffusion_fluid_cu_dev_new(
-      basis, is_diff_const, num_equations, diff_in_dir, diff_order, diff_range);
+      basis, is_diff_const, num_equations, diff_in_dir, diff_order, diff_range
+    );
+  }
 #endif
 
   struct dg_diffusion_fluid *diffusion = gkyl_malloc(sizeof(struct dg_diffusion_fluid));
@@ -55,8 +59,9 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_fluid_new(const struct gkyl_basis *basis, 
   diffusion->num_equations = num_equations;
   diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;
-  for (int d = 0; d < ndim; d++)
+  for (int d = 0; d < ndim; d++) {
     diffusion->diff_in_dir[d] = diff_in_dir[d];
+  }
 
   const gkyl_dg_diffusion_fluid_vol_kern_list *vol_kernels;
   const gkyl_dg_diffusion_fluid_surf_kern_list *surfx_kernels;
@@ -114,20 +119,25 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_fluid_new(const struct gkyl_basis *basis, 
   diffusion->eqn.vol_term = CKVOL(vol_kernels, ndim, diff_order, poly_order, dirs_linidx);
 
   diffusion->surf[0] = CKSURF(surfx_kernels, diff_order, ndim, poly_order);
-  if (ndim > 1)
+  if (ndim > 1) {
     diffusion->surf[1] = CKSURF(surfy_kernels, diff_order, ndim, poly_order);
-  if (ndim > 2)
+  }
+  if (ndim > 2) {
     diffusion->surf[2] = CKSURF(surfz_kernels, diff_order, ndim, poly_order);
+  }
 
   diffusion->boundary_surf[0] = CKSURF(boundary_surfx_kernels, diff_order, ndim, poly_order);
-  if (ndim > 1)
+  if (ndim > 1) {
     diffusion->boundary_surf[1] = CKSURF(boundary_surfy_kernels, diff_order, ndim, poly_order);
-  if (ndim > 2)
+  }
+  if (ndim > 2) {
     diffusion->boundary_surf[2] = CKSURF(boundary_surfz_kernels, diff_order, ndim, poly_order);
+  }
 
   // Ensure non-NULL pointers.
-  for (int i = 0; i < ndim; ++i)
+  for (int i = 0; i < ndim; ++i) {
     assert(diffusion->surf[i]);
+  }
 
   diffusion->auxfields.D = 0;
   diffusion->diff_range = *diff_range;

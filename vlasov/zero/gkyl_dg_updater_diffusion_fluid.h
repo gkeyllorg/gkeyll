@@ -31,7 +31,8 @@ struct gkyl_dg_updater_diffusion_fluid_tm {
 struct gkyl_dg_updater_diffusion_fluid *gkyl_dg_updater_diffusion_fluid_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, bool is_diff_const,
   int num_equations, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
-  const bool *is_zero_flux_dir, bool use_gpu);
+  const bool *is_zero_flux_dir, bool use_gpu
+);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -46,10 +47,11 @@ struct gkyl_dg_updater_diffusion_fluid *gkyl_dg_updater_diffusion_fluid_new(
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_diffusion_fluid_advance(struct gkyl_dg_updater_diffusion_fluid *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *coeff,
-  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
-  struct gkyl_array *GKYL_RESTRICT rhs);
+void gkyl_dg_updater_diffusion_fluid_advance(
+  struct gkyl_dg_updater_diffusion_fluid *up, const struct gkyl_range *update_rng,
+  const struct gkyl_array *coeff, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs
+);
 
 /**
  * Return total time spent in diffusion terms
@@ -57,8 +59,8 @@ void gkyl_dg_updater_diffusion_fluid_advance(struct gkyl_dg_updater_diffusion_fl
  * @param diffusion Updater object
  * @return timers
  */
-struct gkyl_dg_updater_diffusion_fluid_tm gkyl_dg_updater_diffusion_fluid_get_tm(
-  const struct gkyl_dg_updater_diffusion_fluid *up);
+struct gkyl_dg_updater_diffusion_fluid_tm
+gkyl_dg_updater_diffusion_fluid_get_tm(const struct gkyl_dg_updater_diffusion_fluid *up);
 
 /**
  * Delete updater.

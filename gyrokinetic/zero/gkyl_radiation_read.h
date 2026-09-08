@@ -58,8 +58,10 @@ struct all_radiation_states *gkyl_radiation_read_rad_fit_params();
  * @param num_densities: maximum number of densities to return fit parameters for.
  * @return 1 if fit doesn't exist
  */
-int gkyl_radiation_read_get_num_densities(const struct all_radiation_states rad_data, int atomic_z,
-  int charge_state, double min_ne, double max_ne, int *num_densities);
+int gkyl_radiation_read_get_num_densities(
+  const struct all_radiation_states rad_data, int atomic_z, int charge_state, double min_ne,
+  double max_ne, int *num_densities
+);
 
 /**
  * Function to return the fit information for a specfied atomic number, charge state, and ne.
@@ -75,9 +77,11 @@ int gkyl_radiation_read_get_num_densities(const struct all_radiation_states rad_
  * @param max_ne: Desired maximum density (closest density is used)
  * @return 1 if fit doesn't exist
  */
-int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_data, int atomic_z,
-  int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0,
-  int *num_densities, double *electron_densities, double ref_dens, double min_ne, double max_ne);
+int gkyl_radiation_read_get_fit_params(
+  const struct all_radiation_states rad_data, int atomic_z, int charge_state, double *a,
+  double *alpha, double *beta, double *gamma, double *V0, int *num_densities,
+  double *electron_densities, double ref_dens, double min_ne, double max_ne
+);
 
 /**
  * Function to return the fit emissivity (Lz) and temperature closest to a given input temperature.
@@ -89,8 +93,10 @@ int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_dat
  * @param te: returns closest fit temperature to input te
  * @param Lz: returns Lz for closest temperature to input te 
  */
-int gkyl_radiation_read_get_fit_lz(const struct all_radiation_states rad_data, int atomic_z,
-  int charge_state, double ne, double *te, double *Lz);
+int gkyl_radiation_read_get_fit_lz(
+  const struct all_radiation_states rad_data, int atomic_z, int charge_state, double ne, double *te,
+  double *Lz
+);
 
 /**
  * Free memory of all_radiation_states.

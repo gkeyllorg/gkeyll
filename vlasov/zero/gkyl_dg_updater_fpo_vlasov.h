@@ -23,8 +23,10 @@ struct gkyl_dg_updater_fpo_vlasov_tm {
  * @param use_gpu Boolean to determine whether struct objects are on host or device
  * @return New fpo updater object
  */
-struct gkyl_dg_updater_collisions *gkyl_dg_updater_fpo_vlasov_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu);
+struct gkyl_dg_updater_collisions *gkyl_dg_updater_fpo_vlasov_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *phase_range, bool use_gpu
+);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -40,15 +42,19 @@ struct gkyl_dg_updater_collisions *gkyl_dg_updater_fpo_vlasov_new(const struct g
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
-  const struct gkyl_range *update_rng, const struct gkyl_array *h, const struct gkyl_array *g,
+void gkyl_dg_updater_fpo_vlasov_advance(
+  struct gkyl_dg_updater_collisions *fpo, const struct gkyl_range *update_rng,
+  const struct gkyl_array *h, const struct gkyl_array *g,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
-  struct gkyl_array *GKYL_RESTRICT rhs);
+  struct gkyl_array *GKYL_RESTRICT rhs
+);
 
-void gkyl_dg_updater_fpo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *fpo,
-  const struct gkyl_range *update_rng, const struct gkyl_array *h, const struct gkyl_array *g,
+void gkyl_dg_updater_fpo_vlasov_advance_cu(
+  struct gkyl_dg_updater_collisions *fpo, const struct gkyl_range *update_rng,
+  const struct gkyl_array *h, const struct gkyl_array *g,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
-  struct gkyl_array *GKYL_RESTRICT rhs);
+  struct gkyl_array *GKYL_RESTRICT rhs
+);
 
 /**
  * Return total time spent in drag and diffusion terms
@@ -56,8 +62,8 @@ void gkyl_dg_updater_fpo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *fp
  * @param lbo Updater object
  * @return timers
  */
-struct gkyl_dg_updater_fpo_vlasov_tm gkyl_dg_updater_fpo_vlasov_get_tm(
-  const struct gkyl_dg_updater_collisions *coll);
+struct gkyl_dg_updater_fpo_vlasov_tm
+gkyl_dg_updater_fpo_vlasov_get_tm(const struct gkyl_dg_updater_collisions *coll);
 
 /**
  * Delete updater.

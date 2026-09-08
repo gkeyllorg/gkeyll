@@ -67,8 +67,8 @@ struct gkyl_wv_eqn *gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, 
   }
 #endif
 
-  return gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp){
-    .c = c, .e_fact = e_fact, .b_fact = b_fact, .rp_type = WV_MAXWELL_RP_ROE, .use_gpu = use_gpu });
+  return gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp
+  ){.c = c, .e_fact = e_fact, .b_fact = b_fact, .rp_type = WV_MAXWELL_RP_ROE, .use_gpu = use_gpu});
 }
 
 struct gkyl_wv_eqn *gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp *inp)

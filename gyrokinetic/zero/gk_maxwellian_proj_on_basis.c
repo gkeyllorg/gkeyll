@@ -14,14 +14,16 @@
 #include <assert.h>
 
 // create range to loop over quadrature points.
-static inline struct gkyl_range get_qrange(
-  int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2)
+static inline struct gkyl_range
+get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2)
 {
   int qshape[GKYL_MAX_DIM];
-  for (int i = 0; i < cdim; ++i)
+  for (int i = 0; i < cdim; ++i) {
     qshape[i] = num_quad;
-  for (int i = cdim; i < dim; ++i)
+  }
+  for (int i = cdim; i < dim; ++i) {
     qshape[i] = is_vdim_p2[i - cdim] ? num_quad_v : num_quad;
+  }
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, dim, qshape);
   return qrange;
@@ -29,15 +31,17 @@ static inline struct gkyl_range get_qrange(
 
 // Sets ordinates, weights and basis functions at ords.
 // Returns the total number of quadrature nodes
-static int init_quad_values(int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type quad_type,
-  int num_quad, struct gkyl_array **ordinates, struct gkyl_array **weights,
-  struct gkyl_array **basis_at_ords, bool use_gpu)
+static int init_quad_values(
+  int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type quad_type, int num_quad,
+  struct gkyl_array **ordinates, struct gkyl_array **weights, struct gkyl_array **basis_at_ords,
+  bool use_gpu
+)
 {
   int ndim = basis->ndim;
   int vdim = ndim - cdim;
   int num_quad_v = num_quad;
   // hybrid basis have p=2 in velocity space.
-  bool is_vdim_p2[2] = { false }; // 2 is the max vdim for GK.
+  bool is_vdim_p2[2] = {false}; // 2 is the max vdim for GK.
   if (basis->b_type == GKYL_BASIS_MODAL_GKHYBRID) {
     num_quad_v = num_quad + 1;
     is_vdim_p2[0] = true; // only vpar is quadratic in GK hybrid.
@@ -155,14 +159,16 @@ static int init_quad_values(int cdim, const struct gkyl_basis *basis, enum gkyl_
   return tot_quad;
 }
 
-static void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars(gkyl_gk_maxwellian_proj_on_basis *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag,
-  const struct gkyl_array *jacobtot)
+static void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars(
+  gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacobtot
+)
 {
 // Setup the intial geometric vars, on GPU
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
     return gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(up, conf_range, bmag, jacobtot);
+  }
 #endif
 
   // Otherwise run the CPU Version to setup bmag, jacobtot
@@ -197,8 +203,8 @@ static void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars(gkyl_gk_maxwellian_p
   }
 }
 
-struct gkyl_gk_maxwellian_proj_on_basis *gkyl_gk_maxwellian_proj_on_basis_inew(
-  const struct gkyl_gk_maxwellian_proj_on_basis_inp *inp)
+struct gkyl_gk_maxwellian_proj_on_basis *
+gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_basis_inp *inp)
 {
   gkyl_gk_maxwellian_proj_on_basis *up = gkyl_malloc(sizeof(*up));
 
@@ -216,12 +222,16 @@ struct gkyl_gk_maxwellian_proj_on_basis *gkyl_gk_maxwellian_proj_on_basis_inew(
 
   int num_quad = up->conf_basis.poly_order + 1;
   // initialize data needed for conf-space quadrature
-  up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, inp->quad_type, num_quad,
-    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
+  up->tot_conf_quad = init_quad_values(
+    up->cdim, &up->conf_basis, inp->quad_type, num_quad, &up->conf_ordinates, &up->conf_weights,
+    &up->conf_basis_at_ords, false
+  );
 
   // initialize data needed for phase-space quadrature
-  up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, inp->quad_type, num_quad,
-    &up->ordinates, &up->weights, &up->basis_at_ords, false);
+  up->tot_quad = init_quad_values(
+    up->cdim, &up->phase_basis, inp->quad_type, num_quad, &up->ordinates, &up->weights,
+    &up->basis_at_ords, false
+  );
 
   up->fun_at_ords =
     gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
@@ -230,7 +240,7 @@ struct gkyl_gk_maxwellian_proj_on_basis *gkyl_gk_maxwellian_proj_on_basis_inew(
   // create a map between phase-space and conf-space ordinates.
   int num_quad_v = num_quad; // Hybrid basis have p=2 in velocity space.
   // hybrid basis have p=2 in velocity space.
-  bool is_vdim_p2[2] = { false }; // 2 is the max vdim for GK.
+  bool is_vdim_p2[2] = {false}; // 2 is the max vdim for GK.
   if (up->phase_basis.b_type == GKYL_BASIS_MODAL_GKHYBRID) {
     num_quad_v = num_quad + 1;
     is_vdim_p2[0] = true; // only vpar is quadratic in GK hybrid.
@@ -261,16 +271,19 @@ struct gkyl_gk_maxwellian_proj_on_basis *gkyl_gk_maxwellian_proj_on_basis_inew(
     // moms_maxwellian_quad (n, upar, T/m) at configuration-space quadrature points.
     // expamp_quad, the exponential pre-factor in the Maxwellian distribution, at quadrature points.
     up->f_maxwellian_quad = gkyl_array_cu_dev_new(
-      GKYL_DOUBLE, up->tot_quad, inp->conf_range_ext->volume * inp->vel_range->volume);
+      GKYL_DOUBLE, up->tot_quad, inp->conf_range_ext->volume * inp->vel_range->volume
+    );
     up->moms_maxwellian_quad = gkyl_array_cu_dev_new(
-      GKYL_DOUBLE, up->tot_conf_quad * up->num_comp, inp->conf_range_ext->volume);
+      GKYL_DOUBLE, up->tot_conf_quad * up->num_comp, inp->conf_range_ext->volume
+    );
     up->expamp_quad =
       gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
 
     // Allocate the memory for computing the specific phase nodal to modal calculation
     struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem_ho;
     phase_nodal_to_modal_mem_ho = gkyl_mat_mm_array_mem_new(
-      up->num_phase_basis, up->tot_quad, 1.0, 0.0, GKYL_NO_TRANS, GKYL_NO_TRANS, false);
+      up->num_phase_basis, up->tot_quad, 1.0, 0.0, GKYL_NO_TRANS, GKYL_NO_TRANS, false
+    );
 
     // Compute the matrix A for the phase nodal to modal memory
     const double *phase_w = (const double *)up->weights->data;
@@ -278,23 +291,29 @@ struct gkyl_gk_maxwellian_proj_on_basis *gkyl_gk_maxwellian_proj_on_basis_inew(
     for (int n = 0; n < up->tot_quad; ++n) {
       for (int k = 0; k < up->num_phase_basis; ++k) {
         gkyl_mat_set(
-          phase_nodal_to_modal_mem_ho->A, k, n, phase_w[n] * phaseb_o[k + up->num_phase_basis * n]);
+          phase_nodal_to_modal_mem_ho->A, k, n, phase_w[n] * phaseb_o[k + up->num_phase_basis * n]
+        );
       }
     }
 
     // copy to device
     up->phase_nodal_to_modal_mem = gkyl_mat_mm_array_mem_new(
-      up->num_phase_basis, up->tot_quad, 1.0, 0.0, GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+      up->num_phase_basis, up->tot_quad, 1.0, 0.0, GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu
+    );
     gkyl_mat_copy(up->phase_nodal_to_modal_mem->A, phase_nodal_to_modal_mem_ho->A);
     gkyl_mat_mm_array_mem_release(phase_nodal_to_modal_mem_ho);
 
     // initialize data needed for conf-space quadrature on device
-    up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, inp->quad_type, num_quad,
-      &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
+    up->tot_conf_quad = init_quad_values(
+      up->cdim, &up->conf_basis, inp->quad_type, num_quad, &up->conf_ordinates, &up->conf_weights,
+      &up->conf_basis_at_ords, up->use_gpu
+    );
 
     // initialize data needed for phase-space quadrature on device
-    up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, inp->quad_type, num_quad,
-      &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
+    up->tot_quad = init_quad_values(
+      up->cdim, &up->phase_basis, inp->quad_type, num_quad, &up->ordinates, &up->weights,
+      &up->basis_at_ords, up->use_gpu
+    );
 
     int pidx[GKYL_MAX_DIM];
     for (int n = 0; n < up->tot_quad; ++n) {
@@ -303,7 +322,8 @@ struct gkyl_gk_maxwellian_proj_on_basis *gkyl_gk_maxwellian_proj_on_basis_inew(
       p2c_qidx_ho[n] = cqidx;
     }
     gkyl_cu_memcpy(
-      up->p2c_qidx, p2c_qidx_ho, sizeof(int) * up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
+      up->p2c_qidx, p2c_qidx_ho, sizeof(int) * up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D
+    );
   }
 #endif
   // Allocate and obtain geometric variables at quadrature points
@@ -327,10 +347,12 @@ struct gkyl_gk_maxwellian_proj_on_basis *gkyl_gk_maxwellian_proj_on_basis_inew(
   gkyl_array_clear(up->bmag_quad, 0.0);
   gkyl_array_clear(up->jacobtot_quad, 0.0);
   gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars(
-    up, inp->conf_range, inp->gk_geom->geo_int.bmag, inp->gk_geom->geo_int.jacobtot);
+    up, inp->conf_range, inp->gk_geom->geo_int.bmag, inp->gk_geom->geo_int.jacobtot
+  );
 
   // Store a Maxwellian moment calculation updater to compute and correct the density
-  struct gkyl_gk_maxwellian_moments_inp inp_mom = { .phase_grid = inp->phase_grid,
+  struct gkyl_gk_maxwellian_moments_inp inp_mom = {
+    .phase_grid = inp->phase_grid,
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
     .conf_range = inp->conf_range,
@@ -339,14 +361,16 @@ struct gkyl_gk_maxwellian_proj_on_basis *gkyl_gk_maxwellian_proj_on_basis_inew(
     .gk_geom = inp->gk_geom,
     .vel_map = inp->vel_map,
     .divide_jacobgeo = inp->divide_jacobgeo,
-    .use_gpu = inp->use_gpu };
+    .use_gpu = inp->use_gpu
+  };
   up->moments_up = gkyl_gk_maxwellian_moments_inew(&inp_mom);
 
   return up;
 }
 
 static void proj_on_basis(
-  const gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double *f)
+  const gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double *f
+)
 {
   int num_basis = up->num_phase_basis;
   int tot_quad = up->tot_quad;
@@ -355,8 +379,9 @@ static void proj_on_basis(
   const double *GKYL_RESTRICT basis_at_ords = up->basis_at_ords->data;
   const double *GKYL_RESTRICT func_at_ords = fun_at_ords->data;
 
-  for (int k = 0; k < num_basis; ++k)
+  for (int k = 0; k < num_basis; ++k) {
     f[k] = 0.0;
+  }
 
   for (int imu = 0; imu < tot_quad; ++imu) {
     double tmp = weights[imu] * func_at_ords[imu];
@@ -366,14 +391,18 @@ static void proj_on_basis(
   }
 }
 
-void gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *moms_maxwellian, bool use_jacobtot, struct gkyl_array *f_maxwellian)
+void gkyl_gk_maxwellian_proj_on_basis_advance(
+  gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *moms_maxwellian, bool use_jacobtot,
+  struct gkyl_array *f_maxwellian
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
     return gkyl_gk_maxwellian_proj_on_basis_advance_cu(
-      up, phase_range, conf_range, moms_maxwellian, use_jacobtot, f_maxwellian);
+      up, phase_range, conf_range, moms_maxwellian, use_jacobtot, f_maxwellian
+    );
+  }
 #endif
 
   double f_floor = 1.e-40;
@@ -389,11 +418,12 @@ void gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d = 0; d < conf_range->ndim; ++d)
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < conf_range->ndim; ++d) {
     rem_dir[d] = 1;
+  }
 
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = { 0.0 };
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.0};
   double n_quad[tot_conf_quad], upar_quad[tot_conf_quad], T_over_m_quad[tot_conf_quad];
   double Tperp_over_m_quad[tot_conf_quad];
   double expamp_quad[tot_conf_quad];
@@ -507,16 +537,20 @@ void gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *
   }
   // Correct the density of the projected Maxwellian distribution function through rescaling.
   gkyl_gk_maxwellian_density_moment_advance(
-    up->moments_up, phase_range, conf_range, f_maxwellian, up->num_ratio);
+    up->moments_up, phase_range, conf_range, f_maxwellian, up->num_ratio
+  );
 
   // Compute number density ratio: num_ratio = n/n0.
   // The 0th component of moms_target is the target density.
   gkyl_dg_div_op_range(
-    up->mem, &up->conf_basis, 0, up->num_ratio, 0, moms_maxwellian, 0, up->num_ratio, conf_range);
+    up->mem, &up->conf_basis, 0, up->num_ratio, 0, moms_maxwellian, 0, up->num_ratio, conf_range
+  );
 
   // Rescale distribution function.
-  gkyl_dg_mul_conf_phase_op_range(&up->conf_basis, &up->phase_basis, f_maxwellian, up->num_ratio,
-    f_maxwellian, conf_range, phase_range);
+  gkyl_dg_mul_conf_phase_op_range(
+    &up->conf_basis, &up->phase_basis, f_maxwellian, up->num_ratio, f_maxwellian, conf_range,
+    phase_range
+  );
 }
 
 void gkyl_gk_maxwellian_proj_on_basis_release(gkyl_gk_maxwellian_proj_on_basis *up)

@@ -129,16 +129,19 @@ void kann_cu_feed_truth(struct kann_cu_graph *g, int batch_size, const float *y_
 // Gather mini-batch from device dataset into input feed node.
 // indices_d is a device array of sample indices; offset is where in
 // indices_d the current mini-batch starts.
-void kann_cu_gather_input(struct kann_cu_graph *g, const float *data_d, const int *indices_d,
-  int offset, int batch_size, int stride);
+void kann_cu_gather_input(
+  struct kann_cu_graph *g, const float *data_d, const int *indices_d, int offset, int batch_size,
+  int stride
+);
 
 // Gather mini-batch from device dataset into truth feed node.
-void kann_cu_gather_truth(struct kann_cu_graph *g, const float *data_d, const int *indices_d,
-  int offset, int batch_size, int stride);
+void kann_cu_gather_truth(
+  struct kann_cu_graph *g, const float *data_d, const int *indices_d, int offset, int batch_size,
+  int stride
+);
 
 // Feed input data directly from a device pointer (contiguous batch).
-void kann_cu_feed_input_dev(
-  struct kann_cu_graph *g, int batch_size, const float *x_dev, int stride);
+void kann_cu_feed_input_dev(struct kann_cu_graph *g, int batch_size, const float *x_dev, int stride);
 
 // Read back cost scalar from device.
 float kann_cu_get_cost(const struct kann_cu_graph *g);

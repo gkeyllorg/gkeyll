@@ -36,8 +36,8 @@ void eval_powsqrt_fun_1x(double t, const double *xn, double *restrict fout, void
 void test_1x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI;
-  double lower[] = { -Lx / 2. }, upper[] = { Lx / 2. };
-  int cells[] = { 32 };
+  double lower[] = {-Lx / 2.}, upper[] = {Lx / 2.};
+  int cells[] = {32};
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
@@ -49,7 +49,7 @@ void test_1x(int poly_order, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = { 1 };
+  int ghost[] = {1};
   struct gkyl_range local, local_ext; // Local, local-ext phase-space ranges.
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -92,7 +92,7 @@ void test_1x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_g, 0.0, &local, gA);
 
   for (int k = 0; k < cells[0]; k++) {
-    int idx[] = { k + 1 };
+    int idx[] = {k + 1};
     long linidx = gkyl_range_idx(&local, idx);
     const double *g_p = gkyl_array_cfetch(g, linidx);
     const double *gA_p = gkyl_array_cfetch(gA, linidx);
@@ -136,8 +136,8 @@ void eval_powsqrt_fun_2x(double t, const double *xn, double *restrict fout, void
 void test_2x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
-  double lower[] = { -Lx / 2., -Ly / 2. }, upper[] = { Lx / 2., Ly / 2. };
-  int cells[] = { 16, 64 };
+  double lower[] = {-Lx / 2., -Ly / 2.}, upper[] = {Lx / 2., Ly / 2.};
+  int cells[] = {16, 64};
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
@@ -149,7 +149,7 @@ void test_2x(int poly_order, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range local, local_ext; // Local, local-ext phase-space ranges.
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -193,7 +193,7 @@ void test_2x(int poly_order, bool use_gpu)
 
   for (int j = 0; j < cells[0]; j++) {
     for (int k = 0; k < cells[0]; k++) {
-      int idx[] = { j + 1, k + 1 };
+      int idx[] = {j + 1, k + 1};
       long linidx = gkyl_range_idx(&local, idx);
       const double *g_p = gkyl_array_cfetch(g, linidx);
       const double *gA_p = gkyl_array_cfetch(gA, linidx);
@@ -238,8 +238,8 @@ void eval_powsqrt_fun_3x(double t, const double *xn, double *restrict fout, void
 void test_3x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
-  double lower[] = { -Lx / 2., -Ly / 2., -Lz / 2. }, upper[] = { Lx / 2., Ly / 2., Lz / 2. };
-  int cells[] = { 16, 64, 32 };
+  double lower[] = {-Lx / 2., -Ly / 2., -Lz / 2.}, upper[] = {Lx / 2., Ly / 2., Lz / 2.};
+  int cells[] = {16, 64, 32};
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
@@ -251,7 +251,7 @@ void test_3x(int poly_order, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = { 1, 1, 1 };
+  int ghost[] = {1, 1, 1};
   struct gkyl_range local, local_ext; // Local, local-ext phase-space ranges.
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -296,7 +296,7 @@ void test_3x(int poly_order, bool use_gpu)
   for (int i = 0; i < cells[0]; i++) {
     for (int j = 0; j < cells[0]; j++) {
       for (int k = 0; k < cells[0]; k++) {
-        int idx[] = { i + 1, j + 1, k + 1 };
+        int idx[] = {i + 1, j + 1, k + 1};
         long linidx = gkyl_range_idx(&local, idx);
         const double *g_p = gkyl_array_cfetch(g, linidx);
         const double *gA_p = gkyl_array_cfetch(gA, linidx);
@@ -379,22 +379,24 @@ void test_powsqrt_3x_p2_dev()
 }
 #endif
 
-TEST_LIST = { { "test_powsqrt_1x_p1_ho", test_powsqrt_1x_p1_ho },
-  { "test_powsqrt_1x_p2_ho", test_powsqrt_1x_p2_ho },
+TEST_LIST = {
+  {"test_powsqrt_1x_p1_ho", test_powsqrt_1x_p1_ho},
+  {"test_powsqrt_1x_p2_ho", test_powsqrt_1x_p2_ho},
 
-  { "test_powsqrt_2x_p1_ho", test_powsqrt_2x_p1_ho },
-  { "test_powsqrt_2x_p2_ho", test_powsqrt_2x_p2_ho },
+  {"test_powsqrt_2x_p1_ho", test_powsqrt_2x_p1_ho},
+  {"test_powsqrt_2x_p2_ho", test_powsqrt_2x_p2_ho},
 
-  { "test_powsqrt_3x_p1_ho", test_powsqrt_3x_p1_ho },
-  { "test_powsqrt_3x_p2_ho", test_powsqrt_3x_p2_ho },
+  {"test_powsqrt_3x_p1_ho", test_powsqrt_3x_p1_ho},
+  {"test_powsqrt_3x_p2_ho", test_powsqrt_3x_p2_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_powsqrt_1x_p1_dev", test_powsqrt_1x_p1_dev },
-  { "test_powsqrt_1x_p2_dev", test_powsqrt_1x_p2_dev },
+  {"test_powsqrt_1x_p1_dev", test_powsqrt_1x_p1_dev},
+  {"test_powsqrt_1x_p2_dev", test_powsqrt_1x_p2_dev},
 
-  { "test_powsqrt_2x_p1_dev", test_powsqrt_2x_p1_dev },
-  { "test_powsqrt_2x_p2_dev", test_powsqrt_2x_p2_dev },
+  {"test_powsqrt_2x_p1_dev", test_powsqrt_2x_p1_dev},
+  {"test_powsqrt_2x_p2_dev", test_powsqrt_2x_p2_dev},
 
-  { "test_powsqrt_3x_p1_dev", test_powsqrt_3x_p1_dev },
-  { "test_powsqrt_3x_p2_dev", test_powsqrt_3x_p2_dev },
+  {"test_powsqrt_3x_p1_dev", test_powsqrt_3x_p1_dev},
+  {"test_powsqrt_3x_p2_dev", test_powsqrt_3x_p2_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

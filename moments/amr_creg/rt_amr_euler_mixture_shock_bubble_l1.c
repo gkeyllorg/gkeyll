@@ -87,7 +87,8 @@ struct amr_shock_bubble_ctx create_ctx(void)
   double bub_loc_y = 0.5 * Ly; // Bubble location (y-direction).
   double bub_rad = 0.025; // Bubble radius.
 
-  struct amr_shock_bubble_ctx ctx = { .gas_gamma1 = gas_gamma1,
+  struct amr_shock_bubble_ctx ctx = {
+    .gas_gamma1 = gas_gamma1,
     .gas_gamma2 = gas_gamma2,
     .rho_pre = rho_pre,
     .u_pre = u_pre,
@@ -116,13 +117,15 @@ struct amr_shock_bubble_ctx create_ctx(void)
     .x_loc = x_loc,
     .bub_loc_x = bub_loc_x,
     .bub_loc_y = bub_loc_y,
-    .bub_rad = bub_rad };
+    .bub_rad = bub_rad
+  };
 
   return ctx;
 }
 
 void evalEulerMixtureInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double x = xn[0], y = xn[1];
   struct amr_shock_bubble_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -219,7 +222,8 @@ int main(int argc, char **argv)
   gas_gamma_s[0] = ctx.gas_gamma1;
   gas_gamma_s[1] = ctx.gas_gamma2;
 
-  struct euler_mixture2d_single_init init = { .base_Nx = ctx.Nx,
+  struct euler_mixture2d_single_init init = {
+    .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
     .ref_factor = ctx.ref_factor,
 
@@ -251,7 +255,8 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+    .num_failures_max = ctx.num_failures_max
+  };
 
   euler_mixture2d_run_single(argc, argv, &init);
 

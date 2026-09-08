@@ -83,7 +83,8 @@ struct kh_2d_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct kh_2d_ctx ctx = { .pi = pi,
+  struct kh_2d_ctx ctx = {
+    .pi = pi,
     .gas_gamma = gas_gamma,
     .rhol = rhol,
     .ul = ul,
@@ -100,7 +101,8 @@ struct kh_2d_ctx create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   return ctx;
 }
@@ -198,11 +200,13 @@ int main(int argc, char **argv)
   // Fluid equations.
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
-  struct gkyl_moment_species fluid = { .name = "euler",
+  struct gkyl_moment_species fluid = {
+    .name = "euler",
     .equation = euler,
 
     .init = evalEulerInit,
-    .ctx = &ctx };
+    .ctx = &ctx
+  };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -211,7 +215,7 @@ int main(int argc, char **argv)
   }
 #endif
 
-  int cells[] = { NX, NY };
+  int cells[] = {NX, NY};
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -233,12 +237,12 @@ int main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -253,8 +257,7 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -263,21 +266,20 @@ int main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },
-    .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly },
-    .cells = { NX, NY },
+    .lower = {-0.5 * ctx.Lx, -0.5 * ctx.Ly},
+    .upper = {0.5 * ctx.Lx, 0.5 * ctx.Ly},
+    .cells = {NX, NY},
 
     .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 2,
-    .periodic_dirs = { 0, 1 },
+    .periodic_dirs = {0, 1},
 
     .num_species = 1,
-    .species = { fluid },
+    .species = {fluid},
 
-    .parallelism = { .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
-      .comm = comm }
+    .parallelism =
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
   };
 
   // Create app object.
@@ -290,7 +292,7 @@ int main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  struct gkyl_tm_trigger io_trig = {.dt = t_end / num_frames};
 
   // Initialize simulation.
   gkyl_moment_app_apply_ic(app, t_curr);
@@ -330,7 +332,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
         break;
       }
     } else {

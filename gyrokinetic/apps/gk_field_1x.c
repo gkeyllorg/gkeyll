@@ -110,13 +110,15 @@ void gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   // Potential smoothing (in z) updater
   enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
-  for (int d = 0; d < app->num_periodic_dir; ++d)
+  for (int d = 0; d < app->num_periodic_dir; ++d) {
     if (app->periodic_dirs[d] == app->cdim - 1) {
       fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
     }
+  }
 
   f->fem_parproj = gkyl_fem_parproj_new(
-    &app->global, &app->grid, &app->basis, fem_parproj_bc, 0, epsilon_global, 0, app->use_gpu);
+    &app->global, &app->grid, &app->basis, fem_parproj_bc, 0, epsilon_global, 0, app->use_gpu
+  );
 
   f->es_energy_fac_1d = 0.5 * polarization_weight * f->info.kperpSq + es_energy_fac_1d_adiabatic;
 
@@ -128,8 +130,9 @@ void gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->invert_flr = gk_field_invert_flr_none;
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    if (s->info.flr.type)
+    if (s->info.flr.type) {
       f->use_flr = f->use_flr || s->info.flr.type;
+    }
   }
 
   gkyl_array_release(epsilon_global);

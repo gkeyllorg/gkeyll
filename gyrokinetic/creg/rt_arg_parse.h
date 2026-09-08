@@ -77,7 +77,7 @@ static struct gkyl_app_args parse_app_args(int argc, char **argv)
   int num_steps = INT_MAX;
   int num_threads = 1; // by default use only 1 thread
 
-  struct gkyl_app_args args = { .xcells = { 0 }, .vcells = { 0 }, .cuts = { 1, 1, 1 } };
+  struct gkyl_app_args args = {.xcells = {0}, .vcells = {0}, .cuts = {1, 1, 1}};
 
   strcpy(args.file_name, APP_ARGS_DEFAULT_FILE_NAME); // default
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;

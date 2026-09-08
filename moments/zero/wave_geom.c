@@ -18,14 +18,17 @@ void gkyl_wave_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wave_geom *wg = container_of(ref, struct gkyl_wave_geom, ref_count);
   gkyl_array_release(wg->geom);
-  if (wave_geom_is_cu_dev(wg))
+  if (wave_geom_is_cu_dev(wg)) {
     gkyl_cu_free(wg->on_dev);
+  }
 
   gkyl_free(wg);
 }
 
-struct gkyl_wave_geom *gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_range *range, evalf_t mapc2p, void *ctx, bool use_gpu)
+struct gkyl_wave_geom *gkyl_wave_geom_new(
+  const struct gkyl_rect_grid *grid, struct gkyl_range *range, evalf_t mapc2p, void *ctx,
+  bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {

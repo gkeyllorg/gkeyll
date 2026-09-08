@@ -7,7 +7,8 @@ extern "C" {
 
 // CUDA kernel to set device pointers to kernels.
 __global__ static void gkyl_gk_pol_den_set_cu_ker_ptrs(
-  struct gkyl_gyrokinetic_pol_density_kernels *kernels, struct gkyl_basis cbasis)
+  struct gkyl_gyrokinetic_pol_density_kernels *kernels, struct gkyl_basis cbasis
+)
 {
   int pdim = cbasis.ndim;
   enum gkyl_basis_type b_type = cbasis.b_type;
@@ -23,7 +24,8 @@ __global__ static void gkyl_gk_pol_den_set_cu_ker_ptrs(
 };
 
 void gk_pol_den_choose_kernel_cu(
-  struct gkyl_gyrokinetic_pol_density_kernels *kernels, struct gkyl_basis cbasis)
+  struct gkyl_gyrokinetic_pol_density_kernels *kernels, struct gkyl_basis cbasis
+)
 {
   gkyl_gk_pol_den_set_cu_ker_ptrs<<<1, 1> > >(kernels, cbasis);
 }
@@ -31,7 +33,8 @@ void gk_pol_den_choose_kernel_cu(
 __global__ static void gkyl_gyrokinetic_pol_density_advance_cu_ker(
   struct gkyl_gyrokinetic_pol_density_kernels *kers, const struct gkyl_rect_grid grid,
   const struct gkyl_range conf_range, const struct gkyl_array *GKYL_RESTRICT pol_weight,
-  const struct gkyl_array *GKYL_RESTRICT phi, struct gkyl_array *GKYL_RESTRICT npol)
+  const struct gkyl_array *GKYL_RESTRICT phi, struct gkyl_array *GKYL_RESTRICT npol
+)
 {
   int cidx[GKYL_MAX_CDIM];
 
@@ -49,12 +52,15 @@ __global__ static void gkyl_gyrokinetic_pol_density_advance_cu_ker(
   }
 }
 
-void gkyl_gyrokinetic_pol_density_advance_cu(gkyl_gyrokinetic_pol_density *up,
-  const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT pol_weight,
-  const struct gkyl_array *GKYL_RESTRICT phi, struct gkyl_array *GKYL_RESTRICT npol)
+void gkyl_gyrokinetic_pol_density_advance_cu(
+  gkyl_gyrokinetic_pol_density *up, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT pol_weight, const struct gkyl_array *GKYL_RESTRICT phi,
+  struct gkyl_array *GKYL_RESTRICT npol
+)
 {
   int nblocks = conf_rng->nblocks, nthreads = conf_rng->nthreads;
 
   gkyl_gyrokinetic_pol_density_advance_cu_ker<<<nblocks, nthreads> > >(
-    up->kernels, up->grid, *conf_rng, pol_weight->on_dev, phi->on_dev, npol->on_dev);
+    up->kernels, up->grid, *conf_rng, pol_weight->on_dev, phi->on_dev, npol->on_dev
+  );
 }

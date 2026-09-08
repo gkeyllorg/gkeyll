@@ -6,10 +6,12 @@
 #include <gkyl_wv_gr_twofluid.h>
 #include <gkyl_wv_gr_twofluid_priv.h>
 
-void gkyl_gr_twofluid_flux(double gas_gamma_elc, double gas_gamma_ion, double light_speed,
-  double e_fact, double b_fact, const double q[84], double flux[84])
+void gkyl_gr_twofluid_flux(
+  double gas_gamma_elc, double gas_gamma_ion, double light_speed, double e_fact, double b_fact,
+  const double q[84], double flux[84]
+)
 {
-  double v[84] = { 0.0 };
+  double v[84] = {0.0};
   gkyl_gr_twofluid_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
   double rho_elc = v[0];
   double vx_elc = v[1];
@@ -46,11 +48,11 @@ void gkyl_gr_twofluid_flux(double gas_gamma_elc, double gas_gamma_ion, double li
   spatial_metric[2][2] = v[30];
 
   double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                                                 (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
                        (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                                                 (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
                        (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                                                 (spatial_metric[1][1] * spatial_metric[2][0])));
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
 
   bool in_excision_region = false;
   if (v[40] < pow(10.0, -8.0)) {
@@ -86,8 +88,8 @@ void gkyl_gr_twofluid_flux(double gas_gamma_elc, double gas_gamma_ion, double li
               (rho_elc * h_elc * (W_elc * W_elc) * (vz_elc * (vx_elc - (shift_x / lapse))));
     flux[4] = (lapse * sqrt(spatial_det)) *
               (((rho_elc * h_elc * (W_elc * W_elc)) - p_elc - (rho_elc * W_elc)) *
-                  (vx_elc - (shift_x / lapse)) +
-                (p_elc * vx_elc));
+                 (vx_elc - (shift_x / lapse)) +
+               (p_elc * vx_elc));
 
     double vel_ion[3];
     double v_sq_ion = 0.0;
@@ -117,8 +119,8 @@ void gkyl_gr_twofluid_flux(double gas_gamma_elc, double gas_gamma_ion, double li
               (rho_ion * h_ion * (W_ion * W_ion) * (vz_ion * (vx_ion - (shift_x / lapse))));
     flux[9] = (lapse * sqrt(spatial_det)) *
               (((rho_ion * h_ion * (W_ion * W_ion)) - p_ion - (rho_ion * W_ion)) *
-                  (vx_ion - (shift_x / lapse)) +
-                (p_ion * vx_ion));
+                 (vx_ion - (shift_x / lapse)) +
+               (p_ion * vx_ion));
 
     double Ex = (lapse * Dx) + ((shift_y * Bz) - (shift_z * By));
     double Ey = (lapse * Dy) - ((shift_x * Bz) - (shift_z * Bx));
@@ -148,7 +150,8 @@ void gkyl_gr_twofluid_flux(double gas_gamma_elc, double gas_gamma_ion, double li
 }
 
 void gkyl_gr_twofluid_prim_vars(
-  double gas_gamma_elc, double gas_gamma_ion, const double q[84], double v[84])
+  double gas_gamma_elc, double gas_gamma_ion, const double q[84], double v[84]
+)
 {
   double Dx = q[10], Dy = q[11], Dz = q[12];
   double Bx = q[13], By = q[14], Bz = q[15];
@@ -242,11 +245,11 @@ void gkyl_gr_twofluid_prim_vars(
 
   if (!in_excision_region) {
     double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                                                   (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                                                  (spatial_metric[2][1] * spatial_metric[1][2]))) -
                          (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                                                   (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                                                  (spatial_metric[1][2] * spatial_metric[2][0]))) +
                          (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                                                   (spatial_metric[1][1] * spatial_metric[2][0])));
+                                                  (spatial_metric[1][1] * spatial_metric[2][0])));
 
     double D_elc = q[0] / sqrt(spatial_det);
     double momx_elc = q[1] / sqrt(spatial_det);
@@ -254,12 +257,15 @@ void gkyl_gr_twofluid_prim_vars(
     double momz_elc = q[3] / sqrt(spatial_det);
     double Etot_elc = q[4] / sqrt(spatial_det);
 
-    double C_elc =
-      D_elc / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-                   ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
-    double C0_elc = (D_elc + Etot_elc) /
-                    sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-                         ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+    double C_elc = D_elc / sqrt(
+                             ((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
+                             ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc))
+                           );
+    double C0_elc =
+      (D_elc + Etot_elc) / sqrt(
+                             ((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
+                             ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc))
+                           );
     if (((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
           ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)) <
         pow(10.0, -8.0)) {
@@ -296,10 +302,12 @@ void gkyl_gr_twofluid_prim_vars(
       }
     }
 
-    double W_elc = 0.5 * C0_elc * guess_elc *
-                   (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
-                                       ((1.0 - (C_elc * guess_elc)) /
-                                         ((C0_elc * C0_elc) * (guess_elc * guess_elc))))));
+    double W_elc =
+      0.5 * C0_elc * guess_elc *
+      (1.0 + sqrt(
+               1.0 + (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
+                      ((1.0 - (C_elc * guess_elc)) / ((C0_elc * C0_elc) * (guess_elc * guess_elc))))
+             ));
     double h_elc = 1.0 / (C_elc * guess_elc);
 
     v[0] = D_elc / W_elc;
@@ -321,12 +329,15 @@ void gkyl_gr_twofluid_prim_vars(
     double momz_ion = q[8] / sqrt(spatial_det);
     double Etot_ion = q[9] / sqrt(spatial_det);
 
-    double C_ion =
-      D_ion / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-                   ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
-    double C0_ion = (D_ion + Etot_ion) /
-                    sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-                         ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+    double C_ion = D_ion / sqrt(
+                             ((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
+                             ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion))
+                           );
+    double C0_ion =
+      (D_ion + Etot_ion) / sqrt(
+                             ((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
+                             ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion))
+                           );
     if (((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
           ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)) <
         pow(10.0, -8.0)) {
@@ -363,10 +374,12 @@ void gkyl_gr_twofluid_prim_vars(
       }
     }
 
-    double W_ion = 0.5 * C0_ion * guess_ion *
-                   (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
-                                       ((1.0 - (C_ion * guess_ion)) /
-                                         ((C0_ion * C0_ion) * (guess_ion * guess_ion))))));
+    double W_ion =
+      0.5 * C0_ion * guess_ion *
+      (1.0 + sqrt(
+               1.0 + (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
+                      ((1.0 - (C_ion * guess_ion)) / ((C0_ion * C0_ion) * (guess_ion * guess_ion))))
+             ));
     double h_ion = 1.0 / (C_ion * guess_ion);
 
     v[5] = D_ion / W_ion;
@@ -490,11 +503,11 @@ void gkyl_gr_twofluid_inv_spatial_metric(const double q[84], double ***inv_spati
   spatial_metric[2][2] = q[30];
 
   double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                                                 (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
                        (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                                                 (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
                        (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                                                 (spatial_metric[1][1] * spatial_metric[2][0])));
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -536,15 +549,16 @@ void gkyl_gr_twofluid_inv_spatial_metric(const double q[84], double ***inv_spati
     for (int j = 0; j < 3; j++) {
       (*inv_spatial_metric)[i][j] =
         (1.0 / spatial_det) * ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-                                (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+                               (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 }
 
 void gkyl_gr_twofluid_stress_energy_tensor_elc(
-  double gas_gamma_elc, double gas_gamma_ion, const double q[84], double ***stress_energy_elc)
+  double gas_gamma_elc, double gas_gamma_ion, const double q[84], double ***stress_energy_elc
+)
 {
-  double v[84] = { 0.0 };
+  double v[84] = {0.0};
   gkyl_gr_twofluid_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
   double rho_elc = v[0];
   double vx_elc = v[1];
@@ -646,9 +660,10 @@ void gkyl_gr_twofluid_stress_energy_tensor_elc(
 }
 
 void gkyl_gr_twofluid_stress_energy_tensor_ion(
-  double gas_gamma_elc, double gas_gamma_ion, const double q[84], double ***stress_energy_ion)
+  double gas_gamma_elc, double gas_gamma_ion, const double q[84], double ***stress_energy_ion
+)
 {
-  double v[84] = { 0.0 };
+  double v[84] = {0.0};
   gkyl_gr_twofluid_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
   double rho_ion = v[5];
   double vx_ion = v[6];
@@ -750,9 +765,10 @@ void gkyl_gr_twofluid_stress_energy_tensor_ion(
 }
 
 static inline double gkyl_gr_twofluid_max_abs_speed(
-  double gas_gamma_elc, double gas_gamma_ion, double light_speed, const double q[84])
+  double gas_gamma_elc, double gas_gamma_ion, double light_speed, const double q[84]
+)
 {
-  double v[84] = { 0.0 };
+  double v[84] = {0.0};
   gkyl_gr_twofluid_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
   double rho_elc = v[0];
   double vx_elc = v[1];
@@ -784,11 +800,11 @@ static inline double gkyl_gr_twofluid_max_abs_speed(
 
   double spatial_metric_det =
     (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                              (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                             (spatial_metric[2][1] * spatial_metric[1][2]))) -
     (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                              (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                             (spatial_metric[1][2] * spatial_metric[2][0]))) +
     (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                              (spatial_metric[1][1] * spatial_metric[2][0])));
+                             (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double **inv_spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
@@ -858,17 +874,21 @@ static inline double gkyl_gr_twofluid_max_abs_speed(
         fast_acoustic_eigs_elc[i] =
           (lapse / (1.0 - (v_sq_elc * (c_s_elc * c_s_elc)))) *
             ((vel_elc[i] * (1.0 - (c_s_elc * c_s_elc))) +
-              (c_s_elc * sqrt((1.0 - v_sq_elc) *
-                              (inv_spatial_metric[i][i] * (1.0 - (v_sq_elc * (c_s_elc * c_s_elc))) -
-                                (vel_elc[i] * vel_elc[i]) * (1.0 - (c_s_elc * c_s_elc)))))) -
+             (c_s_elc * sqrt(
+                          (1.0 - v_sq_elc) *
+                          (inv_spatial_metric[i][i] * (1.0 - (v_sq_elc * (c_s_elc * c_s_elc))) -
+                           (vel_elc[i] * vel_elc[i]) * (1.0 - (c_s_elc * c_s_elc)))
+                        ))) -
           shift[i];
 
         slow_acoustic_eigs_elc[i] =
           (lapse / (1.0 - (v_sq_elc * (c_s_elc * c_s_elc)))) *
             ((vel_elc[i] * (1.0 - (c_s_elc * c_s_elc))) -
-              (c_s_elc * sqrt((1.0 - v_sq_elc) *
-                              (inv_spatial_metric[i][i] * (1.0 - (v_sq_elc * (c_s_elc * c_s_elc))) -
-                                (vel_elc[i] * vel_elc[i]) * (1.0 - (c_s_elc * c_s_elc)))))) -
+             (c_s_elc * sqrt(
+                          (1.0 - v_sq_elc) *
+                          (inv_spatial_metric[i][i] * (1.0 - (v_sq_elc * (c_s_elc * c_s_elc))) -
+                           (vel_elc[i] * vel_elc[i]) * (1.0 - (c_s_elc * c_s_elc)))
+                        ))) -
           shift[i];
       }
 
@@ -894,17 +914,21 @@ static inline double gkyl_gr_twofluid_max_abs_speed(
         fast_acoustic_eigs_ion[i] =
           (lapse / (1.0 - (v_sq_ion * (c_s_ion * c_s_ion)))) *
             ((vel_ion[i] * (1.0 - (c_s_ion * c_s_ion))) +
-              (c_s_ion * sqrt((1.0 - v_sq_ion) *
-                              (inv_spatial_metric[i][i] * (1.0 - (v_sq_ion * (c_s_ion * c_s_ion))) -
-                                (vel_ion[i] * vel_ion[i]) * (1.0 - (c_s_ion * c_s_ion)))))) -
+             (c_s_ion * sqrt(
+                          (1.0 - v_sq_ion) *
+                          (inv_spatial_metric[i][i] * (1.0 - (v_sq_ion * (c_s_ion * c_s_ion))) -
+                           (vel_ion[i] * vel_ion[i]) * (1.0 - (c_s_ion * c_s_ion)))
+                        ))) -
           shift[i];
 
         slow_acoustic_eigs_ion[i] =
           (lapse / (1.0 - (v_sq_ion * (c_s_ion * c_s_ion)))) *
             ((vel_ion[i] * (1.0 - (c_s_ion * c_s_ion))) -
-              (c_s_ion * sqrt((1.0 - v_sq_ion) *
-                              (inv_spatial_metric[i][i] * (1.0 - (v_sq_ion * (c_s_ion * c_s_ion))) -
-                                (vel_ion[i] * vel_ion[i]) * (1.0 - (c_s_ion * c_s_ion)))))) -
+             (c_s_ion * sqrt(
+                          (1.0 - v_sq_ion) *
+                          (inv_spatial_metric[i][i] * (1.0 - (v_sq_ion * (c_s_ion * c_s_ion))) -
+                           (vel_ion[i] * vel_ion[i]) * (1.0 - (c_s_ion * c_s_ion)))
+                        ))) -
           shift[i];
       }
 
@@ -987,8 +1011,8 @@ static inline double gkyl_gr_twofluid_max_abs_speed(
   }
 }
 
-static inline void cons_to_riem(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 84; i++) {
@@ -996,8 +1020,8 @@ static inline void cons_to_riem(
   }
 }
 
-static inline void riem_to_cons(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 84; i++) {
@@ -1005,8 +1029,10 @@ static inline void riem_to_cons(
   }
 }
 
-static void gr_twofluid_wall(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-  double *GKYL_RESTRICT ghost, void *ctx)
+static void gr_twofluid_wall(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   for (int i = 0; i < 84; i++) {
     ghost[i] = skin[i];
@@ -1016,8 +1042,10 @@ static void gr_twofluid_wall(const struct gkyl_wv_eqn *eqn, double t, int nc, co
   ghost[6] = -ghost[6];
 }
 
-static void gr_twofluid_no_slip(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-  double *GKYL_RESTRICT ghost, void *ctx)
+static void gr_twofluid_no_slip(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   for (int i = 1; i < 4; i++) {
     ghost[i] = -skin[i];
@@ -1038,9 +1066,10 @@ static void gr_twofluid_no_slip(const struct gkyl_wv_eqn *eqn, double t, int nc,
   }
 }
 
-static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
-  double *GKYL_RESTRICT qlocal)
+static inline void rot_to_local(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
+)
 {
   qlocal[0] = qglobal[0];
   qlocal[1] = (qglobal[1] * norm[0]) + (qglobal[2] * norm[1]) + (qglobal[3] * norm[2]);
@@ -1327,9 +1356,10 @@ static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau
   qlocal[83] = (qglobal[81] * tau2[0]) + (qglobal[82] * tau2[1]) + (qglobal[83] * tau2[2]);
 }
 
-static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
-  double *GKYL_RESTRICT qglobal)
+static inline void rot_to_global(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
+)
 {
   qglobal[0] = qlocal[0];
   qglobal[1] = (qlocal[1] * norm[0]) + (qlocal[2] * tau1[0]) + (qlocal[3] * tau2[0]);
@@ -1616,8 +1646,10 @@ static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *ta
   qglobal[83] = (qlocal[81] * norm[2]) + (qlocal[82] * tau1[2]) + (qlocal[83] * tau2[2]);
 }
 
-static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-  const double *qr, double *waves, double *s)
+static double wave_lax(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double gas_gamma_elc = gr_twofluid->gas_gamma_elc;
@@ -1663,8 +1695,10 @@ static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const
   return s[1];
 }
 
-static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+static void qfluct_lax(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[84];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -1676,22 +1710,27 @@ static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const do
   }
 }
 
-static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-  const double *qr, double *waves, double *s)
+static double wave_hll(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double gas_gamma_elc = gr_twofluid->gas_gamma_elc;
@@ -1734,11 +1773,11 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
 
   double spatial_metric_det_l =
     (spatial_metric_l[0][0] * ((spatial_metric_l[1][1] * spatial_metric_l[2][2]) -
-                                (spatial_metric_l[2][1] * spatial_metric_l[1][2]))) -
+                               (spatial_metric_l[2][1] * spatial_metric_l[1][2]))) -
     (spatial_metric_l[0][1] * ((spatial_metric_l[1][0] * spatial_metric_l[2][2]) -
-                                (spatial_metric_l[1][2] * spatial_metric_l[2][0]))) +
+                               (spatial_metric_l[1][2] * spatial_metric_l[2][0]))) +
     (spatial_metric_l[0][2] * ((spatial_metric_l[1][0] * spatial_metric_l[2][1]) -
-                                (spatial_metric_l[1][1] * spatial_metric_l[2][0])));
+                               (spatial_metric_l[1][1] * spatial_metric_l[2][0])));
 
   double **inv_spatial_metric_l = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
@@ -1801,11 +1840,11 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
 
   double spatial_metric_det_r =
     (spatial_metric_r[0][0] * ((spatial_metric_r[1][1] * spatial_metric_r[2][2]) -
-                                (spatial_metric_r[2][1] * spatial_metric_r[1][2]))) -
+                               (spatial_metric_r[2][1] * spatial_metric_r[1][2]))) -
     (spatial_metric_r[0][1] * ((spatial_metric_r[1][0] * spatial_metric_r[2][2]) -
-                                (spatial_metric_r[1][2] * spatial_metric_r[2][0]))) +
+                               (spatial_metric_r[1][2] * spatial_metric_r[2][0]))) +
     (spatial_metric_r[0][2] * ((spatial_metric_r[1][0] * spatial_metric_r[2][1]) -
-                                (spatial_metric_r[1][1] * spatial_metric_r[2][0])));
+                               (spatial_metric_r[1][1] * spatial_metric_r[2][0])));
 
   double **inv_spatial_metric_r = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
@@ -1892,19 +1931,23 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
       fast_acoustic_eigs_elc_l[i] =
         (lapse_l / (1.0 - (v_sq_elc_l * (c_s_elc_l * c_s_elc_l)))) *
           ((vel_elc_l[i] * (1.0 - (c_s_elc_l * c_s_elc_l))) +
-            (c_s_elc_l *
-              sqrt((1.0 - v_sq_elc_l) *
-                   (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_elc_l * (c_s_elc_l * c_s_elc_l))) -
-                     (vel_elc_l[i] * vel_elc_l[i]) * (1.0 - (c_s_elc_l * c_s_elc_l)))))) -
+           (c_s_elc_l *
+            sqrt(
+              (1.0 - v_sq_elc_l) *
+              (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_elc_l * (c_s_elc_l * c_s_elc_l))) -
+               (vel_elc_l[i] * vel_elc_l[i]) * (1.0 - (c_s_elc_l * c_s_elc_l)))
+            ))) -
         shift_l[i];
 
       slow_acoustic_eigs_elc_l[i] =
         (lapse_l / (1.0 - (v_sq_elc_l * (c_s_elc_l * c_s_elc_l)))) *
           ((vel_elc_l[i] * (1.0 - (c_s_elc_l * c_s_elc_l))) -
-            (c_s_elc_l *
-              sqrt((1.0 - v_sq_elc_l) *
-                   (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_elc_l * (c_s_elc_l * c_s_elc_l))) -
-                     (vel_elc_l[i] * vel_elc_l[i]) * (1.0 - (c_s_elc_l * c_s_elc_l)))))) -
+           (c_s_elc_l *
+            sqrt(
+              (1.0 - v_sq_elc_l) *
+              (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_elc_l * (c_s_elc_l * c_s_elc_l))) -
+               (vel_elc_l[i] * vel_elc_l[i]) * (1.0 - (c_s_elc_l * c_s_elc_l)))
+            ))) -
         shift_l[i];
     }
 
@@ -1948,19 +1991,23 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
       fast_acoustic_eigs_elc_r[i] =
         (lapse_r / (1.0 - (v_sq_elc_r * (c_s_elc_r * c_s_elc_r)))) *
           ((vel_elc_r[i] * (1.0 - (c_s_elc_r * c_s_elc_r))) +
-            (c_s_elc_r *
-              sqrt((1.0 - v_sq_elc_r) *
-                   (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_elc_r * (c_s_elc_r * c_s_elc_r))) -
-                     (vel_elc_r[i] * vel_elc_r[i]) * (1.0 - (c_s_elc_r * c_s_elc_r)))))) -
+           (c_s_elc_r *
+            sqrt(
+              (1.0 - v_sq_elc_r) *
+              (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_elc_r * (c_s_elc_r * c_s_elc_r))) -
+               (vel_elc_r[i] * vel_elc_r[i]) * (1.0 - (c_s_elc_r * c_s_elc_r)))
+            ))) -
         shift_r[i];
 
       slow_acoustic_eigs_elc_r[i] =
         (lapse_r / (1.0 - (v_sq_elc_r * (c_s_elc_r * c_s_elc_r)))) *
           ((vel_elc_r[i] * (1.0 - (c_s_elc_r * c_s_elc_r))) -
-            (c_s_elc_r *
-              sqrt((1.0 - v_sq_elc_r) *
-                   (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_elc_r * (c_s_elc_r * c_s_elc_r))) -
-                     (vel_elc_r[i] * vel_elc_r[i]) * (1.0 - (c_s_elc_r * c_s_elc_r)))))) -
+           (c_s_elc_r *
+            sqrt(
+              (1.0 - v_sq_elc_r) *
+              (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_elc_r * (c_s_elc_r * c_s_elc_r))) -
+               (vel_elc_r[i] * vel_elc_r[i]) * (1.0 - (c_s_elc_r * c_s_elc_r)))
+            ))) -
         shift_r[i];
     }
 
@@ -2004,19 +2051,23 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
       fast_acoustic_eigs_ion_l[i] =
         (lapse_l / (1.0 - (v_sq_ion_l * (c_s_ion_l * c_s_ion_l)))) *
           ((vel_ion_l[i] * (1.0 - (c_s_ion_l * c_s_ion_l))) +
-            (c_s_ion_l *
-              sqrt((1.0 - v_sq_ion_l) *
-                   (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_ion_l * (c_s_ion_l * c_s_ion_l))) -
-                     (vel_ion_l[i] * vel_ion_l[i]) * (1.0 - (c_s_ion_l * c_s_ion_l)))))) -
+           (c_s_ion_l *
+            sqrt(
+              (1.0 - v_sq_ion_l) *
+              (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_ion_l * (c_s_ion_l * c_s_ion_l))) -
+               (vel_ion_l[i] * vel_ion_l[i]) * (1.0 - (c_s_ion_l * c_s_ion_l)))
+            ))) -
         shift_l[i];
 
       slow_acoustic_eigs_ion_l[i] =
         (lapse_l / (1.0 - (v_sq_ion_l * (c_s_ion_l * c_s_ion_l)))) *
           ((vel_ion_l[i] * (1.0 - (c_s_ion_l * c_s_ion_l))) -
-            (c_s_ion_l *
-              sqrt((1.0 - v_sq_ion_l) *
-                   (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_ion_l * (c_s_ion_l * c_s_ion_l))) -
-                     (vel_ion_l[i] * vel_ion_l[i]) * (1.0 - (c_s_ion_l * c_s_ion_l)))))) -
+           (c_s_ion_l *
+            sqrt(
+              (1.0 - v_sq_ion_l) *
+              (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_ion_l * (c_s_ion_l * c_s_ion_l))) -
+               (vel_ion_l[i] * vel_ion_l[i]) * (1.0 - (c_s_ion_l * c_s_ion_l)))
+            ))) -
         shift_l[i];
     }
 
@@ -2055,19 +2106,23 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
       fast_acoustic_eigs_ion_r[i] =
         (lapse_r / (1.0 - (v_sq_ion_r * (c_s_ion_r * c_s_ion_r)))) *
           ((vel_ion_r[i] * (1.0 - (c_s_ion_r * c_s_ion_r))) +
-            (c_s_ion_r *
-              sqrt((1.0 - v_sq_ion_r) *
-                   (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_ion_r * (c_s_ion_r * c_s_ion_r))) -
-                     (vel_ion_r[i] * vel_ion_r[i]) * (1.0 - (c_s_ion_r * c_s_ion_r)))))) -
+           (c_s_ion_r *
+            sqrt(
+              (1.0 - v_sq_ion_r) *
+              (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_ion_r * (c_s_ion_r * c_s_ion_r))) -
+               (vel_ion_r[i] * vel_ion_r[i]) * (1.0 - (c_s_ion_r * c_s_ion_r)))
+            ))) -
         shift_r[i];
 
       slow_acoustic_eigs_ion_r[i] =
         (lapse_r / (1.0 - (v_sq_ion_r * (c_s_ion_r * c_s_ion_r)))) *
           ((vel_ion_r[i] * (1.0 - (c_s_ion_r * c_s_ion_r))) -
-            (c_s_ion_r *
-              sqrt((1.0 - v_sq_ion_r) *
-                   (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_ion_r * (c_s_ion_r * c_s_ion_r))) -
-                     (vel_ion_r[i] * vel_ion_r[i]) * (1.0 - (c_s_ion_r * c_s_ion_r)))))) -
+           (c_s_ion_r *
+            sqrt(
+              (1.0 - v_sq_ion_r) *
+              (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_ion_r * (c_s_ion_r * c_s_ion_r))) -
+               (vel_ion_r[i] * vel_ion_r[i]) * (1.0 - (c_s_ion_r * c_s_ion_r)))
+            ))) -
         shift_r[i];
     }
 
@@ -2160,12 +2215,16 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
   gkyl_free(inv_spatial_metric_l);
   gkyl_free(inv_spatial_metric_r);
 
-  return fmax(fmax(fmax(fabs(sl_elc), fabs(sr_elc)), fmax(fabs(sl_ion), fabs(sr_ion))),
-    fmax(fabs(sl_em), fabs(sr_em)));
+  return fmax(
+    fmax(fmax(fabs(sl_elc), fabs(sr_elc)), fmax(fabs(sl_ion), fabs(sr_ion))),
+    fmax(fabs(sl_em), fabs(sr_em))
+  );
 }
 
-static void qfluct_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+static void qfluct_hll(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0 * 84], *w1 = &waves[1 * 84], *w2 = &waves[2 * 84],
                *w3 = &waves[3 * 84], *w4 = &waves[4 * 84], *w5 = &waves[5 * 84];
@@ -2182,9 +2241,10 @@ static void qfluct_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const do
   }
 }
 
-static double wave_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_hll_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return wave_hll(eqn, delta, ql, qr, waves, s);
@@ -2195,9 +2255,11 @@ static double wave_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
   return 0.0; // Unreachable code.
 }
 
-static void qfluct_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_hll_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
@@ -2206,8 +2268,8 @@ static void qfluct_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
   }
 }
 
-static double flux_jump(
-  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double gas_gamma_elc = gr_twofluid->gas_gamma_elc;
@@ -2252,7 +2314,7 @@ static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   double gas_gamma_elc = gr_twofluid->gas_gamma_elc;
   double gas_gamma_ion = gr_twofluid->gas_gamma_ion;
 
-  double v[84] = { 0.0 };
+  double v[84] = {0.0};
   gkyl_gr_twofluid_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
 
   if (v[0] < 0.0 || v[4] < 0.0 || v[5] < 0.0 || v[9] < 0.0) {
@@ -2272,16 +2334,16 @@ static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_gr_twofluid_max_abs_speed(gas_gamma_elc, gas_gamma_ion, light_speed, q);
 }
 
-static inline void gr_twofluid_cons_to_diag(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
+static inline void
+gr_twofluid_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   for (int i = 0; i < 5; i++) {
     diag[i] = qin[i];
   }
 }
 
-static inline void gr_twofluid_source(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
+static inline void
+gr_twofluid_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   for (int i = 0; i < 84; i++) {
     sout[i] = 0.0;
@@ -2302,12 +2364,15 @@ void gkyl_gr_twofluid_free(const struct gkyl_ref_count *ref)
   gkyl_free(gr_twofluid);
 }
 
-struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_new(double mass_elc, double mass_ion, double charge_elc,
-  double charge_ion, double gas_gamma_elc, double gas_gamma_ion, double light_speed, double e_fact,
-  double b_fact, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq,
-  struct gkyl_gr_spacetime *spacetime, bool use_gpu)
+struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_new(
+  double mass_elc, double mass_ion, double charge_elc, double charge_ion, double gas_gamma_elc,
+  double gas_gamma_ion, double light_speed, double e_fact, double b_fact,
+  enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
+  bool use_gpu
+)
 {
-  return gkyl_wv_gr_twofluid_inew(&(struct gkyl_wv_gr_twofluid_inp){ .mass_elc = mass_elc,
+  return gkyl_wv_gr_twofluid_inew(&(struct gkyl_wv_gr_twofluid_inp
+  ){.mass_elc = mass_elc,
     .mass_ion = mass_ion,
     .charge_elc = charge_elc,
     .charge_ion = charge_ion,
@@ -2320,7 +2385,7 @@ struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_new(double mass_elc, double mass_ion, do
     .reinit_freq = reinit_freq,
     .spacetime = spacetime,
     .rp_type = WV_GR_TWOFLUID_RP_HLL,
-    .use_gpu = use_gpu });
+    .use_gpu = use_gpu});
 }
 
 struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_inew(const struct gkyl_wv_gr_twofluid_inp *inp)

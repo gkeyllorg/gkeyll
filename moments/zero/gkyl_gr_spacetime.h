@@ -27,146 +27,195 @@ enum gkyl_spacetime_evolution {
 struct gkyl_gr_spacetime;
 
 // Function pointer to compute the rank-2 spatial metric tensor at a given point in spacetime.
-typedef void (*gr_spatial_metric_tensor_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double ***spatial_metric_tensor);
+typedef void (*gr_spatial_metric_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spatial_metric_tensor
+);
 
 // Function pointer to compute the rank-2 spacetime metric tensor at a given point in spacetime.
-typedef void (*gr_spacetime_metric_tensor_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z,
-  double ***spacetime_metric_tensor);
+typedef void (*gr_spacetime_metric_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spacetime_metric_tensor
+);
 
 // Function pointer to compute the rank-2 inverse spatial metric tensor at a given point in spacetime.
-typedef void (*gr_spatial_inv_metric_tensor_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z,
-  double ***spatial_inv_metric_tensor);
+typedef void (*gr_spatial_inv_metric_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spatial_inv_metric_tensor
+);
 
 // Function pointer to compute the rank-2 inverse spacetime metric tensor at a given point in spacetime.
-typedef void (*gr_spacetime_inv_metric_tensor_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z,
-  double ***spacetime_inv_metric_tensor);
+typedef void (*gr_spacetime_inv_metric_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spacetime_inv_metric_tensor
+);
 
 // Function pointer to compute the (scalar) spatial metric determinant at a given point in spacetime.
-typedef void (*gr_spatial_metric_det_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double *spatial_metric_det);
+typedef void (*gr_spatial_metric_det_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *spatial_metric_det
+);
 
 // Function pointer to compute the (scalar) spacetime metric determinant at a given point in spacetime.
-typedef void (*gr_spacetime_metric_det_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double *spacetime_metric_det);
+typedef void (*gr_spacetime_metric_det_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *spacetime_metric_det
+);
 
 // Function pointer to compute the rank-3 (spatial) partial derivative of the spatial metric tensor at a given point in spacetime.
-typedef void (*gr_spatial_metric_tensor_der_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ****spatial_metric_tensor_der);
+typedef void (*gr_spatial_metric_tensor_der_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ****spatial_metric_tensor_der
+);
 
 // Function pointer to compute the rank-3 (spacetime) partial derivative of the spacetime metric tensor at a given point in spacetime.
-typedef void (*gr_spacetime_metric_tensor_der_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double ****spacetime_metric_tensor_der);
+typedef void (*gr_spacetime_metric_tensor_der_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ****spacetime_metric_tensor_der
+);
 
 // Function pointer to compute the (scalar) lapse function at a given point in spacetime.
-typedef void (*gr_lapse_function_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double *lapse_function);
+typedef void (*gr_lapse_function_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *lapse_function
+);
 
 // Function pointer to compute the rank-1 shift vector at a given point in spacetime.
-typedef void (*gr_shift_vector_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double **shift_vector);
+typedef void (*gr_shift_vector_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double **shift_vector
+);
 
 // Function pointer to compute the rank-1 (spatial) partial derivative of the lapse function at a given point in spacetime.
-typedef void (*gr_lapse_function_der_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double **lapse_function_der);
+typedef void (*gr_lapse_function_der_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double **lapse_function_der
+);
 
 // Function pointer to compute the rank-2 (spatial) partial derivative of the shift vector at a given point in spacetime.
-typedef void (*gr_shift_vector_der_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ***shift_vector_der);
+typedef void (*gr_shift_vector_der_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***shift_vector_der
+);
 
 // Function pointer to compute the rank-3 (spatial) Christoffel symbols at a given point in spacetime.
-typedef void (*gr_spatial_christoffel_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ****spatial_christoffel);
+typedef void (*gr_spatial_christoffel_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ****spatial_christoffel
+);
 
 // Function pointer to compute the rank-3 (spacetime) Christoffel symbols at a given point in spacetime.
-typedef void (*gr_spacetime_christoffel_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double ****spacetime_christoffel);
+typedef void (*gr_spacetime_christoffel_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ****spacetime_christoffel
+);
 
 // Function pointer to compute the rank-4 (spatial) Riemann curvature tensor at a given point in spacetime.
-typedef void (*gr_spatial_riemann_tensor_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double *****spatial_riemann_tensor);
+typedef void (*gr_spatial_riemann_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double *****spatial_riemann_tensor
+);
 
 // Function pointer to compute the rank-4 (spacetime) Riemann curvature tensor at a given point in spacetime.
-typedef void (*gr_spacetime_riemann_tensor_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double *****spacetime_riemann_tensor);
+typedef void (*gr_spacetime_riemann_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *****spacetime_riemann_tensor
+);
 
 // Function pointer to compute the rank-2 (spatial) Ricci curvature tensor at a given point in spacetime.
-typedef void (*gr_spatial_ricci_tensor_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ***spatial_ricci_tensor);
+typedef void (*gr_spatial_ricci_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***spatial_ricci_tensor
+);
 
 // Function pointer to compute the rank-2 (spacetime) Ricci curvature tensor at a given point in spacetime.
-typedef void (*gr_spacetime_ricci_tensor_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double ***spacetime_ricci_tensor);
+typedef void (*gr_spacetime_ricci_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ***spacetime_ricci_tensor
+);
 
 // Function pointer to compute the (spatial) Ricci scalar curvature at a given point in spacetime.
-typedef void (*gr_spatial_ricci_scalar_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double *spatial_ricci_scalar);
+typedef void (*gr_spatial_ricci_scalar_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double *spatial_ricci_scalar
+);
 
 // Function pointer to compute the (spacetime) Ricci scalar curvature at a given point in spacetime.
-typedef void (*gr_spacetime_ricci_scalar_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double *spacetime_ricci_scalar);
+typedef void (*gr_spacetime_ricci_scalar_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *spacetime_ricci_scalar
+);
 
 // Function pointer to compute the rank-4 (spatial) Weyl curvature tensor at a given point in spacetime.
-typedef void (*gr_spatial_weyl_tensor_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double *****spatial_weyl_tensor);
+typedef void (*gr_spatial_weyl_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double *****spatial_weyl_tensor
+);
 
 // Function pointer to compute the rank-4 (spacetime) Weyl curvature tensor at a given point in spacetime.
-typedef void (*gr_spacetime_weyl_tensor_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double *****spacetime_weyl_tensor);
+typedef void (*gr_spacetime_weyl_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *****spacetime_weyl_tensor
+);
 
 // Function pointer to compute the rank-2 extrinsic curvature tensor at a given point in spacetime.
-typedef void (*gr_extrinsic_curvature_tensor_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ***extrinsic_curvature_tensor);
+typedef void (*gr_extrinsic_curvature_tensor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ***extrinsic_curvature_tensor
+);
 
 // Function pointer to compute the conformal factor at a given point in spacetime.
-typedef void (*gr_conformal_factor_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double *conformal_factor);
+typedef void (*gr_conformal_factor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *conformal_factor
+);
 
 // Function pointer to compute the BSSN conformal factor at a given point in spacetime.
-typedef void (*gr_bssn_conformal_factor_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double *bssn_conformal_factor);
+typedef void (*gr_bssn_conformal_factor_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *bssn_conformal_factor
+);
 
 // Function pointer to compute the rank-1 (spatial) partial derivative of the conformal factor function at a given point in spacetime.
-typedef void (*gr_conformal_factor_der_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double **conformal_factor_der);
+typedef void (*gr_conformal_factor_der_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double **conformal_factor_der
+);
 
 // Function pointer to compute the rank-1 (spatial) partial derivative of the BSSN conformal factor function at a given point in spacetime.
-typedef void (*gr_bssn_conformal_factor_der_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double **bssn_conformal_factor_der);
+typedef void (*gr_bssn_conformal_factor_der_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double **bssn_conformal_factor_der
+);
 
 // Function pointer to compute the rank-2 (spatial) second partial derivative of the conformal factor function at a given point in spacetime.
-typedef void (*gr_conformal_factor_der2_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ***conformal_factor_der2);
+typedef void (*gr_conformal_factor_der2_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***conformal_factor_der2
+);
 
 // Function pointer to compute the rank-2 (spatial) second partial derivative of the BSSN conformal factor function at a given point in spacetime.
-typedef void (*gr_bssn_conformal_factor_der2_t)(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ***bssn_conformal_factor_der2);
+typedef void (*gr_bssn_conformal_factor_der2_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ***bssn_conformal_factor_der2
+);
 
 // Function pointer to determine whether a given point in spacetime lies inside an excision region.
-typedef void (*gr_excision_region_t)(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, bool *in_excision_region);
+typedef void (*gr_excision_region_t)(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, bool *in_excision_region
+);
 
 struct gkyl_gr_spacetime {
   gr_spatial_metric_tensor_t spatial_metric_tensor_func; // Function to compute spatial metric tensor.
@@ -256,7 +305,8 @@ struct gkyl_gr_spacetime {
 */
 GKYL_CU_DH static inline void gkyl_gr_spatial_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double ***spatial_metric_tensor);
+  const double z, double ***spatial_metric_tensor
+);
 
 /**
 * Compute the rank-2 spacetime metric tensor at a given point in spacetime.
@@ -270,7 +320,8 @@ GKYL_CU_DH static inline void gkyl_gr_spatial_metric_tensor(
 */
 GKYL_CU_DH static inline void gkyl_gr_spacetime_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double ***spacetime_metric_tensor);
+  const double z, double ***spacetime_metric_tensor
+);
 
 /**
 * Compute the rank-2 inverse spatial metric tensor at a given point in spacetime.
@@ -284,7 +335,8 @@ GKYL_CU_DH static inline void gkyl_gr_spacetime_metric_tensor(
 */
 GKYL_CU_DH static inline void gkyl_gr_spatial_inv_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double ***spatial_inv_metric_tensor);
+  const double z, double ***spatial_inv_metric_tensor
+);
 
 /**
 * Compute the rank-2 inverse spacetime metric tensor at a given point in spacetime.
@@ -298,7 +350,8 @@ GKYL_CU_DH static inline void gkyl_gr_spatial_inv_metric_tensor(
 */
 GKYL_CU_DH static inline void gkyl_gr_spacetime_inv_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double ***spacetime_inv_metric_tensor);
+  const double z, double ***spacetime_inv_metric_tensor
+);
 
 /**
 * Compute the (scalar) spatial metric determinant at a given point in spacetime.
@@ -310,8 +363,10 @@ GKYL_CU_DH static inline void gkyl_gr_spacetime_inv_metric_tensor(
 * @param z Spatial coordinate (z-direction).
 * @param spatial_metric_det Spatial metric determinant (output).
 */
-GKYL_CU_DH static inline void gkyl_gr_spatial_metric_det(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double *spatial_metric_det);
+GKYL_CU_DH static inline void gkyl_gr_spatial_metric_det(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *spatial_metric_det
+);
 
 /**
 * Compute the (scalar) spacetime metric determinant at a given point in spacetime.
@@ -325,7 +380,8 @@ GKYL_CU_DH static inline void gkyl_gr_spatial_metric_det(const struct gkyl_gr_sp
 */
 GKYL_CU_DH static inline void gkyl_gr_spacetime_metric_det(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double *spacetime_metric_det);
+  const double z, double *spacetime_metric_det
+);
 
 /**
 * Compute the rank-3 (spatial) partial derivative of the spatial metric tensor at a given point in spacetime.
@@ -343,7 +399,8 @@ GKYL_CU_DH static inline void gkyl_gr_spacetime_metric_det(
 GKYL_CU_DH static inline void gkyl_gr_spatial_metric_tensor_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
-  double ****spatial_metric_tensor_der);
+  double ****spatial_metric_tensor_der
+);
 
 /**
 * Compute the rank-3 (spacetime) partial derivative of the spacetime metric tensor at a given point in spacetime.
@@ -362,7 +419,8 @@ GKYL_CU_DH static inline void gkyl_gr_spatial_metric_tensor_der(
 GKYL_CU_DH static inline void gkyl_gr_spacetime_metric_tensor_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double ****spacetime_metric_tensor_der);
+  double ****spacetime_metric_tensor_der
+);
 
 /**
 * Compute the (scalar) lapse function at a given point in spacetime.
@@ -374,8 +432,10 @@ GKYL_CU_DH static inline void gkyl_gr_spacetime_metric_tensor_der(
 * @param z Spatial coordinate (z-direction).
 * @param lapse_function Lapse function (output).
 */
-GKYL_CU_DH static inline void gkyl_gr_lapse_function(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double *lapse_function);
+GKYL_CU_DH static inline void gkyl_gr_lapse_function(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *lapse_function
+);
 
 /**
 * Compute the rank-1 shift vector at a given point in spacetime.
@@ -387,8 +447,10 @@ GKYL_CU_DH static inline void gkyl_gr_lapse_function(const struct gkyl_gr_spacet
 * @param z Spatial coordinate (z-direction).
 * @param shift_vector Rank-1 shift vector (output).
 */
-GKYL_CU_DH static inline void gkyl_gr_shift_vector(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double **shift_vector);
+GKYL_CU_DH static inline void gkyl_gr_shift_vector(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double **shift_vector
+);
 
 /**
 * Compute the rank-1 (spatial) partial derivative of the lapse function at a given point in spacetime.
@@ -403,9 +465,10 @@ GKYL_CU_DH static inline void gkyl_gr_shift_vector(const struct gkyl_gr_spacetim
 * @param dz Spatial coordinate spacing (z-direction).
 * @param lapse_function_der Rank-1 partial derivative of the lapse function (output).
 */
-GKYL_CU_DH static inline void gkyl_gr_lapse_function_der(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double **lapse_function_der);
+GKYL_CU_DH static inline void gkyl_gr_lapse_function_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double **lapse_function_der
+);
 
 /**
 * Compute the rank-2 (spatial) partial derivative of the shift vector at a given point in spacetime.
@@ -420,9 +483,10 @@ GKYL_CU_DH static inline void gkyl_gr_lapse_function_der(const struct gkyl_gr_sp
 * @param dz Spatial coordinate spacing (z-direction).
 * @param shift_vector_der Rank-2 partial derivative of the shift vector (output).
 */
-GKYL_CU_DH static inline void gkyl_gr_shift_vector_der(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ***shift_vector_der);
+GKYL_CU_DH static inline void gkyl_gr_shift_vector_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***shift_vector_der
+);
 
 /**
 * Compute the rank-3 (spatial) Christoffel symbols at a given point in spacetime.
@@ -437,9 +501,10 @@ GKYL_CU_DH static inline void gkyl_gr_shift_vector_der(const struct gkyl_gr_spac
 * @param dz Spatial coordinate spacing (z-direction).
 * @param spatial_christoffel Rank-3 spatial Christoffel symbols (output).
 */
-GKYL_CU_DH static inline void gkyl_gr_spatial_christoffel(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ****spatial_christoffel);
+GKYL_CU_DH static inline void gkyl_gr_spatial_christoffel(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ****spatial_christoffel
+);
 
 /**
 * Compute the rank-3 (spacetime) Christoffel symbols at a given point in spacetime.
@@ -458,7 +523,8 @@ GKYL_CU_DH static inline void gkyl_gr_spatial_christoffel(const struct gkyl_gr_s
 GKYL_CU_DH static inline void gkyl_gr_spacetime_christoffel(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double ****spacetime_christoffel);
+  double ****spacetime_christoffel
+);
 
 /**
 * Compute the rank-4 (spatial) Riemann curvature tensor at a given point in spacetime.
@@ -476,7 +542,8 @@ GKYL_CU_DH static inline void gkyl_gr_spacetime_christoffel(
 GKYL_CU_DH static inline void gkyl_gr_spatial_riemann_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
-  double *****spatial_riemann_tensor);
+  double *****spatial_riemann_tensor
+);
 
 /**
 * Compute the rank-4 (spacetime) Riemann curvature tensor at a given point in spacetime.
@@ -495,7 +562,8 @@ GKYL_CU_DH static inline void gkyl_gr_spatial_riemann_tensor(
 GKYL_CU_DH static inline void gkyl_gr_spacetime_riemann_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double *****spacetime_riemann_tensor);
+  double *****spacetime_riemann_tensor
+);
 
 /**
 * Compute the rank-2 (spatial) Ricci curvature tensor at a given point in spacetime.
@@ -512,8 +580,8 @@ GKYL_CU_DH static inline void gkyl_gr_spacetime_riemann_tensor(
 */
 GKYL_CU_DH static inline void gkyl_gr_spatial_ricci_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, const double dx, const double dy, const double dz,
-  double ***spatial_ricci_tensor);
+  const double z, const double dx, const double dy, const double dz, double ***spatial_ricci_tensor
+);
 
 /**
 * Compute the rank-2 (spacetime) Ricci curvature tensor at a given point in spacetime.
@@ -532,7 +600,8 @@ GKYL_CU_DH static inline void gkyl_gr_spatial_ricci_tensor(
 GKYL_CU_DH static inline void gkyl_gr_spacetime_ricci_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double ***spacetime_ricci_tensor);
+  double ***spacetime_ricci_tensor
+);
 
 /**
 * Compute the (spatial) Ricci scalar curvature at a given point in spacetime.
@@ -549,7 +618,8 @@ GKYL_CU_DH static inline void gkyl_gr_spacetime_ricci_tensor(
 */
 GKYL_CU_DH static inline void gkyl_gr_spatial_ricci_scalar(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, const double dx, const double dy, const double dz, double *spatial_ricci_scalar);
+  const double z, const double dx, const double dy, const double dz, double *spatial_ricci_scalar
+);
 
 /**
 * Compute the (spacetime) Ricci scalar curvature at a given point in spacetime.
@@ -568,7 +638,8 @@ GKYL_CU_DH static inline void gkyl_gr_spatial_ricci_scalar(
 GKYL_CU_DH static inline void gkyl_gr_spacetime_ricci_scalar(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double *spacetime_ricci_scalar);
+  double *spacetime_ricci_scalar
+);
 
 /**
 * Compute the rank-4 (spatial) Weyl curvature tensor at a given point in spacetime.
@@ -583,9 +654,10 @@ GKYL_CU_DH static inline void gkyl_gr_spacetime_ricci_scalar(
 * @param dz Spatial coordinate spacing (z-direction).
 * @param spatial_weyl_tensor Rank-4 spatial Weyl curvature tensor (output).
 */
-GKYL_CU_DH static inline void gkyl_gr_spatial_weyl_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double *****spatial_weyl_tensor);
+GKYL_CU_DH static inline void gkyl_gr_spatial_weyl_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double *****spatial_weyl_tensor
+);
 
 /**
 * Compute the rank-4 (spacetime) Weyl curvature tensor at a given point in spacetime.
@@ -604,7 +676,8 @@ GKYL_CU_DH static inline void gkyl_gr_spatial_weyl_tensor(const struct gkyl_gr_s
 GKYL_CU_DH static inline void gkyl_gr_spacetime_weyl_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double *****spacetime_weyl_tensor);
+  double *****spacetime_weyl_tensor
+);
 
 /**
 * Compute the rank-2 extrinsic curvature tensor at a given point in spacetime.
@@ -622,7 +695,8 @@ GKYL_CU_DH static inline void gkyl_gr_spacetime_weyl_tensor(
 GKYL_CU_DH static inline void gkyl_gr_extrinsic_curvature_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
-  double ***extrinsic_curvature_tensor);
+  double ***extrinsic_curvature_tensor
+);
 
 /**
 * Compute the conformal factor at a given point in spacetime.
@@ -634,8 +708,10 @@ GKYL_CU_DH static inline void gkyl_gr_extrinsic_curvature_tensor(
 * @param z Spatial coordinate (z-direction).
 * @param conformal_factor Conformal factor (output).
 */
-GKYL_CU_DH static inline void gkyl_gr_conformal_factor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double *conformal_factor);
+GKYL_CU_DH static inline void gkyl_gr_conformal_factor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *conformal_factor
+);
 
 /**
 * Compute the BSSN conformal factor at a given point in spacetime.
@@ -649,7 +725,8 @@ GKYL_CU_DH static inline void gkyl_gr_conformal_factor(const struct gkyl_gr_spac
 */
 GKYL_CU_DH static inline void gkyl_gr_bssn_conformal_factor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double *bssn_conformal_factor);
+  const double z, double *bssn_conformal_factor
+);
 
 /**
 * Compute the rank-1 (spatial) partial derivative of the conformal factor at a given point in spacetime.
@@ -666,7 +743,8 @@ GKYL_CU_DH static inline void gkyl_gr_bssn_conformal_factor(
 */
 GKYL_CU_DH static inline void gkyl_gr_conformal_factor_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, const double dx, const double dy, const double dz, double **conformal_factor_der);
+  const double z, const double dx, const double dy, const double dz, double **conformal_factor_der
+);
 
 /**
 * Compute the rank-1 (spatial) partial derivative of the BSSN conformal factor at a given point in spacetime.
@@ -684,7 +762,8 @@ GKYL_CU_DH static inline void gkyl_gr_conformal_factor_der(
 GKYL_CU_DH static inline void gkyl_gr_bssn_conformal_factor_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
-  double **bssn_conformal_factor_der);
+  double **bssn_conformal_factor_der
+);
 
 /**
 * Compute the rank-2 (spatial) second partial derivative of the conformal factor at a given point in spacetime.
@@ -701,8 +780,8 @@ GKYL_CU_DH static inline void gkyl_gr_bssn_conformal_factor_der(
 */
 GKYL_CU_DH static inline void gkyl_gr_conformal_factor_der2(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, const double dx, const double dy, const double dz,
-  double ***conformal_factor_der2);
+  const double z, const double dx, const double dy, const double dz, double ***conformal_factor_der2
+);
 
 /**
 * Compute the rank-2 (spatial) second partial derivative of the BSSN conformal factor at a given point in spacetime.
@@ -720,7 +799,8 @@ GKYL_CU_DH static inline void gkyl_gr_conformal_factor_der2(
 GKYL_CU_DH static inline void gkyl_gr_bssn_conformal_factor_der2(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
-  double ***bssn_conformal_factor_der2);
+  double ***bssn_conformal_factor_der2
+);
 
 /**
 * Determine whether a given point in spacetime lies within an excision region.
@@ -732,8 +812,10 @@ GKYL_CU_DH static inline void gkyl_gr_bssn_conformal_factor_der2(
 * @param z Spatial coordinate (z-direction).
 * @param in_excision_region Whether the spacetime point lies in an excision region (output).
 */
-GKYL_CU_DH static inline void gkyl_gr_excision_region(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, bool *in_excision_region);
+GKYL_CU_DH static inline void gkyl_gr_excision_region(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, bool *in_excision_region
+);
 
 /**
 * Check whether the spacetime is on device.

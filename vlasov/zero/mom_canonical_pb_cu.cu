@@ -44,7 +44,8 @@ static int v_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void gkyl_mom_canonical_pb_set_auxfields_cu_kernel(
-  const struct gkyl_mom_type *momt, const struct gkyl_array *hamil)
+  const struct gkyl_mom_type *momt, const struct gkyl_array *hamil
+)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   mom_can_pb->auxfields.hamil = hamil;
@@ -52,14 +53,16 @@ __global__ static void gkyl_mom_canonical_pb_set_auxfields_cu_kernel(
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void gkyl_mom_canonical_pb_set_auxfields_cu(
-  const struct gkyl_mom_type *momt, struct gkyl_mom_canonical_pb_auxfields auxin)
+  const struct gkyl_mom_type *momt, struct gkyl_mom_canonical_pb_auxfields auxin
+)
 {
   gkyl_mom_canonical_pb_set_auxfields_cu_kernel<<<1, 1> > >(momt, auxin.hamil->on_dev);
 }
 
-__global__ static void set_cu_ptrs(struct mom_type_canonical_pb *mom_can_pb,
-  enum gkyl_distribution_moments mom_type, enum gkyl_basis_type b_type, int vdim, int poly_order,
-  int tblidx)
+__global__ static void set_cu_ptrs(
+  struct mom_type_canonical_pb *mom_can_pb, enum gkyl_distribution_moments mom_type,
+  enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx
+)
 {
   mom_can_pb->auxfields.hamil = 0;
 
@@ -108,9 +111,10 @@ __global__ static void set_cu_ptrs(struct mom_type_canonical_pb *mom_can_pb,
   }
 }
 
-struct gkyl_mom_type *gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range,
-  enum gkyl_distribution_moments mom_type)
+struct gkyl_mom_type *gkyl_mom_canonical_pb_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *phase_range, enum gkyl_distribution_moments mom_type
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -142,16 +146,18 @@ struct gkyl_mom_type *gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis *
   assert(cv_index[cdim].vdim[vdim] != -1);
 
   set_cu_ptrs<<<1, 1> > >(
-    momt_cu, mom_type, pbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]);
+    momt_cu, mom_type, pbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]
+  );
 
   mom_can_pb->momt.on_dev = &momt_cu->momt;
 
   return &mom_can_pb->momt;
 }
 
-__global__ static void set_int_cu_ptrs(struct mom_type_canonical_pb *mom_can_pb,
-  enum gkyl_distribution_moments mom_type, enum gkyl_basis_type b_type, int vdim, int poly_order,
-  int tblidx)
+__global__ static void set_int_cu_ptrs(
+  struct mom_type_canonical_pb *mom_can_pb, enum gkyl_distribution_moments mom_type,
+  enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx
+)
 {
   mom_can_pb->auxfields.hamil = 0;
 
@@ -193,9 +199,10 @@ __global__ static void set_int_cu_ptrs(struct mom_type_canonical_pb *mom_can_pb,
   }
 }
 
-struct gkyl_mom_type *gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range,
-  enum gkyl_distribution_moments mom_type)
+struct gkyl_mom_type *gkyl_int_mom_canonical_pb_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *phase_range, enum gkyl_distribution_moments mom_type
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -225,7 +232,8 @@ struct gkyl_mom_type *gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_bas
   gkyl_cu_memcpy(momt_cu, mom_can_pb, sizeof(struct mom_type_canonical_pb), GKYL_CU_MEMCPY_H2D);
 
   set_int_cu_ptrs<<<1, 1> > >(
-    momt_cu, mom_type, pbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]);
+    momt_cu, mom_type, pbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]
+  );
 
   mom_can_pb->momt.on_dev = &momt_cu->momt;
 

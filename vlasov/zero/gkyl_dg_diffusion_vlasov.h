@@ -23,9 +23,10 @@ struct gkyl_dg_diffusion_vlasov_auxfields {
  * @param use_gpu Whether to run on host or device.
  * @return Pointer to diffusion equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_diffusion_vlasov_new(const struct gkyl_basis *basis,
-  const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir, int diff_order,
-  const struct gkyl_range *diff_range, bool use_gpu);
+struct gkyl_dg_eqn *gkyl_dg_diffusion_vlasov_new(
+  const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const,
+  const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, bool use_gpu
+);
 
 /**
  * Set the auxiliary fields (e.g. diffusion tensor D) needed in updating diffusion equation.
@@ -34,7 +35,8 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_vlasov_new(const struct gkyl_basis *basis,
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_dg_diffusion_vlasov_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_vlasov_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_vlasov_auxfields auxin
+);
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -45,6 +47,7 @@ void gkyl_dg_diffusion_vlasov_set_auxfields(
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_dg_diffusion_vlasov_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_vlasov_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_vlasov_auxfields auxin
+);
 
 #endif

@@ -32,7 +32,8 @@ struct gkyl_gk_rad_drag {
  * @param use_gpu Whether to store drag coefficient on the gpu.
  */
 struct gkyl_gk_rad_drag *gkyl_dg_calc_gk_rad_vars_drag_new(
-  int num_collisions, const int *num_densities, int ncomp, long sz, bool use_gpu);
+  int num_collisions, const int *num_densities, int ncomp, long sz, bool use_gpu
+);
 
 /**
  * Free memory associated with a gkyl_gk_rad_drag struct.
@@ -42,7 +43,8 @@ struct gkyl_gk_rad_drag *gkyl_dg_calc_gk_rad_vars_drag_new(
  * @param use_gpu Whether data was stored on the GPU.
  */
 void gkyl_dg_calc_gk_rad_vars_drag_release(
-  struct gkyl_gk_rad_drag *drag, int num_collisions, bool use_gpu);
+  struct gkyl_gk_rad_drag *drag, int num_collisions, bool use_gpu
+);
 
 /**
  * Create new updater to compute the drag coefficients needed for 
@@ -68,7 +70,8 @@ void gkyl_dg_calc_gk_rad_vars_drag_release(
 struct gkyl_dg_calc_gk_rad_vars *gkyl_dg_calc_gk_rad_vars_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, double charge, double mass,
-  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu);
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu
+);
 
 /**
  * Compute drag coefficients needed for radiation in gyrokinetic equations
@@ -82,10 +85,12 @@ struct gkyl_dg_calc_gk_rad_vars *gkyl_dg_calc_gk_rad_vars_new(
  * @param vsqnu_surf Output surface expansion of mu drag coefficient
  * @param vsqnu Output volume expansion of mu drag coefficient
  */
-void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, double a, double alpha,
-  double beta, double gamma, double v0, struct gkyl_array *vnu_surf, struct gkyl_array *vnu,
-  struct gkyl_array *vsqnu_surf, struct gkyl_array *vsqnu);
+void gkyl_dg_calc_gk_rad_vars_nu_advance(
+  const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, double a, double alpha, double beta, double gamma,
+  double v0, struct gkyl_array *vnu_surf, struct gkyl_array *vnu, struct gkyl_array *vsqnu_surf,
+  struct gkyl_array *vsqnu
+);
 
 /**
  * Compute sum_s n_{i_s} nu_s(v) total drag coefficient for drag due to radiation in gyrokinetic equations
@@ -108,13 +113,15 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
  * @param vtsq_min_normalized Minimum vtsq for each fit divided by configuration space normalization
  * @param vtsq vtsq
  */
-void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_gk_rad_drag *vnu_surf, const struct gkyl_gk_rad_drag *vnu,
-  const struct gkyl_gk_rad_drag *vsqnu_surf, const struct gkyl_gk_rad_drag *vsqnu,
-  const struct gkyl_array *n_elc_rad, const struct gkyl_array *n_elc, const struct gkyl_array *nI,
-  struct gkyl_array *nvnu_surf, struct gkyl_array *nvnu, struct gkyl_array *nvsqnu_surf,
-  struct gkyl_array *nvsqnu, struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq);
+void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
+  const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_gk_rad_drag *vnu_surf,
+  const struct gkyl_gk_rad_drag *vnu, const struct gkyl_gk_rad_drag *vsqnu_surf,
+  const struct gkyl_gk_rad_drag *vsqnu, const struct gkyl_array *n_elc_rad,
+  const struct gkyl_array *n_elc, const struct gkyl_array *nI, struct gkyl_array *nvnu_surf,
+  struct gkyl_array *nvnu, struct gkyl_array *nvsqnu_surf, struct gkyl_array *nvsqnu,
+  struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq
+);
 
 /**
  * Delete pointer to updater to compute gyrokinetic variables.

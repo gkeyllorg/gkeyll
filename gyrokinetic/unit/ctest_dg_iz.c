@@ -49,10 +49,10 @@ void test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
   int pdim_gk = cdim + vdim_gk;
 
   // for gk grids
-  double lower_elc[] = { -2.0, -2.0, -2.0, vmin_elc, 0.0 },
-         upper_elc[] = { 2.0, 2.0, 2.0, vmax_elc, mumax_elc };
-  int ghost_gk[] = { 0, 0, 0, 0, 0 };
-  int cells_gk[] = { 16, 16, 16, 8, 4 };
+  double lower_elc[] = {-2.0, -2.0, -2.0, vmin_elc, 0.0},
+         upper_elc[] = {2.0, 2.0, 2.0, vmax_elc, mumax_elc};
+  int ghost_gk[] = {0, 0, 0, 0, 0};
+  int cells_gk[] = {16, 16, 16, 8, 4};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -80,11 +80,13 @@ void test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
   gkyl_proj_on_basis *proj_T_over_m_elc_100ev =
     gkyl_proj_on_basis_new(&confGrid, &basis, poly_order + 1, 1, eval_T_over_m_elc_100ev, NULL);
 
-  struct gkyl_dg_iz_inp iz_inp = { .cbasis = &basis,
+  struct gkyl_dg_iz_inp iz_inp = {
+    .cbasis = &basis,
     .conf_rng = &confRange,
     .type_ion = type_ion,
     .charge_state = charge_state,
-    .type_self = GKYL_SELF_ELC };
+    .type_self = GKYL_SELF_ELC
+  };
 
   // coll struct.
   struct gkyl_dg_iz *coll_iz_up = gkyl_dg_iz_new(&iz_inp, use_gpu);
@@ -130,20 +132,20 @@ void test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
   } else {
     gkyl_dg_iz_coll(coll_iz_up, moms_elc, vtSq_iz1, vtSq_iz2, coef_iz, 0);
   }
-  const double *cv_iz = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[3]){ 1, 1, 1 }));
+  const double *cv_iz = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[3]){1, 1, 1}));
 
   // test against predicted value
   if (type_ion == GKYL_ION_H) {
-    double p1_vals[] = { 8.3873695794923268e-14, 0.0000000000000000e+00, 0.0000000000000000e+00,
-      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
-      0.0000000000000000e+00, 0.0000000000000000e+00 };
+    double p1_vals[] = {8.3873695794923268e-14, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                        0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                        0.0000000000000000e+00, 0.0000000000000000e+00};
     for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p1_vals[i] * check_fac, cv_iz[i] * check_fac, 1e-12));
     }
   } else if (type_ion == GKYL_ION_LI) {
-    double p1_vals[] = { 4.7212386637934834e-15, 0.0000000000000000e+00, 0.0000000000000000e+00,
-      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
-      0.0000000000000000e+00, 0.0000000000000000e+00 };
+    double p1_vals[] = {4.7212386637934834e-15, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                        0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                        0.0000000000000000e+00, 0.0000000000000000e+00};
     for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p1_vals[i] * check_fac, cv_iz[i] * check_fac, 1e-12));
     }
@@ -237,8 +239,12 @@ void coll_iz_o_gpu()
 }
 #endif
 
-TEST_LIST = { { "coll_iz_h_ho", coll_iz_h_ho }, { "coll_iz_li_ho", coll_iz_li_ho },
+TEST_LIST = {
+  {"coll_iz_h_ho", coll_iz_h_ho},
+  {"coll_iz_li_ho", coll_iz_li_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "coll_iz_h_dev", coll_iz_h_dev }, { "coll_iz_li_dev", coll_iz_li_dev },
+  {"coll_iz_h_dev", coll_iz_h_dev},
+  {"coll_iz_li_dev", coll_iz_li_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

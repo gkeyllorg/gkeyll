@@ -39,8 +39,10 @@ void evalFunc1x_neumannx_dirichletx(double t, const double *xn, double *restrict
   fout[0] = -(1. - a * pow(x, 2));
 }
 
-void check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
-  struct gkyl_array *field2)
+void check_same(
+  struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
+  struct gkyl_array *field2
+)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -48,8 +50,9 @@ void check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_ar
     long lidx = gkyl_range_idx(&range, iter.idx);
     const double *f1 = gkyl_array_cfetch(field1, lidx);
     const double *f2 = gkyl_array_cfetch(field2, lidx);
-    for (int i = 0; i < basis.num_basis; i++)
+    for (int i = 0; i < basis.num_basis; i++) {
       TEST_CHECK(gkyl_compare(f1[i], f2[i], 1e-10));
+    }
   }
 }
 
@@ -57,14 +60,14 @@ void test_deflate_inflate(bool use_gpu)
 {
   // Create the 2d field.
   // Create xz grid.
-  double lower[] = { -M_PI, 0.0 }, upper[] = { M_PI, 1.0 };
-  int cells[] = { 12, 8 };
+  double lower[] = {-M_PI, 0.0}, upper[] = {M_PI, 1.0};
+  int cells[] = {12, 8};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   // Ranges.
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // Basis function.
@@ -86,14 +89,14 @@ void test_deflate_inflate(bool use_gpu)
   gkyl_array_copy(field_dev, field);
 
   // Create deflated 1d grid, ranges, basis, and field.
-  double deflated_lower[] = { -M_PI }, deflated_upper[] = { M_PI };
-  int deflated_cells[] = { 12 };
+  double deflated_lower[] = {-M_PI}, deflated_upper[] = {M_PI};
+  int deflated_cells[] = {12};
   struct gkyl_rect_grid deflated_grid;
   gkyl_rect_grid_init(&deflated_grid, 1, deflated_lower, deflated_upper, deflated_cells);
 
   // Ranges.
   struct gkyl_range deflated_local, deflated_local_ext;
-  int deflated_nghost[GKYL_MAX_CDIM] = { 1 };
+  int deflated_nghost[GKYL_MAX_CDIM] = {1};
   gkyl_create_grid_ranges(&deflated_grid, deflated_nghost, &deflated_local_ext, &deflated_local);
 
   // Deflated basis function.
@@ -113,14 +116,16 @@ void test_deflate_inflate(bool use_gpu)
       gkyl_array_acquire(deflated_field);
 
   // Create nrange and the 2d nodal array to be populated.
-  int nodes[2] = { 1, 1 };
+  int nodes[2] = {1, 1};
   if (poly_order == 1) {
-    for (int d = 0; d < grid.ndim; ++d)
+    for (int d = 0; d < grid.ndim; ++d) {
       nodes[d] = grid.cells[d] + 1;
+    }
   }
   if (poly_order == 2) {
-    for (int d = 0; d < grid.ndim; ++d)
+    for (int d = 0; d < grid.ndim; ++d) {
       nodes[d] = 2 * (grid.cells[d]) + 1;
+    }
   }
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
@@ -130,14 +135,16 @@ void test_deflate_inflate(bool use_gpu)
               gkyl_array_acquire(nodal_fld);
 
   // Create the deflated nodal range and 1d array that will be used as an intermediate.
-  int deflated_nodes[3] = { 1, 1, 1 };
+  int deflated_nodes[3] = {1, 1, 1};
   if (poly_order == 1) {
-    for (int d = 0; d < deflated_grid.ndim; ++d)
+    for (int d = 0; d < deflated_grid.ndim; ++d) {
       deflated_nodes[d] = deflated_grid.cells[d] + 1;
+    }
   }
   if (poly_order == 2) {
-    for (int d = 0; d < deflated_grid.ndim; ++d)
+    for (int d = 0; d < deflated_grid.ndim; ++d) {
       deflated_nodes[d] = 2 * (deflated_grid.cells[d]) + 1;
+    }
   }
   struct gkyl_range deflated_nrange;
   gkyl_range_init_from_shape(&deflated_nrange, deflated_grid.ndim, deflated_nodes);
@@ -152,16 +159,22 @@ void test_deflate_inflate(bool use_gpu)
   for (int zidx = local.lower[1]; zidx <= local.upper[1]; zidx++) {
     // First deflate.
     gkyl_deflate_zsurf_advance(
-      deflator_lo, zidx, &local, &deflated_local, field_dev, deflated_field_dev, 1);
+      deflator_lo, zidx, &local, &deflated_local, field_dev, deflated_field_dev, 1
+    );
     // Modal to Nodal in 1d -> Store the result in the 2d nodal field.
-    gkyl_nodal_ops_m2n_deflated(n2m_1d, deflated_basis_on_dev, &deflated_grid, &nrange,
-      &deflated_nrange, &deflated_local, 1, nodal_fld_dev, deflated_field_dev, ctr);
+    gkyl_nodal_ops_m2n_deflated(
+      n2m_1d, deflated_basis_on_dev, &deflated_grid, &nrange, &deflated_nrange, &deflated_local, 1,
+      nodal_fld_dev, deflated_field_dev, ctr
+    );
     ctr += 1;
     if (zidx == local.upper[1]) {
       gkyl_deflate_zsurf_advance(
-        deflator_up, zidx, &local, &deflated_local, field_dev, deflated_field_dev, 1);
-      gkyl_nodal_ops_m2n_deflated(n2m_1d, deflated_basis_on_dev, &deflated_grid, &nrange,
-        &deflated_nrange, &deflated_local, 1, nodal_fld_dev, deflated_field_dev, ctr);
+        deflator_up, zidx, &local, &deflated_local, field_dev, deflated_field_dev, 1
+      );
+      gkyl_nodal_ops_m2n_deflated(
+        n2m_1d, deflated_basis_on_dev, &deflated_grid, &nrange, &deflated_nrange, &deflated_local,
+        1, nodal_fld_dev, deflated_field_dev, ctr
+      );
     }
   }
 
@@ -173,7 +186,8 @@ void test_deflate_inflate(bool use_gpu)
   // Convert back to modal and do a check.
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, use_gpu);
   gkyl_nodal_ops_n2m(
-    n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, out_field_dev, false);
+    n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, out_field_dev, false
+  );
   gkyl_array_copy(out_field, out_field_dev);
   //gkyl_grid_sub_array_write(&grid, &local, 0, out_field, "out_field.gkyl");
 
@@ -206,14 +220,14 @@ void test_deflate_zsurf_poisson_slices_ho()
 {
   // Create the 2d field.
   // Create xz grid.
-  double lower[] = { -M_PI, 0.0 }, upper[] = { 3 * M_PI / 2, 1.0 };
-  int cells[] = { 12, 8 };
+  double lower[] = {-M_PI, 0.0}, upper[] = {3 * M_PI / 2, 1.0};
+  int cells[] = {12, 8};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   // Ranges.
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // Basis function.
@@ -230,14 +244,14 @@ void test_deflate_zsurf_poisson_slices_ho()
 
   // Create deflated 1d grid, ranges, basis, and field.
   // Create xz grid.
-  double deflated_lower[] = { -M_PI }, deflated_upper[] = { M_PI };
-  int deflated_cells[] = { 12 };
+  double deflated_lower[] = {-M_PI}, deflated_upper[] = {M_PI};
+  int deflated_cells[] = {12};
   struct gkyl_rect_grid deflated_grid;
   gkyl_rect_grid_init(&deflated_grid, 1, deflated_lower, deflated_upper, deflated_cells);
 
   // Ranges,
   struct gkyl_range deflated_local, deflated_local_ext;
-  int deflated_nghost[GKYL_MAX_CDIM] = { 1 };
+  int deflated_nghost[GKYL_MAX_CDIM] = {1};
   gkyl_create_grid_ranges(&deflated_grid, deflated_nghost, &deflated_local_ext, &deflated_local);
 
   // Basis function.
@@ -252,15 +266,17 @@ void test_deflate_zsurf_poisson_slices_ho()
     gkyl_array_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
 
   // Create nrange and the 2d nodal array to be populated.
-  int nodes[2] = { 1, 1 };
+  int nodes[2] = {1, 1};
   if (poly_order == 1) {
-    for (int d = 0; d < grid.ndim; ++d)
+    for (int d = 0; d < grid.ndim; ++d) {
       nodes[d] = grid.cells[d] + 1;
+    }
   }
 
   if (poly_order == 2) {
-    for (int d = 0; d < grid.ndim; ++d)
+    for (int d = 0; d < grid.ndim; ++d) {
       nodes[d] = 2 * (grid.cells[d]) + 1;
+    }
   }
 
   struct gkyl_range nrange;
@@ -268,15 +284,17 @@ void test_deflate_zsurf_poisson_slices_ho()
   struct gkyl_array *nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
 
   // Create the deflated nodal range and 1d array that will be used as an intermediate.
-  int deflated_nodes[3] = { 1, 1, 1 };
+  int deflated_nodes[3] = {1, 1, 1};
   if (poly_order == 1) {
-    for (int d = 0; d < deflated_grid.ndim; ++d)
+    for (int d = 0; d < deflated_grid.ndim; ++d) {
       deflated_nodes[d] = deflated_grid.cells[d] + 1;
+    }
   }
 
   if (poly_order == 2) {
-    for (int d = 0; d < deflated_grid.ndim; ++d)
+    for (int d = 0; d < deflated_grid.ndim; ++d) {
       deflated_nodes[d] = 2 * (deflated_grid.cells[d]) + 1;
+    }
   }
 
   struct gkyl_range deflated_nrange;
@@ -300,20 +318,22 @@ void test_deflate_zsurf_poisson_slices_ho()
     gkyl_array_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); // Sets weight=1.
   struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(
-    &deflated_local, &deflated_grid, deflated_basis, &poisson_bc, NULL, epsilon, 0, false, false);
+    &deflated_local, &deflated_grid, deflated_basis, &poisson_bc, NULL, epsilon, 0, false, false
+  );
 
   struct gkyl_nodal_ops *n2m_1d = gkyl_nodal_ops_new(&basis, &grid, false);
   int nidx[2];
   for (int zidx = local.lower[1]; zidx <= local.upper[1]; zidx++) {
     // first deflate
-    gkyl_deflate_zsurf_advance(
-      deflator_lo, zidx, &local, &deflated_local, field, deflated_field, 1);
+    gkyl_deflate_zsurf_advance(deflator_lo, zidx, &local, &deflated_local, field, deflated_field, 1);
     // do the poisson solve
     gkyl_fem_poisson_set_rhs(fem_poisson, deflated_field, NULL);
     gkyl_fem_poisson_solve(fem_poisson, deflated_phi);
     // then nodal to modal
-    gkyl_nodal_ops_m2n(n2m_1d, &deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local,
-      1, deflated_nodal_fld, deflated_phi, false);
+    gkyl_nodal_ops_m2n(
+      n2m_1d, &deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1,
+      deflated_nodal_fld, deflated_phi, false
+    );
     // now loop through the 2d nrange and populate
     nidx[1] = zidx - 1;
     for (int ix = 0; ix <= nrange.upper[0]; ix++) {
@@ -327,13 +347,16 @@ void test_deflate_zsurf_poisson_slices_ho()
     if (zidx == local.upper[1]) {
       // first deflate
       gkyl_deflate_zsurf_advance(
-        deflator_up, zidx, &local, &deflated_local, field, deflated_field, 1);
+        deflator_up, zidx, &local, &deflated_local, field, deflated_field, 1
+      );
       // do the poisson solve
       gkyl_fem_poisson_set_rhs(fem_poisson, deflated_field, NULL);
       gkyl_fem_poisson_solve(fem_poisson, deflated_phi);
       // then nodal to modal
-      gkyl_nodal_ops_m2n(n2m_1d, &deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local,
-        1, deflated_nodal_fld, deflated_phi, false);
+      gkyl_nodal_ops_m2n(
+        n2m_1d, &deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1,
+        deflated_nodal_fld, deflated_phi, false
+      );
       // now loop through the 2d nrange and populate
       nidx[1] = zidx;
       for (int ix = 0; ix <= nrange.upper[0]; ix++) {
@@ -377,9 +400,11 @@ void test_deflate_zsurf_inflate_dev(void)
   test_deflate_inflate(true);
 }
 
-TEST_LIST = { { "test_deflate_zsurf_inflate_ho", test_deflate_zsurf_inflate_ho },
-  { "test_deflate_zsurf_poisson_slices_ho", test_deflate_zsurf_poisson_slices_ho },
+TEST_LIST = {
+  {"test_deflate_zsurf_inflate_ho", test_deflate_zsurf_inflate_ho},
+  {"test_deflate_zsurf_poisson_slices_ho", test_deflate_zsurf_poisson_slices_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_deflate_zsurf_inflate_dev", test_deflate_zsurf_inflate_dev },
+  {"test_deflate_zsurf_inflate_dev", test_deflate_zsurf_inflate_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

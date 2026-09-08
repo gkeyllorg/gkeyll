@@ -46,8 +46,9 @@ struct gkyl_tool_args *gkyl_tool_args_new(lua_State *L)
 
 void gkyl_tool_args_release(struct gkyl_tool_args *args)
 {
-  for (int i = 0; i < args->argc; ++i)
+  for (int i = 0; i < args->argc; ++i) {
     gkyl_free(args->argv[i]);
+  }
   gkyl_free(args->argv);
   gkyl_free(args);
 }
@@ -70,19 +71,21 @@ static int rect_decomp_lw_new(lua_State *L)
   struct rect_decomp_lw *rd_lw = gkyl_malloc(sizeof(*rd_lw));
 
   int ndim = 1;
-  int cells[GKYL_MAX_DIM] = { 0 }, cuts[GKYL_MAX_DIM] = { 1 };
+  int cells[GKYL_MAX_DIM] = {0}, cuts[GKYL_MAX_DIM] = {1};
 
   with_lua_tbl_tbl(L, "cells")
   {
     ndim = glua_objlen(L);
-    for (int d = 0; d < ndim; ++d)
+    for (int d = 0; d < ndim; ++d) {
       cells[d] = glua_tbl_iget_integer(L, d + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "cuts")
   {
-    for (int d = 0; d < ndim; ++d)
+    for (int d = 0; d < ndim; ++d) {
       cuts[d] = glua_tbl_iget_integer(L, d + 1, 0);
+    }
   }
 
   rd_lw->decomp = gkyl_rect_decomp_new_from_cuts_and_cells(ndim, cuts, cells);
@@ -111,10 +114,10 @@ static int rect_decomp_lw_gc(lua_State *L)
 }
 
 // rect_decomp constructor
-static struct luaL_Reg rect_decomp_ctor[] = { { "new", rect_decomp_lw_new }, { 0, 0 } };
+static struct luaL_Reg rect_decomp_ctor[] = {{"new", rect_decomp_lw_new}, {0, 0}};
 
 // rect_decomp methods
-static struct luaL_Reg rect_decomp_funcs[] = { { 0, 0 } };
+static struct luaL_Reg rect_decomp_funcs[] = {{0, 0}};
 
 static void rect_decomp_openlibs(lua_State *L)
 {
@@ -153,7 +156,7 @@ static int rect_grid_lw_gc(lua_State *L)
   return 0;
 }
 
-static struct luaL_Reg rect_grid_funcs[] = { { 0, 0 } };
+static struct luaL_Reg rect_grid_funcs[] = {{0, 0}};
 
 static void rect_grid_openlibs(lua_State *L)
 {
@@ -186,7 +189,7 @@ static int array_lw_gc(lua_State *L)
   return 0;
 }
 
-static struct luaL_Reg array_funcs[] = { { 0, 0 } };
+static struct luaL_Reg array_funcs[] = {{0, 0}};
 
 static void array_openlibs(lua_State *L)
 {
@@ -218,7 +221,7 @@ static int range_lw_gc(lua_State *L)
   return 0;
 }
 
-static struct luaL_Reg range_funcs[] = { { 0, 0 } };
+static struct luaL_Reg range_funcs[] = {{0, 0}};
 
 static void range_openlibs(lua_State *L)
 {
@@ -281,10 +284,11 @@ static int gkyl_file_type_lw(lua_State *L)
   };
   int nnames = (int)(sizeof(names) / sizeof(names[0]));
 
-  if (ftype <= 0 || ftype >= nnames || names[ftype] == NULL)
+  if (ftype <= 0 || ftype >= nnames || names[ftype] == NULL) {
     lua_pushstring(L, "not-gkyl");
-  else
+  } else {
     lua_pushstring(L, names[ftype]);
+  }
 
   return 1;
 }
@@ -335,7 +339,7 @@ static int create_grid_ranges_lw(lua_State *L)
   luaL_checktype(L, 2, LUA_TTABLE);
 
   int ndim = (*l_g)->grid.ndim;
-  int nghost[GKYL_MAX_DIM] = { 0 };
+  int nghost[GKYL_MAX_DIM] = {0};
   for (int d = 0; d < ndim; ++d) {
     lua_rawgeti(L, 2, d + 1);
     nghost[d] = (int)lua_tointeger(L, -1);
@@ -420,16 +424,19 @@ static int dynvec_diff_lw(lua_State *L)
   struct gkyl_dynvec_etype_ncomp enc2 = gkyl_dynvec_read_ncomp(f2);
 
   // ncomp == 0 means the file couldn't be read or has an invalid header.
-  if (enc1.ncomp == 0 || enc2.ncomp == 0)
+  if (enc1.ncomp == 0 || enc2.ncomp == 0) {
     return dynvec_incompat(L);
+  }
 
   // gkyl_array_diff only handles GKYL_DOUBLE safely.
-  if (enc1.type != GKYL_DOUBLE || enc2.type != GKYL_DOUBLE)
+  if (enc1.type != GKYL_DOUBLE || enc2.type != GKYL_DOUBLE) {
     return dynvec_incompat(L);
+  }
 
   // Number of components must match.
-  if (enc1.ncomp != enc2.ncomp)
+  if (enc1.ncomp != enc2.ncomp) {
     return dynvec_incompat(L);
+  }
 
   // Read full dynvecs.
   gkyl_dynvec dv1 = gkyl_dynvec_new(enc1.type, enc1.ncomp);
@@ -495,7 +502,7 @@ static int dynvec_diff_lw(lua_State *L)
 
   // Build a 1-D range [0, nsteps-1] for gkyl_array_diff.
   struct gkyl_range rng;
-  int shape[1] = { (int)nsteps };
+  int shape[1] = {(int)nsteps};
   gkyl_range_init_from_shape(&rng, 1, shape);
 
   struct gkyl_array_diff ddiff = gkyl_array_diff(da1, da2, &rng);
@@ -548,10 +555,12 @@ static int block_topo_cmp_lw(lua_State *L)
   struct gkyl_block_topo *bt2 = gkyl_block_topo_read(f2, &st2);
 
   if (!bt1 || !bt2) {
-    if (bt1)
+    if (bt1) {
       gkyl_block_topo_release(bt1);
-    if (bt2)
+    }
+    if (bt2) {
       gkyl_block_topo_release(bt2);
+    }
     lua_pushboolean(L, 0);
     return 1;
   }
@@ -566,8 +575,9 @@ static int block_topo_cmp_lw(lua_State *L)
         for (int e = 0; e < 2 && equal; ++e) {
           struct gkyl_target_edge *c1 = &bt1->conn[b].connections[d][e];
           struct gkyl_target_edge *c2 = &bt2->conn[b].connections[d][e];
-          if (c1->bid != c2->bid || c1->dir != c2->dir || c1->edge != c2->edge)
+          if (c1->bid != c2->bid || c1->dir != c2->dir || c1->edge != c2->edge) {
             equal = false;
+          }
         }
       }
     }
@@ -581,10 +591,12 @@ static int block_topo_cmp_lw(lua_State *L)
 }
 
 // Module-level functions registered under G0.Zero
-static struct luaL_Reg zero_array_funcs[] = { { "gkylFileType", gkyl_file_type_lw },
-  { "arrayNewFromFile", array_new_from_file_lw }, { "rectGridCmp", rect_grid_cmp_lw },
-  { "createGridRanges", create_grid_ranges_lw }, { "arrayDiff", array_diff_lw },
-  { "dynvecDiff", dynvec_diff_lw }, { "blockTopoCmp", block_topo_cmp_lw }, { 0, 0 } };
+static struct luaL_Reg zero_array_funcs[] = {
+  {"gkylFileType", gkyl_file_type_lw}, {"arrayNewFromFile", array_new_from_file_lw},
+  {"rectGridCmp", rect_grid_cmp_lw},   {"createGridRanges", create_grid_ranges_lw},
+  {"arrayDiff", array_diff_lw},        {"dynvecDiff", dynvec_diff_lw},
+  {"blockTopoCmp", block_topo_cmp_lw}, {0, 0}
+};
 
 void gkyl_zero_lw_openlibs(lua_State *L)
 {

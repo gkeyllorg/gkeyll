@@ -56,7 +56,8 @@ static void release_ProblemState(struct ProblemState *ps)
 }
 
 static void prefun(
-  const struct ProblemState *ps, double *F, double *FD, double P, double DK, double PK, double CK)
+  const struct ProblemState *ps, double *F, double *FD, double P, double DK, double PK, double CK
+)
 {
   double PRATIO, QRT, AK, BK;
   double gas_gamma = ps->gas_gamma;
@@ -200,8 +201,9 @@ static void starpu(struct ProblemState *ps, double *pm, double *um)
       converged = true;
       break;
     }
-    if (P < 0.0)
+    if (P < 0.0) {
       P = TOLPRE;
+    }
     POLD = P;
   }
   if (converged) {
@@ -215,8 +217,8 @@ static void starpu(struct ProblemState *ps, double *pm, double *um)
   *um = U;
 }
 
-static void sample(
-  struct ProblemState *ps, double PM, double UM, double S, double *D, double *U, double *P)
+static void
+sample(struct ProblemState *ps, double PM, double UM, double S, double *D, double *U, double *P)
 {
   double gas_gamma = ps->gas_gamma;
   // compute constants related to gamma
@@ -477,10 +479,11 @@ static void exactEulerRpWithVacuum(struct ProblemState *ps)
     pr[0] = psol;
 
     double *iE = gkyl_array_fetch(ps->internalEnergy, i);
-    if (dsol < DBL_EPSILON)
+    if (dsol < DBL_EPSILON) {
       iE[0] = 0.0;
-    else
+    } else {
       iE[0] = psol / dsol / g8;
+    }
   }
 }
 
@@ -504,34 +507,36 @@ void solveRiemannProblem(struct _ProblemState _ps, const char *out_prefix)
   unsigned ncell = _ps.ncell;
 
   // compute sound speeds in each region
-  if (ps->dl != 0)
+  if (ps->dl != 0) {
     ps->cl = sqrt(ps->gas_gamma * ps->pl / ps->dl);
-  else
+  } else {
     ps->cl = 0.0;
+  }
 
-  if (ps->dr != 0)
+  if (ps->dr != 0) {
     ps->cr = sqrt(ps->gas_gamma * ps->pr / ps->dr);
-  else
+  } else {
     ps->cr = 0.0;
+  }
 
   fprintf(stdout, "Solving Exact Euler Riemann Problem ...\n");
 
   // compute solution
-  if ((ps->dl != 0.0) && (ps->dr != 0.0))
+  if ((ps->dl != 0.0) && (ps->dr != 0.0)) {
     exactEulerRp(ps);
-  else if (ps->dr == 0)
+  } else if (ps->dr == 0) {
     exactEulerRpWithVacuum(ps);
-  else
+  } else {
     exactEulerRpWithVacuum(ps);
+  }
 
   fprintf(stdout, "... done!\n");
 
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(
-    &grid, 1, (double[]){ _ps.lower }, (double[]){ _ps.upper }, (int[]){ _ps.ncell });
+  gkyl_rect_grid_init(&grid, 1, (double[]){_ps.lower}, (double[]){_ps.upper}, (int[]){_ps.ncell});
 
   struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, 1, (int[]){ _ps.ncell });
+  gkyl_range_init_from_shape(&range, 1, (int[]){_ps.ncell});
 
   char *fname = gkyl_malloc(strlen(out_prefix) + 128);
 

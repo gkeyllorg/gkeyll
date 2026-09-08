@@ -8,8 +8,9 @@
 static inline struct gkyl_range get_qrange(int dim, int num_quad)
 {
   int qshape[GKYL_MAX_DIM];
-  for (int i = 0; i < dim; ++i)
+  for (int i = 0; i < dim; ++i) {
     qshape[i] = num_quad;
+  }
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, dim, qshape);
   return qrange;
@@ -17,8 +18,10 @@ static inline struct gkyl_range get_qrange(int dim, int num_quad)
 
 // Sets weights and basis functions at ords. Returns total
 // number of quadrature nodes.
-static int init_quad_values(const struct gkyl_basis *basis, int num_quad,
-  struct gkyl_array **weights, struct gkyl_array **basis_at_ords, bool use_gpu)
+static int init_quad_values(
+  const struct gkyl_basis *basis, int num_quad, struct gkyl_array **weights,
+  struct gkyl_array **basis_at_ords, bool use_gpu
+)
 {
   int ndim = basis->ndim;
   double ordinates1[num_quad], weights1[num_quad];
@@ -53,24 +56,28 @@ static int init_quad_values(const struct gkyl_basis *basis, int num_quad,
 
     // set ordinates
     double *ord = gkyl_array_fetch(ordinates_ho, node);
-    for (int i = 0; i < ndim; ++i)
+    for (int i = 0; i < ndim; ++i) {
       ord[i] = ordinates1[iter.idx[i] - qrange.lower[i]];
+    }
 
     // set weights
     double *wgt = gkyl_array_fetch(weights_ho, node);
     wgt[0] = 1.0;
-    for (int i = 0; i < qrange.ndim; ++i)
+    for (int i = 0; i < qrange.ndim; ++i) {
       wgt[0] *= weights1[iter.idx[i] - qrange.lower[i]];
+    }
   }
 
   // pre-compute basis functions at ordinates
   struct gkyl_array *basis_at_ords_ho = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
-  if (use_gpu)
+  if (use_gpu) {
     *basis_at_ords = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
-  else
+  } else {
     *basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
-  for (int n = 0; n < tot_quad; ++n)
+  }
+  for (int n = 0; n < tot_quad; ++n) {
     basis->eval(gkyl_array_fetch(ordinates_ho, n), gkyl_array_fetch(basis_at_ords_ho, n));
+  }
 
   // copy host array to device array
   gkyl_array_copy(*weights, weights_ho);

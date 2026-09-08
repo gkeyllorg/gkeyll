@@ -90,7 +90,8 @@ struct amr_euler_riem_2d_ctx create_ctx(void)
 
   double loc = 0.8; // Fluid boundaries (both x and y coordinates).
 
-  struct amr_euler_riem_2d_ctx ctx = { .gas_gamma = gas_gamma,
+  struct amr_euler_riem_2d_ctx ctx = {
+    .gas_gamma = gas_gamma,
     .rho_ul = rho_ul,
     .u_ul = u_ul,
     .v_ul = v_ul,
@@ -119,7 +120,8 @@ struct amr_euler_riem_2d_ctx create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .loc = loc };
+    .loc = loc
+  };
 
   return ctx;
 }
@@ -199,7 +201,8 @@ int main(int argc, char **argv)
 {
   struct amr_euler_riem_2d_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct euler2d_single_init init = { .base_Nx = ctx.Nx,
+  struct euler2d_single_init init = {
+    .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
     .ref_factor = ctx.ref_factor,
 
@@ -230,7 +233,8 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+    .num_failures_max = ctx.num_failures_max
+  };
 
   euler2d_run_single(argc, argv, &init);
 }

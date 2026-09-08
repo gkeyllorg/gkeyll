@@ -19,7 +19,8 @@ extern "C" {
 __global__ static void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker(
   struct gkyl_range conf_range, const struct gkyl_array *conf_basis_at_ords,
   const struct gkyl_array *bmag, const struct gkyl_array *jacobtot, struct gkyl_array *bmag_quad_d,
-  struct gkyl_array *jacobtot_quad_d)
+  struct gkyl_array *jacobtot_quad_d
+)
 {
   int num_conf_basis = conf_basis_at_ords->ncomp;
   int tot_conf_quad = conf_basis_at_ords->size;
@@ -48,18 +49,21 @@ __global__ static void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker(
   }
 }
 
-void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(gkyl_gk_maxwellian_proj_on_basis *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag,
-  const struct gkyl_array *jacobtot)
+void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(
+  gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacobtot
+)
 {
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
-  gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads> > >(*conf_range,
-    up->conf_basis_at_ords->on_dev, bmag->on_dev, jacobtot->on_dev, up->bmag_quad->on_dev,
-    up->jacobtot_quad->on_dev);
+  gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads> > >(
+    *conf_range, up->conf_basis_at_ords->on_dev, bmag->on_dev, jacobtot->on_dev,
+    up->bmag_quad->on_dev, up->jacobtot_quad->on_dev
+  );
 }
 
 static void gkyl_parallelize_components_kernel_launch_dims(
-  dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp)
+  dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp
+)
 {
   // Create a 2D thread grid so we launch ncomp*range.volume number of threads
   // so we can parallelize over components too
@@ -69,11 +73,12 @@ static void gkyl_parallelize_components_kernel_launch_dims(
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
 }
 
-__global__ static void gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker(struct gkyl_range conf_range,
-  int vdim_phys, int num_comp, bool bimaxwellian, bool use_jacobtot,
+__global__ static void gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker(
+  struct gkyl_range conf_range, int vdim_phys, int num_comp, bool bimaxwellian, bool use_jacobtot,
   const struct gkyl_array *conf_basis_at_ords, const struct gkyl_array *moms_maxwellian,
   const struct gkyl_array *bmag_quad, const struct gkyl_array *jacobtot_quad,
-  struct gkyl_array *moms_maxwellian_quad, struct gkyl_array *expamp_quad)
+  struct gkyl_array *moms_maxwellian_quad, struct gkyl_array *expamp_quad
+)
 {
   int num_conf_basis = conf_basis_at_ords->ncomp;
   int tot_conf_quad = conf_basis_at_ords->size;
@@ -133,20 +138,21 @@ __global__ static void gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker(struct gky
   }
 }
 
-__global__ static void gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(struct gkyl_rect_grid phase_grid,
-  struct gkyl_range phase_range, struct gkyl_range conf_range, struct gkyl_range vel_range,
-  bool bimaxwellian, double mass, const struct gkyl_array *conf_basis_at_ords,
-  const struct gkyl_array *phase_ordinates, const struct gkyl_array *moms_maxwellian_quad,
-  const struct gkyl_array *expamp_quad, const struct gkyl_array *bmag_quad, const int *p2c_qidx,
-  struct gkyl_array *vmap, struct gkyl_array *jacobvel, struct gkyl_basis *vmap_basis,
-  struct gkyl_array *f_maxwellian_quad)
+__global__ static void gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(
+  struct gkyl_rect_grid phase_grid, struct gkyl_range phase_range, struct gkyl_range conf_range,
+  struct gkyl_range vel_range, bool bimaxwellian, double mass,
+  const struct gkyl_array *conf_basis_at_ords, const struct gkyl_array *phase_ordinates,
+  const struct gkyl_array *moms_maxwellian_quad, const struct gkyl_array *expamp_quad,
+  const struct gkyl_array *bmag_quad, const int *p2c_qidx, struct gkyl_array *vmap,
+  struct gkyl_array *jacobvel, struct gkyl_basis *vmap_basis, struct gkyl_array *f_maxwellian_quad
+)
 {
   double f_floor = 1.0e-40;
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
   int vdim = pdim - cdim;
   int tot_conf_quad = conf_basis_at_ords->size;
 
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = { 0.0 };
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.0};
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM], vidx[2];
 
   // 2D thread grid
@@ -210,9 +216,11 @@ __global__ static void gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(struct gkyl_r
   }
 }
 
-void gkyl_gk_maxwellian_proj_on_basis_advance_cu(gkyl_gk_maxwellian_proj_on_basis *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *moms_maxwellian, bool use_jacobtot, struct gkyl_array *f_maxwellian)
+void gkyl_gk_maxwellian_proj_on_basis_advance_cu(
+  gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *moms_maxwellian, bool use_jacobtot,
+  struct gkyl_array *f_maxwellian
+)
 {
   int vdim = up->pdim - up->cdim;
   int vdim_phys = vdim == 1 ? 1 : 3;
@@ -221,21 +229,24 @@ void gkyl_gk_maxwellian_proj_on_basis_advance_cu(gkyl_gk_maxwellian_proj_on_basi
   dim3 dimGrid_conf, dimBlock_conf;
   int tot_conf_quad = up->conf_basis_at_ords->size;
   gkyl_parallelize_components_kernel_launch_dims(
-    &dimGrid_conf, &dimBlock_conf, *conf_range, tot_conf_quad);
-  gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker<<<dimGrid_conf, dimBlock_conf> > >(*conf_range,
-    vdim_phys, up->num_comp, up->bimaxwellian, use_jacobtot, up->conf_basis_at_ords->on_dev,
-    moms_maxwellian->on_dev, up->bmag_quad->on_dev, up->jacobtot_quad->on_dev,
-    up->moms_maxwellian_quad->on_dev, up->expamp_quad->on_dev);
+    &dimGrid_conf, &dimBlock_conf, *conf_range, tot_conf_quad
+  );
+  gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker<<<dimGrid_conf, dimBlock_conf> > >(
+    *conf_range, vdim_phys, up->num_comp, up->bimaxwellian, use_jacobtot,
+    up->conf_basis_at_ords->on_dev, moms_maxwellian->on_dev, up->bmag_quad->on_dev,
+    up->jacobtot_quad->on_dev, up->moms_maxwellian_quad->on_dev, up->expamp_quad->on_dev
+  );
 
   const struct gkyl_velocity_map *gvm = up->vel_map;
   dim3 dimGrid, dimBlock;
   int tot_phase_quad = up->basis_at_ords->size;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
-  gkyl_gk_maxwellian_proj_on_basis_f_quad_ker<<<dimGrid, dimBlock> > >(up->phase_grid, *phase_range,
-    *conf_range, gvm->local_ext_vel, up->bimaxwellian, up->mass, up->conf_basis_at_ords->on_dev,
-    up->ordinates->on_dev, up->moms_maxwellian_quad->on_dev, up->expamp_quad->on_dev,
-    up->bmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev, gvm->jacobvel->on_dev, gvm->vmap_basis,
-    up->f_maxwellian_quad->on_dev);
+  gkyl_gk_maxwellian_proj_on_basis_f_quad_ker<<<dimGrid, dimBlock> > >(
+    up->phase_grid, *phase_range, *conf_range, gvm->local_ext_vel, up->bimaxwellian, up->mass,
+    up->conf_basis_at_ords->on_dev, up->ordinates->on_dev, up->moms_maxwellian_quad->on_dev,
+    up->expamp_quad->on_dev, up->bmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev,
+    gvm->jacobvel->on_dev, gvm->vmap_basis, up->f_maxwellian_quad->on_dev
+  );
 
   // Call cublas to do the matrix multiplication nodal to modal conversion
   gkyl_mat_mm_array(up->phase_nodal_to_modal_mem, up->f_maxwellian_quad, f_maxwellian);
@@ -243,14 +254,18 @@ void gkyl_gk_maxwellian_proj_on_basis_advance_cu(gkyl_gk_maxwellian_proj_on_basi
   // Correct the density of the projected Maxwellian (or bi-Maxwellian)
   // distribution function through rescaling.
   gkyl_gk_maxwellian_density_moment_advance(
-    up->moments_up, phase_range, conf_range, f_maxwellian, up->num_ratio);
+    up->moments_up, phase_range, conf_range, f_maxwellian, up->num_ratio
+  );
 
   // compute number density ratio: num_ratio = n/n0
   // 0th component of moms_target is the target density
   gkyl_dg_div_op_range(
-    up->mem, &up->conf_basis, 0, up->num_ratio, 0, moms_maxwellian, 0, up->num_ratio, conf_range);
+    up->mem, &up->conf_basis, 0, up->num_ratio, 0, moms_maxwellian, 0, up->num_ratio, conf_range
+  );
 
   // rescale distribution function
-  gkyl_dg_mul_conf_phase_op_range(&up->conf_basis, &up->phase_basis, f_maxwellian, up->num_ratio,
-    f_maxwellian, conf_range, phase_range);
+  gkyl_dg_mul_conf_phase_op_range(
+    &up->conf_basis, &up->phase_basis, f_maxwellian, up->num_ratio, f_maxwellian, conf_range,
+    phase_range
+  );
 }

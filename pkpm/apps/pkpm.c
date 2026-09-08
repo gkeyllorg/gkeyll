@@ -52,15 +52,16 @@ static struct gkyl_msgpack_data *pkpm_array_meta_new(struct pkpm_output_meta met
 
 static void pkpm_array_meta_release(struct gkyl_msgpack_data *mt)
 {
-  if (!mt)
+  if (!mt) {
     return;
+  }
   MPACK_FREE(mt->meta);
   gkyl_free(mt);
 }
 
 static struct pkpm_output_meta pkpm_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
-  struct pkpm_output_meta meta = { .frame = 0, .stime = 0.0 };
+  struct pkpm_output_meta meta = {.frame = 0, .stime = 0.0};
 
   if (mt->meta_sz > 0) {
     mpack_tree_t tree;
@@ -112,8 +113,9 @@ gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
 #endif
 
   app->num_periodic_dir = pkpm->num_periodic_dir;
-  for (int d = 0; d < cdim; ++d)
+  for (int d = 0; d < cdim; ++d) {
     app->periodic_dirs[d] = pkpm->periodic_dirs[d];
+  }
 
   strcpy(app->name, pkpm->name);
   app->tcurr = 0.0; // reset on init
@@ -133,13 +135,15 @@ gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
     if (poly_order > 1) {
       gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-      if (vdim > 0)
+      if (vdim > 0) {
         gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
+      }
     } else if (poly_order == 1) {
       /* Force hybrid basis (p=2 in velocity space). */
       gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
-      if (vdim > 0)
+      if (vdim > 0) {
         gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
+      }
     }
 
     if (app->use_gpu) {
@@ -156,8 +160,9 @@ gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   case GKYL_BASIS_MODAL_TENSOR:
     gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
     gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-    if (vdim > 0)
+    if (vdim > 0) {
       gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
+    }
     break;
 
   default:
@@ -167,15 +172,15 @@ gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
 
   gkyl_rect_grid_init(&app->grid, cdim, pkpm->lower, pkpm->upper, pkpm->cells);
 
-  int ghost[] = { 1, 1, 1 };
+  int ghost[] = {1, 1, 1};
   gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
 
   if (pkpm->parallelism.comm == 0) {
-    int cuts[3] = { 1, 1, 1 };
+    int cuts[3] = {1, 1, 1};
     app->decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
 
-    app->comm = gkyl_null_comm_inew(
-      &(struct gkyl_null_comm_inp){ .decomp = app->decomp, .use_gpu = app->use_gpu });
+    app->comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp
+    ){.decomp = app->decomp, .use_gpu = app->use_gpu});
 
     // Global and local ranges are same, and so just copy them.
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
@@ -196,9 +201,11 @@ gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   // local skin and ghost ranges for configuration space fields
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost);
+      &app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
+      &app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost
+    );
   }
 
   // Configuration space geometry initialization
@@ -242,12 +249,14 @@ gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
 
   // set info for each species: this needs to be done here as we need
   // to access species name from pkpm_species_init
-  for (int i = 0; i < ns; ++i)
+  for (int i = 0; i < ns; ++i) {
     app->species[i].info = pkpm->species[i];
+  }
 
   // initialize each species
-  for (int i = 0; i < ns; ++i)
+  for (int i = 0; i < ns; ++i) {
     pkpm_species_init(pkpm, app, &app->species[i]);
+  }
 
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
@@ -273,26 +282,29 @@ gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   }
 
   // initialize stat object
-  app->stat = (struct gkyl_pkpm_stat){ .use_gpu = app->use_gpu,
-    .stage_2_dt_diff = { DBL_MAX, 0.0 },
-    .stage_3_dt_diff = { DBL_MAX, 0.0 } };
+  app->stat = (struct gkyl_pkpm_stat
+  ){.use_gpu = app->use_gpu, .stage_2_dt_diff = {DBL_MAX, 0.0}, .stage_3_dt_diff = {DBL_MAX, 0.0}};
 
   return app;
 }
 
 struct pkpm_species *pkpm_find_species(const gkyl_pkpm_app *app, const char *nm)
 {
-  for (int i = 0; i < app->num_species; ++i)
-    if (strcmp(nm, app->species[i].info.name) == 0)
+  for (int i = 0; i < app->num_species; ++i) {
+    if (strcmp(nm, app->species[i].info.name) == 0) {
       return &app->species[i];
+    }
+  }
   return 0;
 }
 
 int pkpm_find_species_idx(const gkyl_pkpm_app *app, const char *nm)
 {
-  for (int i = 0; i < app->num_species; ++i)
-    if (strcmp(nm, app->species[i].info.name) == 0)
+  for (int i = 0; i < app->num_species; ++i) {
+    if (strcmp(nm, app->species[i].info.name) == 0) {
       return i;
+    }
+  }
   return -1;
 }
 
@@ -346,7 +358,8 @@ void gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
 
     pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
     gkyl_dg_calc_pkpm_integrated_vars(
-      s->calc_pkpm_vars, &app->local, s->pkpm_moms.marr, s->fluid, s->pkpm_prim, s->integ_pkpm_mom);
+      s->calc_pkpm_vars, &app->local, s->pkpm_moms.marr, s->fluid, s->pkpm_prim, s->integ_pkpm_mom
+    );
     gkyl_array_scale_range(s->integ_pkpm_mom, app->grid.cellVolume, &(app->local));
     if (app->use_gpu) {
       gkyl_array_reduce_range(s->red_integ_diag, s->integ_pkpm_mom, GKYL_SUM, &(app->local));
@@ -398,8 +411,8 @@ void gkyl_pkpm_app_write(gkyl_pkpm_app *app, double tm, int frame)
 
 void gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta
+  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
 
   const char *fmt = "%s-field_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, frame);
@@ -423,7 +436,8 @@ void gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
       // External EM field computed with project on basis, so just use host copy
       pkpm_field_calc_ext_em(app, app->field, tm);
       gkyl_comm_array_write(
-        app->comm, &app->grid, &app->local, mt, app->field->ext_em_host, fileNm_ext_em);
+        app->comm, &app->grid, &app->local, mt, app->field->ext_em_host, fileNm_ext_em
+      );
     }
   }
 
@@ -438,7 +452,8 @@ void gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
       // Applied currents computed with project on basis, so just use host copy
       pkpm_field_calc_app_current(app, app->field, tm);
       gkyl_comm_array_write(
-        app->comm, &app->grid, &app->local, mt, app->field->app_current_host, fileNm_app_current);
+        app->comm, &app->grid, &app->local, mt, app->field->app_current_host, fileNm_app_current
+      );
     }
   }
 
@@ -447,8 +462,8 @@ void gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
 
 void gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->basis.id });
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta
+  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->basis.id});
 
   struct pkpm_species *s = &app->species[sidx];
 
@@ -468,8 +483,8 @@ void gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int fr
 
 void gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta
+  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
 
   struct pkpm_species *s = &app->species[sidx];
 
@@ -487,16 +502,17 @@ void gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   const char *fmt_pkpm_vars = "%s-%s_pkpm_vars_%d.gkyl";
   int sz_pkpm_vars = gkyl_calc_strlen(fmt_pkpm_vars, app->name, s->info.name, frame);
   char fileNm_pkpm_vars[sz_pkpm_vars + 1]; // ensures no buffer overflow
-  snprintf(
-    fileNm_pkpm_vars, sizeof fileNm_pkpm_vars, fmt_pkpm_vars, app->name, s->info.name, frame);
+  snprintf(fileNm_pkpm_vars, sizeof fileNm_pkpm_vars, fmt_pkpm_vars, app->name, s->info.name, frame);
 
   // Compute the PKPM variables including moments and primitive variables
   // and construct arrays for writing out fluid and other pkpm variables.
   pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
   pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
   pkpm_species_calc_pkpm_update_vars(app, s, s->f);
-  gkyl_dg_calc_pkpm_vars_io(s->calc_pkpm_vars, &app->local, s->pkpm_moms.marr, s->fluid,
-    s->pkpm_p_ij, s->pkpm_prim, s->pkpm_accel, s->fluid_io, s->pkpm_vars_io);
+  gkyl_dg_calc_pkpm_vars_io(
+    s->calc_pkpm_vars, &app->local, s->pkpm_moms.marr, s->fluid, s->pkpm_p_ij, s->pkpm_prim,
+    s->pkpm_accel, s->fluid_io, s->pkpm_vars_io
+  );
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
@@ -505,11 +521,11 @@ void gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
     gkyl_array_copy(s->pkpm_vars_io_host, s->pkpm_vars_io);
   }
 
-  gkyl_comm_array_write(
-    app->comm, &app->grid, &app->local, mt, s->pkpm_moms_diag.marr_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_moms_diag.marr_host, fileNm);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->fluid_io_host, fileNm_fluid);
   gkyl_comm_array_write(
-    app->comm, &app->grid, &app->local, mt, s->pkpm_vars_io_host, fileNm_pkpm_vars);
+    app->comm, &app->grid, &app->local, mt, s->pkpm_vars_io_host, fileNm_pkpm_vars
+  );
 
   pkpm_array_meta_release(mt);
 }
@@ -586,19 +602,25 @@ void gkyl_pkpm_app_write_field_energy(gkyl_pkpm_app *app)
   gkyl_dynvec_clear(app->field->integ_energy);
 }
 
-void gkyl_pkpm_app_train(gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann,
-  int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
-  struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data)
+void gkyl_pkpm_app_train(
+  gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann, int num_input_moms,
+  int *input_moms, int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data,
+  struct gkyl_kn_vec *output_data
+)
 {
   for (int i = 0; i < app->num_species; i++) {
-    gkyl_pkpm_app_train_mom(app, i, tm, frame, ann, num_input_moms, input_moms, num_output_moms,
-      output_moms, input_data, output_data);
+    gkyl_pkpm_app_train_mom(
+      app, i, tm, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data,
+      output_data
+    );
   }
 }
 
-void gkyl_pkpm_app_train_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame,
-  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
-  int *output_moms, struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data)
+void gkyl_pkpm_app_train_mom(
+  gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann,
+  int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
+  struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
+)
 {
   struct pkpm_species *s = &app->species[sidx];
   pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
@@ -661,11 +683,13 @@ void gkyl_pkpm_app_train_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame,
     count += 1;
   }
 
-  struct gkyl_kann_train_params params = { .learning_rate = 0.0001f,
+  struct gkyl_kann_train_params params = {
+    .learning_rate = 0.0001f,
     .mini_size = 64,
     .max_epoch = 50,
     .max_drop_streak = 10,
-    .frac_val = 0.1f };
+    .frac_val = 0.1f
+  };
 
   if (gkyl_kann_net_is_cu_dev(ann[sidx])) {
     // Mirror the host training data onto the device and train there.
@@ -691,7 +715,8 @@ void gkyl_pkpm_app_write_nn(gkyl_pkpm_app *app, double tm, int frame, struct gky
 }
 
 void gkyl_pkpm_app_write_nn_mom(
-  gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann)
+  gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann
+)
 {
   struct pkpm_species *s = &app->species[sidx];
 
@@ -703,24 +728,29 @@ void gkyl_pkpm_app_write_nn_mom(
   gkyl_kann_net_save(ann[sidx], fileNm);
 }
 
-void gkyl_pkpm_app_test(gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann,
-  int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
-  struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
-  struct gkyl_kn_vec *output_data_predicted)
+void gkyl_pkpm_app_test(
+  gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann, int num_input_moms,
+  int *input_moms, int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data_real,
+  struct gkyl_kn_vec *output_data_real, struct gkyl_kn_vec *output_data_predicted
+)
 {
   for (int i = 0; i < app->num_species; i++) {
-    gkyl_pkpm_app_test_mom(app, i, tm, frame, ann, num_input_moms, input_moms, num_output_moms,
-      output_moms, input_data_real, output_data_real, output_data_predicted);
+    gkyl_pkpm_app_test_mom(
+      app, i, tm, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms,
+      input_data_real, output_data_real, output_data_predicted
+    );
   }
 }
 
-void gkyl_pkpm_app_test_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame,
-  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
-  int *output_moms, struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
-  struct gkyl_kn_vec *output_data_predicted)
+void gkyl_pkpm_app_test_mom(
+  gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann,
+  int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
+  struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
+  struct gkyl_kn_vec *output_data_predicted
+)
 {
-  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta
+  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
 
   struct pkpm_species *s = &app->species[sidx];
   pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
@@ -849,8 +879,7 @@ void gkyl_pkpm_app_test_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame,
   char fileNm[sz + 1];
   snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
 
-  gkyl_comm_array_write(
-    app->comm, &app->grid, &app->local, mt, s->pkpm_moms_diag.marr_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_moms_diag.marr_host, fileNm);
 
   struct gkyl_range_iter iter_old;
   gkyl_range_iter_init(&iter_old, &app->local);
@@ -901,8 +930,9 @@ struct gkyl_update_status gkyl_pkpm_update(gkyl_pkpm_app *app, double dt)
   app->stat.total_tm += gkyl_time_diff_now_sec(wst);
 
   // Check for any CUDA errors during time step
-  if (app->use_gpu)
+  if (app->use_gpu) {
     checkCuda(cudaGetLastError());
+  }
   return status;
 }
 
@@ -913,18 +943,20 @@ struct gkyl_pkpm_stat gkyl_pkpm_app_stat(gkyl_pkpm_app *app)
   return app->stat;
 }
 
-static void range_stat_write(
-  gkyl_pkpm_app *app, const char *nm, const struct gkyl_range *r, FILE *fp)
+static void
+range_stat_write(gkyl_pkpm_app *app, const char *nm, const struct gkyl_range *r, FILE *fp)
 {
   gkyl_pkpm_app_cout(app, fp, " %s_cells : [ ", nm);
-  for (int i = 0; i < r->ndim; ++i)
+  for (int i = 0; i < r->ndim; ++i) {
     gkyl_pkpm_app_cout(app, fp, " %d, ", gkyl_range_shape(r, i));
+  }
   gkyl_pkpm_app_cout(app, fp, " ],\n");
 }
 
 // ensure stats across processors are made consistent
 static void comm_reduce_app_stat(
-  const gkyl_pkpm_app *app, const struct gkyl_pkpm_stat *local, struct gkyl_pkpm_stat *global)
+  const gkyl_pkpm_app *app, const struct gkyl_pkpm_stat *local, struct gkyl_pkpm_stat *global
+)
 {
   int comm_sz;
   gkyl_comm_get_size(app->comm, &comm_sz);
@@ -936,10 +968,12 @@ static void comm_reduce_app_stat(
   global->use_gpu = local->use_gpu;
 
   enum { NUP, NFEULER, NSTAGE_2_FAIL, NSTAGE_3_FAIL, L_END };
-  int64_t l_red[] = { [NUP] = local->nup,
+  int64_t l_red[] = {
+    [NUP] = local->nup,
     [NFEULER] = local->nfeuler,
     [NSTAGE_2_FAIL] = local->nstage_2_fail,
-    [NSTAGE_3_FAIL] = local->nstage_3_fail };
+    [NSTAGE_3_FAIL] = local->nstage_3_fail
+  };
 
   int64_t l_red_global[L_END];
   gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
@@ -974,7 +1008,8 @@ static void comm_reduce_app_stat(
     D_END
   };
 
-  double d_red[D_END] = { [TOTAL_TM] = local->total_tm,
+  double d_red[D_END] = {
+    [TOTAL_TM] = local->total_tm,
     [RK3_TM] = local->rk3_tm,
     [PKPM_EM_TM] = local->pkpm_em_tm,
     [INIT_SPECIES_TM] = local->init_species_tm,
@@ -994,7 +1029,8 @@ static void comm_reduce_app_stat(
     [IO_TM] = local->io_tm,
     [SPECIES_BC_TM] = local->species_bc_tm,
     [FLUID_SPECIES_BC_TM] = local->fluid_species_bc_tm,
-    [FIELD_BC_TM] = local->field_bc_tm };
+    [FIELD_BC_TM] = local->field_bc_tm
+  };
 
   double d_red_global[D_END];
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
@@ -1024,14 +1060,20 @@ static void comm_reduce_app_stat(
   // misc data needing reduction
 
   gkyl_comm_allreduce_host(
-    app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff, global->stage_2_dt_diff);
+    app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff, global->stage_2_dt_diff
+  );
   gkyl_comm_allreduce_host(
-    app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff, global->stage_3_dt_diff);
+    app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff, global->stage_3_dt_diff
+  );
 
-  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES,
-    local->species_lbo_coll_drag_tm, global->species_lbo_coll_drag_tm);
-  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES,
-    local->species_lbo_coll_diff_tm, global->species_lbo_coll_diff_tm);
+  gkyl_comm_allreduce_host(
+    app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
+    global->species_lbo_coll_drag_tm
+  );
+  gkyl_comm_allreduce_host(
+    app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
+    global->species_lbo_coll_diff_tm
+  );
 }
 
 void gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
@@ -1058,29 +1100,34 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
   gkyl_comm_get_rank(app->comm, &rank);
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
-  if (rank == 0)
+  if (rank == 0) {
     fp = fopen(fileNm, "a");
+  }
 
   gkyl_pkpm_app_cout(app, fp, "{\n");
 
-  if (strftime(buff, sizeof buff, "%c", &curr_tm))
+  if (strftime(buff, sizeof buff, "%c", &curr_tm)) {
     gkyl_pkpm_app_cout(app, fp, " date : %s,\n", buff);
+  }
 
   gkyl_pkpm_app_cout(app, fp, " use_gpu : %d,\n", stat.use_gpu);
   gkyl_pkpm_app_cout(app, fp, " num_ranks : %d,\n", num_ranks);
 
-  for (int s = 0; s < app->num_species; ++s)
+  for (int s = 0; s < app->num_species; ++s) {
     range_stat_write(app, app->species[s].info.name, &app->species[s].global, fp);
+  }
 
   gkyl_pkpm_app_cout(app, fp, " nup : %ld,\n", stat.nup);
   gkyl_pkpm_app_cout(app, fp, " nfeuler : %ld,\n", stat.nfeuler);
   gkyl_pkpm_app_cout(app, fp, " nstage_2_fail : %ld,\n", stat.nstage_2_fail);
   gkyl_pkpm_app_cout(app, fp, " nstage_3_fail : %ld,\n", stat.nstage_3_fail);
 
-  gkyl_pkpm_app_cout(app, fp, " stage_2_dt_diff : [ %lg, %lg ],\n", stat.stage_2_dt_diff[0],
-    stat.stage_2_dt_diff[1]);
-  gkyl_pkpm_app_cout(app, fp, " stage_3_dt_diff : [ %lg, %lg ],\n", stat.stage_3_dt_diff[0],
-    stat.stage_3_dt_diff[1]);
+  gkyl_pkpm_app_cout(
+    app, fp, " stage_2_dt_diff : [ %lg, %lg ],\n", stat.stage_2_dt_diff[0], stat.stage_2_dt_diff[1]
+  );
+  gkyl_pkpm_app_cout(
+    app, fp, " stage_3_dt_diff : [ %lg, %lg ],\n", stat.stage_3_dt_diff[0], stat.stage_3_dt_diff[1]
+  );
 
   gkyl_pkpm_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
   gkyl_pkpm_app_cout(app, fp, " rk3_tm : %lg,\n", stat.rk3_tm);
@@ -1098,9 +1145,11 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
   gkyl_pkpm_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);
   for (int s = 0; s < app->num_species; ++s) {
     gkyl_pkpm_app_cout(
-      app, fp, " species_coll_drag_tm[%d] : %lg,\n", s, stat.species_lbo_coll_drag_tm[s]);
+      app, fp, " species_coll_drag_tm[%d] : %lg,\n", s, stat.species_lbo_coll_drag_tm[s]
+    );
     gkyl_pkpm_app_cout(
-      app, fp, " species_coll_diff_tm[%d] : %lg,\n", s, stat.species_lbo_coll_diff_tm[s]);
+      app, fp, " species_coll_diff_tm[%d] : %lg,\n", s, stat.species_lbo_coll_diff_tm[s]
+    );
   }
 
   gkyl_pkpm_app_cout(app, fp, " fluid_species_rhs_tm : %lg,\n", stat.fluid_species_rhs_tm);
@@ -1127,13 +1176,14 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
 
   gkyl_pkpm_app_cout(app, fp, "}\n");
 
-  if (rank == 0)
+  if (rank == 0) {
     fclose(fp);
+  }
 }
 
 static struct gkyl_app_restart_status header_from_file(gkyl_pkpm_app *app, const char *fname)
 {
-  struct gkyl_app_restart_status rstat = { .io_status = 0 };
+  struct gkyl_app_restart_status rstat = {.io_status = 0};
 
   FILE *fp = 0;
   with_file(fp, fname, "r")
@@ -1143,12 +1193,13 @@ static struct gkyl_app_restart_status header_from_file(gkyl_pkpm_app *app, const
     rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
 
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      if (hdr.etype != GKYL_DOUBLE)
+      if (hdr.etype != GKYL_DOUBLE) {
         rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
+      }
     }
 
-    struct pkpm_output_meta meta = pkpm_meta_from_mpack(
-      &(struct gkyl_msgpack_data){ .meta = hdr.meta, .meta_sz = hdr.meta_size });
+    struct pkpm_output_meta meta =
+      pkpm_meta_from_mpack(&(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size});
 
     rstat.frame = meta.frame;
     rstat.stime = meta.stime;
@@ -1184,8 +1235,8 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app,
   return rstat;
 }
 
-struct gkyl_app_restart_status gkyl_pkpm_app_from_file_species(
-  gkyl_pkpm_app *app, int sidx, const char *fname)
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx, const char *fname)
 {
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 
@@ -1210,8 +1261,8 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_file_species(
   return rstat;
 }
 
-struct gkyl_app_restart_status gkyl_pkpm_app_from_file_fluid_species(
-  gkyl_pkpm_app *app, int sidx, const char *fname)
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx, const char *fname)
 {
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 
@@ -1244,8 +1295,8 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app
   return rstat;
 }
 
-struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_species(
-  gkyl_pkpm_app *app, int sidx, int frame)
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
 {
   struct pkpm_species *s = &app->species[sidx];
 

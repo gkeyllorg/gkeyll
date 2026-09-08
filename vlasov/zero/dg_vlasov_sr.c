@@ -24,7 +24,8 @@ void gkyl_vlasov_sr_free(const struct gkyl_ref_count *ref)
 }
 
 void gkyl_vlasov_sr_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_sr_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_sr_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
@@ -38,9 +39,11 @@ void gkyl_vlasov_sr_set_auxfields(
   vlasov_sr->auxfields.gamma = auxin.gamma;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *vel_range, enum gkyl_field_id field_id, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+  enum gkyl_field_id field_id, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -88,36 +91,46 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_new(const struct gkyl_basis *cbasis,
     assert(false);
     break;
   }
-  if (field_id == GKYL_FIELD_NULL)
+  if (field_id == GKYL_FIELD_NULL) {
     vlasov_sr->eqn.vol_term = CK(stream_vol_kernels, cdim, vdim, poly_order);
-  else
+  } else {
     vlasov_sr->eqn.vol_term = CK(vol_kernels, cdim, vdim, poly_order);
+  }
 
   vlasov_sr->stream_surf[0] = CK(stream_surf_x_kernels, cdim, vdim, poly_order);
-  if (cdim > 1)
+  if (cdim > 1) {
     vlasov_sr->stream_surf[1] = CK(stream_surf_y_kernels, cdim, vdim, poly_order);
-  if (cdim > 2)
+  }
+  if (cdim > 2) {
     vlasov_sr->stream_surf[2] = CK(stream_surf_z_kernels, cdim, vdim, poly_order);
+  }
 
   vlasov_sr->accel_surf[0] = CK(accel_surf_vx_kernels, cdim, vdim, poly_order);
-  if (vdim > 1)
+  if (vdim > 1) {
     vlasov_sr->accel_surf[1] = CK(accel_surf_vy_kernels, cdim, vdim, poly_order);
-  if (vdim > 2)
+  }
+  if (vdim > 2) {
     vlasov_sr->accel_surf[2] = CK(accel_surf_vz_kernels, cdim, vdim, poly_order);
+  }
 
   vlasov_sr->accel_boundary_surf[0] = CK(accel_boundary_surf_vx_kernels, cdim, vdim, poly_order);
-  if (vdim > 1)
+  if (vdim > 1) {
     vlasov_sr->accel_boundary_surf[1] = CK(accel_boundary_surf_vy_kernels, cdim, vdim, poly_order);
-  if (vdim > 2)
+  }
+  if (vdim > 2) {
     vlasov_sr->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels, cdim, vdim, poly_order);
+  }
 
   // ensure non-NULL pointers
-  for (int i = 0; i < cdim; ++i)
+  for (int i = 0; i < cdim; ++i) {
     assert(vlasov_sr->stream_surf[i]);
-  for (int i = 0; i < vdim; ++i)
+  }
+  for (int i = 0; i < vdim; ++i) {
     assert(vlasov_sr->accel_surf[i]);
-  for (int i = 0; i < vdim; ++i)
+  }
+  for (int i = 0; i < vdim; ++i) {
     assert(vlasov_sr->accel_boundary_surf[i]);
+  }
 
   vlasov_sr->auxfields.qmem = 0;
   vlasov_sr->conf_range = *conf_range;
@@ -136,9 +149,11 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_new(const struct gkyl_basis *cbasis,
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *vel_range, enum gkyl_field_id field_id)
+struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+  enum gkyl_field_id field_id
+)
 {
   assert(false);
   return 0;

@@ -7,8 +7,8 @@
 #include <gkyl_ten_moment_grad_closure.h>
 #include <gkyl_ten_moment_grad_closure_priv.h>
 
-gkyl_ten_moment_grad_closure *gkyl_ten_moment_grad_closure_new(
-  const struct gkyl_ten_moment_grad_closure_inp *inp)
+gkyl_ten_moment_grad_closure *
+gkyl_ten_moment_grad_closure_new(const struct gkyl_ten_moment_grad_closure_inp *inp)
 {
   gkyl_ten_moment_grad_closure *up = gkyl_malloc(sizeof(gkyl_ten_moment_grad_closure));
 
@@ -22,10 +22,11 @@ gkyl_ten_moment_grad_closure *gkyl_ten_moment_grad_closure_new(
   create_offsets_vertices(inp->update_range, up->offsets_vertices);
   create_offsets_centers(inp->heat_flux_range, up->offsets_centers);
 
-  if (inp->comm)
+  if (inp->comm) {
     up->comm = gkyl_comm_acquire(inp->comm);
-  else
+  } else {
     up->comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){});
+  }
 
   grad_closure_calc_q_choose(up);
   grad_closure_update_q_choose(up);
@@ -39,10 +40,11 @@ struct gkyl_ten_moment_grad_closure_status gkyl_ten_moment_grad_closure_advance(
   const gkyl_ten_moment_grad_closure *gces, const struct gkyl_range *heat_flux_range,
   const struct gkyl_range *update_range, const struct gkyl_array *fluid,
   const struct gkyl_array *em_tot, struct gkyl_array *cflrate, double dt,
-  struct gkyl_array *heat_flux, struct gkyl_array *rhs)
+  struct gkyl_array *heat_flux, struct gkyl_array *rhs
+)
 {
   int ndim = update_range->ndim;
-  long sz[] = { 2, 4, 8 };
+  long sz[] = {2, 4, 8};
 
   double *cfla = gces->cfla;
   double cfl = gces->cfl, cflm = 1.1 * cfl;
@@ -76,8 +78,9 @@ struct gkyl_ten_moment_grad_closure_status gkyl_ten_moment_grad_closure_advance(
     long linc_vertex = gkyl_range_idx(heat_flux_range, iter_center.idx);
     long linc_center = gkyl_range_idx(update_range, iter_center.idx);
 
-    for (int i = 0; i < sz[ndim - 1]; ++i)
+    for (int i = 0; i < sz[ndim - 1]; ++i) {
       heat_flux_up[i] = gkyl_array_fetch(heat_flux, linc_vertex + gces->offsets_centers[i]);
+    }
 
     rhs_d = gkyl_array_fetch(rhs, linc_center);
 
@@ -86,12 +89,13 @@ struct gkyl_ten_moment_grad_closure_status gkyl_ten_moment_grad_closure_advance(
 
   gkyl_array_reduce(cfla, cflrate, GKYL_MAX);
 
-  if (cfla[0] > cflm)
+  if (cfla[0] > cflm) {
     is_cfl_violated = 1.0;
+  }
 
   // compute actual CFL, status & max-speed across all domains
-  double red_vars[2] = { cfla[0], is_cfl_violated };
-  double red_vars_global[2] = { 0.0, 0.0 };
+  double red_vars[2] = {cfla[0], is_cfl_violated};
+  double red_vars_global[2] = {0.0, 0.0};
   gkyl_comm_allreduce(gces->comm, GKYL_DOUBLE, GKYL_MAX, 2, red_vars, red_vars_global);
 
   cfla[0] = red_vars_global[0];
@@ -101,14 +105,14 @@ struct gkyl_ten_moment_grad_closure_status gkyl_ten_moment_grad_closure_advance(
 
   if (is_cfl_violated > 0.0) {
     // indicate failure, and return smaller stable time-step
-    return (
-      struct gkyl_ten_moment_grad_closure_status){ .success = 0, .dt_suggested = dt_suggested };
+    return (struct gkyl_ten_moment_grad_closure_status){.success = 0, .dt_suggested = dt_suggested};
   }
   // on success, suggest only bigger time-step; (Only way dt can
   // reduce is if the update fails. If the code comes here the update
   // succeeded and so we should not allow dt to reduce).
-  return (struct gkyl_ten_moment_grad_closure_status){ .success = is_cfl_violated > 0.0 ? 0 : 1,
-    .dt_suggested = dt_suggested > dt ? dt_suggested : dt };
+  return (struct gkyl_ten_moment_grad_closure_status
+  ){.success = is_cfl_violated > 0.0 ? 0 : 1, .dt_suggested = dt_suggested > dt ? dt_suggested : dt
+  };
 }
 
 void gkyl_ten_moment_grad_closure_release(gkyl_ten_moment_grad_closure *up)

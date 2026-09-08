@@ -12,7 +12,7 @@ struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0
   struct gkyl_array *fout[ns];
   const struct gkyl_array *fluidin[nfs];
   struct gkyl_array *fluidout[nfs];
-  struct gkyl_update_status st = { .success = true };
+  struct gkyl_update_status st = {.success = true};
 
   // time-stepper state
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
@@ -32,8 +32,10 @@ struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0
           fluidin[i] = app->fluid_species[i].fluid;
           fluidout[i] = app->fluid_species[i].fluid1;
         }
-        vlasov_forward_euler(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em : 0,
-          fout, fluidout, app->has_field ? app->field->em1 : 0, &st);
+        vlasov_forward_euler(
+          app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em : 0, fout, fluidout,
+          app->has_field ? app->field->em1 : 0, &st
+        );
 
         vm_apply_bc(app, tcurr, fout, fluidout, app->has_field ? app->field->em1 : 0);
 
@@ -63,9 +65,10 @@ struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
-        vlasov_forward_euler(app, tcurr + dt, dt, fin, fluidin,
-          app->has_field ? app->field->em1 : 0, fout, fluidout,
-          app->has_field ? app->field->emnew : 0, &st);
+        vlasov_forward_euler(
+          app, tcurr + dt, dt, fin, fluidin, app->has_field ? app->field->em1 : 0, fout, fluidout,
+          app->has_field ? app->field->emnew : 0, &st
+        );
 
         vm_apply_bc(app, tcurr, fout, fluidout, app->has_field ? app->field->emnew : 0);
 
@@ -86,15 +89,24 @@ struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0
           dt = st.dt_actual;
           state = RK_STAGE_1; // restart from stage 1
         } else {
-          for (int i = 0; i < ns; ++i)
-            array_combine(app->species[i].f1, 3.0 / 4.0, app->species[i].f, 1.0 / 4.0,
-              app->species[i].fnew, &app->species[i].local_ext);
-          for (int i = 0; i < nfs; ++i)
-            array_combine(app->fluid_species[i].fluid1, 3.0 / 4.0, app->fluid_species[i].fluid,
-              1.0 / 4.0, app->fluid_species[i].fluidnew, &app->local_ext);
-          if (app->has_field)
-            array_combine(app->field->em1, 3.0 / 4.0, app->field->em, 1.0 / 4.0, app->field->emnew,
-              &app->local_ext);
+          for (int i = 0; i < ns; ++i) {
+            array_combine(
+              app->species[i].f1, 3.0 / 4.0, app->species[i].f, 1.0 / 4.0, app->species[i].fnew,
+              &app->species[i].local_ext
+            );
+          }
+          for (int i = 0; i < nfs; ++i) {
+            array_combine(
+              app->fluid_species[i].fluid1, 3.0 / 4.0, app->fluid_species[i].fluid, 1.0 / 4.0,
+              app->fluid_species[i].fluidnew, &app->local_ext
+            );
+          }
+          if (app->has_field) {
+            array_combine(
+              app->field->em1, 3.0 / 4.0, app->field->em, 1.0 / 4.0, app->field->emnew,
+              &app->local_ext
+            );
+          }
 
           state = RK_STAGE_3;
         }
@@ -115,9 +127,10 @@ struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
-        vlasov_forward_euler(app, tcurr + dt / 2, dt, fin, fluidin,
-          app->has_field ? app->field->em1 : 0, fout, fluidout,
-          app->has_field ? app->field->emnew : 0, &st);
+        vlasov_forward_euler(
+          app, tcurr + dt / 2, dt, fin, fluidin, app->has_field ? app->field->em1 : 0, fout,
+          fluidout, app->has_field ? app->field->emnew : 0, &st
+        );
 
         vm_apply_bc(app, tcurr, fout, fluidout, app->has_field ? app->field->emnew : 0);
 
@@ -141,20 +154,26 @@ struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0
           app->stat.nstage_2_fail += 1;
         } else {
           for (int i = 0; i < ns; ++i) {
-            array_combine(app->species[i].f1, 1.0 / 3.0, app->species[i].f, 2.0 / 3.0,
-              app->species[i].fnew, &app->species[i].local_ext);
-            gkyl_array_copy_range(
-              app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
+            array_combine(
+              app->species[i].f1, 1.0 / 3.0, app->species[i].f, 2.0 / 3.0, app->species[i].fnew,
+              &app->species[i].local_ext
+            );
+            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
           }
           for (int i = 0; i < nfs; ++i) {
-            array_combine(app->fluid_species[i].fluid1, 1.0 / 3.0, app->fluid_species[i].fluid,
-              2.0 / 3.0, app->fluid_species[i].fluidnew, &app->local_ext);
+            array_combine(
+              app->fluid_species[i].fluid1, 1.0 / 3.0, app->fluid_species[i].fluid, 2.0 / 3.0,
+              app->fluid_species[i].fluidnew, &app->local_ext
+            );
             gkyl_array_copy_range(
-              app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &app->local_ext);
+              app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &app->local_ext
+            );
           }
           if (app->has_field) {
-            array_combine(app->field->em1, 1.0 / 3.0, app->field->em, 2.0 / 3.0, app->field->emnew,
-              &app->local_ext);
+            array_combine(
+              app->field->em1, 1.0 / 3.0, app->field->em, 2.0 / 3.0, app->field->emnew,
+              &app->local_ext
+            );
             gkyl_array_copy_range(app->field->em, app->field->em1, &app->local_ext);
           }
 

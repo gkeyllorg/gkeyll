@@ -13,7 +13,7 @@ __global__ void ker_cu_range_test(const struct gkyl_range rng, int *nfail)
 {
   *nfail = 0;
 
-  int lower[] = { 0, 0 }, upper[] = { 24, 49 };
+  int lower[] = {0, 0}, upper[] = {24, 49};
 
   GKYL_CU_CHECK(rng.ndim == 2, nfail);
   GKYL_CU_CHECK(rng.volume == 25 * 50, nfail);

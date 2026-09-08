@@ -15,7 +15,8 @@ extern "C" {
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
 __global__ static void set_cu_ptrs(
-  struct mom_type_pkpm *mom_pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order, bool diag)
+  struct mom_type_pkpm *mom_pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order, bool diag
+)
 {
   // choose kernel tables based on basis-function type
   const gkyl_mom_pkpm_kern_list *mom_pkpm_kernels, *mom_pkpm_diag_kernels;
@@ -48,7 +49,8 @@ __global__ static void set_cu_ptrs(
 }
 
 struct gkyl_mom_type *gkyl_mom_pkpm_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass, bool diag)
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass, bool diag
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -64,10 +66,11 @@ struct gkyl_mom_type *gkyl_mom_pkpm_cu_dev_new(
   mom_pkpm->momt.num_config = cbasis->num_basis;
   mom_pkpm->momt.num_phase = pbasis->num_basis;
 
-  if (diag)
+  if (diag) {
     mom_pkpm->momt.num_mom = 8; // rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
-  else
+  } else {
     mom_pkpm->momt.num_mom = 4; // rho, p_par, p_perp, M1
+  }
   mom_pkpm->mass = mass;
 
   mom_pkpm->momt.flags = 0;

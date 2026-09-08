@@ -11,5 +11,7 @@
 #include <complex.h>
 #include <stdbool.h>
 
-bool gkyl_multi_mom_eigensolve(double _Complex *A, double _Complex *x, double _Complex *vl,
-  double _Complex *vr, int N, int eig_vec);
+bool gkyl_multi_mom_eigensolve(
+  double _Complex *A, double _Complex *x, double _Complex *vl, double _Complex *vr, int N,
+  int eig_vec
+);

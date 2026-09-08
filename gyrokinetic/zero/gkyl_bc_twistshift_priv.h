@@ -11,15 +11,19 @@
 #include <string.h> // memcpy
 
 // Function pointer type for twistshift kernels.
-typedef void (*twistshift_xlimdg_t)(double sFac, const double *xLimLo, const double *xLimUp,
-  double yLimLo, double yLimUp, double dyDo, double yOff, const double *ySh,
-  struct gkyl_mat *tsmat);
+typedef void (*twistshift_xlimdg_t)(
+  double sFac, const double *xLimLo, const double *xLimUp, double yLimLo, double yLimUp,
+  double dyDo, double yOff, const double *ySh, struct gkyl_mat *tsmat
+);
 
-typedef void (*twistshift_ylimdg_t)(double sFac, double xLimLo, double xLimUp, const double *yLimLo,
-  const double *yLimUp, double dyDo, double yOff, const double *ySh, struct gkyl_mat *tsmat);
+typedef void (*twistshift_ylimdg_t)(
+  double sFac, double xLimLo, double xLimUp, const double *yLimLo, const double *yLimUp,
+  double dyDo, double yOff, const double *ySh, struct gkyl_mat *tsmat
+);
 
 typedef void (*twistshift_fullcell_t)(
-  double dyDo, double yOff, const double *ySh, struct gkyl_mat *tsmat);
+  double dyDo, double yOff, const double *ySh, struct gkyl_mat *tsmat
+);
 
 typedef struct {
   twistshift_xlimdg_t kernels[3];
@@ -34,49 +38,55 @@ typedef struct {
 // Serendipity  kernels.
 // p=1 representation of the shift:
 static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_0v_yShp1[] = {
-  { NULL, twistshift_xlimdg_2x_ser_p1_yshift_p1, NULL },
-  { NULL, twistshift_xlimdg_3x_ser_p1_yshift_p1, NULL }
+  {NULL, twistshift_xlimdg_2x_ser_p1_yshift_p1, NULL},
+  {NULL, twistshift_xlimdg_3x_ser_p1_yshift_p1, NULL}
 };
 static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_0v_yShp1[] = {
-  { NULL, twistshift_ylimdg_2x_ser_p1_yshift_p1, NULL },
-  { NULL, twistshift_ylimdg_3x_ser_p1_yshift_p1, NULL }
+  {NULL, twistshift_ylimdg_2x_ser_p1_yshift_p1, NULL},
+  {NULL, twistshift_ylimdg_3x_ser_p1_yshift_p1, NULL}
 };
 static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_0v_yShp1[] = {
-  { NULL, twistshift_fullcell_2x_ser_p1_yshift_p1, NULL },
-  { NULL, twistshift_fullcell_3x_ser_p1_yshift_p1, NULL }
+  {NULL, twistshift_fullcell_2x_ser_p1_yshift_p1, NULL},
+  {NULL, twistshift_fullcell_3x_ser_p1_yshift_p1, NULL}
 };
 
 static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_2v_yShp1[] = {
-  { NULL, NULL, NULL }, { NULL, twistshift_xlimdg_3x2v_ser_p1_yshift_p1, NULL }
+  {NULL, NULL, NULL},
+  {NULL, twistshift_xlimdg_3x2v_ser_p1_yshift_p1, NULL}
 };
 static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_2v_yShp1[] = {
-  { NULL, NULL, NULL }, { NULL, twistshift_ylimdg_3x2v_ser_p1_yshift_p1, NULL }
+  {NULL, NULL, NULL},
+  {NULL, twistshift_ylimdg_3x2v_ser_p1_yshift_p1, NULL}
 };
 static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_2v_yShp1[] = {
-  { NULL, NULL, NULL }, { NULL, twistshift_fullcell_3x2v_ser_p1_yshift_p1, NULL }
+  {NULL, NULL, NULL},
+  {NULL, twistshift_fullcell_3x2v_ser_p1_yshift_p1, NULL}
 };
 // p=2 representation of the shift:
 static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_0v_yShp2[] = {
-  { NULL, twistshift_xlimdg_2x_ser_p1_yshift_p2, NULL },
-  { NULL, twistshift_xlimdg_3x_ser_p1_yshift_p2, NULL }
+  {NULL, twistshift_xlimdg_2x_ser_p1_yshift_p2, NULL},
+  {NULL, twistshift_xlimdg_3x_ser_p1_yshift_p2, NULL}
 };
 static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_0v_yShp2[] = {
-  { NULL, twistshift_ylimdg_2x_ser_p1_yshift_p2, NULL },
-  { NULL, twistshift_ylimdg_3x_ser_p1_yshift_p2, NULL }
+  {NULL, twistshift_ylimdg_2x_ser_p1_yshift_p2, NULL},
+  {NULL, twistshift_ylimdg_3x_ser_p1_yshift_p2, NULL}
 };
 static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_0v_yShp2[] = {
-  { NULL, twistshift_fullcell_2x_ser_p1_yshift_p2, NULL },
-  { NULL, twistshift_fullcell_3x_ser_p1_yshift_p2, NULL }
+  {NULL, twistshift_fullcell_2x_ser_p1_yshift_p2, NULL},
+  {NULL, twistshift_fullcell_3x_ser_p1_yshift_p2, NULL}
 };
 
 static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_2v_yShp2[] = {
-  { NULL, NULL, NULL }, { NULL, NULL, NULL }
+  {NULL, NULL, NULL},
+  {NULL, NULL, NULL}
 };
 static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_2v_yShp2[] = {
-  { NULL, NULL, NULL }, { NULL, NULL, NULL }
+  {NULL, NULL, NULL},
+  {NULL, NULL, NULL}
 };
 static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_2v_yShp2[] = {
-  { NULL, NULL, NULL }, { NULL, NULL, NULL }
+  {NULL, NULL, NULL},
+  {NULL, NULL, NULL}
 };
 
 struct gkyl_bc_twistshift_kernels {
@@ -160,5 +170,6 @@ struct gkyl_bc_twistshift {
  * @param ftar Target field.
  */
 void gkyl_bc_twistshift_advance_cu(
-  struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
+  struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar
+);
 #endif

@@ -52,8 +52,8 @@ void eval_parabola_3x(double t, const double *xn, double *restrict fout, void *c
 void test_ambi_bolt_init_1x_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0 }, upper[] = { 1.0 };
-  int cells[] = { 8 };
+  double lower[] = {-1.0}, upper[] = {1.0};
+  int cells[] = {8};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -64,7 +64,7 @@ void test_ambi_bolt_init_1x_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1 };
+  int ghost[] = {1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -89,8 +89,8 @@ void test_ambi_bolt_init_1x_ho()
 void test_ambi_bolt_sheath_calc_1x_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0 }, upper[] = { 1.0 };
-  int cells[] = { 8 };
+  double lower[] = {-1.0}, upper[] = {1.0};
+  int cells[] = {8};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -101,7 +101,7 @@ void test_ambi_bolt_sheath_calc_1x_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1 };
+  int ghost[] = {1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -123,9 +123,11 @@ void test_ambi_bolt_sheath_calc_1x_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -140,10 +142,14 @@ void test_ambi_bolt_sheath_calc_1x_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag,
-    jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag,
-    jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0,
+    sheath_vals[0]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0,
+    sheath_vals[1]
+  );
 
   // Serendipity 1x basis is [1/sqrt(2), sqrt(3/2)x].
   // sheath_vals stores both the ion density and sheath value
@@ -156,21 +162,26 @@ void test_ambi_bolt_sheath_calc_1x_ho()
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(
-    sheath_lower_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
-  TEST_MSG(" Got: %.9e | Expected: %.9e\n", sheath_lower_c[2],
-    log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2));
+    sheath_lower_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12
+  ));
+  TEST_MSG(
+    " Got: %.9e | Expected: %.9e\n", sheath_lower_c[2],
+    log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2)
+  );
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[1], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(
-    sheath_upper_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+    sheath_upper_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12
+  ));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
 
   // This operation happens after the sheaths are determined in the app, so we should test this
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -179,7 +190,8 @@ void test_ambi_bolt_sheath_calc_1x_ho()
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[1], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(
-    sheath_lower_c_avg[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+    sheath_lower_c_avg[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12
+  ));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[3], 0, 1e-12));
 
   gkyl_free(basis);
@@ -198,8 +210,8 @@ void test_ambi_bolt_sheath_calc_1x_ho()
 void test_ambi_bolt_phi_calc_1x_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0 }, upper[] = { 1.0 };
-  int cells[] = { 8 };
+  double lower[] = {-1.0}, upper[] = {1.0};
+  int cells[] = {8};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -210,7 +222,7 @@ void test_ambi_bolt_phi_calc_1x_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1 };
+  int ghost[] = {1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -232,9 +244,11 @@ void test_ambi_bolt_phi_calc_1x_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -249,15 +263,20 @@ void test_ambi_bolt_phi_calc_1x_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag,
-    jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag,
-    jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0,
+    sheath_vals[0]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0,
+    sheath_vals[1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -271,7 +290,8 @@ void test_ambi_bolt_phi_calc_1x_ho()
     double *phi_c = ((double *)gkyl_array_cfetch(phi, iter.idx[0]));
     // phi should be the same value as the sheath potential
     TEST_CHECK(
-      gkyl_compare_double(phi_c[0], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+      gkyl_compare_double(phi_c[0], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12)
+    );
     TEST_CHECK(gkyl_compare_double(phi_c[1], 0.0, 1e-12));
   }
 
@@ -292,8 +312,8 @@ void test_ambi_bolt_phi_calc_1x_ho()
 void test_ambi_bolt_sheath_calc_1x_hat_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0 }, upper[] = { 1.0 };
-  int cells[] = { 8 };
+  double lower[] = {-1.0}, upper[] = {1.0};
+  int cells[] = {8};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -304,7 +324,7 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1 };
+  int ghost[] = {1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -326,9 +346,11 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -346,10 +368,14 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
   gkyl_proj_on_basis_advance(proj_hat, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag,
-    jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag,
-    jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0,
+    sheath_vals[0]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0,
+    sheath_vals[1]
+  );
 
   // Serendipity 1x basis is [1/sqrt(2), sqrt(3/2)x].
   // sheath_vals stores both the ion density and sheath value
@@ -362,18 +388,21 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(
-    sheath_lower_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+    sheath_lower_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12
+  ));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[1], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(
-    sheath_upper_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+    sheath_upper_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12
+  ));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -382,7 +411,8 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[1], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(
-    sheath_lower_c_avg[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+    sheath_lower_c_avg[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12
+  ));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[3], 0, 1e-12));
 
   gkyl_free(basis);
@@ -402,8 +432,8 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
 void test_ambi_bolt_phi_calc_1x_hat_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0 }, upper[] = { 1.0 };
-  int cells[] = { 32 };
+  double lower[] = {-1.0}, upper[] = {1.0};
+  int cells[] = {32};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -414,7 +444,7 @@ void test_ambi_bolt_phi_calc_1x_hat_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1 };
+  int ghost[] = {1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -436,9 +466,11 @@ void test_ambi_bolt_phi_calc_1x_hat_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -456,15 +488,20 @@ void test_ambi_bolt_phi_calc_1x_hat_ho()
   gkyl_proj_on_basis_advance(proj_hat, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag,
-    jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag,
-    jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0,
+    sheath_vals[0]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0,
+    sheath_vals[1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -500,8 +537,8 @@ void test_ambi_bolt_phi_calc_1x_hat_ho()
 void test_ambi_bolt_init_2x_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
-  int cells[] = { 8, 16 };
+  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {8, 16};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -512,7 +549,7 @@ void test_ambi_bolt_init_2x_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -525,8 +562,8 @@ void test_ambi_bolt_init_2x_ho()
   TEST_CHECK(ambi->cdim == 2);
   TEST_CHECK(ambi->num_basis == basis->num_basis);
   TEST_CHECK(ambi->use_gpu == use_gpu);
-  TEST_CHECK(
-    gkyl_compare_double(ambi->dz, 2. / 16., 1e-12)); // Second direction is field line length
+  TEST_CHECK(gkyl_compare_double(ambi->dz, 2. / 16., 1e-12)
+  ); // Second direction is field line length
   TEST_CHECK(gkyl_compare_double(ambi->mass_e, mass_e, 1e-12));
   TEST_CHECK(gkyl_compare_double(ambi->charge_e, charge_e, 1e-12));
   TEST_CHECK(gkyl_compare_double(ambi->temp_e, temp_e, 1e-12));
@@ -538,8 +575,8 @@ void test_ambi_bolt_init_2x_ho()
 void test_ambi_bolt_sheath_calc_2x_one_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
-  int cells[] = { 8, 16 };
+  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {8, 16};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -550,7 +587,7 @@ void test_ambi_bolt_sheath_calc_2x_one_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -572,9 +609,11 @@ void test_ambi_bolt_sheath_calc_2x_one_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -591,14 +630,19 @@ void test_ambi_bolt_sheath_calc_2x_one_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off + 1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -616,17 +660,19 @@ void test_ambi_bolt_sheath_calc_2x_one_ho()
     while (gkyl_range_iter_next(&iter)) {
       long lidx = gkyl_range_idx(&lower_ghost[ix_cdim], iter.idx);
       double *sheath_lower_c = ((double *)gkyl_array_cfetch(sheath_vals[off], lidx));
-      if (ix_cdim == 1)
+      if (ix_cdim == 1) {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], 2, 1e-12));
-      else
+      } else {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], 0, 1e-12));
+      }
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], 0, 1e-12));
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
-      if (ix_cdim == 1)
+      if (ix_cdim == 1) {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[4], phi_sheath * 2, 1e-12));
-      else
+      } else {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[4], 0, 1e-12));
+      }
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[5], 0, 1e-12));
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[6], 0, 1e-12));
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[7], 0, 1e-12));
@@ -649,8 +695,8 @@ void test_ambi_bolt_sheath_calc_2x_one_ho()
 void test_ambi_bolt_sheath_calc_2x_hat_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
-  int cells[] = { 8, 8 };
+  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {8, 8};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -661,7 +707,7 @@ void test_ambi_bolt_sheath_calc_2x_hat_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -683,9 +729,11 @@ void test_ambi_bolt_sheath_calc_2x_hat_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -704,14 +752,19 @@ void test_ambi_bolt_sheath_calc_2x_hat_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off + 1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -729,17 +782,19 @@ void test_ambi_bolt_sheath_calc_2x_hat_ho()
     while (gkyl_range_iter_next(&iter)) {
       long lidx = gkyl_range_idx(&lower_ghost[ix_cdim], iter.idx);
       double *sheath_lower_c = ((double *)gkyl_array_cfetch(sheath_vals[off], lidx));
-      if (ix_cdim == 1)
+      if (ix_cdim == 1) {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], 2, 1e-12));
-      else
+      } else {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], 0, 1e-12));
+      }
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], 0, 1e-12));
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
-      if (ix_cdim == 1)
+      if (ix_cdim == 1) {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[4], phi_sheath * 2, 1e-12));
-      else
+      } else {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[4], 0, 1e-12));
+      }
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[5], 0, 1e-12));
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[6], 0, 1e-12));
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[7], 0, 1e-12));
@@ -763,8 +818,8 @@ void test_ambi_bolt_sheath_calc_2x_hat_ho()
 void test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
-  int cells[] = { 8, 8 };
+  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {8, 8};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -775,7 +830,7 @@ void test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -797,9 +852,11 @@ void test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -818,14 +875,19 @@ void test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off + 1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -843,21 +905,24 @@ void test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
       double *sheath_lower_c = ((double *)gkyl_array_cfetch(sheath_vals[off], lidx));
       double *density_c = ((double *)gkyl_array_cfetch(M0, lidx));
       double phi_sheath = log((density_c[0] / 2) / (sqrt(2 * M_PI) * ambi->dz / 2));
-      if (ix_cdim == 1)
+      if (ix_cdim == 1) {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], density_c[0], 1e-12));
-      else
+      } else {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], 0, 1e-12));
-      if (ix_cdim == 1)
+      }
+      if (ix_cdim == 1) {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], density_c[1], 1e-12));
-      else
+      } else {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
+      }
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], 0, 1e-12));
       TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
       // Not exact because division happens at quadrature nodes
-      if (ix_cdim == 1)
+      if (ix_cdim == 1) {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[4] / 2, phi_sheath, 1e-3));
-      else
+      } else {
         TEST_CHECK(gkyl_compare_double(sheath_lower_c[4], 0, 1e-12));
+      }
       // Slope of sheath potential is difficult to calculate
     }
   }
@@ -879,8 +944,8 @@ void test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
 void test_ambi_bolt_phi_calc_2x_one_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
-  int cells[] = { 8, 16 };
+  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {8, 16};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -891,7 +956,7 @@ void test_ambi_bolt_phi_calc_2x_one_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -913,9 +978,11 @@ void test_ambi_bolt_phi_calc_2x_one_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -932,14 +999,19 @@ void test_ambi_bolt_phi_calc_2x_one_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off + 1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -976,8 +1048,8 @@ void test_ambi_bolt_phi_calc_2x_one_ho()
 void test_ambi_bolt_phi_calc_2x_hat_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
-  int cells[] = { 32, 32 };
+  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {32, 32};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -988,7 +1060,7 @@ void test_ambi_bolt_phi_calc_2x_hat_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1010,9 +1082,11 @@ void test_ambi_bolt_phi_calc_2x_hat_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -1031,14 +1105,19 @@ void test_ambi_bolt_phi_calc_2x_hat_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off + 1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1075,8 +1154,8 @@ void test_ambi_bolt_phi_calc_2x_hat_ho()
 void test_ambi_bolt_phi_calc_2x_ramp_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
-  int cells[] = { 32, 32 };
+  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {32, 32};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -1087,7 +1166,7 @@ void test_ambi_bolt_phi_calc_2x_ramp_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1109,9 +1188,11 @@ void test_ambi_bolt_phi_calc_2x_ramp_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -1130,14 +1211,19 @@ void test_ambi_bolt_phi_calc_2x_ramp_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off + 1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1174,8 +1260,8 @@ void test_ambi_bolt_phi_calc_2x_ramp_ho()
 void test_ambi_bolt_phi_calc_2x_parabola_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
-  int cells[] = { 32, 32 };
+  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {32, 32};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -1186,7 +1272,7 @@ void test_ambi_bolt_phi_calc_2x_parabola_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1208,9 +1294,11 @@ void test_ambi_bolt_phi_calc_2x_parabola_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -1229,14 +1317,19 @@ void test_ambi_bolt_phi_calc_2x_parabola_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off + 1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1279,8 +1372,8 @@ void test_ambi_bolt_phi_calc_2x_parabola_ho()
 void test_ambi_bolt_phi_calc_3x_one_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0, -1.0, -1.0 }, upper[] = { 1.0, 1.0, 1.0 };
-  int cells[] = { 32, 32, 32 };
+  double lower[] = {-1.0, -1.0, -1.0}, upper[] = {1.0, 1.0, 1.0};
+  int cells[] = {32, 32, 32};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -1291,7 +1384,7 @@ void test_ambi_bolt_phi_calc_3x_one_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1, 1, 1 };
+  int ghost[] = {1, 1, 1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1313,9 +1406,11 @@ void test_ambi_bolt_phi_calc_3x_one_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -1334,14 +1429,19 @@ void test_ambi_bolt_phi_calc_3x_one_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off + 1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1367,7 +1467,8 @@ void test_ambi_bolt_phi_calc_3x_one_ho()
     TEST_CHECK(gkyl_compare_double(ni_sheath, 1.0, 1e-12));
     TEST_CHECK(gkyl_compare_double(phi_sheath, known_phi_sheath, 1e-12));
     TEST_CHECK(
-      gkyl_compare_double(phi_c[0] / pow(2., 3. / 2.), phi_sheath + log(ni / ni_sheath), 1e-12));
+      gkyl_compare_double(phi_c[0] / pow(2., 3. / 2.), phi_sheath + log(ni / ni_sheath), 1e-12)
+    );
   }
 
   gkyl_free(basis);
@@ -1388,8 +1489,8 @@ void test_ambi_bolt_phi_calc_3x_one_ho()
 void test_ambi_bolt_phi_calc_3x_parabola_ho()
 {
   int poly_order = 1;
-  double lower[] = { -1.0, -1.0, -1.0 }, upper[] = { 1.0, 1.0, 1.0 };
-  int cells[] = { 32, 32, 32 };
+  double lower[] = {-1.0, -1.0, -1.0}, upper[] = {1.0, 1.0, 1.0};
+  int cells[] = {32, 32, 32};
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -1400,7 +1501,7 @@ void test_ambi_bolt_phi_calc_3x_parabola_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = { 1, 1, 1 };
+  int ghost[] = {1, 1, 1};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1422,9 +1523,11 @@ void test_ambi_bolt_phi_calc_3x_parabola_ho()
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost
+    );
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -1443,14 +1546,19 @@ void test_ambi_bolt_phi_calc_3x_parabola_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
-  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off]
+  );
+  gkyl_ambi_bolt_potential_sheath_calc(
+    ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i,
+    M0, M0, sheath_vals[off + 1]
+  );
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(
-    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]
+  );
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1473,7 +1581,8 @@ void test_ambi_bolt_phi_calc_3x_parabola_ho()
     double ni_sheath = sheath_vals_c[0] / pow(2., 3. / 2.);
     double phi_sheath = sheath_vals_c[8] / pow(2., 3. / 2.); // 8 coefficients in serendipity 3xP1
     TEST_CHECK(
-      gkyl_compare_double(phi_c[0] / pow(2., 3. / 2.), phi_sheath + log(ni / ni_sheath), 1e-5));
+      gkyl_compare_double(phi_c[0] / pow(2., 3. / 2.), phi_sheath + log(ni / ni_sheath), 1e-5)
+    );
   }
 
   gkyl_free(basis);
@@ -1491,19 +1600,21 @@ void test_ambi_bolt_phi_calc_3x_parabola_ho()
   gkyl_proj_on_basis_release(proj_func);
 }
 
-TEST_LIST = { { "test_ambi_bolt_init_1x_ho", test_ambi_bolt_init_1x_ho },
-  { "test_ambi_bolt_sheath_calc_1x_ho", test_ambi_bolt_sheath_calc_1x_ho },
-  { "test_ambi_bolt_phi_calc_1x_ho", test_ambi_bolt_phi_calc_1x_ho },
-  { "test_ambi_bolt_sheath_calc_1x_hat_ho", test_ambi_bolt_sheath_calc_1x_hat_ho },
-  { "test_ambi_bolt_phi_calc_1x_hat_ho", test_ambi_bolt_phi_calc_1x_hat_ho },
-  { "test_ambi_bolt_init_2x_ho", test_ambi_bolt_init_2x_ho },
-  { "test_ambi_bolt_sheath_calc_2x_one_ho", test_ambi_bolt_sheath_calc_2x_one_ho },
-  { "test_ambi_bolt_sheath_calc_2x_hat_ho", test_ambi_bolt_sheath_calc_2x_hat_ho },
-  { "test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho", test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho },
-  { "test_ambi_bolt_phi_calc_2x_one_ho", test_ambi_bolt_phi_calc_2x_one_ho },
-  { "test_ambi_bolt_phi_calc_2x_hat_ho", test_ambi_bolt_phi_calc_2x_hat_ho },
-  { "test_ambi_bolt_phi_calc_2x_ramp_ho", test_ambi_bolt_phi_calc_2x_ramp_ho },
-  { "test_ambi_bolt_phi_calc_2x_parabola_ho", test_ambi_bolt_phi_calc_2x_parabola_ho },
-  { "test_ambi_bolt_phi_calc_3x_one_ho", test_ambi_bolt_phi_calc_3x_one_ho },
-  { "test_ambi_bolt_phi_calc_3x_parabola_ho", test_ambi_bolt_phi_calc_3x_parabola_ho },
-  { NULL, NULL } };
+TEST_LIST = {
+  {"test_ambi_bolt_init_1x_ho", test_ambi_bolt_init_1x_ho},
+  {"test_ambi_bolt_sheath_calc_1x_ho", test_ambi_bolt_sheath_calc_1x_ho},
+  {"test_ambi_bolt_phi_calc_1x_ho", test_ambi_bolt_phi_calc_1x_ho},
+  {"test_ambi_bolt_sheath_calc_1x_hat_ho", test_ambi_bolt_sheath_calc_1x_hat_ho},
+  {"test_ambi_bolt_phi_calc_1x_hat_ho", test_ambi_bolt_phi_calc_1x_hat_ho},
+  {"test_ambi_bolt_init_2x_ho", test_ambi_bolt_init_2x_ho},
+  {"test_ambi_bolt_sheath_calc_2x_one_ho", test_ambi_bolt_sheath_calc_2x_one_ho},
+  {"test_ambi_bolt_sheath_calc_2x_hat_ho", test_ambi_bolt_sheath_calc_2x_hat_ho},
+  {"test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho", test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho},
+  {"test_ambi_bolt_phi_calc_2x_one_ho", test_ambi_bolt_phi_calc_2x_one_ho},
+  {"test_ambi_bolt_phi_calc_2x_hat_ho", test_ambi_bolt_phi_calc_2x_hat_ho},
+  {"test_ambi_bolt_phi_calc_2x_ramp_ho", test_ambi_bolt_phi_calc_2x_ramp_ho},
+  {"test_ambi_bolt_phi_calc_2x_parabola_ho", test_ambi_bolt_phi_calc_2x_parabola_ho},
+  {"test_ambi_bolt_phi_calc_3x_one_ho", test_ambi_bolt_phi_calc_3x_one_ho},
+  {"test_ambi_bolt_phi_calc_3x_parabola_ho", test_ambi_bolt_phi_calc_3x_parabola_ho},
+  {NULL, NULL}
+};

@@ -37,14 +37,17 @@ gkyl_dg_cx *gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
   return up;
 }
 
-void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
+void gkyl_dg_cx_coll(
+  const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
   struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
-  struct gkyl_array *cflrate)
+  struct gkyl_array *cflrate
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(coef_cx)) {
     return gkyl_dg_cx_coll_cu(
-      up, maxwellian_moms_ion, maxwellian_moms_neut, upar_b_i, coef_cx, cflrate);
+      up, maxwellian_moms_ion, maxwellian_moms_neut, upar_b_i, coef_cx, cflrate
+    );
   }
 #endif
 
@@ -59,8 +62,10 @@ void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_
 
     double *coef_cx_d = gkyl_array_fetch(coef_cx, linidx);
 
-    double cflr = up->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
-      maxwellian_moms_ion_d, maxwellian_moms_neut_d, upar_b_i_d, coef_cx_d);
+    double cflr = up->react_rate(
+      up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min, maxwellian_moms_ion_d,
+      maxwellian_moms_neut_d, upar_b_i_d, coef_cx_d
+    );
   }
 }
 

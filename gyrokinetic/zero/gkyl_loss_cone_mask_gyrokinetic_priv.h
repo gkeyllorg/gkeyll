@@ -12,19 +12,24 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-GKYL_CU_DH static inline void log_to_comp(int ndim, const double *eta,
-  const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xout)
+GKYL_CU_DH static inline void log_to_comp(
+  int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
+  double *GKYL_RESTRICT xout
+)
 {
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
+  }
 }
 
 static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 {
-  for (int i = 0; i < cdim; ++i)
+  for (int i = 0; i < cdim; ++i) {
     out[i] = cidx[i];
-  for (int i = cdim; i < pdim; ++i)
+  }
+  for (int i = cdim; i < pdim; ++i) {
     out[i] = vidx[i - cdim];
+  }
 }
 
 struct gkyl_loss_cone_mask_gyrokinetic {
@@ -87,8 +92,10 @@ struct gkyl_loss_cone_mask_gyrokinetic {
  * @param bmag Magnetic field magnitude.
  * @param bmag_max Maximum bmag.
  */
-void gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max);
+void gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(
+  gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bmag, const double *bmag_max
+);
 
 /**
  * Compute projection of the loss cone masking function on the phase-space basis
@@ -101,7 +108,9 @@ void gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinet
  * @param phi_m Electrostatic potential at the mirror throat (on GPU).
  * @param mask_out Output masking function.
  */
-void gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out);
+void gkyl_loss_cone_mask_gyrokinetic_advance_cu(
+  gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *phi, const double *phi_m,
+  struct gkyl_array *mask_out
+);
 #endif

@@ -56,7 +56,8 @@ struct amr_euler_sodshock_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct amr_euler_sodshock_ctx ctx = { .gas_gamma = gas_gamma,
+  struct amr_euler_sodshock_ctx ctx = {
+    .gas_gamma = gas_gamma,
     .rhol = rhol,
     .ul = ul,
     .pl = pl,
@@ -71,7 +72,8 @@ struct amr_euler_sodshock_ctx create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   return ctx;
 }
@@ -120,7 +122,8 @@ int main(int argc, char **argv)
 {
   struct amr_euler_sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct euler1d_single_init init = { .base_Nx = ctx.Nx,
+  struct euler1d_single_init init = {
+    .base_Nx = ctx.Nx,
     .ref_factor = ctx.ref_factor,
 
     .coarse_x1 = 0.25,
@@ -140,7 +143,8 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+    .num_failures_max = ctx.num_failures_max
+  };
 
   euler1d_run_single(argc, argv, &init);
 }

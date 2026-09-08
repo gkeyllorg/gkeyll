@@ -13,15 +13,15 @@ void evalFunc(double t, const double *xn, double *restrict fout, void *ctx)
 
 void test_fv_proj_1_ho()
 {
-  double lower[] = { -2.0 }, upper[] = { 4.0 };
-  int cells[] = { 2 };
+  double lower[] = {-2.0}, upper[] = {4.0};
+  int cells[] = {2};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
 
   gkyl_fv_proj *fv_proj = gkyl_fv_proj_new(&grid, 2, 1, evalFunc, NULL);
 
   // create array range: no ghost-cells
-  int nghost[GKYL_MAX_DIM] = { 0 };
+  int nghost[GKYL_MAX_DIM] = {0};
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -43,4 +43,4 @@ void test_fv_proj_1_ho()
   gkyl_array_release(distf);
 }
 
-TEST_LIST = { { "test_fv_proj_1_ho", test_fv_proj_1_ho }, { NULL, NULL } };
+TEST_LIST = {{"test_fv_proj_1_ho", test_fv_proj_1_ho}, {NULL, NULL}};

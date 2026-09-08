@@ -21,8 +21,8 @@ typedef struct adas_field {
 } adas_field;
 
 // Functions to extract ADAS data and project onto DG data
-static inline void array_from_numpy(
-  FILE *fp, long sz, int Zmax, int charge_state, struct gkyl_array *arr)
+static inline void
+array_from_numpy(FILE *fp, long sz, int Zmax, int charge_state, struct gkyl_array *arr)
 {
   int zi = charge_state;
   double array[Zmax][sz];

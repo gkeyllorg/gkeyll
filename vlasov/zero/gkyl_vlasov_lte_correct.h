@@ -54,8 +54,8 @@ struct gkyl_vlasov_lte_correct_status {
  * @param inp Input parameters defined in gkyl_vlasov_lte_correct_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_vlasov_lte_correct *gkyl_vlasov_lte_correct_inew(
-  const struct gkyl_vlasov_lte_correct_inp *inp);
+struct gkyl_vlasov_lte_correct *
+gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp);
 
 /**
  * Fix the LTE (local thermodynamic equlibrium) distribution function
@@ -73,15 +73,17 @@ struct gkyl_vlasov_lte_correct *gkyl_vlasov_lte_correct_inew(
  */
 struct gkyl_vlasov_lte_correct_status gkyl_vlasov_lte_correct_all_moments(
   gkyl_vlasov_lte_correct *up, struct gkyl_array *f_lte, const struct gkyl_array *moms_target,
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local
+);
 
 /**
  * Host-side wrapper for computing the absolute value of the 
  * difference in cell averages between the target moments and iterative moments.
  */
-void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range,
-  int num_comp, int nc, const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter,
-  struct gkyl_array *moms_abs_diff);
+void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
+  const struct gkyl_range *conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
+  const struct gkyl_array *moms_iter, struct gkyl_array *moms_abs_diff
+);
 
 /**
  * Delete updater.

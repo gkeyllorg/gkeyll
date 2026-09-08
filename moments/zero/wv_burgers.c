@@ -30,48 +30,56 @@ void gkyl_burgers_flux_deriv(const double *q, double *flux_deriv)
   flux_deriv[0] = q[0];
 }
 
-static inline void cons_to_riem(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: This should use a proper L matrix.
   wout[0] = qin[0];
 }
 
-static inline void riem_to_cons(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: This should use a proper L matrix.
   qout[0] = win[0];
 }
 
-static void burgers_wall(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-  double *GKYL_RESTRICT ghost, void *ctx)
+static void burgers_wall(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   ghost[0] = skin[0];
 }
 
-static void burgers_no_slip(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-  double *GKYL_RESTRICT ghost, void *ctx)
+static void burgers_no_slip(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   ghost[0] = skin[0];
 }
 
-static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
-  double *GKYL_RESTRICT qlocal)
+static inline void rot_to_local(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
+)
 {
   qlocal[0] = qglobal[0];
 }
 
-static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
-  double *GKYL_RESTRICT qglobal)
+static inline void rot_to_global(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
+)
 {
   qglobal[0] = qlocal[0];
 }
 
-static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-  const double *qr, double *waves, double *s)
+static double wave_lax(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   double sl = gkyl_burgers_max_abs_speed(ql);
   double sr = gkyl_burgers_max_abs_speed(qr);
@@ -95,8 +103,10 @@ static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const
   return s[1];
 }
 
-static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+static void qfluct_lax(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[1];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -106,22 +116,27 @@ static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const do
   apdq[0] = (s0p * w0[0]) + (s1p * w1[0]);
 }
 
-static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-  const double *qr, double *waves, double *s)
+static double wave_roe(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_burgers *burgers = container_of(eqn, struct wv_burgers, eqn);
 
@@ -143,8 +158,10 @@ static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const
   return s[0];
 }
 
-static void qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+static void qfluct_roe(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0];
 
@@ -157,9 +174,10 @@ static void qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const do
   }
 }
 
-static double wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_roe_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return wave_roe(eqn, delta, ql, qr, waves, s);
@@ -170,9 +188,11 @@ static double wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
   return 0.0; // Unreachable code.
 }
 
-static void qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_roe_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
@@ -181,8 +201,8 @@ static void qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
   }
 }
 
-static double flux_jump(
-  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   double *fr = gkyl_malloc(sizeof(double));
   double *fl = gkyl_malloc(sizeof(double));
@@ -210,8 +230,8 @@ static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_burgers_max_abs_speed(q);
 }
 
-static inline void burgers_cons_to_diag(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
+static inline void
+burgers_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   diag[0] = qin[0];
 }
@@ -237,8 +257,8 @@ void gkyl_burgers_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_wv_eqn *gkyl_wv_burgers_new(bool use_gpu)
 {
-  return gkyl_wv_burgers_inew(
-    &(struct gkyl_wv_burgers_inp){ .rp_type = WV_BURGERS_RP_ROE, .use_gpu = use_gpu });
+  return gkyl_wv_burgers_inew(&(struct gkyl_wv_burgers_inp
+  ){.rp_type = WV_BURGERS_RP_ROE, .use_gpu = use_gpu});
 }
 
 struct gkyl_wv_eqn *gkyl_wv_burgers_inew(const struct gkyl_wv_burgers_inp *inp)

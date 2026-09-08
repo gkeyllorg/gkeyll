@@ -21,8 +21,8 @@ struct gkyl_mom_calc_bcorr {
  * Create new updater to update boundary corrections on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_cu_dev_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt);
+struct gkyl_mom_calc_bcorr *
+gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt);
 
 /**
  * Compute boundary correction moments.
@@ -33,7 +33,9 @@ struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_cu_dev_new(
  * @param fIn Input to updater
  * @param out Output
  */
-void gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
-  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT out);
+void gkyl_mom_calc_bcorr_advance_cu(
+  const struct gkyl_mom_calc_bcorr *bcorr, const struct gkyl_range *phase_rng,
+  const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT out
+);
 #endif

@@ -45,9 +45,10 @@ void gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_eule
   euler->auxfields.p_surf = auxin.p_surf;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_euler_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn,
-  const struct gkyl_wave_geom *geom, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_euler_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -94,14 +95,17 @@ struct gkyl_dg_eqn *gkyl_dg_euler_new(const struct gkyl_basis *cbasis,
   euler->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   euler->surf[0] = CK(surf_x_kernels, cdim, poly_order);
-  if (cdim > 1)
+  if (cdim > 1) {
     euler->surf[1] = CK(surf_y_kernels, cdim, poly_order);
-  if (cdim > 2)
+  }
+  if (cdim > 2) {
     euler->surf[2] = CK(surf_z_kernels, cdim, poly_order);
+  }
 
   // ensure non-NULL pointers
-  for (int i = 0; i < cdim; ++i)
+  for (int i = 0; i < cdim; ++i) {
     assert(euler->surf[i]);
+  }
 
   euler->auxfields.u = 0;
   euler->auxfields.p = 0;
@@ -119,9 +123,10 @@ struct gkyl_dg_eqn *gkyl_dg_euler_new(const struct gkyl_basis *cbasis,
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_euler_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn,
-  const struct gkyl_wave_geom *geom)
+struct gkyl_dg_eqn *gkyl_dg_euler_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom
+)
 {
   assert(false);
   return 0;

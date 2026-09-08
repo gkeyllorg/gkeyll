@@ -13,10 +13,11 @@
 static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a;
-  if (use_gpu)
+  if (use_gpu) {
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
+  } else {
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  }
   return a;
 }
 
@@ -30,10 +31,10 @@ void test_vlasov_1x2v_p2_(bool use_gpu)
   int cdim = 1, vdim = 2;
   int pdim = cdim + vdim;
 
-  int cells[] = { 24, 12, 12 };
-  int ghost[] = { 1, 0, 0 };
-  double lower[] = { 0., -1., -1. };
-  double upper[] = { 1., 1., 1. };
+  int cells[] = {24, 12, 12};
+  int ghost[] = {1, 0, 0};
+  double lower[] = {0., -1., -1.};
+  double upper[] = {1., 1., 1.};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -65,8 +66,8 @@ void test_vlasov_1x2v_p2_(bool use_gpu)
     gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, &phaseRange, model_id, field_id, use_gpu);
 
   // initialize hyper_dg slvr
-  int up_dirs[GKYL_MAX_DIM] = { 0, 1, 2 };
-  int zero_flux_flags[2 * GKYL_MAX_DIM] = { 0, 1, 1, 0, 1, 1 };
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
+  int zero_flux_flags[2 * GKYL_MAX_DIM] = {0, 1, 1, 0, 1, 1};
 
   gkyl_hyper_dg *slvr;
   slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
@@ -81,10 +82,11 @@ void test_vlasov_1x2v_p2_(bool use_gpu)
   qmem = mkarr1(use_gpu, 8 * confBasis.num_basis, confRange_ext.volume);
 
   double *cfl_ptr;
-  if (use_gpu)
+  if (use_gpu) {
     cfl_ptr = gkyl_cu_malloc(sizeof(double));
-  else
+  } else {
     cfl_ptr = gkyl_malloc(sizeof(double));
+  }
 
   // set initial condition
   int nf = phaseRange_ext.volume * basis.num_basis;
@@ -98,8 +100,9 @@ void test_vlasov_1x2v_p2_(bool use_gpu)
   for (int i = 0; i < nf; i++) {
     fin_d[i] = (double)(2 * i + 11 % nf) / nf * ((i % 2 == 0) ? 1 : -1);
   }
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_array_copy(fin, fin_h);
+  }
 
   int nem = confRange_ext.volume * confBasis.num_basis;
   double *qmem_d;
@@ -112,19 +115,20 @@ void test_vlasov_1x2v_p2_(bool use_gpu)
   for (int i = 0; i < nem; i++) {
     qmem_d[i] = (double)(-i + 27 % nem) / nem * ((i % 2 == 0) ? 1 : -1);
   }
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_array_copy(qmem, qmem_h);
+  }
 
   // run hyper_dg_advance
   int nrep = 10;
   for (int n = 0; n < nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_set_auxfields(eqn, (struct gkyl_dg_vlasov_auxfields){ .field = qmem,
-                                     .cot_vec = 0,
-                                     .alpha_surf = 0,
-                                     .sgn_alpha_surf = 0,
-                                     .const_sgn_alpha = 0 }); // Must set EM fields to use.
+    gkyl_vlasov_set_auxfields(
+      eqn,
+      (struct gkyl_dg_vlasov_auxfields
+      ){.field = qmem, .cot_vec = 0, .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0}
+    ); // Must set EM fields to use.
 
     gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
 
@@ -132,15 +136,16 @@ void test_vlasov_1x2v_p2_(bool use_gpu)
   }
 
   double cfl_ptr_h[1];
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(cfl_ptr_h, cfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     cfl_ptr_h[0] = cfl_ptr[0];
+  }
   TEST_CHECK(gkyl_compare_double(cfl_ptr_h[0], 1.2589437866921e+02, 1e-12));
 
   // get linear index of first non-ghost cell
   // 1-indexed for interfacing with G2 Lua layer
-  int idx[] = { 1, 1, 1, 1, 1 };
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   rhs_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
@@ -153,8 +158,9 @@ void test_vlasov_1x2v_p2_(bool use_gpu)
   while (val == 0) {
     rhs_d = gkyl_array_fetch(rhs_h, i);
     val = rhs_d[0];
-    if (val == 0)
+    if (val == 0) {
       i++;
+    }
   }
   TEST_CHECK(i == linl);
 
@@ -186,7 +192,7 @@ void test_vlasov_1x2v_p2_(bool use_gpu)
 
   // get linear index of some other cell
   // 1-indexed for interfacing with G2 Lua layer
-  int idx2[] = { 6, 3, 5 };
+  int idx2[] = {6, 3, 5};
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d = gkyl_array_fetch(rhs_h, linl2);
 
@@ -239,10 +245,10 @@ void test_vlasov_2x3v_p1_(bool use_gpu)
   int cdim = 2, vdim = 3;
   int pdim = cdim + vdim;
 
-  int cells[] = { 8, 8, 8, 8, 8 };
-  int ghost[] = { 1, 1, 0, 0, 0 };
-  double lower[] = { 0., 0., -1., -1., -1. };
-  double upper[] = { 1., 1., 1., 1., 1. };
+  int cells[] = {8, 8, 8, 8, 8};
+  int ghost[] = {1, 1, 0, 0, 0};
+  double lower[] = {0., 0., -1., -1., -1.};
+  double upper[] = {1., 1., 1., 1., 1.};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -274,8 +280,8 @@ void test_vlasov_2x3v_p1_(bool use_gpu)
     gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, &phaseRange, model_id, field_id, use_gpu);
 
   // initialize hyper_dg slvr
-  int up_dirs[GKYL_MAX_DIM] = { 0, 1, 2, 3, 4 };
-  int zero_flux_flags[2 * GKYL_MAX_DIM] = { 0, 0, 1, 1, 1, 0, 0, 1, 1, 1 };
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2, 3, 4};
+  int zero_flux_flags[2 * GKYL_MAX_DIM] = {0, 0, 1, 1, 1, 0, 0, 1, 1, 1};
 
   gkyl_hyper_dg *slvr;
   slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
@@ -301,8 +307,9 @@ void test_vlasov_2x3v_p1_(bool use_gpu)
   for (int i = 0; i < nf; i++) {
     fin_d[i] = (double)(2 * i + 11 % nf) / nf * ((i % 2 == 0) ? 1 : -1);
   }
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_array_copy(fin, fin_h);
+  }
 
   int nem = confRange_ext.volume * confBasis.num_basis;
   double *qmem_d;
@@ -315,26 +322,27 @@ void test_vlasov_2x3v_p1_(bool use_gpu)
   for (int i = 0; i < nem; i++) {
     qmem_d[i] = (double)(-i + 27 % nem) / nem * ((i % 2 == 0) ? 1 : -1);
   }
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_array_copy(qmem, qmem_h);
+  }
 
   // run hyper_dg_advance
   int nrep = 10;
   for (int n = 0; n < nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_set_auxfields(eqn, (struct gkyl_dg_vlasov_auxfields){ .field = qmem,
-                                     .cot_vec = 0,
-                                     .alpha_surf = 0,
-                                     .sgn_alpha_surf = 0,
-                                     .const_sgn_alpha = 0 }); // must set EM fields to use
+    gkyl_vlasov_set_auxfields(
+      eqn,
+      (struct gkyl_dg_vlasov_auxfields
+      ){.field = qmem, .cot_vec = 0, .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0}
+    ); // must set EM fields to use
 
     gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell
   // 1-indexed for interfacing with G2 Lua layer
-  int idx[] = { 1, 1, 1, 1, 1 };
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   rhs_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
@@ -347,8 +355,9 @@ void test_vlasov_2x3v_p1_(bool use_gpu)
   while (val == 0) {
     rhs_d = gkyl_array_fetch(rhs_h, i);
     val = rhs_d[0];
-    if (val == 0)
+    if (val == 0) {
       i++;
+    }
   }
   TEST_CHECK(i == linl);
 
@@ -440,7 +449,7 @@ void test_vlasov_2x3v_p1_(bool use_gpu)
 
   // get linear index of some other cell
   // 1-indexed for interfacing with G2 Lua layer
-  int idx2[] = { 6, 3, 5, 8, 2 };
+  int idx2[] = {6, 3, 5, 8, 2};
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d = gkyl_array_fetch(rhs_h, linl2);
 
@@ -570,10 +579,12 @@ int hyper_dg_kernel_test(const gkyl_hyper_dg *slvr)
 }
 #endif
 
-TEST_LIST = { { "test_hyper_dg_vlasov_1x2v_p2_ho", test_hyper_dg_vlasov_1x2v_p2_ho },
-  { "test_hyper_dg_vlasov_2x3v_p1_ho", test_hyper_dg_vlasov_2x3v_p1_ho },
+TEST_LIST = {
+  {"test_hyper_dg_vlasov_1x2v_p2_ho", test_hyper_dg_vlasov_1x2v_p2_ho},
+  {"test_hyper_dg_vlasov_2x3v_p1_ho", test_hyper_dg_vlasov_2x3v_p1_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_hyper_dg_vlasov_1x2v_p2_dev", test_hyper_dg_vlasov_1x2v_p2_dev },
-  { "test_hyper_dg_vlasov_2x3v_p1_dev", test_hyper_dg_vlasov_2x3v_p1_dev },
+  {"test_hyper_dg_vlasov_1x2v_p2_dev", test_hyper_dg_vlasov_1x2v_p2_dev},
+  {"test_hyper_dg_vlasov_2x3v_p1_dev", test_hyper_dg_vlasov_2x3v_p1_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

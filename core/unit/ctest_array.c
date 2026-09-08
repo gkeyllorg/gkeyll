@@ -15,8 +15,9 @@
 static void set_array_to_zero_ho(struct gkyl_array *arr)
 {
   double *arr_d = arr->data;
-  for (unsigned i = 0; i < arr->size; ++i)
+  for (unsigned i = 0; i < arr->size; ++i) {
     arr_d[i] = 0.0;
+  }
 }
 
 void test_array_0_ho()
@@ -56,17 +57,20 @@ void test_array_base_ho()
   TEST_CHECK(brr->ref_count.count == 1);
 
   double *brrData = brr->data;
-  for (unsigned i = 0; i < brr->size; ++i)
+  for (unsigned i = 0; i < brr->size; ++i) {
     TEST_CHECK(brrData[i] == arrData[i]);
+  }
 
   // reset values in brr
-  for (unsigned i = 0; i < brr->size; ++i)
+  for (unsigned i = 0; i < brr->size; ++i) {
     brrData[i] = (i - 0.5) * 0.5;
+  }
 
   gkyl_array_copy(arr, brr);
 
-  for (unsigned i = 0; i < arr->size; ++i)
+  for (unsigned i = 0; i < arr->size; ++i) {
     TEST_CHECK(arrData[i] == brrData[i]);
+  }
 
   // acquire pointer
   struct gkyl_array *crr = gkyl_array_acquire(arr);
@@ -94,8 +98,9 @@ void test_array_fetch_ho()
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 20);
 
   double *arrData = arr->data;
-  for (unsigned i = 0; i < arr->size; ++i)
+  for (unsigned i = 0; i < arr->size; ++i) {
     arrData[i] = (i + 0.5) * 0.1;
+  }
 
   double *arrDataLh = gkyl_array_fetch(arr, 0);
   TEST_CHECK(arrDataLh[0] == 0.05);
@@ -136,12 +141,12 @@ void test_array_non_numeric_ho()
 
 void test_grid_sub_array_read_1_ho()
 {
-  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
-  int cells[] = { 20, 60 };
+  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  int cells[] = {20, 60};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
-  int nghost[] = { 1, 2 };
+  int nghost[] = {1, 2};
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -155,8 +160,9 @@ void test_grid_sub_array_read_1_ho()
     long loc = gkyl_range_idx(&range, iter.idx);
 
     double *d = gkyl_array_fetch(arr, loc);
-    for (int k = 0; k < 2; ++k)
+    for (int k = 0; k < 2; ++k) {
       d[k] = (10.5 * iter.idx[0] + 220.5 * iter.idx[1]) * (k + 0.5);
+    }
   }
 
   gkyl_grid_sub_array_write(&grid, &range, 0, arr, "ctest_grid_sub_array_1.gkyl");
@@ -221,8 +227,9 @@ void test_grid_sub_array_read_1_ho()
 
       const double *rhs = gkyl_array_cfetch(arr, loc);
       const double *lhs = gkyl_array_cfetch(arr2, loc);
-      for (int k = 0; k < 2; ++k)
+      for (int k = 0; k < 2; ++k) {
         TEST_CHECK(lhs[k] == rhs[k]);
+      }
     }
   }
 
@@ -232,12 +239,12 @@ void test_grid_sub_array_read_1_ho()
 
 void test_grid_sub_array_read_2_ho()
 {
-  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
-  int cells[] = { 20, 60 };
+  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  int cells[] = {20, 60};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
-  int nghost[] = { 1, 2 };
+  int nghost[] = {1, 2};
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -251,8 +258,9 @@ void test_grid_sub_array_read_2_ho()
     long loc = gkyl_range_idx(&range, iter.idx);
 
     double *d = gkyl_array_fetch(arr, loc);
-    for (int k = 0; k < 2; ++k)
+    for (int k = 0; k < 2; ++k) {
       d[k] = (10.5 * iter.idx[0] + 220.5 * iter.idx[1]) * (k + 0.5);
+    }
   }
 
   gkyl_grid_sub_array_write(&grid, &range, 0, arr, "ctest_grid_sub_array_2.gkyl");
@@ -260,7 +268,7 @@ void test_grid_sub_array_read_2_ho()
   struct gkyl_rect_grid grid2;
 
   struct gkyl_range srange;
-  gkyl_range_init(&srange, grid.ndim, (int[]){ 5, 5 }, (int[]){ 10, 15 });
+  gkyl_range_init(&srange, grid.ndim, (int[]){5, 5}, (int[]){10, 15});
 
   struct gkyl_array *arr2 = gkyl_array_new(GKYL_DOUBLE, 2, srange.volume);
   set_array_to_zero_ho(arr2);
@@ -284,8 +292,9 @@ void test_grid_sub_array_read_2_ho()
     while (gkyl_range_iter_next(&iter)) {
       const double *rhs = gkyl_array_cfetch(arr, gkyl_range_idx(&range, iter.idx));
       const double *lhs = gkyl_array_cfetch(arr2, gkyl_range_idx(&srange, iter.idx));
-      for (int k = 0; k < 2; ++k)
+      for (int k = 0; k < 2; ++k) {
         TEST_CHECK(lhs[k] == rhs[k]);
+      }
     }
   }
 
@@ -295,12 +304,12 @@ void test_grid_sub_array_read_2_ho()
 
 void test_grid_array_new_from_file_1_ho()
 {
-  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
-  int cells[] = { 20, 60 };
+  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  int cells[] = {20, 60};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
-  int nghost[] = { 1, 2 };
+  int nghost[] = {1, 2};
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -314,8 +323,9 @@ void test_grid_array_new_from_file_1_ho()
     long loc = gkyl_range_idx(&range, iter.idx);
 
     double *d = gkyl_array_fetch(arr, loc);
-    for (int k = 0; k < 2; ++k)
+    for (int k = 0; k < 2; ++k) {
       d[k] = (10.5 * iter.idx[0] + 220.5 * iter.idx[1]) * (k + 0.5);
+    }
   }
 
   gkyl_grid_sub_array_write(&grid, &range, 0, arr, "ctest_grid_array_new_from_file_1.gkyl");
@@ -344,8 +354,9 @@ void test_grid_array_new_from_file_1_ho()
 
     const double *rhs = gkyl_array_cfetch(arr, loc);
     const double *lhs = gkyl_array_cfetch(arr2, lhs_loc++);
-    for (int k = 0; k < 2; ++k)
+    for (int k = 0; k < 2; ++k) {
       TEST_CHECK(lhs[k] == rhs[k]);
+    }
   }
 
   gkyl_array_release(arr);
@@ -403,7 +414,7 @@ void test_grid_array_read_p1_ho(void)
 
   size_t nc = hdr.esznc / gkyl_elem_type_size[hdr.etype];
 
-  int nghost[] = { 1, 2 };
+  int nghost[] = {1, 2};
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -411,14 +422,16 @@ void test_grid_array_read_p1_ho(void)
   struct gkyl_rect_grid s_grid;
   struct gkyl_array *s_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
   int s_status = gkyl_grid_sub_array_read(
-    &s_grid, &range, s_arr, "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+    &s_grid, &range, s_arr, "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl"
+  );
 
   // read parallel data (whole domain)
   do {
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
     int p_status = gkyl_grid_sub_array_read(
-      &p_grid, &range, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+      &p_grid, &range, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl"
+    );
 
     TEST_CHECK(0 == p_status);
 
@@ -429,8 +442,9 @@ void test_grid_array_read_p1_ho(void)
       const double *s_dat = gkyl_array_fetch(s_arr, loc);
       const double *p_dat = gkyl_array_fetch(p_arr, loc);
 
-      for (int c = 0; c < nc; ++c)
+      for (int c = 0; c < nc; ++c) {
         TEST_CHECK(gkyl_compare_double(s_dat[c], p_dat[c], 1e-15));
+      }
     }
     gkyl_array_release(p_arr);
   } while (0);
@@ -438,12 +452,13 @@ void test_grid_array_read_p1_ho(void)
   // read parallel data (partial domain)
   do {
     struct gkyl_range prange;
-    gkyl_range_init(&prange, 2, (int[]){ 10, 10 }, (int[]){ 30, 40 });
+    gkyl_range_init(&prange, 2, (int[]){10, 10}, (int[]){30, 40});
 
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, prange.volume);
     int p_status = gkyl_grid_sub_array_read(
-      &p_grid, &prange, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+      &p_grid, &prange, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl"
+    );
 
     TEST_CHECK(0 == p_status);
 
@@ -453,8 +468,9 @@ void test_grid_array_read_p1_ho(void)
       const double *s_dat = gkyl_array_fetch(s_arr, gkyl_range_idx(&range, iter.idx));
       const double *p_dat = gkyl_array_fetch(p_arr, gkyl_range_idx(&prange, iter.idx));
 
-      for (int c = 0; c < nc; ++c)
+      for (int c = 0; c < nc; ++c) {
         TEST_CHECK(gkyl_compare_double(s_dat[c], p_dat[c], 1e-15));
+      }
     }
     gkyl_array_release(p_arr);
   } while (0);
@@ -462,12 +478,13 @@ void test_grid_array_read_p1_ho(void)
   // read parallel data (partial domain)
   do {
     struct gkyl_range prange;
-    gkyl_range_init(&prange, 2, (int[]){ 4, 5 }, (int[]){ 10, 10 });
+    gkyl_range_init(&prange, 2, (int[]){4, 5}, (int[]){10, 10});
 
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, prange.volume);
     int p_status = gkyl_grid_sub_array_read(
-      &p_grid, &prange, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+      &p_grid, &prange, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl"
+    );
 
     TEST_CHECK(0 == p_status);
 
@@ -477,8 +494,9 @@ void test_grid_array_read_p1_ho(void)
       const double *s_dat = gkyl_array_fetch(s_arr, gkyl_range_idx(&range, iter.idx));
       const double *p_dat = gkyl_array_fetch(p_arr, gkyl_range_idx(&prange, iter.idx));
 
-      for (int c = 0; c < nc; ++c)
+      for (int c = 0; c < nc; ++c) {
         TEST_CHECK(gkyl_compare_double(s_dat[c], p_dat[c], 1e-15));
+      }
     }
     gkyl_array_release(p_arr);
   } while (0);
@@ -521,17 +539,20 @@ static void test_array_from_buff_ho(void)
   TEST_CHECK(brr->ref_count.count == 1);
 
   double *brrData = brr->data;
-  for (unsigned i = 0; i < brr->size; ++i)
+  for (unsigned i = 0; i < brr->size; ++i) {
     TEST_CHECK(brrData[i] == arrData[i]);
+  }
 
   // reset values in brr
-  for (unsigned i = 0; i < brr->size; ++i)
+  for (unsigned i = 0; i < brr->size; ++i) {
     brrData[i] = (i - 0.5) * 0.5;
+  }
 
   gkyl_array_copy(arr, brr);
 
-  for (unsigned i = 0; i < arr->size; ++i)
+  for (unsigned i = 0; i < arr->size; ++i) {
     TEST_CHECK(arrData[i] == brrData[i]);
+  }
 
   // acquire pointer
   struct gkyl_array *crr = gkyl_array_acquire(arr);
@@ -589,14 +610,16 @@ void test_array_base_dev()
   gkyl_array_copy(arr_cu, arr);
 
   // reset host array
-  for (unsigned i = 0; i < arr->size; ++i)
+  for (unsigned i = 0; i < arr->size; ++i) {
     arrData[i] = 0.0;
+  }
 
   // copy from device and check if things are ok
   gkyl_array_copy(arr, arr_cu);
 
-  for (unsigned i = 0; i < arr->size; ++i)
+  for (unsigned i = 0; i < arr->size; ++i) {
     TEST_CHECK(arrData[i] == (i + 0.5) * 0.1);
+  }
 
   gkyl_array_release(arr);
   gkyl_array_release(arr_cu);
@@ -618,8 +641,9 @@ void test_array_kernel_dev()
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, arr_cu->ncomp, arr_cu->size);
 
   double *arrData = arr->data;
-  for (unsigned i = 0; i < arr->size; ++i)
+  for (unsigned i = 0; i < arr->size; ++i) {
     arrData[i] = (i + 0.5) * 0.1;
+  }
 
   // copy arr data to device data in arr_cu
   gkyl_array_copy(arr_cu, arr);
@@ -642,15 +666,17 @@ void test_array_kernel_dev()
 
   // copy arr_cu back to host and check
   gkyl_array_copy(arr, arr_cu);
-  for (unsigned i = 0; i < arr->size; ++i)
+  for (unsigned i = 0; i < arr->size; ++i) {
     TEST_CHECK(arrData[i] == -(i + 0.5) * 0.1);
+  }
 
   // copy arr_cu_cl back to host and check
   // zero out arr first (no cheating)
   set_array_to_zero_ho(arr);
   gkyl_array_copy(arr, arr_cu_cl);
-  for (unsigned i = 0; i < arr->size; ++i)
+  for (unsigned i = 0; i < arr->size; ++i) {
     TEST_CHECK(arrData[i] == -(i + 0.5) * 0.1);
+  }
 
   // release all data
   gkyl_array_release(arr_cu_cl);
@@ -660,14 +686,19 @@ void test_array_kernel_dev()
 
 #endif
 
-TEST_LIST = { { "array_0_ho", test_array_0_ho }, { "array_base_ho", test_array_base_ho },
-  { "array_fetch_ho", test_array_fetch_ho }, { "array_non_numeric_ho", test_array_non_numeric_ho },
-  { "grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho },
-  { "grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho },
-  { "grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho },
-  { "grid_array_read_p1_ho", test_grid_array_read_p1_ho },
-  { "array_from_buff_ho", test_array_from_buff_ho },
+TEST_LIST = {
+  {"array_0_ho", test_array_0_ho},
+  {"array_base_ho", test_array_base_ho},
+  {"array_fetch_ho", test_array_fetch_ho},
+  {"array_non_numeric_ho", test_array_non_numeric_ho},
+  {"grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho},
+  {"grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho},
+  {"grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho},
+  {"grid_array_read_p1_ho", test_grid_array_read_p1_ho},
+  {"array_from_buff_ho", test_array_from_buff_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "array_base_dev", test_array_base_dev }, { "array_kernel_dev", test_array_kernel_dev },
+  {"array_base_dev", test_array_base_dev},
+  {"array_kernel_dev", test_array_kernel_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

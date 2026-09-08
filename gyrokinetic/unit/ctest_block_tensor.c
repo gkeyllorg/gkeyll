@@ -49,15 +49,15 @@ void proj_cyl(double t, const double *xn, double *fout, void *ctx)
 
 void test_cartesian_2x_onecell()
 {
-  double lower[] = { -1, -1 }, upper[] = { 1, 1 };
-  int cells[] = { 8, 16 };
+  double lower[] = {-1, -1}, upper[] = {1, 1};
+  int cells[] = {8, 16};
   int dim = sizeof(lower) / sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   // basis function
   int poly_order = 1;
@@ -79,8 +79,8 @@ void test_cartesian_2x_onecell()
   int edge1 = 1; //upper edge
   int edge2 = 0; //lower edge
   int dir = 1; // second direction
-  int idx1[GKYL_MAX_DIM] = { 4, 16 };
-  int idx2[GKYL_MAX_DIM] = { 4, 1 };
+  int idx1[GKYL_MAX_DIM] = {4, 16};
+  int idx2[GKYL_MAX_DIM] = {4, 1};
   long loc1 = gkyl_range_idx(&local, idx1);
   long loc2 = gkyl_range_idx(&local, idx2);
   const double *dxdz_i = gkyl_array_fetch(dxdz, loc1);
@@ -90,14 +90,16 @@ void test_cartesian_2x_onecell()
   double tj_i[dim * dim * num_nodes];
 
   calc_tensor(bt, dir, edge1, edge2, dzdx_j, dxdz_i, tj_i);
-  for (int n = 0; n < num_nodes; n++)
+  for (int n = 0; n < num_nodes; n++) {
     for (int i = 0; i < 4; i++) {
       printf("tj_i[%d][%d] = %g\n", i, n, tj_i[i * num_nodes + n]);
     }
+  }
 
   printf("\n OR \n");
-  for (int i = 0; i < 8; i++)
+  for (int i = 0; i < 8; i++) {
     printf("tj_i[%d] = %g\n", i, tj_i[i]);
+  }
 
   gkyl_array_release(dxdz);
   gkyl_array_release(dzdx);
@@ -107,18 +109,18 @@ void test_cartesian_2x_onecell()
 void test_block_tensor_cartesian_2x_z_ho()
 {
   // Block 2 grid
-  double lower2[] = { -1.0, 0.0 }, upper2[] = { 1.0, 1.0 };
-  int cells2[] = { 8, 16 };
+  double lower2[] = {-1.0, 0.0}, upper2[] = {1.0, 1.0};
+  int cells2[] = {8, 16};
   int dim = sizeof(lower2) / sizeof(lower2[0]);
   struct gkyl_rect_grid grid2;
   gkyl_rect_grid_init(&grid2, dim, lower2, upper2, cells2);
   struct gkyl_range local2, local_ext2;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   gkyl_create_grid_ranges(&grid2, nghost, &local_ext2, &local2);
 
   // Block 1 grid
-  double lower1[] = { -1.0, -1 }, upper1[] = { 1.0, 0.0 };
-  int cells1[] = { 8, 16 };
+  double lower1[] = {-1.0, -1}, upper1[] = {1.0, 0.0};
+  int cells1[] = {8, 16};
   struct gkyl_rect_grid grid1;
   gkyl_rect_grid_init(&grid1, dim, lower1, upper1, cells1);
   struct gkyl_range local1, local_ext1;
@@ -159,18 +161,18 @@ void test_block_tensor_cartesian_2x_z_ho()
 void test_block_tensor_cartesian_2x_x_ho()
 {
   // Block 2 grid
-  double lower2[] = { -1.0, 0.0 }, upper2[] = { 1.0, 1.0 };
-  int cells2[] = { 8, 16 };
+  double lower2[] = {-1.0, 0.0}, upper2[] = {1.0, 1.0};
+  int cells2[] = {8, 16};
   int dim = sizeof(lower2) / sizeof(lower2[0]);
   struct gkyl_rect_grid grid2;
   gkyl_rect_grid_init(&grid2, dim, lower2, upper2, cells2);
   struct gkyl_range local2, local_ext2;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   gkyl_create_grid_ranges(&grid2, nghost, &local_ext2, &local2);
 
   // Block 1 grid
-  double lower1[] = { -1.0, -1 }, upper1[] = { 0.0, 1.0 };
-  int cells1[] = { 8, 16 };
+  double lower1[] = {-1.0, -1}, upper1[] = {0.0, 1.0};
+  int cells1[] = {8, 16};
   struct gkyl_rect_grid grid1;
   gkyl_rect_grid_init(&grid1, dim, lower1, upper1, cells1);
   struct gkyl_range local1, local_ext1;
@@ -213,18 +215,18 @@ void test_block_tensor_cartesian_2x_x_ho()
 void test_block_tensor_cyl_cart_2x_z_ho()
 {
   // Block 2 grid
-  double lower2[] = { 0.5, -1.0 }, upper2[] = { 1.0, 0.0 };
-  int cells2[] = { 8, 16 };
+  double lower2[] = {0.5, -1.0}, upper2[] = {1.0, 0.0};
+  int cells2[] = {8, 16};
   int dim = sizeof(lower2) / sizeof(lower2[0]);
   struct gkyl_rect_grid grid2;
   gkyl_rect_grid_init(&grid2, dim, lower2, upper2, cells2);
   struct gkyl_range local2, local_ext2;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   gkyl_create_grid_ranges(&grid2, nghost, &local_ext2, &local2);
 
   // Block 1 grid
-  double lower1[] = { 0.5, 0.0 }, upper1[] = { 1.0, M_PI / 2 };
-  int cells1[] = { 8, 16 };
+  double lower1[] = {0.5, 0.0}, upper1[] = {1.0, M_PI / 2};
+  int cells1[] = {8, 16};
   struct gkyl_rect_grid grid1;
   gkyl_rect_grid_init(&grid1, dim, lower1, upper1, cells1);
   struct gkyl_range local1, local_ext1;
@@ -264,15 +266,15 @@ void test_block_tensor_cyl_cart_2x_z_ho()
 
 void test_cartesian_3x_onecell()
 {
-  double lower[] = { -1, -1, -1 }, upper[] = { 1, 1, 1 };
-  int cells[] = { 8, 16, 4 };
+  double lower[] = {-1, -1, -1}, upper[] = {1, 1, 1};
+  int cells[] = {8, 16, 4};
   int dim = sizeof(lower) / sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1, 1};
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   // basis function
   int poly_order = 1;
@@ -294,8 +296,8 @@ void test_cartesian_3x_onecell()
   int edge1 = 1; //upper edge
   int edge2 = 0; //lower edge
   int dir = 2; // third direction
-  int idx1[3] = { 4, 8, 4 };
-  int idx2[3] = { 4, 8, 4 };
+  int idx1[3] = {4, 8, 4};
+  int idx2[3] = {4, 8, 4};
   long loc1 = gkyl_range_idx(&local, idx1);
   long loc2 = gkyl_range_idx(&local, idx2);
   const double *dxdz_i = gkyl_array_fetch(dxdz, loc1);
@@ -305,10 +307,11 @@ void test_cartesian_3x_onecell()
   double tj_i[dim * dim * num_nodes];
 
   calc_tensor(bt, dir, edge1, edge2, dzdx_j, dxdz_i, tj_i);
-  for (int n = 0; n < num_nodes; n++)
+  for (int n = 0; n < num_nodes; n++) {
     for (int i = 0; i < 9; i++) {
       printf("tj_i[%d][%d] = %g\n", i, n, tj_i[i * num_nodes + n]);
     }
+  }
 
   //printf("\n OR \n");
   //for (int i = 0; i < 36; i++)
@@ -320,5 +323,6 @@ void test_cartesian_3x_onecell()
 
 TEST_LIST = { //{ "test_block_tensor_cartesian_2x_z_ho", test_block_tensor_cartesian_2x_z_ho},
   //{ "test_block_tensor_cartesian_2x_x_ho", test_block_tensor_cartesian_2x_x_ho},
-  { "test_block_tensor_cyl_cart_2x_z_ho", test_block_tensor_cyl_cart_2x_z_ho }, { NULL, NULL }
+  {"test_block_tensor_cyl_cart_2x_z_ho", test_block_tensor_cyl_cart_2x_z_ho},
+  {NULL, NULL}
 };

@@ -12,9 +12,10 @@
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 
 // "derived" class constructors
-struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const double *vBoundary,
-  bool use_gpu)
+struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_vlasov_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const double *vBoundary, bool use_gpu
+)
 {
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
   bcorr_type = gkyl_mom_bcorr_lbo_vlasov_new(cbasis, pbasis, vBoundary, use_gpu);

@@ -27,7 +27,8 @@ void gkyl_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
 }
 
 void gkyl_vlasov_pkpm_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
@@ -48,9 +49,10 @@ void gkyl_vlasov_pkpm_set_auxfields(
   vlasov_pkpm->auxfields.g_dist_source = auxin.g_dist_source;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -104,18 +106,21 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis *cbasis,
   vlasov_pkpm->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   vlasov_pkpm->stream_surf[0] = CK(stream_surf_x_kernels, cdim, poly_order);
-  if (cdim > 1)
+  if (cdim > 1) {
     vlasov_pkpm->stream_surf[1] = CK(stream_surf_y_kernels, cdim, poly_order);
-  if (cdim > 2)
+  }
+  if (cdim > 2) {
     vlasov_pkpm->stream_surf[2] = CK(stream_surf_z_kernels, cdim, poly_order);
+  }
 
   vlasov_pkpm->accel_surf = CK(accel_surf_vpar_kernels, cdim, poly_order);
 
   vlasov_pkpm->accel_boundary_surf = CK(accel_boundary_surf_vpar_kernels, cdim, poly_order);
 
   // ensure non-NULL pointers
-  for (int i = 0; i < cdim; ++i)
+  for (int i = 0; i < cdim; ++i) {
     assert(vlasov_pkpm->stream_surf[i]);
+  }
   assert(vlasov_pkpm->accel_surf);
   assert(vlasov_pkpm->accel_boundary_surf);
 
@@ -142,9 +147,10 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis *cbasis,
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range)
+struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range
+)
 {
   assert(false);
   return 0;

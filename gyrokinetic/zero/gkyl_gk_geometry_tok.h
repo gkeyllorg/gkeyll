@@ -16,5 +16,7 @@ struct gk_geometry *gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geomet
  * @param theta_lo on output lower extent in z direction
  * @param theta_up on output upper extent in z direction
  * */
-void gkyl_gk_geometry_tok_set_grid_extents(struct gkyl_efit_inp efit_info,
-  struct gkyl_tok_geo_grid_inp grid_info, double *theta_lo, double *theta_up);
+void gkyl_gk_geometry_tok_set_grid_extents(
+  struct gkyl_efit_inp efit_info, struct gkyl_tok_geo_grid_inp grid_info, double *theta_lo,
+  double *theta_up
+);

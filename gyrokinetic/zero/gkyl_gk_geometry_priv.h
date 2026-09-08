@@ -16,19 +16,21 @@ static inline void get_filename_from_path(const char *filepath, char *out_buffer
 
 static double calc_running_coord(double coord_lo, int i, double dx)
 {
-  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
+  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
   double coord = coord_lo;
-  for (int j = 0; j < i; j++)
+  for (int j = 0; j < i; j++) {
     coord += dels[j % 2] * dx;
+  }
   return coord;
 }
 
 static double calc_running_surf_coord(double coord_lo, int i, double dx)
 {
-  double dels[3] = { (1.0 - 1.0 / sqrt(3)) / 2.0, 1.0 / sqrt(3), (1.0 - 1.0 / sqrt(3)) / 2.0 };
+  double dels[3] = {(1.0 - 1.0 / sqrt(3)) / 2.0, 1.0 / sqrt(3), (1.0 - 1.0 / sqrt(3)) / 2.0};
   double coord = coord_lo;
-  for (int j = 0; j < i; j++)
+  for (int j = 0; j < i; j++) {
     coord += dels[j % 3] * dx;
+  }
   return coord;
 }
 
@@ -39,32 +41,39 @@ static void gk_geometry_set_nodal_ranges(struct gk_geometry *up)
   // nodes tensor
   int num_nodes_corners[GKYL_MAX_CDIM];
   if (poly_order == 1) {
-    for (int d = 0; d < up->grid.ndim; ++d)
+    for (int d = 0; d < up->grid.ndim; ++d) {
       num_nodes_corners[d] = gkyl_range_shape(&up->local, d) + 1;
+    }
   }
   if (poly_order == 2) {
-    for (int d = 0; d < up->grid.ndim; ++d)
+    for (int d = 0; d < up->grid.ndim; ++d) {
       num_nodes_corners[d] = 2 * gkyl_range_shape(&up->local, d) + 1;
+    }
   }
 
   int num_quad_points = poly_order + 1;
 
   int num_nodes_quad_interior[GKYL_MAX_CDIM];
-  for (int d = 0; d < up->grid.ndim; ++d)
+  for (int d = 0; d < up->grid.ndim; ++d) {
     num_nodes_quad_interior[d] = gkyl_range_shape(&up->local, d) * num_quad_points;
+  }
 
   int num_nodes_quad_surf_in_dir[up->grid.ndim][GKYL_MAX_CDIM];
-  for (int dir = 0; dir < up->grid.ndim; ++dir)
-    for (int d = 0; d < up->grid.ndim; ++d)
+  for (int dir = 0; dir < up->grid.ndim; ++dir) {
+    for (int d = 0; d < up->grid.ndim; ++d) {
       num_nodes_quad_surf_in_dir[dir][d] = d == dir ?
                                              gkyl_range_shape(&up->local, d) + 1 :
                                              gkyl_range_shape(&up->local, d) * num_quad_points;
+    }
+  }
 
   gkyl_range_init_from_shape(&up->nrange_corn, up->grid.ndim, num_nodes_corners);
   gkyl_range_init_from_shape(&up->nrange_int, up->grid.ndim, num_nodes_quad_interior);
-  for (int dir = 0; dir < up->grid.ndim; ++dir)
+  for (int dir = 0; dir < up->grid.ndim; ++dir) {
     gkyl_range_init_from_shape(
-      &up->nrange_surf[dir], up->grid.ndim, num_nodes_quad_surf_in_dir[dir]);
+      &up->nrange_surf[dir], up->grid.ndim, num_nodes_quad_surf_in_dir[dir]
+    );
+  }
 }
 
 static void gk_geometry_surf_alloc_nodal(struct gk_geometry *gk_geom, int dir)
@@ -299,39 +308,62 @@ static void gk_geometry_corn_release_nodal(struct gk_geometry *gk_geom)
 }
 
 static void gk_geometry_surf_calc_expansions(
-  struct gk_geometry *gk_geom, int dir, struct gkyl_range nrange_quad_surf)
+  struct gk_geometry *gk_geom, int dir, struct gkyl_range nrange_quad_surf
+)
 {
   struct gk_geom_surf up_surf = gk_geom->geo_surf[dir];
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&gk_geom->basis, &gk_geom->grid, false);
 
   struct gkyl_range local_ext_in_dir;
-  int lower[3] = { gk_geom->local.lower[0], gk_geom->local.lower[1], gk_geom->local.lower[2] };
-  int upper[3] = { gk_geom->local.upper[0], gk_geom->local.upper[1], gk_geom->local.upper[2] };
+  int lower[3] = {gk_geom->local.lower[0], gk_geom->local.lower[1], gk_geom->local.lower[2]};
+  int upper[3] = {gk_geom->local.upper[0], gk_geom->local.upper[1], gk_geom->local.upper[2]};
   upper[dir] += 1;
   gkyl_sub_range_init(&local_ext_in_dir, &gk_geom->local_ext, lower, upper);
 
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.bmag_nodal, up_surf.bmag, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.jacobgeo_nodal, up_surf.jacobgeo, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 3, up_surf.b_i_nodal, up_surf.b_i, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.cmag_nodal, up_surf.cmag, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.jacobtot_inv_nodal, up_surf.jacobtot_inv, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.B3_nodal, up_surf.B3, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.normcurlbhat_nodal, up_surf.normcurlbhat, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 9, up_surf.normals_nodal, up_surf.normals, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.lenr_nodal, up_surf.lenr, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.bimpactangle_nodal, up_surf.bimpactangle, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.deltats_nodal, up_surf.deltats, dir);
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
+    up_surf.bmag_nodal, up_surf.bmag, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
+    up_surf.jacobgeo_nodal, up_surf.jacobgeo, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 3,
+    up_surf.b_i_nodal, up_surf.b_i, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
+    up_surf.cmag_nodal, up_surf.cmag, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
+    up_surf.jacobtot_inv_nodal, up_surf.jacobtot_inv, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
+    up_surf.B3_nodal, up_surf.B3, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
+    up_surf.normcurlbhat_nodal, up_surf.normcurlbhat, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 9,
+    up_surf.normals_nodal, up_surf.normals, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
+    up_surf.lenr_nodal, up_surf.lenr, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
+    up_surf.bimpactangle_nodal, up_surf.bimpactangle, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
+    up_surf.deltats_nodal, up_surf.deltats, dir
+  );
 
   // jacobgeo_ratio is not used in single block.
   int cdim = gk_geom->grid.ndim;

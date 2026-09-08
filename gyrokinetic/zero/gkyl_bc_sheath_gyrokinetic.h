@@ -23,9 +23,11 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_bc_sheath_gyrokinetic *gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
-  const struct gkyl_basis *basis, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm, bool use_gpu);
+struct gkyl_bc_sheath_gyrokinetic *gkyl_bc_sheath_gyrokinetic_new(
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm,
+  bool use_gpu
+);
 
 /**
  * Apply the sheath BC with the bc_sheath_gyrokinetic object.
@@ -36,9 +38,10 @@ struct gkyl_bc_sheath_gyrokinetic *gkyl_bc_sheath_gyrokinetic_new(int dir, enum 
  * @param distf Distribution function array to apply BC to.
  * @param conf_r Configuration space range (to index phi).
  */
-void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up,
-  const struct gkyl_array *phi, const struct gkyl_array *phi_wall, struct gkyl_array *distf,
-  const struct gkyl_range *conf_r);
+void gkyl_bc_sheath_gyrokinetic_advance(
+  const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r
+);
 
 /**
  * Free memory associated with bc_sheath_gyrokinetic updater.

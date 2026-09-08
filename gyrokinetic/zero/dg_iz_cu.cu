@@ -13,13 +13,14 @@ extern "C" {
 #include <gkyl_array_ops_priv.h>
 }
 
-__global__ static void gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up,
-  const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
+__global__ static void gkyl_iz_react_rate_cu_ker(
+  const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
   const struct gkyl_basis *adas_basis, const struct gkyl_array *maxwellian_moms_elc,
   struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz,
   struct gkyl_array *ioniz_data, enum gkyl_react_self_type type_self, double mass_elc,
   double elem_charge, double E, double maxLogTe, double minLogTe, double dlogTe, int resTe,
-  double maxLogM0, double minLogM0, double dlogM0, int resM0)
+  double maxLogM0, double minLogM0, double dlogM0, int resM0
+)
 {
   int cidx[GKYL_MAX_CDIM];
   for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < conf_rng.volume;
@@ -53,8 +54,9 @@ __global__ static void gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up,
     } else if (log_Te_av > maxLogTe) {
       t_idx = resTe;
       log_Te_av = maxLogTe;
-    } else
+    } else {
       t_idx = (log_Te_av - minLogTe) / (dlogTe) + 1;
+    }
     cell_center = (t_idx - 0.5) * dlogTe + minLogTe;
     cell_vals_2d[0] = 2.0 * (log_Te_av - cell_center) / dlogTe; // Te value on cell interval
 
@@ -64,15 +66,16 @@ __global__ static void gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up,
     } else if (log_m0_av > maxLogM0) {
       m0_idx = resM0;
       log_m0_av = maxLogM0;
-    } else
+    } else {
       m0_idx = (log_m0_av - minLogM0) / (dlogM0) + 1;
+    }
     cell_center = (m0_idx - 0.5) * dlogM0 + minLogM0;
     cell_vals_2d[1] = 2.0 * (log_m0_av - cell_center) / dlogM0; // M0 value on cell interval
 
     if ((temp_elc_av <= 0.) || (m0_elc_av <= 0.)) {
       coef_iz_d[0] = 0.0;
     } else {
-      int ad_idx[2] = { t_idx, m0_idx };
+      int ad_idx[2] = {t_idx, m0_idx};
       double *iz_dat_d = (double *)gkyl_array_fetch(ioniz_data, gkyl_range_idx(&adas_rng, ad_idx));
       double adas_eval = adas_basis->eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0, adas_eval) / cell_av_fac;
@@ -104,13 +107,16 @@ __global__ static void gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up,
   }
 }
 
-void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *maxwellian_moms_elc,
+void gkyl_dg_iz_coll_cu(
+  const struct gkyl_dg_iz *up, const struct gkyl_array *maxwellian_moms_elc,
   struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz,
-  struct gkyl_array *cflrate)
+  struct gkyl_array *cflrate
+)
 {
-  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(up->on_dev,
-    *up->conf_rng, up->adas_rng, up->basis_on_dev, maxwellian_moms_elc->on_dev, vtSq_iz1->on_dev,
-    vtSq_iz2->on_dev, coef_iz->on_dev, up->ioniz_data->on_dev, up->type_self, up->mass_elc,
-    up->elem_charge, up->E, up->maxLogTe, up->minLogTe, up->dlogTe, up->resTe, up->maxLogM0,
-    up->minLogM0, up->dlogM0, up->resM0);
+  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(
+    up->on_dev, *up->conf_rng, up->adas_rng, up->basis_on_dev, maxwellian_moms_elc->on_dev,
+    vtSq_iz1->on_dev, vtSq_iz2->on_dev, coef_iz->on_dev, up->ioniz_data->on_dev, up->type_self,
+    up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe, up->dlogTe, up->resTe,
+    up->maxLogM0, up->minLogM0, up->dlogM0, up->resM0
+  );
 }

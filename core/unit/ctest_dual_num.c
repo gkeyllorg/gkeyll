@@ -24,7 +24,8 @@ static inline struct gkyl_dn func_1(struct gkyl_dn x)
 {
   // -2*x + x^2/(3+x^3) + 1/x
   return gdn_add(
-    gdn_smul(-2.0, x), gdn_add(gdn_div(gdn_sq(x), gdn_sadd(3, gdn_cube(x))), gdn_inv(x)));
+    gdn_smul(-2.0, x), gdn_add(gdn_div(gdn_sq(x), gdn_sadd(3, gdn_cube(x))), gdn_inv(x))
+  );
 }
 
 double func_1_0(double x)
@@ -129,7 +130,7 @@ static struct gkyl_dn2 custom_xy(struct gkyl_dn2 x, struct gkyl_dn2 y)
   double g0x = 2.0 * x.x[0] / (y.x[0] * y.x[0]);
   double g0y = -2.0 * (x.x[0] * x.x[0]) / (y.x[0] * y.x[0] * y.x[0]);
 
-  return (struct gkyl_dn2){ g0, x.x[1] * g0x + y.x[1] * g0y, x.x[2] * g0x + y.x[2] * g0y };
+  return (struct gkyl_dn2){g0, x.x[1] * g0x + y.x[1] * g0y, x.x[2] * g0x + y.x[2] * g0y};
 }
 
 void test_dual_num_xy_ho(void)
@@ -140,8 +141,8 @@ void test_dual_num_xy_ho(void)
   res = fxy(x, y);
   TEST_CHECK(gkyl_compare_double(res.x[0], cos(x.x[0] / y.x[0]), 1e-14));
   TEST_CHECK(gkyl_compare_double(res.x[1], -sin(x.x[0] / y.x[0]) / y.x[0], 1e-14));
-  TEST_CHECK(
-    gkyl_compare_double(res.x[2], x.x[0] * sin(x.x[0] / y.x[0]) / (y.x[0] * y.x[0]), 1e-14));
+  TEST_CHECK(gkyl_compare_double(res.x[2], x.x[0] * sin(x.x[0] / y.x[0]) / (y.x[0] * y.x[0]), 1e-14)
+  );
 
   double psi0 = sqrt(x.x[0] * x.x[0] + y.x[0] * y.x[0]);
   res = psixy(x, y);
@@ -180,7 +181,7 @@ static inline double inv_mapc2p(double x, void *ctx)
 
 void test_dual_num_inv_mapc2p_ho(void)
 {
-  struct inv_map_ctx imctx = { 0.75 };
+  struct inv_map_ctx imctx = {0.75};
   double xl = 0.0, xr = 5.0;
   double fl = inv_mapc2p(xl, &imctx);
   double fr = inv_mapc2p(xr, &imctx);
@@ -277,8 +278,8 @@ static inline struct gkyl_dn2 RpsiZ_ellip(const struct gkyl_dn2 psiZ[2])
 
 void test_dual_num_psi_mapping_ho(void)
 {
-  double pz[2] = { 1.0, 2.0 };
-  struct gkyl_dn2 psiZ[2] = { gdn2_new10(pz[0]), gdn2_new01(pz[1]) };
+  double pz[2] = {1.0, 2.0};
+  struct gkyl_dn2 psiZ[2] = {gdn2_new10(pz[0]), gdn2_new01(pz[1])};
   struct gkyl_dn2 RpsiZ = RpsiZ_ellip(psiZ);
 
   TEST_CHECK(RpsiZ.x[0] == pz[0] * sin(pz[1]));
@@ -286,10 +287,13 @@ void test_dual_num_psi_mapping_ho(void)
   TEST_CHECK(RpsiZ.x[2] == pz[0] * cos(pz[1])); // dR/dZ
 }
 
-TEST_LIST = { { "test_dual_num_basic_ho", test_dual_num_basic_ho },
-  { "test_dual_num_basic2_ho", test_dual_num_basic2_ho },
-  { "test_dual_num_xy_ho", test_dual_num_xy_ho },
-  { "test_dual_num_inv_mapc2p_ho", test_dual_num_inv_mapc2p_ho },
-  { "test_dual_num_mapc2p_ho", test_dual_num_mapc2p_ho },
-  { "test_dual_num_mapc2p_2_ho", test_dual_num_mapc2p_2_ho },
-  { "test_dual_num_psi_mapping_ho", test_dual_num_psi_mapping_ho }, { NULL, NULL } };
+TEST_LIST = {
+  {"test_dual_num_basic_ho", test_dual_num_basic_ho},
+  {"test_dual_num_basic2_ho", test_dual_num_basic2_ho},
+  {"test_dual_num_xy_ho", test_dual_num_xy_ho},
+  {"test_dual_num_inv_mapc2p_ho", test_dual_num_inv_mapc2p_ho},
+  {"test_dual_num_mapc2p_ho", test_dual_num_mapc2p_ho},
+  {"test_dual_num_mapc2p_2_ho", test_dual_num_mapc2p_2_ho},
+  {"test_dual_num_psi_mapping_ho", test_dual_num_psi_mapping_ho},
+  {NULL, NULL}
+};

@@ -56,40 +56,46 @@ static inline double calc_sym_grad2_1D(double dx, double a_l, double a_c, double
 }
 
 // Calculate symmetrized gradients 2D
-static inline double calc_sym_gradx_2D(
-  double dx, double a_ll, double a_lu, double a_ul, double a_uu)
+static inline double
+calc_sym_gradx_2D(double dx, double a_ll, double a_lu, double a_ul, double a_uu)
 {
   return (a_ul + a_uu - a_ll - a_lu) / (2 * dx);
 }
 
-static inline double calc_sym_grady_2D(
-  double dy, double a_ll, double a_lu, double a_ul, double a_uu)
+static inline double
+calc_sym_grady_2D(double dy, double a_ll, double a_lu, double a_ul, double a_uu)
 {
   return (a_lu + a_uu - a_ll - a_ul) / (2 * dy);
 }
 
 // Calculate symmetrized cross-derivative in 2D.
-static inline double calc_sym_gradxy_2D(
-  double dx, double dy, double a_ll, double a_lu, double a_ul, double a_uu)
+static inline double
+calc_sym_gradxy_2D(double dx, double dy, double a_ll, double a_lu, double a_ul, double a_uu)
 {
   return (a_uu - a_ul - a_lu + a_ll) / (4.0 * dx * dy);
 }
 
 // Calculate symmetrized gradients 3D
-static inline double calc_sym_gradx_3D(double dx, double a_lll, double a_llu, double a_lul,
-  double a_luu, double a_ull, double a_ulu, double a_uul, double a_uuu)
+static inline double calc_sym_gradx_3D(
+  double dx, double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu,
+  double a_uul, double a_uuu
+)
 {
   return (a_ull + a_ulu + a_uul + a_uuu - a_lll - a_llu - a_lul - a_luu) / (4 * dx);
 }
 
-static inline double calc_sym_grady_3D(double dy, double a_lll, double a_llu, double a_lul,
-  double a_luu, double a_ull, double a_ulu, double a_uul, double a_uuu)
+static inline double calc_sym_grady_3D(
+  double dy, double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu,
+  double a_uul, double a_uuu
+)
 {
   return (a_lul + a_luu + a_uul + a_uuu - a_lll - a_llu - a_ull - a_ulu) / (4 * dy);
 }
 
-static inline double calc_sym_gradz_3D(double dz, double a_lll, double a_llu, double a_lul,
-  double a_luu, double a_ull, double a_ulu, double a_uul, double a_uuu)
+static inline double calc_sym_gradz_3D(
+  double dz, double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu,
+  double a_uul, double a_uuu
+)
 {
   return (a_llu + a_luu + a_ulu + a_uuu - a_lll - a_lul - a_ull - a_uul) / (4 * dz);
 }
@@ -117,17 +123,21 @@ static inline double calc_harmonic_avg_2D(double a_ll, double a_lu, double a_ul,
 }
 
 // In 3D, computes quantity at cell corner of eight-cell interface
-static inline double calc_arithm_avg_3D(double a_lll, double a_llu, double a_lul, double a_luu,
-  double a_ull, double a_ulu, double a_uul, double a_uuu)
+static inline double calc_arithm_avg_3D(
+  double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu, double a_uul,
+  double a_uuu
+)
 {
   return 0.125 * (a_lll + a_llu + a_lul + a_luu + a_ull + a_ulu + a_uul + a_uuu);
 }
 
-static inline double calc_harmonic_avg_3D(double a_lll, double a_llu, double a_lul, double a_luu,
-  double a_ull, double a_ulu, double a_uul, double a_uuu)
+static inline double calc_harmonic_avg_3D(
+  double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu, double a_uul,
+  double a_uuu
+)
 {
   return 1.0 / (0.125 / a_lll + 0.125 / a_llu + 0.125 / a_lul + 0.125 / a_luu + 0.125 / a_ull +
-                 0.125 / a_ulu + 0.125 / a_uul + 0.125 / a_uuu);
+                0.125 / a_ulu + 0.125 / a_uul + 0.125 / a_uuu);
 }
 
 // Calculate grad(u)
@@ -140,8 +150,10 @@ static inline void calc_grad_u_1D(double dx, double u_l[3], double u_u[3], doubl
 }
 
 // In 2D, computes tensor computes tensor in one corner of four-cell interface
-static inline void calc_grad_u_2D(double dx, double dy, double u_ll[3], double u_lu[3],
-  double u_ul[3], double u_uu[3], double grad_u[6])
+static inline void calc_grad_u_2D(
+  double dx, double dy, double u_ll[3], double u_lu[3], double u_ul[3], double u_uu[3],
+  double grad_u[6]
+)
 {
   grad_u[0] = calc_sym_gradx_2D(dx, u_ll[0], u_lu[0], u_ul[0], u_uu[0]);
   grad_u[1] = calc_sym_gradx_2D(dx, u_ll[1], u_lu[1], u_ul[1], u_uu[1]);
@@ -153,37 +165,48 @@ static inline void calc_grad_u_2D(double dx, double dy, double u_ll[3], double u
 }
 
 // In 3D, computes tensor in one corner of eight-cell interface
-static inline void calc_grad_u_3D(double dx, double dy, double dz, double u_lll[3], double u_llu[3],
-  double u_lul[3], double u_luu[3], double u_ull[3], double u_ulu[3], double u_uul[3],
-  double u_uuu[3], double grad_u[9])
+static inline void calc_grad_u_3D(
+  double dx, double dy, double dz, double u_lll[3], double u_llu[3], double u_lul[3],
+  double u_luu[3], double u_ull[3], double u_ulu[3], double u_uul[3], double u_uuu[3],
+  double grad_u[9]
+)
 {
   grad_u[0] = calc_sym_gradx_3D(
-    dx, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
+    dx, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]
+  );
   grad_u[1] = calc_sym_gradx_3D(
-    dx, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
+    dx, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]
+  );
   grad_u[2] = calc_sym_gradx_3D(
-    dx, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
+    dx, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]
+  );
 
   grad_u[3] = calc_sym_grady_3D(
-    dy, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
+    dy, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]
+  );
   grad_u[4] = calc_sym_grady_3D(
-    dy, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
+    dy, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]
+  );
   grad_u[5] = calc_sym_grady_3D(
-    dy, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
+    dy, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]
+  );
 
   grad_u[6] = calc_sym_gradz_3D(
-    dz, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
+    dz, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]
+  );
   grad_u[7] = calc_sym_gradz_3D(
-    dz, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
+    dz, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]
+  );
   grad_u[8] = calc_sym_gradz_3D(
-    dz, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
+    dz, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]
+  );
 }
 
 // Calculate rate of strain tensor
 // In 1D, computes tensor at cell edge of two-cell interface
 static inline void calc_ros_1D(double dx, double u_l[3], double u_u[3], double w[6])
 {
-  double grad_u[3] = { 0.0 };
+  double grad_u[3] = {0.0};
   calc_grad_u_1D(dx, u_l, u_u, grad_u);
 
   w[0] = 4.0 / 3.0 * grad_u[0];
@@ -196,9 +219,10 @@ static inline void calc_ros_1D(double dx, double u_l[3], double u_u[3], double w
 
 // In 2D, computes tensor in one corner of four-cell interface
 static inline void calc_ros_2D(
-  double dx, double dy, double u_ll[3], double u_lu[3], double u_ul[3], double u_uu[3], double w[6])
+  double dx, double dy, double u_ll[3], double u_lu[3], double u_ul[3], double u_uu[3], double w[6]
+)
 {
-  double grad_u[6] = { 0.0 };
+  double grad_u[6] = {0.0};
   calc_grad_u_2D(dx, dy, u_ll, u_lu, u_ul, u_uu, grad_u);
 
   double divu = grad_u[0] + grad_u[4];
@@ -211,11 +235,12 @@ static inline void calc_ros_2D(
 }
 
 // In 3D, computes tensor in one corner of eight-cell interface
-static inline void calc_ros_3D(double dx, double dy, double dz, double u_lll[3], double u_llu[3],
-  double u_lul[3], double u_luu[3], double u_ull[3], double u_ulu[3], double u_uul[3],
-  double u_uuu[3], double w[6])
+static inline void calc_ros_3D(
+  double dx, double dy, double dz, double u_lll[3], double u_llu[3], double u_lul[3],
+  double u_luu[3], double u_ull[3], double u_ulu[3], double u_uul[3], double u_uuu[3], double w[6]
+)
 {
-  double grad_u[9] = { 0.0 };
+  double grad_u[9] = {0.0};
   calc_grad_u_3D(dx, dy, dz, u_lll, u_llu, u_lul, u_luu, u_ull, u_ulu, u_uul, u_uuu, grad_u);
 
   double divu = grad_u[0] + grad_u[4] + grad_u[8];
@@ -239,8 +264,9 @@ static inline double calc_omega_c(double charge, double mass, const double em_to
 {
   double omega_c = 0.0;
   double Bmag = calc_mag_b(em_tot);
-  if (Bmag > 0.0)
+  if (Bmag > 0.0) {
     omega_c = charge * Bmag / mass;
+  }
   return omega_c;
 }
 
@@ -262,8 +288,10 @@ static inline void calc_bhat(const double em_tot[8], double b[3])
 // Calculate the collision time based on the species' parameters
 // Note: assumes the electron-ion collision frequency so sqrt(2) may be missing
 //       coulomb_log considered constant, rho is mass density, temp is temperature
-static inline double calc_tau(double coulomb_log, double coll_fac, double epsilon0, double charge1,
-  double charge2, double mass1, double mass2, double rho, double temp)
+static inline double calc_tau(
+  double coulomb_log, double coll_fac, double epsilon0, double charge1, double charge2,
+  double mass1, double mass2, double rho, double temp
+)
 {
   return coll_fac * 6.0 *
          sqrt(2.0 * M_PI * mass1 * temp * M_PI * mass2 * temp * M_PI * mass2 * temp) * epsilon0 *
@@ -305,12 +333,12 @@ static void calc_pi_perp(double eta_perp, double b_avg[3], double w[6], double p
   // pi_perp = -eta_perp * ((I - bb) . W . (I + 3bb) + (I + 3bb) . W . (I - bb))
   pi_perp[0] = -eta_perp * (2.0 * (w[0] + 2.0 * b_avg[0] * bWIx - 3.0 * b_avg[0] * b_avg[0] * bWb));
   pi_perp[1] = -eta_perp * (2.0 * w[1] + 2.0 * (b_avg[1] * bWIx + b_avg[0] * bWIy) -
-                             6.0 * b_avg[0] * b_avg[1] * bWb);
+                            6.0 * b_avg[0] * b_avg[1] * bWb);
   pi_perp[2] = -eta_perp * (2.0 * w[2] + 2.0 * (b_avg[2] * bWIx + b_avg[0] * bWIz) -
-                             6.0 * b_avg[0] * b_avg[2] * bWb);
+                            6.0 * b_avg[0] * b_avg[2] * bWb);
   pi_perp[3] = -eta_perp * (2.0 * (w[3] + 2.0 * b_avg[1] * bWIy - 3.0 * b_avg[1] * b_avg[1] * bWb));
   pi_perp[4] = -eta_perp * (2.0 * w[4] + 2.0 * (b_avg[2] * bWIy + b_avg[1] * bWIz) -
-                             6.0 * b_avg[1] * b_avg[2] * bWb);
+                            6.0 * b_avg[1] * b_avg[2] * bWb);
   pi_perp[5] = -eta_perp * (2.0 * (w[5] + 2.0 * b_avg[2] * bWIz - 3.0 * b_avg[2] * b_avg[2] * bWb));
 }
 

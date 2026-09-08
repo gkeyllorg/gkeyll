@@ -18,8 +18,8 @@ static double ROOT_EPS = 1e-14;
 // actually correct. Hence, at present I am using the wp34s
 // implementation in Appendix B of the note.
 
-struct gkyl_qr_res gkyl_dbl_exp(
-  double (*func)(double, void *), void *ctx, double a, double b, int n, double eps)
+struct gkyl_qr_res
+gkyl_dbl_exp(double (*func)(double, void *), void *ctx, double a, double b, int n, double eps)
 {
   int nev = 0;
   double thr = 10 * sqrt(eps); // too generous for larger eps, e.g. eps=1e-9
@@ -48,14 +48,16 @@ struct gkyl_qr_res gkyl_dbl_exp(
       if (c + x > a) {
         double y = func(c + x, ctx);
         nev += 1;
-        if (isfinite(y))
+        if (isfinite(y)) {
           fp = y;
+        }
       }
       if (c - x < b) {
         double y = func(c - x, ctx);
         nev += 1;
-        if (isfinite(y))
+        if (isfinite(y)) {
           fm = y;
+        }
       }
       q = ch * w * (fp + fm);
       p += q;
@@ -72,9 +74,8 @@ struct gkyl_qr_res gkyl_dbl_exp(
     s = 0;
   }
 
-  return (struct gkyl_qr_res){
-    .error = e, .res = s, .nevals = nev, .status = k > n ? 1 : 0, .nlevels = k
-  };
+  return (struct gkyl_qr_res
+  ){.error = e, .res = s, .nevals = nev, .status = k > n ? 1 : 0, .nlevels = k};
 }
 
 // Helper functions for ridders
@@ -86,8 +87,10 @@ static inline double dsign(double x)
 // See IEEE Tran. Circuit and Systems, vol CAS-26 No 11, Pg 976
 // 1976. The following is almost direct implementation from the
 // original paper
-struct gkyl_qr_res gkyl_ridders(double (*func)(double, void *), void *ctx, double xl, double xr,
-  double fl, double fr, int max_iter, double eps)
+struct gkyl_qr_res gkyl_ridders(
+  double (*func)(double, void *), void *ctx, double xl, double xr, double fl, double fr,
+  int max_iter, double eps
+)
 {
   double x0 = xl, x2 = xr, f0 = fl, f2 = fr;
   double res = DBL_MAX, err = DBL_MAX;
@@ -126,9 +129,8 @@ struct gkyl_qr_res gkyl_ridders(double (*func)(double, void *), void *ctx, doubl
     nitr++;
   }
 
-  return (struct gkyl_qr_res){
-    .error = err, .res = res, .nevals = nev, .status = nitr > max_iter ? 1 : 0
-  };
+  return (struct gkyl_qr_res
+  ){.error = err, .res = res, .nevals = nev, .status = nitr > max_iter ? 1 : 0};
 }
 
 /////// roots of a quadratic polynomial
@@ -145,10 +147,9 @@ static struct gkyl_lo_poly_roots quad_poly_roots(double coeff[4])
     x2 = (-b + csqrt(b * b - 4 * a * c)) / (2 * a);
   }
 
-  return (struct gkyl_lo_poly_roots){ .niter = 0,
-    .err = { 0.0, 0.0 },
-    .rpart = { creal(x1), creal(x2) },
-    .impart = { cimag(x1), cimag(x2) } };
+  return (struct gkyl_lo_poly_roots
+  ){.niter = 0, .err = {0.0, 0.0}, .rpart = {creal(x1), creal(x2)}, .impart = {cimag(x1), cimag(x2)}
+  };
 }
 
 /////// roots of a cubic
@@ -159,8 +160,8 @@ static inline double complex eval_poly3(const double coeff[4], double complex x)
   return coeff[0] + coeff[1] * x + coeff[2] * x2 + x3;
 }
 
-static inline bool check_converged3(
-  double complex c1, double complex c2, double complex c3, double err[3])
+static inline bool
+check_converged3(double complex c1, double complex c2, double complex c3, double err[3])
 {
   double eps = ROOT_EPS;
   err[0] = cabs(c1);
@@ -179,7 +180,7 @@ static struct gkyl_lo_poly_roots cubic_poly_roots(double coeff[4])
   double complex rn1 = qn1 * r1;
   double complex pn = 0.0, qn = 0.0, rn = 0.0;
 
-  double err[3] = { 0.0 };
+  double err[3] = {0.0};
   int max_iter = 100;
   int niter = 0;
   do {
@@ -195,10 +196,11 @@ static struct gkyl_lo_poly_roots cubic_poly_roots(double coeff[4])
 
   } while (!check_converged3(pn - pn1, qn - qn1, rn - rn1, err) && niter < max_iter);
 
-  return (struct gkyl_lo_poly_roots){ .niter = niter,
-    .err = { err[0], err[1], err[2] },
-    .rpart = { creal(pn1), creal(qn1), creal(rn1) },
-    .impart = { cimag(pn1), cimag(qn1), cimag(rn1) } };
+  return (struct gkyl_lo_poly_roots
+  ){.niter = niter,
+    .err = {err[0], err[1], err[2]},
+    .rpart = {creal(pn1), creal(qn1), creal(rn1)},
+    .impart = {cimag(pn1), cimag(qn1), cimag(rn1)}};
 }
 
 /////// roots of a quartic
@@ -211,7 +213,8 @@ static inline double complex eval_poly4(const double coeff[4], double complex x)
 }
 
 static inline bool check_converged4(
-  double complex c1, double complex c2, double complex c3, double complex c4, double err[4])
+  double complex c1, double complex c2, double complex c3, double complex c4, double err[4]
+)
 {
   double eps = ROOT_EPS;
   err[0] = cabs(c1);
@@ -232,7 +235,7 @@ static struct gkyl_lo_poly_roots quart_poly_roots(double coeff[4])
   double complex sn1 = rn1 * r1;
   double complex pn = 0.0, qn = 0.0, rn = 0.0, sn = 0.0;
 
-  double err[4] = { 0.0 };
+  double err[4] = {0.0};
   int max_iter = 100;
   int niter = 0;
   do {
@@ -250,10 +253,11 @@ static struct gkyl_lo_poly_roots quart_poly_roots(double coeff[4])
 
   } while (!check_converged4(pn - pn1, qn - qn1, rn - rn1, sn - sn1, err) && niter < max_iter);
 
-  return (struct gkyl_lo_poly_roots){ .niter = niter,
-    .err = { err[0], err[1], err[2], err[3] },
-    .rpart = { creal(pn1), creal(qn1), creal(rn1), creal(sn1) },
-    .impart = { cimag(pn1), cimag(qn1), cimag(rn1), cimag(sn1) } };
+  return (struct gkyl_lo_poly_roots
+  ){.niter = niter,
+    .err = {err[0], err[1], err[2], err[3]},
+    .rpart = {creal(pn1), creal(qn1), creal(rn1), creal(sn1)},
+    .impart = {cimag(pn1), cimag(qn1), cimag(rn1), cimag(sn1)}};
 }
 
 struct gkyl_lo_poly_roots gkyl_calc_lo_poly_roots(enum gkyl_lo_poly_order order, double coeff[4])
@@ -389,8 +393,8 @@ static void check_poly_full_domain(double *p, double *domain, double tol)
   ;
 }
 
-static double check_poly_bounded(
-  double *p, double left_bound, double middle_bound, double right_bound)
+static double
+check_poly_bounded(double *p, double left_bound, double middle_bound, double right_bound)
 {
   // Compute the updated middle bound in the polynomial evaluation falls directly on
   // p(x) = 0
@@ -415,14 +419,14 @@ static double check_poly_bounded(
   return updated_middle_bound;
 }
 
-static struct gkyl_root_intervals bisection_root_search(
-  struct gkyl_sturm_polynomials *sturn_chain, double domain[2], double tol)
+static struct gkyl_root_intervals
+bisection_root_search(struct gkyl_sturm_polynomials *sturn_chain, double domain[2], double tol)
 {
   // Initialize
   int status = 0;
   int niter = 0;
-  double lower_bound[4] = { 0.0, 0.0, 0.0, 0.0 };
-  double upper_bound[4] = { 0.0, 0.0, 0.0, 0.0 };
+  double lower_bound[4] = {0.0, 0.0, 0.0, 0.0};
+  double upper_bound[4] = {0.0, 0.0, 0.0, 0.0};
 
   // Check the polynomial evaluatation at the bounds is not zero
   check_poly_full_domain(sturn_chain->p0, domain, tol);
@@ -443,7 +447,7 @@ static struct gkyl_root_intervals bisection_root_search(
   } else if (total_roots > 1) {
     // Initialize additional variables needed in the search
     int roots_isolated = 0;
-    double return_to_this_domain[2] = { 0.0, 0.0 };
+    double return_to_this_domain[2] = {0.0, 0.0};
 
     // Break the domain into two parts
     double left_bound = domain[0];
@@ -565,12 +569,13 @@ static struct gkyl_root_intervals bisection_root_search(
     printf("Couldn't isolate the root intervals: Total_roots: %d!\n", total_roots);
   }
 
-  return (struct gkyl_root_intervals){ .status = status,
+  return (struct gkyl_root_intervals
+  ){.status = status,
     .niter = niter,
     .nroots = total_roots,
-    .root_bound_lower = { lower_bound[0], lower_bound[1], lower_bound[2], lower_bound[3] },
-    .root_bound_upper = { upper_bound[0], upper_bound[1], upper_bound[2], upper_bound[3] },
-    .sturn_chain = *sturn_chain };
+    .root_bound_lower = {lower_bound[0], lower_bound[1], lower_bound[2], lower_bound[3]},
+    .root_bound_upper = {upper_bound[0], upper_bound[1], upper_bound[2], upper_bound[3]},
+    .sturn_chain = *sturn_chain};
 }
 
 static inline int deg_modified(double *p)
@@ -593,8 +598,9 @@ static void minus_euclidean_division_rem(double *p0, double *p1, int p0_deg, dou
 {
   // Initialize the problem
   double r[4];
-  for (int i = 0; i <= 3; ++i)
+  for (int i = 0; i <= 3; ++i) {
     r[i] = p0[i];
+  }
   int r_deg = p0_deg;
   double rmax;
   if (p0_deg < 4) {
@@ -608,8 +614,9 @@ static void minus_euclidean_division_rem(double *p0, double *p1, int p0_deg, dou
   int iter_max = r_deg - p1_deg; // TODO: check index
   double q[iter_max];
   double p1g[r_deg + 1];
-  for (int i = 0; i <= r_deg; ++i)
+  for (int i = 0; i <= r_deg; ++i) {
     p1g[i] = 0.0;
+  }
   int iter = 0;
 
   // Iterate while the degree is still higher the the divisor
@@ -637,19 +644,21 @@ static void minus_euclidean_division_rem(double *p0, double *p1, int p0_deg, dou
     rmax = r[r_deg];
 
     // set p1g to zero
-    for (int i = 0; i <= r_deg + 1; ++i)
+    for (int i = 0; i <= r_deg + 1; ++i) {
       p1g[i] = 0.0 * p1g[i];
+    }
   }
 
   // We require the minus of the returned remainder
-  for (int i = 0; i <= 3; ++i)
+  for (int i = 0; i <= 3; ++i) {
     res[i] = -r[i];
+  }
 }
 
 static struct gkyl_sturm_polynomials compute_sturn_chain(double p0[4])
 {
   // Compute the first derivative of p0 to get p1
-  double p1[4] = { p0[1], 2.0 * p0[2], 3.0 * p0[3], 4.0 * 1.0 };
+  double p1[4] = {p0[1], 2.0 * p0[2], 3.0 * p0[3], 4.0 * 1.0};
 
   // Compute the Euclidean division of p0 by p1, return the -remainder
   double p2[4], p3[4], p4[4];
@@ -661,11 +670,12 @@ static struct gkyl_sturm_polynomials compute_sturn_chain(double p0[4])
   // Compute the next division p2 by p3
   minus_euclidean_division_rem(p2, p3, 0, p4);
 
-  return (struct gkyl_sturm_polynomials){ .p0 = { p0[0], p0[1], p0[2], p0[3] },
-    .p1 = { p1[0], p1[1], p1[2], p1[3] },
-    .p2 = { p2[0], p2[1], p2[2], p2[3] },
-    .p3 = { p3[0], p3[1], p3[2], p3[3] },
-    .p4 = { p4[0], p4[1], p4[2], p4[3] } };
+  return (struct gkyl_sturm_polynomials
+  ){.p0 = {p0[0], p0[1], p0[2], p0[3]},
+    .p1 = {p1[0], p1[1], p1[2], p1[3]},
+    .p2 = {p2[0], p2[1], p2[2], p2[3]},
+    .p3 = {p3[0], p3[1], p3[2], p3[3]},
+    .p4 = {p4[0], p4[1], p4[2], p4[3]}};
 }
 
 void gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_intervals, double tol)
@@ -730,7 +740,8 @@ void gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_inter
 }
 
 void gkyl_root_isolation_from_intervals_via_ridders(
-  struct gkyl_root_intervals *root_intervals, double tol)
+  struct gkyl_root_intervals *root_intervals, double tol
+)
 {
   // Compute the number of domains to compute roots on
   int nroots = root_intervals->nroots;
@@ -753,8 +764,8 @@ void gkyl_root_isolation_from_intervals_via_ridders(
   }
 }
 
-struct gkyl_root_intervals gkyl_calc_quartic_root_intervals(
-  double coeff[4], double domain[2], double tol)
+struct gkyl_root_intervals
+gkyl_calc_quartic_root_intervals(double coeff[4], double domain[2], double tol)
 {
   // Compute the sturn chain
   struct gkyl_sturm_polynomials sturn_chain = compute_sturn_chain(coeff);
@@ -809,8 +820,9 @@ void gkyl_calc_poly_roots(struct gkyl_poly_roots *pr, const double *coeff)
 
   double complex r1 = 0.4 + 0.9 * I; // arbitrary complex number, not a root of unity
   pn1[0] = r1;
-  for (int i = 1; i < poly_order; ++i)
+  for (int i = 1; i < poly_order; ++i) {
     pn1[i] = pn1[i - 1] * r1;
+  }
 
   int max_iter = 100;
   int niter = 0;
@@ -819,9 +831,11 @@ void gkyl_calc_poly_roots(struct gkyl_poly_roots *pr, const double *coeff)
       pn[i] = pn1[i];
 
       double complex denom = 1.0;
-      for (int j = 0; j < poly_order; ++j)
-        if (i != j)
+      for (int j = 0; j < poly_order; ++j) {
+        if (i != j) {
           denom = denom * (pn1[i] - pn1[j]);
+        }
+      }
       pn1[i] = pn1[i] - eval_poly2(poly_order, coeff, pn1[i]) / denom;
     }
     niter += 1;

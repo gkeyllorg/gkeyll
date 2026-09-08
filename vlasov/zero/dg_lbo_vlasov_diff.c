@@ -13,14 +13,16 @@ void gkyl_lbo_vlasov_diff_free(const struct gkyl_ref_count *ref)
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(base, struct dg_lbo_vlasov_diff, eqn);
 
-  if (GKYL_IS_CU_ALLOC(lbo_vlasov_diff->eqn.flags))
+  if (GKYL_IS_CU_ALLOC(lbo_vlasov_diff->eqn.flags)) {
     gkyl_cu_free(lbo_vlasov_diff->eqn.on_dev);
+  }
 
   gkyl_free(lbo_vlasov_diff);
 }
 
 void gkyl_lbo_vlasov_diff_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_vlasov_diff_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_vlasov_diff_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.nuSum) && gkyl_array_is_cu_dev(auxin.nuPrimMomsSum)) {
@@ -34,9 +36,10 @@ void gkyl_lbo_vlasov_diff_set_auxfields(
   lbo_vlasov_diff->auxfields.nuPrimMomsSum = auxin.nuPrimMomsSum;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_rect_grid *pgrid, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -87,22 +90,28 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis *cbasis,
   lbo_vlasov_diff->eqn.vol_term = CK(vol_kernels, cdim, vdim, poly_order);
 
   lbo_vlasov_diff->surf[0] = CK(surf_vx_kernels, cdim, vdim, poly_order);
-  if (vdim > 1)
+  if (vdim > 1) {
     lbo_vlasov_diff->surf[1] = CK(surf_vy_kernels, cdim, vdim, poly_order);
-  if (vdim > 2)
+  }
+  if (vdim > 2) {
     lbo_vlasov_diff->surf[2] = CK(surf_vz_kernels, cdim, vdim, poly_order);
+  }
 
   lbo_vlasov_diff->boundary_surf[0] = CK(boundary_surf_vx_kernels, cdim, vdim, poly_order);
-  if (vdim > 1)
+  if (vdim > 1) {
     lbo_vlasov_diff->boundary_surf[1] = CK(boundary_surf_vy_kernels, cdim, vdim, poly_order);
-  if (vdim > 2)
+  }
+  if (vdim > 2) {
     lbo_vlasov_diff->boundary_surf[2] = CK(boundary_surf_vz_kernels, cdim, vdim, poly_order);
+  }
 
   // ensure non-NULL pointers
-  for (int i = 0; i < vdim; ++i)
+  for (int i = 0; i < vdim; ++i) {
     assert(lbo_vlasov_diff->surf[i]);
-  for (int i = 0; i < vdim; ++i)
+  }
+  for (int i = 0; i < vdim; ++i) {
     assert(lbo_vlasov_diff->boundary_surf[i]);
+  }
 
   lbo_vlasov_diff->auxfields.nuSum = 0;
   lbo_vlasov_diff->auxfields.nuPrimMomsSum = 0;
@@ -118,9 +127,10 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis *cbasis,
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_rect_grid *pgrid)
+struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid
+)
 {
   assert(false);
   return 0;

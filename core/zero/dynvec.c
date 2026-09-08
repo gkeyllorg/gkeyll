@@ -88,24 +88,27 @@ void gkyl_dynvec_append(gkyl_dynvec dv, double tm, const void *data)
 
 bool gkyl_dynvec_get(const gkyl_dynvec dv, size_t idx, void *data)
 {
-  if (idx >= dv->cloc)
+  if (idx >= dv->cloc) {
     return false;
+  }
   memcpy(data, (char *)dv->data + dv->esznc * idx, dv->esznc);
   return true;
 }
 
 double gkyl_dynvec_get_tm(const gkyl_dynvec dv, size_t idx)
 {
-  if (idx >= dv->cloc)
+  if (idx >= dv->cloc) {
     return 0.0;
+  }
   return dv->tm_mesh[idx];
 }
 
 bool gkyl_dynvec_getlast(const gkyl_dynvec dv, void *data)
 {
   size_t loc = dv->cloc;
-  if (loc == 0)
+  if (loc == 0) {
     return false;
+  }
   return gkyl_dynvec_get(dv, loc - 1, data);
 }
 
@@ -135,8 +138,9 @@ void gkyl_dynvec_clear(gkyl_dynvec dv)
 
 void gkyl_dynvec_clear_all_but(gkyl_dynvec dv, size_t num)
 {
-  if (num > dv->cloc)
+  if (num > dv->cloc) {
     return;
+  }
 
   size_t cloc = dv->cloc;
   dv->csize = DYNVEC_ALLOC_SZ;
@@ -199,7 +203,8 @@ static int gkyl_dynvec_write_mode(const gkyl_dynvec vec, const char *fname, cons
 }
 
 static int gkyl_dynvec_write_mode_wmeta(
-  const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta, const char *mode)
+  const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta, const char *mode
+)
 {
   const char g0[5] = "gkyl0";
 
@@ -215,8 +220,9 @@ static int gkyl_dynvec_write_mode_wmeta(
     fwrite(&gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE], sizeof(uint64_t), 1, fp);
     uint64_t meta_size = meta->meta_sz;
     fwrite(&meta_size, sizeof(uint64_t), 1, fp);
-    if (meta_size > 0)
+    if (meta_size > 0) {
       fwrite(meta->meta, meta_size, 1, fp);
+    }
 
     uint64_t real_type = gkyl_array_data_type[vec->type];
     fwrite(&real_type, sizeof(uint64_t), 1, fp);
@@ -243,7 +249,8 @@ int gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname)
 }
 
 int gkyl_dynvec_write_wmeta(
-  const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta)
+  const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta
+)
 {
   return gkyl_dynvec_write_mode_wmeta(vec, fname, meta, "w");
 }
@@ -254,21 +261,25 @@ static bool gkyl_dynvec_read_ncomp_1(FILE *fp, struct gkyl_dynvec_etype_ncomp *e
   size_t frr;
   // Version 1 header
   char g0[6];
-  if (1 != fread(g0, sizeof(char[5]), 1, fp))
+  if (1 != fread(g0, sizeof(char[5]), 1, fp)) {
     return false;
+  }
   g0[5] = '\0'; // add the NULL
-  if (strcmp(g0, "gkyl0") != 0)
+  if (strcmp(g0, "gkyl0") != 0) {
     return false;
+  }
 
   uint64_t version;
   frr = fread(&version, sizeof(uint64_t), 1, fp);
-  if (version != 1)
+  if (version != 1) {
     return false;
+  }
 
   uint64_t file_type;
   frr = fread(&file_type, sizeof(uint64_t), 1, fp);
-  if (file_type != gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE])
+  if (file_type != gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE]) {
     return false;
+  }
 
   uint64_t meta_size;
   frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
@@ -278,13 +289,15 @@ static bool gkyl_dynvec_read_ncomp_1(FILE *fp, struct gkyl_dynvec_etype_ncomp *e
   fseek(fp, meta_size, SEEK_CUR);
 
   uint64_t real_code = 0;
-  if (1 != fread(&real_code, sizeof(uint64_t), 1, fp))
+  if (1 != fread(&real_code, sizeof(uint64_t), 1, fp)) {
     return false;
+  }
   enc->type = gkyl_array_code_to_data_type[real_code];
 
   uint64_t esznc;
-  if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
+  if (1 != fread(&esznc, sizeof(uint64_t), 1, fp)) {
     return false;
+  }
 
   int real_type = gkyl_array_code_to_data_type[real_code];
   enc->ncomp = esznc / gkyl_elem_type_size[real_type];
@@ -294,7 +307,7 @@ static bool gkyl_dynvec_read_ncomp_1(FILE *fp, struct gkyl_dynvec_etype_ncomp *e
 
 struct gkyl_dynvec_etype_ncomp gkyl_dynvec_read_ncomp(const char *fname)
 {
-  struct gkyl_dynvec_etype_ncomp enc = { .type = GKYL_DOUBLE, .ncomp = 0 };
+  struct gkyl_dynvec_etype_ncomp enc = {.type = GKYL_DOUBLE, .ncomp = 0};
   FILE *fp = 0;
   with_file(fp, fname, "r") gkyl_dynvec_read_ncomp_1(fp, &enc);
   return enc;
@@ -305,21 +318,25 @@ static bool gkyl_dynvec_read_1(gkyl_dynvec vec, FILE *fp)
   size_t frr;
   // Version 1 header
   char g0[6];
-  if (1 != fread(g0, sizeof(char[5]), 1, fp))
+  if (1 != fread(g0, sizeof(char[5]), 1, fp)) {
     return false;
+  }
   g0[5] = '\0'; // add the NULL
-  if (strcmp(g0, "gkyl0") != 0)
+  if (strcmp(g0, "gkyl0") != 0) {
     return false;
+  }
 
   uint64_t version;
   frr = fread(&version, sizeof(uint64_t), 1, fp);
-  if (version != 1)
+  if (version != 1) {
     return false;
+  }
 
   uint64_t file_type;
   frr = fread(&file_type, sizeof(uint64_t), 1, fp);
-  if (file_type != gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE])
+  if (file_type != gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE]) {
     return false;
+  }
 
   uint64_t meta_size;
   frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
@@ -329,19 +346,24 @@ static bool gkyl_dynvec_read_1(gkyl_dynvec vec, FILE *fp)
   fseek(fp, meta_size, SEEK_CUR);
 
   uint64_t real_type = 0;
-  if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
+  if (1 != fread(&real_type, sizeof(uint64_t), 1, fp)) {
     return false;
-  if (real_type != gkyl_array_data_type[vec->type])
+  }
+  if (real_type != gkyl_array_data_type[vec->type]) {
     return false;
+  }
 
   uint64_t esznc, size;
-  if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
+  if (1 != fread(&esznc, sizeof(uint64_t), 1, fp)) {
     return false;
-  if (vec->esznc != esznc)
+  }
+  if (vec->esznc != esznc) {
     return false;
+  }
 
-  if (1 != fread(&size, sizeof(uint64_t), 1, fp))
+  if (1 != fread(&size, sizeof(uint64_t), 1, fp)) {
     return false;
+  }
 
   // resize vector to allow storing new data
   gkyl_dynvec_reserve_more(vec, size);
@@ -369,8 +391,9 @@ bool gkyl_dynvec_read(gkyl_dynvec vec, const char *fname)
     fgetpos(fp, &curr_pos);
 
     char g0[6];
-    if (1 != fread(g0, sizeof(char[5]), 1, fp))
+    if (1 != fread(g0, sizeof(char[5]), 1, fp)) {
       break;
+    }
     fsetpos(fp, &curr_pos);
   }
   fclose(fp);
@@ -379,7 +402,8 @@ bool gkyl_dynvec_read(gkyl_dynvec vec, const char *fname)
 }
 
 void gkyl_dynvec_to_array(
-  const gkyl_dynvec vec, struct gkyl_array *tm_mesh, struct gkyl_array *dyndata)
+  const gkyl_dynvec vec, struct gkyl_array *tm_mesh, struct gkyl_array *dyndata
+)
 {
   int nv = gkyl_dynvec_size(vec);
   for (int i = 0; i < nv; ++i) {
@@ -393,6 +417,7 @@ void gkyl_dynvec_to_array(
 
 void gkyl_dynvec_release(gkyl_dynvec vec)
 {
-  if (vec)
+  if (vec) {
     gkyl_ref_count_dec(&vec->ref_count);
+  }
 }

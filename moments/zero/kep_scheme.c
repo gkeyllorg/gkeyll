@@ -17,7 +17,7 @@
 
 #define SQ(x) ((x) * (x))
 
-static const int dir_shuffle[][3] = { { 1, 2, 3 }, { 2, 3, 1 }, { 3, 1, 2 } };
+static const int dir_shuffle[][3] = {{1, 2, 3}, {2, 3, 1}, {3, 1, 2}};
 
 struct gkyl_kep_scheme {
   struct gkyl_rect_grid grid; // grid object
@@ -42,8 +42,9 @@ gkyl_kep_scheme *gkyl_kep_scheme_new(const struct gkyl_kep_scheme_inp *inp)
   up->ndim = up->grid.ndim;
 
   up->num_up_dirs = inp->num_up_dirs;
-  for (int i = 0; i < inp->num_up_dirs; ++i)
+  for (int i = 0; i < inp->num_up_dirs; ++i) {
     up->update_dirs[i] = inp->update_dirs[i];
+  }
 
   up->cfl = inp->cfl;
   up->use_hybrid_flux = inp->use_hybrid_flux;
@@ -76,26 +77,28 @@ static inline double euler_flux(int dir, double gas_gamma, const double q[5], do
 }
 
 // Lax fluxes
-static inline void mlax_flux(
-  int dir, double gas_gamma, const double qm[5], const double qp[5], double flux[5])
+static inline void
+mlax_flux(int dir, double gas_gamma, const double qm[5], const double qp[5], double flux[5])
 {
   double fm[5], fp[5];
 
   double amaxp = euler_flux(dir, gas_gamma, qp, fp);
   double amaxm = euler_flux(dir, gas_gamma, qm, fm);
 
-  for (int i = 0; i < 5; ++i)
+  for (int i = 0; i < 5; ++i) {
     flux[i] = 0.5 * (fp[i] + fm[i]) - 0.5 * fmax(amaxm, amaxp) * (qp[i] - qm[i]);
+  }
 }
 
 // Numerical flux using modified KEP scheme
-static inline void mkep_flux(
-  int dir, double gas_gamma, const double vm[5], const double vp[5], double flux[5])
+static inline void
+mkep_flux(int dir, double gas_gamma, const double vm[5], const double vp[5], double flux[5])
 {
   double vbar[5];
 
-  for (int i = 0; i < 5; ++i)
+  for (int i = 0; i < 5; ++i) {
     vbar[i] = 0.5 * (vm[i] + vp[i]);
+  }
   double kebar = 0.5 * (euler_ke(vm) + euler_ke(vp));
 
   const int *d = dir_shuffle[dir];
@@ -110,13 +113,15 @@ static inline void mkep_flux(
 
 static inline long get_offset(int dir, int loc, const struct gkyl_range *range)
 {
-  int idx[GKYL_MAX_CDIM] = { 0, 0, 0 };
+  int idx[GKYL_MAX_CDIM] = {0, 0, 0};
   idx[dir] = loc;
   return gkyl_range_offset(range, idx);
 }
 
-static void calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
-  const struct gkyl_array *qin, struct gkyl_array *alpha)
+static void calc_alpha(
+  const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng, const struct gkyl_array *qin,
+  struct gkyl_array *alpha
+)
 {
   int ndim = update_rng->ndim;
   gkyl_array_clear_range(alpha, 0.0, update_rng);
@@ -186,9 +191,10 @@ static void calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *upda
   }
 }
 
-void gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
-  const struct gkyl_array *qin, struct gkyl_array *alpha, struct gkyl_array *cflrate,
-  struct gkyl_array *rhs)
+void gkyl_kep_scheme_advance(
+  const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng, const struct gkyl_array *qin,
+  struct gkyl_array *alpha, struct gkyl_array *cflrate, struct gkyl_array *rhs
+)
 {
   int ndim = update_rng->ndim;
   double gas_gamma = gkyl_wv_euler_gas_gamma(kep->equation);
@@ -199,8 +205,9 @@ void gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range
 
   gkyl_array_clear_range(rhs, 0.0, update_rng);
 
-  if (kep->use_hybrid_flux)
+  if (kep->use_hybrid_flux) {
     calc_alpha(kep, update_rng, qin, alpha);
+  }
 
   for (int d = 0; d < kep->num_up_dirs; ++d) {
     int dir = kep->update_dirs[d];
@@ -233,8 +240,9 @@ void gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range
 
         mkep_flux(dir, gas_gamma, vm, vp, flux);
 
-        if (kep->use_hybrid_flux)
+        if (kep->use_hybrid_flux) {
           mlax_flux(dir, gas_gamma, qm, qp, lflux);
+        }
 
         // accumulate contribution of flux to left/right cell
         double *rhsm = gkyl_array_fetch(rhs, linm);
@@ -274,7 +282,8 @@ void gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range
 }
 
 double gkyl_kep_scheme_max_dt(
-  const gkyl_kep_scheme *kep, const struct gkyl_range *update_range, const struct gkyl_array *qin)
+  const gkyl_kep_scheme *kep, const struct gkyl_range *update_range, const struct gkyl_array *qin
+)
 {
   double max_dt = DBL_MAX;
 

@@ -8,8 +8,10 @@
 #include <gkyl_gk_neut_fluid_prim_vars_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_gk_neut_fluid_prim_vars_udrift_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_udrift_advance(
+  struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
+  int out_coff
+)
 {
   int nprob = up->udrift_ncomp;
   assert(up->As->num == nprob * up->mem_range.volume);
@@ -52,16 +54,19 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_advance(struct gkyl_gk_neut_fluid_prim_
     up->udrift_get_sol_ker(count, up->xs, prim_vars_d);
 
     if (up->is_integrated) {
-      for (int i = 0; i < up->udrift_ncomp; i++)
+      for (int i = 0; i < up->udrift_ncomp; i++) {
         out_d[out_coff + i] = up->integrated_fac * prim_vars_d[i * up->num_basis];
+      }
     }
 
     count += nprob;
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_pressure_advance(
+  struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
+  int out_coff
+)
 {
   int nprob = up->udrift_ncomp;
   assert(up->As->num == nprob * up->mem_range.volume);
@@ -98,8 +103,9 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
     long linidx = gkyl_range_idx(&up->mem_range, iter.idx);
 
     double udrift_d[up->udrift_ncomp * up->num_basis];
-    for (int i = 0; i < up->num_basis; i++)
+    for (int i = 0; i < up->num_basis; i++) {
       udrift_d[i] = 0.0;
+    }
 
     const double *moms_d = gkyl_array_cfetch(moms, linidx);
     double *out_d = gkyl_array_fetch(out, linidx);
@@ -109,8 +115,9 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
     up->udrift_get_sol_ker(count, up->xs, udrift_d);
     up->pressure_ker(up->gas_gamma, moms_d, udrift_d, prim_vars_d);
 
-    for (int i = 0; i < up->num_basis; i++)
+    for (int i = 0; i < up->num_basis; i++) {
       prim_vars_d[i] *= up->thermalE_fac;
+    }
 
     if (up->is_integrated) {
       out_d[out_coff] = up->integrated_fac * prim_vars_d[0];
@@ -120,8 +127,10 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_temp_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_temp_advance(
+  struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
+  int out_coff
+)
 {
   int nprob = 1;
   assert(up->As->num == nprob * up->mem_range.volume);
@@ -171,8 +180,10 @@ void gkyl_gk_neut_fluid_prim_vars_temp_advance(struct gkyl_gk_neut_fluid_prim_va
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance(
+  struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
+  int out_coff
+)
 {
   int nprob = up->udrift_ncomp;
   assert(up->As->num == nprob * up->mem_range.volume);
@@ -220,15 +231,18 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance(struct gkyl_gk_neut_fl
     up->pressure_ker(up->gas_gamma, moms_d, udrift_d, pressure_d);
 
     if (up->is_integrated) {
-      for (int i = 0; i < up->udrift_ncomp + 1; i++)
+      for (int i = 0; i < up->udrift_ncomp + 1; i++) {
         out_d[out_coff + i] = up->integrated_fac * prim_vars_d[i * up->num_basis];
+      }
     }
     count += nprob;
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance(
+  struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
+  int out_coff
+)
 {
   int nprob = up->udrift_ncomp + 1;
   assert(up->As->num == nprob * up->mem_range.volume);
@@ -272,15 +286,18 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance(struct gkyl_gk_neut_fluid_
     up->udrift_temp_get_sol_ker(count, up->xs, prim_vars_d);
 
     if (up->is_integrated) {
-      for (int i = 0; i < up->udrift_ncomp + 1; i++)
+      for (int i = 0; i < up->udrift_ncomp + 1; i++) {
         out_d[out_coff + i] = up->integrated_fac * prim_vars_d[i * up->num_basis];
+      }
     }
     count += nprob;
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_lte_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_lte_advance(
+  struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
+  int out_coff
+)
 {
   int nprob = up->udrift_ncomp + 1;
   assert(up->As->num == nprob * up->mem_range.volume);
@@ -330,16 +347,19 @@ void gkyl_gk_neut_fluid_prim_vars_lte_advance(struct gkyl_gk_neut_fluid_prim_var
     }
 
     if (up->is_integrated) {
-      for (int i = 0; i < up->udrift_ncomp + 2; i++)
+      for (int i = 0; i < up->udrift_ncomp + 2; i++) {
         out_d[out_coff + i] = up->integrated_fac * prim_vars_d[i * up->num_basis];
+      }
     }
 
     count += nprob;
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance(
+  struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
+  int out_coff
+)
 {
   int nprob = 1;
   assert(up->As->num == nprob * up->mem_range.volume);
@@ -392,7 +412,8 @@ void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance(struct gkyl_gk_neut_fluid_
 
 void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance(
   struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
-  int out_coff)
+  int out_coff
+)
 {
   int nprob = 1;
   assert(up->As->num == nprob * up->mem_range.volume);
@@ -400,7 +421,8 @@ void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance(
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
     return gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance_cu(
-      up, moms, out, out_coff);
+      up, moms, out, out_coff
+    );
   }
 #endif
 
@@ -435,32 +457,38 @@ void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance(
     double *prim_vars_d = up->is_integrated ? prim_vars_buff : &out_d[out_coff];
 
     int fourth_comp_off = 4 * up->num_basis;
-    for (int i = 0; i < fourth_comp_off; i++)
+    for (int i = 0; i < fourth_comp_off; i++) {
       prim_vars_d[i] = moms_d[i];
+    }
 
     up->flowE_get_sol_ker(count, up->xs, &prim_vars_d[fourth_comp_off]);
 
-    for (int i = 0; i < up->num_basis; i++)
+    for (int i = 0; i < up->num_basis; i++) {
       prim_vars_d[5 * up->num_basis + i] =
         moms_d[fourth_comp_off + i] - prim_vars_d[fourth_comp_off + i];
+    }
 
     if (up->is_integrated) {
-      for (int i = 0; i < up->udrift_ncomp + 3; i++)
+      for (int i = 0; i < up->udrift_ncomp + 3; i++) {
         out_d[out_coff + i] = up->integrated_fac * prim_vars_d[i * up->num_basis];
+      }
     }
 
     count += nprob;
   }
 }
 
-gkyl_gk_neut_fluid_prim_vars *gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass,
-  const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid, const struct gkyl_range *mem_range,
-  enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type, bool is_integrated, bool use_gpu)
+gkyl_gk_neut_fluid_prim_vars *gkyl_gk_neut_fluid_prim_vars_new(
+  double gas_gamma, double mass, const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid,
+  const struct gkyl_range *mem_range, enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type,
+  bool is_integrated, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     return gkyl_gk_neut_fluid_prim_vars_cu_dev_new(
-      gas_gamma, mass, cbasis, grid, mem_range, prim_vars_type, is_integrated);
+      gas_gamma, mass, cbasis, grid, mem_range, prim_vars_type, is_integrated
+    );
   }
 #endif
   gkyl_gk_neut_fluid_prim_vars *up = gkyl_malloc(sizeof(gkyl_gk_neut_fluid_prim_vars));
@@ -481,8 +509,9 @@ gkyl_gk_neut_fluid_prim_vars *gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma,
   up->integrated_fac = 0.0;
   if (up->is_integrated) {
     up->integrated_fac = 1.0;
-    for (int d = 0; d < up->cdim; d++)
+    for (int d = 0; d < up->cdim; d++) {
       up->integrated_fac *= (grid->dx[d] / 2.0) * sqrt(2.0);
+    }
   }
 
   int nprob;
@@ -542,8 +571,9 @@ void gkyl_gk_neut_fluid_prim_vars_release(gkyl_gk_neut_fluid_prim_vars *up)
     gkyl_nmat_linsolve_lu_release(up->mem);
   }
 
-  if (GKYL_IS_CU_ALLOC(up->flags))
+  if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);
+  }
 
   gkyl_free(up);
 }

@@ -5,7 +5,8 @@
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk_priv.h>
 
 gkyl_gyrokinetic_cross_prim_moms_bgk *gkyl_gyrokinetic_cross_prim_moms_bgk_new(
-  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, bool use_gpu)
+  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -17,21 +18,25 @@ gkyl_gyrokinetic_cross_prim_moms_bgk *gkyl_gyrokinetic_cross_prim_moms_bgk_new(
 
   // Select the kernel.
   up->cross_prim_moms_calc = choose_gyrokinetic_cross_prim_moms_bgk_kern(
-    conf_basis->ndim, phase_basis->ndim - conf_basis->ndim, phase_basis->poly_order);
+    conf_basis->ndim, phase_basis->ndim - conf_basis->ndim, phase_basis->poly_order
+  );
 
   up->on_dev = up; // host-side points to itself
   return up;
 }
 
-void gkyl_gyrokinetic_cross_prim_moms_bgk_advance(gkyl_gyrokinetic_cross_prim_moms_bgk *up,
-  const struct gkyl_range *conf_rng, double delta_sr, double betap1, double m_self,
-  const struct gkyl_array *prim_moms_self, double m_other, const struct gkyl_array *prim_moms_other,
-  struct gkyl_array *prim_moms_cross)
+void gkyl_gyrokinetic_cross_prim_moms_bgk_advance(
+  gkyl_gyrokinetic_cross_prim_moms_bgk *up, const struct gkyl_range *conf_rng, double delta_sr,
+  double betap1, double m_self, const struct gkyl_array *prim_moms_self, double m_other,
+  const struct gkyl_array *prim_moms_other, struct gkyl_array *prim_moms_cross
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    return gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(up, conf_rng, delta_sr, betap1, m_self,
-      prim_moms_self, m_other, prim_moms_other, prim_moms_cross);
+    return gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(
+      up, conf_rng, delta_sr, betap1, m_self, prim_moms_self, m_other, prim_moms_other,
+      prim_moms_cross
+    );
   }
 #endif
   struct gkyl_range_iter conf_iter;
@@ -45,14 +50,16 @@ void gkyl_gyrokinetic_cross_prim_moms_bgk_advance(gkyl_gyrokinetic_cross_prim_mo
     double *out_d = gkyl_array_fetch(prim_moms_cross, midx);
 
     up->cross_prim_moms_calc(
-      delta_sr, betap1, m_self, prim_moms_self_d, m_other, prim_moms_other_d, out_d);
+      delta_sr, betap1, m_self, prim_moms_self_d, m_other, prim_moms_other_d, out_d
+    );
   }
 }
 
 void gkyl_gyrokinetic_cross_prim_moms_bgk_release(gkyl_gyrokinetic_cross_prim_moms_bgk *up)
 {
-  if (up->use_gpu)
+  if (up->use_gpu) {
     gkyl_cu_free(up->on_dev);
+  }
 
   gkyl_free(up);
 }

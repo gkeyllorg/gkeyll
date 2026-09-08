@@ -8,9 +8,11 @@ extern "C" {
 #include <gkyl_boundary_flux_priv.h>
 }
 
-struct gkyl_boundary_flux *gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r,
-  const struct gkyl_range *ghost_r, int num_eqns, const struct gkyl_dg_eqn **eqns)
+struct gkyl_boundary_flux *gkyl_boundary_flux_cu_dev_new(
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, int num_eqns,
+  const struct gkyl_dg_eqn **eqns
+)
 {
   struct gkyl_boundary_flux *up =
     (struct gkyl_boundary_flux *)gkyl_malloc(sizeof(struct gkyl_boundary_flux));
@@ -38,7 +40,8 @@ struct gkyl_boundary_flux *gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge
 
   up->eqns = (struct gkyl_dg_eqn **)gkyl_cu_malloc(up->num_eqns * sizeof(struct gkyl_dg_eqn *));
   gkyl_cu_memcpy(
-    up->eqns, eqns_ho_dev, up->num_eqns * sizeof(struct gkyl_dg_eqn *), GKYL_CU_MEMCPY_H2D);
+    up->eqns, eqns_ho_dev, up->num_eqns * sizeof(struct gkyl_dg_eqn *), GKYL_CU_MEMCPY_H2D
+  );
 
   struct gkyl_boundary_flux *up_cu =
     (struct gkyl_boundary_flux *)gkyl_cu_malloc(sizeof(struct gkyl_boundary_flux));
@@ -51,7 +54,8 @@ struct gkyl_boundary_flux *gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge
 }
 
 __global__ static void gkyl_boundary_flux_advance_cu_ker(
-  const struct gkyl_boundary_flux *up, const struct gkyl_array *fIn, struct gkyl_array *fluxOut)
+  const struct gkyl_boundary_flux *up, const struct gkyl_array *fIn, struct gkyl_array *fluxOut
+)
 {
   int idx_g[GKYL_MAX_DIM], idx_s[GKYL_MAX_DIM];
   double xc_g[GKYL_MAX_DIM], xc_s[GKYL_MAX_DIM];
@@ -74,17 +78,21 @@ __global__ static void gkyl_boundary_flux_advance_cu_ker(
     double *fluxOut_g = (double *)gkyl_array_fetch(fluxOut, linidx_g);
 
     for (int i = 0; i < up->num_eqns; i++) {
-      up->eqns[i]->boundary_diag_term(up->eqns[i], up->dir, xc_s, xc_g, up->grid.dx, up->grid.dx,
-        idx_s, idx_g, up->edge == GKYL_LOWER_EDGE ? -1 : 1, fs_c, fg_c, fluxOut_g);
+      up->eqns[i]->boundary_diag_term(
+        up->eqns[i], up->dir, xc_s, xc_g, up->grid.dx, up->grid.dx, idx_s, idx_g,
+        up->edge == GKYL_LOWER_EDGE ? -1 : 1, fs_c, fg_c, fluxOut_g
+      );
     }
   }
 }
 
 void gkyl_boundary_flux_advance_cu(
-  struct gkyl_boundary_flux *up, const struct gkyl_array *fIn, struct gkyl_array *fluxOut)
+  struct gkyl_boundary_flux *up, const struct gkyl_array *fIn, struct gkyl_array *fluxOut
+)
 {
   int nblocks = up->ghost_r.nblocks, nthreads = up->ghost_r.nthreads;
 
   gkyl_boundary_flux_advance_cu_ker<<<nblocks, nthreads> > >(
-    up->on_dev, fIn->on_dev, fluxOut->on_dev);
+    up->on_dev, fIn->on_dev, fluxOut->on_dev
+  );
 }

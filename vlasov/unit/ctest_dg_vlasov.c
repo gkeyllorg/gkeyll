@@ -12,9 +12,9 @@ void test_dg_vlasov_ho()
   gkyl_cart_modal_serendip(&pbasis, 2, 1);
 
   struct gkyl_range crange;
-  gkyl_range_init_from_shape(&crange, 1, (int[]){ 100 });
+  gkyl_range_init_from_shape(&crange, 1, (int[]){100});
   struct gkyl_range prange;
-  gkyl_range_init_from_shape(&prange, 2, (int[]){ 100, 100 });
+  gkyl_range_init_from_shape(&prange, 2, (int[]){100, 100});
 
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
@@ -46,9 +46,9 @@ void test_dg_vlasov_dev()
   gkyl_cart_modal_serendip(&pbasis, 2, 1);
 
   struct gkyl_range crange;
-  gkyl_range_init_from_shape(&crange, 1, (int[]){ 100 });
+  gkyl_range_init_from_shape(&crange, 1, (int[]){100});
   struct gkyl_range prange;
-  gkyl_range_init_from_shape(&prange, 2, (int[]){ 100, 100 });
+  gkyl_range_init_from_shape(&prange, 2, (int[]){100, 100});
 
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
@@ -73,8 +73,10 @@ void test_dg_vlasov_dev()
 
 #endif
 
-TEST_LIST = { { "dg_vlasov_ho", test_dg_vlasov_ho },
+TEST_LIST = {
+  {"dg_vlasov_ho", test_dg_vlasov_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "dg_vlasov_dev", test_dg_vlasov_dev },
+  {"dg_vlasov_dev", test_dg_vlasov_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

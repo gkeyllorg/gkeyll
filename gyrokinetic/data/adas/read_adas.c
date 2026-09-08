@@ -157,8 +157,9 @@ void read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data)
     data->Eiz[15] = 918.;
     data->Eiz[16] = 4120.7;
     data->Eiz[17] = 4426.2;
-  } else
+  } else {
     fprintf(stderr, "Incorrect ion type for ionization.");
+  }
 }
 
 void read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data)
@@ -254,6 +255,7 @@ void read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data
     snprintf(fname, sizeof fname, fmt, GKYL_SHARE_DIR, "adas/logN_ar.npy");
     data->logN = fopen(fname, "rb");
     data->Zmax = 18;
-  } else
+  } else {
     fprintf(stderr, "Incorrect ion type for recombination.");
+  }
 }

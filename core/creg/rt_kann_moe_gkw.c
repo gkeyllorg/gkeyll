@@ -69,8 +69,8 @@ static inline kad_node_t *weighted_expert(kad_node_t *expert, int n_output, floa
 }
 
 // Construct a "mixture of experts" architecture consisting of multiple single "experts" linked together (with tanh activation and MSE cost).
-static inline kad_node_t *mixture_of_experts(
-  int n_input, int n_layers, int n_hidden, int n_experts, int n_output)
+static inline kad_node_t *
+mixture_of_experts(int n_input, int n_layers, int n_hidden, int n_experts, int n_output)
 {
   kad_node_t *input;
   kad_node_t **experts;
@@ -117,11 +117,13 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kann_net *net = gkyl_kann_net_new(t_net, nn_inp->use_gpu);
 
   // Hyperparameters for training.
-  struct gkyl_kann_train_params params = { .learning_rate = nn_inp->learning_rate,
+  struct gkyl_kann_train_params params = {
+    .learning_rate = nn_inp->learning_rate,
     .mini_size = 64,
     .max_epoch = 50,
     .max_drop_streak = 10,
-    .frac_val = 0.1f };
+    .frac_val = 0.1f
+  };
 
   // Run individual expert training (i.e. pretraining).
   for (int i = 0; i < nn_inp->nexperts; i++) {
@@ -131,7 +133,7 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
     struct gkyl_kn_vec *inp_expert = gkyl_kn_vec_new(N_expert, 1);
     struct gkyl_kn_vec *out_expert = gkyl_kn_vec_new(N_expert, 1);
 
-    struct xrange xr_expert = { .xleft = -1.0, .xright = 1.0, .N = N_expert };
+    struct xrange xr_expert = {.xleft = -1.0, .xright = 1.0, .N = N_expert};
 
     for (int j = 0; j < N_expert; j++) {
       inp_expert->vals[j][0] = xrange_n(xr_expert, j);
@@ -163,7 +165,7 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 1);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
-  struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = N };
+  struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = N};
 
   for (int i = 0; i < N; i++) {
     inp->vals[i][0] = xrange_n(xr, i);
@@ -280,13 +282,16 @@ int main(int argc, char *argv[])
 
   if (p_train) {
     fprintf(stdout, "*** Training%s\n", use_gpu ? " (GPU)" : "");
-    train_mixture(&(struct train_inp){ .ntrain = 1001,
-                    .ndepth = 2,
-                    .nwidth = 256,
-                    .nexperts = 3,
-                    .learning_rate = 1e-3f,
-                    .use_gpu = use_gpu },
-      "rt_kann_moe_gkw.kann");
+    train_mixture(
+      &(struct train_inp
+      ){.ntrain = 1001,
+        .ndepth = 2,
+        .nwidth = 256,
+        .nexperts = 3,
+        .learning_rate = 1e-3f,
+        .use_gpu = use_gpu},
+      "rt_kann_moe_gkw.kann"
+    );
   }
 
   if (p_infer) {
@@ -295,7 +300,7 @@ int main(int argc, char *argv[])
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 1);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
-    struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = inp->nvec };
+    struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = inp->nvec};
     for (int i = 0; i < inp->nvec; i++) {
       inp->vals[i][0] = xrange_n(xr, i);
     }

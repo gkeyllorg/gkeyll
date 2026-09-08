@@ -29,7 +29,8 @@ void gkyl_canonical_pb_fluid_free(const struct gkyl_ref_count *ref)
 }
 
 void gkyl_canonical_pb_fluid_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_fluid_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_fluid_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
@@ -45,8 +46,10 @@ void gkyl_canonical_pb_fluid_set_auxfields(
   can_pb_fluid->auxfields.const_sgn_alpha = auxin.const_sgn_alpha;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_wv_eqn *wv_eqn, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -102,8 +105,9 @@ struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_new(const struct gkyl_basis *cbas
   can_pb_fluid->surf[1] = CK(surf_y_kernels, cdim, poly_order);
 
   // ensure non-NULL pointers
-  for (int i = 0; i < cdim; ++i)
+  for (int i = 0; i < cdim; ++i) {
     assert(can_pb_fluid->surf[i]);
+  }
 
   can_pb_fluid->auxfields.phi = 0;
   can_pb_fluid->auxfields.alpha_surf = 0;
@@ -122,8 +126,10 @@ struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_new(const struct gkyl_basis *cbas
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn)
+struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_wv_eqn *wv_eqn
+)
 {
   assert(false);
   return 0;

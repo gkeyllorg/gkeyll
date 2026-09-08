@@ -14,7 +14,8 @@ extern "C" {
 
 // CPU interface to create and track a GPU object
 struct gkyl_wave_geom *gkyl_wave_geom_cu_dev_new(
-  const struct gkyl_rect_grid *grid, struct gkyl_range *range, evalf_t mapc2p, void *ctx)
+  const struct gkyl_rect_grid *grid, struct gkyl_range *range, evalf_t mapc2p, void *ctx
+)
 {
   struct gkyl_wave_geom *wg = (struct gkyl_wave_geom *)gkyl_malloc(sizeof(struct gkyl_wave_geom));
 

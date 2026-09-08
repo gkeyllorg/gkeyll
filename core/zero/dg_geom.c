@@ -18,8 +18,9 @@ void dg_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_geom *dgg = container_of(ref, struct gkyl_dg_geom, ref_count);
 
-  for (int d = 0; d < dgg->range.ndim; ++d)
+  for (int d = 0; d < dgg->range.ndim; ++d) {
     gkyl_array_release(dgg->surf_geom[d]);
+  }
 
   gkyl_array_release(dgg->vol_geom);
 
@@ -31,8 +32,9 @@ void dg_geom_free(const struct gkyl_ref_count *ref)
     gkyl_free(dgg->surf_ords);
   }
 
-  if (dg_geom_is_cu_dev(dgg))
+  if (dg_geom_is_cu_dev(dgg)) {
     gkyl_cu_free(dgg->on_dev);
+  }
 
   gkyl_free(dgg);
 }
@@ -45,19 +47,23 @@ struct gkyl_dg_geom *gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp)
 
   int ndim = dgg->range.ndim;
   int shape[GKYL_MAX_CDIM];
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     shape[d] = inp->nquad;
+  }
 
   // NOTE: surfaces are ndim-1 objects
   gkyl_range_init_from_shape(&dgg->surf_quad_range, ndim - 1, shape);
   gkyl_range_init_from_shape(&dgg->vol_quad_range, ndim, shape);
 
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     dgg->surf_geom[d] = gkyl_array_new(
-      GKYL_USER, sizeof(struct gkyl_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume);
+      GKYL_USER, sizeof(struct gkyl_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume
+    );
+  }
 
   dgg->vol_geom = gkyl_array_new(
-    GKYL_USER, sizeof(struct gkyl_dg_vol_geom[dgg->vol_quad_range.volume]), dgg->range.volume);
+    GKYL_USER, sizeof(struct gkyl_dg_vol_geom[dgg->vol_quad_range.volume]), dgg->range.volume
+  );
 
   // compute surface and volume quadrature weights & ordinates
   long nsq = dgg->surf_quad_range.volume;
@@ -79,7 +85,8 @@ struct gkyl_dg_geom *gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp)
 }
 
 struct gkyl_dg_geom *gkyl_dg_geom_new_from_host(
-  const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host, bool use_gpu)
+  const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {

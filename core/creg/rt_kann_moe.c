@@ -68,8 +68,8 @@ static inline kad_node_t *weighted_expert(kad_node_t *expert, int n_output, floa
 }
 
 // Construct a "mixture of experts" architecture consisting of multiple single "experts" linked together (with tanh activation and MSE cost).
-static inline kad_node_t *mixture_of_experts(
-  int n_input, int n_layers, int n_hidden, int n_experts, int n_output)
+static inline kad_node_t *
+mixture_of_experts(int n_input, int n_layers, int n_hidden, int n_experts, int n_output)
 {
   kad_node_t *input;
   kad_node_t **experts;
@@ -129,7 +129,7 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
     struct gkyl_kn_vec *inp_expert = gkyl_kn_vec_new(N_expert, 1);
     struct gkyl_kn_vec *out_expert = gkyl_kn_vec_new(N_expert, 1);
 
-    struct xrange xr_expert = { .xleft = -1.0, .xright = 1.0, .N = N_expert };
+    struct xrange xr_expert = {.xleft = -1.0, .xright = 1.0, .N = N_expert};
 
     // Initialize input/output mapping for individual experts.
     for (int j = 0; j < N_expert; j++) {
@@ -137,8 +137,10 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
       out_expert->vals[j][0] = tfunc(i, inp_expert->vals[j][0]);
     }
 
-    kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N_expert,
-      inp_expert->vals, out_expert->vals);
+    kann_train_fnn1(
+      ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N_expert, inp_expert->vals,
+      out_expert->vals
+    );
 
     gkyl_kn_vec_release(inp_expert);
     gkyl_kn_vec_release(out_expert);
@@ -149,7 +151,7 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 1);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
-  struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = N };
+  struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = N};
 
   // Initialize input/output mapping.
   for (int i = 0; i < N; i++) {
@@ -158,8 +160,7 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
   }
 
   // Run mixture of experts training (i.e. finetuning).
-  kann_train_fnn1(
-    ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals, out->vals);
+  kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals, out->vals);
   kann_save(nn_name, ann); // Save to file.
 
   gkyl_kn_vec_release(inp);
@@ -242,9 +243,10 @@ int main(int argc, char *argv[])
   if (p_train) {
     fprintf(stdout, "*** Training\n");
     train_mixture(
-      &(struct train_inp){
-        .ntrain = 1001, .ndepth = 2, .nwidth = 256, .nexperts = 3, .learning_rate = 1e-3f },
-      "rt_kann_moe.kann");
+      &(struct train_inp
+      ){.ntrain = 1001, .ndepth = 2, .nwidth = 256, .nexperts = 3, .learning_rate = 1e-3f},
+      "rt_kann_moe.kann"
+    );
   }
 
   if (p_infer) {
@@ -254,7 +256,7 @@ int main(int argc, char *argv[])
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 1);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
-    struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = inp->nvec };
+    struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = inp->nvec};
     for (int i = 0; i < inp->nvec; i++) {
       inp->vals[i][0] = xrange_n(xr, i);
     }

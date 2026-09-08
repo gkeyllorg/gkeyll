@@ -70,10 +70,11 @@ struct gkyl_dg_geom *gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp);
  * @param use_gpu whether to use gpu
  */
 struct gkyl_dg_geom *gkyl_dg_geom_new_from_host(
-  const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host, bool use_gpu);
+  const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host, bool use_gpu
+);
 
-struct gkyl_dg_geom *gkyl_dg_geom_cu_dev_new_from_host(
-  const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host);
+struct gkyl_dg_geom *
+gkyl_dg_geom_cu_dev_new_from_host(const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host);
 
 /**
  * Acquire pointer to geometry object. The pointer must be released
@@ -104,11 +105,12 @@ void gkyl_dg_geom_write(const struct gkyl_dg_geom *dgg, const char *fprefix);
  * @param idx Index into grid
  * @return Pointer to surface geometry at all quadrature nodes in cell @a idx
  */
-GKYL_CU_DH static inline const struct gkyl_dg_surf_geom *gkyl_dg_geom_get_surf(
-  const struct gkyl_dg_geom *dgg, int d, const int *idx)
+GKYL_CU_DH static inline const struct gkyl_dg_surf_geom *
+gkyl_dg_geom_get_surf(const struct gkyl_dg_geom *dgg, int d, const int *idx)
 {
   return (const struct gkyl_dg_surf_geom *)gkyl_array_cfetch(
-    dgg->surf_geom[d], gkyl_range_idx(&dgg->range, idx));
+    dgg->surf_geom[d], gkyl_range_idx(&dgg->range, idx)
+  );
 }
 
 /**
@@ -119,8 +121,8 @@ GKYL_CU_DH static inline const struct gkyl_dg_surf_geom *gkyl_dg_geom_get_surf(
  * @param sidx Index (ndim-1) of surface quadrature node
  * @return Weight at surface quadrature node
  */
-GKYL_CU_DH static inline long gkyl_dg_geom_surf_quad_idx(
-  const struct gkyl_dg_geom *dgg, const int *sidx)
+GKYL_CU_DH static inline long
+gkyl_dg_geom_surf_quad_idx(const struct gkyl_dg_geom *dgg, const int *sidx)
 {
   return gkyl_range_idx(&dgg->surf_quad_range, sidx);
 }
@@ -133,8 +135,8 @@ GKYL_CU_DH static inline long gkyl_dg_geom_surf_quad_idx(
  * @param sidx Index (ndim-1) of surface quadrature node
  * @return Weight at node
  */
-GKYL_CU_DH static inline double gkyl_dg_geom_surf_quad_weight(
-  const struct gkyl_dg_geom *dgg, const int *sidx)
+GKYL_CU_DH static inline double
+gkyl_dg_geom_surf_quad_weight(const struct gkyl_dg_geom *dgg, const int *sidx)
 {
   return dgg->surf_weights[gkyl_dg_geom_surf_quad_idx(dgg, sidx)];
 }
@@ -147,8 +149,8 @@ GKYL_CU_DH static inline double gkyl_dg_geom_surf_quad_weight(
  * @param sidx Index of surface quadrature node
  * @return Ordinates at nodes: ndim-1 size array
  */
-GKYL_CU_DH static inline const double *gkyl_dg_geom_surf_quad_ords(
-  const struct gkyl_dg_geom *dgg, const int *sidx)
+GKYL_CU_DH static inline const double *
+gkyl_dg_geom_surf_quad_ords(const struct gkyl_dg_geom *dgg, const int *sidx)
 {
   int sdim = dgg->surf_quad_range.ndim;
   return &dgg->surf_ords[sdim * gkyl_dg_geom_surf_quad_idx(dgg, sidx)];
@@ -163,11 +165,12 @@ GKYL_CU_DH static inline const double *gkyl_dg_geom_surf_quad_ords(
  * @param idx Index into grid
  * @return Pointer to cell geometry at all quadrature nodes in cell @a idx
  */
-GKYL_CU_DH static inline const struct gkyl_dg_vol_geom *gkyl_dg_geom_get_vol(
-  const struct gkyl_dg_geom *dgg, const int *idx)
+GKYL_CU_DH static inline const struct gkyl_dg_vol_geom *
+gkyl_dg_geom_get_vol(const struct gkyl_dg_geom *dgg, const int *idx)
 {
   return (const struct gkyl_dg_vol_geom *)gkyl_array_cfetch(
-    dgg->vol_geom, gkyl_range_idx(&dgg->range, idx));
+    dgg->vol_geom, gkyl_range_idx(&dgg->range, idx)
+  );
 }
 
 /**
@@ -178,8 +181,8 @@ GKYL_CU_DH static inline const struct gkyl_dg_vol_geom *gkyl_dg_geom_get_vol(
  * @param vidx Index of volume quadrature node
  * @return Linear index for indexing volume quadrature array
  */
-GKYL_CU_DH static inline long gkyl_dg_geom_vol_quad_idx(
-  const struct gkyl_dg_geom *dgg, const int *vidx)
+GKYL_CU_DH static inline long
+gkyl_dg_geom_vol_quad_idx(const struct gkyl_dg_geom *dgg, const int *vidx)
 {
   return gkyl_range_idx(&dgg->vol_quad_range, vidx);
 }
@@ -192,8 +195,8 @@ GKYL_CU_DH static inline long gkyl_dg_geom_vol_quad_idx(
  * @param vidx Index of volume quadrature node
  * @return Weight at node
  */
-GKYL_CU_DH static inline double gkyl_dg_geom_vol_quad_weight(
-  const struct gkyl_dg_geom *dgg, const int *vidx)
+GKYL_CU_DH static inline double
+gkyl_dg_geom_vol_quad_weight(const struct gkyl_dg_geom *dgg, const int *vidx)
 {
   return dgg->vol_weights[gkyl_dg_geom_vol_quad_idx(dgg, vidx)];
 }
@@ -206,8 +209,8 @@ GKYL_CU_DH static inline double gkyl_dg_geom_vol_quad_weight(
  * @param vidx Index of volume quadrature node
  * @return Ordinates at nodes: ndim size array
  */
-GKYL_CU_DH static inline const double *gkyl_dg_geom_vol_quad_ords(
-  const struct gkyl_dg_geom *dgg, const int *vidx)
+GKYL_CU_DH static inline const double *
+gkyl_dg_geom_vol_quad_ords(const struct gkyl_dg_geom *dgg, const int *vidx)
 {
   int ndim = dgg->vol_quad_range.ndim;
   return &dgg->vol_ords[ndim * gkyl_dg_geom_vol_quad_idx(dgg, vidx)];

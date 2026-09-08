@@ -35,10 +35,12 @@ GKYL_CU_D static void reflection(size_t nc, double *out, const double *inp, void
 }
 
 struct gkyl_array_copy_func *gkyl_bc_emission_elastic_create_arr_copy_func_cu(
-  int dir, int cdim, const struct gkyl_basis *basis, int ncomp);
+  int dir, int cdim, const struct gkyl_basis *basis, int ncomp
+);
 
 void gkyl_bc_emission_elastic_set_extern_params_cu(
-  const struct gkyl_bc_emission_elastic *up, int cdim, int vdim, double mass);
+  const struct gkyl_bc_emission_elastic *up, int cdim, int vdim, double mass
+);
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -53,7 +55,9 @@ void gkyl_bc_emission_elastic_set_extern_params_cu(
  * @param elastic_yield Projection of elastic yield model onto basis
  * @param basis Pointer to basis functions on host
  */
-void gkyl_bc_emission_elastic_advance_cu(const struct gkyl_bc_emission_elastic *up,
-  struct gkyl_range *emit_skin_r, struct gkyl_array *buff_arr, struct gkyl_array *f_skin,
-  struct gkyl_array *f_emit, struct gkyl_array *elastic_yield, struct gkyl_basis *basis);
+void gkyl_bc_emission_elastic_advance_cu(
+  const struct gkyl_bc_emission_elastic *up, struct gkyl_range *emit_skin_r,
+  struct gkyl_array *buff_arr, struct gkyl_array *f_skin, struct gkyl_array *f_emit,
+  struct gkyl_array *elastic_yield, struct gkyl_basis *basis
+);
 #endif

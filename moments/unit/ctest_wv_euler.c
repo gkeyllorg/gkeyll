@@ -23,20 +23,22 @@ void test_euler_basic_ho()
 
   //double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, pr = 1.5;
   double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, pr = 0.0;
-  double q[5], pv[5] = { rho, u, v, w, pr };
+  double q[5], pv[5] = {rho, u, v, w, pr};
 
   calcq(gas_gamma, pv, q);
   double E = q[4];
 
-  double fluxes[3][5] = { { rho * u, rho * u * u + pr, rho * u * v, rho * u * w, (E + pr) * u },
-    { rho * v, rho * u * v, rho * v * v + pr, rho * v * w, (E + pr) * v },
-    { rho * w, rho * u * w, rho * v * w, rho * w * w, (E + pr) * w } };
+  double fluxes[3][5] = {
+    {rho * u, rho * u * u + pr, rho * u * v, rho * u * w, (E + pr) * u},
+    {rho * v, rho * u * v, rho * v * v + pr, rho * v * w, (E + pr) * v},
+    {rho * w, rho * u * w, rho * v * w, rho * w * w, (E + pr) * w}
+  };
 
-  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
   TEST_CHECK(pr == gkyl_euler_pressure(gas_gamma, q));
 
@@ -46,8 +48,9 @@ void test_euler_basic_ho()
     gkyl_euler_flux(gas_gamma, q_local, flux_local);
     euler->rotate_to_global_func(euler, tau1[d], tau2[d], norm[d], flux_local, flux);
 
-    for (int m = 0; m < 5; ++m)
+    for (int m = 0; m < 5; ++m) {
       TEST_CHECK(gkyl_compare(flux[m], fluxes[d][m], 1e-15));
+    }
   }
 
   double q_l[5], q_g[5];
@@ -55,16 +58,18 @@ void test_euler_basic_ho()
     gkyl_wv_eqn_rotate_to_local(euler, tau1[d], tau2[d], norm[d], q, q_l);
     gkyl_wv_eqn_rotate_to_global(euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-    for (int m = 0; m < 5; ++m)
+    for (int m = 0; m < 5; ++m) {
       TEST_CHECK(q[m] == q_g[m]);
+    }
 
     // check Riemann transform
     double w1[5], q1[5];
     euler->cons_to_riem(euler, q_local, q_local, w1);
     euler->riem_to_cons(euler, q_local, w1, q1);
 
-    for (int m = 0; m < 5; ++m)
+    for (int m = 0; m < 5; ++m) {
       TEST_CHECK(gkyl_compare_double(q_local[m], q1[m], 1e-14));
+    }
   }
 
   gkyl_wv_eqn_release(euler);
@@ -75,19 +80,19 @@ void test_euler_waves(enum gkyl_wv_flux_type ftype)
   double gas_gamma = 1.4;
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(gas_gamma, false);
 
-  double vl[5] = { 1.0, 0.1, 0.2, 0.3, 1.5 };
-  double vr[5] = { 0.1, 1.0, 2.0, 3.0, 0.15 };
+  double vl[5] = {1.0, 0.1, 0.2, 0.3, 1.5};
+  double vr[5] = {0.1, 1.0, 2.0, 3.0, 0.15};
 
   double ql[5], qr[5];
   double ql_local[5], qr_local[5];
   calcq(gas_gamma, vl, ql);
   calcq(gas_gamma, vr, qr);
 
-  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
+  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0}};
 
   for (int d = 0; d < 3; ++d) {
     double speeds[3], waves[3 * 5], waves_local[3 * 5];
@@ -96,19 +101,23 @@ void test_euler_waves(enum gkyl_wv_flux_type ftype)
     gkyl_wv_eqn_rotate_to_local(euler, tau1[d], tau2[d], norm[d], qr, qr_local);
 
     double delta[5];
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 5; ++i) {
       delta[i] = qr_local[i] - ql_local[i];
+    }
 
     gkyl_wv_eqn_waves(euler, ftype, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[5], amdq_local[5];
     gkyl_wv_eqn_qfluct(
-      euler, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+      euler, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local
+    );
 
     // rotate waves back to global frame
-    for (int mw = 0; mw < 3; ++mw)
+    for (int mw = 0; mw < 3; ++mw) {
       gkyl_wv_eqn_rotate_to_global(
-        euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5], &waves[mw * 5]);
+        euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5], &waves[mw * 5]
+      );
+    }
 
     double apdq[5], amdq[5];
     // rotate fluctuations back to global frame
@@ -124,8 +133,9 @@ void test_euler_waves(enum gkyl_wv_flux_type ftype)
     gkyl_wv_eqn_rotate_to_global(euler, tau1[d], tau2[d], norm[d], fl_local, fl);
     gkyl_wv_eqn_rotate_to_global(euler, tau1[d], tau2[d], norm[d], fr_local, fr);
 
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 5; ++i) {
       TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-14));
+    }
   }
 
   gkyl_wv_eqn_release(euler);
@@ -143,22 +153,22 @@ void test_euler_waves_lof_ho(void)
 void test_euler_waves_2(enum gkyl_wv_flux_type ftype, enum gkyl_wv_euler_rp rp_type)
 {
   double gas_gamma = 1.4;
-  struct gkyl_wv_euler_inp inp = { .gas_gamma = gas_gamma, .rp_type = rp_type, .use_gpu = false };
+  struct gkyl_wv_euler_inp inp = {.gas_gamma = gas_gamma, .rp_type = rp_type, .use_gpu = false};
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&inp);
 
-  double vl[5] = { 1.0, 0.1, 0.2, 0.3, 1.5 };
-  double vr[5] = { 0.01, 1.0, 2.0, 3.0, 15.0 };
+  double vl[5] = {1.0, 0.1, 0.2, 0.3, 1.5};
+  double vr[5] = {0.01, 1.0, 2.0, 3.0, 15.0};
 
   double ql[5], qr[5];
   double ql_local[5], qr_local[5];
   calcq(gas_gamma, vl, ql);
   calcq(gas_gamma, vr, qr);
 
-  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
+  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0}};
 
   for (int d = 0; d < 3; ++d) {
     double speeds[3], waves[3 * 5], waves_local[3 * 5];
@@ -167,19 +177,23 @@ void test_euler_waves_2(enum gkyl_wv_flux_type ftype, enum gkyl_wv_euler_rp rp_t
     gkyl_wv_eqn_rotate_to_local(euler, tau1[d], tau2[d], norm[d], qr, qr_local);
 
     double delta[5];
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 5; ++i) {
       delta[i] = qr_local[i] - ql_local[i];
+    }
 
     gkyl_wv_eqn_waves(euler, ftype, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[5], amdq_local[5];
     gkyl_wv_eqn_qfluct(
-      euler, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+      euler, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local
+    );
 
     // rotate waves back to global frame
-    for (int mw = 0; mw < 3; ++mw)
+    for (int mw = 0; mw < 3; ++mw) {
       gkyl_wv_eqn_rotate_to_global(
-        euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5], &waves[mw * 5]);
+        euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5], &waves[mw * 5]
+      );
+    }
 
     double apdq[5], amdq[5];
     // rotate fluctuations back to global frame
@@ -195,8 +209,9 @@ void test_euler_waves_2(enum gkyl_wv_flux_type ftype, enum gkyl_wv_euler_rp rp_t
     gkyl_wv_eqn_rotate_to_global(euler, tau1[d], tau2[d], norm[d], fl_local, fl);
     gkyl_wv_eqn_rotate_to_global(euler, tau1[d], tau2[d], norm[d], fr_local, fr);
 
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 5; ++i) {
       TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12));
+    }
   }
 
   gkyl_wv_eqn_release(euler);
@@ -263,18 +278,20 @@ void test_euler_waves_2_lof_hll_ho(void)
   test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX, WV_EULER_RP_HLL);
 }
 
-TEST_LIST = { { "euler_basic_ho", test_euler_basic_ho },
-  { "euler_waves_hof_ho", test_euler_waves_hof_ho },
-  { "euler_waves_lof_ho", test_euler_waves_lof_ho },
-  { "euler_waves_2_hof_roe_ho", test_euler_waves_2_hof_roe_ho },
-  { "euler_waves_2_lof_roe_ho", test_euler_waves_2_lof_roe_ho },
-  { "euler_waves_2_hof_hllc_ho", test_euler_waves_2_hof_hllc_ho },
-  { "euler_waves_2_lof_hllc_ho", test_euler_waves_2_lof_hllc_ho },
-  { "euler_waves_2_hof_lax_ho", test_euler_waves_2_hof_lax_ho },
-  { "euler_waves_2_lof_lax_ho", test_euler_waves_2_lof_lax_ho },
-  { "euler_waves_2_hof_hll_ho", test_euler_waves_2_hof_hll_ho },
-  { "euler_waves_2_lof_hll_ho", test_euler_waves_2_lof_hll_ho },
+TEST_LIST = {
+  {"euler_basic_ho", test_euler_basic_ho},
+  {"euler_waves_hof_ho", test_euler_waves_hof_ho},
+  {"euler_waves_lof_ho", test_euler_waves_lof_ho},
+  {"euler_waves_2_hof_roe_ho", test_euler_waves_2_hof_roe_ho},
+  {"euler_waves_2_lof_roe_ho", test_euler_waves_2_lof_roe_ho},
+  {"euler_waves_2_hof_hllc_ho", test_euler_waves_2_hof_hllc_ho},
+  {"euler_waves_2_lof_hllc_ho", test_euler_waves_2_lof_hllc_ho},
+  {"euler_waves_2_hof_lax_ho", test_euler_waves_2_hof_lax_ho},
+  {"euler_waves_2_lof_lax_ho", test_euler_waves_2_lof_lax_ho},
+  {"euler_waves_2_hof_hll_ho", test_euler_waves_2_hof_hll_ho},
+  {"euler_waves_2_lof_hll_ho", test_euler_waves_2_lof_hll_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "wv_euler_dev", test_wv_euler_dev },
+  {"wv_euler_dev", test_wv_euler_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

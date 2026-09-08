@@ -73,7 +73,8 @@ struct sodshock_mp_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct sodshock_mp_ctx ctx = { .gas_gamma = gas_gamma,
+  struct sodshock_mp_ctx ctx = {
+    .gas_gamma = gas_gamma,
     .rhol = rhol,
     .ul = ul,
     .pl = pl,
@@ -88,7 +89,8 @@ struct sodshock_mp_ctx create_ctx(void)
     .field_energy_calcs = field_energy_calcs,
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   return ctx;
 }
@@ -152,7 +154,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
 }
 
 void calc_field_energy(
-  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc)
+  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
@@ -160,7 +163,8 @@ void calc_field_energy(
 }
 
 void calc_integrated_mom(
-  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc)
+  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
@@ -187,16 +191,18 @@ int main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
-    .gas_gamma = ctx.gas_gamma, .rp_type = WV_EULER_RP_LAX, .use_gpu = app_args.use_gpu });
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp
+  ){.gas_gamma = ctx.gas_gamma, .rp_type = WV_EULER_RP_LAX, .use_gpu = app_args.use_gpu});
 
-  struct gkyl_moment_species fluid = { .name = "euler",
+  struct gkyl_moment_species fluid = {
+    .name = "euler",
     .equation = euler,
 
     .init = evalEulerInit,
     .ctx = &ctx,
 
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY}
+  };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -205,7 +211,7 @@ int main(int argc, char **argv)
   }
 #endif
 
-  int cells[] = { NX };
+  int cells[] = {NX};
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -227,12 +233,12 @@ int main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -247,8 +253,7 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -257,9 +262,9 @@ int main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 1,
-    .lower = { 0.25 },
-    .upper = { 0.25 + ctx.Lx },
-    .cells = { NX },
+    .lower = {0.25},
+    .upper = {0.25 + ctx.Lx},
+    .cells = {NX},
 
     .scheme_type = GKYL_MOMENT_MP,
     .mp_recon = app_args.mp_recon,
@@ -267,9 +272,9 @@ int main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
-    .species = { fluid },
+    .species = {fluid},
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // Create app object.
@@ -287,8 +292,10 @@ int main(int argc, char **argv)
       gkyl_moment_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+      gkyl_moment_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -361,7 +368,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);

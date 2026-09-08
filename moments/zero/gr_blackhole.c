@@ -7,7 +7,8 @@
 #include <gkyl_gr_spacetime_diff.h>
 
 double blackhole_kerrschildscalar(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_blackhole *blackhole = container_of(spacetime, struct gr_blackhole, spacetime);
 
@@ -21,19 +22,23 @@ double blackhole_kerrschildscalar(
   double norm_sq =
     ((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z));
 
-  double rad_dist =
-    sqrt(0.5 * (norm_sq - ((mass * mass) * (spin * spin)) +
-                 sqrt(((norm_sq - ((mass * mass) * (spin * spin))) *
-                        (norm_sq - ((mass * mass) * (spin * spin)))) +
-                      (4.0 * ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z)))))));
+  double rad_dist = sqrt(
+    0.5 *
+    (norm_sq - ((mass * mass) * (spin * spin)) +
+     sqrt(
+       ((norm_sq - ((mass * mass) * (spin * spin))) * (norm_sq - ((mass * mass) * (spin * spin)))) +
+       (4.0 * ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z))))
+     ))
+  );
 
   return -(mass * (rad_dist * rad_dist * rad_dist)) /
          ((rad_dist * rad_dist * rad_dist * rad_dist) +
-           ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z))));
+          ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z))));
 }
 
 double *blackhole_kerrschildvector(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_blackhole *blackhole = container_of(spacetime, struct gr_blackhole, spacetime);
 
@@ -47,11 +52,14 @@ double *blackhole_kerrschildvector(
   double norm_sq =
     ((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z));
 
-  double rad_dist =
-    sqrt(0.5 * (norm_sq - ((mass * mass) * (spin * spin)) +
-                 sqrt(((norm_sq - ((mass * mass) * (spin * spin))) *
-                        (norm_sq - ((mass * mass) * (spin * spin)))) +
-                      (4.0 * ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z)))))));
+  double rad_dist = sqrt(
+    0.5 *
+    (norm_sq - ((mass * mass) * (spin * spin)) +
+     sqrt(
+       ((norm_sq - ((mass * mass) * (spin * spin))) * (norm_sq - ((mass * mass) * (spin * spin)))) +
+       (4.0 * ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z))))
+     ))
+  );
 
   double *kerrschild_vector = gkyl_malloc(sizeof(double[3]));
   kerrschild_vector[0] = -((rad_dist * (x - pos_x)) + (spin * mass * (y - pos_y))) /
@@ -64,7 +72,8 @@ double *blackhole_kerrschildvector(
 }
 
 double *blackhole_kerrschildvector_spacetime(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_blackhole *blackhole = container_of(spacetime, struct gr_blackhole, spacetime);
 
@@ -78,11 +87,14 @@ double *blackhole_kerrschildvector_spacetime(
   double norm_sq =
     ((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z));
 
-  double rad_dist =
-    sqrt(0.5 * (norm_sq - ((mass * mass) * (spin * spin)) +
-                 sqrt(((norm_sq - ((mass * mass) * (spin * spin))) *
-                        (norm_sq - ((mass * mass) * (spin * spin)))) +
-                      (4.0 * ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z)))))));
+  double rad_dist = sqrt(
+    0.5 *
+    (norm_sq - ((mass * mass) * (spin * spin)) +
+     sqrt(
+       ((norm_sq - ((mass * mass) * (spin * spin))) * (norm_sq - ((mass * mass) * (spin * spin)))) +
+       (4.0 * ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z))))
+     ))
+  );
 
   double *kerrschild_vector_spacetime = gkyl_malloc(sizeof(double[4]));
   kerrschild_vector_spacetime[0] = -1.0;
@@ -95,8 +107,10 @@ double *blackhole_kerrschildvector_spacetime(
   return kerrschild_vector_spacetime;
 }
 
-double *blackhole_kerrschildscalar_der(const struct gkyl_gr_spacetime *spacetime, const double x,
-  const double y, const double z, const double dx, const double dy, const double dz)
+double *blackhole_kerrschildscalar_der(
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz
+)
 {
   double kerrschild_scalar_x_forward = blackhole_kerrschildscalar(spacetime, x + (0.5 * dx), y, z);
   double kerrschild_scalar_y_forward = blackhole_kerrschildscalar(spacetime, x, y + (0.5 * dy), z);
@@ -117,8 +131,10 @@ double *blackhole_kerrschildscalar_der(const struct gkyl_gr_spacetime *spacetime
   return kerrschild_scalar_der;
 }
 
-double **blackhole_kerrschildvector_der(const struct gkyl_gr_spacetime *spacetime, const double x,
-  const double y, const double z, const double dx, const double dy, const double dz)
+double **blackhole_kerrschildvector_der(
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz
+)
 {
   double *kerrschild_vector_x_forward = blackhole_kerrschildvector(spacetime, x + (0.5 * dx), y, z);
   double *kerrschild_vector_y_forward = blackhole_kerrschildvector(spacetime, x, y + (0.5 * dy), z);
@@ -156,8 +172,10 @@ double **blackhole_kerrschildvector_der(const struct gkyl_gr_spacetime *spacetim
   return kerrschild_vector_der;
 }
 
-static void blackhole_spatial_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double ***spatial_metric_tensor)
+static void blackhole_spatial_metric_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spatial_metric_tensor
+)
 {
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -182,8 +200,10 @@ static void blackhole_spatial_metric_tensor(const struct gkyl_gr_spacetime *spac
   gkyl_free(kerrschild_vector);
 }
 
-static void blackhole_spacetime_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double ***spacetime_metric_tensor)
+static void blackhole_spacetime_metric_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spacetime_metric_tensor
+)
 {
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -213,9 +233,10 @@ static void blackhole_spacetime_metric_tensor(const struct gkyl_gr_spacetime *sp
   gkyl_free(kerrschild_vector_spacetime);
 }
 
-static void blackhole_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z,
-  double ***spatial_inv_metric_tensor)
+static void blackhole_spatial_inv_metric_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spatial_inv_metric_tensor
+)
 {
   double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
@@ -225,11 +246,11 @@ static void blackhole_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime *
   blackhole_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
   double spatial_metric_det =
     (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                              (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                             (spatial_metric[2][1] * spatial_metric[1][2]))) -
     (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                              (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                             (spatial_metric[1][2] * spatial_metric[2][0]))) +
     (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                              (spatial_metric[1][1] * spatial_metric[2][0])));
+                             (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -280,7 +301,7 @@ static void blackhole_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime *
       (*spatial_inv_metric_tensor)[i][j] =
         (1.0 / spatial_metric_det) *
         ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-          (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+         (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 
@@ -294,9 +315,10 @@ static void blackhole_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime *
   gkyl_free(euclidean_metric);
 }
 
-static void blackhole_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z,
-  double ***spacetime_inv_metric_tensor)
+static void blackhole_spacetime_inv_metric_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spacetime_inv_metric_tensor
+)
 {
   double **inv_spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
@@ -335,8 +357,10 @@ static void blackhole_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime
   gkyl_free(shift_vector);
 }
 
-static void blackhole_spatial_metric_det(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double *spatial_metric_det)
+static void blackhole_spatial_metric_det(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *spatial_metric_det
+)
 {
   double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
@@ -346,11 +370,11 @@ static void blackhole_spatial_metric_det(const struct gkyl_gr_spacetime *spaceti
   blackhole_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
 
   *spatial_metric_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                                                  (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                                                 (spatial_metric[2][1] * spatial_metric[1][2]))) -
                         (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                                                  (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                                                 (spatial_metric[1][2] * spatial_metric[2][0]))) +
                         (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                                                  (spatial_metric[1][1] * spatial_metric[2][0])));
+                                                 (spatial_metric[1][1] * spatial_metric[2][0])));
 
   for (int i = 0; i < 3; i++) {
     gkyl_free(spatial_metric[i]);
@@ -358,8 +382,10 @@ static void blackhole_spatial_metric_det(const struct gkyl_gr_spacetime *spaceti
   gkyl_free(spatial_metric);
 }
 
-static void blackhole_spacetime_metric_det(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double *spacetime_metric_det)
+static void blackhole_spacetime_metric_det(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *spacetime_metric_det
+)
 {
   double spatial_metric_det;
   double lapse_function;
@@ -369,31 +395,40 @@ static void blackhole_spacetime_metric_det(const struct gkyl_gr_spacetime *space
   *spacetime_metric_det = -(lapse_function * lapse_function) * spatial_metric_det;
 }
 
-static void blackhole_spatial_metric_tensor_der(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ****spatial_metric_tensor_der)
+static void blackhole_spatial_metric_tensor_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ****spatial_metric_tensor_der
+)
 {
   gkyl_gr_spatial_metric_tensor_diff(spacetime, t, x, y, z, dx, dy, dz, spatial_metric_tensor_der);
 }
 
-static void blackhole_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double ****spacetime_metric_tensor_der)
+static void blackhole_spacetime_metric_tensor_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ****spacetime_metric_tensor_der
+)
 {
   gkyl_gr_spacetime_metric_tensor_diff(
-    spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_metric_tensor_der);
+    spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_metric_tensor_der
+  );
 }
 
-static void blackhole_lapse_function(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double *lapse_function)
+static void blackhole_lapse_function(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *lapse_function
+)
 {
   double kerrschild_scalar = blackhole_kerrschildscalar(spacetime, x, y, z);
 
   *lapse_function = 1.0 / sqrt(1.0 - (2.0 * kerrschild_scalar));
 }
 
-static void blackhole_shift_vector(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double **shift_vector)
+static void blackhole_shift_vector(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double **shift_vector
+)
 {
   double kerrschild_scalar = blackhole_kerrschildscalar(spacetime, x, y, z);
   double *kerrschild_vector = blackhole_kerrschildvector(spacetime, x, y, z);
@@ -405,94 +440,115 @@ static void blackhole_shift_vector(const struct gkyl_gr_spacetime *spacetime, co
   gkyl_free(kerrschild_vector);
 }
 
-static void blackhole_lapse_function_der(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double **lapse_function_der)
+static void blackhole_lapse_function_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double **lapse_function_der
+)
 {
   gkyl_gr_lapse_function_diff(spacetime, t, x, y, z, dx, dy, dz, lapse_function_der);
 }
 
-static void blackhole_shift_vector_der(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ***shift_vector_der)
+static void blackhole_shift_vector_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***shift_vector_der
+)
 {
   gkyl_gr_shift_vector_diff(spacetime, t, x, y, z, dx, dy, dz, shift_vector_der);
 }
 
-static void blackhole_spatial_christoffel(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ****spatial_christoffel)
+static void blackhole_spatial_christoffel(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ****spatial_christoffel
+)
 {
   gkyl_gr_spatial_christoffel_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_christoffel);
 }
 
-static void blackhole_spacetime_christoffel(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double ****spacetime_christoffel)
+static void blackhole_spacetime_christoffel(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ****spacetime_christoffel
+)
 {
   gkyl_gr_spacetime_christoffel_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_christoffel);
 }
 
-static void blackhole_spatial_riemann_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double *****spatial_riemann_tensor)
+static void blackhole_spatial_riemann_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double *****spatial_riemann_tensor
+)
 {
   gkyl_gr_spatial_riemann_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_riemann_tensor);
 }
 
-static void blackhole_spacetime_riemann_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double *****spacetime_riemann_tensor)
+static void blackhole_spacetime_riemann_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *****spacetime_riemann_tensor
+)
 {
   gkyl_gr_spacetime_riemann_tensor_fd(
-    spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_riemann_tensor);
+    spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_riemann_tensor
+  );
 }
 
-static void blackhole_spatial_ricci_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ***spatial_ricci_tensor)
+static void blackhole_spatial_ricci_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***spatial_ricci_tensor
+)
 {
   gkyl_gr_spatial_ricci_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_tensor);
 }
 
-static void blackhole_spacetime_ricci_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double ***spacetime_ricci_tensor)
+static void blackhole_spacetime_ricci_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ***spacetime_ricci_tensor
+)
 {
   gkyl_gr_spacetime_ricci_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_tensor);
 }
 
-static void blackhole_spatial_ricci_scalar(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double *spatial_ricci_scalar)
+static void blackhole_spatial_ricci_scalar(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double *spatial_ricci_scalar
+)
 {
   gkyl_gr_spatial_ricci_scalar_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_scalar);
 }
 
-static void blackhole_spacetime_ricci_scalar(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double *spacetime_ricci_scalar)
+static void blackhole_spacetime_ricci_scalar(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *spacetime_ricci_scalar
+)
 {
   gkyl_gr_spacetime_ricci_scalar_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_scalar);
 }
 
-static void blackhole_spatial_weyl_tensor(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double *****spatial_weyl_tensor)
+static void blackhole_spatial_weyl_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double *****spatial_weyl_tensor
+)
 {
   gkyl_gr_spatial_weyl_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_weyl_tensor);
 }
 
-static void blackhole_spacetime_weyl_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double *****spacetime_weyl_tensor)
+static void blackhole_spacetime_weyl_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *****spacetime_weyl_tensor
+)
 {
   gkyl_gr_spacetime_weyl_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_weyl_tensor);
 }
 
-static void blackhole_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ***extrinsic_curvature_tensor)
+static void blackhole_extrinsic_curvature_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ***extrinsic_curvature_tensor
+)
 {
   double lapse_function;
   blackhole_lapse_function(spacetime, t, x, y, z, &lapse_function);
@@ -507,15 +563,15 @@ static void blackhole_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime 
     for (int j = 0; j < 3; j++) {
       (*extrinsic_curvature_tensor)[i][j] =
         lapse_function * (-(kerrschild_vector[i] * kerrschild_scalar_der[j]) -
-                           (kerrschild_vector[j] * kerrschild_scalar_der[i]) -
-                           (kerrschild_scalar * kerrschild_vector_der[j][i]) -
-                           (kerrschild_scalar * kerrschild_vector_der[i][j]));
+                          (kerrschild_vector[j] * kerrschild_scalar_der[i]) -
+                          (kerrschild_scalar * kerrschild_vector_der[j][i]) -
+                          (kerrschild_scalar * kerrschild_vector_der[i][j]));
 
       for (int k = 0; k < 3; k++) {
         (*extrinsic_curvature_tensor)[i][j] +=
           lapse_function * 2.0 * (kerrschild_scalar * kerrschild_scalar) *
           ((kerrschild_vector[i] * kerrschild_vector[k] * kerrschild_vector_der[k][j]) +
-            (kerrschild_vector[j] * kerrschild_vector[k] * kerrschild_vector_der[k][i]));
+           (kerrschild_vector[j] * kerrschild_vector[k] * kerrschild_vector_der[k][i]));
 
         (*extrinsic_curvature_tensor)[i][j] += lapse_function * 2.0 * kerrschild_scalar *
                                                kerrschild_vector[i] * kerrschild_vector[j] *
@@ -532,8 +588,10 @@ static void blackhole_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime 
   gkyl_free(kerrschild_vector_der);
 }
 
-static void blackhole_conformal_factor(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double *conformal_factor)
+static void blackhole_conformal_factor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *conformal_factor
+)
 {
   double spatial_metric_det;
   blackhole_spatial_metric_det(spacetime, t, x, y, z, &spatial_metric_det);
@@ -541,8 +599,10 @@ static void blackhole_conformal_factor(const struct gkyl_gr_spacetime *spacetime
   *conformal_factor = pow(spatial_metric_det, 1.0 / 12.0);
 }
 
-static void blackhole_bssn_conformal_factor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double *bssn_conformal_factor)
+static void blackhole_bssn_conformal_factor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *bssn_conformal_factor
+)
 {
   double spatial_metric_det;
   blackhole_spatial_metric_det(spacetime, t, x, y, z, &spatial_metric_det);
@@ -550,37 +610,44 @@ static void blackhole_bssn_conformal_factor(const struct gkyl_gr_spacetime *spac
   *bssn_conformal_factor = 1.0 / pow(spatial_metric_det, 1.0 / 6.0);
 }
 
-static void blackhole_conformal_factor_der(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double **conformal_factor_der)
+static void blackhole_conformal_factor_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double **conformal_factor_der
+)
 {
   gkyl_gr_conformal_factor_diff(spacetime, t, x, y, z, dx, dy, dz, conformal_factor_der);
 }
 
-static void blackhole_bssn_conformal_factor_der(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double **bssn_conformal_factor_der)
+static void blackhole_bssn_conformal_factor_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double **bssn_conformal_factor_der
+)
 {
   gkyl_gr_bssn_conformal_factor_diff(spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor_der);
 }
 
-static void blackhole_conformal_factor_der2(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ***conformal_factor_der2)
+static void blackhole_conformal_factor_der2(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***conformal_factor_der2
+)
 {
   gkyl_gr_conformal_factor_diff2(spacetime, t, x, y, z, dx, dy, dz, conformal_factor_der2);
 }
 
-static void blackhole_bssn_conformal_factor_der2(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ***bssn_conformal_factor_der2)
+static void blackhole_bssn_conformal_factor_der2(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ***bssn_conformal_factor_der2
+)
 {
-  gkyl_gr_bssn_conformal_factor_diff2(
-    spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor_der2);
+  gkyl_gr_bssn_conformal_factor_diff2(spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor_der2);
 }
 
-static void blackhole_excision_region(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, bool *in_excision_region)
+static void blackhole_excision_region(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, bool *in_excision_region
+)
 {
   const struct gr_blackhole *blackhole = container_of(spacetime, struct gr_blackhole, spacetime);
 
@@ -616,14 +683,12 @@ void gkyl_gr_blackhole_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_gr_spacetime *gkyl_gr_blackhole_new(
-  bool use_gpu, double mass, double spin, double pos_x, double pos_y, double pos_z)
+  bool use_gpu, double mass, double spin, double pos_x, double pos_y, double pos_z
+)
 {
-  return gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){ .use_gpu = use_gpu,
-    .mass = mass,
-    .spin = spin,
-    .pos_x = pos_x,
-    .pos_y = pos_y,
-    .pos_z = pos_z });
+  return gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
+  ){.use_gpu = use_gpu, .mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z}
+  );
 }
 
 struct gkyl_gr_spacetime *gkyl_gr_blackhole_inew(const struct gkyl_gr_blackhole_inp *inp)

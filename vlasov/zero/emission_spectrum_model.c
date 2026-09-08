@@ -3,8 +3,8 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_emission_spectrum_model.h>
 
-struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_chung_everhart_new(
-  double charge, double phi, bool use_gpu)
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_chung_everhart_new(double charge, double phi, bool use_gpu)
 {
   struct gkyl_emission_spectrum_chung_everhart *model =
     gkyl_malloc(sizeof(struct gkyl_emission_spectrum_chung_everhart));
@@ -27,8 +27,8 @@ struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_chung_everhart_new(
   return &model->spectrum;
 }
 
-struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_gaussian_new(
-  double charge, double E_0, double tau, bool use_gpu)
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_gaussian_new(double charge, double E_0, double tau, bool use_gpu)
 {
   struct gkyl_emission_spectrum_gaussian *model =
     gkyl_malloc(sizeof(struct gkyl_emission_spectrum_gaussian));
@@ -52,8 +52,8 @@ struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_gaussian_new(
   return &model->spectrum;
 }
 
-struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_maxwellian_new(
-  double charge, double vt, bool use_gpu)
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_maxwellian_new(double charge, double vt, bool use_gpu)
 {
   struct gkyl_emission_spectrum_maxwellian *model =
     gkyl_malloc(sizeof(struct gkyl_emission_spectrum_maxwellian));
@@ -81,8 +81,8 @@ bool gkyl_emission_spectrum_model_is_cu_dev(const struct gkyl_emission_spectrum_
   return GKYL_IS_CU_ALLOC(model->flags);
 }
 
-struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_model_acquire(
-  const struct gkyl_emission_spectrum_model *spectrum)
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_model_acquire(const struct gkyl_emission_spectrum_model *spectrum)
 {
   gkyl_ref_count_inc(&spectrum->ref_count);
   return (struct gkyl_emission_spectrum_model *)spectrum;

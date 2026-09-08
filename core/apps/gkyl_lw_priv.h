@@ -15,12 +15,15 @@
 // Get basis type from string
 static enum gkyl_basis_type get_basis_type(const char *bnm)
 {
-  if (strcmp(bnm, "serendipity") == 0)
+  if (strcmp(bnm, "serendipity") == 0) {
     return GKYL_BASIS_MODAL_SERENDIPITY;
-  if (strcmp(bnm, "tensor") == 0)
+  }
+  if (strcmp(bnm, "tensor") == 0) {
     return GKYL_BASIS_MODAL_TENSOR;
-  if (strcmp(bnm, "hybrid") == 0)
+  }
+  if (strcmp(bnm, "hybrid") == 0) {
     return GKYL_BASIS_MODAL_HYBRID;
+  }
 
   return GKYL_BASIS_MODAL_SERENDIPITY;
 }
@@ -72,6 +75,7 @@ void gkyl_register_field_bc_types(lua_State *L);
  * Wrapper around Lua function for use in eval callbacks.
  */
 void gkyl_lw_eval_cb(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx);
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+);
 
 #endif

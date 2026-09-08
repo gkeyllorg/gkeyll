@@ -5,9 +5,11 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_gr_spacetime_diff.h>
 
-void gkyl_gr_spatial_metric_tensor_diff(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ****spatial_metric_tensor_diff)
+void gkyl_gr_spatial_metric_tensor_diff(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ****spatial_metric_tensor_diff
+)
 {
   double **spatial_metric_x_forward = gkyl_malloc(sizeof(double *[3]));
   double **spatial_metric_y_forward = gkyl_malloc(sizeof(double *[3]));
@@ -28,18 +30,24 @@ void gkyl_gr_spatial_metric_tensor_diff(const struct gkyl_gr_spacetime *spacetim
   }
 
   spacetime->spatial_metric_tensor_func(
-    spacetime, t, x + (0.5 * dx), y, z, &spatial_metric_x_forward);
+    spacetime, t, x + (0.5 * dx), y, z, &spatial_metric_x_forward
+  );
   spacetime->spatial_metric_tensor_func(
-    spacetime, t, x, y + (0.5 * dy), z, &spatial_metric_y_forward);
+    spacetime, t, x, y + (0.5 * dy), z, &spatial_metric_y_forward
+  );
   spacetime->spatial_metric_tensor_func(
-    spacetime, t, x, y, z + (0.5 * dz), &spatial_metric_z_forward);
+    spacetime, t, x, y, z + (0.5 * dz), &spatial_metric_z_forward
+  );
 
   spacetime->spatial_metric_tensor_func(
-    spacetime, t, x - (0.5 * dx), y, z, &spatial_metric_x_backward);
+    spacetime, t, x - (0.5 * dx), y, z, &spatial_metric_x_backward
+  );
   spacetime->spatial_metric_tensor_func(
-    spacetime, t, x, y - (0.5 * dy), z, &spatial_metric_y_backward);
+    spacetime, t, x, y - (0.5 * dy), z, &spatial_metric_y_backward
+  );
   spacetime->spatial_metric_tensor_func(
-    spacetime, t, x, y, z - (0.5 * dz), &spatial_metric_z_backward);
+    spacetime, t, x, y, z - (0.5 * dz), &spatial_metric_z_backward
+  );
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -70,9 +78,11 @@ void gkyl_gr_spatial_metric_tensor_diff(const struct gkyl_gr_spacetime *spacetim
   gkyl_free(spatial_metric_z_backward);
 }
 
-void gkyl_gr_spacetime_metric_tensor_diff(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dt, const double dx, const double dy,
-  const double dz, double ****spacetime_metric_tensor_diff)
+void gkyl_gr_spacetime_metric_tensor_diff(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ****spacetime_metric_tensor_diff
+)
 {
   double **spacetime_metric_t_forward = gkyl_malloc(sizeof(double *[4]));
   double **spacetime_metric_x_forward = gkyl_malloc(sizeof(double *[4]));
@@ -97,22 +107,30 @@ void gkyl_gr_spacetime_metric_tensor_diff(const struct gkyl_gr_spacetime *spacet
   }
 
   spacetime->spacetime_metric_tensor_func(
-    spacetime, t + (0.5 * dt), x, y, z, &spacetime_metric_t_forward);
+    spacetime, t + (0.5 * dt), x, y, z, &spacetime_metric_t_forward
+  );
   spacetime->spacetime_metric_tensor_func(
-    spacetime, t, x + (0.5 * dx), y, z, &spacetime_metric_x_forward);
+    spacetime, t, x + (0.5 * dx), y, z, &spacetime_metric_x_forward
+  );
   spacetime->spacetime_metric_tensor_func(
-    spacetime, t, x, y + (0.5 * dy), z, &spacetime_metric_y_forward);
+    spacetime, t, x, y + (0.5 * dy), z, &spacetime_metric_y_forward
+  );
   spacetime->spacetime_metric_tensor_func(
-    spacetime, t, x, y, z + (0.5 * dz), &spacetime_metric_z_forward);
+    spacetime, t, x, y, z + (0.5 * dz), &spacetime_metric_z_forward
+  );
 
   spacetime->spacetime_metric_tensor_func(
-    spacetime, t - (0.5 * dt), x, y, z, &spacetime_metric_t_backward);
+    spacetime, t - (0.5 * dt), x, y, z, &spacetime_metric_t_backward
+  );
   spacetime->spacetime_metric_tensor_func(
-    spacetime, t, x - (0.5 * dx), y, z, &spacetime_metric_x_backward);
+    spacetime, t, x - (0.5 * dx), y, z, &spacetime_metric_x_backward
+  );
   spacetime->spacetime_metric_tensor_func(
-    spacetime, t, x, y - (0.5 * dy), z, &spacetime_metric_y_backward);
+    spacetime, t, x, y - (0.5 * dy), z, &spacetime_metric_y_backward
+  );
   spacetime->spacetime_metric_tensor_func(
-    spacetime, t, x, y, z - (0.5 * dz), &spacetime_metric_z_backward);
+    spacetime, t, x, y, z - (0.5 * dz), &spacetime_metric_z_backward
+  );
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -149,9 +167,10 @@ void gkyl_gr_spacetime_metric_tensor_diff(const struct gkyl_gr_spacetime *spacet
   gkyl_free(spacetime_metric_z_backward);
 }
 
-void gkyl_gr_lapse_function_diff(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double **lapse_function_diff)
+void gkyl_gr_lapse_function_diff(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double **lapse_function_diff
+)
 {
   double lapse_function_x_forward;
   double lapse_function_y_forward;
@@ -174,9 +193,10 @@ void gkyl_gr_lapse_function_diff(const struct gkyl_gr_spacetime *spacetime, cons
   (*lapse_function_diff)[2] = (1.0 / dz) * (lapse_function_z_forward - lapse_function_z_backward);
 }
 
-void gkyl_gr_shift_vector_diff(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ***shift_vector_diff)
+void gkyl_gr_shift_vector_diff(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***shift_vector_diff
+)
 {
   double *shift_vector_x_forward = gkyl_malloc(sizeof(double[3]));
   double *shift_vector_y_forward = gkyl_malloc(sizeof(double[3]));
@@ -212,9 +232,10 @@ void gkyl_gr_shift_vector_diff(const struct gkyl_gr_spacetime *spacetime, const 
   gkyl_free(shift_vector_z_backward);
 }
 
-void gkyl_gr_spatial_christoffel_fd(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ****spatial_christoffel)
+void gkyl_gr_spatial_christoffel_fd(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ****spatial_christoffel
+)
 {
   double **inv_spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
@@ -247,8 +268,8 @@ void gkyl_gr_spatial_christoffel_fd(const struct gkyl_gr_spacetime *spacetime, c
         for (int l = 0; l < 3; l++) {
           (*spatial_christoffel)[i][j][k] +=
             (0.5 * inv_spatial_metric[i][l]) *
-            (spatial_metric_der[k][l][j] + spatial_metric_der[j][l][k] -
-              spatial_metric_der[l][j][k]);
+            (spatial_metric_der[k][l][j] + spatial_metric_der[j][l][k] - spatial_metric_der[l][j][k]
+            );
         }
       }
     }
@@ -266,9 +287,11 @@ void gkyl_gr_spatial_christoffel_fd(const struct gkyl_gr_spacetime *spacetime, c
   gkyl_free(spatial_metric_der);
 }
 
-void gkyl_gr_spacetime_christoffel_fd(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dt, const double dx, const double dy,
-  const double dz, double ****spacetime_christoffel)
+void gkyl_gr_spacetime_christoffel_fd(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ****spacetime_christoffel
+)
 {
   double **inv_spacetime_metric = gkyl_malloc(sizeof(double *[4]));
   for (int i = 0; i < 4; i++) {
@@ -286,7 +309,8 @@ void gkyl_gr_spacetime_christoffel_fd(const struct gkyl_gr_spacetime *spacetime,
 
   spacetime->spacetime_inv_metric_tensor_func(spacetime, t, x, y, z, &inv_spacetime_metric);
   spacetime->spacetime_metric_tensor_der_func(
-    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_metric_der);
+    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_metric_der
+  );
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -303,7 +327,7 @@ void gkyl_gr_spacetime_christoffel_fd(const struct gkyl_gr_spacetime *spacetime,
           (*spacetime_christoffel)[i][j][k] +=
             (0.5 * inv_spacetime_metric[i][l]) *
             (spacetime_metric_der[k][l][j] + spacetime_metric_der[j][l][k] -
-              spacetime_metric_der[l][j][k]);
+             spacetime_metric_der[l][j][k]);
         }
       }
     }
@@ -321,9 +345,11 @@ void gkyl_gr_spacetime_christoffel_fd(const struct gkyl_gr_spacetime *spacetime,
   gkyl_free(spacetime_metric_der);
 }
 
-void gkyl_gr_spatial_riemann_tensor_fd(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double *****spatial_riemann_tensor)
+void gkyl_gr_spatial_riemann_tensor_fd(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double *****spatial_riemann_tensor
+)
 {
   double ***spatial_christoffel = gkyl_malloc(sizeof(double **[3]));
   double ***spatial_christoffel_x_forward = gkyl_malloc(sizeof(double **[3]));
@@ -358,18 +384,24 @@ void gkyl_gr_spatial_riemann_tensor_fd(const struct gkyl_gr_spacetime *spacetime
 
   spacetime->spatial_christoffel_func(spacetime, t, x, y, z, dx, dy, dz, &spatial_christoffel);
   spacetime->spatial_christoffel_func(
-    spacetime, t, x + (0.5 * dx), y, z, dx, dy, dz, &spatial_christoffel_x_forward);
+    spacetime, t, x + (0.5 * dx), y, z, dx, dy, dz, &spatial_christoffel_x_forward
+  );
   spacetime->spatial_christoffel_func(
-    spacetime, t, x, y + (0.5 * dy), z, dx, dy, dz, &spatial_christoffel_y_forward);
+    spacetime, t, x, y + (0.5 * dy), z, dx, dy, dz, &spatial_christoffel_y_forward
+  );
   spacetime->spatial_christoffel_func(
-    spacetime, t, x, y, z + (0.5 * dz), dx, dy, dz, &spatial_christoffel_z_forward);
+    spacetime, t, x, y, z + (0.5 * dz), dx, dy, dz, &spatial_christoffel_z_forward
+  );
 
   spacetime->spatial_christoffel_func(
-    spacetime, t, x - (0.5 * dx), y, z, dx, dy, dz, &spatial_christoffel_x_backward);
+    spacetime, t, x - (0.5 * dx), y, z, dx, dy, dz, &spatial_christoffel_x_backward
+  );
   spacetime->spatial_christoffel_func(
-    spacetime, t, x, y - (0.5 * dy), z, dx, dy, dz, &spatial_christoffel_y_backward);
+    spacetime, t, x, y - (0.5 * dy), z, dx, dy, dz, &spatial_christoffel_y_backward
+  );
   spacetime->spatial_christoffel_func(
-    spacetime, t, x, y, z - (0.5 * dz), dx, dy, dz, &spatial_christoffel_z_backward);
+    spacetime, t, x, y, z - (0.5 * dz), dx, dy, dz, &spatial_christoffel_z_backward
+  );
 
   double ****spatial_christoffel_der = gkyl_malloc(sizeof(double ***[3]));
   for (int i = 0; i < 3; i++) {
@@ -454,9 +486,11 @@ void gkyl_gr_spatial_riemann_tensor_fd(const struct gkyl_gr_spacetime *spacetime
   gkyl_free(spatial_christoffel_z_backward);
 }
 
-void gkyl_gr_spacetime_riemann_tensor_fd(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dt, const double dx, const double dy,
-  const double dz, double *****spacetime_riemann_tensor)
+void gkyl_gr_spacetime_riemann_tensor_fd(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *****spacetime_riemann_tensor
+)
 {
   double ***spacetime_christoffel = gkyl_malloc(sizeof(double **[4]));
   double ***spacetime_christoffel_t_forward = gkyl_malloc(sizeof(double **[4]));
@@ -496,24 +530,33 @@ void gkyl_gr_spacetime_riemann_tensor_fd(const struct gkyl_gr_spacetime *spaceti
   }
 
   spacetime->spacetime_christoffel_func(
-    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_christoffel);
+    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_christoffel
+  );
   spacetime->spacetime_christoffel_func(
-    spacetime, t + (0.5 * dt), x, y, z, dt, dx, dy, dz, &spacetime_christoffel_t_forward);
+    spacetime, t + (0.5 * dt), x, y, z, dt, dx, dy, dz, &spacetime_christoffel_t_forward
+  );
   spacetime->spacetime_christoffel_func(
-    spacetime, t, x + (0.5 * dx), y, z, dt, dx, dy, dz, &spacetime_christoffel_x_forward);
+    spacetime, t, x + (0.5 * dx), y, z, dt, dx, dy, dz, &spacetime_christoffel_x_forward
+  );
   spacetime->spacetime_christoffel_func(
-    spacetime, t, x, y + (0.5 * dy), z, dt, dx, dy, dz, &spacetime_christoffel_y_forward);
+    spacetime, t, x, y + (0.5 * dy), z, dt, dx, dy, dz, &spacetime_christoffel_y_forward
+  );
   spacetime->spacetime_christoffel_func(
-    spacetime, t, x, y, z + (0.5 * dz), dt, dx, dy, dz, &spacetime_christoffel_z_forward);
+    spacetime, t, x, y, z + (0.5 * dz), dt, dx, dy, dz, &spacetime_christoffel_z_forward
+  );
 
   spacetime->spacetime_christoffel_func(
-    spacetime, t - (0.5 * dt), x, y, z, dt, dx, dy, dz, &spacetime_christoffel_t_backward);
+    spacetime, t - (0.5 * dt), x, y, z, dt, dx, dy, dz, &spacetime_christoffel_t_backward
+  );
   spacetime->spacetime_christoffel_func(
-    spacetime, t, x - (0.5 * dx), y, z, dt, dx, dy, dz, &spacetime_christoffel_x_backward);
+    spacetime, t, x - (0.5 * dx), y, z, dt, dx, dy, dz, &spacetime_christoffel_x_backward
+  );
   spacetime->spacetime_christoffel_func(
-    spacetime, t, x, y - (0.5 * dy), z, dt, dx, dy, dz, &spacetime_christoffel_y_backward);
+    spacetime, t, x, y - (0.5 * dy), z, dt, dx, dy, dz, &spacetime_christoffel_y_backward
+  );
   spacetime->spacetime_christoffel_func(
-    spacetime, t, x, y, z - (0.5 * dz), dt, dx, dy, dz, &spacetime_christoffel_z_backward);
+    spacetime, t, x, y, z - (0.5 * dz), dt, dx, dy, dz, &spacetime_christoffel_z_backward
+  );
 
   double ****spacetime_christoffel_der = gkyl_malloc(sizeof(double ***[4]));
   for (int i = 0; i < 4; i++) {
@@ -607,9 +650,10 @@ void gkyl_gr_spacetime_riemann_tensor_fd(const struct gkyl_gr_spacetime *spaceti
   gkyl_free(spacetime_christoffel_z_backward);
 }
 
-void gkyl_gr_spatial_ricci_tensor_fd(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ***spatial_ricci_tensor)
+void gkyl_gr_spatial_ricci_tensor_fd(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***spatial_ricci_tensor
+)
 {
   double ****spatial_riemann_tensor = gkyl_malloc(sizeof(double ***[3]));
   for (int i = 0; i < 3; i++) {
@@ -624,8 +668,7 @@ void gkyl_gr_spatial_ricci_tensor_fd(const struct gkyl_gr_spacetime *spacetime, 
     }
   }
 
-  spacetime->spatial_riemann_tensor_func(
-    spacetime, t, x, y, z, dx, dy, dz, &spatial_riemann_tensor);
+  spacetime->spatial_riemann_tensor_func(spacetime, t, x, y, z, dx, dy, dz, &spatial_riemann_tensor);
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -652,9 +695,11 @@ void gkyl_gr_spatial_ricci_tensor_fd(const struct gkyl_gr_spacetime *spacetime, 
   gkyl_free(spatial_riemann_tensor);
 }
 
-void gkyl_gr_spacetime_ricci_tensor_fd(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dt, const double dx, const double dy,
-  const double dz, double ***spacetime_ricci_tensor)
+void gkyl_gr_spacetime_ricci_tensor_fd(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ***spacetime_ricci_tensor
+)
 {
   double ****spacetime_riemann_tensor = gkyl_malloc(sizeof(double ***[4]));
   for (int i = 0; i < 4; i++) {
@@ -670,7 +715,8 @@ void gkyl_gr_spacetime_ricci_tensor_fd(const struct gkyl_gr_spacetime *spacetime
   }
 
   spacetime->spacetime_riemann_tensor_func(
-    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_riemann_tensor);
+    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_riemann_tensor
+  );
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -697,9 +743,10 @@ void gkyl_gr_spacetime_ricci_tensor_fd(const struct gkyl_gr_spacetime *spacetime
   gkyl_free(spacetime_riemann_tensor);
 }
 
-void gkyl_gr_spatial_ricci_scalar_fd(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double *spatial_ricci_scalar)
+void gkyl_gr_spatial_ricci_scalar_fd(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double *spatial_ricci_scalar
+)
 {
   double **spatial_inv_metric_tensor = gkyl_malloc(sizeof(double *[3]));
   double **spatial_ricci_tensor = gkyl_malloc(sizeof(double *[3]));
@@ -729,9 +776,11 @@ void gkyl_gr_spatial_ricci_scalar_fd(const struct gkyl_gr_spacetime *spacetime, 
   gkyl_free(spatial_ricci_tensor);
 }
 
-void gkyl_gr_spacetime_ricci_scalar_fd(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dt, const double dx, const double dy,
-  const double dz, double *spacetime_ricci_scalar)
+void gkyl_gr_spacetime_ricci_scalar_fd(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *spacetime_ricci_scalar
+)
 {
   double **spacetime_inv_metric_tensor = gkyl_malloc(sizeof(double *[4]));
   double **spacetime_ricci_tensor = gkyl_malloc(sizeof(double *[4]));
@@ -743,7 +792,8 @@ void gkyl_gr_spacetime_ricci_scalar_fd(const struct gkyl_gr_spacetime *spacetime
 
   spacetime->spacetime_inv_metric_tensor_func(spacetime, t, x, y, z, &spacetime_inv_metric_tensor);
   spacetime->spacetime_ricci_tensor_func(
-    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_ricci_tensor);
+    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_ricci_tensor
+  );
 
   *spacetime_ricci_scalar = 0.0;
 
@@ -762,9 +812,10 @@ void gkyl_gr_spacetime_ricci_scalar_fd(const struct gkyl_gr_spacetime *spacetime
   gkyl_free(spacetime_ricci_tensor);
 }
 
-void gkyl_gr_spatial_weyl_tensor_fd(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double *****spatial_weyl_tensor)
+void gkyl_gr_spatial_weyl_tensor_fd(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double *****spatial_weyl_tensor
+)
 {
   double ****spatial_riemann_tensor = gkyl_malloc(sizeof(double ***[3]));
   double ****covariant_spatial_riemann_tensor = gkyl_malloc(sizeof(double ***[3]));
@@ -798,8 +849,7 @@ void gkyl_gr_spatial_weyl_tensor_fd(const struct gkyl_gr_spacetime *spacetime, c
 
   double spatial_ricci_scalar;
 
-  spacetime->spatial_riemann_tensor_func(
-    spacetime, t, x, y, z, dx, dy, dz, &spatial_riemann_tensor);
+  spacetime->spatial_riemann_tensor_func(spacetime, t, x, y, z, dx, dy, dz, &spatial_riemann_tensor);
   spacetime->spatial_metric_tensor_func(spacetime, t, x, y, z, &spatial_metric_tensor);
   spacetime->spatial_ricci_tensor_func(spacetime, t, x, y, z, dx, dy, dz, &spatial_ricci_tensor);
   spacetime->spatial_ricci_scalar_func(spacetime, t, x, y, z, dx, dy, dz, &spatial_ricci_scalar);
@@ -824,12 +874,12 @@ void gkyl_gr_spatial_weyl_tensor_fd(const struct gkyl_gr_spacetime *spacetime, c
           (*spatial_weyl_tensor)[i][j][k][l] =
             covariant_spatial_riemann_tensor[i][j][k][l] +
             ((spatial_ricci_tensor[i][l] * spatial_metric_tensor[j][k]) -
-              (spatial_ricci_tensor[i][k] * spatial_metric_tensor[j][l]) +
-              (spatial_ricci_tensor[j][k] * spatial_metric_tensor[i][l]) -
-              (spatial_ricci_tensor[j][l] * spatial_metric_tensor[i][k])) +
+             (spatial_ricci_tensor[i][k] * spatial_metric_tensor[j][l]) +
+             (spatial_ricci_tensor[j][k] * spatial_metric_tensor[i][l]) -
+             (spatial_ricci_tensor[j][l] * spatial_metric_tensor[i][k])) +
             ((0.5 * spatial_ricci_scalar) *
-              ((spatial_metric_tensor[i][k] * spatial_metric_tensor[j][l]) -
-                (spatial_metric_tensor[i][l] * spatial_metric_tensor[j][k])));
+             ((spatial_metric_tensor[i][k] * spatial_metric_tensor[j][l]) -
+              (spatial_metric_tensor[i][l] * spatial_metric_tensor[j][k])));
         }
       }
     }
@@ -855,9 +905,11 @@ void gkyl_gr_spatial_weyl_tensor_fd(const struct gkyl_gr_spacetime *spacetime, c
   gkyl_free(spatial_ricci_tensor);
 }
 
-void gkyl_gr_spacetime_weyl_tensor_fd(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dt, const double dx, const double dy,
-  const double dz, double *****spacetime_weyl_tensor)
+void gkyl_gr_spacetime_weyl_tensor_fd(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *****spacetime_weyl_tensor
+)
 {
   double ****spacetime_riemann_tensor = gkyl_malloc(sizeof(double ***[4]));
   double ****covariant_spacetime_riemann_tensor = gkyl_malloc(sizeof(double ***[4]));
@@ -892,12 +944,15 @@ void gkyl_gr_spacetime_weyl_tensor_fd(const struct gkyl_gr_spacetime *spacetime,
   double spacetime_ricci_scalar;
 
   spacetime->spacetime_riemann_tensor_func(
-    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_riemann_tensor);
+    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_riemann_tensor
+  );
   spacetime->spacetime_metric_tensor_func(spacetime, t, x, y, z, &spacetime_metric_tensor);
   spacetime->spacetime_ricci_tensor_func(
-    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_ricci_tensor);
+    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_ricci_tensor
+  );
   spacetime->spacetime_ricci_scalar_func(
-    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_ricci_scalar);
+    spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_ricci_scalar
+  );
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -919,12 +974,12 @@ void gkyl_gr_spacetime_weyl_tensor_fd(const struct gkyl_gr_spacetime *spacetime,
           (*spacetime_weyl_tensor)[i][j][k][l] =
             covariant_spacetime_riemann_tensor[i][j][k][l] +
             (0.5 * ((spacetime_ricci_tensor[i][l] * spacetime_metric_tensor[j][k]) -
-                     (spacetime_ricci_tensor[i][k] * spacetime_metric_tensor[j][l]) +
-                     (spacetime_ricci_tensor[j][k] * spacetime_metric_tensor[i][l]) -
-                     (spacetime_ricci_tensor[j][l] * spacetime_metric_tensor[i][k]))) +
+                    (spacetime_ricci_tensor[i][k] * spacetime_metric_tensor[j][l]) +
+                    (spacetime_ricci_tensor[j][k] * spacetime_metric_tensor[i][l]) -
+                    (spacetime_ricci_tensor[j][l] * spacetime_metric_tensor[i][k]))) +
             ((spacetime_ricci_scalar / 6.0) *
-              ((spacetime_metric_tensor[i][k] * spacetime_metric_tensor[j][l]) -
-                (spacetime_metric_tensor[i][l] * spacetime_metric_tensor[j][k])));
+             ((spacetime_metric_tensor[i][k] * spacetime_metric_tensor[j][l]) -
+              (spacetime_metric_tensor[i][l] * spacetime_metric_tensor[j][k])));
         }
       }
     }
@@ -950,9 +1005,10 @@ void gkyl_gr_spacetime_weyl_tensor_fd(const struct gkyl_gr_spacetime *spacetime,
   gkyl_free(spacetime_ricci_tensor);
 }
 
-void gkyl_gr_conformal_factor_diff(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double **conformal_factor_diff)
+void gkyl_gr_conformal_factor_diff(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double **conformal_factor_diff
+)
 {
   double conformal_factor_x_forward;
   double conformal_factor_y_forward;
@@ -966,12 +1022,9 @@ void gkyl_gr_conformal_factor_diff(const struct gkyl_gr_spacetime *spacetime, co
   spacetime->conformal_factor_func(spacetime, t, x, y + (0.5 * dy), z, &conformal_factor_y_forward);
   spacetime->conformal_factor_func(spacetime, t, x, y, z + (0.5 * dz), &conformal_factor_z_forward);
 
-  spacetime->conformal_factor_func(
-    spacetime, t, x - (0.5 * dx), y, z, &conformal_factor_x_backward);
-  spacetime->conformal_factor_func(
-    spacetime, t, x, y - (0.5 * dy), z, &conformal_factor_y_backward);
-  spacetime->conformal_factor_func(
-    spacetime, t, x, y, z - (0.5 * dz), &conformal_factor_z_backward);
+  spacetime->conformal_factor_func(spacetime, t, x - (0.5 * dx), y, z, &conformal_factor_x_backward);
+  spacetime->conformal_factor_func(spacetime, t, x, y - (0.5 * dy), z, &conformal_factor_y_backward);
+  spacetime->conformal_factor_func(spacetime, t, x, y, z - (0.5 * dz), &conformal_factor_z_backward);
 
   (*conformal_factor_diff)[0] =
     (1.0 / dx) * (conformal_factor_x_forward - conformal_factor_x_backward);
@@ -981,9 +1034,11 @@ void gkyl_gr_conformal_factor_diff(const struct gkyl_gr_spacetime *spacetime, co
     (1.0 / dz) * (conformal_factor_z_forward - conformal_factor_z_backward);
 }
 
-void gkyl_gr_bssn_conformal_factor_diff(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double **bssn_conformal_factor_diff)
+void gkyl_gr_bssn_conformal_factor_diff(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double **bssn_conformal_factor_diff
+)
 {
   double bssn_conformal_factor_x_forward;
   double bssn_conformal_factor_y_forward;
@@ -994,18 +1049,24 @@ void gkyl_gr_bssn_conformal_factor_diff(const struct gkyl_gr_spacetime *spacetim
   double bssn_conformal_factor_z_backward;
 
   spacetime->bssn_conformal_factor_func(
-    spacetime, t, x + (0.5 * dx), y, z, &bssn_conformal_factor_x_forward);
+    spacetime, t, x + (0.5 * dx), y, z, &bssn_conformal_factor_x_forward
+  );
   spacetime->bssn_conformal_factor_func(
-    spacetime, t, x, y + (0.5 * dy), z, &bssn_conformal_factor_y_forward);
+    spacetime, t, x, y + (0.5 * dy), z, &bssn_conformal_factor_y_forward
+  );
   spacetime->bssn_conformal_factor_func(
-    spacetime, t, x, y, z + (0.5 * dz), &bssn_conformal_factor_z_forward);
+    spacetime, t, x, y, z + (0.5 * dz), &bssn_conformal_factor_z_forward
+  );
 
   spacetime->bssn_conformal_factor_func(
-    spacetime, t, x - (0.5 * dx), y, z, &bssn_conformal_factor_x_backward);
+    spacetime, t, x - (0.5 * dx), y, z, &bssn_conformal_factor_x_backward
+  );
   spacetime->bssn_conformal_factor_func(
-    spacetime, t, x, y - (0.5 * dy), z, &bssn_conformal_factor_y_backward);
+    spacetime, t, x, y - (0.5 * dy), z, &bssn_conformal_factor_y_backward
+  );
   spacetime->bssn_conformal_factor_func(
-    spacetime, t, x, y, z - (0.5 * dz), &bssn_conformal_factor_z_backward);
+    spacetime, t, x, y, z - (0.5 * dz), &bssn_conformal_factor_z_backward
+  );
 
   (*bssn_conformal_factor_diff)[0] =
     (1.0 / dx) * (bssn_conformal_factor_x_forward - bssn_conformal_factor_x_backward);
@@ -1015,9 +1076,11 @@ void gkyl_gr_bssn_conformal_factor_diff(const struct gkyl_gr_spacetime *spacetim
     (1.0 / dz) * (bssn_conformal_factor_z_forward - bssn_conformal_factor_z_backward);
 }
 
-void gkyl_gr_conformal_factor_diff2(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ***conformal_factor_diff2)
+void gkyl_gr_conformal_factor_diff2(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ***conformal_factor_diff2
+)
 {
   double *conformal_factor_der_x_forward = gkyl_malloc(sizeof(double[3]));
   double *conformal_factor_der_y_forward = gkyl_malloc(sizeof(double[3]));
@@ -1028,18 +1091,24 @@ void gkyl_gr_conformal_factor_diff2(const struct gkyl_gr_spacetime *spacetime, c
   double *conformal_factor_der_z_backward = gkyl_malloc(sizeof(double[3]));
 
   spacetime->conformal_factor_der_func(
-    spacetime, t, x + (0.5 * dx), y, z, dx, dy, dz, &conformal_factor_der_x_forward);
+    spacetime, t, x + (0.5 * dx), y, z, dx, dy, dz, &conformal_factor_der_x_forward
+  );
   spacetime->conformal_factor_der_func(
-    spacetime, t, x, y + (0.5 * dy), z, dx, dy, dz, &conformal_factor_der_y_forward);
+    spacetime, t, x, y + (0.5 * dy), z, dx, dy, dz, &conformal_factor_der_y_forward
+  );
   spacetime->conformal_factor_der_func(
-    spacetime, t, x, y, z + (0.5 * dz), dx, dy, dz, &conformal_factor_der_z_forward);
+    spacetime, t, x, y, z + (0.5 * dz), dx, dy, dz, &conformal_factor_der_z_forward
+  );
 
   spacetime->conformal_factor_der_func(
-    spacetime, t, x - (0.5 * dx), y, z, dx, dy, dz, &conformal_factor_der_x_backward);
+    spacetime, t, x - (0.5 * dx), y, z, dx, dy, dz, &conformal_factor_der_x_backward
+  );
   spacetime->conformal_factor_der_func(
-    spacetime, t, x, y - (0.5 * dy), z, dx, dy, dz, &conformal_factor_der_y_backward);
+    spacetime, t, x, y - (0.5 * dy), z, dx, dy, dz, &conformal_factor_der_y_backward
+  );
   spacetime->conformal_factor_der_func(
-    spacetime, t, x, y, z - (0.5 * dz), dx, dy, dz, &conformal_factor_der_z_backward);
+    spacetime, t, x, y, z - (0.5 * dz), dx, dy, dz, &conformal_factor_der_z_backward
+  );
 
   for (int i = 0; i < 3; i++) {
     (*conformal_factor_diff2)[0][i] =
@@ -1059,9 +1128,11 @@ void gkyl_gr_conformal_factor_diff2(const struct gkyl_gr_spacetime *spacetime, c
   gkyl_free(conformal_factor_der_z_backward);
 }
 
-void gkyl_gr_bssn_conformal_factor_diff2(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ***bssn_conformal_factor_diff2)
+void gkyl_gr_bssn_conformal_factor_diff2(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ***bssn_conformal_factor_diff2
+)
 {
   double *bssn_conformal_factor_der_x_forward = gkyl_malloc(sizeof(double[3]));
   double *bssn_conformal_factor_der_y_forward = gkyl_malloc(sizeof(double[3]));
@@ -1072,26 +1143,32 @@ void gkyl_gr_bssn_conformal_factor_diff2(const struct gkyl_gr_spacetime *spaceti
   double *bssn_conformal_factor_der_z_backward = gkyl_malloc(sizeof(double[3]));
 
   spacetime->bssn_conformal_factor_der_func(
-    spacetime, t, x + (0.5 * dx), y, z, dx, dy, dz, &bssn_conformal_factor_der_x_forward);
+    spacetime, t, x + (0.5 * dx), y, z, dx, dy, dz, &bssn_conformal_factor_der_x_forward
+  );
   spacetime->bssn_conformal_factor_der_func(
-    spacetime, t, x, y + (0.5 * dy), z, dx, dy, dz, &bssn_conformal_factor_der_y_forward);
+    spacetime, t, x, y + (0.5 * dy), z, dx, dy, dz, &bssn_conformal_factor_der_y_forward
+  );
   spacetime->bssn_conformal_factor_der_func(
-    spacetime, t, x, y, z + (0.5 * dz), dx, dy, dz, &bssn_conformal_factor_der_z_forward);
+    spacetime, t, x, y, z + (0.5 * dz), dx, dy, dz, &bssn_conformal_factor_der_z_forward
+  );
 
   spacetime->bssn_conformal_factor_der_func(
-    spacetime, t, x - (0.5 * dx), y, z, dx, dy, dz, &bssn_conformal_factor_der_x_backward);
+    spacetime, t, x - (0.5 * dx), y, z, dx, dy, dz, &bssn_conformal_factor_der_x_backward
+  );
   spacetime->bssn_conformal_factor_der_func(
-    spacetime, t, x, y - (0.5 * dy), z, dx, dy, dz, &bssn_conformal_factor_der_y_backward);
+    spacetime, t, x, y - (0.5 * dy), z, dx, dy, dz, &bssn_conformal_factor_der_y_backward
+  );
   spacetime->bssn_conformal_factor_der_func(
-    spacetime, t, x, y, z - (0.5 * dz), dx, dy, dz, &bssn_conformal_factor_der_z_backward);
+    spacetime, t, x, y, z - (0.5 * dz), dx, dy, dz, &bssn_conformal_factor_der_z_backward
+  );
 
   for (int i = 0; i < 3; i++) {
     (*bssn_conformal_factor_diff2)[0][i] = (1.0 / dx) * (bssn_conformal_factor_der_x_forward[i] -
-                                                          bssn_conformal_factor_der_x_backward[i]);
+                                                         bssn_conformal_factor_der_x_backward[i]);
     (*bssn_conformal_factor_diff2)[1][i] = (1.0 / dy) * (bssn_conformal_factor_der_y_forward[i] -
-                                                          bssn_conformal_factor_der_y_backward[i]);
+                                                         bssn_conformal_factor_der_y_backward[i]);
     (*bssn_conformal_factor_diff2)[2][i] = (1.0 / dz) * (bssn_conformal_factor_der_z_forward[i] -
-                                                          bssn_conformal_factor_der_z_backward[i]);
+                                                         bssn_conformal_factor_der_z_backward[i]);
   }
 
   gkyl_free(bssn_conformal_factor_der_x_forward);

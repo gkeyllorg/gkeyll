@@ -22,8 +22,10 @@ typedef struct gkyl_prim_cross_m0deltas gkyl_prim_cross_m0deltas;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_prim_cross_m0deltas *gkyl_prim_cross_m0deltas_new(bool normNu, const struct gkyl_basis *basis,
-  const struct gkyl_range *range, double betap1, bool use_gpu);
+gkyl_prim_cross_m0deltas *gkyl_prim_cross_m0deltas_new(
+  bool normNu, const struct gkyl_basis *basis, const struct gkyl_range *range, double betap1,
+  bool use_gpu
+);
 
 /**
  * Compute 
@@ -42,9 +44,11 @@ gkyl_prim_cross_m0deltas *gkyl_prim_cross_m0deltas_new(bool normNu, const struct
  * @param out Output array.
  * @return New updater pointer.
  */
-void gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, double massself,
-  const struct gkyl_array *m0self, const struct gkyl_array *nuself, double massother,
-  const struct gkyl_array *m0other, const struct gkyl_array *nuother, struct gkyl_array *out);
+void gkyl_prim_cross_m0deltas_advance(
+  gkyl_prim_cross_m0deltas *up, double massself, const struct gkyl_array *m0self,
+  const struct gkyl_array *nuself, double massother, const struct gkyl_array *m0other,
+  const struct gkyl_array *nuother, struct gkyl_array *out
+);
 
 /**
  * Delete updater.

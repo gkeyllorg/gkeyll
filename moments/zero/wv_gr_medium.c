@@ -21,10 +21,12 @@ void gkyl_gr_medium_prim_vars(double gas_gamma, const double q[15], double v[15]
   double Etot = q[13];
   double mom = q[14];
 
-  double rho = (1.0 / (gas_gamma - 1.0)) *
-               ((-0.5 * (2.0 - gas_gamma) * Etot) +
-                 sqrt((0.25 * (2.0 - gas_gamma) * (2.0 - gas_gamma) * Etot * Etot) +
-                      ((gas_gamma - 1.0) * ((Etot * Etot) - (mom * mom)))));
+  double rho =
+    (1.0 / (gas_gamma - 1.0)) * ((-0.5 * (2.0 - gas_gamma) * Etot) +
+                                 sqrt(
+                                   (0.25 * (2.0 - gas_gamma) * (2.0 - gas_gamma) * Etot * Etot) +
+                                   ((gas_gamma - 1.0) * ((Etot * Etot) - (mom * mom)))
+                                 ));
 
   double vel = 0.0;
   if (fabs(mom) > pow(10.0, -8.0)) {
@@ -54,7 +56,7 @@ void gkyl_gr_medium_prim_vars(double gas_gamma, const double q[15], double v[15]
 
 static inline double gkyl_gr_medium_max_abs_speed(double gas_gamma, const double q[15])
 {
-  double v[15] = { 0.0 };
+  double v[15] = {0.0};
   gkyl_gr_medium_prim_vars(gas_gamma, q, v);
 
   double vel = v[14];
@@ -66,7 +68,7 @@ static inline double gkyl_gr_medium_max_abs_speed(double gas_gamma, const double
 
 void gkyl_gr_medium_flux(double gas_gamma, double kappa, const double q[15], double flux[15])
 {
-  double v[15] = { 0.0 };
+  double v[15] = {0.0};
   gkyl_gr_medium_prim_vars(gas_gamma, q, v);
   double exp_2a = v[0];
 
@@ -110,8 +112,8 @@ void gkyl_gr_medium_flux(double gas_gamma, double kappa, const double q[15], dou
   flux[14] = (mom * vel) + p;
 }
 
-static inline void cons_to_riem(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 15; i++) {
@@ -119,8 +121,8 @@ static inline void cons_to_riem(
   }
 }
 
-static inline void riem_to_cons(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 15; i++) {
@@ -128,8 +130,10 @@ static inline void riem_to_cons(
   }
 }
 
-static void gr_medium_wall(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-  double *GKYL_RESTRICT ghost, void *ctx)
+static void gr_medium_wall(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   for (int i = 0; i < 14; i++) {
     ghost[i] = skin[i];
@@ -138,26 +142,30 @@ static void gr_medium_wall(const struct gkyl_wv_eqn *eqn, double t, int nc, cons
   ghost[14] = -skin[14];
 }
 
-static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
-  double *GKYL_RESTRICT qlocal)
+static inline void rot_to_local(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
+)
 {
   for (int i = 0; i < 15; i++) {
     qlocal[i] = qglobal[i];
   }
 }
 
-static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
-  double *GKYL_RESTRICT qglobal)
+static inline void rot_to_global(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
+)
 {
   for (int i = 0; i < 15; i++) {
     qglobal[i] = qlocal[i];
   }
 }
 
-static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-  const double *qr, double *waves, double *s)
+static double wave_lax(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_gr_medium *gr_medium = container_of(eqn, struct wv_gr_medium, eqn);
   double gas_gamma = gr_medium->gas_gamma;
@@ -183,8 +191,10 @@ static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const
   return s[1];
 }
 
-static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+static void qfluct_lax(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[15];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -196,22 +206,25 @@ static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const do
   }
 }
 
-static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double flux_jump(
-  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   const struct wv_gr_medium *gr_medium = container_of(eqn, struct wv_gr_medium, eqn);
   double gas_gamma = gr_medium->gas_gamma;
@@ -236,7 +249,7 @@ static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   const struct wv_gr_medium *gr_medium = container_of(eqn, struct wv_gr_medium, eqn);
   double gas_gamma = gr_medium->gas_gamma;
 
-  double v[15] = { 0.0 };
+  double v[15] = {0.0};
   gkyl_gr_medium_prim_vars(gas_gamma, q, v);
 
   if (v[13] < 0.0) {
@@ -254,8 +267,8 @@ static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_gr_medium_max_abs_speed(gas_gamma, q);
 }
 
-static inline void gr_medium_cons_to_diag(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
+static inline void
+gr_medium_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   for (int i = 0; i < 15; i++) {
     diag[i] = qin[i];
@@ -268,7 +281,7 @@ static inline void gr_medium_source(const struct gkyl_wv_eqn *eqn, const double 
   double gas_gamma = gr_medium->gas_gamma;
   double kappa = gr_medium->kappa;
 
-  double v[15] = { 0.0 };
+  double v[15] = {0.0};
   gkyl_gr_medium_prim_vars(gas_gamma, qin, v);
   double exp_2a = v[0];
 
@@ -333,8 +346,8 @@ void gkyl_gr_medium_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_wv_eqn *gkyl_wv_gr_medium_new(double gas_gamma, double kappa, bool use_gpu)
 {
-  return gkyl_wv_gr_medium_inew(&(struct gkyl_wv_gr_medium_inp){
-    .gas_gamma = gas_gamma, .kappa = kappa, .rp_type = WV_GR_MEDIUM_RP_LAX, .use_gpu = use_gpu });
+  return gkyl_wv_gr_medium_inew(&(struct gkyl_wv_gr_medium_inp
+  ){.gas_gamma = gas_gamma, .kappa = kappa, .rp_type = WV_GR_MEDIUM_RP_LAX, .use_gpu = use_gpu});
 }
 
 struct gkyl_wv_eqn *gkyl_wv_gr_medium_inew(const struct gkyl_wv_gr_medium_inp *inp)

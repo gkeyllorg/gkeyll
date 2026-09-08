@@ -14,8 +14,8 @@ static void tensor_field_free(const struct gkyl_ref_count *ref)
   gkyl_free(tfld);
 }
 
-struct gkyl_tensor_field *gkyl_tensor_field_new(
-  size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc)
+struct gkyl_tensor_field *
+gkyl_tensor_field_new(size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc)
 {
   struct gkyl_tensor_field *tfld = gkyl_malloc(sizeof *tfld);
 
@@ -50,19 +50,21 @@ struct gkyl_tensor_field *gkyl_tensor_field_acquire(const struct gkyl_tensor_fie
   return (struct gkyl_tensor_field *)tfld;
 }
 
-struct gkyl_tensor_field *gkyl_tensor_field_copy(
-  struct gkyl_tensor_field *dest, const struct gkyl_tensor_field *src)
+struct gkyl_tensor_field *
+gkyl_tensor_field_copy(struct gkyl_tensor_field *dest, const struct gkyl_tensor_field *src)
 {
-  for (int i = 0; i < GKYL_MAX_DIM; ++i)
+  for (int i = 0; i < GKYL_MAX_DIM; ++i) {
     dest->iloc[i] = src->iloc[i];
+  }
   gkyl_array_copy(dest->tdata, src->tdata);
   return dest;
 }
 
 void gkyl_tensor_field_release(const struct gkyl_tensor_field *ten)
 {
-  if (ten)
+  if (ten) {
     gkyl_ref_count_dec(&ten->ref_count);
+  }
 }
 
 bool gkyl_tensor_field_is_cu_dev(const struct gkyl_tensor_field *tfld)
@@ -75,7 +77,8 @@ bool gkyl_tensor_field_is_cu_dev(const struct gkyl_tensor_field *tfld)
 #ifdef GKYL_HAVE_CUDA
 
 struct gkyl_tensor_field *gkyl_tensor_field_cu_dev_new(
-  size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc)
+  size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc
+)
 {
   struct gkyl_tensor_field *tfld = gkyl_malloc(sizeof(struct gkyl_tensor_field));
 
@@ -106,14 +109,14 @@ struct gkyl_tensor_field *gkyl_tensor_field_cu_dev_new(
   gkyl_cu_memcpy(tfld->on_dev, tfld, sizeof(struct gkyl_tensor_field), GKYL_CU_MEMCPY_H2D);
   // set device-side data pointer in tfld->on_dev to tfld->data->on-dev
   // (which is the host-side pointer to the device data)
-  gkyl_cu_memcpy(
-    &((tfld->on_dev)->tdata), &tfld->tdata->on_dev, sizeof(void *), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(&((tfld->on_dev)->tdata), &tfld->tdata->on_dev, sizeof(void *), GKYL_CU_MEMCPY_H2D);
 
   return tfld;
 }
 
 struct gkyl_tensor_field *gkyl_tensor_field_cu_host_new(
-  size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc)
+  size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc
+)
 {
   struct gkyl_tensor_field *tfld = gkyl_cu_malloc_host(sizeof(struct gkyl_tensor_field));
 
@@ -128,8 +131,10 @@ struct gkyl_tensor_field *gkyl_tensor_field_cu_host_new(
     shape[i] = ndim;
   }
 
-  tfld->tdata = gkyl_array_cu_host_new(GKYL_DOUBLE, ncomp,
-    size); // gkyl_cu_malloc_host(tfld->size*tfld->esznc);
+  tfld->tdata = gkyl_array_cu_host_new(
+    GKYL_DOUBLE, ncomp,
+    size
+  ); // gkyl_cu_malloc_host(tfld->size*tfld->esznc);
   gkyl_range_init_from_shape(&tfld->trange, rank, shape);
   tfld->ref_count = gkyl_ref_count_init(tensor_field_free);
 
@@ -147,14 +152,16 @@ struct gkyl_tensor_field *gkyl_tensor_field_cu_host_new(
 #else
 
 struct gkyl_tensor_field *gkyl_tensor_field_cu_dev_new(
-  size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc)
+  size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc
+)
 {
   assert(false);
   return 0;
 }
 
 struct gkyl_tensor_field *gkyl_tensor_field_cu_host_new(
-  size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc)
+  size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc
+)
 {
   assert(false);
   return 0;

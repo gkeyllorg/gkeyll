@@ -54,8 +54,9 @@ void gkyl_ndim_ordinates_weights(int ndim, double *x, double *w, int nq)
   }
 
   int shape[ndim];
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     shape[d] = nq;
+  }
 
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, ndim, shape);
@@ -65,11 +66,13 @@ void gkyl_ndim_ordinates_weights(int ndim, double *x, double *w, int nq)
   while (gkyl_range_iter_next(&iter)) {
     long lidx = gkyl_range_idx(&qrange, iter.idx);
 
-    for (int d = 0; d < ndim; ++d)
+    for (int d = 0; d < ndim; ++d) {
       x[lidx * ndim + d] = ordinates1[iter.idx[d]];
+    }
 
     w[lidx] = 1.0;
-    for (int d = 0; d < ndim; ++d)
+    for (int d = 0; d < ndim; ++d) {
       w[lidx] *= weights1[iter.idx[d]];
+    }
   }
 }

@@ -26,12 +26,13 @@ static bool gk_eirene_gyrokinetic_str_ends_in_b67(char *name)
   if (digit_count > 0 && i >= 1 && name[i] == 'b' && name[i - 1] == '_') {
     const char *num_str = &name[i + 1];
     int num = atoi(num_str);
-    if (num == 6)
+    if (num == 6) {
       return true;
-    else if (num == 7)
+    } else if (num == 7) {
       return true;
-    else
+    } else {
       return false;
+    }
   } else {
     return false;
   }
@@ -55,19 +56,21 @@ static bool gk_eirene_gyrokinetic_str_ends_in_b1011(char *name)
     int num = atoi(num_str);
 
     // Changed the checks to 10 and 11
-    if (num == 10)
+    if (num == 10) {
       return true;
-    else if (num == 11)
+    } else if (num == 11) {
       return true;
-    else
+    } else {
       return false;
+    }
   } else {
     return false;
   }
 }
 
 void gk_eirene_rhs(
-  gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
+  gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[]
+)
 {
   struct gk_eirene *eirene = app->eirene;
   for (int i = 0; i < eirene->info.num_coupling_species; ++i) {
@@ -102,7 +105,8 @@ void gk_eirene_read(struct gkyl_gyrokinetic_app *app, struct gkyl_array *out, cs
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
   gkyl_nodal_ops_n2m(
-    n2m, &app->basis, &app->grid, &app->gk_geom->nrange_int, &app->local, 1, nnodal, out, true);
+    n2m, &app->basis, &app->grid, &app->gk_geom->nrange_int, &app->local, 1, nnodal, out, true
+  );
   gkyl_array_release(nnodal);
   gkyl_nodal_ops_release(n2m);
 }
@@ -116,15 +120,18 @@ void gk_eirene_write(struct gkyl_gyrokinetic_app *app, double tm, int frame)
     struct gk_species *gks = eirene->coupling_species[i];
     struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
     cstr fileNm = cstr_from_fmt(
-      "%s%s-%s_M0source.txt", eirene->info.input_data_path, app->name, gks->info.name);
+      "%s%s-%s_M0source.txt", eirene->info.input_data_path, app->name, gks->info.name
+    );
     gk_eirene_read(app, bgk_src->M0dot_host, fileNm);
     cstr_drop(&fileNm);
     fileNm = cstr_from_fmt(
-      "%s%s-%s_M1source.txt", eirene->info.input_data_path, app->name, gks->info.name);
+      "%s%s-%s_M1source.txt", eirene->info.input_data_path, app->name, gks->info.name
+    );
     gk_eirene_read(app, bgk_src->M1dot_host, fileNm);
     cstr_drop(&fileNm);
     fileNm = cstr_from_fmt(
-      "%s%s-%s_M2source.txt", eirene->info.input_data_path, app->name, gks->info.name);
+      "%s%s-%s_M2source.txt", eirene->info.input_data_path, app->name, gks->info.name
+    );
     gk_eirene_read(app, bgk_src->M2dot_host, fileNm);
     cstr_drop(&fileNm);
     if (app->use_gpu) {
@@ -192,15 +199,18 @@ struct gk_eirene *gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_g
     struct gk_species *gks = eirene->coupling_species[i];
     struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
     cstr fileNm = cstr_from_fmt(
-      "%s%s-%s_M0source.txt", eirene->info.input_data_path, app->name, gks->info.name);
+      "%s%s-%s_M0source.txt", eirene->info.input_data_path, app->name, gks->info.name
+    );
     gk_eirene_read(app, bgk_src->M0dot_host, fileNm);
     cstr_drop(&fileNm);
     fileNm = cstr_from_fmt(
-      "%s%s-%s_M1source.txt", eirene->info.input_data_path, app->name, gks->info.name);
+      "%s%s-%s_M1source.txt", eirene->info.input_data_path, app->name, gks->info.name
+    );
     gk_eirene_read(app, bgk_src->M1dot_host, fileNm);
     cstr_drop(&fileNm);
     fileNm = cstr_from_fmt(
-      "%s%s-%s_M2source.txt", eirene->info.input_data_path, app->name, gks->info.name);
+      "%s%s-%s_M2source.txt", eirene->info.input_data_path, app->name, gks->info.name
+    );
     gk_eirene_read(app, bgk_src->M2dot_host, fileNm);
     cstr_drop(&fileNm);
     if (app->use_gpu) {
@@ -215,7 +225,8 @@ struct gk_eirene *gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_g
 
 void gk_eirene_release(struct gkyl_gyrokinetic_app *app, struct gk_eirene *eirene)
 {
-  for (int i = 0; i < eirene->info.num_coupling_species; ++i)
+  for (int i = 0; i < eirene->info.num_coupling_species; ++i) {
     gk_species_source_bgk_release(app, &eirene->bgk_src[i]);
+  }
   gkyl_free(eirene);
 }

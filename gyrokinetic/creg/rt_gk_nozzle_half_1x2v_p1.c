@@ -49,7 +49,8 @@ struct gk_nozzle_ctx {
 };
 
 void eval_density_ion_init(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_nozzle_ctx *app = ctx;
   double z = xn[0];
@@ -61,13 +62,15 @@ void eval_density_ion_init(
 }
 
 void eval_upar_ion_init(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   fout[0] = 0.0;
 }
 
 void eval_temp_ion_init(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_nozzle_ctx *app = ctx;
   double z = xn[0];
@@ -155,7 +158,8 @@ struct gk_nozzle_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct gk_nozzle_ctx ctx = { .cdim = cdim,
+  struct gk_nozzle_ctx ctx = {
+    .cdim = cdim,
     .vdim = vdim,
     .me = me,
     .mi = mi,
@@ -174,14 +178,15 @@ struct gk_nozzle_ctx create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = { Nz, Nvpar, Nmu },
+    .cells = {Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .t_end = t_end,
     .num_frames = num_frames,
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
   return ctx;
 }
 
@@ -190,8 +195,9 @@ int main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args.trace_mem) {
@@ -202,15 +208,18 @@ int main(int argc, char **argv)
   struct gk_nozzle_ctx ctx = create_ctx(); // Context for init functions.
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d = 0; d < ctx.cdim; d++)
+  for (int d = 0; d < ctx.cdim; d++) {
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d = 0; d < ctx.vdim; d++)
+  }
+  for (int d = 0; d < ctx.vdim; d++) {
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim + d]);
+  }
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  struct gkyl_gyrokinetic_projection proj_init = { .proj_id = GKYL_PROJ_BIMAXWELLIAN,
+  struct gkyl_gyrokinetic_projection proj_init = {
+    .proj_id = GKYL_PROJ_BIMAXWELLIAN,
     .density = eval_density_ion_init,
     .ctx_density = &ctx,
     .upar = eval_upar_ion_init,
@@ -219,33 +228,36 @@ int main(int argc, char **argv)
     .ctx_temppar = &ctx,
     .tempperp = eval_temp_ion_init,
     .ctx_tempperp = &ctx,
-    .correct_all_moms = true };
+    .correct_all_moms = true
+  };
 
-  struct gkyl_gyrokinetic_species ion = { .name = "ion",
+  struct gkyl_gyrokinetic_species ion = {
+    .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
     .vdim = ctx.vdim,
-    .lower = { -ctx.vpar_max_ion, 0.0 },
-    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
-    .cells = { cells_v[0], cells_v[1] },
+    .lower = {-ctx.vpar_max_ion, 0.0},
+    .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
+    .cells = {cells_v[0], cells_v[1]},
 
     .projection = proj_init,
 
-    .collisionless = { .type = GKYL_GK_COLLISIONLESS_ES },
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = eval_nu_ion,
-      .self_nu_ctx = &ctx },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = eval_nu_ion, .self_nu_ctx = &ctx},
 
-    .bcs = { { .dir = 0,
-               .edge = GKYL_LOWER_EDGE,
-               .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-               .projection = proj_init },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB } },
+    .bcs =
+      {{.dir = 0,
+        .edge = GKYL_LOWER_EDGE,
+        .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+        .projection = proj_init},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
 
     .num_diag_moments = 6,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-      GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN } };
+    .diag_moments =
+      {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
+       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN}
+  };
 
   struct gkyl_mirror_geo_grid_inp grid_inp = {
     .filename_psi = "gyrokinetic/data/unit/single_coil.geqdsk_psi.gkyl", // psi file to use
@@ -270,16 +282,18 @@ int main(int argc, char **argv)
   };
 
   // GK app
-  struct gkyl_gk app_inp = { .cdim = ctx.cdim,
-    .lower = { ctx.z_min },
-    .upper = { ctx.z_max },
-    .cells = { cells_x[0] },
+  struct gkyl_gk app_inp = {
+    .cdim = ctx.cdim,
+    .lower = {ctx.z_min},
+    .upper = {ctx.z_max},
+    .cells = {cells_x[0]},
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
-    .geometry = { .geometry_id = GKYL_GEOMETRY_MIRROR,
-      .world = { ctx.psi_eval, 0.0 },
-      .mirror_grid_info = grid_inp },
+    .geometry =
+      {.geometry_id = GKYL_GEOMETRY_MIRROR,
+       .world = {ctx.psi_eval, 0.0},
+       .mirror_grid_info = grid_inp},
 
     .field = field,
 
@@ -287,30 +301,35 @@ int main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = { ion },
+    .species = {ion},
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm } };
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+  };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
-  struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-    .time_stepping = { .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps } };
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_inp = app_inp,
+    .time_stepping =
+      {.t_end = ctx.t_end,
+       .num_frames = ctx.num_frames,
+       .write_phase_freq = ctx.write_phase_freq,
+       .int_diag_calc_num = ctx.int_diag_calc_num,
+       .dt_failure_tol = ctx.dt_failure_tol,
+       .num_failures_max = ctx.num_failures_max,
+       .is_restart = app_args.is_restart,
+       .restart_frame = app_args.restart_frame,
+       .num_steps = app_args.num_steps}
+  };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
   return 0;
 }

@@ -21,7 +21,8 @@ struct gkyl_dg_diffusion_gen_auxfields {
  * @return Pointer to generic diffusion equation object
  */
 struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu);
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu
+);
 
 /**
  * Create a new generic diffusion equation object that lives on NV-GPU (one which may have non-zero off-diagonal tensor elements).
@@ -32,7 +33,8 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(
  * @return Pointer to generic diffusion equation object
  */
 struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range);
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range
+);
 
 /**
  * Set the auxiliary fields (e.g. diffusion tensor D) needed in updating generic diffusion equation.
@@ -41,7 +43,8 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_diffusion_gen_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin
+);
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -52,6 +55,7 @@ void gkyl_diffusion_gen_set_auxfields(
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_diffusion_gen_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin
+);
 
 #endif

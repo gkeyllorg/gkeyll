@@ -101,20 +101,23 @@ void eval_analytic_bvar_1x(double t, const double *xn, double *restrict fout, vo
   double bx = 0.0;
   double by = 0.0;
   double bz = 0.0;
-  if (Bx < 0.0)
+  if (Bx < 0.0) {
     bx = -sqrt(bxbx);
-  else
+  } else {
     bx = sqrt(bxbx);
+  }
 
-  if (By < 0.0)
+  if (By < 0.0) {
     by = -sqrt(byby);
-  else
+  } else {
     by = sqrt(byby);
+  }
 
-  if (Bz < 0.0)
+  if (Bz < 0.0) {
     bz = -sqrt(bzbz);
-  else
+  } else {
     bz = sqrt(bzbz);
+  }
 
   fout[0] = bx;
   fout[1] = by;
@@ -263,20 +266,23 @@ void eval_analytic_bvar_2x(double t, const double *xn, double *restrict fout, vo
   double bx = 0.0;
   double by = 0.0;
   double bz = 0.0;
-  if (Bx < 0.0)
+  if (Bx < 0.0) {
     bx = -sqrt(bxbx);
-  else
+  } else {
     bx = sqrt(bxbx);
+  }
 
-  if (By < 0.0)
+  if (By < 0.0) {
     by = -sqrt(byby);
-  else
+  } else {
     by = sqrt(byby);
+  }
 
-  if (Bz < 0.0)
+  if (Bz < 0.0) {
     bz = -sqrt(bzbz);
-  else
+  } else {
     bz = sqrt(bzbz);
+  }
 
   fout[0] = bx;
   fout[1] = by;
@@ -460,20 +466,23 @@ void eval_analytic_bvar_3x(double t, const double *xn, double *restrict fout, vo
   double bx = 0.0;
   double by = 0.0;
   double bz = 0.0;
-  if (Bx < 0.0)
+  if (Bx < 0.0) {
     bx = -sqrt(bxbx);
-  else
+  } else {
     bx = sqrt(bxbx);
+  }
 
-  if (By < 0.0)
+  if (By < 0.0) {
     by = -sqrt(byby);
-  else
+  } else {
     by = sqrt(byby);
+  }
 
-  if (Bz < 0.0)
+  if (Bz < 0.0) {
     bz = -sqrt(bzbz);
-  else
+  } else {
     bz = sqrt(bzbz);
+  }
 
   fout[0] = bx;
   fout[1] = by;
@@ -547,7 +556,8 @@ void eval_analytic_ExB_3x(double t, const double *xn, double *restrict fout, voi
 }
 
 void test(
-  int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_analytic, bool use_gpu)
+  int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_analytic, bool use_gpu
+)
 {
   double L = 2. * M_PI;
 
@@ -565,10 +575,11 @@ void test(
 
   // Basis functions.
   struct gkyl_basis basis;
-  if (use_tensor)
+  if (use_tensor) {
     gkyl_cart_modal_tensor(&basis, ndim, poly_order);
-  else
+  } else {
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  }
 
   // Local, local-ext phase-space ranges.
   struct gkyl_range local, local_ext;
@@ -802,10 +813,10 @@ void test(
   gkyl_array_scale_range(alt_L2_bvar, grid.cellVolume, &local);
   gkyl_array_scale_range(alt_L2_ExB, grid.cellVolume, &local);
 
-  double red_L2_bvar[9] = { 0.0 };
-  double red_L2_ExB[3] = { 0.0 };
-  double red_alt_L2_bvar[9] = { 0.0 };
-  double red_alt_L2_ExB[3] = { 0.0 };
+  double red_L2_bvar[9] = {0.0};
+  double red_L2_ExB[3] = {0.0};
+  double red_alt_L2_bvar[9] = {0.0};
+  double red_alt_L2_ExB[3] = {0.0};
 
   gkyl_array_reduce_range(red_L2_bvar, L2_bvar, GKYL_SUM, &local);
   gkyl_array_reduce_range(red_L2_ExB, L2_ExB, GKYL_SUM, &local);
@@ -825,65 +836,91 @@ void test(
     // Check b_i b_j against bin_op
     for (int m = 3 * basis.num_basis; m < 9 * basis.num_basis; ++m) {
       TEST_CHECK(gkyl_compare(alt_bvar_p[m], bvar_p[m], eps));
-      if (ndim == 1)
+      if (ndim == 1) {
         TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", alt_bvar_p[m], m, iter.idx[0]);
-      else if (ndim == 2)
-        TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", alt_bvar_p[m], m,
-          iter.idx[0], iter.idx[1]);
-      else
-        TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", alt_bvar_p[m], m,
-          iter.idx[0], iter.idx[1], iter.idx[2]);
+      } else if (ndim == 2) {
+        TEST_MSG(
+          "Expected: %.13e, coefficient (%d) in cell (%d, %d)", alt_bvar_p[m], m, iter.idx[0],
+          iter.idx[1]
+        );
+      } else {
+        TEST_MSG(
+          "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", alt_bvar_p[m], m, iter.idx[0],
+          iter.idx[1], iter.idx[2]
+        );
+      }
       TEST_MSG("Produced: %.13e, coefficient (%d)", bvar_p[m], m);
     }
     if (check_analytic) {
       // Check bin_op solution against analytic solution
       for (int m = 3 * basis.num_basis; m < 9 * basis.num_basis; ++m) {
         TEST_CHECK(gkyl_compare(alt_bvar_p[m], analytic_bvar_p[m], eps));
-        if (ndim == 1)
+        if (ndim == 1) {
           TEST_MSG(
-            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m, iter.idx[0]);
-        else if (ndim == 2)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_bvar_p[m], m,
-            iter.idx[0], iter.idx[1]);
-        else
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_bvar_p[m], m,
-            iter.idx[0], iter.idx[1], iter.idx[2]);
+            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m, iter.idx[0]
+          );
+        } else if (ndim == 2) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_bvar_p[m], m,
+            iter.idx[0], iter.idx[1]
+          );
+        } else {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_bvar_p[m], m,
+            iter.idx[0], iter.idx[1], iter.idx[2]
+          );
+        }
         TEST_MSG("Produced: %.13e, coefficient (%d)", alt_bvar_p[m], m);
       }
       // Check b_i b_j from inverse operator against analytic solution
       for (int m = 0; m < 9 * basis.num_basis; ++m) {
         TEST_CHECK(gkyl_compare(bvar_p[m], analytic_bvar_p[m], eps));
-        if (ndim == 1)
+        if (ndim == 1) {
           TEST_MSG(
-            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m, iter.idx[0]);
-        else if (ndim == 2)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_bvar_p[m], m,
-            iter.idx[0], iter.idx[1]);
-        else
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_bvar_p[m], m,
-            iter.idx[0], iter.idx[1], iter.idx[2]);
+            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m, iter.idx[0]
+          );
+        } else if (ndim == 2) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_bvar_p[m], m,
+            iter.idx[0], iter.idx[1]
+          );
+        } else {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_bvar_p[m], m,
+            iter.idx[0], iter.idx[1], iter.idx[2]
+          );
+        }
         TEST_MSG("Produced: %.13e, coefficient (%d)", bvar_p[m], m);
       }
     }
 
     // Check if B . B/|B|^2 = 1
-    TEST_CHECK(gkyl_compare(alt_bvar_p[3 * basis.num_basis] + alt_bvar_p[6 * basis.num_basis] +
-                              alt_bvar_p[8 * basis.num_basis],
-      bvar_p[3 * basis.num_basis] + bvar_p[6 * basis.num_basis] + bvar_p[8 * basis.num_basis],
-      1.0e-14));
-    if (ndim == 1)
-      TEST_MSG("Expected: %.13e in cell (%d)", sqrt(2.0), iter.idx[0]);
-    else if (ndim == 2)
-      TEST_MSG("Expected: %.13e in cell (%d, %d)", 2.0, iter.idx[0], iter.idx[1]);
-    else
-      TEST_MSG("Expected: %.13e in cell (%d, %d, %d)", 2.0 * sqrt(2.0), iter.idx[0], iter.idx[1],
-        iter.idx[2]);
-
-    TEST_MSG("Cell average B . B/|B|^2 produced by EM vars computation: %.13e",
-      bvar_p[3 * basis.num_basis] + bvar_p[6 * basis.num_basis] + bvar_p[8 * basis.num_basis]);
-    TEST_MSG("Cell average B . B/|B|^2 Produced by dg_bin_op: %.13e",
+    TEST_CHECK(gkyl_compare(
       alt_bvar_p[3 * basis.num_basis] + alt_bvar_p[6 * basis.num_basis] +
-        alt_bvar_p[8 * basis.num_basis]);
+        alt_bvar_p[8 * basis.num_basis],
+      bvar_p[3 * basis.num_basis] + bvar_p[6 * basis.num_basis] + bvar_p[8 * basis.num_basis],
+      1.0e-14
+    ));
+    if (ndim == 1) {
+      TEST_MSG("Expected: %.13e in cell (%d)", sqrt(2.0), iter.idx[0]);
+    } else if (ndim == 2) {
+      TEST_MSG("Expected: %.13e in cell (%d, %d)", 2.0, iter.idx[0], iter.idx[1]);
+    } else {
+      TEST_MSG(
+        "Expected: %.13e in cell (%d, %d, %d)", 2.0 * sqrt(2.0), iter.idx[0], iter.idx[1],
+        iter.idx[2]
+      );
+    }
+
+    TEST_MSG(
+      "Cell average B . B/|B|^2 produced by EM vars computation: %.13e",
+      bvar_p[3 * basis.num_basis] + bvar_p[6 * basis.num_basis] + bvar_p[8 * basis.num_basis]
+    );
+    TEST_MSG(
+      "Cell average B . B/|B|^2 Produced by dg_bin_op: %.13e", alt_bvar_p[3 * basis.num_basis] +
+                                                                 alt_bvar_p[6 * basis.num_basis] +
+                                                                 alt_bvar_p[8 * basis.num_basis]
+    );
 
     // Check b . b = 1 by checking cell average (should 2^d/2) and x slope (should be zero)
     const double *b_dot_b_p = gkyl_array_cfetch(b_dot_b, linidx);
@@ -898,39 +935,56 @@ void test(
     for (int m = 0; m < 3 * basis.num_basis; ++m) {
       // Check E x B against bin_op
       TEST_CHECK(gkyl_compare(alt_ExB_p[m], ExB_p[m], eps));
-      if (ndim == 1)
+      if (ndim == 1) {
         TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", alt_ExB_p[m], m, iter.idx[0]);
-      else if (ndim == 2)
-        TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", alt_ExB_p[m], m, iter.idx[0],
-          iter.idx[1]);
-      else
-        TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", alt_ExB_p[m], m,
-          iter.idx[0], iter.idx[1], iter.idx[2]);
+      } else if (ndim == 2) {
+        TEST_MSG(
+          "Expected: %.13e, coefficient (%d) in cell (%d, %d)", alt_ExB_p[m], m, iter.idx[0],
+          iter.idx[1]
+        );
+      } else {
+        TEST_MSG(
+          "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", alt_ExB_p[m], m, iter.idx[0],
+          iter.idx[1], iter.idx[2]
+        );
+      }
       TEST_MSG("Produced: %.13e, coefficient (%d)", ExB_p[m], m);
       if (check_analytic) {
         // Check bin_op solution against analytic solution
         TEST_CHECK(gkyl_compare(alt_ExB_p[m], analytic_ExB_p[m], eps));
-        if (ndim == 1)
+        if (ndim == 1) {
           TEST_MSG(
-            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m, iter.idx[0]);
-        else if (ndim == 2)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_ExB_p[m], m,
-            iter.idx[0], iter.idx[1]);
-        else
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_ExB_p[m], m,
-            iter.idx[0], iter.idx[1], iter.idx[2]);
+            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m, iter.idx[0]
+          );
+        } else if (ndim == 2) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_ExB_p[m], m, iter.idx[0],
+            iter.idx[1]
+          );
+        } else {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_ExB_p[m], m,
+            iter.idx[0], iter.idx[1], iter.idx[2]
+          );
+        }
         TEST_MSG("Produced: %.13e, coefficient (%d)", alt_ExB_p[m], m);
         // Check ExB from inverse operator against analytic solution
         TEST_CHECK(gkyl_compare(ExB_p[m], analytic_ExB_p[m], eps));
-        if (ndim == 1)
+        if (ndim == 1) {
           TEST_MSG(
-            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m, iter.idx[0]);
-        else if (ndim == 2)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_ExB_p[m], m,
-            iter.idx[0], iter.idx[1]);
-        else
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_ExB_p[m], m,
-            iter.idx[0], iter.idx[1], iter.idx[2]);
+            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m, iter.idx[0]
+          );
+        } else if (ndim == 2) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_ExB_p[m], m, iter.idx[0],
+            iter.idx[1]
+          );
+        } else {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_ExB_p[m], m,
+            iter.idx[0], iter.idx[1], iter.idx[2]
+          );
+        }
         TEST_MSG("Produced: %.13e, coefficient (%d)", ExB_p[m], m);
       }
     }
@@ -1072,11 +1126,12 @@ void test_dg_em_vars_3x_tensor_p2_dev()
 
 #endif
 
-TEST_LIST = { { "test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho },
-  { "test_dg_em_vars_2x_p1_ho", test_dg_em_vars_2x_p1_ho },
-  { "test_dg_em_vars_3x_p1_ho", test_dg_em_vars_3x_p1_ho },
+TEST_LIST = {
+  {"test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho},
+  {"test_dg_em_vars_2x_p1_ho", test_dg_em_vars_2x_p1_ho},
+  {"test_dg_em_vars_3x_p1_ho", test_dg_em_vars_3x_p1_ho},
 
-  { "test_dg_em_vars_1x_p2_ho", test_dg_em_vars_1x_p2_ho },
+  {"test_dg_em_vars_1x_p2_ho", test_dg_em_vars_1x_p2_ho},
 // The tensor p2 bvar comparison is disabled (CPU and GPU): the em_vars
 // operator's positivity-control fallback keeps only the cell average of
 // b_i b_j in cells where b_i b_i is negative at control points, while the
@@ -1086,14 +1141,15 @@ TEST_LIST = { { "test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho },
 // { "test_dg_em_vars_3x_tensor_p2_ho", test_dg_em_vars_3x_tensor_p2_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  { "test_dg_em_vars_1x_p1_dev", test_dg_em_vars_1x_p1_dev },
-  { "test_dg_em_vars_2x_p1_dev", test_dg_em_vars_2x_p1_dev },
-  { "test_dg_em_vars_3x_p1_dev", test_dg_em_vars_3x_p1_dev },
+  {"test_dg_em_vars_1x_p1_dev", test_dg_em_vars_1x_p1_dev},
+  {"test_dg_em_vars_2x_p1_dev", test_dg_em_vars_2x_p1_dev},
+  {"test_dg_em_vars_3x_p1_dev", test_dg_em_vars_3x_p1_dev},
 
-  { "test_dg_em_vars_1x_p2_dev", test_dg_em_vars_1x_p2_dev },
+  {"test_dg_em_vars_1x_p2_dev", test_dg_em_vars_1x_p2_dev},
 // Disabled for the same positivity-fallback reason as the CPU tensor tests.
 // { "test_dg_em_vars_2x_tensor_p2_dev", test_dg_em_vars_2x_tensor_p2_dev },
 // { "test_dg_em_vars_3x_tensor_p2_dev", test_dg_em_vars_3x_tensor_p2_dev },
 
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

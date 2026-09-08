@@ -16,16 +16,20 @@
 #include <assert.h>
 #include <time.h>
 
-void gk_species_gyroaverage_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gkyl_array *field_in, struct gkyl_array *field_gyroavg)
+void gk_species_gyroaverage_disabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *field_in,
+  struct gkyl_array *field_gyroavg
+)
 {
   struct timespec wst = gkyl_wall_clock();
   // Don't perform gyroaveraging.
   app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gk_species_gyroaverage_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gkyl_array *field_in, struct gkyl_array *field_gyroavg)
+void gk_species_gyroaverage_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *field_in,
+  struct gkyl_array *field_gyroavg
+)
 {
   struct timespec wst = gkyl_wall_clock();
   // Gyroaverage input field.
@@ -34,8 +38,8 @@ void gk_species_gyroaverage_enabled(gkyl_gyrokinetic_app *app, struct gk_species
 }
 
 // Begin static function definitions.
-static double gk_species_omegaH_dt(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
+static double
+gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
 {
   // Compute the time step under which the omega_H mode is stable, dt_omegaH =
   // omegaH_CFL/omega_H.
@@ -74,8 +78,10 @@ static double gk_species_omegaH_dt(
   }
 }
 
-static double gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+static double gk_species_rhs_dynamic(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
 {
   // Gyroaverage the potential if needed.
   species->gyroaverage(app, species, app->field->phi_smooth, species->gyro_phi);
@@ -87,8 +93,10 @@ static double gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_specie
   gk_species_collisionless_rhs(app, species, &species->collisionless, fin, rhs);
 
   // Damping term.
-  gk_species_damping_advance(app, species, &species->damping, app->field->phi_smooth, fin,
-    species->lte.f_lte, rhs, species->cflrate);
+  gk_species_damping_advance(
+    app, species, &species->damping, app->field->phi_smooth, fin, species->lte.f_lte, rhs,
+    species->cflrate
+  );
 
   // LBO Collisions.
   gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
@@ -119,7 +127,8 @@ static double gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_specie
 
   // Multiply CFL rate by the df/dt multiplier.
   gk_species_fdot_multiplier_advance_times_cfl(
-    app, species, &species->fdot_mult, app->field->phi_smooth, fin, species->cflrate);
+    app, species, &species->fdot_mult, app->field->phi_smooth, fin, species->cflrate
+  );
 
   // Reduce the CFL frequency and compute stable dt needed by this species.
   app->stat.n_species_omega_cfl += 1;
@@ -145,8 +154,10 @@ static double gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_specie
   return dt_out;
 }
 
-static double gk_species_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt)
+static double gk_species_rhs_implicit_dynamic(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
+)
 {
   double omega_cfl = 1 / DBL_MAX;
   gkyl_array_clear(species->cflrate, 0.0);
@@ -173,35 +184,42 @@ static double gk_species_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct 
   return app->cfl / omega_cfl;
 }
 
-static double gk_species_rhs_static(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+static double gk_species_rhs_static(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
 {
   double omega_cfl = 1 / DBL_MAX;
   return app->cfl / omega_cfl;
 }
 
-static double gk_species_rhs_implicit_static(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt)
+static double gk_species_rhs_implicit_static(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
+)
 {
   double omega_cfl = 1 / DBL_MAX;
   return app->cfl / omega_cfl;
 }
 
 static void gk_species_apply_bc_dynamic(
-  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f
+)
 {
   struct timespec wst = gkyl_wall_clock();
 
   int num_periodic_dir = species->num_periodic_dir, cdim = app->cdim;
-  gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext, num_periodic_dir,
-    species->periodic_dirs, f);
+  gkyl_comm_array_per_sync(
+    species->comm, &species->local, &species->local_ext, num_periodic_dir, species->periodic_dirs, f
+  );
 
   for (int d = 0; d < cdim; ++d) {
     if (species->bc_is_np[d]) {
       switch (species->lower_bc[d].type) {
       case GKYL_BC_GK_SPECIES_SHEATH:
         gkyl_bc_sheath_gyrokinetic_advance(
-          species->bc_sheath_lo, app->field->phi_smooth, app->field->phi_wall_lo, f, &app->local);
+          species->bc_sheath_lo, app->field->phi_smooth, app->field->phi_wall_lo, f, &app->local
+        );
         break;
       case GKYL_BC_GK_SPECIES_TWISTSHIFT:
         gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
@@ -223,7 +241,8 @@ static void gk_species_apply_bc_dynamic(
       switch (species->upper_bc[d].type) {
       case GKYL_BC_GK_SPECIES_SHEATH:
         gkyl_bc_sheath_gyrokinetic_advance(
-          species->bc_sheath_up, app->field->phi_smooth, app->field->phi_wall_up, f, &app->local);
+          species->bc_sheath_up, app->field->phi_smooth, app->field->phi_wall_up, f, &app->local
+        );
         break;
       case GKYL_BC_GK_SPECIES_TWISTSHIFT:
         gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
@@ -256,51 +275,56 @@ static void gk_species_apply_bc_dynamic(
 }
 
 static void gk_species_apply_bc_static(
-  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f
+)
 {
   // do nothing
 }
 
-static void gk_species_step_f_dynamic(
-  struct gkyl_array *out, double dt, const struct gkyl_array *inp)
+static void
+gk_species_step_f_dynamic(struct gkyl_array *out, double dt, const struct gkyl_array *inp)
 {
   gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
 }
 
-static void gk_species_step_f_static(
-  struct gkyl_array *out, double dt, const struct gkyl_array *inp)
+static void
+gk_species_step_f_static(struct gkyl_array *out, double dt, const struct gkyl_array *inp)
 {
   // do nothing
 }
 
-static void gk_species_combine_dynamic(struct gkyl_array *out, double c1,
-  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
-  const struct gkyl_range *rng)
+static void gk_species_combine_dynamic(
+  struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2,
+  const struct gkyl_array *arr2, const struct gkyl_range *rng
+)
 {
   gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng), c2, arr2, rng);
 }
 
-static void gk_species_combine_static(struct gkyl_array *out, double c1,
-  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
-  const struct gkyl_range *rng)
+static void gk_species_combine_static(
+  struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2,
+  const struct gkyl_array *arr2, const struct gkyl_range *rng
+)
 {
   // do nothing
 }
 
 static void gk_species_copy_range_dynamic(
-  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range)
+  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
+)
 {
   gkyl_array_copy_range(out, inp, range);
 }
 
 static void gk_species_copy_range_static(
-  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range)
+  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
+)
 {
   // do nothing
 }
 
-static void gk_species_write_dynamic(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
+static void
+gk_species_write_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
   gks->write_cfl_func(app, gks, tm, frame);
@@ -308,13 +332,16 @@ static void gk_species_write_dynamic(
   // Metadata from app and geo object.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
-  struct gkyl_msgpack_map_elem io_meta_f[] = { { .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "Distribution function times Jacobians." } };
+  struct gkyl_msgpack_map_elem io_meta_f[] = {
+    {.key = "Description",
+     .elem_type = GKYL_MP_STRING,
+     .cval = "Distribution function times Jacobians."}
+  };
   int io_meta_f_len = sizeof(io_meta_f) / sizeof(io_meta_f[0]);
-  int io_meta_len[] = { gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, io_meta_f_len };
-  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_phase, app->gk_geom->io_meta_basic,
-    io_meta_f };
+  int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, io_meta_f_len};
+  const struct gkyl_msgpack_map_elem *io_meta[] = {
+    gks->io_meta_phase, app->gk_geom->io_meta_basic, io_meta_f
+  };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -335,32 +362,33 @@ static void gk_species_write_dynamic(
   app->stat.n_io += 1;
 }
 
-static void gk_species_write_static(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
+static void
+gk_species_write_static(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   // do nothing
 }
 
-static void gk_species_write_cfl_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
+static void
+gk_species_write_cfl_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   // The 0th frame is often wrong for this diagnostic because cflrate is computed AFTER
   // the first time step
   struct timespec wst = gkyl_wall_clock();
   // DG metadata for cflrate.
   struct gkyl_msgpack_map_elem mpe_cfl[] = {
-    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
-    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
-    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "CFL frequency." }
+    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "CFL frequency."}
   };
   int mpe_cfl_len = sizeof(mpe_cfl) / sizeof(mpe_cfl[0]);
   // Update app basic metada with time/frame.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
   // Unionize metadata.
-  int io_meta_len[] = { gks->io_meta_phase_len, mpe_cfl_len, app->gk_geom->io_meta_basic_len };
-  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_phase, mpe_cfl,
-    app->gk_geom->io_meta_basic };
+  int io_meta_len[] = {gks->io_meta_phase_len, mpe_cfl_len, app->gk_geom->io_meta_basic_len};
+  const struct gkyl_msgpack_map_elem *io_meta[] = {
+    gks->io_meta_phase, mpe_cfl, app->gk_geom->io_meta_basic
+  };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -378,13 +406,14 @@ static void gk_species_write_cfl_enabled(
 }
 
 static void gk_species_write_cfl_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
+)
 {
   // do nothing
 }
 
-static void gk_species_write_mom_dynamic(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
+static void
+gk_species_write_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   // Update time/frame metadata (shared fields, set once before the loop).
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
@@ -404,21 +433,28 @@ static void gk_species_write_mom_dynamic(
       gkyl_array_copy(gks->moms[m].marr_host, gks->moms[m].marr);
     }
 
-    struct gkyl_msgpack_map_elem io_meta_mom[] = { { .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = (char *)gkyl_distribution_moments_descriptions[gks->info.diag_moments[m]] } };
-    int io_meta_len[] = { gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
-    const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_conf,
-      app->gk_geom->io_meta_basic, io_meta_mom };
+    struct gkyl_msgpack_map_elem io_meta_mom[] = {
+      {.key = "Description",
+       .elem_type = GKYL_MP_STRING,
+       .cval = (char *)gkyl_distribution_moments_descriptions[gks->info.diag_moments[m]]}
+    };
+    int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem *io_meta[] = {
+      gks->io_meta_conf, app->gk_geom->io_meta_basic, io_meta_mom
+    };
     struct gkyl_msgpack_data *mt =
       gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
     const char *fmt = "%s-%s_%s_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
-      gkyl_distribution_moments_strs[gks->info.diag_moments[m]], frame);
+    int sz = gkyl_calc_strlen(
+      fmt, app->name, gks->info.name, gkyl_distribution_moments_strs[gks->info.diag_moments[m]],
+      frame
+    );
     char fileNm[sz + 1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
-      gkyl_distribution_moments_strs[gks->info.diag_moments[m]], frame);
+    snprintf(
+      fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
+      gkyl_distribution_moments_strs[gks->info.diag_moments[m]], frame
+    );
 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->moms[m].marr_host, fileNm);
     gkyl_msgpack_data_release(mt);
@@ -429,14 +465,15 @@ static void gk_species_write_mom_dynamic(
   app->stat.n_diag += 1;
 }
 
-static void gk_species_write_mom_static(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
+static void
+gk_species_write_mom_static(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   // do nothing
 }
 
 static void gk_species_calc_int_mom_dt_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+)
 {
   struct timespec wst = gkyl_wall_clock();
   // Compute moment of f_new to compute moment of df/dt.
@@ -447,18 +484,20 @@ static void gk_species_calc_int_mom_dt_enabled(
 }
 
 static void gk_species_calc_int_mom_dt_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+)
 {
 }
 
 void gk_species_calc_int_mom_dt(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+)
 {
   gks->calc_int_mom_dt_func(app, gks, dt, fdot_int_mom);
 }
 
-static void gk_species_calc_integrated_mom_dynamic(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)
+static void
+gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -471,10 +510,12 @@ static void gk_species_calc_integrated_mom_dynamic(
   // Reduce (sum) over whole domain, append to diagnostics.
   gkyl_array_reduce_range(gks->red_integ_diag, gks->integ_moms.marr, GKYL_SUM, &app->local);
   gkyl_comm_allreduce(
-    app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, gks->red_integ_diag, gks->red_integ_diag_global);
+    app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, gks->red_integ_diag, gks->red_integ_diag_global
+  );
   if (app->use_gpu) {
     gkyl_cu_memcpy(
-      avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+      avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H
+    );
   } else {
     memcpy(avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]));
   }
@@ -485,10 +526,12 @@ static void gk_species_calc_integrated_mom_dynamic(
     gkyl_array_accumulate(gks->fdot_mom_new, -1.0, gks->fdot_mom_old);
     gkyl_array_reduce_range(gks->red_integ_diag, gks->fdot_mom_new, GKYL_SUM, &app->local);
     gkyl_comm_allreduce(
-      app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, gks->red_integ_diag, gks->red_integ_diag_global);
+      app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, gks->red_integ_diag, gks->red_integ_diag_global
+    );
     if (app->use_gpu) {
       gkyl_cu_memcpy(
-        avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+        avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H
+      );
     } else {
       memcpy(avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]));
     }
@@ -499,14 +542,14 @@ static void gk_species_calc_integrated_mom_dynamic(
   app->stat.n_diag += 1;
 }
 
-static void gk_species_calc_integrated_mom_static(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)
+static void
+gk_species_calc_integrated_mom_static(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)
 {
   // do nothing
 }
 
-static void gk_species_write_integrated_mom_dynamic(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks)
+static void
+gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -521,11 +564,12 @@ static void gk_species_write_integrated_mom_dynamic(
 
     if (gks->is_first_integ_write_call) {
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments." }
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments."}
       };
-      int io_meta_len[] = { gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
-      const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic,
-        app->gk_geom->io_meta_basic, io_meta_phi };
+      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem *io_meta[] = {
+        gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
+      };
       struct gkyl_msgpack_data *mt =
         gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -548,12 +592,15 @@ static void gk_species_write_integrated_mom_dynamic(
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
       if (gks->is_first_fdot_integ_write_call) {
-        struct gkyl_msgpack_map_elem io_meta_phi[] = { { .key = "Description",
-          .elem_type = GKYL_MP_STRING,
-          .cval = "Volume integrated moments of time rate of change." } };
-        int io_meta_len[] = { gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
-        const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic,
-          app->gk_geom->io_meta_basic, io_meta_phi };
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {
+          {.key = "Description",
+           .elem_type = GKYL_MP_STRING,
+           .cval = "Volume integrated moments of time rate of change."}
+        };
+        int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+        const struct gkyl_msgpack_map_elem *io_meta[] = {
+          gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
+        };
         struct gkyl_msgpack_data *mt =
           gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -571,22 +618,24 @@ static void gk_species_write_integrated_mom_dynamic(
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_species_write_integrated_mom_static(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks)
+static void
+gk_species_write_integrated_mom_static(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   // do nothing
 }
 
-static void gk_species_calc_L2norm_dynamic(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)
+static void
+gk_species_calc_L2norm_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
 
-  gkyl_array_integrate_advance(gks->integ_wfsq_op, gks->f, (2.0 * M_PI) / gks->info.mass,
-    app->jacobtot_inv_weak, &gks->local, &app->local, gks->L2norm_local);
+  gkyl_array_integrate_advance(
+    gks->integ_wfsq_op, gks->f, (2.0 * M_PI) / gks->info.mass, app->jacobtot_inv_weak, &gks->local,
+    &app->local, gks->L2norm_local
+  );
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, gks->L2norm_local, gks->L2norm_global);
 
-  double L2norm_global[] = { 0.0 };
+  double L2norm_global[] = {0.0};
   if (app->use_gpu) {
     gkyl_cu_memcpy(L2norm_global, gks->L2norm_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
   } else {
@@ -598,8 +647,8 @@ static void gk_species_calc_L2norm_dynamic(
   app->stat.n_diag += 1;
 }
 
-static void gk_species_calc_L2norm_static(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)
+static void
+gk_species_calc_L2norm_static(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)
 {
   // do nothing
 }
@@ -618,12 +667,13 @@ static void gk_species_write_L2norm_dynamic(gkyl_gyrokinetic_app *app, struct gk
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "L2norm");
 
     if (gks->is_first_L2norm_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = { { .key = "Description",
-        .elem_type = GKYL_MP_STRING,
-        .cval = "L2 norm of the distribution." } };
-      int io_meta_len[] = { gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
-      const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic,
-        app->gk_geom->io_meta_basic, io_meta_phi };
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "L2 norm of the distribution."}
+      };
+      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem *io_meta[] = {
+        gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
+      };
       struct gkyl_msgpack_data *mt =
         gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -735,7 +785,8 @@ static void gk_species_release_static(const gkyl_gyrokinetic_app *app, const str
 
 // Initialize species object.
 static void gk_species_init_dynamic(
-  struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+  struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks
+)
 {
   int cdim = app->cdim, vdim = gks->info.vdim;
   int pdim = cdim + vdim;
@@ -766,9 +817,11 @@ static void gk_species_init_dynamic(
   // Allocate data for integrated moments.
   int num_diag_int_moms = gks->info.num_integrated_diag_moments;
   assert(num_diag_int_moms < 2); // 1 int moment allowed now.
-  gk_species_moment_init(app, gks, &gks->integ_moms,
+  gk_species_moment_init(
+    app, gks, &gks->integ_moms,
     num_diag_int_moms == 0 ? GKYL_F_MOMENT_M0M1M2PARM2PERP : gks->info.integrated_diag_moments[0],
-    true);
+    true
+  );
 
   if (app->use_gpu) {
     gks->red_integ_diag = gkyl_cu_malloc(sizeof(double[gks->integ_moms.num_mom]));
@@ -793,7 +846,8 @@ static void gk_species_init_dynamic(
 
   // Objects for L2 norm diagnostic.
   gks->integ_wfsq_op = gkyl_array_integrate_new(
-    &gks->grid, &gks->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu);
+    &gks->grid, &gks->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu
+  );
   if (app->use_gpu) {
     gks->L2norm_local = gkyl_cu_malloc(sizeof(double));
     gks->L2norm_global = gkyl_cu_malloc(sizeof(double));
@@ -807,7 +861,7 @@ static void gk_species_init_dynamic(
   int par_dir = app->cdim - 1; // The last direction is the parallel one.
   if (gk_app_inp->geometry.has_LCFS ||
       (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT ||
-        gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT)) {
+       gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT)) {
     // Make the parallel direction periodic so that we sync before applying TS BC.
     gks->periodic_dirs[gks->num_periodic_dir] = par_dir;
     gks->num_periodic_dir += 1;
@@ -859,12 +913,14 @@ static void gk_species_init_dynamic(
       struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS ?
                                        &gks->local_lower_ghost_par_sol :
                                        &gks->local_lower_ghost[d];
-      gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev,
-        sol_skin, sol_ghost, gks->vel_map, cdim, 2.0 * (gks->info.charge / gks->info.mass),
-        app->use_gpu);
+      gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(
+        d, GKYL_LOWER_EDGE, gks->basis_on_dev, sol_skin, sol_ghost, gks->vel_map, cdim,
+        2.0 * (gks->info.charge / gks->info.mass), app->use_gpu
+      );
     } else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
-      struct gkyl_bc_twistshift_inp tsinp = { .bc_dir = d,
+      struct gkyl_bc_twistshift_inp tsinp = {
+        .bc_dir = d,
         .shift_dir = 1, // y shift.
         .shear_dir = 0, // shift varies with x.
         .edge = GKYL_LOWER_EDGE,
@@ -873,10 +929,11 @@ static void gk_species_init_dynamic(
         .num_ghost = ghost,
         .basis = &gks->basis,
         .grid = &gks->grid,
-        .use_gpu = app->use_gpu };
-      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+        .use_gpu = app->use_gpu
+      };
+      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
         tsinp.shift_dg = app->delta_ts_x_lo;
-      else {
+      } else {
         tsinp.shift_func = app->gk_geom->parallel_lower_bc_shift_func;
         tsinp.shift_func_ctx = app->gk_geom->parallel_lower_bc_shift_ctx;
       }
@@ -887,13 +944,16 @@ static void gk_species_init_dynamic(
                (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
                (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
                (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
-      if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT)
+      if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) {
         assert(
-          d == cdim - 1); // MF 2025/09/25: Reflecting BCs only allowed in the parallel direction.
+          d == cdim - 1
+        ); // MF 2025/09/25: Reflecting BCs only allowed in the parallel direction.
+      }
 
-      gks->bc_lo[d] = gkyl_bc_basic_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->lower_bc[d].type,
-        gks->basis_on_dev, &gks->local_lower_skin[d], &gks->local_lower_ghost[d], gks->f->ncomp,
-        app->cdim, app->use_gpu);
+      gks->bc_lo[d] = gkyl_bc_basic_gyrokinetic_new(
+        d, GKYL_LOWER_EDGE, gks->lower_bc[d].type, gks->basis_on_dev, &gks->local_lower_skin[d],
+        &gks->local_lower_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu
+      );
 
       if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
         // Project distribution desired in the ghost cell.
@@ -901,15 +961,15 @@ static void gk_species_init_dynamic(
         gk_species_projection_init(app, gks, gks->lower_bc[d].projection, &gk_proj_bc_lo);
         gk_species_projection_calc(app, gks, &gk_proj_bc_lo, gks->f1, 0.0); // Temporarily use f1.
         // Fill ghost cell with the boundary value.
-        struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(d,
-          GKYL_LOWER_EDGE, GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, gks->basis_on_dev,
+        struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(
+          d, GKYL_LOWER_EDGE, GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, gks->basis_on_dev,
           &gks->local_lower_skin[d], &gks->local_lower_ghost[d], gks->f->ncomp, app->cdim,
-          app->use_gpu);
+          app->use_gpu
+        );
         gkyl_bc_basic_gyrokinetic_advance(gfss_bc_op, gks->bc_buffer_lo_fixed, gks->f1);
         gkyl_bc_basic_gyrokinetic_release(gfss_bc_op);
         // Copy ghost range into buffer.
-        gkyl_bc_basic_gyrokinetic_buffer_fixed_func(
-          gks->bc_lo[d], gks->bc_buffer_lo_fixed, gks->f1);
+        gkyl_bc_basic_gyrokinetic_buffer_fixed_func(gks->bc_lo[d], gks->bc_buffer_lo_fixed, gks->f1);
         gkyl_array_clear(gks->f1, 0.0);
         gk_species_projection_release(app, &gk_proj_bc_lo);
       }
@@ -922,12 +982,14 @@ static void gk_species_init_dynamic(
       struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS ?
                                        &gks->local_upper_ghost_par_sol :
                                        &gks->local_upper_ghost[d];
-      gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev,
-        sol_skin, sol_ghost, gks->vel_map, cdim, 2.0 * (gks->info.charge / gks->info.mass),
-        app->use_gpu);
+      gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(
+        d, GKYL_UPPER_EDGE, gks->basis_on_dev, sol_skin, sol_ghost, gks->vel_map, cdim,
+        2.0 * (gks->info.charge / gks->info.mass), app->use_gpu
+      );
     } else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
-      struct gkyl_bc_twistshift_inp tsinp = { .bc_dir = d,
+      struct gkyl_bc_twistshift_inp tsinp = {
+        .bc_dir = d,
         .shift_dir = 1, // y shift.
         .shear_dir = 0, // shift varies with x.
         .edge = GKYL_UPPER_EDGE,
@@ -936,10 +998,11 @@ static void gk_species_init_dynamic(
         .num_ghost = ghost,
         .basis = &gks->basis,
         .grid = &gks->grid,
-        .use_gpu = app->use_gpu };
-      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+        .use_gpu = app->use_gpu
+      };
+      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
         tsinp.shift_dg = app->delta_ts_x_up;
-      else {
+      } else {
         tsinp.shift_func = app->gk_geom->parallel_upper_bc_shift_func;
         tsinp.shift_func_ctx = app->gk_geom->parallel_upper_bc_shift_ctx;
       }
@@ -949,13 +1012,16 @@ static void gk_species_init_dynamic(
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
-      if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT)
+      if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) {
         assert(
-          d == cdim - 1); // MF 2025/09/25: Reflecting BCs only allowed in the parallel direction.
+          d == cdim - 1
+        ); // MF 2025/09/25: Reflecting BCs only allowed in the parallel direction.
+      }
 
-      gks->bc_up[d] = gkyl_bc_basic_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->upper_bc[d].type,
-        gks->basis_on_dev, &gks->local_upper_skin[d], &gks->local_upper_ghost[d], gks->f->ncomp,
-        app->cdim, app->use_gpu);
+      gks->bc_up[d] = gkyl_bc_basic_gyrokinetic_new(
+        d, GKYL_UPPER_EDGE, gks->upper_bc[d].type, gks->basis_on_dev, &gks->local_upper_skin[d],
+        &gks->local_upper_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu
+      );
 
       if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
         // Project distribution desired in the ghost cell.
@@ -963,15 +1029,15 @@ static void gk_species_init_dynamic(
         gk_species_projection_init(app, gks, gks->upper_bc[d].projection, &gk_proj_bc_up);
         gk_species_projection_calc(app, gks, &gk_proj_bc_up, gks->f1, 0.0); // Temporarily use f1.
         // Fill ghost cell with the boundary value.
-        struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(d,
-          GKYL_UPPER_EDGE, GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, gks->basis_on_dev,
+        struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(
+          d, GKYL_UPPER_EDGE, GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, gks->basis_on_dev,
           &gks->local_upper_skin[d], &gks->local_upper_ghost[d], gks->f->ncomp, app->cdim,
-          app->use_gpu);
+          app->use_gpu
+        );
         gkyl_bc_basic_gyrokinetic_advance(gfss_bc_op, gks->bc_buffer_up_fixed, gks->f1);
         gkyl_bc_basic_gyrokinetic_release(gfss_bc_op);
         // Copy ghost range into buffer.
-        gkyl_bc_basic_gyrokinetic_buffer_fixed_func(
-          gks->bc_up[d], gks->bc_buffer_up_fixed, gks->f1);
+        gkyl_bc_basic_gyrokinetic_buffer_fixed_func(gks->bc_up[d], gks->bc_buffer_up_fixed, gks->f1);
         gkyl_array_clear(gks->f1, 0.0);
         gk_species_projection_release(app, &gk_proj_bc_up);
       }
@@ -980,7 +1046,8 @@ static void gk_species_init_dynamic(
 
   if (gk_app_inp->geometry.has_LCFS && app->cdim == 3) {
     // Allocate a twistshift operator in the core.
-    struct gkyl_bc_twistshift_inp tsinp_lo = { .bc_dir = par_dir,
+    struct gkyl_bc_twistshift_inp tsinp_lo = {
+      .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
@@ -989,16 +1056,18 @@ static void gk_species_init_dynamic(
       .num_ghost = ghost,
       .basis = &gks->basis,
       .grid = &gks->grid,
-      .use_gpu = app->use_gpu };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+      .use_gpu = app->use_gpu
+    };
+    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
       tsinp_lo.shift_dg = app->delta_ts_x_lo;
-    else {
+    } else {
       tsinp_lo.shift_func = app->gk_geom->parallel_lower_bc_shift_func;
       tsinp_lo.shift_func_ctx = app->gk_geom->parallel_lower_bc_shift_ctx;
     }
     gks->bc_ts_lo = gkyl_bc_twistshift_inew(&tsinp_lo);
 
-    struct gkyl_bc_twistshift_inp tsinp_up = { .bc_dir = par_dir,
+    struct gkyl_bc_twistshift_inp tsinp_up = {
+      .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_UPPER_EDGE,
@@ -1007,10 +1076,11 @@ static void gk_species_init_dynamic(
       .num_ghost = ghost,
       .basis = &gks->basis,
       .grid = &gks->grid,
-      .use_gpu = app->use_gpu };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+      .use_gpu = app->use_gpu
+    };
+    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
       tsinp_up.shift_dg = app->delta_ts_x_up;
-    else {
+    } else {
       tsinp_up.shift_func = app->gk_geom->parallel_upper_bc_shift_func;
       tsinp_up.shift_func_ctx = app->gk_geom->parallel_upper_bc_shift_ctx;
     }
@@ -1037,15 +1107,17 @@ static void gk_species_init_dynamic(
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
   gks->calc_L2norm_func = gk_species_calc_L2norm_dynamic;
   gks->write_L2norm_func = gk_species_write_L2norm_dynamic;
-  if (gks->info.time_rate_diagnostics)
+  if (gks->info.time_rate_diagnostics) {
     gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_enabled;
-  else
+  } else {
     gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
+  }
 }
 
 // Initialize static species object.
 static void gk_species_init_static(
-  struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+  struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks
+)
 {
   // Allocate distribution function arrays.
   gks->f1 = gks->f;
@@ -1070,7 +1142,8 @@ static void gk_species_init_static(
 }
 
 void gk_species_file_import_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp)
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp
+)
 {
   // Import initial condition from a file. Intended options include importing:
   //   1) ICs with same grid.
@@ -1102,8 +1175,9 @@ void gk_species_file_import_init(
     // Perform some basic checks.
     if (pdim_do == pdim) {
       // Check if the grid resolution is the same.
-      for (int d = 0; d < pdim; d++)
+      for (int d = 0; d < pdim; d++) {
         same_res = same_res && (grid_do.cells[d] == grid.cells[d]);
+      }
     } else {
       // Assume the loaded file has one lower conf-space dimension.
       // Primarily meant for loading:
@@ -1131,15 +1205,19 @@ void gk_species_file_import_init(
 
     // Read basis info from header, check its consistency.
     struct gkyl_msgpack_map_elem elem_list[] = {
-      { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
-      { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0 }
+      {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
+      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0}
     };
     int elem_list_len = sizeof(elem_list) / sizeof(elem_list[0]);
     gkyl_msgpack_to_map_elem_list(
-      &(struct gkyl_msgpack_data){ .meta = hdr.meta, .meta_sz = hdr.meta_size }, elem_list_len,
-      elem_list);
-    assert(strcmp(gks->basis.id,
-             gkyl_msgpack_map_elem_get_string(elem_list_len, elem_list, "basis_type")) == 0);
+      &(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size}, elem_list_len,
+      elem_list
+    );
+    assert(
+      strcmp(
+        gks->basis.id, gkyl_msgpack_map_elem_get_string(elem_list_len, elem_list, "basis_type")
+      ) == 0
+    );
     assert(poly_order == gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "poly_order"));
     gkyl_msgpack_map_elem_release_string(elem_list_len, elem_list, "basis_type");
 
@@ -1165,15 +1243,17 @@ void gk_species_file_import_init(
 
   // Donor global range.
   int ghost_do[pdim_do];
-  for (int d = 0; d < cdim_do; d++)
+  for (int d = 0; d < cdim_do; d++) {
     ghost_do[d] = 1;
-  for (int d = 0; d < vdim_do; d++)
+  }
+  for (int d = 0; d < vdim_do; d++) {
     ghost_do[cdim_do + d] = 0;
+  }
   struct gkyl_range global_ext_do, global_do;
   gkyl_create_grid_ranges(&grid_do, ghost_do, &global_ext_do, &global_do);
 
   // Create a donor communicator.
-  int cuts_tar[GKYL_MAX_DIM] = { -1 }, cuts_do[GKYL_MAX_CDIM] = { -1 };
+  int cuts_tar[GKYL_MAX_DIM] = {-1}, cuts_do[GKYL_MAX_CDIM] = {-1};
   gkyl_rect_decomp_get_cuts(app->decomp, cuts_tar);
   if (cdim_do == cdim - 1) {
     for (int d = 0; d < cdim_do - 1; d++) {
@@ -1223,14 +1303,18 @@ void gk_species_file_import_init(
     struct gkyl_rect_decomp *conf_decomp_do =
       gkyl_rect_decomp_new_from_cuts(cdim_do, cuts_do, &conf_global_do);
     gkyl_create_ranges(
-      &conf_decomp_do->ranges[my_rank], ghost_do, &conf_local_ext_do, &conf_local_do);
+      &conf_decomp_do->ranges[my_rank], ghost_do, &conf_local_ext_do, &conf_local_do
+    );
     // Read and multiply by the reciprocal of jacobtot.
     struct gkyl_array *jacobtot_inv_do_host =
       mkarr(false, conf_basis_do.num_basis, conf_local_ext_do.volume);
     rstat.io_status = gkyl_comm_array_read(
-      comm_do, &conf_grid_do, &conf_local_do, jacobtot_inv_do_host, inp.jacobtot_inv_file_name);
-    gkyl_dg_mul_conf_phase_op_range(&conf_basis_do, &basis_do, fdo_host, jacobtot_inv_do_host,
-      fdo_host, &conf_local_ext_do, &local_ext_do);
+      comm_do, &conf_grid_do, &conf_local_do, jacobtot_inv_do_host, inp.jacobtot_inv_file_name
+    );
+    gkyl_dg_mul_conf_phase_op_range(
+      &conf_basis_do, &basis_do, fdo_host, jacobtot_inv_do_host, fdo_host, &conf_local_ext_do,
+      &local_ext_do
+    );
     gkyl_array_release(jacobtot_inv_do_host);
     gkyl_rect_decomp_release(conf_decomp_do);
     scale_by_jacobtot = true;
@@ -1263,7 +1347,8 @@ void gk_species_file_import_init(
     } else {
       // Interpolate the donor distribution to the target grid.
       struct gkyl_dg_interpolate *interp = gkyl_dg_interpolate_new(
-        app->cdim, &gks->basis, &grid_do, &grid, &local_do, &gks->local, ghost_do, app->use_gpu);
+        app->cdim, &gks->basis, &grid_do, &grid, &local_do, &gks->local, ghost_do, app->use_gpu
+      );
       gkyl_dg_interpolate_advance(interp, fdo, gks->f);
       gkyl_dg_interpolate_release(interp);
     }
@@ -1272,7 +1357,8 @@ void gk_species_file_import_init(
   if (inp.type == GKYL_IC_IMPORT_AF) {
     // Scale f by a conf-space factor.
     gkyl_proj_on_basis *proj_conf_scale = gkyl_proj_on_basis_new(
-      &app->grid, &app->basis, poly_order + 1, 1, inp.conf_scale, inp.conf_scale_ctx);
+      &app->grid, &app->basis, poly_order + 1, 1, inp.conf_scale, inp.conf_scale_ctx
+    );
     struct gkyl_array *xfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     struct gkyl_array *xfac_ho = app->use_gpu ?
                                    mkarr(false, app->basis.num_basis, app->local_ext.volume) :
@@ -1280,29 +1366,36 @@ void gk_species_file_import_init(
     gkyl_proj_on_basis_advance(proj_conf_scale, 0.0, &app->local, xfac_ho);
     gkyl_array_copy(xfac, xfac_ho);
     gkyl_dg_mul_conf_phase_op_range(
-      &app->basis, &gks->basis, gks->f, xfac, gks->f, &app->local, &gks->local);
+      &app->basis, &gks->basis, gks->f, xfac, gks->f, &app->local, &gks->local
+    );
     gkyl_proj_on_basis_release(proj_conf_scale);
     gkyl_array_release(xfac_ho);
     gkyl_array_release(xfac);
   }
 
   // Multiply f by the Jacobian.
-  if (scale_by_jacobtot)
-    gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, gks->f,
-      app->gk_geom->geo_int.jacobtot, gks->f, &app->local, &gks->local);
+  if (scale_by_jacobtot) {
+    gkyl_dg_mul_conf_phase_op_range(
+      &app->basis, &gks->basis, gks->f, app->gk_geom->geo_int.jacobtot, gks->f, &app->local,
+      &gks->local
+    );
+  }
 
   // Multiply f by the velocity space Jacobian.
-  if (scale_by_jacobvel)
+  if (scale_by_jacobvel) {
     gkyl_array_scale_by_cell(gks->f, gks->vel_map->jacobvel);
+  }
 
   if (inp.enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).
-    struct gkyl_positivity_shift_gyrokinetic *pos_shift_op =
-      gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis, gks->grid, gks->info.mass,
-        app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+    struct gkyl_positivity_shift_gyrokinetic *pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(
+      app->basis, gks->basis, gks->grid, gks->info.mass, app->gk_geom, gks->vel_map,
+      &app->local_ext, app->use_gpu
+    );
 
     gkyl_positivity_shift_gyrokinetic_advance(
-      pos_shift_op, &app->local, &gks->local, gks->f, gks->m0.marr, gks->m0.marr);
+      pos_shift_op, &app->local, &gks->local, gks->f, gks->m0.marr, gks->m0.marr
+    );
 
     gkyl_positivity_shift_gyrokinetic_release(pos_shift_op);
   }
@@ -1323,16 +1416,17 @@ static bool gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_
     for (int k = 0; k < 2 * app->cdim; k++) {
       const struct gkyl_gyrokinetic_bc *bc = &app->neut_species[i].info.bcs[k];
       if (bc->type == GKYL_BC_GK_SPECIES_RECYCLE) {
-        for (int j = 0; j < bc->emission.num_species; j++)
+        for (int j = 0; j < bc->emission.num_species; j++) {
           recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->emission.in_species[j]);
+        }
       }
     }
   }
   return recycling_bcs;
 }
 
-static bool gk_species_do_I_recycle_react_scale(
-  struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+static bool
+gk_species_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   // Check whether one of the neutral species has a recycle_react_scale
   // operation thats depend on this gyrokinetic species.
@@ -1358,15 +1452,17 @@ static bool gk_species_do_I_adapt_src(struct gkyl_gyrokinetic_app *app, struct g
   for (int i = 0; i < app->num_species; ++i) {
     struct gkyl_gyrokinetic_source *source = &app->species[i].info.source;
     if (source->num_adapt_sources > 0) {
-      for (int j = 0; j < source->num_adapt_sources; j++)
+      for (int j = 0; j < source->num_adapt_sources; j++) {
         adapt_src = adapt_src || 0 == strcmp(gks->info.name, source->adapt[j].adapt_to_species);
+      }
     }
   }
   return adapt_src;
 }
 
 void gk_species_init(
-  struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+  struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks
+)
 {
   int cdim = app->cdim, vdim = gks->info.vdim;
   int pdim = cdim + vdim;
@@ -1447,8 +1543,10 @@ void gk_species_init(
   gkyl_create_ranges(&local, ghost, &gks->local_ext, &gks->local);
 
   // Velocity space mapping.
-  gks->vel_map = gkyl_velocity_map_new(gks->info.mapc2p, gks->grid, gks->grid_vel, gks->local,
-    gks->local_ext, gks->local_vel, gks->local_ext_vel, app->use_gpu);
+  gks->vel_map = gkyl_velocity_map_new(
+    gks->info.mapc2p, gks->grid, gks->grid_vel, gks->local, gks->local_ext, gks->local_vel,
+    gks->local_ext_vel, app->use_gpu
+  );
 
   // Write out the velocity space mapping and its Jacobian.
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
@@ -1456,30 +1554,35 @@ void gk_species_init(
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // add the parallel direction in case TS BCs are needed.
   gks->num_periodic_dir = app->num_periodic_dir;
-  for (int d = 0; d < gks->num_periodic_dir; ++d)
+  for (int d = 0; d < gks->num_periodic_dir; ++d) {
     gks->periodic_dirs[d] = app->periodic_dirs[d];
+  }
 
-  for (int d = 0; d < app->cdim; ++d)
+  for (int d = 0; d < app->cdim; ++d) {
     gks->bc_is_np[d] = true;
-  for (int d = 0; d < gks->num_periodic_dir; ++d)
+  }
+  for (int d = 0; d < gks->num_periodic_dir; ++d) {
     gks->bc_is_np[gks->periodic_dirs[d]] = false;
+  }
 
   // Store the BCs from the input file.
   for (int d = 0; d < app->cdim; ++d) {
     if (gks->bc_is_np[d]) {
       struct gkyl_gyrokinetic_bc *bc_lo =
         gk_fetch_bc_with_dir_edge(gks->info.bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
-      if (bc_lo != 0)
+      if (bc_lo != 0) {
         gks->lower_bc[d] = *bc_lo;
-      else
+      } else {
         gks->lower_bc[d].type = GKYL_BC_GK_SKIP;
+      }
 
       struct gkyl_gyrokinetic_bc *bc_up =
         gk_fetch_bc_with_dir_edge(gks->info.bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
-      if (bc_up != 0)
+      if (bc_up != 0) {
         gks->upper_bc[d] = *bc_up;
-      else
+      } else {
         gks->upper_bc[d].type = GKYL_BC_GK_SKIP;
+      }
     } else {
       gks->lower_bc[d].type = GKYL_BC_GK_SPECIES_PERIODIC;
       gks->upper_bc[d].type = GKYL_BC_GK_SPECIES_PERIODIC;
@@ -1488,57 +1591,66 @@ void gk_species_init(
 
   // Species properties metadata.
   struct gkyl_msgpack_map_elem io_meta_sprop[] = {
-    { .key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = gks->info.mass },
-    { .key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = gks->info.charge },
-    { .key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->info.vdim }
+    {.key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = gks->info.mass},
+    {.key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = gks->info.charge},
+    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->info.vdim}
   };
 
   // Metadata for integrated quantities.
-  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = { app->io_meta_basic, io_meta_sprop };
-  int io_meta_basic_union_len[] = { app->io_meta_basic_len,
-    sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]) };
-  gks->io_meta_basic =
-    gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union) / sizeof(io_meta_basic_union[0]),
-      io_meta_basic_union_len, io_meta_basic_union, &gks->io_meta_basic_len);
+  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {app->io_meta_basic, io_meta_sprop};
+  int io_meta_basic_union_len[] = {
+    app->io_meta_basic_len, sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0])
+  };
+  gks->io_meta_basic = gkyl_msgpack_map_elem_union(
+    sizeof(io_meta_basic_union) / sizeof(io_meta_basic_union[0]), io_meta_basic_union_len,
+    io_meta_basic_union, &gks->io_meta_basic_len
+  );
 
   // Metadata for conf-space quantities.
   struct gkyl_msgpack_map_elem io_meta_conf[] = {
-    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
-    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id },
-    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
-    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 }
+    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
+    {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
   };
-  const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = { app->io_meta_basic, io_meta_sprop,
-    io_meta_conf };
-  int io_meta_conf_union_len[] = { app->io_meta_basic_len,
-    sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]),
-    sizeof(io_meta_conf) / sizeof(io_meta_conf[0]) };
-  gks->io_meta_conf =
-    gkyl_msgpack_map_elem_union(sizeof(io_meta_conf_union) / sizeof(io_meta_conf_union[0]),
-      io_meta_conf_union_len, io_meta_conf_union, &gks->io_meta_conf_len);
+  const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {
+    app->io_meta_basic, io_meta_sprop, io_meta_conf
+  };
+  int io_meta_conf_union_len[] = {
+    app->io_meta_basic_len, sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]),
+    sizeof(io_meta_conf) / sizeof(io_meta_conf[0])
+  };
+  gks->io_meta_conf = gkyl_msgpack_map_elem_union(
+    sizeof(io_meta_conf_union) / sizeof(io_meta_conf_union[0]), io_meta_conf_union_len,
+    io_meta_conf_union, &gks->io_meta_conf_len
+  );
 
   // Metadata for phase-space quantities.
   struct gkyl_msgpack_map_elem io_meta_phase[] = {
-    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->basis.poly_order },
-    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = gks->basis.id },
-    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
-    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 }
+    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->basis.poly_order},
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = gks->basis.id},
+    {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
   };
-  const struct gkyl_msgpack_map_elem *io_meta_phase_union[] = { app->io_meta_basic, io_meta_sprop,
-    io_meta_phase };
-  int io_meta_phase_union_len[] = { app->io_meta_basic_len,
-    sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]),
-    sizeof(io_meta_phase) / sizeof(io_meta_phase[0]) };
-  gks->io_meta_phase =
-    gkyl_msgpack_map_elem_union(sizeof(io_meta_phase_union) / sizeof(io_meta_phase_union[0]),
-      io_meta_phase_union_len, io_meta_phase_union, &gks->io_meta_phase_len);
+  const struct gkyl_msgpack_map_elem *io_meta_phase_union[] = {
+    app->io_meta_basic, io_meta_sprop, io_meta_phase
+  };
+  int io_meta_phase_union_len[] = {
+    app->io_meta_basic_len, sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]),
+    sizeof(io_meta_phase) / sizeof(io_meta_phase[0])
+  };
+  gks->io_meta_phase = gkyl_msgpack_map_elem_union(
+    sizeof(io_meta_phase_union) / sizeof(io_meta_phase_union[0]), io_meta_phase_union_len,
+    io_meta_phase_union, &gks->io_meta_phase_len
+  );
 
   // Allocate distribution function arrays.
   gks->f = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
 
   gks->f_host = gks->f;
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gks->f_host = mkarr(false, gks->basis.num_basis, gks->local_ext.volume);
+  }
 
   // Allocate cflrate (scalar array).
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
@@ -1563,12 +1675,15 @@ void gk_species_init(
     gks->flr_rhoSqD2 =
       mkarr(app->use_gpu, (2 * (app->cdim - 1) - 1) * app->basis.num_basis, app->local_ext.volume);
     gkyl_array_set_offset(
-      gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gxxj, 0 * app->basis.num_basis);
+      gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gxxj, 0 * app->basis.num_basis
+    );
     if (app->cdim > 2) {
       gkyl_array_set_offset(
-        gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gxyj, 1 * app->basis.num_basis);
+        gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gxyj, 1 * app->basis.num_basis
+      );
       gkyl_array_set_offset(
-        gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gyyj, 2 * app->basis.num_basis);
+        gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gyyj, 2 * app->basis.num_basis
+      );
     }
     // Initialize the factor multiplying the field in the FLR operator.
     gks->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -1580,26 +1695,30 @@ void gk_species_init(
       struct gkyl_gyrokinetic_bc *bc_lo =
         gk_fetch_bc_with_dir_edge(app->field->info.poisson_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
       if (bc_lo != 0) {
-        if (bc_lo->type == GKYL_BC_GK_FIELD_PERIODIC)
+        if (bc_lo->type == GKYL_BC_GK_FIELD_PERIODIC) {
           flr_bc.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-        else
+        } else {
           flr_bc.lo_type[d] =
             gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+        }
       }
 
       struct gkyl_gyrokinetic_bc *bc_up =
         gk_fetch_bc_with_dir_edge(app->field->info.poisson_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
       if (bc_up != 0) {
-        if (bc_up->type == GKYL_BC_GK_FIELD_PERIODIC)
+        if (bc_up->type == GKYL_BC_GK_FIELD_PERIODIC) {
           flr_bc.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-        else
+        } else {
           flr_bc.up_type[d] =
             gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+        }
       }
     }
     // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
-    gks->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
-      app->local, app->local, gks->flr_rhoSqD2, gks->flr_kSq, flr_bc, NULL, app->use_gpu);
+    gks->flr_op = gkyl_deflated_fem_poisson_new(
+      app->grid, app->basis_on_dev, app->basis, app->local, app->local, gks->flr_rhoSqD2,
+      gks->flr_kSq, flr_bc, NULL, app->use_gpu
+    );
   } else {
     gks->gyroaverage = gk_species_gyroaverage_disabled;
     gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
@@ -1623,8 +1742,9 @@ void gk_species_init(
   // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;
   gks->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
-  for (int m = 0; m < ndm; ++m)
+  for (int m = 0; m < ndm; ++m) {
     gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m], false);
+  }
 
   // Initialize projection routine for initial conditions.
   if (gks->info.init_from_file.type == 0) {
@@ -1635,14 +1755,22 @@ void gk_species_init(
 
   // Create skin/ghost ranges.
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&gks->local_lower_skin[dir], &gks->local_lower_ghost[dir], dir,
-      GKYL_LOWER_EDGE, &gks->local_ext, ghost);
-    gkyl_skin_ghost_ranges(&gks->local_upper_skin[dir], &gks->local_upper_ghost[dir], dir,
-      GKYL_UPPER_EDGE, &gks->local_ext, ghost);
-    gkyl_skin_ghost_ranges(&gks->global_lower_skin[dir], &gks->global_lower_ghost[dir], dir,
-      GKYL_LOWER_EDGE, &gks->global_ext, ghost);
-    gkyl_skin_ghost_ranges(&gks->global_upper_skin[dir], &gks->global_upper_ghost[dir], dir,
-      GKYL_UPPER_EDGE, &gks->global_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &gks->local_lower_skin[dir], &gks->local_lower_ghost[dir], dir, GKYL_LOWER_EDGE,
+      &gks->local_ext, ghost
+    );
+    gkyl_skin_ghost_ranges(
+      &gks->local_upper_skin[dir], &gks->local_upper_ghost[dir], dir, GKYL_UPPER_EDGE,
+      &gks->local_ext, ghost
+    );
+    gkyl_skin_ghost_ranges(
+      &gks->global_lower_skin[dir], &gks->global_lower_ghost[dir], dir, GKYL_LOWER_EDGE,
+      &gks->global_ext, ghost
+    );
+    gkyl_skin_ghost_ranges(
+      &gks->global_upper_skin[dir], &gks->global_upper_ghost[dir], dir, GKYL_UPPER_EDGE,
+      &gks->global_ext, ghost
+    );
   }
 
   // Create a local range extended in the BC dir (for TS BCs).
@@ -1725,16 +1853,22 @@ void gk_species_init(
     // Parallel skin and ghost ranges, limited to the lower and upper x range.
     int par_dir = app->cdim - 1;
     for (int e = 0; e < 2; e++) {
-      gkyl_range_shorten_from_above(e == 0 ? local_lower_skin_par_lo_r : local_upper_skin_par_lo_r,
-        e == 0 ? &gks->local_lower_skin[par_dir] : &gks->local_upper_skin[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_above(
+        e == 0 ? local_lower_skin_par_lo_r : local_upper_skin_par_lo_r,
+        e == 0 ? &gks->local_lower_skin[par_dir] : &gks->local_upper_skin[par_dir], 0, len_lo
+      );
       gkyl_range_shorten_from_above(
         e == 0 ? local_lower_ghost_par_lo_r : local_upper_ghost_par_lo_r,
-        e == 0 ? &gks->local_lower_ghost[par_dir] : &gks->local_upper_ghost[par_dir], 0, len_lo);
-      gkyl_range_shorten_from_below(e == 0 ? local_lower_skin_par_up_r : local_upper_skin_par_up_r,
-        e == 0 ? &gks->local_lower_skin[par_dir] : &gks->local_upper_skin[par_dir], 0, len_up);
+        e == 0 ? &gks->local_lower_ghost[par_dir] : &gks->local_upper_ghost[par_dir], 0, len_lo
+      );
+      gkyl_range_shorten_from_below(
+        e == 0 ? local_lower_skin_par_up_r : local_upper_skin_par_up_r,
+        e == 0 ? &gks->local_lower_skin[par_dir] : &gks->local_upper_skin[par_dir], 0, len_up
+      );
       gkyl_range_shorten_from_below(
         e == 0 ? local_lower_ghost_par_up_r : local_upper_ghost_par_up_r,
-        e == 0 ? &gks->local_lower_ghost[par_dir] : &gks->local_upper_ghost[par_dir], 0, len_up);
+        e == 0 ? &gks->local_lower_ghost[par_dir] : &gks->local_upper_ghost[par_dir], 0, len_up
+      );
     }
 
     // Core range extended in the parallel direction.
@@ -1747,7 +1881,8 @@ void gk_species_init(
     lower_bcdir_ext[par_dir] = gks->local_ext_core.lower[par_dir];
     upper_bcdir_ext[par_dir] = gks->local_ext_core.upper[par_dir];
     gkyl_sub_range_init(
-      &gks->local_par_ext_core, &gks->local_ext_core, lower_bcdir_ext, upper_bcdir_ext);
+      &gks->local_par_ext_core, &gks->local_ext_core, lower_bcdir_ext, upper_bcdir_ext
+    );
   }
 
   // Initialize boundary fluxes.
@@ -1804,10 +1939,12 @@ void gk_species_init(
   int max_iter = gks->info.correct.max_iter > 0 ? gks->info.correct.max_iter : 50;
   double iter_eps = gks->info.correct.iter_eps > 0 ? gks->info.correct.iter_eps : 1e-10;
   bool use_last_converged = gks->info.correct.use_last_converged;
-  struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms,
+  struct correct_all_moms_inp corr_inp = {
+    .correct_all_moms = correct_all_moms,
     .max_iter = max_iter,
     .iter_eps = iter_eps,
-    .use_last_converged = use_last_converged };
+    .use_last_converged = use_last_converged
+  };
   gk_species_lte_init(app, gks, &gks->lte, corr_inp);
 
   // Initialize the object that scales the species (meant for fluid neutrals for now).
@@ -1847,8 +1984,9 @@ void gk_species_init(
 
 void gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0)
 {
-  if (gks->info.init_from_file.type == 0)
+  if (gks->info.init_from_file.type == 0) {
     gk_species_projection_calc(app, gks, &gks->proj_init, gks->f, t0);
+  }
 
   // We are pre-computing source for now as it is time-independent.
   gk_species_source_calc(app, gks, &gks->src, gks->lte.f_lte, t0);
@@ -1867,7 +2005,8 @@ void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks
     struct gkyl_gyrokinetic_pol_density *npol_op =
       gkyl_gyrokinetic_pol_density_new(app->basis, app->grid, app->use_gpu);
     gkyl_gyrokinetic_pol_density_advance(
-      npol_op, &app->local, app->field->epsilon, app->field->phi_pol, npol);
+      npol_op, &app->local, app->field->epsilon, app->field->phi_pol, npol
+    );
     gkyl_gyrokinetic_pol_density_release(npol_op);
 
     // Calculate the guiding center density of this species: (npol - q_other*n^G_other)/q_self.
@@ -1887,9 +2026,12 @@ void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks
     struct gkyl_array *den_mod = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     gkyl_dg_div_op_range(
-      div_mem, &app->basis, 0, den_mod, 0, npol, 0, gks_self->m0.marr, &app->local);
-    gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks_self->basis, gks_self->f, den_mod,
-      gks_self->f, &app->local_ext, &gks_self->local_ext);
+      div_mem, &app->basis, 0, den_mod, 0, npol, 0, gks_self->m0.marr, &app->local
+    );
+    gkyl_dg_mul_conf_phase_op_range(
+      &app->basis, &gks_self->basis, gks_self->f, den_mod, gks_self->f, &app->local_ext,
+      &gks_self->local_ext
+    );
 
     gkyl_array_release(den_mod);
     gkyl_dg_bin_op_mem_release(div_mem);
@@ -1900,39 +2042,48 @@ void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks
   gk_species_scaling_apply_ic_cross(app, gks_self, &gks_self->sca);
 }
 
-double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+double gk_species_rhs(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
 {
   return species->rhs_func(app, species, fin, rhs, bflux_moms);
 }
 
-double gk_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt)
+double gk_species_rhs_implicit(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
+)
 {
   return species->rhs_implicit_func(app, species, fin, rhs, bflux_moms, dt);
 }
 
 void gk_species_step_f(
-  struct gk_species *species, struct gkyl_array *out, double a, const struct gkyl_array *inp)
+  struct gk_species *species, struct gkyl_array *out, double a, const struct gkyl_array *inp
+)
 {
   species->step_f_func(out, a, inp);
 }
 
-void gk_species_combine(struct gk_species *species, struct gkyl_array *out, double c1,
-  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
-  const struct gkyl_range *rng)
+void gk_species_combine(
+  struct gk_species *species, struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
+  double c2, const struct gkyl_array *arr2, const struct gkyl_range *rng
+)
 {
   species->combine_func(out, c1, arr1, c2, arr2, rng);
 }
 
-void gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
-  const struct gkyl_array *inp, const struct gkyl_range *range)
+void gk_species_copy_range(
+  struct gk_species *species, struct gkyl_array *out, const struct gkyl_array *inp,
+  const struct gkyl_range *range
+)
 {
   species->copy_func(out, inp, range);
 }
 
 void gk_species_apply_bc(
-  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f
+)
 {
   species->bc_func(app, species, f);
 }
@@ -1948,16 +2099,18 @@ void gk_species_write(gkyl_gyrokinetic_app *app, struct gk_species *gks, double 
 {
   if (frame == 0) {
     gk_species_write_dynamic(app, gks, tm, frame);
-  } else
+  } else {
     gks->write_func(app, gks, tm, frame);
+  }
 }
 
 void gk_species_write_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   if (frame == 0) {
     gk_species_write_mom_dynamic(app, gks, tm, frame);
-  } else
+  } else {
     gks->write_mom_func(app, gks, tm, frame);
+  }
 }
 
 void gk_species_calc_integrated_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)

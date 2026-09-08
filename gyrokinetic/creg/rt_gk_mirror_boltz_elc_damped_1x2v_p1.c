@@ -101,7 +101,7 @@ double psi_RZ(double RIn, double ZIn, void *ctx)
   double Z_m = app->Z_m;
   double psi = 0.5 * pow(RIn, 2.) * mcB *
                (1. / (M_PI * gamma * (1. + pow((ZIn - Z_m) / gamma, 2.))) +
-                 1. / (M_PI * gamma * (1. + pow((ZIn + Z_m) / gamma, 2.))));
+                1. / (M_PI * gamma * (1. + pow((ZIn + Z_m) / gamma, 2.))));
   return psi;
 }
 
@@ -111,7 +111,8 @@ double R_psiZ(double psiIn, double ZIn, void *ctx)
   double Rout = sqrt(
     2.0 * psiIn /
     (app->mcB * (1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - app->Z_m) / app->gamma, 2.))) +
-                  1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2.))))));
+                 1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2.)))))
+  );
   return Rout;
 }
 
@@ -125,9 +126,9 @@ void Bfield_psiZ(double psiIn, double ZIn, void *ctx, double *BRad, double *BZ, 
   *BRad =
     -(1.0 / 2.0) * Rcoord * mcB *
     (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn - Z_m) / gamma, 2.), 2.))) -
-      2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn + Z_m) / gamma, 2.), 2.))));
+     2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn + Z_m) / gamma, 2.), 2.))));
   *BZ = mcB * (1.0 / (M_PI * gamma * (1.0 + pow((ZIn - Z_m) / gamma, 2.))) +
-                1.0 / (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2.))));
+               1.0 / (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2.))));
   *Bmag = sqrt(pow(*BRad, 2) + pow(*BZ, 2));
 }
 
@@ -187,7 +188,8 @@ double Z_psiz(double psiIn, double zIn, void *ctx)
 // -- Source functions.
 
 void eval_density_ion_source(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
@@ -198,21 +200,25 @@ void eval_density_ion_source(
   double sigSrc = app->sigSrcIon;
   double NSrcFloor = app->NSrcFloorIon;
   if (fabs(Z) <= app->Z_m) {
-    fout[0] = fmax(NSrcFloor, (NSrc / sqrt(2.0 * M_PI * pow(sigSrc, 2))) *
-                                exp(-1 * pow((z - zSrc), 2) / (2.0 * pow(sigSrc, 2))));
+    fout[0] = fmax(
+      NSrcFloor, (NSrc / sqrt(2.0 * M_PI * pow(sigSrc, 2))) *
+                   exp(-1 * pow((z - zSrc), 2) / (2.0 * pow(sigSrc, 2)))
+    );
   } else {
     fout[0] = 1e-16;
   }
 }
 
 void eval_upar_ion_source(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   fout[0] = 0.0;
 }
 
 void eval_temp_ion_source(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
@@ -229,7 +235,8 @@ void eval_temp_ion_source(
 
 // Ion initial conditions
 void eval_density_ion(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
@@ -336,7 +343,8 @@ void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *c
 }
 
 void loss_cone_damping_rate_profile(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double z = xn[0], vpar = xn[1], mu = xn[2];
 
@@ -347,7 +355,7 @@ void loss_cone_damping_rate_profile(
   double mass = app->mi;
 
   double bmag[1];
-  double xc[] = { 0.0, 0.0, z };
+  double xc[] = {0.0, 0.0, z};
   bmag_func(t, xc, bmag, ctx);
 
   double Rm = B_m / bmag[0]; // Mirror ratio.
@@ -356,19 +364,21 @@ void loss_cone_damping_rate_profile(
 
   double mu_bound = (0.5 * mass * pow(vpar, 2) + charge * Delta_phi) / (bmag[0] * (Rm - 1));
   double loss_cone_mask;
-  if (mu <= mu_bound)
+  if (mu <= mu_bound) {
     loss_cone_mask = 1.0;
-  else
+  } else {
     loss_cone_mask = 0.0;
+  }
 
   double vt = app->vti;
   double z_m = app->z_m;
   double z_max = app->z_max;
   double Lpar;
-  if (fabs(z) <= z_m)
+  if (fabs(z) <= z_m) {
     Lpar = z_m;
-  else
+  } else {
     Lpar = z_max - z_m;
+  }
 
   double alpha = app->alpha;
 
@@ -376,7 +386,8 @@ void loss_cone_damping_rate_profile(
 }
 
 void loss_cone_damping_rate_scaling(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double z = xn[0], vpar = xn[1], mu = xn[2];
 
@@ -388,8 +399,9 @@ void loss_cone_damping_rate_scaling(
   if (fabs(z) < z_m) {
     double Lpar = z_m;
     fout[0] = (1.0 - alpha) * vt / Lpar;
-  } else
+  } else {
     fout[0] = 0.0;
+  }
 }
 
 struct gk_mirror_ctx create_ctx(void)
@@ -490,7 +502,8 @@ struct gk_mirror_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct gk_mirror_ctx ctx = { .cdim = cdim,
+  struct gk_mirror_ctx ctx = {
+    .cdim = cdim,
     .vdim = vdim,
     .mi = mi,
     .qi = qi,
@@ -544,31 +557,37 @@ struct gk_mirror_ctx create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = { Nz, Nvpar, Nmu },
+    .cells = {Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .t_end = t_end,
     .num_frames = num_frames,
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
   return ctx;
 }
 
-void calc_integrated_diagnostics(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app,
-  double t_curr, bool is_restart_IC, bool force_calc, double dt)
+void calc_integrated_diagnostics(
+  struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double t_curr, bool is_restart_IC,
+  bool force_calc, double dt
+)
 {
   if (!is_restart_IC && (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc)) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
 
-    if (!(dt < 0.0))
+    if (!(dt < 0.0)) {
       gkyl_gyrokinetic_app_save_dt(app, t_curr, dt);
+    }
   }
 }
 
-void write_data(struct gkyl_tm_trigger *iot_conf, struct gkyl_tm_trigger *iot_phase,
-  gkyl_gyrokinetic_app *app, double t_curr, bool is_restart_IC, bool force_write)
+void write_data(
+  struct gkyl_tm_trigger *iot_conf, struct gkyl_tm_trigger *iot_phase, gkyl_gyrokinetic_app *app,
+  double t_curr, bool is_restart_IC, bool force_write
+)
 {
   bool trig_now_conf = gkyl_tm_trigger_check_and_bump(iot_conf, t_curr);
   if (trig_now_conf || force_write) {
@@ -595,8 +614,9 @@ int main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args.trace_mem) {
@@ -607,15 +627,18 @@ int main(int argc, char **argv)
   struct gk_mirror_ctx ctx = create_ctx(); // Context for init functions.
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d = 0; d < ctx.cdim; d++)
+  for (int d = 0; d < ctx.cdim; d++) {
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d = 0; d < ctx.vdim; d++)
+  }
+  for (int d = 0; d < ctx.vdim; d++) {
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim + d]);
+  }
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  struct gkyl_gyrokinetic_species ion = {.name = "ion",
+  struct gkyl_gyrokinetic_species ion = {
+    .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
     .vdim = ctx.vdim,
@@ -625,98 +648,114 @@ int main(int argc, char **argv)
 
     .polarization_density = ctx.n0,
 
-    .projection = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .ctx_density = &ctx,
-      .density = eval_density_ion,
-      .ctx_upar = &ctx,
-      .upar = eval_upar_ion,
-      .ctx_temp = &ctx,
-      .temp = eval_temp_ion},
+    .projection =
+      {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+       .ctx_density = &ctx,
+       .density = eval_density_ion,
+       .ctx_upar = &ctx,
+       .upar = eval_upar_ion,
+       .ctx_temp = &ctx,
+       .temp = eval_temp_ion},
 
     .collisionless =
       {//    .type = GKYL_GK_COLLISIONLESS_NONE,
-        .type = GKYL_GK_COLLISIONLESS_ES,
-        .scale_factor = ctx.alpha},
+       .type = GKYL_GK_COLLISIONLESS_ES,
+       .scale_factor = ctx.alpha
+      },
 
     .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNuIon, .self_nu_ctx = &ctx},
 
-    .source = {.source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 1,
-      .projection[0] = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .density = eval_density_ion_source,
-        .ctx_upar = &ctx,
-        .upar = eval_upar_ion_source,
-        .ctx_temp = &ctx,
-        .temp = eval_temp_ion_source}},
+    .source =
+      {.source_id = GKYL_PROJ_SOURCE,
+       .num_sources = 1,
+       .projection[0] =
+         {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+          .ctx_density = &ctx,
+          .density = eval_density_ion_source,
+          .ctx_upar = &ctx,
+          .upar = eval_upar_ion_source,
+          .ctx_temp = &ctx,
+          .temp = eval_temp_ion_source}},
 
     .damping =
       {//      .type = GKYL_GK_DAMPING_USER_INPUT,
-        //      .rate_profile = loss_cone_damping_rate_profile,
-        //      .rate_profile_ctx = &ctx,
-        .type = GKYL_GK_DAMPING_LOSS_CONE,
-        .rate_profile = loss_cone_damping_rate_scaling,
-        .rate_profile_ctx = &ctx},
+       //      .rate_profile = loss_cone_damping_rate_profile,
+       //      .rate_profile_ctx = &ctx,
+       .type = GKYL_GK_DAMPING_LOSS_CONE,
+       .rate_profile = loss_cone_damping_rate_scaling,
+       .rate_profile_ctx = &ctx
+      },
 
-    .bcs = {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-      {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+    .bcs =
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
 
     .num_diag_moments = 4,
-    .diag_moments = {
-      GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN}};
+    .diag_moments =
+      {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN}
+  };
 
-  struct gkyl_gyrokinetic_field field = { .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
+  struct gkyl_gyrokinetic_field field = {
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
-    .polarization_bmag = ctx.B_p };
+    .polarization_bmag = ctx.B_p
+  };
 
   // GK app
-  struct gkyl_gk app_inp = { .cdim = ctx.cdim,
-    .lower = { ctx.z_min },
-    .upper = { ctx.z_max },
-    .cells = { cells_x[0] },
+  struct gkyl_gk app_inp = {
+    .cdim = ctx.cdim,
+    .lower = {ctx.z_min},
+    .upper = {ctx.z_max},
+    .cells = {cells_x[0]},
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
-    .geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-      .world = { ctx.psi_eval, 0.0 },
-      .mapc2p = mapc2p, // Mapping of computational to physical space.
-      .c2p_ctx = &ctx,
-      .bfield_func = bfield_func, // Magnetic field.
-      .bfield_ctx = &ctx },
+    .geometry =
+      {.geometry_id = GKYL_GEOMETRY_MAPC2P,
+       .world = {ctx.psi_eval, 0.0},
+       .mapc2p = mapc2p, // Mapping of computational to physical space.
+       .c2p_ctx = &ctx,
+       .bfield_func = bfield_func, // Magnetic field.
+       .bfield_ctx = &ctx},
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = { ion },
+    .species = {ion},
 
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm } };
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+  };
 
   // Create app object.
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
-  struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-    .time_stepping = { .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps } };
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_inp = app_inp,
+    .time_stepping =
+      {.t_end = ctx.t_end,
+       .num_frames = ctx.num_frames,
+       .write_phase_freq = ctx.write_phase_freq,
+       .int_diag_calc_num = ctx.int_diag_calc_num,
+       .dt_failure_tol = ctx.dt_failure_tol,
+       .num_failures_max = ctx.num_failures_max,
+       .is_restart = app_args.is_restart,
+       .restart_frame = app_args.restart_frame,
+       .num_steps = app_args.num_steps}
+  };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
   return 0;
 }

@@ -13,7 +13,8 @@ extern "C" {
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
 __global__ static void gkyl_mom_bcorr_lbo_pkpm_set_cu_dev_ptrs(
-  struct mom_type_bcorr_lbo_pkpm *mom_bcorr, enum gkyl_basis_type b_type, int cdim, int poly_order)
+  struct mom_type_bcorr_lbo_pkpm *mom_bcorr, enum gkyl_basis_type b_type, int cdim, int poly_order
+)
 {
   // choose kernel tables based on basis-function type
   const gkyl_mom_bcorr_lbo_pkpm_kern_list *mom_bcorr_lbo_pkpm_kernels;
@@ -36,8 +37,10 @@ __global__ static void gkyl_mom_bcorr_lbo_pkpm_set_cu_dev_ptrs(
   mom_bcorr->momt.kernel = CK(mom_bcorr_lbo_pkpm_kernels, cdim, poly_order);
 }
 
-struct gkyl_mom_type *gkyl_mom_bcorr_lbo_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const double *vBoundary, double mass)
+struct gkyl_mom_type *gkyl_mom_bcorr_lbo_pkpm_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const double *vBoundary,
+  double mass
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -66,10 +69,12 @@ struct gkyl_mom_type *gkyl_mom_bcorr_lbo_pkpm_cu_dev_new(const struct gkyl_basis
   struct mom_type_bcorr_lbo_pkpm *mom_bcorr_cu =
     (struct mom_type_bcorr_lbo_pkpm *)gkyl_cu_malloc(sizeof(struct mom_type_bcorr_lbo_pkpm));
   gkyl_cu_memcpy(
-    mom_bcorr_cu, mom_bcorr, sizeof(struct mom_type_bcorr_lbo_pkpm), GKYL_CU_MEMCPY_H2D);
+    mom_bcorr_cu, mom_bcorr, sizeof(struct mom_type_bcorr_lbo_pkpm), GKYL_CU_MEMCPY_H2D
+  );
 
   gkyl_mom_bcorr_lbo_pkpm_set_cu_dev_ptrs<<<1, 1> > >(
-    mom_bcorr_cu, cbasis->b_type, cdim, poly_order);
+    mom_bcorr_cu, cbasis->b_type, cdim, poly_order
+  );
 
   mom_bcorr->momt.on_dev = &mom_bcorr_cu->momt;
 

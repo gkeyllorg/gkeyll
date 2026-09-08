@@ -9,7 +9,7 @@
 static inline double gkyl_mhd_pressure(double gas_gamma, const double q[8])
 {
   return (gas_gamma - 1) * (q[4] - 0.5 * (q[1] * q[1] + q[2] * q[2] + q[3] * q[3]) / q[0] -
-                             0.5 * (q[5] * q[5] + q[6] * q[6] + q[7] * q[7]));
+                            0.5 * (q[5] * q[5] + q[6] * q[6] + q[7] * q[7]));
 }
 
 /**
@@ -38,8 +38,7 @@ double gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8]);
  * @param buf Array with four elements to hold computed u, v, w, cfast.
  * @return buf
  */
-void gkyl_mhd_eigen_speeds_roe(
-  const double gamma, const double *ql, const double *qr, double buf[]);
+void gkyl_mhd_eigen_speeds_roe(const double gamma, const double *ql, const double *qr, double buf[]);
 
 /**
  * Compute maximum absolute speed using MHD flow and fast Alfven speed due to a

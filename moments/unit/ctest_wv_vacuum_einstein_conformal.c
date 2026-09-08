@@ -13,7 +13,8 @@ void test_vacuum_einstein_conformal_basic_minkowski_ho()
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
   struct gkyl_wv_eqn *vacuum_einstein_conformal = gkyl_wv_vacuum_einstein_conformal_new(
-    excision_threshold, spacetime_slicing, spacetime_evolution, false);
+    excision_threshold, spacetime_slicing, spacetime_evolution, false
+  );
 
   TEST_CHECK(vacuum_einstein_conformal->num_equations == 77);
   TEST_CHECK(vacuum_einstein_conformal->num_waves == 2);
@@ -69,26 +70,41 @@ void test_vacuum_einstein_conformal_basic_minkowski_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &conformal_spatial_metric);
       spacetime->spatial_inv_metric_tensor_func(
-        spacetime, 0.0, x, y, 0.0, &inv_conformal_spatial_metric);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &conformal_extrinsic_curvature);
+        spacetime, 0.0, x, y, 0.0, &inv_conformal_spatial_metric
+      );
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &conformal_extrinsic_curvature
+      );
 
       spacetime->conformal_factor_func(spacetime, 0.0, x, y, 0.0, &conformal_fact);
       spacetime->bssn_conformal_factor_func(spacetime, 0.0, x, y, 0.0, &bssn_conformal_fact);
 
-      spacetime->conformal_factor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &conformal_fact_der);
-      spacetime->bssn_conformal_factor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &bssn_conformal_fact_der);
-      spacetime->bssn_conformal_factor_der2_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), &bssn_conformal_fact_der2);
+      spacetime->conformal_factor_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &conformal_fact_der
+      );
+      spacetime->bssn_conformal_factor_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &bssn_conformal_fact_der
+      );
+      spacetime->bssn_conformal_factor_der2_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+        &bssn_conformal_fact_der2
+      );
 
-      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &conformal_lapse_der);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-        pow(10.0, -8.0), &conformal_shift_der);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &conformal_spatial_metric_der);
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &conformal_lapse_der
+      );
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &conformal_shift_der
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &conformal_spatial_metric_der
+      );
 
       for (int i = 0; i < 3; i++) {
         conformal_fact_der[i] /= conformal_fact;
@@ -375,7 +391,7 @@ void test_vacuum_einstein_conformal_basic_minkowski_ho()
             conformal_spatial_metric_der_flux[d][d][i][j] +=
               conformal_lapse *
               (conformal_extrinsic_curvature[i][j] /
-                (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
+               (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
             conformal_spatial_metric_der_flux[d][d][i][j] -=
               conformal_lapse * symmetrized_conformal_shift[i][j];
           }
@@ -407,127 +423,151 @@ void test_vacuum_einstein_conformal_basic_minkowski_ho()
       }
 
       double fluxes[3][42] = {
-        { conformal_extrinsic_curvature_flux[0][0][0], conformal_extrinsic_curvature_flux[0][0][1],
-          conformal_extrinsic_curvature_flux[0][0][2], conformal_extrinsic_curvature_flux[0][1][0],
-          conformal_extrinsic_curvature_flux[0][1][1], conformal_extrinsic_curvature_flux[0][1][2],
-          conformal_extrinsic_curvature_flux[0][2][0], conformal_extrinsic_curvature_flux[0][2][1],
-          conformal_extrinsic_curvature_flux[0][2][2],
-          conformal_spatial_metric_der_flux[0][0][0][0],
-          conformal_spatial_metric_der_flux[0][0][0][1],
-          conformal_spatial_metric_der_flux[0][0][0][2],
-          conformal_spatial_metric_der_flux[0][0][1][0],
-          conformal_spatial_metric_der_flux[0][0][1][1],
-          conformal_spatial_metric_der_flux[0][0][1][2],
-          conformal_spatial_metric_der_flux[0][0][2][0],
-          conformal_spatial_metric_der_flux[0][0][2][1],
-          conformal_spatial_metric_der_flux[0][0][2][2],
-          conformal_spatial_metric_der_flux[0][1][0][0],
-          conformal_spatial_metric_der_flux[0][1][0][1],
-          conformal_spatial_metric_der_flux[0][1][0][2],
-          conformal_spatial_metric_der_flux[0][1][1][0],
-          conformal_spatial_metric_der_flux[0][1][1][1],
-          conformal_spatial_metric_der_flux[0][1][1][2],
-          conformal_spatial_metric_der_flux[0][1][2][0],
-          conformal_spatial_metric_der_flux[0][1][2][1],
-          conformal_spatial_metric_der_flux[0][1][2][2],
-          conformal_spatial_metric_der_flux[0][2][0][0],
-          conformal_spatial_metric_der_flux[0][2][0][1],
-          conformal_spatial_metric_der_flux[0][2][0][2],
-          conformal_spatial_metric_der_flux[0][2][1][0],
-          conformal_spatial_metric_der_flux[0][2][1][1],
-          conformal_spatial_metric_der_flux[0][2][1][2],
-          conformal_spatial_metric_der_flux[0][2][2][0],
-          conformal_spatial_metric_der_flux[0][2][2][1],
-          conformal_spatial_metric_der_flux[0][2][2][2], conformal_lapse_der_flux[0][0],
-          conformal_lapse_der_flux[0][1], conformal_lapse_der_flux[0][2],
-          conformal_aux_vect_flux[0][0], conformal_aux_vect_flux[0][1],
-          conformal_aux_vect_flux[0][2] },
-        { conformal_extrinsic_curvature_flux[1][0][0], conformal_extrinsic_curvature_flux[1][0][1],
-          conformal_extrinsic_curvature_flux[1][0][2], conformal_extrinsic_curvature_flux[1][1][0],
-          conformal_extrinsic_curvature_flux[1][1][1], conformal_extrinsic_curvature_flux[1][1][2],
-          conformal_extrinsic_curvature_flux[1][2][0], conformal_extrinsic_curvature_flux[1][2][1],
-          conformal_extrinsic_curvature_flux[1][2][2],
-          conformal_spatial_metric_der_flux[1][0][0][0],
-          conformal_spatial_metric_der_flux[1][0][0][1],
-          conformal_spatial_metric_der_flux[1][0][0][2],
-          conformal_spatial_metric_der_flux[1][0][1][0],
-          conformal_spatial_metric_der_flux[1][0][1][1],
-          conformal_spatial_metric_der_flux[1][0][1][2],
-          conformal_spatial_metric_der_flux[1][0][2][0],
-          conformal_spatial_metric_der_flux[1][0][2][1],
-          conformal_spatial_metric_der_flux[1][0][2][2],
-          conformal_spatial_metric_der_flux[1][1][0][0],
-          conformal_spatial_metric_der_flux[1][1][0][1],
-          conformal_spatial_metric_der_flux[1][1][0][2],
-          conformal_spatial_metric_der_flux[1][1][1][0],
-          conformal_spatial_metric_der_flux[1][1][1][1],
-          conformal_spatial_metric_der_flux[1][1][1][2],
-          conformal_spatial_metric_der_flux[1][1][2][0],
-          conformal_spatial_metric_der_flux[1][1][2][1],
-          conformal_spatial_metric_der_flux[1][1][2][2],
-          conformal_spatial_metric_der_flux[1][2][0][0],
-          conformal_spatial_metric_der_flux[1][2][0][1],
-          conformal_spatial_metric_der_flux[1][2][0][2],
-          conformal_spatial_metric_der_flux[1][2][1][0],
-          conformal_spatial_metric_der_flux[1][2][1][1],
-          conformal_spatial_metric_der_flux[1][2][1][2],
-          conformal_spatial_metric_der_flux[1][2][2][0],
-          conformal_spatial_metric_der_flux[1][2][2][1],
-          conformal_spatial_metric_der_flux[1][2][2][2], conformal_lapse_der_flux[1][0],
-          conformal_lapse_der_flux[1][1], conformal_lapse_der_flux[1][2],
-          conformal_aux_vect_flux[1][0], conformal_aux_vect_flux[1][1],
-          conformal_aux_vect_flux[1][2] },
-        { conformal_extrinsic_curvature_flux[2][0][0], conformal_extrinsic_curvature_flux[2][0][1],
-          conformal_extrinsic_curvature_flux[2][0][2], conformal_extrinsic_curvature_flux[2][1][0],
-          conformal_extrinsic_curvature_flux[2][1][1], conformal_extrinsic_curvature_flux[2][1][2],
-          conformal_extrinsic_curvature_flux[2][2][0], conformal_extrinsic_curvature_flux[2][2][1],
-          conformal_extrinsic_curvature_flux[2][2][2],
-          conformal_spatial_metric_der_flux[2][0][0][0],
-          conformal_spatial_metric_der_flux[2][0][0][1],
-          conformal_spatial_metric_der_flux[2][0][0][2],
-          conformal_spatial_metric_der_flux[2][0][1][0],
-          conformal_spatial_metric_der_flux[2][0][1][1],
-          conformal_spatial_metric_der_flux[2][0][1][2],
-          conformal_spatial_metric_der_flux[2][0][2][0],
-          conformal_spatial_metric_der_flux[2][0][2][1],
-          conformal_spatial_metric_der_flux[2][0][2][2],
-          conformal_spatial_metric_der_flux[2][1][0][0],
-          conformal_spatial_metric_der_flux[2][1][0][1],
-          conformal_spatial_metric_der_flux[2][1][0][2],
-          conformal_spatial_metric_der_flux[2][1][1][0],
-          conformal_spatial_metric_der_flux[2][1][1][1],
-          conformal_spatial_metric_der_flux[2][1][1][2],
-          conformal_spatial_metric_der_flux[2][1][2][0],
-          conformal_spatial_metric_der_flux[2][1][2][1],
-          conformal_spatial_metric_der_flux[2][1][2][2],
-          conformal_spatial_metric_der_flux[2][2][0][0],
-          conformal_spatial_metric_der_flux[2][2][0][1],
-          conformal_spatial_metric_der_flux[2][2][0][2],
-          conformal_spatial_metric_der_flux[2][2][1][0],
-          conformal_spatial_metric_der_flux[2][2][1][1],
-          conformal_spatial_metric_der_flux[2][2][1][2],
-          conformal_spatial_metric_der_flux[2][2][2][0],
-          conformal_spatial_metric_der_flux[2][2][2][1],
-          conformal_spatial_metric_der_flux[2][2][2][2], conformal_lapse_der_flux[2][0],
-          conformal_lapse_der_flux[2][1], conformal_lapse_der_flux[2][2],
-          conformal_aux_vect_flux[2][0], conformal_aux_vect_flux[2][1],
-          conformal_aux_vect_flux[2][2] }
+        {conformal_extrinsic_curvature_flux[0][0][0],
+         conformal_extrinsic_curvature_flux[0][0][1],
+         conformal_extrinsic_curvature_flux[0][0][2],
+         conformal_extrinsic_curvature_flux[0][1][0],
+         conformal_extrinsic_curvature_flux[0][1][1],
+         conformal_extrinsic_curvature_flux[0][1][2],
+         conformal_extrinsic_curvature_flux[0][2][0],
+         conformal_extrinsic_curvature_flux[0][2][1],
+         conformal_extrinsic_curvature_flux[0][2][2],
+         conformal_spatial_metric_der_flux[0][0][0][0],
+         conformal_spatial_metric_der_flux[0][0][0][1],
+         conformal_spatial_metric_der_flux[0][0][0][2],
+         conformal_spatial_metric_der_flux[0][0][1][0],
+         conformal_spatial_metric_der_flux[0][0][1][1],
+         conformal_spatial_metric_der_flux[0][0][1][2],
+         conformal_spatial_metric_der_flux[0][0][2][0],
+         conformal_spatial_metric_der_flux[0][0][2][1],
+         conformal_spatial_metric_der_flux[0][0][2][2],
+         conformal_spatial_metric_der_flux[0][1][0][0],
+         conformal_spatial_metric_der_flux[0][1][0][1],
+         conformal_spatial_metric_der_flux[0][1][0][2],
+         conformal_spatial_metric_der_flux[0][1][1][0],
+         conformal_spatial_metric_der_flux[0][1][1][1],
+         conformal_spatial_metric_der_flux[0][1][1][2],
+         conformal_spatial_metric_der_flux[0][1][2][0],
+         conformal_spatial_metric_der_flux[0][1][2][1],
+         conformal_spatial_metric_der_flux[0][1][2][2],
+         conformal_spatial_metric_der_flux[0][2][0][0],
+         conformal_spatial_metric_der_flux[0][2][0][1],
+         conformal_spatial_metric_der_flux[0][2][0][2],
+         conformal_spatial_metric_der_flux[0][2][1][0],
+         conformal_spatial_metric_der_flux[0][2][1][1],
+         conformal_spatial_metric_der_flux[0][2][1][2],
+         conformal_spatial_metric_der_flux[0][2][2][0],
+         conformal_spatial_metric_der_flux[0][2][2][1],
+         conformal_spatial_metric_der_flux[0][2][2][2],
+         conformal_lapse_der_flux[0][0],
+         conformal_lapse_der_flux[0][1],
+         conformal_lapse_der_flux[0][2],
+         conformal_aux_vect_flux[0][0],
+         conformal_aux_vect_flux[0][1],
+         conformal_aux_vect_flux[0][2]},
+        {conformal_extrinsic_curvature_flux[1][0][0],
+         conformal_extrinsic_curvature_flux[1][0][1],
+         conformal_extrinsic_curvature_flux[1][0][2],
+         conformal_extrinsic_curvature_flux[1][1][0],
+         conformal_extrinsic_curvature_flux[1][1][1],
+         conformal_extrinsic_curvature_flux[1][1][2],
+         conformal_extrinsic_curvature_flux[1][2][0],
+         conformal_extrinsic_curvature_flux[1][2][1],
+         conformal_extrinsic_curvature_flux[1][2][2],
+         conformal_spatial_metric_der_flux[1][0][0][0],
+         conformal_spatial_metric_der_flux[1][0][0][1],
+         conformal_spatial_metric_der_flux[1][0][0][2],
+         conformal_spatial_metric_der_flux[1][0][1][0],
+         conformal_spatial_metric_der_flux[1][0][1][1],
+         conformal_spatial_metric_der_flux[1][0][1][2],
+         conformal_spatial_metric_der_flux[1][0][2][0],
+         conformal_spatial_metric_der_flux[1][0][2][1],
+         conformal_spatial_metric_der_flux[1][0][2][2],
+         conformal_spatial_metric_der_flux[1][1][0][0],
+         conformal_spatial_metric_der_flux[1][1][0][1],
+         conformal_spatial_metric_der_flux[1][1][0][2],
+         conformal_spatial_metric_der_flux[1][1][1][0],
+         conformal_spatial_metric_der_flux[1][1][1][1],
+         conformal_spatial_metric_der_flux[1][1][1][2],
+         conformal_spatial_metric_der_flux[1][1][2][0],
+         conformal_spatial_metric_der_flux[1][1][2][1],
+         conformal_spatial_metric_der_flux[1][1][2][2],
+         conformal_spatial_metric_der_flux[1][2][0][0],
+         conformal_spatial_metric_der_flux[1][2][0][1],
+         conformal_spatial_metric_der_flux[1][2][0][2],
+         conformal_spatial_metric_der_flux[1][2][1][0],
+         conformal_spatial_metric_der_flux[1][2][1][1],
+         conformal_spatial_metric_der_flux[1][2][1][2],
+         conformal_spatial_metric_der_flux[1][2][2][0],
+         conformal_spatial_metric_der_flux[1][2][2][1],
+         conformal_spatial_metric_der_flux[1][2][2][2],
+         conformal_lapse_der_flux[1][0],
+         conformal_lapse_der_flux[1][1],
+         conformal_lapse_der_flux[1][2],
+         conformal_aux_vect_flux[1][0],
+         conformal_aux_vect_flux[1][1],
+         conformal_aux_vect_flux[1][2]},
+        {conformal_extrinsic_curvature_flux[2][0][0],
+         conformal_extrinsic_curvature_flux[2][0][1],
+         conformal_extrinsic_curvature_flux[2][0][2],
+         conformal_extrinsic_curvature_flux[2][1][0],
+         conformal_extrinsic_curvature_flux[2][1][1],
+         conformal_extrinsic_curvature_flux[2][1][2],
+         conformal_extrinsic_curvature_flux[2][2][0],
+         conformal_extrinsic_curvature_flux[2][2][1],
+         conformal_extrinsic_curvature_flux[2][2][2],
+         conformal_spatial_metric_der_flux[2][0][0][0],
+         conformal_spatial_metric_der_flux[2][0][0][1],
+         conformal_spatial_metric_der_flux[2][0][0][2],
+         conformal_spatial_metric_der_flux[2][0][1][0],
+         conformal_spatial_metric_der_flux[2][0][1][1],
+         conformal_spatial_metric_der_flux[2][0][1][2],
+         conformal_spatial_metric_der_flux[2][0][2][0],
+         conformal_spatial_metric_der_flux[2][0][2][1],
+         conformal_spatial_metric_der_flux[2][0][2][2],
+         conformal_spatial_metric_der_flux[2][1][0][0],
+         conformal_spatial_metric_der_flux[2][1][0][1],
+         conformal_spatial_metric_der_flux[2][1][0][2],
+         conformal_spatial_metric_der_flux[2][1][1][0],
+         conformal_spatial_metric_der_flux[2][1][1][1],
+         conformal_spatial_metric_der_flux[2][1][1][2],
+         conformal_spatial_metric_der_flux[2][1][2][0],
+         conformal_spatial_metric_der_flux[2][1][2][1],
+         conformal_spatial_metric_der_flux[2][1][2][2],
+         conformal_spatial_metric_der_flux[2][2][0][0],
+         conformal_spatial_metric_der_flux[2][2][0][1],
+         conformal_spatial_metric_der_flux[2][2][0][2],
+         conformal_spatial_metric_der_flux[2][2][1][0],
+         conformal_spatial_metric_der_flux[2][2][1][1],
+         conformal_spatial_metric_der_flux[2][2][1][2],
+         conformal_spatial_metric_der_flux[2][2][2][0],
+         conformal_spatial_metric_der_flux[2][2][2][1],
+         conformal_spatial_metric_der_flux[2][2][2][2],
+         conformal_lapse_der_flux[2][0],
+         conformal_lapse_der_flux[2][1],
+         conformal_lapse_der_flux[2][2],
+         conformal_aux_vect_flux[2][0],
+         conformal_aux_vect_flux[2][1],
+         conformal_aux_vect_flux[2][2]}
       };
 
-      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+      double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+      double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+      double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
       double q_local[77], flux_local[77], flux[77];
       for (int d = 0; d < 3; d++) {
         vacuum_einstein_conformal->rotate_to_local_func(
-          vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], q, q_local);
+          vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], q, q_local
+        );
         gkyl_vacuum_einstein_conformal_flux(
-          excision_threshold, spacetime_slicing, spacetime_evolution, q_local, flux_local);
+          excision_threshold, spacetime_slicing, spacetime_evolution, q_local, flux_local
+        );
         vacuum_einstein_conformal->rotate_to_global_func(
-          vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], flux_local, flux);
+          vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], flux_local, flux
+        );
 
         for (int i = 0; i < 42; i++) {
           TEST_CHECK(gkyl_compare(flux[i + 10], fluxes[d][i], 1e-8));
@@ -537,8 +577,7 @@ void test_vacuum_einstein_conformal_basic_minkowski_ho()
       double q_l[77], q_g[77];
       for (int d = 0; d < 3; d++) {
         gkyl_wv_eqn_rotate_to_local(vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], q, q_l);
-        gkyl_wv_eqn_rotate_to_global(
-          vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], q_l, q_g);
+        gkyl_wv_eqn_rotate_to_global(vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], q_l, q_g);
 
         for (int i = 0; i < 77; i++) {
           TEST_CHECK(gkyl_compare(q[i], q_g[i], 1e-16));
@@ -589,7 +628,8 @@ void test_vacuum_einstein_conformal_basic_schwarzschild_ho()
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
   struct gkyl_wv_eqn *vacuum_einstein_conformal = gkyl_wv_vacuum_einstein_conformal_new(
-    excision_threshold, spacetime_slicing, spacetime_evolution, false);
+    excision_threshold, spacetime_slicing, spacetime_evolution, false
+  );
 
   TEST_CHECK(vacuum_einstein_conformal->num_equations == 77);
   TEST_CHECK(vacuum_einstein_conformal->num_waves == 2);
@@ -645,26 +685,41 @@ void test_vacuum_einstein_conformal_basic_schwarzschild_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &conformal_spatial_metric);
       spacetime->spatial_inv_metric_tensor_func(
-        spacetime, 0.0, x, y, 0.0, &inv_conformal_spatial_metric);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &conformal_extrinsic_curvature);
+        spacetime, 0.0, x, y, 0.0, &inv_conformal_spatial_metric
+      );
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &conformal_extrinsic_curvature
+      );
 
       spacetime->conformal_factor_func(spacetime, 0.0, x, y, 0.0, &conformal_fact);
       spacetime->bssn_conformal_factor_func(spacetime, 0.0, x, y, 0.0, &bssn_conformal_fact);
 
-      spacetime->conformal_factor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &conformal_fact_der);
-      spacetime->bssn_conformal_factor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &bssn_conformal_fact_der);
-      spacetime->bssn_conformal_factor_der2_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), &bssn_conformal_fact_der2);
+      spacetime->conformal_factor_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &conformal_fact_der
+      );
+      spacetime->bssn_conformal_factor_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &bssn_conformal_fact_der
+      );
+      spacetime->bssn_conformal_factor_der2_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+        &bssn_conformal_fact_der2
+      );
 
-      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &conformal_lapse_der);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-        pow(10.0, -8.0), &conformal_shift_der);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &conformal_spatial_metric_der);
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &conformal_lapse_der
+      );
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &conformal_shift_der
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &conformal_spatial_metric_der
+      );
 
       for (int i = 0; i < 3; i++) {
         conformal_fact_der[i] /= conformal_fact;
@@ -953,7 +1008,7 @@ void test_vacuum_einstein_conformal_basic_schwarzschild_ho()
               conformal_spatial_metric_der_flux[d][d][i][j] +=
                 conformal_lapse *
                 (conformal_extrinsic_curvature[i][j] /
-                  (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
+                 (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
               conformal_spatial_metric_der_flux[d][d][i][j] -=
                 conformal_lapse * symmetrized_conformal_shift[i][j];
             }
@@ -984,138 +1039,152 @@ void test_vacuum_einstein_conformal_basic_schwarzschild_ho()
           }
         }
 
-        double fluxes[3][42] = { { conformal_extrinsic_curvature_flux[0][0][0],
-                                   conformal_extrinsic_curvature_flux[0][0][1],
-                                   conformal_extrinsic_curvature_flux[0][0][2],
-                                   conformal_extrinsic_curvature_flux[0][1][0],
-                                   conformal_extrinsic_curvature_flux[0][1][1],
-                                   conformal_extrinsic_curvature_flux[0][1][2],
-                                   conformal_extrinsic_curvature_flux[0][2][0],
-                                   conformal_extrinsic_curvature_flux[0][2][1],
-                                   conformal_extrinsic_curvature_flux[0][2][2],
-                                   conformal_spatial_metric_der_flux[0][0][0][0],
-                                   conformal_spatial_metric_der_flux[0][0][0][1],
-                                   conformal_spatial_metric_der_flux[0][0][0][2],
-                                   conformal_spatial_metric_der_flux[0][0][1][0],
-                                   conformal_spatial_metric_der_flux[0][0][1][1],
-                                   conformal_spatial_metric_der_flux[0][0][1][2],
-                                   conformal_spatial_metric_der_flux[0][0][2][0],
-                                   conformal_spatial_metric_der_flux[0][0][2][1],
-                                   conformal_spatial_metric_der_flux[0][0][2][2],
-                                   conformal_spatial_metric_der_flux[0][1][0][0],
-                                   conformal_spatial_metric_der_flux[0][1][0][1],
-                                   conformal_spatial_metric_der_flux[0][1][0][2],
-                                   conformal_spatial_metric_der_flux[0][1][1][0],
-                                   conformal_spatial_metric_der_flux[0][1][1][1],
-                                   conformal_spatial_metric_der_flux[0][1][1][2],
-                                   conformal_spatial_metric_der_flux[0][1][2][0],
-                                   conformal_spatial_metric_der_flux[0][1][2][1],
-                                   conformal_spatial_metric_der_flux[0][1][2][2],
-                                   conformal_spatial_metric_der_flux[0][2][0][0],
-                                   conformal_spatial_metric_der_flux[0][2][0][1],
-                                   conformal_spatial_metric_der_flux[0][2][0][2],
-                                   conformal_spatial_metric_der_flux[0][2][1][0],
-                                   conformal_spatial_metric_der_flux[0][2][1][1],
-                                   conformal_spatial_metric_der_flux[0][2][1][2],
-                                   conformal_spatial_metric_der_flux[0][2][2][0],
-                                   conformal_spatial_metric_der_flux[0][2][2][1],
-                                   conformal_spatial_metric_der_flux[0][2][2][2],
-                                   conformal_lapse_der_flux[0][0], conformal_lapse_der_flux[0][1],
-                                   conformal_lapse_der_flux[0][2], conformal_aux_vect_flux[0][0],
-                                   conformal_aux_vect_flux[0][1], conformal_aux_vect_flux[0][2] },
-          { conformal_extrinsic_curvature_flux[1][0][0],
-            conformal_extrinsic_curvature_flux[1][0][1],
-            conformal_extrinsic_curvature_flux[1][0][2],
-            conformal_extrinsic_curvature_flux[1][1][0],
-            conformal_extrinsic_curvature_flux[1][1][1],
-            conformal_extrinsic_curvature_flux[1][1][2],
-            conformal_extrinsic_curvature_flux[1][2][0],
-            conformal_extrinsic_curvature_flux[1][2][1],
-            conformal_extrinsic_curvature_flux[1][2][2],
-            conformal_spatial_metric_der_flux[1][0][0][0],
-            conformal_spatial_metric_der_flux[1][0][0][1],
-            conformal_spatial_metric_der_flux[1][0][0][2],
-            conformal_spatial_metric_der_flux[1][0][1][0],
-            conformal_spatial_metric_der_flux[1][0][1][1],
-            conformal_spatial_metric_der_flux[1][0][1][2],
-            conformal_spatial_metric_der_flux[1][0][2][0],
-            conformal_spatial_metric_der_flux[1][0][2][1],
-            conformal_spatial_metric_der_flux[1][0][2][2],
-            conformal_spatial_metric_der_flux[1][1][0][0],
-            conformal_spatial_metric_der_flux[1][1][0][1],
-            conformal_spatial_metric_der_flux[1][1][0][2],
-            conformal_spatial_metric_der_flux[1][1][1][0],
-            conformal_spatial_metric_der_flux[1][1][1][1],
-            conformal_spatial_metric_der_flux[1][1][1][2],
-            conformal_spatial_metric_der_flux[1][1][2][0],
-            conformal_spatial_metric_der_flux[1][1][2][1],
-            conformal_spatial_metric_der_flux[1][1][2][2],
-            conformal_spatial_metric_der_flux[1][2][0][0],
-            conformal_spatial_metric_der_flux[1][2][0][1],
-            conformal_spatial_metric_der_flux[1][2][0][2],
-            conformal_spatial_metric_der_flux[1][2][1][0],
-            conformal_spatial_metric_der_flux[1][2][1][1],
-            conformal_spatial_metric_der_flux[1][2][1][2],
-            conformal_spatial_metric_der_flux[1][2][2][0],
-            conformal_spatial_metric_der_flux[1][2][2][1],
-            conformal_spatial_metric_der_flux[1][2][2][2], conformal_lapse_der_flux[1][0],
-            conformal_lapse_der_flux[1][1], conformal_lapse_der_flux[1][2],
-            conformal_aux_vect_flux[1][0], conformal_aux_vect_flux[1][1],
-            conformal_aux_vect_flux[1][2] },
-          { conformal_extrinsic_curvature_flux[2][0][0],
-            conformal_extrinsic_curvature_flux[2][0][1],
-            conformal_extrinsic_curvature_flux[2][0][2],
-            conformal_extrinsic_curvature_flux[2][1][0],
-            conformal_extrinsic_curvature_flux[2][1][1],
-            conformal_extrinsic_curvature_flux[2][1][2],
-            conformal_extrinsic_curvature_flux[2][2][0],
-            conformal_extrinsic_curvature_flux[2][2][1],
-            conformal_extrinsic_curvature_flux[2][2][2],
-            conformal_spatial_metric_der_flux[2][0][0][0],
-            conformal_spatial_metric_der_flux[2][0][0][1],
-            conformal_spatial_metric_der_flux[2][0][0][2],
-            conformal_spatial_metric_der_flux[2][0][1][0],
-            conformal_spatial_metric_der_flux[2][0][1][1],
-            conformal_spatial_metric_der_flux[2][0][1][2],
-            conformal_spatial_metric_der_flux[2][0][2][0],
-            conformal_spatial_metric_der_flux[2][0][2][1],
-            conformal_spatial_metric_der_flux[2][0][2][2],
-            conformal_spatial_metric_der_flux[2][1][0][0],
-            conformal_spatial_metric_der_flux[2][1][0][1],
-            conformal_spatial_metric_der_flux[2][1][0][2],
-            conformal_spatial_metric_der_flux[2][1][1][0],
-            conformal_spatial_metric_der_flux[2][1][1][1],
-            conformal_spatial_metric_der_flux[2][1][1][2],
-            conformal_spatial_metric_der_flux[2][1][2][0],
-            conformal_spatial_metric_der_flux[2][1][2][1],
-            conformal_spatial_metric_der_flux[2][1][2][2],
-            conformal_spatial_metric_der_flux[2][2][0][0],
-            conformal_spatial_metric_der_flux[2][2][0][1],
-            conformal_spatial_metric_der_flux[2][2][0][2],
-            conformal_spatial_metric_der_flux[2][2][1][0],
-            conformal_spatial_metric_der_flux[2][2][1][1],
-            conformal_spatial_metric_der_flux[2][2][1][2],
-            conformal_spatial_metric_der_flux[2][2][2][0],
-            conformal_spatial_metric_der_flux[2][2][2][1],
-            conformal_spatial_metric_der_flux[2][2][2][2], conformal_lapse_der_flux[2][0],
-            conformal_lapse_der_flux[2][1], conformal_lapse_der_flux[2][2],
-            conformal_aux_vect_flux[2][0], conformal_aux_vect_flux[2][1],
-            conformal_aux_vect_flux[2][2] } };
+        double fluxes[3][42] = {
+          {conformal_extrinsic_curvature_flux[0][0][0],
+           conformal_extrinsic_curvature_flux[0][0][1],
+           conformal_extrinsic_curvature_flux[0][0][2],
+           conformal_extrinsic_curvature_flux[0][1][0],
+           conformal_extrinsic_curvature_flux[0][1][1],
+           conformal_extrinsic_curvature_flux[0][1][2],
+           conformal_extrinsic_curvature_flux[0][2][0],
+           conformal_extrinsic_curvature_flux[0][2][1],
+           conformal_extrinsic_curvature_flux[0][2][2],
+           conformal_spatial_metric_der_flux[0][0][0][0],
+           conformal_spatial_metric_der_flux[0][0][0][1],
+           conformal_spatial_metric_der_flux[0][0][0][2],
+           conformal_spatial_metric_der_flux[0][0][1][0],
+           conformal_spatial_metric_der_flux[0][0][1][1],
+           conformal_spatial_metric_der_flux[0][0][1][2],
+           conformal_spatial_metric_der_flux[0][0][2][0],
+           conformal_spatial_metric_der_flux[0][0][2][1],
+           conformal_spatial_metric_der_flux[0][0][2][2],
+           conformal_spatial_metric_der_flux[0][1][0][0],
+           conformal_spatial_metric_der_flux[0][1][0][1],
+           conformal_spatial_metric_der_flux[0][1][0][2],
+           conformal_spatial_metric_der_flux[0][1][1][0],
+           conformal_spatial_metric_der_flux[0][1][1][1],
+           conformal_spatial_metric_der_flux[0][1][1][2],
+           conformal_spatial_metric_der_flux[0][1][2][0],
+           conformal_spatial_metric_der_flux[0][1][2][1],
+           conformal_spatial_metric_der_flux[0][1][2][2],
+           conformal_spatial_metric_der_flux[0][2][0][0],
+           conformal_spatial_metric_der_flux[0][2][0][1],
+           conformal_spatial_metric_der_flux[0][2][0][2],
+           conformal_spatial_metric_der_flux[0][2][1][0],
+           conformal_spatial_metric_der_flux[0][2][1][1],
+           conformal_spatial_metric_der_flux[0][2][1][2],
+           conformal_spatial_metric_der_flux[0][2][2][0],
+           conformal_spatial_metric_der_flux[0][2][2][1],
+           conformal_spatial_metric_der_flux[0][2][2][2],
+           conformal_lapse_der_flux[0][0],
+           conformal_lapse_der_flux[0][1],
+           conformal_lapse_der_flux[0][2],
+           conformal_aux_vect_flux[0][0],
+           conformal_aux_vect_flux[0][1],
+           conformal_aux_vect_flux[0][2]},
+          {conformal_extrinsic_curvature_flux[1][0][0],
+           conformal_extrinsic_curvature_flux[1][0][1],
+           conformal_extrinsic_curvature_flux[1][0][2],
+           conformal_extrinsic_curvature_flux[1][1][0],
+           conformal_extrinsic_curvature_flux[1][1][1],
+           conformal_extrinsic_curvature_flux[1][1][2],
+           conformal_extrinsic_curvature_flux[1][2][0],
+           conformal_extrinsic_curvature_flux[1][2][1],
+           conformal_extrinsic_curvature_flux[1][2][2],
+           conformal_spatial_metric_der_flux[1][0][0][0],
+           conformal_spatial_metric_der_flux[1][0][0][1],
+           conformal_spatial_metric_der_flux[1][0][0][2],
+           conformal_spatial_metric_der_flux[1][0][1][0],
+           conformal_spatial_metric_der_flux[1][0][1][1],
+           conformal_spatial_metric_der_flux[1][0][1][2],
+           conformal_spatial_metric_der_flux[1][0][2][0],
+           conformal_spatial_metric_der_flux[1][0][2][1],
+           conformal_spatial_metric_der_flux[1][0][2][2],
+           conformal_spatial_metric_der_flux[1][1][0][0],
+           conformal_spatial_metric_der_flux[1][1][0][1],
+           conformal_spatial_metric_der_flux[1][1][0][2],
+           conformal_spatial_metric_der_flux[1][1][1][0],
+           conformal_spatial_metric_der_flux[1][1][1][1],
+           conformal_spatial_metric_der_flux[1][1][1][2],
+           conformal_spatial_metric_der_flux[1][1][2][0],
+           conformal_spatial_metric_der_flux[1][1][2][1],
+           conformal_spatial_metric_der_flux[1][1][2][2],
+           conformal_spatial_metric_der_flux[1][2][0][0],
+           conformal_spatial_metric_der_flux[1][2][0][1],
+           conformal_spatial_metric_der_flux[1][2][0][2],
+           conformal_spatial_metric_der_flux[1][2][1][0],
+           conformal_spatial_metric_der_flux[1][2][1][1],
+           conformal_spatial_metric_der_flux[1][2][1][2],
+           conformal_spatial_metric_der_flux[1][2][2][0],
+           conformal_spatial_metric_der_flux[1][2][2][1],
+           conformal_spatial_metric_der_flux[1][2][2][2],
+           conformal_lapse_der_flux[1][0],
+           conformal_lapse_der_flux[1][1],
+           conformal_lapse_der_flux[1][2],
+           conformal_aux_vect_flux[1][0],
+           conformal_aux_vect_flux[1][1],
+           conformal_aux_vect_flux[1][2]},
+          {conformal_extrinsic_curvature_flux[2][0][0],
+           conformal_extrinsic_curvature_flux[2][0][1],
+           conformal_extrinsic_curvature_flux[2][0][2],
+           conformal_extrinsic_curvature_flux[2][1][0],
+           conformal_extrinsic_curvature_flux[2][1][1],
+           conformal_extrinsic_curvature_flux[2][1][2],
+           conformal_extrinsic_curvature_flux[2][2][0],
+           conformal_extrinsic_curvature_flux[2][2][1],
+           conformal_extrinsic_curvature_flux[2][2][2],
+           conformal_spatial_metric_der_flux[2][0][0][0],
+           conformal_spatial_metric_der_flux[2][0][0][1],
+           conformal_spatial_metric_der_flux[2][0][0][2],
+           conformal_spatial_metric_der_flux[2][0][1][0],
+           conformal_spatial_metric_der_flux[2][0][1][1],
+           conformal_spatial_metric_der_flux[2][0][1][2],
+           conformal_spatial_metric_der_flux[2][0][2][0],
+           conformal_spatial_metric_der_flux[2][0][2][1],
+           conformal_spatial_metric_der_flux[2][0][2][2],
+           conformal_spatial_metric_der_flux[2][1][0][0],
+           conformal_spatial_metric_der_flux[2][1][0][1],
+           conformal_spatial_metric_der_flux[2][1][0][2],
+           conformal_spatial_metric_der_flux[2][1][1][0],
+           conformal_spatial_metric_der_flux[2][1][1][1],
+           conformal_spatial_metric_der_flux[2][1][1][2],
+           conformal_spatial_metric_der_flux[2][1][2][0],
+           conformal_spatial_metric_der_flux[2][1][2][1],
+           conformal_spatial_metric_der_flux[2][1][2][2],
+           conformal_spatial_metric_der_flux[2][2][0][0],
+           conformal_spatial_metric_der_flux[2][2][0][1],
+           conformal_spatial_metric_der_flux[2][2][0][2],
+           conformal_spatial_metric_der_flux[2][2][1][0],
+           conformal_spatial_metric_der_flux[2][2][1][1],
+           conformal_spatial_metric_der_flux[2][2][1][2],
+           conformal_spatial_metric_der_flux[2][2][2][0],
+           conformal_spatial_metric_der_flux[2][2][2][1],
+           conformal_spatial_metric_der_flux[2][2][2][2],
+           conformal_lapse_der_flux[2][0],
+           conformal_lapse_der_flux[2][1],
+           conformal_lapse_der_flux[2][2],
+           conformal_aux_vect_flux[2][0],
+           conformal_aux_vect_flux[2][1],
+           conformal_aux_vect_flux[2][2]}
+        };
 
-        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         double q_local[77], flux_local[77], flux[77];
         for (int d = 0; d < 3; d++) {
           vacuum_einstein_conformal->rotate_to_local_func(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], q, q_local);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], q, q_local
+          );
           gkyl_vacuum_einstein_conformal_flux(
-            excision_threshold, spacetime_slicing, spacetime_evolution, q_local, flux_local);
+            excision_threshold, spacetime_slicing, spacetime_evolution, q_local, flux_local
+          );
           vacuum_einstein_conformal->rotate_to_global_func(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], flux_local, flux);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], flux_local, flux
+          );
 
           for (int i = 0; i < 42; i++) {
             TEST_CHECK(gkyl_compare(flux[i + 10], fluxes[d][i], 1e-6));
@@ -1126,7 +1195,8 @@ void test_vacuum_einstein_conformal_basic_schwarzschild_ho()
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], q_l, q_g);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], q_l, q_g
+          );
 
           for (int i = 0; i < 77; i++) {
             TEST_CHECK(gkyl_compare(q[i], q_g[i], 1e-16));
@@ -1178,7 +1248,8 @@ void test_vacuum_einstein_conformal_waves_schwarzschild_ho()
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
   struct gkyl_wv_eqn *vacuum_einstein_conformal = gkyl_wv_vacuum_einstein_conformal_new(
-    excision_threshold, spacetime_slicing, spacetime_evolution, false);
+    excision_threshold, spacetime_slicing, spacetime_evolution, false
+  );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -1253,50 +1324,66 @@ void test_vacuum_einstein_conformal_waves_schwarzschild_ho()
       spacetime->excision_region_func(spacetime, 0.0, x + 0.1, y, 0.0, &in_excision_region_r);
 
       spacetime->spatial_metric_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, &conformal_spatial_metric_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, &conformal_spatial_metric_l
+      );
       spacetime->spatial_metric_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, &conformal_spatial_metric_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, &conformal_spatial_metric_r
+      );
       spacetime->spatial_inv_metric_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, &inv_conformal_spatial_metric_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, &inv_conformal_spatial_metric_l
+      );
       spacetime->spatial_inv_metric_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, &inv_conformal_spatial_metric_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, &inv_conformal_spatial_metric_r
+      );
       spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_extrinsic_curvature_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_extrinsic_curvature_l
+      );
       spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_extrinsic_curvature_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_extrinsic_curvature_r
+      );
 
       spacetime->conformal_factor_func(spacetime, 0.0, x - 0.1, y, 0.0, &conformal_fact_l);
       spacetime->conformal_factor_func(spacetime, 0.0, x + 0.1, y, 0.0, &conformal_fact_r);
-      spacetime->bssn_conformal_factor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, &bssn_conformal_fact_l);
-      spacetime->bssn_conformal_factor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, &bssn_conformal_fact_r);
+      spacetime->bssn_conformal_factor_func(spacetime, 0.0, x - 0.1, y, 0.0, &bssn_conformal_fact_l);
+      spacetime->bssn_conformal_factor_func(spacetime, 0.0, x + 0.1, y, 0.0, &bssn_conformal_fact_r);
 
       spacetime->conformal_factor_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_fact_der_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_fact_der_l
+      );
       spacetime->conformal_factor_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_fact_der_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_fact_der_r
+      );
       spacetime->bssn_conformal_factor_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der_l
+      );
       spacetime->bssn_conformal_factor_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der_r
+      );
       spacetime->bssn_conformal_factor_der2_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der2_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der2_l
+      );
       spacetime->bssn_conformal_factor_der2_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der2_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der2_r
+      );
 
       spacetime->lapse_function_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_lapse_der_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_lapse_der_l
+      );
       spacetime->lapse_function_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_lapse_der_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_lapse_der_r
+      );
       spacetime->shift_vector_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_shift_der_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_shift_der_l
+      );
       spacetime->shift_vector_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_shift_der_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_shift_der_r
+      );
       spacetime->spatial_metric_tensor_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_spatial_metric_der_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_spatial_metric_der_l
+      );
       spacetime->spatial_metric_tensor_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_spatial_metric_der_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_spatial_metric_der_r
+      );
 
       for (int i = 0; i < 3; i++) {
         conformal_fact_der_l[i] /= conformal_fact_l;
@@ -1664,55 +1751,69 @@ void test_vacuum_einstein_conformal_waves_schwarzschild_ho()
         qr[75] = bssn_conformal_fact_der2_r[2][1];
         qr[76] = bssn_conformal_fact_der2_r[2][2];
 
-        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         for (int d = 0; d < 3; d++) {
           double speeds[2], waves[2 * 77], waves_local[2 * 77];
 
           double ql_local[77], qr_local[77];
           gkyl_wv_eqn_rotate_to_local(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], ql, ql_local);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], ql, ql_local
+          );
           gkyl_wv_eqn_rotate_to_local(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], qr, qr_local);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], qr, qr_local
+          );
 
           double delta[77];
           for (int i = 0; i < 77; i++) {
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(vacuum_einstein_conformal, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local,
-            qr_local, 1.0, 1.0, waves_local, speeds);
+          gkyl_wv_eqn_waves(
+            vacuum_einstein_conformal, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
+            waves_local, speeds
+          );
 
           double apdq_local[77], amdq_local[77];
-          gkyl_wv_eqn_qfluct(vacuum_einstein_conformal, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local,
-            1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(
+            vacuum_einstein_conformal, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
+            waves_local, speeds, amdq_local, apdq_local
+          );
 
           for (int i = 0; i < 2; i++) {
-            gkyl_wv_eqn_rotate_to_global(vacuum_einstein_conformal, tau1[d], tau2[d], norm[d],
-              &waves_local[i * 77], &waves[i * 77]);
+            gkyl_wv_eqn_rotate_to_global(
+              vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], &waves_local[i * 77],
+              &waves[i * 77]
+            );
           }
 
           double apdq[77], amdq[77];
           gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], apdq_local, apdq
+          );
           gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], amdq_local, amdq
+          );
 
           double fl_local[77], fr_local[77];
           gkyl_vacuum_einstein_conformal_flux(
-            excision_threshold, spacetime_slicing, spacetime_evolution, ql_local, fl_local);
+            excision_threshold, spacetime_slicing, spacetime_evolution, ql_local, fl_local
+          );
           gkyl_vacuum_einstein_conformal_flux(
-            excision_threshold, spacetime_slicing, spacetime_evolution, qr_local, fr_local);
+            excision_threshold, spacetime_slicing, spacetime_evolution, qr_local, fr_local
+          );
 
           double fl[77], fr[77];
           gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], fl_local, fl);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], fl_local, fl
+          );
           gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], fr_local, fr);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], fr_local, fr
+          );
 
           for (int i = 0; i < 77; i++) {
             TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-11));
@@ -1762,7 +1863,8 @@ void test_vacuum_einstein_conformal_waves_kerr_ho()
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
   struct gkyl_wv_eqn *vacuum_einstein_conformal = gkyl_wv_vacuum_einstein_conformal_new(
-    excision_threshold, spacetime_slicing, spacetime_evolution, false);
+    excision_threshold, spacetime_slicing, spacetime_evolution, false
+  );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -1837,50 +1939,66 @@ void test_vacuum_einstein_conformal_waves_kerr_ho()
       spacetime->excision_region_func(spacetime, 0.0, x + 0.1, y, 0.0, &in_excision_region_r);
 
       spacetime->spatial_metric_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, &conformal_spatial_metric_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, &conformal_spatial_metric_l
+      );
       spacetime->spatial_metric_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, &conformal_spatial_metric_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, &conformal_spatial_metric_r
+      );
       spacetime->spatial_inv_metric_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, &inv_conformal_spatial_metric_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, &inv_conformal_spatial_metric_l
+      );
       spacetime->spatial_inv_metric_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, &inv_conformal_spatial_metric_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, &inv_conformal_spatial_metric_r
+      );
       spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_extrinsic_curvature_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_extrinsic_curvature_l
+      );
       spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_extrinsic_curvature_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_extrinsic_curvature_r
+      );
 
       spacetime->conformal_factor_func(spacetime, 0.0, x - 0.1, y, 0.0, &conformal_fact_l);
       spacetime->conformal_factor_func(spacetime, 0.0, x + 0.1, y, 0.0, &conformal_fact_r);
-      spacetime->bssn_conformal_factor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, &bssn_conformal_fact_l);
-      spacetime->bssn_conformal_factor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, &bssn_conformal_fact_r);
+      spacetime->bssn_conformal_factor_func(spacetime, 0.0, x - 0.1, y, 0.0, &bssn_conformal_fact_l);
+      spacetime->bssn_conformal_factor_func(spacetime, 0.0, x + 0.1, y, 0.0, &bssn_conformal_fact_r);
 
       spacetime->conformal_factor_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_fact_der_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_fact_der_l
+      );
       spacetime->conformal_factor_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_fact_der_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_fact_der_r
+      );
       spacetime->bssn_conformal_factor_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der_l
+      );
       spacetime->bssn_conformal_factor_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der_r
+      );
       spacetime->bssn_conformal_factor_der2_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der2_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der2_l
+      );
       spacetime->bssn_conformal_factor_der2_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der2_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &bssn_conformal_fact_der2_r
+      );
 
       spacetime->lapse_function_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_lapse_der_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_lapse_der_l
+      );
       spacetime->lapse_function_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_lapse_der_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_lapse_der_r
+      );
       spacetime->shift_vector_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_shift_der_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_shift_der_l
+      );
       spacetime->shift_vector_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_shift_der_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_shift_der_r
+      );
       spacetime->spatial_metric_tensor_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_spatial_metric_der_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_spatial_metric_der_l
+      );
       spacetime->spatial_metric_tensor_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_spatial_metric_der_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &conformal_spatial_metric_der_r
+      );
 
       for (int i = 0; i < 3; i++) {
         conformal_fact_der_l[i] /= conformal_fact_l;
@@ -2248,55 +2366,69 @@ void test_vacuum_einstein_conformal_waves_kerr_ho()
         qr[75] = bssn_conformal_fact_der2_r[2][1];
         qr[76] = bssn_conformal_fact_der2_r[2][2];
 
-        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         for (int d = 0; d < 3; d++) {
           double speeds[2], waves[2 * 77], waves_local[2 * 77];
 
           double ql_local[77], qr_local[77];
           gkyl_wv_eqn_rotate_to_local(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], ql, ql_local);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], ql, ql_local
+          );
           gkyl_wv_eqn_rotate_to_local(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], qr, qr_local);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], qr, qr_local
+          );
 
           double delta[77];
           for (int i = 0; i < 77; i++) {
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(vacuum_einstein_conformal, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local,
-            qr_local, 1.0, 1.0, waves_local, speeds);
+          gkyl_wv_eqn_waves(
+            vacuum_einstein_conformal, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
+            waves_local, speeds
+          );
 
           double apdq_local[77], amdq_local[77];
-          gkyl_wv_eqn_qfluct(vacuum_einstein_conformal, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local,
-            1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(
+            vacuum_einstein_conformal, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
+            waves_local, speeds, amdq_local, apdq_local
+          );
 
           for (int i = 0; i < 2; i++) {
-            gkyl_wv_eqn_rotate_to_global(vacuum_einstein_conformal, tau1[d], tau2[d], norm[d],
-              &waves_local[i * 77], &waves[i * 77]);
+            gkyl_wv_eqn_rotate_to_global(
+              vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], &waves_local[i * 77],
+              &waves[i * 77]
+            );
           }
 
           double apdq[77], amdq[77];
           gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], apdq_local, apdq
+          );
           gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], amdq_local, amdq
+          );
 
           double fl_local[77], fr_local[77];
           gkyl_vacuum_einstein_conformal_flux(
-            excision_threshold, spacetime_slicing, spacetime_evolution, ql_local, fl_local);
+            excision_threshold, spacetime_slicing, spacetime_evolution, ql_local, fl_local
+          );
           gkyl_vacuum_einstein_conformal_flux(
-            excision_threshold, spacetime_slicing, spacetime_evolution, qr_local, fr_local);
+            excision_threshold, spacetime_slicing, spacetime_evolution, qr_local, fr_local
+          );
 
           double fl[77], fr[77];
           gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], fl_local, fl);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], fl_local, fl
+          );
           gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], fr_local, fr);
+            vacuum_einstein_conformal, tau1[d], tau2[d], norm[d], fr_local, fr
+          );
 
           for (int i = 0; i < 77; i++) {
             TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-11));
@@ -2339,11 +2471,13 @@ void test_vacuum_einstein_conformal_waves_kerr_ho()
   }
 }
 
-TEST_LIST = { { "vacuum_einstein_conformal_basic_minkowski_ho",
-                test_vacuum_einstein_conformal_basic_minkowski_ho },
-  { "vacuum_einstein_conformal_basic_schwarzschild_ho",
-    test_vacuum_einstein_conformal_basic_schwarzschild_ho },
-  { "vacuum_einstein_conformal_waves_schwarzschild_ho",
-    test_vacuum_einstein_conformal_waves_schwarzschild_ho },
-  { "vacuum_einstein_conformal_waves_kerr_ho", test_vacuum_einstein_conformal_waves_kerr_ho },
-  { NULL, NULL } };
+TEST_LIST = {
+  {"vacuum_einstein_conformal_basic_minkowski_ho", test_vacuum_einstein_conformal_basic_minkowski_ho
+  },
+  {"vacuum_einstein_conformal_basic_schwarzschild_ho",
+   test_vacuum_einstein_conformal_basic_schwarzschild_ho},
+  {"vacuum_einstein_conformal_waves_schwarzschild_ho",
+   test_vacuum_einstein_conformal_waves_schwarzschild_ho},
+  {"vacuum_einstein_conformal_waves_kerr_ho", test_vacuum_einstein_conformal_waves_kerr_ho},
+  {NULL, NULL}
+};

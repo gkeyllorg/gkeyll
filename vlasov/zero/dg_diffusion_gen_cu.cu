@@ -15,7 +15,8 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void gkyl_diffusion_gen_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *Dij)
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *Dij
+)
 {
   struct dg_diffusion_gen *diffusion_gen = container_of(eqn, struct dg_diffusion_gen, eqn);
   diffusion_gen->auxfields.Dij = Dij;
@@ -23,13 +24,15 @@ __global__ static void gkyl_diffusion_gen_set_auxfields_cu_kernel(
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void gkyl_diffusion_gen_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin
+)
 {
   gkyl_diffusion_gen_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.Dij->on_dev);
 }
 
 __global__ void static dg_diffusion_gen_set_cu_dev_ptrs(
-  struct dg_diffusion_gen *diffusion_gen, enum gkyl_basis_type b_type, int cdim, int poly_order)
+  struct dg_diffusion_gen *diffusion_gen, enum gkyl_basis_type b_type, int cdim, int poly_order
+)
 {
   diffusion_gen->auxfields.Dij = 0;
 
@@ -83,7 +86,8 @@ __global__ void static dg_diffusion_gen_set_cu_dev_ptrs(
 }
 
 struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range)
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range
+)
 {
   struct dg_diffusion_gen *diffusion_gen =
     (struct dg_diffusion_gen *)gkyl_malloc(sizeof(struct dg_diffusion_gen));
@@ -100,9 +104,11 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(
   struct dg_diffusion_gen *diffusion_gen_cu =
     (struct dg_diffusion_gen *)gkyl_cu_malloc(sizeof(struct dg_diffusion_gen));
   gkyl_cu_memcpy(
-    diffusion_gen_cu, diffusion_gen, sizeof(struct dg_diffusion_gen), GKYL_CU_MEMCPY_H2D);
+    diffusion_gen_cu, diffusion_gen, sizeof(struct dg_diffusion_gen), GKYL_CU_MEMCPY_H2D
+  );
   dg_diffusion_gen_set_cu_dev_ptrs<<<1, 1> > >(
-    diffusion_gen_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
+    diffusion_gen_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order
+  );
 
   // set parent on_dev pointer
   diffusion_gen->eqn.on_dev = &diffusion_gen_cu->eqn;

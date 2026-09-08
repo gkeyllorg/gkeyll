@@ -20,13 +20,15 @@ void gk_dg_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_gk_dg_geom *dgg = container_of(ref, struct gkyl_gk_dg_geom, ref_count);
 
-  for (int d = 0; d < dgg->range.ndim; ++d)
+  for (int d = 0; d < dgg->range.ndim; ++d) {
     gkyl_array_release(dgg->surf_geom[d]);
+  }
 
   gkyl_array_release(dgg->vol_geom);
 
-  if (gk_dg_geom_is_cu_dev(dgg))
+  if (gk_dg_geom_is_cu_dev(dgg)) {
     gkyl_cu_free(dgg->on_dev);
+  }
 
   gkyl_free(dgg);
 }
@@ -39,19 +41,23 @@ struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *in
 
   int ndim = dgg->range.ndim;
   int shape[GKYL_MAX_CDIM];
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     shape[d] = inp->nquad;
+  }
 
   // NOTE: surfaces are ndim-1 objects
   gkyl_range_init_from_shape(&dgg->surf_quad_range, ndim - 1, shape);
   gkyl_range_init_from_shape(&dgg->vol_quad_range, ndim, shape);
 
-  for (int d = 0; d < ndim; ++d)
-    dgg->surf_geom[d] = gkyl_array_new(GKYL_USER,
-      sizeof(struct gkyl_gk_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume);
+  for (int d = 0; d < ndim; ++d) {
+    dgg->surf_geom[d] = gkyl_array_new(
+      GKYL_USER, sizeof(struct gkyl_gk_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume
+    );
+  }
 
   dgg->vol_geom = gkyl_array_new(
-    GKYL_USER, sizeof(struct gkyl_gk_dg_vol_geom[dgg->vol_quad_range.volume]), dgg->range.volume);
+    GKYL_USER, sizeof(struct gkyl_gk_dg_vol_geom[dgg->vol_quad_range.volume]), dgg->range.volume
+  );
 
   dgg->flags = 0;
   GKYL_CLEAR_CU_ALLOC(dgg->flags);
@@ -62,7 +68,8 @@ struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *in
 }
 
 struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new_from_host(
-  const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host, bool use_gpu)
+  const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -88,7 +95,8 @@ void gkyl_gk_dg_geom_release(const struct gkyl_gk_dg_geom *dgg)
 }
 
 void gkyl_gk_dg_geom_populate_vol(
-  struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom)
+  struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom
+)
 {
   int ndim = gk_geom->grid.ndim;
   // Populate volume nodes
@@ -103,8 +111,9 @@ void gkyl_gk_dg_geom_populate_vol(
     gkyl_range_iter_init(&qviter, &dg_geom->vol_quad_range);
     int global_nodal_idx[ndim];
     while (gkyl_range_iter_next(&qviter)) {
-      for (int d = 0; d < ndim; ++d)
+      for (int d = 0; d < ndim; ++d) {
         global_nodal_idx[d] = (iter.idx[d] - gk_geom->local.lower[d]) * 2 + qviter.idx[d];
+      }
       long qvloc = gkyl_range_idx(&dg_geom->vol_quad_range, qviter.idx);
       long global_loc = gkyl_range_idx(&gk_geom->nrange_int, global_nodal_idx);
 
@@ -154,14 +163,15 @@ void gkyl_gk_dg_geom_populate_vol(
 }
 
 void gkyl_gk_dg_geom_populate_surf(
-  struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom)
+  struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom
+)
 {
   int ndim = gk_geom->grid.ndim;
   // Populate surface nodes
   for (int dir = 0; dir < ndim; dir++) {
     struct gkyl_range local_ext_in_dir;
-    int lower[3] = { gk_geom->local.lower[0], gk_geom->local.lower[1], gk_geom->local.lower[2] };
-    int upper[3] = { gk_geom->local.upper[0], gk_geom->local.upper[1], gk_geom->local.upper[2] };
+    int lower[3] = {gk_geom->local.lower[0], gk_geom->local.lower[1], gk_geom->local.lower[2]};
+    int upper[3] = {gk_geom->local.upper[0], gk_geom->local.upper[1], gk_geom->local.upper[2]};
     upper[dir] += 1;
     gkyl_sub_range_init(&local_ext_in_dir, &gk_geom->local_ext, lower, upper);
 
@@ -181,8 +191,9 @@ void gkyl_gk_dg_geom_populate_surf(
           global_nodal_idx[d] = d == dir ?
                                   iter.idx[d] - gk_geom->local.lower[d] :
                                   (iter.idx[d] - gk_geom->local.lower[d]) * 2 + qsiter.idx[count];
-          if (d != dir)
+          if (d != dir) {
             count += 1;
+          }
         }
         long qsloc = gkyl_range_idx(&dg_geom->surf_quad_range, qsiter.idx);
         long global_loc = gkyl_range_idx(&gk_geom->nrange_surf[dir], global_nodal_idx);

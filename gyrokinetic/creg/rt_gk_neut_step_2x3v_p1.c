@@ -66,8 +66,9 @@ void eval_density(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   double cz = app->cz;
   double xcenter = 1.2014;
   double n = n0 * exp(-(x - xcenter) * (x - xcenter) / 2 / cx / cx) * exp(-z * z / 2 / cz / cz);
-  if (n / n0 < 1e-1)
+  if (n / n0 < 1e-1) {
     n = n0 * 1e-1;
+  }
   fout[0] = n;
 }
 
@@ -83,7 +84,8 @@ void eval_upar(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
 }
 
 void evalDensityInitD0(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_step_ctx *app = ctx;
   double z = xn[0];
@@ -124,7 +126,8 @@ void eval_temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
 }
 
 void eval_density_source(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_step_ctx *app = ctx;
   double x = xn[0], z = xn[1];
@@ -133,20 +136,23 @@ void eval_density_source(
   //double cx = app->cx;
   //double cz = app->cz;
   //double xcenter = 1.2014;
-  if (fabs(z) > app->Lz / 20.0 * (3.0 / 4.0))
+  if (fabs(z) > app->Lz / 20.0 * (3.0 / 4.0)) {
     fout[0] = nsource;
-  else
+  } else {
     fout[0] = nsource * 1.e-3;
+  }
 }
 
 void eval_upar_source(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   fout[0] = 0.0;
 }
 
 void eval_temp_source(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_step_ctx *app = ctx;
   double n0 = app->n0;
@@ -213,8 +219,8 @@ struct gk_step_ctx create_ctx(void)
   double nuFrac = 0.25;
   double logLambdaElc = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Te / eV);
   double nuElc = nuFrac * logLambdaElc * pow(eV, 4.0) * n0 /
-                 (6.0 * sqrt(2.0) * M_PI * sqrt(M_PI) * eps0 * eps0 * sqrt(me) *
-                   (Te * sqrt(Te))); // collision freq
+                 (6.0 * sqrt(2.0) * M_PI * sqrt(M_PI) * eps0 * eps0 * sqrt(me) * (Te * sqrt(Te))
+                 ); // collision freq
 
   double logLambdaIon = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Ti / eV);
   double nuIon = nuFrac * logLambdaIon * pow(eV, 4.0) * n0 /
@@ -247,7 +253,8 @@ struct gk_step_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct gk_step_ctx ctx = { .cdim = cdim,
+  struct gk_step_ctx ctx = {
+    .cdim = cdim,
     .vdim = vdim,
     .chargeElc = qe,
     .massElc = me,
@@ -283,12 +290,13 @@ struct gk_step_ctx create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = { Nx, Nz, Nvpar, Nmu },
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .t_end = t_end,
     .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
   return ctx;
 }
 
@@ -310,16 +318,19 @@ int main(int argc, char **argv)
   struct gk_step_ctx ctx = create_ctx(); // Context for init functions.
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d = 0; d < ctx.cdim; d++)
+  for (int d = 0; d < ctx.cdim; d++) {
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d = 0; d < ctx.vdim; d++)
+  }
+  for (int d = 0; d < ctx.vdim; d++) {
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim + d]);
+  }
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // neutral Deuterium
-  struct gkyl_gyrokinetic_neut_species D0 = {.name = "D0",
+  struct gkyl_gyrokinetic_neut_species D0 = {
+    .name = "D0",
     .mass = ctx.massIon,
     .vdim = ctx.vdim + 1,
     .lower = {-ctx.vpar_max_D0 * 2.3, -ctx.vpar_max_D0 * 25.1, -ctx.vpar_max_D0 * 9.0},
@@ -341,15 +352,17 @@ int main(int argc, char **argv)
 
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_NEUTRAL},
 
-    .source = {.source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 1,
-      .projection[0] = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .density = eval_density_source,
-        .ctx_density = &ctx,
-        .udrift = eval_udrift,
-        .ctx_upar = &ctx,
-        .temp = evalTempD0Init,
-        .ctx_temp = &ctx}},
+    .source =
+      {.source_id = GKYL_PROJ_SOURCE,
+       .num_sources = 1,
+       .projection[0] =
+         {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+          .density = eval_density_source,
+          .ctx_density = &ctx,
+          .udrift = eval_udrift,
+          .ctx_upar = &ctx,
+          .temp = evalTempD0Init,
+          .ctx_temp = &ctx}},
 
     //    .collisions =  {
     //      .collision_id = GKYL_BGK_COLLISIONS,
@@ -363,24 +376,26 @@ int main(int argc, char **argv)
     //      .write_diagnostics = true,
     //    },
 
-    .bcs = {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-      {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-      {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-      {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
+    .bcs =
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
 
     .num_diag_moments = 4,
-    .diag_moments = {
-      GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1_FROM_H, GKYL_F_MOMENT_ENERGY, GKYL_F_MOMENT_LTE}};
+    .diag_moments =
+      {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1_FROM_H, GKYL_F_MOMENT_ENERGY, GKYL_F_MOMENT_LTE}
+  };
 
   // Field.
-  struct gkyl_gyrokinetic_field field = { .is_static = true,
+  struct gkyl_gyrokinetic_field field = {
+    .is_static = true,
     .zero_init_field = true,
-    .poisson_bcs = { { .dir = 0,
-                       .edge = GKYL_LOWER_EDGE,
-                       .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                       .value = { 0.0 } },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = { 0.0 } } },
-    .time_rate_diagnostics = false };
+    .poisson_bcs =
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+    .time_rate_diagnostics = false
+  };
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
@@ -405,18 +420,19 @@ int main(int argc, char **argv)
   struct gkyl_gk app_inp = {
 
     .cdim = ctx.cdim,
-    .lower = { ctx.lower_x, -ctx.Lz / 2.0 },
-    .upper = { ctx.upper_x, ctx.Lz / 2.0 },
-    .cells = { cells_x[0], cells_x[1] },
+    .lower = {ctx.lower_x, -ctx.Lz / 2.0},
+    .upper = {ctx.upper_x, ctx.Lz / 2.0},
+    .cells = {cells_x[0], cells_x[1]},
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 1.0,
     .cfl_frac_omegaH = 1e10,
 
-    .geometry = { .world = { 0.0 },
-      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-      .efit_info = efit_inp,
-      .tok_grid_info = grid_inp },
+    .geometry =
+      {.world = {0.0},
+       .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+       .efit_info = efit_inp,
+       .tok_grid_info = grid_inp},
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
@@ -425,35 +441,38 @@ int main(int argc, char **argv)
     .species = {},
 
     .num_neut_species = 1,
-    .neut_species = { D0 },
+    .neut_species = {D0},
 
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
-      .comm = comm }
+    .parallelism =
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
   };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
-  struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-    .time_stepping = { .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = 1,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps } };
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_inp = app_inp,
+    .time_stepping =
+      {.t_end = ctx.t_end,
+       .num_frames = ctx.num_frames,
+       .write_phase_freq = 1,
+       .int_diag_calc_num = ctx.int_diag_calc_num,
+       .dt_failure_tol = ctx.dt_failure_tol,
+       .num_failures_max = ctx.num_failures_max,
+       .is_restart = app_args.is_restart,
+       .restart_frame = app_args.restart_frame,
+       .num_steps = app_args.num_steps}
+  };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   return 0;

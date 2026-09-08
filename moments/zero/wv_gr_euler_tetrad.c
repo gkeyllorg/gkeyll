@@ -8,7 +8,7 @@
 
 void gkyl_gr_euler_tetrad_flux(double gas_gamma, const double q[71], double flux[71])
 {
-  double v[71] = { 0.0 };
+  double v[71] = {0.0};
   gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -46,9 +46,10 @@ void gkyl_gr_euler_tetrad_flux(double gas_gamma, const double q[71], double flux
 }
 
 void gkyl_gr_euler_tetrad_flux_correction(
-  double gas_gamma, const double q[71], const double flux_sr[71], double flux_gr[71])
+  double gas_gamma, const double q[71], const double flux_sr[71], double flux_gr[71]
+)
 {
-  double v[71] = { 0.0 };
+  double v[71] = {0.0};
   gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -71,11 +72,11 @@ void gkyl_gr_euler_tetrad_flux_correction(
   spatial_metric[2][2] = v[17];
 
   double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                                                 (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
                        (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                                                 (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
                        (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                                                 (spatial_metric[1][1] * spatial_metric[2][0])));
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
 
   bool in_excision_region = false;
   if (v[27] < pow(10.0, -8.0)) {
@@ -117,8 +118,8 @@ void gkyl_gr_euler_tetrad_flux_correction(
                  ((flux_sr[0] * (vx - (shift_x / lapse)) * W_curved) / (vx * W_flat));
     flux_gr[1] = (lapse * sqrt(spatial_det)) *
                  ((((flux_sr[1] - p) * (vx - (shift_x / lapse)) * (W_curved * W_curved)) /
-                    (vx * (W_flat * W_flat))) +
-                   p);
+                   (vx * (W_flat * W_flat))) +
+                  p);
     flux_gr[2] =
       (lapse * sqrt(spatial_det)) *
       ((flux_sr[2] * (vx - (shift_x / lapse)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat)));
@@ -128,9 +129,9 @@ void gkyl_gr_euler_tetrad_flux_correction(
     flux_gr[4] =
       (lapse * sqrt(spatial_det)) *
       (((((flux_sr[4] + (rho * vx * W_flat)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat))) -
-         p - (rho * W_curved)) *
-          (vx - (shift_x / lapse)) +
-        (p * vx));
+        p - (rho * W_curved)) *
+         (vx - (shift_x / lapse)) +
+       (p * vx));
 
     for (int i = 5; i < 71; i++) {
       flux_gr[i] = 0.0;
@@ -230,11 +231,11 @@ void gkyl_gr_euler_tetrad_prim_vars(double gas_gamma, const double q[71], double
 
   if (!in_excision_region) {
     double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                                                   (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                                                  (spatial_metric[2][1] * spatial_metric[1][2]))) -
                          (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                                                   (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                                                  (spatial_metric[1][2] * spatial_metric[2][0]))) +
                          (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                                                   (spatial_metric[1][1] * spatial_metric[2][0])));
+                                                  (spatial_metric[1][1] * spatial_metric[2][0])));
 
     double D = q[0] / sqrt(spatial_det);
     double momx = q[1] / sqrt(spatial_det);
@@ -279,8 +280,10 @@ void gkyl_gr_euler_tetrad_prim_vars(double gas_gamma, const double q[71], double
     }
 
     double W = 0.5 * C0 * guess *
-               (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0) / gas_gamma) *
-                                   ((1.0 - (C * guess)) / ((C0 * C0) * (guess * guess))))));
+               (1.0 + sqrt(
+                        1.0 + (4.0 * ((gas_gamma - 1.0) / gas_gamma) *
+                               ((1.0 - (C * guess)) / ((C0 * C0) * (guess * guess))))
+                      ));
     double h = 1.0 / (C * guess);
 
     v[0] = D / W;
@@ -394,11 +397,11 @@ void gkyl_gr_euler_tetrad_inv_spatial_metric(const double q[71], double ***inv_s
   spatial_metric[2][2] = q[17];
 
   double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                                                 (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
                        (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                                                 (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
                        (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                                                 (spatial_metric[1][1] * spatial_metric[2][0])));
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -440,15 +443,16 @@ void gkyl_gr_euler_tetrad_inv_spatial_metric(const double q[71], double ***inv_s
     for (int j = 0; j < 3; j++) {
       (*inv_spatial_metric)[i][j] =
         (1.0 / spatial_det) * ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-                                (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+                               (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 }
 
 void gkyl_gr_euler_tetrad_stress_energy_tensor(
-  double gas_gamma, const double q[71], double ***stress_energy)
+  double gas_gamma, const double q[71], double ***stress_energy
+)
 {
-  double v[71] = { 0.0 };
+  double v[71] = {0.0};
   gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -550,7 +554,7 @@ void gkyl_gr_euler_tetrad_stress_energy_tensor(
 
 static inline double gkyl_gr_euler_tetrad_max_abs_speed(double gas_gamma, const double q[71])
 {
-  double v[71] = { 0.0 };
+  double v[71] = {0.0};
   gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -638,15 +642,19 @@ static inline double gkyl_gr_euler_tetrad_max_abs_speed(double gas_gamma, const 
         fast_acoustic_eigs[i] =
           (lapse / (1.0 - (v_sq * (c_s * c_s)))) *
             ((vel[i] * (1.0 - (c_s * c_s))) +
-              (c_s * sqrt((1.0 - v_sq) * (inv_spatial_metric[i][i] * (1.0 - (v_sq * (c_s * c_s))) -
-                                           (vel[i] * vel[i]) * (1.0 - (c_s * c_s)))))) -
+             (c_s * sqrt(
+                      (1.0 - v_sq) * (inv_spatial_metric[i][i] * (1.0 - (v_sq * (c_s * c_s))) -
+                                      (vel[i] * vel[i]) * (1.0 - (c_s * c_s)))
+                    ))) -
           shift[i];
 
         slow_acoustic_eigs[i] =
           (lapse / (1.0 - (v_sq * (c_s * c_s)))) *
             ((vel[i] * (1.0 - (c_s * c_s))) -
-              (c_s * sqrt((1.0 - v_sq) * (inv_spatial_metric[i][i] * (1.0 - (v_sq * (c_s * c_s))) -
-                                           (vel[i] * vel[i]) * (1.0 - (c_s * c_s)))))) -
+             (c_s * sqrt(
+                      (1.0 - v_sq) * (inv_spatial_metric[i][i] * (1.0 - (v_sq * (c_s * c_s))) -
+                                      (vel[i] * vel[i]) * (1.0 - (c_s * c_s)))
+                    ))) -
           shift[i];
       }
 
@@ -689,8 +697,8 @@ static inline double gkyl_gr_euler_tetrad_max_abs_speed(double gas_gamma, const 
   }
 }
 
-static inline void cons_to_riem(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 71; i++) {
@@ -698,8 +706,8 @@ static inline void cons_to_riem(
   }
 }
 
-static inline void riem_to_cons(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 71; i++) {
@@ -707,8 +715,10 @@ static inline void riem_to_cons(
   }
 }
 
-static void gr_euler_tetrad_wall(const struct gkyl_wv_eqn *eqn, double t, int nc,
-  const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
+static void gr_euler_tetrad_wall(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   for (int i = 0; i < 71; i++) {
     ghost[i] = skin[i];
@@ -717,8 +727,10 @@ static void gr_euler_tetrad_wall(const struct gkyl_wv_eqn *eqn, double t, int nc
   ghost[1] = -ghost[1];
 }
 
-static void gr_euler_tetrad_no_slip(const struct gkyl_wv_eqn *eqn, double t, int nc,
-  const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
+static void gr_euler_tetrad_no_slip(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   for (int i = 1; i < 4; i++) {
     ghost[i] = -skin[i];
@@ -732,9 +744,10 @@ static void gr_euler_tetrad_no_slip(const struct gkyl_wv_eqn *eqn, double t, int
   }
 }
 
-static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
-  double *GKYL_RESTRICT qlocal)
+static inline void rot_to_local(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
+)
 {
   qlocal[0] = qglobal[0];
   qlocal[1] = (qglobal[1] * norm[0]) + (qglobal[2] * norm[1]) + (qglobal[3] * norm[2]);
@@ -1004,9 +1017,10 @@ static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau
   qlocal[70] = (qglobal[68] * tau2[0]) + (qglobal[69] * tau2[1]) + (qglobal[70] * tau2[2]);
 }
 
-static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
-  double *GKYL_RESTRICT qglobal)
+static inline void rot_to_global(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
+)
 {
   qglobal[0] = qlocal[0];
   qglobal[1] = (qlocal[1] * norm[0]) + (qlocal[2] * tau1[0]) + (qlocal[3] * tau2[0]);
@@ -1276,8 +1290,10 @@ static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *ta
   qglobal[70] = (qlocal[68] * norm[2]) + (qlocal[69] * tau1[2]) + (qlocal[70] * tau2[2]);
 }
 
-static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-  const double *qr, double *waves, double *s)
+static double wave_lax(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_gr_euler_tetrad *gr_euler_tetrad =
     container_of(eqn, struct wv_gr_euler_tetrad, eqn);
@@ -1324,8 +1340,10 @@ static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const
   return s[1];
 }
 
-static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+static void qfluct_lax(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[71];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -1337,22 +1355,27 @@ static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const do
   }
 }
 
-static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-  const double *qr, double *waves, double *s)
+static double wave_roe(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_gr_euler_tetrad *gr_euler_tetrad =
     container_of(eqn, struct wv_gr_euler_tetrad, eqn);
@@ -1402,10 +1425,10 @@ static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const
   double k = (v0 * delta[4]) - (v1 * delta[1]);
   double v_delta = (-v0 * delta[4]) + (v1 * delta[1]) + (v2 * delta[2]) + (v3 * delta[3]);
   double a1 = -((s_sq * k) + (sqrt(s_sq) * y * ((v0 * delta[1]) - (v1 * delta[4])) +
-                               ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta))))) /
+                              ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta))))) /
               (2.0 * energy * s_sq);
   double a2 = -((s_sq * k) - (sqrt(s_sq) * y * ((v0 * delta[1]) - (v1 * delta[4])) +
-                               ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta))))) /
+                              ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta))))) /
               (2.0 * energy * s_sq);
   double a3 = ((2.0 * s_sq * k) + ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta)))) /
               (energy * s_sq);
@@ -1446,8 +1469,10 @@ static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const
   return (((1.0 - (gas_gamma * v4)) * v0 * fabs(v1)) + (sqrt(s_sq) * y)) /
          (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
 }
-static void qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+static void qfluct_roe(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0 * 71];
   const double *w1 = &waves[1 * 71];
@@ -1465,9 +1490,10 @@ static void qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const do
     apdq[i] = 0.0;
   }
 }
-static double wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_roe_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return wave_roe(eqn, delta, ql, qr, waves, s);
@@ -1475,9 +1501,11 @@ static double wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
     return wave_lax(eqn, delta, ql, qr, waves, s);
   }
 }
-static void qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_roe_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
@@ -1486,8 +1514,10 @@ static void qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
   }
 }
 
-static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-  const double *qr, double *waves, double *s)
+static double wave_hll(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_gr_euler_tetrad *gr_euler_tetrad =
     container_of(eqn, struct wv_gr_euler_tetrad, eqn);
@@ -1644,17 +1674,21 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
       fast_acoustic_eigs_l[i] =
         (lapse_l / (1.0 - (v_sq_l * (c_sl * c_sl)))) *
           ((vel_l[i] * (1.0 - (c_sl * c_sl))) +
-            (c_sl *
-              sqrt((1.0 - v_sq_l) * (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_l * (c_sl * c_sl))) -
-                                      (vel_l[i] * vel_l[i]) * (1.0 - (c_sl * c_sl)))))) -
+           (c_sl *
+            sqrt(
+              (1.0 - v_sq_l) * (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_l * (c_sl * c_sl))) -
+                                (vel_l[i] * vel_l[i]) * (1.0 - (c_sl * c_sl)))
+            ))) -
         shift_l[i];
 
       slow_acoustic_eigs_l[i] =
         (lapse_l / (1.0 - (v_sq_l * (c_sl * c_sl)))) *
           ((vel_l[i] * (1.0 - (c_sl * c_sl))) -
-            (c_sl *
-              sqrt((1.0 - v_sq_l) * (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_l * (c_sl * c_sl))) -
-                                      (vel_l[i] * vel_l[i]) * (1.0 - (c_sl * c_sl)))))) -
+           (c_sl *
+            sqrt(
+              (1.0 - v_sq_l) * (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_l * (c_sl * c_sl))) -
+                                (vel_l[i] * vel_l[i]) * (1.0 - (c_sl * c_sl)))
+            ))) -
         shift_l[i];
     }
 
@@ -1698,17 +1732,21 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
       fast_acoustic_eigs_r[i] =
         (lapse_r / (1.0 - (v_sq_r * (c_sl * c_sl)))) *
           ((vel_r[i] * (1.0 - (c_sl * c_sl))) +
-            (c_sl *
-              sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) -
-                                      (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))))) -
+           (c_sl *
+            sqrt(
+              (1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) -
+                                (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))
+            ))) -
         shift_r[i];
 
       slow_acoustic_eigs_r[i] =
         (lapse_r / (1.0 - (v_sq_r * (c_sl * c_sl)))) *
           ((vel_r[i] * (1.0 - (c_sl * c_sl))) -
-            (c_sl *
-              sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) -
-                                      (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))))) -
+           (c_sl *
+            sqrt(
+              (1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) -
+                                (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))
+            ))) -
         shift_r[i];
     }
 
@@ -1773,8 +1811,10 @@ static double wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const
   return fmax(fabs(sl), fabs(sr));
 }
 
-static void qfluct_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+static void qfluct_hll(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[71];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -1786,9 +1826,10 @@ static void qfluct_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const do
   }
 }
 
-static double wave_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_hll_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return wave_hll(eqn, delta, ql, qr, waves, s);
@@ -1799,9 +1840,11 @@ static double wave_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
   return 0.0; // Unreachable code.
 }
 
-static void qfluct_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_hll_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
@@ -1810,8 +1853,8 @@ static void qfluct_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
   }
 }
 
-static double flux_jump(
-  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   const struct wv_gr_euler_tetrad *gr_euler_tetrad =
     container_of(eqn, struct wv_gr_euler_tetrad, eqn);
@@ -1857,7 +1900,7 @@ static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
     container_of(eqn, struct wv_gr_euler_tetrad, eqn);
   double gas_gamma = gr_euler_tetrad->gas_gamma;
 
-  double v[71] = { 0.0 };
+  double v[71] = {0.0};
   gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, v);
 
   if (v[0] < 0.0 || v[4] < 0.0) {
@@ -1876,22 +1919,22 @@ static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_gr_euler_tetrad_max_abs_speed(gas_gamma, q);
 }
 
-static inline void gr_euler_tetrad_cons_to_diag(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
+static inline void
+gr_euler_tetrad_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   for (int i = 0; i < 5; i++) {
     diag[i] = qin[i];
   }
 }
 
-static inline void gr_euler_tetrad_source(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
+static inline void
+gr_euler_tetrad_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   const struct wv_gr_euler_tetrad *gr_euler_tetrad =
     container_of(eqn, struct wv_gr_euler_tetrad, eqn);
   double gas_gamma = gr_euler_tetrad->gas_gamma;
 
-  double v[71] = { 0.0 };
+  double v[71] = {0.0};
   gkyl_gr_euler_tetrad_prim_vars(gas_gamma, qin, v);
   double rho = v[0];
   double vx = v[1];
@@ -2073,16 +2116,18 @@ void gkyl_gr_euler_tetrad_free(const struct gkyl_ref_count *ref)
   gkyl_free(gr_euler_tetrad);
 }
 
-struct gkyl_wv_eqn *gkyl_wv_gr_euler_tetrad_new(double gas_gamma,
-  enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
-  bool use_gpu)
+struct gkyl_wv_eqn *gkyl_wv_gr_euler_tetrad_new(
+  double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq,
+  struct gkyl_gr_spacetime *spacetime, bool use_gpu
+)
 {
-  return gkyl_wv_gr_euler_tetrad_inew(&(struct gkyl_wv_gr_euler_tetrad_inp){ .gas_gamma = gas_gamma,
+  return gkyl_wv_gr_euler_tetrad_inew(&(struct gkyl_wv_gr_euler_tetrad_inp
+  ){.gas_gamma = gas_gamma,
     .spacetime_gauge = spacetime_gauge,
     .reinit_freq = reinit_freq,
     .spacetime = spacetime,
     .rp_type = WV_GR_EULER_TETRAD_RP_HLL,
-    .use_gpu = use_gpu });
+    .use_gpu = use_gpu});
 }
 
 struct gkyl_wv_eqn *gkyl_wv_gr_euler_tetrad_inew(const struct gkyl_wv_gr_euler_tetrad_inp *inp)

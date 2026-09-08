@@ -6,14 +6,16 @@
 static inline double dot_product(const double *v1, const double *v2)
 {
   double out = 0.0;
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++) {
     out += v1[i] * v2[i];
+  }
   return out;
 }
 
-struct bc_block_tensor *gkyl_bc_block_tensor_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *range, const struct gkyl_range *range_ext,
-  const struct gkyl_basis *basis, bool use_gpu)
+struct bc_block_tensor *gkyl_bc_block_tensor_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_range *range_ext, const struct gkyl_basis *basis, bool use_gpu
+)
 {
   struct bc_block_tensor *up = gkyl_malloc(sizeof(*up));
   up->basis = *basis;
@@ -32,8 +34,10 @@ struct bc_block_tensor *gkyl_bc_block_tensor_new(const struct gkyl_rect_grid *gr
   return up;
 }
 
-void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, const double *ej,
-  const double *e_i, double *tj_i)
+void calc_tensor(
+  struct bc_block_tensor *up, int dir, int edge1, int edge2, const double *ej, const double *e_i,
+  double *tj_i
+)
 {
   // First evaluate at all the quadrature nodes
   double ej_surf[up->num_surf_nodes][9];
@@ -51,8 +55,9 @@ void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, cons
   // Only Need T11,13,31,33 in 2d
   int jctr = 0;
   for (int j = 0; j < 3; j++) {
-    if (up->cdim == 2 && j == 1)
+    if (up->cdim == 2 && j == 1) {
       continue;
+    }
     if (jctr != dir) { // We only want to fill elements needed at this interface.
       // For example if we are at a z edge then we only need T^3'_1 and T^3'_3
       // At the corner cell, T^1'_1 and T^1'_3 will be filled using another blocks tan vecs
@@ -62,8 +67,9 @@ void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, cons
     for (int n = 0; n < up->num_surf_nodes; n++) {
       int ictr = 0;
       for (int i = 0; i < 3; i++) {
-        if (up->cdim == 2 && i == 1)
+        if (up->cdim == 2 && i == 1) {
           continue;
+        }
         tj_i[up->cdim * up->num_surf_nodes * jctr + up->cdim * n + ictr] =
           dot_product(&ej_surf[n][3 * j], &e_i_surf[n][3 * i]);
         //printf("\n\nj,i = %d, %d\n", j,i);
@@ -77,23 +83,24 @@ void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, cons
   }
 }
 
-void gkyl_bc_block_tensor_advance(struct bc_block_tensor *up, int dir, int edge1, int edge2,
-  struct gkyl_array *dxdz1, struct gkyl_array *dzdx2, struct gkyl_range *range1,
-  struct gkyl_range *range2)
+void gkyl_bc_block_tensor_advance(
+  struct bc_block_tensor *up, int dir, int edge1, int edge2, struct gkyl_array *dxdz1,
+  struct gkyl_array *dzdx2, struct gkyl_range *range1, struct gkyl_range *range2
+)
 {
   // Need to loop along only the directions != dir
   // For block 1, the index in dir will be min/max based on edge1
   // For block 2, index in dir is based on edge2
 
-  int idx1[GKYL_MAX_DIM] = { 0 };
-  int idx2[GKYL_MAX_DIM] = { 0 };
+  int idx1[GKYL_MAX_DIM] = {0};
+  int idx2[GKYL_MAX_DIM] = {0};
   idx1[dir] = edge1 == 0 ? range1->lower[dir] : range1->upper[dir];
   idx2[dir] = edge2 == 0 ? range2->lower[dir] : range2->upper[dir];
 
   struct gkyl_range range_def;
-  int remdir[GKYL_MAX_DIM] = { 0 };
+  int remdir[GKYL_MAX_DIM] = {0};
   remdir[dir] = 1;
-  int locdir[GKYL_MAX_DIM] = { 0 };
+  int locdir[GKYL_MAX_DIM] = {0};
   locdir[dir] = idx2[dir];
   gkyl_range_deflate(&range_def, range2, remdir, locdir);
 

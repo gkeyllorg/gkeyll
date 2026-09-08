@@ -11,8 +11,8 @@ extern "C" {
 
 // CUDA kernel to set device pointers to euler kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void wv_euler_set_cu_dev_ptrs(
-  enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
+__global__ static void
+wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
 {
   switch (rp_type) {
   case WV_EULER_RP_ROE:

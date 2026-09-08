@@ -39,7 +39,8 @@ struct gkyl_wv_eqn *gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     return gkyl_wv_ten_moment_cu_dev_new(
-      k0, use_grad_closure, use_nn_closure, poly_order, ann, use_gpu);
+      k0, use_grad_closure, use_nn_closure, poly_order, ann, use_gpu
+    );
   }
 #endif
   struct wv_ten_moment *ten_moment = gkyl_malloc(sizeof(struct wv_ten_moment));
@@ -100,15 +101,18 @@ struct gkyl_wv_eqn *gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp 
   return &ten_moment->eqn;
 }
 
-struct gkyl_wv_eqn *gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure,
-  int poly_order, struct gkyl_kann_net *ann, bool use_gpu)
+struct gkyl_wv_eqn *gkyl_wv_ten_moment_new(
+  double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, struct gkyl_kann_net *ann,
+  bool use_gpu
+)
 {
-  return gkyl_wv_ten_moment_inew(&(struct gkyl_wv_ten_moment_inp){ .k0 = k0,
+  return gkyl_wv_ten_moment_inew(&(struct gkyl_wv_ten_moment_inp
+  ){.k0 = k0,
     .use_grad_closure = use_grad_closure,
     .use_nn_closure = use_nn_closure,
     .poly_order = poly_order,
     .ann = ann,
-    .use_gpu = use_gpu });
+    .use_gpu = use_gpu});
 }
 
 double gkyl_wv_ten_moment_k0(const struct gkyl_wv_eqn *eqn)

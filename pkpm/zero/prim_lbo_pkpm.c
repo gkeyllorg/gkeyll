@@ -14,13 +14,16 @@
 void prim_lbo_pkpm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_prim_lbo_type *prim = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(prim->flag))
+  if (GKYL_IS_CU_ALLOC(prim->flag)) {
     gkyl_cu_free(prim->on_dev);
+  }
   gkyl_free(prim);
 }
 
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu)
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, bool use_gpu
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -75,8 +78,10 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_new(const struct gkyl_basis *cbasi
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range)
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range
+)
 {
   assert(false);
   return 0;

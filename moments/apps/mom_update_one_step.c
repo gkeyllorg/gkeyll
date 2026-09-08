@@ -28,10 +28,12 @@ struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app, double dt
       state = FIRST_COUPLING_UPDATE; // next state
 
       // copy old solution in case we need to redo this step
-      for (int i = 0; i < ns; ++i)
+      for (int i = 0; i < ns; ++i) {
         gkyl_array_copy(app->species[i].fdup, app->species[i].f[0]);
-      if (app->has_field)
+      }
+      if (app->has_field) {
         gkyl_array_copy(app->field.fdup, app->field.f[0]);
+      }
 
       break;
 
@@ -118,14 +120,16 @@ struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app, double dt
       // copy solution in prep for next time-step
       for (int i = 0; i < ns; ++i) {
         // check for nans before copying
-        if (check_for_nans(app->species[i].f[ndim], app->local))
+        if (check_for_nans(app->species[i].f[ndim], app->local)) {
           have_nans_occured = true;
-        else // only copy in case no nans, so old solution can be written out
+        } else { // only copy in case no nans, so old solution can be written out
           gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
+        }
       }
 
-      if (app->has_field)
+      if (app->has_field) {
         gkyl_array_copy(app->field.f[0], app->field.f[ndim]);
+      }
 
       break;
 
@@ -133,10 +137,12 @@ struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app, double dt
       state = PRE_UPDATE; // start all-over again
 
       // restore solution and retake step
-      for (int i = 0; i < ns; ++i)
+      for (int i = 0; i < ns; ++i) {
         gkyl_array_copy(app->species[i].f[0], app->species[i].fdup);
-      if (app->has_field)
+      }
+      if (app->has_field) {
         gkyl_array_copy(app->field.f[0], app->field.fdup);
+      }
 
       break;
 
@@ -145,7 +151,6 @@ struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app, double dt
     }
   }
 
-  return (struct gkyl_update_status){
-    .success = have_nans_occured ? false : true, .dt_actual = dt, .dt_suggested = dt_suggested
-  };
+  return (struct gkyl_update_status
+  ){.success = have_nans_occured ? false : true, .dt_actual = dt, .dt_suggested = dt_suggested};
 }

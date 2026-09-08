@@ -18,14 +18,15 @@
 // for some reason, having only one check function may be a problem.
 // We could create a separate check function which waits and times out
 // after a set amount of time.
-#define checkNCCL(cmd)                                                                           \
-  do {                                                                                           \
-    ncclResult_t res = cmd;                                                                      \
-    if (res != ncclSuccess && res != ncclInProgress) {                                           \
-      fprintf(                                                                                   \
-        stderr, "Failed, NCCL error %s:%d '%s'\n", __FILE__, __LINE__, ncclGetErrorString(res)); \
-      exit(EXIT_FAILURE);                                                                        \
-    }                                                                                            \
+#define checkNCCL(cmd)                                                                         \
+  do {                                                                                         \
+    ncclResult_t res = cmd;                                                                    \
+    if (res != ncclSuccess && res != ncclInProgress) {                                         \
+      fprintf(                                                                                 \
+        stderr, "Failed, NCCL error %s:%d '%s'\n", __FILE__, __LINE__, ncclGetErrorString(res) \
+      );                                                                                       \
+      exit(EXIT_FAILURE);                                                                      \
+    }                                                                                          \
   } while (0)
 
 // Object with a range, a status and a buffer used for send/recv.

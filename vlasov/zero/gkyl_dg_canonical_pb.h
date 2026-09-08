@@ -25,8 +25,10 @@ struct gkyl_dg_canonical_pb_auxfields {
  * @param use_gpu bool to determine if on GPU
  * @return Pointer to special canonical-pb equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_canonical_pb_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu);
+struct gkyl_dg_eqn *gkyl_dg_canonical_pb_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *phase_range, bool use_gpu
+);
 
 /**
  * Create a new special canonical-pb equation object that lives on NV-GPU
@@ -37,8 +39,10 @@ struct gkyl_dg_eqn *gkyl_dg_canonical_pb_new(const struct gkyl_basis *cbasis,
  * (special canonical-pb-Maxwell vs. special relativistic neutrals)
  * @return Pointer to special canonical-pb equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_canonical_pb_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range);
+struct gkyl_dg_eqn *gkyl_dg_canonical_pb_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *phase_range
+);
 
 /**
  * Set the auxiliary fields
@@ -47,7 +51,8 @@ struct gkyl_dg_eqn *gkyl_dg_canonical_pb_cu_dev_new(const struct gkyl_basis *cba
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_canonical_pb_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_auxfields auxin
+);
 
 #ifdef GKYL_HAVE_CUDA
 /**
@@ -57,6 +62,7 @@ void gkyl_canonical_pb_set_auxfields(
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_canonical_pb_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_auxfields auxin
+);
 
 #endif

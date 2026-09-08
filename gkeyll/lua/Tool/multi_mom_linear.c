@@ -19,8 +19,10 @@
 #include <lapacke.h>
 #endif
 
-bool gkyl_multi_mom_eigensolve(double _Complex *A, double _Complex *x, double _Complex *vl,
-  double _Complex *vr, int N, int eig_vec)
+bool gkyl_multi_mom_eigensolve(
+  double _Complex *A, double _Complex *x, double _Complex *vl, double _Complex *vr, int N,
+  int eig_vec
+)
 {
   char calc_vec = 'N';
   calc_vec = (eig_vec == 1) ? 'V' : 'N';

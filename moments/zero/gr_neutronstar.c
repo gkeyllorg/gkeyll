@@ -7,7 +7,8 @@
 #include <gkyl_gr_spacetime_diff.h>
 
 double neutronstar_A_scalar(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -28,18 +29,19 @@ double neutronstar_A_scalar(
   double z_cylindrical = z - pos_z;
 
   return (8.0 * (rho * rho) * (z_cylindrical * z_cylindrical) *
-           ((24.0 * (ang_mom * ang_mom) * mass) + (17.0 * (mass * mass) * mass_quadrupole) +
-             (21.0 * mass_hexadecapole))) +
+          ((24.0 * (ang_mom * ang_mom) * mass) + (17.0 * (mass * mass) * mass_quadrupole) +
+           (21.0 * mass_hexadecapole))) +
          ((rho * rho * rho * rho) *
-           ((-10.0 * (ang_mom * ang_mom) * mass) + (7.0 * (mass * mass * mass * mass * mass)) +
-             (32.0 * mass_quadrupole * (mass * mass)) - (21.0 * mass_hexadecapole))) +
+          ((-10.0 * (ang_mom * ang_mom) * mass) + (7.0 * (mass * mass * mass * mass * mass)) +
+           (32.0 * mass_quadrupole * (mass * mass)) - (21.0 * mass_hexadecapole))) +
          (8.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical) *
-           ((20.0 * (ang_mom * ang_mom) * mass) - (7.0 * (mass * mass * mass * mass * mass)) -
-             (22.0 * mass_quadrupole * (mass * mass)) - (7.0 * mass_hexadecapole)));
+          ((20.0 * (ang_mom * ang_mom) * mass) - (7.0 * (mass * mass * mass * mass * mass)) -
+           (22.0 * mass_quadrupole * (mass * mass)) - (7.0 * mass_hexadecapole)));
 }
 
 double neutronstar_B_scalar(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -61,23 +63,24 @@ double neutronstar_B_scalar(
   double z_cylindrical = z - pos_z;
 
   return ((rho * rho * rho * rho) *
-           ((10.0 * (ang_mom * ang_mom) * (mass * mass)) +
-             (10.0 * mass_quadrupole * (mass * mass * mass)) + (21.0 * mass_hexadecapole * mass) +
-             (7.0 * (mass_quadrupole * mass_quadrupole)))) +
+          ((10.0 * (ang_mom * ang_mom) * (mass * mass)) +
+           (10.0 * mass_quadrupole * (mass * mass * mass)) + (21.0 * mass_hexadecapole * mass) +
+           (7.0 * (mass_quadrupole * mass_quadrupole)))) +
          (4.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical) *
-           ((-40.0 * (ang_mom * ang_mom) * (mass * mass)) - (14.0 * ang_mom * spin_octupole) +
-             (7.0 * (mass * mass * mass * mass * mass * mass)) +
-             (30.0 * mass_quadrupole * (mass * mass * mass)) + (14.0 * mass_hexadecapole * mass) +
-             (7.0 * (mass_quadrupole * mass_quadrupole)))) -
+          ((-40.0 * (ang_mom * ang_mom) * (mass * mass)) - (14.0 * ang_mom * spin_octupole) +
+           (7.0 * (mass * mass * mass * mass * mass * mass)) +
+           (30.0 * mass_quadrupole * (mass * mass * mass)) + (14.0 * mass_hexadecapole * mass) +
+           (7.0 * (mass_quadrupole * mass_quadrupole)))) -
          (4.0 * (rho * rho) * (z_cylindrical * z_cylindrical) *
-           ((27.0 * (ang_mom * ang_mom) * (mass * mass)) - (21.0 * ang_mom * spin_octupole) +
-             (7.0 * (mass * mass * mass * mass * mass * mass)) +
-             (48.0 * mass_quadrupole * (mass * mass * mass)) + (42.0 * mass_hexadecapole * mass) +
-             (7.0 * (mass_quadrupole * mass_quadrupole))));
+          ((27.0 * (ang_mom * ang_mom) * (mass * mass)) - (21.0 * ang_mom * spin_octupole) +
+           (7.0 * (mass * mass * mass * mass * mass * mass)) +
+           (48.0 * mass_quadrupole * (mass * mass * mass)) + (42.0 * mass_hexadecapole * mass) +
+           (7.0 * (mass_quadrupole * mass_quadrupole))));
 }
 
 double neutronstar_H_scalar(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -98,13 +101,14 @@ double neutronstar_H_scalar(
   double z_cylindrical = z - pos_z;
 
   return (4.0 * (rho * rho) * (z_cylindrical * z_cylindrical) *
-           ((ang_mom * (mass_quadrupole - (2.0 * (mass * mass * mass)))) -
-             (3.0 * mass * spin_octupole))) +
+          ((ang_mom * (mass_quadrupole - (2.0 * (mass * mass * mass)))) -
+           (3.0 * mass * spin_octupole))) +
          ((rho * rho * rho * rho) * ((ang_mom * mass_quadrupole) + (3.0 * mass * spin_octupole)));
 }
 
 double neutronstar_G_scalar(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -126,23 +130,26 @@ double neutronstar_G_scalar(
 
   return (rho * rho) *
          ((ang_mom * ang_mom * ang_mom) *
-             (-((rho * rho * rho * rho) +
-                (8.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical)) -
-                (12.0 * (rho * rho) * (z_cylindrical * z_cylindrical)))) +
-           ((ang_mom * mass) *
-             ((((mass * mass * mass) + (2.0 * mass_quadrupole)) * (rho * rho * rho * rho)) -
-               (8.0 * ((3.0 * (mass * mass * mass)) + (2.0 * mass_quadrupole)) *
-                 (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical)) +
-               (4.0 * (((mass * mass * mass) + (10.0 * mass_quadrupole)) *
-                        ((rho * rho) * (z_cylindrical * z_cylindrical)))))) +
-           ((mass * mass) * spin_octupole) *
-             ((3.0 * (rho * rho * rho * rho)) -
-               (40.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical)) +
-               (12.0 * (rho * rho) * (z_cylindrical * z_cylindrical))));
+            (-(
+              (rho * rho * rho * rho) +
+              (8.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical)) -
+              (12.0 * (rho * rho) * (z_cylindrical * z_cylindrical))
+            )) +
+          ((ang_mom * mass) *
+           ((((mass * mass * mass) + (2.0 * mass_quadrupole)) * (rho * rho * rho * rho)) -
+            (8.0 * ((3.0 * (mass * mass * mass)) + (2.0 * mass_quadrupole)) *
+             (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical)) +
+            (4.0 * (((mass * mass * mass) + (10.0 * mass_quadrupole)) *
+                    ((rho * rho) * (z_cylindrical * z_cylindrical)))))) +
+          ((mass * mass) * spin_octupole) *
+            ((3.0 * (rho * rho * rho * rho)) -
+             (40.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical)) +
+             (12.0 * (rho * rho) * (z_cylindrical * z_cylindrical))));
 }
 
 double neutronstar_F_scalar(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -163,11 +170,12 @@ double neutronstar_F_scalar(
 
   return ((rho * rho * rho * rho) * (spin_octupole - (ang_mom * (mass * mass)))) -
          ((4.0 * (rho * rho) * (z_cylindrical * z_cylindrical)) *
-           ((ang_mom * (mass * mass)) + spin_octupole));
+          ((ang_mom * (mass * mass)) + spin_octupole));
 }
 
 double neutronstar_f_function(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -192,18 +200,19 @@ double neutronstar_f_function(
   return 1.0 - ((2.0 * mass) / sqrt((rho * rho) + (z_cylindrical * z_cylindrical))) +
          ((2.0 * (mass * mass)) / ((rho * rho) + (z_cylindrical * z_cylindrical))) +
          (((mass_quadrupole - (mass * mass * mass)) * (rho * rho)) -
-           (2.0 * ((mass * mass * mass) + mass_quadrupole) * (z_cylindrical * z_cylindrical))) /
+          (2.0 * ((mass * mass * mass) + mass_quadrupole) * (z_cylindrical * z_cylindrical))) /
            pow((rho * rho) + (z_cylindrical * z_cylindrical), 5.0 / 2.0) +
          ((2.0 * (z_cylindrical * z_cylindrical) *
-            (-(ang_mom * ang_mom) + (mass * mass * mass * mass) + (2.0 * mass_quadrupole * mass))) -
-           (2.0 * mass * mass_quadrupole * (rho * rho))) /
+           (-(ang_mom * ang_mom) + (mass * mass * mass * mass) + (2.0 * mass_quadrupole * mass))) -
+          (2.0 * mass * mass_quadrupole * (rho * rho))) /
            pow((rho * rho) + (z_cylindrical * z_cylindrical), 3.0) +
          (A_scalar / (28.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 9.0 / 2.0))) +
          (B_scalar / (14.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 5.0)));
 }
 
 double neutronstar_omega_function(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -225,16 +234,17 @@ double neutronstar_omega_function(
   double F_scalar = neutronstar_F_scalar(spacetime, x, y, z);
 
   return (-(2.0 * ang_mom * (rho * rho)) /
-           pow((rho * rho) + (z_cylindrical * z_cylindrical), 3.0 / 2.0)) -
+          pow((rho * rho) + (z_cylindrical * z_cylindrical), 3.0 / 2.0)) -
          ((2.0 * ang_mom * mass * (rho * rho)) /
-           pow((rho * rho) + (z_cylindrical * z_cylindrical), 2.0)) +
+          pow((rho * rho) + (z_cylindrical * z_cylindrical), 2.0)) +
          (F_scalar / pow((rho * rho) + (z_cylindrical * z_cylindrical), 7.0 / 2.0)) +
          (H_scalar / (2.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 4.0))) +
          (G_scalar / (4.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 11.0 / 2.0)));
 }
 
 double neutronstar_gamma_function(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -254,16 +264,17 @@ double neutronstar_gamma_function(
   double z_cylindrical = z - pos_z;
 
   return (((rho * rho) *
-            (((ang_mom * ang_mom) * ((rho * rho) - (8.0 * (z_cylindrical * z_cylindrical)))) +
-              (mass * ((mass * mass * mass) + (3.0 * mass_quadrupole)) *
-                ((rho * rho) - (4.0 * (z_cylindrical * z_cylindrical)))))) /
-           (4.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 4.0))) -
+           (((ang_mom * ang_mom) * ((rho * rho) - (8.0 * (z_cylindrical * z_cylindrical)))) +
+            (mass * ((mass * mass * mass) + (3.0 * mass_quadrupole)) *
+             ((rho * rho) - (4.0 * (z_cylindrical * z_cylindrical)))))) /
+          (4.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 4.0))) -
          (((mass * mass) * (rho * rho)) /
-           (2.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 2.0)));
+          (2.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 2.0)));
 }
 
 double **neutronstar_spatial_transformation_tensor(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -296,7 +307,8 @@ double **neutronstar_spatial_transformation_tensor(
 }
 
 double **neutronstar_spacetime_transformation_tensor(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -337,7 +349,8 @@ double **neutronstar_spacetime_transformation_tensor(
 }
 
 double **neutronstar_spatial_inv_transformation_tensor(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -370,7 +383,8 @@ double **neutronstar_spatial_inv_transformation_tensor(
 }
 
 double **neutronstar_spacetime_inv_transformation_tensor(
-  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -410,8 +424,10 @@ double **neutronstar_spacetime_inv_transformation_tensor(
   return spacetime_inv_transformation_tensor;
 }
 
-static void neutronstar_spatial_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double ***spatial_metric_tensor)
+static void neutronstar_spatial_metric_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spatial_metric_tensor
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -466,8 +482,10 @@ static void neutronstar_spatial_metric_tensor(const struct gkyl_gr_spacetime *sp
   gkyl_free(spatial_transformation_tensor);
 }
 
-static void neutronstar_spacetime_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double ***spacetime_metric_tensor)
+static void neutronstar_spacetime_metric_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spacetime_metric_tensor
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -526,9 +544,10 @@ static void neutronstar_spacetime_metric_tensor(const struct gkyl_gr_spacetime *
   gkyl_free(spacetime_transformation_tensor);
 }
 
-static void neutronstar_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z,
-  double ***spatial_inv_metric_tensor)
+static void neutronstar_spatial_inv_metric_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spatial_inv_metric_tensor
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -583,9 +602,10 @@ static void neutronstar_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime
   gkyl_free(spatial_inv_transformation_tensor);
 }
 
-static void neutronstar_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z,
-  double ***spacetime_inv_metric_tensor)
+static void neutronstar_spacetime_inv_metric_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double ***spacetime_inv_metric_tensor
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -644,8 +664,10 @@ static void neutronstar_spacetime_inv_metric_tensor(const struct gkyl_gr_spaceti
   gkyl_free(spacetime_inv_transformation_tensor);
 }
 
-static void neutronstar_spatial_metric_det(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double *spatial_metric_det)
+static void neutronstar_spatial_metric_det(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *spatial_metric_det
+)
 {
   double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
@@ -655,11 +677,11 @@ static void neutronstar_spatial_metric_det(const struct gkyl_gr_spacetime *space
   neutronstar_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
 
   *spatial_metric_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                                                  (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                                                 (spatial_metric[2][1] * spatial_metric[1][2]))) -
                         (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                                                  (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                                                 (spatial_metric[1][2] * spatial_metric[2][0]))) +
                         (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                                                  (spatial_metric[1][1] * spatial_metric[2][0])));
+                                                 (spatial_metric[1][1] * spatial_metric[2][0])));
 
   for (int i = 0; i < 3; i++) {
     gkyl_free(spatial_metric[i]);
@@ -667,8 +689,10 @@ static void neutronstar_spatial_metric_det(const struct gkyl_gr_spacetime *space
   gkyl_free(spatial_metric);
 }
 
-static void neutronstar_spacetime_metric_det(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double *spacetime_metric_det)
+static void neutronstar_spacetime_metric_det(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *spacetime_metric_det
+)
 {
   double spatial_metric_det;
   double lapse_function;
@@ -678,23 +702,30 @@ static void neutronstar_spacetime_metric_det(const struct gkyl_gr_spacetime *spa
   *spacetime_metric_det = -(lapse_function * lapse_function) * spatial_metric_det;
 }
 
-static void neutronstar_spatial_metric_tensor_der(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ****spatial_metric_tensor_der)
+static void neutronstar_spatial_metric_tensor_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ****spatial_metric_tensor_der
+)
 {
   gkyl_gr_spatial_metric_tensor_diff(spacetime, t, x, y, z, dx, dy, dz, spatial_metric_tensor_der);
 }
 
-static void neutronstar_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double ****spacetime_metric_tensor_der)
+static void neutronstar_spacetime_metric_tensor_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ****spacetime_metric_tensor_der
+)
 {
   gkyl_gr_spacetime_metric_tensor_diff(
-    spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_metric_tensor_der);
+    spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_metric_tensor_der
+  );
 }
 
-static void neutronstar_lapse_function(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double *lapse_function)
+static void neutronstar_lapse_function(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *lapse_function
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -712,8 +743,10 @@ static void neutronstar_lapse_function(const struct gkyl_gr_spacetime *spacetime
     sqrt((rho * rho) - ((f_function * f_function) * (omega_function * omega_function)));
 }
 
-static void neutronstar_shift_vector(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, double **shift_vector)
+static void neutronstar_shift_vector(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double **shift_vector
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -753,94 +786,115 @@ static void neutronstar_shift_vector(const struct gkyl_gr_spacetime *spacetime, 
   gkyl_free(spatial_inv_transformation_tensor);
 }
 
-static void neutronstar_lapse_function_der(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double **lapse_function_der)
+static void neutronstar_lapse_function_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double **lapse_function_der
+)
 {
   gkyl_gr_lapse_function_diff(spacetime, t, x, y, z, dx, dy, dz, lapse_function_der);
 }
 
-static void neutronstar_shift_vector_der(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, const double dx, const double dy, const double dz,
-  double ***shift_vector_der)
+static void neutronstar_shift_vector_der(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***shift_vector_der
+)
 {
   gkyl_gr_shift_vector_diff(spacetime, t, x, y, z, dx, dy, dz, shift_vector_der);
 }
 
-static void neutronstar_spatial_christoffel(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ****spatial_christoffel)
+static void neutronstar_spatial_christoffel(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ****spatial_christoffel
+)
 {
   gkyl_gr_spatial_christoffel_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_christoffel);
 }
 
-static void neutronstar_spacetime_christoffel(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double ****spacetime_christoffel)
+static void neutronstar_spacetime_christoffel(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ****spacetime_christoffel
+)
 {
   gkyl_gr_spacetime_christoffel_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_christoffel);
 }
 
-static void neutronstar_spatial_riemann_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double *****spatial_riemann_tensor)
+static void neutronstar_spatial_riemann_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double *****spatial_riemann_tensor
+)
 {
   gkyl_gr_spatial_riemann_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_riemann_tensor);
 }
 
-static void neutronstar_spacetime_riemann_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double *****spacetime_riemann_tensor)
+static void neutronstar_spacetime_riemann_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *****spacetime_riemann_tensor
+)
 {
   gkyl_gr_spacetime_riemann_tensor_fd(
-    spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_riemann_tensor);
+    spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_riemann_tensor
+  );
 }
 
-static void neutronstar_spatial_ricci_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ***spatial_ricci_tensor)
+static void neutronstar_spatial_ricci_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double ***spatial_ricci_tensor
+)
 {
   gkyl_gr_spatial_ricci_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_tensor);
 }
 
-static void neutronstar_spacetime_ricci_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double ***spacetime_ricci_tensor)
+static void neutronstar_spacetime_ricci_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double ***spacetime_ricci_tensor
+)
 {
   gkyl_gr_spacetime_ricci_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_tensor);
 }
 
-static void neutronstar_spatial_ricci_scalar(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double *spatial_ricci_scalar)
+static void neutronstar_spatial_ricci_scalar(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double *spatial_ricci_scalar
+)
 {
   gkyl_gr_spatial_ricci_scalar_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_scalar);
 }
 
-static void neutronstar_spacetime_ricci_scalar(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double *spacetime_ricci_scalar)
+static void neutronstar_spacetime_ricci_scalar(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *spacetime_ricci_scalar
+)
 {
   gkyl_gr_spacetime_ricci_scalar_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_scalar);
 }
 
-static void neutronstar_spatial_weyl_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double *****spatial_weyl_tensor)
+static void neutronstar_spatial_weyl_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double *****spatial_weyl_tensor
+)
 {
   gkyl_gr_spatial_weyl_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_weyl_tensor);
 }
 
-static void neutronstar_spacetime_weyl_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dt, const double dx,
-  const double dy, const double dz, double *****spacetime_weyl_tensor)
+static void neutronstar_spacetime_weyl_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz,
+  double *****spacetime_weyl_tensor
+)
 {
   gkyl_gr_spacetime_weyl_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_weyl_tensor);
 }
 
-static void neutronstar_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, const double dx, const double dy,
-  const double dz, double ***extrinsic_curvature_tensor)
+static void neutronstar_extrinsic_curvature_tensor(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz,
+  double ***extrinsic_curvature_tensor
+)
 {
   double lapse_function;
   double *shift_vector = gkyl_malloc(sizeof(double[3]));
@@ -917,8 +971,10 @@ static void neutronstar_extrinsic_curvature_tensor(const struct gkyl_gr_spacetim
   gkyl_free(spatial_christoffel);
 }
 
-static void neutronstar_excision_region(const struct gkyl_gr_spacetime *spacetime, const double t,
-  const double x, const double y, const double z, bool *in_excision_region)
+static void neutronstar_excision_region(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, bool *in_excision_region
+)
 {
   const struct gr_neutronstar *neutronstar =
     container_of(spacetime, struct gr_neutronstar, spacetime);
@@ -956,11 +1012,13 @@ void gkyl_gr_neutronstar_free(const struct gkyl_ref_count *ref)
   gkyl_free(gr_neutronstar);
 }
 
-struct gkyl_gr_spacetime *gkyl_gr_neutronstar_new(bool use_gpu, double mass, double spin,
-  double mass_quadrupole, double spin_octupole, double mass_hexadecapole, double pos_x,
-  double pos_y, double pos_z)
+struct gkyl_gr_spacetime *gkyl_gr_neutronstar_new(
+  bool use_gpu, double mass, double spin, double mass_quadrupole, double spin_octupole,
+  double mass_hexadecapole, double pos_x, double pos_y, double pos_z
+)
 {
-  return gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){ .use_gpu = use_gpu,
+  return gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
+  ){.use_gpu = use_gpu,
     .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
@@ -968,7 +1026,7 @@ struct gkyl_gr_spacetime *gkyl_gr_neutronstar_new(bool use_gpu, double mass, dou
     .mass_hexadecapole = mass_hexadecapole,
     .pos_x = pos_x,
     .pos_y = pos_y,
-    .pos_z = pos_z });
+    .pos_z = pos_z});
 }
 
 struct gkyl_gr_spacetime *gkyl_gr_neutronstar_inew(const struct gkyl_gr_neutronstar_inp *inp)

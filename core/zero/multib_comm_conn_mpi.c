@@ -5,10 +5,11 @@
 
 #include <gkyl_mpi_comm_priv.h>
 
-int gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_local,
-  const int *local_blocks, struct gkyl_multib_comm_conn **mbcc_send,
-  struct gkyl_multib_comm_conn **mbcc_recv, struct gkyl_array **arr_send,
-  struct gkyl_array **arr_recv)
+int gkyl_multib_comm_conn_array_transfer_mpi(
+  struct gkyl_comm *comm, int num_blocks_local, const int *local_blocks,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_array **arr_send, struct gkyl_array **arr_recv
+)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
 
@@ -30,13 +31,16 @@ int gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blo
       size_t recv_vol = arr_recv[bI]->esznc * mbcc_r->comm_conn[n].range.volume;
 
       if (recv_vol > 0) {
-        if (gkyl_mem_buff_size(mpi->recv[nridx].buff) < recv_vol)
+        if (gkyl_mem_buff_size(mpi->recv[nridx].buff) < recv_vol) {
           gkyl_mem_buff_resize(mpi->recv[nridx].buff, recv_vol);
+        }
 
         int rtag = tag + 1000 * nid + 100 * e + bid;
 
-        MPI_Irecv(gkyl_mem_buff_data(mpi->recv[nridx].buff), recv_vol, MPI_CHAR, nid, rtag,
-          mpi->mcomm, &mpi->recv[nridx].status);
+        MPI_Irecv(
+          gkyl_mem_buff_data(mpi->recv[nridx].buff), recv_vol, MPI_CHAR, nid, rtag, mpi->mcomm,
+          &mpi->recv[nridx].status
+        );
 
         nridx += 1;
       }
@@ -55,16 +59,20 @@ int gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blo
       size_t send_vol = arr_send[bI]->esznc * mbcc_s->comm_conn[n].range.volume;
 
       if (send_vol > 0) {
-        if (gkyl_mem_buff_size(mpi->send[nsidx].buff) < send_vol)
+        if (gkyl_mem_buff_size(mpi->send[nsidx].buff) < send_vol) {
           gkyl_mem_buff_resize(mpi->send[nsidx].buff, send_vol);
+        }
 
         gkyl_array_copy_to_buffer(
-          gkyl_mem_buff_data(mpi->send[nsidx].buff), arr_send[bI], &mbcc_s->comm_conn[n].range);
+          gkyl_mem_buff_data(mpi->send[nsidx].buff), arr_send[bI], &mbcc_s->comm_conn[n].range
+        );
 
         int stag = tag + 1000 * my_rank + 100 * e + local_blocks[bI];
 
-        MPI_Isend(gkyl_mem_buff_data(mpi->send[nsidx].buff), send_vol, MPI_CHAR, nid, stag,
-          mpi->mcomm, &mpi->send[nsidx].status);
+        MPI_Isend(
+          gkyl_mem_buff_data(mpi->send[nsidx].buff), send_vol, MPI_CHAR, nid, stag, mpi->mcomm,
+          &mpi->send[nsidx].status
+        );
 
         nsidx += 1;
       }
@@ -94,7 +102,8 @@ int gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blo
         MPI_Wait(&mpi->recv[nridx].status, MPI_STATUS_IGNORE);
 
         gkyl_array_copy_from_buffer(
-          arr_recv[bI], gkyl_mem_buff_data(mpi->recv[nridx].buff), &(mbcc_r->comm_conn[n].range));
+          arr_recv[bI], gkyl_mem_buff_data(mpi->recv[nridx].buff), &(mbcc_r->comm_conn[n].range)
+        );
 
         nridx += 1;
       }
@@ -106,10 +115,11 @@ int gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blo
 
 #else
 
-int gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_local,
-  const int *local_blocks, struct gkyl_multib_comm_conn **mbcc_send,
-  struct gkyl_multib_comm_conn **mbcc_recv, struct gkyl_array **arr_send,
-  struct gkyl_array **arr_recv)
+int gkyl_multib_comm_conn_array_transfer_mpi(
+  struct gkyl_comm *comm, int num_blocks_local, const int *local_blocks,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_array **arr_send, struct gkyl_array **arr_recv
+)
 {
   return 1;
 }

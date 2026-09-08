@@ -15,8 +15,8 @@ void evalFunc(double t, const double *xn, double *restrict fout, void *ctx)
 void test_proj_on_basis_1_ho()
 {
   int poly_order = 1;
-  double lower[] = { -2.0 }, upper[] = { 2.0 };
-  int cells[] = { 2 };
+  double lower[] = {-2.0}, upper[] = {2.0};
+  int cells[] = {2};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
 
@@ -29,7 +29,7 @@ void test_proj_on_basis_1_ho()
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalFunc, NULL);
 
   // create array range: no ghost-cells
-  int nghost[GKYL_MAX_DIM] = { 0 };
+  int nghost[GKYL_MAX_DIM] = {0};
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -56,8 +56,8 @@ void test_proj_on_basis_1_ho()
 void test_proj_on_basis_2_ho()
 {
   int poly_order = 1;
-  double lower[] = { -2.0 }, upper[] = { 2.0 };
-  int cells[] = { 2 };
+  double lower[] = {-2.0}, upper[] = {2.0};
+  int cells[] = {2};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
 
@@ -65,16 +65,16 @@ void test_proj_on_basis_2_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, poly_order);
 
-  gkyl_proj_on_basis *projDistf =
-    gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-      .basis = &basis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 3,
-      .num_ret_vals = 1,
-      .eval = evalFunc });
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
+  ){.grid = &grid,
+    .basis = &basis,
+    .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+    .num_quad = 3,
+    .num_ret_vals = 1,
+    .eval = evalFunc});
 
   // create array range: no ghost-cells
-  int nghost[GKYL_MAX_DIM] = { 0 };
+  int nghost[GKYL_MAX_DIM] = {0};
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -101,8 +101,8 @@ void test_proj_on_basis_2_ho()
 void test_proj_on_basis_2_2d_ho()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0 }, upper[] = { 2.0, 2.0 };
-  int cells[] = { 2, 2 };
+  double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
+  int cells[] = {2, 2};
   int ndim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -111,16 +111,16 @@ void test_proj_on_basis_2_2d_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  gkyl_proj_on_basis *projDistf =
-    gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-      .basis = &basis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = poly_order + 1,
-      .num_ret_vals = 1,
-      .eval = evalFunc });
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
+  ){.grid = &grid,
+    .basis = &basis,
+    .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+    .num_quad = poly_order + 1,
+    .num_ret_vals = 1,
+    .eval = evalFunc});
 
   // create array range: no ghost-cells
-  int nghost[GKYL_MAX_DIM] = { 0 };
+  int nghost[GKYL_MAX_DIM] = {0};
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -186,8 +186,8 @@ void test_proj_on_basis_2_2d_ho()
 void test_proj_on_basis_2_3d_ho()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0 };
-  int cells[] = { 2, 2, 2 };
+  double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
+  int cells[] = {2, 2, 2};
   int ndim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -196,16 +196,16 @@ void test_proj_on_basis_2_3d_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  gkyl_proj_on_basis *projDistf =
-    gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-      .basis = &basis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = poly_order + 1,
-      .num_ret_vals = 1,
-      .eval = evalFunc });
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
+  ){.grid = &grid,
+    .basis = &basis,
+    .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+    .num_quad = poly_order + 1,
+    .num_ret_vals = 1,
+    .eval = evalFunc});
 
   // create array range: no ghost-cells
-  int nghost[GKYL_MAX_DIM] = { 0 };
+  int nghost[GKYL_MAX_DIM] = {0};
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -281,8 +281,8 @@ void evalFuncP(double t, const double *xn, double *restrict fout, void *ctx)
 void test_proj_on_basis_3_3d_ho()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0 };
-  int cells[] = { 2, 2, 2 };
+  double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
+  int cells[] = {2, 2, 2};
   int ndim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -291,16 +291,16 @@ void test_proj_on_basis_3_3d_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  gkyl_proj_on_basis *projDistf =
-    gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-      .basis = &basis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = poly_order + 1,
-      .num_ret_vals = 1,
-      .eval = evalFuncP });
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
+  ){.grid = &grid,
+    .basis = &basis,
+    .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+    .num_quad = poly_order + 1,
+    .num_ret_vals = 1,
+    .eval = evalFuncP});
 
   // create array range: no ghost-cells
-  int nghost[GKYL_MAX_DIM] = { 0 };
+  int nghost[GKYL_MAX_DIM] = {0};
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -367,8 +367,11 @@ void test_proj_on_basis_3_3d_ho()
   gkyl_array_release(distf);
 }
 
-TEST_LIST = { { "test_proj_on_basis_1_ho", test_proj_on_basis_1_ho },
-  { "test_proj_on_basis_2_ho", test_proj_on_basis_2_ho },
-  { "test_proj_on_basis_2_2d_ho", test_proj_on_basis_2_2d_ho },
-  { "test_proj_on_basis_2_3d_ho", test_proj_on_basis_2_3d_ho },
-  { "test_proj_on_basis_3_3d_ho", test_proj_on_basis_3_3d_ho }, { NULL, NULL } };
+TEST_LIST = {
+  {"test_proj_on_basis_1_ho", test_proj_on_basis_1_ho},
+  {"test_proj_on_basis_2_ho", test_proj_on_basis_2_ho},
+  {"test_proj_on_basis_2_2d_ho", test_proj_on_basis_2_2d_ho},
+  {"test_proj_on_basis_2_3d_ho", test_proj_on_basis_2_3d_ho},
+  {"test_proj_on_basis_3_3d_ho", test_proj_on_basis_3_3d_ho},
+  {NULL, NULL}
+};

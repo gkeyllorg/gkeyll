@@ -7,7 +7,8 @@
 #include <gkyl_rect_grid_priv.h>
 #include <gkyl_util.h>
 void gkyl_rect_grid_init(
-  struct gkyl_rect_grid *grid, int ndim, const double *lower, const double *upper, const int *cells)
+  struct gkyl_rect_grid *grid, int ndim, const double *lower, const double *upper, const int *cells
+)
 {
   //  // MF 2023/07/07: commenting this out because it causes seg faults in g2.
   //  *grid = (struct gkyl_rect_grid) { };
@@ -23,8 +24,8 @@ void gkyl_rect_grid_init(
   }
 }
 
-struct gkyl_rect_grid *gkyl_rect_grid_new(
-  int ndim, const double *lower, const double *upper, const int *cells)
+struct gkyl_rect_grid *
+gkyl_rect_grid_new(int ndim, const double *lower, const double *upper, const int *cells)
 {
   struct gkyl_rect_grid *out = gkyl_calloc(1, sizeof(*out));
   gkyl_rect_grid_init(out, ndim, lower, upper, cells);
@@ -33,22 +34,28 @@ struct gkyl_rect_grid *gkyl_rect_grid_new(
 
 bool gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_grid *grid2)
 {
-  if (grid1->ndim != grid2->ndim)
+  if (grid1->ndim != grid2->ndim) {
     return false;
+  }
 
   for (int i = 0; i < grid1->ndim; ++i) {
-    if (grid1->cells[i] != grid2->cells[i])
+    if (grid1->cells[i] != grid2->cells[i]) {
       return false;
-    if (!gkyl_compare_double(grid1->lower[i], grid2->lower[i], 1e-14))
+    }
+    if (!gkyl_compare_double(grid1->lower[i], grid2->lower[i], 1e-14)) {
       return false;
-    if (!gkyl_compare_double(grid1->upper[i], grid2->upper[i], 1e-14))
+    }
+    if (!gkyl_compare_double(grid1->upper[i], grid2->upper[i], 1e-14)) {
       return false;
+    }
   }
   return true;
 }
 
-GKYL_CU_DH void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
-  const bool *pick_lower, const int *known_index, int *cell_index)
+GKYL_CU_DH void gkyl_rect_grid_find_cell(
+  const struct gkyl_rect_grid *grid, const double *point, const bool *pick_lower,
+  const int *known_index, int *cell_index
+)
 {
   int nDim = grid->ndim;
   int search_num = 0;
@@ -80,7 +87,7 @@ GKYL_CU_DH void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, cons
     new_index[d] = 0;
   }
 
-  int plusminus[2] = { -1, 1 }, low_high_index[2 * GKYL_MAX_DIM];
+  int plusminus[2] = {-1, 1}, low_high_index[2 * GKYL_MAX_DIM];
   bool all_less_eq = true;
   double lower_dir[nDim], upper_dir[nDim];
   /* Below we use a binary search. That is, if the i-th coordinate of the point in
@@ -88,8 +95,9 @@ GKYL_CU_DH void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, cons
    * the lower(upper) half along that direction in the next iteration.
    */
   while (all_less_eq) {
-    for (int d = 0; d < search_num; d++)
+    for (int d = 0; d < search_num; d++) {
       mid_index[d] = (start_index[d] + end_index[d]) / 2; // Integer division intentional
+    }
 
     if (is_in_cell(grid, point, mid_index, dim_trans, known_index)) {
       // Check if neighboring cells also contain this point.
@@ -101,16 +109,18 @@ GKYL_CU_DH void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, cons
       for (int i = 0; i < search_num; i++) {
         for (int j = 0; j < 2; j++) {
           new_index[i] = GKYL_MAX2(GKYL_MIN2(mid_index[i] + plusminus[j], cells[search_dim[i]]), 1);
-          if (is_in_cell(grid, point, new_index, dim_trans, known_index))
+          if (is_in_cell(grid, point, new_index, dim_trans, known_index)) {
             low_high_index[j * nDim + search_dim[i]] = new_index[i];
+          }
         }
         new_index[i] = mid_index[i];
       }
       for (int d = 0; d < search_num; d++) {
-        if (pick_lower[search_dim[d]])
+        if (pick_lower[search_dim[d]]) {
           cell_index[search_dim[d]] = low_high_index[search_dim[d]];
-        else
+        } else {
           cell_index[search_dim[d]] = low_high_index[nDim + search_dim[d]];
+        }
       }
       break;
     } else {
@@ -139,23 +149,27 @@ void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, const char *nm, FIL
     fprintf(fp, "%s = { ndim = %d, ", nm, grid->ndim);
 
     fprintf(fp, " lower = { ");
-    for (int d = 0; d < grid->ndim; ++d)
+    for (int d = 0; d < grid->ndim; ++d) {
       fprintf(fp, "%.9e%c ", grid->lower[d], d == grid->ndim - 1 ? ' ' : ',');
+    }
     fprintf(fp, "}, ");
 
     fprintf(fp, "upper = { ");
-    for (int d = 0; d < grid->ndim; ++d)
+    for (int d = 0; d < grid->ndim; ++d) {
       fprintf(fp, "%.9e%c ", grid->upper[d], d == grid->ndim - 1 ? ' ' : ',');
+    }
     fprintf(fp, "}, ");
 
     fprintf(fp, "cells = { ");
-    for (int d = 0; d < grid->ndim; ++d)
+    for (int d = 0; d < grid->ndim; ++d) {
       fprintf(fp, "%d%c ", grid->cells[d], d == grid->ndim - 1 ? ' ' : ',');
+    }
     fprintf(fp, "}, ");
 
     fprintf(fp, "dx = { ");
-    for (int d = 0; d < grid->ndim; ++d)
+    for (int d = 0; d < grid->ndim; ++d) {
       fprintf(fp, "%.9e%c ", grid->upper[d], d == grid->ndim - 1 ? ' ' : ',');
+    }
     fprintf(fp, "}, ");
 
     fprintf(fp, " cellVolume = %.9e, ", grid->cellVolume);
@@ -166,8 +180,9 @@ void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, const char *nm, FIL
     // Dimension and shape are written as 64 bit integers.
     uint64_t ndim = grid->ndim;
     uint64_t cells[GKYL_MAX_DIM];
-    for (int d = 0; d < grid->ndim; ++d)
+    for (int d = 0; d < grid->ndim; ++d) {
       cells[d] = grid->cells[d];
+    }
 
     fwrite(&ndim, sizeof(uint64_t), 1, fp);
     fwrite(cells, sizeof(uint64_t), grid->ndim, fp);
@@ -181,21 +196,26 @@ bool gkyl_rect_grid_read(struct gkyl_rect_grid *grid, FILE *fp)
   uint64_t ndim = grid->ndim;
   uint64_t cells64[GKYL_MAX_DIM];
 
-  if (1 != fread(&ndim, sizeof(uint64_t), 1, fp))
+  if (1 != fread(&ndim, sizeof(uint64_t), 1, fp)) {
     return false;
-  if (ndim != fread(cells64, sizeof(uint64_t), ndim, fp))
+  }
+  if (ndim != fread(cells64, sizeof(uint64_t), ndim, fp)) {
     return false;
+  }
 
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  if (ndim != fread(lower, sizeof(double), ndim, fp))
+  if (ndim != fread(lower, sizeof(double), ndim, fp)) {
     return false;
-  if (ndim != fread(upper, sizeof(double), ndim, fp))
+  }
+  if (ndim != fread(upper, sizeof(double), ndim, fp)) {
     return false;
+  }
 
   // copy into regular int array
   int cells[GKYL_MAX_DIM];
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     cells[d] = cells64[d];
+  }
 
   gkyl_rect_grid_init(grid, ndim, lower, upper, cells);
 

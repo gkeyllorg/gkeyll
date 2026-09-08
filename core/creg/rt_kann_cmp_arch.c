@@ -59,12 +59,12 @@ void train_ann(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(Nt * Nx, 2);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(Nt * Nx, 1);
 
-  struct xrange tr = { .xleft = 0.0f, .xright = 3.0f, .N = Nt };
+  struct xrange tr = {.xleft = 0.0f, .xright = 3.0f, .N = Nt};
 
-  struct xrange xr = { .xleft = 0.0f, .xright = 1.0f, .N = Nx };
+  struct xrange xr = {.xleft = 0.0f, .xright = 1.0f, .N = Nx};
 
   // initialize input/output mapping
-  for (int i = 0; i < Nt; ++i)
+  for (int i = 0; i < Nt; ++i) {
     for (int j = 0; j < Nx; ++j) {
       long idx = i * Nx + j;
 
@@ -73,6 +73,7 @@ void train_ann(struct train_inp *nn_inp, const char *nn_name)
 
       out->vals[idx][0] = ufunc(t, x);
     }
+  }
 
   // hyper-parameters for training
   float lr = nn_inp->learning_rate; // learning rate
@@ -83,7 +84,8 @@ void train_ann(struct train_inp *nn_inp, const char *nn_name)
 
   // run training
   kann_train_fnn1(
-    ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, Nx * Nt, inp->vals, out->vals);
+    ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, Nx * Nt, inp->vals, out->vals
+  );
   kann_save(nn_name, ann); // save to file
 
   gkyl_kn_vec_release(inp);
@@ -98,8 +100,9 @@ void infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_k
   const float *ov;
   for (int i = 0; i < inp->nvec; ++i) {
     ov = kann_apply1(ann, inp->vals[i]);
-    for (int j = 0; j < out->N; ++j)
+    for (int j = 0; j < out->N; ++j) {
       out->vals[i][j] = ov[j];
+    }
   }
   kann_delete(ann);
 }
@@ -127,13 +130,15 @@ void write_to_gplot(void)
 }
 
 void write_infer_data(
-  const char *fname, const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
+  const char *fname, const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out
+)
 {
   FILE *fp = 0;
   with_file(fp, fname, "w")
   {
-    for (int i = 0; i < inp->nvec; ++i)
+    for (int i = 0; i < inp->nvec; ++i) {
       fprintf(fp, "%.5g %.5g\n", inp->vals[i][0], out->vals[i][0]);
+    }
   }
 }
 
@@ -171,20 +176,26 @@ int main(int argc, char *argv[])
 
   if (p_train) {
     fprintf(stdout, "*** Training MLP\n");
-    train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
-                .ndepth = 2,
-                .nwidth = 64,
-                .learning_rate = 1e-3f,
-                .layer_type = ANN_DENSE },
-      "rt_kann_cmp_arch_mlp.kann");
+    train_ann(
+      &(struct train_inp
+      ){.ntrain = {101, 101},
+        .ndepth = 2,
+        .nwidth = 64,
+        .learning_rate = 1e-3f,
+        .layer_type = ANN_DENSE},
+      "rt_kann_cmp_arch_mlp.kann"
+    );
 
     fprintf(stdout, "*** Training GRU\n");
-    train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
-                .ndepth = 2,
-                .nwidth = 32,
-                .learning_rate = 1e-3f,
-                .layer_type = ANN_GRU },
-      "rt_kann_cmp_arch_gru.kann");
+    train_ann(
+      &(struct train_inp
+      ){.ntrain = {101, 101},
+        .ndepth = 2,
+        .nwidth = 32,
+        .learning_rate = 1e-3f,
+        .layer_type = ANN_GRU},
+      "rt_kann_cmp_arch_gru.kann"
+    );
   }
 
   if (p_infer) {
@@ -193,7 +204,7 @@ int main(int argc, char *argv[])
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 2);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
-    struct xrange tr = { .xleft = 0.0f, .xright = 3.0f, .N = inp->nvec };
+    struct xrange tr = {.xleft = 0.0f, .xright = 3.0f, .N = inp->nvec};
     for (int i = 0; i < inp->nvec; ++i) {
       inp->vals[i][0] = xrange_n(tr, i);
       inp->vals[i][1] = 0.35f;

@@ -116,12 +116,14 @@ enum gkyl_cu_memcpy_kind {
 
 // CUDA helper function to find CUDA errors
 #define checkCuda(val) __checkCudaErrors__((val), #val, __FILE__, __LINE__)
-inline cudaError_t __checkCudaErrors__(
-  cudaError_t code, const char *func, const char *file, int line)
+inline cudaError_t
+__checkCudaErrors__(cudaError_t code, const char *func, const char *file, int line)
 {
   if (code) {
-    fprintf(stderr, "CUDA error: %s (code=%u)  \"%s\" at %s:%d \n", cudaGetErrorString(code),
-      (unsigned int)code, func, file, line);
+    fprintf(
+      stderr, "CUDA error: %s (code=%u)  \"%s\" at %s:%d \n", cudaGetErrorString(code),
+      (unsigned int)code, func, file, line
+    );
     cudaDeviceReset();
     exit(EXIT_FAILURE);
   }
@@ -216,7 +218,8 @@ struct gkyl_str_int_pair {
  * @return value corresponding to @a str, or @a def.
  */
 int gkyl_search_str_int_pair_by_str(
-  const struct gkyl_str_int_pair pairs[], const char *str, int def);
+  const struct gkyl_str_int_pair pairs[], const char *str, int def
+);
 
 /**
  * Search @a pairs list for @a val and return the corresponding string
@@ -228,8 +231,8 @@ int gkyl_search_str_int_pair_by_str(
  * @param def Default value to return
  * @return value corresponding to @a val, or @a def.
  */
-const char *gkyl_search_str_int_pair_by_int(
-  const struct gkyl_str_int_pair pairs[], int val, const char *def);
+const char *
+gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val, const char *def);
 
 /**
  * Time-trigger. Typical initialization is:
@@ -278,11 +281,12 @@ int gkyl_compare_double(double a, double b, double eps);
  * @param inp Input array
  * @param out Output array
  */
-GKYL_CU_DH static inline void gkyl_copy_int_arr(
-  int n, const int *GKYL_RESTRICT inp, int *GKYL_RESTRICT out)
+GKYL_CU_DH static inline void
+gkyl_copy_int_arr(int n, const int *GKYL_RESTRICT inp, int *GKYL_RESTRICT out)
 {
-  for (int i = 0; i < n; ++i)
+  for (int i = 0; i < n; ++i) {
     out[i] = inp[i];
+  }
 }
 
 /**
@@ -292,11 +296,12 @@ GKYL_CU_DH static inline void gkyl_copy_int_arr(
  * @param inp Input array
  * @param out Output array
  */
-GKYL_CU_DH static inline void gkyl_copy_long_arr(
-  int n, const long *GKYL_RESTRICT inp, long *GKYL_RESTRICT out)
+GKYL_CU_DH static inline void
+gkyl_copy_long_arr(int n, const long *GKYL_RESTRICT inp, long *GKYL_RESTRICT out)
 {
-  for (int i = 0; i < n; ++i)
+  for (int i = 0; i < n; ++i) {
     out[i] = inp[i];
+  }
 }
 
 /**
@@ -306,11 +311,12 @@ GKYL_CU_DH static inline void gkyl_copy_long_arr(
  * @param inp Input array
  * @param out Output array
  */
-GKYL_CU_DH static inline void gkyl_copy_double_arr(
-  int n, const double *GKYL_RESTRICT inp, double *GKYL_RESTRICT out)
+GKYL_CU_DH static inline void
+gkyl_copy_double_arr(int n, const double *GKYL_RESTRICT inp, double *GKYL_RESTRICT out)
 {
-  for (int i = 0; i < n; ++i)
+  for (int i = 0; i < n; ++i) {
     out[i] = inp[i];
+  }
 }
 
 /**
@@ -330,10 +336,11 @@ GKYL_CU_DH static inline double gkyl_minmod(double a, double b, double c)
   double sb = GKYL_SGN(b);
   double sc = GKYL_SGN(c);
   if ((sa == sb) && (sb == sc)) {
-    if (sa < 0)
+    if (sa < 0) {
       return GKYL_MAX2(GKYL_MAX2(a, b), c);
-    else
+    } else {
       return GKYL_MIN2(GKYL_MIN2(a, b), c);
+    }
   } else {
     return 0;
   }
@@ -496,37 +503,32 @@ struct gkyl_msgpack_map_elem {
 // constructing gkyl_msgpack_map_elem objects
 static inline struct gkyl_msgpack_map_elem gmpe_bval(const char *key, bool val)
 {
-  return (struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_BOOL, .bval = val };
+  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_BOOL, .bval = val};
 }
 static inline struct gkyl_msgpack_map_elem gmpe_uval(const char *key, unsigned int val)
 {
-  return (
-    struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_UNSIGNED_INT, .uval = val };
+  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_UNSIGNED_INT, .uval = val};
 }
 static inline struct gkyl_msgpack_map_elem gmpe_ival(const char *key, int val)
 {
-  return (struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_INT, .ival = val };
+  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_INT, .ival = val};
 }
 static inline struct gkyl_msgpack_map_elem gmpe_fval(const char *key, float val)
 {
-  return (struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_FLOAT, .fval = val };
+  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_FLOAT, .fval = val};
 }
 static inline struct gkyl_msgpack_map_elem gmpe_dval(const char *key, double val)
 {
-  return (struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_DOUBLE, .dval = val };
+  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_DOUBLE, .dval = val};
 }
 static inline struct gkyl_msgpack_map_elem gmpe_cval(const char *key, char *val)
 {
-  return (struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_STRING, .cval = val };
+  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_STRING, .cval = val};
 }
-#define GKYL_MSGPACK_MAP_ELEM(key, val) \
-  _Generic((val),                       \
-    bool: gmpe_bval,                    \
-    int: gmpe_ival,                     \
-    unsigned int: gmpe_uval,            \
-    float: gmpe_fval,                   \
-    double: gmpe_dval,                  \
-    char *: gmpe_cval)(key, val)
+#define GKYL_MSGPACK_MAP_ELEM(key, val)                                                                                              \
+  _Generic((val), bool: gmpe_bval, int: gmpe_ival, unsigned int: gmpe_uval, float: gmpe_fval, double: gmpe_dval, char *: gmpe_cval)( \
+    key, val                                                                                                                         \
+  )
 
 #undef GMPE_TAG
 
@@ -539,7 +541,8 @@ static inline struct gkyl_msgpack_map_elem gmpe_cval(const char *key, char *val)
  * @return True is list has this element key, false otherwise.
  */
 bool gkyl_msgpack_map_elem_has_key(
-  int nvals, const struct gkyl_msgpack_map_elem *elist, const char *key);
+  int nvals, const struct gkyl_msgpack_map_elem *elist, const char *key
+);
 
 /**
  * Allocate a new list of MessagePack map elements by cloning
@@ -549,8 +552,8 @@ bool gkyl_msgpack_map_elem_has_key(
  * @param elist_in List of elements to put in MessagePack.
  * @return New msgpack_map_elem object. Free with gkyl_msgpack_map_elem_release.
  */
-struct gkyl_msgpack_map_elem *gkyl_msgpack_map_elem_clone(
-  int nvals, const struct gkyl_msgpack_map_elem *elist_in);
+struct gkyl_msgpack_map_elem *
+gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist_in);
 
 /**
  * Allocate a new list of MessagePack map elements out of the union of one or
@@ -562,8 +565,10 @@ struct gkyl_msgpack_map_elem *gkyl_msgpack_map_elem_clone(
  * @param elist_out_len Length of the map elem list produced.
  * @return New msgpack_map_elem object. Free with gkyl_msgpack_map_elem_release.
  */
-struct gkyl_msgpack_map_elem *gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
-  const struct gkyl_msgpack_map_elem **elist_union, int *elist_out_len);
+struct gkyl_msgpack_map_elem *gkyl_msgpack_map_elem_union(
+  int numlist_union, int *nvals_union, const struct gkyl_msgpack_map_elem **elist_union,
+  int *elist_out_len
+);
 
 /**
  * Update the type double value of an element in an element list.
@@ -574,7 +579,8 @@ struct gkyl_msgpack_map_elem *gkyl_msgpack_map_elem_union(int numlist_union, int
  * @param value Value to update element with.
  */
 void gkyl_msgpack_map_elem_set_double(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, double value);
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, double value
+);
 
 /**
  * Update the type unsigned int value of an element in an element list.
@@ -585,7 +591,8 @@ void gkyl_msgpack_map_elem_set_double(
  * @param value Value to update element with.
  */
 void gkyl_msgpack_map_elem_set_uint(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, unsigned int value);
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, unsigned int value
+);
 
 /**
  * Fetch the type double value of an element in an element list.
@@ -595,8 +602,8 @@ void gkyl_msgpack_map_elem_set_uint(
  * @param key Name of the element to update.
  * @return Value of the specified element.
  */
-double gkyl_msgpack_map_elem_get_double(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key);
+double
+gkyl_msgpack_map_elem_get_double(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key);
 
 /**
  * Fetch the type unsigned_int value of an element in an element list.
@@ -606,8 +613,8 @@ double gkyl_msgpack_map_elem_get_double(
  * @param key Name of the element to update.
  * @return Value of the specified element.
  */
-unsigned int gkyl_msgpack_map_elem_get_uint(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key);
+unsigned int
+gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key);
 
 /**
  * Fetch the pointer to the string value of an element in an element list.
@@ -617,8 +624,8 @@ unsigned int gkyl_msgpack_map_elem_get_uint(
  * @param key Name of the element to update.
  * @return Pointer to string value of the specified element.
  */
-char *gkyl_msgpack_map_elem_get_string(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key);
+char *
+gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key);
 
 /**
  * Free the memory allocated to store a string in an element of the given list.
@@ -628,7 +635,8 @@ char *gkyl_msgpack_map_elem_get_string(
  * @param key Name of the element whose string value to release.
  */
 void gkyl_msgpack_map_elem_release_string(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key);
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key
+);
 
 /**
  * Release list of MessagePack map elements.
@@ -656,7 +664,8 @@ struct gkyl_msgpack_data *gkyl_msgpack_create(int nvals, const struct gkyl_msgpa
  * @return New msgpack_data object. Free using the release method
  */
 struct gkyl_msgpack_data *gkyl_msgpack_create_union(
-  int numlist_union, int *nvals_union, const struct gkyl_msgpack_map_elem **elist_union);
+  int numlist_union, int *nvals_union, const struct gkyl_msgpack_map_elem **elist_union
+);
 
 /**
  * Clone a msgpack.
@@ -676,7 +685,8 @@ struct gkyl_msgpack_data *gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
  * @param elist Element list to populate.
  */
 void gkyl_msgpack_to_map_elem_list(
-  struct gkyl_msgpack_data *mpack_in, int nvals, struct gkyl_msgpack_map_elem *elist);
+  struct gkyl_msgpack_data *mpack_in, int nvals, struct gkyl_msgpack_map_elem *elist
+);
 
 /**
  * Release data created by the gkyl_msgpack_create method.

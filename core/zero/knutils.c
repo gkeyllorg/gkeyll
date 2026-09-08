@@ -33,8 +33,9 @@ struct gkyl_kn_vec *gkyl_kn_vec_new(int nvec, int N)
   vec->data = gkyl_calloc(nvec * N, sizeof(float));
 
   vec->vals[0] = &vec->data[0];
-  for (int i = 1; i < nvec; ++i)
+  for (int i = 1; i < nvec; ++i) {
     vec->vals[i] = vec->vals[i - 1] + N;
+  }
 
   vec->ref_count = gkyl_ref_count_init(kn_vec_free);
 
@@ -83,15 +84,17 @@ struct gkyl_kn_vec *gkyl_kn_vec_copy(struct gkyl_kn_vec *dest, const struct gkyl
   bool src_is_cu = GKYL_IS_CU_ALLOC(src->flags);
 
   if (src_is_cu) {
-    if (dest_is_cu)
+    if (dest_is_cu) {
       gkyl_cu_memcpy(dest->data, src->data, nbytes, GKYL_CU_MEMCPY_D2D);
-    else
+    } else {
       gkyl_cu_memcpy(dest->data, src->data, nbytes, GKYL_CU_MEMCPY_D2H);
+    }
   } else {
-    if (dest_is_cu)
+    if (dest_is_cu) {
       gkyl_cu_memcpy(dest->data, src->data, nbytes, GKYL_CU_MEMCPY_H2D);
-    else
+    } else {
       memcpy(dest->data, src->data, nbytes);
+    }
   }
 
   return dest;

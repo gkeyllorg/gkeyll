@@ -15,14 +15,18 @@ int cu_wave_geom_test(const struct gkyl_wave_geom *wg);
 GKYL_CU_D static int compare(double a, double b, double eps)
 {
   double absa = fabs(a), absb = fabs(b), diff = fabs(a - b);
-  if (a == b)
+  if (a == b) {
     return 1;
-  if (a == 0 || b == 0 || (absa + absb < DBL_MIN))
+  }
+  if (a == 0 || b == 0 || (absa + absb < DBL_MIN)) {
     return diff < eps;
-  if (absa < eps)
+  }
+  if (absa < eps) {
     return diff < eps;
-  if (absb < eps)
+  }
+  if (absb < eps) {
     return diff < eps;
+  }
   return diff / fmin(absa + absb, DBL_MAX) < eps;
 }
 
@@ -36,7 +40,7 @@ __global__ void ker_cu_wave_geom_test(const struct gkyl_wave_geom *wg, int *nfai
   double edge_inn = sqrtf(2) * r_inn;
   double area_c = (r_out - r_inn) * phi_max;
 
-  int idx[] = { 1, 1, 1 };
+  int idx[] = {1, 1, 1};
   {
     const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idx);
 

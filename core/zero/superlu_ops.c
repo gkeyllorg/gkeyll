@@ -61,8 +61,9 @@ gkyl_superlu_prob *gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs
   prob->rhs = doubleMalloc(mrow * GKYL_MAX2(nprob, nrhs));
   prob->perm_c = intMalloc(ncol);
   prob->perm_r = gkyl_malloc(prob->nprob * sizeof(int *));
-  for (size_t k = 0; k < prob->nprob; k++)
+  for (size_t k = 0; k < prob->nprob; k++) {
     prob->perm_r[k] = intMalloc(mrow);
+  }
 
   prob->Glu = gkyl_malloc(prob->nprob * sizeof(GlobalLU_t));
 
@@ -84,25 +85,34 @@ gkyl_superlu_prob *gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs
   prob->trans = NOTRANS;
 
   // Create the RHS matrix B, with random data for now.
-  for (size_t k = 0; k < mrow * GKYL_MAX2(nprob, nrhs); k++)
+  for (size_t k = 0; k < mrow * GKYL_MAX2(nprob, nrhs); k++) {
     prob->rhs[k] = 1.0;
+  }
 
-  for (size_t k = 0; k < prob->nprob; k++)
-    dCreate_Dense_Matrix(prob->B[k], prob->mrow, prob->nrhs, &prob->rhs[k * prob->mrow], prob->mrow,
-      SLU_DN, SLU_D, SLU_GE);
+  for (size_t k = 0; k < prob->nprob; k++) {
+    dCreate_Dense_Matrix(
+      prob->B[k], prob->mrow, prob->nrhs, &prob->rhs[k * prob->mrow], prob->mrow, SLU_DN, SLU_D,
+      SLU_GE
+    );
+  }
 
   // Arguments needed by the expert driver.
   prob->equed = 'N';
-  if (!(prob->etree = intMalloc(ncol)))
+  if (!(prob->etree = intMalloc(ncol))) {
     ABORT("superlu_ops: Malloc fails for etree[].");
-  if (!(prob->R = (double *)SUPERLU_MALLOC(mrow * sizeof(double))))
+  }
+  if (!(prob->R = (double *)SUPERLU_MALLOC(mrow * sizeof(double)))) {
     ABORT("superlu_ops: Malloc fails for R[].");
-  if (!(prob->C = (double *)SUPERLU_MALLOC(ncol * sizeof(double))))
+  }
+  if (!(prob->C = (double *)SUPERLU_MALLOC(ncol * sizeof(double)))) {
     ABORT("superlu_ops: Malloc fails for C[].");
-  if (!(prob->ferr = (double *)SUPERLU_MALLOC(nrhs * sizeof(double))))
+  }
+  if (!(prob->ferr = (double *)SUPERLU_MALLOC(nrhs * sizeof(double)))) {
     ABORT("superlu_ops: Malloc fails for ferr[].");
-  if (!(prob->berr = (double *)SUPERLU_MALLOC(nrhs * sizeof(double))))
+  }
+  if (!(prob->berr = (double *)SUPERLU_MALLOC(nrhs * sizeof(double)))) {
     ABORT("superlu_ops: Malloc fails for berr[].");
+  }
 
   prob->LU_in_work = false;
   prob->work = gkyl_malloc(prob->nprob * sizeof(void *));
@@ -119,8 +129,9 @@ void gkyl_superlu_amat_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_
 {
   prob->nnz = gkyl_mat_triples_size(tri[0]);
   for (size_t k = 0; k < prob->nprob; k++) {
-    assert(gkyl_mat_triples_size(tri[k]) ==
-           prob->nnz); // No. of nonzeros must be the same for every problem.
+    assert(
+      gkyl_mat_triples_size(tri[k]) == prob->nnz
+    ); // No. of nonzeros must be the same for every problem.
     assert(gkyl_mat_triples_is_colmaj(tri[k])); // triples must be in colmaj order for superlu.
   }
 
@@ -143,14 +154,15 @@ void gkyl_superlu_amat_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_
     int *rowind = prob->rowinds[k];
     int *colptr = prob->colptrs[k];
 
-    for (size_t i = 0; i < prob->ncol; i++)
+    for (size_t i = 0; i < prob->ncol; i++) {
       colptr_assigned[i] = false;
+    }
 
     gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri[k]);
     for (size_t i = 0; i < prob->nnz; ++i) {
       gkyl_mat_triples_iter_next(iter); // bump iterator.
       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-      size_t idx[2] = { mt.row, mt.col };
+      size_t idx[2] = {mt.row, mt.col};
 
       nzval[i] = mt.val;
       rowind[i] = idx[0];
@@ -164,7 +176,8 @@ void gkyl_superlu_amat_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_
 
     // Create matrix A. See SuperLU manual for definitions.
     dCreate_CompCol_Matrix(
-      prob->A[k], prob->mrow, prob->ncol, prob->nnz, nzval, rowind, colptr, SLU_NC, SLU_D, SLU_GE);
+      prob->A[k], prob->mrow, prob->ncol, prob->nnz, nzval, rowind, colptr, SLU_NC, SLU_D, SLU_GE
+    );
   }
 
   gkyl_free(colptr_assigned);
@@ -194,21 +207,26 @@ void gkyl_superlu_ludecomp(struct gkyl_superlu_prob *prob)
   get_perm_c(permc_spec, prob->A[0], prob->perm_c);
 
   int *etree; // Column elimination tree.
-  if (!(etree = intMalloc(prob->ncol)))
+  if (!(etree = intMalloc(prob->ncol))) {
     ABORT("superlu_ops: Malloc fails for etree[].");
+  }
   SuperMatrix AC; // permutation matrix time A.
   sp_preorder(&prob->options, prob->A[0], prob->perm_c, etree, &AC);
 
   int panel_size = sp_ienv(1);
   int relax = sp_ienv(2);
-  dgstrf(&prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c, prob->perm_r[0],
-    prob->L[0], prob->U[0], &prob->Glu[0], &prob->stat, &prob->info);
+  dgstrf(
+    &prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c, prob->perm_r[0],
+    prob->L[0], prob->U[0], &prob->Glu[0], &prob->stat, &prob->info
+  );
 
   prob->options.Fact = prob->nprob == 1 ? FACTORED : SamePattern; // LU decomp done.
 
   for (size_t k = 1; k < prob->nprob; k++) {
-    dgstrf(&prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c, prob->perm_r[k],
-      prob->L[k], prob->U[k], &prob->Glu[k], &prob->stat, &prob->info);
+    dgstrf(
+      &prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c, prob->perm_r[k],
+      prob->L[k], prob->U[k], &prob->Glu[k], &prob->stat, &prob->info
+    );
   }
 
   SUPERLU_FREE(etree);
@@ -236,8 +254,9 @@ void gkyl_superlu_brhs_from_array(struct gkyl_superlu_prob *prob, const double *
 {
   for (size_t k = 0; k < prob->nprob; k++) {
     double *B_curr = (double *)((DNformat *)prob->B[k]->Store)->nzval;
-    for (size_t i = 0; i < prob->mrow * prob->nrhs; i++)
+    for (size_t i = 0; i < prob->mrow * prob->nrhs; i++) {
       B_curr[i] = bin[k * prob->mrow * prob->nrhs + i];
+    }
   }
 }
 
@@ -248,8 +267,9 @@ static void superlu_alloc_work_if_needed(struct gkyl_superlu_prob *prob, int k)
   // I also tried calling dgssvx with lwork=-1 to get the right size, but that also produced estimates lower
   // than neeed, and even if I increase them by 8X, it is not valgrind clean.
 
-  if (prob->lwork[k] > 0)
+  if (prob->lwork[k] > 0) {
     return; // Already allocated.
+  }
 
   // Compute work buffer size matching what dLUMemInit + dLUWorkInit need.
   // The buffer holds factor data (HEAD), and temporary workspace (TAIL).
@@ -275,16 +295,20 @@ static void superlu_alloc_work_if_needed(struct gkyl_superlu_prob *prob, int k)
   // 1.5x margin to accommodate fill-in growth (matches SuperLU's internal
   // expansion factor) and alignment overhead in USER memory mode.
   prob->lwork[k] = (int_t)(1.5 * (glu_int_arrays + factor_storage + isize + dsize));
-  if (!(prob->work[k] = SUPERLU_MALLOC(prob->lwork[k])))
+  if (!(prob->work[k] = SUPERLU_MALLOC(prob->lwork[k]))) {
     ABORT("superlu_ops: Malloc fails for work[].");
+  }
 }
 
 void gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
 {
   if (prob->options.Fact == FACTORED) {
-    for (size_t k = 0; k < prob->nprob; k++)
-      dgstrs(prob->trans, prob->L[k], prob->U[k], prob->perm_c, prob->perm_r[k], prob->B[k],
-        &prob->stat, &prob->info);
+    for (size_t k = 0; k < prob->nprob; k++) {
+      dgstrs(
+        prob->trans, prob->L[k], prob->U[k], prob->perm_c, prob->perm_r[k], prob->B[k], &prob->stat,
+        &prob->info
+      );
+    }
   } else {
     if (prob->options.Fact == SamePattern) {
       for (size_t k = 0; k < prob->nprob; k++) {
@@ -295,20 +319,24 @@ void gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
 
     superlu_alloc_work_if_needed(prob, 0);
 
-    dgssvx(&prob->options, prob->A[0], prob->perm_c, prob->perm_r[0], prob->etree, &prob->equed,
-      prob->R, prob->C, prob->L[0], prob->U[0], prob->work[0], prob->lwork[0], prob->B[0],
-      prob->B[0], &prob->rpg, &prob->rcond, prob->ferr, prob->berr, &prob->Glu[0], &prob->mem_usage,
-      &prob->stat, &prob->info);
+    dgssvx(
+      &prob->options, prob->A[0], prob->perm_c, prob->perm_r[0], prob->etree, &prob->equed, prob->R,
+      prob->C, prob->L[0], prob->U[0], prob->work[0], prob->lwork[0], prob->B[0], prob->B[0],
+      &prob->rpg, &prob->rcond, prob->ferr, prob->berr, &prob->Glu[0], &prob->mem_usage,
+      &prob->stat, &prob->info
+    );
 
     prob->options.Fact = prob->nprob == 1 ? FACTORED : SamePattern; // LU decomp done.
 
     for (size_t k = 1; k < prob->nprob; k++) {
       superlu_alloc_work_if_needed(prob, k);
 
-      dgssvx(&prob->options, prob->A[k], prob->perm_c, prob->perm_r[k], prob->etree, &prob->equed,
+      dgssvx(
+        &prob->options, prob->A[k], prob->perm_c, prob->perm_r[k], prob->etree, &prob->equed,
         prob->R, prob->C, prob->L[k], prob->U[k], prob->work[k], prob->lwork[k], prob->B[k],
         prob->B[k], &prob->rpg, &prob->rcond, prob->ferr, prob->berr, &prob->Glu[k],
-        &prob->mem_usage, &prob->stat, &prob->info);
+        &prob->mem_usage, &prob->stat, &prob->info
+      );
     }
 
     prob->LU_in_work = true;
@@ -317,11 +345,13 @@ void gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
 }
 
 void gkyl_superlu_amat_update_from_triples(
-  struct gkyl_superlu_prob *prob, struct gkyl_mat_triples **tri)
+  struct gkyl_superlu_prob *prob, struct gkyl_mat_triples **tri
+)
 {
   for (size_t k = 0; k < prob->nprob; k++) {
-    assert(gkyl_mat_triples_size(tri[k]) ==
-           prob->nnz); // No. of nonzeros must be the same for every problem.
+    assert(
+      gkyl_mat_triples_size(tri[k]) == prob->nnz
+    ); // No. of nonzeros must be the same for every problem.
     assert(gkyl_mat_triples_is_colmaj(tri[k])); // triples must be in colmaj order for superlu.
   }
 
@@ -333,7 +363,7 @@ void gkyl_superlu_amat_update_from_triples(
     for (size_t i = 0; i < prob->nnz; ++i) {
       gkyl_mat_triples_iter_next(iter); // bump iterator.
       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-      size_t idx[2] = { mt.row, mt.col };
+      size_t idx[2] = {mt.row, mt.col};
 
       nzval[i] = mt.val;
     }
@@ -392,8 +422,9 @@ void gkyl_superlu_prob_release(struct gkyl_superlu_prob *prob)
   }
 
   for (size_t k = 0; k < prob->nprob; k++) {
-    if (prob->work[k])
+    if (prob->work[k]) {
       SUPERLU_FREE(prob->work[k]);
+    }
   }
   gkyl_free(prob->work);
   gkyl_free(prob->lwork);

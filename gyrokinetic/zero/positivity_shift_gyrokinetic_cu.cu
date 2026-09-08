@@ -10,7 +10,8 @@ extern "C" {
 // CUDA kernel to set device pointers to kernels.
 __global__ static void gkyl_pos_shift_gk_set_cu_ker_ptrs(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kernels, struct gkyl_basis cbasis,
-  struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype)
+  struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype
+)
 {
   int cdim = cbasis.ndim, pdim = pbasis.ndim;
   enum gkyl_basis_type cbasis_type = cbasis.b_type, pbasis_type = pbasis.b_type;
@@ -44,8 +45,10 @@ __global__ static void gkyl_pos_shift_gk_set_cu_ker_ptrs(
   }
 };
 
-void pos_shift_gk_choose_shift_kernel_cu(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype)
+void pos_shift_gk_choose_shift_kernel_cu(
+  struct gkyl_positivity_shift_gyrokinetic_kernels *kernels, struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype
+)
 {
   gkyl_pos_shift_gk_set_cu_ker_ptrs<<<1, 1> > >(kernels, cbasis, pbasis, stype);
 }
@@ -56,20 +59,23 @@ __device__ static __forceinline__ double pos_shift_atomicMax_double(double *addr
   unsigned long long int ret = __double_as_longlong(*address);
   while (val > __longlong_as_double(ret)) {
     unsigned long long int old = ret;
-    if ((ret = atomicCAS((unsigned long long int *)address, old, __double_as_longlong(val))) == old)
+    if ((ret = atomicCAS((unsigned long long int *)address, old, __double_as_longlong(val))) ==
+        old) {
       break;
+    }
   }
   return __longlong_as_double(ret);
 }
 
-__global__ void gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker(
-  struct gkyl_array *out, int val)
+__global__ void
+gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker(struct gkyl_array *out, int val)
 {
   int *out_d = (int *)out->data;
   unsigned long start_id = threadIdx.x + blockIdx.x * blockDim.x;
   unsigned long nelm = out->size * out->ncomp;
-  for (unsigned long linc = start_id; linc < nelm; linc += blockDim.x * gridDim.x)
+  for (unsigned long linc = start_id; linc < nelm; linc += blockDim.x * gridDim.x) {
     out_d[linc] = val;
+  }
 }
 
 __global__ static void gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
@@ -81,7 +87,8 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
   const struct gkyl_array *GKYL_RESTRICT jacobtot_inv, const struct gkyl_array *vmap,
   const struct gkyl_array *jacobvel, struct gkyl_array *GKYL_RESTRICT shiftedf,
   struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
-  struct gkyl_array *GKYL_RESTRICT delta_m0)
+  struct gkyl_array *GKYL_RESTRICT delta_m0
+)
 {
   int pidx[GKYL_MAX_DIM];
   double distf_max = -DBL_MAX;
@@ -94,8 +101,9 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
     gkyl_sub_range_inv_idx(&phase_range, tid, pidx);
 
     int vidx[2];
-    for (int d = cdim; d < pdim; d++)
+    for (int d = cdim; d < pdim; d++) {
       vidx[d - cdim] = pidx[d];
+    }
 
     long clinidx = gkyl_range_idx(&conf_range, pidx);
     long vlinidx = gkyl_range_idx(&vel_range, vidx);
@@ -113,56 +121,65 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
 
     // Contribution to the old number density from this v-space cell.
     double m0phase_in_c[num_cbasis];
-    for (unsigned int k = 0; k < delta_m0->ncomp; ++k)
+    for (unsigned int k = 0; k < delta_m0->ncomp; ++k) {
       m0phase_in_c[k] = 0.0;
+    }
     kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0phase_in_c);
 
     // Add to the old number density.
-    for (unsigned int k = 0; k < delta_m0->ncomp; ++k)
+    for (unsigned int k = 0; k < delta_m0->ncomp; ++k) {
       atomicAdd(&delta_m0_c[k], m0phase_in_c[k]);
+    }
 
     // Shift f if needed.
     bool shifted_node = false;
 
     // Divide by jacobtot and jacobvel so that we are shifting just f.
     kers->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
-    for (int k = 0; k < distf->ncomp; k++)
+    for (int k = 0; k < distf->ncomp; k++) {
       distf_c[k] /= jacobvel_c[0];
+    }
     // Shift f to enforce positivity if needed.
     shifted_node = kers->shift(ffloor[0], distf_c);
     // Multiply by jacobtot and jacobvel to compute M0.
     kers->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
-    for (int k = 0; k < distf->ncomp; k++)
+    for (int k = 0; k < distf->ncomp; k++) {
       distf_c[k] *= jacobvel_c[0];
+    }
 
     if (shifted_node) {
       // Compute the new number density local to this phase-space cell.
       double m0phase_out_c[num_cbasis];
-      for (unsigned int k = 0; k < m0->ncomp; ++k)
+      for (unsigned int k = 0; k < m0->ncomp; ++k) {
         m0phase_out_c[k] = 0.0;
+      }
       kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0phase_out_c);
 
       if (m0phase_in_c[0] > 0.0 && m0phase_out_c[0] > 0.0) {
         // Rescale f in this cell so it keeps the same cell-averaged density.
         double m0ratio = m0phase_in_c[0] / m0phase_out_c[0];
 
-        for (unsigned int k = 0; k < distf->ncomp; ++k)
+        for (unsigned int k = 0; k < distf->ncomp; ++k) {
           distf_c[k] *= m0ratio;
+        }
 
         // Add contribution from this phase-space cell to the new number density.
-        for (unsigned int k = 0; k < m0->ncomp; ++k)
+        for (unsigned int k = 0; k < m0->ncomp; ++k) {
           atomicAdd(&m0_c[k], m0ratio * m0phase_out_c[k]);
+        }
       } else {
         // Add contribution from this phase-space cell to the new number density.
-        for (unsigned int k = 0; k < m0->ncomp; ++k)
+        for (unsigned int k = 0; k < m0->ncomp; ++k) {
           atomicAdd(&m0_c[k], m0phase_out_c[k]);
+        }
 
         atomicOr(shiftedf_c, shifted_node);
       }
     } else {
       // Add contribution from this phase-space cell to the new number density.
-      for (unsigned int k = 0; k < m0->ncomp; ++k)
+      for (unsigned int k = 0; k < m0->ncomp; ++k) {
         atomicAdd(&m0_c[k], m0phase_in_c[k]);
+      }
     }
 
     distf_max = fmax(distf_max, distf_c[0]);
@@ -175,7 +192,8 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_range conf_range,
   const struct gkyl_range phase_range, const struct gkyl_array *GKYL_RESTRICT shiftedf,
   const struct gkyl_array *GKYL_RESTRICT m0, const struct gkyl_array *GKYL_RESTRICT delta_m0,
-  struct gkyl_array *GKYL_RESTRICT distf)
+  struct gkyl_array *GKYL_RESTRICT distf
+)
 {
   int pidx[GKYL_MAX_DIM];
 
@@ -208,7 +226,8 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker(
 __global__ static void gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_range conf_range,
   const struct gkyl_array *GKYL_RESTRICT shiftedf, struct gkyl_array *GKYL_RESTRICT m0,
-  struct gkyl_array *GKYL_RESTRICT delta_m0)
+  struct gkyl_array *GKYL_RESTRICT delta_m0
+)
 {
   int cidx[GKYL_MAX_CDIM];
 
@@ -229,20 +248,23 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker(
           delta_m0_c[k] = 0.0;
         }
       } else {
-        for (int k = 0; k < m0->ncomp; k++)
+        for (int k = 0; k < m0->ncomp; k++) {
           delta_m0_c[k] = m0_c[k] - delta_m0_c[k];
+        }
       }
     } else {
-      for (int k = 0; k < m0->ncomp; k++)
+      for (int k = 0; k < m0->ncomp; k++) {
         delta_m0_c[k] = 0.0;
+      }
     }
   }
 }
 
-void gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic *up,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
-  struct gkyl_array *GKYL_RESTRICT delta_m0)
+void gkyl_positivity_shift_gyrokinetic_advance_cu(
+  gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *phase_rng, struct gkyl_array *GKYL_RESTRICT distf,
+  struct gkyl_array *GKYL_RESTRICT m0, struct gkyl_array *GKYL_RESTRICT delta_m0
+)
 {
   int nblocks_phase = phase_rng->nblocks, nthreads_phase = phase_rng->nthreads;
   int nblocks_conf = conf_rng->nblocks, nthreads_conf = conf_rng->nthreads;
@@ -252,7 +274,8 @@ void gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokine
 
   // Set shiftedf boolean (int) to 0s.
   gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker<<<nblocks_conf, nthreads_conf> > >(
-    up->shiftedf->on_dev, 0);
+    up->shiftedf->on_dev, 0
+  );
 
   // Shift f is needed & scale f locally if initial local contribution to M0 was >0.
   gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase> > >(
@@ -260,16 +283,19 @@ void gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokine
     up->ffloor_fac, up->cellav_fac, up->mass, up->gk_geom->geo_int.bmag->on_dev,
     up->gk_geom->geo_int.jacobtot->on_dev, up->gk_geom->geo_int.jacobtot_inv->on_dev,
     up->vel_map->vmap->on_dev, up->vel_map->jacobvel->on_dev, up->shiftedf->on_dev, distf->on_dev,
-    m0->on_dev, delta_m0->on_dev);
+    m0->on_dev, delta_m0->on_dev
+  );
 
   // If a shift took place, rescale f so it keeps the same M0.
   gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker<<<nblocks_phase, nthreads_phase> > >(
     up->kernels, *conf_rng, *phase_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev,
-    distf->on_dev);
+    distf->on_dev
+  );
 
   // Ensure m0 and delta_m0 are correct based on whether a shift took place.
   gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker<<<nblocks_conf, nthreads_conf> > >(
-    up->kernels, *conf_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev);
+    up->kernels, *conf_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev
+  );
 }
 
 __global__ static void gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker(
@@ -277,7 +303,8 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_
   const struct gkyl_range phase_rng, const struct gkyl_array *GKYL_RESTRICT delta_m0s,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
   const struct gkyl_array *GKYL_RESTRICT delta_m0r_tot, const struct gkyl_array *GKYL_RESTRICT m0s,
-  struct gkyl_array *GKYL_RESTRICT fs)
+  struct gkyl_array *GKYL_RESTRICT fs
+)
 {
   int pidx[GKYL_MAX_DIM];
 
@@ -304,8 +331,9 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_
       //   - Delta n_s,tot = sum of Delta n for species with same charge sign.
       //   - Delta n_r,tot = sum of Delta n for species with opposite charge sign.
       double delta_m0fac_c[num_cbasis];
-      for (int k = 0; k < delta_m0r_tot->ncomp; k++)
+      for (int k = 0; k < delta_m0r_tot->ncomp; k++) {
         delta_m0fac_c[k] = delta_m0r_tot_c[k] - delta_m0s_tot_c[k];
+      }
 
       kers->conf_mul_op(delta_m0fac_c, delta_m0s_c, delta_m0fac_c);
 
@@ -314,8 +342,9 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_
 
       kers->conf_mul_op(delta_m0fac_c, inv_c, delta_m0fac_c);
 
-      for (int k = 0; k < m0s->ncomp; k++)
+      for (int k = 0; k < m0s->ncomp; k++) {
         delta_m0fac_c[k] += m0s_c[k];
+      }
 
       kers->conf_inv_op(m0s_c, inv_c);
 
@@ -334,10 +363,12 @@ void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(
   const struct gkyl_range *phase_rng, const struct gkyl_array *GKYL_RESTRICT delta_m0s,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
   const struct gkyl_array *GKYL_RESTRICT delta_m0r_tot, const struct gkyl_array *GKYL_RESTRICT m0s,
-  struct gkyl_array *GKYL_RESTRICT fs)
+  struct gkyl_array *GKYL_RESTRICT fs
+)
 {
   int nblocks = phase_rng->nblocks, nthreads = phase_rng->nthreads;
-  gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker<<<nblocks, nthreads> > >(up->kernels,
-    *conf_rng, *phase_rng, delta_m0s->on_dev, delta_m0s_tot->on_dev, delta_m0r_tot->on_dev,
-    m0s->on_dev, fs->on_dev);
+  gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker<<<nblocks, nthreads> > >(
+    up->kernels, *conf_rng, *phase_rng, delta_m0s->on_dev, delta_m0s_tot->on_dev,
+    delta_m0r_tot->on_dev, m0s->on_dev, fs->on_dev
+  );
 }

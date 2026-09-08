@@ -26,10 +26,11 @@
 static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
-  if (on_gpu)
+  if (on_gpu) {
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
+  } else {
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  }
   return a;
 }
 
@@ -79,9 +80,9 @@ void test_2x_option(bool use_gpu)
   double mu_max_ion = 12. * mi * vtIon * vtIon / (2.0 * B0);
 
   // Phase space and Configuration space extents and resolution
-  double lower[] = { 0.0, 0.0, -vpar_max_ion, 0.0 };
-  double upper[] = { 1.0, 1.0, vpar_max_ion, mu_max_ion };
-  int cells[] = { 10, 16, 16, 20 };
+  double lower[] = {0.0, 0.0, -vpar_max_ion, 0.0};
+  double upper[] = {1.0, 1.0, vpar_max_ion, mu_max_ion};
+  int cells[] = {10, 16, 16, 20};
   int vdim = 2;
   int ndim = sizeof(cells) / sizeof(cells[0]);
   int cdim = ndim - vdim;
@@ -121,23 +122,24 @@ void test_2x_option(bool use_gpu)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[] = { 1, 1 };
+  int confGhost[] = {1, 1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
+  int ghost[] = {confGhost[0], confGhost[1], 0, 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  int vGhost[] = { 0, 0, 0 };
+  int vGhost[] = {0, 0, 0};
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = { 0.0 },
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = {0.0},
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude
@@ -148,13 +150,15 @@ void test_2x_option(bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis };
+    .basis = confBasis
+  };
 
-  int geo_ghost[3] = { 1 };
+  int geo_ghost[3] = {1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
-  gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext,
-    &geometry_input.geo_global);
+  gkyl_create_grid_ranges(
+    &geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext, &geometry_input.geo_global
+  );
   memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
   memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
 
@@ -200,7 +204,8 @@ void test_2x_option(bool use_gpu)
   struct gkyl_array *f = mkarr(use_gpu, basis.num_basis, local_ext.volume);
 
   // Maxwellian (or bi-Maxwellian) projection updater.
-  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
+    .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .conf_range = &confLocal,
@@ -210,7 +215,8 @@ void test_2x_option(bool use_gpu)
     .vel_map = gvm,
     .mass = mi,
     .bimaxwellian = false,
-    .use_gpu = use_gpu };
+    .use_gpu = use_gpu
+  };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
@@ -228,8 +234,10 @@ void test_2x_option(bool use_gpu)
   }
 
   // Initialize integrated moment calculator
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis,
-    &basis, &confLocal, mi, qi, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu);
+  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(
+    &grid, &confBasis, &basis, &confLocal, mi, qi, gvm, gk_geom, NULL,
+    GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu
+  );
 
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
@@ -239,21 +247,24 @@ void test_2x_option(bool use_gpu)
 
   double *red_integ_diag_global;
 
-  if (use_gpu)
+  if (use_gpu) {
     red_integ_diag_global = gkyl_cu_malloc(4 * sizeof(double));
-  else
+  } else {
     red_integ_diag_global = gkyl_malloc(4 * sizeof(double));
+  }
 
   // Now calculate the integrated moments
   double avals_global[2 + vdim];
   gkyl_dg_updater_moment_gyrokinetic_advance(mcalc, &local, &confLocal, f, marr);
   gkyl_array_reduce_range(red_integ_diag_global, marr, GKYL_SUM, &confLocal);
 
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(
-      avals_global, red_integ_diag_global, sizeof(double[2 + vdim]), GKYL_CU_MEMCPY_D2H);
-  else
+      avals_global, red_integ_diag_global, sizeof(double[2 + vdim]), GKYL_CU_MEMCPY_D2H
+    );
+  } else {
     memcpy(avals_global, red_integ_diag_global, sizeof(double[2 + vdim]));
+  }
 
   // Check the integrated moments are correct. Values computed by Akash Shukla on 2/26/24
   // Check of intM1 really just checks the drift velocity is close to zero, this will not be perfect.
@@ -306,8 +317,10 @@ void test_integrated_moms_2x_dev()
 }
 #endif
 
-TEST_LIST = { { "test_integrated_moms_2x_ho", test_integrated_moms_2x_ho },
+TEST_LIST = {
+  {"test_integrated_moms_2x_ho", test_integrated_moms_2x_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_integrated_moms_2x_dev", test_integrated_moms_2x_dev },
+  {"test_integrated_moms_2x_dev", test_integrated_moms_2x_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

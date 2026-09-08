@@ -45,8 +45,8 @@ struct gkyl_gk_maxwellian_correct_status {
  * @param inp Input parameters defined in gkyl_gk_maxwellian_correct_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_gk_maxwellian_correct *gkyl_gk_maxwellian_correct_inew(
-  const struct gkyl_gk_maxwellian_correct_inp *inp);
+struct gkyl_gk_maxwellian_correct *
+gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp);
 
 /**
  * Fix the gyrokinetic Maxwellian (or bi-Maxwellian) distribution function
@@ -64,7 +64,8 @@ struct gkyl_gk_maxwellian_correct *gkyl_gk_maxwellian_correct_inew(
  */
 struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
   gkyl_gk_maxwellian_correct *up, struct gkyl_array *f_max, const struct gkyl_array *moms_target,
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local
+);
 
 /**
  * Host-side wrapper for computing the absolute value of the 
@@ -78,9 +79,10 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
  * @param moms_iter Iterative moments used in fixed-point iteration
  * @param moms_abs_diff Absolute value of the difference between the cell averages of moms_iter and moms_target
  */
-void gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range,
-  int num_comp, int nc, const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter,
-  struct gkyl_array *moms_abs_diff);
+void gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(
+  const struct gkyl_range *conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
+  const struct gkyl_array *moms_iter, struct gkyl_array *moms_abs_diff
+);
 
 /**
  * Delete updater.

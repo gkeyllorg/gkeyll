@@ -31,9 +31,11 @@ struct gkyl_dg_rad_gyrokinetic_auxfields {
  * @param use_gpu Whether to create and run this object on the GPU.
  * @return Pointer to RAD equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_range, const struct gkyl_velocity_map *vel_map, bool use_gpu);
+struct gkyl_dg_eqn *gkyl_dg_rad_gyrokinetic_drag_new(
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_velocity_map *vel_map, bool use_gpu
+);
 
 /**
  * Set auxiliary fields needed in updating the drag flux term.
@@ -43,4 +45,5 @@ struct gkyl_dg_eqn *gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *co
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_rad_gyrokinetic_drag_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin
+);

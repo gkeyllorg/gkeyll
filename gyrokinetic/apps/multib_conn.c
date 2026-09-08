@@ -15,11 +15,13 @@ static int count_distinct(int a[], int n)
   int i, j, count = 1;
   for (i = 1; i < n; i++) { // Check if a[i] is a new element
     for (j = 0; j < i; j++) {
-      if (a[i] == a[j]) // Check if a[i] has already been found
+      if (a[i] == a[j]) { // Check if a[i] has already been found
         break; // Break if it is a duplicate
+      }
     }
-    if (i == j)
+    if (i == j) {
       count++; //increment the number of distinct elements
+    }
   }
   return count;
 }
@@ -38,8 +40,9 @@ static int get_unique(int *a, int n, int *unique_array)
   int i, j, count = 1;
   for (i = 1; i < n; i++) { // Check if a[i] is a new element
     for (j = 0; j < i; j++) {
-      if (a[i] == a[j]) // Check if a[i] has already been found
+      if (a[i] == a[j]) { // Check if a[i] has already been found
         break; // Break if it is a duplicate
+      }
     }
     if (i == j) {
       count++; //increment the number of distinct elements
@@ -56,7 +59,7 @@ static int get_unique(int *a, int n, int *unique_array)
 */
 static void insert_below(int *arr, int n, int new_val)
 {
-  int temp_arr[GKYL_MAX_BLOCKS] = { -1 };
+  int temp_arr[GKYL_MAX_BLOCKS] = {-1};
   for (int i = 0; i < n; i++) {
     temp_arr[i + 1] = arr[i];
   }
@@ -109,7 +112,7 @@ int get_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir, int *ne
  */
 int get_num_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
-  int neighbor_idxs[1000] = { -1 };
+  int neighbor_idxs[1000] = {-1};
   int neighbor_num = get_neighbors(block_topo, bidx, dir, neighbor_idxs);
   return neighbor_num;
 }
@@ -145,7 +148,7 @@ int get_below(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighb
  */
 int get_num_below(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
-  int neighbor_idxs[1000] = { -1 };
+  int neighbor_idxs[1000] = {-1};
   int neighbor_num = get_neighbors(block_topo, bidx, dir, neighbor_idxs);
   return neighbor_num;
 }
@@ -181,7 +184,7 @@ int get_above(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighb
  */
 int get_num_above(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
-  int neighbor_idxs[1000] = { -1 };
+  int neighbor_idxs[1000] = {-1};
   int neighbor_num = get_neighbors(block_topo, bidx, dir, neighbor_idxs);
   return neighbor_num;
 }
@@ -206,8 +209,9 @@ int get_connected(struct gkyl_block_topo *block_topo, int bidx, int dir, int *bl
     if (conn.connections[dir][0].edge == GKYL_PHYSICAL) {
       break;
     } else if (conn.connections[dir][0].edge == GKYL_UPPER_POSITIVE) {
-      if (conn.connections[dir][0].bid == bidx)
+      if (conn.connections[dir][0].bid == bidx) {
         return num_blocks;
+      }
       insert_below(block_list, num_blocks, conn.connections[dir][0].bid);
       curr_bidx = conn.connections[dir][0].bid;
       num_blocks += 1;
@@ -220,8 +224,9 @@ int get_connected(struct gkyl_block_topo *block_topo, int bidx, int dir, int *bl
     if (conn.connections[dir][1].edge == GKYL_PHYSICAL) {
       break;
     } else if (conn.connections[dir][1].edge == GKYL_LOWER_POSITIVE) {
-      if (conn.connections[dir][1].bid == bidx)
+      if (conn.connections[dir][1].bid == bidx) {
         return num_blocks;
+      }
       insert_above(block_list, num_blocks, conn.connections[dir][1].bid);
       curr_bidx = conn.connections[dir][1].bid;
       num_blocks += 1;
@@ -241,7 +246,7 @@ int get_connected(struct gkyl_block_topo *block_topo, int bidx, int dir, int *bl
  */
 int get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
-  int block_list[1000] = { -1 };
+  int block_list[1000] = {-1};
   int num_blocks = get_connected(block_topo, bidx, dir, block_list);
   return num_blocks;
 }
@@ -279,26 +284,30 @@ int get_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int *edge
   int num_corner_connected = 0;
   struct gkyl_block_connections conn = block_topo->conn[bidx];
   int interior = check_corner(block_topo, bidx, edges);
-  if (interior == 0)
+  if (interior == 0) {
     return num_corner_connected;
+  }
   num_corner_connected += 1;
   block_list[0] = bidx;
   int next_dir = 0;
   int next_edges[ndim];
-  for (int i = 0; i < ndim; i++)
+  for (int i = 0; i < ndim; i++) {
     next_edges[i] = edges[i];
+  }
 
   while (true) {
     int next_bidx = conn.connections[next_dir][next_edges[next_dir]].bid;
-    if (next_bidx == bidx)
+    if (next_bidx == bidx) {
       break; // back at original
+    }
     block_list[num_corner_connected] = next_bidx;
     num_corner_connected += 1;
     next_edges[next_dir] = !next_edges[next_dir]; // 0 ->1 or 1 ->0
     next_dir = !next_dir;
     interior = check_corner(block_topo, next_bidx, next_edges);
-    if (interior == 0)
+    if (interior == 0) {
       break; // no more corners
+    }
     conn = block_topo->conn[next_bidx];
   }
 
@@ -314,13 +323,15 @@ int get_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int *edge
 */
 int get_num_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int *edges)
 {
-  int block_list[1000] = { -1 };
+  int block_list[1000] = {-1};
   int num_corner_connected = get_corner_connected(block_topo, bidx, edges, block_list);
   return num_corner_connected;
 }
 
-int gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx, int dir,
-  int corner_num, enum gkyl_conn_id conn_id, int *block_list)
+int gkyl_multib_conn_get_connection(
+  struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id,
+  int *block_list
+)
 {
   struct gkyl_block_connections conn = block_topo->conn[bidx];
   int num_connected = 0;
@@ -334,7 +345,7 @@ int gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx
   } else if (conn_id == GKYL_CONN_CORNER) {
     int e0 = corner_num / 2;
     int e1 = corner_num % 2;
-    int edges[2] = { e0, e1 };
+    int edges[2] = {e0, e1};
     num_connected = get_num_corner_connected(block_topo, bidx, edges);
     get_corner_connected(block_topo, bidx, edges, block_list);
   } else if (conn_id == GKYL_CONN_BELOW) {
@@ -349,9 +360,10 @@ int gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx
 }
 
 int gkyl_multib_conn_get_num_connected(
-  struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id)
+  struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id
+)
 {
-  int block_list[1000] = { -1 };
+  int block_list[1000] = {-1};
   int num_connected =
     gkyl_multib_conn_get_connection(block_topo, bidx, dir, corner_num, conn_id, block_list);
   return num_connected;

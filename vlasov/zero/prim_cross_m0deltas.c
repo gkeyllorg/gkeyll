@@ -5,8 +5,10 @@
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_alloc.h>
 
-gkyl_prim_cross_m0deltas *gkyl_prim_cross_m0deltas_new(bool normNu, const struct gkyl_basis *basis,
-  const struct gkyl_range *range, double betap1, bool use_gpu)
+gkyl_prim_cross_m0deltas *gkyl_prim_cross_m0deltas_new(
+  bool normNu, const struct gkyl_basis *basis, const struct gkyl_range *range, double betap1,
+  bool use_gpu
+)
 {
   gkyl_prim_cross_m0deltas *up = gkyl_malloc(sizeof(gkyl_prim_cross_m0deltas));
 
@@ -26,14 +28,18 @@ gkyl_prim_cross_m0deltas *gkyl_prim_cross_m0deltas_new(bool normNu, const struct
   return up;
 }
 
-void gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, double massself,
-  const struct gkyl_array *m0self, const struct gkyl_array *nuself, double massother,
-  const struct gkyl_array *m0other, const struct gkyl_array *nuother, struct gkyl_array *out)
+void gkyl_prim_cross_m0deltas_advance(
+  gkyl_prim_cross_m0deltas *up, double massself, const struct gkyl_array *m0self,
+  const struct gkyl_array *nuself, double massother, const struct gkyl_array *m0other,
+  const struct gkyl_array *nuother, struct gkyl_array *out
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
     return gkyl_prim_cross_m0deltas_advance_cu(
-      up, massself, m0self, nuself, massother, m0other, nuother, out);
+      up, massself, m0self, nuself, massother, m0other, nuother, out
+    );
+  }
 #endif
 
   int num_basis = up->basis->num_basis;
@@ -76,8 +82,9 @@ void gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, double masss
       array_acc1(num_basis, denom, 1.0 / up->betap1T2, numer);
 
       mul_op(m0self_d, numer, numer);
-      if (up->normNu)
+      if (up->normNu) {
         mul_op(nuself_d, numer, numer);
+      }
     } else {
       // Both collision frequencies are zero, so set the numerator and
       // denominator to 1. In this case the collision operator will be turned

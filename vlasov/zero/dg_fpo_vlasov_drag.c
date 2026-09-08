@@ -16,14 +16,16 @@ void gkyl_fpo_vlasov_drag_free(const struct gkyl_ref_count *ref)
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_fpo_vlasov_drag *fpo_vlasov_drag = container_of(base, struct dg_fpo_vlasov_drag, eqn);
 
-  if (GKYL_IS_CU_ALLOC(fpo_vlasov_drag->eqn.flags))
+  if (GKYL_IS_CU_ALLOC(fpo_vlasov_drag->eqn.flags)) {
     gkyl_cu_free(fpo_vlasov_drag->eqn.on_dev);
+  }
 
   gkyl_free(fpo_vlasov_drag);
 }
 
 void gkyl_fpo_vlasov_drag_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_fpo_vlasov_drag_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_fpo_vlasov_drag_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.h)) {
@@ -37,11 +39,13 @@ void gkyl_fpo_vlasov_drag_set_auxfields(
 }
 
 struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_new(
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  if (use_gpu) {
     return gkyl_dg_fpo_vlasov_drag_cu_dev_new(pbasis, phase_range);
+  }
 #endif
 
   struct dg_fpo_vlasov_drag *fpo_vlasov_drag = gkyl_malloc(sizeof(struct dg_fpo_vlasov_drag));
@@ -89,10 +93,12 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_new(
   fpo_vlasov_drag->boundary_surf[2] = CK(boundary_surf_vz_kernels, cdim, poly_order);
 
   // ensure non-NULL pointers
-  for (int i = 0; i < vdim; ++i)
+  for (int i = 0; i < vdim; ++i) {
     assert(fpo_vlasov_drag->surf[i]);
-  for (int i = 0; i < vdim; ++i)
+  }
+  for (int i = 0; i < vdim; ++i) {
     assert(fpo_vlasov_drag->boundary_surf[i]);
+  }
 
   fpo_vlasov_drag->auxfields.h = 0;
   fpo_vlasov_drag->phase_range = *phase_range;
@@ -108,7 +114,8 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_new(
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_cu_dev_new(
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range
+)
 {
   assert(false);
   return 0;

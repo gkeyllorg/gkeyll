@@ -35,8 +35,8 @@ struct gkyl_gk_maxwellian_moments_inp {
  * @param inp Input parameters defined in gkyl_gk_maxwellian_moments_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_gk_maxwellian_moments *gkyl_gk_maxwellian_moments_inew(
-  const struct gkyl_gk_maxwellian_moments_inp *inp);
+struct gkyl_gk_maxwellian_moments *
+gkyl_gk_maxwellian_moments_inew(const struct gkyl_gk_maxwellian_moments_inp *inp);
 
 /**
  * Compute the density moments of an arbitrary distribution function for the equivalent 
@@ -49,9 +49,10 @@ struct gkyl_gk_maxwellian_moments *gkyl_gk_maxwellian_moments_inew(
  * @param fin Input distribution function
  * @param density_out Output density
  */
-void gkyl_gk_maxwellian_density_moment_advance(struct gkyl_gk_maxwellian_moments *up,
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
-  const struct gkyl_array *fin, struct gkyl_array *density_out);
+void gkyl_gk_maxwellian_density_moment_advance(
+  struct gkyl_gk_maxwellian_moments *up, const struct gkyl_range *phase_local,
+  const struct gkyl_range *conf_local, const struct gkyl_array *fin, struct gkyl_array *density_out
+);
 
 /**
  * Compute the moments of an arbitrary distribution function for the equivalent 
@@ -67,9 +68,10 @@ void gkyl_gk_maxwellian_density_moment_advance(struct gkyl_gk_maxwellian_moments
  * @param fin Input distribution function
  * @param moms_out Output Maxwellian moments (n, u_par, T/m)
  */
-void gkyl_gk_maxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up,
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
-  const struct gkyl_array *fin, struct gkyl_array *moms_out);
+void gkyl_gk_maxwellian_moments_advance(
+  struct gkyl_gk_maxwellian_moments *up, const struct gkyl_range *phase_local,
+  const struct gkyl_range *conf_local, const struct gkyl_array *fin, struct gkyl_array *moms_out
+);
 
 /**
  * Compute the moments of an arbitrary distribution function for the equivalent 
@@ -85,9 +87,10 @@ void gkyl_gk_maxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up,
  * @param fin Input distribution function
  * @param moms_out Output Maxwellian moments (n, u_par, T_par/m, T_perp/m)
  */
-void gkyl_gk_bimaxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up,
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
-  const struct gkyl_array *fin, struct gkyl_array *moms_out);
+void gkyl_gk_bimaxwellian_moments_advance(
+  struct gkyl_gk_maxwellian_moments *up, const struct gkyl_range *phase_local,
+  const struct gkyl_range *conf_local, const struct gkyl_array *fin, struct gkyl_array *moms_out
+);
 
 /**
  * Delete updater.

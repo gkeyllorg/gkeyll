@@ -25,8 +25,10 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_dg_bin_ops.h>
 
-static double error_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
-  struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
+static double error_L2norm(
+  struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis,
+  struct gkyl_array *field1, struct gkyl_array *field2
+)
 {
   // Compute the L2 norm of the difference between 2 fields.
   assert(field1->ncomp == field2->ncomp);
@@ -48,8 +50,10 @@ static double error_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
   return sqrt(l2[0]);
 }
 
-static double field_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
-  struct gkyl_basis basis, struct gkyl_array *field)
+static double field_L2norm(
+  struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis,
+  struct gkyl_array *field
+)
 {
   // Compute the L2 norm of a single field.
   struct gkyl_array *l2_cell = gkyl_array_new(GKYL_DOUBLE, 1, field->size);
@@ -125,7 +129,7 @@ void evalFunc_rhs_dirichletx_2x(double t, const double *xn, double *restrict fou
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
-  double bmn[] = { 1.5, 1.5, -0.5 };
+  double bmn[] = {1.5, 1.5, -0.5};
   fout[0] = 0.;
   for (int m = 1; m < 3; m++) {
     double b = bmn[m - 1];
@@ -143,7 +147,7 @@ void evalFunc_sol_dirichletx_2x(double t, const double *xn, double *restrict fou
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
-  double bmn[] = { 1.5, 1.5, -0.5 };
+  double bmn[] = {1.5, 1.5, -0.5};
   fout[0] = 0.;
   for (int m = 1; m < 3; m++) {
     double b = bmn[m - 1];
@@ -163,8 +167,8 @@ void evalFunc_rhs_periodicx_2x(double t, const double *xn, double *restrict fout
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
   double gxx = 1.0;
-  double amn[] = { -0.6, -2., 1.5 };
-  double bmn[] = { 1., 0.7, -0.3 };
+  double amn[] = {-0.6, -2., 1.5};
+  double bmn[] = {1., 0.7, -0.3};
   fout[0] = 0.;
   for (int m = 1; m < 3; m++) {
     double a = amn[m - 1];
@@ -181,8 +185,8 @@ void evalFunc_sol_periodicx_2x(double t, const double *xn, double *restrict fout
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
-  double amn[] = { -0.6, -2., 1.5 };
-  double bmn[] = { 1., 0.7, -0.3 };
+  double amn[] = {-0.6, -2., 1.5};
+  double bmn[] = {1., 0.7, -0.3};
   fout[0] = 0.;
   for (int m = 1; m < 3; m++) {
     double a = amn[m - 1];
@@ -198,15 +202,16 @@ void evalFunc_sol_periodicx_2x(double t, const double *xn, double *restrict fout
 
 double trig_func(double x, double y, bool laplacian)
 {
-  double amn[] = { 0.0, -1., 0., -0.0 };
+  double amn[] = {0.0, -1., 0., -0.0};
   double out = 0.;
   for (int m = 0; m < 4; m++) {
     double a = amn[m];
     double kx = M_PI * m;
     double ky = 2 * M_PI * m * 0;
     double t2 = a * cos(ky * y);
-    if (m > 0)
+    if (m > 0) {
       t2 *= sin(kx * x);
+    }
 
     if (laplacian) {
       t2 *= -(kx * kx + ky * ky);
@@ -228,14 +233,16 @@ double z_envelope(double z)
 //   => rho = (kx^2 + ky^2)*phi + kSq(x,y)*phi
 // This is consistent with any kSq(x,y), including the spatially varying evalFunc_ksquare.
 void evalFunc_sol_dirichletx_dirichlety_3x(
-  double t, const double *xn, double *restrict fout, void *ctx)
+  double t, const double *xn, double *restrict fout, void *ctx
+)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double kx = M_PI, ky = M_PI;
   fout[0] = sin(kx * x) * sin(ky * y) * z_envelope(z);
 }
 void evalFunc_rhs_dirichletx_dirichlety_3x(
-  double t, const double *xn, double *restrict fout, void *ctx)
+  double t, const double *xn, double *restrict fout, void *ctx
+)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double kx = M_PI, ky = M_PI;
@@ -246,7 +253,8 @@ void evalFunc_rhs_dirichletx_dirichlety_3x(
 }
 
 void evalFunc_sol_dirichletx_periodicy_3x(
-  double t, const double *xn, double *restrict fout, void *ctx)
+  double t, const double *xn, double *restrict fout, void *ctx
+)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   fout[0] = trig_func(x, y, false);
@@ -255,7 +263,8 @@ void evalFunc_sol_dirichletx_periodicy_3x(
 
 // Periodic case (This is not suitable for convergence test as it leaves a constant offset in the solution)
 void evalFunc_rhs_dirichletx_periodicy_3x(
-  double t, const double *xn, double *restrict fout, void *ctx)
+  double t, const double *xn, double *restrict fout, void *ctx
+)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double kSq[1];
@@ -270,10 +279,12 @@ static void get_2x_cells(int *cells)
 {
   int nx = 32, nz = 48;
   char *env;
-  if ((env = getenv("TEST_NX")))
+  if ((env = getenv("TEST_NX"))) {
     nx = atoi(env);
-  if ((env = getenv("TEST_NZ")))
+  }
+  if ((env = getenv("TEST_NZ"))) {
     nz = atoi(env);
+  }
   cells[0] = nx;
   cells[1] = nz;
 }
@@ -283,12 +294,15 @@ static void get_3x_cells(int *cells)
 {
   int nx = 8, ny = 8, nz = 4;
   char *env;
-  if ((env = getenv("TEST_NX")))
+  if ((env = getenv("TEST_NX"))) {
     nx = atoi(env);
-  if ((env = getenv("TEST_NY")))
+  }
+  if ((env = getenv("TEST_NY"))) {
     ny = atoi(env);
-  if ((env = getenv("TEST_NZ")))
+  }
+  if ((env = getenv("TEST_NZ"))) {
     nz = atoi(env);
+  }
   cells[0] = nx;
   cells[1] = ny;
   cells[2] = nz;
@@ -308,12 +322,13 @@ static void remove_factors(struct gkyl_array *eps, struct gkyl_array *kSqFld)
 }
 
 static double solve_fem_helmholtz_perp_2x(
-  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu, double *sol_L2_out)
+  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu, double *sol_L2_out
+)
 {
   double epsilon_0 = 1.0;
   double kSq = ksquare(); // Helmholtz wave number squared.
 
-  double lower[] = { 0.0, -M_PI }, upper[] = { 1.0, M_PI };
+  double lower[] = {0.0, -M_PI}, upper[] = {1.0, M_PI};
   int dim = sizeof(lower) / sizeof(lower[0]);
   int dim_perp = dim - 1;
 
@@ -325,7 +340,7 @@ static double solve_fem_helmholtz_perp_2x(
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = { 1, 1 };
+  int ghost[] = {1, 1};
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -403,8 +418,9 @@ static double solve_fem_helmholtz_perp_2x(
   gkyl_array_copy(phi_ho, phi);
 
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  if (use_gpu) {
     cudaDeviceSynchronize();
+  }
 #endif
 
   // Write data to text file for visualization (Python notebook can read this)
@@ -421,14 +437,16 @@ static double solve_fem_helmholtz_perp_2x(
       const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
       // Write cell center coordinates and the 0th basis coefficient (cell average)
       fprintf(
-        fp, "%.16e %.16e %.16e %.16e\n", xc[0], xc[1], phi_p[0] / dg0norm, phisol_p[0] / dg0norm);
+        fp, "%.16e %.16e %.16e %.16e\n", xc[0], xc[1], phi_p[0] / dg0norm, phisol_p[0] / dg0norm
+      );
     }
     fclose(fp);
   }
 
   double err_L2 = error_L2norm(grid, localRange, basis, phi_ho, phisol_ho);
-  if (sol_L2_out)
+  if (sol_L2_out) {
     *sol_L2_out = field_L2norm(grid, localRange, basis, phisol_ho);
+  }
 
   gkyl_fem_poisson_perp_release(poisson);
   gkyl_proj_on_basis_release(projob);
@@ -444,7 +462,8 @@ static double solve_fem_helmholtz_perp_2x(
 }
 
 void test_fem_helmholtz_perp_2x(
-  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu
+)
 {
   if (helmholtz_write_output()) {
     // Single-resolution mode (called from Python): check relative L2 error < 1%.
@@ -453,29 +472,32 @@ void test_fem_helmholtz_perp_2x(
     double rel_err = (sol_L2 > 0.0) ? err_L2 / sol_L2 : err_L2;
     TEST_CHECK(rel_err < 0.01);
     TEST_MSG("Relative L2 error = %.6e (threshold 1%%)", rel_err);
-    if (helmholtz_verbose())
+    if (helmholtz_verbose()) {
       printf("L2 error = %.6e, relative L2 error = %.6e\n", err_L2, rel_err);
+    }
   } else {
     // Default convergence check: run at baseline and 2x resolution, verify error ratio >= 3.5
     // (consistent with 2nd-order convergence: factor of 4 = 2^2).
-    int cells2[2] = { 2 * cells[0], 2 * cells[1] };
+    int cells2[2] = {2 * cells[0], 2 * cells[1]};
     double err_coarse = solve_fem_helmholtz_perp_2x(poly_order, cells, bcs, use_gpu, NULL);
     double err_fine = solve_fem_helmholtz_perp_2x(poly_order, cells2, bcs, use_gpu, NULL);
     double ratio = err_coarse / err_fine;
     TEST_CHECK(ratio >= 3.5);
     TEST_MSG("L2 error ratio (2x refinement) = %.4f (expected >= 3.5 for 2nd order)", ratio);
-    if (helmholtz_verbose())
+    if (helmholtz_verbose()) {
       printf("L2 error: coarse = %.6e, fine = %.6e, ratio = %.4f\n", err_coarse, err_fine, ratio);
+    }
   }
 }
 
 static double solve_fem_helmholtz_perp_3x(
-  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu, double *sol_L2_out)
+  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu, double *sol_L2_out
+)
 {
   double epsilon_0 = 1.0;
   double kSq = ksquare(); // Helmholtz wave number squared.
 
-  double lower[] = { 0.0, 0.0, -M_PI }, upper[] = { 1.0, 1.0, M_PI };
+  double lower[] = {0.0, 0.0, -M_PI}, upper[] = {1.0, 1.0, M_PI};
   int dim = sizeof(lower) / sizeof(lower[0]);
   int dim_perp = dim - 1;
 
@@ -487,7 +509,7 @@ static double solve_fem_helmholtz_perp_3x(
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = { 1, 1, 1 };
+  int ghost[] = {1, 1, 1};
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -496,16 +518,20 @@ static double solve_fem_helmholtz_perp_3x(
   if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
       (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET)) {
     projob = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalFunc_rhs_dirichletx_dirichlety_3x, NULL);
+      &grid, &basis, poly_order + 1, 1, evalFunc_rhs_dirichletx_dirichlety_3x, NULL
+    );
     projob_sol = gkyl_proj_on_basis_new(
-      &grid, &basis, 2 * (poly_order + 1), 1, evalFunc_sol_dirichletx_dirichlety_3x, NULL);
-  } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET &&
-               bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+      &grid, &basis, 2 * (poly_order + 1), 1, evalFunc_sol_dirichletx_dirichlety_3x, NULL
+    );
+  } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET
+             ) &&
              (bcs.lo_type[1] == GKYL_POISSON_PERIODIC && bcs.up_type[1] == GKYL_POISSON_PERIODIC)) {
     projob = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalFunc_rhs_dirichletx_periodicy_3x, NULL);
+      &grid, &basis, poly_order + 1, 1, evalFunc_rhs_dirichletx_periodicy_3x, NULL
+    );
     projob_sol = gkyl_proj_on_basis_new(
-      &grid, &basis, 2 * (poly_order + 1), 1, evalFunc_sol_dirichletx_periodicy_3x, NULL);
+      &grid, &basis, 2 * (poly_order + 1), 1, evalFunc_sol_dirichletx_periodicy_3x, NULL
+    );
   }
   projob_kSq =
     gkyl_proj_on_basis_new(&grid, &basis, 2 * (poly_order + 1), 1, evalFunc_ksquare, NULL);
@@ -575,8 +601,9 @@ static double solve_fem_helmholtz_perp_3x(
   gkyl_array_copy(phi_ho, phi);
 
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  if (use_gpu) {
     cudaDeviceSynchronize();
+  }
 #endif
 
   // Write data to text file for visualization (Python notebook can read this)
@@ -592,15 +619,18 @@ static double solve_fem_helmholtz_perp_3x(
       const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
       const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
       // Write cell center coordinates and the 0th basis coefficient (cell average)
-      fprintf(fp, "%.16e %.16e %.16e %.16e %.16e\n", xc[0], xc[1], xc[2], phi_p[0] / dg0norm,
-        phisol_p[0] / dg0norm);
+      fprintf(
+        fp, "%.16e %.16e %.16e %.16e %.16e\n", xc[0], xc[1], xc[2], phi_p[0] / dg0norm,
+        phisol_p[0] / dg0norm
+      );
     }
     fclose(fp);
   }
 
   double err_L2 = error_L2norm(grid, localRange, basis, phi_ho, phisol_ho);
-  if (sol_L2_out)
+  if (sol_L2_out) {
     *sol_L2_out = field_L2norm(grid, localRange, basis, phisol_ho);
+  }
 
   gkyl_fem_poisson_perp_release(poisson);
   gkyl_proj_on_basis_release(projob);
@@ -618,7 +648,8 @@ static double solve_fem_helmholtz_perp_3x(
 }
 
 void test_fem_helmholtz_perp_3x(
-  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu
+)
 {
   // Validate poly_order and BC combination before running.
   if (poly_order != 1) {
@@ -643,18 +674,20 @@ void test_fem_helmholtz_perp_3x(
     double rel_err = (sol_L2 > 0.0) ? err_L2 / sol_L2 : err_L2;
     TEST_CHECK(rel_err < 0.01);
     TEST_MSG("Relative L2 error = %.6e (threshold 1%%)", rel_err);
-    if (helmholtz_verbose())
+    if (helmholtz_verbose()) {
       printf("L2 error = %.6e, relative L2 error = %.6e\n", err_L2, rel_err);
+    }
   } else {
     // Default convergence check: run at baseline and 2x resolution, verify error ratio >= 3.5
-    int cells2[3] = { 2 * cells[0], 2 * cells[1], 2 * cells[2] };
+    int cells2[3] = {2 * cells[0], 2 * cells[1], 2 * cells[2]};
     double err_coarse = solve_fem_helmholtz_perp_3x(poly_order, cells, bcs, use_gpu, NULL);
     double err_fine = solve_fem_helmholtz_perp_3x(poly_order, cells2, bcs, use_gpu, NULL);
     double ratio = err_coarse / err_fine;
     TEST_CHECK(ratio >= 3.5);
     TEST_MSG("L2 error ratio (2x refinement) = %.4f (expected >= 3.5 for 2nd order)", ratio);
-    if (helmholtz_verbose())
+    if (helmholtz_verbose()) {
       printf("L2 error: coarse = %.6e, fine = %.6e, ratio = %.4f\n", err_coarse, err_fine, ratio);
+    }
   }
 }
 
@@ -775,25 +808,23 @@ void test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev()
 #endif
 
 TEST_LIST = { // 2x tests
-  { "test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho",
-    test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho },
-  { "test_fem_poisson_perp_ksq_2x_p1_periodicx_ho", test_fem_poisson_perp_ksq_2x_p1_periodicx_ho },
+  {"test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho", test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho},
+  {"test_fem_poisson_perp_ksq_2x_p1_periodicx_ho", test_fem_poisson_perp_ksq_2x_p1_periodicx_ho},
 
   // 3x tests
-  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho",
-    test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho },
-  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho",
-    test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho },
+  {"test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho",
+   test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho},
+  {"test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho",
+   test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho},
 
 #ifdef GKYL_HAVE_CUDA
-  { "test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev",
-    test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev },
-  { "test_fem_poisson_perp_ksq_2x_p1_periodicx_dev",
-    test_fem_poisson_perp_ksq_2x_p1_periodicx_dev },
-  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev",
-    test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev },
-  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev",
-    test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev },
+  {"test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev", test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev
+  },
+  {"test_fem_poisson_perp_ksq_2x_p1_periodicx_dev", test_fem_poisson_perp_ksq_2x_p1_periodicx_dev},
+  {"test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev",
+   test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev},
+  {"test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev",
+   test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev},
 #endif
-  { NULL, NULL }
+  {NULL, NULL}
 };

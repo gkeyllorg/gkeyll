@@ -72,7 +72,8 @@ struct amr_euler_shock_bubble_ctx create_ctx(void)
   double bub_loc = 0.25; // Bubble location (x-direction).
   double bub_rad = 0.15; // Bubble radius.
 
-  struct amr_euler_shock_bubble_ctx ctx = { .gas_gamma = gas_gamma,
+  struct amr_euler_shock_bubble_ctx ctx = {
+    .gas_gamma = gas_gamma,
     .rho_pre = rho_pre,
     .u_pre = u_pre,
     .p_pre = p_pre,
@@ -96,7 +97,8 @@ struct amr_euler_shock_bubble_ctx create_ctx(void)
     .num_failures_max = num_failures_max,
     .x_loc = x_loc,
     .bub_loc = bub_loc,
-    .bub_rad = bub_rad };
+    .bub_rad = bub_rad
+  };
 
   return ctx;
 }
@@ -161,7 +163,8 @@ int main(int argc, char **argv)
 {
   struct amr_euler_shock_bubble_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct euler2d_single_init init = { .base_Nx = ctx.Nx,
+  struct euler2d_single_init init = {
+    .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
     .ref_factor = ctx.ref_factor,
 
@@ -192,7 +195,8 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+    .num_failures_max = ctx.num_failures_max
+  };
 
   euler2d_run_single(argc, argv, &init);
 }

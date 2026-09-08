@@ -52,7 +52,7 @@ gkyl_mat_triples *gkyl_mat_triples_new(size_t nr, size_t nc)
 {
   struct gkyl_mat_triples *tri = gkyl_malloc(sizeof(struct gkyl_mat_triples));
 
-  gkyl_range_init_from_shape(&tri->range, 2, (const int[]){ nr, nc });
+  gkyl_range_init_from_shape(&tri->range, 2, (const int[]){nr, nc});
 
   // set column-major order by default
   tri->ordering = COLMAJOR;
@@ -84,35 +84,41 @@ bool gkyl_mat_triples_is_colmaj(gkyl_mat_triples *tri)
 GKYL_CU_DH double gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i < gkyl_range_shape(&tri->range, 0) && j < gkyl_range_shape(&tri->range, 1));
-  if (tri->ordering == COLMAJOR)
+  if (tri->ordering == COLMAJOR) {
     mat_idx_cmp = mat_idx_cmp_col;
-  else
+  } else {
     mat_idx_cmp = mat_idx_cmp_row;
+  }
 
   long loc = gkyl_ridx(tri->range, i, j);
-  csmap_triple_put(&tri->triples, (struct mat_idx){ .row = i, .col = j },
-    (struct gkyl_mtriple){ .row = i, .col = j, .val = val });
+  csmap_triple_put(
+    &tri->triples, (struct mat_idx){.row = i, .col = j},
+    (struct gkyl_mtriple){.row = i, .col = j, .val = val}
+  );
   return val;
 }
 
 GKYL_CU_DH double gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i < gkyl_range_shape(&tri->range, 0) && j < gkyl_range_shape(&tri->range, 1));
-  if (tri->ordering == COLMAJOR)
+  if (tri->ordering == COLMAJOR) {
     mat_idx_cmp = mat_idx_cmp_col;
-  else
+  } else {
     mat_idx_cmp = mat_idx_cmp_row;
+  }
 
   long loc = gkyl_ridx(tri->range, i, j);
   struct csmap_triple_value *mt =
-    csmap_triple_get_mut(&tri->triples, (struct mat_idx){ .row = i, .col = j });
+    csmap_triple_get_mut(&tri->triples, (struct mat_idx){.row = i, .col = j});
   double tot_val = val;
   if (mt) {
     // element exists, add to its current value
     tot_val = (mt->second.val += val);
   } else {
-    csmap_triple_put(&tri->triples, (struct mat_idx){ .row = i, .col = j },
-      (struct gkyl_mtriple){ .row = i, .col = j, .val = val });
+    csmap_triple_put(
+      &tri->triples, (struct mat_idx){.row = i, .col = j},
+      (struct gkyl_mtriple){.row = i, .col = j, .val = val}
+    );
   }
 
   return tot_val;
@@ -122,7 +128,7 @@ double gkyl_mat_triples_get(const gkyl_mat_triples *tri, size_t i, size_t j)
 {
   long loc = gkyl_ridx(tri->range, i, j);
   const struct csmap_triple_value *mt =
-    csmap_triple_get(&tri->triples, (struct mat_idx){ .row = i, .col = j });
+    csmap_triple_get(&tri->triples, (struct mat_idx){.row = i, .col = j});
   return mt ? mt->second.val : 0.0;
 }
 
@@ -177,7 +183,7 @@ void gkyl_mat_triples_clear(struct gkyl_mat_triples *tri, double val)
     struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
 
     struct csmap_triple_value *mtm =
-      csmap_triple_get_mut(&tri->triples, (struct mat_idx){ .row = mt.row, .col = mt.col });
+      csmap_triple_get_mut(&tri->triples, (struct mat_idx){.row = mt.row, .col = mt.col});
     mtm->second.val = val;
   }
   gkyl_mat_triples_iter_release(iter);

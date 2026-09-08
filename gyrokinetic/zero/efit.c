@@ -75,10 +75,12 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
   // rmaxis,zmaxis,simag,sibry,bcentr;
   // current,simag,xdum,rmaxis,xdum;
   // zmaxis,xdum,sibry,xdum,xdum;
-  size_t status = fscanf(ptr, "%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
-    &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up->rmaxis, &up->zmaxis, &up->simag,
-    &up->sibry, &up->bcentr, &up->current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum,
-    &up->zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
+  size_t status = fscanf(
+    ptr, "%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &up->rdim, &up->zdim,
+    &up->rcentr, &up->rleft, &up->zmid, &up->rmaxis, &up->zmaxis, &up->simag, &up->sibry,
+    &up->bcentr, &up->current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up->zmaxis,
+    &up->xdum, &up->sibry, &up->xdum, &up->xdum
+  );
 
   // Set zmid to 0 for double null
   if (up->reflect) {
@@ -92,10 +94,10 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
   up->rmin = up->rleft;
   up->rmax = up->rleft + up->rdim;
 
-  double rzlower[2] = { up->rmin, up->zmin };
-  double rzupper[2] = { up->rmax, up->zmax };
-  int rzcells[2] = { 0 };
-  int rzghost[2] = { 1, 1 };
+  double rzlower[2] = {up->rmin, up->zmin};
+  double rzupper[2] = {up->rmax, up->zmax};
+  int rzcells[2] = {0};
+  int rzghost[2] = {1, 1};
   if (up->rzbasis.poly_order == 1) {
     rzcells[0] = up->nr - 1;
     rzcells[1] = up->nz - 1;
@@ -107,11 +109,12 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_rect_grid_init(&up->rzgrid, 2, rzlower, rzupper, rzcells);
   gkyl_create_grid_ranges(&up->rzgrid, rzghost, &up->rzlocal_ext, &up->rzlocal);
 
-  int cells_cubic[2] = { up->nr - 1, up->nz - 1 };
-  int rzghost_cubic[2] = { 0, 0 };
+  int cells_cubic[2] = {up->nr - 1, up->nz - 1};
+  int rzghost_cubic[2] = {0, 0};
   gkyl_rect_grid_init(&up->rzgrid_cubic, 2, rzlower, rzupper, cells_cubic);
   gkyl_create_grid_ranges(
-    &up->rzgrid_cubic, rzghost_cubic, &up->rzlocal_cubic_ext, &up->rzlocal_cubic);
+    &up->rzgrid_cubic, rzghost_cubic, &up->rzlocal_cubic_ext, &up->rzlocal_cubic
+  );
 
   double fluxlower[1];
   double fluxupper[1];
@@ -126,8 +129,8 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
     fluxupper[0] = up->sibry;
   }
 
-  int fluxcells[1] = { 0 };
-  int fluxghost[2] = { 1, 1 };
+  int fluxcells[1] = {0};
+  int fluxghost[2] = {1, 1};
   if (up->fluxbasis.poly_order == 1) {
     fluxcells[0] = up->nr - 1;
   }
@@ -149,7 +152,7 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
   up->qflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
 
   // Read fpol because we do want that
-  int flux_node_nums[1] = { up->nr };
+  int flux_node_nums[1] = {up->nr};
   struct gkyl_range flux_nrange;
   gkyl_range_init_from_shape(&flux_nrange, 1, flux_node_nums);
   struct gkyl_array *fpolflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
@@ -170,8 +173,10 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
   }
 
   struct gkyl_nodal_ops *n2m_flux = gkyl_nodal_ops_new(&up->fluxbasis, &up->fluxgrid, false);
-  gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1,
-    fpolflux_n, up->fpolflux, false);
+  gkyl_nodal_ops_n2m(
+    n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1, fpolflux_n,
+    up->fpolflux, false
+  );
 
   // Now we have 3 of the 1d arrays, all of length nr :
   // pres, ffprim, pprime
@@ -202,8 +207,10 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
       fpolprime_n[0] = fpolprime_n[0] / fpol_n[0]; // divide out fpol
     }
   }
-  gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1,
-    fpolprimeflux_n, up->fpolprimeflux, false);
+  gkyl_nodal_ops_n2m(
+    n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1, fpolprimeflux_n,
+    up->fpolprimeflux, false
+  );
 
   // skip pprime
   for (int i = 0; i < up->nr; i++) {
@@ -211,7 +218,7 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
   }
 
   // Now we are gonna wanna read psi
-  int node_nums[2] = { up->nr, up->nz };
+  int node_nums[2] = {up->nr, up->nz};
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, up->rzgrid.ndim, node_nums);
   struct gkyl_array *psizr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
@@ -235,7 +242,8 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
   // We filled psizr_nodal
   struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(&up->rzbasis, &up->rzgrid, false);
   gkyl_nodal_ops_n2m(
-    n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, psizr_n, up->psizr, false);
+    n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, psizr_n, up->psizr, false
+  );
 
   // Reflect psi for double null
   // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
@@ -244,7 +252,7 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
     gkyl_range_iter_init(&iter, &up->rzlocal);
     while (gkyl_range_iter_next(&iter)) {
       if (iter.idx[1] < gkyl_range_shape(&up->rzlocal, 1) / 2 + 1) {
-        int idx_change[2] = { iter.idx[0], gkyl_range_shape(&up->rzlocal, 1) - iter.idx[1] + 1 };
+        int idx_change[2] = {iter.idx[0], gkyl_range_shape(&up->rzlocal, 1) - iter.idx[1] + 1};
         const double *coeffs_ref =
           gkyl_array_cfetch(up->psizr, gkyl_range_idx(&up->rzlocal, iter.idx));
         double *coeffs = gkyl_array_fetch(up->psizr, gkyl_range_idx(&up->rzlocal, idx_change));
@@ -271,15 +279,18 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
       status = fscanf(ptr, "%lf", q_n);
     }
   }
-  gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1,
-    qflux_n, up->qflux, false);
+  gkyl_nodal_ops_n2m(
+    n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux,
+    false
+  );
 
   // Make the cubic interpolator
   up->evf = gkyl_dg_basis_ops_evalf_new(&up->rzgrid_cubic, psizr_n);
   gkyl_dg_basis_op_mem *mem = 0;
   mem = gkyl_dg_alloc_cubic_2d(cells_cubic);
   gkyl_dg_calc_cubic_2d_from_nodal_vals(
-    mem, cells_cubic, up->rzgrid_cubic.dx, psizr_n, up->psizr_cubic);
+    mem, cells_cubic, up->rzgrid_cubic.dx, psizr_n, up->psizr_cubic
+  );
   gkyl_dg_basis_op_mem_release(mem);
 
   // Calculate B.
@@ -297,7 +308,7 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
       idx[0] = ir;
 
       // Calculate Bpol.
-      double xn[2] = { R, Z };
+      double xn[2] = {R, Z};
       double psi_curr, br, bz;
       if (R == 0.0) {
         double fout[4];
@@ -330,10 +341,11 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
       double fx = (psi_curr - fxc) / (up->fluxgrid.dx[0] * 0.5);
       double fpol = up->fluxbasis.eval_expand(&fx, coeffs);
       double *bphi_n = gkyl_array_fetch(bphizr_n, gkyl_range_idx(&nrange, idx));
-      if (fpol == 0.0 && R == 0.0)
+      if (fpol == 0.0 && R == 0.0) {
         bphi_n[0] = 0.0;
-      else
+      } else {
         bphi_n[0] = fpol / R;
+      }
 
       // Calculate Bmag.
       double *bmag_n = gkyl_array_fetch(bmagzr_n, gkyl_range_idx(&nrange, idx));
@@ -341,7 +353,8 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
     }
   }
   gkyl_nodal_ops_n2m(
-    n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, bmagzr_n, up->bmagzr, false);
+    n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, bmagzr_n, up->bmagzr, false
+  );
 
   // Reflect B for double null.
   // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion.
@@ -350,7 +363,7 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
     gkyl_range_iter_init(&iter, &up->rzlocal);
     while (gkyl_range_iter_next(&iter)) {
       if (iter.idx[1] < gkyl_range_shape(&up->rzlocal, 1) / 2 + 1) {
-        int idx_change[2] = { iter.idx[0], gkyl_range_shape(&up->rzlocal, 1) - iter.idx[1] + 1 };
+        int idx_change[2] = {iter.idx[0], gkyl_range_shape(&up->rzlocal, 1) - iter.idx[1] + 1};
         const double *coeffs_ref =
           gkyl_array_cfetch(up->bmagzr, gkyl_range_idx(&up->rzlocal, iter.idx));
         double *coeffs = gkyl_array_fetch(up->bmagzr, gkyl_range_idx(&up->rzlocal, idx_change));

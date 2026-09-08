@@ -14,10 +14,11 @@
 static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
-  if (on_gpu)
+  if (on_gpu) {
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
+  } else {
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  }
   return a;
 }
 
@@ -44,8 +45,10 @@ void eval_T_over_m_neut(double t, const double *xn, double *restrict fout, void 
   fout[0] = 4. * echarge / d_ion_mass;
 }
 
-static inline void proj_on_basis_copy(const struct gkyl_proj_on_basis *proj_op, double tm,
-  struct gkyl_range *rng, struct gkyl_array *arr, bool use_gpu)
+static inline void proj_on_basis_copy(
+  const struct gkyl_proj_on_basis *proj_op, double tm, struct gkyl_range *rng,
+  struct gkyl_array *arr, bool use_gpu
+)
 {
   struct gkyl_array *arr_ho = use_gpu ? mkarr(false, arr->ncomp, arr->size) :
                                         gkyl_array_acquire(arr);
@@ -62,9 +65,9 @@ void test_coll_cx_d(bool use_gpu)
   int cdim = 2, vdim_vl = 3;
 
   // Grids
-  double lower_ion[] = { -2.0, -2.0 }, upper_ion[] = { 2.0, 2.0 };
-  int ghost_gk[] = { 0, 0 };
-  int cells_gk[] = { 2, 2 };
+  double lower_ion[] = {-2.0, -2.0}, upper_ion[] = {2.0, 2.0};
+  int ghost_gk[] = {0, 0};
+  int cells_gk[] = {2, 2};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -85,11 +88,13 @@ void test_coll_cx_d(bool use_gpu)
 
   double vt_sq_ion_min = 1 * echarge / d_ion_mass;
   double vt_sq_neut_min = 1 * echarge / d_ion_mass;
-  struct gkyl_dg_cx_inp cx_inp = { .cbasis = &basis,
+  struct gkyl_dg_cx_inp cx_inp = {
+    .cbasis = &basis,
     .conf_rng = &confRange,
     .vt_sq_ion_min = vt_sq_ion_min,
     .vt_sq_neut_min = vt_sq_neut_min,
-    .type_ion = GKYL_ION_D };
+    .type_ion = GKYL_ION_D
+  };
 
   // Coll struct.
   struct gkyl_dg_cx *coll_cx_up = gkyl_dg_cx_new(&cx_inp, use_gpu);
@@ -133,11 +138,12 @@ void test_coll_cx_d(bool use_gpu)
                                             gkyl_array_acquire(coef_cx);
   gkyl_array_copy(coef_cx_ho, coef_cx);
 
-  const double *cv_cx = gkyl_array_cfetch(coef_cx_ho, gkyl_range_idx(&confRange, (int[2]){ 1, 1 }));
+  const double *cv_cx = gkyl_array_cfetch(coef_cx_ho, gkyl_range_idx(&confRange, (int[2]){1, 1}));
 
   // Test against predicted value.
-  double p1_vals[] = { 3.242709205939892e-14, 0.000000000000000e+00, 0.000000000000000e+00,
-    0.000000000000000e+00 };
+  double p1_vals[] = {
+    3.242709205939892e-14, 0.000000000000000e+00, 0.000000000000000e+00, 0.000000000000000e+00
+  };
   for (int i = 0; i < basis.num_basis; ++i) {
     TEST_CHECK(gkyl_compare_double(p1_vals[i] * check_fac, cv_cx[i] * check_fac, 1e-12));
     TEST_MSG("i:%d | Expected: %.9e | Got:%.9e\n", i, p1_vals[i] * check_fac, cv_cx[i] * check_fac);
@@ -174,8 +180,10 @@ void coll_cx_d_dev()
 }
 #endif
 
-TEST_LIST = { { "coll_cx_d_ho", coll_cx_d_ho },
+TEST_LIST = {
+  {"coll_cx_d_ho", coll_cx_d_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "coll_cx_d_dev", coll_cx_d_dev },
+  {"coll_cx_d_dev", coll_cx_d_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

@@ -24,9 +24,11 @@ struct gkyl_gk_anomalous_diffusion_auxfields {
  * @param use_gpu Whether to run on host or device.
  * @return Pointer to diffusion equation object
  */
-struct gkyl_dg_eqn *gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis,
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper, bool use_gpu);
+struct gkyl_dg_eqn *gkyl_gk_anomalous_diffusion_new(
+  const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
+  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower,
+  enum gkyl_gyrokinetic_bc_type bc_x_upper, bool use_gpu
+);
 
 /**
  * Set the auxiliary fields (e.g. diffusivity).
@@ -35,4 +37,5 @@ struct gkyl_dg_eqn *gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *bas
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_gk_anomalous_diffusion_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_gk_anomalous_diffusion_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_gk_anomalous_diffusion_auxfields auxin
+);

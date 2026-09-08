@@ -41,7 +41,8 @@ struct gkyl_gr_blackhole_isotropic_inp {
 */
 GKYL_CU_D static void blackhole_isotropic_spatial_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double ***spatial_metric_tensor);
+  const double z, double ***spatial_metric_tensor
+);
 
 /**
 * Compute the rank-2 spacetime metric tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -55,7 +56,8 @@ GKYL_CU_D static void blackhole_isotropic_spatial_metric_tensor(
 */
 GKYL_CU_D static void blackhole_isotropic_spacetime_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double ***spacetime_metric_tensor);
+  const double z, double ***spacetime_metric_tensor
+);
 
 /**
 * Compute the rank-2 inverse spatial metric tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -69,7 +71,8 @@ GKYL_CU_D static void blackhole_isotropic_spacetime_metric_tensor(
 */
 GKYL_CU_D static void blackhole_isotropic_spatial_inv_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double ***spatial_inv_metric_tensor);
+  const double z, double ***spatial_inv_metric_tensor
+);
 
 /**
 * Compute the rank-2 inverse spacetime metric tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -83,7 +86,8 @@ GKYL_CU_D static void blackhole_isotropic_spatial_inv_metric_tensor(
 */
 GKYL_CU_D static void blackhole_isotropic_spacetime_inv_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double ***spacetime_inv_metric_tensor);
+  const double z, double ***spacetime_inv_metric_tensor
+);
 
 /**
 * Compute the (scalar) spatial metric determinant at a given point in a black hole spacetime in isotropic gauge.
@@ -97,7 +101,8 @@ GKYL_CU_D static void blackhole_isotropic_spacetime_inv_metric_tensor(
 */
 GKYL_CU_D static void blackhole_isotropic_spatial_metric_det(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double *spatial_metric_det);
+  const double z, double *spatial_metric_det
+);
 
 /**
 * Compute the (scalar) spacetime metric determinant at a given point in a black hole spacetime in isotropic gauge.
@@ -111,7 +116,8 @@ GKYL_CU_D static void blackhole_isotropic_spatial_metric_det(
 */
 GKYL_CU_D static void blackhole_isotropic_spacetime_metric_det(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, double *spacetime_metric_det);
+  const double z, double *spacetime_metric_det
+);
 
 /**
 * Compute the rank-3 (spatial) partial derivative of the spatial metric tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -129,7 +135,8 @@ GKYL_CU_D static void blackhole_isotropic_spacetime_metric_det(
 GKYL_CU_D static void blackhole_isotropic_spatial_metric_tensor_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
-  double ****spatial_metric_tensor_der);
+  double ****spatial_metric_tensor_der
+);
 
 /**
 * Compute the rank-3 (spacetime) partial derivative of the spacetime metric tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -148,7 +155,8 @@ GKYL_CU_D static void blackhole_isotropic_spatial_metric_tensor_der(
 GKYL_CU_D static void blackhole_isotropic_spacetime_metric_tensor_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double ****spacetime_metric_tensor_der);
+  double ****spacetime_metric_tensor_der
+);
 
 /**
 * Compute the (scalar) lapse function at a given point in a black hole spacetime in isotropic gauge.
@@ -160,8 +168,10 @@ GKYL_CU_D static void blackhole_isotropic_spacetime_metric_tensor_der(
 * @param z Spatial coordinate (z-direction).
 * @param lapse_function Lapse function (output).
 */
-GKYL_CU_D static void blackhole_isotropic_lapse_function(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double *lapse_function);
+GKYL_CU_D static void blackhole_isotropic_lapse_function(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double *lapse_function
+);
 
 /**
 * Compute the rank-1 shift vector at a given point in a black hole spacetime in isotropic gauge.
@@ -173,8 +183,10 @@ GKYL_CU_D static void blackhole_isotropic_lapse_function(const struct gkyl_gr_sp
 * @param z Spatial coordinate (z-direction).
 * @param shift_vector Rank-1 shift vector (output).
 */
-GKYL_CU_D static void blackhole_isotropic_shift_vector(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, double **shift_vector);
+GKYL_CU_D static void blackhole_isotropic_shift_vector(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, double **shift_vector
+);
 
 /**
 * Compute the rank-1 (spatial) partial derivative of the lapse function at a given point in a black hole spacetime in isotropic gauge.
@@ -191,7 +203,8 @@ GKYL_CU_D static void blackhole_isotropic_shift_vector(const struct gkyl_gr_spac
 */
 GKYL_CU_D static void blackhole_isotropic_lapse_function_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, const double dx, const double dy, const double dz, double **lapse_function_der);
+  const double z, const double dx, const double dy, const double dz, double **lapse_function_der
+);
 
 /**
 * Compute the rank-2 (spatial) partial derivative of the shift vector at a given point in a black hole spacetime in isotropic gauge.
@@ -208,7 +221,8 @@ GKYL_CU_D static void blackhole_isotropic_lapse_function_der(
 */
 GKYL_CU_D static void blackhole_isotropic_shift_vector_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, const double dx, const double dy, const double dz, double ***shift_vector_der);
+  const double z, const double dx, const double dy, const double dz, double ***shift_vector_der
+);
 
 /**
 * Compute the rank-3 (spatial) Christoffel symbols at a given point in a black hole spacetime in isotropic gauge.
@@ -225,8 +239,8 @@ GKYL_CU_D static void blackhole_isotropic_shift_vector_der(
 */
 GKYL_CU_D static void blackhole_isotropic_spatial_christoffel(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, const double dx, const double dy, const double dz,
-  double ****spatial_christoffel);
+  const double z, const double dx, const double dy, const double dz, double ****spatial_christoffel
+);
 
 /**
 * Compute the rank-3 (spacetime) Christoffel symbols at a given point in a black hole spacetime in isotropic gauge.
@@ -245,7 +259,8 @@ GKYL_CU_D static void blackhole_isotropic_spatial_christoffel(
 GKYL_CU_D static void blackhole_isotropic_spacetime_christoffel(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double ****spacetime_christoffel);
+  double ****spacetime_christoffel
+);
 
 /**
 * Compute the rank-4 (spatial) Riemann curvature tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -263,7 +278,8 @@ GKYL_CU_D static void blackhole_isotropic_spacetime_christoffel(
 GKYL_CU_D static void blackhole_isotropic_spatial_riemann_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
-  double *****spatial_riemann_tensor);
+  double *****spatial_riemann_tensor
+);
 
 /**
 * Compute the rank-4 (spacetime) Riemann curvature tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -282,7 +298,8 @@ GKYL_CU_D static void blackhole_isotropic_spatial_riemann_tensor(
 GKYL_CU_D static void blackhole_isotropic_spacetime_riemann_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double *****spacetime_riemann_tensor);
+  double *****spacetime_riemann_tensor
+);
 
 /**
 * Compute the rank-2 (spatial) Ricci curvature tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -299,8 +316,8 @@ GKYL_CU_D static void blackhole_isotropic_spacetime_riemann_tensor(
 */
 GKYL_CU_D static void blackhole_isotropic_spatial_ricci_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, const double dx, const double dy, const double dz,
-  double ***spatial_ricci_tensor);
+  const double z, const double dx, const double dy, const double dz, double ***spatial_ricci_tensor
+);
 
 /**
 * Compute the rank-2 (spacetime) Ricci curvature tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -319,7 +336,8 @@ GKYL_CU_D static void blackhole_isotropic_spatial_ricci_tensor(
 GKYL_CU_D static void blackhole_isotropic_spacetime_ricci_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double ***spacetime_ricci_tensor);
+  double ***spacetime_ricci_tensor
+);
 
 /**
 * Compute the (spatial) Ricci scalar curvature at a given point in a black hole spacetime in isotropic gauge.
@@ -336,7 +354,8 @@ GKYL_CU_D static void blackhole_isotropic_spacetime_ricci_tensor(
 */
 GKYL_CU_D static void blackhole_isotropic_spatial_ricci_scalar(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, const double dx, const double dy, const double dz, double *spatial_ricci_scalar);
+  const double z, const double dx, const double dy, const double dz, double *spatial_ricci_scalar
+);
 
 /**
 * Compute the (spacetime) Ricci scalar curvature at a given point in a black hole spacetime in isotropic gauge.
@@ -355,7 +374,8 @@ GKYL_CU_D static void blackhole_isotropic_spatial_ricci_scalar(
 GKYL_CU_D static void blackhole_isotropic_spacetime_ricci_scalar(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double *spacetime_ricci_scalar);
+  double *spacetime_ricci_scalar
+);
 
 /**
 * Compute the rank-4 (spatial) Weyl curvature tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -372,8 +392,8 @@ GKYL_CU_D static void blackhole_isotropic_spacetime_ricci_scalar(
 */
 GKYL_CU_D static void blackhole_isotropic_spatial_weyl_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
-  const double z, const double dx, const double dy, const double dz,
-  double *****spatial_weyl_tensor);
+  const double z, const double dx, const double dy, const double dz, double *****spatial_weyl_tensor
+);
 
 /**
 * Compute the rank-4 (spacetime) Weyl curvature tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -392,7 +412,8 @@ GKYL_CU_D static void blackhole_isotropic_spatial_weyl_tensor(
 GKYL_CU_D static void blackhole_isotropic_spacetime_weyl_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
-  double *****spacetime_weyl_tensor);
+  double *****spacetime_weyl_tensor
+);
 
 /**
 * Compute the rank-2 extrinsic curvature tensor at a given point in a black hole spacetime in isotropic gauge.
@@ -410,7 +431,8 @@ GKYL_CU_D static void blackhole_isotropic_spacetime_weyl_tensor(
 GKYL_CU_D static void blackhole_isotropic_extrinsic_curvature_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
-  double ***extrinsic_curvature_tensor);
+  double ***extrinsic_curvature_tensor
+);
 
 /**
 * Determine whether a given point in a black hole spacetime in isotropic gauge lies within an excision region.
@@ -422,8 +444,10 @@ GKYL_CU_D static void blackhole_isotropic_extrinsic_curvature_tensor(
 * @param z Spatial coordinate (z-direction).
 * @param in_excision_region Whether the point lies in an excision region (output).
 */
-GKYL_CU_D static void blackhole_isotropic_excision_region(const struct gkyl_gr_spacetime *spacetime,
-  const double t, const double x, const double y, const double z, bool *in_excision_region);
+GKYL_CU_D static void blackhole_isotropic_excision_region(
+  const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
+  const double z, bool *in_excision_region
+);
 
 /**
 * Free black hole spacetime in isotropic gauge object.
@@ -439,7 +463,8 @@ void gkyl_gr_blackhole_isotropic_free(const struct gkyl_ref_count *ref);
 * @return Pointer to the black hole spacetime in isotropic gauge object.
 */
 struct gkyl_gr_spacetime *gkyl_gr_blackhole_isotropic_new(
-  bool use_gpu, double mass, double spin, double pos_x, double pos_y, double pos_z);
+  bool use_gpu, double mass, double spin, double pos_x, double pos_y, double pos_z
+);
 
 /**
 * Create a new black hole spacetime in isotropic gauge object, from an input context struct.
@@ -447,5 +472,5 @@ struct gkyl_gr_spacetime *gkyl_gr_blackhole_isotropic_new(
 * @param inp Input context struct.
 * @return Pointer to the black hole spacetime in isotropic gauge object.
 */
-struct gkyl_gr_spacetime *gkyl_gr_blackhole_isotropic_inew(
-  const struct gkyl_gr_blackhole_isotropic_inp *inp);
+struct gkyl_gr_spacetime *
+gkyl_gr_blackhole_isotropic_inew(const struct gkyl_gr_blackhole_isotropic_inp *inp);

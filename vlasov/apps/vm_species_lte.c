@@ -1,15 +1,18 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lte *lte,
-  struct correct_all_moms_inp corr_inp)
+void vm_species_lte_init(
+  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lte *lte,
+  struct correct_all_moms_inp corr_inp
+)
 {
   int cdim = app->cdim, vdim = app->vdim;
 
   // allocate moments needed for lte update
   vm_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
 
-  struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = { .phase_grid = &s->grid,
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
+    .phase_grid = &s->grid,
     .vel_grid = &s->grid_vel,
     .conf_basis = &app->confBasis,
     .vel_basis = &app->velBasis,
@@ -25,7 +28,8 @@ void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, stru
     .det_h = s->det_h,
     .hamil = s->hamil,
     .model_id = s->model_id,
-    .use_gpu = app->use_gpu };
+    .use_gpu = app->use_gpu
+  };
   lte->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
   lte->correct_all_moms = corr_inp.correct_all_moms;
@@ -34,7 +38,8 @@ void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, stru
   bool use_last_converged = corr_inp.use_last_converged;
 
   if (lte->correct_all_moms) {
-    struct gkyl_vlasov_lte_correct_inp inp_corr = { .phase_grid = &s->grid,
+    struct gkyl_vlasov_lte_correct_inp inp_corr = {
+      .phase_grid = &s->grid,
       .vel_grid = &s->grid_vel,
       .conf_basis = &app->confBasis,
       .vel_basis = &app->velBasis,
@@ -53,7 +58,8 @@ void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, stru
       .use_gpu = app->use_gpu,
       .max_iter = max_iter,
       .eps = iter_eps,
-      .use_last_converged = use_last_converged };
+      .use_last_converged = use_last_converged
+    };
     lte->niter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
 
@@ -65,8 +71,10 @@ void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, stru
 }
 
 // Compute f_lte from input LTE moments
-void vm_species_lte_from_moms(gkyl_vlasov_app *app, const struct vm_species *species,
-  struct vm_lte *lte, const struct gkyl_array *moms_lte)
+void vm_species_lte_from_moms(
+  gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lte *lte,
+  const struct gkyl_array *moms_lte
+)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -76,20 +84,22 @@ void vm_species_lte_from_moms(gkyl_vlasov_app *app, const struct vm_species *spe
   // e.g., Maxwellian for non-relativistic and Maxwell-Juttner for relativistic.
   // Projection routine also corrects the density of the projected distribution function.
   gkyl_vlasov_lte_proj_on_basis_advance(
-    lte->proj_lte, &species->local, &app->local, moms_lte, lte->f_lte);
+    lte->proj_lte, &species->local, &app->local, moms_lte, lte->f_lte
+  );
 
   // Correct all the moments of the projected LTE distribution function.
   if (lte->correct_all_moms) {
     struct gkyl_vlasov_lte_correct_status status_corr;
     status_corr = gkyl_vlasov_lte_correct_all_moments(
-      lte->corr_lte, lte->f_lte, moms_lte, &species->local, &app->local);
-    double corr_vec[7] = { 0.0 };
+      lte->corr_lte, lte->f_lte, moms_lte, &species->local, &app->local
+    );
+    double corr_vec[7] = {0.0};
     corr_vec[0] = status_corr.num_iter;
     corr_vec[1] = status_corr.iter_converged;
     for (int i = 0; i < app->vdim + 2; ++i) {
       corr_vec[2 + i] = status_corr.error[i];
     }
-    double corr_vec_global[7] = { 0.0 };
+    double corr_vec_global[7] = {0.0};
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 7, corr_vec, corr_vec_global);
     gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec_global);
 
@@ -100,8 +110,10 @@ void vm_species_lte_from_moms(gkyl_vlasov_app *app, const struct vm_species *spe
 }
 
 // Compute equivalent f_lte from fin
-void vm_species_lte(gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lte *lte,
-  const struct gkyl_array *fin)
+void vm_species_lte(
+  gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lte *lte,
+  const struct gkyl_array *fin
+)
 {
   vm_species_moment_calc(&lte->moms, species->local, app->local, fin);
 

@@ -93,7 +93,7 @@ double r_x(double x, double a_mid)
 double qprofile(double R)
 {
   // Magnetic safety factor as a function of minor radius r.
-  double a[] = { 384.2108662176567, -2417.1050263480997, 5079.5143390131225, -3563.038325842346 };
+  double a[] = {384.2108662176567, -2417.1050263480997, 5079.5143390131225, -3563.038325842346};
   return a[0] * pow(R, 3) + a[1] * pow(R, 2) + a[2] * (R) + a[3];
 }
 
@@ -147,7 +147,7 @@ double dZdtheta(double r, double theta, void *ctx)
 double Jr(double r, double theta, void *ctx)
 {
   return R_rtheta(r, theta, ctx) * (dRdr(r, theta, ctx) * dZdtheta(r, theta, ctx) -
-                                     dRdtheta(r, theta, ctx) * dZdr(r, theta, ctx));
+                                    dRdtheta(r, theta, ctx) * dZdr(r, theta, ctx));
 }
 
 struct integrand_ctx {
@@ -174,7 +174,7 @@ double Bphi(double R, void *ctx)
 double dPsidr(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  struct integrand_ctx tmp_ctx = { .app_ctx = app, .r = r };
+  struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
   struct gkyl_qr_res integral;
   integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2. * M_PI, 7, 1e-10);
 
@@ -187,13 +187,15 @@ double dPsidr(double r, double theta, void *ctx)
 double alpha(double r, double theta, double phi, void *ctx)
 {
   double twrap = theta;
-  while (twrap < -M_PI)
+  while (twrap < -M_PI) {
     twrap = twrap + 2. * M_PI;
-  while (M_PI < twrap)
+  }
+  while (M_PI < twrap) {
     twrap = twrap - 2. * M_PI;
+  }
 
   struct gk_app_ctx *app = ctx;
-  struct integrand_ctx tmp_ctx = { .app_ctx = app, .r = r };
+  struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
   struct gkyl_qr_res integral;
   if (0. < twrap) {
     integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., twrap, 7, 1e-10);
@@ -234,7 +236,8 @@ void zero_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
 
 // Electron source profiles.
 void density_elc_srcGB(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double x = xn[0], z = xn[1];
 
@@ -248,8 +251,7 @@ void density_elc_srcGB(
   fout[0] = n_srcGB * exp(-pow(x - x_srcGB, 2) / (2. * pow(sigma_srcGB, 2))) *
             GKYL_MAX2(sin(z) * exp(-pow(fabs(z), 1.5) / (2 * pow(bfac_srcGB, 2))), 0.);
 }
-void temp_elc_srcOMP(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void temp_elc_srcOMP(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
 
@@ -276,7 +278,8 @@ void temp_elc_srcGB(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTR
 
 // Ion source profiles.
 void density_ion_srcGB(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double x = xn[0], z = xn[1];
 
@@ -290,8 +293,7 @@ void density_ion_srcGB(
   fout[0] = -n_srcGB * exp(-pow(x - x_srcGB, 2) / (2. * pow(sigma_srcGB, 2))) *
             GKYL_MAX2(sin(z) * exp(-pow(fabs(z), 1.5) / (2 * pow(bfac_srcGB, 2))), 0.);
 }
-void temp_ion_srcOMP(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void temp_ion_srcOMP(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
 
@@ -348,7 +350,8 @@ void temp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
 }
 
 void diffusion_D_func(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct sheath_ctx *app = ctx;
 
@@ -499,7 +502,8 @@ struct gk_app_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct gk_app_ctx ctx = { .cdim = cdim,
+  struct gk_app_ctx ctx = {
+    .cdim = cdim,
     .vdim = vdim,
     .a_shift = a_shift,
     .R_axis = R_axis,
@@ -547,7 +551,7 @@ struct gk_app_ctx create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = { Nx, Nz, Nvpar, Nmu },
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .vpar_max_elc = vpar_max_elc,
     .mu_max_elc = mu_max_elc,
@@ -559,7 +563,8 @@ struct gk_app_ctx create_ctx(void)
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
   return ctx;
 }
 
@@ -568,8 +573,9 @@ int main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args.trace_mem) {
@@ -580,176 +586,192 @@ int main(int argc, char **argv)
   struct gk_app_ctx ctx = create_ctx(); // Context for init functions.
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d = 0; d < ctx.cdim; d++)
+  for (int d = 0; d < ctx.cdim; d++) {
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d = 0; d < ctx.vdim; d++)
+  }
+  for (int d = 0; d < ctx.vdim; d++) {
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim + d]);
+  }
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Electrons.
-  struct gkyl_gyrokinetic_species elc = {.name = "elc",
-    .charge = ctx.qe,
-    .mass = ctx.me,
-    .vdim = ctx.vdim,
-    .lower = {-ctx.vpar_max_elc, 0.0},
-    .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
-    .cells = {cells_v[0], cells_v[1]},
-    .polarization_density = ctx.n0,
+  struct gkyl_gyrokinetic_species elc =
+    {.name = "elc",
+     .charge = ctx.qe,
+     .mass = ctx.me,
+     .vdim = ctx.vdim,
+     .lower = {-ctx.vpar_max_elc, 0.0},
+     .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
+     .cells = {cells_v[0], cells_v[1]},
+     .polarization_density = ctx.n0,
 
-    .projection = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .ctx_density = &ctx,
-      .ctx_upar = &ctx,
-      .ctx_temp = &ctx,
-      .density = density_init,
-      .upar = zero_func,
-      .temp = temp_elc},
-
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
-
-    .collisions = {.collision_id = GKYL_LBO_COLLISIONS,
-      .num_cross_collisions = 1,
-      .collide_with = {"ion"},
-      .den_ref = ctx.n0,
-      .temp_ref = ctx.Te0,
-      .nu_frac = ctx.nu_frac},
-
-    .source = {.source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 2,
-      .projection[0] = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+     .projection =
+       {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
         .ctx_upar = &ctx,
         .ctx_temp = &ctx,
-        .density = density_srcOMP,
+        .density = density_init,
         .upar = zero_func,
-        .temp = temp_elc_srcOMP},
-      .projection[1] = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .ctx_upar = &ctx,
-        .ctx_temp = &ctx,
-        .density = density_elc_srcGB,
-        .upar = zero_func,
-        .temp = temp_elc_srcGB},
-      .diagnostics =
-        {
-          .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-          //        .time_integrated = true,
-        }},
+        .temp = temp_elc},
 
-    .anomalous_diffusion =
-      {
-        .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-        .D_profile = diffusion_D_func,
-        .D_profile_ctx = &ctx
-        //      .write_diagnostics = true,
-      },
+     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-    .bcs = {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-      {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-      {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-      {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+     .collisions =
+       {.collision_id = GKYL_LBO_COLLISIONS,
+        .num_cross_collisions = 1,
+        .collide_with = {"ion"},
+        .den_ref = ctx.n0,
+        .temp_ref = ctx.Te0,
+        .nu_frac = ctx.nu_frac},
 
-    .num_diag_moments = 4,
-    .diag_moments = {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
-      GKYL_F_MOMENT_BIMAXWELLIAN},
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-    .time_rate_diagnostics = true,
+     .source =
+       {.source_id = GKYL_PROJ_SOURCE,
+        .num_sources = 2,
+        .projection[0] =
+          {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+           .ctx_density = &ctx,
+           .ctx_upar = &ctx,
+           .ctx_temp = &ctx,
+           .density = density_srcOMP,
+           .upar = zero_func,
+           .temp = temp_elc_srcOMP},
+        .projection[1] =
+          {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+           .ctx_density = &ctx,
+           .ctx_upar = &ctx,
+           .ctx_temp = &ctx,
+           .density = density_elc_srcGB,
+           .upar = zero_func,
+           .temp = temp_elc_srcGB},
+        .diagnostics =
+          {
+            .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+            //        .time_integrated = true,
+          }},
 
-    .boundary_flux_diagnostics = {
-      .num_diag_moments = 1,
-      .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-      .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-      //      .time_integrated = true,
-    }};
+     .anomalous_diffusion =
+       {
+         .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+         .D_profile = diffusion_D_func,
+         .D_profile_ctx = &ctx
+         //      .write_diagnostics = true,
+       },
+
+     .bcs =
+       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+
+     .num_diag_moments = 4,
+     .diag_moments =
+       {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
+     .num_integrated_diag_moments = 1,
+     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+     .time_rate_diagnostics = true,
+
+     .boundary_flux_diagnostics = {
+       .num_diag_moments = 1,
+       .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+       .num_integrated_diag_moments = 1,
+       .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+       //      .time_integrated = true,
+     }};
 
   // Ions.
-  struct gkyl_gyrokinetic_species ion = {.name = "ion",
-    .charge = ctx.qi,
-    .mass = ctx.mi,
-    .vdim = ctx.vdim,
-    .lower = {-ctx.vpar_max_ion, 0.0},
-    .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
-    .cells = {cells_v[0], cells_v[1]},
-    .polarization_density = ctx.n0,
+  struct gkyl_gyrokinetic_species ion =
+    {.name = "ion",
+     .charge = ctx.qi,
+     .mass = ctx.mi,
+     .vdim = ctx.vdim,
+     .lower = {-ctx.vpar_max_ion, 0.0},
+     .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
+     .cells = {cells_v[0], cells_v[1]},
+     .polarization_density = ctx.n0,
 
-    .projection = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .ctx_density = &ctx,
-      .ctx_upar = &ctx,
-      .ctx_temp = &ctx,
-      .density = density_init,
-      .upar = zero_func,
-      .temp = temp_ion},
-
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
-
-    .collisions = {.collision_id = GKYL_LBO_COLLISIONS,
-      .num_cross_collisions = 1,
-      .collide_with = {"elc"},
-      .den_ref = ctx.n0,
-      .temp_ref = ctx.Ti0,
-      .nu_frac = ctx.nu_frac},
-
-    .source = {.source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 2,
-      .projection[0] = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+     .projection =
+       {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
         .ctx_upar = &ctx,
         .ctx_temp = &ctx,
-        .density = density_srcOMP,
+        .density = density_init,
         .upar = zero_func,
-        .temp = temp_ion_srcOMP},
-      .projection[1] = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .ctx_upar = &ctx,
-        .ctx_temp = &ctx,
-        .density = density_ion_srcGB,
-        .upar = zero_func,
-        .temp = temp_ion_srcGB},
-      .diagnostics =
-        {
-          .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-          //        .time_integrated = true,
-        }},
+        .temp = temp_ion},
 
-    .anomalous_diffusion =
-      {
-        .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-        .D_profile = diffusion_D_func,
-        .D_profile_ctx = &ctx
-        //      .write_diagnostics = true,
-      },
+     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-    .bcs = {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-      {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-      {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-      {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+     .collisions =
+       {.collision_id = GKYL_LBO_COLLISIONS,
+        .num_cross_collisions = 1,
+        .collide_with = {"elc"},
+        .den_ref = ctx.n0,
+        .temp_ref = ctx.Ti0,
+        .nu_frac = ctx.nu_frac},
 
-    .num_diag_moments = 4,
-    .diag_moments = {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
-      GKYL_F_MOMENT_BIMAXWELLIAN},
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-    .time_rate_diagnostics = true,
+     .source =
+       {.source_id = GKYL_PROJ_SOURCE,
+        .num_sources = 2,
+        .projection[0] =
+          {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+           .ctx_density = &ctx,
+           .ctx_upar = &ctx,
+           .ctx_temp = &ctx,
+           .density = density_srcOMP,
+           .upar = zero_func,
+           .temp = temp_ion_srcOMP},
+        .projection[1] =
+          {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+           .ctx_density = &ctx,
+           .ctx_upar = &ctx,
+           .ctx_temp = &ctx,
+           .density = density_ion_srcGB,
+           .upar = zero_func,
+           .temp = temp_ion_srcGB},
+        .diagnostics =
+          {
+            .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+            //        .time_integrated = true,
+          }},
 
-    .boundary_flux_diagnostics = {
-      .num_diag_moments = 1,
-      .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-      .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-      //      .time_integrated = true,
-    }};
+     .anomalous_diffusion =
+       {
+         .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+         .D_profile = diffusion_D_func,
+         .D_profile_ctx = &ctx
+         //      .write_diagnostics = true,
+       },
+
+     .bcs =
+       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+
+     .num_diag_moments = 4,
+     .diag_moments =
+       {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
+     .num_integrated_diag_moments = 1,
+     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+     .time_rate_diagnostics = true,
+
+     .boundary_flux_diagnostics = {
+       .num_diag_moments = 1,
+       .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+       .num_integrated_diag_moments = 1,
+       .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+       //      .time_integrated = true,
+     }};
 
   // field
-  struct gkyl_gyrokinetic_field field = { .gkfield_id = GKYL_GK_FIELD_ES,
-    .poisson_bcs = { { .dir = 0,
-                       .edge = GKYL_LOWER_EDGE,
-                       .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                       .value = { 0.0 } },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = { 0.0 } } },
-    .time_rate_diagnostics = true };
+  struct gkyl_gyrokinetic_field field = {
+    .gkfield_id = GKYL_GK_FIELD_ES,
+    .poisson_bcs =
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+    .time_rate_diagnostics = true
+  };
 
   // GK app
   struct gkyl_gk app_inp = {
@@ -783,29 +805,34 @@ int main(int argc, char **argv)
     .species = {elc, ion},
     .field = field,
 
-    .parallelism = {
-      .use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}};
+    .parallelism =
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
+  };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
-  struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-    .time_stepping = { .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps } };
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_inp = app_inp,
+    .time_stepping =
+      {.t_end = ctx.t_end,
+       .num_frames = ctx.num_frames,
+       .write_phase_freq = ctx.write_phase_freq,
+       .int_diag_calc_num = ctx.int_diag_calc_num,
+       .dt_failure_tol = ctx.dt_failure_tol,
+       .num_failures_max = ctx.num_failures_max,
+       .is_restart = app_args.is_restart,
+       .restart_frame = app_args.restart_frame,
+       .num_steps = app_args.num_steps}
+  };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   return 0;

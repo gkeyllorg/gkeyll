@@ -16,14 +16,16 @@ void gk_mom_free(const struct gkyl_ref_count *ref)
     container_of(momt, struct mom_type_bcorr_lbo_gyrokinetic, momt);
   gkyl_velocity_map_release(mom_bcorr->vel_map);
 
-  if (GKYL_IS_CU_ALLOC(momt->flags))
+  if (GKYL_IS_CU_ALLOC(momt->flags)) {
     gkyl_cu_free(momt->on_dev);
+  }
   gkyl_free(momt);
 }
 
-struct gkyl_mom_type *gkyl_mom_bcorr_lbo_gyrokinetic_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, double mass, const struct gkyl_velocity_map *vel_map,
-  bool use_gpu)
+struct gkyl_mom_type *gkyl_mom_bcorr_lbo_gyrokinetic_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass,
+  const struct gkyl_velocity_map *vel_map, bool use_gpu
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 

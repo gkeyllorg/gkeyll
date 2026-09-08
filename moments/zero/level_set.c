@@ -42,8 +42,10 @@ struct gkyl_wave_prop {
   long n_max_bad_cells; // Maximum number of cells fixed in a call.
 };
 
-void euler_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir)
+void euler_rgfm_reinit_level_set(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
@@ -142,8 +144,10 @@ void euler_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *up
   }
 }
 
-void gr_maxwell_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir)
+void gr_maxwell_impose_gauge(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_gr_maxwell *gr_maxwell = container_of(eqn, struct wv_gr_maxwell, eqn);
@@ -219,8 +223,10 @@ void gr_maxwell_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update
   }
 }
 
-void gr_maxwell_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir)
+void gr_maxwell_tetrad_impose_gauge(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_gr_maxwell_tetrad *gr_maxwell_tetrad =
@@ -297,8 +303,10 @@ void gr_maxwell_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range 
   }
 }
 
-void gr_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir)
+void gr_euler_impose_gauge(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
@@ -354,15 +362,21 @@ void gr_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_r
         spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
 
         spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
-        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+        spacetime->extrinsic_curvature_tensor_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &extrinsic_curvature
+        );
 
         spacetime->lapse_function_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+        );
         spacetime->shift_vector_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-        spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+        );
+        spacetime->spatial_metric_tensor_der_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &spatial_metric_der
+        );
 
         qnew[5] = lapse;
         qnew[6] = shift[0];
@@ -471,8 +485,10 @@ void gr_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_r
   }
 }
 
-void gr_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir)
+void gr_euler_tetrad_impose_gauge(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_gr_euler_tetrad *gr_euler_tetrad =
@@ -529,15 +545,21 @@ void gr_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *u
         spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
 
         spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
-        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+        spacetime->extrinsic_curvature_tensor_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &extrinsic_curvature
+        );
 
         spacetime->lapse_function_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+        );
         spacetime->shift_vector_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-        spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+        );
+        spacetime->spatial_metric_tensor_der_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &spatial_metric_der
+        );
 
         qnew[5] = lapse;
         qnew[6] = shift[0];
@@ -646,8 +668,10 @@ void gr_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *u
   }
 }
 
-void gr_ultra_rel_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir)
+void gr_ultra_rel_euler_impose_gauge(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_gr_ultra_rel_euler *gr_ultra_rel_euler =
@@ -704,15 +728,21 @@ void gr_ultra_rel_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range
         spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
 
         spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
-        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+        spacetime->extrinsic_curvature_tensor_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &extrinsic_curvature
+        );
 
         spacetime->lapse_function_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+        );
         spacetime->shift_vector_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-        spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+        );
+        spacetime->spatial_metric_tensor_der_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &spatial_metric_der
+        );
 
         qnew[4] = lapse;
         qnew[5] = shift[0];
@@ -881,15 +911,21 @@ void gr_ultra_rel_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range
       new_spacetime->excision_region_func(new_spacetime, 0.0, x, y, z, &in_excision_region);
 
       new_spacetime->spatial_metric_tensor_func(new_spacetime, 0.0, x, y, z, &spatial_metric);
-      new_spacetime->extrinsic_curvature_tensor_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+      new_spacetime->extrinsic_curvature_tensor_func(
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &extrinsic_curvature
+      );
 
       new_spacetime->lapse_function_der_func(
-        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+      );
       new_spacetime->shift_vector_der_func(
-        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-      new_spacetime->spatial_metric_tensor_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+      );
+      new_spacetime->spatial_metric_tensor_der_func(
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der
+      );
 
       qnew[4] = lapse;
       qnew[5] = shift[0];
@@ -994,9 +1030,10 @@ void gr_ultra_rel_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range
   }
 }
 
-void gr_ultra_rel_euler_tetrad_impose_gauge(gkyl_wave_prop *wv,
-  const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-  struct gkyl_array *qout, int dir)
+void gr_ultra_rel_euler_tetrad_impose_gauge(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad =
@@ -1053,15 +1090,21 @@ void gr_ultra_rel_euler_tetrad_impose_gauge(gkyl_wave_prop *wv,
         spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
 
         spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
-        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+        spacetime->extrinsic_curvature_tensor_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &extrinsic_curvature
+        );
 
         spacetime->lapse_function_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+        );
         spacetime->shift_vector_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-        spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+        );
+        spacetime->spatial_metric_tensor_der_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &spatial_metric_der
+        );
 
         qnew[4] = lapse;
         qnew[5] = shift[0];
@@ -1230,15 +1273,21 @@ void gr_ultra_rel_euler_tetrad_impose_gauge(gkyl_wave_prop *wv,
       new_spacetime->excision_region_func(new_spacetime, 0.0, x, y, z, &in_excision_region);
 
       new_spacetime->spatial_metric_tensor_func(new_spacetime, 0.0, x, y, z, &spatial_metric);
-      new_spacetime->extrinsic_curvature_tensor_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+      new_spacetime->extrinsic_curvature_tensor_func(
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &extrinsic_curvature
+      );
 
       new_spacetime->lapse_function_der_func(
-        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+      );
       new_spacetime->shift_vector_der_func(
-        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-      new_spacetime->spatial_metric_tensor_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+      );
+      new_spacetime->spatial_metric_tensor_der_func(
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der
+      );
 
       qnew[4] = lapse;
       qnew[5] = shift[0];
@@ -1343,8 +1392,10 @@ void gr_ultra_rel_euler_tetrad_impose_gauge(gkyl_wave_prop *wv,
   }
 }
 
-void gr_twofluid_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir)
+void gr_twofluid_impose_gauge(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
@@ -1400,15 +1451,21 @@ void gr_twofluid_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *updat
         spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
 
         spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
-        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+        spacetime->extrinsic_curvature_tensor_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &extrinsic_curvature
+        );
 
         spacetime->lapse_function_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+        );
         spacetime->shift_vector_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-        spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+        );
+        spacetime->spatial_metric_tensor_der_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &spatial_metric_der
+        );
 
         qnew[18] = lapse;
         qnew[19] = shift[0];
@@ -1517,8 +1574,10 @@ void gr_twofluid_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *updat
   }
 }
 
-void gr_twofluid_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir)
+void gr_twofluid_tetrad_impose_gauge(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_gr_twofluid_tetrad *gr_twofluid_tetrad =
@@ -1575,15 +1634,21 @@ void gr_twofluid_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range
         spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
 
         spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
-        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+        spacetime->extrinsic_curvature_tensor_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &extrinsic_curvature
+        );
 
         spacetime->lapse_function_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+        );
         spacetime->shift_vector_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-        spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+        );
+        spacetime->spatial_metric_tensor_der_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &spatial_metric_der
+        );
 
         qnew[18] = lapse;
         qnew[19] = shift[0];
@@ -1692,8 +1757,10 @@ void gr_twofluid_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range
   }
 }
 
-void gr_mhd_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir)
+void gr_mhd_impose_gauge(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_gr_mhd *gr_mhd = container_of(eqn, struct wv_gr_mhd, eqn);
@@ -1749,15 +1816,21 @@ void gr_mhd_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_ran
         spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
 
         spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
-        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+        spacetime->extrinsic_curvature_tensor_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &extrinsic_curvature
+        );
 
         spacetime->lapse_function_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+        );
         spacetime->shift_vector_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-        spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+        );
+        spacetime->spatial_metric_tensor_der_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &spatial_metric_der
+        );
 
         qnew[9] = lapse;
         qnew[10] = shift[0];
@@ -1926,15 +1999,21 @@ void gr_mhd_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_ran
       new_spacetime->excision_region_func(new_spacetime, 0.0, x, y, z, &in_excision_region);
 
       new_spacetime->spatial_metric_tensor_func(new_spacetime, 0.0, x, y, z, &spatial_metric);
-      new_spacetime->extrinsic_curvature_tensor_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+      new_spacetime->extrinsic_curvature_tensor_func(
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &extrinsic_curvature
+      );
 
       new_spacetime->lapse_function_der_func(
-        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+      );
       new_spacetime->shift_vector_der_func(
-        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-      new_spacetime->spatial_metric_tensor_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+      );
+      new_spacetime->spatial_metric_tensor_der_func(
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der
+      );
 
       qnew[9] = lapse;
       qnew[10] = shift[0];
@@ -2039,8 +2118,10 @@ void gr_mhd_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_ran
   }
 }
 
-void gr_mhd_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir)
+void gr_mhd_tetrad_impose_gauge(
+  gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
+  int upidx_c, struct gkyl_array *qout, int dir
+)
 {
   const struct gkyl_wv_eqn *eqn = wv->equation;
   const struct wv_gr_mhd_tetrad *gr_mhd_tetrad = container_of(eqn, struct wv_gr_mhd_tetrad, eqn);
@@ -2096,15 +2177,21 @@ void gr_mhd_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *upd
         spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
 
         spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
-        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+        spacetime->extrinsic_curvature_tensor_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &extrinsic_curvature
+        );
 
         spacetime->lapse_function_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+        );
         spacetime->shift_vector_der_func(
-          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-        spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-          pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+        );
+        spacetime->spatial_metric_tensor_der_func(
+          spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+          &spatial_metric_der
+        );
 
         qnew[9] = lapse;
         qnew[10] = shift[0];
@@ -2273,15 +2360,21 @@ void gr_mhd_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *upd
       new_spacetime->excision_region_func(new_spacetime, 0.0, x, y, z, &in_excision_region);
 
       new_spacetime->spatial_metric_tensor_func(new_spacetime, 0.0, x, y, z, &spatial_metric);
-      new_spacetime->extrinsic_curvature_tensor_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+      new_spacetime->extrinsic_curvature_tensor_func(
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &extrinsic_curvature
+      );
 
       new_spacetime->lapse_function_der_func(
-        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+      );
       new_spacetime->shift_vector_der_func(
-        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-      new_spacetime->spatial_metric_tensor_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+      );
+      new_spacetime->spatial_metric_tensor_der_func(
+        new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der
+      );
 
       qnew[9] = lapse;
       qnew[10] = shift[0];

@@ -3,10 +3,11 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 
-struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
-  const struct gkyl_rect_grid *grid_do, const struct gkyl_rect_grid *grid_tar,
-  const struct gkyl_range *range_do, const struct gkyl_range *range_tar, const int *nghost,
-  bool use_gpu)
+struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(
+  int cdim, const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid_do,
+  const struct gkyl_rect_grid *grid_tar, const struct gkyl_range *range_do,
+  const struct gkyl_range *range_tar, const int *nghost, bool use_gpu
+)
 {
   // Allocate space for new updater.
   struct gkyl_dg_interpolate *up = gkyl_malloc(sizeof(*up));
@@ -27,13 +28,15 @@ struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_
     int prime_factors[num_prime_facs_max];
     int num_prime_facs_do =
       dg_interp_prime_factors(grid_do->cells[d], prime_factors, num_prime_facs_max);
-    for (int k = 0; k < num_prime_facs_do; k++)
+    for (int k = 0; k < num_prime_facs_do; k++) {
       assert(prime_factors[k] == 2 || prime_factors[k] == 3 || prime_factors[k] == 5);
+    }
 
     int num_prime_facs_tar =
       dg_interp_prime_factors(grid_tar->cells[d], prime_factors, num_prime_facs_max);
-    for (int k = 0; k < num_prime_facs_tar; k++)
+    for (int k = 0; k < num_prime_facs_tar; k++) {
       assert(prime_factors[k] == 2 || prime_factors[k] == 3 || prime_factors[k] == 5);
+    }
   }
 
   // Make a list of directions to be coarsened/refined.
@@ -56,8 +59,9 @@ struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_
   memcpy(&up->grids[0], grid_do, sizeof(struct gkyl_rect_grid));
   for (int k = 1; k < up->num_interp_dirs; k++) {
     int cells_new[up->ndim];
-    for (int d = 0; d < up->ndim; d++)
+    for (int d = 0; d < up->ndim; d++) {
       cells_new[d] = up->grids[k - 1].cells[d];
+    }
     cells_new[up->interp_dirs[k - 1]] = grid_tar->cells[up->interp_dirs[k - 1]];
     gkyl_rect_grid_init(&up->grids[k], up->ndim, lower_new, upper_new, cells_new);
   }
@@ -78,9 +82,12 @@ struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_
   if (up->num_interp_dirs == 1) {
     up->interp_ops[0] = up;
   } else {
-    for (int k = 0; k < up->num_interp_dirs; k++)
-      up->interp_ops[k] = gkyl_dg_interpolate_new(cdim, basis, &up->grids[k], &up->grids[k + 1],
-        &up->ranges[k], &up->ranges[k + 1], nghost, use_gpu);
+    for (int k = 0; k < up->num_interp_dirs; k++) {
+      up->interp_ops[k] = gkyl_dg_interpolate_new(
+        cdim, basis, &up->grids[k], &up->grids[k + 1], &up->ranges[k], &up->ranges[k + 1], nghost,
+        use_gpu
+      );
+    }
   }
 
   // Pre-allocate fields for intermediate grids.
@@ -92,8 +99,9 @@ struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_
   }
   gkyl_free(ranges_ext);
 
-  if (up->num_interp_dirs > 1)
+  if (up->num_interp_dirs > 1) {
     return up; // Only allocate the remaining objects if doing 1D interpolation.
+  }
 
   // Identify direction to be coarsened/refined:
   for (int d = 0; d < up->ndim; d++) {
@@ -167,10 +175,11 @@ struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_
     up->kernels->interp = dg_interp_choose_gk_interp_kernel(cdim, *basis, up->dir);
 
     // Map from grid to stencil index in each direction.
-    if (up->dxRat > 1)
+    if (up->dxRat > 1) {
       up->kernels->grid2stencil = dg_interp_index_stencil_map_refine;
-    else
+    } else {
       up->kernels->grid2stencil = dg_interp_index_stencil_map_coarsen;
+    }
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -185,9 +194,10 @@ struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_
   return up;
 }
 
-static void dg_interpolate_advance_1x(gkyl_dg_interpolate *up, const struct gkyl_range *range_do,
-  const struct gkyl_range *range_tar, const struct gkyl_array *GKYL_RESTRICT fdo,
-  struct gkyl_array *GKYL_RESTRICT ftar)
+static void dg_interpolate_advance_1x(
+  gkyl_dg_interpolate *up, const struct gkyl_range *range_do, const struct gkyl_range *range_tar,
+  const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -198,7 +208,7 @@ static void dg_interpolate_advance_1x(gkyl_dg_interpolate *up, const struct gkyl
 
   gkyl_array_clear_range(ftar, 0.0, range_tar);
 
-  int idx_tar[GKYL_MAX_DIM] = { -1 };
+  int idx_tar[GKYL_MAX_DIM] = {-1};
   int idx_tar_lo;
   double xc_do[GKYL_MAX_DIM];
   double xc_tar[GKYL_MAX_DIM];
@@ -222,8 +232,9 @@ static void dg_interpolate_advance_1x(gkyl_dg_interpolate *up, const struct gkyl
     int idx_sten =
       up->kernels->grid2stencil(idx_do[up->dir], up->grid_do.cells[up->dir], up->dxRat);
 
-    for (int d = 0; d < up->ndim; d++)
+    for (int d = 0; d < up->ndim; d++) {
       idx_tar[d] = idx_do[d];
+    }
 
     // Loop over the target-grid cells this donor cell contributes to.
     for (int off = 0; off < up->offset_upper[idx_sten]; off++) {
@@ -240,7 +251,8 @@ static void dg_interpolate_advance_1x(gkyl_dg_interpolate *up, const struct gkyl
 }
 
 void gkyl_dg_interpolate_advance(
-  gkyl_dg_interpolate *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
+  gkyl_dg_interpolate *up, struct gkyl_array *fdo, struct gkyl_array *ftar
+)
 {
   up->fields[0] = fdo;
   up->fields[up->num_interp_dirs] = ftar;
@@ -248,7 +260,8 @@ void gkyl_dg_interpolate_advance(
   // Loop over interpolating dimensions and do each interpolation separately.
   for (int k = 0; k < up->num_interp_dirs; k++) {
     dg_interpolate_advance_1x(
-      up->interp_ops[k], &up->ranges[k], &up->ranges[k + 1], up->fields[k], up->fields[k + 1]);
+      up->interp_ops[k], &up->ranges[k], &up->ranges[k + 1], up->fields[k], up->fields[k + 1]
+    );
   }
 }
 
@@ -271,13 +284,15 @@ void gkyl_dg_interpolate_release(gkyl_dg_interpolate *up)
 
   gkyl_free(up->grids);
   if (up->num_interp_dirs > 1) {
-    for (int k = 0; k < up->num_interp_dirs; k++)
+    for (int k = 0; k < up->num_interp_dirs; k++) {
       gkyl_dg_interpolate_release(up->interp_ops[k]);
+    }
   }
   gkyl_free(up->interp_ops);
   gkyl_free(up->ranges);
-  for (int k = 1; k < up->num_interp_dirs; k++)
+  for (int k = 1; k < up->num_interp_dirs; k++) {
     gkyl_array_release(up->fields[k]);
+  }
   gkyl_free(up->fields);
 
   gkyl_free(up);

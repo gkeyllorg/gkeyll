@@ -7,8 +7,10 @@
 #include <assert.h>
 
 // Function pointer type for sheath reflection kernels.
-typedef void (*sheath_reflectedf_t)(const double *vmap, const double q2Dm, const double *phi,
-  const double *phiWall, const double *f, double *fRefl);
+typedef void (*sheath_reflectedf_t)(
+  const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *f,
+  double *fRefl
+);
 
 typedef struct {
   sheath_reflectedf_t kernels[3];
@@ -19,14 +21,16 @@ typedef struct {
 
 // Serendipity  kernels.
 GKYL_CU_D static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
-  { .list = { { bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1, NULL } } },
-  { .list = { { bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1, NULL } } }
+  {.list =
+     {{bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1, NULL},
+      {bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1, NULL},
+      {bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1, NULL},
+      {bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1, NULL}}},
+  {.list =
+     {{bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1, NULL},
+      {bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1, NULL},
+      {bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1, NULL},
+      {bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1, NULL}}}
 };
 
 struct gkyl_bc_sheath_gyrokinetic_kernels {
@@ -47,11 +51,13 @@ struct gkyl_bc_sheath_gyrokinetic {
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping.
 };
 
-void gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const struct gkyl_basis *basis,
-  enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
+void gkyl_bc_gksheath_choose_reflectedf_kernel_cu(
+  const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
+  struct gkyl_bc_sheath_gyrokinetic_kernels *kers
+);
 
-GKYL_CU_D static sheath_reflectedf_t bc_gksheath_choose_reflectedf_kernel(
-  const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
+GKYL_CU_D static sheath_reflectedf_t
+bc_gksheath_choose_reflectedf_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
 {
   int dim = basis->ndim;
   enum gkyl_basis_type basis_type = basis->b_type;
@@ -68,7 +74,8 @@ GKYL_CU_D static sheath_reflectedf_t bc_gksheath_choose_reflectedf_kernel(
 }
 
 GKYL_CU_D static void bc_gksheath_reflect(
-  int dir, const struct gkyl_basis *basis, int cdim, double *out, const double *inp)
+  int dir, const struct gkyl_basis *basis, int cdim, double *out, const double *inp
+)
 {
   basis->flip_odd_sign(dir, inp, out);
   basis->flip_odd_sign(cdim, out, out); // cdim is the vpar direction.
@@ -85,8 +92,9 @@ GKYL_CU_D static void bc_gksheath_reflect(
  * @param distf Distribution function array to apply BC to.
  * @param conf_r Configuration space range (to index phi).
  */
-void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up,
-  const struct gkyl_array *phi, const struct gkyl_array *phi_wall, struct gkyl_array *distf,
-  const struct gkyl_range *conf_r);
+void gkyl_bc_sheath_gyrokinetic_advance_cu(
+  const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r
+);
 
 #endif

@@ -36,10 +36,12 @@ typedef struct gkyl_fem_poisson_perp gkyl_fem_poisson_perp;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_fem_poisson_perp *gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range,
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
+struct gkyl_fem_poisson_perp *gkyl_fem_poisson_perp_new(
+  const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
   struct gkyl_poisson_bias_line_list *bias_line_list, struct gkyl_array *epsilon,
-  struct gkyl_array *kSq, bool use_gpu);
+  struct gkyl_array *kSq, bool use_gpu
+);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -64,7 +66,8 @@ void gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *p
  * @param kSq Linear factor in Helmholtz term.
  */
 void gkyl_fem_poisson_perp_update_lhs(
-  gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq);
+  gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq
+);
 
 /**
  * Delete updater.

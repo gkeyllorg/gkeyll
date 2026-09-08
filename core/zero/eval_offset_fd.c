@@ -26,15 +26,20 @@ gkyl_eval_offset_fd *gkyl_eval_offset_fd_new(const struct gkyl_eval_offset_fd_in
   return up;
 }
 
-static inline void comp_to_phys(int ndim, const double *eta, const double *GKYL_RESTRICT dx,
-  const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xout)
+static inline void comp_to_phys(
+  int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
+  double *GKYL_RESTRICT xout
+)
 {
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     xout[d] = dx[d] * eta[d] + xc[d];
+  }
 }
 
-void gkyl_eval_offset_fd_advance(const gkyl_eval_offset_fd *up, double tm,
-  const struct gkyl_range *update_rng, struct gkyl_array *out)
+void gkyl_eval_offset_fd_advance(
+  const gkyl_eval_offset_fd *up, double tm, const struct gkyl_range *update_rng,
+  struct gkyl_array *out
+)
 {
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
 

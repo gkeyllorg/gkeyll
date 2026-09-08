@@ -128,10 +128,10 @@ struct sheath_ctx create_ctx(void)
     6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Ti / charge_ion); // Ion Coulomb logarithm.
   double nu_elc = nu_frac * log_lambda_elc * pow(charge_ion, 4.0) * n0 /
                   (6.0 * sqrt(2.0) * pow(M_PI, 3.0 / 2.0) * pow(epsilon0, 2.0) * sqrt(mass_elc) *
-                    pow(Te, 3.0 / 2.0)); // Electron collision frequency.
+                   pow(Te, 3.0 / 2.0)); // Electron collision frequency.
   double nu_ion = nu_frac * log_lambda_ion * pow(charge_ion, 4.0) * n0 /
                   (12.0 * pow(M_PI, 3.0 / 2.0) * pow(epsilon0, 2.0) * sqrt(mass_ion) *
-                    pow(Ti, 3.0 / 2.0)); // Ion collision frequency.
+                   pow(Ti, 3.0 / 2.0)); // Ion collision frequency.
   double nu_elc_ion = nu_elc * sqrt(2.0);
   double nu_ion_elc = nu_elc_ion * (mass_elc / mass_ion);
 
@@ -182,7 +182,8 @@ struct sheath_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct sheath_ctx ctx = { .cdim = cdim,
+  struct sheath_ctx ctx = {
+    .cdim = cdim,
     .vdim = vdim,
     .epsilon0 = epsilon0,
     .mass_elc = mass_elc,
@@ -222,7 +223,7 @@ struct sheath_ctx create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = { Nz, Nvpar, Nmu },
+    .cells = {Nz, Nvpar, Nmu},
     .Nvy_neut = Nvy_neut,
     .Nvz_neut = Nvz_neut,
     .Lz = Lz,
@@ -241,13 +242,15 @@ struct sheath_ctx create_ctx(void)
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .Nvx_neut = Nvx_neut };
+    .Nvx_neut = Nvx_neut
+  };
 
   return ctx;
 }
 
 void evalElcDensityInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct sheath_ctx *app = ctx;
 
@@ -257,8 +260,7 @@ void evalElcDensityInit(
   fout[0] = n_peak;
 }
 
-void evalElcTempInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalElcTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -268,15 +270,15 @@ void evalElcTempInit(
   fout[0] = Te;
 }
 
-void evalElcUparInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalElcUparInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   // Set electron parallel velocity.
   fout[0] = 0.0;
 }
 
 void evalIonDensityInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct sheath_ctx *app = ctx;
 
@@ -286,8 +288,7 @@ void evalIonDensityInit(
   fout[0] = n_peak;
 }
 
-void evalIonTempInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalIonTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -297,15 +298,15 @@ void evalIonTempInit(
   fout[0] = Ti;
 }
 
-void evalIonUparInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalIonUparInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   // Set ion parallel velocity.
   fout[0] = 0.0;
 }
 
 void evalD0DensityInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct sheath_ctx *app = ctx;
 
@@ -326,7 +327,8 @@ void evalD0TempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTR
 }
 
 void evalD0UdriftInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   // Set neutral deuterium drift velocity.
   fout[0] = 0.0;
@@ -374,8 +376,8 @@ void evalNuIonElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   fout[0] = nu_ion_elc;
 }
 
-static inline void mapc2p(
-  double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
+static inline void
+mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
 {
   // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
   xp[0] = zc[0];
@@ -401,8 +403,9 @@ int main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args.trace_mem) {
@@ -413,198 +416,222 @@ int main(int argc, char **argv)
   struct sheath_ctx ctx = create_ctx(); // Context for init functions.
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d = 0; d < ctx.cdim; d++)
+  for (int d = 0; d < ctx.cdim; d++) {
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d = 0; d < ctx.vdim; d++)
+  }
+  for (int d = 0; d < ctx.vdim; d++) {
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim + d]);
+  }
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Electrons.
-  struct gkyl_gyrokinetic_species elc = { .name = "elc",
+  struct gkyl_gyrokinetic_species elc = {
+    .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .vdim = ctx.vdim,
-    .lower = { -ctx.vpar_max_elc, 0.0 },
-    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
-    .cells = { cells_v[0], cells_v[1] },
+    .lower = {-ctx.vpar_max_elc, 0.0},
+    .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
+    .cells = {cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
 
-    .projection = { .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .density = evalElcDensityInit,
-      .ctx_density = &ctx,
-      .temp = evalElcTempInit,
-      .ctx_temp = &ctx,
-      .upar = evalElcUparInit,
-      .ctx_upar = &ctx },
+    .projection =
+      {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+       .density = evalElcDensityInit,
+       .ctx_density = &ctx,
+       .temp = evalElcTempInit,
+       .ctx_temp = &ctx,
+       .upar = evalElcUparInit,
+       .ctx_upar = &ctx},
 
-    .collisionless = { .type = GKYL_GK_COLLISIONLESS_ES },
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNuElc,
-      .self_nu_ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
-      .cross_nu = { evalNuElcIon },
-      .cross_nu_ctx = &ctx,
-      .den_ref = ctx.n0,
-      .temp_ref = ctx.Te },
+    .collisions =
+      {.collision_id = GKYL_LBO_COLLISIONS,
+       .self_nu = evalNuElc,
+       .self_nu_ctx = &ctx,
+       .num_cross_collisions = 1,
+       .collide_with = {"ion"},
+       .cross_nu = {evalNuElcIon},
+       .cross_nu_ctx = &ctx,
+       .den_ref = ctx.n0,
+       .temp_ref = ctx.Te},
 
-    .react_neut = { .num_react = 2,
-      .react_type = { { .react_id = GKYL_REACT_IZ,
-                        .type_self = GKYL_SELF_ELC,
-                        .ion_id = GKYL_ION_H,
-                        .elc_nm = "elc",
-                        .ion_nm = "ion",
-                        .donor_nm = "D0",
-                        .charge_state = 0,
-                        .ion_mass = ctx.mass_ion,
-                        .elc_mass = ctx.mass_elc },
-        { .react_id = GKYL_REACT_RECOMB,
-          .type_self = GKYL_SELF_ELC,
-          .ion_id = GKYL_ION_H,
-          .elc_nm = "elc",
-          .ion_nm = "ion",
-          .recvr_nm = "D0",
-          .charge_state = 0,
-          .ion_mass = ctx.mass_ion,
-          .elc_mass = ctx.mass_elc } } },
+    .react_neut =
+      {.num_react = 2,
+       .react_type =
+         {{.react_id = GKYL_REACT_IZ,
+           .type_self = GKYL_SELF_ELC,
+           .ion_id = GKYL_ION_H,
+           .elc_nm = "elc",
+           .ion_nm = "ion",
+           .donor_nm = "D0",
+           .charge_state = 0,
+           .ion_mass = ctx.mass_ion,
+           .elc_mass = ctx.mass_elc},
+          {.react_id = GKYL_REACT_RECOMB,
+           .type_self = GKYL_SELF_ELC,
+           .ion_id = GKYL_ION_H,
+           .elc_nm = "elc",
+           .ion_nm = "ion",
+           .recvr_nm = "D0",
+           .charge_state = 0,
+           .ion_mass = ctx.mass_ion,
+           .elc_mass = ctx.mass_elc}}},
 
     .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-      GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP } };
+    .diag_moments =
+      {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
+       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP}
+  };
 
   // Ions.
-  struct gkyl_gyrokinetic_species ion = { .name = "ion",
+  struct gkyl_gyrokinetic_species ion = {
+    .name = "ion",
     .charge = ctx.charge_ion,
     .mass = ctx.mass_ion,
     .vdim = ctx.vdim,
-    .lower = { -ctx.vpar_max_ion, 0.0 },
-    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
-    .cells = { cells_v[0], cells_v[1] },
+    .lower = {-ctx.vpar_max_ion, 0.0},
+    .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
+    .cells = {cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
 
-    .projection = { .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .density = evalIonDensityInit,
-      .ctx_density = &ctx,
-      .temp = evalIonTempInit,
-      .ctx_temp = &ctx,
-      .upar = evalIonUparInit,
-      .ctx_upar = &ctx },
+    .projection =
+      {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+       .density = evalIonDensityInit,
+       .ctx_density = &ctx,
+       .temp = evalIonTempInit,
+       .ctx_temp = &ctx,
+       .upar = evalIonUparInit,
+       .ctx_upar = &ctx},
 
-    .collisionless = { .type = GKYL_GK_COLLISIONLESS_ES },
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNuIon,
-      .self_nu_ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
-      .cross_nu = { evalNuIonElc },
-      .cross_nu_ctx = &ctx,
-      .den_ref = ctx.n0,
-      .temp_ref = ctx.Ti },
+    .collisions =
+      {.collision_id = GKYL_LBO_COLLISIONS,
+       .self_nu = evalNuIon,
+       .self_nu_ctx = &ctx,
+       .num_cross_collisions = 1,
+       .collide_with = {"elc"},
+       .cross_nu = {evalNuIonElc},
+       .cross_nu_ctx = &ctx,
+       .den_ref = ctx.n0,
+       .temp_ref = ctx.Ti},
 
-    .react_neut = { .num_react = 2,
-      .react_type = { { .react_id = GKYL_REACT_CX,
-                        .type_self = GKYL_SELF_ION,
-                        .ion_id = GKYL_ION_D,
-                        .elc_nm = "elc",
-                        .ion_nm = "ion",
-                        .partner_nm = "D0",
-                        .ion_mass = ctx.mass_ion,
-                        .elc_mass = ctx.mass_elc },
-        { .react_id = GKYL_REACT_RECOMB,
-          .type_self = GKYL_SELF_ION,
-          .ion_id = GKYL_ION_H,
-          .elc_nm = "elc",
-          .ion_nm = "ion",
-          .recvr_nm = "D0",
-          .charge_state = 0,
-          .ion_mass = ctx.mass_ion,
-          .elc_mass = ctx.mass_elc } } },
+    .react_neut =
+      {.num_react = 2,
+       .react_type =
+         {{.react_id = GKYL_REACT_CX,
+           .type_self = GKYL_SELF_ION,
+           .ion_id = GKYL_ION_D,
+           .elc_nm = "elc",
+           .ion_nm = "ion",
+           .partner_nm = "D0",
+           .ion_mass = ctx.mass_ion,
+           .elc_mass = ctx.mass_elc},
+          {.react_id = GKYL_REACT_RECOMB,
+           .type_self = GKYL_SELF_ION,
+           .ion_id = GKYL_ION_H,
+           .elc_nm = "elc",
+           .ion_nm = "ion",
+           .recvr_nm = "D0",
+           .charge_state = 0,
+           .ion_mass = ctx.mass_ion,
+           .elc_mass = ctx.mass_elc}}},
 
     .num_diag_moments = 7,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-      GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP } };
+    .diag_moments =
+      {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
+       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP}
+  };
 
   // Neutral Deuterium.
-  struct gkyl_gyrokinetic_neut_species D0 = { .name = "D0",
+  struct gkyl_gyrokinetic_neut_species D0 = {
+    .name = "D0",
     .mass = ctx.mass_D0,
     .vdim = ctx.vdim + 1,
-    .lower = { -ctx.vx_max_neut, -ctx.vy_max_neut, -ctx.vz_max_neut },
-    .upper = { ctx.vx_max_neut, ctx.vy_max_neut, ctx.vz_max_neut },
-    .cells = { ctx.Nvx_neut, ctx.Nvy_neut, ctx.Nvz_neut },
+    .lower = {-ctx.vx_max_neut, -ctx.vy_max_neut, -ctx.vz_max_neut},
+    .upper = {ctx.vx_max_neut, ctx.vy_max_neut, ctx.vz_max_neut},
+    .cells = {ctx.Nvx_neut, ctx.Nvy_neut, ctx.Nvz_neut},
     .is_static = true,
 
-    .projection = { .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .density = evalD0DensityInit,
-      .ctx_density = &ctx,
-      .temp = evalD0TempInit,
-      .ctx_temp = &ctx,
-      .udrift = evalD0UdriftInit,
-      .ctx_udrift = &ctx },
+    .projection =
+      {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+       .density = evalD0DensityInit,
+       .ctx_density = &ctx,
+       .temp = evalD0TempInit,
+       .ctx_temp = &ctx,
+       .udrift = evalD0UdriftInit,
+       .ctx_udrift = &ctx},
 
     .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 } };
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2}
+  };
 
   // Field.
-  struct gkyl_gyrokinetic_field field = { .kperpSq = ctx.k_perp * ctx.k_perp };
+  struct gkyl_gyrokinetic_field field = {.kperpSq = ctx.k_perp * ctx.k_perp};
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
 
     .cdim = ctx.cdim,
-    .lower = { -0.5 * ctx.Lz },
-    .upper = { 0.5 * ctx.Lz },
-    .cells = { cells_x[0] },
+    .lower = {-0.5 * ctx.Lz},
+    .upper = {0.5 * ctx.Lz},
+    .cells = {cells_x[0]},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-      .world = { 0.0, 0.0 },
+    .geometry =
+      {.geometry_id = GKYL_GEOMETRY_MAPC2P,
+       .world = {0.0, 0.0},
 
-      .mapc2p = mapc2p,
-      .c2p_ctx = &ctx,
-      .bfield_func = bfield_func,
-      .bfield_ctx = &ctx },
+       .mapc2p = mapc2p,
+       .c2p_ctx = &ctx,
+       .bfield_func = bfield_func,
+       .bfield_ctx = &ctx},
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = {0},
 
     .num_species = 2,
-    .species = { elc, ion },
+    .species = {elc, ion},
 
     .num_neut_species = 1,
-    .neut_species = { D0 },
+    .neut_species = {D0},
 
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
-  struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-    .time_stepping = { .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps } };
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_inp = app_inp,
+    .time_stepping =
+      {.t_end = ctx.t_end,
+       .num_frames = ctx.num_frames,
+       .write_phase_freq = ctx.write_phase_freq,
+       .int_diag_calc_num = ctx.int_diag_calc_num,
+       .dt_failure_tol = ctx.dt_failure_tol,
+       .num_failures_max = ctx.num_failures_max,
+       .is_restart = app_args.is_restart,
+       .restart_frame = app_args.restart_frame,
+       .num_steps = app_args.num_steps}
+  };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   return 0;

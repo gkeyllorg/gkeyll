@@ -7,7 +7,8 @@ extern "C" {
 }
 
 static void gkyl_parallelize_components_kernel_launch_dims(
-  dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp)
+  dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp
+)
 {
   // Create a 2D thread grid so we launch ncomp*range.volume number of threads and can parallelize over components too
   dimBlock->y = ncomp;
@@ -18,7 +19,8 @@ static void gkyl_parallelize_components_kernel_launch_dims(
 
 __global__ static void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu_ker(
   struct gkyl_range conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
-  const struct gkyl_array *moms_iter, struct gkyl_array *abs_diff_moms)
+  const struct gkyl_array *moms_iter, struct gkyl_array *abs_diff_moms
+)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -55,12 +57,14 @@ __global__ static void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu_ker(
   }
 }
 
-void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range,
-  int num_comp, int nc, const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter,
-  struct gkyl_array *moms_abs_diff)
+void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
+  const struct gkyl_range *conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
+  const struct gkyl_array *moms_iter, struct gkyl_array *moms_abs_diff
+)
 {
   dim3 dimGrid, dimBlock;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *conf_range, num_comp);
   gkyl_vlasov_lte_correct_all_moments_abs_diff_cu_ker<<<dimGrid, dimBlock> > >(
-    *conf_range, num_comp, nc, moms_target->on_dev, moms_iter->on_dev, moms_abs_diff->on_dev);
+    *conf_range, num_comp, nc, moms_target->on_dev, moms_iter->on_dev, moms_abs_diff->on_dev
+  );
 }

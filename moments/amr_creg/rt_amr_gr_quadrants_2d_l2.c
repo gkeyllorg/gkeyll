@@ -103,7 +103,8 @@ struct amr_gr_quadrants_2d_ctx create_ctx(void)
 
   double loc = 0.5; // Fluid boundaries (both x and y coordinates).
 
-  struct amr_gr_quadrants_2d_ctx ctx = { .gas_gamma = gas_gamma,
+  struct amr_gr_quadrants_2d_ctx ctx = {
+    .gas_gamma = gas_gamma,
     .rho_ul = rho_ul,
     .u_ul = u_ul,
     .v_ul = v_ul,
@@ -136,13 +137,13 @@ struct amr_gr_quadrants_2d_ctx create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .loc = loc };
+    .loc = loc
+  };
 
   return ctx;
 }
 
-void evalGREulerInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_gr_quadrants_2d_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -312,7 +313,8 @@ int main(int argc, char **argv)
 {
   struct amr_gr_quadrants_2d_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct gr_euler2d_double_init init = { .base_Nx = ctx.Nx,
+  struct gr_euler2d_double_init init = {
+    .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
     .ref_factor1 = ctx.ref_factor1,
     .ref_factor2 = ctx.ref_factor2,
@@ -350,7 +352,8 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+    .num_failures_max = ctx.num_failures_max
+  };
 
   gr_euler2d_run_double(argc, argv, &init);
 }

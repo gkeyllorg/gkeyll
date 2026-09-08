@@ -69,42 +69,46 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
   s->fnew = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
 
   s->f_host = s->f;
-  if (app->use_gpu)
+  if (app->use_gpu) {
     s->f_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+  }
 
   // allocate cflrate (scalar array)
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
 
-  if (app->use_gpu)
+  if (app->use_gpu) {
     s->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
-  else
+  } else {
     s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
+  }
 
   // allocate array to store q/m*(E,B) or potentials (phi, A) depending on equation system
   s->qbym = s->info.charge / s->info.mass;
-  if (s->field_id == GKYL_FIELD_E_B)
+  if (s->field_id == GKYL_FIELD_E_B) {
     s->qmem = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
-  else if (s->field_id != GKYL_FIELD_NULL) {
+  } else if (s->field_id != GKYL_FIELD_NULL) {
     s->qmem = mkarr(app->use_gpu, 4 * app->confBasis.num_basis, app->local_ext.volume);
     s->qmem_ext = mkarr(app->use_gpu, 6 * app->confBasis.num_basis, app->local_ext.volume);
   }
 
   // Determine which directions are not periodic.
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = { 1, 1, 1 };
-  for (int d = 0; d < num_periodic_dir; ++d)
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  for (int d = 0; d < num_periodic_dir; ++d) {
     is_np[app->periodic_dirs[d]] = 0;
+  }
 
-  bool is_zero_flux[2 * GKYL_MAX_DIM] = { false }; // Default: no zero-flux BCs in any direction.
+  bool is_zero_flux[2 * GKYL_MAX_DIM] = {false}; // Default: no zero-flux BCs in any direction.
   for (int dir = 0; dir < app->cdim; ++dir) {
     s->lower_bc[dir].type = s->upper_bc[dir].type = GKYL_SPECIES_COPY;
     if (is_np[dir]) {
       const struct gkyl_vlasov_bcs *bc;
-      if (dir == 0)
+      if (dir == 0) {
         bc = &s->info.bcx;
-      else if (dir == 1)
+      } else if (dir == 1) {
         bc = &s->info.bcy;
-      else
+      } else {
         bc = &s->info.bcz;
+      }
 
       s->lower_bc[dir] = bc->lower;
       s->upper_bc[dir] = bc->upper;
@@ -128,16 +132,20 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
       s->gamma_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
       s->gamma_inv_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
     }
-    s->sr_vars = gkyl_dg_calc_sr_vars_new(&s->grid, &s->grid_vel, &app->confBasis, &app->velBasis,
-      &app->local, &s->local_vel, app->use_gpu);
+    s->sr_vars = gkyl_dg_calc_sr_vars_new(
+      &s->grid, &s->grid_vel, &app->confBasis, &app->velBasis, &app->local, &s->local_vel,
+      app->use_gpu
+    );
     // Project gamma and its inverse
     gkyl_calc_sr_vars_init_p_vars(s->sr_vars, s->gamma, s->gamma_inv);
 
-    struct gkyl_dg_vlasov_sr_auxfields aux_inp = { .qmem = s->qmem, .gamma = s->gamma };
+    struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, .gamma = s->gamma};
 
     // create solver
-    s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local,
-      &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+    s->slvr = gkyl_dg_updater_vlasov_new(
+      &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, is_zero_flux,
+      s->model_id, s->field_id, &aux_inp, app->use_gpu
+    );
   } else if (s->model_id == GKYL_MODEL_CANONICAL_PB || s->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
     // Allocate arrays for specified hamiltonian
     s->hamil = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -182,7 +190,8 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
 
     // Evaluate specified metric function at nodes to insure continuity
     struct gkyl_eval_on_nodes *h_ij_proj = gkyl_eval_on_nodes_new(
-      &app->grid, &app->confBasis, vdim * (vdim + 1) / 2, s->info.h_ij, s->info.h_ij_ctx);
+      &app->grid, &app->confBasis, vdim * (vdim + 1) / 2, s->info.h_ij, s->info.h_ij_ctx
+    );
     gkyl_eval_on_nodes_advance(h_ij_proj, 0.0, &app->local, s->h_ij_host);
     if (app->use_gpu) {
       gkyl_array_copy(s->h_ij, s->h_ij_host);
@@ -191,7 +200,8 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
 
     // Evaluate specified inverse metric function at nodes to insure continuity of the inverse
     struct gkyl_eval_on_nodes *h_ij_inv_proj = gkyl_eval_on_nodes_new(
-      &app->grid, &app->confBasis, vdim * (vdim + 1) / 2, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
+      &app->grid, &app->confBasis, vdim * (vdim + 1) / 2, s->info.h_ij_inv, s->info.h_ij_inv_ctx
+    );
     gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &app->local, s->h_ij_inv_host);
     if (app->use_gpu) {
       gkyl_array_copy(s->h_ij_inv, s->h_ij_inv_host);
@@ -234,53 +244,67 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
     // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
     struct gkyl_dg_calc_canonical_pb_vars *calc_vars =
       gkyl_dg_calc_canonical_pb_vars_new(&s->grid, &app->confBasis, &app->basis, app->use_gpu);
-    gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext,
-      s->hamil, s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+    gkyl_dg_calc_canonical_pb_vars_alpha_surf(
+      calc_vars, &app->local, &s->local, &s->local_ext, s->hamil, s->alpha_surf, s->sgn_alpha_surf,
+      s->const_sgn_alpha
+    );
     gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 
-    struct gkyl_dg_canonical_pb_auxfields aux_inp = { .hamil = s->hamil,
+    struct gkyl_dg_canonical_pb_auxfields aux_inp = {
+      .hamil = s->hamil,
       .alpha_surf = s->alpha_surf,
       .sgn_alpha_surf = s->sgn_alpha_surf,
-      .const_sgn_alpha = s->const_sgn_alpha };
+      .const_sgn_alpha = s->const_sgn_alpha
+    };
 
     //create solver
-    s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local,
-      &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+    s->slvr = gkyl_dg_updater_vlasov_new(
+      &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, is_zero_flux,
+      s->model_id, s->field_id, &aux_inp, app->use_gpu
+    );
   } else {
     if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B) {
       struct gkyl_dg_vlasov_auxfields aux_inp = {
         .field = s->qmem, .cot_vec = 0, .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0
       };
-      s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local,
-        &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+      s->slvr = gkyl_dg_updater_vlasov_new(
+        &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, is_zero_flux,
+        s->model_id, s->field_id, &aux_inp, app->use_gpu
+      );
     } else {
-      struct gkyl_dg_vlasov_poisson_auxfields aux_inp = { .potentials = s->qmem,
-        .fields_ext = s->qmem_ext };
-      s->slvr = gkyl_dg_updater_vlasov_poisson_new(&s->grid, &app->confBasis, &app->basis,
-        &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp,
-        app->use_gpu);
+      struct gkyl_dg_vlasov_poisson_auxfields aux_inp = {
+        .potentials = s->qmem, .fields_ext = s->qmem_ext
+      };
+      s->slvr = gkyl_dg_updater_vlasov_poisson_new(
+        &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, is_zero_flux,
+        s->model_id, s->field_id, &aux_inp, app->use_gpu
+      );
     }
   }
 
   // acquire equation object
-  if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B)
+  if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B) {
     s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
-  else
+  } else {
     s->eqn_vlasov = gkyl_dg_updater_vlasov_poisson_acquire_eqn(s->slvr);
+  }
 
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, GKYL_F_MOMENT_M1, false);
   // allocate date for density (for use in charge density accumulation and weak division for V_drift)
   vm_species_moment_init(app, s, &s->m0, GKYL_F_MOMENT_M0, false);
   // allocate data for integrated moments
-  vm_species_moment_init(app, s, &s->integ_moms,
-    s->model_id == GKYL_MODEL_SR ? GKYL_F_MOMENT_M0ENERGYM3 : GKYL_F_MOMENT_M0M1M2, true);
+  vm_species_moment_init(
+    app, s, &s->integ_moms,
+    s->model_id == GKYL_MODEL_SR ? GKYL_F_MOMENT_M0ENERGYM3 : GKYL_F_MOMENT_M0M1M2, true
+  );
 
   // allocate data for diagnostic moments
   int ndm = s->info.num_diag_moments;
   s->moms = gkyl_malloc(sizeof(struct vm_species_moment[ndm]));
-  for (int m = 0; m < ndm; ++m)
+  for (int m = 0; m < ndm; ++m) {
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m], false);
+  }
 
   // array for storing f^2 in each cell
   s->L2_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
@@ -310,8 +334,10 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
     if (app->use_gpu) {
       s->app_accel_host = mkarr(false, 3 * app->confBasis.num_basis, app->local_ext.volume);
     }
-    s->app_accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      app->confBasis.poly_order + 1, 3, s->info.app_accel, s->info.app_accel_ctx);
+    s->app_accel_proj = gkyl_proj_on_basis_new(
+      &app->grid, &app->confBasis, app->confBasis.poly_order + 1, 3, s->info.app_accel,
+      s->info.app_accel_ctx
+    );
   }
 
   // initialize projection routine for initial conditions
@@ -338,10 +364,12 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
   s->bgk = (struct vm_bgk_collisions){};
   if (s->info.output_f_lte) {
     // Always have correct moments on for the f_lte output
-    struct correct_all_moms_inp corr_inp = { .correct_all_moms = true,
+    struct correct_all_moms_inp corr_inp = {
+      .correct_all_moms = true,
       .max_iter = s->info.max_iter,
       .iter_eps = s->info.iter_eps,
-      .use_last_converged = s->info.use_last_converged };
+      .use_last_converged = s->info.use_last_converged
+    };
     vm_species_lte_init(app, s, &s->lte, corr_inp);
   }
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
@@ -360,9 +388,11 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
   // Local lower/upper skin and ghost ranges (for applying BCs).
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(
-      &s->lower_skin[dir], &s->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &s->local_ext, ghost);
+      &s->lower_skin[dir], &s->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &s->local_ext, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
+      &s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost
+    );
   }
 
   // Allocate buffer for applying BCs.
@@ -384,17 +414,20 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
       s->calc_bflux = true;
       vm_species_emission_init(app, &s->bc_emission_lo, d, GKYL_LOWER_EDGE, s->lower_bc[d].aux_ctx);
     } else {
-      if (s->lower_bc[d].type == GKYL_SPECIES_COPY)
+      if (s->lower_bc[d].type == GKYL_SPECIES_COPY) {
         bctype = GKYL_BC_COPY;
-      else if (s->lower_bc[d].type == GKYL_SPECIES_ABSORB)
+      } else if (s->lower_bc[d].type == GKYL_SPECIES_ABSORB) {
         bctype = GKYL_BC_ABSORB;
-      else if (s->lower_bc[d].type == GKYL_SPECIES_REFLECT)
+      } else if (s->lower_bc[d].type == GKYL_SPECIES_REFLECT) {
         bctype = GKYL_BC_DISTF_REFLECT;
-      else if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
+      } else if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
         bctype = GKYL_BC_FIXED_FUNC;
+      }
 
-      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
-        &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+      s->bc_lo[d] = gkyl_bc_basic_new(
+        d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis, &s->lower_skin[d], &s->lower_ghost[d],
+        s->f->ncomp, app->cdim, app->use_gpu
+      );
     }
 
     // Upper BC updater. Copy BCs by default.
@@ -403,17 +436,20 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
       s->calc_bflux = true;
       vm_species_emission_init(app, &s->bc_emission_up, d, GKYL_UPPER_EDGE, s->upper_bc[d].aux_ctx);
     } else {
-      if (s->upper_bc[d].type == GKYL_SPECIES_COPY)
+      if (s->upper_bc[d].type == GKYL_SPECIES_COPY) {
         bctype = GKYL_BC_COPY;
-      else if (s->upper_bc[d].type == GKYL_SPECIES_ABSORB)
+      } else if (s->upper_bc[d].type == GKYL_SPECIES_ABSORB) {
         bctype = GKYL_BC_ABSORB;
-      else if (s->upper_bc[d].type == GKYL_SPECIES_REFLECT)
+      } else if (s->upper_bc[d].type == GKYL_SPECIES_REFLECT) {
         bctype = GKYL_BC_DISTF_REFLECT;
-      else if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
+      } else if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
         bctype = GKYL_BC_FIXED_FUNC;
+      }
 
-      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
-        &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+      s->bc_up[d] = gkyl_bc_basic_new(
+        d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis, &s->upper_skin[d], &s->upper_ghost[d],
+        s->f->ncomp, app->cdim, app->use_gpu
+      );
     }
   }
   if (s->calc_bflux) {
@@ -454,17 +490,20 @@ void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, doubl
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
-  if (species->lower_bc[0].type == GKYL_SPECIES_FIXED_FUNC)
+  if (species->lower_bc[0].type == GKYL_SPECIES_FIXED_FUNC) {
     gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f);
-  if (species->upper_bc[0].type == GKYL_SPECIES_FIXED_FUNC)
+  }
+  if (species->upper_bc[0].type == GKYL_SPECIES_FIXED_FUNC) {
     gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f);
+  }
 }
 
 void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm)
 {
   if (species->has_app_accel) {
     gkyl_proj_on_basis_advance(
-      species->app_accel_proj, tm, &app->local_ext, species->app_accel_host);
+      species->app_accel_proj, tm, &app->local_ext, species->app_accel_host
+    );
     if (app->use_gpu) {
       // note: app_accel_host is same as app_accel when not on GPUs
       gkyl_array_copy(species->app_accel, species->app_accel_host);
@@ -474,8 +513,10 @@ void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species,
 
 // Compute the RHS for species update, returning maximum stable
 // time-step.
-double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs)
+double vm_species_rhs(
+  gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin,
+  const struct gkyl_array *em, struct gkyl_array *rhs
+)
 {
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
@@ -507,7 +548,8 @@ double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     }
 
     gkyl_dg_updater_vlasov_poisson_advance(
-      species->slvr, &species->local, fin, species->cflrate, rhs);
+      species->slvr, &species->local, fin, species->cflrate, rhs
+    );
   }
 
   if (species->collision_id == GKYL_LBO_COLLISIONS) {
@@ -530,10 +572,11 @@ double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
 
   double omegaCfl_ho[1];
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gkyl_cu_memcpy(omegaCfl_ho, species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     omegaCfl_ho[0] = species->omegaCfl_ptr[0];
+  }
   double omegaCfl = omegaCfl_ho[0];
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
@@ -543,8 +586,10 @@ double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
 // Compute the implicit RHS for species update, returning maximum stable
 // time-step.
-double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, double dt)
+double vm_species_rhs_implicit(
+  gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, double dt
+)
 {
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
@@ -562,10 +607,11 @@ double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
 
   double omegaCfl_ho[1];
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gkyl_cu_memcpy(omegaCfl_ho, species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     omegaCfl_ho[0] = species->omegaCfl_ptr[0];
+  }
   double omegaCfl = omegaCfl_ho[0];
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
@@ -576,17 +622,20 @@ double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
 void vm_species_apply_bc(
-  gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f, double tcurr)
+  gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f, double tcurr
+)
 {
   struct timespec wst = gkyl_wall_clock();
 
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
   gkyl_comm_array_per_sync(
-    species->comm, &species->local, &species->local_ext, num_periodic_dir, app->periodic_dirs, f);
+    species->comm, &species->local, &species->local_ext, num_periodic_dir, app->periodic_dirs, f
+  );
 
-  int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
-  for (int d = 0; d < num_periodic_dir; ++d)
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  for (int d = 0; d < num_periodic_dir; ++d) {
     is_np_bc[app->periodic_dirs[d]] = 0;
+  }
 
   for (int d = 0; d < cdim; ++d) {
     if (is_np_bc[d]) {
@@ -642,14 +691,14 @@ void vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species
   gkyl_dg_calc_l2_range(&app->basis, 0, species->L2_f, 0, species->f, species->local);
   gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
 
-  double L2[1] = { 0.0 };
+  double L2[1] = {0.0};
   if (app->use_gpu) {
     gkyl_array_reduce_range(species->red_L2_f, species->L2_f, GKYL_SUM, &species->local);
     gkyl_cu_memcpy(L2, species->red_L2_f, sizeof(double), GKYL_CU_MEMCPY_D2H);
   } else {
     gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, &species->local);
   }
-  double L2_global[1] = { 0.0 };
+  double L2_global[1] = {0.0};
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
 
   gkyl_dynvec_append(species->integ_L2_f, tm, L2_global);
@@ -682,10 +731,11 @@ void vm_species_tm(gkyl_vlasov_app *app)
   for (int i = 0; i < app->num_species; ++i) {
     struct vm_species *s = &app->species[i];
     struct gkyl_dg_updater_vlasov_tm tm;
-    if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B)
+    if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B) {
       tm = gkyl_dg_updater_vlasov_get_tm(s->slvr);
-    else
+    } else {
       tm = gkyl_dg_updater_vlasov_poisson_get_tm(s->slvr);
+    }
     app->stat.species_rhs_tm += tm.vlasov_tm;
   }
 }
@@ -723,8 +773,9 @@ void vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *s)
 
   gkyl_comm_release(s->comm);
 
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gkyl_array_release(s->f_host);
+  }
 
   // Release arrays for different types of Vlasov equations
   if (s->model_id == GKYL_MODEL_SR) {
@@ -756,9 +807,9 @@ void vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *s)
 
   // release equation object and solver
   gkyl_dg_eqn_release(s->eqn_vlasov);
-  if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B)
+  if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B) {
     gkyl_dg_updater_vlasov_release(s->slvr);
-  else {
+  } else {
     gkyl_array_release(s->qmem_ext);
     gkyl_dg_updater_vlasov_poisson_release(s->slvr);
   }
@@ -766,8 +817,9 @@ void vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *s)
   // release moment data
   vm_species_moment_release(app, &s->m1i);
   vm_species_moment_release(app, &s->m0);
-  for (int i = 0; i < s->info.num_diag_moments; ++i)
+  for (int i = 0; i < s->info.num_diag_moments; ++i) {
     vm_species_moment_release(app, &s->moms[i]);
+  }
   gkyl_free(s->moms);
   vm_species_moment_release(app, &s->integ_moms);
 
@@ -777,8 +829,9 @@ void vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *s)
 
   gkyl_array_release(s->app_accel);
   if (s->has_app_accel) {
-    if (app->use_gpu)
+    if (app->use_gpu) {
       gkyl_array_release(s->app_accel_host);
+    }
 
     gkyl_proj_on_basis_release(s->app_accel_proj);
   }
@@ -801,15 +854,17 @@ void vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *s)
 
   // Copy BCs are allocated by default. Need to free.
   for (int d = 0; d < app->cdim; ++d) {
-    if (s->lower_bc[d].type == GKYL_SPECIES_EMISSION)
+    if (s->lower_bc[d].type == GKYL_SPECIES_EMISSION) {
       vm_species_emission_release(&s->bc_emission_lo);
-    else
+    } else {
       gkyl_bc_basic_release(s->bc_lo[d]);
+    }
 
-    if (s->upper_bc[d].type == GKYL_SPECIES_EMISSION)
+    if (s->upper_bc[d].type == GKYL_SPECIES_EMISSION) {
       vm_species_emission_release(&s->bc_emission_up);
-    else
+    } else {
       gkyl_bc_basic_release(s->bc_up[d]);
+    }
   }
 
   if (app->use_gpu) {

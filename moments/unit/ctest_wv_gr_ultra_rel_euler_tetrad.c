@@ -57,15 +57,21 @@ void test_gr_ultra_rel_euler_tetrad_basic_minkowski_ho()
       spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift);
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &extrinsic_curvature
+      );
 
       spacetime->lapse_function_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+      );
       spacetime->shift_vector_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der
+      );
 
       double *vel = gkyl_malloc(sizeof(double[3]));
       vel[0] = u;
@@ -171,47 +177,50 @@ void test_gr_ultra_rel_euler_tetrad_basic_minkowski_ho()
       TEST_CHECK(gkyl_compare(prims[3], w, 1e-13));
 
       double fluxes[3][4] = {
-        { (lapse * sqrt(spatial_det)) *
-            ((((rho + p) * (W * W)) - p) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])),
-          (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
-          (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
-          (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))) },
-        { (lapse * sqrt(spatial_det)) *
-            ((((rho + p) * (W * W)) - p) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])),
-          (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
-          (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
-          (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))) },
-        { (lapse * sqrt(spatial_det)) *
-            ((((rho + p) * (W * W)) - p) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])),
-          (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
-          (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
-          (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p) }
+        {(lapse * sqrt(spatial_det)) *
+           ((((rho + p) * (W * W)) - p) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])),
+         (lapse * sqrt(spatial_det)) *
+           ((rho + p) * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
+         (lapse * sqrt(spatial_det)) *
+           ((rho + p) * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
+         (lapse * sqrt(spatial_det)) *
+           ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse))))},
+        {(lapse * sqrt(spatial_det)) *
+           ((((rho + p) * (W * W)) - p) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])),
+         (lapse * sqrt(spatial_det)) *
+           ((rho + p) * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
+         (lapse * sqrt(spatial_det)) *
+           ((rho + p) * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
+         (lapse * sqrt(spatial_det)) *
+           ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse))))},
+        {(lapse * sqrt(spatial_det)) *
+           ((((rho + p) * (W * W)) - p) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])),
+         (lapse * sqrt(spatial_det)) *
+           ((rho + p) * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
+         (lapse * sqrt(spatial_det)) *
+           ((rho + p) * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
+         (lapse * sqrt(spatial_det)) *
+           ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p)}
       };
 
-      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+      double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+      double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+      double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
       double q_local[70], flux_local_sr[70], flux_local_gr[70], flux[70];
       for (int d = 0; d < 3; d++) {
         gr_ultra_rel_euler_tetrad->rotate_to_local_func(
-          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
+          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_local
+        );
         gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, q_local, flux_local_sr);
         gkyl_gr_ultra_rel_euler_tetrad_flux_correction(
-          gas_gamma, q_local, flux_local_sr, flux_local_gr);
+          gas_gamma, q_local, flux_local_sr, flux_local_gr
+        );
         gr_ultra_rel_euler_tetrad->rotate_to_global_func(
-          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux);
+          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux
+        );
 
         for (int i = 0; i < 4; i++) {
           TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-13));
@@ -221,8 +230,7 @@ void test_gr_ultra_rel_euler_tetrad_basic_minkowski_ho()
       double q_l[70], q_g[70];
       for (int d = 0; d < 3; d++) {
         gkyl_wv_eqn_rotate_to_local(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
-        gkyl_wv_eqn_rotate_to_global(
-          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
+        gkyl_wv_eqn_rotate_to_global(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
         for (int i = 0; i < 70; i++) {
           TEST_CHECK(gkyl_compare(q[i], q_g[i], 1e-13));
@@ -314,15 +322,21 @@ void test_gr_ultra_rel_euler_tetrad_basic_schwarzschild_ho()
       spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &extrinsic_curvature
+      );
 
       spacetime->lapse_function_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+      );
       spacetime->shift_vector_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der
+      );
 
       double *vel = gkyl_malloc(sizeof(double[3]));
       vel[0] = u;
@@ -440,47 +454,50 @@ void test_gr_ultra_rel_euler_tetrad_basic_schwarzschild_ho()
         shift[2] = prims[7];
 
         double fluxes[3][4] = {
-          { (lapse * sqrt(spatial_det)) *
-              ((((rho + p) * (W * W)) - p) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))) },
-          { (lapse * sqrt(spatial_det)) *
-              ((((rho + p) * (W * W)) - p) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))) },
-          { (lapse * sqrt(spatial_det)) *
-              ((((rho + p) * (W * W)) - p) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p) }
+          {(lapse * sqrt(spatial_det)) *
+             ((((rho + p) * (W * W)) - p) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse))))},
+          {(lapse * sqrt(spatial_det)) *
+             ((((rho + p) * (W * W)) - p) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse))))},
+          {(lapse * sqrt(spatial_det)) *
+             ((((rho + p) * (W * W)) - p) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p)}
         };
 
-        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         double q_local[70], flux_local_sr[70], flux_local_gr[70], flux[70];
         for (int d = 0; d < 3; d++) {
           gr_ultra_rel_euler_tetrad->rotate_to_local_func(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_local
+          );
           gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, q_local, flux_local_sr);
           gkyl_gr_ultra_rel_euler_tetrad_flux_correction(
-            gas_gamma, q_local, flux_local_sr, flux_local_gr);
+            gas_gamma, q_local, flux_local_sr, flux_local_gr
+          );
           gr_ultra_rel_euler_tetrad->rotate_to_global_func(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux
+          );
 
           for (int i = 0; i < 4; i++) {
             TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-1));
@@ -491,7 +508,8 @@ void test_gr_ultra_rel_euler_tetrad_basic_schwarzschild_ho()
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g
+          );
 
           for (int i = 0; i < 70; i++) {
             TEST_CHECK(gkyl_compare(q[i], q_g[i], 1e-13));
@@ -586,15 +604,21 @@ void test_gr_ultra_rel_euler_tetrad_basic_kerr_ho()
       spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &extrinsic_curvature
+      );
 
       spacetime->lapse_function_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+      );
       spacetime->shift_vector_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der
+      );
 
       double *vel = gkyl_malloc(sizeof(double[3]));
       vel[0] = u;
@@ -712,47 +736,50 @@ void test_gr_ultra_rel_euler_tetrad_basic_kerr_ho()
         shift[2] = prims[7];
 
         double fluxes[3][4] = {
-          { (lapse * sqrt(spatial_det)) *
-              ((((rho + p) * (W * W)) - p) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))) },
-          { (lapse * sqrt(spatial_det)) *
-              ((((rho + p) * (W * W)) - p) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))) },
-          { (lapse * sqrt(spatial_det)) *
-              ((((rho + p) * (W * W)) - p) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
-            (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p) }
+          {(lapse * sqrt(spatial_det)) *
+             ((((rho + p) * (W * W)) - p) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse))))},
+          {(lapse * sqrt(spatial_det)) *
+             ((((rho + p) * (W * W)) - p) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse))))},
+          {(lapse * sqrt(spatial_det)) *
+             ((((rho + p) * (W * W)) - p) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
+           (lapse * sqrt(spatial_det)) *
+             ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p)}
         };
 
-        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         double q_local[70], flux_local_sr[70], flux_local_gr[70], flux[70];
         for (int d = 0; d < 3; d++) {
           gr_ultra_rel_euler_tetrad->rotate_to_local_func(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_local
+          );
           gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, q_local, flux_local_sr);
           gkyl_gr_ultra_rel_euler_tetrad_flux_correction(
-            gas_gamma, q_local, flux_local_sr, flux_local_gr);
+            gas_gamma, q_local, flux_local_sr, flux_local_gr
+          );
           gr_ultra_rel_euler_tetrad->rotate_to_global_func(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux
+          );
 
           for (int i = 0; i < 4; i++) {
             TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-1));
@@ -763,7 +790,8 @@ void test_gr_ultra_rel_euler_tetrad_basic_kerr_ho()
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g
+          );
 
           for (int i = 0; i < 70; i++) {
             TEST_CHECK(gkyl_compare(q[i], q_g[i], 1e-13));
@@ -867,22 +895,36 @@ void test_gr_ultra_rel_euler_tetrad_waves_minkowski_ho()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
       spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l
+      );
       spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r
+      );
 
-      spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
-      spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &lapse_der_l
+      );
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &lapse_der_r
+      );
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &shift_der_l
+      );
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &shift_der_r
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der_l
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der_r
+      );
 
       double *vel_l = gkyl_malloc(sizeof(double[3]));
       double *vel_r = gkyl_malloc(sizeof(double[3]));
@@ -1065,43 +1107,53 @@ void test_gr_ultra_rel_euler_tetrad_waves_minkowski_ho()
       qr[68] = y;
       qr[69] = 0.0;
 
-      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+      double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+      double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+      double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
       for (int d = 0; d < 3; d++) {
         double speeds[3], waves[3 * 70], waves_local[3 * 70];
 
         double ql_local[70], qr_local[70];
         gkyl_wv_eqn_rotate_to_local(
-          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
+          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local
+        );
         gkyl_wv_eqn_rotate_to_local(
-          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
+          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local
+        );
 
         double delta[70];
         for (int i = 0; i < 70; i++) {
           delta[i] = qr_local[i] - ql_local[i];
         }
 
-        gkyl_wv_eqn_waves(gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local,
-          qr_local, 1.0, 1.0, waves_local, speeds);
+        gkyl_wv_eqn_waves(
+          gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
+          waves_local, speeds
+        );
 
         double apdq_local[70], amdq_local[70];
-        gkyl_wv_eqn_qfluct(gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local,
-          1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+        gkyl_wv_eqn_qfluct(
+          gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
+          waves_local, speeds, amdq_local, apdq_local
+        );
 
         for (int i = 0; i < 3; i++) {
-          gkyl_wv_eqn_rotate_to_global(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d],
-            &waves_local[i * 70], &waves[i * 70]);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 70],
+            &waves[i * 70]
+          );
         }
 
         double apdq[70], amdq[70];
         gkyl_wv_eqn_rotate_to_global(
-          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq
+        );
         gkyl_wv_eqn_rotate_to_global(
-          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq
+        );
 
         double fl_local_sr[70], fr_local_sr[70];
         gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, ql_local, fl_local_sr);
@@ -1109,15 +1161,19 @@ void test_gr_ultra_rel_euler_tetrad_waves_minkowski_ho()
 
         double fl_local_gr[70], fr_local_gr[70];
         gkyl_gr_ultra_rel_euler_tetrad_flux_correction(
-          gas_gamma, ql_local, fl_local_sr, fl_local_gr);
+          gas_gamma, ql_local, fl_local_sr, fl_local_gr
+        );
         gkyl_gr_ultra_rel_euler_tetrad_flux_correction(
-          gas_gamma, qr_local, fr_local_sr, fr_local_gr);
+          gas_gamma, qr_local, fr_local_sr, fr_local_gr
+        );
 
         double fl[70], fr[70];
         gkyl_wv_eqn_rotate_to_global(
-          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
+          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl
+        );
         gkyl_wv_eqn_rotate_to_global(
-          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
+          gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr
+        );
 
         for (int i = 0; i < 70; i++) {
           TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13));
@@ -1227,22 +1283,36 @@ void test_gr_ultra_rel_euler_tetrad_waves_schwarzschild_ho()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
       spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l
+      );
       spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r
+      );
 
-      spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
-      spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &lapse_der_l
+      );
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &lapse_der_r
+      );
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &shift_der_l
+      );
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &shift_der_r
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der_l
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der_r
+      );
 
       double *vel_l = gkyl_malloc(sizeof(double[3]));
       double *vel_r = gkyl_malloc(sizeof(double[3]));
@@ -1426,43 +1496,53 @@ void test_gr_ultra_rel_euler_tetrad_waves_schwarzschild_ho()
         qr[68] = y;
         qr[69] = 0.0;
 
-        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         for (int d = 0; d < 3; d++) {
           double speeds[3], waves[3 * 70], waves_local[3 * 70];
 
           double ql_local[70], qr_local[70];
           gkyl_wv_eqn_rotate_to_local(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local
+          );
           gkyl_wv_eqn_rotate_to_local(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local
+          );
 
           double delta[70];
           for (int i = 0; i < 70; i++) {
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local,
-            qr_local, 1.0, 1.0, waves_local, speeds);
+          gkyl_wv_eqn_waves(
+            gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
+            waves_local, speeds
+          );
 
           double apdq_local[70], amdq_local[70];
-          gkyl_wv_eqn_qfluct(gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local,
-            1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(
+            gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
+            waves_local, speeds, amdq_local, apdq_local
+          );
 
           for (int i = 0; i < 3; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d],
-              &waves_local[i * 70], &waves[i * 70]);
+            gkyl_wv_eqn_rotate_to_global(
+              gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 70],
+              &waves[i * 70]
+            );
           }
 
           double apdq[70], amdq[70];
           gkyl_wv_eqn_rotate_to_global(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq
+          );
           gkyl_wv_eqn_rotate_to_global(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq
+          );
 
           double fl_local_sr[70], fr_local_sr[70];
           gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, ql_local, fl_local_sr);
@@ -1470,15 +1550,19 @@ void test_gr_ultra_rel_euler_tetrad_waves_schwarzschild_ho()
 
           double fl_local_gr[70], fr_local_gr[70];
           gkyl_gr_ultra_rel_euler_tetrad_flux_correction(
-            gas_gamma, ql_local, fl_local_sr, fl_local_gr);
+            gas_gamma, ql_local, fl_local_sr, fl_local_gr
+          );
           gkyl_gr_ultra_rel_euler_tetrad_flux_correction(
-            gas_gamma, qr_local, fr_local_sr, fr_local_gr);
+            gas_gamma, qr_local, fr_local_sr, fr_local_gr
+          );
 
           double fl[70], fr[70];
           gkyl_wv_eqn_rotate_to_global(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl
+          );
           gkyl_wv_eqn_rotate_to_global(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr
+          );
 
           for (int i = 0; i < 70; i++) {
             TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12));
@@ -1589,22 +1673,36 @@ void test_gr_ultra_rel_euler_tetrad_waves_kerr_ho()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
       spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l
+      );
       spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r
+      );
 
-      spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
-      spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
-      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &lapse_der_l
+      );
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &lapse_der_r
+      );
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &shift_der_l
+      );
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &shift_der_r
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der_l
+      );
+      spacetime->spatial_metric_tensor_der_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+        &spatial_metric_der_r
+      );
 
       double *vel_l = gkyl_malloc(sizeof(double[3]));
       double *vel_r = gkyl_malloc(sizeof(double[3]));
@@ -1788,43 +1886,53 @@ void test_gr_ultra_rel_euler_tetrad_waves_kerr_ho()
         qr[68] = y;
         qr[69] = 0.0;
 
-        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         for (int d = 0; d < 3; d++) {
           double speeds[3], waves[3 * 70], waves_local[3 * 70];
 
           double ql_local[70], qr_local[70];
           gkyl_wv_eqn_rotate_to_local(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local
+          );
           gkyl_wv_eqn_rotate_to_local(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local
+          );
 
           double delta[70];
           for (int i = 0; i < 70; i++) {
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local,
-            qr_local, 1.0, 1.0, waves_local, speeds);
+          gkyl_wv_eqn_waves(
+            gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
+            waves_local, speeds
+          );
 
           double apdq_local[70], amdq_local[70];
-          gkyl_wv_eqn_qfluct(gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local,
-            1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(
+            gr_ultra_rel_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
+            waves_local, speeds, amdq_local, apdq_local
+          );
 
           for (int i = 0; i < 3; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d],
-              &waves_local[i * 70], &waves[i * 70]);
+            gkyl_wv_eqn_rotate_to_global(
+              gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 70],
+              &waves[i * 70]
+            );
           }
 
           double apdq[70], amdq[70];
           gkyl_wv_eqn_rotate_to_global(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq
+          );
           gkyl_wv_eqn_rotate_to_global(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq
+          );
 
           double fl_local_sr[70], fr_local_sr[70];
           gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, ql_local, fl_local_sr);
@@ -1832,15 +1940,19 @@ void test_gr_ultra_rel_euler_tetrad_waves_kerr_ho()
 
           double fl_local_gr[70], fr_local_gr[70];
           gkyl_gr_ultra_rel_euler_tetrad_flux_correction(
-            gas_gamma, ql_local, fl_local_sr, fl_local_gr);
+            gas_gamma, ql_local, fl_local_sr, fl_local_gr
+          );
           gkyl_gr_ultra_rel_euler_tetrad_flux_correction(
-            gas_gamma, qr_local, fr_local_sr, fr_local_gr);
+            gas_gamma, qr_local, fr_local_sr, fr_local_gr
+          );
 
           double fl[70], fr[70];
           gkyl_wv_eqn_rotate_to_global(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl
+          );
           gkyl_wv_eqn_rotate_to_global(
-            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
+            gr_ultra_rel_euler_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr
+          );
 
           for (int i = 0; i < 70; i++) {
             TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-11));
@@ -1884,14 +1996,16 @@ void test_gr_ultra_rel_euler_tetrad_waves_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-TEST_LIST = { { "gr_ultra_rel_euler_tetrad_basic_minkowski_ho",
-                test_gr_ultra_rel_euler_tetrad_basic_minkowski_ho },
-  { "gr_ultra_rel_euler_tetrad_basic_schwarzschild_ho",
-    test_gr_ultra_rel_euler_tetrad_basic_schwarzschild_ho },
-  { "gr_ultra_rel_euler_tetrad_basic_kerr_ho", test_gr_ultra_rel_euler_tetrad_basic_kerr_ho },
-  { "gr_ultra_rel_euler_tetrad_waves_minkowski_ho",
-    test_gr_ultra_rel_euler_tetrad_waves_minkowski_ho },
-  { "gr_ultra_rel_euler_tetrad_waves_schwarzschild_ho",
-    test_gr_ultra_rel_euler_tetrad_waves_schwarzschild_ho },
-  { "gr_ultra_rel_euler_tetrad_waves_kerr_ho", test_gr_ultra_rel_euler_tetrad_waves_kerr_ho },
-  { NULL, NULL } };
+TEST_LIST = {
+  {"gr_ultra_rel_euler_tetrad_basic_minkowski_ho", test_gr_ultra_rel_euler_tetrad_basic_minkowski_ho
+  },
+  {"gr_ultra_rel_euler_tetrad_basic_schwarzschild_ho",
+   test_gr_ultra_rel_euler_tetrad_basic_schwarzschild_ho},
+  {"gr_ultra_rel_euler_tetrad_basic_kerr_ho", test_gr_ultra_rel_euler_tetrad_basic_kerr_ho},
+  {"gr_ultra_rel_euler_tetrad_waves_minkowski_ho", test_gr_ultra_rel_euler_tetrad_waves_minkowski_ho
+  },
+  {"gr_ultra_rel_euler_tetrad_waves_schwarzschild_ho",
+   test_gr_ultra_rel_euler_tetrad_waves_schwarzschild_ho},
+  {"gr_ultra_rel_euler_tetrad_waves_kerr_ho", test_gr_ultra_rel_euler_tetrad_waves_kerr_ho},
+  {NULL, NULL}
+};

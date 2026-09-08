@@ -69,7 +69,8 @@ struct gkyl_block_topo *gkyl_block_geom_topo(const struct gkyl_block_geom *bgeom
  *
  */
 void gkyl_block_geom_set_block(
-  struct gkyl_block_geom *bgeom, int bidx, const struct gkyl_block_geom_info *info);
+  struct gkyl_block_geom *bgeom, int bidx, const struct gkyl_block_geom_info *info
+);
 
 /**
  * Reset grid extents for block geometry info
@@ -80,7 +81,8 @@ void gkyl_block_geom_set_block(
  * @param upper Upper extents
  */
 void gkyl_block_geom_reset_block_extents(
-  struct gkyl_block_geom *bgeom, int bidx, double *lower, double *upper);
+  struct gkyl_block_geom *bgeom, int bidx, double *lower, double *upper
+);
 
 /**
  * Get geometry and connectivity information about a block.
@@ -90,8 +92,8 @@ void gkyl_block_geom_reset_block_extents(
  * @return Geometry info for block @a bidx
  *
  */
-const struct gkyl_block_geom_info *gkyl_block_geom_get_block(
-  const struct gkyl_block_geom *bgeom, int bidx);
+const struct gkyl_block_geom_info *
+gkyl_block_geom_get_block(const struct gkyl_block_geom *bgeom, int bidx);
 
 /**
  * Check consistency of block geometry: the geometry typically has

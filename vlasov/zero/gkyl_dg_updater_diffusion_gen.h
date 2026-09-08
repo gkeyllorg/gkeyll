@@ -26,7 +26,8 @@ struct gkyl_dg_updater_diffusion_gen_tm {
  */
 struct gkyl_dg_updater_diffusion_gen *gkyl_dg_updater_diffusion_gen_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  const struct gkyl_range *diff_range, bool use_gpu);
+  const struct gkyl_range *diff_range, bool use_gpu
+);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -41,10 +42,11 @@ struct gkyl_dg_updater_diffusion_gen *gkyl_dg_updater_diffusion_gen_new(
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_diffusion_gen_advance(struct gkyl_dg_updater_diffusion_gen *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *coeff,
-  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
-  struct gkyl_array *GKYL_RESTRICT rhs);
+void gkyl_dg_updater_diffusion_gen_advance(
+  struct gkyl_dg_updater_diffusion_gen *up, const struct gkyl_range *update_rng,
+  const struct gkyl_array *coeff, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs
+);
 
 /**
  * Return total time spent in diffusion terms
@@ -52,8 +54,8 @@ void gkyl_dg_updater_diffusion_gen_advance(struct gkyl_dg_updater_diffusion_gen 
  * @param diffusion Updater object
  * @return timers
  */
-struct gkyl_dg_updater_diffusion_gen_tm gkyl_dg_updater_diffusion_gen_get_tm(
-  const struct gkyl_dg_updater_diffusion_gen *up);
+struct gkyl_dg_updater_diffusion_gen_tm
+gkyl_dg_updater_diffusion_gen_get_tm(const struct gkyl_dg_updater_diffusion_gen *up);
 
 /**
  * Delete updater.

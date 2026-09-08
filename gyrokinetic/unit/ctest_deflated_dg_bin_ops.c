@@ -35,8 +35,10 @@ void proj_rho(double t, const double *xn, double *fout, void *ctx)
 }
 
 // Check continuity along last dim in 2x
-void check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range,
-  struct gkyl_basis basis, struct gkyl_array *field)
+void check_continuity_2x(
+  struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis,
+  struct gkyl_array *field
+)
 {
   struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid.ndim, basis.num_basis);
   basis.node_list(gkyl_array_fetch(nodes, 0));
@@ -71,8 +73,10 @@ void check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range,
   gkyl_array_release(nodes);
 }
 
-void check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
-  struct gkyl_array *field2)
+void check_same(
+  struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
+  struct gkyl_array *field2
+)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -80,8 +84,9 @@ void check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_ar
     long lidx = gkyl_range_idx(&range, iter.idx);
     const double *f1 = gkyl_array_cfetch(field1, lidx);
     const double *f2 = gkyl_array_cfetch(field2, lidx);
-    for (int i = 0; i < basis.num_basis; i++)
+    for (int i = 0; i < basis.num_basis; i++) {
       TEST_CHECK(gkyl_compare(f1[i], f2[i], 1e-10));
+    }
   }
 }
 
@@ -92,14 +97,14 @@ void test_bop(bool use_gpu)
   int c_oop = 0;
   // create the 2d field
   // create xz grid
-  double lower[] = { -M_PI, 0.0 }, upper[] = { M_PI, 1.0 };
-  int cells[] = { 12, 8 };
+  double lower[] = {-M_PI, 0.0}, upper[] = {M_PI, 1.0};
+  int cells[] = {12, 8};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   struct gkyl_range global_sub_range = local;
 
@@ -183,10 +188,11 @@ void test_bop(bool use_gpu)
 
   check_continuity_2x(grid, local, basis, Fxz);
 
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cart_modal_basis_release_cu(basis_on_dev);
-  else
+  } else {
     gkyl_cart_modal_basis_release(basis_on_dev);
+  }
 
   gkyl_array_release(rho);
   gkyl_array_release(jac);
@@ -212,8 +218,10 @@ void test_deflated_bop_dev(void)
   test_bop(true);
 }
 
-TEST_LIST = { { "test_deflated_bop_ho", test_deflated_bop_ho },
+TEST_LIST = {
+  {"test_deflated_bop_ho", test_deflated_bop_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_deflated_bop_dev", test_deflated_bop_dev },
+  {"test_deflated_bop_dev", test_deflated_bop_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

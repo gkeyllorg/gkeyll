@@ -8,10 +8,11 @@ extern "C" {
 #include <gkyl_prim_bgk_cross_calc.h>
 }
 
-__global__ void gkyl_prim_bgk_cross_calc_advance_cu_kernel(struct gkyl_basis basis, int vdim_phys,
-  const struct gkyl_array *m0sdeltas, double massself, const struct gkyl_array *primsself,
-  double massother, const struct gkyl_array *primsother, struct gkyl_range range,
-  struct gkyl_array *crossprims)
+__global__ void gkyl_prim_bgk_cross_calc_advance_cu_kernel(
+  struct gkyl_basis basis, int vdim_phys, const struct gkyl_array *m0sdeltas, double massself,
+  const struct gkyl_array *primsself, double massother, const struct gkyl_array *primsother,
+  struct gkyl_range range, struct gkyl_array *crossprims
+)
 {
   unsigned num_basis = basis.num_basis;
   unsigned ndim = basis.ndim;
@@ -56,62 +57,72 @@ __global__ void gkyl_prim_bgk_cross_calc_advance_cu_kernel(struct gkyl_basis bas
 
     // v_tsr^2 = (u_si-u_ri)^2 = (u_si-u_ri) . (u_si-u_ri)
     double vbuf[20 * 3]; // MF 2022/11/20: Hardcoded to 3x p2 ser (3 components).
-    for (int k = 0; k < num_basis; k++)
+    for (int k = 0; k < num_basis; k++) {
       vtsqcross[k] = 0.;
+    }
     for (int d = 0; d < udim; d++) {
       mul_op(ucross + d * num_basis, ucross + d * num_basis, vbuf);
-      for (int k = 0; k < num_basis; k++)
+      for (int k = 0; k < num_basis; k++) {
         vtsqcross[k] += vbuf[k];
+      }
     }
 
     // v_tsr^2 = m_s*v_ts^2-m_r*v_tr^2+((m_s-m_r)/(2*vdim_phys))*(u_si-u_ri)^2
-    for (int k = 0; k < num_basis; k++)
+    for (int k = 0; k < num_basis; k++) {
       vtsqcross[k] = massDiff * vtsqcross[k] + massself * vtsqself[k] - massother * vtsqother[k];
-    ;
+    };
 
     // vbuf = -0.5*delta_s*(beta+1)*(u_si - u_ri) = u_sri - u_si:
     for (int d = 0; d < udim; d++) {
       mul_op(m0sdeltas_d, ucross + d * num_basis, vbuf + d * num_basis);
-      for (int k = d * num_basis; k < (d + 1) * num_basis; k++)
+      for (int k = d * num_basis; k < (d + 1) * num_basis; k++) {
         vbuf[k] *= -0.5;
+      }
     }
     // v_tsr^2 = -(delta_s*(beta+1)/(m_s+m_r))*(m_s*v_ts^2-m_r*v_tr^2+((m_s-m_r)/(2*vdim_phys))*(u_si-u_ri)^2)
     mul_op(m0sdeltas_d, vtsqcross, vtsqcross);
-    for (int k = 0; k < num_basis; k++)
+    for (int k = 0; k < num_basis; k++) {
       vtsqcross[k] = -vtsqcross[k] / massSum;
+    }
 
     // u_sr = u_si-0.5*delta_s*(beta+1)*(u_si - u_ri) = u_si + vbuf:
-    for (int k = 0; k < u_num_basis; k++)
+    for (int k = 0; k < u_num_basis; k++) {
       ucross[k] = uself[k] + vbuf[k];
+    }
 
     // v_tsr^2 = -(u_sri-u_ri).(u_sri-u_si)/vdim_phys
     //   -(delta_s*(beta+1)/(m_s+m_r))*(m_s*v_ts^2-m_r*v_tr^2+((m_s-m_r)/(2*vdim_phys))*(u_si-u_ri)^2)
     // Need the dot product (u_sri-u_ri).(u_sri-u_si):
     for (int d = 0; d < udim; d++) {
       double compbuf[20]; // MF 2022/11/20: Hardcoded to 3x p2 ser.
-      for (int k = 0; k < num_basis; k++)
+      for (int k = 0; k < num_basis; k++) {
         compbuf[k] = ucross[d * num_basis + k] - uother[d * num_basis + k];
+      }
       mul_op(compbuf, vbuf + d * num_basis, compbuf);
-      for (int k = 0; k < num_basis; k++)
+      for (int k = 0; k < num_basis; k++) {
         vtsqcross[k] += -compbuf[k] / vdim_phys;
+      }
     }
 
     // v_tsr^2 = v_ts^2-(u_sri-u_ri).(u_sri-u_si)/vdim_phys
     //   -(delta_s*(beta+1)/(m_s+m_r))*(m_s*v_ts^2-m_r*v_tr^2+((m_s-m_r)/(2*vdim_phys))*(u_si-u_ri)^2)
-    for (int k = 0; k < num_basis; k++)
+    for (int k = 0; k < num_basis; k++) {
       vtsqcross[k] += vtsqself[k];
+    }
   }
 }
 
-void gkyl_prim_bgk_cross_calc_advance_cu(struct gkyl_basis basis, int vdim_phys,
-  const struct gkyl_array *m0sdeltas, double massself, const struct gkyl_array *primsself,
-  double massother, const struct gkyl_array *primsother, const struct gkyl_range *range,
-  struct gkyl_array *crossprims)
+void gkyl_prim_bgk_cross_calc_advance_cu(
+  struct gkyl_basis basis, int vdim_phys, const struct gkyl_array *m0sdeltas, double massself,
+  const struct gkyl_array *primsself, double massother, const struct gkyl_array *primsother,
+  const struct gkyl_range *range, struct gkyl_array *crossprims
+)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
 
-  gkyl_prim_bgk_cross_calc_advance_cu_kernel<<<nblocks, nthreads> > >(basis, vdim_phys,
-    m0sdeltas->on_dev, massself, primsself->on_dev, massother, primsother->on_dev, *range,
-    crossprims->on_dev);
+  gkyl_prim_bgk_cross_calc_advance_cu_kernel<<<nblocks, nthreads> > >(
+    basis, vdim_phys, m0sdeltas->on_dev, massself, primsself->on_dev, massother, primsother->on_dev,
+    *range, crossprims->on_dev
+  );
 }

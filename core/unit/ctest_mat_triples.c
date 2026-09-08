@@ -59,9 +59,9 @@ void test_mat_triples_2_ho()
   TEST_CHECK(gkyl_mat_triples_size(tri) == 5);
 
   // order in which col-maj sorting should return indices
-  size_t cm_idx[][2] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 2 }, { 2, 2 } };
+  size_t cm_idx[][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 2}, {2, 2}};
 
-  double vals[] = { 1.0, 2.1, 2.0, 1.1, 3.0 };
+  double vals[] = {1.0, 2.1, 2.0, 1.1, 3.0};
 
   int i = 0;
   gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
@@ -82,7 +82,7 @@ void test_mat_triples_3_ho()
 {
   gkyl_mat_triples *tri = gkyl_mat_triples_new(3, 3);
 
-  double vals[] = { 1.0, 2.1, 2.0, 1.1, 3.0 };
+  double vals[] = {1.0, 2.1, 2.0, 1.1, 3.0};
 
   // row 1
   gkyl_mat_triples_insert(tri, 1, 1, 2.0);
@@ -129,6 +129,9 @@ void test_mat_triples_3_ho()
   gkyl_mat_triples_release(tri);
 }
 
-TEST_LIST = { { "mat_triples_1_ho", test_mat_triples_1_ho },
-  { "mat_triples_2_ho", test_mat_triples_2_ho }, { "mat_triples_3_ho", test_mat_triples_3_ho },
-  { NULL, NULL } };
+TEST_LIST = {
+  {"mat_triples_1_ho", test_mat_triples_1_ho},
+  {"mat_triples_2_ho", test_mat_triples_2_ho},
+  {"mat_triples_3_ho", test_mat_triples_3_ho},
+  {NULL, NULL}
+};

@@ -81,7 +81,8 @@ void gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int *idx
  * @param arr_in Array to be multiplied by the mask.
  */
 void gkyl_dg_array_mask_scale_by_cell(
-  struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in);
+  struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in
+);
 
 /**
  * Acquire a reference to the mask object.

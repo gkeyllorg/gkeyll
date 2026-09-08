@@ -16,14 +16,16 @@ void gkyl_lbo_gyrokinetic_diff_free(const struct gkyl_ref_count *ref)
   gkyl_gk_geometry_release(lbo->gk_geom);
   gkyl_velocity_map_release(lbo->vel_map);
 
-  if (GKYL_IS_CU_ALLOC(lbo->eqn.flags))
+  if (GKYL_IS_CU_ALLOC(lbo->eqn.flags)) {
     gkyl_cu_free(lbo->eqn.on_dev);
+  }
 
   gkyl_free(lbo);
 }
 
 void gkyl_lbo_gyrokinetic_diff_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.nuSum) && gkyl_array_is_cu_dev(auxin.nuPrimMomsSum) &&
@@ -39,15 +41,18 @@ void gkyl_lbo_gyrokinetic_diff_set_auxfields(
   lbo->auxfields.m2self = auxin.m2self;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_rect_grid *pgrid, double mass, const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_lbo_gyrokinetic_diff_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid, double mass,
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  if (use_gpu) {
     return gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(
-      cbasis, pbasis, conf_range, pgrid, mass, gk_geom, vel_map);
+      cbasis, pbasis, conf_range, pgrid, mass, gk_geom, vel_map
+    );
+  }
 #endif
   struct dg_lbo_gyrokinetic_diff *lbo = gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_diff));
 
@@ -94,18 +99,22 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis *cb
   lbo->eqn.vol_term = CK(vol_kernels, cdim, vdim, poly_order);
 
   lbo->surf[0] = CK(surf_vpar_kernels, cdim, vdim, poly_order);
-  if (vdim > 1)
+  if (vdim > 1) {
     lbo->surf[1] = CK(surf_mu_kernels, cdim, vdim, poly_order);
+  }
 
   lbo->boundary_surf[0] = CK(boundary_surf_vpar_kernels, cdim, vdim, poly_order);
-  if (vdim > 1)
+  if (vdim > 1) {
     lbo->boundary_surf[1] = CK(boundary_surf_mu_kernels, cdim, vdim, poly_order);
+  }
 
   // ensure non-NULL pointers
-  for (int i = 0; i < vdim; ++i)
+  for (int i = 0; i < vdim; ++i) {
     assert(lbo->surf[i]);
-  for (int i = 0; i < vdim; ++i)
+  }
+  for (int i = 0; i < vdim; ++i) {
     assert(lbo->boundary_surf[i]);
+  }
 
   lbo->mass = mass;
   lbo->conf_range = *conf_range;

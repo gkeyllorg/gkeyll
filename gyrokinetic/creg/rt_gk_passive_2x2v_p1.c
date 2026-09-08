@@ -89,7 +89,8 @@ struct passive_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct passive_ctx ctx = { .cdim = cdim,
+  struct passive_ctx ctx = {
+    .cdim = cdim,
     .vdim = vdim,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
@@ -104,7 +105,7 @@ struct passive_ctx create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = { Nx, Nz, Nvpar, Nmu },
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .Lx = Lx,
     .Lz = Lz,
     .vpar_max_elc = vpar_max_elc,
@@ -116,7 +117,8 @@ struct passive_ctx create_ctx(void)
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   return ctx;
 }
@@ -135,14 +137,16 @@ void distf_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
   double rx2 = pow(x - Lx / 2, 2);
   double rz2 = pow(z - Lz / 2, 2);
 
-  if (rx2 < pow(Lx / 4, 2) && rz2 < pow(Lz / 4, 2))
+  if (rx2 < pow(Lx / 4, 2) && rz2 < pow(Lz / 4, 2)) {
     fout[0] = f_amplitude;
-  else
+  } else {
     fout[0] = f_floor;
+  }
 }
 
 void passive_velocity_elc(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double x = xn[0], z = xn[1];
 
@@ -154,8 +158,8 @@ void passive_velocity_elc(
   fout[1] = uz;
 }
 
-static inline void mapc2p(
-  double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
+static inline void
+mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
 {
   struct passive_ctx *app = ctx;
   double x = zc[0], y = zc[1], z = zc[2];
@@ -184,8 +188,9 @@ int main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args.trace_mem) {
@@ -196,10 +201,12 @@ int main(int argc, char **argv)
   struct passive_ctx ctx = create_ctx(); // Context for init functions.
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d = 0; d < ctx.cdim; d++)
+  for (int d = 0; d < ctx.cdim; d++) {
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d = 0; d < ctx.vdim; d++)
+  }
+  for (int d = 0; d < ctx.vdim; d++) {
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim + d]);
+  }
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
@@ -210,17 +217,18 @@ int main(int argc, char **argv)
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .vdim = ctx.vdim,
-    .lower = { -ctx.vpar_max_elc, 0.0 },
-    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
-    .cells = { cells_v[0], cells_v[1] },
+    .lower = {-ctx.vpar_max_elc, 0.0},
+    .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
+    .cells = {cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
 
-    .projection = { .proj_id = GKYL_PROJ_FUNC, .func = distf_elc, .ctx_func = &ctx },
+    .projection = {.proj_id = GKYL_PROJ_FUNC, .func = distf_elc, .ctx_func = &ctx},
 
-    .collisionless = { .type = GKYL_GK_COLLISIONLESS_PASSIVE,
-      .passive_speeds = passive_velocity_elc,
-      .passive_speeds_ctx = &ctx,
-      .write_diagnostics = true },
+    .collisionless =
+      {.type = GKYL_GK_COLLISIONLESS_PASSIVE,
+       .passive_speeds = passive_velocity_elc,
+       .passive_speeds_ctx = &ctx,
+       .write_diagnostics = true},
 
     //    .bcs = {
     //      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, },
@@ -228,7 +236,7 @@ int main(int argc, char **argv)
     //    },
 
     .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 }
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2}
     //    .num_integrated_diag_moments = 1,
     //    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     //    .time_rate_diagnostics = true,
@@ -251,32 +259,32 @@ int main(int argc, char **argv)
   struct gkyl_gk app_inp = {
 
     .cdim = ctx.cdim,
-    .lower = { 0.0, 0.0 },
-    .upper = { ctx.Lx, ctx.Lz },
-    .cells = { cells_x[0], cells_x[1] },
+    .lower = {0.0, 0.0},
+    .upper = {ctx.Lx, ctx.Lz},
+    .cells = {cells_x[0], cells_x[1]},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-      .world = {},
-      .mapc2p = mapc2p,
-      .c2p_ctx = &ctx,
-      .bfield_func = bfield_func,
-      .bfield_ctx = &ctx },
+    .geometry =
+      {.geometry_id = GKYL_GEOMETRY_MAPC2P,
+       .world = {},
+       .mapc2p = mapc2p,
+       .c2p_ctx = &ctx,
+       .bfield_func = bfield_func,
+       .bfield_ctx = &ctx},
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
+    .periodic_dirs = {1},
 
     .num_species = 1,
-    .species = { elc },
+    .species = {elc},
 
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
-      .comm = comm }
+    .parallelism =
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
   };
 
   // Set app output name from the executable name (argv[0]).
@@ -284,15 +292,16 @@ int main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .time_stepping = { .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps }
+    .time_stepping =
+      {.t_end = ctx.t_end,
+       .num_frames = ctx.num_frames,
+       .write_phase_freq = ctx.write_phase_freq,
+       .int_diag_calc_num = ctx.int_diag_calc_num,
+       .dt_failure_tol = ctx.dt_failure_tol,
+       .num_failures_max = ctx.num_failures_max,
+       .is_restart = app_args.is_restart,
+       .restart_frame = app_args.restart_frame,
+       .num_steps = app_args.num_steps}
     //    .print_verbosity = {
     //      .enabled = true,
     //      .disable_timings = true,
@@ -304,8 +313,9 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   return 0;

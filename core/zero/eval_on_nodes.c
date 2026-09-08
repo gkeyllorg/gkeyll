@@ -27,20 +27,24 @@ static inline void c2p_identity(const double *xcomp, double *xphys, void *ctx)
 {
   struct gkyl_rect_grid *grid = ctx;
   int ndim = grid->ndim;
-  for (int d = 0; d < ndim; d++)
+  for (int d = 0; d < ndim; d++) {
     xphys[d] = xcomp[d];
+  }
 }
 
-struct gkyl_eval_on_nodes *gkyl_eval_on_nodes_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, int num_ret_vals, evalf_t eval, void *ctx)
+struct gkyl_eval_on_nodes *gkyl_eval_on_nodes_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_ret_vals, evalf_t eval,
+  void *ctx
+)
 {
-  return gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){ .grid = grid,
+  return gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp
+  ){.grid = grid,
     .basis = basis,
     .num_ret_vals = num_ret_vals,
     .eval = eval,
     .ctx = ctx,
     .c2p_func = 0,
-    .c2p_func_ctx = NULL });
+    .c2p_func_ctx = NULL});
 }
 
 struct gkyl_eval_on_nodes *gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp *inp)
@@ -69,18 +73,22 @@ struct gkyl_eval_on_nodes *gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nod
   return up;
 }
 
-static inline void log_to_comp(int ndim, const double *eta, const double *GKYL_RESTRICT dx,
-  const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xout)
+static inline void log_to_comp(
+  int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
+  double *GKYL_RESTRICT xout
+)
 {
-  for (int d = 0; d < ndim; ++d)
+  for (int d = 0; d < ndim; ++d) {
     xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
+  }
 }
 
-static inline void copy_double_arr(
-  int n, const double *GKYL_RESTRICT inp, double *GKYL_RESTRICT out)
+static inline void
+copy_double_arr(int n, const double *GKYL_RESTRICT inp, double *GKYL_RESTRICT out)
 {
-  for (int i = 0; i < n; ++i)
+  for (int i = 0; i < n; ++i) {
     out[i] = inp[i];
+  }
 }
 
 double *gkyl_eval_on_nodes_fetch_node(const struct gkyl_eval_on_nodes *up, long node)
@@ -89,7 +97,8 @@ double *gkyl_eval_on_nodes_fetch_node(const struct gkyl_eval_on_nodes *up, long 
 }
 
 void gkyl_eval_on_nodes_nod2mod(
-  const struct gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f)
+  const struct gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f
+)
 {
   const double *fao = gkyl_array_cfetch(fun_at_nodes, 0); // pointer to values at nodes
 
@@ -99,20 +108,24 @@ void gkyl_eval_on_nodes_nod2mod(
   for (int i = 0; i < num_ret_vals; ++i) {
     // copy so nodal values for each return value are contiguous
     // (recall that function can have more than one return value)
-    for (int k = 0; k < num_basis; ++k)
+    for (int k = 0; k < num_basis; ++k) {
       fnodal[k] = fao[num_ret_vals * k + i];
+    }
 
     // transform to modal expansion
     up->nodal_to_modal(fnodal, &f[num_basis * i]);
   }
 }
 
-void gkyl_eval_on_nodes_advance(const struct gkyl_eval_on_nodes *up, double tm,
-  const struct gkyl_range *update_range, struct gkyl_array *arr)
+void gkyl_eval_on_nodes_advance(
+  const struct gkyl_eval_on_nodes *up, double tm, const struct gkyl_range *update_range,
+  struct gkyl_array *arr
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(arr))
+  if (gkyl_array_is_cu_dev(arr)) {
     assert(false); // arr should be a host array.
+  }
 #endif
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];

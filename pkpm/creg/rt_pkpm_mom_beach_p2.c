@@ -110,9 +110,10 @@ struct mom_beach_ctx create_ctx(void)
   // Collision frequencies.
   double nu_elc = log_lambda_elc * pow(charge_elc, 4) * n0 /
                   (6.0 * sqrt(2.0) * pow(pi, 3.0 / 2.0) * pow(epsilon0, 2) * sqrt(mass_elc) *
-                    pow(T_elc, 3.0 / 2.0));
+                   pow(T_elc, 3.0 / 2.0));
 
-  struct mom_beach_ctx ctx = { .pi = pi,
+  struct mom_beach_ctx ctx = {
+    .pi = pi,
     .gas_gamma = gas_gamma,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -135,7 +136,8 @@ struct mom_beach_ctx create_ctx(void)
     .deltaT = deltaT,
     .factor = factor,
     .omega_drive = omega_drive,
-    .init_dt = init_dt };
+    .init_dt = init_dt
+  };
 
   return ctx;
 }
@@ -146,8 +148,7 @@ static inline double maxwellian(double n, double v, double vth)
   return n / sqrt(2 * M_PI * vth * vth) * exp(-v2 / (2 * vth * vth));
 }
 
-void evalDistFuncElc(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], v = xn[1];
   struct mom_beach_ctx *app = ctx;
@@ -274,26 +275,30 @@ int main(int argc, char **argv)
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   // electrons
-  struct gkyl_pkpm_species elc = { .name = "elc",
+  struct gkyl_pkpm_species elc = {
+    .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
-    .lower = { -6.0 * ctx.vt_elc },
-    .upper = { 6.0 * ctx.vt_elc },
-    .cells = { NV },
+    .lower = {-6.0 * ctx.vt_elc},
+    .upper = {6.0 * ctx.vt_elc},
+    .cells = {NV},
 
     .ctx_dist = &ctx,
     .ctx_fluid = &ctx,
     .init_dist = evalDistFuncElc,
     .init_fluid = evalFluidElc,
 
-    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
+    .collisions =
+      {.collision_id = GKYL_LBO_COLLISIONS,
 
-      .ctx = &ctx,
-      .self_nu = evalNuElc },
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
+       .ctx = &ctx,
+       .self_nu = evalNuElc},
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY}
+  };
 
   // field
-  struct gkyl_pkpm_field field = { .epsilon0 = ctx.epsilon0,
+  struct gkyl_pkpm_field field = {
+    .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
@@ -306,7 +311,8 @@ int main(int argc, char **argv)
     .app_current = evalAppCurrent,
     .app_current_ctx = &ctx,
     .app_current_evolve = true,
-    .bcx = { GKYL_FIELD_COPY, GKYL_FIELD_COPY } };
+    .bcx = {GKYL_FIELD_COPY, GKYL_FIELD_COPY}
+  };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -320,18 +326,18 @@ int main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){.mpi_comm = MPI_COMM_WORLD});
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -339,7 +345,7 @@ int main(int argc, char **argv)
   int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
-  int ccells[] = { NX };
+  int ccells[] = {NX};
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
   int ncuts = 1;
   for (int d = 0; d < cdim; d++) {
@@ -348,8 +354,7 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -359,9 +364,9 @@ int main(int argc, char **argv)
 
     .cdim = 1,
     .vdim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
-    .cells = { NX },
+    .lower = {0.0},
+    .upper = {ctx.Lx},
+    .cells = {NX},
     .poly_order = 2,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
@@ -370,10 +375,10 @@ int main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = { elc },
+    .species = {elc},
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // create app object
@@ -387,7 +392,7 @@ int main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  struct gkyl_tm_trigger io_trig = {.dt = t_end / num_frames};
 
   // initialize simulation
   gkyl_pkpm_app_apply_ic(app, t_curr);
@@ -424,7 +429,8 @@ int main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_pkpm_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_pkpm_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
         break;
       }
     } else {
@@ -445,24 +451,31 @@ int main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
     gkyl_pkpm_app_cout(
-      app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+      app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]
+    );
     gkyl_pkpm_app_cout(
-      app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+      app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]
+    );
   }
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_pkpm_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
   gkyl_pkpm_app_cout(
-    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
+  );
   gkyl_pkpm_app_cout(
-    app, stdout, "Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
+    app, stdout, "Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm
+  );
   gkyl_pkpm_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_pkpm_app_cout(app, stdout, "Species PKPM Vars took %g secs\n", stat.species_pkpm_vars_tm);
   gkyl_pkpm_app_cout(
-    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
+  );
   gkyl_pkpm_app_cout(
-    app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm);
+    app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm
+  );
   gkyl_pkpm_app_cout(
-    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm
+  );
 
   gkyl_pkpm_app_cout(app, stdout, "Species BCs took %g secs\n", stat.species_bc_tm);
   gkyl_pkpm_app_cout(app, stdout, "Fluid Species BCs took %g secs\n", stat.fluid_species_bc_tm);
@@ -480,8 +493,9 @@ int main(int argc, char **argv)
 
 mpifinalize:;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   return 0;

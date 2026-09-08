@@ -166,8 +166,8 @@ void gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app *app, int si
  * @param frame Frame number to read from
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_field(
-  gkyl_moment_multib_app *app, int frame);
+struct gkyl_app_restart_status
+gkyl_moment_multib_app_from_frame_field(gkyl_moment_multib_app *app, int frame);
 
 /**
  * Read species data from specified frame of previous simulation.
@@ -177,8 +177,8 @@ struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_field(
  * @param frame Frame number to read from
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_species(
-  gkyl_moment_multib_app *app, int sidx, int frame);
+struct gkyl_app_restart_status
+gkyl_moment_multib_app_from_frame_species(gkyl_moment_multib_app *app, int sidx, int frame);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the
@@ -226,7 +226,8 @@ void gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, doubl
  * @param frame Frame number
  */
 void gkyl_moment_multib_app_write_species(
-  const gkyl_moment_multib_app *app, int sidx, double tm, int frame);
+  const gkyl_moment_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write field energy to file.

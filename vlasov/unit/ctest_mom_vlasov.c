@@ -77,28 +77,31 @@ struct skin_ghost_ranges {
 
 // Create ghost and skin sub-ranges given a parent range
 static void skin_ghost_ranges_init(
-  struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost)
+  struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost
+)
 {
   int ndim = parent->ndim;
 
   for (int d = 0; d < ndim; ++d) {
     gkyl_skin_ghost_ranges(
-      &sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent, ghost);
+      &sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent, ghost
+    );
     gkyl_skin_ghost_ranges(
-      &sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent, ghost);
+      &sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent, ghost
+    );
   }
 }
 
 void test_mom_vlasov_1x1v_p1_ho()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0 }, upper[] = { 2.0, 2.0 };
-  int cells[] = { 4, 2 };
+  double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
+  int cells[] = {4, 2};
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int vdim = 1, cdim = 1;
 
-  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
-  int confCells[] = { cells[0] };
+  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  int confCells[] = {cells[0]};
 
   // grids
   struct gkyl_rect_grid grid;
@@ -116,13 +119,13 @@ void test_mom_vlasov_1x1v_p1_ho()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1 };
+  int confGhost[] = {1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], 0 };
+  int ghost[] = {confGhost[0], 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -247,13 +250,13 @@ void test_mom_vlasov_1x1v_p1_ho()
 void test_mom_vlasov_1x2v_p1_ho()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0 };
-  int cells[] = { 4, 2, 2 };
+  double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
+  int cells[] = {4, 2, 2};
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int vdim = 2, cdim = 1;
 
-  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
-  int confCells[] = { cells[0] };
+  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  int confCells[] = {cells[0]};
 
   // grids
   struct gkyl_rect_grid grid;
@@ -271,13 +274,13 @@ void test_mom_vlasov_1x2v_p1_ho()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 0 };
+  int confGhost[] = {0};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], 0, 0 };
+  int ghost[] = {confGhost[0], 0, 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -314,7 +317,7 @@ void test_mom_vlasov_1x2v_p1_ho()
 
   // Check M0.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = { i };
+    int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m0ptr = gkyl_array_fetch(m0, linc);
     TEST_CHECK(gkyl_compare(5.656854249492378, m0ptr[0], 1e-12));
@@ -325,7 +328,7 @@ void test_mom_vlasov_1x2v_p1_ho()
 
   // Check M1i.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = { i };
+    int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m1iptr = gkyl_array_fetch(m1i, linc);
     for (unsigned int k = 0; k < m1i->ncomp; ++k) {
@@ -335,7 +338,7 @@ void test_mom_vlasov_1x2v_p1_ho()
 
   // Check M2.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = { i };
+    int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m2ptr = gkyl_array_fetch(m2, linc);
     TEST_CHECK(gkyl_compare(15.084944665313010, m2ptr[0], 1e-12));
@@ -362,13 +365,13 @@ void test_mom_vlasov_1x2v_p1_ho()
 void test_mom_vlasov_2x2v_p1_ho()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0, 2.0 };
-  int cells[] = { 4, 4, 2, 2 };
+  double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
+  int cells[] = {4, 4, 2, 2};
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int vdim = 2, cdim = 2;
 
-  double confLower[] = { lower[0], lower[1] }, confUpper[] = { upper[0], upper[1] };
-  int confCells[] = { cells[0], cells[1] };
+  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
+  int confCells[] = {cells[0], cells[1]};
 
   // grids
   struct gkyl_rect_grid grid;
@@ -386,13 +389,13 @@ void test_mom_vlasov_2x2v_p1_ho()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1 };
+  int confGhost[] = {1, 1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
+  int ghost[] = {confGhost[0], confGhost[1], 0, 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -430,7 +433,7 @@ void test_mom_vlasov_2x2v_p1_ho()
   // Check M0.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
       TEST_CHECK(gkyl_compare(8.0, m0ptr[0], 1e-12));
@@ -443,7 +446,7 @@ void test_mom_vlasov_2x2v_p1_ho()
   // Check M1i.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m1iptr = gkyl_array_fetch(m1i, linc);
       for (unsigned int k = 0; k < m1i->ncomp; ++k) {
@@ -455,7 +458,7 @@ void test_mom_vlasov_2x2v_p1_ho()
   // Check M2.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
       TEST_CHECK(gkyl_compare(21.333333333333336, m2ptr[0], 1e-12));
@@ -483,13 +486,13 @@ void test_mom_vlasov_2x2v_p1_ho()
 void test_mom_vlasov_big_2x2v_p2_ho()
 {
   int poly_order = 2;
-  double lower[] = { -2.0, -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0, 2.0 };
-  int cells[] = { 44, 44, 32, 32 };
+  double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
+  int cells[] = {44, 44, 32, 32};
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int vdim = 2, cdim = 2;
 
-  double confLower[] = { lower[0], lower[1] }, confUpper[] = { upper[0], upper[1] };
-  int confCells[] = { cells[0], cells[1] };
+  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
+  int confCells[] = {cells[0], cells[1]};
 
   // grids
   struct gkyl_rect_grid grid;
@@ -507,13 +510,13 @@ void test_mom_vlasov_big_2x2v_p2_ho()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1 };
+  int confGhost[] = {1, 1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
+  int ghost[] = {confGhost[0], confGhost[1], 0, 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -551,7 +554,7 @@ void test_mom_vlasov_big_2x2v_p2_ho()
   // Check M0.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
       TEST_CHECK(gkyl_compare(64.0, m0ptr[0], 1e-12));
@@ -564,7 +567,7 @@ void test_mom_vlasov_big_2x2v_p2_ho()
   // Check M1i.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m1iptr = gkyl_array_fetch(m1i, linc);
 
@@ -576,7 +579,7 @@ void test_mom_vlasov_big_2x2v_p2_ho()
   // Check M2.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
       TEST_CHECK(gkyl_compare(170.666666666666667, m2ptr[0], 1e-12));
@@ -604,13 +607,13 @@ void test_mom_vlasov_big_2x2v_p2_ho()
 void test_mom_vlasov_2x3v_p1_ho()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0, -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0, 2.0, 2.0 };
-  int cells[] = { 4, 4, 2, 2, 2 };
+  double lower[] = {-2.0, -2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0, 2.0};
+  int cells[] = {4, 4, 2, 2, 2};
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int vdim = 3, cdim = 2;
 
-  double confLower[] = { lower[0], lower[1] }, confUpper[] = { upper[0], upper[1] };
-  int confCells[] = { cells[0], cells[1] };
+  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
+  int confCells[] = {cells[0], cells[1]};
 
   // grids
   struct gkyl_rect_grid grid;
@@ -628,13 +631,13 @@ void test_mom_vlasov_2x3v_p1_ho()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1 };
+  int confGhost[] = {1, 1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], confGhost[1], 0, 0, 0 };
+  int ghost[] = {confGhost[0], confGhost[1], 0, 0, 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -672,7 +675,7 @@ void test_mom_vlasov_2x3v_p1_ho()
   // Check M0.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
       TEST_CHECK(gkyl_compare(31.999999999999996, m0ptr[0], 1e-12));
@@ -685,7 +688,7 @@ void test_mom_vlasov_2x3v_p1_ho()
   // Check M1i.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m1iptr = gkyl_array_fetch(m1i, linc);
       for (unsigned int k = 0; k < m1i->ncomp; ++k) {
@@ -697,7 +700,7 @@ void test_mom_vlasov_2x3v_p1_ho()
   // Check M2.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
       TEST_CHECK(gkyl_compare(127.999999999999972, m2ptr[0], 1e-12));
@@ -745,13 +748,13 @@ void test_mom_vlasov_dev()
 void test_mom_vlasov_1x1v_p1_dev()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0 }, upper[] = { 2.0, 2.0 };
-  int cells[] = { 4, 2 };
+  double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
+  int cells[] = {4, 2};
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int vdim = 1, cdim = 1;
 
-  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
-  int confCells[] = { cells[0] };
+  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  int confCells[] = {cells[0]};
 
   // grids
   struct gkyl_rect_grid grid;
@@ -769,13 +772,13 @@ void test_mom_vlasov_1x1v_p1_dev()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 0 };
+  int confGhost[] = {0};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], 0 };
+  int ghost[] = {confGhost[0], 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -884,13 +887,13 @@ void test_mom_vlasov_1x1v_p1_dev()
 void test_mom_vlasov_1x2v_p1_dev()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0 };
-  int cells[] = { 4, 2, 2 };
+  double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
+  int cells[] = {4, 2, 2};
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int vdim = 2, cdim = 1;
 
-  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
-  int confCells[] = { cells[0] };
+  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  int confCells[] = {cells[0]};
 
   // grids
   struct gkyl_rect_grid grid;
@@ -908,13 +911,13 @@ void test_mom_vlasov_1x2v_p1_dev()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 0 };
+  int confGhost[] = {0};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], 0, 0 };
+  int ghost[] = {confGhost[0], 0, 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -961,7 +964,7 @@ void test_mom_vlasov_1x2v_p1_dev()
 
   // Check M0.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = { i };
+    int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m0ptr = gkyl_array_fetch(m0, linc);
     TEST_CHECK(gkyl_compare(5.656854249492378, m0ptr[0], 1e-12));
@@ -972,7 +975,7 @@ void test_mom_vlasov_1x2v_p1_dev()
 
   // Check M1i.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = { i };
+    int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m1iptr = gkyl_array_fetch(m1i, linc);
     for (unsigned int k = 0; k < m1i->ncomp; ++k) {
@@ -982,7 +985,7 @@ void test_mom_vlasov_1x2v_p1_dev()
 
   // Check M2.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[2] = { i };
+    int cidx[2] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m2ptr = gkyl_array_fetch(m2, linc);
     TEST_CHECK(gkyl_compare(15.084944665313010, m2ptr[0], 1e-12));
@@ -1014,13 +1017,13 @@ void test_mom_vlasov_1x2v_p1_dev()
 void test_mom_vlasov_2x2v_p1_dev()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0, 2.0 };
-  int cells[] = { 4, 4, 2, 2 };
+  double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
+  int cells[] = {4, 4, 2, 2};
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int vdim = 2, cdim = 2;
 
-  double confLower[] = { lower[0], lower[1] }, confUpper[] = { upper[0], upper[1] };
-  int confCells[] = { cells[0], cells[1] };
+  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
+  int confCells[] = {cells[0], cells[1]};
 
   // grids
   struct gkyl_rect_grid grid;
@@ -1038,13 +1041,13 @@ void test_mom_vlasov_2x2v_p1_dev()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1 };
+  int confGhost[] = {1, 1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
+  int ghost[] = {confGhost[0], confGhost[1], 0, 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -1092,7 +1095,7 @@ void test_mom_vlasov_2x2v_p1_dev()
   // Check M0.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
       TEST_CHECK(gkyl_compare(8.0, m0ptr[0], 1e-12));
@@ -1105,7 +1108,7 @@ void test_mom_vlasov_2x2v_p1_dev()
   //// Check M1i.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m1iptr = gkyl_array_fetch(m1i, linc);
       for (unsigned int k = 0; k < m1i->ncomp; ++k) {
@@ -1117,7 +1120,7 @@ void test_mom_vlasov_2x2v_p1_dev()
   // Check M2.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
       TEST_CHECK(gkyl_compare(21.333333333333336, m2ptr[0], 1e-12));
@@ -1150,13 +1153,13 @@ void test_mom_vlasov_2x2v_p1_dev()
 void test_mom_vlasov_2x3v_p1_dev()
 {
   int poly_order = 1;
-  double lower[] = { -2.0, -2.0, -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0, 2.0, 2.0 };
-  int cells[] = { 4, 4, 2, 2, 2 };
+  double lower[] = {-2.0, -2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0, 2.0};
+  int cells[] = {4, 4, 2, 2, 2};
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int vdim = 3, cdim = 2;
 
-  double confLower[] = { lower[0], lower[1] }, confUpper[] = { upper[0], upper[1] };
-  int confCells[] = { cells[0], cells[1] };
+  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
+  int confCells[] = {cells[0], cells[1]};
 
   // grids
   struct gkyl_rect_grid grid;
@@ -1174,13 +1177,13 @@ void test_mom_vlasov_2x3v_p1_dev()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1 };
+  int confGhost[] = {1, 1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], confGhost[1], 0, 0, 0 };
+  int ghost[] = {confGhost[0], confGhost[1], 0, 0, 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -1228,7 +1231,7 @@ void test_mom_vlasov_2x3v_p1_dev()
   // Check M0.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
       TEST_CHECK(gkyl_compare(31.999999999999996, m0ptr[0], 1e-12));
@@ -1241,7 +1244,7 @@ void test_mom_vlasov_2x3v_p1_dev()
   // Check M1i.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m1iptr = gkyl_array_fetch(m1i, linc);
       for (unsigned int k = 0; k < m1i->ncomp; ++k) {
@@ -1253,7 +1256,7 @@ void test_mom_vlasov_2x3v_p1_dev()
   // Check M2.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
       TEST_CHECK(gkyl_compare(127.999999999999972, m2ptr[0], 1e-12));
@@ -1286,13 +1289,13 @@ void test_mom_vlasov_2x3v_p1_dev()
 void test_mom_vlasov_big_2x2v_p2_dev()
 {
   int poly_order = 2;
-  double lower[] = { -2.0, -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0, 2.0 };
-  int cells[] = { 44, 44, 32, 32 };
+  double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
+  int cells[] = {44, 44, 32, 32};
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int vdim = 2, cdim = 2;
 
-  double confLower[] = { lower[0], lower[1] }, confUpper[] = { upper[0], upper[1] };
-  int confCells[] = { cells[0], cells[1] };
+  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
+  int confCells[] = {cells[0], cells[1]};
 
   // grids
   struct gkyl_rect_grid grid;
@@ -1310,13 +1313,13 @@ void test_mom_vlasov_big_2x2v_p2_dev()
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1 };
+  int confGhost[] = {1, 1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
+  int ghost[] = {confGhost[0], confGhost[1], 0, 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -1364,7 +1367,7 @@ void test_mom_vlasov_big_2x2v_p2_dev()
   // Check M0.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
       TEST_CHECK(gkyl_compare(64.0, m0ptr[0], 1e-12));
@@ -1377,7 +1380,7 @@ void test_mom_vlasov_big_2x2v_p2_dev()
   //// Check M1i.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m1iptr = gkyl_array_fetch(m1i, linc);
 
@@ -1389,7 +1392,7 @@ void test_mom_vlasov_big_2x2v_p2_dev()
   // Check M2.
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
     for (unsigned int j = 1; j < cells[1] + 1; ++j) {
-      int cidx[2] = { i, j };
+      int cidx[2] = {i, j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
       TEST_CHECK(gkyl_compare(170.666666666666667, m2ptr[0], 1e-12));
@@ -1421,18 +1424,20 @@ void test_mom_vlasov_big_2x2v_p2_dev()
 
 #endif
 
-TEST_LIST = { { "mom_vlasov_ho", test_mom_vlasov_ho },
-  { "test_mom_vlasov_1x1v_p1_ho", test_mom_vlasov_1x1v_p1_ho },
-  { "test_mom_vlasov_1x2v_p1_ho", test_mom_vlasov_1x2v_p1_ho },
-  { "test_mom_vlasov_2x2v_p1_ho", test_mom_vlasov_2x2v_p1_ho },
+TEST_LIST = {
+  {"mom_vlasov_ho", test_mom_vlasov_ho},
+  {"test_mom_vlasov_1x1v_p1_ho", test_mom_vlasov_1x1v_p1_ho},
+  {"test_mom_vlasov_1x2v_p1_ho", test_mom_vlasov_1x2v_p1_ho},
+  {"test_mom_vlasov_2x2v_p1_ho", test_mom_vlasov_2x2v_p1_ho},
   //  { "test_mom_vlasov_big_2x2v_p2_ho", test_mom_vlasov_big_2x2v_p2_ho },
-  { "test_mom_vlasov_2x3v_p1_ho", test_mom_vlasov_2x3v_p1_ho },
+  {"test_mom_vlasov_2x3v_p1_ho", test_mom_vlasov_2x3v_p1_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "mom_vlasov_dev", test_mom_vlasov_dev },
-  { "test_mom_vlasov_1x1v_p1_dev", test_mom_vlasov_1x1v_p1_dev },
-  { "test_mom_vlasov_1x2v_p1_dev", test_mom_vlasov_1x2v_p1_dev },
-  { "test_mom_vlasov_2x2v_p1_dev", test_mom_vlasov_2x2v_p1_dev },
-  { "test_mom_vlasov_2x3v_p1_dev", test_mom_vlasov_2x3v_p1_dev },
+  {"mom_vlasov_dev", test_mom_vlasov_dev},
+  {"test_mom_vlasov_1x1v_p1_dev", test_mom_vlasov_1x1v_p1_dev},
+  {"test_mom_vlasov_1x2v_p1_dev", test_mom_vlasov_1x2v_p1_dev},
+  {"test_mom_vlasov_2x2v_p1_dev", test_mom_vlasov_2x2v_p1_dev},
+  {"test_mom_vlasov_2x3v_p1_dev", test_mom_vlasov_2x3v_p1_dev},
 //  { "test_mom_vlasov_big_2x2v_p2_dev", test_mom_vlasov_big_2x2v_p2_dev },
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

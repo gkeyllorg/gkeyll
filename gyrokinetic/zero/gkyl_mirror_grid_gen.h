@@ -63,11 +63,11 @@ struct gkyl_mirror_grid_gen_inp {
  */
 struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp);
 
-struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_int_inew(
-  const struct gkyl_mirror_grid_gen_inp *inp);
+struct gkyl_mirror_grid_gen *
+gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp);
 
-struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_surf_inew(
-  const struct gkyl_mirror_grid_gen_inp *inp);
+struct gkyl_mirror_grid_gen *
+gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp);
 
 /**
  * Does the grid include the axis?
@@ -83,8 +83,8 @@ bool gkyl_mirror_grid_gen_is_include_axis(const struct gkyl_mirror_grid_gen *geo
  * @param geom Geometry object
  * @return field-line coordinate used in grid
  */
-enum gkyl_mirror_grid_gen_field_line_coord gkyl_mirror_grid_gen_fl_coord(
-  const struct gkyl_mirror_grid_gen *geom);
+enum gkyl_mirror_grid_gen_field_line_coord
+gkyl_mirror_grid_gen_fl_coord(const struct gkyl_mirror_grid_gen *geom);
 
 /**
  * Release the mirror grid object.

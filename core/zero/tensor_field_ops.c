@@ -3,15 +3,18 @@
 
 #include <assert.h>
 
-static void tensor_field_raise_or_lower_idx_in_place(struct gkyl_tensor_field *met, int raised_idx,
-  struct gkyl_tensor_field *ten, struct gkyl_tensor_field *mem)
+static void tensor_field_raise_or_lower_idx_in_place(
+  struct gkyl_tensor_field *met, int raised_idx, struct gkyl_tensor_field *ten,
+  struct gkyl_tensor_field *mem
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(ten->tdata)) {
     // make a temporary amount of memory on device
     enum gkyl_tensor_index_loc iloc[GKYL_MAX_DIM];
-    for (int i = 0; i < GKYL_MAX_DIM; ++i)
+    for (int i = 0; i < GKYL_MAX_DIM; ++i) {
       mem->iloc[i] = ten->iloc[i];
+    }
 
     // set the input to the memory, mem
     tensor_field_raise_or_lower_idx_set_cu(met, raised_idx, ten, mem);
@@ -35,12 +38,13 @@ static void tensor_field_raise_or_lower_idx_in_place(struct gkyl_tensor_field *m
 
       // summed over index, j
       for (int j = 0; j < ten->ndim; ++j) {
-        int idx_met[GKYL_MAX_DIM] = { index_raised, j };
+        int idx_met[GKYL_MAX_DIM] = {index_raised, j};
 
         // Get the tensor element we are indexing from
         int idx_tf[GKYL_MAX_DIM];
-        for (int k = 0; k < GKYL_MAX_DIM; ++k)
+        for (int k = 0; k < GKYL_MAX_DIM; ++k) {
           idx_tf[k] = (raised_idx != k) ? iter_tf_out.idx[k] : j;
+        }
 
         double met_elem = gkyl_tensor_field_elem_fetch(met, i, idx_met);
         double ten_elem = gkyl_tensor_field_elem_fetch(ten, i, idx_tf);
@@ -61,8 +65,10 @@ static void tensor_field_raise_or_lower_idx_in_place(struct gkyl_tensor_field *m
   }
 }
 
-static void tensor_field_raise_or_lower_idx_set(const struct gkyl_tensor_field *met, int raised_idx,
-  const struct gkyl_tensor_field *ten, struct gkyl_tensor_field *tensor_out)
+static void tensor_field_raise_or_lower_idx_set(
+  const struct gkyl_tensor_field *met, int raised_idx, const struct gkyl_tensor_field *ten,
+  struct gkyl_tensor_field *tensor_out
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(ten->tdata)) {
@@ -84,12 +90,13 @@ static void tensor_field_raise_or_lower_idx_set(const struct gkyl_tensor_field *
 
       // summed over index, j
       for (int j = 0; j < ten->ndim; ++j) {
-        int idx_met[GKYL_MAX_DIM] = { index_raised, j };
+        int idx_met[GKYL_MAX_DIM] = {index_raised, j};
 
         // Get the tensor element we are indexing from
         int idx_tf[GKYL_MAX_DIM];
-        for (int k = 0; k < GKYL_MAX_DIM; ++k)
+        for (int k = 0; k < GKYL_MAX_DIM; ++k) {
           idx_tf[k] = (raised_idx != k) ? iter_tf_out.idx[k] : j;
+        }
 
         double met_elem = gkyl_tensor_field_elem_fetch(met, i, idx_met);
         double ten_elem = gkyl_tensor_field_elem_fetch(ten, i, idx_tf);
@@ -102,8 +109,10 @@ static void tensor_field_raise_or_lower_idx_set(const struct gkyl_tensor_field *
   }
 }
 
-void gkyl_tensor_field_lower_idx_in_place(struct gkyl_tensor_field *metric, int lowered_idx,
-  struct gkyl_tensor_field *ten, struct gkyl_tensor_field *mem)
+void gkyl_tensor_field_lower_idx_in_place(
+  struct gkyl_tensor_field *metric, int lowered_idx, struct gkyl_tensor_field *ten,
+  struct gkyl_tensor_field *mem
+)
 {
   // Check that we are lowering a contravariant index
   assert(ten->iloc[lowered_idx] == GKYL_TENSOR_INDEX_UPPER);
@@ -113,8 +122,10 @@ void gkyl_tensor_field_lower_idx_in_place(struct gkyl_tensor_field *metric, int 
   ten->iloc[lowered_idx] = GKYL_TENSOR_INDEX_LOWER;
 }
 
-void gkyl_tensor_field_raise_idx_in_place(struct gkyl_tensor_field *metric, int raised_idx,
-  struct gkyl_tensor_field *ten, struct gkyl_tensor_field *mem)
+void gkyl_tensor_field_raise_idx_in_place(
+  struct gkyl_tensor_field *metric, int raised_idx, struct gkyl_tensor_field *ten,
+  struct gkyl_tensor_field *mem
+)
 {
   // Check that we are lowering a contravariant index
   assert(ten->iloc[raised_idx] == GKYL_TENSOR_INDEX_LOWER);
@@ -124,8 +135,10 @@ void gkyl_tensor_field_raise_idx_in_place(struct gkyl_tensor_field *metric, int 
   ten->iloc[raised_idx] = GKYL_TENSOR_INDEX_UPPER;
 }
 
-void gkyl_tensor_field_lower_idx_set(const struct gkyl_tensor_field *metric, int lowered_idx,
-  const struct gkyl_tensor_field *ten, struct gkyl_tensor_field *ten_out)
+void gkyl_tensor_field_lower_idx_set(
+  const struct gkyl_tensor_field *metric, int lowered_idx, const struct gkyl_tensor_field *ten,
+  struct gkyl_tensor_field *ten_out
+)
 {
   // Check that we are lowering a contravariant index
   assert(ten->iloc[lowered_idx] == GKYL_TENSOR_INDEX_UPPER);
@@ -135,8 +148,10 @@ void gkyl_tensor_field_lower_idx_set(const struct gkyl_tensor_field *metric, int
   ten_out->iloc[lowered_idx] = GKYL_TENSOR_INDEX_LOWER;
 }
 
-void gkyl_tensor_field_raise_idx_set(const struct gkyl_tensor_field *metric, int raised_idx,
-  const struct gkyl_tensor_field *ten, struct gkyl_tensor_field *ten_out)
+void gkyl_tensor_field_raise_idx_set(
+  const struct gkyl_tensor_field *metric, int raised_idx, const struct gkyl_tensor_field *ten,
+  struct gkyl_tensor_field *ten_out
+)
 {
   // Check that we are lowering a contravariant index
   assert(ten->iloc[raised_idx] == GKYL_TENSOR_INDEX_LOWER);

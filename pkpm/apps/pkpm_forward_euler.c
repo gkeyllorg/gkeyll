@@ -4,9 +4,11 @@
 // Note: this may not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by stability.
 // The actual time-step and dt_suggested are returned in the status object.
-void pkpm_forward_euler(gkyl_pkpm_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
+void pkpm_forward_euler(
+  gkyl_pkpm_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
-  struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st)
+  struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
+)
 {
   app->stat.nfeuler += 1;
 
@@ -72,8 +74,9 @@ void pkpm_forward_euler(gkyl_pkpm_app *app, double tcurr, double dt, const struc
   // check if dtmin is slightly smaller than dt. Use dt if it is
   // (avoids retaking steps if dt changes are very small).
   double dt_rel_diff = (dt - dtmin) / dt;
-  if (dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff)
+  if (dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff) {
     dtmin = dt;
+  }
 
   // compute minimum time-step across all processors
   double dtmin_local = dtmin, dtmin_global;

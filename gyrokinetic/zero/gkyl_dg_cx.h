@@ -41,9 +41,11 @@ struct gkyl_dg_cx *gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu);
  * @param coef_cx Output reaction rate coefficient
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
  */
-void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
+void gkyl_dg_cx_coll(
+  const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
   struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
-  struct gkyl_array *cflrate);
+  struct gkyl_array *cflrate
+);
 
 /**
  * Delete updater.

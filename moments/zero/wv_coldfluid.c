@@ -22,12 +22,13 @@ static void coldfluid_flux(const double q[4], double flux[4])
   flux[RHOW] = q[RHOW] * u; // rho*w*u
 }
 
-static inline void coldfluid_cons_to_diag(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
+static inline void
+coldfluid_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   // density and moment as copied as-is
-  for (int i = 0; i < 4; ++i)
+  for (int i = 0; i < 4; ++i) {
     diag[i] = qin[i];
+  }
   double ke = 0.5 * (qin[1] * qin[1] + qin[2] * qin[2] + qin[3] * qin[3]) / qin[0];
   diag[4] = ke;
 }
@@ -39,24 +40,27 @@ static void coldfluid_free(const struct gkyl_ref_count *ref)
   gkyl_free(coldfluid);
 }
 
-static inline void cons_to_riem(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: this should use proper L matrix
-  for (int i = 0; i < 4; ++i)
+  for (int i = 0; i < 4; ++i) {
     wout[i] = qin[i];
+  }
 }
-static inline void riem_to_cons(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: this should use proper L matrix
-  for (int i = 0; i < 4; ++i)
+  for (int i = 0; i < 4; ++i) {
     qout[i] = win[i];
+  }
 }
 
-static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
-  double *GKYL_RESTRICT qlocal)
+static inline void rot_to_local(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
+)
 {
   qlocal[0] = qglobal[0];
   qlocal[1] = qglobal[1] * norm[0] + qglobal[2] * norm[1] + qglobal[3] * norm[2];
@@ -64,9 +68,10 @@ static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau
   qlocal[3] = qglobal[1] * tau2[0] + qglobal[2] * tau2[1] + qglobal[3] * tau2[2];
 }
 
-static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
-  double *GKYL_RESTRICT qglobal)
+static inline void rot_to_global(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
+)
 {
   qglobal[0] = qlocal[0];
   qglobal[1] = qlocal[1] * norm[0] + qlocal[2] * tau1[0] + qlocal[3] * tau2[0];
@@ -75,9 +80,10 @@ static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *ta
 }
 
 // Waves and speeds using Roe averaging
-static double wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s)
+static double wave_roe(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   double f[4];
   double ur = qr[RHOU] / qr[0], ul = ql[RHOU] / ql[0];
@@ -87,14 +93,16 @@ static double wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type typ
   if ((ul < 0) && (0 < ur)) { // vacuum intermediate state will be formed
     coldfluid_flux(ql, f);
     wv = &waves[0];
-    for (int m = 0; m < 4; ++m)
+    for (int m = 0; m < 4; ++m) {
       wv[m] = -f[m];
+    }
     s[0] = ul;
 
     coldfluid_flux(qr, f);
     wv = &waves[4];
-    for (int m = 0; m < 4; ++m)
+    for (int m = 0; m < 4; ++m) {
       wv[m] = f[m];
+    }
     s[1] = ur;
   } else {
     // no vacuum state
@@ -105,20 +113,24 @@ static double wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type typ
 
     if (uav < 0) {
       wv = &waves[0];
-      for (int m = 0; m < 4; ++m)
+      for (int m = 0; m < 4; ++m) {
         wv[m] = delta[m];
+      }
 
       wv = &waves[4];
-      for (int m = 0; m < 4; ++m)
+      for (int m = 0; m < 4; ++m) {
         wv[m] = 0.0;
+      }
     } else {
       wv = &waves[0];
-      for (int m = 0; m < 4; ++m)
+      for (int m = 0; m < 4; ++m) {
         wv[m] = 0;
+      }
 
       wv = &waves[4];
-      for (int m = 0; m < 4; ++m)
+      for (int m = 0; m < 4; ++m) {
         wv[m] = delta[m];
+      }
     }
     s[0] = uav;
     s[1] = uav;
@@ -127,9 +139,11 @@ static double wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type typ
   return fmax(fabs(s[0]), fabs(s[1]));
 }
 
-static void qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql,
-  const double *qr, const double phil, const double phir, const double *waves, const double *s,
-  double *amdq, double *apdq)
+static void qfluct_roe(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   int meqn = 4, mwaves = 2;
 
@@ -140,17 +154,20 @@ static void qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type typ
     for (int mw = 0; mw < mwaves; ++mw) {
       const double *wv = &waves[mw * meqn];
 
-      if (s[mw] < 0.0)
+      if (s[mw] < 0.0) {
         amdq[m] += s[mw] * wv[m];
-      else
+      } else {
         apdq[m] += s[mw] * wv[m];
+      }
     }
   }
 }
 
-static void ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql,
-  const double *qr, const double phil, const double phir, const double *waves, const double *s,
-  double *amdq, double *apdq)
+static void ffluct_roe(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   int meqn = 4, mwaves = 2;
 
@@ -173,15 +190,16 @@ static void ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type typ
   }
 }
 
-static double flux_jump(
-  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   double fr[4], fl[4];
   coldfluid_flux(ql, fl);
   coldfluid_flux(qr, fr);
 
-  for (int m = 0; m < 4; ++m)
+  for (int m = 0; m < 4; ++m) {
     flux_jump[m] = fr[m] - fl[m];
+  }
 
   double amaxl = ql[RHOU] / ql[0];
   double amaxr = qr[RHOU] / qr[0];

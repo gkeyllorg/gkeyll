@@ -11,7 +11,8 @@ extern "C" {
 }
 
 __global__ void static gkyl_cart_modal_tensor_cu_dev_kern(
-  struct gkyl_basis *basis, int ndim, int poly_order)
+  struct gkyl_basis *basis, int ndim, int poly_order
+)
 {
   assert(ev_list[ndim].ev[poly_order]);
 

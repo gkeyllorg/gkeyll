@@ -16,7 +16,7 @@ static const enum gkyl_oriented_edge complimentary_edges[] = {
   [GKYL_PHYSICAL] = GKYL_PHYSICAL
 };
 
-static const char *block_edge_names[] = { "lower", "upper" };
+static const char *block_edge_names[] = {"lower", "upper"};
 
 static void block_topo_free(const struct gkyl_ref_count *ref)
 {
@@ -76,8 +76,9 @@ static struct gkyl_msgpack_data *btopo_create_mpack(const struct gkyl_block_topo
 
 static void btopo_array_meta_release(struct gkyl_msgpack_data *amet)
 {
-  if (!amet)
+  if (!amet) {
     return;
+  }
   MPACK_FREE(amet->meta);
   gkyl_free(amet);
 }
@@ -101,25 +102,29 @@ int gkyl_block_topo_check_consistency(const struct gkyl_block_topo *btopo)
       const struct gkyl_target_edge *te = btopo->conn[i].connections[d];
 
       for (int e = 0; e < 2; ++e) { // 0: lower, 1: upper
-        if (te[e].edge < 1) // unspecified edges are defaulted to 0
+        if (te[e].edge < 1) { // unspecified edges are defaulted to 0
           return 0;
+        }
 
         // check consistency
         if (te[e].edge != GKYL_PHYSICAL) {
-          if (te[e].bid < 0 || te[e].bid >= btopo->num_blocks) // improperly numbered block
+          if (te[e].bid < 0 || te[e].bid >= btopo->num_blocks) { // improperly numbered block
             return 0;
+          }
 
           // fetch edge which should point back to ith-block
           const struct gkyl_target_edge *te_back =
             &btopo->conn[te[e].bid].connections[d][(e + 1) % 2];
 
           // check if the edge belongs to block 'i'
-          if (te_back->bid != i)
+          if (te_back->bid != i) {
             return 0;
+          }
 
           // check if edge orientation is complimentary
-          if (te_back->edge != complimentary_edges[te[e].edge])
+          if (te_back->edge != complimentary_edges[te[e].edge]) {
             return 0;
+          }
         }
       }
     }
@@ -138,11 +143,12 @@ int gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname
     struct gkyl_msgpack_data *amet = btopo_create_mpack(btopo);
     if (amet) {
       status = gkyl_header_meta_write_fp(
-        &(struct gkyl_array_header_info){
-          .file_type = gkyl_file_type_int[GKYL_BLOCK_TOPO_DATA_FILE],
+        &(struct gkyl_array_header_info
+        ){.file_type = gkyl_file_type_int[GKYL_BLOCK_TOPO_DATA_FILE],
           .meta_size = amet->meta_sz,
-          .meta = amet->meta },
-        fp);
+          .meta = amet->meta},
+        fp
+      );
       btopo_array_meta_release(amet);
     } else {
       status = GKYL_ARRAY_RIO_META_FAILED;

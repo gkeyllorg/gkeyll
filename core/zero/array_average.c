@@ -6,13 +6,15 @@
 
 #include <assert.h>
 
-struct gkyl_array_average *gkyl_array_average_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, const struct gkyl_basis *basis_avg,
-  const struct gkyl_range *local, const struct gkyl_range *local_avg,
-  const struct gkyl_range *local_avg_ext, const struct gkyl_array *weight, const int *avg_dim,
-  bool use_gpu)
+struct gkyl_array_average *gkyl_array_average_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+  const struct gkyl_basis *basis_avg, const struct gkyl_range *local,
+  const struct gkyl_range *local_avg, const struct gkyl_range *local_avg_ext,
+  const struct gkyl_array *weight, const int *avg_dim, bool use_gpu
+)
 {
-  return gkyl_array_average_inew(&(struct gkyl_array_average_inp){ .grid = grid,
+  return gkyl_array_average_inew(&(struct gkyl_array_average_inp
+  ){.grid = grid,
     .basis = *basis,
     .basis_avg = *basis_avg,
     .local = local,
@@ -20,7 +22,7 @@ struct gkyl_array_average *gkyl_array_average_new(const struct gkyl_rect_grid *g
     .local_avg_ext = local_avg_ext,
     .weight = weight,
     .avg_dim = avg_dim,
-    .use_gpu = use_gpu });
+    .use_gpu = use_gpu});
 }
 
 struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_average_inp *inp)
@@ -49,8 +51,9 @@ struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_avera
 
   up->num_dim_remain = up->ndim - up->num_avg_dim;
 
-  for (int d = 0; d < up->ndim; ++d)
+  for (int d = 0; d < up->ndim; ++d) {
     up->dim_remains[d] = 1 - inp->avg_dim[d];
+  }
 
   int k = 0;
   for (int d = 0; d < up->ndim; ++d) {
@@ -62,15 +65,18 @@ struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_avera
 
   // compute the inverse of the volume of the averaging space
   up->vol_avg_inv = 1.;
-  for (int d = 0; d < up->ndim; d++)
+  for (int d = 0; d < up->ndim; d++) {
     up->vol_avg_inv *= up->avg_dim[d] ? inp->grid->upper[d] - inp->grid->lower[d] : 1.0;
+  }
   up->vol_avg_inv = 1. / up->vol_avg_inv;
 
   // compute the cell sub-dimensional volume
   up->subvol = 1.0;
-  for (int d = 0; d < up->ndim; ++d)
-    if (up->avg_dim[d])
+  for (int d = 0; d < up->ndim; ++d) {
+    if (up->avg_dim[d]) {
       up->subvol *= 0.5 * inp->grid->dx[d];
+    }
+  }
 
   // handle a possible weighted average
   up->isweighted = false;
@@ -85,14 +91,16 @@ struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_avera
         gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis_avg.num_basis, inp->local_avg_ext->volume) :
         gkyl_array_new(GKYL_DOUBLE, up->basis_avg.num_basis, inp->local_avg_ext->volume);
     // create new average routine to integrate the weight
-    struct gkyl_array_average_inp inp_integral = { .grid = inp->grid,
+    struct gkyl_array_average_inp inp_integral = {
+      .grid = inp->grid,
       .basis = inp->basis,
       .basis_avg = inp->basis_avg,
       .local = inp->local,
       .local_avg = inp->local_avg,
       .weight = NULL, // Recursive call without weights
       .avg_dim = inp->avg_dim,
-      .use_gpu = inp->use_gpu };
+      .use_gpu = inp->use_gpu
+    };
     struct gkyl_array_average *int_w = gkyl_array_average_inew(&inp_integral);
     // run the updater to integrate the weight
     gkyl_array_average_advance(int_w, inp->weight, up->weight_avg);
@@ -115,8 +123,9 @@ struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_avera
   }
 
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
     return gkyl_array_average_cu_dev_new(up);
+  }
 #endif
 
   // choose the kernel that performs the desired operation within the integral.
@@ -126,7 +135,8 @@ struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_avera
 }
 
 void gkyl_array_average_advance(
-  const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout)
+  const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -148,7 +158,7 @@ void gkyl_array_average_advance(
     double *avg_i = gkyl_array_fetch(avgout, lidx_avg);
 
     // we need to pass the moving index to the deflate operation as a sub dimensional iterator
-    int parent_idx[GKYL_MAX_CDIM] = { 0 };
+    int parent_idx[GKYL_MAX_CDIM] = {0};
     int cnter = 0;
     for (int i = 0; i < up->basis.ndim; i++) {
       if (up->dim_remains[i]) {
@@ -172,17 +182,20 @@ void gkyl_array_average_advance(
   }
 
   // if we provided some weight, we now divide by the integrated weight
-  if (up->isweighted)
+  if (up->isweighted) {
     gkyl_dg_div_op_range(
-      up->div_mem, &up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg);
+      up->div_mem, &up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg
+    );
+  }
 }
 
 void gkyl_array_average_release(struct gkyl_array_average *up)
 {
   // release memory associated with this updater.
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
     gkyl_cu_free(up->on_dev);
+  }
 #endif
 
   gkyl_array_release(up->weight);

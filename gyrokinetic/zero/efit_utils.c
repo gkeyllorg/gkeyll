@@ -6,12 +6,14 @@ static double eval_laplacian_expand_2d_tensor_p2(int dir, const double *z, const
 {
   const double z0 = z[0];
   const double z1 = z[1];
-  if (dir == 0)
+  if (dir == 0) {
     return 11.25 * f[8] * z1 * z1 + 5.809475019311125 * f[6] * z1 - 3.75 * f[8] +
            3.354101966249685 * f[4];
-  if (dir == 1)
+  }
+  if (dir == 1) {
     return 11.25 * f[8] * z0 * z0 + 5.809475019311125 * f[7] * z0 - 3.75 * f[8] +
            3.354101966249685 * f[5];
+  }
 
   return 0.0; // can't happen, suppresses warning
 }
@@ -30,12 +32,14 @@ static void print_result(int n, double x[], double dx[], double errx, double err
   double y0 = x[1];
   if (x0 >= -1 && x0 <= 1 && y0 >= -1 && y0 <= 1) {
     printf("x = ");
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++) {
       printf(" %g ", x[i]);
+    }
     printf("\n");
     printf("dx = ");
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++) {
       printf("= %g ", dx[i]);
+    }
     printf("\n");
     printf("errx = %g\n", errx);
     printf("errf = %g\n", errf);
@@ -45,8 +49,8 @@ static void print_result(int n, double x[], double dx[], double errx, double err
 bool newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bool cubics)
 {
   int n = 2;
-  double x[2] = { 0.0, 0.0 };
-  double dx[2] = { 0.0, 0.0 };
+  double x[2] = {0.0, 0.0};
+  double dx[2] = {0.0, 0.0};
   double fjac[2][2];
   double fjac_inv[2][2];
   double fvec[2];
@@ -54,36 +58,42 @@ bool newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bo
   int ntrial = 100;
   double errx = 0.0;
   double errf = 0.0;
-  for (int i = 0; i < n; i++)
+  for (int i = 0; i < n; i++) {
     xsol[i] = 0.0;
+  }
 
   for (int niter = 0; niter < ntrial; niter++) {
     if (cubics) {
-      for (int i = 0; i < n; i++)
+      for (int i = 0; i < n; i++) {
         fvec[i] = up->rzbasis_cubic.eval_grad_expand(i, x, coeffs);
+      }
       fjac[0][0] = up->evf->eval_cubic_laplacian(0, x, coeffs);
       fjac[0][1] = up->evf->eval_cubic_mixedpartial(x, coeffs);
       fjac[1][0] = up->evf->eval_cubic_mixedpartial(x, coeffs);
       fjac[1][1] = up->evf->eval_cubic_laplacian(1, x, coeffs);
     } else {
-      for (int i = 0; i < n; i++)
+      for (int i = 0; i < n; i++) {
         fvec[i] = up->rzbasis.eval_grad_expand(i, x, coeffs);
+      }
       fjac[0][0] = eval_laplacian_expand_2d_tensor_p2(0, x, coeffs);
       fjac[0][1] = eval_mixedpartial_expand_2d_tensor_p2(x, coeffs);
       fjac[1][0] = eval_mixedpartial_expand_2d_tensor_p2(x, coeffs);
       fjac[1][1] = eval_laplacian_expand_2d_tensor_p2(1, x, coeffs);
     }
     errf = 0.0;
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++) {
       errf += fvec[i] * fvec[i];
+    }
     errf = sqrt(errf);
     if (errf <= 1e-18) {
-      for (int i = 0; i < n; i++)
+      for (int i = 0; i < n; i++) {
         xsol[i] = x[i];
+      }
       return true;
     }
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++) {
       p[i] = -fvec[i];
+    }
 
     double det = fjac[0][0] * fjac[1][1] - fjac[0][1] * fjac[1][0];
     fjac_inv[0][0] = fjac[1][1] / det;
@@ -101,8 +111,9 @@ bool newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bo
     }
 
     if (errx <= 1e-18) {
-      for (int i = 0; i < n; i++)
+      for (int i = 0; i < n; i++) {
         xsol[i] = x[i];
+      }
       return true;
     }
   }

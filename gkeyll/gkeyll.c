@@ -63,14 +63,17 @@ struct tool_description {
 };
 
 // List of available Tools
-static struct tool_description tool_list[] = { { "man", "man.lua", "Gkeyll online manual" },
-  { "woman", "man.lua", "Gkeyll online manual (Woe without man)" },
-  { "queryrdb", "queryrdb.lua", "Query/modify regression test DB" },
-  { "exacteulerrp", "exacteulerrp.lua", "Exact Euler Riemann problem solver" },
-  { "runregression", "runregression.lua", "Run regression/unit tests" },
-  { "multimomlinear", "multimomlinear.lua",
-    "Linear dispersion solver for multi-moment, multifluid equations" },
-  { "eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files" }, { 0, 0 } };
+static struct tool_description tool_list[] = {
+  {"man", "man.lua", "Gkeyll online manual"},
+  {"woman", "man.lua", "Gkeyll online manual (Woe without man)"},
+  {"queryrdb", "queryrdb.lua", "Query/modify regression test DB"},
+  {"exacteulerrp", "exacteulerrp.lua", "Exact Euler Riemann problem solver"},
+  {"runregression", "runregression.lua", "Run regression/unit tests"},
+  {"multimomlinear", "multimomlinear.lua",
+   "Linear dispersion solver for multi-moment, multifluid equations"},
+  {"eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files"},
+  {0, 0}
+};
 
 static int max2(int a, int b)
 {
@@ -88,8 +91,9 @@ static void show_tool_list(void)
     mlen = len > mlen ? len : mlen;
   }
 
-  for (int i = 0; tool_list[i].tool_name != 0; ++i)
+  for (int i = 0; tool_list[i].tool_name != 0; ++i) {
     fprintf(stdout, "%*s %s\n", mlen + 2, tool_list[i].tool_name, tool_list[i].tool_help);
+  }
   fprintf(stdout, "\n");
 }
 
@@ -97,9 +101,11 @@ static void show_tool_list(void)
 // does no exist
 static const char *get_tool_from_name(const char *nm)
 {
-  for (int i = 0; tool_list[i].tool_name != 0; ++i)
-    if (strcmp(tool_list[i].tool_name, nm) == 0)
+  for (int i = 0; tool_list[i].tool_name != 0; ++i) {
+    if (strcmp(tool_list[i].tool_name, nm) == 0) {
       return tool_list[i].tool_lua;
+    }
+  }
   return 0;
 }
 
@@ -167,8 +173,9 @@ static void show_banner(FILE *fp)
     fprintf(fp, "PKPM App enabled\n");
     num_apps += 1;
 #endif
-    if (0 == num_apps)
+    if (0 == num_apps) {
       fprintf(fp, "Built without any Apps! Core library only.\n");
+    }
     fprintf(fp, "\n");
   }
 }
@@ -198,7 +205,8 @@ static void show_usage()
   fprintf(stdout, "To get help for commands type command name followed by -h\n\n");
 
   fprintf(
-    stdout, "Individual tools may take other options and commands. See their specific help.\n");
+    stdout, "Individual tools may take other options and commands. See their specific help.\n"
+  );
 }
 
 static void show_version()
@@ -242,12 +250,14 @@ struct app_args {
 
 static void release_opt_args(struct app_args *args)
 {
-  for (int i = 0; i < args->num_opt_args; ++i)
+  for (int i = 0; i < args->num_opt_args; ++i) {
     gkyl_free(args->opt_args[i]);
+  }
   gkyl_free(args->opt_args);
 
-  if (args->echunk)
+  if (args->echunk) {
     gkyl_free(args->echunk);
+  }
 
   gkyl_free(args->exec_path);
   gkyl_free(args);
@@ -327,8 +337,9 @@ static struct app_args *parse_app_args(int argc, char **argv)
 
   args->num_opt_args = 0;
   // collect remaining options into a list
-  for (int oind = optind; oind < argc; ++oind)
+  for (int oind = optind; oind < argc; ++oind) {
     args->num_opt_args += 1;
+  }
   args->opt_args = gkyl_malloc(sizeof(char *) * args->num_opt_args);
 
   for (int i = 0, oind = optind; oind < argc; ++oind, ++i) {
@@ -346,8 +357,9 @@ int main(int argc, char **argv)
   struct app_args *app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args->use_mpi)
+  if (app_args->use_mpi) {
     MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args->trace_mem) {
@@ -379,7 +391,7 @@ int main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   struct {
     MPI_Comm comm;
-  } lw_mpi_comm_world = { .comm = MPI_COMM_WORLD };
+  } lw_mpi_comm_world = {.comm = MPI_COMM_WORLD};
 #endif
 
   if (app_args->use_mpi) {
@@ -536,13 +548,15 @@ int main(int argc, char **argv)
   } while (0);
 
   // run Lua code (if it exists) before running input file
-  if (app_args->echunk)
+  if (app_args->echunk) {
     glua_run_lua(L, app_args->echunk, strlen(app_args->echunk), 0);
+  }
 
   int rank = 0;
 #ifdef GKYL_HAVE_MPI
-  if (app_args->use_mpi)
+  if (app_args->use_mpi) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  }
 #endif
 
   if (app_args->num_opt_args > 0) {
@@ -589,15 +603,17 @@ int main(int argc, char **argv)
         something_run = true;
       }
     }
-    if (!something_run)
+    if (!something_run) {
       fprintf(stderr, "No Lua code was run!\n");
+    }
   }
 
   lua_close(L);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args->use_mpi)
+  if (app_args->use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   release_opt_args(app_args);

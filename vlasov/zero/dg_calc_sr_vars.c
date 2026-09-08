@@ -8,15 +8,17 @@
 #include <gkyl_dg_calc_sr_vars_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_rect_grid *vel_grid, const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *vel_basis, const struct gkyl_range *mem_range,
-  const struct gkyl_range *vel_range, bool use_gpu)
+gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_new(
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     return gkyl_dg_calc_sr_vars_cu_dev_new(
-      phase_grid, vel_grid, conf_basis, vel_basis, mem_range, vel_range);
+      phase_grid, vel_grid, conf_basis, vel_basis, mem_range, vel_range
+    );
   }
 #endif
   gkyl_dg_calc_sr_vars *up = gkyl_malloc(sizeof(*up));
@@ -59,7 +61,8 @@ gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phas
 }
 
 void gkyl_calc_sr_vars_init_p_vars(
-  struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma, struct gkyl_array *gamma_inv)
+  struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma, struct gkyl_array *gamma_inv
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(gamma)) {
@@ -81,8 +84,10 @@ void gkyl_calc_sr_vars_init_p_vars(
   }
 }
 
-void gkyl_dg_calc_sr_vars_n(struct gkyl_dg_calc_sr_vars *up, const struct gkyl_array *M0,
-  const struct gkyl_array *M1i, struct gkyl_array *n)
+void gkyl_dg_calc_sr_vars_n(
+  struct gkyl_dg_calc_sr_vars *up, const struct gkyl_array *M0, const struct gkyl_array *M1i,
+  struct gkyl_array *n
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(n)) {
@@ -126,9 +131,11 @@ void gkyl_dg_calc_sr_vars_n(struct gkyl_dg_calc_sr_vars *up, const struct gkyl_a
   }
 }
 
-void gkyl_dg_calc_sr_vars_GammaV(struct gkyl_dg_calc_sr_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *u_i, struct gkyl_array *u_i_sq,
-  struct gkyl_array *GammaV, struct gkyl_array *GammaV_sq)
+void gkyl_dg_calc_sr_vars_GammaV(
+  struct gkyl_dg_calc_sr_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *u_i, struct gkyl_array *u_i_sq, struct gkyl_array *GammaV,
+  struct gkyl_array *GammaV_sq
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(GammaV)) {
@@ -150,16 +157,19 @@ void gkyl_dg_calc_sr_vars_GammaV(struct gkyl_dg_calc_sr_vars *up,
   }
 }
 
-void gkyl_dg_calc_sr_vars_pressure(struct gkyl_dg_calc_sr_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv, const struct gkyl_array *u_i,
-  const struct gkyl_array *u_i_sq, const struct gkyl_array *GammaV,
-  const struct gkyl_array *GammaV_sq, const struct gkyl_array *f, struct gkyl_array *sr_pressure)
+void gkyl_dg_calc_sr_vars_pressure(
+  struct gkyl_dg_calc_sr_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_array *gamma,
+  const struct gkyl_array *gamma_inv, const struct gkyl_array *u_i, const struct gkyl_array *u_i_sq,
+  const struct gkyl_array *GammaV, const struct gkyl_array *GammaV_sq, const struct gkyl_array *f,
+  struct gkyl_array *sr_pressure
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(sr_pressure)) {
-    return gkyl_dg_calc_sr_vars_pressure_cu(up, conf_range, phase_range, gamma, gamma_inv, u_i,
-      u_i_sq, GammaV, GammaV_sq, f, sr_pressure);
+    return gkyl_dg_calc_sr_vars_pressure_cu(
+      up, conf_range, phase_range, gamma, gamma_inv, u_i, u_i_sq, GammaV, GammaV_sq, f, sr_pressure
+    );
   }
 #endif
   gkyl_array_clear(sr_pressure, 0.0);
@@ -192,8 +202,10 @@ void gkyl_dg_calc_sr_vars_pressure(struct gkyl_dg_calc_sr_vars *up,
 
     double *sr_pressure_d = gkyl_array_fetch(sr_pressure, loc_conf);
 
-    up->sr_pressure(xc, up->phase_grid.dx, gamma_d, gamma_inv_d, u_i_d, u_i_sq_d, GammaV_d,
-      GammaV_sq_d, f_d, sr_pressure_d);
+    up->sr_pressure(
+      xc, up->phase_grid.dx, gamma_d, gamma_inv_d, u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d, f_d,
+      sr_pressure_d
+    );
   }
 }
 
@@ -203,7 +215,8 @@ void gkyl_dg_calc_sr_vars_release(gkyl_dg_calc_sr_vars *up)
   gkyl_nmat_release(up->xs);
   gkyl_nmat_linsolve_lu_release(up->mem);
 
-  if (GKYL_IS_CU_ALLOC(up->flags))
+  if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);
+  }
   gkyl_free(up);
 }

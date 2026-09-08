@@ -60,8 +60,10 @@ void test_dg_max_dev()
 
 #endif
 
-TEST_LIST = { { "dg_max_ho", test_dg_max_ho },
+TEST_LIST = {
+  {"dg_max_ho", test_dg_max_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "dg_max_dev", test_dg_max_dev },
+  {"dg_max_dev", test_dg_max_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

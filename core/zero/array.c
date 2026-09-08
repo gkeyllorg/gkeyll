@@ -39,11 +39,13 @@ static void g_array_free(void *ptr)
 }
 
 // size in bytes for various data-types
-static const size_t array_elem_size[] = { [GKYL_INT] = sizeof(int),
+static const size_t array_elem_size[] = {
+  [GKYL_INT] = sizeof(int),
   [GKYL_LONG] = sizeof(long),
   [GKYL_FLOAT] = sizeof(float),
   [GKYL_DOUBLE] = sizeof(double),
-  [GKYL_USER] = 1 };
+  [GKYL_USER] = 1
+};
 
 static void array_free(const struct gkyl_ref_count *ref)
 {
@@ -66,8 +68,8 @@ static void array_free(const struct gkyl_ref_count *ref)
 }
 
 // internal method to allocate array
-static struct gkyl_array *array_new(
-  enum gkyl_elem_type type, size_t ncomp, size_t size, bool is_alloc_extern, void *buff)
+static struct gkyl_array *
+array_new(enum gkyl_elem_type type, size_t ncomp, size_t size, bool is_alloc_extern, void *buff)
 {
   struct gkyl_array *arr = gkyl_malloc(sizeof(struct gkyl_array));
 
@@ -77,10 +79,11 @@ static struct gkyl_array *array_new(
   arr->size = size;
   arr->flags = 0;
 
-  if (is_alloc_extern)
+  if (is_alloc_extern) {
     GKYL_SET_ALLOC_EXTERN(arr->flags);
-  else
+  } else {
     GKYL_CLEAR_ALLOC_EXTERN(arr->flags);
+  }
 
   GKYL_CLEAR_CU_ALLOC(arr->flags);
 #ifdef USE_ALIGNED_ALLOC
@@ -91,8 +94,9 @@ static struct gkyl_array *array_new(
 
   arr->esznc = arr->elemsz * arr->ncomp;
   arr->data = buff;
-  if (!is_alloc_extern)
+  if (!is_alloc_extern) {
     arr->data = g_array_alloc(arr->size, arr->esznc);
+  }
 
   arr->ref_count = gkyl_ref_count_init(array_free);
 
@@ -126,8 +130,8 @@ struct gkyl_array *gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
   return array_new(type, ncomp, size, false, 0);
 }
 
-struct gkyl_array *gkyl_array_new_from_buff(
-  enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff)
+struct gkyl_array *
+gkyl_array_new_from_buff(enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff)
 {
   return array_new(type, ncomp, size, true, buff);
 }
@@ -153,16 +157,18 @@ struct gkyl_array *gkyl_array_copy(struct gkyl_array *dest, const struct gkyl_ar
 
   if (src_is_cu_dev) {
     // source is on device
-    if (dest_is_cu_dev)
+    if (dest_is_cu_dev) {
       gkyl_cu_memcpy(dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_D2D);
-    else
+    } else {
       gkyl_cu_memcpy(dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_D2H);
+    }
   } else {
     // source is on host
-    if (dest_is_cu_dev)
+    if (dest_is_cu_dev) {
       gkyl_cu_memcpy(dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_H2D);
-    else
+    } else {
       memcpy(dest->data, src->data, ncopy * src->esznc);
+    }
   }
 
   return dest;
@@ -179,19 +185,24 @@ struct gkyl_array *gkyl_array_copy_async(struct gkyl_array *dest, const struct g
 
   if (src_is_cu_dev) {
     // source is on device
-    if (dest_is_cu_dev)
+    if (dest_is_cu_dev) {
       gkyl_cu_memcpy_async(
-        dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_D2D, src->iostream);
-    else
+        dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_D2D, src->iostream
+      );
+    } else {
       gkyl_cu_memcpy_async(
-        dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_D2H, src->iostream);
+        dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_D2H, src->iostream
+      );
+    }
   } else {
     // source is on host
-    if (dest_is_cu_dev)
+    if (dest_is_cu_dev) {
       gkyl_cu_memcpy_async(
-        dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_H2D, dest->iostream);
-    else
+        dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_H2D, dest->iostream
+      );
+    } else {
       memcpy(dest->data, src->data, ncopy * src->esznc);
+    }
   }
 
   return dest;
@@ -242,8 +253,9 @@ struct gkyl_array *gkyl_array_acquire(const struct gkyl_array *arr)
 
 void gkyl_array_release(const struct gkyl_array *arr)
 {
-  if (arr)
+  if (arr) {
     gkyl_ref_count_dec(&arr->ref_count);
+  }
 }
 
 // CUDA specific code

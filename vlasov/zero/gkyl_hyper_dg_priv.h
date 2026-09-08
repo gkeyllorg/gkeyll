@@ -33,9 +33,11 @@ struct gkyl_hyper_dg {
  * @param zero_flux_flags[2*GKYL_MAX_DIM] Flags to indicate if boundary has zero-flux BCs
  * @param update_vol_term Set to 0 to skip volume update
  */
-gkyl_hyper_dg *gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
-  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu, int num_up_dirs,
-  int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[2 * GKYL_MAX_DIM], int update_vol_term);
+gkyl_hyper_dg *gkyl_hyper_dg_cu_dev_new(
+  const struct gkyl_rect_grid *grid_cu, const struct gkyl_basis *basis,
+  const struct gkyl_dg_eqn *equation_cu, int num_up_dirs, int update_dirs[GKYL_MAX_DIM],
+  int zero_flux_flags[2 * GKYL_MAX_DIM], int update_vol_term
+);
 
 /**
  * Compute RHS of DG update on the device. The update_rng MUST be a sub-range of the
@@ -49,9 +51,11 @@ gkyl_hyper_dg *gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg *up, const struct gkyl_range *update_range,
+void gkyl_hyper_dg_advance_cu(
+  gkyl_hyper_dg *up, const struct gkyl_range *update_range,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
-  struct gkyl_array *GKYL_RESTRICT rhs);
+  struct gkyl_array *GKYL_RESTRICT rhs
+);
 
 /**
  * Set if volume term should be computed or not.

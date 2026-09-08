@@ -12,8 +12,9 @@ void set_array_copy_fn(struct gkyl_array_copy_func *fn);
 
 GKYL_CU_DH static void buffer_fn_cu(size_t nc, double *out, const double *inp, void *ctx)
 {
-  for (size_t i = 0; i < nc; ++i)
+  for (size_t i = 0; i < nc; ++i) {
     out[i] = 2 * inp[i];
+  }
 }
 
 __global__ void ker_cu_array_test_and_flip_sign(struct gkyl_array *arr, int *nfail)

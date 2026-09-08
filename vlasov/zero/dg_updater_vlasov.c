@@ -19,14 +19,16 @@ struct gkyl_dg_eqn *gkyl_dg_updater_vlasov_acquire_eqn(const gkyl_dg_updater_vla
 
 struct gkyl_dg_updater_vlasov_tm gkyl_dg_updater_vlasov_get_tm(const gkyl_dg_updater_vlasov *vlasov)
 {
-  return (struct gkyl_dg_updater_vlasov_tm){ .vlasov_tm = vlasov->vlasov_tm };
+  return (struct gkyl_dg_updater_vlasov_tm){.vlasov_tm = vlasov->vlasov_tm};
 }
 
-gkyl_dg_updater_vlasov *gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  const struct gkyl_range *phase_range, const bool *is_zero_flux_bc, enum gkyl_model_id model_id,
-  enum gkyl_field_id field_id, void *aux_inp, bool use_gpu)
+gkyl_dg_updater_vlasov *gkyl_dg_updater_vlasov_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
+  const bool *is_zero_flux_bc, enum gkyl_model_id model_id, enum gkyl_field_id field_id,
+  void *aux_inp, bool use_gpu
+)
 {
   gkyl_dg_updater_vlasov *up = gkyl_malloc(sizeof(gkyl_dg_updater_vlasov));
   up->model_id = model_id;
@@ -44,7 +46,8 @@ gkyl_dg_updater_vlasov *gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *
     gkyl_canonical_pb_set_auxfields(up->eqn_vlasov, *canonical_pb_inp);
   } else {
     up->eqn_vlasov = gkyl_dg_vlasov_new(
-      cbasis, pbasis, conf_range, phase_range, up->model_id, up->field_id, up->use_gpu);
+      cbasis, pbasis, conf_range, phase_range, up->model_id, up->field_id, up->use_gpu
+    );
     struct gkyl_dg_vlasov_auxfields *vlasov_inp = aux_inp;
     gkyl_vlasov_set_auxfields(up->eqn_vlasov, *vlasov_inp);
   }
@@ -69,16 +72,19 @@ gkyl_dg_updater_vlasov *gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *
     num_up_dirs = pdim;
   }
   up->hdg_vlasov = gkyl_hyper_dg_new(
-    grid, pbasis, up->eqn_vlasov, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
+    grid, pbasis, up->eqn_vlasov, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu
+  );
 
   up->vlasov_tm = 0.0;
 
   return up;
 }
 
-void gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
-  const struct gkyl_range *update_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
-  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs)
+void gkyl_dg_updater_vlasov_advance(
+  gkyl_dg_updater_vlasov *vlasov, const struct gkyl_range *update_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
+  struct gkyl_array *GKYL_RESTRICT rhs
+)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(vlasov->hdg_vlasov, update_rng, fIn, cflrate, rhs);

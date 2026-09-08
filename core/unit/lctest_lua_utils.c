@@ -128,11 +128,13 @@ void test_2(void)
 
       TEST_CHECK(3 == glua_objlen(L));
 
-      for (int i = 1; i <= glua_objlen(L); ++i)
+      for (int i = 1; i <= glua_objlen(L); ++i) {
         TEST_CHECK(10 + i == glua_tbl_iget_integer(L, i, 0));
+      }
 
-      for (int i = 1; i <= glua_objlen(L); ++i)
+      for (int i = 1; i <= glua_objlen(L); ++i) {
         TEST_CHECK(10 + i == glua_tbl_iget_number(L, i, 0));
+      }
     }
 
     TEST_CHECK(glua_tbl_has_key(L, "names"));
@@ -253,12 +255,12 @@ void test_4(void)
   /* lua_close(L); */
 }
 
-TEST_LIST = { { "test_0", test_0 }, { "test_1", test_1 }, { "test_2", test_2 },
-  { "test_3", test_3 }, { NULL, NULL } };
+TEST_LIST =
+  {{"test_0", test_0}, {"test_1", test_1}, {"test_2", test_2}, {"test_3", test_3}, {NULL, NULL}};
 
 #else
 
 // nothing to test if not building with MPI
-TEST_LIST = { { NULL, NULL } };
+TEST_LIST = {{NULL, NULL}};
 
 #endif

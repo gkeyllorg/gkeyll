@@ -12,10 +12,11 @@
 static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a;
-  if (use_gpu)
+  if (use_gpu) {
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
+  } else {
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  }
   return a;
 }
 
@@ -29,10 +30,10 @@ void test_vlasov_3x3v_p1_(bool use_gpu)
   int cdim = 3, vdim = 3;
   int pdim = cdim + vdim;
 
-  int cells[] = { 8, 8, 8, 8, 8, 8 };
-  int ghost[] = { 1, 1, 1, 0, 0, 0 };
-  double lower[] = { 0., 0., 0., -1., -1., -1. };
-  double upper[] = { 1., 1., 1., 1., 1., 1. };
+  int cells[] = {8, 8, 8, 8, 8, 8};
+  int ghost[] = {1, 1, 1, 0, 0, 0};
+  double lower[] = {0., 0., 0., -1., -1., -1.};
+  double upper[] = {1., 1., 1., 1., 1., 1.};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -65,8 +66,8 @@ void test_vlasov_3x3v_p1_(bool use_gpu)
 
   // initialize hyper_dg slvr
   // FIELD_NULL so only configuration space update, no velocity space update
-  int up_dirs[GKYL_MAX_DIM] = { 0, 1, 2 };
-  int zero_flux_flags[2 * GKYL_MAX_DIM] = { 0, 0, 0, 0, 0, 0 };
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
+  int zero_flux_flags[2 * GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
   int num_up_dirs = cdim;
 
   gkyl_hyper_dg *slvr;
@@ -93,26 +94,26 @@ void test_vlasov_3x3v_p1_(bool use_gpu)
   for (int i = 0; i < nf; i++) {
     fin_d[i] = (double)(2 * i + 11 % nf) / nf * ((i % 2 == 0) ? 1 : -1);
   }
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_array_copy(fin, fin_h);
+  }
 
   // run hyper_dg_advance
   int nrep = 10;
   for (int n = 0; n < nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_set_auxfields(eqn, (struct gkyl_dg_vlasov_auxfields){ .field = 0,
-                                     .cot_vec = 0,
-                                     .alpha_surf = 0,
-                                     .sgn_alpha_surf = 0,
-                                     .const_sgn_alpha = 0 }); // must set EM fields to use
+    gkyl_vlasov_set_auxfields(
+      eqn, (struct gkyl_dg_vlasov_auxfields
+           ){.field = 0, .cot_vec = 0, .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0}
+    ); // must set EM fields to use
 
     gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell
   // 1-indexed for interfacing with G2 Lua layer
-  int idx[] = { 1, 1, 1, 1, 1, 1 };
+  int idx[] = {1, 1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   rhs_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
@@ -125,8 +126,9 @@ void test_vlasov_3x3v_p1_(bool use_gpu)
   while (val == 0) {
     rhs_d = gkyl_array_fetch(rhs_h, i);
     val = rhs_d[0];
-    if (val == 0)
+    if (val == 0) {
       i++;
+    }
   }
   TEST_CHECK(i == linl);
 
@@ -299,7 +301,7 @@ void test_vlasov_3x3v_p1_(bool use_gpu)
 
   /*   // get linear index of some other cell */
   /*   // 1-indexed for interfacing with G2 Lua layer */
-  int idx2[] = { 6, 3, 5, 8, 2, 1 };
+  int idx2[] = {6, 3, 5, 8, 2, 1};
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d = gkyl_array_fetch(rhs_h, linl2);
 
@@ -486,5 +488,4 @@ void test_hyper3x_dg_vlasov_3x3v_p1_ho()
   test_vlasov_3x3v_p1_(false);
 }
 
-TEST_LIST = { { "test_hyper3x_dg_vlasov_3x3v_p1_ho", test_hyper3x_dg_vlasov_3x3v_p1_ho },
-  { NULL, NULL } };
+TEST_LIST = {{"test_hyper3x_dg_vlasov_3x3v_p1_ho", test_hyper3x_dg_vlasov_3x3v_p1_ho}, {NULL, NULL}};

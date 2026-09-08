@@ -27,8 +27,9 @@ struct gkyl_rect_grid {
  * @param upper Coordinates of upper-right corner of grid
  * @param cells Number of cells in each direction
  */
-void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim, const double *lower,
-  const double *upper, const int *cells);
+void gkyl_rect_grid_init(
+  struct gkyl_rect_grid *grid, int ndim, const double *lower, const double *upper, const int *cells
+);
 
 /**
  * Create and initialize a new grid object. Release with gkyl_rect_grid_release.
@@ -39,8 +40,8 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim, const double *lo
  * @param upper Coordinates of upper-right corner of grid
  * @param cells Number of cells in each direction
  */
-struct gkyl_rect_grid *gkyl_rect_grid_new(
-  int ndim, const double *lower, const double *upper, const int *cells);
+struct gkyl_rect_grid *
+gkyl_rect_grid_new(int ndim, const double *lower, const double *upper, const int *cells);
 
 /**
  * Find cell indices of point
@@ -52,8 +53,10 @@ struct gkyl_rect_grid *gkyl_rect_grid_new(
  * @param cell_index Pointer to cell indices.
  * Asserts: point lies within cell(s) specified by known_index (if specified). 
  */
-GKYL_CU_DH void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
-  const bool *pick_lower, const int *known_index, int *cell_index);
+GKYL_CU_DH void gkyl_rect_grid_find_cell(
+  const struct gkyl_rect_grid *grid, const double *point, const bool *pick_lower,
+  const int *known_index, int *cell_index
+);
 
 /**
  * Get cell-center coordinates. Note that idx is a 1-based cell index,
@@ -63,11 +66,12 @@ GKYL_CU_DH void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, cons
  * @param idx Index of cell (lower-left corner has all index (1,1,...) )
  * @param xc On output, cell-center coordinates of cell 'idx'
  */
-GKYL_CU_DH static inline void gkyl_rect_grid_cell_center(
-  const struct gkyl_rect_grid *grid, const int *idx, double *xc)
+GKYL_CU_DH static inline void
+gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid, const int *idx, double *xc)
 {
-  for (int i = 0; i < grid->ndim; ++i)
+  for (int i = 0; i < grid->ndim; ++i) {
     xc[i] = grid->lower[i] + (idx[i] - 0.5) * grid->dx[i];
+  }
 }
 
 /**
@@ -78,11 +82,12 @@ GKYL_CU_DH static inline void gkyl_rect_grid_cell_center(
  * @param idx Index of cell (lower-left corner has all index (1,1,...) )
  * @param xn On output, coordinates of lower-left node
  */
-GKYL_CU_DH static inline void gkyl_rect_grid_ll_node(
-  const struct gkyl_rect_grid *grid, const int *idx, double *xc)
+GKYL_CU_DH static inline void
+gkyl_rect_grid_ll_node(const struct gkyl_rect_grid *grid, const int *idx, double *xc)
 {
-  for (int i = 0; i < grid->ndim; ++i)
+  for (int i = 0; i < grid->ndim; ++i) {
     xc[i] = grid->lower[i] + (idx[i] - 1) * grid->dx[i];
+  }
 }
 
 /**
@@ -92,8 +97,8 @@ GKYL_CU_DH static inline void gkyl_rect_grid_ll_node(
  * @param dir Direction in which to get extents
  * @param ext On output, inclusive extents in direction @a dir.
  */
-GKYL_CU_DH static inline void gkyl_rect_grid_extents(
-  const struct gkyl_rect_grid *grid, int dir, int ext[2])
+GKYL_CU_DH static inline void
+gkyl_rect_grid_extents(const struct gkyl_rect_grid *grid, int dir, int ext[2])
 {
   ext[0] = 1;
   ext[1] = grid->cells[dir];
@@ -106,8 +111,8 @@ GKYL_CU_DH static inline void gkyl_rect_grid_extents(
  * @param xn Coordinate of point in grid
  * @param idx On output, index of point in grid
  */
-GKYL_CU_DH static inline void gkyl_rect_grid_coord_idx(
-  const struct gkyl_rect_grid *grid, const double *xn, int *idx)
+GKYL_CU_DH static inline void
+gkyl_rect_grid_coord_idx(const struct gkyl_rect_grid *grid, const double *xn, int *idx)
 {
   for (int d = 0; d < grid->ndim; ++d) {
     int ext[2];

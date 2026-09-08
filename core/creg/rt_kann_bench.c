@@ -44,11 +44,9 @@ static double bench_train(int ntrain, int nwidth, int ndepth, bool use_gpu)
     out_t = out_cu;
   }
 
-  struct gkyl_kann_train_params params = { .learning_rate = 1e-3f,
-    .mini_size = 64,
-    .max_epoch = 50,
-    .max_drop_streak = 10,
-    .frac_val = 0.1f };
+  struct gkyl_kann_train_params params = {
+    .learning_rate = 1e-3f, .mini_size = 64, .max_epoch = 50, .max_drop_streak = 10, .frac_val = 0.1f
+  };
 
   struct timespec t0, t1;
   clock_gettime(CLOCK_MONOTONIC, &t0);
@@ -76,8 +74,9 @@ static double bench_infer(int nvec, int nwidth, int ndepth, bool use_gpu, const 
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
   float dx = 2.0f / (nvec - 1);
-  for (int i = 0; i < nvec; ++i)
+  for (int i = 0; i < nvec; ++i) {
     inp->vals[i][0] = -1.0f + dx * i;
+  }
 
   struct gkyl_kn_vec *inp_t = inp, *out_t = out;
   struct gkyl_kn_vec *inp_cu = 0, *out_cu = 0;
@@ -95,8 +94,9 @@ static double bench_infer(int nvec, int nwidth, int ndepth, bool use_gpu, const 
   int nreps = 100;
   struct timespec t0, t1;
   clock_gettime(CLOCK_MONOTONIC, &t0);
-  for (int r = 0; r < nreps; ++r)
+  for (int r = 0; r < nreps; ++r) {
     gkyl_kann_net_apply(net, inp_t, out_t);
+  }
   clock_gettime(CLOCK_MONOTONIC, &t1);
 
   double elapsed = ((t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec) * 1e-9) / nreps;
@@ -117,8 +117,8 @@ int main(int argc, char *argv[])
   int ntrain = 1001;
   int ninfer = 1001;
 
-  int widths[] = { 64, 128, 256, 512 };
-  int depths[] = { 2, 4 };
+  int widths[] = {64, 128, 256, 512};
+  int depths[] = {2, 4};
   int nw = sizeof(widths) / sizeof(widths[0]);
   int nd = sizeof(depths) / sizeof(depths[0]);
 
@@ -159,11 +159,13 @@ int main(int argc, char *argv[])
         inp->vals[i][0] = -1.0f + dx * i;
         out->vals[i][0] = ufunc(inp->vals[i][0]);
       }
-      struct gkyl_kann_train_params params = { .learning_rate = 1e-3f,
+      struct gkyl_kann_train_params params = {
+        .learning_rate = 1e-3f,
         .mini_size = 64,
         .max_epoch = 5,
         .max_drop_streak = 5,
-        .frac_val = 0.1f };
+        .frac_val = 0.1f
+      };
       gkyl_kann_net_train_fnn1(net, &params, inp, out);
       gkyl_kann_net_save(net, "bench_tmp.kann");
       gkyl_kn_vec_release(inp);
@@ -174,7 +176,8 @@ int main(int argc, char *argv[])
       double t_gpu = bench_infer(ninfer, w, d, true, "bench_tmp.kann");
 
       fprintf(
-        stdout, "%6d %6d %10.4f %10.4f %10.2fx\n", w, d, t_cpu * 1000, t_gpu * 1000, t_cpu / t_gpu);
+        stdout, "%6d %6d %10.4f %10.4f %10.2fx\n", w, d, t_cpu * 1000, t_gpu * 1000, t_cpu / t_gpu
+      );
     }
   }
 

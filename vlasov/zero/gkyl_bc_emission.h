@@ -27,10 +27,12 @@ struct gkyl_bc_emission_ctx {
  * @param in_species Table of impacting species names
  * @return New ctx structure
  */
-struct gkyl_bc_emission_ctx *gkyl_bc_emission_new(int num_species, double t_bound, bool elastic,
+struct gkyl_bc_emission_ctx *gkyl_bc_emission_new(
+  int num_species, double t_bound, bool elastic,
   struct gkyl_emission_spectrum_model *spectrum_model[],
   struct gkyl_emission_yield_model *yield_model[],
-  struct gkyl_emission_elastic_model *elastic_model, char in_species[][128]);
+  struct gkyl_emission_elastic_model *elastic_model, char in_species[][128]
+);
 
 /**
  * Copper preset for secondary electron emission
@@ -42,7 +44,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_new(int num_species, double t_boun
  * @return New ctx structure
  */
 struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_copper_new(
-  int num_species, double t_bound, char in_species[][128], bool use_gpu);
+  int num_species, double t_bound, char in_species[][128], bool use_gpu
+);
 
 /**
  * Oxidized lithium preset for secondary electron emission
@@ -54,7 +57,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_copper_new(
  * @return New ctx structure
  */
 struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_oxidized_new(
-  int num_species, double t_bound, char in_species[][128], bool use_gpu);
+  int num_species, double t_bound, char in_species[][128], bool use_gpu
+);
 
 /**
  * Clean (no oxidation) lithium preset for secondary electron emission
@@ -66,7 +70,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_oxidize
  * @return New ctx structure
  */
 struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_clean_new(
-  int num_species, double t_bound, char in_species[][128], bool use_gpu);
+  int num_species, double t_bound, char in_species[][128], bool use_gpu
+);
 
 /**
  * Copper preset for ion-impact secondary electron emission
@@ -78,13 +83,16 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_clean_n
  * @return New ctx structure
  */
 struct gkyl_bc_emission_ctx *gkyl_bc_emission_ion_impact_copper_new(
-  int num_species, double t_bound, char in_species[][128], bool use_gpu);
+  int num_species, double t_bound, char in_species[][128], bool use_gpu
+);
 
 struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_copper_new(
-  int num_species, double t_bound, char in_species[][128], bool use_gpu);
+  int num_species, double t_bound, char in_species[][128], bool use_gpu
+);
 
 struct gkyl_bc_emission_ctx *gkyl_bc_emission_ion_impact_copper_new(
-  int num_species, double t_bound, char in_species[][128], bool use_gpu);
+  int num_species, double t_bound, char in_species[][128], bool use_gpu
+);
 
 /**
  * Free memory associated with bc_emission struct.

@@ -7,21 +7,26 @@
 #include <math.h>
 
 // Increment an int vector by fact*del[d] in each direction d.
-static inline void incr_int_array(int ndim, int fact, const int *GKYL_RESTRICT del,
-  const int *GKYL_RESTRICT inp, int *GKYL_RESTRICT out)
+static inline void incr_int_array(
+  int ndim, int fact, const int *GKYL_RESTRICT del, const int *GKYL_RESTRICT inp,
+  int *GKYL_RESTRICT out
+)
 {
-  for (int i = 0; i < ndim; ++i)
+  for (int i = 0; i < ndim; ++i) {
     out[i] = inp[i] + fact * del[i];
+  }
 }
 
 // KB - Number of cells in the positive and negative directions
 // is assumed to be the same symmetrically, half of the cells in that dimension. Need to
 // do this more rigorously.
-void gkyl_bc_emission_flux_ranges(struct gkyl_range *flux_r, int dir,
-  const struct gkyl_range *parent, const int *nghost, enum gkyl_edge_loc edge)
+void gkyl_bc_emission_flux_ranges(
+  struct gkyl_range *flux_r, int dir, const struct gkyl_range *parent, const int *nghost,
+  enum gkyl_edge_loc edge
+)
 {
   int ndim = parent->ndim;
-  int lo[GKYL_MAX_DIM] = { 0 }, up[GKYL_MAX_DIM] = { 0 };
+  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
 
   if (edge == GKYL_LOWER_EDGE) {
     incr_int_array(ndim, 0, nghost, parent->lower, lo);
@@ -42,8 +47,10 @@ void gkyl_bc_emission_flux_ranges(struct gkyl_range *flux_r, int dir,
   }
 }
 
-void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up,
-  struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *impact_buff_r)
+void gkyl_bc_emission_spectrum_sey_calc(
+  const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid,
+  const struct gkyl_range *impact_buff_r
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -69,7 +76,8 @@ struct gkyl_bc_emission_spectrum *gkyl_bc_emission_spectrum_new(
   struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in,
   double mass_out, struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r,
   struct gkyl_rect_grid *impact_grid, struct gkyl_rect_grid *emit_grid, int poly_order,
-  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu)
+  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu
+)
 {
   // Allocate space for new updater.
   struct gkyl_bc_emission_spectrum *up = gkyl_malloc(sizeof(struct gkyl_bc_emission_spectrum));
@@ -99,7 +107,8 @@ struct gkyl_bc_emission_spectrum *gkyl_bc_emission_spectrum_new(
   up->yield_model->mass = mass_in;
 
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
-    emit_grid, basis, poly_order + 1, 1, up->spectrum_model->distribution, up->spectrum_model);
+    emit_grid, basis, poly_order + 1, 1, up->spectrum_model->distribution, up->spectrum_model
+  );
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -121,28 +130,34 @@ struct gkyl_bc_emission_spectrum *gkyl_bc_emission_spectrum_new(
 
 static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 {
-  for (int i = 0; i < cdim; ++i)
+  for (int i = 0; i < cdim; ++i) {
     out[i] = cidx[i];
-  for (int i = cdim; i < pdim; ++i)
+  }
+  for (int i = cdim; i < pdim; ++i) {
     out[i] = vidx[i - cdim];
+  }
 }
 
-void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
-  struct gkyl_range *impact_buff_r, struct gkyl_range *impact_cbuff_r,
-  struct gkyl_range *emit_buff_r, struct gkyl_array *bflux, struct gkyl_array *f_emit,
-  struct gkyl_array *yield, struct gkyl_array *spectrum, struct gkyl_array *weight,
-  struct gkyl_array *flux, struct gkyl_array *k)
+void gkyl_bc_emission_spectrum_advance(
+  const struct gkyl_bc_emission_spectrum *up, struct gkyl_range *impact_buff_r,
+  struct gkyl_range *impact_cbuff_r, struct gkyl_range *emit_buff_r, struct gkyl_array *bflux,
+  struct gkyl_array *f_emit, struct gkyl_array *yield, struct gkyl_array *spectrum,
+  struct gkyl_array *weight, struct gkyl_array *flux, struct gkyl_array *k
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    return gkyl_bc_emission_spectrum_advance_cu(up, impact_buff_r, impact_cbuff_r, emit_buff_r,
-      bflux, f_emit, yield, spectrum, weight, flux, k);
+    return gkyl_bc_emission_spectrum_advance_cu(
+      up, impact_buff_r, impact_cbuff_r, emit_buff_r, bflux, f_emit, yield, spectrum, weight, flux,
+      k
+    );
   }
 #endif
   double xc[GKYL_MAX_DIM];
-  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d = 0; d < impact_cbuff_r->ndim; ++d)
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < impact_cbuff_r->ndim; ++d) {
     rem_dir[d] = 1;
+  }
 
   struct gkyl_range vel_buff_r;
   struct gkyl_range_iter conf_iter, vel_iter;

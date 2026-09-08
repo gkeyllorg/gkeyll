@@ -12,12 +12,14 @@ extern "C" {
 #include <gkyl_const.h>
 }
 
-__global__ static void gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up,
-  const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
-  const struct gkyl_basis *adas_basis, const struct gkyl_array *prim_vars_elc,
-  struct gkyl_array *coef_recomb, struct gkyl_array *recomb_data, double mass_elc,
-  double elem_charge, double maxLogTe, double minLogTe, double dlogTe, int resTe, double maxLogM0,
-  double minLogM0, double dlogM0, int resM0)
+__global__ static void gkyl_recomb_react_rate_cu_ker(
+  const struct gkyl_dg_recomb *up, const struct gkyl_range conf_rng,
+  const struct gkyl_range adas_rng, const struct gkyl_basis *adas_basis,
+  const struct gkyl_array *prim_vars_elc, struct gkyl_array *coef_recomb,
+  struct gkyl_array *recomb_data, double mass_elc, double elem_charge, double maxLogTe,
+  double minLogTe, double dlogTe, int resTe, double maxLogM0, double minLogM0, double dlogM0,
+  int resM0
+)
 {
   int cidx[GKYL_MAX_CDIM];
   for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < conf_rng.volume;
@@ -46,8 +48,9 @@ __global__ static void gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb
     } else if (log_Te_av > maxLogTe) {
       t_idx = resTe;
       log_Te_av = maxLogTe;
-    } else
+    } else {
       t_idx = (log_Te_av - minLogTe) / (dlogTe) + 1;
+    }
     cell_center = (t_idx - 0.5) * dlogTe + minLogTe;
     cell_vals_2d[0] = 2.0 * (log_Te_av - cell_center) / dlogTe; // Te value on cell interval
 
@@ -57,12 +60,13 @@ __global__ static void gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb
     } else if (log_m0_av > maxLogM0) {
       m0_idx = resM0;
       log_m0_av = maxLogM0;
-    } else
+    } else {
       m0_idx = (log_m0_av - minLogM0) / (dlogM0) + 1;
+    }
     cell_center = (m0_idx - 0.5) * dlogM0 + minLogM0;
     cell_vals_2d[1] = 2.0 * (log_m0_av - cell_center) / dlogM0; // M0 value on cell interval
 
-    int ad_idx[2] = { t_idx, m0_idx };
+    int ad_idx[2] = {t_idx, m0_idx};
 
     if ((m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
       coef_recomb_d[0] = 0.0;
@@ -75,13 +79,16 @@ __global__ static void gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb
   }
 }
 
-void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up, const struct gkyl_array *prim_vars_elc,
-  struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
+void gkyl_dg_recomb_coll_cu(
+  const struct gkyl_dg_recomb *up, const struct gkyl_array *prim_vars_elc,
+  struct gkyl_array *coef_recomb, struct gkyl_array *cflrate
+)
 {
-  gkyl_recomb_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(up->on_dev,
-    *up->conf_rng, up->adas_rng, up->basis_on_dev, prim_vars_elc->on_dev, coef_recomb->on_dev,
-    up->recomb_data->on_dev, up->mass_elc, up->elem_charge, up->maxLogTe, up->minLogTe, up->dlogTe,
-    up->resTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resM0);
+  gkyl_recomb_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(
+    up->on_dev, *up->conf_rng, up->adas_rng, up->basis_on_dev, prim_vars_elc->on_dev,
+    coef_recomb->on_dev, up->recomb_data->on_dev, up->mass_elc, up->elem_charge, up->maxLogTe,
+    up->minLogTe, up->dlogTe, up->resTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resM0
+  );
 
   // cfl calculation
   //struct gkyl_range vel_rng;

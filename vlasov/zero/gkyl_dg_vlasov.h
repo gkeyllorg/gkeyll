@@ -32,10 +32,11 @@ struct gkyl_dg_vlasov_auxfields {
  * @param use_gpu bool to determine if on GPU
  * @return Pointer to Vlasov equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_vlasov_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, enum gkyl_model_id model_id, enum gkyl_field_id field_id,
-  bool use_gpu);
+struct gkyl_dg_eqn *gkyl_dg_vlasov_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu
+);
 
 /**
  * Create a new Vlasov equation object that lives on NV-GPU
@@ -48,9 +49,11 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_new(const struct gkyl_basis *cbasis,
  * @param field_id enum to determine what type of EM fields (Vlasov-Maxwell vs. Vlasov-Poisson vs. neutrals)
  * @return Pointer to Vlasov equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, enum gkyl_model_id model_id, enum gkyl_field_id field_id);
+struct gkyl_dg_eqn *gkyl_dg_vlasov_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id
+);
 
 /**
  * Set the auxiliary fields (e.g. q/m*EM) needed in updating the force terms.
@@ -58,8 +61,7 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis *cbasis,
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin);
+void gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 /**
@@ -69,6 +71,7 @@ void gkyl_vlasov_set_auxfields(
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_vlasov_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin);
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin
+);
 
 #endif

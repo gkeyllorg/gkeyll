@@ -44,10 +44,10 @@ void test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
   int pdim_gk = cdim + vdim_gk;
 
   // for gk grids
-  double lower_elc[] = { -2.0, -2.0, -2.0, vmin_elc, 0.0 },
-         upper_elc[] = { 2.0, 2.0, 2.0, vmax_elc, mumax_elc };
-  int ghost_gk[] = { 0, 0, 0, 0, 0 };
-  int cells_gk[] = { 16, 16, 16, 8, 4 };
+  double lower_elc[] = {-2.0, -2.0, -2.0, vmin_elc, 0.0},
+         upper_elc[] = {2.0, 2.0, 2.0, vmax_elc, mumax_elc};
+  int ghost_gk[] = {0, 0, 0, 0, 0};
+  int cells_gk[] = {16, 16, 16, 8, 4};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -73,14 +73,16 @@ void test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
   gkyl_proj_on_basis *proj_T_over_m_elc =
     gkyl_proj_on_basis_new(&confGrid, &basis, poly_order + 1, 1, eval_T_over_m_elc, NULL);
 
-  struct gkyl_dg_recomb_inp rec_inp = { .grid = &phaseGrid_elc,
+  struct gkyl_dg_recomb_inp rec_inp = {
+    .grid = &phaseGrid_elc,
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
     .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .type_ion = type_ion,
-    .charge_state = charge_state };
+    .charge_state = charge_state
+  };
 
   // coll struct.
   struct gkyl_dg_recomb *coll_recomb_up = gkyl_dg_recomb_new(&rec_inp, use_gpu);
@@ -115,27 +117,27 @@ void test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
     gkyl_dg_recomb_coll(coll_recomb_up, moms_elc, coef_recomb, 0);
   }
   const double *cv_r =
-    gkyl_array_cfetch(coef_recomb, gkyl_range_idx(&confRange, (int[3]){ 1, 1, 1 }));
+    gkyl_array_cfetch(coef_recomb, gkyl_range_idx(&confRange, (int[3]){1, 1, 1}));
 
   // test against predicted value
   if (type_ion == GKYL_ION_H) {
-    double p1_vals[] = { 4.0651315620487753e-19, 0.0000000000000000e+00, 0.0000000000000000e+00,
-      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
-      0.0000000000000000e+00, 0.0000000000000000e+00 };
+    double p1_vals[] = {4.0651315620487753e-19, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                        0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                        0.0000000000000000e+00, 0.0000000000000000e+00};
     for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p1_vals[i] * check_fac, cv_r[i] * check_fac, 1e-12));
     }
   } else if (type_ion == GKYL_ION_LI) {
-    double p1_vals[] = { 1.4761368114720401e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
-      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
-      0.0000000000000000e+00, 0.0000000000000000e+00 };
+    double p1_vals[] = {1.4761368114720401e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                        0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                        0.0000000000000000e+00, 0.0000000000000000e+00};
     for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p1_vals[i] * check_fac, cv_r[i] * check_fac, 1e-12));
     }
   } else if (type_ion == GKYL_ION_AR) {
-    double p1_vals[] = { 2.6716460249415115e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
-      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
-      0.0000000000000000e+00, 0.0000000000000000e+00 };
+    double p1_vals[] = {2.6716460249415115e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                        0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+                        0.0000000000000000e+00, 0.0000000000000000e+00};
     for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p1_vals[i] * check_fac, cv_r[i] * check_fac, 1e-12));
     }
@@ -226,10 +228,14 @@ void coll_recomb_o_gpu()
 }
 #endif
 
-TEST_LIST = { { "coll_recomb_h_ho", coll_recomb_h_ho }, { "coll_recomb_li_ho", coll_recomb_li_ho },
-  { "coll_recomb_ar_ho", coll_recomb_ar_ho },
+TEST_LIST = {
+  {"coll_recomb_h_ho", coll_recomb_h_ho},
+  {"coll_recomb_li_ho", coll_recomb_li_ho},
+  {"coll_recomb_ar_ho", coll_recomb_ar_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "coll_recomb_h_dev", coll_recomb_h_dev }, { "coll_recomb_li_dev", coll_recomb_li_dev },
-  { "coll_recomb_ar_dev", coll_recomb_ar_dev },
+  {"coll_recomb_h_dev", coll_recomb_h_dev},
+  {"coll_recomb_li_dev", coll_recomb_li_dev},
+  {"coll_recomb_ar_dev", coll_recomb_ar_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

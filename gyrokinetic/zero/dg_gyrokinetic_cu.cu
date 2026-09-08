@@ -13,9 +13,10 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
-  const struct gkyl_array *flux_surf, const struct gkyl_array *phi, const struct gkyl_array *apar,
-  const struct gkyl_array *apardot)
+__global__ static void gkyl_gyrokinetic_set_auxfields_cu_kernel(
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *flux_surf, const struct gkyl_array *phi,
+  const struct gkyl_array *apar, const struct gkyl_array *apardot
+)
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   gyrokinetic->auxfields.flux_surf = flux_surf;
@@ -26,17 +27,20 @@ __global__ static void gkyl_gyrokinetic_set_auxfields_cu_kernel(const struct gky
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void gkyl_gyrokinetic_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin)
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin
+)
 {
   gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1, 1> > >(
-    eqn, auxin.flux_surf->on_dev, auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev);
+    eqn, auxin.flux_surf->on_dev, auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev
+  );
 }
 
 // CUDA kernel to set device pointers to range object and gyrokinetic kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic,
-  enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim, int poly_order,
-  enum gkyl_gk_collisionless_type collless_type)
+__global__ static void dg_gyrokinetic_set_cu_dev_ptrs(
+  struct dg_gyrokinetic *gyrokinetic, enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim,
+  int poly_order, enum gkyl_gk_collisionless_type collless_type
+)
 {
   gyrokinetic->auxfields.flux_surf = 0;
   gyrokinetic->auxfields.phi = 0;
@@ -85,25 +89,30 @@ __global__ static void dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyr
   }
 
   gyrokinetic->surf[0] = surf_x_kernels[cv_index].kernels[poly_order];
-  if (cdim > 1)
+  if (cdim > 1) {
     gyrokinetic->surf[1] = surf_y_kernels[cv_index].kernels[poly_order];
-  if (cdim > 2)
+  }
+  if (cdim > 2) {
     gyrokinetic->surf[2] = surf_z_kernels[cv_index].kernels[poly_order];
+  }
   gyrokinetic->surf[cdim] = surf_vpar_kernels[cv_index].kernels[poly_order];
 
   gyrokinetic->boundary_surf[0] = boundary_surf_x_kernels[cv_index].kernels[poly_order];
-  if (cdim > 1)
+  if (cdim > 1) {
     gyrokinetic->boundary_surf[1] = boundary_surf_y_kernels[cv_index].kernels[poly_order];
-  if (cdim > 2)
+  }
+  if (cdim > 2) {
     gyrokinetic->boundary_surf[2] = boundary_surf_z_kernels[cv_index].kernels[poly_order];
+  }
   gyrokinetic->boundary_surf[cdim] = boundary_surf_vpar_kernels[cv_index].kernels[poly_order];
 }
 
-struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const double charge, const double mass,
-  enum gkyl_gk_collisionless_type collless_type, const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map)
+struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const double charge,
+  const double mass, enum gkyl_gk_collisionless_type collless_type,
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map
+)
 {
   struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic *)gkyl_malloc(sizeof(*gyrokinetic));
 
@@ -137,8 +146,9 @@ struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbas
     (struct dg_gyrokinetic *)gkyl_cu_malloc(sizeof(struct dg_gyrokinetic));
   gkyl_cu_memcpy(gyrokinetic_cu, gyrokinetic, sizeof(struct dg_gyrokinetic), GKYL_CU_MEMCPY_H2D);
 
-  dg_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(gyrokinetic_cu, cbasis->b_type,
-    cv_index[cdim].vdim[vdim], cdim, vdim, poly_order, collless_type);
+  dg_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(
+    gyrokinetic_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order, collless_type
+  );
 
   // set parent on_dev pointer
   gyrokinetic->eqn.on_dev = &gyrokinetic_cu->eqn;

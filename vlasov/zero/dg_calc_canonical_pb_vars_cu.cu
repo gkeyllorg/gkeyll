@@ -18,7 +18,8 @@ __global__ void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range conf_range,
   const struct gkyl_range phase_range, const struct gkyl_range phase_ext_range,
   struct gkyl_array *hamil, struct gkyl_array *alpha_surf, struct gkyl_array *sgn_alpha_surf,
-  struct gkyl_array *const_sgn_alpha)
+  struct gkyl_array *const_sgn_alpha
+)
 {
   int pdim = up->pdim;
   int cdim = up->cdim;
@@ -38,12 +39,16 @@ __global__ void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(
     double *sgn_alpha_surf_d = (double *)gkyl_array_fetch(sgn_alpha_surf, loc_phase);
     int *const_sgn_alpha_d = (int *)gkyl_array_fetch(const_sgn_alpha, loc_phase);
     for (int dir = 0; dir < vdim; ++dir) {
-      const_sgn_alpha_d[dir + cdim] = up->alpha_surf[dir + cdim](xc, up->phase_grid.dx,
-        (const double *)gkyl_array_cfetch(hamil, loc_phase), alpha_surf_d, sgn_alpha_surf_d);
+      const_sgn_alpha_d[dir + cdim] = up->alpha_surf[dir + cdim](
+        xc, up->phase_grid.dx, (const double *)gkyl_array_cfetch(hamil, loc_phase), alpha_surf_d,
+        sgn_alpha_surf_d
+      );
     }
     for (int dir = 0; dir < cdim; ++dir) {
-      const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx,
-        (const double *)gkyl_array_cfetch(hamil, loc_phase), alpha_surf_d, sgn_alpha_surf_d);
+      const_sgn_alpha_d[dir] = up->alpha_surf[dir](
+        xc, up->phase_grid.dx, (const double *)gkyl_array_cfetch(hamil, loc_phase), alpha_surf_d,
+        sgn_alpha_surf_d
+      );
 
       // If the phase space index is at the local configuration space upper value, we
       // we are at the configuration space upper edge and we also need to evaluate
@@ -58,31 +63,36 @@ __global__ void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(
         double *alpha_surf_ext_d = (double *)gkyl_array_fetch(alpha_surf, loc_phase_ext);
         double *sgn_alpha_surf_ext_d = (double *)gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
         int *const_sgn_alpha_ext_d = (int *)gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
-        const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->phase_grid.dx,
-          (const double *)gkyl_array_fetch(hamil, loc_phase), alpha_surf_ext_d,
-          sgn_alpha_surf_ext_d);
+        const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](
+          xc, up->phase_grid.dx, (const double *)gkyl_array_fetch(hamil, loc_phase),
+          alpha_surf_ext_d, sgn_alpha_surf_ext_d
+        );
       }
     }
   }
 }
 // Host-side wrapper
-void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(struct gkyl_dg_calc_canonical_pb_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_range *phase_ext_range, struct gkyl_array *hamil, struct gkyl_array *alpha_surf,
-  struct gkyl_array *sgn_alpha_surf, struct gkyl_array *const_sgn_alpha)
+void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(
+  struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range,
+  struct gkyl_array *hamil, struct gkyl_array *alpha_surf, struct gkyl_array *sgn_alpha_surf,
+  struct gkyl_array *const_sgn_alpha
+)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel<<<nblocks, nthreads> > >(up->on_dev,
-    *conf_range, *phase_range, *phase_ext_range, hamil->on_dev, alpha_surf->on_dev,
-    sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev);
+  gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel<<<nblocks, nthreads> > >(
+    up->on_dev, *conf_range, *phase_range, *phase_ext_range, hamil->on_dev, alpha_surf->on_dev,
+    sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev
+  );
 }
 
 /* Convert the bulk velocity from contravariant to covaraint components for can-pb*/
 __global__ void gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range conf_range,
   const struct gkyl_array *h_ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
-  struct gkyl_array *V_drift_cov, struct gkyl_array *M1i_cov)
+  struct gkyl_array *V_drift_cov, struct gkyl_array *M1i_cov
+)
 {
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM];
@@ -107,22 +117,26 @@ __global__ void gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel(
   }
 }
 // Host-side wrapper
-void gkyl_canonical_pb_contra_to_covariant_m1i_cu(struct gkyl_dg_calc_canonical_pb_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
-  const struct gkyl_array *V_drift, const struct gkyl_array *M1i, struct gkyl_array *V_drift_cov,
-  struct gkyl_array *M1i_cov)
+void gkyl_canonical_pb_contra_to_covariant_m1i_cu(
+  struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *h_ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
+  struct gkyl_array *V_drift_cov, struct gkyl_array *M1i_cov
+)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel<<<nblocks, nthreads> > >(up->on_dev,
-    *conf_range, h_ij->on_dev, V_drift->on_dev, M1i->on_dev, V_drift_cov->on_dev, M1i_cov->on_dev);
+  gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel<<<nblocks, nthreads> > >(
+    up->on_dev, *conf_range, h_ij->on_dev, V_drift->on_dev, M1i->on_dev, V_drift_cov->on_dev,
+    M1i_cov->on_dev
+  );
 }
 
 /* Compute the pressure for can-pb*/
-__global__ void gkyl_canonical_pb_pressure_cu_kernel(struct gkyl_dg_calc_canonical_pb_vars *up,
-  const struct gkyl_range conf_range, const struct gkyl_array *h_ij_inv,
-  const struct gkyl_array *MEnergy, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
-  struct gkyl_array *pressure)
+__global__ void gkyl_canonical_pb_pressure_cu_kernel(
+  struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range conf_range,
+  const struct gkyl_array *h_ij_inv, const struct gkyl_array *MEnergy,
+  const struct gkyl_array *V_drift, const struct gkyl_array *M1i, struct gkyl_array *pressure
+)
 {
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM];
@@ -148,22 +162,26 @@ __global__ void gkyl_canonical_pb_pressure_cu_kernel(struct gkyl_dg_calc_canonic
   }
 }
 // Host-side wrapper
-void gkyl_canonical_pb_pressure_cu(struct gkyl_dg_calc_canonical_pb_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij_inv,
-  const struct gkyl_array *MEnergy, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
-  struct gkyl_array *pressure)
+void gkyl_canonical_pb_pressure_cu(
+  struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *h_ij_inv, const struct gkyl_array *MEnergy,
+  const struct gkyl_array *V_drift, const struct gkyl_array *M1i, struct gkyl_array *pressure
+)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_canonical_pb_pressure_cu_kernel<<<nblocks, nthreads> > >(up->on_dev, *conf_range,
-    h_ij_inv->on_dev, MEnergy->on_dev, V_drift->on_dev, M1i->on_dev, pressure->on_dev);
+  gkyl_canonical_pb_pressure_cu_kernel<<<nblocks, nthreads> > >(
+    up->on_dev, *conf_range, h_ij_inv->on_dev, MEnergy->on_dev, V_drift->on_dev, M1i->on_dev,
+    pressure->on_dev
+  );
 }
 
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(
   struct gkyl_dg_calc_canonical_pb_vars *up, enum gkyl_basis_type b_type, int cv_index, int cdim,
-  int vdim, int poly_order)
+  int vdim, int poly_order
+)
 {
   up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(b_type, cv_index, cdim, poly_order);
   up->canonical_pb_covariant_u_i =
@@ -182,7 +200,8 @@ __global__ static void dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(
 
 gkyl_dg_calc_canonical_pb_vars *gkyl_dg_calc_canonical_pb_vars_cu_dev_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *phase_basis)
+  const struct gkyl_basis *phase_basis
+)
 {
   struct gkyl_dg_calc_canonical_pb_vars *up =
     (struct gkyl_dg_calc_canonical_pb_vars *)gkyl_malloc(sizeof(gkyl_dg_calc_canonical_pb_vars));
@@ -203,7 +222,8 @@ gkyl_dg_calc_canonical_pb_vars *gkyl_dg_calc_canonical_pb_vars_cu_dev_new(
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_canonical_pb_vars), GKYL_CU_MEMCPY_H2D);
 
   dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1, 1> > >(
-    up_cu, phase_basis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
+    up_cu, phase_basis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order
+  );
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

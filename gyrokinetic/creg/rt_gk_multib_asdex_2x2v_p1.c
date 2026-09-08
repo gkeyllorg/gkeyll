@@ -136,47 +136,53 @@ void divertor_plate_func_out(double s, double *RZ)
   //    -0.82107517, -0.81824287, -0.81541475, -0.81259136,
   //  };
   // Extended plates:
-  double t[] = { 0., 0.01010101, 0.02020202, 0.03030303, 0.04040404, 0.05050505, 0.06060606,
-    0.07070707, 0.08080808, 0.09090909, 0.1010101, 0.11111111, 0.12121212, 0.13131313, 0.14141414,
-    0.15151515, 0.16161616, 0.17171717, 0.18181818, 0.19191919, 0.2020202, 0.21212121, 0.22222222,
-    0.23232323, 0.24242424, 0.25252525, 0.26262626, 0.27272727, 0.28282828, 0.29292929, 0.3030303,
-    0.31313131, 0.32323232, 0.33333333, 0.34343434, 0.35353535, 0.36363636, 0.37373737, 0.38383838,
-    0.39393939, 0.4040404, 0.41414141, 0.42424242, 0.43434343, 0.44444444, 0.45454545, 0.46464646,
-    0.47474747, 0.48484848, 0.49494949, 0.50505051, 0.51515152, 0.52525253, 0.53535354, 0.54545455,
-    0.55555556, 0.56565657, 0.57575758, 0.58585859, 0.5959596, 0.60606061, 0.61616162, 0.62626263,
-    0.63636364, 0.64646465, 0.65656566, 0.66666667, 0.67676768, 0.68686869, 0.6969697, 0.70707071,
-    0.71717172, 0.72727273, 0.73737374, 0.74747475, 0.75757576, 0.76767677, 0.77777778, 0.78787879,
-    0.7979798, 0.80808081, 0.81818182, 0.82828283, 0.83838384, 0.84848485, 0.85858586, 0.86868687,
-    0.87878788, 0.88888889, 0.8989899, 0.90909091, 0.91919192, 0.92929293, 0.93939394, 0.94949495,
-    0.95959596, 0.96969697, 0.97979798, 0.98989899, 1. };
-  double R[] = { 1.57598284, 1.57749872, 1.57719396, 1.57796683, 1.57991018, 1.58038241, 1.5809759,
-    1.58399201, 1.58425793, 1.58426253, 1.58499896, 1.58614281, 1.58753427, 1.58902876, 1.5904817,
-    1.59179306, 1.59302565, 1.59427949, 1.59565459, 1.59723624, 1.59893569, 1.60055062, 1.60187675,
-    1.60274568, 1.60335474, 1.60411485, 1.60542574, 1.60728998, 1.60926429, 1.61088179, 1.61186578,
-    1.61252968, 1.61330099, 1.61451591, 1.61611502, 1.61793178, 1.61980027, 1.62157904, 1.62315876,
-    1.62443226, 1.6252949, 1.62583334, 1.62645555, 1.62760027, 1.62957002, 1.63208393, 1.63470503,
-    1.63700839, 1.63888443, 1.64056222, 1.6422873, 1.64422197, 1.6463157, 1.64848453, 1.65066913,
-    1.65286514, 1.65507565, 1.65730495, 1.65958062, 1.66195139, 1.66446661, 1.66714803, 1.6699525,
-    1.6728276, 1.67572691, 1.67866399, 1.68168688, 1.68484367, 1.68816064, 1.69163081, 1.69524436,
-    1.69899094, 1.70285788, 1.70683192, 1.71089965, 1.7150371, 1.71920156, 1.72334843, 1.72743844,
-    1.73147165, 1.73546566, 1.7394382, 1.7434051, 1.74737814, 1.7513686, 1.75538652, 1.75942234,
-    1.76345072, 1.76744589, 1.77138913, 1.77529078, 1.7791686, 1.78304031, 1.78692, 1.79081551,
-    1.79473402, 1.79868275, 1.80266888, 1.80669962, 1.81078217 };
-  double Z[] = { -1.23058861, -1.22520737, -1.21958678, -1.21420037, -1.2089721, -1.20333331,
-    -1.19784428, -1.19319607, -1.18774139, -1.18215984, -1.17672523, -1.171336, -1.1659685,
-    -1.16060623, -1.15523274, -1.14983804, -1.14443584, -1.13904528, -1.1336855, -1.12837252,
-    -1.12308551, -1.11777961, -1.11240953, -1.10693817, -1.10141171, -1.09592495, -1.09057007,
-    -1.08534602, -1.08014713, -1.07486217, -1.069425, -1.06390939, -1.05841614, -1.05302462,
-    -1.0477214, -1.04246792, -1.03722574, -1.03196133, -1.02664761, -1.02125793, -1.01576636,
-    -1.01019997, -1.00467492, -0.99931589, -0.99420628, -0.98925267, -0.98431435, -0.97925461,
-    -0.97404232, -0.96875963, -0.96349423, -0.95830444, -0.95317355, -0.94807301, -0.94298211,
-    -0.93789756, -0.9328184, -0.92774445, -0.92269006, -0.91768278, -0.91275056, -0.90790634,
-    -0.90312784, -0.8983877, -0.89366215, -0.88896287, -0.88432198, -0.87977162, -0.8753329,
-    -0.87101007, -0.86680593, -0.86272171, -0.85875197, -0.85488954, -0.85112709, -0.84744285,
-    -0.84378957, -0.84011741, -0.8363825, -0.83258511, -0.82874522, -0.82488291, -0.8210157,
-    -0.81715554, -0.81331368, -0.80950011, -0.80570491, -0.80190214, -0.79806541, -0.79417556,
-    -0.79024315, -0.78628637, -0.78232333, -0.77836847, -0.77442978, -0.77051462, -0.76663036,
-    -0.76278437, -0.75898399, -0.7552366 };
+  double t[] = {0.,         0.01010101, 0.02020202, 0.03030303, 0.04040404, 0.05050505, 0.06060606,
+                0.07070707, 0.08080808, 0.09090909, 0.1010101,  0.11111111, 0.12121212, 0.13131313,
+                0.14141414, 0.15151515, 0.16161616, 0.17171717, 0.18181818, 0.19191919, 0.2020202,
+                0.21212121, 0.22222222, 0.23232323, 0.24242424, 0.25252525, 0.26262626, 0.27272727,
+                0.28282828, 0.29292929, 0.3030303,  0.31313131, 0.32323232, 0.33333333, 0.34343434,
+                0.35353535, 0.36363636, 0.37373737, 0.38383838, 0.39393939, 0.4040404,  0.41414141,
+                0.42424242, 0.43434343, 0.44444444, 0.45454545, 0.46464646, 0.47474747, 0.48484848,
+                0.49494949, 0.50505051, 0.51515152, 0.52525253, 0.53535354, 0.54545455, 0.55555556,
+                0.56565657, 0.57575758, 0.58585859, 0.5959596,  0.60606061, 0.61616162, 0.62626263,
+                0.63636364, 0.64646465, 0.65656566, 0.66666667, 0.67676768, 0.68686869, 0.6969697,
+                0.70707071, 0.71717172, 0.72727273, 0.73737374, 0.74747475, 0.75757576, 0.76767677,
+                0.77777778, 0.78787879, 0.7979798,  0.80808081, 0.81818182, 0.82828283, 0.83838384,
+                0.84848485, 0.85858586, 0.86868687, 0.87878788, 0.88888889, 0.8989899,  0.90909091,
+                0.91919192, 0.92929293, 0.93939394, 0.94949495, 0.95959596, 0.96969697, 0.97979798,
+                0.98989899, 1.};
+  double R[] = {1.57598284, 1.57749872, 1.57719396, 1.57796683, 1.57991018, 1.58038241, 1.5809759,
+                1.58399201, 1.58425793, 1.58426253, 1.58499896, 1.58614281, 1.58753427, 1.58902876,
+                1.5904817,  1.59179306, 1.59302565, 1.59427949, 1.59565459, 1.59723624, 1.59893569,
+                1.60055062, 1.60187675, 1.60274568, 1.60335474, 1.60411485, 1.60542574, 1.60728998,
+                1.60926429, 1.61088179, 1.61186578, 1.61252968, 1.61330099, 1.61451591, 1.61611502,
+                1.61793178, 1.61980027, 1.62157904, 1.62315876, 1.62443226, 1.6252949,  1.62583334,
+                1.62645555, 1.62760027, 1.62957002, 1.63208393, 1.63470503, 1.63700839, 1.63888443,
+                1.64056222, 1.6422873,  1.64422197, 1.6463157,  1.64848453, 1.65066913, 1.65286514,
+                1.65507565, 1.65730495, 1.65958062, 1.66195139, 1.66446661, 1.66714803, 1.6699525,
+                1.6728276,  1.67572691, 1.67866399, 1.68168688, 1.68484367, 1.68816064, 1.69163081,
+                1.69524436, 1.69899094, 1.70285788, 1.70683192, 1.71089965, 1.7150371,  1.71920156,
+                1.72334843, 1.72743844, 1.73147165, 1.73546566, 1.7394382,  1.7434051,  1.74737814,
+                1.7513686,  1.75538652, 1.75942234, 1.76345072, 1.76744589, 1.77138913, 1.77529078,
+                1.7791686,  1.78304031, 1.78692,    1.79081551, 1.79473402, 1.79868275, 1.80266888,
+                1.80669962, 1.81078217};
+  double Z[] = {-1.23058861, -1.22520737, -1.21958678, -1.21420037, -1.2089721,  -1.20333331,
+                -1.19784428, -1.19319607, -1.18774139, -1.18215984, -1.17672523, -1.171336,
+                -1.1659685,  -1.16060623, -1.15523274, -1.14983804, -1.14443584, -1.13904528,
+                -1.1336855,  -1.12837252, -1.12308551, -1.11777961, -1.11240953, -1.10693817,
+                -1.10141171, -1.09592495, -1.09057007, -1.08534602, -1.08014713, -1.07486217,
+                -1.069425,   -1.06390939, -1.05841614, -1.05302462, -1.0477214,  -1.04246792,
+                -1.03722574, -1.03196133, -1.02664761, -1.02125793, -1.01576636, -1.01019997,
+                -1.00467492, -0.99931589, -0.99420628, -0.98925267, -0.98431435, -0.97925461,
+                -0.97404232, -0.96875963, -0.96349423, -0.95830444, -0.95317355, -0.94807301,
+                -0.94298211, -0.93789756, -0.9328184,  -0.92774445, -0.92269006, -0.91768278,
+                -0.91275056, -0.90790634, -0.90312784, -0.8983877,  -0.89366215, -0.88896287,
+                -0.88432198, -0.87977162, -0.8753329,  -0.87101007, -0.86680593, -0.86272171,
+                -0.85875197, -0.85488954, -0.85112709, -0.84744285, -0.84378957, -0.84011741,
+                -0.8363825,  -0.83258511, -0.82874522, -0.82488291, -0.8210157,  -0.81715554,
+                -0.81331368, -0.80950011, -0.80570491, -0.80190214, -0.79806541, -0.79417556,
+                -0.79024315, -0.78628637, -0.78232333, -0.77836847, -0.77442978, -0.77051462,
+                -0.76663036, -0.76278437, -0.75898399, -0.7552366};
   // Find indices in t that bound s.
   int idx_tlo, idx_tup;
   if (s < 1e-8) {
@@ -270,47 +276,53 @@ void divertor_plate_func_in(double s, double *RZ)
   //   -0.64242369, -0.63778818, -0.63303609, -0.62814097,
   //  };
   // Extended plates:
-  double t[] = { 0., 0.01010101, 0.02020202, 0.03030303, 0.04040404, 0.05050505, 0.06060606,
-    0.07070707, 0.08080808, 0.09090909, 0.1010101, 0.11111111, 0.12121212, 0.13131313, 0.14141414,
-    0.15151515, 0.16161616, 0.17171717, 0.18181818, 0.19191919, 0.2020202, 0.21212121, 0.22222222,
-    0.23232323, 0.24242424, 0.25252525, 0.26262626, 0.27272727, 0.28282828, 0.29292929, 0.3030303,
-    0.31313131, 0.32323232, 0.33333333, 0.34343434, 0.35353535, 0.36363636, 0.37373737, 0.38383838,
-    0.39393939, 0.4040404, 0.41414141, 0.42424242, 0.43434343, 0.44444444, 0.45454545, 0.46464646,
-    0.47474747, 0.48484848, 0.49494949, 0.50505051, 0.51515152, 0.52525253, 0.53535354, 0.54545455,
-    0.55555556, 0.56565657, 0.57575758, 0.58585859, 0.5959596, 0.60606061, 0.61616162, 0.62626263,
-    0.63636364, 0.64646465, 0.65656566, 0.66666667, 0.67676768, 0.68686869, 0.6969697, 0.70707071,
-    0.71717172, 0.72727273, 0.73737374, 0.74747475, 0.75757576, 0.76767677, 0.77777778, 0.78787879,
-    0.7979798, 0.80808081, 0.81818182, 0.82828283, 0.83838384, 0.84848485, 0.85858586, 0.86868687,
-    0.87878788, 0.88888889, 0.8989899, 0.90909091, 0.91919192, 0.92929293, 0.93939394, 0.94949495,
-    0.95959596, 0.96969697, 0.97979798, 0.98989899, 1. };
-  double R[] = { 1.23400147, 1.23596982, 1.23692438, 1.23760647, 1.23873964, 1.24046625, 1.24223112,
-    1.24357829, 1.24473493, 1.24609806, 1.24768076, 1.24927123, 1.25072248, 1.25216181, 1.25378298,
-    1.25571142, 1.25800448, 1.26071586, 1.26375963, 1.26674464, 1.26923947, 1.270992, 1.27246039,
-    1.27427511, 1.27662659, 1.27883727, 1.28012797, 1.27985427, 1.27885712, 1.2788943, 1.28076395,
-    1.28304269, 1.28410951, 1.28383, 1.28313288, 1.28288408, 1.28294436, 1.28269267, 1.28188045,
-    1.28045658, 1.27875059, 1.27715353, 1.27600109, 1.27507859, 1.27385662, 1.27199829, 1.26963499,
-    1.26696543, 1.26414096, 1.26124713, 1.2583607, 1.25547296, 1.25249254, 1.24935156, 1.24611617,
-    1.24289388, 1.23972915, 1.23652666, 1.23317353, 1.22961774, 1.22589572, 1.22205141, 1.21817485,
-    1.21443592, 1.21101198, 1.20792728, 1.20483227, 1.20134014, 1.19741473, 1.19333087, 1.18934956,
-    1.18552628, 1.18181437, 1.17817041, 1.17456403, 1.17096752, 1.16735816, 1.16372798, 1.1600751,
-    1.15645747, 1.15298346, 1.14971821, 1.14660428, 1.14356418, 1.1405544, 1.13757905, 1.1346467,
-    1.13179194, 1.12907914, 1.12655402, 1.12413273, 1.12168382, 1.11916745, 1.11664274, 1.11417392,
-    1.11183193, 1.10969647, 1.10784783, 1.10636628, 1.10533213 };
-  double Z[] = { -1.15621288, -1.15003049, -1.14365673, -1.13723457, -1.13090344, -1.12468749,
-    -1.11847249, -1.11216563, -1.10581805, -1.09951633, -1.09326264, -1.08700972, -1.080725,
-    -1.07443785, -1.06819323, -1.06203269, -1.05599439, -1.05011605, -1.04437945, -1.03864409,
-    -1.03275332, -1.02660506, -1.02031329, -1.01404485, -1.00788248, -1.00174305, -0.99552402,
-    -0.98913856, -0.98267291, -0.97632012, -0.97016517, -0.96404269, -0.95776537, -0.95131811,
-    -0.94480896, -0.93833879, -0.93189358, -0.92543579, -0.91904105, -0.91275869, -0.90652847,
-    -0.90027248, -0.89392434, -0.88753274, -0.88121219, -0.87504236, -0.86901791, -0.86312083,
-    -0.85731909, -0.85156118, -0.84579663, -0.84002768, -0.83430755, -0.8286761, -0.82309595,
-    -0.81750594, -0.81188219, -0.80628355, -0.80077929, -0.7954017, -0.79012948, -0.78493671,
-    -0.77976693, -0.77451069, -0.76905359, -0.76338046, -0.75771843, -0.75231866, -0.74720265,
-    -0.74218826, -0.73710256, -0.73190848, -0.72663647, -0.72131539, -0.71596723, -0.71061258,
-    -0.70526774, -0.69993643, -0.69461799, -0.68927613, -0.68384451, -0.67828401, -0.67263256,
-    -0.66694068, -0.66123602, -0.65551422, -0.64976824, -0.6439824, -0.63813111, -0.63219691,
-    -0.6262177, -0.62025164, -0.61431515, -0.60837962, -0.60241435, -0.59639522, -0.59030675,
-    -0.584134, -0.57786206, -0.57147602 };
+  double t[] = {0.,         0.01010101, 0.02020202, 0.03030303, 0.04040404, 0.05050505, 0.06060606,
+                0.07070707, 0.08080808, 0.09090909, 0.1010101,  0.11111111, 0.12121212, 0.13131313,
+                0.14141414, 0.15151515, 0.16161616, 0.17171717, 0.18181818, 0.19191919, 0.2020202,
+                0.21212121, 0.22222222, 0.23232323, 0.24242424, 0.25252525, 0.26262626, 0.27272727,
+                0.28282828, 0.29292929, 0.3030303,  0.31313131, 0.32323232, 0.33333333, 0.34343434,
+                0.35353535, 0.36363636, 0.37373737, 0.38383838, 0.39393939, 0.4040404,  0.41414141,
+                0.42424242, 0.43434343, 0.44444444, 0.45454545, 0.46464646, 0.47474747, 0.48484848,
+                0.49494949, 0.50505051, 0.51515152, 0.52525253, 0.53535354, 0.54545455, 0.55555556,
+                0.56565657, 0.57575758, 0.58585859, 0.5959596,  0.60606061, 0.61616162, 0.62626263,
+                0.63636364, 0.64646465, 0.65656566, 0.66666667, 0.67676768, 0.68686869, 0.6969697,
+                0.70707071, 0.71717172, 0.72727273, 0.73737374, 0.74747475, 0.75757576, 0.76767677,
+                0.77777778, 0.78787879, 0.7979798,  0.80808081, 0.81818182, 0.82828283, 0.83838384,
+                0.84848485, 0.85858586, 0.86868687, 0.87878788, 0.88888889, 0.8989899,  0.90909091,
+                0.91919192, 0.92929293, 0.93939394, 0.94949495, 0.95959596, 0.96969697, 0.97979798,
+                0.98989899, 1.};
+  double R[] = {1.23400147, 1.23596982, 1.23692438, 1.23760647, 1.23873964, 1.24046625, 1.24223112,
+                1.24357829, 1.24473493, 1.24609806, 1.24768076, 1.24927123, 1.25072248, 1.25216181,
+                1.25378298, 1.25571142, 1.25800448, 1.26071586, 1.26375963, 1.26674464, 1.26923947,
+                1.270992,   1.27246039, 1.27427511, 1.27662659, 1.27883727, 1.28012797, 1.27985427,
+                1.27885712, 1.2788943,  1.28076395, 1.28304269, 1.28410951, 1.28383,    1.28313288,
+                1.28288408, 1.28294436, 1.28269267, 1.28188045, 1.28045658, 1.27875059, 1.27715353,
+                1.27600109, 1.27507859, 1.27385662, 1.27199829, 1.26963499, 1.26696543, 1.26414096,
+                1.26124713, 1.2583607,  1.25547296, 1.25249254, 1.24935156, 1.24611617, 1.24289388,
+                1.23972915, 1.23652666, 1.23317353, 1.22961774, 1.22589572, 1.22205141, 1.21817485,
+                1.21443592, 1.21101198, 1.20792728, 1.20483227, 1.20134014, 1.19741473, 1.19333087,
+                1.18934956, 1.18552628, 1.18181437, 1.17817041, 1.17456403, 1.17096752, 1.16735816,
+                1.16372798, 1.1600751,  1.15645747, 1.15298346, 1.14971821, 1.14660428, 1.14356418,
+                1.1405544,  1.13757905, 1.1346467,  1.13179194, 1.12907914, 1.12655402, 1.12413273,
+                1.12168382, 1.11916745, 1.11664274, 1.11417392, 1.11183193, 1.10969647, 1.10784783,
+                1.10636628, 1.10533213};
+  double Z[] = {-1.15621288, -1.15003049, -1.14365673, -1.13723457, -1.13090344, -1.12468749,
+                -1.11847249, -1.11216563, -1.10581805, -1.09951633, -1.09326264, -1.08700972,
+                -1.080725,   -1.07443785, -1.06819323, -1.06203269, -1.05599439, -1.05011605,
+                -1.04437945, -1.03864409, -1.03275332, -1.02660506, -1.02031329, -1.01404485,
+                -1.00788248, -1.00174305, -0.99552402, -0.98913856, -0.98267291, -0.97632012,
+                -0.97016517, -0.96404269, -0.95776537, -0.95131811, -0.94480896, -0.93833879,
+                -0.93189358, -0.92543579, -0.91904105, -0.91275869, -0.90652847, -0.90027248,
+                -0.89392434, -0.88753274, -0.88121219, -0.87504236, -0.86901791, -0.86312083,
+                -0.85731909, -0.85156118, -0.84579663, -0.84002768, -0.83430755, -0.8286761,
+                -0.82309595, -0.81750594, -0.81188219, -0.80628355, -0.80077929, -0.7954017,
+                -0.79012948, -0.78493671, -0.77976693, -0.77451069, -0.76905359, -0.76338046,
+                -0.75771843, -0.75231866, -0.74720265, -0.74218826, -0.73710256, -0.73190848,
+                -0.72663647, -0.72131539, -0.71596723, -0.71061258, -0.70526774, -0.69993643,
+                -0.69461799, -0.68927613, -0.68384451, -0.67828401, -0.67263256, -0.66694068,
+                -0.66123602, -0.65551422, -0.64976824, -0.6439824,  -0.63813111, -0.63219691,
+                -0.6262177,  -0.62025164, -0.61431515, -0.60837962, -0.60241435, -0.59639522,
+                -0.59030675, -0.584134,   -0.57786206, -0.57147602};
   // Find indices in t that bound s.
   int idx_tlo, idx_tup;
   if (s < 1e-8) {
@@ -393,9 +405,9 @@ struct gkyl_gk_block_geom *create_asdex_lsn_gk_block_geom(void *ctx)
     another edge are a physical boundary.
   */
 
-  struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
-    .rz_poly_order = 2,
-    .flux_poly_order = 1
+  struct gkyl_efit_inp efit_inp = {// psiRZ and related inputs
+                                   .rz_poly_order = 2,
+                                   .flux_poly_order = 1
   };
   // Copy eqdsk file into efit_inp.
   memcpy(efit_inp.filepath, params->geqdsk_file, sizeof(params->geqdsk_file));
@@ -417,55 +429,67 @@ struct gkyl_gk_block_geom *create_asdex_lsn_gk_block_geom(void *ctx)
   int Ntheta_sol = params->Ntheta_sol;
 
   // Block 0: outer private flux (PF) region.
-  gkyl_gk_block_geom_set_block(bgeom, 0,
-    &(struct gkyl_gk_block_geom_info){.lower = {psi_min_pf, theta_min},
+  gkyl_gk_block_geom_set_block(
+    bgeom, 0,
+    &(struct gkyl_gk_block_geom_info
+    ){.lower = {psi_min_pf, theta_min},
       .upper = {psi_sep, theta_max},
       .cells = {Npsi_pf, Ntheta_divertor},
       .cuts = {1, 1},
-      .geometry = {.world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-        .efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp){.ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
-          .rleft = 1.1,
-          .rright = 1.7,
-          .rmin = 1.1,
-          .rmax = 1.7,
-          .zmin = -1.3,
-          .zmax = -0.9,
-          .zmin_left = -1.18,
-          .zmax_right = -1.18,
-          .plate_spec = true,
-          .plate_func_lower = divertor_plate_func_out,
-          .plate_func_upper = divertor_plate_func_in}},
+      .geometry =
+        {.world = {0.0},
+         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+         .efit_info = efit_inp,
+         .tok_grid_info = (struct gkyl_tok_geo_grid_inp
+         ){.ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
+           .rleft = 1.1,
+           .rright = 1.7,
+           .rmin = 1.1,
+           .rmax = 1.7,
+           .zmin = -1.3,
+           .zmax = -0.9,
+           .zmin_left = -1.18,
+           .zmax_right = -1.18,
+           .plate_spec = true,
+           .plate_func_lower = divertor_plate_func_out,
+           .plate_func_upper = divertor_plate_func_in}},
 
       .connections[0] =
         {// x-direction.
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-          {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
-      .connections[1] = {// z-direction.
-        {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // Physical boundary.
-        {.bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE}}});
+         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+         {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        },
+      .connections[1] =
+        {// z-direction.
+         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // Physical boundary.
+         {.bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        }}
+  );
 
   // Block 1: lower outer SOL.
-  gkyl_gk_block_geom_set_block(bgeom, 1,
-    &(struct gkyl_gk_block_geom_info){.lower = {psi_sep, theta_min},
+  gkyl_gk_block_geom_set_block(
+    bgeom, 1,
+    &(struct gkyl_gk_block_geom_info
+    ){.lower = {psi_sep, theta_min},
       .upper = {psi_max_sol, theta_max},
       .cells = {Npsi_sol, Ntheta_divertor},
       .cuts = {1, 1},
-      .geometry = {.world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-        .efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp){.ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
-          .rclose = 2.5,
-          .rleft = 0.8,
-          .rright = 2.5,
-          .rmin = 0.8,
-          .rmax = 2.5,
-          .zmin = -1.3,
-          .zmax = 1.0,
-          .plate_spec = true,
-          .plate_func_lower = divertor_plate_func_out,
-          .plate_func_upper = divertor_plate_func_in}},
+      .geometry =
+        {.world = {0.0},
+         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+         .efit_info = efit_inp,
+         .tok_grid_info = (struct gkyl_tok_geo_grid_inp
+         ){.ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
+           .rclose = 2.5,
+           .rleft = 0.8,
+           .rright = 2.5,
+           .rmin = 0.8,
+           .rmax = 2.5,
+           .zmin = -1.3,
+           .zmax = 1.0,
+           .plate_spec = true,
+           .plate_func_lower = divertor_plate_func_out,
+           .plate_func_upper = divertor_plate_func_in}},
 
       .connections[0] =
         {
@@ -473,30 +497,37 @@ struct gkyl_gk_block_geom *create_asdex_lsn_gk_block_geom(void *ctx)
           {.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
           {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
         },
-      .connections[1] = {// z-direction.
-        {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL}, // Physical boundary.
-        {.bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE}}});
+      .connections[1] =
+        {// z-direction.
+         {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL}, // Physical boundary.
+         {.bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        }}
+  );
 
   // Block 2: mid SOL.
-  gkyl_gk_block_geom_set_block(bgeom, 2,
-    &(struct gkyl_gk_block_geom_info){.lower = {psi_sep, theta_min},
+  gkyl_gk_block_geom_set_block(
+    bgeom, 2,
+    &(struct gkyl_gk_block_geom_info
+    ){.lower = {psi_sep, theta_min},
       .upper = {psi_max_sol, theta_max},
       .cells = {Npsi_sol, Ntheta_sol},
       .cuts = {1, 1},
-      .geometry = {.world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-        .efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp){.ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
-          .rclose = 2.5,
-          .rleft = 0.8,
-          .rright = 2.5,
-          .rmin = 0.8,
-          .rmax = 2.5,
-          .zmin = -1.3,
-          .zmax = 1.0,
-          .plate_spec = true,
-          .plate_func_lower = divertor_plate_func_out,
-          .plate_func_upper = divertor_plate_func_in}},
+      .geometry =
+        {.world = {0.0},
+         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+         .efit_info = efit_inp,
+         .tok_grid_info = (struct gkyl_tok_geo_grid_inp
+         ){.ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
+           .rclose = 2.5,
+           .rleft = 0.8,
+           .rright = 2.5,
+           .rmin = 0.8,
+           .rmax = 2.5,
+           .zmin = -1.3,
+           .zmax = 1.0,
+           .plate_spec = true,
+           .plate_func_lower = divertor_plate_func_out,
+           .plate_func_upper = divertor_plate_func_in}},
 
       .connections[0] =
         {
@@ -504,30 +535,37 @@ struct gkyl_gk_block_geom *create_asdex_lsn_gk_block_geom(void *ctx)
           {.bid = 5, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
           {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
         },
-      .connections[1] = {// z-direction.
-        {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        {.bid = 3, .dir = 1, .edge = GKYL_LOWER_POSITIVE}}});
+      .connections[1] =
+        {// z-direction.
+         {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+         {.bid = 3, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        }}
+  );
 
   // Block 3: lower inner SOL.
-  gkyl_gk_block_geom_set_block(bgeom, 3,
-    &(struct gkyl_gk_block_geom_info){.lower = {psi_sep, theta_min},
+  gkyl_gk_block_geom_set_block(
+    bgeom, 3,
+    &(struct gkyl_gk_block_geom_info
+    ){.lower = {psi_sep, theta_min},
       .upper = {psi_max_sol, theta_max},
       .cells = {Npsi_sol, Ntheta_divertor},
       .cuts = {1, 1},
-      .geometry = {.world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-        .efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp){.ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP,
-          .rclose = 2.5,
-          .rleft = 0.8,
-          .rright = 2.5,
-          .rmin = 0.8,
-          .rmax = 2.5,
-          .zmin = -1.3,
-          .zmax = 1.0,
-          .plate_spec = true,
-          .plate_func_lower = divertor_plate_func_out,
-          .plate_func_upper = divertor_plate_func_in}},
+      .geometry =
+        {.world = {0.0},
+         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+         .efit_info = efit_inp,
+         .tok_grid_info = (struct gkyl_tok_geo_grid_inp
+         ){.ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP,
+           .rclose = 2.5,
+           .rleft = 0.8,
+           .rright = 2.5,
+           .rmin = 0.8,
+           .rmax = 2.5,
+           .zmin = -1.3,
+           .zmax = 1.0,
+           .plate_spec = true,
+           .plate_func_lower = divertor_plate_func_out,
+           .plate_func_upper = divertor_plate_func_in}},
 
       .connections[0] =
         {
@@ -535,67 +573,85 @@ struct gkyl_gk_block_geom *create_asdex_lsn_gk_block_geom(void *ctx)
           {.bid = 4, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
           {.bid = 3, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
         },
-      .connections[1] = {
-        // z-direction.
-        {.bid = 2, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        {.bid = 3, .dir = 1, .edge = GKYL_PHYSICAL} // Physical boundary.
-      }});
+      .connections[1] =
+        {
+          // z-direction.
+          {.bid = 2, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 3, .dir = 1, .edge = GKYL_PHYSICAL} // Physical boundary.
+        }}
+  );
 
   // Block 4: inner private flux (PF) region.
-  gkyl_gk_block_geom_set_block(bgeom, 4,
-    &(struct gkyl_gk_block_geom_info){.lower = {psi_min_pf, theta_min},
+  gkyl_gk_block_geom_set_block(
+    bgeom, 4,
+    &(struct gkyl_gk_block_geom_info
+    ){.lower = {psi_min_pf, theta_min},
       .upper = {psi_sep, theta_max},
       .cells = {Npsi_pf, Ntheta_divertor},
       .cuts = {1, 1},
-      .geometry = {.world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-        .efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp){.ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
-          .rleft = 1.1,
-          .rright = 1.7,
-          .rmin = 1.1,
-          .rmax = 1.7,
-          .zmin = -1.3,
-          .zmax = -0.9,
-          .zmin_left = -1.18,
-          .zmax_right = -1.18,
-          .plate_spec = true,
-          .plate_func_lower = divertor_plate_func_out,
-          .plate_func_upper = divertor_plate_func_in}},
+      .geometry =
+        {.world = {0.0},
+         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+         .efit_info = efit_inp,
+         .tok_grid_info = (struct gkyl_tok_geo_grid_inp
+         ){.ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
+           .rleft = 1.1,
+           .rright = 1.7,
+           .rmin = 1.1,
+           .rmax = 1.7,
+           .zmin = -1.3,
+           .zmax = -0.9,
+           .zmin_left = -1.18,
+           .zmax_right = -1.18,
+           .plate_spec = true,
+           .plate_func_lower = divertor_plate_func_out,
+           .plate_func_upper = divertor_plate_func_in}},
 
       .connections[0] =
         {// x-direction.
-          {.bid = 4, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-          {.bid = 3, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
-      .connections[1] = {// z-direction.
-        {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE}, // Physical boundary.
-        {.bid = 4, .dir = 1, .edge = GKYL_PHYSICAL}}});
+         {.bid = 4, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+         {.bid = 3, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        },
+      .connections[1] =
+        {// z-direction.
+         {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE}, // Physical boundary.
+         {.bid = 4, .dir = 1, .edge = GKYL_PHYSICAL}
+        }}
+  );
 
   // Block 5: core region.
-  gkyl_gk_block_geom_set_block(bgeom, 5,
-    &(struct gkyl_gk_block_geom_info){.lower = {psi_min_core, theta_min},
+  gkyl_gk_block_geom_set_block(
+    bgeom, 5,
+    &(struct gkyl_gk_block_geom_info
+    ){.lower = {psi_min_core, theta_min},
       .upper = {psi_sep, theta_max},
       .cells = {Npsi_core, Ntheta_sol},
       .cuts = {1, 1},
-      .geometry = {.world = {0.0},
-        .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-        .efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp){.ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
-          .rclose = 2.0,
-          .rleft = 0.8,
-          .rright = 2.5,
-          .rmin = 0.8,
-          .rmax = 2.5,
-          .zmin = -1.3,
-          .zmax = 1.0}},
+      .geometry =
+        {.world = {0.0},
+         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+         .efit_info = efit_inp,
+         .tok_grid_info = (struct gkyl_tok_geo_grid_inp
+         ){.ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+           .rclose = 2.0,
+           .rleft = 0.8,
+           .rright = 2.5,
+           .rmin = 0.8,
+           .rmax = 2.5,
+           .zmin = -1.3,
+           .zmax = 1.0}},
 
       .connections[0] =
         {// x-direction.
-          {.bid = 5, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-          {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
-      .connections[1] = {// z-direction.
-        {.bid = 5, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        {.bid = 5, .dir = 1, .edge = GKYL_LOWER_POSITIVE}}});
+         {.bid = 5, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+         {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        },
+      .connections[1] =
+        {// z-direction.
+         {.bid = 5, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+         {.bid = 5, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        }}
+  );
 
   return bgeom;
 }
@@ -609,12 +665,13 @@ void mapc2p_vel_elc(double t, const double *vc, double *GKYL_RESTRICT vp, void *
 
   double cvpar = vc[0], cmu = vc[1];
   // Linear map up to vpar_max/2, then quadratic.
-  if (fabs(cvpar) <= 0.5)
+  if (fabs(cvpar) <= 0.5) {
     vp[0] = vpar_max_elc * cvpar;
-  else if (cvpar < -0.5)
+  } else if (cvpar < -0.5) {
     vp[0] = -vpar_max_elc * 2.0 * pow(cvpar, 2);
-  else
+  } else {
     vp[0] = vpar_max_elc * 2.0 * pow(cvpar, 2);
+  }
 
   // Quadratic map in mu.
   vp[1] = mu_max_elc * pow(cmu, 2);
@@ -628,12 +685,13 @@ void mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *
 
   double cvpar = vc[0], cmu = vc[1];
   // Linear map up to vpar_max/2, then quadratic.
-  if (fabs(cvpar) <= 0.5)
+  if (fabs(cvpar) <= 0.5) {
     vp[0] = vpar_max_ion * cvpar;
-  else if (cvpar < -0.5)
+  } else if (cvpar < -0.5) {
     vp[0] = -vpar_max_ion * 2.0 * pow(cvpar, 2);
-  else
+  } else {
     vp[0] = vpar_max_ion * 2.0 * pow(cvpar, 2);
+  }
 
   // Quadratic map in mu.
   vp[1] = mu_max_ion * pow(cmu, 2);
@@ -658,12 +716,13 @@ double init_profile(double psi, double f_min, double f_max, void *ctx)
   double c4 = (f_max + f_min) / 2.0;
 
   double f = -1.0;
-  if (rho <= rho_min)
+  if (rho <= rho_min) {
     f = f_max;
-  else if (rho_min < rho && rho <= rho_max)
+  } else if (rho_min < rho && rho <= rho_max) {
     f = c1 * sin(c2 * rho + c3) + c4;
-  else
+  } else {
     f = f_min;
+  }
 
   return f;
 }
@@ -715,7 +774,8 @@ void init_upar(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 void init_source_dens(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_asdex_ctx *params = ctx;
   double x = xn[0], z = xn[1];
@@ -725,21 +785,24 @@ void init_source_dens(
   double ndot_src = params->ndot_src;
 
   double source_floor = 1e-10;
-  if (x < psi_src + 3 * lambda_src)
+  if (x < psi_src + 3 * lambda_src) {
     source_floor = 1e-2;
+  }
 
   double src_prof = exp(-pow(x - psi_src, 2) / (2 * pow(lambda_src, 2)));
   fout[0] = ndot_src * fmax(src_prof, source_floor);
 }
 
 void init_source_upar(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   fout[0] = 0.0;
 }
 
 void init_source_temp_elc(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_asdex_ctx *params = ctx;
   double x = xn[0], z = xn[1];
@@ -749,14 +812,16 @@ void init_source_temp_elc(
   double Te_src = params->Te_src;
   double eV = GKYL_ELEMENTARY_CHARGE;
 
-  if (x < psi_src + 3 * lambda_src)
+  if (x < psi_src + 3 * lambda_src) {
     fout[0] = Te_src;
-  else
+  } else {
     fout[0] = 2.0 * eV;
+  }
 }
 
 void init_source_temp_ion(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct gk_asdex_ctx *params = ctx;
   double x = xn[0], z = xn[1];
@@ -766,14 +831,16 @@ void init_source_temp_ion(
   double Ti_src = params->Ti_src;
   double eV = GKYL_ELEMENTARY_CHARGE;
 
-  if (x < psi_src + 3 * lambda_src)
+  if (x < psi_src + 3 * lambda_src) {
     fout[0] = Ti_src;
-  else
+  } else {
     fout[0] = 2.0 * eV;
+  }
 }
 
 void diffusion_D_func(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct sheath_ctx *app = ctx;
 
@@ -825,9 +892,9 @@ struct gk_asdex_ctx create_ctx(void)
   double R_sep_omp = 2.1334876; // Separatrix major at the OMP.
   double psi_axis = -9.276977e-02; // Psi at the magnetic axis.
   // Get the separatrix psi.
-  struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
-    .rz_poly_order = 2,
-    .flux_poly_order = 1
+  struct gkyl_efit_inp efit_inp = {// psiRZ and related inputs
+                                   .rz_poly_order = 2,
+                                   .flux_poly_order = 1
   };
   // Copy eqdsk file into efit_inp.
   memcpy(efit_inp.filepath, geqdsk_file, sizeof(geqdsk_file));
@@ -923,7 +990,8 @@ struct gk_asdex_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct gk_asdex_ctx ctx = { .cdim = cdim,
+  struct gk_asdex_ctx ctx = {
+    .cdim = cdim,
     .vdim = vdim,
     .charge_elc = qe,
     .charge_ion = qi,
@@ -971,13 +1039,14 @@ struct gk_asdex_ctx create_ctx(void)
     .Ntheta_sol = Ntheta_sol,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells_v = { Nvpar, Nmu },
+    .cells_v = {Nvpar, Nmu},
     .t_end = t_end,
     .num_frames = num_frames,
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+    .num_failures_max = num_failures_max
+  };
 
   // Copy eqdsk file into ctx.
   memcpy(ctx.geqdsk_file, geqdsk_file, sizeof(geqdsk_file));
@@ -1008,19 +1077,23 @@ int main(int argc, char **argv)
   struct gkyl_gk_block_geom *bgeom = create_asdex_lsn_gk_block_geom(&ctx);
 
   int cells_v[ctx.vdim];
-  for (int d = 0; d < ctx.vdim; d++)
+  for (int d = 0; d < ctx.vdim; d++) {
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells_v[d]);
+  }
 
-  struct gkyl_gyrokinetic_projection elc_ic = { .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+  struct gkyl_gyrokinetic_projection elc_ic = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
     .ctx_density = &ctx,
     .density = init_dens,
     .ctx_upar = &ctx,
     .upar = init_upar,
     .ctx_temp = &ctx,
-    .temp = init_temp_elc };
+    .temp = init_temp_elc
+  };
 
-  struct gkyl_gyrokinetic_multib_species_pb elc_sol = { .polarization_density = ctx.n0,
-    .projection = elc_ic };
+  struct gkyl_gyrokinetic_multib_species_pb elc_sol = {
+    .polarization_density = ctx.n0, .projection = elc_ic
+  };
 
   // Electrons.
   struct gkyl_gyrokinetic_multib_species_pb elc_blocks[ctx.num_blocks];
@@ -1047,99 +1120,107 @@ int main(int argc, char **argv)
 
     .projection = elc_ic,
 
-    .source = {.source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 1,
-      .projection[0] = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .density = init_source_dens,
-        .ctx_upar = &ctx,
-        .upar = init_source_upar,
-        .ctx_temp = &ctx,
-        .temp = init_source_temp_elc},
-      .diagnostics =
-        {
-          .num_diag_moments = 1,
-          .diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
-          .num_integrated_diag_moments = 1,
-          .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-          //        .time_integrated = true,
-        }}
+    .source =
+      {.source_id = GKYL_PROJ_SOURCE,
+       .num_sources = 1,
+       .projection[0] =
+         {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+          .ctx_density = &ctx,
+          .density = init_source_dens,
+          .ctx_upar = &ctx,
+          .upar = init_source_upar,
+          .ctx_temp = &ctx,
+          .temp = init_source_temp_elc},
+       .diagnostics =
+         {
+           .num_diag_moments = 1,
+           .diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
+           .num_integrated_diag_moments = 1,
+           .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+           //        .time_integrated = true,
+         }}
 
   };
 
-  struct gkyl_gyrokinetic_bc elc_phys_bcs[] = { // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+  struct gkyl_gyrokinetic_bc elc_phys_bcs[] = {
+    // block 0 BCs
+    {.bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    {.bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+    {.bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    {.bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+    {.bidx = 3, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    {.bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+    {.bidx = 4, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    {.bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX }
+    {.bidx = 5, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX}
   };
 
-  struct gkyl_gyrokinetic_multib_species elc = {.name = "elc",
-    .charge = ctx.charge_elc,
-    .mass = ctx.mass_elc,
-    .vdim = ctx.vdim,
-    .lower = {ctx.vpar_min_elc_c, ctx.mu_min_elc_c},
-    .upper = {ctx.vpar_max_elc_c, ctx.mu_max_elc_c},
-    .cells = {cells_v[0], cells_v[1]},
+  struct gkyl_gyrokinetic_multib_species elc =
+    {.name = "elc",
+     .charge = ctx.charge_elc,
+     .mass = ctx.mass_elc,
+     .vdim = ctx.vdim,
+     .lower = {ctx.vpar_min_elc_c, ctx.mu_min_elc_c},
+     .upper = {ctx.vpar_max_elc_c, ctx.mu_max_elc_c},
+     .cells = {cells_v[0], cells_v[1]},
 
-    .mapc2p = {.mapping = mapc2p_vel_elc, .ctx = &ctx},
+     .mapc2p = {.mapping = mapc2p_vel_elc, .ctx = &ctx},
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
+     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
 
-    .collisions = {.collision_id = GKYL_LBO_COLLISIONS,
-      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
-      .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm.
-      .bmag_ref = ctx.B0,
-      .num_cross_collisions = 1,
-      .collide_with = {"ion"}},
+     .collisions =
+       {.collision_id = GKYL_LBO_COLLISIONS,
+        .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
+        .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm.
+        .bmag_ref = ctx.B0,
+        .num_cross_collisions = 1,
+        .collide_with = {"ion"}},
 
-    .anomalous_diffusion =
-      {
-        .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-        .D_profile = diffusion_D_func,
-        .D_profile_ctx = &ctx
-        //      .write_diagnostics = true,
-      },
+     .anomalous_diffusion =
+       {
+         .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+         .D_profile = diffusion_D_func,
+         .D_profile_ctx = &ctx
+         //      .write_diagnostics = true,
+       },
 
-    .num_physical_bcs = 10,
-    .bcs = elc_phys_bcs,
+     .num_physical_bcs = 10,
+     .bcs = elc_phys_bcs,
 
-    .blocks = elc_blocks,
-    .duplicate_across_blocks = false,
+     .blocks = elc_blocks,
+     .duplicate_across_blocks = false,
 
-    .num_diag_moments = 4,
-    .diag_moments = {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
-      GKYL_F_MOMENT_BIMAXWELLIAN},
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-    .time_rate_diagnostics = true,
-    .boundary_flux_diagnostics = {
-      .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-      //      .time_integrated = true,
-    }};
+     .num_diag_moments = 4,
+     .diag_moments =
+       {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
+     .num_integrated_diag_moments = 1,
+     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+     .time_rate_diagnostics = true,
+     .boundary_flux_diagnostics = {
+       .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+       //      .time_integrated = true,
+     }};
 
   // Ions.
-  struct gkyl_gyrokinetic_projection ion_ic = { .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+  struct gkyl_gyrokinetic_projection ion_ic = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
     .ctx_density = &ctx,
     .density = init_dens,
     .ctx_upar = &ctx,
     .upar = init_upar,
     .ctx_temp = &ctx,
-    .temp = init_temp_ion };
+    .temp = init_temp_ion
+  };
 
-  struct gkyl_gyrokinetic_multib_species_pb ion_sol = { .polarization_density = ctx.n0,
-    .projection = ion_ic };
+  struct gkyl_gyrokinetic_multib_species_pb ion_sol = {
+    .polarization_density = ctx.n0, .projection = ion_ic
+  };
 
   struct gkyl_gyrokinetic_multib_species_pb ion_blocks[ctx.num_blocks];
   ion_sol.block_id = 0;
@@ -1164,131 +1245,121 @@ int main(int argc, char **argv)
 
     .projection = ion_ic,
 
-    .source = {.source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 1,
-      .projection[0] = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .density = init_source_dens,
-        .ctx_upar = &ctx,
-        .upar = init_source_upar,
-        .ctx_temp = &ctx,
-        .temp = init_source_temp_ion},
-      .diagnostics =
-        {
-          .num_diag_moments = 1,
-          .diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
-          .num_integrated_diag_moments = 1,
-          .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-          //        .time_integrated = true,
-        }}
+    .source =
+      {.source_id = GKYL_PROJ_SOURCE,
+       .num_sources = 1,
+       .projection[0] =
+         {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+          .ctx_density = &ctx,
+          .density = init_source_dens,
+          .ctx_upar = &ctx,
+          .upar = init_source_upar,
+          .ctx_temp = &ctx,
+          .temp = init_source_temp_ion},
+       .diagnostics =
+         {
+           .num_diag_moments = 1,
+           .diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
+           .num_integrated_diag_moments = 1,
+           .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+           //        .time_integrated = true,
+         }}
 
   };
 
-  struct gkyl_gyrokinetic_bc ion_phys_bcs[] = { // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+  struct gkyl_gyrokinetic_bc ion_phys_bcs[] = {
+    // block 0 BCs
+    {.bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    {.bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+    {.bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    {.bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+    {.bidx = 3, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    {.bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+    {.bidx = 4, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    {.bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX }
+    {.bidx = 5, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX}
   };
 
-  struct gkyl_gyrokinetic_multib_species ion = {.name = "ion",
-    .charge = ctx.charge_ion,
-    .mass = ctx.mass_ion,
-    .vdim = ctx.vdim,
-    .lower = {ctx.vpar_min_ion_c, ctx.mu_min_ion_c},
-    .upper = {ctx.vpar_max_ion_c, ctx.mu_max_ion_c},
-    .cells = {cells_v[0], cells_v[1]},
+  struct gkyl_gyrokinetic_multib_species ion =
+    {.name = "ion",
+     .charge = ctx.charge_ion,
+     .mass = ctx.mass_ion,
+     .vdim = ctx.vdim,
+     .lower = {ctx.vpar_min_ion_c, ctx.mu_min_ion_c},
+     .upper = {ctx.vpar_max_ion_c, ctx.mu_max_ion_c},
+     .cells = {cells_v[0], cells_v[1]},
 
-    .mapc2p = {.mapping = mapc2p_vel_ion, .ctx = &ctx},
+     .mapc2p = {.mapping = mapc2p_vel_ion, .ctx = &ctx},
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
+     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
 
-    .collisions = {.collision_id = GKYL_LBO_COLLISIONS,
-      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
-      .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm.
-      .bmag_ref = ctx.B0,
-      .num_cross_collisions = 1,
-      .collide_with = {"elc"}},
+     .collisions =
+       {.collision_id = GKYL_LBO_COLLISIONS,
+        .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
+        .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm.
+        .bmag_ref = ctx.B0,
+        .num_cross_collisions = 1,
+        .collide_with = {"elc"}},
 
-    .anomalous_diffusion =
-      {
-        .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-        .D_profile = diffusion_D_func,
-        .D_profile_ctx = &ctx
-        //      .write_diagnostics = true,
-      },
+     .anomalous_diffusion =
+       {
+         .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+         .D_profile = diffusion_D_func,
+         .D_profile_ctx = &ctx
+         //      .write_diagnostics = true,
+       },
 
-    .num_physical_bcs = 10,
-    .bcs = ion_phys_bcs,
+     .num_physical_bcs = 10,
+     .bcs = ion_phys_bcs,
 
-    .blocks = ion_blocks,
-    .duplicate_across_blocks = false,
+     .blocks = ion_blocks,
+     .duplicate_across_blocks = false,
 
-    .num_diag_moments = 4,
-    .diag_moments = {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
-      GKYL_F_MOMENT_BIMAXWELLIAN},
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-    .time_rate_diagnostics = true,
-    .boundary_flux_diagnostics = {
-      .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-      //      .time_integrated = true,
-    }};
+     .num_diag_moments = 4,
+     .diag_moments =
+       {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
+     .num_integrated_diag_moments = 1,
+     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+     .time_rate_diagnostics = true,
+     .boundary_flux_diagnostics = {
+       .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+       //      .time_integrated = true,
+     }};
 
   // Field object.
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
-  field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb){
-    // No block specific field info for this simulation
-    .time_rate_diagnostics = true
+  field_blocks[0] =
+    (struct gkyl_gyrokinetic_multib_field_pb){// No block specific field info for this simulation
+                                              .time_rate_diagnostics = true
+    };
+
+  struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
+    {.bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
+    },
+    {.bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
+    },
+    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
+    },
+    {.bidx = 3, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
+    },
+    {.bidx = 4, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
+    },
+    {.bidx = 5, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN, .value = {0.0}}
   };
 
-  struct gkyl_gyrokinetic_bc field_phys_bcs[] = { { .bidx = 0,
-                                                    .dir = 0,
-                                                    .edge = GKYL_LOWER_EDGE,
-                                                    .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                                                    .value = { 0.0 } },
-    { .bidx = 1,
-      .dir = 0,
-      .edge = GKYL_UPPER_EDGE,
-      .type = GKYL_BC_GK_FIELD_DIRICHLET,
-      .value = { 0.0 } },
-    { .bidx = 2,
-      .dir = 0,
-      .edge = GKYL_UPPER_EDGE,
-      .type = GKYL_BC_GK_FIELD_DIRICHLET,
-      .value = { 0.0 } },
-    { .bidx = 3,
-      .dir = 0,
-      .edge = GKYL_UPPER_EDGE,
-      .type = GKYL_BC_GK_FIELD_DIRICHLET,
-      .value = { 0.0 } },
-    { .bidx = 4,
-      .dir = 0,
-      .edge = GKYL_LOWER_EDGE,
-      .type = GKYL_BC_GK_FIELD_DIRICHLET,
-      .value = { 0.0 } },
-    { .bidx = 5,
-      .dir = 0,
-      .edge = GKYL_LOWER_EDGE,
-      .type = GKYL_BC_GK_FIELD_NEUMANN,
-      .value = { 0.0 } } };
-
-  struct gkyl_gyrokinetic_multib_field field = { .blocks = field_blocks,
+  struct gkyl_gyrokinetic_multib_field field = {
+    .blocks = field_blocks,
     .duplicate_across_blocks = true,
 
     .num_physical_bcs = ctx.num_blocks,
-    .bcs = field_phys_bcs };
+    .bcs = field_phys_bcs
+  };
 
   struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1, sizeof(struct gkyl_gyrokinetic_multib));
   app_inp->cdim = ctx.cdim;
@@ -1305,17 +1376,20 @@ int main(int argc, char **argv)
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp->name, sizeof(app_inp->name), "%s", app_args.app_name);
-  struct gkyl_gyrokinetic_run_inp run_inp = { .app_type = GKYL_GK_MULTIB,
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = *app_inp,
-    .time_stepping = { .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps } };
+    .time_stepping =
+      {.t_end = ctx.t_end,
+       .num_frames = ctx.num_frames,
+       .write_phase_freq = ctx.write_phase_freq,
+       .int_diag_calc_num = ctx.int_diag_calc_num,
+       .dt_failure_tol = ctx.dt_failure_tol,
+       .num_failures_max = ctx.num_failures_max,
+       .is_restart = app_args.is_restart,
+       .restart_frame = app_args.restart_frame,
+       .num_steps = app_args.num_steps}
+  };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 
@@ -1324,8 +1398,9 @@ int main(int argc, char **argv)
   gkyl_free(app_inp);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   return 0;

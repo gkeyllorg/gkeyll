@@ -19,8 +19,10 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_dg_bin_ops.h>
 
-double calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range range_ext,
-  struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
+double calc_l2(
+  struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range range_ext,
+  struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2
+)
 {
   struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range_ext.volume);
   struct gkyl_range_iter iter;
@@ -121,14 +123,14 @@ double test_zdep_nd_nxnz(int nx, int ny)
 {
   // create the 2d field
   // create xz grid
-  double lower[] = { -M_PI, -M_PI }, upper[] = { 3 * M_PI / 4, M_PI };
-  int cells[] = { nx, ny };
+  double lower[] = {-M_PI, -M_PI}, upper[] = {3 * M_PI / 4, M_PI};
+  int cells[] = {nx, ny};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // basis function
@@ -171,7 +173,7 @@ double test_zdep_nd_nxnz(int nx, int ny)
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
-  struct gkyl_poisson_bc poisson_bc = { 0 };
+  struct gkyl_poisson_bc poisson_bc = {0};
   poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_value[0].v[0] = 0.;
@@ -192,7 +194,8 @@ double test_zdep_nd_nxnz(int nx, int ny)
 #endif
 
   struct gkyl_deflated_fem_poisson *deflated_fem_poisson = gkyl_deflated_fem_poisson_new(
-    grid, basis_on_dev, basis, local, local, epsilon_dev, 0, poisson_bc, NULL, use_gpu);
+    grid, basis_on_dev, basis, local, local, epsilon_dev, 0, poisson_bc, NULL, use_gpu
+  );
   gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, NULL, phi_dev);
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
@@ -229,14 +232,14 @@ double test_simplez_dd_nxnz(int nx, int ny)
 {
   // create the 2d field
   // create xz grid
-  double lower[] = { -M_PI, -M_PI }, upper[] = { M_PI, M_PI };
-  int cells[] = { nx, ny };
+  double lower[] = {-M_PI, -M_PI}, upper[] = {M_PI, M_PI};
+  int cells[] = {nx, ny};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // basis function
@@ -278,7 +281,7 @@ double test_simplez_dd_nxnz(int nx, int ny)
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
-  struct gkyl_poisson_bc poisson_bc = { 0 };
+  struct gkyl_poisson_bc poisson_bc = {0};
   poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_value[0].v[0] = 0.;
@@ -299,7 +302,8 @@ double test_simplez_dd_nxnz(int nx, int ny)
 #endif
 
   struct gkyl_deflated_fem_poisson *deflated_fem_poisson = gkyl_deflated_fem_poisson_new(
-    grid, basis_on_dev, basis, local, local, epsilon_dev, 0, poisson_bc, NULL, use_gpu);
+    grid, basis_on_dev, basis, local, local, epsilon_dev, 0, poisson_bc, NULL, use_gpu
+  );
   gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, NULL, phi_dev);
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
@@ -337,14 +341,14 @@ double test_zind_dd_nxnz(int nx, int ny)
 {
   // create the 2d field
   // create xz grid
-  double lower[] = { -M_PI, -1 }, upper[] = { M_PI, 1 };
-  int cells[] = { nx, ny };
+  double lower[] = {-M_PI, -1}, upper[] = {M_PI, 1};
+  int cells[] = {nx, ny};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // basis function
@@ -386,7 +390,7 @@ double test_zind_dd_nxnz(int nx, int ny)
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
-  struct gkyl_poisson_bc poisson_bc = { 0 };
+  struct gkyl_poisson_bc poisson_bc = {0};
   poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_value[0].v[0] = 0.;
@@ -407,7 +411,8 @@ double test_zind_dd_nxnz(int nx, int ny)
 #endif
 
   struct gkyl_deflated_fem_poisson *deflated_fem_poisson = gkyl_deflated_fem_poisson_new(
-    grid, basis_on_dev, basis, local, local, epsilon_dev, 0, poisson_bc, NULL, use_gpu);
+    grid, basis_on_dev, basis, local, local, epsilon_dev, 0, poisson_bc, NULL, use_gpu
+  );
   gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, NULL, phi_dev);
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
@@ -444,14 +449,14 @@ double test_3x_dd_dd_nxnynz(int nx, int ny, int nz)
 {
   // create the 2d field
   // create xz grid
-  double lower[] = { -3 * M_PI / 4, -M_PI, -M_PI }, upper[] = { 3 * M_PI / 4, M_PI, M_PI };
-  int cells[] = { nx, ny, nz };
+  double lower[] = {-3 * M_PI / 4, -M_PI, -M_PI}, upper[] = {3 * M_PI / 4, M_PI, M_PI};
+  int cells[] = {nx, ny, nz};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1, 1};
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // basis function
@@ -505,7 +510,7 @@ double test_3x_dd_dd_nxnynz(int nx, int ny, int nz)
   //poisson_bc.lo_value[1].v[0] = 0.;
   //poisson_bc.up_value[1].v[0] = 0.;
 
-  struct gkyl_poisson_bc poisson_bc = { 0 };
+  struct gkyl_poisson_bc poisson_bc = {0};
   poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_type[1] = GKYL_POISSON_DIRICHLET;
@@ -533,7 +538,8 @@ double test_3x_dd_dd_nxnynz(int nx, int ny, int nz)
 #endif
 
   struct gkyl_deflated_fem_poisson *deflated_fem_poisson = gkyl_deflated_fem_poisson_new(
-    grid, basis_on_dev, basis, local, local, epsilon_dev, 0, poisson_bc, NULL, use_gpu);
+    grid, basis_on_dev, basis, local, local, epsilon_dev, 0, poisson_bc, NULL, use_gpu
+  );
   gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, NULL, phi_dev);
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
@@ -573,8 +579,9 @@ void test_deflated_fem_poisson_zind_dd_ho()
   int i = 0;
   for (int nx = 4; nx < 129; nx *= 2) {
     l2s[i] = test_zind_dd_nxnz(nx, ny);
-    if (i > 0)
+    if (i > 0) {
       TEST_CHECK(l2s[i - 1] > 3.5 * l2s[i]);
+    }
     i += 1;
   }
 }
@@ -586,8 +593,9 @@ void test_deflated_fem_poisson_simplez_dd_ho()
   int i = 0;
   for (int nx = 4; nx < 129; nx *= 2) {
     l2s[i] = test_simplez_dd_nxnz(nx, ny);
-    if (i > 0)
+    if (i > 0) {
       TEST_CHECK(l2s[i - 1] > 3.5 * l2s[i]);
+    }
     i += 1;
   }
 }
@@ -601,8 +609,9 @@ void test_deflated_fem_poisson_zdep_nd_ho()
   int i = 0;
   for (int nx = 4; nx < 129; nx *= 2) {
     l2s[i] = test_zdep_nd_nxnz(nx, ny);
-    if (i > 0)
+    if (i > 0) {
       TEST_CHECK(l2s[i - 1] > 3.0 * l2s[i]);
+    }
     i += 1;
   }
 }
@@ -617,14 +626,17 @@ void test_deflated_fem_poisson_3x_dd_dd_ho()
   int i = 0;
   for (int nx = 4; nx < 129; nx *= 2) {
     l2s[i] = test_3x_dd_dd_nxnynz(nx, ny, nz);
-    if (i > 0)
+    if (i > 0) {
       TEST_CHECK(l2s[i - 1] > 2.0 * l2s[i]);
+    }
     i += 1;
   }
 }
 
-TEST_LIST = { { "test_deflated_fem_poisson_zind_dd_ho", test_deflated_fem_poisson_zind_dd_ho },
-  { "test_deflated_fem_poisson_simplez_dd_ho", test_deflated_fem_poisson_simplez_dd_ho },
-  { "test_deflated_fem_poisson_zdep_nd_ho", test_deflated_fem_poisson_zdep_nd_ho },
-  { "test_deflated_fem_poisson_3x_dd_dd_ho", test_deflated_fem_poisson_3x_dd_dd_ho },
-  { NULL, NULL } };
+TEST_LIST = {
+  {"test_deflated_fem_poisson_zind_dd_ho", test_deflated_fem_poisson_zind_dd_ho},
+  {"test_deflated_fem_poisson_simplez_dd_ho", test_deflated_fem_poisson_simplez_dd_ho},
+  {"test_deflated_fem_poisson_zdep_nd_ho", test_deflated_fem_poisson_zdep_nd_ho},
+  {"test_deflated_fem_poisson_3x_dd_dd_ho", test_deflated_fem_poisson_3x_dd_dd_ho},
+  {NULL, NULL}
+};

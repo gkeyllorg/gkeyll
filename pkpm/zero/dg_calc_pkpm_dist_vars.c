@@ -9,7 +9,8 @@
 #include <gkyl_util.h>
 
 gkyl_dg_calc_pkpm_dist_vars *gkyl_dg_calc_pkpm_dist_vars_new(
-  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *cbasis, bool use_gpu)
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *cbasis, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -26,8 +27,9 @@ gkyl_dg_calc_pkpm_dist_vars *gkyl_dg_calc_pkpm_dist_vars_new(
 
   up->pkpm_dist_mirror_force = choose_pkpm_dist_mirror_force_kern(b_type, cdim, poly_order);
   // Fetch the kernels in each direction
-  for (int d = 0; d < cdim; ++d)
+  for (int d = 0; d < cdim; ++d) {
     up->pkpm_dist_div_ppar[d] = choose_pkpm_dist_div_ppar_kern(d, b_type, cdim, poly_order);
+  }
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -36,16 +38,20 @@ gkyl_dg_calc_pkpm_dist_vars *gkyl_dg_calc_pkpm_dist_vars_new(
   return up;
 }
 
-void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array *pkpm_prim, const struct gkyl_array *nu_prim_moms_sum,
-  const struct gkyl_array *div_b, const struct gkyl_array *pkpm_accel, const struct gkyl_array *fIn,
-  const struct gkyl_array *F_k_p_1, struct gkyl_array *g_dist_source, struct gkyl_array *F_k_m_1)
+void gkyl_dg_calc_pkpm_dist_vars_mirror_force(
+  struct gkyl_dg_calc_pkpm_dist_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_array *pkpm_prim,
+  const struct gkyl_array *nu_prim_moms_sum, const struct gkyl_array *div_b,
+  const struct gkyl_array *pkpm_accel, const struct gkyl_array *fIn,
+  const struct gkyl_array *F_k_p_1, struct gkyl_array *g_dist_source, struct gkyl_array *F_k_m_1
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(g_dist_source)) {
-    return gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(up, conf_range, phase_range, pkpm_prim,
-      nu_prim_moms_sum, div_b, pkpm_accel, fIn, F_k_p_1, g_dist_source, F_k_m_1);
+    return gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(
+      up, conf_range, phase_range, pkpm_prim, nu_prim_moms_sum, div_b, pkpm_accel, fIn, F_k_p_1,
+      g_dist_source, F_k_m_1
+    );
   }
 #endif
   // Cell center array
@@ -68,22 +74,27 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars
     double *g_dist_source_d = gkyl_array_fetch(g_dist_source, loc_phase);
     double *F_k_m_1_d = gkyl_array_fetch(F_k_m_1, loc_phase);
 
-    up->pkpm_dist_mirror_force(xc, up->phase_grid.dx, pkpm_prim_d, nu_prim_moms_sum_d, div_b_d,
-      pkpm_accel_d, fIn_d, F_k_p_1_d, g_dist_source_d, F_k_m_1_d);
+    up->pkpm_dist_mirror_force(
+      xc, up->phase_grid.dx, pkpm_prim_d, nu_prim_moms_sum_d, div_b_d, pkpm_accel_d, fIn_d,
+      F_k_p_1_d, g_dist_source_d, F_k_m_1_d
+    );
   }
 }
 
-void gkyl_dg_calc_pkpm_dist_vars_div_ppar(struct gkyl_dg_calc_pkpm_dist_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array *bvar_surf, const struct gkyl_array *bvar, const struct gkyl_array *fIn,
-  const struct gkyl_array *max_b, struct gkyl_array *pkpm_div_ppar)
+void gkyl_dg_calc_pkpm_dist_vars_div_ppar(
+  struct gkyl_dg_calc_pkpm_dist_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_array *bvar_surf,
+  const struct gkyl_array *bvar, const struct gkyl_array *fIn, const struct gkyl_array *max_b,
+  struct gkyl_array *pkpm_div_ppar
+)
 {
 // Check if more than one of the output arrays is on device?
 // Probably a better way to do this (JJ: 11/16/22)
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_div_ppar)) {
     return gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(
-      up, conf_range, phase_range, bvar_surf, bvar, fIn, max_b, pkpm_div_ppar);
+      up, conf_range, phase_range, bvar_surf, bvar, fIn, max_b, pkpm_div_ppar
+    );
   }
 #endif
   int cdim = up->cdim;
@@ -122,15 +133,18 @@ void gkyl_dg_calc_pkpm_dist_vars_div_ppar(struct gkyl_dg_calc_pkpm_dist_vars *up
       const double *bvar_surf_r = gkyl_array_cfetch(bvar_surf, loc_conf_r);
       const double *f_r = gkyl_array_cfetch(fIn, loc_phase_r);
 
-      up->pkpm_dist_div_ppar[dir](xc, up->phase_grid.dx, bvar_surf_l, bvar_surf_c, bvar_surf_r, f_l,
-        f_c, f_r, bvar_c, max_b_c, pkpm_div_ppar_d);
+      up->pkpm_dist_div_ppar[dir](
+        xc, up->phase_grid.dx, bvar_surf_l, bvar_surf_c, bvar_surf_r, f_l, f_c, f_r, bvar_c,
+        max_b_c, pkpm_div_ppar_d
+      );
     }
   }
 }
 
 void gkyl_dg_calc_pkpm_dist_vars_release(gkyl_dg_calc_pkpm_dist_vars *up)
 {
-  if (GKYL_IS_CU_ALLOC(up->flags))
+  if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);
+  }
   gkyl_free(up);
 }

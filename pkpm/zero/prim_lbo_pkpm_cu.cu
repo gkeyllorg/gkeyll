@@ -13,7 +13,8 @@ extern "C" {
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
 __global__ static void gkyl_prim_lbo_pkpm_set_cu_dev_ptrs(
-  struct prim_lbo_type_pkpm *prim_pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order)
+  struct prim_lbo_type_pkpm *prim_pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order
+)
 {
   prim_pkpm->prim.self_prim = self_prim;
 
@@ -39,8 +40,10 @@ __global__ static void gkyl_prim_lbo_pkpm_set_cu_dev_ptrs(
   prim_pkpm->self_prim = CK(self_prim_kernels, cdim, poly_order);
 }
 
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range)
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 

@@ -208,23 +208,25 @@ static int pkpm_species_lw_new(lua_State *L)
   pkpm_s_lw->pkpm_species = pkpm_species;
 
   pkpm_s_lw->has_dist_init_func = has_dist_init_func;
-  pkpm_s_lw->dist_init_func_ref = (struct lua_func_ctx){ .func_ref = dist_init_func_ref,
+  pkpm_s_lw->dist_init_func_ref = (struct lua_func_ctx
+  ){.func_ref = dist_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 2,
-    .L = L };
+    .L = L};
 
   pkpm_s_lw->has_fluid_init_func = has_fluid_init_func;
-  pkpm_s_lw->fluid_init_func_ref = (struct lua_func_ctx){ .func_ref = fluid_init_func_ref,
+  pkpm_s_lw->fluid_init_func_ref = (struct lua_func_ctx
+  ){.func_ref = fluid_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L };
+    .L = L};
 
   pkpm_s_lw->has_applied_acceleration_func = has_applied_acceleration_func;
-  pkpm_s_lw->applied_acceleration_func_ref =
-    (struct lua_func_ctx){ .func_ref = applied_acceleration_func_ref,
-      .ndim = 0, // This will be set later.
-      .nret = 3,
-      .L = L };
+  pkpm_s_lw->applied_acceleration_func_ref = (struct lua_func_ctx
+  ){.func_ref = applied_acceleration_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 3,
+    .L = L};
   pkpm_s_lw->evolve_applied_acceleration = evolve_applied_acceleration;
 
   pkpm_s_lw->has_diffusion = has_diffusion;
@@ -235,7 +237,7 @@ static int pkpm_species_lw_new(lua_State *L)
 
   pkpm_s_lw->has_self_nu_func = has_self_nu_func;
   pkpm_s_lw->self_nu_func_ref =
-    (struct lua_func_ctx){ .func_ref = self_nu_func_ref, .ndim = 0, .nret = 1, .L = L };
+    (struct lua_func_ctx){.func_ref = self_nu_func_ref, .ndim = 0, .nret = 1, .L = L};
 
   pkpm_s_lw->num_cross_collisions = num_cross_collisions;
   for (int i = 0; i < num_cross_collisions; i++) {
@@ -250,7 +252,7 @@ static int pkpm_species_lw_new(lua_State *L)
 }
 
 // Species constructor.
-static struct luaL_Reg pkpm_species_ctor[] = { { "new", pkpm_species_lw_new }, { 0, 0 } };
+static struct luaL_Reg pkpm_species_ctor[] = {{"new", pkpm_species_lw_new}, {0, 0}};
 
 /* ************* */
 /* Field methods */
@@ -353,23 +355,26 @@ static int pkpm_field_lw_new(lua_State *L)
   pkpm_f_lw->evolve = evolve;
   pkpm_f_lw->pkpm_field = pkpm_field;
 
-  pkpm_f_lw->init_ref = (struct lua_func_ctx){ .func_ref = init_ref,
+  pkpm_f_lw->init_ref = (struct lua_func_ctx
+  ){.func_ref = init_ref,
     .ndim = 0, // This will be set later.
     .nret = 6,
-    .L = L };
+    .L = L};
 
   pkpm_f_lw->has_external_field_func = has_external_field_func;
-  pkpm_f_lw->external_field_func_ref = (struct lua_func_ctx){ .func_ref = external_field_func_ref,
+  pkpm_f_lw->external_field_func_ref = (struct lua_func_ctx
+  ){.func_ref = external_field_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 6,
-    .L = L };
+    .L = L};
   pkpm_f_lw->evolve_external_field = evolve_external_field;
 
   pkpm_f_lw->has_applied_current_func = has_applied_current_func;
-  pkpm_f_lw->applied_current_func_ref = (struct lua_func_ctx){ .func_ref = applied_current_func_ref,
+  pkpm_f_lw->applied_current_func_ref = (struct lua_func_ctx
+  ){.func_ref = applied_current_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L };
+    .L = L};
   pkpm_f_lw->evolve_applied_current = evolve_applied_current;
 
   // Set metatable.
@@ -380,7 +385,7 @@ static int pkpm_field_lw_new(lua_State *L)
 }
 
 // Species constructor.
-static struct luaL_Reg pkpm_field_ctor[] = { { "new", pkpm_field_lw_new }, { 0, 0 } };
+static struct luaL_Reg pkpm_field_ctor[] = {{"new", pkpm_field_lw_new}, {0, 0}};
 
 /* *********** */
 /* App methods */
@@ -441,8 +446,8 @@ struct pkpm_app_lw {
 // Gets all species objects from the App table, which must on top of
 // the stack. The number of species is returned and the appropriate
 // pointers set in the species pointer array.
-static int get_species_inp(
-  lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX_SPECIES])
+static int
+get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX_SPECIES])
 {
   enum { TKEY = -2, TVAL = -1 };
 
@@ -526,7 +531,8 @@ struct script_cli {
 
 static struct script_cli pkpm_parse_script_cli(struct gkyl_tool_args *acv)
 {
-  struct script_cli cli = { .help = -false,
+  struct script_cli cli = {
+    .help = -false,
     .step_mode = false,
     .num_steps = INT_MAX,
     .use_mpi = false,
@@ -534,7 +540,8 @@ static struct script_cli pkpm_parse_script_cli(struct gkyl_tool_args *acv)
     .trace_mem = false,
     .use_verbose = false,
     .is_restart = false,
-    .restart_frame = 0 };
+    .restart_frame = 0
+  };
 
 #ifdef GKYL_HAVE_MPI
   cli.use_mpi = true;
@@ -543,7 +550,7 @@ static struct script_cli pkpm_parse_script_cli(struct gkyl_tool_args *acv)
   cli.use_gpu = true;
 #endif
 
-  coption_long longopts[] = { { 0 } };
+  coption_long longopts[] = {{0}};
   const char *shortopts = "+hVs:SGmr:";
 
   coption opt = coption_init();
@@ -840,7 +847,7 @@ static int pkpm_app_new(lua_State *L)
         int nrank = 1; // Number of processors in simulation.
         MPI_Comm_size(mpi_comm, &nrank);
 
-        comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = mpi_comm });
+        comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){.mpi_comm = mpi_comm});
       }
     }
 #else
@@ -859,14 +866,14 @@ static int pkpm_app_new(lua_State *L)
         int nrank = 1; // Number of processors in simulation.
         MPI_Comm_size(mpi_comm, &nrank);
 
-        comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = mpi_comm });
+        comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = mpi_comm});
       }
     }
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = script_cli.use_gpu });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = script_cli.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = script_cli.use_gpu });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = script_cli.use_gpu});
 #endif
 
   pkpm.parallelism.comm = comm;
@@ -1101,8 +1108,8 @@ static int pkpm_app_stat_write(lua_State *L)
 }
 
 // Write data from simulation to file.
-static void write_data(
-  struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool force_write)
+static void
+write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -1118,8 +1125,8 @@ static void write_data(
 }
 
 // Calculate and append field energy to dynvector.
-static void calc_field_energy(
-  struct gkyl_tm_trigger *fet, gkyl_pkpm_app *app, double t_curr, bool force_calc)
+static void
+calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_pkpm_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_field_energy(app, t_curr);
@@ -1127,8 +1134,8 @@ static void calc_field_energy(
 }
 
 // Calculate and append integrated moments to dynvector.
-static void calc_integrated_mom(
-  struct gkyl_tm_trigger *imt, gkyl_pkpm_app *app, double t_curr, bool force_calc)
+static void
+calc_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_pkpm_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
@@ -1136,18 +1143,19 @@ static void calc_integrated_mom(
 }
 
 // Calculate and append integrated L2 norm of distribution function to dynvector.
-static void calc_integrated_L2_f(
-  struct gkyl_tm_trigger *l2t, gkyl_pkpm_app *app, double t_curr, bool force_calc)
+static void
+calc_integrated_L2_f(struct gkyl_tm_trigger *l2t, gkyl_pkpm_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
   }
 }
 
-static void train_mom(struct gkyl_tm_trigger *nn, gkyl_pkpm_app *app, double t_curr,
-  bool force_train, struct gkyl_kann_net **ann, int num_input_moms, int *input_moms,
-  int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data,
-  struct gkyl_kn_vec *output_data)
+static void train_mom(
+  struct gkyl_tm_trigger *nn, gkyl_pkpm_app *app, double t_curr, bool force_train,
+  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
+  int *output_moms, struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
+)
 {
   if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
     int frame = nn->curr - 1;
@@ -1155,13 +1163,17 @@ static void train_mom(struct gkyl_tm_trigger *nn, gkyl_pkpm_app *app, double t_c
       frame = nn->curr;
     }
 
-    gkyl_pkpm_app_train(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms,
-      output_moms, input_data, output_data);
+    gkyl_pkpm_app_train(
+      app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data,
+      output_data
+    );
   }
 }
 
-static void write_nn(struct gkyl_tm_trigger *nnw, gkyl_pkpm_app *app, double t_curr,
-  bool force_write, struct gkyl_kann_net **ann)
+static void write_nn(
+  struct gkyl_tm_trigger *nnw, gkyl_pkpm_app *app, double t_curr, bool force_write,
+  struct gkyl_kann_net **ann
+)
 {
   if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
     int frame = nnw->curr - 1;
@@ -1173,10 +1185,12 @@ static void write_nn(struct gkyl_tm_trigger *nnw, gkyl_pkpm_app *app, double t_c
   }
 }
 
-static void test_mom(struct gkyl_tm_trigger *nnt, gkyl_pkpm_app *app, double t_curr,
-  bool force_test, struct gkyl_kann_net **ann, int num_input_moms, int *input_moms,
-  int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data_real,
-  struct gkyl_kn_vec *output_data_real, struct gkyl_kn_vec *output_data_predicted)
+static void test_mom(
+  struct gkyl_tm_trigger *nnt, gkyl_pkpm_app *app, double t_curr, bool force_test,
+  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
+  int *output_moms, struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
+  struct gkyl_kn_vec *output_data_predicted
+)
 {
   if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
     int frame = nnt->curr - 1;
@@ -1184,8 +1198,10 @@ static void test_mom(struct gkyl_tm_trigger *nnt, gkyl_pkpm_app *app, double t_c
       frame = nnt->curr;
     }
 
-    gkyl_pkpm_app_test(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms,
-      output_moms, input_data_real, output_data_real, output_data_predicted);
+    gkyl_pkpm_app_test(
+      app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms,
+      input_data_real, output_data_real, output_data_predicted
+    );
   }
 }
 
@@ -1198,14 +1214,17 @@ struct step_message_trigs {
 };
 
 // Write log message to console.
-static void write_step_message(const struct gkyl_pkpm_app *app, struct step_message_trigs *trigs,
-  int step, double t_curr, double dt_next)
+static void write_step_message(
+  const struct gkyl_pkpm_app *app, struct step_message_trigs *trigs, int step, double t_curr,
+  double dt_next
+)
 {
   if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
     if (trigs->log_count > 0) {
-      gkyl_pkpm_app_cout(app, stdout,
-        " Step %6d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next,
-        trigs->tenth * 10.0, "%");
+      gkyl_pkpm_app_cout(
+        app, stdout, " Step %6d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr,
+        dt_next, trigs->tenth * 10.0, "%"
+      );
     } else {
       trigs->log_count += 1;
     }
@@ -1276,8 +1295,10 @@ static int pkpm_app_run(lua_State *L)
     struct gkyl_app_restart_status status = gkyl_pkpm_app_read_from_frame(app, restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_pkpm_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+      gkyl_pkpm_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -1308,11 +1329,13 @@ static int pkpm_app_run(lua_State *L)
     .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
   };
 
-  struct step_message_trigs m_trig = { .log_count = 0,
+  struct step_message_trigs m_trig = {
+    .log_count = 0,
     .tenth = t_curr > 0.0 ? (int)floor(t_curr / t_end * 10.0) : 0.0,
     .p1c = t_curr > 0.0 ? (int)floor(t_curr / t_end * 100.0) % 10 : 0.0,
-    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
-    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr } };
+    .log_trig = {.dt = t_end / 10.0, .tcurr = t_curr},
+    .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr}
+  };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
@@ -1323,9 +1346,7 @@ static int pkpm_app_run(lua_State *L)
 
   // Create trigger for neural network training.
   int num_trains = app_lw->num_trains;
-  struct gkyl_tm_trigger nn_trig = {
-    .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr
-  };
+  struct gkyl_tm_trigger nn_trig = {.dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr};
 
   kad_node_t **t = gkyl_malloc(sizeof(kad_node_t *) * app->num_species);
   struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app->num_species);
@@ -1372,8 +1393,10 @@ static int pkpm_app_run(lua_State *L)
         } else {
           ann[i] = 0;
           app_lw->train_nn = false;
-          fprintf(stderr, "Neural network for species %s not found! Disabling NN training.\n",
-            app->species[i].info.name);
+          fprintf(
+            stderr, "Neural network for species %s not found! Disabling NN training.\n",
+            app->species[i].info.name
+          );
         }
       }
     }
@@ -1395,8 +1418,10 @@ static int pkpm_app_run(lua_State *L)
   struct gkyl_kn_vec *output_data = gkyl_kn_vec_new(cell_count, nn_output_dim);
 
   if (app_lw->train_nn) {
-    train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms,
-      app_lw->num_output_moms, app_lw->output_moms, input_data, output_data);
+    train_mom(
+      &nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms,
+      app_lw->num_output_moms, app_lw->output_moms, input_data, output_data
+    );
   }
 
   // Create trigger for neural network writing.
@@ -1411,9 +1436,7 @@ static int pkpm_app_run(lua_State *L)
 
   // Create trigger for neural network testing.
   int num_tests = app_lw->num_tests;
-  struct gkyl_tm_trigger nnt_trig = {
-    .dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr
-  };
+  struct gkyl_tm_trigger nnt_trig = {.dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr};
 
   struct gkyl_kann_net **ann_test = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app->num_species);
   if (app_lw->test_nn) {
@@ -1430,8 +1453,10 @@ static int pkpm_app_run(lua_State *L)
       } else {
         ann_test[i] = 0;
         app_lw->test_nn = false;
-        fprintf(stderr, "Neural network for species %s not found! Disabling NN testing.\n",
-          app->species[i].info.name);
+        fprintf(
+          stderr, "Neural network for species %s not found! Disabling NN testing.\n",
+          app->species[i].info.name
+        );
       }
     }
   }
@@ -1441,13 +1466,16 @@ static int pkpm_app_run(lua_State *L)
   struct gkyl_kn_vec *output_data_predicted = gkyl_kn_vec_new(cell_count, nn_output_dim);
 
   if (app_lw->test_nn) {
-    test_mom(&nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms,
+    test_mom(
+      &nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms,
       app_lw->num_output_moms, app_lw->output_moms, input_data_real, output_data_real,
-      output_data_predicted);
+      output_data_predicted
+    );
   }
 
   gkyl_pkpm_app_cout(
-    app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
+    app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0)
+  );
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
@@ -1481,14 +1509,18 @@ static int pkpm_app_run(lua_State *L)
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
     if (app_lw->train_nn) {
-      train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms,
-        app_lw->num_output_moms, app_lw->output_moms, input_data, output_data);
+      train_mom(
+        &nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms,
+        app_lw->num_output_moms, app_lw->output_moms, input_data, output_data
+      );
       write_nn(&nnw_trig, app, t_curr, false, ann);
     }
     if (app_lw->test_nn) {
-      test_mom(&nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms,
+      test_mom(
+        &nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms,
         app_lw->num_output_moms, app_lw->output_moms, input_data_real, output_data_real,
-        output_data_predicted);
+        output_data_predicted
+      );
     }
 
     if (dt_init < 0.0) {
@@ -1502,21 +1534,26 @@ static int pkpm_app_run(lua_State *L)
       if (num_failures >= num_failures_max) {
         gkyl_pkpm_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_pkpm_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
         if (app_lw->train_nn) {
-          train_mom(&nn_trig, app, t_curr, true, ann, app_lw->num_input_moms, app_lw->input_moms,
-            app_lw->num_output_moms, app_lw->output_moms, input_data, output_data);
+          train_mom(
+            &nn_trig, app, t_curr, true, ann, app_lw->num_input_moms, app_lw->input_moms,
+            app_lw->num_output_moms, app_lw->output_moms, input_data, output_data
+          );
           write_nn(&nnw_trig, app, t_curr, true, ann);
         }
         if (app_lw->test_nn) {
-          test_mom(&nnt_trig, app, t_curr, true, ann_test, app_lw->num_input_moms,
-            app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms, input_data_real,
-            output_data_real, output_data_predicted);
+          test_mom(
+            &nnt_trig, app, t_curr, true, ann_test, app_lw->num_input_moms, app_lw->input_moms,
+            app_lw->num_output_moms, app_lw->output_moms, input_data_real, output_data_real,
+            output_data_predicted
+          );
         }
 
         break;
@@ -1537,8 +1574,10 @@ static int pkpm_app_run(lua_State *L)
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   if (app_lw->train_nn) {
-    train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms,
-      app_lw->num_output_moms, app_lw->output_moms, input_data, output_data);
+    train_mom(
+      &nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms,
+      app_lw->num_output_moms, app_lw->output_moms, input_data, output_data
+    );
     write_nn(&nnw_trig, app, t_curr, false, ann);
 
     for (int i = 0; i < app->num_species; i++) {
@@ -1546,9 +1585,11 @@ static int pkpm_app_run(lua_State *L)
     }
   }
   if (app_lw->test_nn) {
-    test_mom(&nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms,
+    test_mom(
+      &nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms,
       app_lw->num_output_moms, app_lw->output_moms, input_data_real, output_data_real,
-      output_data_predicted);
+      output_data_predicted
+    );
 
     for (int i = 0; i < app->num_species; i++) {
       gkyl_kann_net_release(ann_test[i]);
@@ -1564,23 +1605,29 @@ static int pkpm_app_run(lua_State *L)
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
     gkyl_pkpm_app_cout(
-      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]
+    );
     gkyl_pkpm_app_cout(
-      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]
+    );
   }
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_pkpm_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
   gkyl_pkpm_app_cout(
-    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
+  );
   gkyl_pkpm_app_cout(
-    app, stdout, "Fluid species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
+    app, stdout, "Fluid species RHS calc took %g secs\n", stat.fluid_species_rhs_tm
+  );
   gkyl_pkpm_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_pkpm_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
   gkyl_pkpm_app_cout(
-    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
+  );
   gkyl_pkpm_app_cout(app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm);
   gkyl_pkpm_app_cout(
-    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm
+  );
   gkyl_pkpm_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
@@ -1617,19 +1664,26 @@ static int pkpm_app_gc(lua_State *L)
 }
 
 // App constructor.
-static struct luaL_Reg pkpm_app_ctor[] = { { "new", pkpm_app_new }, { 0, 0 } };
+static struct luaL_Reg pkpm_app_ctor[] = {{"new", pkpm_app_new}, {0, 0}};
 
 // App methods.
-static struct luaL_Reg pkpm_app_funcs[] = { { "apply_ic", pkpm_app_apply_ic },
-  { "apply_ic_field", pkpm_app_apply_ic_field }, { "apply_ic_species", pkpm_app_apply_ic_species },
-  { "calc_integrated_mom", pkpm_app_calc_integrated_mom },
-  { "calc_integrated_L2_f", pkpm_app_calc_integrated_L2_f },
-  { "calc_field_energy", pkpm_app_calc_field_energy }, { "write", pkpm_app_write },
-  { "write_field", pkpm_app_write_field }, { "write_species", pkpm_app_write_species },
-  { "write_integrated_mom", pkpm_app_write_integrated_mom },
-  { "write_integrated_L2_f", pkpm_app_write_integrated_L2_f },
-  { "write_field_energy", pkpm_app_write_field_energy }, { "stat_write", pkpm_app_stat_write },
-  { "run", pkpm_app_run }, { 0, 0 } };
+static struct luaL_Reg pkpm_app_funcs[] = {
+  {"apply_ic", pkpm_app_apply_ic},
+  {"apply_ic_field", pkpm_app_apply_ic_field},
+  {"apply_ic_species", pkpm_app_apply_ic_species},
+  {"calc_integrated_mom", pkpm_app_calc_integrated_mom},
+  {"calc_integrated_L2_f", pkpm_app_calc_integrated_L2_f},
+  {"calc_field_energy", pkpm_app_calc_field_energy},
+  {"write", pkpm_app_write},
+  {"write_field", pkpm_app_write_field},
+  {"write_species", pkpm_app_write_species},
+  {"write_integrated_mom", pkpm_app_write_integrated_mom},
+  {"write_integrated_L2_f", pkpm_app_write_integrated_L2_f},
+  {"write_field_energy", pkpm_app_write_field_energy},
+  {"stat_write", pkpm_app_stat_write},
+  {"run", pkpm_app_run},
+  {0, 0}
+};
 
 static void app_openlibs(lua_State *L)
 {

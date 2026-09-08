@@ -26,8 +26,10 @@ struct gkyl_wv_ten_moment_inp {
  * @param use_gpu Boolean to determine whether wave equation object is on host or device.
  * @return Pointer to 10-moment equation object.
  */
-struct gkyl_wv_eqn *gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure,
-  int poly_order, struct gkyl_kann_net *ann, bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_ten_moment_new(
+  double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, struct gkyl_kann_net *ann,
+  bool use_gpu
+);
 
 /**
  * Create a new 10-moment equation object.
@@ -48,8 +50,10 @@ struct gkyl_wv_eqn *gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp 
  * @param use_gpu Boolean to determine whether wave equation object is on host or device.
  * @return Pointer to 10-moment equation object on device.
  */
-struct gkyl_wv_eqn *gkyl_wv_ten_moment_cu_dev_new(double k0, bool use_grad_closure,
-  bool use_nn_closure, int poly_order, struct gkyl_kann_net *ann, bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_ten_moment_cu_dev_new(
+  double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, struct gkyl_kann_net *ann,
+  bool use_gpu
+);
 
 /**
  * Create a new 10-moment equation object that lives on NV-GPU.

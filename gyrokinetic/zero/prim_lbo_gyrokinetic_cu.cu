@@ -12,7 +12,8 @@ extern "C" {
 
 __global__ static void gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs(
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic, int cdim, int vdim, int poly_order,
-  enum gkyl_basis_type b_type)
+  enum gkyl_basis_type b_type
+)
 {
   int pdim = cdim + vdim;
 
@@ -39,7 +40,8 @@ __global__ static void gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs(
 }
 
 struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -61,11 +63,14 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new(
   // copy the host struct to device struct
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic_cu =
     (struct prim_lbo_type_gyrokinetic *)gkyl_cu_malloc(sizeof(struct prim_lbo_type_gyrokinetic));
-  gkyl_cu_memcpy(prim_gyrokinetic_cu, prim_gyrokinetic, sizeof(struct prim_lbo_type_gyrokinetic),
-    GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(
+    prim_gyrokinetic_cu, prim_gyrokinetic, sizeof(struct prim_lbo_type_gyrokinetic),
+    GKYL_CU_MEMCPY_H2D
+  );
 
   gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(
-    prim_gyrokinetic_cu, cdim, vdim, poly_order, cbasis->b_type);
+    prim_gyrokinetic_cu, cdim, vdim, poly_order, cbasis->b_type
+  );
 
   prim_gyrokinetic->prim.on_dev = &prim_gyrokinetic_cu->prim;
 

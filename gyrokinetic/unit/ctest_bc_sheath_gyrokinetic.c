@@ -16,10 +16,11 @@
 static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a;
-  if (use_gpu)
+  if (use_gpu) {
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
+  } else {
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  }
   return a;
 }
 
@@ -103,9 +104,11 @@ void eval_func_3x2v(double t, const double *xn, double *GKYL_RESTRICT fout, void
 
 // Checks that the distribution function values in the ghost cells are set to
 // 0 for velocities beyond the cutoff velocity and >0 otherwise.
-void check_function(double phi_mpe, double phi_wall, double charge, double mass, int cdim,
+void check_function(
+  double phi_mpe, double phi_wall, double charge, double mass, int cdim,
   struct gkyl_array *distf_ho, struct gkyl_rect_grid grid, struct gkyl_range ghost_r,
-  enum gkyl_edge_loc edge)
+  enum gkyl_edge_loc edge
+)
 {
   double delta_phi = phi_mpe - phi_wall;
   double vpar_cut;
@@ -130,7 +133,7 @@ void check_function(double phi_mpe, double phi_wall, double charge, double mass,
     double ref_val = 0.0;
 
     // Get cell boundaries along vpar.
-    double xc[GKYL_MAX_DIM] = { 0 };
+    double xc[GKYL_MAX_DIM] = {0};
     gkyl_rect_grid_cell_center(&grid, idx_g, xc);
     double cell_lower_vpar = xc[cdim] - 0.5 * grid.dx[cdim];
     double cell_upper_vpar = xc[cdim] + 0.5 * grid.dx[cdim];
@@ -142,23 +145,29 @@ void check_function(double phi_mpe, double phi_wall, double charge, double mass,
       num_zero_cells_expected++;
       for (int k = 0; k < distf_ho->ncomp; k++) {
         TEST_CHECK(gkyl_compare(distf_c[k], ref_val, tol));
-        TEST_MSG("Expected %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, distf_c[k], idx_g[0],
-          idx_g[1], idx_g[2]);
+        TEST_MSG(
+          "Expected %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, distf_c[k], idx_g[0], idx_g[1],
+          idx_g[2]
+        );
       }
     } else if (edge == GKYL_UPPER_EDGE && (cell_lower_vpar > -qphi_sign * vpar_cut ||
-                                            cell_upper_vpar < qphi_sign * vpar_cut)) {
+                                           cell_upper_vpar < qphi_sign * vpar_cut)) {
       num_zero_cells_expected++;
       for (int k = 0; k < distf_ho->ncomp; k++) {
         TEST_CHECK(gkyl_compare(distf_c[k], ref_val, tol));
-        TEST_MSG("Expected %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, distf_c[k], idx_g[0],
-          idx_g[1], idx_g[2]);
+        TEST_MSG(
+          "Expected %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, distf_c[k], idx_g[0], idx_g[1],
+          idx_g[2]
+        );
       }
     } else {
       // Check that the average cell value is bigger than 0 for cells that are not expected to be cut off by the sheath BC.
       double cell_avg = distf_c[0];
       TEST_CHECK(cell_avg > ref_val);
-      TEST_MSG("Expected > %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, cell_avg, idx_g[0],
-        idx_g[1], idx_g[2]);
+      TEST_MSG(
+        "Expected > %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, cell_avg, idx_g[0], idx_g[1],
+        idx_g[2]
+      );
     }
   }
   // Uncomment for debugging.
@@ -168,43 +177,53 @@ void check_function(double phi_mpe, double phi_wall, double charge, double mass,
   // printf("zero cell = %d | zero cell expected = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_cells);
 }
 
-void write_out_fields(int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
-  struct gkyl_array *distf_ho, struct gkyl_array *phi_ho, struct gkyl_array *phiw_ho,
-  struct gkyl_rect_grid grid_ext, struct gkyl_range local_ext, struct gkyl_rect_grid grid_conf,
-  struct gkyl_range local_conf, struct gkyl_basis *basis, struct gkyl_basis basis_conf)
+void write_out_fields(
+  int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu, struct gkyl_array *distf_ho,
+  struct gkyl_array *phi_ho, struct gkyl_array *phiw_ho, struct gkyl_rect_grid grid_ext,
+  struct gkyl_range local_ext, struct gkyl_rect_grid grid_conf, struct gkyl_range local_conf,
+  struct gkyl_basis *basis, struct gkyl_basis basis_conf
+)
 {
   struct gkyl_msgpack_map_elem io_meta[] = {
-    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis->poly_order },
-    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis->id }
+    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis->poly_order},
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis->id}
   };
   int io_meta_len = sizeof(io_meta) / sizeof(io_meta[0]);
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create(io_meta_len, io_meta);
 
   struct gkyl_msgpack_map_elem io_meta_conf[] = {
-    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis_conf.poly_order },
-    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis_conf.id }
+    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis_conf.poly_order},
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis_conf.id}
   };
   int io_meta_conf_len = sizeof(io_meta_conf) / sizeof(io_meta_conf[0]);
   struct gkyl_msgpack_data *mt_conf = gkyl_msgpack_create(io_meta_conf_len, io_meta_conf);
 
   char fname[256];
   const char *fmt = "bc_sheath_%dx%dv_%s_%s_%s.gkyl";
-  snprintf(fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE ? "lower" : "upper",
-    use_gpu ? "gpu" : "cpu", "distf_out");
+  snprintf(
+    fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE ? "lower" : "upper",
+    use_gpu ? "gpu" : "cpu", "distf_out"
+  );
   gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, fname);
-  snprintf(fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE ? "lower" : "upper",
-    use_gpu ? "gpu" : "cpu", "phi_mpe");
+  snprintf(
+    fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE ? "lower" : "upper",
+    use_gpu ? "gpu" : "cpu", "phi_mpe"
+  );
   gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt_conf, phi_ho, fname);
-  snprintf(fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE ? "lower" : "upper",
-    use_gpu ? "gpu" : "cpu", "phi_wall");
+  snprintf(
+    fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE ? "lower" : "upper",
+    use_gpu ? "gpu" : "cpu", "phi_wall"
+  );
   gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt_conf, phiw_ho, fname);
 
   gkyl_msgpack_data_release(mt);
   gkyl_msgpack_data_release(mt_conf);
 }
 
-void test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, double charge,
-  double phi_mpe, bool write_fields, bool use_gpu)
+void test_bc_sheath_gyrokinetic_1x2v(
+  const int *cells, enum gkyl_edge_loc edge, double charge, double phi_mpe, bool write_fields,
+  bool use_gpu
+)
 {
   /*
   This test applies the sheath BC to a Maxwellian distribution function on both upper and lower edges in the z direction,
@@ -226,8 +245,8 @@ void test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, 
   double sigmaz = 1.0;
 
   int poly_order = 1;
-  double lower[] = { -1.0, -5.0 * vt, 0. };
-  double upper[] = { 1.0, 5.0 * vt, mass * (pow(5.0 * vt, 2)) / (2.0 * B0) };
+  double lower[] = {-1.0, -5.0 * vt, 0.};
+  double upper[] = {1.0, 5.0 * vt, mass * (pow(5.0 * vt, 2)) / (2.0 * B0)};
   int vdim = 2;
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int cdim = ndim - vdim;
@@ -267,26 +286,29 @@ void test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, 
   struct gkyl_basis basis_conf;
   gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
 
-  int ghost_conf[] = { 1, 1, 1 };
+  int ghost_conf[] = {1, 1, 1};
   struct gkyl_range local_conf, local_conf_ext; // local, local-ext position-space ranges
   gkyl_create_grid_ranges(&grid_conf, ghost_conf, &local_conf_ext, &local_conf);
 
-  int ghost_vel[] = { 0, 0 };
+  int ghost_vel[] = {0, 0};
   struct gkyl_range local_vel, local_vel_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&grid_vel, ghost_vel, &local_vel_ext, &local_vel);
 
   int ghost[GKYL_MAX_DIM];
-  for (int d = 0; d < cdim; d++)
+  for (int d = 0; d < cdim; d++) {
     ghost[d] = ghost_conf[d];
-  for (int d = 0; d < vdim; d++)
+  }
+  for (int d = 0; d < vdim; d++) {
     ghost[cdim + d] = ghost_vel[d];
+  }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = {};
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
-    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_vel_ext, use_gpu);
+    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_vel_ext, use_gpu
+  );
 
   // Extended grid for the distribution function, which includes ghost cells.
   double lower_ext[ndim], upper_ext[ndim];
@@ -311,12 +333,9 @@ void test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, 
   struct test_sheath_ctx proj_ctx = {
     .B0 = B0, .mass = mass, .upar = upar_distf, .vt = vt_distf, .z0 = z0, .sigmaz = sigmaz
   };
-  gkyl_proj_on_basis *projDistf =
-    gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-      .basis = &basis_ho,
-      .num_ret_vals = 1,
-      .eval = eval_func_1x2v,
-      .ctx = &proj_ctx });
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
+  ){.grid = &grid, .basis = &basis_ho, .num_ret_vals = 1, .eval = eval_func_1x2v, .ctx = &proj_ctx}
+  );
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
@@ -336,7 +355,8 @@ void test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, 
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(
-    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * charge / mass, use_gpu);
+    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * charge / mass, use_gpu
+  );
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -348,9 +368,12 @@ void test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, 
   check_function(phi_mpe, phi_wall, charge, mass, cdim, distf_ho, grid, ghost_r, edge);
 
   // Write out the distribution function after applying BC if requested.
-  if (write_fields)
-    write_out_fields(cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, grid_ext, local_ext,
-      grid_conf, local_conf, &basis_ho, basis_conf);
+  if (write_fields) {
+    write_out_fields(
+      cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, grid_ext, local_ext, grid_conf,
+      local_conf, &basis_ho, basis_conf
+    );
+  }
 
   // Clean up.
   gkyl_proj_on_basis_release(projDistf);
@@ -360,17 +383,20 @@ void test_bc_sheath_gyrokinetic_1x2v(const int *cells, enum gkyl_edge_loc edge, 
   gkyl_array_release(phi_ho);
   gkyl_array_release(phiw);
   gkyl_array_release(phiw_ho);
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cart_modal_basis_release_cu(basis);
-  else
+  } else {
     gkyl_cart_modal_basis_release(basis);
+  }
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
 }
 
-void test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge, double charge,
-  double phi_mpe, bool write_fields, bool use_gpu)
+void test_bc_sheath_gyrokinetic_2x2v(
+  const int *cells, enum gkyl_edge_loc edge, double charge, double phi_mpe, bool write_fields,
+  bool use_gpu
+)
 {
   /*
   This test applies the sheath BC to a Maxwellian distribution function on both upper and lower edges in the z direction,
@@ -394,8 +420,8 @@ void test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge, 
   double sigmaz = 1.0; // Width of distribution function in z.
 
   int poly_order = 1;
-  double lower[] = { 0.0, -1.0, -5.0 * vt, 0. };
-  double upper[] = { 1.0, 1.0, 5.0 * vt, mass * (pow(5.0 * vt, 2)) / (2.0 * B0) };
+  double lower[] = {0.0, -1.0, -5.0 * vt, 0.};
+  double upper[] = {1.0, 1.0, 5.0 * vt, mass * (pow(5.0 * vt, 2)) / (2.0 * B0)};
   int vdim = 2;
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int cdim = ndim - vdim;
@@ -435,26 +461,29 @@ void test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge, 
   struct gkyl_basis basis_conf;
   gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
 
-  int ghost_conf[] = { 1, 1, 1 };
+  int ghost_conf[] = {1, 1, 1};
   struct gkyl_range local_conf, local_conf_ext; // local, local-ext position-space ranges
   gkyl_create_grid_ranges(&grid_conf, ghost_conf, &local_conf_ext, &local_conf);
 
-  int ghost_vel[] = { 0, 0 };
+  int ghost_vel[] = {0, 0};
   struct gkyl_range local_vel, local_vel_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&grid_vel, ghost_vel, &local_vel_ext, &local_vel);
 
   int ghost[GKYL_MAX_DIM];
-  for (int d = 0; d < cdim; d++)
+  for (int d = 0; d < cdim; d++) {
     ghost[d] = ghost_conf[d];
-  for (int d = 0; d < vdim; d++)
+  }
+  for (int d = 0; d < vdim; d++) {
     ghost[cdim + d] = ghost_vel[d];
+  }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = {};
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
-    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_vel_ext, use_gpu);
+    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_vel_ext, use_gpu
+  );
 
   // Extended grid for the distribution function, which includes ghost cells.
   double lower_ext[ndim], upper_ext[ndim];
@@ -476,20 +505,19 @@ void test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge, 
   struct gkyl_array *distf = mkarr(use_gpu, basis_ho.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
                                           gkyl_array_acquire(distf);
-  struct test_sheath_ctx proj_ctx = { .B0 = B0,
+  struct test_sheath_ctx proj_ctx = {
+    .B0 = B0,
     .mass = mass,
     .upar = upar_distf,
     .vt = vt_distf,
     .x0 = x0,
     .z0 = z0,
     .sigmax = sigmax,
-    .sigmaz = sigmaz };
-  gkyl_proj_on_basis *projDistf =
-    gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-      .basis = &basis_ho,
-      .num_ret_vals = 1,
-      .eval = eval_func_2x2v,
-      .ctx = &proj_ctx });
+    .sigmaz = sigmaz
+  };
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
+  ){.grid = &grid, .basis = &basis_ho, .num_ret_vals = 1, .eval = eval_func_2x2v, .ctx = &proj_ctx}
+  );
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
@@ -509,7 +537,8 @@ void test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge, 
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(
-    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * charge / mass, use_gpu);
+    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * charge / mass, use_gpu
+  );
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -521,9 +550,12 @@ void test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge, 
   check_function(phi_mpe, phi_wall, charge, mass, cdim, distf_ho, grid, ghost_r, edge);
 
   // Write out the distribution function after applying BC if requested.
-  if (write_fields)
-    write_out_fields(cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, grid_ext, local_ext,
-      grid_conf, local_conf, &basis_ho, basis_conf);
+  if (write_fields) {
+    write_out_fields(
+      cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, grid_ext, local_ext, grid_conf,
+      local_conf, &basis_ho, basis_conf
+    );
+  }
 
   // Clean up.
   gkyl_proj_on_basis_release(projDistf);
@@ -533,17 +565,20 @@ void test_bc_sheath_gyrokinetic_2x2v(const int *cells, enum gkyl_edge_loc edge, 
   gkyl_array_release(phi_ho);
   gkyl_array_release(phiw);
   gkyl_array_release(phiw_ho);
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cart_modal_basis_release_cu(basis);
-  else
+  } else {
     gkyl_cart_modal_basis_release(basis);
+  }
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
 }
 
-void test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge, double charge,
-  double phi_mpe, bool write_fields, bool use_gpu)
+void test_bc_sheath_gyrokinetic_3x2v(
+  const int *cells, enum gkyl_edge_loc edge, double charge, double phi_mpe, bool write_fields,
+  bool use_gpu
+)
 {
   /*
   This test applies the sheath BC to a Maxwellian distribution function on both upper and lower edges in the z direction,
@@ -563,8 +598,8 @@ void test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge, 
   double phi_wall = 0.0; // Potential at wall.
 
   int poly_order = 1;
-  double lower[] = { 0.0, -2.0, -1.0, -5.0 * vt, 0. };
-  double upper[] = { 1.0, 2.0, 1.0, 5.0 * vt, mass * (pow(5.0 * vt, 2)) / (2.0 * B0) };
+  double lower[] = {0.0, -2.0, -1.0, -5.0 * vt, 0.};
+  double upper[] = {1.0, 2.0, 1.0, 5.0 * vt, mass * (pow(5.0 * vt, 2)) / (2.0 * B0)};
   int vdim = 2;
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int cdim = ndim - vdim;
@@ -610,26 +645,29 @@ void test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge, 
   struct gkyl_basis basis_conf;
   gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
 
-  int ghost_conf[] = { 1, 1, 1 };
+  int ghost_conf[] = {1, 1, 1};
   struct gkyl_range local_conf, local_conf_ext; // local, local-ext position-space ranges
   gkyl_create_grid_ranges(&grid_conf, ghost_conf, &local_conf_ext, &local_conf);
 
-  int ghost_vel[] = { 0, 0 };
+  int ghost_vel[] = {0, 0};
   struct gkyl_range local_vel, local_vel_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&grid_vel, ghost_vel, &local_vel_ext, &local_vel);
 
   int ghost[GKYL_MAX_DIM];
-  for (int d = 0; d < cdim; d++)
+  for (int d = 0; d < cdim; d++) {
     ghost[d] = ghost_conf[d];
-  for (int d = 0; d < vdim; d++)
+  }
+  for (int d = 0; d < vdim; d++) {
     ghost[cdim + d] = ghost_vel[d];
+  }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = {};
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
-    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_vel_ext, use_gpu);
+    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_vel_ext, use_gpu
+  );
 
   // Extended grid for the distribution function, which includes ghost cells.
   double lower_ext[ndim], upper_ext[ndim];
@@ -651,7 +689,8 @@ void test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge, 
   struct gkyl_array *distf = mkarr(use_gpu, basis_ho.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
                                           gkyl_array_acquire(distf);
-  struct test_sheath_ctx proj_ctx = { .B0 = B0,
+  struct test_sheath_ctx proj_ctx = {
+    .B0 = B0,
     .mass = mass,
     .upar = upar_distf,
     .vt = vt_distf,
@@ -660,13 +699,11 @@ void test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge, 
     .z0 = z0,
     .sigmax = sigmax,
     .sigmay = sigmay,
-    .sigmaz = sigmaz };
-  gkyl_proj_on_basis *projDistf =
-    gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-      .basis = &basis_ho,
-      .num_ret_vals = 1,
-      .eval = eval_func_3x2v,
-      .ctx = &proj_ctx });
+    .sigmaz = sigmaz
+  };
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
+  ){.grid = &grid, .basis = &basis_ho, .num_ret_vals = 1, .eval = eval_func_3x2v, .ctx = &proj_ctx}
+  );
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
@@ -686,7 +723,8 @@ void test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge, 
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(
-    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * charge / mass, use_gpu);
+    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * charge / mass, use_gpu
+  );
 
   // Advance the BC updater.
   gkyl_bc_sheath_gyrokinetic_advance(bcsheath, phi, phiw, distf, &local_conf);
@@ -698,9 +736,12 @@ void test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge, 
   check_function(phi_mpe, phi_wall, charge, mass, cdim, distf_ho, grid, ghost_r, edge);
 
   // Write out the distribution function after applying BC if requested.
-  if (write_fields)
-    write_out_fields(cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, grid_ext, local_ext,
-      grid_conf, local_conf, &basis_ho, basis_conf);
+  if (write_fields) {
+    write_out_fields(
+      cdim, vdim, edge, use_gpu, distf_ho, phi_ho, phiw_ho, grid_ext, local_ext, grid_conf,
+      local_conf, &basis_ho, basis_conf
+    );
+  }
 
   // Clean up.
   gkyl_proj_on_basis_release(projDistf);
@@ -710,10 +751,11 @@ void test_bc_sheath_gyrokinetic_3x2v(const int *cells, enum gkyl_edge_loc edge, 
   gkyl_array_release(phi_ho);
   gkyl_array_release(phiw);
   gkyl_array_release(phiw_ho);
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cart_modal_basis_release_cu(basis);
-  else
+  } else {
     gkyl_cart_modal_basis_release(basis);
+  }
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
@@ -730,36 +772,44 @@ void test_bc_sheath_gk_1x2v_ho()
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 
   // Electrons with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 
   // Ions with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 
   // Ions with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 }
 
 void test_bc_sheath_gk_2x2v_ho()
@@ -773,36 +823,44 @@ void test_bc_sheath_gk_2x2v_ho()
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 
   // Electrons with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 
   // Ions with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 
   // Ions with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 }
 
 void test_bc_sheath_gk_3x2v_ho()
@@ -816,36 +874,44 @@ void test_bc_sheath_gk_3x2v_ho()
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 
   // Electrons with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 
   // Ions with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 
   // Ions with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, false
+  );
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false);
+    (int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, false
+  );
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -860,36 +926,44 @@ void test_bc_sheath_gk_1x2v_dev()
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 
   // Electrons with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 
   // Ions with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 
   // Ions with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_1x2v(
-    (int[]){ 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 }
 
 void test_bc_sheath_gk_2x2v_dev()
@@ -903,36 +977,44 @@ void test_bc_sheath_gk_2x2v_dev()
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 
   // Electrons with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 
   // Ions with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 
   // Ions with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_2x2v(
-    (int[]){ 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 }
 
 void test_bc_sheath_gk_3x2v_dev()
@@ -946,45 +1028,55 @@ void test_bc_sheath_gk_3x2v_dev()
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 
   // Electrons with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = -1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 
   // Ions with positive sheath entrance potential.
   phi_mpe = 1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 
   // Ions with negative sheath entrance potential.
   phi_mpe = -1.0;
   charge = 1.0;
   write_fields = false;
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 4, 16, 12}, GKYL_LOWER_EDGE, charge, phi_mpe, write_fields, true
+  );
   test_bc_sheath_gyrokinetic_3x2v(
-    (int[]){ 4, 4, 4, 16, 12 }, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true);
+    (int[]){4, 4, 4, 16, 12}, GKYL_UPPER_EDGE, charge, phi_mpe, write_fields, true
+  );
 }
 #endif
 
-TEST_LIST = { { "test_bc_sheath_gk_1x2v_ho", test_bc_sheath_gk_1x2v_ho },
-  { "test_bc_sheath_gk_2x2v_ho", test_bc_sheath_gk_2x2v_ho },
-  { "test_bc_sheath_gk_3x2v_ho", test_bc_sheath_gk_3x2v_ho },
+TEST_LIST = {
+  {"test_bc_sheath_gk_1x2v_ho", test_bc_sheath_gk_1x2v_ho},
+  {"test_bc_sheath_gk_2x2v_ho", test_bc_sheath_gk_2x2v_ho},
+  {"test_bc_sheath_gk_3x2v_ho", test_bc_sheath_gk_3x2v_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_bc_sheath_gk_1x2v_dev", test_bc_sheath_gk_1x2v_dev },
-  { "test_bc_sheath_gk_2x2v_dev", test_bc_sheath_gk_2x2v_dev },
-  { "test_bc_sheath_gk_3x2v_dev", test_bc_sheath_gk_3x2v_dev },
+  {"test_bc_sheath_gk_1x2v_dev", test_bc_sheath_gk_1x2v_dev},
+  {"test_bc_sheath_gk_2x2v_dev", test_bc_sheath_gk_2x2v_dev},
+  {"test_bc_sheath_gk_3x2v_dev", test_bc_sheath_gk_3x2v_dev},
 #endif
-  { NULL, NULL } };
+  {NULL, NULL}
+};

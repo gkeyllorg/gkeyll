@@ -22,7 +22,8 @@ struct gkyl_prim_lbo_cross_calc {
  * distribution function on NV-GPU. See new() method for documentation.
  */
 struct gkyl_prim_lbo_cross_calc *gkyl_prim_lbo_cross_calc_cu_dev_new(
-  const struct gkyl_rect_grid *grid, struct gkyl_prim_lbo_type *prim);
+  const struct gkyl_rect_grid *grid, struct gkyl_prim_lbo_type *prim
+);
 
 /**
  * Compute cross-primitive moments of distribution function. The conf_rng
@@ -43,10 +44,11 @@ struct gkyl_prim_lbo_cross_calc *gkyl_prim_lbo_cross_calc_cu_dev_new(
  * @param nu Collision frequency.
  * @param prim_moms_out Output drift velocity and thermal speed squared.
  */
-void gkyl_prim_lbo_cross_calc_advance_cu(struct gkyl_prim_lbo_cross_calc *calc,
-  const struct gkyl_range *conf_rng, const struct gkyl_array *alpha_E, double self_m,
-  const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms, double other_m,
-  const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
-  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu,
-  struct gkyl_array *prim_moms_out);
+void gkyl_prim_lbo_cross_calc_advance_cu(
+  struct gkyl_prim_lbo_cross_calc *calc, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *alpha_E, double self_m, const struct gkyl_array *self_moms,
+  const struct gkyl_array *self_prim_moms, double other_m, const struct gkyl_array *other_moms,
+  const struct gkyl_array *other_prim_moms, const struct gkyl_array *boundary_corrections,
+  const struct gkyl_array *nu, struct gkyl_array *prim_moms_out
+);
 #endif

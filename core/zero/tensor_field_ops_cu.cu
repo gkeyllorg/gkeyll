@@ -8,7 +8,8 @@ extern "C" {
 }
 
 static void gkyl_get_tensor_field_range_kernel_launch_dims(
-  dim3 *dimGrid, dim3 *dimBlock, gkyl_range trange, int size)
+  dim3 *dimGrid, dim3 *dimBlock, gkyl_range trange, int size
+)
 {
   // Create a 2D thread grid so we launch size*trange.volume number of threads
   // so we can parallelize over tensor components too
@@ -20,7 +21,8 @@ static void gkyl_get_tensor_field_range_kernel_launch_dims(
 
 __global__ static void tensor_field_raise_or_lower_idx_set_cu_kernel(
   const struct gkyl_tensor_field *met, int raised_idx, const struct gkyl_tensor_field *ten,
-  struct gkyl_tensor_field *tensor_out)
+  struct gkyl_tensor_field *tensor_out
+)
 {
   // iterate over the components of the tensor
   long linc2 = threadIdx.y + blockIdx.y * blockDim.y;
@@ -38,12 +40,13 @@ __global__ static void tensor_field_raise_or_lower_idx_set_cu_kernel(
 
     // summed over index, j
     for (int j = 0; j < ten->ndim; ++j) {
-      int idx_met[GKYL_MAX_DIM] = { index_raised, j };
+      int idx_met[GKYL_MAX_DIM] = {index_raised, j};
 
       // Get the tensor element we are indexing from
       int idx_tf[GKYL_MAX_DIM];
-      for (int k = 0; k < GKYL_MAX_DIM; ++k)
+      for (int k = 0; k < GKYL_MAX_DIM; ++k) {
         idx_tf[k] = (raised_idx != k) ? iter_tf_out_idx[k] : j;
+      }
 
       double met_elem = (double)gkyl_tensor_field_elem_fetch(met, tid, idx_met);
       double ten_elem = (double)gkyl_tensor_field_elem_fetch(ten, tid, idx_tf);
@@ -55,13 +58,16 @@ __global__ static void tensor_field_raise_or_lower_idx_set_cu_kernel(
   }
 }
 
-void tensor_field_raise_or_lower_idx_set_cu(const struct gkyl_tensor_field *met, int raised_idx,
-  const struct gkyl_tensor_field *ten, struct gkyl_tensor_field *tensor_out)
+void tensor_field_raise_or_lower_idx_set_cu(
+  const struct gkyl_tensor_field *met, int raised_idx, const struct gkyl_tensor_field *ten,
+  struct gkyl_tensor_field *tensor_out
+)
 {
   dim3 dimGrid, dimBlock;
   gkyl_get_tensor_field_range_kernel_launch_dims(&dimGrid, &dimBlock, ten->trange, ten->size);
 
   // ?? There is no met/tensor_out->on_dev at present
   tensor_field_raise_or_lower_idx_set_cu_kernel<<<dimGrid, dimBlock> > >(
-    met->on_dev, raised_idx, ten->on_dev, tensor_out->on_dev);
+    met->on_dev, raised_idx, ten->on_dev, tensor_out->on_dev
+  );
 }

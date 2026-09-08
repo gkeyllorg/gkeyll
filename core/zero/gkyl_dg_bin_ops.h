@@ -40,8 +40,10 @@ void gkyl_dg_bin_op_mem_release(gkyl_dg_bin_op_mem *mem);
  * @param c_rop Component of right operand to use in product
  * @param rop Right operand DG field
  */
-void gkyl_dg_mul_op(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_lop,
-  const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop);
+void gkyl_dg_mul_op(
+  const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_lop,
+  const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop
+);
 
 /**
  * Same as gkyl_dg_mul_op, except operator is applied only on
@@ -56,9 +58,11 @@ void gkyl_dg_mul_op(const struct gkyl_basis *basis, int c_oop, struct gkyl_array
  * @param rop Right operand DG field
  * @param range Range to apply multiplication operator
  */
-void gkyl_dg_mul_op_range(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
-  int c_lop, const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop,
-  const struct gkyl_range *range);
+void gkyl_dg_mul_op_range(
+  const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_lop,
+  const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop,
+  const struct gkyl_range *range
+);
 
 /**
  * Compute pout = cop*pop on specified range (sub-range of range
@@ -73,9 +77,11 @@ void gkyl_dg_mul_op_range(const struct gkyl_basis *basis, int c_oop, struct gkyl
  * @param crange Conf-space range to apply multiplication operator.
  * @param prange Phase-space range to apply multiplication operator.
  */
-void gkyl_dg_mul_conf_phase_op_range(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, struct gkyl_array *pout, const struct gkyl_array *cop,
-  const struct gkyl_array *pop, const struct gkyl_range *crange, const struct gkyl_range *prange);
+void gkyl_dg_mul_conf_phase_op_range(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, struct gkyl_array *pout,
+  const struct gkyl_array *cop, const struct gkyl_array *pop, const struct gkyl_range *crange,
+  const struct gkyl_range *prange
+);
 
 /**
  * Compute pout += a*cop*pop on specified range (sub-range of range
@@ -91,9 +97,11 @@ void gkyl_dg_mul_conf_phase_op_range(const struct gkyl_basis *cbasis,
  * @param crange Conf-space range to apply multiplication operator.
  * @param prange Phase-space range to apply multiplication operator.
  */
-void gkyl_dg_mul_conf_phase_op_accumulate_range(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, struct gkyl_array *pout, double a, const struct gkyl_array *cop,
-  const struct gkyl_array *pop, const struct gkyl_range *crange, const struct gkyl_range *prange);
+void gkyl_dg_mul_conf_phase_op_accumulate_range(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, struct gkyl_array *pout,
+  double a, const struct gkyl_array *cop, const struct gkyl_array *pop,
+  const struct gkyl_range *crange, const struct gkyl_range *prange
+);
 
 /**
  * Compute out = lop . rop, where lop and rop are vector fields.
@@ -105,8 +113,10 @@ void gkyl_dg_mul_conf_phase_op_accumulate_range(const struct gkyl_basis *cbasis,
  * @param lop Left operand DG vector field.
  * @param rop Right operand DG vector field.
  */
-void gkyl_dg_dot_product_op(const struct gkyl_basis *basis, struct gkyl_array *out,
-  const struct gkyl_array *lop, const struct gkyl_array *rop);
+void gkyl_dg_dot_product_op(
+  const struct gkyl_basis *basis, struct gkyl_array *out, const struct gkyl_array *lop,
+  const struct gkyl_array *rop
+);
 
 /**
  * Same as gkyl_dg_dot_product_op, except operator is applied only on
@@ -118,8 +128,10 @@ void gkyl_dg_dot_product_op(const struct gkyl_basis *basis, struct gkyl_array *o
  * @param rop Right operand DG vector field.
  * @param range Range to apply dot product operator.
  */
-void gkyl_dg_dot_product_op_range(const struct gkyl_basis *basis, struct gkyl_array *out,
-  const struct gkyl_array *lop, const struct gkyl_array *rop, const struct gkyl_range *range);
+void gkyl_dg_dot_product_op_range(
+  const struct gkyl_basis *basis, struct gkyl_array *out, const struct gkyl_array *lop,
+  const struct gkyl_array *rop, const struct gkyl_range *range
+);
 
 /**
  * Compute out = lop/rop. The c_oop, c_lop and c_rop are the
@@ -136,9 +148,10 @@ void gkyl_dg_dot_product_op_range(const struct gkyl_basis *basis, struct gkyl_ar
  * @param c_rop Component of right operand to use in product
  * @param rop Right operand DG field
  */
-void gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop,
-  struct gkyl_array *out, int c_lop, const struct gkyl_array *lop, int c_rop,
-  const struct gkyl_array *rop);
+void gkyl_dg_div_op(
+  gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
+  int c_lop, const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop
+);
 
 /**
  * Same as gkyl_dg_div_op, except operator is applied only on
@@ -154,9 +167,11 @@ void gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int
  * @param rop Right operand DG field
  * @param range Range to apply multiplication operator
  */
-void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop,
-  struct gkyl_array *out, int c_lop, const struct gkyl_array *lop, int c_rop,
-  const struct gkyl_array *rop, const struct gkyl_range *range);
+void gkyl_dg_div_op_range(
+  gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
+  int c_lop, const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop,
+  const struct gkyl_range *range
+);
 
 /**
  * Compute out = 1/iop. The c_oop and c_iop are the
@@ -170,8 +185,10 @@ void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basi
  * @param c_iop Component of input operand.
  * @param iop Input operand DG field.
  */
-void gkyl_dg_inv_op(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
-  const struct gkyl_array *iop);
+void gkyl_dg_inv_op(
+  const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
+  const struct gkyl_array *iop
+);
 
 /**
  * Compute out = 1/iop on specified range. The c_oop and c_iop are
@@ -185,8 +202,10 @@ void gkyl_dg_inv_op(const struct gkyl_basis *basis, int c_oop, struct gkyl_array
  * @param c_iop Component of input operand.
  * @param iop Input operand DG field.
  */
-void gkyl_dg_inv_op_range(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
-  int c_iop, const struct gkyl_array *iop, const struct gkyl_range *range);
+void gkyl_dg_inv_op_range(
+  const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
+  const struct gkyl_array *iop, const struct gkyl_range *range
+);
 
 /**
  * Compute the cell-average of input array iop and store it in out
@@ -199,8 +218,10 @@ void gkyl_dg_inv_op_range(const struct gkyl_basis *basis, int c_oop, struct gkyl
  * @param iop Input DG field
  * @param range Range to apply multiplication operator
  */
-void gkyl_dg_calc_average_range(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
-  int c_iop, const struct gkyl_array *iop, struct gkyl_range range);
+void gkyl_dg_calc_average_range(
+  const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
+  const struct gkyl_array *iop, struct gkyl_range range
+);
 
 /**
  * Compute the mean L2 norm of input array iop and store it in out
@@ -213,43 +234,64 @@ void gkyl_dg_calc_average_range(const struct gkyl_basis *basis, int c_oop, struc
  * @param iop Input DG field
  * @param range Range to apply multiplication operator
  */
-void gkyl_dg_calc_l2_range(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
-  int c_iop, const struct gkyl_array *iop, struct gkyl_range range);
+void gkyl_dg_calc_l2_range(
+  const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
+  const struct gkyl_array *iop, struct gkyl_range range
+);
 
 /**
  * Host-side wrappers for dg_bin_op operations
  */
-void gkyl_dg_mul_op_cu(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_lop,
-  const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop);
+void gkyl_dg_mul_op_cu(
+  const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_lop,
+  const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop
+);
 
-void gkyl_dg_mul_op_range_cu(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
+void gkyl_dg_mul_op_range_cu(
+  const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_lop,
+  const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop,
+  const struct gkyl_range *range
+);
+
+void gkyl_dg_mul_conf_phase_op_range_cu(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, struct gkyl_array *pout,
+  const struct gkyl_array *cop, const struct gkyl_array *pop, const struct gkyl_range *crange,
+  const struct gkyl_range *prange
+);
+
+void gkyl_dg_mul_conf_phase_op_accumulate_range_cu(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, struct gkyl_array *pout,
+  double a, const struct gkyl_array *cop, const struct gkyl_array *pop,
+  const struct gkyl_range *crange, const struct gkyl_range *prange
+);
+
+void gkyl_dg_dot_product_op_cu(
+  const struct gkyl_basis *basis, struct gkyl_array *out, const struct gkyl_array *lop,
+  const struct gkyl_array *rop
+);
+
+void gkyl_dg_dot_product_op_range_cu(
+  const struct gkyl_basis *basis, struct gkyl_array *out, const struct gkyl_array *lop,
+  const struct gkyl_array *rop, const struct gkyl_range *range
+);
+
+void gkyl_dg_div_op_cu(
+  gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
+  int c_lop, const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop
+);
+
+void gkyl_dg_div_op_range_cu(
+  gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
   int c_lop, const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop,
-  const struct gkyl_range *range);
+  const struct gkyl_range *range
+);
 
-void gkyl_dg_mul_conf_phase_op_range_cu(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, struct gkyl_array *pout, const struct gkyl_array *cop,
-  const struct gkyl_array *pop, const struct gkyl_range *crange, const struct gkyl_range *prange);
+void gkyl_dg_inv_op_cu(
+  const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
+  const struct gkyl_array *iop
+);
 
-void gkyl_dg_mul_conf_phase_op_accumulate_range_cu(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, struct gkyl_array *pout, double a, const struct gkyl_array *cop,
-  const struct gkyl_array *pop, const struct gkyl_range *crange, const struct gkyl_range *prange);
-
-void gkyl_dg_dot_product_op_cu(const struct gkyl_basis *basis, struct gkyl_array *out,
-  const struct gkyl_array *lop, const struct gkyl_array *rop);
-
-void gkyl_dg_dot_product_op_range_cu(const struct gkyl_basis *basis, struct gkyl_array *out,
-  const struct gkyl_array *lop, const struct gkyl_array *rop, const struct gkyl_range *range);
-
-void gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop,
-  struct gkyl_array *out, int c_lop, const struct gkyl_array *lop, int c_rop,
-  const struct gkyl_array *rop);
-
-void gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop,
-  struct gkyl_array *out, int c_lop, const struct gkyl_array *lop, int c_rop,
-  const struct gkyl_array *rop, const struct gkyl_range *range);
-
-void gkyl_dg_inv_op_cu(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
-  const struct gkyl_array *iop);
-
-void gkyl_dg_inv_op_range_cu(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
-  int c_iop, const struct gkyl_array *iop, const struct gkyl_range *range);
+void gkyl_dg_inv_op_range_cu(
+  const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
+  const struct gkyl_array *iop, const struct gkyl_range *range
+);

@@ -6,8 +6,10 @@ extern "C" {
 }
 
 // CUDA kernel to set device pointers to kernel that computes the reflected f.
-__global__ static void gkyl_bc_gksheath_set_cu_ker_ptrs(const struct gkyl_basis *basis,
-  enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
+__global__ static void gkyl_bc_gksheath_set_cu_ker_ptrs(
+  const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
+  struct gkyl_bc_sheath_gyrokinetic_kernels *kers
+)
 {
   int dim = basis->ndim;
   enum gkyl_basis_type b_type = basis->b_type;
@@ -23,17 +25,21 @@ __global__ static void gkyl_bc_gksheath_set_cu_ker_ptrs(const struct gkyl_basis 
   }
 };
 
-void gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const struct gkyl_basis *basis,
-  enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
+void gkyl_bc_gksheath_choose_reflectedf_kernel_cu(
+  const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
+  struct gkyl_bc_sheath_gyrokinetic_kernels *kers
+)
 {
   gkyl_bc_gksheath_set_cu_ker_ptrs<<<1, 1> > >(basis, edge, kers);
 }
 
-__global__ static void gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir,
-  const struct gkyl_range skin_r, const struct gkyl_range ghost_r, const struct gkyl_range conf_r,
-  const struct gkyl_range vel_r, const struct gkyl_basis *basis, const struct gkyl_array *vmap,
-  double q2Dm, const struct gkyl_array *phi, const struct gkyl_array *phi_wall,
-  struct gkyl_bc_sheath_gyrokinetic_kernels *kers, struct gkyl_array *distf)
+__global__ static void gkyl_bc_sheath_gyrokinetic_advance_cu_ker(
+  int cdim, int dir, const struct gkyl_range skin_r, const struct gkyl_range ghost_r,
+  const struct gkyl_range conf_r, const struct gkyl_range vel_r, const struct gkyl_basis *basis,
+  const struct gkyl_array *vmap, double q2Dm, const struct gkyl_array *phi,
+  const struct gkyl_array *phi_wall, struct gkyl_bc_sheath_gyrokinetic_kernels *kers,
+  struct gkyl_array *distf
+)
 {
   int fidx[GKYL_MAX_DIM]; // Flipped index.
   int pidx[GKYL_MAX_DIM];
@@ -62,8 +68,9 @@ __global__ static void gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int d
     const double *inp = (const double *)gkyl_array_cfetch(distf, skin_loc);
     double *out = (double *)gkyl_array_fetch(distf, ghost_loc);
 
-    for (int d = cdim; d < pdim; d++)
+    for (int d = cdim; d < pdim; d++) {
       vidx[d - cdim] = pidx[d];
+    }
     long conf_loc = gkyl_range_idx(&conf_r, pidx);
     long vel_loc = gkyl_range_idx(&vel_r, vidx);
 
@@ -84,16 +91,18 @@ __global__ static void gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int d
   }
 }
 
-void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up,
-  const struct gkyl_array *phi, const struct gkyl_array *phi_wall, struct gkyl_array *distf,
-  const struct gkyl_range *conf_r)
+void gkyl_bc_sheath_gyrokinetic_advance_cu(
+  const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r
+)
 {
   if (up->skin_r->volume > 0) {
     int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
 
-    gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads> > >(up->cdim, up->dir,
-      *up->skin_r, *up->ghost_r, *conf_r, up->vel_map->local_vel, up->basis,
+    gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads> > >(
+      up->cdim, up->dir, *up->skin_r, *up->ghost_r, *conf_r, up->vel_map->local_vel, up->basis,
       up->vel_map->vmap->on_dev, up->q2Dm, phi->on_dev, phi_wall->on_dev, up->kernels_cu,
-      distf->on_dev);
+      distf->on_dev
+    );
   }
 }
