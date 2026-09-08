@@ -160,6 +160,21 @@ gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geo
       gkdgv[qvloc].dualcurlbhat.x[0] = global_val[0];
       gkdgv[qvloc].dualcurlbhat.x[1] = global_val[1];
       gkdgv[qvloc].dualcurlbhat.x[2] = global_val[2];
+
+      // set g_ij components
+      global_val = gkyl_array_cfetch(gk_geom->geo_int.g_ij_nodal, global_loc);
+      gkdgv[qvloc].g_13 = global_val[2]; // g_{13}
+      gkdgv[qvloc].g_23 = global_val[4]; // g_{23}
+      gkdgv[qvloc].g_33 = global_val[5]; // g_{33}
+
+      // set magnitude of e_3
+      gkdgv[qvloc].mag_e_3 = sqrt(gkdgv[qvloc].g_33); // |e_3|
+
+      // set b_i/J_c/B
+      global_val = gkyl_array_cfetch(gk_geom->geo_int.bioverJB_nodal, global_loc);
+      gkdgv[qvloc].bioverJB.x[0] = global_val[0];
+      gkdgv[qvloc].bioverJB.x[1] = global_val[1];
+      gkdgv[qvloc].bioverJB.x[2] = global_val[2];
     }
   }
 }

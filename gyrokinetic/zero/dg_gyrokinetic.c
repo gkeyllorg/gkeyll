@@ -47,13 +47,15 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, enum gkyl_gk_collisionless_type collless_type,
+  const double charge, const double mass, 
+  enum gkyl_gk_collisionless_type collless_type, const bool no_by, const bool complete_em,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
+
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, phase_range,
-      charge, mass, collless_type, gk_geom, vel_map);
+      charge, mass, collless_type, no_by, complete_em, gk_geom, vel_map);
 #endif
 
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
@@ -72,7 +74,9 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->eqn.boundary_surf_term = boundary_surf;
   gyrokinetic->eqn.boundary_diag_term = boundary_diag;
 
-  const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels;
+  const gkyl_dg_gyrokinetic_vol_es_kern_list *vol_kernels, *vol_no_by_kernels;
+  const gkyl_dg_gyrokinetic_vol_add_apar_kern_list *vol_add_apar_kernels;
+  const gkyl_dg_gyrokinetic_vol_add_apardot_kern_list *vol_add_apardot_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels; 
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_y_kernels; 
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_z_kernels; 
@@ -84,7 +88,9 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
+      vol_kernels = ser_vol_es_kernels;
+      vol_add_apar_kernels = ser_add_apar_vol_kernels;
+      vol_add_apardot_kernels = ser_add_apardot_vol_kernels;
       surf_x_kernels = ser_surf_x_kernels;
       surf_y_kernels = ser_surf_y_kernels;
       surf_z_kernels = ser_surf_z_kernels;
@@ -94,7 +100,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
       boundary_surf_z_kernels = ser_boundary_surf_z_kernels;
       boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
 
-      vol_no_by_kernels = ser_no_by_vol_kernels;
+      vol_no_by_kernels = ser_no_by_vol_es_kernels;
       break;
 
     default:
@@ -102,11 +108,31 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
       break;
   }
 
-  if (collless_type == GKYL_GK_COLLISIONLESS_ES) {
-    gyrokinetic->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
+  gyrokinetic->eqn.vol_term = kernel_dg_gyrokinetic_vol;
+
+  if (no_by) {
+    gyrokinetic->vol_es_kernel = CK(vol_no_by_kernels,cdim,vdim,poly_order);
   }
-  else if (collless_type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
-    gyrokinetic->eqn.vol_term = CK(vol_no_by_kernels,cdim,vdim,poly_order);
+  else {
+    gyrokinetic->vol_es_kernel = CK(vol_kernels,cdim,vdim,poly_order);
+  }
+
+  // Setup electromagnetic terms if needed.
+  bool is_em = (collless_type == GKYL_GK_COLLISIONLESS_EM);
+  gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_none;
+  gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_none;
+  if (is_em) {
+    if (complete_em) {
+      // We complete with Apardot contribution to get the full GK RHS.
+      gyrokinetic->vol_es_kernel = dg_gyrokinetic_vol_none;
+      gyrokinetic->vol_add_apar_kernel = dg_gyrokinetic_add_apar_vol_none;
+      gyrokinetic->vol_add_apardot_kernel = CK(vol_add_apardot_kernels,cdim,vdim,poly_order);
+    } else {
+      // We build for Ohm's law RHS (no Apardot contribution).
+      gyrokinetic->vol_es_kernel = gyrokinetic->vol_es_kernel; // no change to ES kernel
+      gyrokinetic->vol_add_apar_kernel = CK(vol_add_apar_kernels,cdim,vdim,poly_order);
+      gyrokinetic->vol_add_apardot_kernel = dg_gyrokinetic_add_apardot_vol_none;
+    }
   }
 
   gyrokinetic->surf[0] = CK(surf_x_kernels,cdim,vdim,poly_order);

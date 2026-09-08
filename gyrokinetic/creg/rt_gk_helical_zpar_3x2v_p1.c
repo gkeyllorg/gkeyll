@@ -18,9 +18,10 @@ struct gk_app_ctx {
   
   // Geometry and magnetic field.
   double B_axis;
+  double R_axis;
   double R0;
-  double Rc;
   double Bv0;
+  int n;
 
   // Plasma parameters.
   double me; double qe;
@@ -164,9 +165,9 @@ double Bphi(const double *xc, void *ctx)
   double x = xc[0];
   struct gk_app_ctx *app = ctx;
   double B_axis = app->B_axis;
-  double R0 = app->R0;
+  double R_axis = app->R_axis;
   double R = Rx(xc, ctx);
-  return B_axis*R0/R;
+  return B_axis*R_axis/R;
 }
 
 // Vertical magnetic field.
@@ -174,11 +175,14 @@ double Bvert(const double *xc, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double Bv0 = app->Bv0;
-  return Bv0;
+  int n = app->n;
+  double R0 = app->R0;
+  double R = Rx(xc, ctx);
+  return Bv0 * pow(R/R0, n);
 }
 
 // Magnetic field magnitude.
-double bmag(const double *xc, void *ctx)
+double Bmag(const double *xc, void *ctx)
 {
   double Bt = Bphi(xc, ctx);
   double Bv = Bvert(xc, ctx);
@@ -188,7 +192,7 @@ double bmag(const double *xc, void *ctx)
 // Field line pitch.
 double thetax(const double *xc, void *ctx)
 {
-  return asin(Bvert(xc, ctx)/bmag(xc, ctx));
+  return asin(Bvert(xc, ctx)/Bmag(xc, ctx));
 }
 
 // Parallel coordinate mapping.
@@ -202,21 +206,21 @@ double phix(const double *xc, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
   struct gk_app_ctx *app = ctx;
-  double Rc = app->Rc;
+  double R_axis = app->R_axis;
   double Bt = Bphi(xc, ctx);
   double Bv = Bvert(xc, ctx);
 
   // Original Shi mapping. This mapping does not pass the right hand check.
   // double theta = asin(Lp/Lt);
-  // return (y/sin(theta) + z*cos(theta))/Rc; // O
+  // return (y/sin(theta) + z*cos(theta))/R0; // O
 
   // This mapping passes right hand check but does not conserve particle!
   // double theta = thetax(xc, ctx);
   // return (y/sin(theta) + z*cos(theta))/x;
 
-  // Helical sheared mapping. Passes right hand check and conserves particle.
+  // Helical sheared mapping. Passes right hand check and conserves particle (ES).
   double theta = thetax(xc, ctx);
-  return y/Rc + (Bt * z*sin(theta))/(Bv * x); 
+  return y/R_axis + (Bt * z*sin(theta))/(Bv * x); 
 }
 
 // Interface function calls.
@@ -281,12 +285,14 @@ create_ctx(void)
 
   // Geometry and magnetic field.
   double B_axis = 0.5;
-  double R0 = 0.85;
+  double R_axis = 0.85;
   double a0 = 0.5;
   double Lp = 2.4; // Poloidal length at x0.
   double Lt = 8.0; // Toroidal length at x0.
-  double Rc = R0 + a0;
-  double B0 = B_axis*R0/Rc;
+  int shear = -2;
+  double R0 = R_axis + a0;
+  double B0 = B_axis*R_axis/R0;
+  int n = shear + 2;
 
   double sintheta = Lp/Lt;
   double Bv0 = B0*sintheta;
@@ -294,7 +300,7 @@ create_ctx(void)
   // Source parameters.
   double P_SOL = 8.1e5;
   double S0 = 5.7691e23*10; // Multiplied by 10 to increase beta
-  double xSource = Rc - 0.05;
+  double xSource = R0 - 0.05;
   double lambdaSource = 0.005;
 
   // Collisions;
@@ -311,8 +317,8 @@ create_ctx(void)
   double Ly = 100*rho_s;
   double Lz = Lt; // [m]
 
-  double x_min = Rc - Lx/2;
-  double x_max = Rc + Lx/2;
+  double x_min = R0 - Lx/2;
+  double x_max = R0 + Lx/2;
   double y_min = -Ly/2;
   double y_max = Ly/2;
   double z_min = -Lz/2;
@@ -342,9 +348,10 @@ create_ctx(void)
     .cdim = cdim,
     .vdim = vdim,
     .B_axis = B_axis,
+    .R_axis = R_axis,
     .R0 = R0,
-    .Rc = Rc,
     .Bv0 = Bv0,
+    .n = n,
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
@@ -429,7 +436,7 @@ main(int argc, char **argv)
     },
 
     .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES,
+      .type = GKYL_GK_COLLISIONLESS_EM,
     },
 
     .collisions =  {
@@ -505,7 +512,7 @@ main(int argc, char **argv)
     },
 
     .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES,
+      .type = GKYL_GK_COLLISIONLESS_EM,
     },
 
     .collisions =  {
@@ -566,7 +573,13 @@ main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
+    .ampere_bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    },
+    .mu0 = GKYL_MU0,
     .time_rate_diagnostics = true,
+    .remove_em_zonal = false,
   };
 
   // GK app

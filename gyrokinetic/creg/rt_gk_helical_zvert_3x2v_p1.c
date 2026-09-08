@@ -21,11 +21,12 @@ struct gk_app_ctx {
   int cdim, vdim; // Dimensionality.
   
   // Geometry and magnetic field.
-  double R0;
+  double R_axis;
   double a0;
-  double B0;
+  double B_axis;
   double Bvx0;
   double x0;
+  double R0;
   double H;
   int n; // Exponent for vertical magnetic field profile.
 
@@ -175,22 +176,20 @@ double Bphi(const double *xc, void *ctx)
 {
   double x = xc[0];
   struct gk_app_ctx *app = ctx;
-  double B0 = app->B0;
-  double R0 = app->R0;
-
+  double B_axis = app->B_axis;
+  double R_axis = app->R_axis;
   double R = Rx(xc, ctx);
-  return B0*R0/R;
+  return B_axis*R_axis/R;
 }
 
 double Bvert(const double *xc, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double Bvx0 = app->Bvx0;
-  double x0 = app->x0;
   int n = app->n;
+  double R0 = app->R0;
   double R = Rx(xc, ctx);
-  
-  return Bvx0 * pow(R/x0, n);
+  return Bvx0 * pow(R/R0, n);
 }
 
 double Bmag(const double *xc, void *ctx)
@@ -205,11 +204,11 @@ double phix(const double *xc, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
   struct gk_app_ctx *app = ctx;
-  double R0 = app->R0;
+  double R_axis = app->R_axis;
   double Lz = app->Lz;
   double Bt = Bphi(xc, ctx);
   double Bv = Bvert(xc, ctx);
-  return y/R0 + (Bt * z)/(Bv * x);
+  return y/R_axis + (Bt * z)/(Bv * x);
 }
 
 double qprofile(const double *xc, void *ctx)
@@ -283,18 +282,19 @@ create_ctx(void)
   double n0 = 7e18*10; // [1/m^3]
 
   // Geometry and magnetic field.
-  double B0 = 0.5;
-  double R0 = 0.85;
+  double B_axis = 0.5;
+  double R_axis = 0.85;
   double a0 = 0.5;
   double H = 2.4; // Poloidal length (used to get the field line pitch).
   double Lcx0 = 8.0; // Connection length in the middle of the domain.
   int shear = -2;
 
-  double x0 = R0 + a0;
+  double x0 = R_axis + a0;
+  double R0 = x0;
   
   const double vec0[3] = {x0, 0.0, 0.0};
-  double Bc = Bphi(vec0, &(struct gk_app_ctx){.B0=B0, .R0=R0});
-  double Bvx0 = H * Bc / Lcx0;
+  double B0 = Bphi(vec0, &(struct gk_app_ctx){.B_axis=B_axis, .R_axis=R_axis});
+  double Bvx0 = H * B0 / Lcx0;
   double n = shear + 2;
 
   // Source parameters.
@@ -310,7 +310,7 @@ create_ctx(void)
   // Derived parameters.
   double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi); // Thermal speeds.
   double c_s = sqrt(Te0/mi); // Sound speed.
-  double omega_ci = fabs(qi*B0/mi); // Ion cyclotron frequency.
+  double omega_ci = fabs(qi*B_axis/mi); // Ion cyclotron frequency.
   double rho_s = c_s/omega_ci; // Ion sound gyroradius.
 
   // Box size.
@@ -334,9 +334,9 @@ create_ctx(void)
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
-  double mu_max_elc = 12*me*pow(vte,2)/(2*B0);
+  double mu_max_elc = 12*me*pow(vte,2)/(2*B_axis);
   double vpar_max_ion = 4.*vti;
-  double mu_max_ion = 12*mi*pow(vti,2)/(2*B0);
+  double mu_max_ion = 12*mi*pow(vti,2)/(2*B_axis);
 
   double t_end = 1.e-6; // End time, should terminate in 43 steps.
   int num_frames = 1;
@@ -349,8 +349,9 @@ create_ctx(void)
     .cdim = cdim,
     .vdim = vdim,
 
-    .B0 = B0,
+    .B_axis = B_axis,
     .Bvx0 = Bvx0,
+    .R_axis = R_axis,
     .R0 = R0,
     .a0 = a0,
     .H = H,
@@ -443,7 +444,7 @@ main(int argc, char **argv)
     },
 
     .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES,
+      .type = GKYL_GK_COLLISIONLESS_EM,
     },
 
     .collisions =  {
@@ -519,7 +520,7 @@ main(int argc, char **argv)
     },
 
     .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES,
+      .type = GKYL_GK_COLLISIONLESS_EM,
     },
 
     .collisions =  {
@@ -576,11 +577,15 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
+    .ampere_bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    },
+    .mu0 = GKYL_MU0,
     .time_rate_diagnostics = true,
   };
 

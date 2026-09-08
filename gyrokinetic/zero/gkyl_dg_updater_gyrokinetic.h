@@ -29,6 +29,8 @@ struct gkyl_dg_updater_gyrokinetic_tm {
  * @param charge Species charge
  * @param mass Species mass
  * @param collless_type Type of collisionless terms.
+ * @param no_by Whether to neglect the toroidal field (set b_y=0).
+ * @param complete_em Whether it is meant to complete the RHS after partial EM update.
  * @param gk_geom Geometry struct 
  * @param vel_map Velocity space mapping object.
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
@@ -39,8 +41,8 @@ gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_r
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const bool *is_zero_flux_bc, double charge, double mass,
-  enum gkyl_gk_collisionless_type collless_type, const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
+  enum gkyl_gk_collisionless_type collless_type, const bool no_by, const bool complete_em, 
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
 
 /**
  * Acquire gyrokinetic equation object.

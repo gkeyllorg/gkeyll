@@ -24,6 +24,8 @@ typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
  * @param charge Species charge
  * @param mass Species mass
  * @param collless_type Type of collisionless terms.
+ * @param no_by Whether to neglect the toroidal field (set b_y=0).
+ * @param complete_em Whether it is meant to complete the RHS after partial EM update.
  * @param gk_geom Gyrokinetic geometry object.
  * @param gk_dg_geom DG geometry object.
  * @param vel_map Velocity space mapping object.
@@ -36,9 +38,9 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass,
   enum gkyl_gk_collisionless_type collless_type,
-  const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
-  const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
-  const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);
+  const bool no_by, const bool complete_em, const struct gk_geometry *gk_geom, 
+  const struct gkyl_dg_geom *dg_geom, const struct gkyl_gk_dg_geom *gk_dg_geom, 
+  const struct gkyl_velocity_map *vel_map, const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);
 
 /**
  * Compute surface expansion of phase space flux alpha
@@ -53,13 +55,16 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
  * @param conf_ext_range Extended configuration space range (so we obtain geo quantities at all the needed surfaces).
  * @param phase_ext_range Extended Phase space range (so we obtain alpha_surf at all the needed surfaces).
  * @param phi Electrostatic potential.
+ * @param apar Parallel component of vector potential.
+ * @param apardot Time derivative of parallel component of vector potential.
  * @param fin Distribution function.
  * @param flux_surf Output surface expansion in a cell on the *lower* edge in each direction.
  * @param clfrate Output CFL rate.
  */
 void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, 
+  const struct gkyl_array *phi, const struct gkyl_array *apar, const struct gkyl_array *apardot,
   const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate);
 
 /**
