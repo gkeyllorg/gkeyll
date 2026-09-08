@@ -15,13 +15,13 @@ DECL_GET_MPI_OBJ_SIZE(MPI_Aint);
 DECL_GET_MPI_OBJ_SIZE(MPI_Request);
 DECL_GET_MPI_OBJ_PTR_SIZE(MPI_Status);
 DECL_GET_MPI_OBJ_PTR_SIZE(MPI_Request);
-  
+
 // Pre-defined objects and constants
 DECL_GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
 DECL_GET_MPI_OBJECT(Comm, MPI_COMM_NULL);
 DECL_GET_MPI_OBJECT(Comm, MPI_COMM_SELF);
 DECL_GET_MPI_OBJECT(Info, MPI_INFO_NULL);
-  
+
 DECL_GET_MPI_OBJECT(Request, MPI_REQUEST_NULL);
 DECL_GET_MPI_OBJECT_PTR(Status, MPI_STATUS_IGNORE);
 DECL_INT_OBJECT(MPI_PROC_NULL);
@@ -99,9 +99,9 @@ void gkyl_MPI_Request_Status_alloc(gkyl_MPI_Request_Status *rss, int num);
 void gkyl_MPI_Request_Status_release(gkyl_MPI_Request_Status *rss);
 
 // Functions to fetch members of status.
-int gkyl_mpi_get_status_SOURCE(const MPI_Status* instat, int off);
-int gkyl_mpi_get_status_TAG(const MPI_Status* instat, int off);
-int gkyl_mpi_get_status_ERROR(const MPI_Status* instat, int off);
+int gkyl_mpi_get_status_SOURCE(const MPI_Status *instat, int off);
+int gkyl_mpi_get_status_TAG(const MPI_Status *instat, int off);
+int gkyl_mpi_get_status_ERROR(const MPI_Status *instat, int off);
 
 // Get count from a status (which may be one of several in an array of
 // statuses).

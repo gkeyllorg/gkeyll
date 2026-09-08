@@ -14,7 +14,7 @@ struct gkyl_rect_decomp {
   struct gkyl_ref_count ref_count;
 };
 
-// List of neighbors 
+// List of neighbors
 struct gkyl_rect_decomp_neigh {
   int num_neigh; // number of neighbors
   const int *neigh; // list of neighbors
@@ -35,8 +35,8 @@ struct gkyl_rect_decomp_neigh {
  * @param range Range to decompose
  * @return Decomposition of @a range
  */
-struct gkyl_rect_decomp* gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[],
-  const struct gkyl_range *range);
+struct gkyl_rect_decomp *
+gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_range *range);
 
 /**
  * Create a new decomposition given @a cuts and cells in each
@@ -48,8 +48,8 @@ struct gkyl_rect_decomp* gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts
  * @param cells Number of cells in each direction
  * @return Decomposition of range based on cuts
  */
-struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts_and_cells(int ndim,
-  const int cuts[], const int cells[]);
+struct gkyl_rect_decomp *
+gkyl_rect_decomp_new_from_cuts_and_cells(int ndim, const int cuts[], const int cells[]);
 
 /**
  * Create a new decomposition from a given decomposition. The new
@@ -59,8 +59,9 @@ struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts_and_cells(int ndim,
  * @param arange Range to extend by
  * @return New extended decomposition
  */
-struct gkyl_rect_decomp *gkyl_rect_decomp_extended_new(const struct gkyl_range *arange,
-  const struct gkyl_rect_decomp *decomp);
+struct gkyl_rect_decomp *gkyl_rect_decomp_extended_new(
+  const struct gkyl_range *arange, const struct gkyl_rect_decomp *decomp
+);
 
 /**
  * Acquire a pointer to the decomposition.
@@ -68,7 +69,7 @@ struct gkyl_rect_decomp *gkyl_rect_decomp_extended_new(const struct gkyl_range *
  * @param decomp Decom to acquire pointer to
  * @return New decomposition
  */
-struct gkyl_rect_decomp* gkyl_rect_decomp_acquire(const struct gkyl_rect_decomp *decomp);
+struct gkyl_rect_decomp *gkyl_rect_decomp_acquire(const struct gkyl_rect_decomp *decomp);
 
 /**
  * Check if decomposition is  a valid covering of the range.
@@ -90,8 +91,8 @@ bool gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp);
  * @param nidx Index of range for which neighbor data is needed
  * @return Neighbor list for range nidx
  */
-struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_neigh(
-  const struct gkyl_rect_decomp *decomp, bool inc_corners, int nidx);
+struct gkyl_rect_decomp_neigh *
+gkyl_rect_decomp_calc_neigh(const struct gkyl_rect_decomp *decomp, bool inc_corners, int nidx);
 
 /**
  * Compute the periodic neighbor of range @a nidx in the specified
@@ -104,8 +105,9 @@ struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_neigh(
  * @param nidx Index of range for which neighbor data is needed
  * @return Periodic neighbor list for range nidx
  */
-struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_periodic_neigh(
-  const struct gkyl_rect_decomp *decomp, int dir, bool inc_corners, int nidx);
+struct gkyl_rect_decomp_neigh *gkyl_rect_decomp_calc_periodic_neigh(
+  const struct gkyl_rect_decomp *decomp, int dir, bool inc_corners, int nidx
+);
 
 /**
  * Free neighbor memory
@@ -154,9 +156,10 @@ void gkyl_create_global_range(int ndim, const int *cells, struct gkyl_range *ran
  * @param ext_range On output, extended range spanning grid+ghost-cells
  * @param range On output, range spanning grid. Sub-range of ext_range.
  */
-void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
-  const int *nghost, struct gkyl_range *ext_range,
-  struct gkyl_range *range);
+void gkyl_create_grid_ranges(
+  const struct gkyl_rect_grid *grid, const int *nghost, struct gkyl_range *ext_range,
+  struct gkyl_range *range
+);
 
 /**
  * Create range and extended ranges from given range and ghost-cell
@@ -167,8 +170,10 @@ void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
  * @param ext_range On output, extended range spanning inrange+ghost-cells
  * @param range On output, range same as inrange, but sub-range of ext_range.
  */
-void gkyl_create_ranges(const struct gkyl_range *inrange,
-  const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
+void gkyl_create_ranges(
+  const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range,
+  struct gkyl_range *range
+);
 
 /**
  * Create range and extended vertex ranges from given range and ghost-cell
@@ -179,8 +184,10 @@ void gkyl_create_ranges(const struct gkyl_range *inrange,
  * @param ext_range On output, extended range spanning inrange+ghost-cells
  * @param range On output, range same as inrange, but sub-range of ext_range.
  */
-void gkyl_create_vertex_ranges(const struct gkyl_range *inrange,
-  const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
+void gkyl_create_vertex_ranges(
+  const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range,
+  struct gkyl_range *range
+);
 
 /**
  * Return the cuts used to create the the decomposition object.
@@ -188,4 +195,4 @@ void gkyl_create_vertex_ranges(const struct gkyl_range *inrange,
  * @param decomp Decomposition object.
  * @param cuts Output cuts in each direction.
  */
-void gkyl_rect_decomp_get_cuts(struct gkyl_rect_decomp* decomp, int* cuts);
+void gkyl_rect_decomp_get_cuts(struct gkyl_rect_decomp *decomp, int *cuts);

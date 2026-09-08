@@ -66,8 +66,7 @@ struct gkyl_array_average_inp {
  * 
  * @param inp see gkyl_array_average_inp structure
  */
-struct gkyl_array_average*
-gkyl_array_average_inew(const struct gkyl_array_average_inp *inp);
+struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_average_inp *inp);
 
 /**
  * Create a new updater that computes the weighted average of a gkyl_array.
@@ -82,10 +81,12 @@ gkyl_array_average_inew(const struct gkyl_array_average_inp *inp);
  * @param avg_dim Flag array to set which dimension is averaged
  * @param use_gpu Boolean flag indicating whether the computation should be performed on a GPU.
  */
-struct gkyl_array_average*
-gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  const struct gkyl_basis *basis_avg, const struct gkyl_range *local, const struct gkyl_range *local_avg,
-  const struct gkyl_range *local_avg_ext, const struct gkyl_array *weight, const int *avg_dim, bool use_gpu);
+struct gkyl_array_average *gkyl_array_average_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+  const struct gkyl_basis *basis_avg, const struct gkyl_range *local,
+  const struct gkyl_range *local_avg, const struct gkyl_range *local_avg_ext,
+  const struct gkyl_array *weight, const int *avg_dim, bool use_gpu
+);
 
 /**
  * Compute the array average. Note: the weight is linked to the updater.
@@ -94,8 +95,9 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
  * @param fin input gkyl_array
  * @param avgout Output gkyl_array
  */
-void gkyl_array_average_advance(const struct gkyl_array_average *up, 
-  const struct gkyl_array *fin, struct gkyl_array *avgout);
+void gkyl_array_average_advance(
+  const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout
+);
 
 /**
  * Release memory associated with this updater.

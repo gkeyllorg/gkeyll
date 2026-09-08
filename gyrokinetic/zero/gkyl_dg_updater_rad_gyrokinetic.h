@@ -28,12 +28,12 @@ struct gkyl_dg_updater_rad_gyrokinetic_tm {
  * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
  * @return Pointer to updater object for Radiation operator in Gyrokinetic equation
  */
-struct gkyl_dg_updater_collisions* 
-gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
-
+struct gkyl_dg_updater_collisions *gkyl_dg_updater_rad_gyrokinetic_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_velocity_map *vel_map, void *aux_inp,
+  bool use_gpu
+);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -47,9 +47,11 @@ gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid,
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *rad,
-  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
+void gkyl_dg_updater_rad_gyrokinetic_advance(
+  struct gkyl_dg_updater_collisions *rad, const struct gkyl_range *update_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
+  struct gkyl_array *GKYL_RESTRICT rhs
+);
 
 /**
  * Return total time spent in drag and diffusion terms
@@ -57,11 +59,12 @@ void gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *
  * @param rad Updater object
  * @return timers
  */
-struct gkyl_dg_updater_rad_gyrokinetic_tm gkyl_dg_updater_rad_gyrokinetic_get_tm(const struct gkyl_dg_updater_collisions *coll);
+struct gkyl_dg_updater_rad_gyrokinetic_tm
+gkyl_dg_updater_rad_gyrokinetic_get_tm(const struct gkyl_dg_updater_collisions *coll);
 
 /**
  * Delete updater.
  *
  * @param rad Updater to delete.
  */
-void gkyl_dg_updater_rad_gyrokinetic_release(struct gkyl_dg_updater_collisions* coll);
+void gkyl_dg_updater_rad_gyrokinetic_release(struct gkyl_dg_updater_collisions *coll);

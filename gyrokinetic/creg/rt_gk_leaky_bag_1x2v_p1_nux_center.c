@@ -12,8 +12,7 @@
 
 #include <rt_arg_parse.h>
 
-struct boundary_ctx
-{ 
+struct boundary_ctx {
   int cdim, vdim; // Dimensionality.
 
   // Physical constants (using non-normalized physical units).
@@ -42,14 +41,14 @@ struct boundary_ctx
 
   double t_end; // End time.
   int num_frames; // Number of output frames.
-  double write_phase_freq; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+  double
+    write_phase_freq; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct boundary_ctx
-create_ctx(void)
+struct boundary_ctx create_ctx(void)
 {
   int cdim = 1, vdim = 2; // Dimensionality.
 
@@ -65,7 +64,7 @@ create_ctx(void)
 
   // Derived physical quantities (using non-normalized physical units).
   double B0 = 1; // Reference magnetic field strength (Tesla).
-  
+
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
 
   // Simulation parameters.
@@ -73,17 +72,21 @@ create_ctx(void)
   int Nvpar = 32; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 32; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
-  double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
-  double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
+  double vpar_max_ion =
+    4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
+  double mu_max_ion =
+    (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) /
+    (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 3; // Final simulation time.
   int num_frames = 5; // Number of output frames.
-  double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
-  int int_diag_calc_num = num_frames*100;
+  double write_phase_freq =
+    0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+  int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
-  
+
   struct boundary_ctx ctx = {
     .cdim = cdim,
     .vdim = vdim,
@@ -108,20 +111,19 @@ create_ctx(void)
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
+    .num_failures_max = num_failures_max
   };
 
   return ctx;
 }
 
-
-void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
+void compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
 {
   struct boundary_ctx *app = ctx;
   char filename[256];
   sprintf(filename, "%s-ion_integrated_moms.gkyl", app_inp->name);
 
-  struct gkyl_dynvec_etype_ncomp enc = { };
+  struct gkyl_dynvec_etype_ncomp enc = {};
   enc = gkyl_dynvec_read_ncomp(filename);
 
   gkyl_dynvec integrated_moms = gkyl_dynvec_new(enc.type, enc.ncomp);
@@ -140,7 +142,7 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
     double erf_arg = L / (sqrt(2) * time * vt);
 
     double N_analytic = 2 * app->n0 / (sqrt(2 * M_PI));
-    N_analytic *= sqrt(M_PI / 2) * L * erf(erf_arg) + time * vt * (exp(-erf_arg*erf_arg) - 1);
+    N_analytic *= sqrt(M_PI / 2) * L * erf(erf_arg) + time * vt * (exp(-erf_arg * erf_arg) - 1);
 
     double diff = fabs(N - N_analytic) / fabs(N_analytic);
     int check = gkyl_compare_double(diff, 0.0, 1e-2);
@@ -172,14 +174,18 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
     double erf_arg = L / (sqrt(2) * time * vt);
 
     double dNdt_analytic = app->n0 / (sqrt(2 * M_PI));
-    dNdt_analytic *= 1 - exp(-erf_arg*erf_arg);
+    dNdt_analytic *= 1 - exp(-erf_arg * erf_arg);
 
     // printf("dNdt: %g, dNdt_analytic: %g, difference: %g\n", dNdt, dNdt_analytic, fabs(dNdt - dNdt_analytic));
 
     double diff = fabs(dNdt - dNdt_analytic);
     int check = gkyl_compare_double(dNdt, dNdt_analytic, 1e-1);
     if (check != 1) {
-      printf("Error: dNdt (lower boundary) and dNdt_analytic do not match within tolerance at time step %d.\n", i);
+      printf(
+        "Error: dNdt (lower boundary) and dNdt_analytic do not match within tolerance at time "
+        "step %d.\n",
+        i
+      );
       printf("  Time: %g\n", time);
       printf("  dNdt (computed): %g\n", dNdt);
       printf("  dNdt_analytic (expected): %g\n", dNdt_analytic);
@@ -206,12 +212,16 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
     double erf_arg = L / (sqrt(2) * time * vt);
 
     double dNdt_analytic = app->n0 / (sqrt(2 * M_PI));
-    dNdt_analytic *= 1 - exp(-erf_arg*erf_arg);
+    dNdt_analytic *= 1 - exp(-erf_arg * erf_arg);
 
     double diff = fabs(dNdt - dNdt_analytic);
     int check = gkyl_compare_double(dNdt, dNdt_analytic, 1e-1);
     if (check != 1) {
-      printf("Error: dNdt (upper boundary) and dNdt_analytic do not match within tolerance at time step %d.\n", i);
+      printf(
+        "Error: dNdt (upper boundary) and dNdt_analytic do not match within tolerance at time "
+        "step %d.\n",
+        i
+      );
       printf("  Time: %g\n", time);
       printf("  dNdt (computed): %g\n", dNdt);
       printf("  dNdt_analytic (expected): %g\n", dNdt_analytic);
@@ -228,61 +238,63 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
   gkyl_dynvec_release(bflux_moms_upper);
 }
 
-void
-evalIonDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalIonDensityInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct boundary_ctx *app = ctx;
   fout[0] = app->n0;
 }
 
-void
-evalIonTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalIonTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct boundary_ctx *app = ctx;
   fout[0] = app->Ti;
 }
 
-void
-evalIonUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalIonUparInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-static inline void
-nonuniform_position_map_z(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
+static inline void nonuniform_position_map_z(
+  double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx
+)
 {
   struct boundary_ctx *app = ctx;
   double z = zc[0];
   double L = app->Lz;
   double b = 1.2; // controls non-uniformity
-  xp[0] = L * tan(2*z*b/L) / (2 * tan(b));
+  xp[0] = L * tan(2 * z * b / L) / (2 * tan(b));
 }
 
 static inline void
-mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
+mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
 {
   // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
-  xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
+  xp[0] = zc[0];
+  xp[1] = zc[1];
+  xp[2] = zc[2];
 }
 
-void
-bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
+void bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct boundary_ctx *app = ctx;
-  // zc are computational coords. 
+  // zc are computational coords.
   // Set Cartesian components of magnetic field.
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = app->B0;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) MPI_Init(&argc, &argv);
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args.trace_mem) {
@@ -293,10 +305,12 @@ main(int argc, char **argv)
   struct boundary_ctx ctx = create_ctx(); // Context for init functions.
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
-  for (int d=0; d<ctx.cdim; d++)
+  for (int d = 0; d < ctx.cdim; d++) {
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d=0; d<ctx.vdim; d++)
-    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
+  }
+  for (int d = 0; d < ctx.vdim; d++) {
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim + d]);
+  }
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
@@ -304,105 +318,93 @@ main(int argc, char **argv)
   // Ions.
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
-    .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .charge = ctx.charge_ion,
+    .mass = ctx.mass_ion,
     .vdim = ctx.vdim,
-    .lower = { -ctx.vpar_max_ion, 0.0 },
-    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
-    .cells = { cells_v[0], cells_v[1] },
+    .lower = {-ctx.vpar_max_ion, 0.0},
+    .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
+    .cells = {cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
 
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-      .density = evalIonDensityInit,
-      .ctx_density = &ctx,
-      .temp = evalIonTempInit,
-      .ctx_temp = &ctx,
-      .upar = evalIonUparInit,
-      .ctx_upar = &ctx,
-    },
+    .projection =
+      {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+       .density = evalIonDensityInit,
+       .ctx_density = &ctx,
+       .temp = evalIonTempInit,
+       .ctx_temp = &ctx,
+       .upar = evalIonUparInit,
+       .ctx_upar = &ctx},
 
-    .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES,
-    },
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-    .bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-    },
-    
+    .bcs =
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
+
     .num_diag_moments = 6,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN },
+    .diag_moments =
+      {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
+       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN},
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
 
-    .boundary_flux_diagnostics = {
-      .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-    }
+    .boundary_flux_diagnostics =
+      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}}
   };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .zero_init_field = true, // Don't compute the field at t = 0.
-    .is_static = true, // Don't evolve the field in time.
+    .is_static = true // Don't evolve the field in time.
   };
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
 
     .cdim = ctx.cdim,
-    .lower = { -ctx.Lz/2.0 },
-    .upper = {  ctx.Lz/2.0 },
-    .cells = { cells_x[0] },
+    .lower = {-ctx.Lz / 2.0},
+    .upper = {ctx.Lz / 2.0},
+    .cells = {cells_x[0]},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .geometry = {
-      .geometry_id = GKYL_GEOMETRY_MAPC2P,
-      .world = { 0.0, 0.0 },
-      .mapc2p = mapc2p,
-      .c2p_ctx = &ctx,
-      .bfield_func = bfield_func,
-      .bfield_ctx = &ctx,
-      .position_map_info = {
-        .maps[2] = nonuniform_position_map_z,
-        .ctxs[2] = &ctx,
-      },
-    },
+    .geometry =
+      {.geometry_id = GKYL_GEOMETRY_MAPC2P,
+       .world = {0.0, 0.0},
+       .mapc2p = mapc2p,
+       .c2p_ctx = &ctx,
+       .bfield_func = bfield_func,
+       .bfield_ctx = &ctx,
+       .position_map_info = {.maps[2] = nonuniform_position_map_z, .ctxs[2] = &ctx}},
 
     .num_periodic_dir = 0,
-    .periodic_dirs = { },
+    .periodic_dirs = {},
 
     .num_species = 1,
-    .species = { ion },
+    .species = {ion},
 
     .field = field,
 
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
-      .comm = comm,
-    },
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .time_stepping = {
-      .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps,
-    },
+    .time_stepping =
+      {.t_end = ctx.t_end,
+       .num_frames = ctx.num_frames,
+       .write_phase_freq = ctx.write_phase_freq,
+       .int_diag_calc_num = ctx.int_diag_calc_num,
+       .dt_failure_tol = ctx.dt_failure_tol,
+       .num_failures_max = ctx.num_failures_max,
+       .is_restart = app_args.is_restart,
+       .restart_frame = app_args.restart_frame,
+       .num_steps = app_args.num_steps}
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
@@ -412,8 +414,9 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   return 0;

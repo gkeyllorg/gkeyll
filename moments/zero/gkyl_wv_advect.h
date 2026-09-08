@@ -32,8 +32,7 @@ struct gkyl_wv_advect_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the linear advection equation object.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_advect_new(double a, bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_advect_new(double a, bool use_gpu);
 
 /**
 * Create a new linear advection equation object, from an input context struct.
@@ -41,5 +40,4 @@ gkyl_wv_advect_new(double a, bool use_gpu);
 * @param inp Input context struct.
 * @return Pointer to the linear advection equation object.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_advect_inew(const struct gkyl_wv_advect_inp* inp);
+struct gkyl_wv_eqn *gkyl_wv_advect_inew(const struct gkyl_wv_advect_inp *inp);

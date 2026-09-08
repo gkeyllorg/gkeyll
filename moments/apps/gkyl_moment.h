@@ -17,7 +17,7 @@
 struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
- 
+
   bool is_static; // set to true if moment species does not change in time
 
   struct gkyl_wv_eqn *equation; // equation object
@@ -35,7 +35,8 @@ struct gkyl_moment_species {
   bool has_volume_sources; // Run with volume-based geometrical sources.
   double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
   double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
-  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+  double
+    volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
 
   bool has_reactivity; // Run with reactive sources.
   double reactivity_gas_gamma; // Adiabatic index for reactive sources.
@@ -45,35 +46,52 @@ struct gkyl_moment_species {
   double reactivity_reaction_rate; // Reaction rate for reactive sources.
 
   bool has_einstein_medium; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
-  double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
-  double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double
+    medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double
+    medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
-  bool has_gr_ultra_rel; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
-  double gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).
+  bool
+    has_gr_ultra_rel; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
+  double
+    gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).
 
-  bool has_gr_euler; // Run with general relativistic source terms (Euler equations, ideal gas equation of state).
-  double gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (ideal gas equation of state).
+  bool
+    has_gr_euler; // Run with general relativistic source terms (Euler equations, ideal gas equation of state).
+  double
+    gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (ideal gas equation of state).
 
   bool has_gr_twofluid; // Run with general relativistic two-fluid source terms.
   double gr_twofluid_mass_elc; // Electron mass for general relativistic two-fluid equations.
   double gr_twofluid_mass_ion; // Ion mass for general relativistic two-fluid equations.
   double gr_twofluid_charge_elc; // Electron charge for general relativistic two-fluid equations.
   double gr_twofluid_charge_ion; // Ion charge for general relativistic two-fluid equations.
-  double gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
-  double gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
-  double gr_twofluid_e_fact; // Electric field divergence error propagation speed for general relativistic two-fluid equations.
+  double
+    gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
+  double
+    gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
+  double
+    gr_twofluid_e_fact; // Electric field divergence error propagation speed for general relativistic two-fluid equations.
 
   bool has_vacuum_einstein; // Run with vacuum Einstein sources using the Bona-Masso formalism.
-  double vacuum_einstein_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the Bona-Masso formalism.
-  enum gkyl_spacetime_slicing vacuum_einstein_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the Bona-Masso formalism.
-  enum gkyl_spacetime_evolution vacuum_einstein_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the Bona-Masso formalism.
+  double
+    vacuum_einstein_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the Bona-Masso formalism.
+  enum gkyl_spacetime_slicing
+    vacuum_einstein_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the Bona-Masso formalism.
+  enum gkyl_spacetime_evolution
+    vacuum_einstein_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the Bona-Masso formalism.
 
-  bool has_vacuum_einstein_conformal; // Run with vacuum Einstein sources using the conformal Bona-Masso formalism.
-  double vacuum_einstein_conformal_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the conformal Bona-Masso formalism.
-  enum gkyl_spacetime_slicing vacuum_einstein_conformal_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the conformal Bona-Masso formalism.
-  enum gkyl_spacetime_evolution vacuum_einstein_conformal_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the conformal Bona-Masso formalism.
+  bool
+    has_vacuum_einstein_conformal; // Run with vacuum Einstein sources using the conformal Bona-Masso formalism.
+  double
+    vacuum_einstein_conformal_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the conformal Bona-Masso formalism.
+  enum gkyl_spacetime_slicing
+    vacuum_einstein_conformal_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the conformal Bona-Masso formalism.
+  enum gkyl_spacetime_evolution
+    vacuum_einstein_conformal_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the conformal Bona-Masso formalism.
 
-  bool has_gr_mhd; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
+  bool
+    has_gr_mhd; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
   double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
 
   bool force_low_order_flux; // should  we force low-order flux?
@@ -95,7 +113,7 @@ struct gkyl_moment_species {
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
   // for function BCs these should be set
-  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];  
+  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
 };
 
 // Parameter for EM field
@@ -118,7 +136,7 @@ struct gkyl_moment_field {
   double t_ramp_E; // linear ramp for turning on external E field
 
   struct gkyl_wv_embed_geo *embed_geo;
-  
+
   void *app_current_ctx; // context for external electromagnetic fields function
   // pointer to external electromagnetic fields function
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
@@ -130,7 +148,8 @@ struct gkyl_moment_field {
   bool has_volume_sources; // Run with volume-based geometrical sources.
   double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
   double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
-  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+  double
+    volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
 
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
@@ -165,7 +184,7 @@ struct gkyl_moment {
   double cfl_frac; // CFL fraction to use
 
   enum gkyl_moment_scheme scheme_type; // scheme to update fluid and moment eqns
-  
+
   enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
   bool skip_mp_limiter; // should MP limiter be skipped?
   bool use_hybrid_flux_kep; // should shock-hybrid scheme be used when using KEP?
@@ -188,7 +207,7 @@ struct gkyl_moment {
   bool has_nT_sources;
 
   bool has_braginskii; // has Braginskii transport
-  double coll_fac; // multiplicative collisionality factor for Braginskii  
+  double coll_fac; // multiplicative collisionality factor for Braginskii
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
@@ -197,7 +216,7 @@ struct gkyl_moment {
 struct gkyl_moment_stat {
   long nup; // calls to update
   double total_tm; // time for simulation (not including ICs)
-  
+
   long nfail; // number of failed time-steps
 
   //// wave_prop stuff
@@ -207,13 +226,13 @@ struct gkyl_moment_stat {
 
   //// stuff for MP-XX/SSP-RK schemes
   long nfeuler; // calls to forward-Euler method
-    
+
   long nstage_2_fail; // number of failed RK stage-2s
   long nstage_3_fail; // number of failed RK stage-3s
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
-  
+
   double init_species_tm; // time to initialize all species
   double init_field_tm; // time to initialize fields
 
@@ -233,7 +252,7 @@ typedef struct gkyl_moment_app gkyl_moment_app;
  * @param vm App inputs. See struct docs.
  * @return New moment app object.
  */
-gkyl_moment_app* gkyl_moment_app_new(struct gkyl_moment *mom);
+gkyl_moment_app *gkyl_moment_app_new(struct gkyl_moment *mom);
 
 /**
  * Compute maximum estimated stable dt wtih current app state. Call
@@ -242,7 +261,7 @@ gkyl_moment_app* gkyl_moment_app_new(struct gkyl_moment *mom);
  * @param app App object.
  * @retuen maximum estimated stable dt
  */
-double gkyl_moment_app_max_dt(gkyl_moment_app* app);
+double gkyl_moment_app_max_dt(gkyl_moment_app *app);
 
 /**
  * Initialize species and field.
@@ -250,7 +269,7 @@ double gkyl_moment_app_max_dt(gkyl_moment_app* app);
  * @param app App object.
  * @param t0 Time for initial conditions.
  */
-void gkyl_moment_app_apply_ic(gkyl_moment_app* app, double t0);
+void gkyl_moment_app_apply_ic(gkyl_moment_app *app, double t0);
 
 /**
  * Initialize field.
@@ -258,7 +277,7 @@ void gkyl_moment_app_apply_ic(gkyl_moment_app* app, double t0);
  * @param app App object.
  * @param t0 Time for initial conditions
  */
-void gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0);
+void gkyl_moment_app_apply_ic_field(gkyl_moment_app *app, double t0);
 
 /**
  * Initialize species.
@@ -267,7 +286,7 @@ void gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0);
  * @param sidx Index of species to initialize.
  * @param t0 Time for initial conditions
  */
-void gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0);
+void gkyl_moment_app_apply_ic_species(gkyl_moment_app *app, int sidx, double t0);
 
 /**
  * Initialize embedded geometry.
@@ -275,7 +294,7 @@ void gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
  * @param app App object.
  * @param t0 Time for initial conditions
  */
-void gkyl_moment_app_apply_ic_embed(gkyl_moment_app* app, double t0);
+void gkyl_moment_app_apply_ic_embed(gkyl_moment_app *app, double t0);
 
 /**
  * Read field data from .gkyl file.
@@ -284,8 +303,8 @@ void gkyl_moment_app_apply_ic_embed(gkyl_moment_app* app, double t0);
  * @param fname File to read from.
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_app_from_file_field(gkyl_moment_app *app,
-  const char *fname);
+struct gkyl_app_restart_status
+gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname);
 
 /**
  * Read species data from .gkyl file.
@@ -295,8 +314,8 @@ struct gkyl_app_restart_status gkyl_moment_app_from_file_field(gkyl_moment_app *
  * @param fname File to read from.
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_app_from_file_species(gkyl_moment_app *app,
-  int sidx, const char *fname);
+struct gkyl_app_restart_status
+gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx, const char *fname);
 
 /**
  * Read field data from specified frame of previous simulation.
@@ -305,8 +324,7 @@ struct gkyl_app_restart_status gkyl_moment_app_from_file_species(gkyl_moment_app
  * @param frame Frame number to read from
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_app_from_frame_field(gkyl_moment_app *app,
-  int frame);
+struct gkyl_app_restart_status gkyl_moment_app_from_frame_field(gkyl_moment_app *app, int frame);
 
 /**
  * Read species data from specified frame of previous simulation.
@@ -316,8 +334,8 @@ struct gkyl_app_restart_status gkyl_moment_app_from_frame_field(gkyl_moment_app 
  * @param frame Frame number to read from
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_app_from_frame_species(gkyl_moment_app *app,
-  int sidx, int frame);
+struct gkyl_app_restart_status
+gkyl_moment_app_from_frame_species(gkyl_moment_app *app, int sidx, int frame);
 
 /**
  * Initialize the Moment app from a specific frame.
@@ -325,8 +343,7 @@ struct gkyl_app_restart_status gkyl_moment_app_from_frame_species(gkyl_moment_ap
  * @param app App object.
  * @param frame Frame to read.
  */
-struct gkyl_app_restart_status
-gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame);
+struct gkyl_app_restart_status gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the
@@ -338,7 +355,7 @@ gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame);
  * @param fmt Format string for console output
  * @param argp Objects to write
  */
-void gkyl_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, ...);
+void gkyl_moment_app_cout(const gkyl_moment_app *app, FILE *fp, const char *fmt, ...);
 
 /**
  * Write field and species data to file.
@@ -347,7 +364,7 @@ void gkyl_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt,
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame);
+void gkyl_moment_app_write(const gkyl_moment_app *app, double tm, int frame);
 
 /**
  * Write field data to file.
@@ -366,7 +383,7 @@ void gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int fram
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame);
+void gkyl_moment_app_write_species(const gkyl_moment_app *app, int sidx, double tm, int frame);
 
 /**
  * Write field energy to file.
@@ -452,7 +469,7 @@ void gkyl_moment_app_get_integrated_mom(gkyl_moment_app *app, double *vals);
  * @param sidx Species index
  * @return pointer to the species array for output
  */
-struct gkyl_array* gkyl_moment_app_get_write_array_species(const gkyl_moment_app* app, int sidx);
+struct gkyl_array *gkyl_moment_app_get_write_array_species(const gkyl_moment_app *app, int sidx);
 
 /**
  * Get a pointer to the field array that needs to be written out. If
@@ -463,7 +480,7 @@ struct gkyl_array* gkyl_moment_app_get_write_array_species(const gkyl_moment_app
  * @param app App object.
  * @return pointer to the field array for output
  */
-struct gkyl_array* gkyl_moment_app_get_write_array_field(const gkyl_moment_app* app);
+struct gkyl_array *gkyl_moment_app_get_write_array_field(const gkyl_moment_app *app);
 
 /**
  * Return simulation statistics.
@@ -477,4 +494,4 @@ struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app *app);
  *
  * @param app App to release.
  */
-void gkyl_moment_app_release(gkyl_moment_app* app);
+void gkyl_moment_app_release(gkyl_moment_app *app);

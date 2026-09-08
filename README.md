@@ -380,3 +380,52 @@ srun -N 1 --ntasks=2 --gpus-per-task=1 --gpu-bind=closest compute-sanitizer --to
 ```
 
 where the command line arguments must at least contain `-g -M -direction 2` with `direction` being the direction along which the domain is decomposed, e.g. `-e 2` for 3x2v gk simulations.
+
+## Code style
+
+C/C++/CUDA source is formatted by [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
+using the style defined in the root `.clang-format` (a Linux-kernel-flavored style with
+2-space indentation). Two things are excluded and must never be hand-formatted: files
+under any `*/ker/*` directory (auto-generated DG kernel code) and anything under
+`core/minus/` (third-party libraries).
+
+One-time setup:
+
+```
+pip install pre-commit
+pre-commit install
+```
+
+After that, `git commit` automatically reformats any staged C/C++/CUDA file that
+isn't already formatted (excluding `ker/` and `core/minus/`). CI
+(`.github/workflows/format-check.yml`) re-checks the same thing on push/PR as a backstop.
+
+clang-format's output differs slightly across versions, so `pre-commit` and CI both
+pin `clang-format` `18.1.8` (see the `rev:` in `.pre-commit-config.yaml`). To run
+`ci/format-all.sh` or configure your editor's format-on-save, install the same
+version so you don't fight the pinned one:
+
+```
+pip install clang-format==18.1.8
+```
+
+To format everything by hand (e.g. after pulling changes), run `ci/format-all.sh`,
+or `ci/format-all.sh --check` to only check without modifying files.
+
+clang-format expands every element of a braced initializer list onto its own
+line whenever the list already ends with a trailing comma, regardless of
+column limit -- so the same struct/array literal formats differently
+depending on whether its last author happened to add one. `ci/strip-trailing-commas.py`
+removes any comma directly before a closing `}` before clang-format ever runs,
+so don't rely on a trailing comma to keep an initializer list multi-line; that's
+clang-format's call once the comma's gone. This runs automatically as part of
+the same pre-commit hook and CI check as clang-format (and as part of
+`ci/format-all.sh`), so you shouldn't need to run it by hand.
+
+Since the repo's history includes a single large reformatting commit, run:
+
+```
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+so `git blame` attributes lines to their original author instead of that commit.

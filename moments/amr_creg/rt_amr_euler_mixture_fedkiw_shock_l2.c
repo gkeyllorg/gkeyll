@@ -2,8 +2,7 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_alloc.h>
 
-struct amr_fedkiw_shock_ctx
-{
+struct amr_fedkiw_shock_ctx {
   // Physical constants (using normalized code units).
   double gas_gamma1; // First species adiabatic index.
   double gas_gamma2; // Second species adiabatic index.
@@ -38,8 +37,7 @@ struct amr_fedkiw_shock_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_fedkiw_shock_ctx
-create_ctx(void)
+struct amr_fedkiw_shock_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma1 = 1.4; // First species adiabatic index.
@@ -99,14 +97,15 @@ create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
+    .num_failures_max = num_failures_max
   };
 
   return ctx;
 }
 
-void
-evalEulerMixtureInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalEulerMixtureInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   double x = xn[0];
   struct amr_fedkiw_shock_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -146,16 +145,14 @@ evalEulerMixtureInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_REST
 
     vx_total = ul; // Total mixture velocity (left).
     p_total = pl; // Total mixture pressure (left).
-  }
-  else if (x < 0.5) {
+  } else if (x < 0.5) {
     rho1 = rhoc; // First species fluid mass density (central).
     rho2 = rhor; // Second species fluid mass density (right).
     alpha1 = alpha1_c; // First species volume fraction (central).
 
     vx_total = uc; // Total mixture velocity (central).
     p_total = pc; // Total mixture pressure (central).
-  }
-  else {
+  } else {
     rho1 = rhoc; // First species fluid mass density (central).
     rho2 = rhor; // Second species fluid mass density (right).
     alpha1 = alpha1_r; // First species volume fraction (right).
@@ -165,20 +162,25 @@ evalEulerMixtureInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_REST
   }
   double rho_total = (alpha1 * rho1) + ((1.0 - alpha1) * rho2); // Total mixture density.
 
-  double E1 = (p_total / (gas_gamma1 - 1.0)) + (0.5 * rho1 * (vx_total * vx_total)); // First species total energy.
-  double E2 = (p_total / (gas_gamma2 - 1.0)) + (0.5 * rho2 * (vx_total * vx_total)); // Second species total energy.
+  double E1 = (p_total / (gas_gamma1 - 1.0)) +
+              (0.5 * rho1 * (vx_total * vx_total)); // First species total energy.
+  double E2 = (p_total / (gas_gamma2 - 1.0)) +
+              (0.5 * rho2 * (vx_total * vx_total)); // Second species total energy.
   double E_total = (alpha1 * E1) + ((1.0 - alpha1) * E2); // Total mixture energy.
 
   // Set fluid mixture total mass density.
   fout[0] = rho_total;
   // Set fluid mixture total momentum density.
-  fout[1] = rho_total * vx_total; fout[2] = rho_total * vy_total; fout[3] = rho_total * vz_total;
+  fout[1] = rho_total * vx_total;
+  fout[2] = rho_total * vy_total;
+  fout[3] = rho_total * vz_total;
   // Set fluid mixture total energy density.
   fout[4] = E_total;
   // Set fluid mixture weighted volume fraction (first species).
   fout[5] = rho_total * alpha1;
   // Set fluid mixture volume-weighted mass densities (first and second species).
-  fout[6] = alpha1 * rho1; fout[7] = (1.0 - alpha1) * rho2;
+  fout[6] = alpha1 * rho1;
+  fout[7] = (1.0 - alpha1) * rho2;
 }
 
 int main(int argc, char **argv)
@@ -215,7 +217,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
+    .num_failures_max = ctx.num_failures_max
   };
 
   euler_mixture1d_run_double(argc, argv, &init);

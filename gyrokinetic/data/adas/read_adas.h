@@ -14,7 +14,7 @@ typedef struct adas_field {
   FILE *logT;
   FILE *logN;
   long NT;
-  long NN; 
+  long NN;
   int Zmax;
   struct gkyl_array fld;
   double Eiz[GKYL_MAX_CHARGE_STATE];
@@ -27,26 +27,23 @@ array_from_numpy(FILE *fp, long sz, int Zmax, int charge_state, struct gkyl_arra
   int zi = charge_state;
   double array[Zmax][sz];
   long res_sz = fread(array, 1, sizeof(double[Zmax][sz]), fp);
-		   
-  for (int i=0; i<sz; ++i) {
-    double *arr_d = (double*) gkyl_array_fetch(arr, i);
-    arr_d[0] = array[zi][i]; 
+
+  for (int i = 0; i < sz; ++i) {
+    double *arr_d = (double *)gkyl_array_fetch(arr, i);
+    arr_d[0] = array[zi][i];
   }
 }
 
-static inline void
-minmax_from_numpy(FILE *fp, long sz, double minmax[2])
+static inline void minmax_from_numpy(FILE *fp, long sz, double minmax[2])
 {
   double array[sz];
   long res_sz = fread(array, 1, sizeof(double[sz]), fp);
   double min = array[0];
-  double max = array[sz-1];
+  double max = array[sz - 1];
   minmax[0] = min;
   minmax[1] = max;
 }
 
-void
-read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data);
- 
-void
-read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data);
+void read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data);
+
+void read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data);

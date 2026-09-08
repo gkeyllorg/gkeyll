@@ -33,7 +33,8 @@ typedef struct gkyl_ten_moment_grad_closure gkyl_ten_moment_grad_closure;
  *
  * @param inp Input parameters to updater
  */
-gkyl_ten_moment_grad_closure* gkyl_ten_moment_grad_closure_new(const struct gkyl_ten_moment_grad_closure_inp *inp);
+gkyl_ten_moment_grad_closure *
+gkyl_ten_moment_grad_closure_new(const struct gkyl_ten_moment_grad_closure_inp *inp);
 
 /**
  * Compute RHS contribution from symmetrized gradient-based closure
@@ -51,11 +52,12 @@ gkyl_ten_moment_grad_closure* gkyl_ten_moment_grad_closure_new(const struct gkyl
  * @param heat_flux Array for storing intermediate computation of heat flux tensor (cell nodes)
  * @param rhs RHS output (NOTE: Returns RHS output of all nfluids)
  */
-struct gkyl_ten_moment_grad_closure_status  gkyl_ten_moment_grad_closure_advance(
+struct gkyl_ten_moment_grad_closure_status gkyl_ten_moment_grad_closure_advance(
   const gkyl_ten_moment_grad_closure *gces, const struct gkyl_range *heat_flux_range,
   const struct gkyl_range *update_range, const struct gkyl_array *fluid,
   const struct gkyl_array *em_tot, struct gkyl_array *cflrate, double dt,
-  struct gkyl_array *heat_flux, struct gkyl_array *rhs);
+  struct gkyl_array *heat_flux, struct gkyl_array *rhs
+);
 
 /**
  * Delete updater.

@@ -17,11 +17,11 @@ struct gkyl_gyrokinetic_multib_app {
   char name[128]; // name of app
   struct gkyl_comm *comm; // global communicator to use
   bool use_gpu; // Whether to use the GPU.
-  
+
   // geometry and topology of all blocks in simulation
   struct gkyl_gk_block_geom *gk_block_geom;
   struct gkyl_block_topo *block_topo;
-  
+
   double cfl_frac; // CFL fraction to use
   double bmag_ref; // Reference magnetic field
   int num_species; // number of species
@@ -31,7 +31,7 @@ struct gkyl_gyrokinetic_multib_app {
   struct gk_multib_field *field; // Field object.
 
   char species_name[GKYL_MAX_SPECIES][128]; // name of each species
-  char neut_species_name[GKYL_MAX_SPECIES][128]; // name of each neutral species  
+  char neut_species_name[GKYL_MAX_SPECIES][128]; // name of each neutral species
 
   struct gkyl_comm **block_comms; // list of block-communicators
 
@@ -47,13 +47,13 @@ struct gkyl_gyrokinetic_multib_app {
   struct gkyl_mbcc_sr *mbcc_sync_neut; // Connections for neut species phase-space.
 
   double tcurr; // current time
-  
+
   struct gkyl_gyrokinetic_stat stat; // statistics
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
-  
-  struct gkyl_msgpack_map_elem* io_meta_basic; // Metadata for I/O.
+
+  struct gkyl_msgpack_map_elem *io_meta_basic; // Metadata for I/O.
   int io_meta_basic_len; // Number of elements in io_meta.
 };
 
@@ -72,7 +72,7 @@ struct gk_multib_field {
   int num_local_blocks; // total number of blocks on current rank
   int cdim; // number of configuration space dimensions
   bool half_domain; // For use in double null
-                    // Whether to set BCs for simulation of lower half (Z<0)
+  // Whether to set BCs for simulation of lower half (Z<0)
 
   int num_blocks_below[GKYL_MAX_BLOCKS];
   int num_blocks_above[GKYL_MAX_BLOCKS];
@@ -105,7 +105,7 @@ struct gk_multib_field {
   struct gkyl_array **lhs_weight_multibz;
   struct gkyl_array **rhs_weight_multibz;
   struct gkyl_fem_parproj **fem_parproj; // FEM smoothing operator.
-  
+
   //
   // Objects for perpendicular Poisson solve.
   //
@@ -124,8 +124,10 @@ struct gk_multib_field {
 
   // Functions to advance MB field
   // Pointer to function to calculate the potential.
-  void (*rhs_func)(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
-  const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
+  void (*rhs_func)(
+    gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, const struct gkyl_array *fin[],
+    struct gkyl_array **bflux[]
+  );
 };
 
 /** Time stepping API */
@@ -138,8 +140,10 @@ struct gk_multib_field {
  * @param fin Array of distribution functions (one for each species) .
  * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
  */
-void gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
-  const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
+void gyrokinetic_multib_calc_field(
+  struct gkyl_gyrokinetic_multib_app *app, double tcurr, const struct gkyl_array *fin[],
+  struct gkyl_array **bflux[]
+);
 
 /**
  * Compute the gyrokinetic fields and apply boundary conditions.
@@ -150,8 +154,10 @@ void gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, doub
  * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
  * @param distf_neut Array of distribution functions (for each neutral species).
  */
-void gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
-  struct gkyl_array *distf[], struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]);
+void gyrokinetic_multib_calc_field_and_apply_bc(
+  struct gkyl_gyrokinetic_multib_app *app, double tcurr, struct gkyl_array *distf[],
+  struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]
+);
 
 /**
  * Take time-step using the RK3 method. Also sets the status object
@@ -161,7 +167,8 @@ void gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_a
  * @param app Gyrokinetic app.
  * @param dt0 Suggessted time step.
  */
-struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, double dt0);
+struct gkyl_update_status
+gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, double dt0);
 
 /** Field API */
 
@@ -170,9 +177,9 @@ struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokine
  * @param mbapp Gyrokinetic multib app.
  * return new multib field object
  */
-struct gk_multib_field* gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp,
-  struct gkyl_gyrokinetic_multib_app *mbapp);
-
+struct gk_multib_field *gk_multib_field_new(
+  const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp
+);
 
 /** Compute the electrostatic potential
  * @param mbapp Gyrokinetic multib app.
@@ -180,8 +187,10 @@ struct gk_multib_field* gk_multib_field_new(const struct gkyl_gyrokinetic_multib
  * @param fin Distribution function (for all local blocks).
  * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
 */
-void gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
-  const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
+void gk_multib_field_rhs(
+  gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, const struct gkyl_array *fin[],
+  struct gkyl_array **bflux[]
+);
 
 /** Releas the resources for the multib field object
  * @param mbf Multib field object.

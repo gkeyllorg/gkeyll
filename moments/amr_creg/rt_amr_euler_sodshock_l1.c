@@ -6,8 +6,7 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_euler_sodshock_ctx
-{
+struct amr_euler_sodshock_ctx {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
@@ -32,8 +31,7 @@ struct amr_euler_sodshock_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_euler_sodshock_ctx
-create_ctx(void)
+struct amr_euler_sodshock_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 1.4; // Adiabatic index.
@@ -74,14 +72,13 @@ create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
+    .num_failures_max = num_failures_max
   };
 
   return ctx;
 }
 
-void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct amr_euler_sodshock_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -105,17 +102,18 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
     p = pl; // Fluid pressure (left).
-  }
-  else {
+  } else {
     rho = rhor; // Fluid mass density (right).
     u = ur; // Fluid velocity (right).
     p = pr; // Fluid pressure (right).
   }
-  
+
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = rho * u;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
   // Set fluid total energy density.
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
 }
@@ -145,7 +143,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
+    .num_failures_max = ctx.num_failures_max
   };
 
   euler1d_run_single(argc, argv, &init);

@@ -7,7 +7,7 @@
 enum gkyl_wv_gr_euler_rp {
   WV_GR_EULER_RP_HLL = 0, // Default (HLL fluxes).
   WV_GR_EULER_RP_ROE,
-  WV_GR_EULER_RP_LAX,
+  WV_GR_EULER_RP_LAX
 };
 
 // Input context, packaged as a struct.
@@ -31,8 +31,10 @@ struct gkyl_wv_gr_euler_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the general relativistic Euler equations object with ideal gas equation of state.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_gr_euler_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime* spacetime, bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_gr_euler_new(
+  double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq,
+  struct gkyl_gr_spacetime *spacetime, bool use_gpu
+);
 
 /**
 * Create a new general relativistic Euler equations object with ideal gas equation of state, from an input context struct.
@@ -40,8 +42,7 @@ gkyl_wv_gr_euler_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge
 * @param inp Input context struct.
 * @return Pointer to the general relativistic Euler equations object with ideal gas equation of state.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp);
+struct gkyl_wv_eqn *gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp *inp);
 
 /**
 * Get adiabatic index.
@@ -49,8 +50,7 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp);
 * @param eqn General relativistic Euler equations object with ideal gas equation of state.
 * @return Adiabatic index.
 */
-double
-gkyl_wv_gr_euler_gas_gamma(const struct gkyl_wv_eqn* eqn);
+double gkyl_wv_gr_euler_gas_gamma(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get spacetime gauge choice.
@@ -58,8 +58,7 @@ gkyl_wv_gr_euler_gas_gamma(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic Euler equations object with ideal gas equation of state.
 * @return Spacetime gauge choice.
 */
-enum gkyl_spacetime_gauge
-gkyl_wv_gr_euler_spacetime_gauge(const struct gkyl_wv_eqn* eqn);
+enum gkyl_spacetime_gauge gkyl_wv_gr_euler_spacetime_gauge(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get spacetime reinitialization frequency.
@@ -67,8 +66,7 @@ gkyl_wv_gr_euler_spacetime_gauge(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic Euler equations object with ideal gas equation of state.
 * @return Spacetime reinitialization frequency.
 */
-int
-gkyl_wv_gr_euler_reinit_freq(const struct gkyl_wv_eqn* eqn);
+int gkyl_wv_gr_euler_reinit_freq(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get base spacetime object.
@@ -76,5 +74,4 @@ gkyl_wv_gr_euler_reinit_freq(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic Euler equations object with ideal gas equation of state.
 * @return Pointer to the base spacetime object.
 */
-struct gkyl_gr_spacetime*
-gkyl_wv_gr_euler_spacetime(const struct gkyl_wv_eqn* eqn);
+struct gkyl_gr_spacetime *gkyl_wv_gr_euler_spacetime(const struct gkyl_wv_eqn *eqn);

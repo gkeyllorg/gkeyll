@@ -16,36 +16,27 @@ static const unsigned Q233 = 8;
 static const unsigned Q333 = 9;
 
 // 1D stencil locations (L: lower, U: upper).
-enum loc_1d {
-  L_1D, U_1D
-};
+enum loc_1d { L_1D, U_1D };
 
 // 1D, second-order stencil locations (L2: lower, C2: center, U2: upper).
-enum loc_1d_second_order {
-  L2_1D, C2_1D, U2_1D
-};
+enum loc_1d_second_order { L2_1D, C2_1D, U2_1D };
 
 // 2D stencil locations (L: lower, U: upper).
-enum loc_2d {
-  LL_2D, LU_2D,
-  UL_2D, UU_2D
-};
+enum loc_2d { LL_2D, LU_2D, UL_2D, UU_2D };
 
-struct gkyl_ten_moment_nn_closure
-{
+struct gkyl_ten_moment_nn_closure {
   struct gkyl_rect_grid grid; // Grid on which to solve equations.
   int ndim; // Number of dimensions.
   int poly_order; // Polynomial order of learned DG coefficients.
   double k0; // Damping coefficient.
-  struct gkyl_kann_net* ann; // Neural network architecture.
+  struct gkyl_kann_net *ann; // Neural network architecture.
 };
 
-static void
-create_offsets_vertices(const struct gkyl_range* range, long offsets[])
+static void create_offsets_vertices(const struct gkyl_range *range, long offsets[])
 {
   // Box-spanning stencil.
   struct gkyl_range box3;
-  gkyl_range_init(&box3, range->ndim, (int[]) { -1, -1, -1 }, (int[]) { 0, 0, 0 });
+  gkyl_range_init(&box3, range->ndim, (int[]){-1, -1, -1}, (int[]){0, 0, 0});
 
   struct gkyl_range_iter iter3;
   gkyl_range_iter_init(&iter3, &box3);
@@ -58,12 +49,11 @@ create_offsets_vertices(const struct gkyl_range* range, long offsets[])
   }
 }
 
-static void
-create_offsets_centers(const struct gkyl_range *range, long offsets[])
+static void create_offsets_centers(const struct gkyl_range *range, long offsets[])
 {
   // Box-spanning stencil.
   struct gkyl_range box3;
-  gkyl_range_init(&box3, range->ndim, (int[]) { 0, 0, 0 }, (int[]) { 1, 1, 1 });
+  gkyl_range_init(&box3, range->ndim, (int[]){0, 0, 0}, (int[]){1, 1, 1});
 
   struct gkyl_range_iter iter3;
   gkyl_range_iter_init(&iter3, &box3);
@@ -76,8 +66,10 @@ create_offsets_centers(const struct gkyl_range *range, long offsets[])
   }
 }
 
-static void
-var_setup(const gkyl_ten_moment_nn_closure *nnclosure, int start, int end, const double *fluid_d[], double rho[], double p[][6])
+static void var_setup(
+  const gkyl_ten_moment_nn_closure *nnclosure, int start, int end, const double *fluid_d[],
+  double rho[], double p[][6]
+)
 {
   for (int j = start; j <= end; j++) {
     rho[j] = fluid_d[j][RHO];
@@ -90,8 +82,7 @@ var_setup(const gkyl_ten_moment_nn_closure *nnclosure, int start, int end, const
   }
 }
 
-int
-gkyl_ten_moment_nn_closure_n_in(const gkyl_ten_moment_nn_closure *nnclosure)
+int gkyl_ten_moment_nn_closure_n_in(const gkyl_ten_moment_nn_closure *nnclosure)
 {
   const int ndim = nnclosure->ndim;
   const int poly_order = nnclosure->poly_order;
@@ -101,8 +92,7 @@ gkyl_ten_moment_nn_closure_n_in(const gkyl_ten_moment_nn_closure *nnclosure)
   return 12; // ndim == 2, poly_order == 1.
 }
 
-int
-gkyl_ten_moment_nn_closure_n_out(const gkyl_ten_moment_nn_closure *nnclosure)
+int gkyl_ten_moment_nn_closure_n_out(const gkyl_ten_moment_nn_closure *nnclosure)
 {
   const int ndim = nnclosure->ndim;
   const int poly_order = nnclosure->poly_order;
@@ -118,9 +108,10 @@ gkyl_ten_moment_nn_closure_n_out(const gkyl_ten_moment_nn_closure *nnclosure)
 // cell-averaged density and pressure tensor) is computed exactly once per cell
 // here and reused in gkyl_ten_moment_nn_closure_construct, avoiding any duplicate work.
 // Exposed (non-static) for unit testing the geometry.
-void
-gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure, const double *fluid_d[], const double *em_tot_d[], float *input_data,
-  struct gkyl_ten_moment_nn_closure_geom *geom)
+void gkyl_ten_moment_nn_closure_geom_calc(
+  const gkyl_ten_moment_nn_closure *nnclosure, const double *fluid_d[], const double *em_tot_d[],
+  float *input_data, struct gkyl_ten_moment_nn_closure_geom *geom
+)
 {
   const int ndim = nnclosure->ndim;
   const int poly_order = nnclosure->poly_order;
@@ -130,19 +121,19 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
   double drho_dx_dx = 0.0;
   double drho_dx_dy = 0.0;
 
-  double p_avg[6] = { 0.0 };
-  double dp_dx[6] = { 0.0 };
-  double dp_dy[6] = { 0.0 };
-  double dp_dz[6] = { 0.0 };
-  double dp_dx_dx[6] = { 0.0 };
-  double dp_dx_dy[6] = { 0.0 };
+  double p_avg[6] = {0.0};
+  double dp_dx[6] = {0.0};
+  double dp_dy[6] = {0.0};
+  double dp_dz[6] = {0.0};
+  double dp_dx_dx[6] = {0.0};
+  double dp_dx_dy[6] = {0.0};
 
-  double B_avg[3] = { 0.0 };
-  double dB_dx[3] = { 0.0 };
-  double dB_dy[3] = { 0.0 };
-  double dB_dz[3] = { 0.0 };
-  double dB_dx_dx[3] = { 0.0 };
-  double dB_dx_dy[3] = { 0.0 };
+  double B_avg[3] = {0.0};
+  double dB_dx[3] = {0.0};
+  double dB_dy[3] = {0.0};
+  double dB_dz[3] = {0.0};
+  double dB_dx_dx[3] = {0.0};
+  double dB_dx_dy[3] = {0.0};
 
   // Initialize the geometry cache (entries not touched by a given branch stay
   // zero, e.g. local_mag_dy in 1D).
@@ -158,10 +149,10 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
   }
 
   if (ndim == 1) {
-    if (poly_order == 1 ) {
+    if (poly_order == 1) {
       const double dx = nnclosure->grid.dx[0];
-      double rho[2] = { 0.0 };
-      double p[2][6] = { 0.0 };
+      double rho[2] = {0.0};
+      double p[2][6] = {0.0};
       var_setup(nnclosure, L_1D, U_1D, fluid_d, rho, p);
 
       rho_avg = calc_arithm_avg_1D(rho[L_1D], rho[U_1D]);
@@ -186,15 +177,23 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       dB_dx[1] = calc_sym_grad_1D(dx, em_tot_d[L_1D][BY], em_tot_d[U_1D][BY]);
       dB_dx[2] = calc_sym_grad_1D(dx, em_tot_d[L_1D][BZ], em_tot_d[U_1D][BZ]);
 
-      if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
+      if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) &&
+          fabs(B_avg[2]) < pow(10.0, -8.0)) {
         B_avg[0] = 1.0;
-        dB_dx[0] = 0.0; dB_dx[1] = 0.0; dB_dx[2] = 0.0;
-        dB_dy[0] = 0.0; dB_dy[1] = 0.0; dB_dy[2] = 0.0;
-        dB_dz[0] = 0.0; dB_dz[1] = 0.0; dB_dz[2] = 0.0;
+        dB_dx[0] = 0.0;
+        dB_dx[1] = 0.0;
+        dB_dx[2] = 0.0;
+        dB_dy[0] = 0.0;
+        dB_dy[1] = 0.0;
+        dB_dy[2] = 0.0;
+        dB_dz[0] = 0.0;
+        dB_dz[1] = 0.0;
+        dB_dz[2] = 0.0;
       }
 
       double b_mag = sqrt((B_avg[0] * B_avg[0]) + (B_avg[1] * B_avg[1]) + (B_avg[2] * B_avg[2]));
-      double b_mag_dx = ((B_avg[0] * dB_dx[0]) + (B_avg[1] * dB_dx[1]) + (B_avg[2] * dB_dx[2])) / b_mag;
+      double b_mag_dx =
+        ((B_avg[0] * dB_dx[0]) + (B_avg[1] * dB_dx[1]) + (B_avg[2] * dB_dx[2])) / b_mag;
 
       double local_mag[3];
       for (int i = 0; i < 3; i++) {
@@ -209,13 +208,25 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       double p_tensor[3][3];
       double p_tensor_dx[3][3];
 
-      p_tensor[0][0] = p_avg[0]; p_tensor[0][1] = p_avg[1]; p_tensor[0][2] = p_avg[2];
-      p_tensor[1][0] = p_avg[1]; p_tensor[1][1] = p_avg[3]; p_tensor[1][2] = p_avg[4];
-      p_tensor[2][0] = p_avg[2]; p_tensor[2][1] = p_avg[4]; p_tensor[2][2] = p_avg[5];
+      p_tensor[0][0] = p_avg[0];
+      p_tensor[0][1] = p_avg[1];
+      p_tensor[0][2] = p_avg[2];
+      p_tensor[1][0] = p_avg[1];
+      p_tensor[1][1] = p_avg[3];
+      p_tensor[1][2] = p_avg[4];
+      p_tensor[2][0] = p_avg[2];
+      p_tensor[2][1] = p_avg[4];
+      p_tensor[2][2] = p_avg[5];
 
-      p_tensor_dx[0][0] = dp_dx[0]; p_tensor_dx[0][1] = dp_dx[1]; p_tensor_dx[0][2] = dp_dx[2];
-      p_tensor_dx[1][0] = dp_dx[1]; p_tensor_dx[1][1] = dp_dx[3]; p_tensor_dx[1][2] = dp_dx[4];
-      p_tensor_dx[2][0] = dp_dx[2]; p_tensor_dx[2][1] = dp_dx[4]; p_tensor_dx[2][2] = dp_dx[5];
+      p_tensor_dx[0][0] = dp_dx[0];
+      p_tensor_dx[0][1] = dp_dx[1];
+      p_tensor_dx[0][2] = dp_dx[2];
+      p_tensor_dx[1][0] = dp_dx[1];
+      p_tensor_dx[1][1] = dp_dx[3];
+      p_tensor_dx[1][2] = dp_dx[4];
+      p_tensor_dx[2][0] = dp_dx[2];
+      p_tensor_dx[2][1] = dp_dx[4];
+      p_tensor_dx[2][2] = dp_dx[5];
 
       double p_par = 0.0;
       for (int i = 0; i < 3; i++) {
@@ -263,11 +274,10 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
         geom->local_mag[i] = local_mag[i];
         geom->local_mag_dx[i] = local_mag_dx[i];
       }
-    }
-    else if (poly_order == 2) {
+    } else if (poly_order == 2) {
       const double dx = nnclosure->grid.dx[0];
-      double rho[3] = { 0.0 };
-      double p[3][6] = { 0.0 };
+      double rho[3] = {0.0};
+      double p[3][6] = {0.0};
       var_setup(nnclosure, L2_1D, U2_1D, fluid_d, rho, p);
 
       rho_avg = calc_arithm_avg_1D(rho[L2_1D], rho[U2_1D]);
@@ -299,21 +309,36 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       dp_dx_dx[3] = calc_sym_grad2_1D(dx, p[L2_1D][3], p[C2_1D][3], p[U2_1D][3]);
       dp_dx_dx[4] = calc_sym_grad2_1D(dx, p[L2_1D][4], p[C2_1D][4], p[U2_1D][4]);
       dp_dx_dx[5] = calc_sym_grad2_1D(dx, p[L2_1D][5], p[C2_1D][5], p[U2_1D][5]);
-      dB_dx_dx[0] = calc_sym_grad2_1D(dx, em_tot_d[L2_1D][BX], em_tot_d[C2_1D][BX], em_tot_d[U2_1D][BX]);
-      dB_dx_dx[1] = calc_sym_grad2_1D(dx, em_tot_d[L2_1D][BY], em_tot_d[C2_1D][BY], em_tot_d[U2_1D][BY]);
-      dB_dx_dx[2] = calc_sym_grad2_1D(dx, em_tot_d[L2_1D][BZ], em_tot_d[C2_1D][BZ], em_tot_d[U2_1D][BZ]);
+      dB_dx_dx[0] =
+        calc_sym_grad2_1D(dx, em_tot_d[L2_1D][BX], em_tot_d[C2_1D][BX], em_tot_d[U2_1D][BX]);
+      dB_dx_dx[1] =
+        calc_sym_grad2_1D(dx, em_tot_d[L2_1D][BY], em_tot_d[C2_1D][BY], em_tot_d[U2_1D][BY]);
+      dB_dx_dx[2] =
+        calc_sym_grad2_1D(dx, em_tot_d[L2_1D][BZ], em_tot_d[C2_1D][BZ], em_tot_d[U2_1D][BZ]);
 
-      if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
+      if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) &&
+          fabs(B_avg[2]) < pow(10.0, -8.0)) {
         B_avg[0] = 1.0;
-        dB_dx[0] = 0.0; dB_dx[1] = 0.0; dB_dx[2] = 0.0;
-        dB_dy[0] = 0.0; dB_dy[1] = 0.0; dB_dy[2] = 0.0;
-        dB_dz[0] = 0.0; dB_dz[1] = 0.0; dB_dz[2] = 0.0;
-        dB_dx_dx[0] = 0.0; dB_dx_dx[1] = 0.0; dB_dx_dx[2] = 0.0;
+        dB_dx[0] = 0.0;
+        dB_dx[1] = 0.0;
+        dB_dx[2] = 0.0;
+        dB_dy[0] = 0.0;
+        dB_dy[1] = 0.0;
+        dB_dy[2] = 0.0;
+        dB_dz[0] = 0.0;
+        dB_dz[1] = 0.0;
+        dB_dz[2] = 0.0;
+        dB_dx_dx[0] = 0.0;
+        dB_dx_dx[1] = 0.0;
+        dB_dx_dx[2] = 0.0;
       }
 
       double b_mag = sqrt((B_avg[0] * B_avg[0]) + (B_avg[1] * B_avg[1]) + (B_avg[2] * B_avg[2]));
-      double b_mag_dx = ((B_avg[0] * dB_dx[0]) + (B_avg[1] * dB_dx[1]) + (B_avg[2] * dB_dx[2])) / b_mag;
-      double b_mag_dx_dx = b_mag * ((dB_dx[0] * dB_dx[0]) + (B_avg[0] * dB_dx_dx[0]) + (dB_dx[1] * dB_dx[1]) + (B_avg[1] * dB_dx_dx[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
+      double b_mag_dx =
+        ((B_avg[0] * dB_dx[0]) + (B_avg[1] * dB_dx[1]) + (B_avg[2] * dB_dx[2])) / b_mag;
+      double b_mag_dx_dx =
+        b_mag * ((dB_dx[0] * dB_dx[0]) + (B_avg[0] * dB_dx_dx[0]) + (dB_dx[1] * dB_dx[1]) +
+                 (B_avg[1] * dB_dx_dx[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
       b_mag_dx_dx -= b_mag_dx * b_mag_dx;
       b_mag_dx_dx /= b_mag * b_mag;
 
@@ -327,7 +352,8 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       double local_mag_dx_dx[3];
       for (int i = 0; i < 3; i++) {
         local_mag_dx[i] = ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) / (b_mag * b_mag);
-        local_mag_dx_dx[i] = (b_mag * b_mag) * ((b_mag_dx * dB_dx[i]) + (b_mag * dB_dx_dx[i]) - (dB_dx[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dx));
+        local_mag_dx_dx[i] = (b_mag * b_mag) * ((b_mag_dx * dB_dx[i]) + (b_mag * dB_dx_dx[i]) -
+                                                (dB_dx[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dx));
         local_mag_dx_dx[i] -= 2.0 * ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) * b_mag * b_mag_dx;
         local_mag_dx_dx[i] /= b_mag * b_mag * b_mag * b_mag;
       }
@@ -336,17 +362,35 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       double p_tensor_dx[3][3];
       double p_tensor_dx_dx[3][3];
 
-      p_tensor[0][0] = p_avg[0]; p_tensor[0][1] = p_avg[1]; p_tensor[0][2] = p_avg[2];
-      p_tensor[1][0] = p_avg[1]; p_tensor[1][1] = p_avg[3]; p_tensor[1][2] = p_avg[4];
-      p_tensor[2][0] = p_avg[2]; p_tensor[2][1] = p_avg[4]; p_tensor[2][2] = p_avg[5];
+      p_tensor[0][0] = p_avg[0];
+      p_tensor[0][1] = p_avg[1];
+      p_tensor[0][2] = p_avg[2];
+      p_tensor[1][0] = p_avg[1];
+      p_tensor[1][1] = p_avg[3];
+      p_tensor[1][2] = p_avg[4];
+      p_tensor[2][0] = p_avg[2];
+      p_tensor[2][1] = p_avg[4];
+      p_tensor[2][2] = p_avg[5];
 
-      p_tensor_dx[0][0] = dp_dx[0]; p_tensor_dx[0][1] = dp_dx[1]; p_tensor_dx[0][2] = dp_dx[2];
-      p_tensor_dx[1][0] = dp_dx[1]; p_tensor_dx[1][1] = dp_dx[3]; p_tensor_dx[1][2] = dp_dx[4];
-      p_tensor_dx[2][0] = dp_dx[2]; p_tensor_dx[2][1] = dp_dx[4]; p_tensor_dx[2][2] = dp_dx[5];
+      p_tensor_dx[0][0] = dp_dx[0];
+      p_tensor_dx[0][1] = dp_dx[1];
+      p_tensor_dx[0][2] = dp_dx[2];
+      p_tensor_dx[1][0] = dp_dx[1];
+      p_tensor_dx[1][1] = dp_dx[3];
+      p_tensor_dx[1][2] = dp_dx[4];
+      p_tensor_dx[2][0] = dp_dx[2];
+      p_tensor_dx[2][1] = dp_dx[4];
+      p_tensor_dx[2][2] = dp_dx[5];
 
-      p_tensor_dx_dx[0][0] = dp_dx_dx[0]; p_tensor_dx_dx[0][1] = dp_dx_dx[1]; p_tensor_dx_dx[0][2] = dp_dx_dx[2];
-      p_tensor_dx_dx[1][0] = dp_dx_dx[1]; p_tensor_dx_dx[1][1] = dp_dx_dx[3]; p_tensor_dx_dx[1][2] = dp_dx_dx[4];
-      p_tensor_dx_dx[2][0] = dp_dx_dx[2]; p_tensor_dx_dx[2][1] = dp_dx_dx[4]; p_tensor_dx_dx[2][2] = dp_dx_dx[5];
+      p_tensor_dx_dx[0][0] = dp_dx_dx[0];
+      p_tensor_dx_dx[0][1] = dp_dx_dx[1];
+      p_tensor_dx_dx[0][2] = dp_dx_dx[2];
+      p_tensor_dx_dx[1][0] = dp_dx_dx[1];
+      p_tensor_dx_dx[1][1] = dp_dx_dx[3];
+      p_tensor_dx_dx[1][2] = dp_dx_dx[4];
+      p_tensor_dx_dx[2][0] = dp_dx_dx[2];
+      p_tensor_dx_dx[2][1] = dp_dx_dx[4];
+      p_tensor_dx_dx[2][2] = dp_dx_dx[5];
 
       double p_par = 0.0;
       for (int i = 0; i < 3; i++) {
@@ -413,13 +457,12 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
         geom->local_mag_dx[i] = local_mag_dx[i];
       }
     }
-  }
-  else if (ndim == 2) {
+  } else if (ndim == 2) {
     if (poly_order == 1) {
       const double dx = nnclosure->grid.dx[0];
       const double dy = nnclosure->grid.dx[1];
-      double rho[4] = { 0.0 };
-      double p[4][6] = { 0.0 };
+      double rho[4] = {0.0};
+      double p[4][6] = {0.0};
       var_setup(nnclosure, LL_2D, UU_2D, fluid_d, rho, p);
 
       rho_avg = calc_arithm_avg_2D(rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
@@ -429,9 +472,15 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       p_avg[3] = calc_arithm_avg_2D(p[LL_2D][3], p[LU_2D][3], p[UL_2D][3], p[UU_2D][3]);
       p_avg[4] = calc_arithm_avg_2D(p[LL_2D][4], p[LU_2D][4], p[UL_2D][4], p[UU_2D][4]);
       p_avg[5] = calc_arithm_avg_2D(p[LL_2D][5], p[LU_2D][5], p[UL_2D][5], p[UU_2D][5]);
-      B_avg[0] = calc_arithm_avg_2D(em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
-      B_avg[1] = calc_arithm_avg_2D(em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
-      B_avg[2] = calc_arithm_avg_2D(em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
+      B_avg[0] = calc_arithm_avg_2D(
+        em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]
+      );
+      B_avg[1] = calc_arithm_avg_2D(
+        em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]
+      );
+      B_avg[2] = calc_arithm_avg_2D(
+        em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]
+      );
 
       drho_dx = calc_sym_gradx_2D(dx, rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
       dp_dx[0] = calc_sym_gradx_2D(dx, p[LL_2D][0], p[LU_2D][0], p[UL_2D][0], p[UU_2D][0]);
@@ -440,9 +489,15 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       dp_dx[3] = calc_sym_gradx_2D(dx, p[LL_2D][3], p[LU_2D][3], p[UL_2D][3], p[UU_2D][3]);
       dp_dx[4] = calc_sym_gradx_2D(dx, p[LL_2D][4], p[LU_2D][4], p[UL_2D][4], p[UU_2D][4]);
       dp_dx[5] = calc_sym_gradx_2D(dx, p[LL_2D][5], p[LU_2D][5], p[UL_2D][5], p[UU_2D][5]);
-      dB_dx[0] = calc_sym_gradx_2D(dx, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
-      dB_dx[1] = calc_sym_gradx_2D(dx, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
-      dB_dx[2] = calc_sym_gradx_2D(dx, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
+      dB_dx[0] = calc_sym_gradx_2D(
+        dx, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]
+      );
+      dB_dx[1] = calc_sym_gradx_2D(
+        dx, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]
+      );
+      dB_dx[2] = calc_sym_gradx_2D(
+        dx, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]
+      );
 
       drho_dy = calc_sym_grady_2D(dy, rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
       dp_dy[0] = calc_sym_grady_2D(dy, p[LL_2D][0], p[LU_2D][0], p[UL_2D][0], p[UU_2D][0]);
@@ -451,9 +506,15 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       dp_dy[3] = calc_sym_grady_2D(dy, p[LL_2D][3], p[LU_2D][3], p[UL_2D][3], p[UU_2D][3]);
       dp_dy[4] = calc_sym_grady_2D(dy, p[LL_2D][4], p[LU_2D][4], p[UL_2D][4], p[UU_2D][4]);
       dp_dy[5] = calc_sym_grady_2D(dy, p[LL_2D][5], p[LU_2D][5], p[UL_2D][5], p[UU_2D][5]);
-      dB_dy[0] = calc_sym_grady_2D(dy, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
-      dB_dy[1] = calc_sym_grady_2D(dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
-      dB_dy[2] = calc_sym_grady_2D(dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
+      dB_dy[0] = calc_sym_grady_2D(
+        dy, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]
+      );
+      dB_dy[1] = calc_sym_grady_2D(
+        dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]
+      );
+      dB_dy[2] = calc_sym_grady_2D(
+        dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]
+      );
 
       drho_dx_dy = calc_sym_gradxy_2D(dx, dy, rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
       dp_dx_dy[0] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][0], p[LU_2D][0], p[UL_2D][0], p[UU_2D][0]);
@@ -462,22 +523,41 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       dp_dx_dy[3] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][3], p[LU_2D][3], p[UL_2D][3], p[UU_2D][3]);
       dp_dx_dy[4] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][4], p[LU_2D][4], p[UL_2D][4], p[UU_2D][4]);
       dp_dx_dy[5] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][5], p[LU_2D][5], p[UL_2D][5], p[UU_2D][5]);
-      dB_dx_dy[0] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
-      dB_dx_dy[1] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
-      dB_dx_dy[2] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
+      dB_dx_dy[0] = calc_sym_gradxy_2D(
+        dx, dy, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]
+      );
+      dB_dx_dy[1] = calc_sym_gradxy_2D(
+        dx, dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]
+      );
+      dB_dx_dy[2] = calc_sym_gradxy_2D(
+        dx, dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]
+      );
 
-      if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
+      if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) &&
+          fabs(B_avg[2]) < pow(10.0, -8.0)) {
         B_avg[0] = 1.0;
-        dB_dx[0] = 0.0; dB_dx[1] = 0.0; dB_dx[2] = 0.0;
-        dB_dy[0] = 0.0; dB_dy[1] = 0.0; dB_dy[2] = 0.0;
-        dB_dz[0] = 0.0; dB_dz[1] = 0.0; dB_dz[2] = 0.0;
-        dB_dx_dy[0] = 0.0; dB_dx_dy[1] = 0.0; dB_dx_dy[2] = 0.0;
+        dB_dx[0] = 0.0;
+        dB_dx[1] = 0.0;
+        dB_dx[2] = 0.0;
+        dB_dy[0] = 0.0;
+        dB_dy[1] = 0.0;
+        dB_dy[2] = 0.0;
+        dB_dz[0] = 0.0;
+        dB_dz[1] = 0.0;
+        dB_dz[2] = 0.0;
+        dB_dx_dy[0] = 0.0;
+        dB_dx_dy[1] = 0.0;
+        dB_dx_dy[2] = 0.0;
       }
 
       double b_mag = sqrt((B_avg[0] * B_avg[0]) + (B_avg[1] * B_avg[1]) + (B_avg[2] * B_avg[2]));
-      double b_mag_dx = ((B_avg[0] * dB_dx[0]) + (B_avg[1] * dB_dx[1]) + (B_avg[2] * dB_dx[2])) / b_mag;
-      double b_mag_dy = ((B_avg[0] * dB_dy[0]) + (B_avg[1] * dB_dy[1]) + (B_avg[2] * dB_dy[2])) / b_mag;
-      double b_mag_dx_dy = b_mag * ((dB_dx[0] * dB_dy[0]) + (B_avg[0] * dB_dx_dy[0]) + (dB_dx[1] * dB_dy[1]) + (B_avg[1] * dB_dx_dy[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
+      double b_mag_dx =
+        ((B_avg[0] * dB_dx[0]) + (B_avg[1] * dB_dx[1]) + (B_avg[2] * dB_dx[2])) / b_mag;
+      double b_mag_dy =
+        ((B_avg[0] * dB_dy[0]) + (B_avg[1] * dB_dy[1]) + (B_avg[2] * dB_dy[2])) / b_mag;
+      double b_mag_dx_dy =
+        b_mag * ((dB_dx[0] * dB_dy[0]) + (B_avg[0] * dB_dx_dy[0]) + (dB_dx[1] * dB_dy[1]) +
+                 (B_avg[1] * dB_dx_dy[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
       b_mag_dx_dy -= b_mag_dx * b_mag_dy;
       b_mag_dx_dy /= b_mag * b_mag;
 
@@ -492,7 +572,8 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       for (int i = 0; i < 3; i++) {
         local_mag_dx[i] = ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) / (b_mag * b_mag);
         local_mag_dy[i] = ((b_mag * dB_dy[i]) - (B_avg[i] * b_mag_dy)) / (b_mag * b_mag);
-        local_mag_dx_dy[i] = (b_mag * b_mag) * ((b_mag_dy * dB_dx[i]) + (b_mag * dB_dx_dy[i]) - (dB_dy[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dy));
+        local_mag_dx_dy[i] = (b_mag * b_mag) * ((b_mag_dy * dB_dx[i]) + (b_mag * dB_dx_dy[i]) -
+                                                (dB_dy[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dy));
         local_mag_dx_dy[i] -= 2.0 * ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) * b_mag * b_mag_dy;
         local_mag_dx_dy[i] /= b_mag * b_mag * b_mag * b_mag;
       }
@@ -502,21 +583,45 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       double p_tensor_dy[3][3];
       double p_tensor_dx_dy[3][3];
 
-      p_tensor[0][0] = p_avg[0]; p_tensor[0][1] = p_avg[1]; p_tensor[0][2] = p_avg[2];
-      p_tensor[1][0] = p_avg[1]; p_tensor[1][1] = p_avg[3]; p_tensor[1][2] = p_avg[4];
-      p_tensor[2][0] = p_avg[2]; p_tensor[2][1] = p_avg[4]; p_tensor[2][2] = p_avg[5];
+      p_tensor[0][0] = p_avg[0];
+      p_tensor[0][1] = p_avg[1];
+      p_tensor[0][2] = p_avg[2];
+      p_tensor[1][0] = p_avg[1];
+      p_tensor[1][1] = p_avg[3];
+      p_tensor[1][2] = p_avg[4];
+      p_tensor[2][0] = p_avg[2];
+      p_tensor[2][1] = p_avg[4];
+      p_tensor[2][2] = p_avg[5];
 
-      p_tensor_dx[0][0] = dp_dx[0]; p_tensor_dx[0][1] = dp_dx[1]; p_tensor_dx[0][2] = dp_dx[2];
-      p_tensor_dx[1][0] = dp_dx[1]; p_tensor_dx[1][1] = dp_dx[3]; p_tensor_dx[1][2] = dp_dx[4];
-      p_tensor_dx[2][0] = dp_dx[2]; p_tensor_dx[2][1] = dp_dx[4]; p_tensor_dx[2][2] = dp_dx[5];
+      p_tensor_dx[0][0] = dp_dx[0];
+      p_tensor_dx[0][1] = dp_dx[1];
+      p_tensor_dx[0][2] = dp_dx[2];
+      p_tensor_dx[1][0] = dp_dx[1];
+      p_tensor_dx[1][1] = dp_dx[3];
+      p_tensor_dx[1][2] = dp_dx[4];
+      p_tensor_dx[2][0] = dp_dx[2];
+      p_tensor_dx[2][1] = dp_dx[4];
+      p_tensor_dx[2][2] = dp_dx[5];
 
-      p_tensor_dy[0][0] = dp_dy[0]; p_tensor_dy[0][1] = dp_dy[1]; p_tensor_dy[0][2] = dp_dy[2];
-      p_tensor_dy[1][0] = dp_dy[1]; p_tensor_dy[1][1] = dp_dy[3]; p_tensor_dy[1][2] = dp_dy[4];
-      p_tensor_dy[2][0] = dp_dy[2]; p_tensor_dy[2][1] = dp_dy[4]; p_tensor_dy[2][2] = dp_dy[5];
+      p_tensor_dy[0][0] = dp_dy[0];
+      p_tensor_dy[0][1] = dp_dy[1];
+      p_tensor_dy[0][2] = dp_dy[2];
+      p_tensor_dy[1][0] = dp_dy[1];
+      p_tensor_dy[1][1] = dp_dy[3];
+      p_tensor_dy[1][2] = dp_dy[4];
+      p_tensor_dy[2][0] = dp_dy[2];
+      p_tensor_dy[2][1] = dp_dy[4];
+      p_tensor_dy[2][2] = dp_dy[5];
 
-      p_tensor_dx_dy[0][0] = dp_dx_dy[0]; p_tensor_dx_dy[0][1] = dp_dx_dy[1]; p_tensor_dx_dy[0][2] = dp_dx_dy[2];
-      p_tensor_dx_dy[1][0] = dp_dx_dy[1]; p_tensor_dx_dy[1][1] = dp_dx_dy[3]; p_tensor_dx_dy[1][2] = dp_dx_dy[4];
-      p_tensor_dx_dy[2][0] = dp_dx_dy[2]; p_tensor_dx_dy[2][1] = dp_dx_dy[4]; p_tensor_dx_dy[2][2] = dp_dx_dy[5];
+      p_tensor_dx_dy[0][0] = dp_dx_dy[0];
+      p_tensor_dx_dy[0][1] = dp_dx_dy[1];
+      p_tensor_dx_dy[0][2] = dp_dx_dy[2];
+      p_tensor_dx_dy[1][0] = dp_dx_dy[1];
+      p_tensor_dx_dy[1][1] = dp_dx_dy[3];
+      p_tensor_dx_dy[1][2] = dp_dx_dy[4];
+      p_tensor_dx_dy[2][0] = dp_dx_dy[2];
+      p_tensor_dx_dy[2][1] = dp_dx_dy[4];
+      p_tensor_dx_dy[2][2] = dp_dx_dy[5];
 
       double p_par = 0.0;
       for (int i = 0; i < 3; i++) {
@@ -603,8 +708,10 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
 // then write the closure contribution into rhs. This is the second half of the
 // former calc_nn_closure_update, reading the geometry from the cache rather
 // than recomputing it. Exposed (non-static) for unit testing the coupling.
-void
-gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure, const struct gkyl_ten_moment_nn_closure_geom *geom, const float *output_data_predicted, double *rhs)
+void gkyl_ten_moment_nn_closure_construct(
+  const gkyl_ten_moment_nn_closure *nnclosure, const struct gkyl_ten_moment_nn_closure_geom *geom,
+  const float *output_data_predicted, double *rhs
+)
 {
   const int ndim = nnclosure->ndim;
   const int poly_order = nnclosure->poly_order;
@@ -617,10 +724,10 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
     local_mag_dy[i] = geom->local_mag_dy[i];
   }
 
-  double output_data[8] = { 0.0 };
-  double divQx[6] = { 0.0 };
-  double divQy[6] = { 0.0 };
-  double divQz[6] = { 0.0 };
+  double output_data[8] = {0.0};
+  double divQx[6] = {0.0};
+  double divQy[6] = {0.0};
+  double divQz[6] = {0.0};
 
   if (ndim == 1) {
     if (poly_order == 1) {
@@ -641,23 +748,23 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
             heat_flux_tensor[i][j][k] = q_par * local_mag[i] * local_mag[j] * local_mag[k];
 
             if (i == j) {
-              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k];
-            }
-            else {
+              heat_flux_tensor[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k];
+            } else {
               heat_flux_tensor[i][j][k] -= q_perp * (local_mag[i] * local_mag[j]) * local_mag[k];
             }
 
             if (i == k) {
-              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j];
-            }
-            else {
+              heat_flux_tensor[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j];
+            } else {
               heat_flux_tensor[i][j][k] -= q_perp * (local_mag[i] * local_mag[k]) * local_mag[j];
             }
 
             if (j == k) {
-              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i];
-            }
-            else {
+              heat_flux_tensor[i][j][k] +=
+                q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i];
+            } else {
               heat_flux_tensor[i][j][k] -= q_perp * (local_mag[j] * local_mag[k]) * local_mag[i];
             }
           }
@@ -675,35 +782,47 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
             heat_flux_tensor_dx[i][j][k] += q_par * local_mag[i] * local_mag[j] * local_mag_dx[k];
 
             if (i == j) {
-              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag_dx[k];
-            }
-            else {
-              heat_flux_tensor_dx[i][j][k] -= (local_mag[i] * local_mag[j]) * local_mag[k] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[i] * local_mag[j]) * local_mag_dx[k];
+              heat_flux_tensor_dx[i][j][k] +=
+                (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag_dx[k];
+            } else {
+              heat_flux_tensor_dx[i][j][k] -=
+                (local_mag[i] * local_mag[j]) * local_mag[k] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (local_mag[i] * local_mag[j]) * local_mag_dx[k];
             }
 
             if (i == k) {
-              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag_dx[j];
-            }
-            else {
-              heat_flux_tensor_dx[i][j][k] -= (local_mag[i] * local_mag[k]) * local_mag[j] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[i] * local_mag[k]) * local_mag_dx[j];
+              heat_flux_tensor_dx[i][j][k] +=
+                (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag_dx[j];
+            } else {
+              heat_flux_tensor_dx[i][j][k] -=
+                (local_mag[i] * local_mag[k]) * local_mag[j] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (local_mag[i] * local_mag[k]) * local_mag_dx[j];
             }
 
             if (j == k) {
-              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag_dx[i];
-            }
-            else {
-              heat_flux_tensor_dx[i][j][k] -= (local_mag[j] * local_mag[k]) * local_mag[i] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[j] * local_mag[k]) * local_mag_dx[i];
+              heat_flux_tensor_dx[i][j][k] +=
+                (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag_dx[i];
+            } else {
+              heat_flux_tensor_dx[i][j][k] -=
+                (local_mag[j] * local_mag[k]) * local_mag[i] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (local_mag[j] * local_mag[k]) * local_mag_dx[i];
             }
 
-            heat_flux_tensor_dx[i][j][k] -= ((local_mag[i] * local_mag_dx[j]) + (local_mag[j] * local_mag_dx[i])) * local_mag[k];
-            heat_flux_tensor_dx[i][j][k] -= ((local_mag[i] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[i])) * local_mag[j];
-            heat_flux_tensor_dx[i][j][k] -= ((local_mag[j] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[j])) * local_mag[i];
+            heat_flux_tensor_dx[i][j][k] -=
+              ((local_mag[i] * local_mag_dx[j]) + (local_mag[j] * local_mag_dx[i])) * local_mag[k];
+            heat_flux_tensor_dx[i][j][k] -=
+              ((local_mag[i] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[i])) * local_mag[j];
+            heat_flux_tensor_dx[i][j][k] -=
+              ((local_mag[j] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[j])) * local_mag[i];
           }
         }
       }
@@ -714,8 +833,7 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
       divQx[3] = B_avg[0] * heat_flux_tensor_dx[0][1][1];
       divQx[4] = B_avg[0] * heat_flux_tensor_dx[0][1][2];
       divQx[5] = B_avg[0] * heat_flux_tensor_dx[0][2][2];
-    }
-    else if (poly_order == 2) {
+    } else if (poly_order == 2) {
       for (int i = 0; i < 6; i++) {
         output_data[i] = output_data_predicted[i];
       }
@@ -733,23 +851,23 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
             heat_flux_tensor[i][j][k] = q_par * local_mag[i] * local_mag[j] * local_mag[k];
 
             if (i == j) {
-              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k];
-            }
-            else {
+              heat_flux_tensor[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k];
+            } else {
               heat_flux_tensor[i][j][k] -= q_perp * (local_mag[i] * local_mag[j]) * local_mag[k];
             }
 
             if (i == k) {
-              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j];
-            }
-            else {
+              heat_flux_tensor[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j];
+            } else {
               heat_flux_tensor[i][j][k] -= q_perp * (local_mag[i] * local_mag[k]) * local_mag[j];
             }
 
             if (j == k) {
-              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i];
-            }
-            else {
+              heat_flux_tensor[i][j][k] +=
+                q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i];
+            } else {
               heat_flux_tensor[i][j][k] -= q_perp * (local_mag[j] * local_mag[k]) * local_mag[i];
             }
           }
@@ -767,35 +885,47 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
             heat_flux_tensor_dx[i][j][k] += q_par * local_mag[i] * local_mag[j] * local_mag_dx[k];
 
             if (i == j) {
-              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag_dx[k];
-            }
-            else {
-              heat_flux_tensor_dx[i][j][k] -= (local_mag[i] * local_mag[j]) * local_mag[k] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[i] * local_mag[j]) * local_mag_dx[k];
+              heat_flux_tensor_dx[i][j][k] +=
+                (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag_dx[k];
+            } else {
+              heat_flux_tensor_dx[i][j][k] -=
+                (local_mag[i] * local_mag[j]) * local_mag[k] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (local_mag[i] * local_mag[j]) * local_mag_dx[k];
             }
 
             if (i == k) {
-              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag_dx[j];
-            }
-            else {
-              heat_flux_tensor_dx[i][j][k] -= (local_mag[i] * local_mag[k]) * local_mag[j] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[i] * local_mag[k]) * local_mag_dx[j];
+              heat_flux_tensor_dx[i][j][k] +=
+                (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag_dx[j];
+            } else {
+              heat_flux_tensor_dx[i][j][k] -=
+                (local_mag[i] * local_mag[k]) * local_mag[j] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (local_mag[i] * local_mag[k]) * local_mag_dx[j];
             }
 
             if (j == k) {
-              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag_dx[i];
-            }
-            else {
-              heat_flux_tensor_dx[i][j][k] -= (local_mag[j] * local_mag[k]) * local_mag[i] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[j] * local_mag[k]) * local_mag_dx[i];
+              heat_flux_tensor_dx[i][j][k] +=
+                (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag_dx[i];
+            } else {
+              heat_flux_tensor_dx[i][j][k] -=
+                (local_mag[j] * local_mag[k]) * local_mag[i] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (local_mag[j] * local_mag[k]) * local_mag_dx[i];
             }
 
-            heat_flux_tensor_dx[i][j][k] -= ((local_mag[i] * local_mag_dx[j]) + (local_mag[j] * local_mag_dx[i])) * local_mag[k];
-            heat_flux_tensor_dx[i][j][k] -= ((local_mag[i] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[i])) * local_mag[j];
-            heat_flux_tensor_dx[i][j][k] -= ((local_mag[j] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[j])) * local_mag[i];
+            heat_flux_tensor_dx[i][j][k] -=
+              ((local_mag[i] * local_mag_dx[j]) + (local_mag[j] * local_mag_dx[i])) * local_mag[k];
+            heat_flux_tensor_dx[i][j][k] -=
+              ((local_mag[i] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[i])) * local_mag[j];
+            heat_flux_tensor_dx[i][j][k] -=
+              ((local_mag[j] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[j])) * local_mag[i];
           }
         }
       }
@@ -807,8 +937,7 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
       divQx[4] = B_avg[0] * heat_flux_tensor_dx[0][1][2];
       divQx[5] = B_avg[0] * heat_flux_tensor_dx[0][2][2];
     }
-  }
-  else if (ndim == 2) {
+  } else if (ndim == 2) {
     if (poly_order == 1) {
       for (int i = 0; i < 8; i++) {
         output_data[i] = output_data_predicted[i];
@@ -829,23 +958,23 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
             heat_flux_tensor[i][j][k] = q_par * local_mag[i] * local_mag[j] * local_mag[k];
 
             if (i == j) {
-              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k];
-            }
-            else {
+              heat_flux_tensor[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k];
+            } else {
               heat_flux_tensor[i][j][k] -= q_perp * (local_mag[i] * local_mag[j]) * local_mag[k];
             }
 
             if (i == k) {
-              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j];
-            }
-            else {
+              heat_flux_tensor[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j];
+            } else {
               heat_flux_tensor[i][j][k] -= q_perp * (local_mag[i] * local_mag[k]) * local_mag[j];
             }
 
             if (j == k) {
-              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i];
-            }
-            else {
+              heat_flux_tensor[i][j][k] +=
+                q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i];
+            } else {
               heat_flux_tensor[i][j][k] -= q_perp * (local_mag[j] * local_mag[k]) * local_mag[i];
             }
           }
@@ -869,57 +998,84 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
             heat_flux_tensor_dy[i][j][k] += q_par * local_mag[i] * local_mag[j] * local_mag_dy[k];
 
             if (i == j) {
-              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag_dx[k];
+              heat_flux_tensor_dx[i][j][k] +=
+                (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag_dx[k];
 
-              heat_flux_tensor_dy[i][j][k] += (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k] * q_perp_dy;
-              heat_flux_tensor_dy[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag_dy[k];
-            }
-            else {
-              heat_flux_tensor_dx[i][j][k] -= (local_mag[i] * local_mag[j]) * local_mag[k] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[i] * local_mag[j]) * local_mag_dx[k];
+              heat_flux_tensor_dy[i][j][k] +=
+                (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k] * q_perp_dy;
+              heat_flux_tensor_dy[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag_dy[k];
+            } else {
+              heat_flux_tensor_dx[i][j][k] -=
+                (local_mag[i] * local_mag[j]) * local_mag[k] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (local_mag[i] * local_mag[j]) * local_mag_dx[k];
 
-              heat_flux_tensor_dy[i][j][k] -= (local_mag[i] * local_mag[j]) * local_mag[k] * q_perp_dy;
-              heat_flux_tensor_dy[i][j][k] += q_perp * (local_mag[i] * local_mag[j]) * local_mag_dy[k];
+              heat_flux_tensor_dy[i][j][k] -=
+                (local_mag[i] * local_mag[j]) * local_mag[k] * q_perp_dy;
+              heat_flux_tensor_dy[i][j][k] +=
+                q_perp * (local_mag[i] * local_mag[j]) * local_mag_dy[k];
             }
 
             if (i == k) {
-              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag_dx[j];
+              heat_flux_tensor_dx[i][j][k] +=
+                (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag_dx[j];
 
-              heat_flux_tensor_dy[i][j][k] += (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j] * q_perp_dy;
-              heat_flux_tensor_dy[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag_dy[j];
-            }
-            else {
-              heat_flux_tensor_dx[i][j][k] -= (local_mag[i] * local_mag[k]) * local_mag[j] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[i] * local_mag[k]) * local_mag_dx[j];
+              heat_flux_tensor_dy[i][j][k] +=
+                (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j] * q_perp_dy;
+              heat_flux_tensor_dy[i][j][k] +=
+                q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag_dy[j];
+            } else {
+              heat_flux_tensor_dx[i][j][k] -=
+                (local_mag[i] * local_mag[k]) * local_mag[j] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (local_mag[i] * local_mag[k]) * local_mag_dx[j];
 
-              heat_flux_tensor_dy[i][j][k] -= (local_mag[i] * local_mag[k]) * local_mag[j] * q_perp_dy;
-              heat_flux_tensor_dy[i][j][k] += q_perp * (local_mag[i] * local_mag[k]) * local_mag_dy[j];
+              heat_flux_tensor_dy[i][j][k] -=
+                (local_mag[i] * local_mag[k]) * local_mag[j] * q_perp_dy;
+              heat_flux_tensor_dy[i][j][k] +=
+                q_perp * (local_mag[i] * local_mag[k]) * local_mag_dy[j];
             }
 
             if (j == k) {
-              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag_dx[i];
+              heat_flux_tensor_dx[i][j][k] +=
+                (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag_dx[i];
 
-              heat_flux_tensor_dy[i][j][k] += (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i] * q_perp_dy;
-              heat_flux_tensor_dy[i][j][k] += q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag_dy[i];
+              heat_flux_tensor_dy[i][j][k] +=
+                (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i] * q_perp_dy;
+              heat_flux_tensor_dy[i][j][k] +=
+                q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag_dy[i];
+            } else {
+              heat_flux_tensor_dx[i][j][k] -=
+                (local_mag[j] * local_mag[k]) * local_mag[i] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] +=
+                q_perp * (local_mag[j] * local_mag[k]) * local_mag_dx[i];
+
+              heat_flux_tensor_dy[i][j][k] -=
+                (local_mag[j] * local_mag[k]) * local_mag[i] * q_perp_dy;
+              heat_flux_tensor_dy[i][j][k] +=
+                q_perp * (local_mag[j] * local_mag[k]) * local_mag_dy[i];
             }
-            else {
-              heat_flux_tensor_dx[i][j][k] -= (local_mag[j] * local_mag[k]) * local_mag[i] * q_perp_dx;
-              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[j] * local_mag[k]) * local_mag_dx[i];
 
-              heat_flux_tensor_dy[i][j][k] -= (local_mag[j] * local_mag[k]) * local_mag[i] * q_perp_dy;
-              heat_flux_tensor_dy[i][j][k] += q_perp * (local_mag[j] * local_mag[k]) * local_mag_dy[i];
-            }
+            heat_flux_tensor_dx[i][j][k] -=
+              ((local_mag[i] * local_mag_dx[j]) + (local_mag[j] * local_mag_dx[i])) * local_mag[k];
+            heat_flux_tensor_dx[i][j][k] -=
+              ((local_mag[i] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[i])) * local_mag[j];
+            heat_flux_tensor_dx[i][j][k] -=
+              ((local_mag[j] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[j])) * local_mag[i];
 
-            heat_flux_tensor_dx[i][j][k] -= ((local_mag[i] * local_mag_dx[j]) + (local_mag[j] * local_mag_dx[i])) * local_mag[k];
-            heat_flux_tensor_dx[i][j][k] -= ((local_mag[i] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[i])) * local_mag[j];
-            heat_flux_tensor_dx[i][j][k] -= ((local_mag[j] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[j])) * local_mag[i];
-
-            heat_flux_tensor_dy[i][j][k] -= ((local_mag[i] * local_mag_dy[j]) + (local_mag[j] * local_mag_dy[i])) * local_mag[k];
-            heat_flux_tensor_dy[i][j][k] -= ((local_mag[i] * local_mag_dy[k]) + (local_mag[k] * local_mag_dy[i])) * local_mag[j];
-            heat_flux_tensor_dy[i][j][k] -= ((local_mag[j] * local_mag_dy[k]) + (local_mag[k] * local_mag_dy[j])) * local_mag[i];
+            heat_flux_tensor_dy[i][j][k] -=
+              ((local_mag[i] * local_mag_dy[j]) + (local_mag[j] * local_mag_dy[i])) * local_mag[k];
+            heat_flux_tensor_dy[i][j][k] -=
+              ((local_mag[i] * local_mag_dy[k]) + (local_mag[k] * local_mag_dy[i])) * local_mag[j];
+            heat_flux_tensor_dy[i][j][k] -=
+              ((local_mag[j] * local_mag_dy[k]) + (local_mag[k] * local_mag_dy[j])) * local_mag[i];
           }
         }
       }
@@ -955,21 +1111,22 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
   rhs[P33] = -(divQx[5] + divQy[5] + divQz[5]);
 }
 
-void
-gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure, const struct gkyl_range *heat_flux_rng, const struct gkyl_range *update_rng,
-  const struct gkyl_array *fluid, const struct gkyl_array *em_tot, struct gkyl_array *heat_flux, struct gkyl_array *rhs)
+void gkyl_ten_moment_nn_closure_advance(
+  const gkyl_ten_moment_nn_closure *nnclosure, const struct gkyl_range *heat_flux_rng,
+  const struct gkyl_range *update_rng, const struct gkyl_array *fluid,
+  const struct gkyl_array *em_tot, struct gkyl_array *heat_flux, struct gkyl_array *rhs
+)
 {
   int poly_order = nnclosure->poly_order;
   int ndim = update_rng->ndim;
-  long sz[] = { 2, 4, 8 };
-  long sz_p2[] = { 3, 9, 27 };
+  long sz[] = {2, 4, 8};
+  long sz_p2[] = {3, 9, 27};
 
   long offsets_centers[sz[ndim - 1]];
   long offsets_centers_p2[sz_p2[ndim - 1]];
   if (poly_order == 1) {
     create_offsets_centers(heat_flux_rng, offsets_centers);
-  }
-  else {
+  } else {
     create_offsets_centers(heat_flux_rng, offsets_centers_p2);
   }
 
@@ -980,7 +1137,8 @@ gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure, 
   // Batched inference buffers and a per-cell geometry cache.
   struct gkyl_kn_vec *nn_in = gkyl_kn_vec_new(ncells, n_in);
   struct gkyl_kn_vec *nn_out = gkyl_kn_vec_new(ncells, n_out);
-  struct gkyl_ten_moment_nn_closure_geom *geom = gkyl_malloc(ncells * sizeof(struct gkyl_ten_moment_nn_closure_geom));
+  struct gkyl_ten_moment_nn_closure_geom *geom =
+    gkyl_malloc(ncells * sizeof(struct gkyl_ten_moment_nn_closure_geom));
 
   const double *fluid_d[sz[ndim - 1]];
   const double *fluid_d_p2[sz_p2[ndim - 1]];
@@ -1000,14 +1158,17 @@ gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure, 
         em_tot_d[i] = gkyl_array_cfetch(em_tot, linc_vertex + offsets_centers[i]);
         fluid_d[i] = gkyl_array_cfetch(fluid, linc_vertex + offsets_centers[i]);
       }
-      gkyl_ten_moment_nn_closure_geom_calc(nnclosure, fluid_d, em_tot_d, nn_in->vals[count], &geom[count]);
-    }
-    else {
+      gkyl_ten_moment_nn_closure_geom_calc(
+        nnclosure, fluid_d, em_tot_d, nn_in->vals[count], &geom[count]
+      );
+    } else {
       for (int i = 0; i < sz_p2[ndim - 1]; i++) {
         em_tot_d_p2[i] = gkyl_array_cfetch(em_tot, linc_vertex + offsets_centers_p2[i]);
         fluid_d_p2[i] = gkyl_array_cfetch(fluid, linc_vertex + offsets_centers_p2[i]);
       }
-      gkyl_ten_moment_nn_closure_geom_calc(nnclosure, fluid_d_p2, em_tot_d_p2, nn_in->vals[count], &geom[count]);
+      gkyl_ten_moment_nn_closure_geom_calc(
+        nnclosure, fluid_d_p2, em_tot_d_p2, nn_in->vals[count], &geom[count]
+      );
     }
 
     count += 1;
@@ -1025,8 +1186,7 @@ gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure, 
     gkyl_kn_vec_copy(nn_out, nn_out_cu);
     gkyl_kn_vec_release(nn_in_cu);
     gkyl_kn_vec_release(nn_out_cu);
-  }
-  else {
+  } else {
     gkyl_kann_net_apply(nnclosure->ann, nn_in, nn_out);
   }
 
@@ -1048,8 +1208,8 @@ gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure, 
   gkyl_free(geom);
 }
 
-gkyl_ten_moment_nn_closure*
-gkyl_ten_moment_nn_closure_new(struct gkyl_ten_moment_nn_closure_inp inp)
+gkyl_ten_moment_nn_closure *gkyl_ten_moment_nn_closure_new(struct gkyl_ten_moment_nn_closure_inp inp
+)
 {
   gkyl_ten_moment_nn_closure *up = gkyl_malloc(sizeof(gkyl_ten_moment_nn_closure));
 
@@ -1062,8 +1222,7 @@ gkyl_ten_moment_nn_closure_new(struct gkyl_ten_moment_nn_closure_inp inp)
   return up;
 }
 
-void
-gkyl_ten_moment_nn_closure_release(gkyl_ten_moment_nn_closure *nnclosure)
+void gkyl_ten_moment_nn_closure_release(gkyl_ten_moment_nn_closure *nnclosure)
 {
   free(nnclosure);
 }

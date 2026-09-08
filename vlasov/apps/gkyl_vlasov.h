@@ -16,12 +16,12 @@
 struct gkyl_vlasov_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
   enum gkyl_quad_type quad_type; // quadrature scheme to use: defaults to Gaussian
-  
+
   union {
     struct {
-      // pointer and context to initialization function 
-      void *ctx_func; 
-      void (*func)(double t, const double *xn, double *fout, void *ctx); 
+      // pointer and context to initialization function
+      void *ctx_func;
+      void (*func)(double t, const double *xn, double *fout, void *ctx);
     };
     struct {
       // pointers and contexts to initialization functions for LTE distribution projection
@@ -34,7 +34,7 @@ struct gkyl_vlasov_projection {
       void (*temp)(double t, const double *xn, double *fout, void *ctx);
 
       // boolean if we are correcting all the moments or only density
-      bool correct_all_moms;  
+      bool correct_all_moms;
       double iter_eps; // error tolerance for moment fixes (density is always exact)
       int max_iter; // maximum number of iteration
       bool use_last_converged; // use last iteration value regardless of convergence?
@@ -53,7 +53,7 @@ struct gkyl_vlasov_collisions {
   // inputs for Spitzer collisionality
   bool normNu; // Set to true if you want to rescale collision frequency
   double nuFrac; // Parameter for rescaling collision frequency from SI values
-  double hbar; // Planck's constant/2 pi 
+  double hbar; // Planck's constant/2 pi
 
   // BGK collisions specific inputs
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
@@ -62,8 +62,8 @@ struct gkyl_vlasov_collisions {
   bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
   bool use_last_converged; // use last iteration value regardless of convergence?
 
-  // Boolean for using implicit BGK collisions (replaces rk3)   
-  bool has_implicit_coll_scheme; 
+  // Boolean for using implicit BGK collisions (replaces rk3)
+  bool has_implicit_coll_scheme;
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -81,7 +81,7 @@ struct gkyl_vlasov_radiation {
 
   void *ctx_nu_rad_drag; // context for collision frequency * drag
   // function for computing collision frequency * drag
-  void (*nu_rad_drag)(double t, const double *xn, double *fout, void *ctx);  
+  void (*nu_rad_drag)(double t, const double *xn, double *fout, void *ctx);
 };
 
 // Parameters for species source
@@ -92,7 +92,7 @@ struct gkyl_vlasov_source {
 
   double source_length; // required for boundary flux source
   char source_species[128];
-  
+
   // sources using projection routine
   struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 };
@@ -101,7 +101,7 @@ struct gkyl_vlasov_source {
 struct gkyl_vlasov_bc {
   enum gkyl_species_bc_type type;
   void *aux_ctx;
-  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);  
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);
   double aux_parameter;
 };
 
@@ -129,17 +129,17 @@ struct gkyl_vlasov_fluid_advection {
 struct gkyl_vlasov_fluid_diffusion {
   double D; // constant diffusion coefficient
   int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
-  void* Dij_ctx; // context for applied diffusion function if using general diffusion tensor
-  // pointer to applied diffusion function is using general diffusion tensor 
-  void (*Dij)(double t, const double* xn, double* Dout, void* ctx);
+  void *Dij_ctx; // context for applied diffusion function if using general diffusion tensor
+  // pointer to applied diffusion function is using general diffusion tensor
+  void (*Dij)(double t, const double *xn, double *Dout, void *ctx);
 };
 
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
   char name[128]; // species name
 
-  enum gkyl_model_id model_id; // type of model 
-                               // (e.g., SR, general geometry, see gkyl_eqn_type.h)
+  enum gkyl_model_id model_id; // type of model
+    // (e.g., SR, general geometry, see gkyl_eqn_type.h)
 
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
@@ -193,8 +193,8 @@ struct gkyl_vlasov_species {
 
 // Parameter for EM field
 struct gkyl_vlasov_field {
-  enum gkyl_field_id field_id; // type of field 
-                               // (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
+  enum gkyl_field_id field_id; // type of field
+    // (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
   bool is_static; // set to true if field does not change in time
 
   double epsilon0, mu0;
@@ -213,12 +213,12 @@ struct gkyl_vlasov_field {
   // pointer to external electromagnetic fields function
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
   bool app_current_evolve; // set to true if applied current function is time dependent
-  
+
   double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
   bool limit_em; // Optional input parameter for applying limiters to EM fields
 
   bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x
-  
+
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 
@@ -236,7 +236,7 @@ struct gkyl_vlasov_fluid_species {
   char name[128]; // species name
 
   double charge, mass; // charge and mass
-  
+
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
@@ -253,7 +253,7 @@ struct gkyl_vlasov_fluid_species {
 
   // source term
   struct gkyl_vlasov_fluid_source source;
-  
+
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;
 
@@ -265,7 +265,7 @@ struct gkyl_vlasov_fluid_species {
   // pointer to applied acceleration function
   void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
   bool app_accel_evolve; // set to true if applied acceleration function is time dependent
-  
+
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -296,7 +296,7 @@ struct gkyl_vm {
 
   int num_fluid_species; // number of fluid species
   struct gkyl_vlasov_fluid_species fluid_species[GKYL_MAX_SPECIES]; // fluid species objects
-  
+
   bool skip_field; // Skip field update or no field specified
   struct gkyl_vlasov_field field; // field object
   bool is_electrostatic; // Indicate whether to use Vlasov-Poisson.
@@ -307,16 +307,16 @@ struct gkyl_vm {
 // Simulation statistics
 struct gkyl_vlasov_stat {
   bool use_gpu; // did this sim use GPU?
-  
+
   long nup; // calls to update
   long nfeuler; // calls to forward-Euler method
-    
+
   long nstage_2_fail; // number of failed RK stage-2s
   long nstage_3_fail; // number of failed RK stage-3s
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
-    
+
   double total_tm; // time for simulation (not including ICs)
   double rk3_tm; // time for SSP RK3 step
   double fl_em_tm; // time for implicit fluid-EM coupling step
@@ -327,22 +327,23 @@ struct gkyl_vlasov_stat {
   double species_rhs_tm; // time to compute species collisionless RHS
   double fluid_species_rhs_tm; // time to compute fluid species RHS
   double fluid_species_vars_tm; // time to compute fluid variables (flow velocity and pressure)
-    
+
   double species_coll_mom_tm; // time needed to compute various moments needed in LBO
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
 
-  double species_rad_tm; // total time for radiation updater 
+  double species_rad_tm; // total time for radiation updater
 
   double species_lte_tm; // time needed to compute the lte equilibrium
 
-  long niter_self_bgk_corr[GKYL_MAX_SPECIES]; // number of iterations used to correct self collisions in BGK
+  long niter_self_bgk_corr
+    [GKYL_MAX_SPECIES]; // number of iterations used to correct self collisions in BGK
 
   double species_bc_tm; // time to compute species BCs
   double fluid_species_bc_tm; // time to compute fluid species BCs
   double field_bc_tm; // time to compute field
-  
+
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
 
@@ -372,7 +373,7 @@ typedef struct gkyl_vlasov_app gkyl_vlasov_app;
  *     initialized
  * @return New vlasov app object.
  */
-gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm *vm);
+gkyl_vlasov_app *gkyl_vlasov_app_new(struct gkyl_vm *vm);
 
 /**
  * Initialize species and field by projecting initial conditions on
@@ -381,7 +382,7 @@ gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm *vm);
  * @param app App object.
  * @param t0 Time for initial conditions.
  */
-void gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0);
+void gkyl_vlasov_app_apply_ic(gkyl_vlasov_app *app, double t0);
 
 /**
  * Initialize field by projecting initial conditions on basis
@@ -390,7 +391,7 @@ void gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0);
  * @param app App object.
  * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0);
+void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app *app, double t0);
 
 /**
  * Initialize species by projecting initial conditions on basis
@@ -401,7 +402,7 @@ void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0);
  * @param sidx Index of species to initialize.
  * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0);
+void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app *app, int sidx, double t0);
 
 /**
  * Initialize fluid species by projecting initial conditions on basis
@@ -412,7 +413,7 @@ void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
  * @param sidx Index of fluid species to initialize.
  * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, double t0);
+void gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app *app, int sidx, double t0);
 
 /**
  * Initialize field from file
@@ -430,9 +431,8 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname);
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status 
-gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
-  const char *fname);
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx, const char *fname);
 
 /**
  * Initialize fluid species from file
@@ -441,9 +441,8 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status 
-gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
-  const char *fname);
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx, const char *fname);
 
 /**
  * Initialize field from frame
@@ -451,8 +450,7 @@ gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame);
+struct gkyl_app_restart_status gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame);
 
 /**
  * Initialize Vlasov species from frame
@@ -480,8 +478,7 @@ gkyl_vlasov_app_from_frame_fluid_species(gkyl_vlasov_app *app, int sidx, int fra
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame);
+struct gkyl_app_restart_status gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame);
 
 /**
  * Calculate diagnostic moments.
@@ -496,7 +493,7 @@ void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app *app);
  * @param tm Time at which integrated diagnostic are to be computed
  * @param app App object.
  */
-void gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm);
+void gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app *app, double tm);
 
 /**
  * Calculate integrated L2 norm of the distribution function, f^2.
@@ -504,7 +501,7 @@ void gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm);
  * @param tm Time at which integrated diagnostic are to be computed
  * @param app App object.
  */
-void gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm);
+void gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app *app, double tm);
 
 /**
  * Calculate integrated field energy
@@ -512,7 +509,7 @@ void gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm);
  * @param tm Time at which integrated diagnostic are to be computed
  * @param app App object.
  */
-void gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm);
+void gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app *app, double tm);
 
 /**
  * Write field and species data to file.
@@ -521,7 +518,7 @@ void gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame);
+void gkyl_vlasov_app_write(gkyl_vlasov_app *app, double tm, int frame);
 
 /**
  * Write field data to file.
@@ -530,7 +527,7 @@ void gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
+void gkyl_vlasov_app_write_field(gkyl_vlasov_app *app, double tm, int frame);
 
 /**
  * Write species data to file.
@@ -540,7 +537,7 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+void gkyl_vlasov_app_write_species(gkyl_vlasov_app *app, int sidx, double tm, int frame);
 
 /**
  * Write species data to file - for the local equilbrium.
@@ -550,7 +547,7 @@ void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, in
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+void gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app *app, int sidx, double tm, int frame);
 
 /**
  * Write fluid species data to file. 
@@ -560,7 +557,7 @@ void gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app *app, int sidx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.
@@ -609,14 +606,14 @@ void gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app *app);
  * 
  * @param app App object.
  */
-void gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app);
+void gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app *app);
 
 /**
  * Write stats to file. Data is written in json format.
  *
  * @param app App object.
  */
-void gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app);
+void gkyl_vlasov_app_stat_write(gkyl_vlasov_app *app);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the
@@ -628,7 +625,7 @@ void gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app);
  * @param fmt Format string for console output
  * @param argp Objects to write
  */
-void gkyl_vlasov_app_cout(const gkyl_vlasov_app* app, FILE *fp, const char *fmt, ...);
+void gkyl_vlasov_app_cout(const gkyl_vlasov_app *app, FILE *fp, const char *fmt, ...);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too
@@ -646,14 +643,14 @@ void gkyl_vlasov_app_cout(const gkyl_vlasov_app* app, FILE *fp, const char *fmt,
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_update_status gkyl_vlasov_update(gkyl_vlasov_app* app, double dt);
+struct gkyl_update_status gkyl_vlasov_update(gkyl_vlasov_app *app, double dt);
 
 /**
  * Return simulation statistics.
  * 
  * @return Return statistics object.
  */
-struct gkyl_vlasov_stat gkyl_vlasov_app_stat(gkyl_vlasov_app* app);
+struct gkyl_vlasov_stat gkyl_vlasov_app_stat(gkyl_vlasov_app *app);
 
 /**
  * Run the RHS for the species update. This is used to compute kernel
@@ -663,11 +660,11 @@ struct gkyl_vlasov_stat gkyl_vlasov_app_stat(gkyl_vlasov_app* app);
  * @param app App object.
  * @param update_vol_term Set to 1 to update vol term also, 0 otherwise
  */
-void gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term);
+void gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app *app, int update_vol_term);
 
 /**
  * Free Vlasov app.
  *
  * @param app App to release.
  */
-void gkyl_vlasov_app_release(gkyl_vlasov_app* app);
+void gkyl_vlasov_app_release(gkyl_vlasov_app *app);

@@ -3,7 +3,7 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_wv_euler.h>    
+#include <gkyl_wv_euler.h>
 #include <gkyl_wv_euler_priv.h>
 }
 
@@ -11,33 +11,33 @@ extern "C" {
 
 // CUDA kernel to set device pointers to euler kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void 
+__global__ static void
 wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
 {
   switch (rp_type) {
-    case WV_EULER_RP_ROE:
-      euler->eqn.num_waves = 3;  
-      euler->eqn.waves_func = wave_roe_l;
-      euler->eqn.qfluct_func = qfluct_roe_l;
-      break;
+  case WV_EULER_RP_ROE:
+    euler->eqn.num_waves = 3;
+    euler->eqn.waves_func = wave_roe_l;
+    euler->eqn.qfluct_func = qfluct_roe_l;
+    break;
 
-    case WV_EULER_RP_HLLC:
-      euler->eqn.num_waves = 3;  
-      euler->eqn.waves_func = wave_hllc_l;
-      euler->eqn.qfluct_func = qfluct_hllc_l;
-      break;
-      
-    case WV_EULER_RP_LAX:
-      euler->eqn.num_waves = 2;
-      euler->eqn.waves_func = wave_lax_l;
-      euler->eqn.qfluct_func = qfluct_lax_l;
-      break;   
+  case WV_EULER_RP_HLLC:
+    euler->eqn.num_waves = 3;
+    euler->eqn.waves_func = wave_hllc_l;
+    euler->eqn.qfluct_func = qfluct_hllc_l;
+    break;
 
-    case WV_EULER_RP_HLL:
-      euler->eqn.num_waves = 2;  
-      euler->eqn.waves_func = wave_hll_l;
-      euler->eqn.qfluct_func = qfluct_hll_l;
-      break;
+  case WV_EULER_RP_LAX:
+    euler->eqn.num_waves = 2;
+    euler->eqn.waves_func = wave_lax_l;
+    euler->eqn.qfluct_func = qfluct_lax_l;
+    break;
+
+  case WV_EULER_RP_HLL:
+    euler->eqn.num_waves = 2;
+    euler->eqn.waves_func = wave_hll_l;
+    euler->eqn.qfluct_func = qfluct_hll_l;
+    break;
   }
 
   euler->eqn.flux_jump = flux_jump;
@@ -57,15 +57,14 @@ wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
   euler->eqn.source_func = euler_source;
 }
 
-struct gkyl_wv_eqn*
-gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp)
+struct gkyl_wv_eqn *gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp)
 {
-  struct wv_euler *euler = (struct wv_euler*) gkyl_malloc(sizeof(struct wv_euler));
+  struct wv_euler *euler = (struct wv_euler *)gkyl_malloc(sizeof(struct wv_euler));
 
   euler->eqn.type = GKYL_EQN_EULER;
   euler->eqn.num_equations = 5;
   euler->eqn.num_diag = 6; // KE and PE stored separate
-  
+
   euler->gas_gamma = inp->gas_gamma;
 
   euler->eqn.flags = 0;
@@ -73,10 +72,10 @@ gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp)
   euler->eqn.ref_count = gkyl_ref_count_init(gkyl_euler_free);
 
   // copy the host struct to device struct
-  struct wv_euler *euler_cu = (struct wv_euler*) gkyl_cu_malloc(sizeof(struct wv_euler));
+  struct wv_euler *euler_cu = (struct wv_euler *)gkyl_cu_malloc(sizeof(struct wv_euler));
   gkyl_cu_memcpy(euler_cu, euler, sizeof(struct wv_euler), GKYL_CU_MEMCPY_H2D);
 
-  wv_euler_set_cu_dev_ptrs<<<1,1>>>(inp->rp_type, euler_cu);
+  wv_euler_set_cu_dev_ptrs<<<1, 1> > >(inp->rp_type, euler_cu);
 
   euler->eqn.on_dev = &euler_cu->eqn; // CPU eqn obj points to itself
   return &euler->eqn;

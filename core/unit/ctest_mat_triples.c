@@ -31,12 +31,12 @@ void test_mat_triples_1_ho()
   gkyl_mat_triples_insert(tri, 4, 1, 12.0);
   gkyl_mat_triples_insert(tri, 4, 4, 18.0);
 
-  TEST_CHECK( gkyl_mat_triples_get(tri, 4, 4) == 18.0 );
-  TEST_CHECK( gkyl_mat_triples_get(tri, 4, 0) == 12.0 );
+  TEST_CHECK(gkyl_mat_triples_get(tri, 4, 4) == 18.0);
+  TEST_CHECK(gkyl_mat_triples_get(tri, 4, 0) == 12.0);
 
-  TEST_CHECK( gkyl_mat_triples_get(tri, 0, 1) == 0.0 ); // zero element
+  TEST_CHECK(gkyl_mat_triples_get(tri, 0, 1) == 0.0); // zero element
 
-  TEST_CHECK( gkyl_mat_triples_size(tri) == 12 );
+  TEST_CHECK(gkyl_mat_triples_size(tri) == 12);
 
   gkyl_mat_triples_release(tri);
 }
@@ -56,23 +56,21 @@ void test_mat_triples_2_ho()
   // row 2
   gkyl_mat_triples_insert(tri, 2, 2, 3.0);
 
-  TEST_CHECK( gkyl_mat_triples_size(tri) == 5 );
+  TEST_CHECK(gkyl_mat_triples_size(tri) == 5);
 
   // order in which col-maj sorting should return indices
-  size_t cm_idx[][2] = {
-    {0,0}, {1,0}, {1,1}, {0,2}, {2,2}
-  };
+  size_t cm_idx[][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 2}, {2, 2}};
 
-  double vals[] = { 1.0, 2.1, 2.0, 1.1, 3.0 };
+  double vals[] = {1.0, 2.1, 2.0, 1.1, 3.0};
 
   int i = 0;
   gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
   while (gkyl_mat_triples_iter_next(iter)) {
     struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-    
-    TEST_CHECK( (mt.row == cm_idx[i][0]) && (mt.col == cm_idx[i][1]) );
-    TEST_CHECK( mt.val == vals[i] );
-    
+
+    TEST_CHECK((mt.row == cm_idx[i][0]) && (mt.col == cm_idx[i][1]));
+    TEST_CHECK(mt.val == vals[i]);
+
     i += 1;
   }
 
@@ -84,7 +82,7 @@ void test_mat_triples_3_ho()
 {
   gkyl_mat_triples *tri = gkyl_mat_triples_new(3, 3);
 
-  double vals[] = { 1.0, 2.1, 2.0, 1.1, 3.0 };
+  double vals[] = {1.0, 2.1, 2.0, 1.1, 3.0};
 
   // row 1
   gkyl_mat_triples_insert(tri, 1, 1, 2.0);
@@ -99,7 +97,7 @@ void test_mat_triples_3_ho()
   gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
   while (gkyl_mat_triples_iter_next(iter)) {
     struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-    TEST_CHECK( mt.val == vals[i] );
+    TEST_CHECK(mt.val == vals[i]);
     i += 1;
   }
 
@@ -108,7 +106,7 @@ void test_mat_triples_3_ho()
   gkyl_mat_triples_iter_init(iter, tri);
   while (gkyl_mat_triples_iter_next(iter)) {
     struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-    TEST_CHECK( mt.val == 0. );
+    TEST_CHECK(mt.val == 0.);
     TEST_MSG("Expected: %.13e in (%zu,%zu)", 0., mt.row, mt.col);
     TEST_MSG("Produced: %.13e", mt.val);
   }
@@ -123,7 +121,7 @@ void test_mat_triples_3_ho()
   gkyl_mat_triples_iter_init(iter, tri);
   while (gkyl_mat_triples_iter_next(iter)) {
     struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-    TEST_CHECK( mt.val == vals[i] );
+    TEST_CHECK(mt.val == vals[i]);
     i += 1;
   }
 
@@ -132,8 +130,8 @@ void test_mat_triples_3_ho()
 }
 
 TEST_LIST = {
-  { "mat_triples_1_ho", test_mat_triples_1_ho },
-  { "mat_triples_2_ho", test_mat_triples_2_ho },
-  { "mat_triples_3_ho", test_mat_triples_3_ho },
-  { NULL, NULL }
+  {"mat_triples_1_ho", test_mat_triples_1_ho},
+  {"mat_triples_2_ho", test_mat_triples_2_ho},
+  {"mat_triples_3_ho", test_mat_triples_3_ho},
+  {NULL, NULL}
 };

@@ -23,7 +23,7 @@ struct gkyl_wave_geom {
   struct gkyl_array *geom; // geometry in each cell
 
   uint32_t flags;
-  struct gkyl_ref_count ref_count;  
+  struct gkyl_ref_count ref_count;
   struct gkyl_wave_geom *on_dev; // pointer to itself or device object
 };
 
@@ -35,17 +35,18 @@ struct gkyl_wave_geom {
  * @param mapc2p Mapping from computational to physical space
  * @param ctx Context for use in mapping
  */
-struct gkyl_wave_geom*
-gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_range *range, evalf_t mapc2p, void *ctx, bool use_gpu);
+struct gkyl_wave_geom *gkyl_wave_geom_new(
+  const struct gkyl_rect_grid *grid, struct gkyl_range *range, evalf_t mapc2p, void *ctx,
+  bool use_gpu
+);
 
 /**
  * Create a new wave geometry object that lives on NV-GPU: see new() method
  * above for documentation.
  */
-struct gkyl_wave_geom*
-gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_range *range, evalf_t mapc2p, void *ctx);
+struct gkyl_wave_geom *gkyl_wave_geom_cu_dev_new(
+  const struct gkyl_rect_grid *grid, struct gkyl_range *range, evalf_t mapc2p, void *ctx
+);
 
 /**
  * Acquire pointer to geometry object. The pointer must be released
@@ -54,7 +55,7 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
  * @param wg Geometry to which a pointer is needed
  * @return Pointer to acquired geometry
  */
-struct gkyl_wave_geom* gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg);
+struct gkyl_wave_geom *gkyl_wave_geom_acquire(const struct gkyl_wave_geom *wg);
 
 /**
  * Get pointer to geometry in a cell given by idx into the range over
@@ -64,11 +65,12 @@ struct gkyl_wave_geom* gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg);
  * @param idx Index into grid
  * @return cell geometry in cell @a idx
  */
-GKYL_CU_DH
-static inline const struct gkyl_wave_cell_geom*
+GKYL_CU_DH static inline const struct gkyl_wave_cell_geom *
 gkyl_wave_geom_get(const struct gkyl_wave_geom *wg, const int *idx)
 {
-  return (const struct gkyl_wave_cell_geom*) gkyl_array_cfetch(wg->geom, gkyl_range_idx(&wg->range, idx));
+  return (const struct gkyl_wave_cell_geom *)gkyl_array_cfetch(
+    wg->geom, gkyl_range_idx(&wg->range, idx)
+  );
 }
 
 /**

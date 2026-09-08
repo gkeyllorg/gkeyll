@@ -17,8 +17,9 @@ typedef struct gkyl_calc_derived_geo gkyl_calc_derived_geo;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_rect_grid *grid, int node_type, bool use_gpu);
+gkyl_calc_derived_geo *gkyl_calc_derived_geo_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, int node_type, bool use_gpu
+);
 
 /**
  * Advance calc_derived_geo (compute the derived_geo coefficients) under the constraint
@@ -42,15 +43,18 @@ gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis
  * @param eps2Fld DG representation of eps2 = Jg^33 - J/g_33
  */
 
-void gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange,
-  struct gkyl_array *gFld, struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld,
-  struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld, struct gkyl_array *jtotFld, 
-  struct gkyl_array *jtotinvFld, struct gkyl_array *gxxJFld,  struct gkyl_array *gxyJFld,
-  struct gkyl_array *gyyJFld, struct gkyl_array *gxzJFld, struct gkyl_array *eps2Fld);
+void gkyl_calc_derived_geo_advance(
+  const gkyl_calc_derived_geo *up, const struct gkyl_range *crange, struct gkyl_array *gFld,
+  struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld,
+  struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld,
+  struct gkyl_array *jtotFld, struct gkyl_array *jtotinvFld, struct gkyl_array *gxxJFld,
+  struct gkyl_array *gxyJFld, struct gkyl_array *gyyJFld, struct gkyl_array *gxzJFld,
+  struct gkyl_array *eps2Fld
+);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_calc_derived_geo_release(gkyl_calc_derived_geo* up);
+void gkyl_calc_derived_geo_release(gkyl_calc_derived_geo *up);

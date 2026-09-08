@@ -29,7 +29,6 @@
 #include <gkyl_lua_utils.h>
 #include <gkyl_util.h>
 
-
 #include <gkyl_zero_lw.h>
 #include <gkyl_lw_priv.h>
 
@@ -53,10 +52,8 @@
 #include <mpi.h>
 #endif
 
-#define STRINGIFY_(x)  #x
-#define STRINGIFY(x)   STRINGIFY_(x)
-
-
+#define STRINGIFY_(x) #x
+#define STRINGIFY(x) STRINGIFY_(x)
 
 // Tool description struct
 struct tool_description {
@@ -73,72 +70,72 @@ static struct tool_description tool_list[] = {
   {"exacteulerrp", "exacteulerrp.lua", "Exact Euler Riemann problem solver"},
   {"runregression", "runregression.lua", "Run regression/unit tests"},
   {"multimomlinear", "multimomlinear.lua",
-   "Linear dispersion solver for multi-moment, multifluid equations"},  
+   "Linear dispersion solver for multi-moment, multifluid equations"},
   {"eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files"},
   {0, 0}
 };
 
-static int max2(int a, int b) { return a>b ? a : b; }
+static int max2(int a, int b)
+{
+  return a > b ? a : b;
+}
 
 // Show list of available Tools
-static void
-show_tool_list(void)
+static void show_tool_list(void)
 {
   fprintf(stdout, "Following tools are available. Query tool help for more information.\n\n");
 
   int mlen = 0;
-  for (int i=0; tool_list[i].tool_name != 0; ++i) {
+  for (int i = 0; tool_list[i].tool_name != 0; ++i) {
     int len = strlen(tool_list[i].tool_name);
     mlen = len > mlen ? len : mlen;
   }
-  
-  for (int i=0; tool_list[i].tool_name != 0; ++i)
-    fprintf(stdout, "%*s %s\n", mlen+2, tool_list[i].tool_name, tool_list[i].tool_help);
+
+  for (int i = 0; tool_list[i].tool_name != 0; ++i) {
+    fprintf(stdout, "%*s %s\n", mlen + 2, tool_list[i].tool_name, tool_list[i].tool_help);
+  }
   fprintf(stdout, "\n");
 }
 
 // Returns tool Lua script name given tool name. Returns 0 if Tool
 // does no exist
-static const char *
-get_tool_from_name(const char *nm)
+static const char *get_tool_from_name(const char *nm)
 {
-  for (int i=0; tool_list[i].tool_name != 0; ++i)
-    if (strcmp(tool_list[i].tool_name, nm) == 0)
+  for (int i = 0; tool_list[i].tool_name != 0; ++i) {
+    if (strcmp(tool_list[i].tool_name, nm) == 0) {
       return tool_list[i].tool_lua;
+    }
+  }
   return 0;
 }
 
-static char *
-find_exec_path(void)
+static char *find_exec_path(void)
 {
   int len = wai_getExecutablePath(NULL, 0, NULL);
-  char *path = gkyl_malloc(len+1);
-  int dirname_len; wai_getExecutablePath(path, len, &dirname_len);
+  char *path = gkyl_malloc(len + 1);
+  int dirname_len;
+  wai_getExecutablePath(path, len, &dirname_len);
   path[dirname_len] = '\0'; // only directory path is returned
   return path;
 }
 
-static int
-calc_output_prefix_len(const char *fn)
+static int calc_output_prefix_len(const char *fn)
 {
   const char *suff = strrchr(fn, '.');
   return strlen(fn) - (suff ? strlen(suff) : 0);
 }
 
-static const char*
-get_fname(const char *fn)
+static const char *get_fname(const char *fn)
 {
   return strrchr(fn, '/');
 }
 
-static const char*
-get_fname_with_dir(const char *fn)
+static const char *get_fname_with_dir(const char *fn)
 {
   return fn;
 }
 
-static void
-show_banner(FILE *fp)
+static void show_banner(FILE *fp)
 {
   if (fp) {
     fprintf(fp, "Gkeyll built with Git changeset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
@@ -176,15 +173,15 @@ show_banner(FILE *fp)
     fprintf(fp, "PKPM App enabled\n");
     num_apps += 1;
 #endif
-    if (0 == num_apps)
+    if (0 == num_apps) {
       fprintf(fp, "Built without any Apps! Core library only.\n");
+    }
     fprintf(fp, "\n");
   }
 }
 
 // show usage
-static void
-show_usage()
+static void show_usage()
 {
   fprintf(stdout, "This is the Gkeyll code. See gkeyll.rtfd.io for details.\n");
   fprintf(stdout, "Type 'gkeyll man' for help.\n\n");
@@ -196,7 +193,7 @@ show_usage()
   fprintf(stdout, "  -e chunk   Execute string 'chunk'\n");
   fprintf(stdout, "  -t         Show list of registered tools\n");
   fprintf(stdout, "  -v         Show version information\n");
-  fprintf(stdout, "  -d         Write output to same directory as input file\n");  
+  fprintf(stdout, "  -d         Write output to same directory as input file\n");
   fprintf(stdout, "  -g         Run on NVIDIA GPU (if available and built with CUDA)\n\n");
   fprintf(stdout, "  -m         Run memory tracer\n");
   fprintf(stdout, "  -S         Do not initialize MPI\n");
@@ -207,15 +204,16 @@ show_usage()
   fprintf(stdout, "  restart    Restart simulation \n");
   fprintf(stdout, "To get help for commands type command name followed by -h\n\n");
 
-  fprintf(stdout, "Individual tools may take other options and commands. See their specific help.\n");
+  fprintf(
+    stdout, "Individual tools may take other options and commands. See their specific help.\n"
+  );
 }
 
-static void
-show_version()
+static void show_version()
 {
   fprintf(stdout, "This is the Gkeyll code. See gkeyll.rtfd.io for details.\n");
   fprintf(stdout, "Type 'gkyl -h' for help.\n\n");
-#ifdef GKYL_GIT_CHANGESET  
+#ifdef GKYL_GIT_CHANGESET
   fprintf(stdout, "Built with git changeset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
 #endif
 #ifdef GKYL_BUILD_DATE
@@ -241,43 +239,43 @@ struct app_args {
   int restart_frame; // Which frame to restart simulation from.
 
   bool use_dir_path; /// should we use full directory path
-  
+
   char *echunk; // chunk of lua code to execute
-  
+
   int num_opt_args; // number of optional arguments
   char **opt_args; // optional arguments
 
   char *exec_path; // location of executable
 };
 
-static void
-release_opt_args(struct app_args *args)
+static void release_opt_args(struct app_args *args)
 {
-  for (int i=0; i<args->num_opt_args; ++i)
+  for (int i = 0; i < args->num_opt_args; ++i) {
     gkyl_free(args->opt_args[i]);
+  }
   gkyl_free(args->opt_args);
-  
-  if (args->echunk)
+
+  if (args->echunk) {
     gkyl_free(args->echunk);
+  }
 
   gkyl_free(args->exec_path);
   gkyl_free(args);
 }
 
-static struct app_args*
-parse_app_args(int argc, char **argv)
+static struct app_args *parse_app_args(int argc, char **argv)
 {
   struct app_args *args = gkyl_malloc(sizeof(*args));
 
   args->use_gpu = false;
   args->step_mode = false;
 
-#ifdef GKYL_HAVE_MPI  
+#ifdef GKYL_HAVE_MPI
   args->use_mpi = true;
 #else
   args->use_mpi = false;
 #endif
-  
+
   args->trace_mem = false;
   args->num_opt_args = 0;
   args->echunk = 0;
@@ -291,85 +289,84 @@ parse_app_args(int argc, char **argv)
 
   int c;
   while ((c = getopt(argc, argv, "+hvtmdSe:gV")) != -1) {
-    switch (c)
-    {
-      case 'h':
-        show_usage();
-        exit(-1);
-        break;
+    switch (c) {
+    case 'h':
+      show_usage();
+      exit(-1);
+      break;
 
-      case 'v':
-        show_version();
-        exit(-1);
-        break;        
+    case 'v':
+      show_version();
+      exit(-1);
+      break;
 
-      case 't':
-        show_tool_list();
-        exit(1);
-        break;
+    case 't':
+      show_tool_list();
+      exit(1);
+      break;
 
-      case 'e':
-        args->echunk = gkyl_malloc(strlen(optarg)+1);
-        strcpy(args->echunk, optarg);
-        break;
-        
-      case 'g':
-        args->use_gpu = true;
-        break;
+    case 'e':
+      args->echunk = gkyl_malloc(strlen(optarg) + 1);
+      strcpy(args->echunk, optarg);
+      break;
 
-      case 'd':
-        args->use_dir_path = true;
-        break;        
+    case 'g':
+      args->use_gpu = true;
+      break;
 
-      case 'S':
-        args->use_mpi = false;
-        break;
-        
-      case 'm':
-        args->trace_mem = true;
-        break;
-      
-      case 'V':
-        args->use_verbose = true;
-        break;
-      
-      case '?':
-        break;
+    case 'd':
+      args->use_dir_path = true;
+      break;
+
+    case 'S':
+      args->use_mpi = false;
+      break;
+
+    case 'm':
+      args->trace_mem = true;
+      break;
+
+    case 'V':
+      args->use_verbose = true;
+      break;
+
+    case '?':
+      break;
     }
   }
 
   args->num_opt_args = 0;
   // collect remaining options into a list
-  for (int oind=optind; oind < argc; ++oind) args->num_opt_args += 1;
-  args->opt_args = gkyl_malloc(sizeof(char*)*args->num_opt_args);
+  for (int oind = optind; oind < argc; ++oind) {
+    args->num_opt_args += 1;
+  }
+  args->opt_args = gkyl_malloc(sizeof(char *) * args->num_opt_args);
 
-  for (int i=0, oind=optind; oind < argc; ++oind, ++i) {
-    args->opt_args[i] = gkyl_malloc(strlen(argv[oind])+1);
+  for (int i = 0, oind = optind; oind < argc; ++oind, ++i) {
+    args->opt_args[i] = gkyl_malloc(strlen(argv[oind]) + 1);
     strcpy(args->opt_args[i], argv[oind]);
   }
 
   args->exec_path = find_exec_path();
-  
+
   return args;
 }
 
-
-
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct app_args *app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args->use_mpi)
+  if (app_args->use_mpi) {
     MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args->trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  
+
   lua_State *L = luaL_newstate();
   lua_gc(L, LUA_GCSTOP, 0);
   luaL_openlibs(L);
@@ -377,26 +374,26 @@ main(int argc, char **argv)
 
   // G0 librararies
   gkyl_zero_lw_openlibs(L);
-#ifdef GKYL_HAVE_MOMENTS 
+#ifdef GKYL_HAVE_MOMENTS
   gkyl_moment_lw_openlibs(L);
 #endif
 #ifdef GKYL_HAVE_VLASOV
   gkyl_vlasov_lw_openlibs(L);
 #endif
-#ifdef GKYL_HAVE_GYROKINETIC  
+#ifdef GKYL_HAVE_GYROKINETIC
   gkyl_gyrokinetic_lw_openlibs(L);
 #endif
-#ifdef GKYL_HAVE_PKPM  
+#ifdef GKYL_HAVE_PKPM
   gkyl_pkpm_lw_openlibs(L);
-#endif  
+#endif
   lua_gc(L, LUA_GCRESTART, -1);
 
 #ifdef GKYL_HAVE_MPI
   struct {
     MPI_Comm comm;
-  } lw_mpi_comm_world = { .comm = MPI_COMM_WORLD };
+  } lw_mpi_comm_world = {.comm = MPI_COMM_WORLD};
 #endif
-  
+
   if (app_args->use_mpi) {
     lua_pushboolean(L, true);
     lua_setglobal(L, "GKYL_HAVE_MPI");
@@ -407,11 +404,10 @@ main(int argc, char **argv)
     lua_pushlightuserdata(L, false);
 #endif
     lua_setglobal(L, "GKYL_MPI_COMM");
-  }
-  else {
+  } else {
     lua_pushboolean(L, false);
     lua_setglobal(L, "GKYL_HAVE_MPI");
-    
+
     lua_pushboolean(L, false);
     lua_setglobal(L, "GKYL_MPI_COMM");
   }
@@ -429,13 +425,12 @@ main(int argc, char **argv)
   lua_setglobal(L, "GKYL_HAVE_CUDA");
 
   lua_pushboolean(L, false);
-  lua_setglobal(L, "GKYL_USE_GPU");  
+  lua_setglobal(L, "GKYL_USE_GPU");
 #endif
 
   if (app_args->use_verbose) {
     lua_pushboolean(L, true);
-  }
-  else {
+  } else {
     lua_pushboolean(L, false);
   }
   lua_setglobal(L, "GKYL_USE_VERBOSE");
@@ -445,8 +440,7 @@ main(int argc, char **argv)
 
   if (app_args->is_restart) {
     lua_pushboolean(L, true);
-  }
-  else {
+  } else {
     lua_pushboolean(L, false);
   }
   lua_setglobal(L, "GKYL_IS_RESTART");
@@ -481,47 +475,47 @@ main(int argc, char **argv)
 
   lua_pushnumber(L, DBL_EPSILON);
   lua_setglobal(L, "GKYL_EPSILON");
-  
+
   lua_pushinteger(L, INT16_MAX);
   lua_setglobal(L, "GKYL_MAX_INT16");
 
   lua_pushstring(L, app_args->exec_path);
   lua_setglobal(L, "GKYL_EXEC_PATH");
-  
+
   do {
     const char *fmt = "%s/gkyl";
     size_t len = gkyl_calc_strlen(fmt, app_args->exec_path);
 
-    char *str = gkyl_malloc(len+1);
-    snprintf(str, len+1, fmt, app_args->exec_path);
+    char *str = gkyl_malloc(len + 1);
+    snprintf(str, len + 1, fmt, app_args->exec_path);
 
     lua_pushstring(L, str);
     lua_setglobal(L, "GKYL_EXEC");
 
     gkyl_free(str);
-  } while (0);  
+  } while (0);
 
 #ifdef GKYL_GIT_CHANGESET
   lua_pushstring(L, STRINGIFY(GKYL_GIT_CHANGESET));
   lua_setglobal(L, "GKYL_GIT_CHANGESET");
-#endif  
+#endif
 
 #ifdef GKYL_BUILD_DATE
   lua_pushstring(L, STRINGIFY(GKYL_BUILD_DATE));
   lua_setglobal(L, "GKYL_BUILD_DATE");
-#endif  
+#endif
 
   // push extra arguments into a Lua table to Tools and App can get
   // them
   lua_newtable(L);
-  if (app_args->num_opt_args > 0)  {
+  if (app_args->num_opt_args > 0) {
     lua_pushinteger(L, 1);
     lua_pushstring(L, app_args->opt_args[0]);
-    lua_rawset(L, -3);    
+    lua_rawset(L, -3);
   }
-  
-  for (int i=1; i<app_args->num_opt_args; ++i) {
-    lua_pushinteger(L, i+1);
+
+  for (int i = 1; i < app_args->num_opt_args; ++i) {
+    lua_pushinteger(L, i + 1);
     lua_pushstring(L, app_args->opt_args[i]);
     lua_rawset(L, -3);
   }
@@ -531,8 +525,8 @@ main(int argc, char **argv)
   // needed for various tools CLI parsers. For some reason they do not
   // allow the script name in the args
   lua_newtable(L);
-  
-  for (int i=1; i<app_args->num_opt_args; ++i) {
+
+  for (int i = 1; i < app_args->num_opt_args; ++i) {
     lua_pushinteger(L, i);
     lua_pushstring(L, app_args->opt_args[i]);
     lua_rawset(L, -3);
@@ -541,32 +535,35 @@ main(int argc, char **argv)
 
   // set package paths so we find installed libraries
   do {
-    const char *fmt = "package.path = package.path .. \";%s/lua/?.lua;%s/lua/Lib/?.lua;%s/lua/?/init.lua\"";    
-    size_t len = gkyl_calc_strlen(fmt, app_args->exec_path, app_args->exec_path, app_args->exec_path);
+    const char *fmt =
+      "package.path = package.path .. \";%s/lua/?.lua;%s/lua/Lib/?.lua;%s/lua/?/init.lua\"";
+    size_t len =
+      gkyl_calc_strlen(fmt, app_args->exec_path, app_args->exec_path, app_args->exec_path);
 
-    char *str = gkyl_malloc(len+1);
-    snprintf(str, len+1, fmt, app_args->exec_path, app_args->exec_path, app_args->exec_path);
+    char *str = gkyl_malloc(len + 1);
+    snprintf(str, len + 1, fmt, app_args->exec_path, app_args->exec_path, app_args->exec_path);
     glua_run_lua(L, str, strlen(str), 0);
-    
+
     gkyl_free(str);
   } while (0);
 
   // run Lua code (if it exists) before running input file
-  if (app_args->echunk)
+  if (app_args->echunk) {
     glua_run_lua(L, app_args->echunk, strlen(app_args->echunk), 0);
+  }
 
   int rank = 0;
 #ifdef GKYL_HAVE_MPI
-  if (app_args->use_mpi)
+  if (app_args->use_mpi) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  }
 #endif
-  
+
   if (app_args->num_opt_args > 0) {
     bool something_run = false;
 
     const char *inp_name = app_args->opt_args[0];
     if (gkyl_check_file_exists(inp_name)) {
-
       show_banner(rank == 0 ? stdout : 0);
 
       const char *suff = 0, suff1 = 0;
@@ -575,60 +572,58 @@ main(int argc, char **argv)
         const char *suff1 = suff;
         lua_pushlstring(L, suff1, calc_output_prefix_len(suff1));
         lua_setglobal(L, "GKYL_OUT_PREFIX");
-        
-      }
-      else {
+
+      } else {
         const char *suff = get_fname(inp_name);
-        const char *suff1 = suff ? suff+1 : inp_name;
+        const char *suff1 = suff ? suff + 1 : inp_name;
         lua_pushlstring(L, suff1, calc_output_prefix_len(suff1));
         lua_setglobal(L, "GKYL_OUT_PREFIX");
       }
-      
+
       int64_t sz = 0;
       char *buff = gkyl_load_file(inp_name, &sz);
       glua_run_lua(L, buff, sz, stderr);
       gkyl_free(buff);
       something_run = true;
-    }
-    else {
+    } else {
       // check if it is a Tool, and run it if so
       const char *tlua = get_tool_from_name(app_args->opt_args[0]);
       if (tlua) {
         const char *fmt = "%s/lua/Tool/%s";
         size_t len = gkyl_calc_strlen(fmt, app_args->exec_path, tlua);
-        char *tool_name = gkyl_malloc(len+1);
-        snprintf(tool_name, len+1, fmt, app_args->exec_path, tlua);
-        
+        char *tool_name = gkyl_malloc(len + 1);
+        snprintf(tool_name, len + 1, fmt, app_args->exec_path, tlua);
+
         int64_t sz = 0;
         char *buff = gkyl_load_file(tool_name, &sz);
         glua_run_lua(L, buff, sz, stderr);
         gkyl_free(buff);
-        
+
         gkyl_free(tool_name);
         something_run = true;
       }
     }
-    if (!something_run)
+    if (!something_run) {
       fprintf(stderr, "No Lua code was run!\n");
+    }
   }
-  
-  lua_close(L);  
+
+  lua_close(L);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args->use_mpi)
+  if (app_args->use_mpi) {
     MPI_Finalize();
+  }
 #endif
 
   release_opt_args(app_args);
-  
 }
 
 #else
 
 #include <stdio.h>
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   fprintf(stderr, "Gkeyll built without Lua support!\n");
   return 0;

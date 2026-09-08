@@ -67,7 +67,7 @@ struct gkyl_wave_prop_stats {
  *
  * @param winp Input for creating updater. See gkyl_wave_prop_inp above.
  */
-gkyl_wave_prop* gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp);
+gkyl_wave_prop *gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp);
 
 /**
  * Compute wave-propagation update. The update_rng MUST be a sub-range
@@ -82,9 +82,10 @@ gkyl_wave_prop* gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp);
  * @param qin Input to updater
  * @param qout Solution at tm+dt
  */
-struct gkyl_wave_prop_status gkyl_wave_prop_advance(gkyl_wave_prop *wv,
-  double tm, double dt, const struct gkyl_range *update_range,
-  struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *qout);
+struct gkyl_wave_prop_status gkyl_wave_prop_advance(
+  gkyl_wave_prop *wv, double tm, double dt, const struct gkyl_range *update_range,
+  struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *qout
+);
 
 /**
  * Compute an estimate of maximum stable time-step for given input
@@ -94,8 +95,9 @@ struct gkyl_wave_prop_status gkyl_wave_prop_advance(gkyl_wave_prop *wv,
  * @param qin Input to compute dt for
  * @return maximum stable time-step
  */
-double gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *update_range,
-  const struct gkyl_array *qin);
+double gkyl_wave_prop_max_dt(
+  const gkyl_wave_prop *wv, const struct gkyl_range *update_range, const struct gkyl_array *qin
+);
 
 /**
  * Fetch statics
@@ -104,10 +106,10 @@ double gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *
  * @return statics from all calls to this updater
  */
 struct gkyl_wave_prop_stats gkyl_wave_prop_stats(const gkyl_wave_prop *wv);
-  
+
 /**
  * Delete updater.
  *
  * @param wv Updater to delete.
  */
-void gkyl_wave_prop_release(gkyl_wave_prop* wv);
+void gkyl_wave_prop_release(gkyl_wave_prop *wv);

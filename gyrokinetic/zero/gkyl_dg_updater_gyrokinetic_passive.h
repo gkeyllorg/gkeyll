@@ -35,15 +35,13 @@ struct gkyl_dg_updater_gyrokinetic_passive_tm {
  * @param use_gpu Boolean to determine if on device.
  * @return Pointer to new updater object.
  */
-gkyl_dg_updater_gyrokinetic_passive*
-gkyl_dg_updater_gyrokinetic_passive_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const bool *is_zero_flux_bc,
-  const double charge, const double mass,
-  const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map,
-  void *aux_inp, bool use_gpu);
+gkyl_dg_updater_gyrokinetic_passive *gkyl_dg_updater_gyrokinetic_passive_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const bool *is_zero_flux_bc, const double charge,
+  const double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
+  void *aux_inp, bool use_gpu
+);
 
 /**
  * Acquire passive gyrokinetic equation object.
@@ -52,8 +50,8 @@ gkyl_dg_updater_gyrokinetic_passive_new(const struct gkyl_rect_grid *grid,
  * 
  * @return Passive gyrokinetic equation object.
  */
-struct gkyl_dg_eqn* 
-gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(const gkyl_dg_updater_gyrokinetic_passive* up);
+struct gkyl_dg_eqn *
+gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(const gkyl_dg_updater_gyrokinetic_passive *up);
 
 /**
  * Compute the RHS DG update.
@@ -64,9 +62,10 @@ gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(const gkyl_dg_updater_gyrokineti
  * @param cflrate CFL rate array (units of 1/[T]).
  * @param rhs RHS output.
  */
-void gkyl_dg_updater_gyrokinetic_passive_advance(gkyl_dg_updater_gyrokinetic_passive *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *fIn,
-  struct gkyl_array *cflrate, struct gkyl_array *rhs);
+void gkyl_dg_updater_gyrokinetic_passive_advance(
+  gkyl_dg_updater_gyrokinetic_passive *up, const struct gkyl_range *update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs
+);
 
 /**
  * Return total time spent in the passive gyrokinetic equation.

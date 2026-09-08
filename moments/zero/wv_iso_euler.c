@@ -24,14 +24,12 @@
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_iso_euler_priv.h>
 
-static inline double
-gkyl_iso_euler_max_abs_speed(double vt, const double* q)
+static inline double gkyl_iso_euler_max_abs_speed(double vt, const double *q)
 {
   return fmax(fabs(((q[1] / q[0]) - vt)), fabs(((q[1] / q[0]) + vt)));
 }
 
-void
-gkyl_iso_euler_flux(double vt, const double* q, double* flux)
+void gkyl_iso_euler_flux(double vt, const double *q, double *flux)
 {
   flux[0] = q[1];
   flux[1] = (((q[1] * q[1]) / q[0]) + (q[0] * vt * vt));
@@ -40,7 +38,7 @@ gkyl_iso_euler_flux(double vt, const double* q, double* flux)
 }
 
 static inline void
-cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout)
+cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 4; i++) {
@@ -49,7 +47,7 @@ cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 }
 
 static inline void
-riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double* qout)
+riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 4; i++) {
@@ -57,8 +55,10 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
   }
 }
 
-static void
-iso_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+static void iso_euler_wall(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   // Copy density.
   ghost[0] = skin[0];
@@ -69,8 +69,10 @@ iso_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* sk
   ghost[3] = skin[3];
 }
 
-static void
-iso_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+static void iso_euler_no_slip(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   // Copy density.
   ghost[0] = skin[0];
@@ -81,9 +83,10 @@ iso_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double*
   ghost[3] = -skin[3];
 }
 
-static inline void
-rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
-  double* GKYL_RESTRICT qlocal)
+static inline void rot_to_local(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
+)
 {
   // Density is a scalar (so remains unchanged).
   qlocal[0] = qglobal[0];
@@ -94,9 +97,10 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   qlocal[3] = (qglobal[1] * tau2[0]) + (qglobal[2] * tau2[1]) + (qglobal[3] * tau2[2]);
 }
 
-static inline void
-rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
-  double* GKYL_RESTRICT qglobal)
+static inline void rot_to_global(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
+)
 {
   // Density is a scalar (so remains unchanged).
   qglobal[0] = qlocal[0];
@@ -107,8 +111,10 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   qglobal[3] = (qlocal[1] * norm[2]) + (qlocal[2] * tau1[2]) + (qlocal[3] * tau2[2]);
 }
 
-static double
-wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+static double wave_lax(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   double vt = iso_euler->vt; // Thermal velocity.
@@ -137,8 +143,10 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   return s[1];
 }
 
-static void
-qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+static void qfluct_lax(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[4];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -150,58 +158,97 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
   }
 }
 
-static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+static double wave_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
-  double* amdq, double* apdq)
+static void qfluct_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double
-wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+static double wave_roe(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   double vt = iso_euler->vt; // Thermal velocity.
 
-  double a0 = (delta[0] * (vt + ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])))) / vt / 2.0) - (delta[1] / vt / 2.0);
-  double a1 = delta[2] - (delta[0] * ((ql[2] * (1.0 / sqrt(ql[0]))) + (qr[2] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))));
-  double a2 = delta[3] - (delta[0] * ((ql[3] * (1.0 / sqrt(ql[0]))) + (qr[3] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))));
-  double a3 = (delta[0] * (vt - ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])))) / vt / 2.0) + (delta[1] / vt / 2.0);
+  double a0 = (delta[0] *
+               (vt + ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) *
+                       (1.0 / (sqrt(ql[0]) + sqrt(qr[0])))) /
+               vt / 2.0) -
+              (delta[1] / vt / 2.0);
+  double a1 =
+    delta[2] - (delta[0] * ((ql[2] * (1.0 / sqrt(ql[0]))) + (qr[2] * (1.0 / sqrt(qr[0])))) *
+                (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))));
+  double a2 =
+    delta[3] - (delta[0] * ((ql[3] * (1.0 / sqrt(ql[0]))) + (qr[3] * (1.0 / sqrt(qr[0])))) *
+                (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))));
+  double a3 = (delta[0] *
+               (vt - ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) *
+                       (1.0 / (sqrt(ql[0]) + sqrt(qr[0])))) /
+               vt / 2.0) +
+              (delta[1] / vt / 2.0);
 
   double *w0 = &waves[0 * 4], *w1 = &waves[1 * 4], *w2 = &waves[2 * 4];
   for (int i = 0; i < 4; i++) {
-    w0[i] = 0.0; w1[i] = 0.0; w2[i] = 0.0;
+    w0[i] = 0.0;
+    w1[i] = 0.0;
+    w2[i] = 0.0;
   }
 
   w0[0] = a0;
-  w0[1] = a0 * (((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) - vt);
-  w0[2] = a0 * ((ql[2] * (1.0 / sqrt(ql[0]))) + (qr[2] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
-  w0[3] = a0 * ((ql[3] * (1.0 / sqrt(ql[0]))) + (qr[3] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
-  s[0] = ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) - vt;
+  w0[1] = a0 * (((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) *
+                  (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) -
+                vt);
+  w0[2] = a0 * ((ql[2] * (1.0 / sqrt(ql[0]))) + (qr[2] * (1.0 / sqrt(qr[0])))) *
+          (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
+  w0[3] = a0 * ((ql[3] * (1.0 / sqrt(ql[0]))) + (qr[3] * (1.0 / sqrt(qr[0])))) *
+          (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
+  s[0] = ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) *
+           (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) -
+         vt;
 
   w1[0] = 0.0;
   w1[1] = 0.0;
   w1[2] = a1;
   w1[3] = a2;
-  s[1] = ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
+  s[1] = ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) *
+         (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
 
   w2[0] = a3;
-  w2[1] = a3 * (((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) + vt);
-  w2[2] = a3 * ((ql[2] * (1.0 / sqrt(ql[0]))) + (qr[2] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
-  w2[3] = a3 * ((ql[3] * (1.0 / sqrt(ql[0]))) + (qr[3] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
-  s[2] = ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) + vt;
+  w2[1] = a3 * (((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) *
+                  (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) +
+                vt);
+  w2[2] = a3 * ((ql[2] * (1.0 / sqrt(ql[0]))) + (qr[2] * (1.0 / sqrt(qr[0])))) *
+          (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
+  w2[3] = a3 * ((ql[3] * (1.0 / sqrt(ql[0]))) + (qr[3] * (1.0 / sqrt(qr[0])))) *
+          (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
+  s[2] = ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) *
+           (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) +
+         vt;
 
-  return fabs(((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])))) + vt;
+  return fabs(
+           ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) *
+           (1.0 / (sqrt(ql[0]) + sqrt(qr[0])))
+         ) +
+         vt;
 }
 
-static void
-qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+static void qfluct_roe(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0 * 4], *w1 = &waves[1 * 4], *w2 = &waves[2 * 4];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
@@ -213,33 +260,35 @@ qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
   }
 }
 
-static double
-wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+static double wave_roe_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return wave_roe(eqn, delta, ql, qr, waves, s);
-  }
-  else {
+  } else {
     return wave_lax(eqn, delta, ql, qr, waves, s);
   }
 
   return 0.0; // Unreachable code.
 }
 
-static void
-qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
-  double* amdq, double* apdq)
+static void qfluct_roe_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
-  }
-  else {
+  } else {
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
   }
 }
 
 static double
-flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   double vt = iso_euler->vt; // Thermal velocity.
@@ -255,21 +304,19 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 
   double amaxl = gkyl_iso_euler_max_abs_speed(vt, ql);
   double amaxr = gkyl_iso_euler_max_abs_speed(vt, qr);
-  
+
   gkyl_free(fr);
   gkyl_free(fl);
 
   return fmax(amaxl, amaxr);
 }
 
-static bool
-check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
+static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   return q[0] > 0.0; // Density must be positive.
 }
 
-static double
-max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
+static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   double vt = iso_euler->vt; // Thermal velocity.
@@ -278,25 +325,23 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
 }
 
 static inline void
-iso_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag)
+iso_euler_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   for (int i = 0; i < 4; i++) {
     diag[i] = qin[i];
   }
 }
 
-static inline void
-iso_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+static inline void iso_euler_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   for (int i = 0; i < 4; i++) {
     sout[i] = 0.0;
   }
 }
 
-void
-gkyl_iso_euler_free(const struct gkyl_ref_count* ref)
+void gkyl_iso_euler_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_wv_eqn* base = container_of(ref, struct gkyl_wv_eqn, ref_count);
+  struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
 
   if (gkyl_wv_eqn_is_cu_dev(base)) {
     // Free inner on_dev object.
@@ -308,19 +353,13 @@ gkyl_iso_euler_free(const struct gkyl_ref_count* ref)
   gkyl_free(iso_euler);
 }
 
-struct gkyl_wv_eqn*
-gkyl_wv_iso_euler_new(double vt, bool use_gpu)
+struct gkyl_wv_eqn *gkyl_wv_iso_euler_new(double vt, bool use_gpu)
 {
-  return gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp) {
-      .vt = vt,
-      .rp_type = WV_ISO_EULER_RP_ROE,
-      .use_gpu = use_gpu,
-    }
-  );
+  return gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp
+  ){.vt = vt, .rp_type = WV_ISO_EULER_RP_ROE, .use_gpu = use_gpu});
 }
 
-struct gkyl_wv_eqn*
-gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp* inp)
+struct gkyl_wv_eqn *gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp *inp)
 {
   struct wv_iso_euler *iso_euler = gkyl_malloc(sizeof(struct wv_iso_euler));
 
@@ -334,8 +373,7 @@ gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp* inp)
     iso_euler->eqn.num_waves = 2;
     iso_euler->eqn.waves_func = wave_lax_l;
     iso_euler->eqn.qfluct_func = qfluct_lax_l;
-  }
-  else if (inp->rp_type == WV_ISO_EULER_RP_ROE) {
+  } else if (inp->rp_type == WV_ISO_EULER_RP_ROE) {
     iso_euler->eqn.num_waves = 3;
     iso_euler->eqn.waves_func = wave_roe_l;
     iso_euler->eqn.qfluct_func = qfluct_roe_l;
@@ -346,7 +384,7 @@ gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp* inp)
   iso_euler->eqn.max_speed_func = max_speed;
   iso_euler->eqn.rotate_to_local_func = rot_to_local;
   iso_euler->eqn.rotate_to_global_func = rot_to_global;
-  
+
   iso_euler->eqn.wall_bc_func = iso_euler_wall;
   iso_euler->eqn.no_slip_bc_func = iso_euler_no_slip;
 
@@ -367,8 +405,7 @@ gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp* inp)
   return &iso_euler->eqn;
 }
 
-double
-gkyl_wv_iso_euler_vt(const struct gkyl_wv_eqn* eqn)
+double gkyl_wv_iso_euler_vt(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   double vt = iso_euler->vt;

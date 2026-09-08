@@ -12,27 +12,35 @@ enum gkyl_position_map_id {
   GKYL_PMAP_USER_INPUT_W_DERIVATIVE, // Function projection and derivative user specified
   GKYL_PMAP_CONSTANT_DB_POLYNOMIAL, // Makes a uniform dB in each cell. Polynomial approximation, assuming 2 local maxima in Bmag
   GKYL_PMAP_CONSTANT_DB_NUMERIC, // Makes a uniform dB in each cell, but calculates the dB numerically
-  GKYL_PMAP_XPT_COMPRESSION, // Compresses cells near X-point (For use in MB Tokamaks)
+  GKYL_PMAP_XPT_COMPRESSION // Compresses cells near X-point (For use in MB Tokamaks)
 };
 
-typedef void (*mc2nu_t)(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx);
+typedef void (*mc2nu_t)(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+);
 
 struct gkyl_position_map_inp {
   enum gkyl_position_map_id id;
-  mc2nu_t maps[3]; // Position mapping in each position direction. This is defined in full 3x, 
+  mc2nu_t maps[3]; // Position mapping in each position direction. This is defined in full 3x,
   // not in deflated coordinates.
-  mc2nu_t map_derivs[3]; // Derivative of mapping in each position direction. This is defined in full 3x, 
+  mc2nu_t
+    map_derivs[3]; // Derivative of mapping in each position direction. This is defined in full 3x,
   // not in deflated coordinates.
   void *ctxs[3]; // Context for each position mapping function.
-  double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
+  double
+    map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
   // Call map_strength = s, xc computational coordinate, and xnu the nonuniform coordinate
   // xnu' = xnu * s + xc * (1-s)
-  double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
-  double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
-  double gaussian_std; // The width of the moving average for the map to smooth it. Units of normalized field line length
-  double gaussian_max_integration_width; // The maximum width to integrate the Gaussian filter. Units of normalized field line length
+  double
+    maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
+  double
+    maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
+  double
+    gaussian_std; // The width of the moving average for the map to smooth it. Units of normalized field line length
+  double
+    gaussian_max_integration_width; // The maximum width to integrate the Gaussian filter. Units of normalized field line length
   double compression_factor; // For PMAP_XPT_Compression. Specifies how much smaller the cells are
-                             // near the X-point
+  // near the X-point
   double radial_compression_factor; // Factor by which cells are compressed radially near xpt
   bool compress_divertor; // Whether to apply compression at divertor plates for PMAP_XPT compression
 };
@@ -41,7 +49,7 @@ struct gkyl_position_map_inew_inp {
   struct gkyl_rect_grid grid; // Position space grid.
   struct gkyl_range local, local_ext; // Local & extended local position-space range.
   struct gkyl_range global, global_ext; // Global & extended global position-space range.
-  struct gkyl_basis basis;  // Basis for position mapping.
+  struct gkyl_basis basis; // Basis for position mapping.
 };
 
 struct gkyl_position_map {
@@ -52,8 +60,9 @@ struct gkyl_position_map {
 
   double cdim; // Number of computational dimensions.
   struct gkyl_rect_grid grid; // Position space grid.
-  struct gkyl_range local, local_ext, global, global_ext; // Local & extended local position-space range.
-  struct gkyl_basis basis;  // Basis for position mapping.
+  struct gkyl_range local, local_ext, global,
+    global_ext; // Local & extended local position-space range.
+  struct gkyl_basis basis; // Basis for position mapping.
   struct gkyl_array *mc2nu; // Position mapping in each position direction.
   struct gkyl_ref_count ref_count;
   bool to_optimize; // Whether to optimize the position map for constant B mapping.
@@ -62,20 +71,24 @@ struct gkyl_position_map {
   // Stuff for constant B mapping
   struct gkyl_bmag_ctx *bmag_ctx; // Context for magnetic field calculation
   struct gkyl_position_map_const_B_ctx *constB_ctx; // Context for constant B mapping
-  struct gkyl_position_map_xpt_ctx *xpt_ctx; // Context for X-point compression mapping 
+  struct gkyl_position_map_xpt_ctx *xpt_ctx; // Context for X-point compression mapping
 };
 
 struct gkyl_position_map_const_B_ctx {
   mc2nu_t maps_backup[3]; // Backup of the position mapping functions.
   void *ctxs_backup[3]; // Backup of the context for each position mapping function.
-  
-  double psi, alpha; // The psi and alpha values for the middle flux surface to identify the 1D line we are optimizing 
+
+  double psi,
+    alpha; // The psi and alpha values for the middle flux surface to identify the 1D line we are optimizing
   double psi_min, psi_max; // The max and min psi values for the simulation
   double alpha_min, alpha_max; // The max and min alpha values for the simulation
   double theta_min, theta_max; // The max and min theta values for the simulation
-  double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
-  bool enable_maximum_slope_limits_at_min_B; // Whether to enable the maximum slope limits at a magnetic field minimum
-  bool enable_maximum_slope_limits_at_max_B; // Whether to enable the maximum slope limits at a magnetic field maximum
+  double
+    map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
+  bool
+    enable_maximum_slope_limits_at_min_B; // Whether to enable the maximum slope limits at a magnetic field minimum
+  bool
+    enable_maximum_slope_limits_at_max_B; // Whether to enable the maximum slope limits at a magnetic field maximum
   double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum
   double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum
   double gaussian_std; // The standard deviation of the Gaussian filter used for smoothing the mapping
@@ -98,7 +111,8 @@ struct gkyl_position_map_xpt_ctx {
   mc2nu_t maps_backup[3]; // Backup of the position mapping functions.
   void *ctxs_backup[3]; // Backup of the context for each position mapping function.
   double compression_factor; // Factor by which cells near X-point are compressed
-  double radial_compression_factor; // Factor by which cells are compressed in radial direction at separatrix
+  double
+    radial_compression_factor; // Factor by which cells are compressed in radial direction at separatrix
   bool compress_divertor; // Whether to apply compression at divertor plates
   double zcut; // Half-wavelength of sinusoidal mapping
   double zcenter; // Location of largest cells
@@ -120,25 +134,24 @@ struct gkyl_position_map_xpt_ctx {
  * @param use_gpu Whether to create a device copy of this new object.
  * @return New position map object.
  */
-struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp pmap_info,
-  struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_range local_ext, 
-  struct gkyl_range global, struct gkyl_range global_ext, struct gkyl_basis basis);
+struct gkyl_position_map *gkyl_position_map_new(
+  struct gkyl_position_map_inp pmap_info, struct gkyl_rect_grid grid, struct gkyl_range local,
+  struct gkyl_range local_ext, struct gkyl_range global, struct gkyl_range global_ext,
+  struct gkyl_basis basis
+);
 
 /**
  * Create a new position map object using the input structure.
  * @param inp Input structure (see definition of gkyl_position_map_inew_inp).
  * @return New position map object.
  */
-struct gkyl_position_map*
-gkyl_position_map_inew(struct gkyl_position_map_inew_inp inp);
-
+struct gkyl_position_map *gkyl_position_map_inew(struct gkyl_position_map_inew_inp inp);
 
 /** Create a new null position map object. This is a position map that does nothing.
  *  All maps are identity maps.
  * @return New null position map object.
  */
-struct gkyl_position_map*
-gkyl_position_map_null_new();
+struct gkyl_position_map *gkyl_position_map_null_new();
 
 /**
  * Set the position map object. Copy the non-uniform map array to the position map object.
@@ -148,7 +161,7 @@ gkyl_position_map_null_new();
  * 
  * @note This function is used to set the position map array in the position map object.
  */
-void gkyl_position_map_set_mc2nu(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu);
+void gkyl_position_map_set_mc2nu(struct gkyl_position_map *gpm, struct gkyl_array *mc2nu);
 
 /**
  * Set the magnetic field array in the position map object. This is used to set the magnetic field
@@ -158,9 +171,9 @@ void gkyl_position_map_set_mc2nu(struct gkyl_position_map* gpm, struct gkyl_arra
  * @param comm Communicator object.
  * @param bmag Magnetic field array.
  */
-void
-gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm,
-  struct gkyl_array* bmag);
+void gkyl_position_map_set_bmag(
+  struct gkyl_position_map *gpm, struct gkyl_comm *comm, struct gkyl_array *bmag
+);
 
 /**
  * Set the function paramters for the map object.
@@ -171,9 +184,9 @@ gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm
  * @param w radial width of domain in psi
  * @param psisep separatrix psi value.
  */
-void
-gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, 
-    double zcenter, double w, double psisep);
+void gkyl_position_map_set_compression(
+  struct gkyl_position_map *gpm, double zcut, double zcenter, double w, double psisep
+);
 
 /**
  * Evaluate the position mapping at a specific computational (position) coordinate.
@@ -183,8 +196,9 @@ gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut,
  * @param xc Computational position coordinates.
  * @param xnu Resulting non-uniform position coordinates.
  */
-void
-gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *xc, double *xnu);
+void gkyl_position_map_eval_mc2nu(
+  const struct gkyl_position_map *gpm, const double *xc, double *xnu
+);
 
 /**
  * Evaluate the slope of the position mapping at a specific computational (position) coordinate.
@@ -197,9 +211,10 @@ gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *
  * @param nrange Range of the computational coordinates.
  * @return Slope of the position mapping.
  */
-double
-gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
-  double x, double dx, int ix_comp, const struct gkyl_range *nrange);
+double gkyl_position_map_slope(
+  const struct gkyl_position_map *gpm, int ix_map, double x, double dx, int ix_comp,
+  const struct gkyl_range *nrange
+);
 
 /**
  * Create a new pointer to the position map object.
@@ -207,7 +222,7 @@ gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
  *
  * @param gpm Position map object.
  */
-struct gkyl_position_map* gkyl_position_map_acquire(const struct gkyl_position_map* gpm);
+struct gkyl_position_map *gkyl_position_map_acquire(const struct gkyl_position_map *gpm);
 
 /**
  * Optimize the position map object for constant B mapping.
@@ -216,9 +231,9 @@ struct gkyl_position_map* gkyl_position_map_acquire(const struct gkyl_position_m
  * @param grid 3D Position space grid.
  * @param global 3D Global position range.
  */
-void gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
-  struct gkyl_range global);
-
+void gkyl_position_map_optimize(
+  struct gkyl_position_map *gpm, struct gkyl_rect_grid grid, struct gkyl_range global
+);
 
 /**
  * Release pointer to (and eventually memory associated with)

@@ -9,7 +9,7 @@
 #include <gkyl_eqn_type.h>
 
 struct gkyl_dg_cx_inp {
-  struct gkyl_basis* cbasis; // Configuration-space basis-functions
+  struct gkyl_basis *cbasis; // Configuration-space basis-functions
   const struct gkyl_range *conf_rng; // Configuration-space range
   const struct gkyl_range *conf_rng_ext; // Configuration-space extended range
   double vt_sq_ion_min; // Min vtSq that can be represented on ion grid
@@ -25,8 +25,7 @@ typedef struct gkyl_dg_cx gkyl_dg_cx;
  * @param gkyl_dg_cx_inp
  * @param use_gpu Boolean for whether struct is on host or device
  */
-struct gkyl_dg_cx* gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu); 
-
+struct gkyl_dg_cx *gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu);
 
 /**
  * Compute CX reaction rate coefficient for use in neutral reactions. 
@@ -42,9 +41,11 @@ struct gkyl_dg_cx* gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu);
  * @param coef_cx Output reaction rate coefficient
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
  */
-void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, 
-  struct gkyl_array *maxwellian_moms_ion, struct gkyl_array *maxwellian_moms_neut,
-  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
+void gkyl_dg_cx_coll(
+  const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
+  struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
+  struct gkyl_array *cflrate
+);
 
 /**
  * Delete updater.

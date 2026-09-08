@@ -30,12 +30,11 @@ struct null_comm {
 
   bool use_gpu; // flag to use if this communicator is on GPUs
   bool sync_corners; // should we sync corners?
-  
+
   struct gkyl_range grange; // range to "hash" ghost layout
 
   cmap_l2sgr l2sgr; // map from long -> skin_ghost_ranges
   cmap_l2sgr l2sgr_wc; // map from long -> skin_ghost_ranges with corners
-  
+
   gkyl_mem_buff pbuff; // CUDA buffer for periodic BCs
 };
-

@@ -36,10 +36,12 @@ typedef struct gkyl_fem_poisson_perp gkyl_fem_poisson_perp;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_fem_poisson_perp* gkyl_fem_poisson_perp_new(
+struct gkyl_fem_poisson_perp *gkyl_fem_poisson_perp_new(
   const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs, struct gkyl_poisson_bias_line_list* bias_line_list,
-  struct gkyl_array *epsilon, struct gkyl_array *kSq, bool use_gpu);
+  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
+  struct gkyl_poisson_bias_line_list *bias_line_list, struct gkyl_array *epsilon,
+  struct gkyl_array *kSq, bool use_gpu
+);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -47,14 +49,14 @@ struct gkyl_fem_poisson_perp* gkyl_fem_poisson_perp_new(
  * @param up FEM poisson updater to run.
  * @param rhsin DG field to set as RHS source.
  */
-void gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp* up, struct gkyl_array *rhsin);
+void gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin);
 
 /**
  * Solve the linear problem.
  *
  * @param up FEM project updater to run.
  */
-void gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp* up, struct gkyl_array *phiout);
+void gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout);
 
 /**
  * Assign the left-side matrix.
@@ -63,7 +65,9 @@ void gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp* up, struct gkyl_array *p
  * @param epsilon Weight in Laplacian term.
  * @param kSq Linear factor in Helmholtz term.
  */
-void gkyl_fem_poisson_perp_update_lhs(gkyl_fem_poisson_perp* up, struct gkyl_array *epsilon, struct gkyl_array *kSq);
+void gkyl_fem_poisson_perp_update_lhs(
+  gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq
+);
 
 /**
  * Delete updater.

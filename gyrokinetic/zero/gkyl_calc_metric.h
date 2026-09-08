@@ -20,10 +20,12 @@ typedef struct gkyl_calc_metric gkyl_calc_metric;
  * @param use_gpu Boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *global, const struct gkyl_range *global_ext, 
-  const struct gkyl_range *local, const struct gkyl_range *local_ext,
-  bool exit_at_checks, bool use_gpu);
+gkyl_calc_metric *gkyl_calc_metric_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *global, const struct gkyl_range *global_ext,
+  const struct gkyl_range *local, const struct gkyl_range *local_ext, bool exit_at_checks,
+  bool use_gpu
+);
 
 /**
  * Use finite differences to calculate metric coefficients and tangent vectors at nodes
@@ -50,10 +52,11 @@ gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const st
  * @param normFld output field where dual vector modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, 
-  double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, 
-  struct gkyl_array *dualmagFld, struct gkyl_array* normFld, const struct gkyl_range *update_range);
-
+void gkyl_calc_metric_advance(
+  gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc,
+  struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld,
+  struct gkyl_array *dualmagFld, struct gkyl_array *normFld, const struct gkyl_range *update_range
+);
 
 /**
  * Use finite differences to calculate metric coefficients and tangent vectors at 
@@ -82,7 +85,6 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
  */
 void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom);
 
-
 /**
  * Use finite differences to calculate metric coefficients and jacobian at nodes
  * Using the explicit in Eq. 66-73 of the GK coordinates document
@@ -103,10 +105,13 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
  * @param bcartFld output field where cartesian compnents of b modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, 
-  struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld, 
-  struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, struct gkyl_array *dualmagFld, struct gkyl_array *normFld, 
-  struct gkyl_array *jFld, struct gkyl_array* bcartFld, const struct gkyl_range *update_range);
+void gkyl_calc_metric_advance_rz(
+  gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
+  struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc,
+  struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld,
+  struct gkyl_array *dualmagFld, struct gkyl_array *normFld, struct gkyl_array *jFld,
+  struct gkyl_array *bcartFld, const struct gkyl_range *update_range
+);
 
 /**
  * Use finite differences to calculate metric coefficients and jacobian at 
@@ -150,7 +155,7 @@ void gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geomet
  * @param jtotinvFld_nodal output field where jtotinv nodal valued will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct gk_geometry* gk_geom);
+void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom);
 
 /**
  * Use finite differences to calculate metric coefficients and jacobian at interior nodes
@@ -167,7 +172,7 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
  * @param grFld output field where contravariant metric modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance_rz_neut_interior( gkyl_calc_metric *up, struct gk_geometry* gk_geom);
+void gkyl_calc_metric_advance_rz_neut_interior(gkyl_calc_metric *up, struct gk_geometry *gk_geom);
 
 /**
  * Use finite differences to calculate metric coefficients and jacobian at nodes
@@ -189,10 +194,13 @@ void gkyl_calc_metric_advance_rz_neut_interior( gkyl_calc_metric *up, struct gk_
  * @param bcartFld output field where cartesian compnents of b modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance_mirror(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
-   struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld, 
-   struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, struct gkyl_array *dualmagFld, struct gkyl_array *normFld,
-    struct gkyl_array *jFld, struct gkyl_array* bcartFld, const struct gkyl_range *update_range);
+void gkyl_calc_metric_advance_mirror(
+  gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
+  struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc,
+  struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld,
+  struct gkyl_array *dualmagFld, struct gkyl_array *normFld, struct gkyl_array *jFld,
+  struct gkyl_array *bcartFld, const struct gkyl_range *update_range
+);
 
 /**
  * Use finite differences to calculate metric coefficients and jacobian at 
@@ -216,7 +224,13 @@ void gkyl_calc_metric_advance_mirror(gkyl_calc_metric *up, struct gkyl_range *nr
  * @param bcartFld output field where cartesian compnents of b modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance_mirror_interior(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, struct gkyl_array *dualmagFld, struct gkyl_array *normFld, struct gkyl_array *jFld, struct gkyl_array* bcartFld, const struct gkyl_range *update_range);
+void gkyl_calc_metric_advance_mirror_interior(
+  gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
+  struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc,
+  struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld,
+  struct gkyl_array *dualmagFld, struct gkyl_array *normFld, struct gkyl_array *jFld,
+  struct gkyl_array *bcartFld, const struct gkyl_range *update_range
+);
 
 /**
  * Use finite differences to calculate metric coefficients and jacobian at 
@@ -239,14 +253,11 @@ void gkyl_calc_metric_advance_mirror_interior(gkyl_calc_metric *up, struct gkyl_
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
 void gkyl_calc_metric_advance_mirror_surface(
-  gkyl_calc_metric *up, int dir, struct gkyl_range *nrange,
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *ddtheta_nodal,
-  struct gkyl_array *bmag_nodal, double *dzc,
-  struct gkyl_array *jFld_nodal,
-  struct gkyl_array *biFld_nodal,
-  struct gkyl_array *cmagFld_nodal,
-  struct gkyl_array *jtotinvFld_nodal,
-  const struct gkyl_range *update_range);
+  gkyl_calc_metric *up, int dir, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
+  struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc,
+  struct gkyl_array *jFld_nodal, struct gkyl_array *biFld_nodal, struct gkyl_array *cmagFld_nodal,
+  struct gkyl_array *jtotinvFld_nodal, const struct gkyl_range *update_range
+);
 
 /**
  * Calculate cartesian components of bhat
@@ -256,12 +267,14 @@ void gkyl_calc_metric_advance_mirror_surface(
  * @param dualFld input field containing dual vectors DG expansion
  * @param bcartFld output field containing DG expansion of cartesian components of bhat
  */
-void gkyl_calc_metric_advance_bcart(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *biFld,
-   struct gkyl_array *dualFld, struct gkyl_array *bcartFld, const struct gkyl_range *update_range);
+void gkyl_calc_metric_advance_bcart(
+  gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *biFld,
+  struct gkyl_array *dualFld, struct gkyl_array *bcartFld, const struct gkyl_range *update_range
+);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_calc_metric_release(gkyl_calc_metric* up);
+void gkyl_calc_metric_release(gkyl_calc_metric *up);

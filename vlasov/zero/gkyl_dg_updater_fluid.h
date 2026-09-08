@@ -30,9 +30,11 @@ struct gkyl_dg_updater_fluid_tm {
  * 
  * @return New fluid updater object
  */
-gkyl_dg_updater_fluid* gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, 
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, void *aux_inp, bool use_gpu);
+gkyl_dg_updater_fluid *gkyl_dg_updater_fluid_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn,
+  const struct gkyl_wave_geom *geom, void *aux_inp, bool use_gpu
+);
 
 /**
  * Acquire fluid equation object
@@ -41,8 +43,7 @@ gkyl_dg_updater_fluid* gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *gr
  * 
  * @return fluid equation object
  */
-struct gkyl_dg_eqn* 
-gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_fluid* fluid);
+struct gkyl_dg_eqn *gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_fluid *fluid);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -56,9 +57,11 @@ gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_fluid* fluid);
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
-  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
+void gkyl_dg_updater_fluid_advance(
+  gkyl_dg_updater_fluid *fluid, const struct gkyl_range *update_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
+  struct gkyl_array *GKYL_RESTRICT rhs
+);
 
 /**
  * Return total time spent in drag and diffusion terms
@@ -73,4 +76,4 @@ struct gkyl_dg_updater_fluid_tm gkyl_dg_updater_fluid_get_tm(const gkyl_dg_updat
  *
  * @param fluid Updater to delete.
  */
-void gkyl_dg_updater_fluid_release(gkyl_dg_updater_fluid* fluid);
+void gkyl_dg_updater_fluid_release(gkyl_dg_updater_fluid *fluid);

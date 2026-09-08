@@ -6,11 +6,10 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_10m_gem_ctx
-{
+struct amr_10m_gem_ctx {
   // Mathematical constants (dimensionless).
   double pi;
-  
+
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
@@ -27,7 +26,7 @@ struct amr_10m_gem_ctx
 
   double k0_elc; // Electron closure parameter.
   double k0_ion; // Ion closure parameter.
-  
+
   // Derived physical quantities (using normalized code units).
   double psi0; // Reference magnetic scalar potential.
 
@@ -54,8 +53,7 @@ struct amr_10m_gem_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_10m_gem_ctx
-create_ctx(void)
+struct amr_10m_gem_ctx create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -76,7 +74,7 @@ create_ctx(void)
 
   double k0_elc = 5.0; // Electron closure parameter.
   double k0_ion = 5.0; // Ion closure parameter.
-  
+
   // Derived physical quantities (using normalized code units).
   double psi0 = 0.1 * B0; // Reference magnetic scalar potential.
 
@@ -136,14 +134,13 @@ create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
+    .num_failures_max = num_failures_max
   };
 
   return ctx;
 }
 
-void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_10m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -160,7 +157,8 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Te_frac = app->Te_frac;
   double T_tot = app->T_tot;
 
-  double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
+  double sech_sq =
+    (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
 
   double n = n0 * (sech_sq + nb_over_n0); // Total number density.
   double Jz = -(B0 / lambda) * sech_sq; // Total current density (z-direction).
@@ -172,14 +170,19 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   // Set electron mass density.
   fout[0] = rhoe;
   // Set electron momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = momze;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = momze;
   // Set electron pressure tensor.
-  fout[4] = pre; fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = pre; fout[8] = 0.0; fout[9] = pre + momze * momze / rhoe;
+  fout[4] = pre;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = pre;
+  fout[8] = 0.0;
+  fout[9] = pre + momze * momze / rhoe;
 }
 
-void
-evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_10m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -196,7 +199,8 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Ti_frac = app->Ti_frac;
   double T_tot = app->T_tot;
 
-  double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
+  double sech_sq =
+    (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
 
   double n = n0 * (sech_sq + nb_over_n0); // Total number density.
   double Jz = -(B0 / lambda) * sech_sq; // Total current density (z-direction).
@@ -208,14 +212,19 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   // Set ion mass density.
   fout[0] = rhoi;
   // Set ion momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = momzi;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = momzi;
   // Set ion pressure tensor.
-  fout[4] = pri; fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = pri; fout[8] = 0.0; fout[9] = pri + momzi * momzi / rhoi;
+  fout[4] = pri;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = pri;
+  fout[8] = 0.0;
+  fout[9] = pri + momzi * momzi / rhoi;
 }
 
-void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_10m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -232,16 +241,21 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Ly = app->Ly;
 
   double Bxb = B0 * tanh(y / lambda); // Total magnetic field strength.
-  double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) * sin(pi * y / Ly); // Total magnetic field (x-direction).
-  double By = psi0 * (2.0 * pi / Lx) * sin(2.0 * pi * x / Lx) * cos(pi * y / Ly); // Total magnetic field (y-direction).
+  double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) *
+                      sin(pi * y / Ly); // Total magnetic field (x-direction).
+  double By = psi0 * (2.0 * pi / Lx) * sin(2.0 * pi * x / Lx) *
+              cos(pi * y / Ly); // Total magnetic field (y-direction).
   double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  fout[0] = 0.0, fout[1] = 0.0;
+  fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = Bx, fout[4] = By;
+  fout[5] = Bz;
   // Set correction potentials.
-  fout[6] = 0.0; fout[7] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 int main(int argc, char **argv)
@@ -300,7 +314,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
+    .num_failures_max = ctx.num_failures_max
   };
 
   ten_moment_2d_run_double(argc, argv, &init);

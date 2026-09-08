@@ -18,59 +18,64 @@ updater.
 #include <gkyl_dg_bin_ops.h>
 
 // allocate array (filled with zeros)
-static struct gkyl_array*
-mkarr(long nc, long size, bool use_gpu)
+static struct gkyl_array *mkarr(long nc, long size, bool use_gpu)
 {
-  return use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
-    : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
+                   gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
 // Compare the computed result with the average computed with another updater.
-double solution_array_integrate(struct gkyl_rect_grid grid, struct gkyl_basis basis,
-  struct gkyl_range local_ext, struct gkyl_range local, struct gkyl_array *win, struct gkyl_array *fin, bool use_gpu) {
-  
-  double *avgf_ref = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+double solution_array_integrate(
+  struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range local_ext,
+  struct gkyl_range local, struct gkyl_array *win, struct gkyl_array *fin, bool use_gpu
+)
+{
+  double *avgf_ref = use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
 
-  if(win)
+  if (win) {
     gkyl_dg_mul_op_range(&basis, 0, fin, 0, win, 0, fin, &local_ext);
+  }
 
-  struct gkyl_array_integrate* arr_integ = gkyl_array_integrate_new(&grid, &basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
+  struct gkyl_array_integrate *arr_integ =
+    gkyl_array_integrate_new(&grid, &basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
 
   gkyl_array_integrate_advance(arr_integ, fin, 1.0, fin, &local, &local, avgf_ref);
 
   gkyl_array_integrate_release(arr_integ);
 
   double *avgf_ref_ho = gkyl_malloc(sizeof(double));
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(avgf_ref_ho, avgf_ref, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(avgf_ref_ho, avgf_ref, sizeof(double));
-  
+  }
+
   double out = avgf_ref_ho[0];
-  if(use_gpu)
+  if (use_gpu) {
     gkyl_cu_free(avgf_ref);
-  else
+  } else {
     gkyl_free(avgf_ref);
+  }
   gkyl_free(avgf_ref_ho);
   return out;
 }
 
 // test 1x
-void evalFunc_1x(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double lower[] = {-4.0}, upper[] = {6.0}; // Has to match the test below.
-  double Lx = upper[0]-lower[0];
-  double k_x = 2.*M_PI/Lx;
+  double Lx = upper[0] - lower[0];
+  double k_x = 2. * M_PI / Lx;
   double phi = 0.5;
 
-  fout[0] = x*sin(k_x*x + phi);
+  fout[0] = x * sin(k_x * x + phi);
 }
 
-void evalWeight_1x(double t, const double *xn, double* restrict fout, void *ctx)
+void evalWeight_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 1+x*x;
+  fout[0] = 1 + x * x;
 }
 // direct weighted averaging x -> avg
 void test_1x(int poly_order, bool use_gpu)
@@ -98,28 +103,30 @@ void test_1x(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
   // project the target function and weight
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalFunc_1x, NULL);
+  gkyl_proj_on_basis *projf =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalFunc_1x, NULL);
 
   struct gkyl_array *fx_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *fx_c_ho = use_gpu? mkarr(fx_c->ncomp, fx_c->size, false) : gkyl_array_acquire(fx_c);
+  struct gkyl_array *fx_c_ho = use_gpu ? mkarr(fx_c->ncomp, fx_c->size, false) :
+                                         gkyl_array_acquire(fx_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local, fx_c_ho);
   gkyl_array_copy(fx_c, fx_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
-  gkyl_proj_on_basis *projw = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalWeight_1x, NULL);
+  gkyl_proj_on_basis *projw =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalWeight_1x, NULL);
 
   struct gkyl_array *wx_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *wx_c_ho = use_gpu? mkarr(wx_c->ncomp, wx_c->size, false) : gkyl_array_acquire(wx_c);
+  struct gkyl_array *wx_c_ho = use_gpu ? mkarr(wx_c->ncomp, wx_c->size, false) :
+                                         gkyl_array_acquire(wx_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wx_c_ho);
   gkyl_array_copy(wx_c, wx_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
   // compute weighted average
-  int avg_dim_x[] = {1,0,0};
+  int avg_dim_x[] = {1, 0, 0};
   struct gkyl_array_average_inp inp_avg_full = {
     .grid = &grid,
     .basis = basis,
@@ -139,18 +146,19 @@ void test_1x(int poly_order, bool use_gpu)
   gkyl_array_average_release(avg_full);
 
   // fetch and transfer results
-  double * avg_c0 = gkyl_array_fetch(avgf_c, 0);
+  double *avg_c0 = gkyl_array_fetch(avgf_c, 0);
   double *avg_c0_ho = gkyl_malloc(sizeof(double));
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(avg_c0_ho, avg_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(avg_c0_ho, avg_c0, sizeof(double));
+  }
 
   // check results
   double intf_ref = solution_array_integrate(grid, basis, local_ext, local, wx_c, fx_c, use_gpu);
   double intw_ref = solution_array_integrate(grid, basis, local_ext, local, NULL, wx_c, use_gpu);
-  double solution = intf_ref/intw_ref;
-  double result = avg_c0_ho[0]*0.5*sqrt(2);
+  double solution = intf_ref / intw_ref;
+  double result = avg_c0_ho[0] * 0.5 * sqrt(2);
   double rel_err = fabs(result - solution) / fabs(solution);
   TEST_CHECK(gkyl_compare(result, solution, 1e-12));
 
@@ -164,20 +172,20 @@ void test_1x(int poly_order, bool use_gpu)
 }
 
 // tests 2x
-void evalFunc_2x(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double lower[] = {-4., -3.}, upper[] = {6., 5.};
-  double Lx = upper[0]-lower[0], Ly = upper[1]-lower[1];
-  double k_x = 2.*M_PI/Lx, k_y = 2.*M_PI/Ly;
+  double Lx = upper[0] - lower[0], Ly = upper[1] - lower[1];
+  double k_x = 2. * M_PI / Lx, k_y = 2. * M_PI / Ly;
   double phi = 0.5;
-  fout[0] = 1 + sin(k_x*x + k_y*y);
-  fout[0] = x * y * sin(1.5*k_x*x + 0.75*k_y*y + phi) * cos(1.42*k_y*y);
+  fout[0] = 1 + sin(k_x * x + k_y * y);
+  fout[0] = x * y * sin(1.5 * k_x * x + 0.75 * k_y * y + phi) * cos(1.42 * k_y * y);
 }
-void evalWeight_2x(double t, const double *xn, double* restrict fout, void *ctx)
+void evalWeight_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
-  fout[0] = 1 + x*x + y*y;
+  fout[0] = 1 + x * x + y * y;
 }
 
 // one step weighted averaging x,y -> avg
@@ -206,30 +214,32 @@ void test_2x_1step(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
   // project the target and weight functions
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
+  gkyl_proj_on_basis *projf =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
 
   struct gkyl_array *fxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *fxy_c_ho = use_gpu? mkarr(fxy_c->ncomp, fxy_c->size, false) : gkyl_array_acquire(fxy_c);
+  struct gkyl_array *fxy_c_ho = use_gpu ? mkarr(fxy_c->ncomp, fxy_c->size, false) :
+                                          gkyl_array_acquire(fxy_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxy_c_ho);
   gkyl_array_copy(fxy_c, fxy_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
-  gkyl_proj_on_basis *projw = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
+  gkyl_proj_on_basis *projw =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
 
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(wxy_c->ncomp, wxy_c->size, false) : gkyl_array_acquire(wxy_c);
+  struct gkyl_array *wxy_c_ho = use_gpu ? mkarr(wxy_c->ncomp, wxy_c->size, false) :
+                                          gkyl_array_acquire(wxy_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxy_c_ho);
   gkyl_array_copy(wxy_c, wxy_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
   // perform the one step average
-  int avg_dim_xy[] = {1,1,0};
+  int avg_dim_xy[] = {1, 1, 0};
   struct gkyl_array_average_inp inp_avg_xy = {
     .grid = &grid,
     .basis = basis,
@@ -251,16 +261,16 @@ void test_2x_1step(int poly_order, bool use_gpu)
   // check results
   double *avgf_c0 = gkyl_array_fetch(avgf_c, 0);
   double avgf_c0_ho[1];
-  if (use_gpu){
+  if (use_gpu) {
     gkyl_cu_memcpy(avgf_c0_ho, avgf_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  } else{
+  } else {
     memcpy(avgf_c0_ho, avgf_c0, sizeof(double));
   }
-  double result = avgf_c0_ho[0] * sqrt(2)/2;
+  double result = avgf_c0_ho[0] * sqrt(2) / 2;
 
   double intwf_ref = solution_array_integrate(grid, basis, local_ext, local, wxy_c, fxy_c, use_gpu);
-  double intw_ref  = solution_array_integrate(grid, basis, local_ext, local, NULL, wxy_c, use_gpu);
-  double solution  = intwf_ref/intw_ref;
+  double intw_ref = solution_array_integrate(grid, basis, local_ext, local, NULL, wxy_c, use_gpu);
+  double solution = intwf_ref / intw_ref;
 
   double rel_err = fabs(result - solution) / fabs(solution);
   TEST_CHECK(gkyl_compare(rel_err, 0, 1e-12));
@@ -287,7 +297,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   struct gkyl_rect_grid grid_y;
   gkyl_rect_grid_init(&grid_y, 1, &lower[1], &upper[1], &cells[1]);
-  
+
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
@@ -296,7 +306,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   struct gkyl_basis red_basis;
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
-  
+
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -308,19 +318,20 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
   gkyl_range_init(&red_local, 1, &local.lower[0], &local.lower[0]);
   gkyl_range_init(&red_local_ext, 1, &local_ext.lower[0], &local_ext.lower[0]);
 
-  gkyl_proj_on_basis *projw = gkyl_proj_on_basis_new(
-    &grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
+  gkyl_proj_on_basis *projw =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
 
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(wxy_c->ncomp, wxy_c->size, false) : gkyl_array_acquire(wxy_c);
+  struct gkyl_array *wxy_c_ho = use_gpu ? mkarr(wxy_c->ncomp, wxy_c->size, false) :
+                                          gkyl_array_acquire(wxy_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxy_c_ho);
   gkyl_array_copy(wxy_c, wxy_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
   // integration over x only, (x,y) to (y)
-  int int_dim_x[] = {1,0,0};
+  int int_dim_x[] = {1, 0, 0};
   struct gkyl_array_average_inp inp_int_x = {
     .grid = &grid,
     .basis = basis,
@@ -340,7 +351,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_x);
 
   // integration over remaining dimensions (y)
-  int int_dim_y[] = {1,0,0};
+  int int_dim_y[] = {1, 0, 0};
   struct gkyl_array_average_inp inp_int_y = {
     .grid = &grid_y,
     .basis = basis_y,
@@ -361,17 +372,19 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   // multiply by the volume to get the integral
   double volume = 1;
-  for (int d = 0; d < ndim; d++)
+  for (int d = 0; d < ndim; d++) {
     volume *= grid.upper[d] - grid.lower[d];
-  gkyl_array_scale(intw_c,volume);
+  }
+  gkyl_array_scale(intw_c, volume);
 
   // retrieve the computed average from the device (if applicable)
   double *intw_c0 = gkyl_array_fetch(intw_c, 0);
   double intw_c0_ho[1];
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intw_c0_ho, intw_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intw_c0_ho, intw_c0, sizeof(double));
+  }
 
   double result = intw_c0_ho[0];
 
@@ -424,29 +437,31 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
   // project the target function and weight
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
+  gkyl_proj_on_basis *projf =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
 
   struct gkyl_array *fxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *fxy_c_ho = use_gpu? mkarr(fxy_c->ncomp, fxy_c->size, false) : gkyl_array_acquire(fxy_c);
+  struct gkyl_array *fxy_c_ho = use_gpu ? mkarr(fxy_c->ncomp, fxy_c->size, false) :
+                                          gkyl_array_acquire(fxy_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxy_c_ho);
-  gkyl_array_copy(fxy_c,fxy_c_ho);
+  gkyl_array_copy(fxy_c, fxy_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
-  gkyl_proj_on_basis *projw = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
+  gkyl_proj_on_basis *projw =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
 
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(wxy_c->ncomp, wxy_c->size, false) : gkyl_array_acquire(wxy_c);
+  struct gkyl_array *wxy_c_ho = use_gpu ? mkarr(wxy_c->ncomp, wxy_c->size, false) :
+                                          gkyl_array_acquire(wxy_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxy_c_ho);
-  gkyl_array_copy(wxy_c,wxy_c_ho);
+  gkyl_array_copy(wxy_c, wxy_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
   // create and run the array average updater to average on x only
-  int avg_dim_x[] = {1,0,0};
+  int avg_dim_x[] = {1, 0, 0};
   struct gkyl_array_average_inp inp_avg_x = {
     .grid = &grid,
     .basis = basis,
@@ -461,8 +476,11 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   struct gkyl_array *fy_c = mkarr(basis_y.num_basis, local_y_ext.volume, use_gpu);
 
   struct gkyl_array_average *avg_x = gkyl_array_average_inew(&inp_avg_x);
-  gkyl_array_average_advance(avg_x, fxy_c, fy_c); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx / int[w(x,y)]dx
-  
+  gkyl_array_average_advance(
+    avg_x, fxy_c,
+    fy_c
+  ); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx / int[w(x,y)]dx
+
   gkyl_array_average_release(avg_x);
 
   // obtain x integral of the weight too
@@ -485,10 +503,13 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_x);
 
   // we now remove manually the denominator
-  gkyl_dg_mul_op_range(&basis_y, 0, fy_c, 0, fy_c, 0, wy_c, &local_y); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx
+  gkyl_dg_mul_op_range(
+    &basis_y, 0, fy_c, 0, fy_c, 0, wy_c,
+    &local_y
+  ); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx
 
   // average over y now
-  int avg_dim_y[] = {1,0,0};
+  int avg_dim_y[] = {1, 0, 0};
   struct gkyl_array_average_inp inp_int_y = {
     .grid = &grid_y,
     .basis = basis_y,
@@ -503,7 +524,10 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   struct gkyl_array_average *int_y = gkyl_array_average_inew(&inp_int_y);
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
-  gkyl_array_average_advance(int_y, fy_c, intf_c); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dx]dy
+  gkyl_array_average_advance(
+    int_y, fy_c,
+    intf_c
+  ); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dx]dy
 
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_y, wy_c, intw_c); // intw_c is DG coeff of int[int[w(x,y)]dx]dy
@@ -511,27 +535,29 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_y);
 
   // retrieve the computed average from the device (if applicable)
-  double *intf_c0  = gkyl_array_fetch(intf_c, 0);
+  double *intf_c0 = gkyl_array_fetch(intf_c, 0);
   double intf_c0_ho[1];
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intf_c0_ho, intf_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intf_c0_ho, intf_c0, sizeof(double));
+  }
 
   double *intw_c0 = gkyl_array_fetch(intw_c, 0);
   double intw_c0_ho[1];
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intw_c0_ho, intw_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intw_c0_ho, intw_c0, sizeof(double));
+  }
 
   double integral_wf = intf_c0_ho[0];
   double integral_w = intw_c0_ho[0];
-  double result = integral_wf/integral_w;
+  double result = integral_wf / integral_w;
 
   double intwf_ref = solution_array_integrate(grid, basis, local_ext, local, wxy_c, fxy_c, use_gpu);
-  double intw_ref  = solution_array_integrate(grid, basis, local_ext, local, NULL, wxy_c, use_gpu);
-  double solution  = intwf_ref/intw_ref;
+  double intw_ref = solution_array_integrate(grid, basis, local_ext, local, NULL, wxy_c, use_gpu);
+  double solution = intwf_ref / intw_ref;
 
   double rel_err = fabs(result - solution) / fabs(solution);
 
@@ -587,29 +613,31 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
   // project the target function and weight
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
-    &grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
+  gkyl_proj_on_basis *projf =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
 
   struct gkyl_array *fxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *fxy_c_ho = use_gpu? mkarr(fxy_c->ncomp, fxy_c->size, false) : gkyl_array_acquire(fxy_c);
+  struct gkyl_array *fxy_c_ho = use_gpu ? mkarr(fxy_c->ncomp, fxy_c->size, false) :
+                                          gkyl_array_acquire(fxy_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxy_c_ho);
-  gkyl_array_copy(fxy_c,fxy_c_ho);
+  gkyl_array_copy(fxy_c, fxy_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
-  gkyl_proj_on_basis *projw = gkyl_proj_on_basis_new(
-    &grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
+  gkyl_proj_on_basis *projw =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
 
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(wxy_c->ncomp, wxy_c->size, false) : gkyl_array_acquire(wxy_c);
+  struct gkyl_array *wxy_c_ho = use_gpu ? mkarr(wxy_c->ncomp, wxy_c->size, false) :
+                                          gkyl_array_acquire(wxy_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxy_c_ho);
-  gkyl_array_copy(wxy_c,wxy_c_ho);
+  gkyl_array_copy(wxy_c, wxy_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
   // create and run the array average updater to average on y only
-  int avg_dim_y[] = {0,1,0};
+  int avg_dim_y[] = {0, 1, 0};
   struct gkyl_array_average_inp inp_avg_x = {
     .grid = &grid,
     .basis = basis,
@@ -625,7 +653,10 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 
   struct gkyl_array *fx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
 
-  gkyl_array_average_advance(avg_x, fxy_c, fx_c); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx / int[w(x,y)]dx
+  gkyl_array_average_advance(
+    avg_x, fxy_c,
+    fx_c
+  ); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx / int[w(x,y)]dx
 
   gkyl_array_average_release(avg_x);
 
@@ -649,10 +680,13 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_x);
 
   // we now remove manually the denominator
-  gkyl_dg_mul_op_range(&basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx
+  gkyl_dg_mul_op_range(
+    &basis_x, 0, fx_c, 0, fx_c, 0, wx_c,
+    &local_x
+  ); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx
 
   // create and run the array average updater to integrate on y
-  int avg_dim_x[] = {1,0,0};
+  int avg_dim_x[] = {1, 0, 0};
   struct gkyl_array_average_inp inp_int_y = {
     .grid = &grid_x,
     .basis = basis_x,
@@ -667,7 +701,10 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   struct gkyl_array_average *int_y = gkyl_array_average_inew(&inp_int_y);
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
-  gkyl_array_average_advance(int_y, fx_c, intf_c); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dx]dy
+  gkyl_array_average_advance(
+    int_y, fx_c,
+    intf_c
+  ); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dx]dy
 
   // obtain full integral of weight too
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
@@ -677,26 +714,28 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 
   // check results two step avg
   double intf_c0_ho[1];
-  double *intf_c0  = gkyl_array_fetch(intf_c, 0);
-  if (use_gpu)
+  double *intf_c0 = gkyl_array_fetch(intf_c, 0);
+  if (use_gpu) {
     gkyl_cu_memcpy(intf_c0_ho, intf_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intf_c0_ho, intf_c0, sizeof(double));
+  }
 
   double intw_c0_ho[1];
   double *intw_c0 = gkyl_array_fetch(intw_c, 0);
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intw_c0_ho, intw_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intw_c0_ho, intw_c0, sizeof(double));
+  }
 
   double integral_wf = intf_c0_ho[0];
   double integral_w = intw_c0_ho[0];
-  double result = integral_wf/integral_w;
+  double result = integral_wf / integral_w;
 
   double intwf_ref = solution_array_integrate(grid, basis, local_ext, local, wxy_c, fxy_c, use_gpu);
-  double intw_ref  = solution_array_integrate(grid, basis, local_ext, local, NULL, wxy_c, use_gpu);
-  double solution  = intwf_ref/intw_ref;
+  double intw_ref = solution_array_integrate(grid, basis, local_ext, local, NULL, wxy_c, use_gpu);
+  double solution = intwf_ref / intw_ref;
 
   double rel_err = fabs(result - solution) / fabs(solution);
 
@@ -714,27 +753,28 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 }
 
 // test 3x
-void evalFunc_3x(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   double z = xn[2];
   double lower[] = {-4., -3., -2.}, upper[] = {6., 5., 4.};
-  double Lx = upper[0]-lower[0];
-  double Ly = upper[1]-lower[1];
-  double Lz = upper[2]-lower[2];
-  double k_x = 2.*M_PI/Lx;
-  double k_y = 2.*M_PI/Ly;
-  double k_z = 2.*M_PI/Lz;
+  double Lx = upper[0] - lower[0];
+  double Ly = upper[1] - lower[1];
+  double Lz = upper[2] - lower[2];
+  double k_x = 2. * M_PI / Lx;
+  double k_y = 2. * M_PI / Ly;
+  double k_z = 2. * M_PI / Lz;
   double phi = 0.5;
-  fout[0] = x * y * z * sin(1.5*k_x*x + 0.75*k_y*y + 0.5*k_z*z + phi) * cos(1.42*k_y*y) * cos(4.20*k_z*z);
+  fout[0] = x * y * z * sin(1.5 * k_x * x + 0.75 * k_y * y + 0.5 * k_z * z + phi) *
+            cos(1.42 * k_y * y) * cos(4.20 * k_z * z);
 }
-void evalWeight_3x(double t, const double *xn, double* restrict fout, void *ctx)
+void evalWeight_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   double z = xn[2];
-  fout[0] = 1 + x*x + y*y + z*z;
+  fout[0] = 1 + x * x + y * y + z * z;
 }
 // two steps average x,y,z -> y,z -> avg
 void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
@@ -759,7 +799,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   struct gkyl_rect_grid grid_yz;
   double yz_grid_lower[] = {grid.lower[1], grid.lower[2]};
   double yz_grid_upper[] = {grid.upper[1], grid.upper[2]};
-  int    yz_grid_cells[] = {grid.cells[1], grid.cells[2]};
+  int yz_grid_cells[] = {grid.cells[1], grid.cells[2]};
   gkyl_rect_grid_init(&grid_yz, 2, yz_grid_lower, yz_grid_upper, yz_grid_cells);
 
   struct gkyl_range local_yz, local_yz_ext;
@@ -778,28 +818,30 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
   // project the target function and weight
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalFunc_3x, NULL);
+  gkyl_proj_on_basis *projf =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalFunc_3x, NULL);
 
   struct gkyl_array *fxyz_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *fxyz_c_ho = use_gpu? mkarr(fxyz_c->ncomp, fxyz_c->size, false) : gkyl_array_acquire(fxyz_c);
+  struct gkyl_array *fxyz_c_ho = use_gpu ? mkarr(fxyz_c->ncomp, fxyz_c->size, false) :
+                                           gkyl_array_acquire(fxyz_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxyz_c_ho);
-  gkyl_array_copy(fxyz_c,fxyz_c_ho);
+  gkyl_array_copy(fxyz_c, fxyz_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
-  gkyl_proj_on_basis *projw = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalWeight_3x, NULL);
+  gkyl_proj_on_basis *projw =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalWeight_3x, NULL);
 
   struct gkyl_array *wxyz_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *wxyz_c_ho = use_gpu? mkarr(wxyz_c->ncomp, wxyz_c->size, false) : gkyl_array_acquire(wxyz_c);
+  struct gkyl_array *wxyz_c_ho = use_gpu ? mkarr(wxyz_c->ncomp, wxyz_c->size, false) :
+                                           gkyl_array_acquire(wxyz_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxyz_c_ho);
-  gkyl_array_copy(wxyz_c,wxyz_c_ho);
+  gkyl_array_copy(wxyz_c, wxyz_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
   // create and run the array average updater to average on x only
-  int avg_dim_x[] = {1,0,0};
+  int avg_dim_x[] = {1, 0, 0};
   struct gkyl_array_average_inp inp_avg_xyz_to_yz = {
     .grid = &grid,
     .basis = basis,
@@ -814,7 +856,9 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   struct gkyl_array_average *avg_xyz_to_yz = gkyl_array_average_inew(&inp_avg_xyz_to_yz);
 
   struct gkyl_array *fyz_c = mkarr(basis_yz.num_basis, local_yz_ext.volume, use_gpu);
-  gkyl_array_average_advance(avg_xyz_to_yz, fxyz_c, fyz_c); // fy_c is DG coeff of int[w(x,y,z) f(x,y,z)]dx / int[w(x,y,z)]dx
+  gkyl_array_average_advance(
+    avg_xyz_to_yz, fxyz_c, fyz_c
+  ); // fy_c is DG coeff of int[w(x,y,z) f(x,y,z)]dx / int[w(x,y,z)]dx
   gkyl_array_average_release(avg_xyz_to_yz);
 
   // obtain x integral of the weight too
@@ -836,10 +880,13 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_xyz_to_yz);
 
   // we now remove manually the denominator
-  gkyl_dg_mul_op_range(&basis_yz, 0, fyz_c, 0, fyz_c, 0, wyz_c, &local_yz); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
+  gkyl_dg_mul_op_range(
+    &basis_yz, 0, fyz_c, 0, fyz_c, 0, wyz_c,
+    &local_yz
+  ); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
   // create and run the array average updater to average on y and z (first second dim)
-  int avg_dim_yz[] = {1,1,0};
+  int avg_dim_yz[] = {1, 1, 0};
   struct gkyl_array_average_inp inp_int_yz = {
     .grid = &grid_yz,
     .basis = basis_yz,
@@ -854,7 +901,10 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   struct gkyl_array_average *int_yz = gkyl_array_average_inew(&inp_int_yz);
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
-  gkyl_array_average_advance(int_yz, fyz_c, intf_c); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dy]dx
+  gkyl_array_average_advance(
+    int_yz, fyz_c,
+    intf_c
+  ); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dy]dx
 
   // obtain full integral of weight too
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
@@ -863,27 +913,30 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_yz);
 
   // check results
-  double *intf_c0  = gkyl_array_fetch(intf_c, 0);
+  double *intf_c0 = gkyl_array_fetch(intf_c, 0);
   double *intf_c0_ho = gkyl_malloc(sizeof(double));
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intf_c0_ho, intf_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intf_c0_ho, intf_c0, sizeof(double));
+  }
 
   double *intw_c0 = gkyl_array_fetch(intw_c, 0);
   double *intw_c0_ho = gkyl_malloc(sizeof(double));
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intw_c0_ho, intw_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intw_c0_ho, intw_c0, sizeof(double));
+  }
 
   double integral_wf = intf_c0_ho[0];
   double integral_w = intw_c0_ho[0];
-  double result = integral_wf/integral_w;
+  double result = integral_wf / integral_w;
 
-  double intwf_ref = solution_array_integrate(grid, basis, local_ext, local, wxyz_c, fxyz_c, use_gpu);
-  double intw_ref  = solution_array_integrate(grid, basis, local_ext, local, NULL, wxyz_c, use_gpu);
-  double solution  = intwf_ref/intw_ref;
+  double intwf_ref =
+    solution_array_integrate(grid, basis, local_ext, local, wxyz_c, fxyz_c, use_gpu);
+  double intw_ref = solution_array_integrate(grid, basis, local_ext, local, NULL, wxyz_c, use_gpu);
+  double solution = intwf_ref / intw_ref;
 
   double rel_err = fabs(result - solution) / fabs(solution);
 
@@ -940,29 +993,30 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
   // project the target function and weight
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalFunc_3x, NULL);
+  gkyl_proj_on_basis *projf =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalFunc_3x, NULL);
 
   struct gkyl_array *fxyz_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *fxyz_c_ho = use_gpu? mkarr(fxyz_c->ncomp, fxyz_c->size, false) : gkyl_array_acquire(fxyz_c);
+  struct gkyl_array *fxyz_c_ho = use_gpu ? mkarr(fxyz_c->ncomp, fxyz_c->size, false) :
+                                           gkyl_array_acquire(fxyz_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxyz_c_ho);
-  gkyl_array_copy(fxyz_c,fxyz_c_ho);
+  gkyl_array_copy(fxyz_c, fxyz_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
-  gkyl_proj_on_basis *projw = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalWeight_3x, NULL);
+  gkyl_proj_on_basis *projw =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalWeight_3x, NULL);
 
   struct gkyl_array *wxyz_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *wxyz_c_ho = use_gpu? mkarr(wxyz_c->ncomp, wxyz_c->size, false) : gkyl_array_acquire(wxyz_c);
+  struct gkyl_array *wxyz_c_ho = use_gpu ? mkarr(wxyz_c->ncomp, wxyz_c->size, false) :
+                                           gkyl_array_acquire(wxyz_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxyz_c_ho);
-  gkyl_array_copy(wxyz_c,wxyz_c_ho);
+  gkyl_array_copy(wxyz_c, wxyz_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
-
   // create and run the array average updater to average y and z
-  int avg_dim_yz[] = {0,1,1};
+  int avg_dim_yz[] = {0, 1, 1};
   struct gkyl_array_average_inp inp_avg_xyz_to_x = {
     .grid = &grid,
     .basis = basis,
@@ -977,7 +1031,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   struct gkyl_array_average *avg_xyz_to_x = gkyl_array_average_inew(&inp_avg_xyz_to_x);
 
   struct gkyl_array *fx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
-  gkyl_array_average_advance(avg_xyz_to_x, fxyz_c, fx_c); // 
+  gkyl_array_average_advance(avg_xyz_to_x, fxyz_c, fx_c); //
 
   gkyl_array_average_release(avg_xyz_to_x);
 
@@ -1001,10 +1055,13 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_xyz_to_x);
 
   // remove manually the denominator
-  gkyl_dg_mul_op_range(&basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
+  gkyl_dg_mul_op_range(
+    &basis_x, 0, fx_c, 0, fx_c, 0, wx_c,
+    &local_x
+  ); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
   // create and run the array average updater to average on x
-  int avg_dim_x[] = {1,0,0};
+  int avg_dim_x[] = {1, 0, 0};
   struct gkyl_array_average_inp inp_int_x = {
     .grid = &grid_x,
     .basis = basis_x,
@@ -1019,36 +1076,45 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   struct gkyl_array_average *int_x = gkyl_array_average_inew(&inp_int_x);
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
-  gkyl_array_average_advance(int_x, fx_c, intf_c); // intf_c is DG coeff of int[int[int[w(x,y) f(x,y)]dy]dz]dx
+  gkyl_array_average_advance(
+    int_x, fx_c,
+    intf_c
+  ); // intf_c is DG coeff of int[int[int[w(x,y) f(x,y)]dy]dz]dx
 
   // obtain full integral of weight too
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
-  gkyl_array_average_advance(int_x, wx_c, intw_c); // intw_c is DG coeff of int[int[int[w(x,y)]dy]dz]dx
+  gkyl_array_average_advance(
+    int_x, wx_c,
+    intw_c
+  ); // intw_c is DG coeff of int[int[int[w(x,y)]dy]dz]dx
 
   gkyl_array_average_release(int_x);
 
   // check results two step avg
-  double *intf_c0  = gkyl_array_fetch(intf_c, 0);
+  double *intf_c0 = gkyl_array_fetch(intf_c, 0);
   double *intf_c0_ho = gkyl_malloc(sizeof(double));
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intf_c0_ho, intf_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intf_c0_ho, intf_c0, sizeof(double));
+  }
 
   double *intw_c0 = gkyl_array_fetch(intw_c, 0);
   double *intw_c0_ho = gkyl_malloc(sizeof(double));
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_cu_memcpy(intw_c0_ho, intw_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  } else {
     memcpy(intw_c0_ho, intw_c0, sizeof(double));
+  }
 
   double integral_wf = intf_c0_ho[0];
   double integral_w = intw_c0_ho[0];
-  double result = integral_wf/integral_w;
+  double result = integral_wf / integral_w;
 
-  double intwf_ref = solution_array_integrate(grid, basis, local_ext, local, wxyz_c, fxyz_c, use_gpu);
-  double intw_ref  = solution_array_integrate(grid, basis, local_ext, local, NULL, wxyz_c, use_gpu);
-  double solution  = intwf_ref/intw_ref;
+  double intwf_ref =
+    solution_array_integrate(grid, basis, local_ext, local, wxyz_c, fxyz_c, use_gpu);
+  double intw_ref = solution_array_integrate(grid, basis, local_ext, local, NULL, wxyz_c, use_gpu);
+  double solution = intwf_ref / intw_ref;
 
   double rel_err = fabs(result - solution) / fabs(solution);
 
@@ -1069,13 +1135,14 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 
 void test_array_average_1x_ho()
 {
-  for (int p = 1; p<=2; p++)
-   test_1x(p, false);
+  for (int p = 1; p <= 2; p++) {
+    test_1x(p, false);
+  }
 }
 
 void test_array_average_2x_ho()
 {
-  for (int p = 1; p<=2; p++) {
+  for (int p = 1; p <= 2; p++) {
     test_2x_1step(p, false);
     test_2x_intx_inty(p, false);
     test_2x_avgx_avgy(p, false);
@@ -1085,7 +1152,7 @@ void test_array_average_2x_ho()
 
 void test_array_average_3x_ho()
 {
-  for (int p = 1; p<=2; p++) {
+  for (int p = 1; p <= 2; p++) {
     test_3x_avgx_avgyz(p, false);
     test_3x_avgyz_avgx(p, false);
   }
@@ -1094,13 +1161,14 @@ void test_array_average_3x_ho()
 #ifdef GKYL_HAVE_CUDA
 void test_array_average_1x_dev()
 {
-  for (int p = 1; p<=2; p++)
-   test_1x(p, true);
+  for (int p = 1; p <= 2; p++) {
+    test_1x(p, true);
+  }
 }
 
 void test_array_average_2x_dev()
 {
-  for (int p = 1; p<=2; p++) {
+  for (int p = 1; p <= 2; p++) {
     test_2x_1step(p, true);
     test_2x_intx_inty(p, true);
     test_2x_avgx_avgy(p, true);
@@ -1110,7 +1178,7 @@ void test_array_average_2x_dev()
 
 void test_array_average_3x_dev()
 {
-  for (int p = 1; p<=2; p++) {
+  for (int p = 1; p <= 2; p++) {
     test_3x_avgx_avgyz(p, true);
     test_3x_avgyz_avgx(p, true);
   }
@@ -1119,13 +1187,13 @@ void test_array_average_3x_dev()
 #endif
 
 TEST_LIST = {
-  { "test_array_average_1x_ho", test_array_average_1x_ho },
-  { "test_array_average_2x_ho", test_array_average_2x_ho },
-  { "test_array_average_3x_ho", test_array_average_3x_ho },
+  {"test_array_average_1x_ho", test_array_average_1x_ho},
+  {"test_array_average_2x_ho", test_array_average_2x_ho},
+  {"test_array_average_3x_ho", test_array_average_3x_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_array_average_1x_dev", test_array_average_1x_dev },
-  { "test_array_average_2x_dev", test_array_average_2x_dev },
-  { "test_array_average_3x_dev", test_array_average_3x_dev },
+  {"test_array_average_1x_dev", test_array_average_1x_dev},
+  {"test_array_average_2x_dev", test_array_average_2x_dev},
+  {"test_array_average_3x_dev", test_array_average_3x_dev},
 #endif
-  { NULL, NULL },
+  {NULL, NULL}
 };

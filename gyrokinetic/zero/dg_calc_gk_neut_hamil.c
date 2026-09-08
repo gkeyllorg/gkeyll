@@ -8,16 +8,15 @@
 #include <gkyl_dg_calc_gk_neut_hamil_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_gk_neut_hamil*
-gkyl_dg_calc_gk_neut_hamil_new(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *basis, int cdim, bool use_gpu)
+gkyl_dg_calc_gk_neut_hamil *gkyl_dg_calc_gk_neut_hamil_new(
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *basis, int cdim, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_dg_calc_gk_neut_hamil_cu_dev_new(phase_grid,
-						 basis, cdim);
-  } 
-#endif     
+  if (use_gpu) {
+    return gkyl_dg_calc_gk_neut_hamil_cu_dev_new(phase_grid, basis, cdim);
+  }
+#endif
   gkyl_dg_calc_gk_neut_hamil *up = gkyl_malloc(sizeof(*up));
 
   up->phase_grid = *phase_grid;
@@ -30,13 +29,14 @@ gkyl_dg_calc_gk_neut_hamil_new(const struct gkyl_rect_grid *phase_grid,
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->on_dev = up; // self-reference on host
-  
+
   return up;
 }
 
-void gkyl_dg_calc_gk_neut_hamil_calc(struct gkyl_dg_calc_gk_neut_hamil *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array* gij, struct gkyl_array* hamil)
+void gkyl_dg_calc_gk_neut_hamil_calc(
+  struct gkyl_dg_calc_gk_neut_hamil *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_array *gij, struct gkyl_array *hamil
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(gij)) {
@@ -45,7 +45,7 @@ void gkyl_dg_calc_gk_neut_hamil_calc(struct gkyl_dg_calc_gk_neut_hamil *up,
 #endif
 
   // Cell center array
-  double xc[GKYL_MAX_DIM];  
+  double xc[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
   while (gkyl_range_iter_next(&iter)) {

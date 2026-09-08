@@ -18,7 +18,7 @@ struct gkyl_mat {
   size_t nr, nc; // Number of rows, columns
   double *data; // Pointer to data
 
-  uint32_t flags;  
+  uint32_t flags;
   struct gkyl_ref_count ref_count;
   struct gkyl_mat *on_dev; // pointer to itself or device data
 };
@@ -32,16 +32,16 @@ struct gkyl_nmat {
   double *data; // Pointer to data
   double **mptr; // pointers to start of each sub-matrix
 
-  uint32_t flags;  
+  uint32_t flags;
   struct gkyl_ref_count ref_count;
-  struct  gkyl_nmat *on_dev; // pointer to itself or device data
+  struct gkyl_nmat *on_dev; // pointer to itself or device data
 };
 
 // Type for storing preallocating memory needed in various batch
 // operations
 typedef struct gkyl_nmat_mem gkyl_nmat_mem;
 
-// Type for storing preallocating memory needed specificially for 
+// Type for storing preallocating memory needed specificially for
 // mat_mm_array
 typedef struct gkyl_mat_mm_array_mem gkyl_mat_mm_array_mem;
 
@@ -54,79 +54,69 @@ typedef struct gkyl_mat_mm_array_mem gkyl_mat_mm_array_mem;
  * @param val Initial value
  * @return Pointer to new matrix.
  */
-struct gkyl_mat* gkyl_mat_new(size_t nr, size_t nc, double val);
+struct gkyl_mat *gkyl_mat_new(size_t nr, size_t nc, double val);
 
 /**
  * Clone matrix.
  */
-struct gkyl_mat* gkyl_mat_clone(const struct gkyl_mat *in);
+struct gkyl_mat *gkyl_mat_clone(const struct gkyl_mat *in);
 
 /**
  * Set value in matrix.
  */
-GKYL_CU_DH
-static inline void
-gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
+GKYL_CU_DH static inline void gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
 {
-  mat->data[c*mat->nr+r] = val;
+  mat->data[c * mat->nr + r] = val;
 }
 
 /**
  * Increase value in matrix.
  */
-GKYL_CU_DH
-static inline void
-gkyl_mat_inc(struct gkyl_mat *mat, size_t r, size_t c, double val)
+GKYL_CU_DH static inline void gkyl_mat_inc(struct gkyl_mat *mat, size_t r, size_t c, double val)
 {
-  mat->data[c*mat->nr+r] += val;
+  mat->data[c * mat->nr + r] += val;
 }
 
 /**
  * Get value from matrix.
  */
-GKYL_CU_DH
-static inline double
-gkyl_mat_get(const struct gkyl_mat *mat, size_t r, size_t c)
+GKYL_CU_DH static inline double gkyl_mat_get(const struct gkyl_mat *mat, size_t r, size_t c)
 {
-  return mat->data[c*mat->nr+r];
+  return mat->data[c * mat->nr + r];
 }
 
 /**
  * Get column of matrix as const pointer.
  */
-GKYL_CU_DH
-static inline const double*
-gkyl_mat_get_ccol(const struct gkyl_mat *mat, size_t c)
+GKYL_CU_DH static inline const double *gkyl_mat_get_ccol(const struct gkyl_mat *mat, size_t c)
 {
-  return mat->data+c*mat->nr;
+  return mat->data + c * mat->nr;
 }
 
 /**
  * Get column of matrix as pointer.
  */
-GKYL_CU_DH
-static inline double*
-gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
+GKYL_CU_DH static inline double *gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
 {
-  return mat->data+c*mat->nr;
+  return mat->data + c * mat->nr;
 }
 
 /**
  * Set all elements of matrix to specified value. Returns pointer to @a mat.
  */
-GKYL_CU_DH
-static inline struct gkyl_mat*
-gkyl_mat_clear(struct gkyl_mat *mat, double val)
+GKYL_CU_DH static inline struct gkyl_mat *gkyl_mat_clear(struct gkyl_mat *mat, double val)
 {
-  for (size_t i=0; i<mat->nr*mat->nc; ++i) mat->data[i] = val;
+  for (size_t i = 0; i < mat->nr * mat->nc; ++i) {
+    mat->data[i] = val;
+  }
   return mat;
 }
 
 /**
  * Set all elements on diagonal to specified value. All other elements
  * are set to 0.0. Returns pointer to @a mat.
- */ 
-struct gkyl_mat* gkyl_mat_diag(struct gkyl_mat *mat, double val);
+ */
+struct gkyl_mat *gkyl_mat_diag(struct gkyl_mat *mat, double val);
 
 /**
  * Write matrix to file. Output is in Maxima matrix format
@@ -143,9 +133,10 @@ void gkyl_mat_show(const char *name, FILE *fp, const struct gkyl_mat *mat);
  *
  * C is returned
  */
-struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
-  enum gkyl_mat_trans transa, const struct gkyl_mat *A,
-  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *, bool on_gpu);
+struct gkyl_mat *gkyl_mat_mm(
+  double alpha, double beta, enum gkyl_mat_trans transa, const struct gkyl_mat *A,
+  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *, bool on_gpu
+);
 
 /**
  * Computes matrix-vector product:
@@ -157,9 +148,10 @@ struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
  *
  * C is returned
  */
-struct gkyl_mat* gkyl_mat_mv(double alpha, double beta,
-  enum gkyl_mat_trans transa, const struct gkyl_mat *A,
-  const struct gkyl_mat *x, struct gkyl_mat *y);
+struct gkyl_mat *gkyl_mat_mv(
+  double alpha, double beta, enum gkyl_mat_trans transa, const struct gkyl_mat *A,
+  const struct gkyl_mat *x, struct gkyl_mat *y
+);
 
 /**
  * Does a batch of matrix-vector products:
@@ -173,9 +165,10 @@ struct gkyl_mat* gkyl_mat_mv(double alpha, double beta,
  * @param x batch of vectors to be multiplied
  * @param y batch of output vectors
  */
-void
-gkyl_nmat_mv(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A,
-  struct gkyl_nmat *x, struct gkyl_nmat *y);
+void gkyl_nmat_mv(
+  double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A, struct gkyl_nmat *x,
+  struct gkyl_nmat *y
+);
 
 /**
  * Does a batch of matrix-matrix products:
@@ -190,9 +183,10 @@ gkyl_nmat_mv(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_
  * @param B batch of matrices to be multiplied
  * @param C batch f output matrices
  */
-void
-gkyl_nmat_mm(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A,
-  enum gkyl_mat_trans transb, struct gkyl_nmat *B, struct gkyl_nmat *C);
+void gkyl_nmat_mm(
+  double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A,
+  enum gkyl_mat_trans transb, struct gkyl_nmat *B, struct gkyl_nmat *C
+);
 
 /**
  * Solve system of linear equations using LU decomposition. On input
@@ -213,7 +207,7 @@ gkyl_nmat_mm(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_
  * The reason for passing ipiv to this function is that it avoids
  * allocations inside this function.
  */
-bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv);
+bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void *ipiv);
 
 /**
  * Release matrix
@@ -252,7 +246,7 @@ struct gkyl_nmat *gkyl_nmat_new(size_t num, size_t nr, size_t nc);
  * @param nc Number of cols
  * @return Pointer to new multi-matrix.
  */
-struct gkyl_mat* gkyl_mat_cu_dev_new(size_t nr, size_t nc);
+struct gkyl_mat *gkyl_mat_cu_dev_new(size_t nr, size_t nc);
 
 /**
  * Construct new multi-matrix (batch of matrices). Delete using
@@ -272,7 +266,7 @@ struct gkyl_mat* gkyl_mat_cu_dev_new(size_t nr, size_t nc);
  * @param nc Number of cols
  * @return Pointer to new multi-matrix.
  */
-struct gkyl_nmat* gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc);
+struct gkyl_nmat *gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc);
 
 /**
  * Copy into nmat: pointer to dest nmat is returned. 'dest' and 'src'
@@ -282,7 +276,7 @@ struct gkyl_nmat* gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc);
  * @param src Srouce to copy from.
  * @return dest is returned
  */
-struct gkyl_nmat* gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat *src);
+struct gkyl_nmat *gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat *src);
 
 /**
  * Copy into mat: pointer to dest mat is returned. 'dest' and 'src'
@@ -292,7 +286,7 @@ struct gkyl_nmat* gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat 
  * @param src Srouce to copy from.
  * @return dest is returned
  */
-struct gkyl_mat* gkyl_mat_copy(struct gkyl_mat *dest, const struct gkyl_mat *src);
+struct gkyl_mat *gkyl_mat_copy(struct gkyl_mat *dest, const struct gkyl_mat *src);
 
 /**
  * Get a matrix from multi-matrix. DO NOT free the returned matrix!
@@ -300,15 +294,10 @@ struct gkyl_mat* gkyl_mat_copy(struct gkyl_mat *dest, const struct gkyl_mat *src
  * @param n Matrix to fetch
  * @return Matrix (DO NOT free/release this)
  */
-GKYL_CU_DH
-static inline struct gkyl_mat
-gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
+GKYL_CU_DH static inline struct gkyl_mat gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
 {
-  return (struct gkyl_mat) {
-    .nr = mat->nr,
-    .nc = mat->nc,
-    .data = mat->data+num*mat->nr*mat->nc
-  };
+  return (struct gkyl_mat
+  ){.nr = mat->nr, .nc = mat->nc, .data = mat->data + num * mat->nr * mat->nc};
 }
 
 /**
@@ -326,7 +315,7 @@ bool gkyl_nmat_is_cu_dev(const struct gkyl_nmat *mat);
  * @param mat Multi-matrix to which a pointer is needed
  * @return Pointer to acquired multi-matrix.
  */
-struct gkyl_nmat* gkyl_nmat_acquire(const struct gkyl_nmat *mat);
+struct gkyl_nmat *gkyl_nmat_acquire(const struct gkyl_nmat *mat);
 
 /**
  * Allocate memory needed in batched LU solves on host. Free using the
@@ -359,8 +348,10 @@ void gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem);
  * @param use_gpu 
  * @return Preallocated memory
  */
-gkyl_mat_mm_array_mem *gkyl_mat_mm_array_mem_new(int nr, int nc, double alpha, 
-  double beta, enum gkyl_mat_trans transa, enum gkyl_mat_trans transb, bool use_gpu);
+gkyl_mat_mm_array_mem *gkyl_mat_mm_array_mem_new(
+  int nr, int nc, double alpha, double beta, enum gkyl_mat_trans transa, enum gkyl_mat_trans transb,
+  bool use_gpu
+);
 
 /**
  * Release memory allocated for batched LU solves.
@@ -381,7 +372,9 @@ void gkyl_mat_mm_array_mem_release(gkyl_mat_mm_array_mem *mem);
  * @param B gkyl_array matrix for computing A*B = C
  * @param C gkyl_array matrix for computing A*B = C
 */
-void gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
+void gkyl_mat_mm_array(
+  struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C
+);
 
 /**
  * Solve a batched system of linear equations using LU

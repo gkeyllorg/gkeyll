@@ -9,20 +9,21 @@
 /**
  * Series of indexing "functions" to compute linear index into range
  */
-#define gkyl_ridx1(r, i1)                       \
-    ((r).ac[0]+(i1)*(r).ac[1])
-#define gkyl_ridx2(r, i1, i2)                   \
-    ((r).ac[0]+((i1)*(r).ac[1]+(i2)*(r).ac[2]))
-#define gkyl_ridx3(r, i1, i2, i3)                                       \
-    (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3]))
-#define gkyl_ridx4(r, i1, i2, i3, i4)                                   \
-    (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3]+(i4)*(r).ac[4]))
-#define gkyl_ridx5(r, i1, i2, i3, i4, i5)                               \
-    (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3])+((i4)*(r).ac[4]+(i5)*(r).ac[5]))
-#define gkyl_ridx6(r, i1, i2, i3, i4, i5, i6)                           \
-    (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3])+((i4)*(r).ac[4]+(i5)*(r).ac[5]+(i6)*(r).ac[6]))
-#define gkyl_ridx7(r, i1, i2, i3, i4, i5, i6, i7)                       \
-    (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3])+((i4)*(r).ac[4]+(i5)*(r).ac[5]+(i6)*(r).ac[6]) + (i7)*(r).ac[7])
+#define gkyl_ridx1(r, i1) ((r).ac[0] + (i1) * (r).ac[1])
+#define gkyl_ridx2(r, i1, i2) ((r).ac[0] + ((i1) * (r).ac[1] + (i2) * (r).ac[2]))
+#define gkyl_ridx3(r, i1, i2, i3) \
+  (((r).ac[0] + (i1) * (r).ac[1]) + ((i2) * (r).ac[2] + (i3) * (r).ac[3]))
+#define gkyl_ridx4(r, i1, i2, i3, i4) \
+  (((r).ac[0] + (i1) * (r).ac[1]) + ((i2) * (r).ac[2] + (i3) * (r).ac[3] + (i4) * (r).ac[4]))
+#define gkyl_ridx5(r, i1, i2, i3, i4, i5)                                   \
+  (((r).ac[0] + (i1) * (r).ac[1]) + ((i2) * (r).ac[2] + (i3) * (r).ac[3]) + \
+   ((i4) * (r).ac[4] + (i5) * (r).ac[5]))
+#define gkyl_ridx6(r, i1, i2, i3, i4, i5, i6)                               \
+  (((r).ac[0] + (i1) * (r).ac[1]) + ((i2) * (r).ac[2] + (i3) * (r).ac[3]) + \
+   ((i4) * (r).ac[4] + (i5) * (r).ac[5] + (i6) * (r).ac[6]))
+#define gkyl_ridx7(r, i1, i2, i3, i4, i5, i6, i7)                           \
+  (((r).ac[0] + (i1) * (r).ac[1]) + ((i2) * (r).ac[2] + (i3) * (r).ac[3]) + \
+   ((i4) * (r).ac[4] + (i5) * (r).ac[5] + (i6) * (r).ac[6]) + (i7) * (r).ac[7])
 
 /** Generic indexing: works for 1D-7D (VFUNC1 is defined-ed in
  * gkyl_vargm.h) */
@@ -38,7 +39,7 @@ enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE, GKYL_NO_EDGE };
 struct gkyl_range_dir_edge {
   int dir;
   enum gkyl_edge_loc eloc;
-};  
+};
 
 /**
  * Range object, representing an N-dimensional integer index
@@ -49,12 +50,12 @@ struct gkyl_range {
   int lower[GKYL_MAX_DIM]; // lower bound
   int upper[GKYL_MAX_DIM]; // upper bound (inclusive)
   long volume; // total volume of range
-    
+
   // do not access directly
   uint32_t flags; // Flags for internal use
   int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
-  long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
-  long iac[GKYL_MAX_DIM+1]; // for use in sub-range inverse indexer
+  long ac[GKYL_MAX_DIM + 1]; // coefficients for indexing
+  long iac[GKYL_MAX_DIM + 1]; // for use in sub-range inverse indexer
   long linIdxZero; // linear index of {0,0,...}
   int nsplit, tid; // number of splits, split ID
 
@@ -91,8 +92,7 @@ struct gkyl_range_skip_iter {
  * @param lower Lower indices of range
  * @param upper Upper indices of range
  */
-void gkyl_range_init(struct gkyl_range *rng, int ndim,
-  const int *lower, const int *upper);
+void gkyl_range_init(struct gkyl_range *rng, int ndim, const int *lower, const int *upper);
 
 /**
  * Create and initialize a new range object. Free with gkyl_range_release.
@@ -102,7 +102,7 @@ void gkyl_range_init(struct gkyl_range *rng, int ndim,
  * @param upper Upper indices of range
  * @return Pointer to new range object.
  */
-struct gkyl_range* gkyl_range_new(int ndim, const int *lower, const int *upper);
+struct gkyl_range *gkyl_range_new(int ndim, const int *lower, const int *upper);
 
 /**
  * Create new range object from specified shape. This sets the lower
@@ -113,8 +113,7 @@ struct gkyl_range* gkyl_range_new(int ndim, const int *lower, const int *upper);
  * @param shape Shape of region
  */
 
-void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
-  const int *shape);
+void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape);
 
 /**
  * Create new range object from specified shape. This sets the lower
@@ -125,8 +124,7 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
  * @param shape Shape of region
  */
 
-void gkyl_range_init_from_shape1(struct gkyl_range *rng, int ndim,
-  const int *shape);
+void gkyl_range_init_from_shape1(struct gkyl_range *rng, int ndim, const int *shape);
 
 /**
  * Create a new range which is a tensor product of @a a and @a b input
@@ -136,8 +134,9 @@ void gkyl_range_init_from_shape1(struct gkyl_range *rng, int ndim,
  * @param a First operand of tensor-product
  * @param b Second operand of tensor-product
  */
-void gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a,
-  const struct gkyl_range *b);
+void gkyl_range_ten_prod(
+  struct gkyl_range *rng, const struct gkyl_range *a, const struct gkyl_range *b
+);
 
 /**
  * Create a new range that is the same shape as inp range, but the
@@ -147,8 +146,7 @@ void gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a,
  * @param inp Input range to shift
  * @param delta Range indices are shifted by delta[dir] in each direction
  */
-void gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
-  const int *delta);
+void gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp, const int *delta);
 
 /**
  * Create a new range that is the same shape as inp range, but lower
@@ -158,8 +156,7 @@ void gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
  * @param inp Input range to reset
  * @param lower New lower indices
  */
-void gkyl_range_reset_lower(struct gkyl_range *rng, const struct gkyl_range *inp,
-  const int *lower);
+void gkyl_range_reset_lower(struct gkyl_range *rng, const struct gkyl_range *inp, const int *lower);
 
 /**
  * Shape in direction dir
@@ -168,10 +165,9 @@ void gkyl_range_reset_lower(struct gkyl_range *rng, const struct gkyl_range *inp
  * @param dir Direction to compute shape
  * @return Shape in direction dit
  */
-GKYL_CU_DH
-static inline int gkyl_range_shape(const struct gkyl_range *rng, int dir)
+GKYL_CU_DH static inline int gkyl_range_shape(const struct gkyl_range *rng, int dir)
 {
-  return rng->upper[dir]-rng->lower[dir]+1;  
+  return rng->upper[dir] - rng->lower[dir] + 1;
 }
 
 /**
@@ -188,12 +184,12 @@ int gkyl_range_is_sub_range(const struct gkyl_range *rng);
  * @param rng Range obkect
  * @return 1 if true, 0 otherwise
  */
-GKYL_CU_DH
-static inline int gkyl_range_contains_idx(const struct gkyl_range *rng, const int *idx)
+GKYL_CU_DH static inline int gkyl_range_contains_idx(const struct gkyl_range *rng, const int *idx)
 {
-  for (int i=0; i<rng->ndim; ++i) {
-    if ( (idx[i] < rng->lower[i]) || (idx[i] > rng->upper[i]) )
+  for (int i = 0; i < rng->ndim; ++i) {
+    if ((idx[i] < rng->lower[i]) || (idx[i] > rng->upper[i])) {
       return 0;
+    }
   }
   return 1;
 }
@@ -209,8 +205,9 @@ static inline int gkyl_range_contains_idx(const struct gkyl_range *rng, const in
  * @param sublower Lower indices of sub-range
  * @param subupper Upper indices of sub-range
  */
-void gkyl_sub_range_init(struct gkyl_range *rng,
-  const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
+void gkyl_sub_range_init(
+  struct gkyl_range *rng, const struct gkyl_range *bigrng, const int *sublower, const int *subupper
+);
 
 /**
  * Creates a new range that is a split of the given range. The only
@@ -246,8 +243,9 @@ long gkyl_range_split_len(const struct gkyl_range *rng);
  * @param remDir 'ndim' Array of flags: 0 to keep direction, 1 to remove
  * @param loc Index to set removed direction.
  */
-void gkyl_range_deflate(struct gkyl_range* srng,
-  const struct gkyl_range* rng, const int *remDir, const int *locDir);
+void gkyl_range_deflate(
+  struct gkyl_range *srng, const struct gkyl_range *rng, const int *remDir, const int *locDir
+);
 
 /**
  * Return range which has 'dir' direction shortened to length
@@ -260,8 +258,9 @@ void gkyl_range_deflate(struct gkyl_range* srng,
  * @param dir Direction to shorten
  * @param len Length of shortened direction
  */
-void gkyl_range_shorten_from_above(struct gkyl_range *rng,
-  const struct gkyl_range* range, int dir, int len);
+void gkyl_range_shorten_from_above(
+  struct gkyl_range *rng, const struct gkyl_range *range, int dir, int len
+);
 
 /**
  * Return range which has 'dir' direction shortened to length
@@ -274,8 +273,9 @@ void gkyl_range_shorten_from_above(struct gkyl_range *rng,
  * @param dir Direction to shorten
  * @param len Length of shortened direction
  */
-void gkyl_range_shorten_from_below(struct gkyl_range *rng,
-  const struct gkyl_range* range, int dir, int len);
+void gkyl_range_shorten_from_below(
+  struct gkyl_range *rng, const struct gkyl_range *range, int dir, int len
+);
 
 /**
  * Return a new range that is an extension of the input range. The
@@ -287,8 +287,9 @@ void gkyl_range_shorten_from_below(struct gkyl_range *rng,
  * @param elo Lower in dir is reduced by elo[dir]
  * @param eup Upper in dir is increased by eup[dir]
  */
-void gkyl_range_extend(struct gkyl_range *erng, const struct gkyl_range *rng,
-  const int *elo, const int *eup);
+void gkyl_range_extend(
+  struct gkyl_range *erng, const struct gkyl_range *rng, const int *elo, const int *eup
+);
 
 /**
  * Return a new range that is an extension of the input range. The
@@ -302,8 +303,9 @@ void gkyl_range_extend(struct gkyl_range *erng, const struct gkyl_range *rng,
  * @param elo Lower in dir is reduced by elo[dir]
  * @param eup Upper in dir is increased by eup[dir]
  */
-void gkyl_range_perp_extend(struct gkyl_range *erng, int dir,
-  const struct gkyl_range* rng, const int *elo, const int *eup);
+void gkyl_range_perp_extend(
+  struct gkyl_range *erng, int dir, const struct gkyl_range *rng, const int *elo, const int *eup
+);
 
 /**
  * Return range in direction 'dir' which corresponds to the "lower
@@ -315,8 +317,9 @@ void gkyl_range_perp_extend(struct gkyl_range *erng, int dir,
  * @param dir Direction to find lower skin cells in
  * @param nskin Number of skin cells
  */
-void gkyl_range_lower_skin(struct gkyl_range* srng,
-  const struct gkyl_range* range, int dir, int nskin);
+void gkyl_range_lower_skin(
+  struct gkyl_range *srng, const struct gkyl_range *range, int dir, int nskin
+);
 
 /**
  * Return range in direction 'dir' which corresponds to the "upper
@@ -328,8 +331,9 @@ void gkyl_range_lower_skin(struct gkyl_range* srng,
  * @param dir Direction to find upper skin cells in
  * @param nskin Number of skin cells
  */
-void gkyl_range_upper_skin(struct gkyl_range* srng,
-  const struct gkyl_range* range, int dir, int nskin);
+void gkyl_range_upper_skin(
+  struct gkyl_range *srng, const struct gkyl_range *range, int dir, int nskin
+);
 
 /**
  * Create ghost and skin sub-ranges given parent *extended* range. The
@@ -370,8 +374,10 @@ void gkyl_range_upper_skin(struct gkyl_range* srng,
  * @param parent Range for which skin/ghost are computed
  * @param nghost Number of ghost cells in 'dir' are nghost[dir]
  */
-void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
-  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost);
+void gkyl_skin_ghost_ranges(
+  struct gkyl_range *skin, struct gkyl_range *ghost, int dir, enum gkyl_edge_loc edge,
+  const struct gkyl_range *parent, const int *nghost
+);
 
 /**
  * Create ghost and skin sub-ranges given parent *extended* range. The
@@ -412,8 +418,10 @@ void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
  * @param parent Range for which skin/ghost are computed
  * @param nghost Number of ghost cells in 'dir' are nghost[dir]
  */
-void gkyl_skin_ghost_with_corners_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
-  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost);
+void gkyl_skin_ghost_with_corners_ranges(
+  struct gkyl_range *skin, struct gkyl_range *ghost, int dir, enum gkyl_edge_loc edge,
+  const struct gkyl_range *parent, const int *nghost
+);
 
 /**
  * Compute intersection of two ranges. No sub-range information is
@@ -424,8 +432,9 @@ void gkyl_skin_ghost_with_corners_ranges(struct gkyl_range *skin, struct gkyl_ra
  * @param r2 Range to intersect
  * @return 1 if intersection is not-empty, 0 otherwise
  */
-int gkyl_range_intersect(struct gkyl_range *irng, const struct gkyl_range *r1,
-  const struct gkyl_range *r2);
+int gkyl_range_intersect(
+  struct gkyl_range *irng, const struct gkyl_range *r1, const struct gkyl_range *r2
+);
 
 /**
  * Compute intersection of two ranges. The intersection is a sub-range
@@ -436,8 +445,9 @@ int gkyl_range_intersect(struct gkyl_range *irng, const struct gkyl_range *r1,
  * @param r2 Range to intersect
  * @return 1 if intersection is not-empty, 0 otherwise
  */
-int gkyl_sub_range_intersect(struct gkyl_range* irng,
-  const struct gkyl_range *r1, const struct gkyl_range *r2);
+int gkyl_sub_range_intersect(
+  struct gkyl_range *irng, const struct gkyl_range *r1, const struct gkyl_range *r2
+);
 
 /**
  * Check if range touches the lower edge of parent range in direction
@@ -448,8 +458,9 @@ int gkyl_sub_range_intersect(struct gkyl_range* irng,
  * @param parent Parent range
  * @return true if range is on lower edge, false otherwise
  */
-bool gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range,
-  const struct gkyl_range *parent);
+bool gkyl_range_is_on_lower_edge(
+  int dir, const struct gkyl_range *range, const struct gkyl_range *parent
+);
 
 /**
  * Check if range touches the upper edge of parent range in direction
@@ -460,8 +471,9 @@ bool gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range,
  * @param parent Parent range
  * @return true if range is on upper edge, false otherwise
  */
-bool gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
-  const struct gkyl_range *parent);
+bool gkyl_range_is_on_upper_edge(
+  int dir, const struct gkyl_range *range, const struct gkyl_range *parent
+);
 
 /**
  * Check if @a targ range shares an edge with the @a base range. The
@@ -473,9 +485,9 @@ bool gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
  * @return direction and edge. Returned struct eloc is set
  *   to GKYL_NO_EDGE if ranges dont match.
  */
-struct gkyl_range_dir_edge gkyl_range_edge_match(const struct gkyl_range *base,
-  const struct gkyl_range *targ);
-                                                     
+struct gkyl_range_dir_edge
+gkyl_range_edge_match(const struct gkyl_range *base, const struct gkyl_range *targ);
+
 /**
  * General indexing function. Returns linear index into the index
  * range mapped by 'range'.
@@ -483,36 +495,34 @@ struct gkyl_range_dir_edge gkyl_range_edge_match(const struct gkyl_range *base,
  * @param range Range object to index
  * @param idx Index for which to compute linear index
  */
-GKYL_CU_DH
-static inline long
-gkyl_range_idx(const struct gkyl_range* range, const int *idx)
+GKYL_CU_DH static inline long gkyl_range_idx(const struct gkyl_range *range, const int *idx)
 {
 #define RI(...) gkyl_ridx(*range, __VA_ARGS__)
   switch (range->ndim) {
-    case 0:
-      return range->ac[0];
-      break;    
-    case 1:
-      return RI(idx[0]); 
-      break;
-    case 2:
-      return RI(idx[0], idx[1]);
-      break;
-    case 3:
-      return RI(idx[0], idx[1], idx[2]);
-      break;
-    case 4:
-      return RI(idx[0], idx[1], idx[2], idx[3]);
-      break;
-    case 5:
-      return RI(idx[0], idx[1], idx[2], idx[3], idx[4]);
-      break;
-    case 6:
-      return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]);
-      break;
-    case 7:
-      return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5], idx[6]);
-      break;
+  case 0:
+    return range->ac[0];
+    break;
+  case 1:
+    return RI(idx[0]);
+    break;
+  case 2:
+    return RI(idx[0], idx[1]);
+    break;
+  case 3:
+    return RI(idx[0], idx[1], idx[2]);
+    break;
+  case 4:
+    return RI(idx[0], idx[1], idx[2], idx[3]);
+    break;
+  case 5:
+    return RI(idx[0], idx[1], idx[2], idx[3], idx[4]);
+    break;
+  case 6:
+    return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]);
+    break;
+  case 7:
+    return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5], idx[6]);
+    break;
   }
   return 0;
 #undef RI
@@ -527,9 +537,7 @@ gkyl_range_idx(const struct gkyl_range* range, const int *idx)
  * @param idx Relative index for offset calculation
  * @return Relatice offset to idx.
  */
-GKYL_CU_DH
-static inline long
-gkyl_range_offset(const struct gkyl_range* range, const int *idx)
+GKYL_CU_DH static inline long gkyl_range_offset(const struct gkyl_range *range, const int *idx)
 {
   return gkyl_range_idx(range, idx) - range->linIdxZero;
 }
@@ -542,15 +550,13 @@ gkyl_range_offset(const struct gkyl_range* range, const int *idx)
  * @param loc Linear index in [0, range->volume)
  * @param idx On output, the N-dimensional index into 'range'
  */
-GKYL_CU_DH
-static inline void
-gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
+GKYL_CU_DH static inline void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 {
   long n = loc;
-  for (int i=1; i<=range->ndim; ++i) {
-    long quot = n/range->ac[i];
+  for (int i = 1; i <= range->ndim; ++i) {
+    long quot = n / range->ac[i];
     long rem = n % range->ac[i];
-    idx[i-1] = quot + range->ilo[i-1];
+    idx[i - 1] = quot + range->ilo[i - 1];
     n = rem;
   }
 }
@@ -564,15 +570,14 @@ gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
  * @param loc Linear index in [0, range->volume)
  * @param idx On output, the N-dimensional index into 'range'
  */
-GKYL_CU_DH
-static inline void
+GKYL_CU_DH static inline void
 gkyl_sub_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 {
   long n = loc;
-  for (int i=1; i<=range->ndim; ++i) {
-    long quot = n/range->iac[i];
+  for (int i = 1; i <= range->ndim; ++i) {
+    long quot = n / range->iac[i];
     long rem = n % range->iac[i];
-    idx[i-1] = quot + range->lower[i-1];
+    idx[i - 1] = quot + range->lower[i - 1];
     n = rem;
   }
 }
@@ -585,8 +590,7 @@ gkyl_sub_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
  * @param range Range object.
  * @return New iterator object for 'range'
  */
-void gkyl_range_iter_init(struct gkyl_range_iter *iter,
-  const struct gkyl_range* range);
+void gkyl_range_iter_init(struct gkyl_range_iter *iter, const struct gkyl_range *range);
 
 /**
  * Create iterator, ignoring split information in range.
@@ -594,8 +598,7 @@ void gkyl_range_iter_init(struct gkyl_range_iter *iter,
  * @param range Range object.
  * @return New iterator object for 'range'
  */
-void gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
-  const struct gkyl_range* range);
+void gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter, const struct gkyl_range *range);
 
 /**
  * Get next index into range. The iter->idx array holds the next
@@ -613,8 +616,7 @@ int gkyl_range_iter_next(struct gkyl_range_iter *iter);
  * @param range Range object.
  * @return New iterator object for 'range'
  */
-void gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
-  const struct gkyl_range* range);
+void gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter, const struct gkyl_range *range);
 
 /**
  * Print range information to file object.
@@ -623,7 +625,7 @@ void gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
  * @param nm Name of range
  * @param fp File object to print range information
  */
-void gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp);
+void gkyl_print_range(const struct gkyl_range *range, const char *nm, FILE *fp);
 
 /**
  * Compares two ranges: ranges are the same if they have the same
@@ -633,14 +635,14 @@ void gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp);
  * @param r2 Range 2 to compare
  * @return true if ranges are same, false otherwise
  */
-bool gkyl_range_compare(const struct gkyl_range* r1, const struct gkyl_range* r2);
+bool gkyl_range_compare(const struct gkyl_range *r1, const struct gkyl_range *r2);
 
 /**
  * Get the number of dimensions from range (for opaque pointer).
  *
  * @return Number of dimensions.
  */
-int gkyl_range_get_ndim(const struct gkyl_range* range);
+int gkyl_range_get_ndim(const struct gkyl_range *range);
 
 /**
  * Get the lower extents of a range (for opaque pointer).
@@ -648,7 +650,7 @@ int gkyl_range_get_ndim(const struct gkyl_range* range);
  * @param range Range object.
  * @param lower Lower extents of the range (pre-allocated).
  */
-void gkyl_range_get_lower(const struct gkyl_range* range, int *lower);
+void gkyl_range_get_lower(const struct gkyl_range *range, int *lower);
 
 /**
  * Get the upper extents of a range (for opaque pointer).
@@ -656,7 +658,7 @@ void gkyl_range_get_lower(const struct gkyl_range* range, int *lower);
  * @param range Range object.
  * @param upper Upper extents of the range (pre-allocated).
  */
-void gkyl_range_get_upper(const struct gkyl_range* range, int *upper);
+void gkyl_range_get_upper(const struct gkyl_range *range, int *upper);
 
 /**
  * Get the volume of a range (for opaque pointer).
@@ -664,12 +666,11 @@ void gkyl_range_get_upper(const struct gkyl_range* range, int *upper);
  * @param range Range object.
  * @return Volume of the range.
  */
-long gkyl_range_get_volume(const struct gkyl_range* range);
+long gkyl_range_get_volume(const struct gkyl_range *range);
 
 /**
  * Free dynamically allocated range object (with gkyl_range_new).
  *
  * @param range Range object.
  */
-void gkyl_range_release(struct gkyl_range* range);
-
+void gkyl_range_release(struct gkyl_range *range);

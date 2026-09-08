@@ -20,7 +20,7 @@ struct gkyl_eval_offset_fd_inp {
 
   int num_ret_vals; // number of return values in eval function
   struct gkyl_offset_descr *offsets; // size num_ret_vals
-  
+
   evalf_t eval; // function to project
   void *ctx; // function context
 };
@@ -34,7 +34,7 @@ struct gkyl_eval_offset_fd_inp {
  * @param inp Input parameters
  * @return New updater pointer.
  */
-gkyl_eval_offset_fd* gkyl_eval_offset_fd_new(const struct gkyl_eval_offset_fd_inp *inp);
+gkyl_eval_offset_fd *gkyl_eval_offset_fd_new(const struct gkyl_eval_offset_fd_inp *inp);
 
 /**
  * Compute function of nodes. The update_rng MUST be a sub-range of
@@ -47,8 +47,10 @@ gkyl_eval_offset_fd* gkyl_eval_offset_fd_new(const struct gkyl_eval_offset_fd_in
  * @param update_rng Range on which to run projection.
  * @param out Output array
  */
-void gkyl_eval_offset_fd_advance(const gkyl_eval_offset_fd *up,
-  double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
+void gkyl_eval_offset_fd_advance(
+  const gkyl_eval_offset_fd *up, double tm, const struct gkyl_range *update_rng,
+  struct gkyl_array *out
+);
 
 /**
  * Delete updater.

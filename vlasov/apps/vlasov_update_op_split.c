@@ -3,10 +3,9 @@
 // Take time-step using the SSP-RK3 method for the hyperbolic components
 // Then, we use the actual timestep taken with the SSP-RK3 method to update
 // fluid-EM coupling and/or BGK collisions implicitly.
-struct gkyl_update_status
-vlasov_update_op_split(gkyl_vlasov_app* app, double dt0)
+struct gkyl_update_status vlasov_update_op_split(gkyl_vlasov_app *app, double dt0)
 {
-  struct gkyl_update_status st = vlasov_update_ssp_rk3(app,dt0);
+  struct gkyl_update_status st = vlasov_update_ssp_rk3(app, dt0);
 
   // Take the implicit timestep for BGK collisions
   if (app->has_implicit_coll_scheme) {

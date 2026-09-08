@@ -63,16 +63,16 @@ struct moment_species {
   bool is_static; // is the fluid static?
 
   // Does this fluid require source terms?
-  // Set to true if any term which requires source terms is detected 
+  // Set to true if any term which requires source terms is detected
   // including app->has_field (because the fluids couple to EM fields via sources)
-  // and various moment_species inputs such as has_friction, has_volume_sources, 
-  // has_reactivity, has_app_accel, etc. 
+  // and various moment_species inputs such as has_friction, has_volume_sources,
+  // has_reactivity, has_app_accel, etc.
   bool update_sources;
-  
+
   double k0; // Closure parameter (default is 0.0, used by 10 moment).
   bool has_grad_closure; // Has gradient-based closure (only for 10 moment).
   bool has_nn_closure; // Has neural network-based closure (only for 10 moment).
-  struct gkyl_kann_net* ann; // Neural network architecture.
+  struct gkyl_kann_net *ann; // Neural network architecture.
   int poly_order; // Polynomial order of learned DG coefficients.
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
 
@@ -85,7 +85,8 @@ struct moment_species {
   bool has_volume_sources; // Run with volume-based geometrical sources.
   double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
   double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
-  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+  double
+    volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
 
   bool has_reactivity; // Run with reactive sources.
   double reactivity_gas_gamma; // Adiabatic index for reactive sources.
@@ -95,35 +96,52 @@ struct moment_species {
   double reactivity_reaction_rate; // Reaction rate for reactive sources.
 
   bool has_einstein_medium; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
-  double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
-  double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double
+    medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double
+    medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
-  bool has_gr_ultra_rel; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
-  double gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).
+  bool
+    has_gr_ultra_rel; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
+  double
+    gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).
 
-  bool has_gr_euler; // Run with general relativistic source terms (Euler equations, ideal gas equation of state).
-  double gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (ideal gas equation of state).
+  bool
+    has_gr_euler; // Run with general relativistic source terms (Euler equations, ideal gas equation of state).
+  double
+    gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (ideal gas equation of state).
 
   bool has_gr_twofluid; // Run with general relativistic two-fluid source terms.
   double gr_twofluid_mass_elc; // Electron mass for general relativistic two-fluid equations.
   double gr_twofluid_mass_ion; // Ion mass for general relativistic two-fluid equations.
   double gr_twofluid_charge_elc; // Electron charge for general relativistic two-fluid equations.
   double gr_twofluid_charge_ion; // Ion charge for general relativistic two-fluid equations.
-  double gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
-  double gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
-  double gr_twofluid_e_fact; // Electric field divergence error propagation speed for general relativistic two-fluid equations.
+  double
+    gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
+  double
+    gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
+  double
+    gr_twofluid_e_fact; // Electric field divergence error propagation speed for general relativistic two-fluid equations.
 
   bool has_vacuum_einstein; // Run with vacuum Einstein sources using the Bona-Masso formalism.
-  double vacuum_einstein_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the Bona-Masso formalism.
-  enum gkyl_spacetime_slicing vacuum_einstein_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the Bona-Masso formalism.
-  enum gkyl_spacetime_evolution vacuum_einstein_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the Bona-Masso formalism.
+  double
+    vacuum_einstein_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the Bona-Masso formalism.
+  enum gkyl_spacetime_slicing
+    vacuum_einstein_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the Bona-Masso formalism.
+  enum gkyl_spacetime_evolution
+    vacuum_einstein_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the Bona-Masso formalism.
 
-  bool has_vacuum_einstein_conformal; // Run with vacuum Einstein sources using the conformal Bona-Masso formalism.
-  double vacuum_einstein_conformal_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the conformal Bona-Masso formalism.
-  enum gkyl_spacetime_slicing vacuum_einstein_conformal_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the conformal Bona-Masso formalism.
-  enum gkyl_spacetime_evolution vacuum_einstein_conformal_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the conformal Bona-Masso formalism.
-  
-  bool has_gr_mhd; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
+  bool
+    has_vacuum_einstein_conformal; // Run with vacuum Einstein sources using the conformal Bona-Masso formalism.
+  double
+    vacuum_einstein_conformal_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the conformal Bona-Masso formalism.
+  enum gkyl_spacetime_slicing
+    vacuum_einstein_conformal_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the conformal Bona-Masso formalism.
+  enum gkyl_spacetime_evolution
+    vacuum_einstein_conformal_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the conformal Bona-Masso formalism.
+
+  bool
+    has_gr_mhd; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
   double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
 
   void *ctx; // context for initial condition init function
@@ -145,27 +163,27 @@ struct moment_species {
 
   struct gkyl_array *embed_mask;
 
-  enum gkyl_eqn_type eqn_type;  // type ID of equation
-  int num_equations;            // number of equations in species
+  enum gkyl_eqn_type eqn_type; // type ID of equation
+  int num_equations; // number of equations in species
   struct gkyl_wv_eqn *equation; // equation object
 
   enum gkyl_moment_scheme scheme_type; // scheme to update equations
 
-  // 
+  //
   // solvers and data to update fluid equations
   union {
     struct {
-      gkyl_wave_prop *slvr[3];        // wave-prop solver in each direction
+      gkyl_wave_prop *slvr[3]; // wave-prop solver in each direction
       struct gkyl_array *fdup, *f[4]; // arrays for updates
     };
     struct {
       union {
-        gkyl_mp_scheme *mp_slvr;   // monotonicity-preserving scheme
+        gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
         gkyl_kep_scheme *kep_slvr; // KEP scheme
       };
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
-      struct gkyl_array *cflrate;        // CFL rate in each cell
-      struct gkyl_array *alpha;          // for shock detector
+      struct gkyl_array *cflrate; // CFL rate in each cell
+      struct gkyl_array *alpha; // for shock detector
     };
   };
   struct gkyl_array *fcurr; // points to current solution (depends on scheme)
@@ -194,30 +212,34 @@ struct moment_field {
   bool has_ext_em; // flag to indicate there is external electromagnetic field
   bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
   struct gkyl_array *ext_em; // external electromagnetic field
-  gkyl_fv_proj *ext_em_proj; // projector for external electromagnetic field 
+  gkyl_fv_proj *ext_em_proj; // projector for external electromagnetic field
   double t_ramp_E; // linear ramp for turning on external E field
 
-  bool has_app_current; // flag to indicate there is an applied current 
-  bool app_current_evolve; // flag to indicate applied current is time dependent  
+  bool has_app_current; // flag to indicate there is an applied current
+  bool app_current_evolve; // flag to indicate applied current is time dependent
   struct gkyl_array *app_current; // applied current
-  gkyl_fv_proj *app_current_proj;  // projector for applied current 
+  gkyl_fv_proj *app_current_proj; // projector for applied current
   double t_ramp_curr; // linear ramp for turning on applied currents
 
-  bool use_explicit_em_coupling; // flag to indicate if em coupling should be explicit, defaults implicit
-  struct gkyl_array *app_current1; // additional array for applied currents (for use_explicit_em_coupling stages)
-  struct gkyl_array *app_current2; // additional array for applied currents (for use_explicit_em_coupling stages)
+  bool
+    use_explicit_em_coupling; // flag to indicate if em coupling should be explicit, defaults implicit
+  struct gkyl_array
+    *app_current1; // additional array for applied currents (for use_explicit_em_coupling stages)
+  struct gkyl_array
+    *app_current2; // additional array for applied currents (for use_explicit_em_coupling stages)
 
   bool has_volume_sources; // Run with volume-based geometrical sources.
   double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
   double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
-  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+  double
+    volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   struct gkyl_array *embed_mask;
 
- // scheme to update equations solvers and data to update fluid
- // equations
+  // scheme to update equations solvers and data to update fluid
+  // equations
   enum gkyl_moment_scheme scheme_type;
   union {
     struct {
@@ -243,9 +265,9 @@ struct moment_field {
 
 // Source data
 struct moment_coupling {
-  // grid for braginskii variables (braginskii variables located at cell nodes)  
+  // grid for braginskii variables (braginskii variables located at cell nodes)
   struct gkyl_rect_grid non_ideal_grid;
-  // local, local-ext ranges for braginskii variables (loop over nodes)  
+  // local, local-ext ranges for braginskii variables (loop over nodes)
   struct gkyl_range non_ideal_local, non_ideal_local_ext;
 
   // Gradient-based closure solver (if present).
@@ -253,15 +275,15 @@ struct moment_coupling {
   // Neural network-based closure solver (if present).
   struct gkyl_ten_moment_nn_closure *nn_closure_slvr[GKYL_MAX_SPECIES];
   // Braginskii solver (if present).
-  struct gkyl_moment_braginskii *brag_slvr; 
+  struct gkyl_moment_braginskii *brag_slvr;
 
-  // array for stable time-step from non-ideal terms  
+  // array for stable time-step from non-ideal terms
   struct gkyl_array *non_ideal_cflrate[GKYL_MAX_SPECIES];
-  // array for non-ideal variables 
+  // array for non-ideal variables
   // Braginskii variables, viscous stress tensor and heat-flux vector for Euler/Isothermal Euler
-  // heat-flux tensor for ten-moment  
+  // heat-flux tensor for ten-moment
   struct gkyl_array *non_ideal_vars[GKYL_MAX_SPECIES];
-  // array for storing RHS of each species from non-ideal term updates 
+  // array for storing RHS of each species from non-ideal term updates
   // Braginskii tranport for Euler/Isothermal Euler
   // Gradient-based closure for ten-moment
   struct gkyl_array *pr_rhs[GKYL_MAX_SPECIES];
@@ -283,14 +305,14 @@ struct gkyl_moment_app {
   double cfl; // CFL number
 
   enum gkyl_moment_scheme scheme_type; // scheme to use
-  enum gkyl_wave_split_type split_type; // edge splitting to use  
-  // 
+  enum gkyl_wave_split_type split_type; // edge splitting to use
+  //
   enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
- // should shock-hybrid scheme be used when using KEP?  
+  // should shock-hybrid scheme be used when using KEP?
   bool use_hybrid_flux_kep;
 
   bool has_braginskii; // has Braginskii transport
-  double coll_fac; // multiplicative collisionality factor for Braginskii  
+  double coll_fac; // multiplicative collisionality factor for Braginskii
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -303,10 +325,10 @@ struct gkyl_moment_app {
   struct gkyl_range global, global_ext; // global, global-ext ranges
 
   struct gkyl_rect_decomp *decomp; // decomposition object
-  struct gkyl_comm *comm;   // communicator object
+  struct gkyl_comm *comm; // communicator object
 
   bool has_mapc2p; // flag to indicate if we have mapc2p
-  void *c2p_ctx;   // context for mapc2p function
+  void *c2p_ctx; // context for mapc2p function
   // pointer to mapc2p function
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
@@ -324,10 +346,10 @@ struct gkyl_moment_app {
   // work arrays for use in the KEP and MP scheme: these are stored
   // here so they can be reused
   struct {
-    struct gkyl_array *ql, *qr;     // expansions on left/right edge of cell
+    struct gkyl_array *ql, *qr; // expansions on left/right edge of cell
     struct gkyl_array *amdq, *apdq; // minus/plus fluctuations
   };
-  
+
   int update_sources; // flag to indicate if sources are to be updated
   struct moment_coupling sources; // sources
 
@@ -354,55 +376,56 @@ struct moment_output_meta {
 /** Some common functions to species and fields */
 
 // functions for use in integrated quantities calculation
-static inline void
-integ_unit(int nc, const double *qin, double *integ_out)
+static inline void integ_unit(int nc, const double *qin, double *integ_out)
 {
-  for (int i = 0; i < nc; ++i)
+  for (int i = 0; i < nc; ++i) {
     integ_out[i] = qin[i];
+  }
 }
-static inline void
-integ_sq(int nc, const double *qin, double *integ_out)
+static inline void integ_sq(int nc, const double *qin, double *integ_out)
 {
-  for (int i = 0; i < nc; ++i)
+  for (int i = 0; i < nc; ++i) {
     integ_out[i] = qin[i] * qin[i];
+  }
 }
 
 // function for copy BC
-static inline void
-bc_copy(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
-  double *GKYL_RESTRICT ghost, void *ctx)
+static inline void bc_copy(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
-  for (int c = 0; c < nc; ++c)
+  for (int c = 0; c < nc; ++c) {
     ghost[c] = skin[c];
+  }
 }
 
 // function for skip BCs
-static inline void
-bc_skip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
-  double *GKYL_RESTRICT ghost, void *ctx)
+static inline void bc_skip(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
 }
 
 // Compute integrated quantities specified by i_func
-void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
-  const struct gkyl_array *q,
-  const struct gkyl_wave_geom *geom,
-  struct gkyl_range update_rng, double *integ_q);
+void calc_integ_quant(
+  const struct gkyl_wv_eqn *eqn, double vol, const struct gkyl_array *q,
+  const struct gkyl_wave_geom *geom, struct gkyl_range update_rng, double *integ_q
+);
 
 // Check array "q" for nans
 bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng);
 
 // Apply periodic BCs to corner cells of "f" (ONLY WORKS IN 2D)
-void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app,
-  struct gkyl_array *f);
+void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gkyl_array *f);
 
 // Apply wedge-periodic BCs to array "f"
-void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
-  const struct gkyl_range *update_rng,
-  struct gkyl_array *bc_buffer, int dir,
-  const struct gkyl_wv_apply_bc *lo,
-  const struct gkyl_wv_apply_bc *up,
-  struct gkyl_array *f);
+void moment_apply_wedge_bc(
+  const gkyl_moment_app *app, double tcurr, const struct gkyl_range *update_rng,
+  struct gkyl_array *bc_buffer, int dir, const struct gkyl_wv_apply_bc *lo,
+  const struct gkyl_wv_apply_bc *up, struct gkyl_array *f
+);
 
 /**
  * Return ghost cell layout for grid.
@@ -416,28 +439,28 @@ void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
 /** moment_species API */
 
 // Initialize the moment species object
-void moment_species_init(const struct gkyl_moment *mom,
-  const struct gkyl_moment_species *mom_sp,
-  struct gkyl_moment_app *app,
-  struct moment_species *sp);
+void moment_species_init(
+  const struct gkyl_moment *mom, const struct gkyl_moment_species *mom_sp,
+  struct gkyl_moment_app *app, struct moment_species *sp
+);
 
 // Apply BCs to species data "f"
-void moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
-  const struct moment_species *sp,
-  struct gkyl_array *f);
+void moment_species_apply_bc(
+  gkyl_moment_app *app, double tcurr, const struct moment_species *sp, struct gkyl_array *f
+);
 
 // Maximum stable time-step from species
-double moment_species_max_dt(const gkyl_moment_app *app,
-  const struct moment_species *sp);
+double moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *sp);
 
 // Advance solution of species by time-step dt to tcurr+dt
-struct gkyl_update_status moment_species_update(gkyl_moment_app *app,
-  struct moment_species *sp,
-  double tcurr, double dt);
+struct gkyl_update_status
+moment_species_update(gkyl_moment_app *app, struct moment_species *sp, double tcurr, double dt);
 
 // Compute RHS of moment equations
-double moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs);
+double moment_species_rhs(
+  gkyl_moment_app *app, struct moment_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs
+);
 
 // Free memory allocated by species
 void moment_species_release(const struct moment_species *sp);
@@ -445,27 +468,28 @@ void moment_species_release(const struct moment_species *sp);
 /** moment_field API */
 
 // Initialize EM field
-void moment_field_init(const struct gkyl_moment *mom,
-  const struct gkyl_moment_field *mom_fld,
-  struct gkyl_moment_app *app, struct moment_field *fld);
+void moment_field_init(
+  const struct gkyl_moment *mom, const struct gkyl_moment_field *mom_fld,
+  struct gkyl_moment_app *app, struct moment_field *fld
+);
 
 // Apply BCs to EM field
-void moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
-  const struct moment_field *field,
-  struct gkyl_array *f);
+void moment_field_apply_bc(
+  gkyl_moment_app *app, double tcurr, const struct moment_field *field, struct gkyl_array *f
+);
 
 // Maximum stable time-step due to EM fields
-double moment_field_max_dt(const gkyl_moment_app *app,
-  const struct moment_field *fld);
+double moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld);
 
 // Update EM field from tcurr to tcurr+dt
-struct gkyl_update_status moment_field_update(gkyl_moment_app *app,
-  const struct moment_field *fld,
-  double tcurr, double dt);
+struct gkyl_update_status
+moment_field_update(gkyl_moment_app *app, const struct moment_field *fld, double tcurr, double dt);
 
 // Compute RHS of EM equations
-double moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
-  const struct gkyl_array *fin, struct gkyl_array *rhs);
+double moment_field_rhs(
+  gkyl_moment_app *app, struct moment_field *fld, const struct gkyl_array *fin,
+  struct gkyl_array *rhs
+);
 
 // Release the EM field object
 void moment_field_release(const struct moment_field *fld);
@@ -474,39 +498,36 @@ void moment_field_release(const struct moment_field *fld);
 
 // initialize source solver: this should be called after all species
 // and fields are initialized
-void moment_coupling_init(const struct gkyl_moment_app *app,
-                          struct moment_coupling *src);
+void moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *src);
 
 /** mhd_src functions */
 
-void mhd_src_init(const struct gkyl_moment_app *app,
-  const struct gkyl_moment_species *sp, struct mhd_src *src);
+void mhd_src_init(
+  const struct gkyl_moment_app *app, const struct gkyl_moment_species *sp, struct mhd_src *src
+);
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step
-void mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang,
-  double tcurr, double dt);
+void mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang, double tcurr, double dt);
 
 void mhd_src_release(const struct mhd_src *src);
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step
-struct gkyl_update_status moment_coupling_update(gkyl_moment_app *app,
-  struct moment_coupling *src, int nstrang, double tcurr, double dt);
+struct gkyl_update_status moment_coupling_update(
+  gkyl_moment_app *app, struct moment_coupling *src, int nstrang, double tcurr, double dt
+);
 
 // Release coupling sources
-void moment_coupling_release(const struct gkyl_moment_app *app,
-  const struct moment_coupling *src);
+void moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_coupling *src);
 
 /** Top-level app API */
 
 // Take a single time-step using a single-step time-stepper
-struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app,
-  double dt0);
+struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app, double dt0);
 
 // Take a single time-step using a SSP-RK3 stepper
-struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app,
-  double dt0);
+struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app, double dt0);
 
 /**
  * Create new array meta header from input struct. Free returned
@@ -515,7 +536,7 @@ struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app,
  * @param meta Meta-data for output.
  * @return New meta object to pass to write method.
  */
-struct gkyl_msgpack_data* moment_array_meta_new(struct moment_output_meta meta);
+struct gkyl_msgpack_data *moment_array_meta_new(struct moment_output_meta meta);
 
 /**
  * Release meta struct

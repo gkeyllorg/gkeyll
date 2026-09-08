@@ -10,26 +10,28 @@
 #include <gkyl_mat.h>
 #include <gkyl_mat_priv.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_grid.h> 
+#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <assert.h>
 
-GKYL_CU_DH
-static inline void
-comp_to_phys(int ndim, const double *eta,
-  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
-  double* GKYL_RESTRICT xout)
+GKYL_CU_DH static inline void comp_to_phys(
+  int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
+  double *GKYL_RESTRICT xout
+)
 {
-  for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
+  for (int d = 0; d < ndim; ++d) {
+    xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
+  }
 }
 
-static inline void
-copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
+static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 {
-  for (int i=0; i<cdim; ++i)
+  for (int i = 0; i < cdim; ++i) {
     out[i] = cidx[i];
-  for (int i=cdim; i<pdim; ++i)
-    out[i] = vidx[i-cdim];
+  }
+  for (int i = cdim; i < pdim; ++i) {
+    out[i] = vidx[i - cdim];
+  }
 }
 
 struct gkyl_vlasov_lte_proj_on_basis {
@@ -60,20 +62,21 @@ struct gkyl_vlasov_lte_proj_on_basis {
   // for quadrature in Configuration-space
   int tot_conf_quad; // total number of Configuration-space quadrature points
   struct gkyl_array *conf_ordinates; // Configuration-space ordinates for quadrature
-  struct gkyl_array *conf_weights; // weights for Configuration-space quadrature  
+  struct gkyl_array *conf_weights; // weights for Configuration-space quadrature
   struct gkyl_array *conf_basis_at_ords; // Configuration-space basis functions at ordinates
 
   struct gkyl_array *fun_at_ords; // function LTE distribution evaluated at
-                                  // ordinates in a cell.
+    // ordinates in a cell.
 
-  int *p2c_qidx;  // Mapping between Configuration-space and Phase-space ordinates.
+  int *p2c_qidx; // Mapping between Configuration-space and Phase-space ordinates.
   struct gkyl_array *f_lte_quad; // Array keeping f_lte at phase-space quadrature nodes
-  struct gkyl_array *moms_lte_quad; // Array keeping moms_lte (n, V_drift, T/m) 
-                                    // at configuration-space quadrature nodes
-  struct gkyl_array *expamp_quad; // Array keeping exponential pre-factor 
-                                  // at configuration-space quadrature nodes
+  struct gkyl_array *moms_lte_quad; // Array keeping moms_lte (n, V_drift, T/m)
+    // at configuration-space quadrature nodes
+  struct gkyl_array *expamp_quad; // Array keeping exponential pre-factor
+    // at configuration-space quadrature nodes
   struct gkyl_array *h_ij_quad; // metric configuration-space quadrature nodes, covariant components
-  struct gkyl_array *h_ij_inv_quad; // metric inverse at configuration-space quadrature nodes, contravariant components
+  struct gkyl_array *
+    h_ij_inv_quad; // metric inverse at configuration-space quadrature nodes, contravariant components
   struct gkyl_array *det_h_quad; // metric determinant at configuration-space quadrature nodes
 
   struct gkyl_vlasov_lte_moments *moments_up; // LTE moment calculation routine for computing density
@@ -81,7 +84,7 @@ struct gkyl_vlasov_lte_proj_on_basis {
   struct gkyl_dg_bin_op_mem *mem; // bin_op memory to compute ratio and rescale distribution function
 
   struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
-  struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // structure of data which converts  
-                                                          // stores the info to convert phase
-                                                          // space nodal to modal gkyl arrays
+  struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // structure of data which converts
+    // stores the info to convert phase
+    // space nodal to modal gkyl arrays
 };

@@ -13,15 +13,16 @@
  * @param use_gpu bool to determine if on GPU
  * @return Pointer to Vlasov (with fluid coupling) primitive moment object
  */
-struct gkyl_prim_lbo_type* 
-gkyl_prim_lbo_pkpm_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, 
-  bool use_gpu);
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, bool use_gpu
+);
 
 /**
  * Create a new Vlasov PKPM primitive moment object on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_prim_lbo_type* 
-gkyl_prim_lbo_pkpm_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range
+);

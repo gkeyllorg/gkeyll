@@ -8,7 +8,7 @@ typedef struct gkyl_moment_multib_app gkyl_moment_multib_app;
 // Species input per-block
 struct gkyl_moment_multib_species_pb {
   int block_id; // block ID
-  
+
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
@@ -24,7 +24,7 @@ struct gkyl_moment_multib_species_pb {
   bool nT_source_set_only_once;
 };
 
-// Species input 
+// Species input
 struct gkyl_moment_multib_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
@@ -37,9 +37,9 @@ struct gkyl_moment_multib_species {
 
   bool force_low_order_flux; // should  we force low-order flux?
 
-  bool duplicate_across_blocks; // set to true if all blocks are identical  
+  bool duplicate_across_blocks; // set to true if all blocks are identical
   // species inputs per-block: only one is needed is are_all_blocks_same = true
-  const struct gkyl_moment_multib_species_pb *blocks;  
+  const struct gkyl_moment_multib_species_pb *blocks;
 
   int num_physical_bcs;
   const struct gkyl_block_physical_bcs *bcs;
@@ -48,7 +48,7 @@ struct gkyl_moment_multib_species {
 // Field input per-block
 struct gkyl_moment_multib_field_pb {
   int block_id; // block ID
-  
+
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
@@ -58,14 +58,14 @@ struct gkyl_moment_multib_field_pb {
   void (*ext_em)(double t, const double *xn, double *ext_em_out, void *ctx);
   bool ext_em_evolve; // set to true if external electromagnetic field function is time dependent
   double t_ramp_E; // linear ramp for turning on external E field
-  
+
   void *app_current_ctx; // context for external electromagnetic fields function
   // pointer to external electromagnetic fields function
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
   bool app_current_evolve; // set to true if applied current function is time dependent
   double t_ramp_curr; // linear ramp for turning on applied currents
 
-  bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling  
+  bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
 };
 
 // Field input
@@ -84,20 +84,20 @@ struct gkyl_moment_multib_field {
   const struct gkyl_moment_multib_field_pb *blocks;
 
   int num_physical_bcs;
-  const struct gkyl_block_physical_bcs *bcs;  
+  const struct gkyl_block_physical_bcs *bcs;
 };
 
 // Top-level app parameters: this
 struct gkyl_moment_multib {
   char name[128]; // name of app
- // geometry and for blocks in simulation
+  // geometry and for blocks in simulation
   struct gkyl_block_geom *block_geom;
 
- // CFL fraction to use
+  // CFL fraction to use
   double cfl_frac;
 
   enum gkyl_moment_scheme scheme_type; // scheme to update fluid and moment eqns
-  
+
   enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
   bool skip_mp_limiter; // should MP limiter be skipped?
   bool use_hybrid_flux_kep; // should shock-hybrid scheme be used when using KEP?
@@ -105,15 +105,15 @@ struct gkyl_moment_multib {
   int num_skip_dirs; // number of directions to skip
   int skip_dirs[3]; // directions to skip
 
- // number of species  
+  // number of species
   int num_species;
   // species inputs
   struct gkyl_moment_multib_species species[GKYL_MAX_SPECIES];
- 
+
   // field inputs
   struct gkyl_moment_multib_field field;
 
- // communicator to used  
+  // communicator to used
   struct gkyl_comm *comm;
 };
 
@@ -123,8 +123,8 @@ struct gkyl_moment_multib {
  * @param mbinp Multi-block App inputs. See struct docs.
  * @return New multi-block moment app object.
  */
-struct gkyl_moment_multib_app* gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp);
-                                
+struct gkyl_moment_multib_app *gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp);
+
 /**
  * Compute maximum estimated stable dt wtih current app state. Call
  * after app initialized and after initial conditions set.
@@ -132,7 +132,7 @@ struct gkyl_moment_multib_app* gkyl_moment_multib_app_new(const struct gkyl_mome
  * @param app App object.
  * @retuen maximum estimated stable dt
  */
-double gkyl_moment_multib_app_max_dt(gkyl_moment_multib_app* app);
+double gkyl_moment_multib_app_max_dt(gkyl_moment_multib_app *app);
 
 /**
  * Initialize species and field.
@@ -140,7 +140,7 @@ double gkyl_moment_multib_app_max_dt(gkyl_moment_multib_app* app);
  * @param app App object.
  * @param t0 Time for initial conditions.
  */
-void gkyl_moment_multib_app_apply_ic(gkyl_moment_multib_app* app, double t0);
+void gkyl_moment_multib_app_apply_ic(gkyl_moment_multib_app *app, double t0);
 
 /**
  * Initialize field.
@@ -148,7 +148,7 @@ void gkyl_moment_multib_app_apply_ic(gkyl_moment_multib_app* app, double t0);
  * @param app App object.
  * @param t0 Time for initial conditions
  */
-void gkyl_moment_multib_app_apply_ic_field(gkyl_moment_multib_app* app, double t0);
+void gkyl_moment_multib_app_apply_ic_field(gkyl_moment_multib_app *app, double t0);
 
 /**
  * Initialize species.
@@ -157,7 +157,7 @@ void gkyl_moment_multib_app_apply_ic_field(gkyl_moment_multib_app* app, double t
  * @param sidx Index of species to initialize.
  * @param t0 Time for initial conditions
  */
-void gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app* app, int sidx, double t0);
+void gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app *app, int sidx, double t0);
 
 /**
  * Read field data from specified frame of previous simulation.
@@ -166,8 +166,8 @@ void gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app* app, int si
  * @param frame Frame number to read from
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_field(gkyl_moment_multib_app *app,
-  int frame);
+struct gkyl_app_restart_status
+gkyl_moment_multib_app_from_frame_field(gkyl_moment_multib_app *app, int frame);
 
 /**
  * Read species data from specified frame of previous simulation.
@@ -177,8 +177,8 @@ struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_field(gkyl_mome
  * @param frame Frame number to read from
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_species(gkyl_moment_multib_app *app,
-  int sidx, int frame);
+struct gkyl_app_restart_status
+gkyl_moment_multib_app_from_frame_species(gkyl_moment_multib_app *app, int sidx, int frame);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the
@@ -190,14 +190,14 @@ struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_species(gkyl_mo
  * @param fmt Format string for console output
  * @param argp Objects to write
  */
-void gkyl_moment_multib_app_cout(const gkyl_moment_multib_app* app, FILE *fp, const char *fmt, ...);
+void gkyl_moment_multib_app_cout(const gkyl_moment_multib_app *app, FILE *fp, const char *fmt, ...);
 
 /**
  * Write block topology to file.
  * 
  * @param app App object.
  */
-void gkyl_moment_multib_app_write_topo(const gkyl_moment_multib_app* app);
+void gkyl_moment_multib_app_write_topo(const gkyl_moment_multib_app *app);
 
 /**
  * Write field and species data to file.
@@ -206,7 +206,7 @@ void gkyl_moment_multib_app_write_topo(const gkyl_moment_multib_app* app);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_moment_multib_app_write(const gkyl_moment_multib_app* app, double tm, int frame);
+void gkyl_moment_multib_app_write(const gkyl_moment_multib_app *app, double tm, int frame);
 
 /**
  * Write field data to file.
@@ -225,7 +225,9 @@ void gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, doubl
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_moment_multib_app_write_species(const gkyl_moment_multib_app* app, int sidx, double tm, int frame);
+void gkyl_moment_multib_app_write_species(
+  const gkyl_moment_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write field energy to file.
@@ -297,4 +299,4 @@ struct gkyl_moment_stat gkyl_moment_multib_app_stat(gkyl_moment_multib_app *app)
  *
  * @param app App to release.
  */
-void gkyl_moment_multib_app_release(gkyl_moment_multib_app* app);  
+void gkyl_moment_multib_app_release(gkyl_moment_multib_app *app);

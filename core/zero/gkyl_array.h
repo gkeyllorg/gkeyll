@@ -21,7 +21,7 @@ struct gkyl_array {
 
   size_t esznc; // elemsz*ncomp
   void *data; // pointer to data
-  uint32_t flags;  
+  uint32_t flags;
   struct gkyl_ref_count ref_count;
 
   int nthreads, nblocks; // threads per block, number of blocks
@@ -41,7 +41,7 @@ struct gkyl_array {
  * @param size Number of indices 
  * @return Pointer to newly allocated array.
  */
-struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+struct gkyl_array *gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
 
 /**
  * Create new array from per-allocated memory. You must ensure that
@@ -54,8 +54,8 @@ struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
  * @param buff Buffer to use for array data
  * @return Pointer to newly allocated array.
  */
-struct gkyl_array *gkyl_array_new_from_buff(
-  enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff);
+struct gkyl_array *
+gkyl_array_new_from_buff(enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff);
 
 /**
  * Create new array with data on NV-GPU. Delete using
@@ -71,7 +71,7 @@ struct gkyl_array *gkyl_array_new_from_buff(
  * @param size Number of indices 
  * @return Pointer to newly allocated array.
  */
-struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+struct gkyl_array *gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
 
 /**
  * Create new array with host-pinned data for use with NV-GPU. Delete using
@@ -82,7 +82,7 @@ struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp,
  * @param size Number of indices 
  * @return Pointer to newly allocated array.
  */
-struct gkyl_array* gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+struct gkyl_array *gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
 
 /**
  * Returns true if array lives on NV-GPU.
@@ -108,8 +108,7 @@ bool gkyl_array_is_using_buffer(const struct gkyl_array *arr);
  * @param src Source to copy from.
  * @return dest is returned
  */
-struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
-  const struct gkyl_array* src);
+struct gkyl_array *gkyl_array_copy(struct gkyl_array *dest, const struct gkyl_array *src);
 
 /**
  * Copy into array using async methods for cuda arrays: pointer to dest array is returned. 'dest' and
@@ -119,8 +118,7 @@ struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
  * @param src Source to copy from.
  * @return dest is returned
  */
-struct gkyl_array* gkyl_array_copy_async(struct gkyl_array* dest,
-  const struct gkyl_array* src);
+struct gkyl_array *gkyl_array_copy_async(struct gkyl_array *dest, const struct gkyl_array *src);
 
 /**
  * Clone array: pointer to newly created array is returned.
@@ -128,8 +126,7 @@ struct gkyl_array* gkyl_array_copy_async(struct gkyl_array* dest,
  * @param arr Array to clone
  * @return Pointer to clone
  */
-struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
-
+struct gkyl_array *gkyl_array_clone(const struct gkyl_array *arr);
 
 /**
  * Fetches a pointer to the element stored at the index 'loc'.
@@ -139,19 +136,15 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
  * @return Element at location 'loc'
  */
 
-GKYL_CU_DH
-static inline void*
-gkyl_array_fetch(struct gkyl_array* arr, long loc)
+GKYL_CU_DH static inline void *gkyl_array_fetch(struct gkyl_array *arr, long loc)
 {
-  return ((char*) arr->data) + loc*arr->esznc;
+  return ((char *)arr->data) + loc * arr->esznc;
 }
 
 /** Same as above, except fetches a constant pointer */
-GKYL_CU_DH
-static inline const void*
-gkyl_array_cfetch(const struct gkyl_array* arr, long loc)
+GKYL_CU_DH static inline const void *gkyl_array_cfetch(const struct gkyl_array *arr, long loc)
 {
-  return ((const char*) arr->data) + loc*arr->esznc;
+  return ((const char *)arr->data) + loc * arr->esznc;
 }
 
 /**
@@ -161,11 +154,11 @@ gkyl_array_cfetch(const struct gkyl_array* arr, long loc)
  * @param arr Array to which a pointer is needed
  * @return Pointer to acquired array
  */
-struct gkyl_array* gkyl_array_acquire(const struct gkyl_array* arr);
+struct gkyl_array *gkyl_array_acquire(const struct gkyl_array *arr);
 
 /**
  * Release pointer to array
  *
  * @param arr Array to release.
  */
-void gkyl_array_release(const struct gkyl_array* arr);
+void gkyl_array_release(const struct gkyl_array *arr);

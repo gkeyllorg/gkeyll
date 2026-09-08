@@ -18,25 +18,23 @@
 #include <time.h>
 
 // allocate array (filled with zeros)
-static struct gkyl_array*
-mkarr(long nc, long size)
+static struct gkyl_array *mkarr(long nc, long size)
 {
-  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-static struct gkyl_array*
-mk_int_arr(long nc, long size)
+static struct gkyl_array *mk_int_arr(long nc, long size)
 {
-  struct gkyl_array* a = gkyl_array_new(GKYL_INT, nc, size);
+  struct gkyl_array *a = gkyl_array_new(GKYL_INT, nc, size);
   return a;
 }
 
-void eval_field_1x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_field_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double Lx = 2.0*M_PI;
-  double kx = 2.0*M_PI/Lx;
+  double Lx = 2.0 * M_PI;
+  double kx = 2.0 * M_PI / Lx;
 
   pcg64_random_t rng = gkyl_pcg64_init(0); // RNG for use in IC
 
@@ -46,11 +44,15 @@ void eval_field_1x(double t, const double *xn, double* restrict fout, void *ctx)
   double Bx = 1.0;
   double By = 0.0;
   double Bz = 0.0;
-  for (int i=0; i<4; ++i) {
-    Ey += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-    Ez += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-    By += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-    Bz += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
+  for (int i = 0; i < 4; ++i) {
+    Ey +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+    Ez +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+    By +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+    Bz +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
   }
 
   fout[0] = Ex;
@@ -63,11 +65,11 @@ void eval_field_1x(double t, const double *xn, double* restrict fout, void *ctx)
   fout[7] = 0.0;
 }
 
-void eval_analytic_bvar_1x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_analytic_bvar_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double Lx = 2.0*M_PI;
-  double kx = 2.0*M_PI/Lx;
+  double Lx = 2.0 * M_PI;
+  double kx = 2.0 * M_PI / Lx;
 
   pcg64_random_t rng = gkyl_pcg64_init(0); // RNG for use in IC
 
@@ -77,38 +79,45 @@ void eval_analytic_bvar_1x(double t, const double *xn, double* restrict fout, vo
   double Bx = 1.0;
   double By = 0.0;
   double Bz = 0.0;
-  for (int i=0; i<4; ++i) {
-    Ey += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-    Ez += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-    By += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-    Bz += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
+  for (int i = 0; i < 4; ++i) {
+    Ey +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+    Ez +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+    By +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+    Bz +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
   }
 
-  double magB2 = Bx*Bx + By*By + Bz*Bz;
-  double bxbx = Bx*Bx/magB2;
-  double bxby = Bx*By/magB2;
-  double bxbz = Bx*Bz/magB2;
-  double byby = By*By/magB2;
-  double bybz = By*Bz/magB2;
-  double bzbz = Bz*Bz/magB2;
+  double magB2 = Bx * Bx + By * By + Bz * Bz;
+  double bxbx = Bx * Bx / magB2;
+  double bxby = Bx * By / magB2;
+  double bxbz = Bx * Bz / magB2;
+  double byby = By * By / magB2;
+  double bybz = By * Bz / magB2;
+  double bzbz = Bz * Bz / magB2;
 
   double bx = 0.0;
   double by = 0.0;
   double bz = 0.0;
-  if (Bx < 0.0) 
+  if (Bx < 0.0) {
     bx = -sqrt(bxbx);
-  else
+  } else {
     bx = sqrt(bxbx);
+  }
 
-  if (By < 0.0) 
+  if (By < 0.0) {
     by = -sqrt(byby);
-  else
+  } else {
     by = sqrt(byby);
+  }
 
-  if (Bz < 0.0) 
+  if (Bz < 0.0) {
     bz = -sqrt(bzbz);
-  else
-    bz = sqrt(bzbz);  
+  } else {
+    bz = sqrt(bzbz);
+  }
 
   fout[0] = bx;
   fout[1] = by;
@@ -121,11 +130,11 @@ void eval_analytic_bvar_1x(double t, const double *xn, double* restrict fout, vo
   fout[8] = bzbz;
 }
 
-void eval_analytic_ExB_1x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_analytic_ExB_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double Lx = 2.0*M_PI;
-  double kx = 2.0*M_PI/Lx;
+  double Lx = 2.0 * M_PI;
+  double kx = 2.0 * M_PI / Lx;
 
   pcg64_random_t rng = gkyl_pcg64_init(0); // RNG for use in IC
 
@@ -135,31 +144,35 @@ void eval_analytic_ExB_1x(double t, const double *xn, double* restrict fout, voi
   double Bx = 1.0;
   double By = 0.0;
   double Bz = 0.0;
-  for (int i=0; i<4; ++i) {
-    Ey += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-    Ez += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-    By += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-    Bz += gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
+  for (int i = 0; i < 4; ++i) {
+    Ey +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+    Ez +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+    By +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+    Bz +=
+      gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
   }
 
-  double magB2 = Bx*Bx + By*By + Bz*Bz;
-  double num_ExB_x = Ey*Bz - Ez*By;
-  double num_ExB_y = Ez*Bx - Ex*Bz;
-  double num_ExB_z = Ex*By - Ey*Bx;
+  double magB2 = Bx * Bx + By * By + Bz * Bz;
+  double num_ExB_x = Ey * Bz - Ez * By;
+  double num_ExB_y = Ez * Bx - Ex * Bz;
+  double num_ExB_z = Ex * By - Ey * Bx;
 
-  fout[0] = num_ExB_x/magB2;
-  fout[1] = num_ExB_y/magB2;
-  fout[2] = num_ExB_z/magB2;
+  fout[0] = num_ExB_x / magB2;
+  fout[1] = num_ExB_y / magB2;
+  fout[2] = num_ExB_z / magB2;
 }
 
-void eval_field_2x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_field_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
-  double Lx = 2.0*M_PI;
-  double Ly = 2.0*M_PI;
-  double kx = 2.0*M_PI/Lx;
-  double ky = 2.0*M_PI/Ly;
+  double Lx = 2.0 * M_PI;
+  double Ly = 2.0 * M_PI;
+  double kx = 2.0 * M_PI / Lx;
+  double ky = 2.0 * M_PI / Ly;
 
   pcg64_random_t rng = gkyl_pcg64_init(0); // RNG for use in IC
 
@@ -170,17 +183,25 @@ void eval_field_2x(double t, const double *xn, double* restrict fout, void *ctx)
   double By = 0.0;
   double Bz = 0.0;
   double rand_amp, rand_phase_x, rand_phase_y;
-  for (int i=0; i<4; ++i) {
-    for (int j=0; j<4; ++j) {
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
       rand_amp = gkyl_pcg64_rand_double(&rng);
       rand_phase_x = gkyl_pcg64_rand_double(&rng);
       rand_phase_y = gkyl_pcg64_rand_double(&rng);
-      Ex += rand_amp*j*ky*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y);
-      Ey += -rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y);
-      Ez += gkyl_pcg64_rand_double(&rng)*j*ky*i*kx*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng))*cos(j*ky*y + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-      Bx += rand_amp*j*ky*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y);
-      By += -rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y);
-      Bz += gkyl_pcg64_rand_double(&rng)*j*ky*i*kx*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng))*cos(j*ky*y + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
+      Ex += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      Ey += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      Ez += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+      Bx += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      By += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      Bz += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
     }
   }
 
@@ -194,14 +215,14 @@ void eval_field_2x(double t, const double *xn, double* restrict fout, void *ctx)
   fout[7] = 0.0;
 }
 
-void eval_analytic_bvar_2x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_analytic_bvar_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
-  double Lx = 2.0*M_PI;
-  double Ly = 2.0*M_PI;
-  double kx = 2.0*M_PI/Lx;
-  double ky = 2.0*M_PI/Ly;
+  double Lx = 2.0 * M_PI;
+  double Ly = 2.0 * M_PI;
+  double kx = 2.0 * M_PI / Lx;
+  double ky = 2.0 * M_PI / Ly;
 
   pcg64_random_t rng = gkyl_pcg64_init(0); // RNG for use in IC
 
@@ -212,45 +233,56 @@ void eval_analytic_bvar_2x(double t, const double *xn, double* restrict fout, vo
   double By = 0.0;
   double Bz = 0.0;
   double rand_amp, rand_phase_x, rand_phase_y;
-  for (int i=0; i<4; ++i) {
-    for (int j=0; j<4; ++j) {
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
       rand_amp = gkyl_pcg64_rand_double(&rng);
       rand_phase_x = gkyl_pcg64_rand_double(&rng);
       rand_phase_y = gkyl_pcg64_rand_double(&rng);
-      Ex += rand_amp*j*ky*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y);
-      Ey += -rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y);
-      Ez += gkyl_pcg64_rand_double(&rng)*j*ky*i*kx*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng))*cos(j*ky*y + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-      Bx += rand_amp*j*ky*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y);
-      By += -rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y);
-      Bz += gkyl_pcg64_rand_double(&rng)*j*ky*i*kx*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng))*cos(j*ky*y + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
+      Ex += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      Ey += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      Ez += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+      Bx += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      By += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      Bz += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
     }
   }
 
-  double magB2 = Bx*Bx + By*By + Bz*Bz;
-  double bxbx = Bx*Bx/magB2;
-  double bxby = Bx*By/magB2;
-  double bxbz = Bx*Bz/magB2;
-  double byby = By*By/magB2;
-  double bybz = By*Bz/magB2;
-  double bzbz = Bz*Bz/magB2;
+  double magB2 = Bx * Bx + By * By + Bz * Bz;
+  double bxbx = Bx * Bx / magB2;
+  double bxby = Bx * By / magB2;
+  double bxbz = Bx * Bz / magB2;
+  double byby = By * By / magB2;
+  double bybz = By * Bz / magB2;
+  double bzbz = Bz * Bz / magB2;
 
   double bx = 0.0;
   double by = 0.0;
   double bz = 0.0;
-  if (Bx < 0.0) 
+  if (Bx < 0.0) {
     bx = -sqrt(bxbx);
-  else
+  } else {
     bx = sqrt(bxbx);
+  }
 
-  if (By < 0.0) 
+  if (By < 0.0) {
     by = -sqrt(byby);
-  else
+  } else {
     by = sqrt(byby);
+  }
 
-  if (Bz < 0.0) 
+  if (Bz < 0.0) {
     bz = -sqrt(bzbz);
-  else
-    bz = sqrt(bzbz);  
+  } else {
+    bz = sqrt(bzbz);
+  }
 
   fout[0] = bx;
   fout[1] = by;
@@ -263,14 +295,14 @@ void eval_analytic_bvar_2x(double t, const double *xn, double* restrict fout, vo
   fout[8] = bzbz;
 }
 
-void eval_analytic_ExB_2x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_analytic_ExB_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
-  double Lx = 2.0*M_PI;
-  double Ly = 2.0*M_PI;
-  double kx = 2.0*M_PI/Lx;
-  double ky = 2.0*M_PI/Ly;
+  double Lx = 2.0 * M_PI;
+  double Ly = 2.0 * M_PI;
+  double kx = 2.0 * M_PI / Lx;
+  double ky = 2.0 * M_PI / Ly;
 
   pcg64_random_t rng = gkyl_pcg64_init(0); // RNG for use in IC
 
@@ -281,41 +313,49 @@ void eval_analytic_ExB_2x(double t, const double *xn, double* restrict fout, voi
   double By = 0.0;
   double Bz = 0.0;
   double rand_amp, rand_phase_x, rand_phase_y;
-  for (int i=0; i<4; ++i) {
-    for (int j=0; j<4; ++j) {
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
       rand_amp = gkyl_pcg64_rand_double(&rng);
       rand_phase_x = gkyl_pcg64_rand_double(&rng);
       rand_phase_y = gkyl_pcg64_rand_double(&rng);
-      Ex += rand_amp*j*ky*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y);
-      Ey += -rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y);
-      Ez += gkyl_pcg64_rand_double(&rng)*j*ky*i*kx*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng))*cos(j*ky*y + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-      Bx += rand_amp*j*ky*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y);
-      By += -rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y);
-      Bz += gkyl_pcg64_rand_double(&rng)*j*ky*i*kx*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng))*cos(j*ky*y + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
+      Ex += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      Ey += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      Ez += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+      Bx += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      By += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+      Bz += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
     }
   }
 
-  double magB2 = Bx*Bx + By*By + Bz*Bz;
-  double num_ExB_x = Ey*Bz - Ez*By;
-  double num_ExB_y = Ez*Bx - Ex*Bz;
-  double num_ExB_z = Ex*By - Ey*Bx;
+  double magB2 = Bx * Bx + By * By + Bz * Bz;
+  double num_ExB_x = Ey * Bz - Ez * By;
+  double num_ExB_y = Ez * Bx - Ex * Bz;
+  double num_ExB_z = Ex * By - Ey * Bx;
 
-  fout[0] = num_ExB_x/magB2;
-  fout[1] = num_ExB_y/magB2;
-  fout[2] = num_ExB_z/magB2;
+  fout[0] = num_ExB_x / magB2;
+  fout[1] = num_ExB_y / magB2;
+  fout[2] = num_ExB_z / magB2;
 }
 
-void eval_field_3x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_field_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   double z = xn[2];
-  double Lx = 2.0*M_PI;
-  double Ly = 2.0*M_PI;
-  double Lz = 2.0*M_PI;
-  double kx = 2.0*M_PI/Lx;
-  double ky = 2.0*M_PI/Ly;
-  double kz = 2.0*M_PI/Ly;
+  double Lx = 2.0 * M_PI;
+  double Ly = 2.0 * M_PI;
+  double Lz = 2.0 * M_PI;
+  double kx = 2.0 * M_PI / Lx;
+  double ky = 2.0 * M_PI / Ly;
+  double kz = 2.0 * M_PI / Ly;
 
   pcg64_random_t rng = gkyl_pcg64_init(0); // RNG for use in IC
 
@@ -326,19 +366,31 @@ void eval_field_3x(double t, const double *xn, double* restrict fout, void *ctx)
   double By = 0.0;
   double Bz = 0.0;
   double rand_amp, rand_phase_x, rand_phase_y, rand_phase_z;
-  for (int i=0; i<4; ++i) {
-    for (int j=0; j<4; ++j) {
-      for (int k=0; k<4; ++k) {
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      for (int k = 0; k < 4; ++k) {
         rand_amp = gkyl_pcg64_rand_double(&rng);
         rand_phase_x = gkyl_pcg64_rand_double(&rng);
         rand_phase_y = gkyl_pcg64_rand_double(&rng);
         rand_phase_z = gkyl_pcg64_rand_double(&rng);
-        Ex += rand_amp*j*ky*k*kz*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Ey += -2.0*rand_amp*i*kx*k*kz*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Ez += rand_amp*i*kx*j*ky*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*sin(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Bx += rand_amp*j*ky*k*kz*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        By += -2.0*rand_amp*i*kx*k*kz*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Bz += rand_amp*i*kx*j*ky*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*sin(k*kz*z + 2.0*M_PI*rand_phase_z);
+        Ex += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Ey += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Ez += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Bx += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        By += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Bz += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
       }
     }
   }
@@ -353,17 +405,17 @@ void eval_field_3x(double t, const double *xn, double* restrict fout, void *ctx)
   fout[7] = 0.0;
 }
 
-void eval_analytic_bvar_3x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_analytic_bvar_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   double z = xn[2];
-  double Lx = 2.0*M_PI;
-  double Ly = 2.0*M_PI;
-  double Lz = 2.0*M_PI;
-  double kx = 2.0*M_PI/Lx;
-  double ky = 2.0*M_PI/Ly;
-  double kz = 2.0*M_PI/Ly;
+  double Lx = 2.0 * M_PI;
+  double Ly = 2.0 * M_PI;
+  double Lz = 2.0 * M_PI;
+  double kx = 2.0 * M_PI / Lx;
+  double ky = 2.0 * M_PI / Ly;
+  double kz = 2.0 * M_PI / Ly;
 
   pcg64_random_t rng = gkyl_pcg64_init(0); // RNG for use in IC
 
@@ -374,48 +426,63 @@ void eval_analytic_bvar_3x(double t, const double *xn, double* restrict fout, vo
   double By = 0.0;
   double Bz = 0.0;
   double rand_amp, rand_phase_x, rand_phase_y, rand_phase_z;
-  for (int i=0; i<4; ++i) {
-    for (int j=0; j<4; ++j) {
-      for (int k=0; k<4; ++k) {
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      for (int k = 0; k < 4; ++k) {
         rand_amp = gkyl_pcg64_rand_double(&rng);
         rand_phase_x = gkyl_pcg64_rand_double(&rng);
         rand_phase_y = gkyl_pcg64_rand_double(&rng);
         rand_phase_z = gkyl_pcg64_rand_double(&rng);
-        Ex += rand_amp*j*ky*k*kz*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Ey += -2.0*rand_amp*i*kx*k*kz*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Ez += rand_amp*i*kx*j*ky*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*sin(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Bx += rand_amp*j*ky*k*kz*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        By += -2.0*rand_amp*i*kx*k*kz*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Bz += rand_amp*i*kx*j*ky*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*sin(k*kz*z + 2.0*M_PI*rand_phase_z);
+        Ex += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Ey += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Ez += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Bx += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        By += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Bz += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
       }
     }
   }
 
-  double magB2 = Bx*Bx + By*By + Bz*Bz;
-  double bxbx = Bx*Bx/magB2;
-  double bxby = Bx*By/magB2;
-  double bxbz = Bx*Bz/magB2;
-  double byby = By*By/magB2;
-  double bybz = By*Bz/magB2;
-  double bzbz = Bz*Bz/magB2;
+  double magB2 = Bx * Bx + By * By + Bz * Bz;
+  double bxbx = Bx * Bx / magB2;
+  double bxby = Bx * By / magB2;
+  double bxbz = Bx * Bz / magB2;
+  double byby = By * By / magB2;
+  double bybz = By * Bz / magB2;
+  double bzbz = Bz * Bz / magB2;
 
   double bx = 0.0;
   double by = 0.0;
   double bz = 0.0;
-  if (Bx < 0.0) 
+  if (Bx < 0.0) {
     bx = -sqrt(bxbx);
-  else
+  } else {
     bx = sqrt(bxbx);
+  }
 
-  if (By < 0.0) 
+  if (By < 0.0) {
     by = -sqrt(byby);
-  else
+  } else {
     by = sqrt(byby);
+  }
 
-  if (Bz < 0.0) 
+  if (Bz < 0.0) {
     bz = -sqrt(bzbz);
-  else
-    bz = sqrt(bzbz);  
+  } else {
+    bz = sqrt(bzbz);
+  }
 
   fout[0] = bx;
   fout[1] = by;
@@ -428,17 +495,17 @@ void eval_analytic_bvar_3x(double t, const double *xn, double* restrict fout, vo
   fout[8] = bzbz;
 }
 
-void eval_analytic_ExB_3x(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_analytic_ExB_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   double z = xn[2];
-  double Lx = 2.0*M_PI;
-  double Ly = 2.0*M_PI;
-  double Lz = 2.0*M_PI;
-  double kx = 2.0*M_PI/Lx;
-  double ky = 2.0*M_PI/Ly;
-  double kz = 2.0*M_PI/Ly;
+  double Lx = 2.0 * M_PI;
+  double Ly = 2.0 * M_PI;
+  double Lz = 2.0 * M_PI;
+  double kx = 2.0 * M_PI / Lx;
+  double ky = 2.0 * M_PI / Ly;
+  double kz = 2.0 * M_PI / Ly;
 
   pcg64_random_t rng = gkyl_pcg64_init(0); // RNG for use in IC
 
@@ -449,43 +516,56 @@ void eval_analytic_ExB_3x(double t, const double *xn, double* restrict fout, voi
   double By = 0.0;
   double Bz = 0.0;
   double rand_amp, rand_phase_x, rand_phase_y, rand_phase_z;
-  for (int i=0; i<4; ++i) {
-    for (int j=0; j<4; ++j) {
-      for (int k=0; k<4; ++k) {
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      for (int k = 0; k < 4; ++k) {
         rand_amp = gkyl_pcg64_rand_double(&rng);
         rand_phase_x = gkyl_pcg64_rand_double(&rng);
         rand_phase_y = gkyl_pcg64_rand_double(&rng);
         rand_phase_z = gkyl_pcg64_rand_double(&rng);
-        Ex += rand_amp*j*ky*k*kz*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Ey += -2.0*rand_amp*i*kx*k*kz*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Ez += rand_amp*i*kx*j*ky*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*sin(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Bx += rand_amp*j*ky*k*kz*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        By += -2.0*rand_amp*i*kx*k*kz*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y)*cos(k*kz*z + 2.0*M_PI*rand_phase_z);
-        Bz += rand_amp*i*kx*j*ky*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y)*sin(k*kz*z + 2.0*M_PI*rand_phase_z);
+        Ex += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Ey += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Ez += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Bx += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        By += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+        Bz += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
       }
     }
   }
 
-  double magB2 = Bx*Bx + By*By + Bz*Bz;
-  double num_ExB_x = Ey*Bz - Ez*By;
-  double num_ExB_y = Ez*Bx - Ex*Bz;
-  double num_ExB_z = Ex*By - Ey*Bx;
+  double magB2 = Bx * Bx + By * By + Bz * Bz;
+  double num_ExB_x = Ey * Bz - Ez * By;
+  double num_ExB_y = Ez * Bx - Ex * Bz;
+  double num_ExB_z = Ex * By - Ey * Bx;
 
-  fout[0] = num_ExB_x/magB2;
-  fout[1] = num_ExB_y/magB2;
-  fout[2] = num_ExB_z/magB2;
+  fout[0] = num_ExB_x / magB2;
+  fout[1] = num_ExB_y / magB2;
+  fout[2] = num_ExB_z / magB2;
 }
 
-void
-test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_analytic, bool use_gpu)
+void test(
+  int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_analytic, bool use_gpu
+)
 {
-  double L = 2.*M_PI;
+  double L = 2. * M_PI;
 
   double lower[ndim], upper[ndim];
   int cells[ndim], ghost[ndim];
-  for (int n=0; n<ndim; ++n) {
-    lower[n] = -L/2.0;
-    upper[n] = L/2.0;
+  for (int n = 0; n < ndim; ++n) {
+    lower[n] = -L / 2.0;
+    upper[n] = L / 2.0;
     cells[n] = Nx;
     ghost[n] = 1;
   }
@@ -495,10 +575,11 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
 
   // Basis functions.
   struct gkyl_basis basis;
-  if (use_tensor)
+  if (use_tensor) {
     gkyl_cart_modal_tensor(&basis, ndim, poly_order);
-  else
+  } else {
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  }
 
   // Local, local-ext phase-space ranges.
   struct gkyl_range local, local_ext;
@@ -506,43 +587,33 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
 
   struct gkyl_proj_on_basis *proj_field, *proj_analytic_bvar, *proj_analytic_ExB;
   if (ndim == 1) {
-    proj_field = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 8, eval_field_1x, NULL);
-    proj_analytic_bvar = gkyl_proj_on_basis_new(&grid, &basis,
-      8, 9, eval_analytic_bvar_1x, NULL);
-    proj_analytic_ExB = gkyl_proj_on_basis_new(&grid, &basis,
-      8, 3, eval_analytic_ExB_1x, NULL);
-  }
-  else if (ndim == 2) {
-    proj_field = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 8, eval_field_2x, NULL);  
-    proj_analytic_bvar = gkyl_proj_on_basis_new(&grid, &basis,
-      8, 9, eval_analytic_bvar_2x, NULL);
-    proj_analytic_ExB = gkyl_proj_on_basis_new(&grid, &basis,
-      8, 3, eval_analytic_ExB_2x, NULL);  
-  }
-  else {
-    proj_field = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 8, eval_field_3x, NULL);
-    proj_analytic_bvar = gkyl_proj_on_basis_new(&grid, &basis,
-      8, 9, eval_analytic_bvar_3x, NULL);
-    proj_analytic_ExB = gkyl_proj_on_basis_new(&grid, &basis,
-      8, 3, eval_analytic_ExB_3x, NULL);       
+    proj_field = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 8, eval_field_1x, NULL);
+    proj_analytic_bvar = gkyl_proj_on_basis_new(&grid, &basis, 8, 9, eval_analytic_bvar_1x, NULL);
+    proj_analytic_ExB = gkyl_proj_on_basis_new(&grid, &basis, 8, 3, eval_analytic_ExB_1x, NULL);
+  } else if (ndim == 2) {
+    proj_field = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 8, eval_field_2x, NULL);
+    proj_analytic_bvar = gkyl_proj_on_basis_new(&grid, &basis, 8, 9, eval_analytic_bvar_2x, NULL);
+    proj_analytic_ExB = gkyl_proj_on_basis_new(&grid, &basis, 8, 3, eval_analytic_ExB_2x, NULL);
+  } else {
+    proj_field = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 8, eval_field_3x, NULL);
+    proj_analytic_bvar = gkyl_proj_on_basis_new(&grid, &basis, 8, 9, eval_analytic_bvar_3x, NULL);
+    proj_analytic_ExB = gkyl_proj_on_basis_new(&grid, &basis, 8, 3, eval_analytic_ExB_3x, NULL);
   }
 
   // Create EM, bvar, and ExB arrays.
   struct gkyl_array *cell_avg_magB2;
   struct gkyl_array *field, *bvar, *ExB, *bvar_surf, *analytic_bvar, *analytic_ExB;
   cell_avg_magB2 = mk_int_arr(1, local_ext.volume);
-  field = mkarr(8*basis.num_basis, local_ext.volume);
-  bvar = mkarr(9*basis.num_basis, local_ext.volume);
-  ExB = mkarr(3*basis.num_basis, local_ext.volume);
-  analytic_bvar = mkarr(9*basis.num_basis, local_ext.volume);
-  analytic_ExB = mkarr(3*basis.num_basis, local_ext.volume);
+  field = mkarr(8 * basis.num_basis, local_ext.volume);
+  bvar = mkarr(9 * basis.num_basis, local_ext.volume);
+  ExB = mkarr(3 * basis.num_basis, local_ext.volume);
+  analytic_bvar = mkarr(9 * basis.num_basis, local_ext.volume);
+  analytic_ExB = mkarr(3 * basis.num_basis, local_ext.volume);
 
-  int Ncomp_surf = 2*ndim*4;
-  int Nbasis_surf = basis.num_basis/(basis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
-  bvar_surf = mkarr(Ncomp_surf*Nbasis_surf, local_ext.volume);
+  int Ncomp_surf = 2 * ndim * 4;
+  int Nbasis_surf =
+    basis.num_basis / (basis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
+  bvar_surf = mkarr(Ncomp_surf * Nbasis_surf, local_ext.volume);
 
   // Project initial conditions and analytic solution
   gkyl_proj_on_basis_advance(proj_field, 0.0, &local_ext, field);
@@ -552,11 +623,11 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   struct gkyl_array *cell_avg_magB2_cu;
   struct gkyl_array *field_cu, *bvar_cu, *ExB_cu, *bvar_surf_cu;
   if (use_gpu) { // Create device copies
-    cell_avg_magB2_cu  = gkyl_array_cu_dev_new(GKYL_INT, 1, local_ext.volume);
-    field_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, 8*basis.num_basis, local_ext.volume);
-    bvar_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*basis.num_basis, local_ext.volume);
-    ExB_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, local_ext.volume);
-    bvar_surf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, Ncomp_surf*Nbasis_surf, local_ext.volume);
+    cell_avg_magB2_cu = gkyl_array_cu_dev_new(GKYL_INT, 1, local_ext.volume);
+    field_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 8 * basis.num_basis, local_ext.volume);
+    bvar_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9 * basis.num_basis, local_ext.volume);
+    ExB_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3 * basis.num_basis, local_ext.volume);
+    bvar_surf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, Ncomp_surf * Nbasis_surf, local_ext.volume);
   }
 
   if (use_gpu) {
@@ -571,10 +642,10 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   double limiter_fac = 0.0;
   struct gkyl_dg_calc_em_vars *calc_bvar;
   struct gkyl_dg_calc_em_vars *calc_ExB;
-  calc_bvar = gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, 
-    maxwell, geom, limiter_fac, 0, use_gpu);
-  calc_ExB = gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, 
-    maxwell, geom, limiter_fac, 1, use_gpu);
+  calc_bvar =
+    gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, maxwell, geom, limiter_fac, 0, use_gpu);
+  calc_ExB =
+    gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, maxwell, geom, limiter_fac, 1, use_gpu);
   gkyl_wv_eqn_release(maxwell);
   gkyl_wave_geom_release(geom);
 
@@ -582,10 +653,10 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
 
   // Updaters to compute bvar and ExB with minimum number of loops and grouped operations
   // Note order of operations is designed to minimize aliasing errors
-  // 1. Compute B_i B_j or numerator (E x B)_i and denominator (|B|^2) using weak multiplication 
+  // 1. Compute B_i B_j or numerator (E x B)_i and denominator (|B|^2) using weak multiplication
   // 2. Compute unit tensor (b_i b_j = B_i B_j/|B|^2, 6 components) or (E x B/|B|^2) using either
   //    basis_inv operator (for p=1) or weak division (p>1)
-  // 3. For bvar, project diagonal components of bb onto quadrature points, evaluate square root point wise, 
+  // 3. For bvar, project diagonal components of bb onto quadrature points, evaluate square root point wise,
   //    and project back onto modal basis using basis_sqrt to obtain b_i (see gkyl_basis_*_sqrt.h in kernels/basis/)
   if (use_gpu) {
     // Advance also computed surface variables, but not currently testing surface variables JJ: 09/02/23
@@ -594,8 +665,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     // Copy host array to device.
     gkyl_array_copy(bvar, bvar_cu);
     gkyl_array_copy(ExB, ExB_cu);
-  }
-  else {
+  } else {
     gkyl_dg_calc_em_vars_advance(calc_bvar, field, cell_avg_magB2, bvar, bvar_surf);
     gkyl_dg_calc_em_vars_advance(calc_ExB, field, cell_avg_magB2, ExB, bvar_surf);
   }
@@ -606,14 +676,14 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
 
   // Check if b . b = 1 from EM vars computation
   struct gkyl_array *bibj_check, *b_dot_b;
-  bibj_check = mkarr(3*basis.num_basis, local_ext.volume);
+  bibj_check = mkarr(3 * basis.num_basis, local_ext.volume);
   b_dot_b = mkarr(basis.num_basis, local_ext.volume);
-  for (int i=0; i<3; ++i) {
+  for (int i = 0; i < 3; ++i) {
     gkyl_dg_mul_op_range(&basis, i, bibj_check, i, bvar, i, bvar, &local);
   }
-  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 0*basis.num_basis, &local);
-  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 1*basis.num_basis, &local);
-  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 2*basis.num_basis, &local);
+  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 0 * basis.num_basis, &local);
+  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 1 * basis.num_basis, &local);
+  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 2 * basis.num_basis, &local);
 
   // Create intermediate arrays and dg_bin_op_memory to construct bvar
   // and ExB by the relevant sequence of operations
@@ -621,33 +691,33 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   struct gkyl_array *alt_bibj_cu, *alt_ExB_cu;
   struct gkyl_dg_bin_op_mem *magB2_mem;
 
-  alt_bibj = mkarr(9*basis.num_basis, local_ext.volume);
-  alt_ExB = mkarr(3*basis.num_basis, local_ext.volume);
+  alt_bibj = mkarr(9 * basis.num_basis, local_ext.volume);
+  alt_ExB = mkarr(3 * basis.num_basis, local_ext.volume);
 
   struct timespec tm2 = gkyl_wall_clock();
   if (use_gpu) {
-    alt_bibj_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*basis.num_basis, local_ext.volume);
-    alt_ExB_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, local_ext.volume);
+    alt_bibj_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9 * basis.num_basis, local_ext.volume);
+    alt_ExB_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3 * basis.num_basis, local_ext.volume);
 
     magB2 = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    int_BiBj = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*basis.num_basis, local_ext.volume);
-    int_ExB1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, local_ext.volume);
-    int_ExB2 = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, local_ext.volume);
+    int_BiBj = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6 * basis.num_basis, local_ext.volume);
+    int_ExB1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3 * basis.num_basis, local_ext.volume);
+    int_ExB2 = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3 * basis.num_basis, local_ext.volume);
 
     magB2_mem = gkyl_dg_bin_op_mem_cu_dev_new(local.volume, basis.num_basis);
     int ctr = 0;
-    for (int i=0; i<3; ++i) {
-      for (int j=i; j<3; ++j) {
-        gkyl_dg_mul_op_range(&basis, ctr, int_BiBj, i+3, field_cu, j+3, field_cu, &local);
+    for (int i = 0; i < 3; ++i) {
+      for (int j = i; j < 3; ++j) {
+        gkyl_dg_mul_op_range(&basis, ctr, int_BiBj, i + 3, field_cu, j + 3, field_cu, &local);
         ctr += 1;
       }
     }
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0*basis.num_basis, &local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3*basis.num_basis, &local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5*basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0 * basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3 * basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5 * basis.num_basis, &local);
 
-    for (int i=0; i<6; ++i) {
-      gkyl_dg_div_op_range(magB2_mem, &basis, 3+i, alt_bibj_cu, i, int_BiBj, 0, magB2, &local);
+    for (int i = 0; i < 6; ++i) {
+      gkyl_dg_div_op_range(magB2_mem, &basis, 3 + i, alt_bibj_cu, i, int_BiBj, 0, magB2, &local);
     }
 
     gkyl_dg_mul_op_range(&basis, 0, int_ExB1, 1, field_cu, 5, field_cu, &local);
@@ -660,35 +730,34 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_dg_mul_op_range(&basis, 2, int_ExB2, 1, field_cu, 3, field_cu, &local);
 
     gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, &local);
-    for (int i=0; i<3; ++i) {
+    for (int i = 0; i < 3; ++i) {
       gkyl_dg_div_op_range(magB2_mem, &basis, i, alt_ExB_cu, i, int_ExB1, 0, magB2, &local);
-    }    
+    }
 
     // copy from device and check if things are ok
     gkyl_array_copy(alt_bibj, alt_bibj_cu);
     gkyl_array_copy(alt_ExB, alt_ExB_cu);
-  }
-  else {
+  } else {
     magB2 = mkarr(basis.num_basis, local_ext.volume);
-    int_BiBj = mkarr(6*basis.num_basis, local_ext.volume);
-    int_ExB1 = mkarr(3*basis.num_basis, local_ext.volume);
-    int_ExB2 = mkarr(3*basis.num_basis, local_ext.volume);
+    int_BiBj = mkarr(6 * basis.num_basis, local_ext.volume);
+    int_ExB1 = mkarr(3 * basis.num_basis, local_ext.volume);
+    int_ExB2 = mkarr(3 * basis.num_basis, local_ext.volume);
 
     magB2_mem = gkyl_dg_bin_op_mem_new(local.volume, basis.num_basis);
 
     int ctr = 0;
-    for (int i=0; i<3; ++i) {
-      for (int j=i; j<3; ++j) {
-        gkyl_dg_mul_op_range(&basis, ctr, int_BiBj, i+3, field, j+3, field, &local);
+    for (int i = 0; i < 3; ++i) {
+      for (int j = i; j < 3; ++j) {
+        gkyl_dg_mul_op_range(&basis, ctr, int_BiBj, i + 3, field, j + 3, field, &local);
         ctr += 1;
       }
     }
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0*basis.num_basis, &local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3*basis.num_basis, &local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5*basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0 * basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3 * basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5 * basis.num_basis, &local);
 
-    for (int i=0; i<6; ++i) {
-      gkyl_dg_div_op_range(magB2_mem, &basis, 3+i, alt_bibj, i, int_BiBj, 0, magB2, &local);
+    for (int i = 0; i < 6; ++i) {
+      gkyl_dg_div_op_range(magB2_mem, &basis, 3 + i, alt_bibj, i, int_BiBj, 0, magB2, &local);
     }
 
     gkyl_dg_mul_op_range(&basis, 0, int_ExB1, 1, field, 5, field, &local);
@@ -701,21 +770,21 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_dg_mul_op_range(&basis, 2, int_ExB2, 1, field, 3, field, &local);
 
     gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, &local);
-    for (int i=0; i<3; ++i) {
+    for (int i = 0; i < 3; ++i) {
       gkyl_dg_div_op_range(magB2_mem, &basis, i, alt_ExB, i, int_ExB1, 0, magB2, &local);
-    }    
+    }
   }
 
   double em_2_tm = gkyl_time_diff_now_sec(tm2);
 
-  // printf("dg_bin_op EM variable computation on (%d)^%d took %g sec\n", cells[0], ndim, em_2_tm); 
+  // printf("dg_bin_op EM variable computation on (%d)^%d took %g sec\n", cells[0], ndim, em_2_tm);
 
   // Calculate L^2 errors from inverse and bin_op operators
   struct gkyl_array *bvar_err, *ExB_err, *alt_bvar_err, *alt_ExB_err;
-  bvar_err = mkarr(9*basis.num_basis, local_ext.volume);
-  ExB_err = mkarr(3*basis.num_basis, local_ext.volume);
-  alt_bvar_err = mkarr(9*basis.num_basis, local_ext.volume);
-  alt_ExB_err = mkarr(3*basis.num_basis, local_ext.volume);
+  bvar_err = mkarr(9 * basis.num_basis, local_ext.volume);
+  ExB_err = mkarr(3 * basis.num_basis, local_ext.volume);
+  alt_bvar_err = mkarr(9 * basis.num_basis, local_ext.volume);
+  alt_ExB_err = mkarr(3 * basis.num_basis, local_ext.volume);
   gkyl_array_set(bvar_err, 1.0, bvar);
   gkyl_array_accumulate(bvar_err, -1.0, analytic_bvar);
   gkyl_array_set(ExB_err, 1.0, ExB);
@@ -730,11 +799,11 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   L2_ExB = mkarr(3, local_ext.volume);
   alt_L2_bvar = mkarr(9, local_ext.volume);
   alt_L2_ExB = mkarr(3, local_ext.volume);
-  for (int i=0; i<9; ++i) {
+  for (int i = 0; i < 9; ++i) {
     gkyl_dg_calc_l2_range(&basis, i, L2_bvar, i, bvar_err, local);
     gkyl_dg_calc_l2_range(&basis, i, alt_L2_bvar, i, alt_bvar_err, local);
   }
-  for (int i=0; i<3; ++i) {
+  for (int i = 0; i < 3; ++i) {
     gkyl_dg_calc_l2_range(&basis, i, L2_ExB, i, ExB_err, local);
     gkyl_dg_calc_l2_range(&basis, i, alt_L2_ExB, i, alt_ExB_err, local);
   }
@@ -756,7 +825,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
-  
+
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(&local, iter.idx);
 
@@ -765,94 +834,159 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     const double *alt_bvar_p = gkyl_array_cfetch(alt_bibj, linidx);
     const double *analytic_bvar_p = gkyl_array_cfetch(analytic_bvar, linidx);
     // Check b_i b_j against bin_op
-    for (int m=3*basis.num_basis; m<9*basis.num_basis; ++m) {
-      TEST_CHECK( gkyl_compare(alt_bvar_p[m], bvar_p[m], eps) );
-      if (ndim == 1)
+    for (int m = 3 * basis.num_basis; m < 9 * basis.num_basis; ++m) {
+      TEST_CHECK(gkyl_compare(alt_bvar_p[m], bvar_p[m], eps));
+      if (ndim == 1) {
         TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", alt_bvar_p[m], m, iter.idx[0]);
-      else if (ndim == 2)
-        TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", alt_bvar_p[m], m, iter.idx[0], iter.idx[1]);
-      else
-        TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", alt_bvar_p[m], m, iter.idx[0], iter.idx[1], iter.idx[2]);
+      } else if (ndim == 2) {
+        TEST_MSG(
+          "Expected: %.13e, coefficient (%d) in cell (%d, %d)", alt_bvar_p[m], m, iter.idx[0],
+          iter.idx[1]
+        );
+      } else {
+        TEST_MSG(
+          "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", alt_bvar_p[m], m, iter.idx[0],
+          iter.idx[1], iter.idx[2]
+        );
+      }
       TEST_MSG("Produced: %.13e, coefficient (%d)", bvar_p[m], m);
     }
     if (check_analytic) {
       // Check bin_op solution against analytic solution
-      for (int m=3*basis.num_basis; m<9*basis.num_basis; ++m) {
-        TEST_CHECK( gkyl_compare(alt_bvar_p[m], analytic_bvar_p[m], eps) );
-        if (ndim == 1)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m, iter.idx[0]);
-        else if (ndim == 2)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_bvar_p[m], m, iter.idx[0], iter.idx[1]);
-        else
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_bvar_p[m], m, iter.idx[0], iter.idx[1], iter.idx[2]);
+      for (int m = 3 * basis.num_basis; m < 9 * basis.num_basis; ++m) {
+        TEST_CHECK(gkyl_compare(alt_bvar_p[m], analytic_bvar_p[m], eps));
+        if (ndim == 1) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m, iter.idx[0]
+          );
+        } else if (ndim == 2) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_bvar_p[m], m,
+            iter.idx[0], iter.idx[1]
+          );
+        } else {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_bvar_p[m], m,
+            iter.idx[0], iter.idx[1], iter.idx[2]
+          );
+        }
         TEST_MSG("Produced: %.13e, coefficient (%d)", alt_bvar_p[m], m);
       }
       // Check b_i b_j from inverse operator against analytic solution
-      for (int m=0; m<9*basis.num_basis; ++m) {
-        TEST_CHECK( gkyl_compare(bvar_p[m], analytic_bvar_p[m], eps) );
-        if (ndim == 1)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m, iter.idx[0]);
-        else if (ndim == 2)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_bvar_p[m], m, iter.idx[0], iter.idx[1]);
-        else
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_bvar_p[m], m, iter.idx[0], iter.idx[1], iter.idx[2]);
+      for (int m = 0; m < 9 * basis.num_basis; ++m) {
+        TEST_CHECK(gkyl_compare(bvar_p[m], analytic_bvar_p[m], eps));
+        if (ndim == 1) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m, iter.idx[0]
+          );
+        } else if (ndim == 2) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_bvar_p[m], m,
+            iter.idx[0], iter.idx[1]
+          );
+        } else {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_bvar_p[m], m,
+            iter.idx[0], iter.idx[1], iter.idx[2]
+          );
+        }
         TEST_MSG("Produced: %.13e, coefficient (%d)", bvar_p[m], m);
       }
     }
 
-    // Check if B . B/|B|^2 = 1 
-    TEST_CHECK( gkyl_compare(alt_bvar_p[3*basis.num_basis] + alt_bvar_p[6*basis.num_basis] + alt_bvar_p[8*basis.num_basis], 
-      bvar_p[3*basis.num_basis] + bvar_p[6*basis.num_basis] + bvar_p[8*basis.num_basis], 1.0e-14) );
-    if (ndim == 1) 
+    // Check if B . B/|B|^2 = 1
+    TEST_CHECK(gkyl_compare(
+      alt_bvar_p[3 * basis.num_basis] + alt_bvar_p[6 * basis.num_basis] +
+        alt_bvar_p[8 * basis.num_basis],
+      bvar_p[3 * basis.num_basis] + bvar_p[6 * basis.num_basis] + bvar_p[8 * basis.num_basis],
+      1.0e-14
+    ));
+    if (ndim == 1) {
       TEST_MSG("Expected: %.13e in cell (%d)", sqrt(2.0), iter.idx[0]);
-    else if (ndim == 2)
+    } else if (ndim == 2) {
       TEST_MSG("Expected: %.13e in cell (%d, %d)", 2.0, iter.idx[0], iter.idx[1]);
-    else
-      TEST_MSG("Expected: %.13e in cell (%d, %d, %d)", 2.0*sqrt(2.0), iter.idx[0], iter.idx[1], iter.idx[2]);
+    } else {
+      TEST_MSG(
+        "Expected: %.13e in cell (%d, %d, %d)", 2.0 * sqrt(2.0), iter.idx[0], iter.idx[1],
+        iter.idx[2]
+      );
+    }
 
-    TEST_MSG("Cell average B . B/|B|^2 produced by EM vars computation: %.13e", bvar_p[3*basis.num_basis] + bvar_p[6*basis.num_basis] + bvar_p[8*basis.num_basis]);
-    TEST_MSG("Cell average B . B/|B|^2 Produced by dg_bin_op: %.13e", alt_bvar_p[3*basis.num_basis] + alt_bvar_p[6*basis.num_basis] + alt_bvar_p[8*basis.num_basis]);
+    TEST_MSG(
+      "Cell average B . B/|B|^2 produced by EM vars computation: %.13e",
+      bvar_p[3 * basis.num_basis] + bvar_p[6 * basis.num_basis] + bvar_p[8 * basis.num_basis]
+    );
+    TEST_MSG(
+      "Cell average B . B/|B|^2 Produced by dg_bin_op: %.13e", alt_bvar_p[3 * basis.num_basis] +
+                                                                 alt_bvar_p[6 * basis.num_basis] +
+                                                                 alt_bvar_p[8 * basis.num_basis]
+    );
 
     // Check b . b = 1 by checking cell average (should 2^d/2) and x slope (should be zero)
     const double *b_dot_b_p = gkyl_array_cfetch(b_dot_b, linidx);
-    TEST_CHECK( gkyl_compare(b_dot_b_p[0], pow(2.0, ndim/2.0), 1.0e-14) );
-    TEST_CHECK( gkyl_compare(b_dot_b_p[1], 0.0, 1.0e-14) );
+    TEST_CHECK(gkyl_compare(b_dot_b_p[0], pow(2.0, ndim / 2.0), 1.0e-14));
+    TEST_CHECK(gkyl_compare(b_dot_b_p[1], 0.0, 1.0e-14));
     TEST_MSG("b . b cell average from EM vars computation: %.13e", b_dot_b_p[0]);
 
     // Check E x B velocity
     const double *ExB_p = gkyl_array_cfetch(ExB, linidx);
     const double *alt_ExB_p = gkyl_array_cfetch(alt_ExB, linidx);
     const double *analytic_ExB_p = gkyl_array_cfetch(analytic_ExB, linidx);
-    for (int m=0; m<3*basis.num_basis; ++m) {
+    for (int m = 0; m < 3 * basis.num_basis; ++m) {
       // Check E x B against bin_op
-      TEST_CHECK( gkyl_compare(alt_ExB_p[m], ExB_p[m], eps) );
-      if (ndim == 1)
+      TEST_CHECK(gkyl_compare(alt_ExB_p[m], ExB_p[m], eps));
+      if (ndim == 1) {
         TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", alt_ExB_p[m], m, iter.idx[0]);
-      else if (ndim == 2)
-        TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", alt_ExB_p[m], m, iter.idx[0], iter.idx[1]);
-      else
-        TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", alt_ExB_p[m], m, iter.idx[0], iter.idx[1], iter.idx[2]);
+      } else if (ndim == 2) {
+        TEST_MSG(
+          "Expected: %.13e, coefficient (%d) in cell (%d, %d)", alt_ExB_p[m], m, iter.idx[0],
+          iter.idx[1]
+        );
+      } else {
+        TEST_MSG(
+          "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", alt_ExB_p[m], m, iter.idx[0],
+          iter.idx[1], iter.idx[2]
+        );
+      }
       TEST_MSG("Produced: %.13e, coefficient (%d)", ExB_p[m], m);
       if (check_analytic) {
         // Check bin_op solution against analytic solution
-        TEST_CHECK( gkyl_compare(alt_ExB_p[m], analytic_ExB_p[m], eps) );
-        if (ndim == 1)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m, iter.idx[0]);
-        else if (ndim == 2)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_ExB_p[m], m, iter.idx[0], iter.idx[1]);
-        else
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_ExB_p[m], m, iter.idx[0], iter.idx[1], iter.idx[2]);
+        TEST_CHECK(gkyl_compare(alt_ExB_p[m], analytic_ExB_p[m], eps));
+        if (ndim == 1) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m, iter.idx[0]
+          );
+        } else if (ndim == 2) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_ExB_p[m], m, iter.idx[0],
+            iter.idx[1]
+          );
+        } else {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_ExB_p[m], m,
+            iter.idx[0], iter.idx[1], iter.idx[2]
+          );
+        }
         TEST_MSG("Produced: %.13e, coefficient (%d)", alt_ExB_p[m], m);
         // Check ExB from inverse operator against analytic solution
-        TEST_CHECK( gkyl_compare(ExB_p[m], analytic_ExB_p[m], eps) );
-        if (ndim == 1)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m, iter.idx[0]);
-        else if (ndim == 2)
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_ExB_p[m], m, iter.idx[0], iter.idx[1]);
-        else
-          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_ExB_p[m], m, iter.idx[0], iter.idx[1], iter.idx[2]);
+        TEST_CHECK(gkyl_compare(ExB_p[m], analytic_ExB_p[m], eps));
+        if (ndim == 1) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m, iter.idx[0]
+          );
+        } else if (ndim == 2) {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_ExB_p[m], m, iter.idx[0],
+            iter.idx[1]
+          );
+        } else {
+          TEST_MSG(
+            "Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_ExB_p[m], m,
+            iter.idx[0], iter.idx[1], iter.idx[2]
+          );
+        }
         TEST_MSG("Produced: %.13e, coefficient (%d)", ExB_p[m], m);
-      }      
+      }
     }
   }
 
@@ -926,7 +1060,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
 
     gkyl_array_release(alt_bibj_cu);
     gkyl_array_release(alt_ExB_cu);
-  }  
+  }
 
   gkyl_proj_on_basis_release(proj_field);
   gkyl_proj_on_basis_release(proj_analytic_bvar);
@@ -936,51 +1070,86 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   gkyl_dg_calc_em_vars_release(calc_ExB);
 }
 
-void test_dg_em_vars_1x_p1_ho() { test(1, 8, 1, 1.0e-12, 0, 0, false); }
-void test_dg_em_vars_2x_p1_ho() { test(2, 8, 1, 1.0e-12, 0, 0, false); }
-void test_dg_em_vars_3x_p1_ho() { test(3, 4, 1, 1.0e-12, 0, 0, false); }
+void test_dg_em_vars_1x_p1_ho()
+{
+  test(1, 8, 1, 1.0e-12, 0, 0, false);
+}
+void test_dg_em_vars_2x_p1_ho()
+{
+  test(2, 8, 1, 1.0e-12, 0, 0, false);
+}
+void test_dg_em_vars_3x_p1_ho()
+{
+  test(3, 4, 1, 1.0e-12, 0, 0, false);
+}
 
-void test_dg_em_vars_1x_p2_ho() { test(1, 8, 2, 1.0e-12, 0, 0, false); }
+void test_dg_em_vars_1x_p2_ho()
+{
+  test(1, 8, 2, 1.0e-12, 0, 0, false);
+}
 // Higher dimensions, p=2, *only* testing is b . b = 1 like we expect
-void test_dg_em_vars_2x_tensor_p2_ho() { test(2, 8, 2, 1.0e-12, 1, 0, false); }
-void test_dg_em_vars_3x_tensor_p2_ho() { test(3, 8, 2, 1.0e-12, 1, 0, false); }
+void test_dg_em_vars_2x_tensor_p2_ho()
+{
+  test(2, 8, 2, 1.0e-12, 1, 0, false);
+}
+void test_dg_em_vars_3x_tensor_p2_ho()
+{
+  test(3, 8, 2, 1.0e-12, 1, 0, false);
+}
 
 #ifdef GKYL_HAVE_CUDA
-void test_dg_em_vars_1x_p1_dev() { test(1, 8, 1, 1.0e-12, 0, 0, true); }
-void test_dg_em_vars_2x_p1_dev() { test(2, 8, 1, 1.0e-12, 0, 0, true); }
-void test_dg_em_vars_3x_p1_dev() { test(3, 8, 1, 1.0e-12, 0, 0, true); }
+void test_dg_em_vars_1x_p1_dev()
+{
+  test(1, 8, 1, 1.0e-12, 0, 0, true);
+}
+void test_dg_em_vars_2x_p1_dev()
+{
+  test(2, 8, 1, 1.0e-12, 0, 0, true);
+}
+void test_dg_em_vars_3x_p1_dev()
+{
+  test(3, 8, 1, 1.0e-12, 0, 0, true);
+}
 
-void test_dg_em_vars_1x_p2_dev() { test(1, 8, 2, 1.0e-12, 0, 0, true); }
-void test_dg_em_vars_2x_tensor_p2_dev() { test(2, 8, 2, 1.0e-12, 1, 0, true); }
-void test_dg_em_vars_3x_tensor_p2_dev() { test(3, 8, 2, 1.0e-12, 1, 0, true); }
-
+void test_dg_em_vars_1x_p2_dev()
+{
+  test(1, 8, 2, 1.0e-12, 0, 0, true);
+}
+void test_dg_em_vars_2x_tensor_p2_dev()
+{
+  test(2, 8, 2, 1.0e-12, 1, 0, true);
+}
+void test_dg_em_vars_3x_tensor_p2_dev()
+{
+  test(3, 8, 2, 1.0e-12, 1, 0, true);
+}
 
 #endif
 
 TEST_LIST = {
-  { "test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho },
-  { "test_dg_em_vars_2x_p1_ho", test_dg_em_vars_2x_p1_ho },
-  { "test_dg_em_vars_3x_p1_ho", test_dg_em_vars_3x_p1_ho },
+  {"test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho},
+  {"test_dg_em_vars_2x_p1_ho", test_dg_em_vars_2x_p1_ho},
+  {"test_dg_em_vars_3x_p1_ho", test_dg_em_vars_3x_p1_ho},
 
-  { "test_dg_em_vars_1x_p2_ho", test_dg_em_vars_1x_p2_ho },
-  // The tensor p2 bvar comparison is disabled (CPU and GPU): the em_vars
-  // operator's positivity-control fallback keeps only the cell average of
-  // b_i b_j in cells where b_i b_i is negative at control points, while the
-  // bin_op reference here does the plain weak division everywhere, so they
-  // disagree by design in those cells.
-  // { "test_dg_em_vars_2x_tensor_p2_ho", test_dg_em_vars_2x_tensor_p2_ho },
-  // { "test_dg_em_vars_3x_tensor_p2_ho", test_dg_em_vars_3x_tensor_p2_ho },
+  {"test_dg_em_vars_1x_p2_ho", test_dg_em_vars_1x_p2_ho},
+// The tensor p2 bvar comparison is disabled (CPU and GPU): the em_vars
+// operator's positivity-control fallback keeps only the cell average of
+// b_i b_j in cells where b_i b_i is negative at control points, while the
+// bin_op reference here does the plain weak division everywhere, so they
+// disagree by design in those cells.
+// { "test_dg_em_vars_2x_tensor_p2_ho", test_dg_em_vars_2x_tensor_p2_ho },
+// { "test_dg_em_vars_3x_tensor_p2_ho", test_dg_em_vars_3x_tensor_p2_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  { "test_dg_em_vars_1x_p1_dev", test_dg_em_vars_1x_p1_dev },
-  { "test_dg_em_vars_2x_p1_dev", test_dg_em_vars_2x_p1_dev },
-  { "test_dg_em_vars_3x_p1_dev", test_dg_em_vars_3x_p1_dev },
+  {"test_dg_em_vars_1x_p1_dev", test_dg_em_vars_1x_p1_dev},
+  {"test_dg_em_vars_2x_p1_dev", test_dg_em_vars_2x_p1_dev},
+  {"test_dg_em_vars_3x_p1_dev", test_dg_em_vars_3x_p1_dev},
 
-  { "test_dg_em_vars_1x_p2_dev", test_dg_em_vars_1x_p2_dev },
-  // Disabled for the same positivity-fallback reason as the CPU tensor tests.
-  // { "test_dg_em_vars_2x_tensor_p2_dev", test_dg_em_vars_2x_tensor_p2_dev },
-  // { "test_dg_em_vars_3x_tensor_p2_dev", test_dg_em_vars_3x_tensor_p2_dev },
+  {"test_dg_em_vars_1x_p2_dev", test_dg_em_vars_1x_p2_dev},
+// Disabled for the same positivity-fallback reason as the CPU tensor tests.
+// { "test_dg_em_vars_2x_tensor_p2_dev", test_dg_em_vars_2x_tensor_p2_dev },
+// { "test_dg_em_vars_3x_tensor_p2_dev", test_dg_em_vars_3x_tensor_p2_dev },
 
 #endif
-  { NULL, NULL },
+  {NULL, NULL}
 };

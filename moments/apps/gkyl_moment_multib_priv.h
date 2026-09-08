@@ -11,11 +11,11 @@ struct gkyl_moment_multib_app {
   char name[128]; // name of app
   struct gkyl_comm *comm; // global communicator to use
   struct gkyl_comm **block_comms; // list of block-communicators
-  
- // geometry and topology of all blocks in simulation
+
+  // geometry and topology of all blocks in simulation
   struct gkyl_block_geom *block_geom;
   struct gkyl_block_topo *block_topo;
-  
+
   double cfl_frac; // CFL fraction to use
   int num_species; // number of species
 
@@ -34,7 +34,7 @@ struct gkyl_moment_multib_app {
   struct gkyl_rect_decomp **decomp; // list of decomps (num_blocks)
 
   double tcurr; // current time
-  
+
   struct gkyl_moment_stat stat; // statistics
 };
 

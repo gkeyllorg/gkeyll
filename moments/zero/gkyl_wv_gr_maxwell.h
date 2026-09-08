@@ -6,7 +6,7 @@
 // Type of Riemann-solver to use:
 enum gkyl_wv_gr_maxwell_rp {
   WV_GR_MAXWELL_RP_ROE = 0, // Default (Roe fluxes).
-  WV_GR_MAXWELL_RP_LAX,
+  WV_GR_MAXWELL_RP_LAX
 };
 
 // Input context, packaged as a struct.
@@ -35,8 +35,10 @@ struct gkyl_wv_gr_maxwell_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the general relativistic Maxwell equations object.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_gr_maxwell_new(double light_speed, double e_fact, double b_fact, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime* spacetime, bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_gr_maxwell_new(
+  double light_speed, double e_fact, double b_fact, enum gkyl_spacetime_gauge spacetime_gauge,
+  int reinit_freq, struct gkyl_gr_spacetime *spacetime, bool use_gpu
+);
 
 /**
 * Create a new general relativistic Maxwell equations object, from an input context struct.
@@ -44,8 +46,7 @@ gkyl_wv_gr_maxwell_new(double light_speed, double e_fact, double b_fact, enum gk
 * @param inp Input context struct.
 * @return Pointer to the general relativistic Maxwell equations object.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_gr_maxwell_inew(const struct gkyl_wv_gr_maxwell_inp* inp);
+struct gkyl_wv_eqn *gkyl_wv_gr_maxwell_inew(const struct gkyl_wv_gr_maxwell_inp *inp);
 
 /**
 * Get speed of light.
@@ -53,8 +54,7 @@ gkyl_wv_gr_maxwell_inew(const struct gkyl_wv_gr_maxwell_inp* inp);
 * @param eqn General relativistic Maxwell equations object.
 * @return Speed of light.
 */
-double
-gkyl_wv_gr_maxwell_light_speed(const struct gkyl_wv_eqn* eqn);
+double gkyl_wv_gr_maxwell_light_speed(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get factor of speed of light for electric field correction.
@@ -62,8 +62,7 @@ gkyl_wv_gr_maxwell_light_speed(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic Maxwell equations object.
 * @return Factor of speed of light for electric field correction.
 */
-double
-gkyl_wv_gr_maxwell_e_fact(const struct gkyl_wv_eqn* eqn);
+double gkyl_wv_gr_maxwell_e_fact(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get factor of speed of light for magnetic field correction.
@@ -71,8 +70,7 @@ gkyl_wv_gr_maxwell_e_fact(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic Maxwell equations object.
 * @return Factor of speed of light for magnetic field correction.
 */
-double
-gkyl_wv_gr_maxwell_b_fact(const struct gkyl_wv_eqn* eqn);
+double gkyl_wv_gr_maxwell_b_fact(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get spacetime gauge choice.
@@ -80,8 +78,7 @@ gkyl_wv_gr_maxwell_b_fact(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic Maxwell equations object.
 * @return Spacetime gauge choice.
 */
-enum gkyl_spacetime_gauge
-gkyl_wv_gr_maxwell_spacetime_gauge(const struct gkyl_wv_eqn* eqn);
+enum gkyl_spacetime_gauge gkyl_wv_gr_maxwell_spacetime_gauge(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get spacetime reinitialization frequency.
@@ -89,8 +86,7 @@ gkyl_wv_gr_maxwell_spacetime_gauge(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic Maxwell equations object.
 * @return Spacetime reinitialization frequency.
 */
-int
-gkyl_wv_gr_maxwell_reinit_freq(const struct gkyl_wv_eqn* eqn);
+int gkyl_wv_gr_maxwell_reinit_freq(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get base spacetime object.
@@ -98,5 +94,4 @@ gkyl_wv_gr_maxwell_reinit_freq(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic Maxwell equations object.
 * @return Pointer to the base spacetime object.
 */
-struct gkyl_gr_spacetime*
-gkyl_wv_gr_maxwell_spacetime(const struct gkyl_wv_eqn* eqn);
+struct gkyl_gr_spacetime *gkyl_wv_gr_maxwell_spacetime(const struct gkyl_wv_eqn *eqn);

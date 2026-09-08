@@ -14,7 +14,6 @@
 
 #include <stdbool.h>
 
-
 // Parameters for projection
 struct gkyl_gyrokinetic_ic_import {
   // Inputs to initialize the species with the distribution from a file (f_in)
@@ -38,8 +37,8 @@ struct gkyl_gyrokinetic_projection {
       // Distribution function to project and its context. For fluid neutrals
       // this function returns mass density, momentum density, and total
       // energy density.
-      void (*func)(double t, const double *xn, double *fout, void *ctx); 
-      void *ctx_func; 
+      void (*func)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_func;
     };
     struct {
       // For Maxwellians (or BiMaxwellians), specify density, parallel speed
@@ -72,14 +71,15 @@ struct gkyl_gyrokinetic_projection {
 
       // Options for a Maxwellian in vel-space w/ Gaussian shape in conf-space.
       double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
-      double gaussian_std_dev[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
+      double gaussian_std_dev
+        [GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
       double total_num_particles; // Total number of particle (M0 moment).
       double total_kin_energy; // Total kinetic energy (0.5*mass*M2 moment).
       double temp_max; // Maximum temperature of the Gaussian Maxwellian distribution.
       double temp_min; // Minimum temperature of the Gaussian Maxwellian distribution.
-      
+
       // Boolean if we are correcting all the moments or only density.
-      bool correct_all_moms; 
+      bool correct_all_moms;
       double iter_eps; // Error tolerance for moment fixes (density is always exact).
       int max_iter; // Maximum number of iteration.
       bool use_last_converged; // Use last iteration value regardless of convergence?
@@ -91,7 +91,8 @@ struct gkyl_phase_diagnostics_inp {
   int num_diag_moments; // Number of diagnostic moments.
   enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
-  enum gkyl_distribution_moments integrated_diag_moments[12]; // List of integrated diagnostic moments.
+  enum gkyl_distribution_moments
+    integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_integrated; // Whether to use time integrated diags.
 };
 
@@ -111,7 +112,7 @@ struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
   bool write_diagnostics; // Whether to output diagnostics.
   bool not_in_dfdt; // If true, the collision operator will not be added to df/dt.
-    // Used to ignore the collisional updates of this species, while updating cross-species collisions.
+  // Used to ignore the collisional updates of this species, while updating cross-species collisions.
 
   double nu_frac; // Rescales collision frequencies (default = 1).
 
@@ -133,7 +134,7 @@ struct gkyl_gyrokinetic_collisions {
   double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
 
   // Boolean for using implicit BGK collisions (replaces rk3).
-  bool is_implicit; 
+  bool is_implicit;
 };
 
 // Parameters for species diffusion.
@@ -148,14 +149,17 @@ struct gkyl_gyrokinetic_diffusion {
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
   bool adapt_energy; // Whether to adapt the energy source.
-  bool has_adapt_particle_fraction; // Whether a recycling rate is provided or if we should just adapt to all the loss.
-  double adapt_particle_fraction; // Fraction of particle loss to adapt to (default is 1, full adaptation).
+  bool
+    has_adapt_particle_fraction; // Whether a recycling rate is provided or if we should just adapt to all the loss.
+  double
+    adapt_particle_fraction; // Fraction of particle loss to adapt to (default is 1, full adaptation).
   bool has_adapt_energy_fraction; // Whether to specify a fraction of the energy loss to adapt to.
-  double adapt_energy_fraction; // Fraction of energy loss to adapt to (default is 1, full adaptation).
+  double
+    adapt_energy_fraction; // Fraction of energy loss to adapt to (default is 1, full adaptation).
   char adapt_to_species[16]; // Species to adapt the particle loss to ensure quasi neutrality.
   int num_boundaries; // Number of boundaries to adapt.
-  int dir[GKYL_MAX_CDIM*2]; // Direction to adapt.
-  enum gkyl_edge_loc edge[GKYL_MAX_CDIM*2]; // Edge to adapt.
+  int dir[GKYL_MAX_CDIM * 2]; // Direction to adapt.
+  enum gkyl_edge_loc edge[GKYL_MAX_CDIM * 2]; // Edge to adapt.
 };
 
 // Parameters for species source
@@ -180,7 +184,7 @@ struct gkyl_gyrokinetic_anomalous_diffusion {
 };
 
 // Parameters for species bgk source term either:
-// 1. nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f) 
+// 1. nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f)
 //    for default model or
 // 2. nu(x)*(f_M(n_S,upar,T) - f)
 //    nu(x)*(f_M(n,upar_S,T) - f)
@@ -195,11 +199,11 @@ struct gkyl_gyrokinetic_source_bgk {
   void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x,y,z).
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
-  double injection_time;  // Injection time for external source model
-                          // nu(x) = 1/coupling time
-  double damping_factor;  // For external source model
-                          // n_s = max(n_s, damping factor*n)
-                          // to prevent driving n negative
+  double injection_time; // Injection time for external source model
+  // nu(x) = 1/coupling time
+  double damping_factor; // For external source model
+  // n_s = max(n_s, damping factor*n)
+  // to prevent driving n negative
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
@@ -213,14 +217,17 @@ struct gkyl_gyrokinetic_emission_inp {
 
 // Parameters for boundary conditions
 struct gkyl_gyrokinetic_bc {
-  int dir;  // Direction in which BC is specified.
+  int dir; // Direction in which BC is specified.
   enum gkyl_edge_loc edge; // Which edge this BC is for.
   enum gkyl_gyrokinetic_bc_type type; // BC type flag.
   double value[3]; // Meaning depends on type.
-  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
+  void (*aux_profile)(
+    double t, const double *xn, double *fout,
+    void *ctx
+  ); // Auxiliary function (e.g. wall potential).
   void *aux_ctx; // Context for aux_profile.
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
-  struct gkyl_gyrokinetic_emission_inp emission; 
+  struct gkyl_gyrokinetic_emission_inp emission;
   bool write_diagnostics; // Whether to output diagnostics.
   int bidx; // Block index (for multiblock solver).
 };
@@ -251,10 +258,11 @@ struct gkyl_gyrokinetic_geometry {
   void *parallel_upper_bc_shift_ctx; // Context for parallel_upper_bc_shift_func.
 
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
-  struct gkyl_tok_geo_grid_inp tok_grid_info; // Context for tokamak geometry with computational domain info.
-  struct gkyl_mirror_geo_grid_inp mirror_grid_info; // Context for mirror geometry with computational domain info.
+  struct gkyl_tok_geo_grid_inp
+    tok_grid_info; // Context for tokamak geometry with computational domain info.
+  struct gkyl_mirror_geo_grid_inp
+    mirror_grid_info; // Context for mirror geometry with computational domain info.
   struct gkyl_position_map_inp position_map_info; // Position map object.
-
 };
 
 // Parameters for species radiation.
@@ -262,10 +270,10 @@ struct gkyl_gyrokinetic_radiation {
   enum gkyl_radiation_id radiation_id; // Type of radiation.
 
   int num_cross_collisions; // Number of species to cross-collide with.
-  char collide_with[2*GKYL_MAX_SPECIES][128]; // Names of species to cross collide with.
+  char collide_with[2 * GKYL_MAX_SPECIES][128]; // Names of species to cross collide with.
 
-  int atomic_Z[2*GKYL_MAX_SPECIES]; // Z of element for desired fit information.
-  int charge_state[2*GKYL_MAX_SPECIES]; // Charge state of element for desired fit information.
+  int atomic_Z[2 * GKYL_MAX_SPECIES]; // Z of element for desired fit information.
+  int charge_state[2 * GKYL_MAX_SPECIES]; // Charge state of element for desired fit information.
   int num_of_densities[GKYL_MAX_RAD_DENSITIES]; // Max number of densities to use per charge state
 
   // Reference, max and min electron densities to specify range of density fits
@@ -310,7 +318,7 @@ enum gkyl_gk_species_scaling_type {
   GKYL_GK_SPECIES_SCALING_NONE = 0, // No scaling.
   GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE, // Balance between recycling and ionization.
   GKYL_GK_SPECIES_SCALING_FIXED_FRACTION, // Maintains fixed fraction relative to another species.
-  GKYL_GK_SPECIES_SCALING_BOLTZMANN, // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
+  GKYL_GK_SPECIES_SCALING_BOLTZMANN // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
 };
 
 // Input parameters for scaling a species every time step.
@@ -319,13 +327,13 @@ struct gkyl_gyrokinetic_scaling_inp {
 
   // Info for GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE.
   int num_boundaries; // Number of boundaries.
-  int boundaries_dir[GKYL_MAX_CDIM*2]; // Direction of boundaries.
-  enum gkyl_edge_loc boundaries_edge[GKYL_MAX_CDIM*2]; // Edge of boundaries.
+  int boundaries_dir[GKYL_MAX_CDIM * 2]; // Direction of boundaries.
+  enum gkyl_edge_loc boundaries_edge[GKYL_MAX_CDIM * 2]; // Edge of boundaries.
   char impacting_ion_name[128]; // Name of impacting species.
   enum gkyl_ion_type impacting_ion_id; // Type of impacting ion.
   char electron_name[128]; // Name of electron species.
   double recycling_coeff; // Recycling coefficient.
-  
+
   // Info for GKYL_GK_SPECIES_SCALING_FIXED_FRACTION.
   char ref_species_name[128]; // Name of reference species.
   double fixed_fraction; // Fraction of reference species density.
@@ -335,10 +343,10 @@ struct gkyl_gyrokinetic_scaling_inp {
 
 // Parameters in FLR effects.
 struct gkyl_gyrokinetic_flr {
-  enum gkyl_gk_flr_type type; 
-  double Tperp; // Perp temperature used to evaluate gyroradius. 
+  enum gkyl_gk_flr_type type;
+  double Tperp; // Perp temperature used to evaluate gyroradius.
   double bmag; // Magnetic field used to evaluate gyroradius. If not provided
-               // it'll use B in the center of the domain.
+  // it'll use B in the center of the domain.
 };
 
 struct gkyl_gyrokinetic_correct_inp {
@@ -346,25 +354,26 @@ struct gkyl_gyrokinetic_correct_inp {
   double iter_eps; // error tolerance for moment fixes (density is always exact)
   int max_iter; // maximum number of iteration
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-                           // *even if* the scheme fails to converge.   
+  // *even if* the scheme fails to converge.
 };
 
 enum gkyl_gyrokinetic_positivity_type {
   GKYL_GK_POSITIVITY_NONE = 0, // Do not enforce positivity (default).
   GKYL_GK_POSITIVITY_SHIFT, // Shift f to zero if <0 at Gauss-Legendre nodes.
-  GKYL_GK_POSITIVITY_MRS_LIMITER, // Use the More-Rossmanith-Seal limiter, and shift when needed.
+  GKYL_GK_POSITIVITY_MRS_LIMITER // Use the More-Rossmanith-Seal limiter, and shift when needed.
 };
 
 struct gkyl_gyrokinetic_positivity {
   enum gkyl_gyrokinetic_positivity_type type; // Type of positivity enforcement algorithm.
-  bool quasineutrality_rescale; // Whether to rescale this species to enforce quasineutrality in the simulation.
+  bool
+    quasineutrality_rescale; // Whether to rescale this species to enforce quasineutrality in the simulation.
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
 enum gkyl_gyrokinetic_damping_type {
   GKYL_GK_DAMPING_NONE = 0,
   GKYL_GK_DAMPING_USER_INPUT,
-  GKYL_GK_DAMPING_LOSS_CONE,
+  GKYL_GK_DAMPING_LOSS_CONE
 };
 
 struct gkyl_gyrokinetic_damping {
@@ -382,17 +391,17 @@ struct gkyl_gyrokinetic_damping {
 
 // Types of df/dt multipliers: M(x,v,t) modifies df/dt -> M * df/dt.
 enum gkyl_gyrokinetic_fdot_multiplier_type {
-  GKYL_GK_FDOT_MULTIPLIER_NONE = 0,           // No multiplier applied.
-  GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,         // User-provided static profile M(z) via function pointer.
-  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,          // M=1 in loss cone, M=0 in confined region.
-  GKYL_GK_FDOT_MULTIPLIER_CONSTANT,           // Dilates time by a fixed constant, time_dilation_scale_const.
-  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value.
+  GKYL_GK_FDOT_MULTIPLIER_NONE = 0, // No multiplier applied.
+  GKYL_GK_FDOT_MULTIPLIER_USER_INPUT, // User-provided static profile M(z) via function pointer.
+  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // M=1 in loss cone, M=0 in confined region.
+  GKYL_GK_FDOT_MULTIPLIER_CONSTANT, // Dilates time by a fixed constant, time_dilation_scale_const.
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT, // dt floor from user-specified cfl_dt_min_value.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX, // dt floor from user-specified factor times maximum characteristic frequency. Specify cfl_factor_times_omega_max.
-  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from omega_H, an electrostatic GK wave.
-  GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES,  // Set the dt floor based on the dt from another species.
-  GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,   // Dilates time in cells where |J_tot*f| < threshold. Specify f_threshold
-  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,  // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask. Specify f_threshold
-  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL, // Dilates time in cells where |J_tot*f| < threshold * global_max. Specify f_threshold
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH, // dt floor from omega_H, an electrostatic GK wave.
+  GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES, // Set the dt floor based on the dt from another species.
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD, // Dilates time in cells where |J_tot*f| < threshold. Specify f_threshold
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL, // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask. Specify f_threshold
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL // Dilates time in cells where |J_tot*f| < threshold * global_max. Specify f_threshold
 };
 
 // Input parameters for a single component of the df/dt multiplier chain.
@@ -403,17 +412,20 @@ struct gkyl_gyrokinetic_fdot_multiplier_comp {
   void (*profile)(double t, const double *xn, double *fout, void *ctx);
   void *profile_ctx;
 
-  bool cellwise_const;    // If true, multiplier is constant within each cell (p=0 basis).
+  bool cellwise_const; // If true, multiplier is constant within each cell (p=0 basis).
   bool write_diagnostics; // If true, write multiplier array to file.
 
   // Parameters for time dilation types (FIXED_DT, MASK_F_*):
   double cfl_dt_min_value; // For FIXED_DT: the minimum allowed dt value.
   double f_threshold; // For MASK_F_* types: absolute value (THRESHOLD)
-    // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
-  double time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time. Small number (0,1] so that dt *= 1/time_dilation_scale_const
-  double cfl_factor_times_omega_max; // For FIXED_FACTOR_TIMES_OMEGA_MAX: the factor multiplied by the maximum characteristic frequency to get the minimum dt value.
+  // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
+  double
+    time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time. Small number (0,1] so that dt *= 1/time_dilation_scale_const
+  double
+    cfl_factor_times_omega_max; // For FIXED_FACTOR_TIMES_OMEGA_MAX: the factor multiplied by the maximum characteristic frequency to get the minimum dt value.
 
-  char dt_set_by_species[32]; // For DT_SET_BY_SPECIES: the name of the species whose dt we are using to set the maximum dt for this species. e.g. "elc"
+  char dt_set_by_species
+    [32]; // For DT_SET_BY_SPECIES: the name of the species whose dt we are using to set the maximum dt for this species. e.g. "elc"
 };
 
 // Parameters for a chain of df/dt multipliers. Components are applied in order.
@@ -453,7 +465,8 @@ struct gkyl_gyrokinetic_species {
   int num_diag_moments; // number of diagnostic moments
   enum gkyl_distribution_moments diag_moments[12]; // list of diagnostic moments
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
-  enum gkyl_distribution_moments integrated_diag_moments[12]; // List of integrated diagnostic moments.
+  enum gkyl_distribution_moments
+    integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
@@ -466,7 +479,7 @@ struct gkyl_gyrokinetic_species {
 
   // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
   // This projection operator is used by BGK collisions and all reactions.
-  struct gkyl_gyrokinetic_correct_inp correct; 
+  struct gkyl_gyrokinetic_correct_inp correct;
 
   // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
@@ -475,7 +488,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_source source;
 
   // A damping term -rate*f on RHS.
-  struct gkyl_gyrokinetic_damping damping; 
+  struct gkyl_gyrokinetic_damping damping;
 
   // Anomalous diffusion.
   struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
@@ -495,7 +508,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_scaling_inp scaling;
 
   // Boundary conditions.
-  struct gkyl_gyrokinetic_bc bcs[2*GKYL_MAX_CDIM];
+  struct gkyl_gyrokinetic_bc bcs[2 * GKYL_MAX_CDIM];
 };
 
 // Parameters for neutral species.
@@ -512,9 +525,9 @@ struct gkyl_gyrokinetic_neut_species {
   bool is_static; // Set to true if neutral species does not change in time.
 
   struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
-  
+
   struct gkyl_gyrokinetic_ic_import init_from_file;
-  
+
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
@@ -528,7 +541,7 @@ struct gkyl_gyrokinetic_neut_species {
 
   // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
   // This projection operator is used by BGK collisions and all reactions.
-  struct gkyl_gyrokinetic_correct_inp correct; 
+  struct gkyl_gyrokinetic_correct_inp correct;
 
   // Elastic collisions.
   struct gkyl_gyrokinetic_collisions collisions;
@@ -540,7 +553,7 @@ struct gkyl_gyrokinetic_neut_species {
   struct gkyl_gyrokinetic_react react_neut;
 
   // Boundary conditions.
-  struct gkyl_gyrokinetic_bc bcs[2*GKYL_MAX_CDIM];
+  struct gkyl_gyrokinetic_bc bcs[2 * GKYL_MAX_CDIM];
 
   double gas_gamma; // Adiabatic index (fluid neutrals).
 
@@ -560,7 +573,7 @@ struct gkyl_gyrokinetic_field {
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;
 
-  struct gkyl_gyrokinetic_bc poisson_bcs[2*GKYL_MAX_CDIM];
+  struct gkyl_gyrokinetic_bc poisson_bcs[2 * GKYL_MAX_CDIM];
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 
@@ -579,12 +592,14 @@ struct gkyl_gyrokinetic_field {
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
   void (*phi_wall_lo)(double t, const double *xn, double *phi_wall_lo_out, void *ctx);
-  bool phi_wall_lo_evolve; // set to true if biased wall potential on lower wall function is time dependent  
+  bool
+    phi_wall_lo_evolve; // set to true if biased wall potential on lower wall function is time dependent
 
   void *phi_wall_up_ctx; // context for biased wall potential on upper wall
   // pointer to biased wall potential on upper wall function
   void (*phi_wall_up)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
-  bool phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent  
+  bool
+    phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent
 
   struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 };
@@ -628,7 +643,7 @@ struct gkyl_gk {
 
   int num_neut_species; // Number of species.
   struct gkyl_gyrokinetic_neut_species neut_species[GKYL_MAX_SPECIES]; // Species objects.
-  
+
   struct gkyl_gyrokinetic_field field; // Field object.
 
   struct gkyl_gyrokinetic_eirene eirene; // EIRENE input
@@ -641,16 +656,16 @@ struct gkyl_gk {
 // Simulation statistics
 struct gkyl_gyrokinetic_stat {
   bool use_gpu; // did this sim use GPU?
-  
+
   long nup; // calls to update
   long nfeuler; // calls to forward-Euler method
-    
+
   long nstage_2_fail; // number of failed RK stage-2s
   long nstage_3_fail; // number of failed RK stage-3s
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
-    
+
   double init_species_tm; // time to initialize all species
   double init_neut_species_tm; // time to initialize all neutral species
 
@@ -659,9 +674,11 @@ struct gkyl_gyrokinetic_stat {
   double fwd_euler_step_f_tm; // Time spent on fwd euler step_f.
   double dfdt_dt_reduce_tm; // Time spent on fwd euler dt reduction.
 
-  double species_collisionless_tm; // Time to compute species collisionless RHS (alpha already computed).
+  double
+    species_collisionless_tm; // Time to compute species collisionless RHS (alpha already computed).
   double species_gyroavg_tm; // Time to compute species collisionless RHS.
-  double species_lte_tm; // total time for species LTE (local thermodynamic equilibrium) projection updater
+  double
+    species_lte_tm; // total time for species LTE (local thermodynamic equilibrium) projection updater
   double species_bflux_calc_tm; // Time for species boundary flux calculation.
   double species_bflux_moms_tm; // Time for species boundary flux moments.
   double species_coll_mom_tm; // time needed to compute various moments needed in collisions
@@ -671,19 +688,22 @@ struct gkyl_gyrokinetic_stat {
   double species_diffusion_tm; // Time to compute species diffusion term.
   double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator
-  double species_react_mom_tm; // total time to compute various moments needed in reactions 
+  double species_react_mom_tm; // total time to compute various moments needed in reactions
   double species_react_tm; // total time for reactions updaters
   double species_src_tm; // Time to accumulate species source onto RHS.
   double species_source_bgk_tm; // Time to compute bgk source term RHS.
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
   double neut_species_collisionless_tm; // Time to compute neutral species collisionless RHS.
-  double neut_species_lte_tm; // total time for neutral species LTE (local thermodynamic equilibrium) projection updater
+  double
+    neut_species_lte_tm; // total time for neutral species LTE (local thermodynamic equilibrium) projection updater
   double neut_species_bflux_calc_tm; // Time for neutral species boundary flux calculation.
   double neut_species_bflux_moms_tm; // Time for neutral species boundary flux moments.
   double neut_species_coll_tm; // total time for neutral self-collisions updater (excluded moments)
-  double neut_species_coll_mom_tm; // time needed to compute various moments needed in neutral self-collisions
-  double neut_species_react_mom_tm; // total time to compute various moments needed in neutral reactions
+  double
+    neut_species_coll_mom_tm; // time needed to compute various moments needed in neutral self-collisions
+  double
+    neut_species_react_mom_tm; // total time to compute various moments needed in neutral reactions
   double neut_species_react_tm; // total time for neutral reactions updaters
   double neut_species_src_tm; // Time to accumulate neutral species source onto RHS.
   double neut_species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for neutrals
@@ -694,7 +714,7 @@ struct gkyl_gyrokinetic_stat {
 
   double field_tm; // Time to compute fields.
   double field_phi_rhs_tm; // Time spent on poisson eqn RHS.
-  double field_phi_solve_tm;   // Time spent to solve poisson eqn.
+  double field_phi_solve_tm; // Time spent to solve poisson eqn.
 
   double bc_tm; // Time to compute BCs.
   double species_bc_tm; // Time to compute species BCs.
@@ -731,10 +751,14 @@ struct gkyl_gyrokinetic_stat {
   double app_io_tm; // Time to write common diagnostics.
   double io_tm; // Time to write common diagnostics.
 
-  long n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection
-  long num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for species LTE projection is called
-  long neut_n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct neutral species LTE projection
-  long neut_num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for neutral species LTE projection is called
+  long
+    n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection
+  long num_corr
+    [GKYL_MAX_SPECIES]; // total number of times correction updater for species LTE projection is called
+  long neut_n_iter_corr
+    [GKYL_MAX_SPECIES]; // total number of iterations used to correct neutral species LTE projection
+  long neut_num_corr
+    [GKYL_MAX_SPECIES]; // total number of times correction updater for neutral species LTE projection is called
 
   long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
   long n_mom; // total number of calls to moment updater routines
@@ -763,7 +787,7 @@ typedef struct gkyl_gyrokinetic_app gkyl_gyrokinetic_app;
  *     initialized
  * @return New gk app object.
  */
-gkyl_gyrokinetic_app* gkyl_gyrokinetic_app_new(struct gkyl_gk *gk);
+gkyl_gyrokinetic_app *gkyl_gyrokinetic_app_new(struct gkyl_gk *gk);
 
 /**
  * Construct a new gk app (geometry only).
@@ -772,7 +796,7 @@ gkyl_gyrokinetic_app* gkyl_gyrokinetic_app_new(struct gkyl_gk *gk);
  *     initialized
  * @return New gk app object.
  */
-gkyl_gyrokinetic_app* gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
+gkyl_gyrokinetic_app *gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
 
 /**
  * Initialize species and field by projecting initial conditions on
@@ -781,14 +805,16 @@ gkyl_gyrokinetic_app* gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
  * @param app App object.
  * @param t0 Time for initial conditions.
  */
-void gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0);
+void gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0);
 
 /**
  * Write geometry file.
  *
  * @param app App object.
  */
-void gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app *app, struct gkyl_gk_geometry_inp *geometry_inp);
+void gkyl_gyrokinetic_app_write_geometry(
+  gkyl_gyrokinetic_app *app, struct gkyl_gk_geometry_inp *geometry_inp
+);
 
 /**
  * Write field data to file.
@@ -797,7 +823,7 @@ void gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app *app, struct gkyl_
  * @param tm Time-stamp.
  * @param frame Frame number.
  */
-void gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame);
+void gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app *app, double tm, int frame);
 
 /**
  * Calculate integrated field energy
@@ -805,7 +831,7 @@ void gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int 
  * @param tm Time at which integrated diagnostic are to be computed
  * @param app App object.
  */
-void gkyl_gyrokinetic_app_calc_field_energy(gkyl_gyrokinetic_app* app, double tm);
+void gkyl_gyrokinetic_app_calc_field_energy(gkyl_gyrokinetic_app *app, double tm);
 
 /**
  * Write field energy to file. Field energy data is appended to the
@@ -813,7 +839,7 @@ void gkyl_gyrokinetic_app_calc_field_energy(gkyl_gyrokinetic_app* app, double tm
  * 
  * @param app App object.
  */
-void gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app);
+void gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app *app);
 
 /**
  * Write eirene data to file.
@@ -822,7 +848,7 @@ void gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app);
  * @param tm Time-stamp.
  * @param frame Frame number.
  */
-void gkyl_gyrokinetic_app_write_eirene_diagnostics(gkyl_gyrokinetic_app* app, double tm, int frame);
+void gkyl_gyrokinetic_app_write_eirene_diagnostics(gkyl_gyrokinetic_app *app, double tm, int frame);
 
 /**
  * Calculate eirene integrated diagnostics.
@@ -830,14 +856,14 @@ void gkyl_gyrokinetic_app_write_eirene_diagnostics(gkyl_gyrokinetic_app* app, do
  * @param app App object.
  * @param tm Time-stamp.
  */
-void gkyl_gyrokinetic_app_calc_eirene_integrated_diagnostics(gkyl_gyrokinetic_app* app, double tm);
+void gkyl_gyrokinetic_app_calc_eirene_integrated_diagnostics(gkyl_gyrokinetic_app *app, double tm);
 
 /**
  * Write eirene integrated diagnostics.
  * 
  * @param app App object.
  */
-void gkyl_gyrokinetic_app_write_eirene_integrated_diagnostics(gkyl_gyrokinetic_app* app);
+void gkyl_gyrokinetic_app_write_eirene_integrated_diagnostics(gkyl_gyrokinetic_app *app);
 
 /**
  * Write species data to file.
@@ -847,7 +873,7 @@ void gkyl_gyrokinetic_app_write_eirene_integrated_diagnostics(gkyl_gyrokinetic_a
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
  * Write neutral species data to file.
@@ -857,7 +883,9 @@ void gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, dou
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_neut_species(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write diagnostic moments for species to file.
@@ -867,7 +895,9 @@ void gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write diagnostic moments for neutral species to file.
@@ -877,7 +907,9 @@ void gkyl_gyrokinetic_app_write_species_mom(gkyl_gyrokinetic_app *app, int sidx,
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_neut_species_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_neut_species_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Calculate integrated diagnostic moments for a plasma species.
@@ -886,7 +918,9 @@ void gkyl_gyrokinetic_app_write_neut_species_mom(gkyl_gyrokinetic_app *app, int 
  * @param sidx Index of species whose integrated moments to compute.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_app_calc_species_integrated_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm
+);
 
 /**
  * Calculate integrated diagnostic moments for a neutral species.
@@ -895,7 +929,9 @@ void gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app,
  * @param sidx Index of neutral species whose integrated moments to compute.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm
+);
 
 /**
  * Calculate the L2 norm of a plasma species.
@@ -904,7 +940,7 @@ void gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app*
  * @param sidx Index of species whose L2 norm to compute.
  * @param tm Time at which L2 norm is to be computed.
  */
-void gkyl_gyrokinetic_app_calc_species_L2norm(gkyl_gyrokinetic_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_app_calc_species_L2norm(gkyl_gyrokinetic_app *app, int sidx, double tm);
 
 /**
  * Calculate integrated diagnostic moments of the boundary fluxes for a plasma species.
@@ -913,7 +949,9 @@ void gkyl_gyrokinetic_app_calc_species_L2norm(gkyl_gyrokinetic_app* app, int sid
  * @param sidx Index of species whose integrated moments to compute.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm
+);
 
 /**
  * Calculate integrated diagnostic moments of the boundary fluxes for a neutral species.
@@ -922,7 +960,9 @@ void gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokin
  * @param sidx Index of species whose integrated moments to compute.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm
+);
 
 /**
  * Write integrated diagnostic moments for charged species to file. Integrated
@@ -958,7 +998,9 @@ void gkyl_gyrokinetic_app_write_species_L2norm(gkyl_gyrokinetic_app *app, int si
  * @param app App object.
  * @param sidx Index of species whose integrated moments to write.
  */
-void gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
+void gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(
+  gkyl_gyrokinetic_app *app, int sidx
+);
 
 /**
  * Write integrated diagnostic moments of the boundary fluxes for neutral
@@ -967,7 +1009,9 @@ void gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyroki
  * @param app App object.
  * @param sidx Index of species whose integrated moments to write.
  */
-void gkyl_gyrokinetic_app_write_neutral_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
+void gkyl_gyrokinetic_app_write_neutral_species_boundary_flux_integrated_mom(
+  gkyl_gyrokinetic_app *app, int sidx
+);
 
 /**
  * Write species source to file.
@@ -977,7 +1021,9 @@ void gkyl_gyrokinetic_app_write_neutral_species_boundary_flux_integrated_mom(gky
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_source(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_source(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write neutral species source to file.
@@ -987,7 +1033,9 @@ void gkyl_gyrokinetic_app_write_species_source(gkyl_gyrokinetic_app* app, int si
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_neut_species_source(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_neut_species_source(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write diagnostic moments for species source to file.
@@ -997,7 +1045,9 @@ void gkyl_gyrokinetic_app_write_neut_species_source(gkyl_gyrokinetic_app* app, i
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_source_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_source_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write diagnostic moments for neutral species source to file.
@@ -1007,7 +1057,9 @@ void gkyl_gyrokinetic_app_write_species_source_mom(gkyl_gyrokinetic_app *app, in
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_neut_species_source_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_neut_species_source_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Calculate integrated diagnostic moments for a plasma species source.
@@ -1016,7 +1068,9 @@ void gkyl_gyrokinetic_app_write_neut_species_source_mom(gkyl_gyrokinetic_app *ap
  * @param sidx Index of species whose integrated moments to write.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_app_calc_species_source_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_app_calc_species_source_integrated_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm
+);
 
 /**
  * Calculate integrated diagnostic moments for a neutral species source.
@@ -1025,7 +1079,9 @@ void gkyl_gyrokinetic_app_calc_species_source_integrated_mom(gkyl_gyrokinetic_ap
  * @param sidx Index of neutral species whose integrated moments to write.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm
+);
 
 /**
  * Calculate integrated diagnostic moments for a plasma species BGK source.
@@ -1034,7 +1090,9 @@ void gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(gkyl_gyrokinet
  * @param sidx Index of species whose integrated moments to write.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_app_calc_species_source_bgk_integrated_diagnostics(gkyl_gyrokinetic_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_app_calc_species_source_bgk_integrated_diagnostics(
+  gkyl_gyrokinetic_app *app, int sidx, double tm
+);
 
 /**
  * Write integrated diagnostic moments for charged species source to file. Integrated
@@ -1052,7 +1110,9 @@ void gkyl_gyrokinetic_app_write_species_source_integrated_mom(gkyl_gyrokinetic_a
  * @param app App object.
  * @param sidx Index of species whose source integrated moments to write.
  */
-void gkyl_gyrokinetic_app_write_species_source_bgk_integrated_diagnostics(gkyl_gyrokinetic_app *app, int sidx);
+void gkyl_gyrokinetic_app_write_species_source_bgk_integrated_diagnostics(
+  gkyl_gyrokinetic_app *app, int sidx
+);
 
 /**
  * Write integrated diagnostic moments for neutral species source to file. Integrated
@@ -1061,7 +1121,9 @@ void gkyl_gyrokinetic_app_write_species_source_bgk_integrated_diagnostics(gkyl_g
  * @param app App object.
  * @param sidx Index of neutral species whose source integrated moments to write.
  */
-void gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
+void gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(
+  gkyl_gyrokinetic_app *app, int sidx
+);
 
 /**
  * Write LBO collisional moments for species to file.
@@ -1071,7 +1133,9 @@ void gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(gkyl_gyrokine
  * @param tm Time-stamp.
  * @param frame Frame number.
  */
-void gkyl_gyrokinetic_app_write_species_lbo_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_lbo_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write BGK collisional moments for species to file.
@@ -1081,7 +1145,9 @@ void gkyl_gyrokinetic_app_write_species_lbo_mom(gkyl_gyrokinetic_app *app, int s
  * @param tm Time-stamp.
  * @param frame Frame number.
  */
-void gkyl_gyrokinetic_app_write_species_bgk_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_bgk_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write species integrated correct Maxwellian status of the to file. 
@@ -1099,7 +1165,9 @@ void gkyl_gyrokinetic_app_write_species_lte_max_corr_status(gkyl_gyrokinetic_app
  * @param app App object.
  * @param sidx Index of neutral species whose Maxwellian correction status to write.
  */
-void gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(gkyl_gyrokinetic_app *app, int sidx);
+void gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(
+  gkyl_gyrokinetic_app *app, int sidx
+);
 
 /**
  * Write radiation drag coefficients for species to file.
@@ -1109,7 +1177,9 @@ void gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(gkyl_gyrokineti
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_rad_drag(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_rad_drag(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write radiation emissivity of each species that species sidx collides with
@@ -1119,7 +1189,9 @@ void gkyl_gyrokinetic_app_write_species_rad_drag(gkyl_gyrokinetic_app *app, int 
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_rad_emissivity(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Calculate integrated diagnostic moments of the radiation model.
@@ -1128,7 +1200,9 @@ void gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app *app
  * @param sidx Index of species to whose radiation int moments to compute.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(gkyl_gyrokinetic_app *app, int sidx, double tm);
+void gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(
+  gkyl_gyrokinetic_app *app, int sidx, double tm
+);
 
 /**
  * Write integrated moments of radiation rhs for radiating species 
@@ -1147,7 +1221,9 @@ void gkyl_gyrokinetic_app_write_species_rad_integrated_mom(gkyl_gyrokinetic_app 
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_iz_react(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_iz_react(
+  gkyl_gyrokinetic_app *app, int sidx, int ridx, double tm, int frame
+);
 
 /**
  * Write iz react rate coefficients for species to file.
@@ -1158,7 +1234,9 @@ void gkyl_gyrokinetic_app_write_species_iz_react(gkyl_gyrokinetic_app* app, int 
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_iz_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_iz_react_neut(
+  gkyl_gyrokinetic_app *app, int sidx, int ridx, double tm, int frame
+);
 
 /**
  * Write recomb react rate coefficients for species to file.
@@ -1169,7 +1247,9 @@ void gkyl_gyrokinetic_app_write_species_iz_react_neut(gkyl_gyrokinetic_app* app,
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_recomb_react(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_recomb_react(
+  gkyl_gyrokinetic_app *app, int sidx, int ridx, double tm, int frame
+);
 
 /**
  * Write recomb react rate coefficients for species to file.
@@ -1180,7 +1260,9 @@ void gkyl_gyrokinetic_app_write_species_recomb_react(gkyl_gyrokinetic_app* app, 
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_recomb_react_neut(
+  gkyl_gyrokinetic_app *app, int sidx, int ridx, double tm, int frame
+);
 
 /**
  * Write the phase-space diagnostics for a charged species.
@@ -1190,7 +1272,9 @@ void gkyl_gyrokinetic_app_write_species_recomb_react_neut(gkyl_gyrokinetic_app* 
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_phase(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_phase(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write the phase-space diagnostics for a neutral species.
@@ -1200,7 +1284,9 @@ void gkyl_gyrokinetic_app_write_species_phase(gkyl_gyrokinetic_app* app, int sid
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_neut_species_phase(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_neut_species_phase(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write the conf-space diagnostics for a charged species.
@@ -1210,7 +1296,9 @@ void gkyl_gyrokinetic_app_write_neut_species_phase(gkyl_gyrokinetic_app* app, in
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_conf(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write the conf-space diagnostics for a neutral species.
@@ -1220,7 +1308,9 @@ void gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_neut_species_conf(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write diagnostic moments for all species (including sources) to file.
@@ -1237,7 +1327,7 @@ void gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app *app, double tm, int fr
  * @param app App object.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm);
+void gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app *app, double tm);
 
 /**
  * Calculate the L2 norm for all species.
@@ -1245,7 +1335,7 @@ void gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double 
  * @param app App object.
  * @param tm Time at which L2 norms are to be computed.
  */
-void gkyl_gyrokinetic_app_calc_L2norm(gkyl_gyrokinetic_app* app, double tm);
+void gkyl_gyrokinetic_app_calc_L2norm(gkyl_gyrokinetic_app *app, double tm);
 
 /**
  * Write integrated diagnostic moments for all species (including sources)
@@ -1270,7 +1360,7 @@ void gkyl_gyrokinetic_app_write_L2norm(gkyl_gyrokinetic_app *app);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_phase(gkyl_gyrokinetic_app* app, double tm, int frame);
+void gkyl_gyrokinetic_app_write_phase(gkyl_gyrokinetic_app *app, double tm, int frame);
 
 /**
  * Write configuration space diagnostics to file.
@@ -1279,7 +1369,7 @@ void gkyl_gyrokinetic_app_write_phase(gkyl_gyrokinetic_app* app, double tm, int 
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_conf(gkyl_gyrokinetic_app* app, double tm, int frame);
+void gkyl_gyrokinetic_app_write_conf(gkyl_gyrokinetic_app *app, double tm, int frame);
 
 /**
  * Write both conf and phase-space diagnostics to file.
@@ -1288,14 +1378,14 @@ void gkyl_gyrokinetic_app_write_conf(gkyl_gyrokinetic_app* app, double tm, int f
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame);
+void gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app *app, double tm, int frame);
 
 /**
  * Write stats to file. Data is written in json format.
  *
  * @param app App object.
  */
-void gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app);
+void gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app *app);
 
 /**
  * Print timing of solver components to iostream.
@@ -1303,8 +1393,7 @@ void gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app);
  * @param app App object.
  * @param iostream Where to write timers to (e.g. stdout, stderr);
  */
-void
-gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app* app, FILE *iostream);
+void gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app *app, FILE *iostream);
 
 /**
  * Record the time step (in private dynvector).
@@ -1313,23 +1402,23 @@ gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app* app, FILE *iostream);
  * @param tm Time stamp.
  * @param dt Time step to record (e.g. provided by app's status object).
  */
-void
-gkyl_gyrokinetic_app_save_dt(gkyl_gyrokinetic_app* app, double tm, double dt);
+void gkyl_gyrokinetic_app_save_dt(gkyl_gyrokinetic_app *app, double tm, double dt);
 
 /**
  * Write the time step over time.
  *
  * @param app App object.
  */
-void
-gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app);
+void gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app *app);
 
 /**
  * Read geometry file.
  *
  * @param app App object.
  */
-void gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app *app, struct gkyl_gk_geometry_inp *geometry_inp);
+void gkyl_gyrokinetic_app_read_geometry(
+  gkyl_gyrokinetic_app *app, struct gkyl_gk_geometry_inp *geometry_inp
+);
 
 /**
  * Initialize field from file
@@ -1347,9 +1436,8 @@ gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fnam
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status 
-gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
-  const char *fname);
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx, const char *fname);
 
 /**
  * Initialize neutral species from file
@@ -1358,9 +1446,8 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
  * @param sidx neut species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status 
-gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
-  const char *fname);
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx, const char *fname);
 
 /**
  * Initialize the gyrokinetic app from a specific frame.
@@ -1410,7 +1497,7 @@ gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx
  * @param fmt Format string for console output
  * @param argp Objects to write
  */
-void gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app* app, FILE *fp, const char *fmt, ...);
+void gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app *app, FILE *fp, const char *fmt, ...);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too
@@ -1428,28 +1515,28 @@ void gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app* app, FILE *fp, const 
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_update_status gkyl_gyrokinetic_update(gkyl_gyrokinetic_app* app, double dt);
+struct gkyl_update_status gkyl_gyrokinetic_update(gkyl_gyrokinetic_app *app, double dt);
 
 /**
  * Return simulation statistics.
  * 
  * @return Return statistics object.
  */
-struct gkyl_gyrokinetic_stat gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app);
+struct gkyl_gyrokinetic_stat gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app *app);
 
 /**
  * Free gk app.
  *
  * @param app App to release.
  */
-void gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app);
+void gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app);
 
 /**
  * Free gk app (geom only).
  *
  * @param app App to release.
  */
-void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
+void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app *app);
 
 /**
  * Reset the CFL factor for the omega_H frequency.
@@ -1458,8 +1545,9 @@ void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
  * @param tm Time-stamp.
  * @param cfl_frac_omegaH New CFL factor to use for the omega_H mode.
  */
-void gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, double tm,
-  double cfl_frac_omegaH);
+void gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(
+  gkyl_gyrokinetic_app *app, double tm, double cfl_frac_omegaH
+);
 
 /**
  * Reset the df/dt multiplier operator for a given species.
@@ -1469,8 +1557,10 @@ void gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, doubl
  * @param species_name Name of the species to reset.
  * @param fdot_mult_inp Input struct for the fdot_multiplier.
  */
-void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* app, double tm,
-  const char *species_name, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
+void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(
+  gkyl_gyrokinetic_app *app, double tm, const char *species_name,
+  struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp
+);
 
 /**
  * Reset the collisionless multiplier for a given species.
@@ -1480,8 +1570,10 @@ void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* ap
  * @param species_name Name of the species to reset.
  * @param gkcls Input parameters for collisionless terms.
  */
-void gkyl_gyrokinetic_app_reset_species_collisionless(gkyl_gyrokinetic_app* app, double tm,
-  const char *species_name, struct gkyl_gyrokinetic_collisionless gkcls_inp);
+void gkyl_gyrokinetic_app_reset_species_collisionless(
+  gkyl_gyrokinetic_app *app, double tm, const char *species_name,
+  struct gkyl_gyrokinetic_collisionless gkcls_inp
+);
 
 /**
  * Reset enforce_positivity for a given species.
@@ -1490,8 +1582,10 @@ void gkyl_gyrokinetic_app_reset_species_collisionless(gkyl_gyrokinetic_app* app,
  * @param tm Time-stamp.
  * @param pos_inp Positivity input parameters.
  */
-void gkyl_gyrokinetic_app_reset_species_positivity(gkyl_gyrokinetic_app* app, double tm,
-  const char *species_name, struct gkyl_gyrokinetic_positivity pos_inp);
+void gkyl_gyrokinetic_app_reset_species_positivity(
+  gkyl_gyrokinetic_app *app, double tm, const char *species_name,
+  struct gkyl_gyrokinetic_positivity pos_inp
+);
 
 /**
  * Reset the field solver.
@@ -1500,5 +1594,6 @@ void gkyl_gyrokinetic_app_reset_species_positivity(gkyl_gyrokinetic_app* app, do
  * @param tm Time-stamp.
  * @param field_inp Input struct for the field object.
  */
-void gkyl_gyrokinetic_app_reset_field(gkyl_gyrokinetic_app* app, double tm,
-  struct gkyl_gyrokinetic_field field_inp);
+void gkyl_gyrokinetic_app_reset_field(
+  gkyl_gyrokinetic_app *app, double tm, struct gkyl_gyrokinetic_field field_inp
+);

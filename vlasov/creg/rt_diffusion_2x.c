@@ -14,20 +14,18 @@ struct sim_ctx {
   double Lx; // size of the box
 };
 
-void
-evalInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void evalInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
   double x = xn[0], y = xn[1];
-  if (x > -1 & x < 1 & y > -1 & y < 1) {
+  if (x > -1 & x<1 & y> - 1 & y < 1) {
     fout[0] = 1.0;
   } else {
     fout[0] = 0.0;
   }
 }
 
-void
-D(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void D(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
   double x = xn[0], y = xn[1];
@@ -36,27 +34,22 @@ D(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *c
   fout[2] = y + 2.0;
 }
 
-void
-eval_advect_vel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void eval_advect_vel(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
   double x = xn[0], y = xn[1];
   fout[0] = 0.0;
-  fout[1] = 0.0; 
-  fout[2] = 0.0; 
+  fout[1] = 0.0;
+  fout[2] = 0.0;
 }
 
-struct sim_ctx
-create_ctx(void)
+struct sim_ctx create_ctx(void)
 {
-  struct sim_ctx ctx = {
-    .Lx = 2,
-  };
+  struct sim_ctx ctx = {.Lx = 2};
   return ctx;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -65,12 +58,12 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
   struct sim_ctx ctx = create_ctx(); // context for init functions
-  
-  // Equation object for getting equation type, 
-  // advection velocity is set by eval_advect_vel function. 
+
+  // Equation object for getting equation type,
+  // advection velocity is set by eval_advect_vel function.
   double c = 1.0;
   struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
-  
+
   struct gkyl_vlasov_fluid_species f = {
     .name = "f",
 
@@ -80,37 +73,33 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalInit,
     .equation = advect,
-    .advection = {
-      .velocity = eval_advect_vel,
-      .velocity_ctx = &ctx,
-    },
-    .diffusion = {.Dij = D, .Dij_ctx = 0},
-  };  
+    .advection = {.velocity = eval_advect_vel, .velocity_ctx = &ctx},
+    .diffusion = {.Dij = D, .Dij_ctx = 0}
+  };
 
   // VM app
   struct gkyl_vm app_inp = {
 
-    .cdim = 2, .vdim = 0,
-    .lower = { -2, -2 },
-    .upper = { 2, 2 },
-    .cells = { 32, 32 },
+    .cdim = 2,
+    .vdim = 0,
+    .lower = {-2, -2},
+    .upper = {2, 2},
+    .cells = {32, 32},
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 2,
-    .periodic_dirs = { 0, 1 },
+    .periodic_dirs = {0, 1},
 
     .num_species = 0,
-    .species = { },
+    .species = {},
     .num_fluid_species = 1,
-    .fluid_species = { f },
+    .fluid_species = {f},
     .cfl_frac = 0.5,
 
     .skip_field = true,
 
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-    },
+    .parallelism = {.use_gpu = app_args.use_gpu}
   };
 
   // create app object
@@ -120,20 +109,21 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.01;
-  double dt = tend-tcurr;
+  double dt = tend - tcurr;
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
-  
+
   gkyl_vlasov_app_write(app, tcurr, 0);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  gkyl_vlasov_app_calc_mom(app);
+  gkyl_vlasov_app_write_mom(app, tcurr, 0);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
-    
+
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
       break;
@@ -144,7 +134,8 @@ main(int argc, char **argv)
   }
 
   gkyl_vlasov_app_write(app, tcurr, 1);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
+  gkyl_vlasov_app_calc_mom(app);
+  gkyl_vlasov_app_write_mom(app, tcurr, 1);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
@@ -161,12 +152,12 @@ main(int argc, char **argv)
   if (stat.nstage_2_fail > 0) {
     printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
     printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
+  }
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
   //printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
   //printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
   printf("Updates took %g secs\n", stat.total_tm);
-  
+
   return 0;
 }
