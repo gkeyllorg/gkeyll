@@ -568,7 +568,6 @@ struct gkyl_gyrokinetic_field {
   struct gkyl_gyrokinetic_bc ampere_bcs[2*GKYL_MAX_CDIM];
   double mu0; // Magnetic permeability of free space.
   bool remove_em_zonal; // Whether to remove zonal component.
-  bool smooth_apar_z; // Whether to apply a smoother in the z direction for Ampere stepping in EMGK.
   bool is_apar_static; // =true Apar at initial time is used for all time steps.
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.

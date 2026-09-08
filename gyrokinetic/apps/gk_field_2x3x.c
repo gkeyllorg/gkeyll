@@ -819,9 +819,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       double dg_norm = pow(sqrt(2.0), app->basis.ndim);
       gkyl_array_shiftc_range(f->fs_avg_conf_one, dg_norm, 0, &app->local);
     }
-    if (f->info.smooth_apar_z) {
-      f->fem_projection_par_apar_func = f->fem_projection_par_phi_func;
-    }
+    f->fem_projection_par_apar_func = f->fem_projection_par_phi_func;
   }
 
   // Updater for field energy calculation.
