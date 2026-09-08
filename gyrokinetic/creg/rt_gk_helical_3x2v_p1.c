@@ -326,11 +326,11 @@ create_ctx(void)
   double z_max = Lz/2;
 
   // Grid parameters
-  int Nx = 8;
-  int Ny = 4;
-  int Nz = 4;
-  int Nvpar = 4;
-  int Nmu = 2;
+  int Nx = 8; // (16)
+  int Ny = 4; // (32)
+  int Nz = 4; // (12)
+  int Nvpar = 4; // (10)
+  int Nmu = 2; // (5)
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
@@ -338,7 +338,7 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = 12*mi*pow(vti,2)/(2*B0);
 
-  double t_end = 1.e-6; // End time, should terminate in 43 steps.
+  double t_end = 2.e-6; // End time, should terminate in 43 steps.
   int num_frames = 1;
   double write_phase_freq = 1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
