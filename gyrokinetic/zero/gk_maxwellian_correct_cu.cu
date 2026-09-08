@@ -6,8 +6,8 @@ extern "C" {
 #include <gkyl_range.h>
 }
 
-static void gkyl_parallelize_components_kernel_launch_dims(dim3 *dimGrid, dim3 *dimBlock,
-                                                           gkyl_range range, int ncomp)
+static void gkyl_parallelize_components_kernel_launch_dims(
+  dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp)
 {
   // Create a 2D thread grid so we launch ncomp*range.volume number of threads and can parallelize over components too
   dimBlock->y = ncomp;
@@ -59,10 +59,8 @@ __global__ static void gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu_ker(
 }
 
 void gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range,
-                                                        int num_comp, int nc,
-                                                        const struct gkyl_array *moms_target,
-                                                        const struct gkyl_array *moms_iter,
-                                                        struct gkyl_array *moms_abs_diff)
+  int num_comp, int nc, const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter,
+  struct gkyl_array *moms_abs_diff)
 {
   dim3 dimGrid, dimBlock;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *conf_range, num_comp);

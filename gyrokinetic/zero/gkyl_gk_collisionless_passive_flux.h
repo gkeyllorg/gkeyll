@@ -54,11 +54,10 @@ gkyl_gk_collisionless_passive_flux *gkyl_gk_collisionless_passive_flux_new(
  * @param flux_surf Output surface expansion (lower edge in each direction).
  * @param cflrate Output CFL rate.
  */
-void gkyl_gk_collisionless_passive_flux_surf(
-  gkyl_gk_collisionless_passive_flux *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_ext_range,
-  const struct gkyl_range *phase_ext_range, const struct gkyl_array *fin,
-  struct gkyl_array *flux_surf, struct gkyl_array *cflrate);
+void gkyl_gk_collisionless_passive_flux_surf(gkyl_gk_collisionless_passive_flux *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range,
+  const struct gkyl_array *fin, struct gkyl_array *flux_surf, struct gkyl_array *cflrate);
 
 /**
  * Delete pointer to passive flux updater.

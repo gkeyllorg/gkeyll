@@ -346,11 +346,7 @@ void test_dynvec_to_array_ho()
   gkyl_array_release(dyn_data);
 }
 
-TEST_LIST = { { "test_dynvec_1_ho", test_dynvec_1_ho },
-              { "test_dynvec_2_ho", test_dynvec_2_ho },
-              { "test_dynvec_3_ho", test_dynvec_3_ho },
-              { "test_dynvec_4_ho", test_dynvec_4_ho },
-              { "test_dynvec_io_ho", test_dynvec_io_ho },
-              { "test_dynvec_io_2_ho", test_dynvec_io_2_ho },
-              { "test_dynvec_to_array_ho", test_dynvec_to_array_ho },
-              { NULL, NULL } };
+TEST_LIST = { { "test_dynvec_1_ho", test_dynvec_1_ho }, { "test_dynvec_2_ho", test_dynvec_2_ho },
+  { "test_dynvec_3_ho", test_dynvec_3_ho }, { "test_dynvec_4_ho", test_dynvec_4_ho },
+  { "test_dynvec_io_ho", test_dynvec_io_ho }, { "test_dynvec_io_2_ho", test_dynvec_io_2_ho },
+  { "test_dynvec_to_array_ho", test_dynvec_to_array_ho }, { NULL, NULL } };

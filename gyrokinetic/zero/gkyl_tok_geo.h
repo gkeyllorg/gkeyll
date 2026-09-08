@@ -119,8 +119,8 @@ struct gkyl_tok_geo {
     use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
 
   // pointer to root finder (depends on polyorder)
-  struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z, double xc[2],
-                                 double dx[2]);
+  struct RdRdZ_sol (*calc_roots)(
+    const double *psi, double psi0, double Z, double xc[2], double dx[2]);
 
   double (*calc_grad_psi)(const double *psih, const double eta[2], const double dx[2]);
 
@@ -180,8 +180,8 @@ struct gkyl_tok_geo_grid_inp {
  * @param efit_inp Input parameters related to EFIT data
  * @param grid_inp Input parameters related to computational grid
  */
-struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_efit_inp *inp,
-                                      const struct gkyl_tok_geo_grid_inp *grid_inp);
+struct gkyl_tok_geo *gkyl_tok_geo_new(
+  const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *grid_inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may
@@ -196,7 +196,7 @@ struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_efit_inp *inp,
  * @param dR on output, dR/dZ
  */
 int gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
-                        double *R, double *dRdZ, double *dR, double *dZ);
+  double *R, double *dRdZ, double *dR, double *dZ);
 
 /**
  * Integrate along a specified psi countour and return its length. The
@@ -214,8 +214,8 @@ int gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, in
  *    contours
  * @return Length of contour
  */
-double gkyl_tok_geo_integrate_psi_contour(const struct gkyl_tok_geo *geo, double psi, double zmin,
-                                          double zmax, double rclose);
+double gkyl_tok_geo_integrate_psi_contour(
+  const struct gkyl_tok_geo *geo, double psi, double zmin, double zmax, double rclose);
 
 /**
  * Compute physical coordinates (mapc2p)  given computational coordinates
@@ -225,7 +225,7 @@ double gkyl_tok_geo_integrate_psi_contour(const struct gkyl_tok_geo *geo, double
  * @param ret physical coordinates
  */
 void gkyl_tok_geo_mapc2p(const struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,
-                         const double *xn, double *ret);
+  const double *xn, double *ret);
 
 /**
  * Compute geometry (mapc2p) on a specified computational grid.
@@ -238,7 +238,7 @@ void gkyl_tok_geo_mapc2p(const struct gkyl_tok_geo *geo, const struct gkyl_tok_g
  * @param position_map position map object
  */
 void gkyl_tok_geo_calc(struct gk_geometry *up, struct gkyl_range *nrange, struct gkyl_tok_geo *geo,
-                       struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map);
+  struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map);
 
 /**
  * Compute geometry (mapc2p) on a specified computational grid.
@@ -251,8 +251,8 @@ void gkyl_tok_geo_calc(struct gk_geometry *up, struct gkyl_range *nrange, struct
  * @param position_map position map object
  */
 void gkyl_tok_geo_calc_interior(struct gk_geometry *up, struct gkyl_range *nrange, double dzc[3],
-                                struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp,
-                                struct gkyl_position_map *position_map);
+  struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp,
+  struct gkyl_position_map *position_map);
 
 /**
  * Compute geometry (mapc2p) on a specified computational grid.
@@ -265,9 +265,8 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry *up, struct gkyl_range *nrang
  * @param position_map position map object
  */
 void gkyl_tok_geo_calc_surface(struct gk_geometry *up, int dir, struct gkyl_range *nrange,
-                               double dzc[3], struct gkyl_tok_geo *geo,
-                               struct gkyl_tok_geo_grid_inp *inp,
-                               struct gkyl_position_map *position_map);
+  double dzc[3], struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp,
+  struct gkyl_position_map *position_map);
 
 /*
  * Get grid extents for a block type based on a global normalization factor
@@ -277,8 +276,8 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry *up, int dir, struct gkyl_rang
  * @param theta_lo on output the lower grid extent
  * @param theta_up on output the upper grid extent
  * */
-void gkyl_tok_geo_set_extent(struct gkyl_tok_geo_grid_inp *inp, struct gkyl_tok_geo *geo,
-                             double *theta_lo, double *theta_up);
+void gkyl_tok_geo_set_extent(
+  struct gkyl_tok_geo_grid_inp *inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up);
 
 /**
  * Return cumulative statistics from geometry computations

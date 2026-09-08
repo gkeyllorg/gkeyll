@@ -29,8 +29,8 @@ void test_euler_basic_ho()
   double E = q[4];
 
   double fluxes[3][5] = { { rho * u, rho * u * u + pr, rho * u * v, rho * u * w, (E + pr) * u },
-                          { rho * v, rho * u * v, rho * v * v + pr, rho * v * w, (E + pr) * v },
-                          { rho * w, rho * u * w, rho * v * w, rho * w * w, (E + pr) * w } };
+    { rho * v, rho * u * v, rho * v * v + pr, rho * v * w, (E + pr) * v },
+    { rho * w, rho * u * w, rho * v * w, rho * w * w, (E + pr) * w } };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -102,13 +102,13 @@ void test_euler_waves(enum gkyl_wv_flux_type ftype)
     gkyl_wv_eqn_waves(euler, ftype, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[5], amdq_local[5];
-    gkyl_wv_eqn_qfluct(euler, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local,
-                       apdq_local);
+    gkyl_wv_eqn_qfluct(
+      euler, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
     // rotate waves back to global frame
     for (int mw = 0; mw < 3; ++mw)
-      gkyl_wv_eqn_rotate_to_global(euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5],
-                                   &waves[mw * 5]);
+      gkyl_wv_eqn_rotate_to_global(
+        euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5], &waves[mw * 5]);
 
     double apdq[5], amdq[5];
     // rotate fluctuations back to global frame
@@ -173,13 +173,13 @@ void test_euler_waves_2(enum gkyl_wv_flux_type ftype, enum gkyl_wv_euler_rp rp_t
     gkyl_wv_eqn_waves(euler, ftype, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[5], amdq_local[5];
-    gkyl_wv_eqn_qfluct(euler, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local,
-                       apdq_local);
+    gkyl_wv_eqn_qfluct(
+      euler, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
     // rotate waves back to global frame
     for (int mw = 0; mw < 3; ++mw)
-      gkyl_wv_eqn_rotate_to_global(euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5],
-                                   &waves[mw * 5]);
+      gkyl_wv_eqn_rotate_to_global(
+        euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5], &waves[mw * 5]);
 
     double apdq[5], amdq[5];
     // rotate fluctuations back to global frame
@@ -264,17 +264,17 @@ void test_euler_waves_2_lof_hll_ho(void)
 }
 
 TEST_LIST = { { "euler_basic_ho", test_euler_basic_ho },
-              { "euler_waves_hof_ho", test_euler_waves_hof_ho },
-              { "euler_waves_lof_ho", test_euler_waves_lof_ho },
-              { "euler_waves_2_hof_roe_ho", test_euler_waves_2_hof_roe_ho },
-              { "euler_waves_2_lof_roe_ho", test_euler_waves_2_lof_roe_ho },
-              { "euler_waves_2_hof_hllc_ho", test_euler_waves_2_hof_hllc_ho },
-              { "euler_waves_2_lof_hllc_ho", test_euler_waves_2_lof_hllc_ho },
-              { "euler_waves_2_hof_lax_ho", test_euler_waves_2_hof_lax_ho },
-              { "euler_waves_2_lof_lax_ho", test_euler_waves_2_lof_lax_ho },
-              { "euler_waves_2_hof_hll_ho", test_euler_waves_2_hof_hll_ho },
-              { "euler_waves_2_lof_hll_ho", test_euler_waves_2_lof_hll_ho },
+  { "euler_waves_hof_ho", test_euler_waves_hof_ho },
+  { "euler_waves_lof_ho", test_euler_waves_lof_ho },
+  { "euler_waves_2_hof_roe_ho", test_euler_waves_2_hof_roe_ho },
+  { "euler_waves_2_lof_roe_ho", test_euler_waves_2_lof_roe_ho },
+  { "euler_waves_2_hof_hllc_ho", test_euler_waves_2_hof_hllc_ho },
+  { "euler_waves_2_lof_hllc_ho", test_euler_waves_2_lof_hllc_ho },
+  { "euler_waves_2_hof_lax_ho", test_euler_waves_2_hof_lax_ho },
+  { "euler_waves_2_lof_lax_ho", test_euler_waves_2_lof_lax_ho },
+  { "euler_waves_2_hof_hll_ho", test_euler_waves_2_hof_hll_ho },
+  { "euler_waves_2_lof_hll_ho", test_euler_waves_2_lof_hll_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "wv_euler_dev", test_wv_euler_dev },
+  { "wv_euler_dev", test_wv_euler_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

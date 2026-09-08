@@ -13,8 +13,8 @@
 #include <mpack.h>
 #include <assert.h>
 
-int gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const char *str,
-                                    int def)
+int gkyl_search_str_int_pair_by_str(
+  const struct gkyl_str_int_pair pairs[], const char *str, int def)
 {
   for (int i = 0; pairs[i].str != 0; ++i) {
     if (strcmp(pairs[i].str, str) == 0)
@@ -23,8 +23,8 @@ int gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], cons
   return def;
 }
 
-const char *gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val,
-                                            const char *def)
+const char *gkyl_search_str_int_pair_by_int(
+  const struct gkyl_str_int_pair pairs[], int val, const char *def)
 {
   for (int i = 0; pairs[i].str != 0; ++i) {
     if (pairs[i].val == val)
@@ -149,8 +149,8 @@ double gkyl_pcg32_rand_double(pcg32_random_t *rng)
   return ldexp(pcg32_random_r(rng), -32);
 }
 
-static void pcg64_srandom_r(pcg64_random_t *rng, uint64_t seed1, uint64_t seed2, uint64_t seq1,
-                            uint64_t seq2)
+static void pcg64_srandom_r(
+  pcg64_random_t *rng, uint64_t seed1, uint64_t seed2, uint64_t seq1, uint64_t seq2)
 {
   uint64_t mask = ~0ull >> 1;
   // stream for each generators *must* be distinct
@@ -169,7 +169,7 @@ pcg64_random_t gkyl_pcg64_init(bool nd_seed)
 
   if (nd_seed)
     pcg64_srandom_r(&rng, time(NULL) ^ (intptr_t)&printf, ~time(NULL) ^ (intptr_t)&pcg32_random_r,
-                    (intptr_t)&rounds, (intptr_t)&_dummy_global);
+      (intptr_t)&rounds, (intptr_t)&_dummy_global);
   else
     pcg64_srandom_r(&rng, 42u, 42u, 54u, 54u);
 
@@ -209,8 +209,8 @@ char *gkyl_load_file(const char *fname, int64_t *sz)
   return buff;
 }
 
-bool gkyl_msgpack_map_elem_has_key(int nvals, const struct gkyl_msgpack_map_elem *elist,
-                                   const char *key)
+bool gkyl_msgpack_map_elem_has_key(
+  int nvals, const struct gkyl_msgpack_map_elem *elist, const char *key)
 {
   bool has_key = false;
   for (int i = 0; i < nvals; ++i) {
@@ -222,8 +222,8 @@ bool gkyl_msgpack_map_elem_has_key(int nvals, const struct gkyl_msgpack_map_elem
   return has_key;
 }
 
-struct gkyl_msgpack_map_elem *
-gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist_in)
+struct gkyl_msgpack_map_elem *gkyl_msgpack_map_elem_clone(
+  int nvals, const struct gkyl_msgpack_map_elem *elist_in)
 {
   struct gkyl_msgpack_map_elem *elist_out =
     gkyl_malloc(nvals * sizeof(struct gkyl_msgpack_map_elem));
@@ -274,9 +274,8 @@ gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist
   return elist_out;
 }
 
-struct gkyl_msgpack_map_elem *
-gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
-                            const struct gkyl_msgpack_map_elem **elist_union, int *elist_out_len)
+struct gkyl_msgpack_map_elem *gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
+  const struct gkyl_msgpack_map_elem **elist_union, int *elist_out_len)
 {
   int nvals_tot = 0; // Total number of elements.
   for (int j = 0; j < numlist_union; ++j)
@@ -342,8 +341,8 @@ gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
   return elist_out;
 }
 
-void gkyl_msgpack_map_elem_set_double(int nvals, struct gkyl_msgpack_map_elem *elist,
-                                      const char *key, double value)
+void gkyl_msgpack_map_elem_set_double(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, double value)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -354,8 +353,8 @@ void gkyl_msgpack_map_elem_set_double(int nvals, struct gkyl_msgpack_map_elem *e
   }
 }
 
-void gkyl_msgpack_map_elem_set_uint(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key,
-                                    unsigned int value)
+void gkyl_msgpack_map_elem_set_uint(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, unsigned int value)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -366,8 +365,8 @@ void gkyl_msgpack_map_elem_set_uint(int nvals, struct gkyl_msgpack_map_elem *eli
   }
 }
 
-double gkyl_msgpack_map_elem_get_double(int nvals, struct gkyl_msgpack_map_elem *elist,
-                                        const char *key)
+double gkyl_msgpack_map_elem_get_double(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -378,8 +377,8 @@ double gkyl_msgpack_map_elem_get_double(int nvals, struct gkyl_msgpack_map_elem 
   return 0;
 }
 
-unsigned int gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist,
-                                            const char *key)
+unsigned int gkyl_msgpack_map_elem_get_uint(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -390,8 +389,8 @@ unsigned int gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_e
   return 0;
 }
 
-char *gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist,
-                                       const char *key)
+char *gkyl_msgpack_map_elem_get_string(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -402,8 +401,8 @@ char *gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *
   return 0;
 }
 
-void gkyl_msgpack_map_elem_release_string(int nvals, struct gkyl_msgpack_map_elem *elist,
-                                          const char *key)
+void gkyl_msgpack_map_elem_release_string(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -483,9 +482,8 @@ struct gkyl_msgpack_data *gkyl_msgpack_create(int nvals, const struct gkyl_msgpa
   return mdata;
 }
 
-struct gkyl_msgpack_data *
-gkyl_msgpack_create_union(int numlist_union, int *nvals_union,
-                          const struct gkyl_msgpack_map_elem **elist_union)
+struct gkyl_msgpack_data *gkyl_msgpack_create_union(
+  int numlist_union, int *nvals_union, const struct gkyl_msgpack_map_elem **elist_union)
 {
   struct gkyl_msgpack_data *mdata = gkyl_malloc(sizeof *mdata);
   mdata->meta_sz = 0;
@@ -644,8 +642,8 @@ struct gkyl_msgpack_data *gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
   return mdata_out;
 }
 
-void gkyl_msgpack_to_map_elem_list(struct gkyl_msgpack_data *mpack_in, int nvals,
-                                   struct gkyl_msgpack_map_elem *elist)
+void gkyl_msgpack_to_map_elem_list(
+  struct gkyl_msgpack_data *mpack_in, int nvals, struct gkyl_msgpack_map_elem *elist)
 {
   mpack_tree_t tree;
   mpack_tree_init_data(&tree, mpack_in->meta, mpack_in->meta_sz);

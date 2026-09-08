@@ -4,9 +4,8 @@
 
 static const int dir_u_shuffle[][3] = { { 1, 2, 3 }, { 2, 3, 1 }, { 3, 1, 2 } };
 
-static const int dir_p_shuffle[][6] = { { 4, 5, 6, 7, 8, 9 },
-                                        { 7, 8, 5, 9, 6, 4 },
-                                        { 9, 6, 8, 4, 5, 7 } };
+static const int dir_p_shuffle[][6] = { { 4, 5, 6, 7, 8, 9 }, { 7, 8, 5, 9, 6, 4 },
+  { 9, 6, 8, 4, 5, 7 } };
 
 // Make indexing cleaner with the dir_shuffle
 #define RHOU d[0]
@@ -144,16 +143,16 @@ void test_ten_moment_waves_ho()
       delta[i] = qr_local[i] - ql_local[i];
 
     gkyl_wv_eqn_waves(ten_moment, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-                      waves_local, speeds);
+      waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw = 0; mw < 5; ++mw)
-      gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], &waves_local[mw * 10],
-                                   &waves[mw * 10]);
+      gkyl_wv_eqn_rotate_to_global(
+        ten_moment, tau1[d], tau2[d], norm[d], &waves_local[mw * 10], &waves[mw * 10]);
 
     double apdq[10], amdq[10];
-    gkyl_wv_eqn_qfluct(ten_moment, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq,
-                       apdq);
+    gkyl_wv_eqn_qfluct(
+      ten_moment, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq, apdq);
 
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[10], fr_local[10];
@@ -197,8 +196,8 @@ void test_wv_ten_moment_dev()
 #endif
 
 TEST_LIST = { { "ten_moment_basic_ho", test_ten_moment_basic_ho },
-              { "ten_moment_waves_ho", test_ten_moment_waves_ho },
+  { "ten_moment_waves_ho", test_ten_moment_waves_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "wv_ten_moment_dev", test_wv_ten_moment_dev },
+  { "wv_ten_moment_dev", test_wv_ten_moment_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

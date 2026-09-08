@@ -27,10 +27,10 @@ typedef struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_tm;
  * 
  * @return New moment updater object
  */
-struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_pkpm_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *vel_range, double mass, bool is_diag, bool use_gpu);
+struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_pkpm_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, double mass,
+  bool is_diag, bool use_gpu);
 
 /**
  * Acquire moment object
@@ -39,8 +39,8 @@ struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_pkpm_new(
  * 
  * @return moment type object
  */
-struct gkyl_mom_type *
-gkyl_dg_updater_moment_pkpm_acquire_type(const struct gkyl_dg_updater_moment *moment);
+struct gkyl_mom_type *gkyl_dg_updater_moment_pkpm_acquire_type(
+  const struct gkyl_dg_updater_moment *moment);
 
 /**
  * Acquire number of moments
@@ -64,10 +64,8 @@ int gkyl_dg_updater_moment_pkpm_num_mom(const struct gkyl_dg_updater_moment *mom
  * @param mout Output moment
  */
 void gkyl_dg_updater_moment_pkpm_advance(struct gkyl_dg_updater_moment *moment,
-                                         const struct gkyl_range *update_phase_rng,
-                                         const struct gkyl_range *update_conf_rng,
-                                         const struct gkyl_array *GKYL_RESTRICT fIn,
-                                         struct gkyl_array *GKYL_RESTRICT mout);
+  const struct gkyl_range *update_phase_rng, const struct gkyl_range *update_conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT mout);
 
 /**
  * Return total time spent in computing moments
@@ -75,8 +73,8 @@ void gkyl_dg_updater_moment_pkpm_advance(struct gkyl_dg_updater_moment *moment,
  * @param moment Updater object
  * @return timers
  */
-struct gkyl_dg_updater_moment_tm
-gkyl_dg_updater_moment_pkpm_get_tm(const struct gkyl_dg_updater_moment *moment);
+struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_pkpm_get_tm(
+  const struct gkyl_dg_updater_moment *moment);
 
 /**
  * Delete updater.

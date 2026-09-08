@@ -2,25 +2,21 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 static void gk_species_scaling_cross_moms_disabled(gkyl_gyrokinetic_app *app,
-                                                   const struct gk_species *species,
-                                                   struct gk_scaling *sca,
-                                                   const struct gkyl_array *fin[],
-                                                   const struct gkyl_array *fin_neut[])
+  const struct gk_species *species, struct gk_scaling *sca, const struct gkyl_array *fin[],
+  const struct gkyl_array *fin_neut[])
 {
   // Do nothing.
 }
 
 static void gk_species_scaling_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                                            struct gk_scaling *sca, const struct gkyl_array *fin,
-                                            struct gkyl_array *rhs)
+  struct gk_scaling *sca, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   // Do nothing.
 }
 
 static void gk_species_scaling_apply_fixed_fraction(gkyl_gyrokinetic_app *app,
-                                                    struct gk_species *gks, struct gk_scaling *sca,
-                                                    struct gkyl_array *fin,
-                                                    struct gkyl_array **bflux[])
+  struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
+  struct gkyl_array **bflux[])
 {
   struct gk_species *gks_ref = &app->species[sca->ref_species_idx];
 
@@ -39,13 +35,12 @@ static void gk_species_scaling_apply_fixed_fraction(gkyl_gyrokinetic_app *app,
   // Multiply this species by ratio of densities times fixed_fraction.
   gkyl_array_scale_range(m0ratio, sca->fixed_fraction, &app->local);
 
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, fin, m0ratio, fin, &app->local,
-                                  &gks->local);
+  gkyl_dg_mul_conf_phase_op_range(
+    &app->basis, &gks->basis, fin, m0ratio, fin, &app->local, &gks->local);
 }
 
 static void copy_lower_z_ghost_to_all_z_conf(gkyl_gyrokinetic_app *app, struct gkyl_array *arr_out,
-                                             struct gkyl_array *arr_in, int comp_in,
-                                             struct gkyl_array *buff)
+  struct gkyl_array *arr_in, int comp_in, struct gkyl_array *buff)
 {
   // Copy the component 'comp_in' of the lower ghost cell of 'arr_in' into the
   // interior cells of 'arr_out' for configuration-space ranges and arrays.
@@ -73,28 +68,27 @@ static void copy_lower_z_ghost_to_all_z_conf(gkyl_gyrokinetic_app *app, struct g
 }
 
 static void gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                                               struct gk_scaling *sca, struct gkyl_array *fin,
-                                               struct gkyl_array **bflux[])
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
 {
   struct gk_species *gks_ref = &app->species[sca->ref_species_idx];
 
   // Compute density and temperature.
   gk_species_moment_calc(&gks->lte.moms, gks->local, app->local, fin);
   gkyl_dg_div_op_range(gks->lte.moms.mem_geo, &app->basis, 0, gks->lte.moms.marr, 0,
-                       gks->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
+    gks->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
 
   // Boltzmann density = n_sheath * exp(-q * (phi-phi_sheath)/T ).
   // Copy the sheath potential from the lower ghost cell to the interior cells.
   int idx_par = app->cdim - 1;
   int off = 2 * idx_par;
-  copy_lower_z_ghost_to_all_z_conf(app, sca->sheath_val, app->field->sheath_vals[off],
-                                   1 * app->basis.num_basis, sca->buffer_conf);
+  copy_lower_z_ghost_to_all_z_conf(
+    app, sca->sheath_val, app->field->sheath_vals[off], 1 * app->basis.num_basis, sca->buffer_conf);
 
   // Compute ( phi-phi_sheath)/(T/m) ).
   gkyl_array_copy_range(sca->buffer_conf, app->field->phi_smooth, &app->local);
   gkyl_array_accumulate_range(sca->buffer_conf, -1.0, sca->sheath_val, &app->local);
   gkyl_dg_div_op_range(gks->lte.moms.mem_geo, &app->basis, 0, sca->buffer_conf, 0, sca->buffer_conf,
-                       2, gks->lte.moms.marr, &app->local);
+    2, gks->lte.moms.marr, &app->local);
 
   // Compute exp(-q * (phi-phi_sheath)/T ).
   double qDm = gks->info.charge / gks->info.mass;
@@ -102,12 +96,12 @@ static void gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct
   gkyl_proj_exp_on_basis_advance(sca->proj_exp, &app->local, 1.0, -qDm, sca->buffer_conf, m0_boltz);
 
   // Copy the sheath density from the lower ghost cell to the interior cells.
-  copy_lower_z_ghost_to_all_z_conf(app, sca->sheath_val, app->field->sheath_vals[off],
-                                   0 * app->basis.num_basis, sca->buffer_conf);
+  copy_lower_z_ghost_to_all_z_conf(
+    app, sca->sheath_val, app->field->sheath_vals[off], 0 * app->basis.num_basis, sca->buffer_conf);
 
   // Compute n_sheath * exp(-q * (phi-phi_sheath)/T ).
-  gkyl_dg_mul_op_range(&app->basis, 0, sca->buffer_conf, 0, sca->sheath_val, 0, m0_boltz,
-                       &app->local);
+  gkyl_dg_mul_op_range(
+    &app->basis, 0, sca->buffer_conf, 0, sca->sheath_val, 0, m0_boltz, &app->local);
 
   // Reciprocal of the density.
   struct gkyl_array *m0_inv = gks->m0.marr;
@@ -118,19 +112,18 @@ static void gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct
   gkyl_dg_mul_op_range(&app->basis, 0, m0ratio, 0, m0_inv, 0, sca->buffer_conf, &app->local);
 
   // Multiply this species by ratio of densities times fixed_fraction.
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, fin, m0ratio, fin, &app->local,
-                                  &gks->local);
+  gkyl_dg_mul_conf_phase_op_range(
+    &app->basis, &gks->basis, fin, m0ratio, fin, &app->local, &gks->local);
 }
 
 static void gk_species_scaling_apply_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                                              struct gk_scaling *sca, struct gkyl_array *fin,
-                                              struct gkyl_array **bflux[])
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
 {
   // Do nothing.
 }
 
 static void gk_species_scaling_write_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                                             struct gk_scaling *sca, int ridx, double tm, int frame)
+  struct gk_scaling *sca, int ridx, double tm, int frame)
 {
   // React diagnostics usually written from gk_species.
   // In the case of static gk_species, write_diagnostics flag
@@ -153,14 +146,13 @@ static void gk_species_scaling_write_enabled(gkyl_gyrokinetic_app *app, struct g
 }
 
 static void gk_species_scaling_write_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                                              struct gk_scaling *sca, int ridx, double tm,
-                                              int frame)
+  struct gk_scaling *sca, int ridx, double tm, int frame)
 {
   // Do nothing
 }
 
-void gk_species_scaling_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                             struct gk_scaling *sca)
+void gk_species_scaling_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca)
 {
   struct gkyl_gyrokinetic_scaling_inp *sca_inp = &gks->info.scaling;
 
@@ -196,8 +188,8 @@ void gk_species_scaling_init(struct gkyl_gyrokinetic_app *app, struct gk_species
   }
 }
 
-void gk_species_scaling_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                                   struct gk_scaling *sca)
+void gk_species_scaling_cross_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca)
 {
   if (sca->type == GKYL_GK_SPECIES_SCALING_FIXED_FRACTION) {
     struct gkyl_gyrokinetic_scaling_inp *sca_inp = &gks->info.scaling;
@@ -207,42 +199,39 @@ void gk_species_scaling_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_s
   }
 }
 
-void gk_species_scaling_apply_ic_cross(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                                       struct gk_scaling *sca)
+void gk_species_scaling_apply_ic_cross(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca)
 {
   if (sca->type == GKYL_GK_SPECIES_SCALING_FIXED_FRACTION) {
   }
 }
 
 void gk_species_scaling_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-                                   struct gk_scaling *sca, const struct gkyl_array *fin[],
-                                   const struct gkyl_array *fin_neut[])
+  struct gk_scaling *sca, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
   sca->cross_moms_func(app, gks, sca, fin, fin_neut);
 }
 
 void gk_species_scaling_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                            struct gk_scaling *sca, const struct gkyl_array *fin,
-                            struct gkyl_array *rhs)
+  struct gk_scaling *sca, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   sca->rhs_func(app, gks, sca, fin, rhs);
 }
 
 void gk_species_scaling_apply(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                              struct gk_scaling *sca, struct gkyl_array *fin,
-                              struct gkyl_array **bflux[])
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
 {
   sca->apply_func(app, gks, sca, fin, bflux);
 }
 
 void gk_species_scaling_write(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                              struct gk_scaling *sca, int ridx, double tm, int frame)
+  struct gk_scaling *sca, int ridx, double tm, int frame)
 {
   sca->write_func(app, gks, sca, ridx, tm, frame);
 }
 
-void gk_species_scaling_release(const struct gkyl_gyrokinetic_app *app,
-                                const struct gk_scaling *sca)
+void gk_species_scaling_release(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_scaling *sca)
 {
   if (sca->type == GKYL_GK_SPECIES_SCALING_FIXED_FRACTION) {
   } else if (sca->type == GKYL_GK_SPECIES_SCALING_BOLTZMANN) {

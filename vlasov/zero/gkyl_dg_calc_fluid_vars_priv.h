@@ -12,26 +12,25 @@
 #include <gkyl_wv_eqn.h>
 #include <assert.h>
 
-typedef int (*fluid_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
-                           const double *fluid);
+typedef int (*fluid_set_t)(
+  int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *fluid);
 
-typedef void (*fluid_copy_t)(int count, struct gkyl_nmat *x, double *GKYL_RESTRICT u,
-                             double *GKYL_RESTRICT u_surf);
+typedef void (*fluid_copy_t)(
+  int count, struct gkyl_nmat *x, double *GKYL_RESTRICT u, double *GKYL_RESTRICT u_surf);
 
 typedef void (*fluid_pressure_t)(double gas_gamma, const double *fluid, const double *u,
-                                 double *GKYL_RESTRICT p, double *GKYL_RESTRICT p_surf);
+  double *GKYL_RESTRICT p, double *GKYL_RESTRICT p_surf);
 
 typedef void (*fluid_ke_t)(const double *fluid, const double *u, double *GKYL_RESTRICT ke);
 
 typedef void (*fluid_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn,
-                                const struct gkyl_wave_cell_geom *geom, double *fluid_l,
-                                double *fluid_c, double *fluid_r);
+  const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r);
 
-typedef void (*fluid_int_t)(const double *fluid, const double *u_i, const double *p_ij,
-                            double *GKYL_RESTRICT int_fluid_vars);
+typedef void (*fluid_int_t)(
+  const double *fluid, const double *u_i, const double *p_ij, double *GKYL_RESTRICT int_fluid_vars);
 
-typedef void (*fluid_source_t)(const double *app_accel, const double *fluid,
-                               double *GKYL_RESTRICT out);
+typedef void (*fluid_source_t)(
+  const double *app_accel, const double *fluid, double *GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct {
@@ -223,8 +222,8 @@ GKYL_CU_D static const gkyl_dg_fluid_source_kern_list ten_fluid_source_kernels[]
   { NULL, fluid_vars_source_3x_ser_p1, NULL, NULL } // 2
 };
 
-GKYL_CU_D static fluid_set_t choose_fluid_set_kern(enum gkyl_basis_type b_type, int cdim,
-                                                   int poly_order)
+GKYL_CU_D static fluid_set_t choose_fluid_set_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -239,8 +238,8 @@ GKYL_CU_D static fluid_set_t choose_fluid_set_kern(enum gkyl_basis_type b_type, 
   }
 }
 
-GKYL_CU_D static fluid_copy_t choose_fluid_copy_kern(enum gkyl_basis_type b_type, int cdim,
-                                                     int poly_order)
+GKYL_CU_D static fluid_copy_t choose_fluid_copy_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -255,8 +254,8 @@ GKYL_CU_D static fluid_copy_t choose_fluid_copy_kern(enum gkyl_basis_type b_type
   }
 }
 
-GKYL_CU_D static fluid_pressure_t choose_fluid_pressure_kern(enum gkyl_basis_type b_type, int cdim,
-                                                             int poly_order)
+GKYL_CU_D static fluid_pressure_t choose_fluid_pressure_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -271,8 +270,8 @@ GKYL_CU_D static fluid_pressure_t choose_fluid_pressure_kern(enum gkyl_basis_typ
   }
 }
 
-GKYL_CU_D static fluid_ke_t choose_fluid_ke_kern(enum gkyl_basis_type b_type, int cdim,
-                                                 int poly_order)
+GKYL_CU_D static fluid_ke_t choose_fluid_ke_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -287,8 +286,8 @@ GKYL_CU_D static fluid_ke_t choose_fluid_ke_kern(enum gkyl_basis_type b_type, in
   }
 }
 
-GKYL_CU_D static fluid_limiter_t choose_fluid_limiter_kern(int dir, enum gkyl_basis_type b_type,
-                                                           int cdim, int poly_order)
+GKYL_CU_D static fluid_limiter_t choose_fluid_limiter_kern(
+  int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -317,8 +316,8 @@ GKYL_CU_D static fluid_limiter_t choose_fluid_limiter_kern(int dir, enum gkyl_ba
   }
 }
 
-GKYL_CU_D static fluid_int_t choose_fluid_int_kern(enum gkyl_basis_type b_type, int cdim,
-                                                   int poly_order)
+GKYL_CU_D static fluid_int_t choose_fluid_int_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -333,8 +332,8 @@ GKYL_CU_D static fluid_int_t choose_fluid_int_kern(enum gkyl_basis_type b_type, 
   }
 }
 
-GKYL_CU_D static fluid_source_t choose_fluid_source_kern(enum gkyl_basis_type b_type, int cdim,
-                                                         int poly_order)
+GKYL_CU_D static fluid_source_t choose_fluid_source_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

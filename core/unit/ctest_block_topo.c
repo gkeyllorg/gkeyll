@@ -135,6 +135,5 @@ static void test_topo_io_ho()
 }
 
 TEST_LIST = { { "block_topo_mobius_domain_ho", test_block_topo_mobius_domain_ho },
-              { "block_topo_L_domain_ho", test_block_topo_L_domain_ho },
-              { "topo_io_ho", test_topo_io_ho },
-              { NULL, NULL } };
+  { "block_topo_L_domain_ho", test_block_topo_L_domain_ho }, { "topo_io_ho", test_topo_io_ho },
+  { NULL, NULL } };

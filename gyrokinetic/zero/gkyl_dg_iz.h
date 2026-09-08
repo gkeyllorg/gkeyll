@@ -38,8 +38,8 @@ struct gkyl_dg_iz *gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu);
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
  */
 void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *maxwellian_moms_elc,
-                     struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2,
-                     struct gkyl_array *coef_iz, struct gkyl_array *cflrate);
+  struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz,
+  struct gkyl_array *cflrate);
 
 /**
  * Delete updater.

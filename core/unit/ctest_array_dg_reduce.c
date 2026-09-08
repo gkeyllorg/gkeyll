@@ -345,9 +345,9 @@ void test_reduce_dg_range_dev()
 #endif
 
 TEST_LIST = { { "array_reduce_dg_ho", test_reduce_dg_ho },
-              { "array_reduce_dg_range_ho", test_reduce_dg_range_ho },
+  { "array_reduce_dg_range_ho", test_reduce_dg_range_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "array_reduce_dg_dev", test_reduce_dg_dev },
-              { "array_reduce_dg_range_dev", test_reduce_dg_range_dev },
+  { "array_reduce_dg_dev", test_reduce_dg_dev },
+  { "array_reduce_dg_range_dev", test_reduce_dg_range_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

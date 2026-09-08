@@ -22,24 +22,20 @@ struct gkyl_array_bag {
 
 // Functions for test_array_container.
 void test_array_container_accumulate_dev_assign_cu(int arr_ncomp, int arr_size, int num_containers,
-                                                   struct gkyl_array_container *acs1,
-                                                   struct gkyl_array_container *acs2);
+  struct gkyl_array_container *acs1, struct gkyl_array_container *acs2);
 void test_array_container_accumulate_dev_accumulate_cu(int arr_ncomp, int arr_size,
-                                                       int num_containers,
-                                                       struct gkyl_array_container *acs1, double a,
-                                                       struct gkyl_array_container *acs2);
-int test_array_container_accumulate_dev_check_cu(int arr_ncomp, int arr_size, int num_containers,
-                                                 struct gkyl_array_container *acs1);
+  int num_containers, struct gkyl_array_container *acs1, double a,
+  struct gkyl_array_container *acs2);
+int test_array_container_accumulate_dev_check_cu(
+  int arr_ncomp, int arr_size, int num_containers, struct gkyl_array_container *acs1);
 
 // Functions for test_array_bag.
 void test_array_bag_accumulate_dev_assign_cu(int arr_ncomp, int arr_size, int num_bags,
-                                             struct gkyl_array_bag *bag1,
-                                             struct gkyl_array_bag *bag2);
+  struct gkyl_array_bag *bag1, struct gkyl_array_bag *bag2);
 void test_array_bag_accumulate_dev_accumulate_cu(int arr_ncomp, int arr_size, int num_bags,
-                                                 struct gkyl_array_bag *bag1, double a,
-                                                 struct gkyl_array_bag *bag2);
-int test_array_bag_accumulate_dev_check_cu(int arr_ncomp, int arr_size, int num_bags,
-                                           struct gkyl_array_bag *bag1);
+  struct gkyl_array_bag *bag1, double a, struct gkyl_array_bag *bag2);
+int test_array_bag_accumulate_dev_check_cu(
+  int arr_ncomp, int arr_size, int num_bags, struct gkyl_array_bag *bag1);
 }
 
 #define START_ID (threadIdx.x + blockIdx.x * blockDim.x)
@@ -54,9 +50,8 @@ int test_array_bag_accumulate_dev_check_cu(int arr_ncomp, int arr_size, int num_
 // Functions for test_array_container.
 //
 
-__global__ void ker_cu_array_container_accumulate_dev_assign(int num_containers,
-                                                             struct gkyl_array_container *acs1,
-                                                             struct gkyl_array_container *acs2)
+__global__ void ker_cu_array_container_accumulate_dev_assign(
+  int num_containers, struct gkyl_array_container *acs1, struct gkyl_array_container *acs2)
 {
   for (int k = 0; k < num_containers; k++) {
     struct gkyl_array_container *arrc1 = &acs1[k];
@@ -74,8 +69,7 @@ __global__ void ker_cu_array_container_accumulate_dev_assign(int num_containers,
 }
 
 void test_array_container_accumulate_dev_assign_cu(int arr_ncomp, int arr_size, int num_containers,
-                                                   struct gkyl_array_container *acs1,
-                                                   struct gkyl_array_container *acs2)
+  struct gkyl_array_container *acs1, struct gkyl_array_container *acs2)
 {
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
@@ -83,9 +77,7 @@ void test_array_container_accumulate_dev_assign_cu(int arr_ncomp, int arr_size, 
 }
 
 __global__ void ker_cu_array_container_accumulate_dev_accumulate(int num_containers,
-                                                                 struct gkyl_array_container *acs1,
-                                                                 double a,
-                                                                 struct gkyl_array_container *acs2)
+  struct gkyl_array_container *acs1, double a, struct gkyl_array_container *acs2)
 {
   for (int k = 0; k < num_containers; k++) {
     struct gkyl_array_container *arrc1 = &acs1[k], *arrc2 = &acs2[k];
@@ -98,19 +90,17 @@ __global__ void ker_cu_array_container_accumulate_dev_accumulate(int num_contain
 }
 
 void test_array_container_accumulate_dev_accumulate_cu(int arr_ncomp, int arr_size,
-                                                       int num_containers,
-                                                       struct gkyl_array_container *acs1, double a,
-                                                       struct gkyl_array_container *acs2)
+  int num_containers, struct gkyl_array_container *acs1, double a,
+  struct gkyl_array_container *acs2)
 {
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
-  ker_cu_array_container_accumulate_dev_accumulate<<<nblocks, nthreads> > >(num_containers, acs1, a,
-                                                                            acs2);
+  ker_cu_array_container_accumulate_dev_accumulate<<<nblocks, nthreads> > >(
+    num_containers, acs1, a, acs2);
 }
 
-__global__ void ker_cu_array_container_accumulate_dev_check(int num_containers,
-                                                            struct gkyl_array_container *acs1,
-                                                            int *nfail)
+__global__ void ker_cu_array_container_accumulate_dev_check(
+  int num_containers, struct gkyl_array_container *acs1, int *nfail)
 {
   for (int k = 0; k < num_containers; k++) {
     struct gkyl_array_container *arrc1 = &acs1[k];
@@ -121,15 +111,15 @@ __global__ void ker_cu_array_container_accumulate_dev_check(int num_containers,
   }
 }
 
-int test_array_container_accumulate_dev_check_cu(int arr_ncomp, int arr_size, int num_containers,
-                                                 struct gkyl_array_container *acs1)
+int test_array_container_accumulate_dev_check_cu(
+  int arr_ncomp, int arr_size, int num_containers, struct gkyl_array_container *acs1)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
 
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
-  ker_cu_array_container_accumulate_dev_check<<<nblocks, nthreads> > >(num_containers, acs1,
-                                                                       nfail_dev);
+  ker_cu_array_container_accumulate_dev_check<<<nblocks, nthreads> > >(
+    num_containers, acs1, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);
@@ -142,8 +132,8 @@ int test_array_container_accumulate_dev_check_cu(int arr_ncomp, int arr_size, in
 // Functions for test_array_bag.
 //
 
-__global__ void ker_cu_array_bag_accumulate_dev_assign(int num_arrays, struct gkyl_array_bag *bag1,
-                                                       struct gkyl_array_bag *bag2)
+__global__ void ker_cu_array_bag_accumulate_dev_assign(
+  int num_arrays, struct gkyl_array_bag *bag1, struct gkyl_array_bag *bag2)
 {
   for (int k = 0; k < num_arrays; k++) {
     struct gkyl_array_bag *innerbag1 = &bag1[k];
@@ -163,17 +153,15 @@ __global__ void ker_cu_array_bag_accumulate_dev_assign(int num_arrays, struct gk
 }
 
 void test_array_bag_accumulate_dev_assign_cu(int arr_ncomp, int arr_size, int num_arrays,
-                                             struct gkyl_array_bag *innerbag1,
-                                             struct gkyl_array_bag *innerbag2)
+  struct gkyl_array_bag *innerbag1, struct gkyl_array_bag *innerbag2)
 {
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
   ker_cu_array_bag_accumulate_dev_assign<<<nblocks, nthreads> > >(num_arrays, innerbag1, innerbag2);
 }
 
-__global__ void ker_cu_array_bag_accumulate_dev_accumulate(int num_bags,
-                                                           struct gkyl_array_bag *bag1, double a,
-                                                           struct gkyl_array_bag *bag2)
+__global__ void ker_cu_array_bag_accumulate_dev_accumulate(
+  int num_bags, struct gkyl_array_bag *bag1, double a, struct gkyl_array_bag *bag2)
 {
   for (int k = 0; k < num_bags; k++) {
     struct gkyl_array_bag *innerbag1 = &bag1[k];
@@ -191,17 +179,16 @@ __global__ void ker_cu_array_bag_accumulate_dev_accumulate(int num_bags,
 }
 
 void test_array_bag_accumulate_dev_accumulate_cu(int arr_ncomp, int arr_size, int num_bags,
-                                                 struct gkyl_array_bag *innerbag1, double a,
-                                                 struct gkyl_array_bag *innerbag2)
+  struct gkyl_array_bag *innerbag1, double a, struct gkyl_array_bag *innerbag2)
 {
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
-  ker_cu_array_bag_accumulate_dev_accumulate<<<nblocks, nthreads> > >(num_bags, innerbag1, a,
-                                                                      innerbag2);
+  ker_cu_array_bag_accumulate_dev_accumulate<<<nblocks, nthreads> > >(
+    num_bags, innerbag1, a, innerbag2);
 }
 
-__global__ void ker_cu_array_bag_accumulate_dev_check(int num_bags, struct gkyl_array_bag *bag1,
-                                                      int *nfail)
+__global__ void ker_cu_array_bag_accumulate_dev_check(
+  int num_bags, struct gkyl_array_bag *bag1, int *nfail)
 {
   for (int k = 0; k < num_bags; k++) {
     struct gkyl_array_bag *innerbag1 = &bag1[k];
@@ -213,8 +200,8 @@ __global__ void ker_cu_array_bag_accumulate_dev_check(int num_bags, struct gkyl_
   }
 }
 
-int test_array_bag_accumulate_dev_check_cu(int arr_ncomp, int arr_size, int num_bags,
-                                           struct gkyl_array_bag *innerbag1)
+int test_array_bag_accumulate_dev_check_cu(
+  int arr_ncomp, int arr_size, int num_bags, struct gkyl_array_bag *innerbag1)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
 

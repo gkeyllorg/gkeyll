@@ -17,8 +17,7 @@ void mom_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_mom_type *gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis *cbasis,
-                                                    const struct gkyl_basis *pbasis,
-                                                    const double *vBoundary, bool use_gpu)
+  const struct gkyl_basis *pbasis, const double *vBoundary, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -76,9 +75,8 @@ struct gkyl_mom_type *gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis *cba
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_mom_type *gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                           const struct gkyl_basis *pbasis,
-                                                           const double *vBoundary)
+struct gkyl_mom_type *gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const double *vBoundary)
 {
   assert(false);
 }

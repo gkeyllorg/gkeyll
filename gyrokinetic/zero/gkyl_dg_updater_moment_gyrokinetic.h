@@ -48,8 +48,8 @@ struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_gyrokinetic_new(
  * 
  * @return moment type object
  */
-struct gkyl_mom_type *
-gkyl_dg_updater_moment_gyrokinetic_acquire_type(const struct gkyl_dg_updater_moment *moment);
+struct gkyl_mom_type *gkyl_dg_updater_moment_gyrokinetic_acquire_type(
+  const struct gkyl_dg_updater_moment *moment);
 
 /**
  * Acquire number of moments
@@ -73,10 +73,8 @@ int gkyl_dg_updater_moment_gyrokinetic_num_mom(const struct gkyl_dg_updater_mome
  * @param mout Output moment
  */
 void gkyl_dg_updater_moment_gyrokinetic_advance(struct gkyl_dg_updater_moment *moment,
-                                                const struct gkyl_range *update_phase_rng,
-                                                const struct gkyl_range *update_conf_rng,
-                                                const struct gkyl_array *GKYL_RESTRICT fIn,
-                                                struct gkyl_array *GKYL_RESTRICT mout);
+  const struct gkyl_range *update_phase_rng, const struct gkyl_range *update_conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT mout);
 
 /**
  * Return total time spent in computing moments
@@ -84,8 +82,8 @@ void gkyl_dg_updater_moment_gyrokinetic_advance(struct gkyl_dg_updater_moment *m
  * @param moment Updater object
  * @return timers
  */
-struct gkyl_dg_updater_moment_tm
-gkyl_dg_updater_moment_gyrokinetic_get_tm(const struct gkyl_dg_updater_moment *moment);
+struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_gyrokinetic_get_tm(
+  const struct gkyl_dg_updater_moment *moment);
 
 /**
  * Delete updater.

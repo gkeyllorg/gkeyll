@@ -387,9 +387,8 @@ struct gkyl_pkpm_app {
 
 // Take a single forward Euler step of the PKPM system with the suggested time-step dt.
 void pkpm_forward_euler(gkyl_pkpm_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
-                        const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
-                        struct gkyl_array *fout[], struct gkyl_array *fluidout[],
-                        struct gkyl_array *emout, struct gkyl_update_status *st);
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
+  struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st);
 
 // Take a single time-step using a first-order operator split implicit fluid-EM coupling + SSP RK3
 struct gkyl_update_status pkpm_update_op_split(gkyl_pkpm_app *app, double dt0);
@@ -427,8 +426,8 @@ int pkpm_find_species_idx(const gkyl_pkpm_app *app, const char *nm);
  * @param sm Species moment object
  * @param nm Name string indicating moment type
  */
-void pkpm_species_moment_init(struct gkyl_pkpm_app *app, struct pkpm_species *s,
-                              struct pkpm_species_moment *sm, bool is_diag);
+void pkpm_species_moment_init(
+  struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_species_moment *sm, bool is_diag);
 
 /**
  * Calculate moment, given distribution function @a fin.
@@ -438,8 +437,8 @@ void pkpm_species_moment_init(struct gkyl_pkpm_app *app, struct pkpm_species *s,
  * @param fin Input distribution function array
  */
 void pkpm_species_moment_calc(const struct pkpm_species_moment *sm,
-                              const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
-                              const struct gkyl_array *fin);
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin);
 
 /**
  * Release species moment object.
@@ -447,8 +446,8 @@ void pkpm_species_moment_calc(const struct pkpm_species_moment *sm,
  * @param app PKPM app object
  * @param sm Species moment object to release
  */
-void pkpm_species_moment_release(const struct gkyl_pkpm_app *app,
-                                 const struct pkpm_species_moment *sm);
+void pkpm_species_moment_release(
+  const struct gkyl_pkpm_app *app, const struct pkpm_species_moment *sm);
 
 /** pkpm_species_lbo API */
 
@@ -460,8 +459,8 @@ void pkpm_species_moment_release(const struct gkyl_pkpm_app *app,
  * @param lbo Species LBO object
  * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
  */
-void pkpm_species_lbo_init(struct gkyl_pkpm_app *app, struct pkpm_species *s,
-                           struct pkpm_lbo_collisions *lbo);
+void pkpm_species_lbo_init(
+  struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_lbo_collisions *lbo);
 
 /**
  * Initialize species LBO cross-collisions object.
@@ -470,8 +469,8 @@ void pkpm_species_lbo_init(struct gkyl_pkpm_app *app, struct pkpm_species *s,
  * @param s Species object 
  * @param lbo Species LBO object
  */
-void pkpm_species_lbo_cross_init(struct gkyl_pkpm_app *app, struct pkpm_species *s,
-                                 struct pkpm_lbo_collisions *lbo);
+void pkpm_species_lbo_cross_init(
+  struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_lbo_collisions *lbo);
 
 /**
  * Compute necessary moments and boundary
@@ -483,7 +482,7 @@ void pkpm_species_lbo_cross_init(struct gkyl_pkpm_app *app, struct pkpm_species 
  * @param fin Input distribution function
  */
 void pkpm_species_lbo_moms(gkyl_pkpm_app *app, const struct pkpm_species *species,
-                           struct pkpm_lbo_collisions *lbo, const struct gkyl_array *fin);
+  struct pkpm_lbo_collisions *lbo, const struct gkyl_array *fin);
 
 /**
  * Compute necessary moments for cross-species LBO collisions
@@ -496,7 +495,7 @@ void pkpm_species_lbo_moms(gkyl_pkpm_app *app, const struct pkpm_species *specie
  * @param fluidin Input fluid array (size: num_fluid_species)
  */
 void pkpm_species_lbo_cross_moms(gkyl_pkpm_app *app, const struct pkpm_species *species,
-                                 struct pkpm_lbo_collisions *lbo, const struct gkyl_array *fin);
+  struct pkpm_lbo_collisions *lbo, const struct gkyl_array *fin);
 
 /**
  * Compute RHS from LBO collisions
@@ -509,8 +508,7 @@ void pkpm_species_lbo_cross_moms(gkyl_pkpm_app *app, const struct pkpm_species *
  * @return Maximum stable time-step
  */
 void pkpm_species_lbo_rhs(gkyl_pkpm_app *app, const struct pkpm_species *species,
-                          struct pkpm_lbo_collisions *lbo, const struct gkyl_array *fin,
-                          struct gkyl_array *rhs);
+  struct pkpm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
  * Release species LBO object.
@@ -518,8 +516,8 @@ void pkpm_species_lbo_rhs(gkyl_pkpm_app *app, const struct pkpm_species *species
  * @param app PKPM app object
  * @param sm Species LBO object to release
  */
-void pkpm_species_lbo_release(const struct gkyl_pkpm_app *app,
-                              const struct pkpm_lbo_collisions *lbo);
+void pkpm_species_lbo_release(
+  const struct gkyl_pkpm_app *app, const struct pkpm_lbo_collisions *lbo);
 
 /** pkpm_species API */
 
@@ -561,7 +559,7 @@ void pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *specie
  * @param fluidin Input fluid species array (size: num_fluid_species)
  */
 void pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
-                                 const struct gkyl_array *fin, const struct gkyl_array *fluidin);
+  const struct gkyl_array *fin, const struct gkyl_array *fluidin);
 
 /**
  * Compute parallel-kinetic-perpendicular-moment (pkpm) model update variables
@@ -572,8 +570,8 @@ void pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *specie
  * @param species Species object
  * @param fin Input distribution function
  */
-void pkpm_species_calc_pkpm_update_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
-                                        const struct gkyl_array *fin);
+void pkpm_species_calc_pkpm_update_vars(
+  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin);
 
 /**
  * Limit slopes of solution of fluid variables
@@ -584,7 +582,7 @@ void pkpm_species_calc_pkpm_update_vars(gkyl_pkpm_app *app, struct pkpm_species 
  * @param fluid Input (and Output after limiting) array fluid species
  */
 void pkpm_fluid_species_limiter(gkyl_pkpm_app *app, struct pkpm_species *species,
-                                struct gkyl_array *fin, struct gkyl_array *fluid);
+  struct gkyl_array *fin, struct gkyl_array *fluid);
 
 /**
  * Compute RHS from species distribution function
@@ -598,9 +596,8 @@ void pkpm_fluid_species_limiter(gkyl_pkpm_app *app, struct pkpm_species *species
  * @return Maximum stable time-step
  */
 double pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
-                        const struct gkyl_array *fin, const struct gkyl_array *fluidin,
-                        const struct gkyl_array *em, struct gkyl_array *rhs_f,
-                        struct gkyl_array *rhs_fluid);
+  const struct gkyl_array *fin, const struct gkyl_array *fluidin, const struct gkyl_array *em,
+  struct gkyl_array *rhs_f, struct gkyl_array *rhs_fluid);
 
 /**
  * Apply BCs to species distribution functions 
@@ -609,8 +606,8 @@ double pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
  * @param species Pointer to species
  * @param f Distribution function to apply BCs to
  */
-void pkpm_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species,
-                           struct gkyl_array *f);
+void pkpm_species_apply_bc(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *f);
 
 /**
  * Apply BCs to species momentum
@@ -619,8 +616,8 @@ void pkpm_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *specie
  * @param species Pointer to species
  * @param fluid momentum to apply BCs to
  */
-void pkpm_fluid_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species,
-                                 struct gkyl_array *fluid);
+void pkpm_fluid_species_apply_bc(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *fluid);
 
 /**
  * Compute L2 norm (f^2) of the distribution function diagnostic
@@ -698,8 +695,8 @@ void pkpm_field_calc_app_current(gkyl_pkpm_app *app, struct pkpm_field *field, d
  * @param field Field object (output bvar is stored in field object)
  * @param em Input electromagnetic fields
  */
-void pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field,
-                          const struct gkyl_array *em);
+void pkpm_field_calc_bvar(
+  gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em);
 
 /**
  * Compute E x B velocity
@@ -717,8 +714,8 @@ void pkpm_field_calc_ExB(gkyl_pkpm_app *app, struct pkpm_field *field, const str
  * @param fluidin[] Input fluid array (num_species size)
  * @param emout On output, the RHS from the field solver *with* accumulated current density
  */
-void pkpm_field_accumulate_current(gkyl_pkpm_app *app, const struct gkyl_array *fluidin[],
-                                   struct gkyl_array *emout);
+void pkpm_field_accumulate_current(
+  gkyl_pkpm_app *app, const struct gkyl_array *fluidin[], struct gkyl_array *emout);
 
 /**
  * Limit slopes of solution of EM variables
@@ -738,8 +735,7 @@ void pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gky
  * @param emout On output, the RHS from the field solver *with* accumulated current density
  */
 void pkpm_field_explicit_accumulate_current(gkyl_pkpm_app *app, struct pkpm_field *field,
-                                            const struct gkyl_array *fluidin[],
-                                            struct gkyl_array *emout);
+  const struct gkyl_array *fluidin[], struct gkyl_array *emout);
 
 /**
  * Compute RHS from field equations
@@ -751,7 +747,7 @@ void pkpm_field_explicit_accumulate_current(gkyl_pkpm_app *app, struct pkpm_fiel
  * @return Maximum stable time-step
  */
 double pkpm_field_rhs(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em,
-                      struct gkyl_array *rhs);
+  struct gkyl_array *rhs);
 
 /**
  * Apply BCs to field
@@ -795,8 +791,8 @@ struct pkpm_fluid_em_coupling *pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app 
  * @param tcurr Current time
  * @param dt Time step size
  */
-void pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app,
-                                   struct pkpm_fluid_em_coupling *pkpm_em, double tcurr, double dt);
+void pkpm_fluid_em_coupling_update(
+  struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em, double tcurr, double dt);
 
 /**
  * Release resources allocated by fluid-EM coupling object for the PKPM system
@@ -804,5 +800,5 @@ void pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app,
  * @param app PKPM app object
  * @param pkpm_em fluid-EM coupling updater to release
  */
-void pkpm_fluid_em_coupling_release(struct gkyl_pkpm_app *app,
-                                    struct pkpm_fluid_em_coupling *pkpm_em);
+void pkpm_fluid_em_coupling_release(
+  struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em);

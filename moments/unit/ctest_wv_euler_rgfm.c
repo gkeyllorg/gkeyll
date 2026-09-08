@@ -30,8 +30,7 @@ void test_euler_rgfm_twospecies_basic_ho()
   double E_total = (phi1 * E1) + ((1.0 - phi1) * E2);
 
   double q[9] = { rho_total, rho_total * vx_total, rho_total * vy_total, rho_total * vz_total,
-                  E_total,   rho_total * phi1,     phi1 * rho1,          (1.0 - phi1) * rho2,
-                  0.0 };
+    E_total, rho_total * phi1, phi1 * rho1, (1.0 - phi1) * rho2, 0.0 };
 
   double prims[9];
   gkyl_euler_rgfm_prim_vars(2, gas_gamma_s, q, prims);
@@ -134,17 +133,9 @@ void test_euler_rgfm_threespecies_basic_ho()
     (0.5 * rho3 * ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total)));
   double E_total = (phi1 * E1) + (phi2 * E2) + ((1.0 - (phi1 + phi2)) * rho3);
 
-  double q[11] = { rho_total,
-                   rho_total * vx_total,
-                   rho_total * vy_total,
-                   rho_total * vz_total,
-                   E_total,
-                   rho_total * phi1,
-                   rho_total * phi2,
-                   phi1 * rho1,
-                   phi2 * rho2,
-                   (1.0 - (phi1 + phi2)) * rho3,
-                   0.0 };
+  double q[11] = { rho_total, rho_total * vx_total, rho_total * vy_total, rho_total * vz_total,
+    E_total, rho_total * phi1, rho_total * phi2, phi1 * rho1, phi2 * rho2,
+    (1.0 - (phi1 + phi2)) * rho3, 0.0 };
 
   double prims[11];
   gkyl_euler_rgfm_prim_vars(3, gas_gamma_s, q, prims);
@@ -166,12 +157,12 @@ void test_euler_rgfm_threespecies_basic_ho()
 
   p_total = prims[4]; // Use the reconstructed rgfm pressure.
 
-  double fluxes[3][11] = {
-    { rho_total * vx_total, (rho_total * (vx_total * vx_total)) + p_total,
-      rho_total * (vx_total * vy_total), rho_total * (vx_total * vz_total),
-      (E_total * vx_total) + (vx_total * p_total), rho_total * vx_total * phi1,
-      rho_total * vx_total * phi2, phi1 * (vx_total * rho1), phi2 * (vx_total * rho2),
-      (1.0 - (phi1 + phi2)) * (vx_total * rho3), 0.0 },
+  double fluxes[3][11] = { { rho_total * vx_total, (rho_total * (vx_total * vx_total)) + p_total,
+                             rho_total * (vx_total * vy_total), rho_total * (vx_total * vz_total),
+                             (E_total * vx_total) + (vx_total * p_total),
+                             rho_total * vx_total * phi1, rho_total * vx_total * phi2,
+                             phi1 * (vx_total * rho1), phi2 * (vx_total * rho2),
+                             (1.0 - (phi1 + phi2)) * (vx_total * rho3), 0.0 },
     { rho_total * vy_total, rho_total * (vy_total * vx_total),
       (rho_total * (vy_total * vy_total)) + p_total, rho_total * (vy_total * vz_total),
       (E_total * vy_total) + (vy_total * p_total), rho_total * vy_total * phi1,
@@ -180,8 +171,7 @@ void test_euler_rgfm_threespecies_basic_ho()
     { rho_total * vz_total, rho_total * (vz_total * vx_total), rho_total * (vz_total * vy_total),
       (rho_total * (vz_total * vz_total)) + p_total, (E_total * vz_total) + (vz_total * p_total),
       rho_total * vz_total * phi1, rho_total * vz_total * phi2, phi1 * (vz_total * rho1),
-      phi2 * (vz_total * rho2), (1.0 - (phi1 + phi2)) * (vz_total * rho3), 0.0 }
-  };
+      phi2 * (vz_total * rho2), (1.0 - (phi1 + phi2)) * (vz_total * rho3), 0.0 } };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -239,11 +229,11 @@ void test_euler_rgfm_twospecies_waves_ho()
   double E1_l =
     (p_total_l / (gas_gamma1 - 1.0)) +
     (0.5 * rho1_l *
-     ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
+      ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
   double E2_l =
     (p_total_l / (gas_gamma2 - 1.0)) +
     (0.5 * rho2_l *
-     ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
+      ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
   double E_total_l = (phi1_l * E1_l) + ((1.0 - phi1_l) * E2_l);
 
   double phi1_r = 0.25, rho1_r = 0.1, rho2_r = 0.2, vx_total_r = 1.0, vy_total_r = 2.0,
@@ -252,23 +242,19 @@ void test_euler_rgfm_twospecies_waves_ho()
   double E1_r =
     (p_total_r / (gas_gamma1 - 1.0)) +
     (0.5 * rho1_r *
-     ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
+      ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
   double E2_r =
     (p_total_r / (gas_gamma2 - 1.0)) +
     (0.5 * rho2_r *
-     ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
+      ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
   double E_total_r = (phi1_r * E1_r) + ((1.0 - phi1_r) * E2_r);
 
-  double ql[9] = {
-    rho_total_l, rho_total_l * vx_total_l, rho_total_l * vy_total_l, rho_total_l * vz_total_l,
-    E_total_l,   rho_total_l * phi1_l,     phi1_l * rho1_l,          (1.0 - phi1_l) * rho2_l,
-    0.0
-  };
-  double qr[9] = {
-    rho_total_r, rho_total_r * vx_total_r, rho_total_r * vy_total_r, rho_total_r * vz_total_r,
-    E_total_r,   rho_total_r * phi1_r,     phi1_r * rho1_r,          (1.0 - phi1_r) * rho2_r,
-    0.0
-  };
+  double ql[9] = { rho_total_l, rho_total_l * vx_total_l, rho_total_l * vy_total_l,
+    rho_total_l * vz_total_l, E_total_l, rho_total_l * phi1_l, phi1_l * rho1_l,
+    (1.0 - phi1_l) * rho2_l, 0.0 };
+  double qr[9] = { rho_total_r, rho_total_r * vx_total_r, rho_total_r * vy_total_r,
+    rho_total_r * vz_total_r, E_total_r, rho_total_r * phi1_r, phi1_r * rho1_r,
+    (1.0 - phi1_r) * rho2_r, 0.0 };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -289,15 +275,15 @@ void test_euler_rgfm_twospecies_waves_ho()
     }
 
     gkyl_wv_eqn_waves(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-                      waves_local, speeds);
+      waves_local, speeds);
 
     double apdq_local[9], amdq_local[9];
     gkyl_wv_eqn_qfluct(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-                       waves_local, speeds, amdq_local, apdq_local);
+      waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 8],
-                                   &waves[i * 8]);
+      gkyl_wv_eqn_rotate_to_global(
+        euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 8], &waves[i * 8]);
     }
 
     double apdq[9], amdq[9];
@@ -338,11 +324,11 @@ void test_euler_rgfm_twospecies_waves_2_ho()
   double E1_l =
     (p_total_l / (gas_gamma1 - 1.0)) +
     (0.5 * rho1_l *
-     ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
+      ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
   double E2_l =
     (p_total_l / (gas_gamma2 - 1.0)) +
     (0.5 * rho2_l *
-     ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
+      ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
   double E_total_l = (phi1_l * E1_l) + ((1.0 - phi1_l) * E2_l);
 
   double phi1_r = 0.1, rho1_r = 0.01, rho2_r = 0.02, vx_total_r = 1.0, vy_total_r = 2.0,
@@ -351,23 +337,19 @@ void test_euler_rgfm_twospecies_waves_2_ho()
   double E1_r =
     (p_total_r / (gas_gamma1 - 1.0)) +
     (0.5 * rho1_r *
-     ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
+      ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
   double E2_r =
     (p_total_r / (gas_gamma2 - 1.0)) +
     (0.5 * rho2_r *
-     ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
+      ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
   double E_total_r = (phi1_r * E1_r) + ((1.0 - phi1_r) * E2_r);
 
-  double ql[9] = {
-    rho_total_l, rho_total_l * vx_total_l, rho_total_l * vy_total_l, rho_total_l * vz_total_l,
-    E_total_l,   rho_total_l * phi1_l,     phi1_l * rho1_l,          (1.0 - phi1_l) * rho2_l,
-    0.0
-  };
-  double qr[9] = {
-    rho_total_r, rho_total_r * vx_total_r, rho_total_r * vy_total_r, rho_total_r * vz_total_r,
-    E_total_r,   rho_total_r * phi1_r,     phi1_r * rho1_r,          (1.0 - phi1_r) * rho2_r,
-    0.0
-  };
+  double ql[9] = { rho_total_l, rho_total_l * vx_total_l, rho_total_l * vy_total_l,
+    rho_total_l * vz_total_l, E_total_l, rho_total_l * phi1_l, phi1_l * rho1_l,
+    (1.0 - phi1_l) * rho2_l, 0.0 };
+  double qr[9] = { rho_total_r, rho_total_r * vx_total_r, rho_total_r * vy_total_r,
+    rho_total_r * vz_total_r, E_total_r, rho_total_r * phi1_r, phi1_r * rho1_r,
+    (1.0 - phi1_r) * rho2_r, 0.0 };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -388,15 +370,15 @@ void test_euler_rgfm_twospecies_waves_2_ho()
     }
 
     gkyl_wv_eqn_waves(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-                      waves_local, speeds);
+      waves_local, speeds);
 
     double apdq_local[9], amdq_local[9];
     gkyl_wv_eqn_qfluct(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-                       waves_local, speeds, amdq_local, apdq_local);
+      waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 8],
-                                   &waves[i * 8]);
+      gkyl_wv_eqn_rotate_to_global(
+        euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 8], &waves[i * 8]);
     }
 
     double apdq[9], amdq[9];
@@ -439,15 +421,15 @@ void test_euler_rgfm_threespecies_waves_ho()
   double E1_l =
     (p_total_l / (gas_gamma1 - 1.0)) +
     (0.5 * rho1_l *
-     ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
+      ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
   double E2_l =
     (p_total_l / (gas_gamma2 - 1.0)) +
     (0.5 * rho2_l *
-     ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
+      ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
   double E3_l =
     (p_total_l / (gas_gamma3 - 1.0)) +
     (0.5 * rho3_l *
-     ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
+      ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
   double E_total_l = (phi1_l * E1_l) + (phi2_l * E2_l) + ((1.0 - (phi1_l + phi2_l)) * E3_l);
 
   double phi1_r = 0.4, phi2_r = 0.2, rho1_r = 0.1, rho2_r = 0.2, rho3_r = 0.3, vx_total_r = 1.0,
@@ -456,39 +438,23 @@ void test_euler_rgfm_threespecies_waves_ho()
   double E1_r =
     (p_total_r / (gas_gamma1 - 1.0)) +
     (0.5 * rho1_r *
-     ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
+      ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
   double E2_r =
     (p_total_r / (gas_gamma2 - 1.0)) +
     (0.5 * rho2_r *
-     ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
+      ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
   double E3_r =
     (p_total_r / (gas_gamma3 - 1.0)) +
     (0.5 * rho3_r *
-     ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
+      ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
   double E_total_r = (phi1_r * E1_r) + (phi2_r * E2_r) + ((1.0 - (phi1_r + phi2_r)) * E3_r);
 
-  double ql[11] = { rho_total_l,
-                    rho_total_l * vx_total_l,
-                    rho_total_l * vy_total_l,
-                    rho_total_l * vz_total_l,
-                    E_total_l,
-                    rho_total_l * phi1_l,
-                    rho_total_l * phi2_l,
-                    phi1_l * rho1_l,
-                    phi2_l * rho2_l,
-                    (1.0 - (phi1_l + phi2_l)) * rho3_l,
-                    0.0 };
-  double qr[11] = { rho_total_r,
-                    rho_total_r * vx_total_r,
-                    rho_total_r * vy_total_r,
-                    rho_total_r * vz_total_r,
-                    E_total_r,
-                    rho_total_r * phi1_r,
-                    rho_total_r * phi2_r,
-                    phi1_r * rho1_r,
-                    phi2_r * rho2_r,
-                    (1.0 - (phi1_r + phi2_r)) * rho3_r,
-                    0.0 };
+  double ql[11] = { rho_total_l, rho_total_l * vx_total_l, rho_total_l * vy_total_l,
+    rho_total_l * vz_total_l, E_total_l, rho_total_l * phi1_l, rho_total_l * phi2_l,
+    phi1_l * rho1_l, phi2_l * rho2_l, (1.0 - (phi1_l + phi2_l)) * rho3_l, 0.0 };
+  double qr[11] = { rho_total_r, rho_total_r * vx_total_r, rho_total_r * vy_total_r,
+    rho_total_r * vz_total_r, E_total_r, rho_total_r * phi1_r, rho_total_r * phi2_r,
+    phi1_r * rho1_r, phi2_r * rho2_r, (1.0 - (phi1_r + phi2_r)) * rho3_r, 0.0 };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -509,15 +475,15 @@ void test_euler_rgfm_threespecies_waves_ho()
     }
 
     gkyl_wv_eqn_waves(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-                      waves_local, speeds);
+      waves_local, speeds);
 
     double apdq_local[11], amdq_local[11];
     gkyl_wv_eqn_qfluct(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-                       waves_local, speeds, amdq_local, apdq_local);
+      waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 10],
-                                   &waves[i * 10]);
+      gkyl_wv_eqn_rotate_to_global(
+        euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 10], &waves[i * 10]);
     }
 
     double apdq[11], amdq[11];
@@ -560,15 +526,15 @@ void test_euler_rgfm_threespecies_waves_2_ho()
   double E1_l =
     (p_total_l / (gas_gamma1 - 1.0)) +
     (0.5 * rho1_l *
-     ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
+      ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
   double E2_l =
     (p_total_l / (gas_gamma2 - 1.0)) +
     (0.5 * rho2_l *
-     ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
+      ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
   double E3_l =
     (p_total_l / (gas_gamma3 - 1.0)) +
     (0.5 * rho3_l *
-     ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
+      ((vx_total_l * vx_total_l) + (vy_total_l * vy_total_l) + (vz_total_l * vz_total_l)));
   double E_total_l = (phi1_l * E1_l) + (phi2_l * E2_l) + ((1.0 - (phi1_l + phi2_l)) * E3_l);
 
   double phi1_r = 0.75, phi2_r = 0.2, rho1_r = 0.01, rho2_r = 0.02, rho3_r = 0.03, vx_total_r = 1.0,
@@ -577,39 +543,23 @@ void test_euler_rgfm_threespecies_waves_2_ho()
   double E1_r =
     (p_total_r / (gas_gamma1 - 1.0)) +
     (0.5 * rho1_r *
-     ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
+      ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
   double E2_r =
     (p_total_r / (gas_gamma2 - 1.0)) +
     (0.5 * rho2_r *
-     ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
+      ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
   double E3_r =
     (p_total_r / (gas_gamma3 - 1.0)) +
     (0.5 * rho3_r *
-     ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
+      ((vx_total_r * vx_total_r) + (vy_total_r * vy_total_r) + (vz_total_r * vz_total_r)));
   double E_total_r = (phi1_r * E1_r) + (phi2_r * E2_r) + ((1.0 - (phi1_r + phi2_r)) * E3_r);
 
-  double ql[11] = { rho_total_l,
-                    rho_total_l * vx_total_l,
-                    rho_total_l * vy_total_l,
-                    rho_total_l * vz_total_l,
-                    E_total_l,
-                    rho_total_l * phi1_l,
-                    rho_total_l * phi2_l,
-                    phi1_l * rho1_l,
-                    phi2_l * rho2_l,
-                    (1.0 - (phi1_l + phi2_l)) * rho3_l,
-                    0.0 };
-  double qr[11] = { rho_total_r,
-                    rho_total_r * vx_total_r,
-                    rho_total_r * vy_total_r,
-                    rho_total_r * vz_total_r,
-                    E_total_r,
-                    rho_total_r * phi1_r,
-                    rho_total_r * phi2_r,
-                    phi1_r * rho1_r,
-                    phi2_r * rho2_r,
-                    (1.0 - (phi1_r + phi2_r)) * rho3_r,
-                    0.0 };
+  double ql[11] = { rho_total_l, rho_total_l * vx_total_l, rho_total_l * vy_total_l,
+    rho_total_l * vz_total_l, E_total_l, rho_total_l * phi1_l, rho_total_l * phi2_l,
+    phi1_l * rho1_l, phi2_l * rho2_l, (1.0 - (phi1_l + phi2_l)) * rho3_l, 0.0 };
+  double qr[11] = { rho_total_r, rho_total_r * vx_total_r, rho_total_r * vy_total_r,
+    rho_total_r * vz_total_r, E_total_r, rho_total_r * phi1_r, rho_total_r * phi2_r,
+    phi1_r * rho1_r, phi2_r * rho2_r, (1.0 - (phi1_r + phi2_r)) * rho3_r, 0.0 };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -630,15 +580,15 @@ void test_euler_rgfm_threespecies_waves_2_ho()
     }
 
     gkyl_wv_eqn_waves(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-                      waves_local, speeds);
+      waves_local, speeds);
 
     double apdq_local[11], amdq_local[11];
     gkyl_wv_eqn_qfluct(euler_rgfm, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-                       waves_local, speeds, amdq_local, apdq_local);
+      waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 10],
-                                   &waves[i * 10]);
+      gkyl_wv_eqn_rotate_to_global(
+        euler_rgfm, tau1[d], tau2[d], norm[d], &waves_local[i * 10], &waves[i * 10]);
     }
 
     double apdq[11], amdq[11];
@@ -663,9 +613,9 @@ void test_euler_rgfm_threespecies_waves_2_ho()
 }
 
 TEST_LIST = { { "euler_rgfm_twospecies_basic_ho", test_euler_rgfm_twospecies_basic_ho },
-              { "euler_rgfm_threespecies_basic_ho", test_euler_rgfm_threespecies_basic_ho },
-              { "euler_rgfm_twospecies_waves_ho", test_euler_rgfm_twospecies_waves_ho },
-              { "euler_rgfm_twospecies_waves_2_ho", test_euler_rgfm_twospecies_waves_2_ho },
-              { "euler_rgfm_threespecies_waves_ho", test_euler_rgfm_threespecies_waves_ho },
-              { "euler_rgfm_threespecies_waves_2_ho", test_euler_rgfm_threespecies_waves_2_ho },
-              { NULL, NULL } };
+  { "euler_rgfm_threespecies_basic_ho", test_euler_rgfm_threespecies_basic_ho },
+  { "euler_rgfm_twospecies_waves_ho", test_euler_rgfm_twospecies_waves_ho },
+  { "euler_rgfm_twospecies_waves_2_ho", test_euler_rgfm_twospecies_waves_2_ho },
+  { "euler_rgfm_threespecies_waves_ho", test_euler_rgfm_threespecies_waves_ho },
+  { "euler_rgfm_threespecies_waves_2_ho", test_euler_rgfm_threespecies_waves_2_ho },
+  { NULL, NULL } };

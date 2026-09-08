@@ -34,16 +34,16 @@ GKYL_CU_DH static inline double sq(double x)
   return x * x;
 }
 
-GKYL_CU_DH static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                           const double *qin, double *wout)
+GKYL_CU_DH static inline void cons_to_riem(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: this should use proper L matrix
   for (int i = 0; i < 10; ++i)
     wout[i] = qin[i];
 }
 
-GKYL_CU_DH static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                           const double *win, double *qout)
+GKYL_CU_DH static inline void riem_to_cons(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: this should use proper L matrix
   for (int i = 0; i < 10; ++i)
@@ -51,8 +51,8 @@ GKYL_CU_DH static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const 
 }
 
 /* Multiply by phi prime */
-GKYL_CU_DH static inline void mulByPhiPrime(double p0, double u1, double u2, double u3,
-                                            const double w[10], double out[10])
+GKYL_CU_DH static inline void mulByPhiPrime(
+  double p0, double u1, double u2, double u3, const double w[10], double out[10])
 {
   out[0] = w[0];
   out[1] = w[0] * u1 + w[1] * p0;
@@ -144,7 +144,7 @@ GKYL_CU_DH static inline void gkyl_ten_moment_flux(const double q[10], double fl
 
 // Ten moment perfectly reflecting wall
 GKYL_CU_DH static void ten_moment_wall(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                                       const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
+  const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
 {
   // copy density and Pxx, Pyy, and Pzz
   ghost[0] = skin[0];
@@ -164,9 +164,8 @@ GKYL_CU_DH static void ten_moment_wall(const struct gkyl_wv_eqn *eqn, double t, 
 }
 
 GKYL_CU_DH static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                           const double *tau2, const double *norm,
-                                           const double *GKYL_RESTRICT qglobal,
-                                           double *GKYL_RESTRICT qlocal)
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
+  double *GKYL_RESTRICT qlocal)
 {
   // Mass density is a scalar
   qlocal[0] = qglobal[0];
@@ -212,9 +211,8 @@ GKYL_CU_DH static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const 
 }
 
 GKYL_CU_DH static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                            const double *tau2, const double *norm,
-                                            const double *GKYL_RESTRICT qlocal,
-                                            double *GKYL_RESTRICT qglobal)
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
+  double *GKYL_RESTRICT qglobal)
 {
   // Mass density is a scalar
   qglobal[0] = qlocal[0];
@@ -262,7 +260,7 @@ GKYL_CU_DH static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const
 
 // Waves and speeds using Roe averaging
 GKYL_CU_DH static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta,
-                                  const double *ql, const double *qr, double *waves, double *s)
+  const double *ql, const double *qr, double *waves, double *s)
 {
   double vl[10], vr[10];
   gkyl_ten_moment_primitive(ql, vl);
@@ -426,7 +424,7 @@ GKYL_CU_DH static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *d
 }
 
 GKYL_CU_DH static void qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                                  const double *waves, const double *s, double *amdq, double *apdq)
+  const double *waves, const double *s, double *amdq, double *apdq)
 {
   const double *w0 = &waves[0], *w1 = &waves[10], *w2 = &waves[20], *w3 = &waves[30],
                *w4 = &waves[40];
@@ -470,8 +468,8 @@ GKYL_CU_DH static void wave_embed_reflect(const double *q, double *qphi, double 
 }
 
 GKYL_CU_DH static double wave_embedded(const struct gkyl_wv_eqn *eqn, const double *delta,
-                                       const double *ql, const double *qr, const double phil,
-                                       const double phir, double *waves, double *s)
+  const double *ql, const double *qr, const double phil, const double phir, double *waves,
+  double *s)
 {
   double deltaphi[10] = { 0.0 };
   double qphi[10] = { 0.0 };
@@ -517,7 +515,7 @@ GKYL_CU_DH static double wave_embedded(const struct gkyl_wv_eqn *eqn, const doub
 
 // Waves and speeds using Lax fluxes
 GKYL_CU_DH static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta,
-                                  const double *ql, const double *qr, double *waves, double *s)
+  const double *ql, const double *qr, double *waves, double *s)
 {
   double sl = gkyl_ten_moment_max_abs_speed(ql);
   double sr = gkyl_ten_moment_max_abs_speed(qr);
@@ -540,7 +538,7 @@ GKYL_CU_DH static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *d
 }
 
 GKYL_CU_DH static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                                  const double *waves, const double *s, double *amdq, double *apdq)
+  const double *waves, const double *s, double *amdq, double *apdq)
 {
   const double *w0 = &waves[0], *w1 = &waves[10];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -553,8 +551,8 @@ GKYL_CU_DH static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *q
 }
 
 GKYL_CU_DH static double wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                              const double *delta, const double *ql, const double *qr,
-                              const double phil, const double phir, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s)
 {
   // clear waves and wave speeds
   int mwaves = (type == GKYL_WV_HIGH_ORDER_FLUX) ? eqn->num_waves : 2;
@@ -578,9 +576,8 @@ GKYL_CU_DH static double wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_t
 }
 
 GKYL_CU_DH static void qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                              const double *ql, const double *qr, const double phil,
-                              const double phir, const double *waves, const double *s, double *amdq,
-                              double *apdq)
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
+  const double *s, double *amdq, double *apdq)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX && (phil > 0.0) && (phir > 0.0))
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);

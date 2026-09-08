@@ -75,6 +75,6 @@ void test_dg_vlasov_dev()
 
 TEST_LIST = { { "dg_vlasov_ho", test_dg_vlasov_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "dg_vlasov_dev", test_dg_vlasov_dev },
+  { "dg_vlasov_dev", test_dg_vlasov_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

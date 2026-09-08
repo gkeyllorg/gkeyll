@@ -40,10 +40,10 @@ void gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vla
   vlasov->auxfields.const_sgn_alpha = auxin.const_sgn_alpha;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_vlasov_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-                   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-                   enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_vlasov_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, enum gkyl_model_id model_id, enum gkyl_field_id field_id,
+  bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -185,10 +185,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *
-gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-                          const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-                          enum gkyl_model_id model_id, enum gkyl_field_id field_id)
+struct gkyl_dg_eqn *gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   assert(false);
   return 0;

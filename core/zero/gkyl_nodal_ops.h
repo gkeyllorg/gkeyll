@@ -20,8 +20,8 @@ struct gkyl_nodal_ops {
  * @param use_gpu Boolean for whether nodes are stored on device
  * Returns pointer to gkyl_nodal_ops struct.
  */
-struct gkyl_nodal_ops *gkyl_nodal_ops_new(const struct gkyl_basis *cbasis,
-                                          const struct gkyl_rect_grid *grid, bool use_gpu);
+struct gkyl_nodal_ops *gkyl_nodal_ops_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu);
 
 /**
  * Transform nodal representation to modal representation
@@ -38,10 +38,9 @@ struct gkyl_nodal_ops *gkyl_nodal_ops_new(const struct gkyl_basis *cbasis,
  * if false, serendipity nodes are used
  */
 void gkyl_nodal_ops_n2m(const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
-                        const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
-                        const struct gkyl_range *update_range, int num_comp,
-                        const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld,
-                        bool use_quad);
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
+  const struct gkyl_range *update_range, int num_comp, const struct gkyl_array *nodal_fld,
+  struct gkyl_array *modal_fld, bool use_quad);
 
 /**
  * Transform nodal representation to modal representation
@@ -59,11 +58,9 @@ void gkyl_nodal_ops_n2m(const struct gkyl_nodal_ops *nodal_ops, const struct gky
  * if false, serendipity nodes are used
  */
 void gkyl_nodal_ops_n2m_surface(const struct gkyl_nodal_ops *nodal_ops,
-                                const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
-                                const struct gkyl_range *nrange,
-                                const struct gkyl_range *update_range, int num_comp,
-                                const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld,
-                                int dir);
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp,
+  const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld, int dir);
 
 /**
  * Transform modal representation to nodal representation
@@ -81,11 +78,9 @@ void gkyl_nodal_ops_n2m_surface(const struct gkyl_nodal_ops *nodal_ops,
  * if false, serendipity nodes are used
  */
 void gkyl_nodal_ops_m2n_surface(const struct gkyl_nodal_ops *nodal_ops,
-                                const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
-                                const struct gkyl_range *nrange,
-                                const struct gkyl_range *update_range, int num_comp,
-                                struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld,
-                                int dir);
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp,
+  struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld, int dir);
 
 /**
  * Transform modal representation to nodal representation
@@ -102,10 +97,9 @@ void gkyl_nodal_ops_m2n_surface(const struct gkyl_nodal_ops *nodal_ops,
  * if false, serendipity nodes are used
  */
 void gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
-                        const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
-                        const struct gkyl_range *update_range, int num_comp,
-                        struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld,
-                        bool use_quad);
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
+  const struct gkyl_range *update_range, int num_comp, struct gkyl_array *nodal_fld,
+  const struct gkyl_array *modal_fld, bool use_quad);
 
 /**
  * Transform modal representation of dim = d-1 of to nodal representation
@@ -123,13 +117,10 @@ void gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops, const struct gky
  */
 
 void gkyl_nodal_ops_m2n_deflated(const struct gkyl_nodal_ops *nodal_ops,
-                                 const struct gkyl_basis *deflated_cbasis,
-                                 const struct gkyl_rect_grid *deflated_grid,
-                                 const struct gkyl_range *nrange,
-                                 const struct gkyl_range *deflated_nrange,
-                                 const struct gkyl_range *deflated_update_range, int num_comp,
-                                 struct gkyl_array *nodal_fld,
-                                 const struct gkyl_array *deflated_modal_fld, int extra_idx);
+  const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *deflated_grid,
+  const struct gkyl_range *nrange, const struct gkyl_range *deflated_nrange,
+  const struct gkyl_range *deflated_update_range, int num_comp, struct gkyl_array *nodal_fld,
+  const struct gkyl_array *deflated_modal_fld, int extra_idx);
 
 /**
  * Delete pointer to gkyl_nodal_ops struct.
@@ -143,20 +134,17 @@ void gkyl_nodal_ops_release(struct gkyl_nodal_ops *up);
  */
 
 void gkyl_nodal_ops_n2m_cu(const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
-                           const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
-                           const struct gkyl_range *update_range, int num_comp,
-                           const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld);
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
+  const struct gkyl_range *update_range, int num_comp, const struct gkyl_array *nodal_fld,
+  struct gkyl_array *modal_fld);
 
 void gkyl_nodal_ops_m2n_cu(const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
-                           const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
-                           const struct gkyl_range *update_range, int num_comp,
-                           struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld);
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
+  const struct gkyl_range *update_range, int num_comp, struct gkyl_array *nodal_fld,
+  const struct gkyl_array *modal_fld);
 
 void gkyl_nodal_ops_m2n_deflated_cu(const struct gkyl_nodal_ops *nodal_ops,
-                                    const struct gkyl_basis *deflated_cbasis,
-                                    const struct gkyl_rect_grid *deflated_grid,
-                                    const struct gkyl_range *nrange,
-                                    const struct gkyl_range *deflated_nrange,
-                                    const struct gkyl_range *deflated_update_range, int num_comp,
-                                    struct gkyl_array *nodal_fld,
-                                    const struct gkyl_array *deflated_modal_fld, int extra_idx);
+  const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *deflated_grid,
+  const struct gkyl_range *nrange, const struct gkyl_range *deflated_nrange,
+  const struct gkyl_range *deflated_update_range, int num_comp, struct gkyl_array *nodal_fld,
+  const struct gkyl_array *deflated_modal_fld, int extra_idx);

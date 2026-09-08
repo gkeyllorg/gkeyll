@@ -65,11 +65,11 @@ gkyl_moment_braginskii *gkyl_moment_braginskii_new(struct gkyl_moment_braginskii
  * @param rhs RHS output (NOTE: Returns RHS output of all nfluids)
  */
 
-void gkyl_moment_braginskii_advance(
-  const gkyl_moment_braginskii *bes, struct gkyl_range brag_vars_range,
-  struct gkyl_range update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
-  const struct gkyl_array *em_tot, struct gkyl_array *cflrate[GKYL_MAX_SPECIES],
-  struct gkyl_array *brag_vars[GKYL_MAX_SPECIES], struct gkyl_array *rhs[GKYL_MAX_SPECIES]);
+void gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes,
+  struct gkyl_range brag_vars_range, struct gkyl_range update_range,
+  struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *em_tot,
+  struct gkyl_array *cflrate[GKYL_MAX_SPECIES], struct gkyl_array *brag_vars[GKYL_MAX_SPECIES],
+  struct gkyl_array *rhs[GKYL_MAX_SPECIES]);
 
 /**
  * Delete updater.

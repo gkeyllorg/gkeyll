@@ -24,15 +24,15 @@ struct gkyl_dg_euler_pkpm_auxfields {
  * @param conf_range Configuration space range for use in indexing auxiliary variables
  * @return Pointer to Euler equation object for parallel-kinetic-perpendicular-moment (pkpm) model
  */
-struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_new(const struct gkyl_basis *cbasis,
-                                           const struct gkyl_range *conf_range, bool use_gpu);
+struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu);
 
 /**
  * Create new Euler equation object arallel-kinetic-perpendicular-moment (pkpm) model the lives on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                  const struct gkyl_range *conf_range);
+struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range);
 
 /**
  * Set the auxiliary fields (e.g. velocity u = rho*u/rho) needed in updating Euler equation for parallel-kinetic-perpendicular-moment (pkpm) model.
@@ -40,8 +40,8 @@ struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis *cbasi
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_euler_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn,
-                                   struct gkyl_dg_euler_pkpm_auxfields auxin);
+void gkyl_euler_pkpm_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 /**
@@ -50,7 +50,7 @@ void gkyl_euler_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn,
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_euler_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                      struct gkyl_dg_euler_pkpm_auxfields auxin);
+void gkyl_euler_pkpm_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin);
 
 #endif

@@ -17,7 +17,6 @@ struct gkyl_bgk_collisions {
 };
 
 void gkyl_bgk_collisions_advance_cu(const gkyl_bgk_collisions *up, const struct gkyl_range *crange,
-                                    const struct gkyl_range *prange, const struct gkyl_array *nu,
-                                    const struct gkyl_array *nufM, const struct gkyl_array *fin,
-                                    bool implicit_step, double dt, struct gkyl_array *out,
-                                    struct gkyl_array *cflfreq);
+  const struct gkyl_range *prange, const struct gkyl_array *nu, const struct gkyl_array *nufM,
+  const struct gkyl_array *fin, bool implicit_step, double dt, struct gkyl_array *out,
+  struct gkyl_array *cflfreq);

@@ -7,10 +7,9 @@
 // take a time-step larger than dt even if it is allowed by stability.
 // The actual time-step and dt_suggested are returned in the status object.
 void vlasov_forward_euler(gkyl_vlasov_app *app, double tcurr, double dt,
-                          const struct gkyl_array *fin[], const struct gkyl_array *fluidin[],
-                          const struct gkyl_array *emin, struct gkyl_array *fout[],
-                          struct gkyl_array *fluidout[], struct gkyl_array *emout,
-                          struct gkyl_update_status *st)
+  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
+  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout,
+  struct gkyl_update_status *st)
 {
   app->stat.nfeuler += 1;
 
@@ -79,8 +78,8 @@ void vlasov_forward_euler(gkyl_vlasov_app *app, double tcurr, double dt,
   }
   for (int i = 0; i < app->num_fluid_species; ++i) {
     if (app->fluid_species[i].source_id) {
-      vm_fluid_species_source_rhs(app, &app->fluid_species[i], &app->fluid_species[i].src, fluidin,
-                                  fluidout);
+      vm_fluid_species_source_rhs(
+        app, &app->fluid_species[i], &app->fluid_species[i].src, fluidin, fluidout);
     }
   }
   // compute RHS of Maxwell equations

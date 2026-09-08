@@ -23,8 +23,8 @@ static void show_dn(FILE *fp, const char *msg, struct gkyl_dn d1)
 static inline struct gkyl_dn func_1(struct gkyl_dn x)
 {
   // -2*x + x^2/(3+x^3) + 1/x
-  return gdn_add(gdn_smul(-2.0, x),
-                 gdn_add(gdn_div(gdn_sq(x), gdn_sadd(3, gdn_cube(x))), gdn_inv(x)));
+  return gdn_add(
+    gdn_smul(-2.0, x), gdn_add(gdn_div(gdn_sq(x), gdn_sadd(3, gdn_cube(x))), gdn_inv(x)));
 }
 
 double func_1_0(double x)
@@ -287,10 +287,9 @@ void test_dual_num_psi_mapping_ho(void)
 }
 
 TEST_LIST = { { "test_dual_num_basic_ho", test_dual_num_basic_ho },
-              { "test_dual_num_basic2_ho", test_dual_num_basic2_ho },
-              { "test_dual_num_xy_ho", test_dual_num_xy_ho },
-              { "test_dual_num_inv_mapc2p_ho", test_dual_num_inv_mapc2p_ho },
-              { "test_dual_num_mapc2p_ho", test_dual_num_mapc2p_ho },
-              { "test_dual_num_mapc2p_2_ho", test_dual_num_mapc2p_2_ho },
-              { "test_dual_num_psi_mapping_ho", test_dual_num_psi_mapping_ho },
-              { NULL, NULL } };
+  { "test_dual_num_basic2_ho", test_dual_num_basic2_ho },
+  { "test_dual_num_xy_ho", test_dual_num_xy_ho },
+  { "test_dual_num_inv_mapc2p_ho", test_dual_num_inv_mapc2p_ho },
+  { "test_dual_num_mapc2p_ho", test_dual_num_mapc2p_ho },
+  { "test_dual_num_mapc2p_2_ho", test_dual_num_mapc2p_2_ho },
+  { "test_dual_num_psi_mapping_ho", test_dual_num_psi_mapping_ho }, { NULL, NULL } };

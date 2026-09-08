@@ -76,10 +76,9 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
   // current,simag,xdum,rmaxis,xdum;
   // zmaxis,xdum,sibry,xdum,xdum;
   size_t status = fscanf(ptr, "%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
-                         &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up->rmaxis,
-                         &up->zmaxis, &up->simag, &up->sibry, &up->bcentr, &up->current, &up->simag,
-                         &up->xdum, &up->rmaxis, &up->xdum, &up->zmaxis, &up->xdum, &up->sibry,
-                         &up->xdum, &up->xdum);
+    &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up->rmaxis, &up->zmaxis, &up->simag,
+    &up->sibry, &up->bcentr, &up->current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum,
+    &up->zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
 
   // Set zmid to 0 for double null
   if (up->reflect) {
@@ -111,8 +110,8 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
   int cells_cubic[2] = { up->nr - 1, up->nz - 1 };
   int rzghost_cubic[2] = { 0, 0 };
   gkyl_rect_grid_init(&up->rzgrid_cubic, 2, rzlower, rzupper, cells_cubic);
-  gkyl_create_grid_ranges(&up->rzgrid_cubic, rzghost_cubic, &up->rzlocal_cubic_ext,
-                          &up->rzlocal_cubic);
+  gkyl_create_grid_ranges(
+    &up->rzgrid_cubic, rzghost_cubic, &up->rzlocal_cubic_ext, &up->rzlocal_cubic);
 
   double fluxlower[1];
   double fluxupper[1];
@@ -172,7 +171,7 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   struct gkyl_nodal_ops *n2m_flux = gkyl_nodal_ops_new(&up->fluxbasis, &up->fluxgrid, false);
   gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1,
-                     fpolflux_n, up->fpolflux, false);
+    fpolflux_n, up->fpolflux, false);
 
   // Now we have 3 of the 1d arrays, all of length nr :
   // pres, ffprim, pprime
@@ -204,7 +203,7 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
     }
   }
   gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1,
-                     fpolprimeflux_n, up->fpolprimeflux, false);
+    fpolprimeflux_n, up->fpolprimeflux, false);
 
   // skip pprime
   for (int i = 0; i < up->nr; i++) {
@@ -235,8 +234,8 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   // We filled psizr_nodal
   struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(&up->rzbasis, &up->rzgrid, false);
-  gkyl_nodal_ops_n2m(n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, psizr_n,
-                     up->psizr, false);
+  gkyl_nodal_ops_n2m(
+    n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, psizr_n, up->psizr, false);
 
   // Reflect psi for double null
   // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
@@ -273,14 +272,14 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
     }
   }
   gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1,
-                     qflux_n, up->qflux, false);
+    qflux_n, up->qflux, false);
 
   // Make the cubic interpolator
   up->evf = gkyl_dg_basis_ops_evalf_new(&up->rzgrid_cubic, psizr_n);
   gkyl_dg_basis_op_mem *mem = 0;
   mem = gkyl_dg_alloc_cubic_2d(cells_cubic);
-  gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells_cubic, up->rzgrid_cubic.dx, psizr_n,
-                                        up->psizr_cubic);
+  gkyl_dg_calc_cubic_2d_from_nodal_vals(
+    mem, cells_cubic, up->rzgrid_cubic.dx, psizr_n, up->psizr_cubic);
   gkyl_dg_basis_op_mem_release(mem);
 
   // Calculate B.
@@ -341,8 +340,8 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
       bmag_n[0] = sqrt(bpol_n[0] * bpol_n[0] + bphi_n[0] * bphi_n[0]);
     }
   }
-  gkyl_nodal_ops_n2m(n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, bmagzr_n,
-                     up->bmagzr, false);
+  gkyl_nodal_ops_n2m(
+    n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, bmagzr_n, up->bmagzr, false);
 
   // Reflect B for double null.
   // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion.

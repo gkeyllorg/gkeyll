@@ -112,22 +112,22 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
 
   // Set reference parameters.
   struct loss_cone_mask_test_ctx ctx = { .cdim = 1,
-                                         .eV = eV,
-                                         .R_m = 8.0,
-                                         .B_m = 4.0,
-                                         .z_m = M_PI / 2.0,
-                                         .mass = 2.014 * mass_proton,
-                                         .charge = eV,
-                                         .n0 = 1e18,
-                                         .T0 = 100 * eV,
-                                         .phi_fac = 3.0,
-                                         .z_max = M_PI,
-                                         .Nz = 8,
-                                         .Nvpar = 8,
-                                         .Nmu = 4,
-                                         .quad_type = GKYL_GAUSS_LOBATTO_QUAD,
-                                         .num_quad = 2,
-                                         .cellwise_trap_loss = true };
+    .eV = eV,
+    .R_m = 8.0,
+    .B_m = 4.0,
+    .z_m = M_PI / 2.0,
+    .mass = 2.014 * mass_proton,
+    .charge = eV,
+    .n0 = 1e18,
+    .T0 = 100 * eV,
+    .phi_fac = 3.0,
+    .z_max = M_PI,
+    .Nz = 8,
+    .Nvpar = 8,
+    .Nmu = 4,
+    .quad_type = GKYL_GAUSS_LOBATTO_QUAD,
+    .num_quad = 2,
+    .cellwise_trap_loss = true };
   ctx.B0 = ctx.B_m / 2.0;
   ctx.vpar_max = 6.0 * sqrt(ctx.T0 / ctx.mass);
   ctx.mu_max = 0.5 * ctx.mass * pow(ctx.vpar_max, 2) / ctx.B0;
@@ -204,8 +204,7 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0, 0.0 },
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
@@ -217,11 +216,10 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
     .local_ext = local_ext_conf,
     .global = local_conf,
     .global_ext = local_ext_conf,
-    .basis = basis_conf
-  };
+    .basis = basis_conf };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(grid_conf, geometry_input);
-  gkyl_create_grid_ranges(&geometry_input.geo_grid, ghost_conf, &geometry_input.geo_local_ext,
-                          &geometry_input.geo_local);
+  gkyl_create_grid_ranges(
+    &geometry_input.geo_grid, ghost_conf, &geometry_input.geo_local_ext, &geometry_input.geo_local);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   struct gk_geometry *gk_geom_3d;
   gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
@@ -238,8 +236,8 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
 
   // Velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = {};
-  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, grid_vel, local, local_ext,
-                                                        local_vel, local_ext_vel, use_gpu);
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
+    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_ext_vel, use_gpu);
 
   // Project the electostatic potential.
   struct gkyl_array *phi = mkarr(use_gpu, basis_conf.num_basis, local_ext_conf.volume);
@@ -307,22 +305,21 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
 
   // Project the loss cone mask.
   struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = { .phase_grid = &grid,
-                                                          .conf_basis = &basis_conf,
-                                                          .phase_basis = &basis,
-                                                          .conf_range = &local_conf,
-                                                          .conf_range_ext = &local_ext_conf,
-                                                          .vel_range = &local_vel,
-                                                          .vel_map = gvm,
-                                                          .bmag = gk_geom->geo_int.bmag,
-                                                          .bmag_max = bmag_max,
-                                                          .bmag_max_loc = bmag_max_loc,
-                                                          .mass = ctx.mass,
-                                                          .charge = ctx.charge,
-                                                          .qtype = ctx.quad_type,
-                                                          .num_quad = ctx.num_quad,
-                                                          .cellwise_trap_loss =
-                                                            ctx.cellwise_trap_loss,
-                                                          .use_gpu = use_gpu };
+    .conf_basis = &basis_conf,
+    .phase_basis = &basis,
+    .conf_range = &local_conf,
+    .conf_range_ext = &local_ext_conf,
+    .vel_range = &local_vel,
+    .vel_map = gvm,
+    .bmag = gk_geom->geo_int.bmag,
+    .bmag_max = bmag_max,
+    .bmag_max_loc = bmag_max_loc,
+    .mass = ctx.mass,
+    .charge = ctx.charge,
+    .qtype = ctx.quad_type,
+    .num_quad = ctx.num_quad,
+    .cellwise_trap_loss = ctx.cellwise_trap_loss,
+    .use_gpu = use_gpu };
   struct gkyl_loss_cone_mask_gyrokinetic *proj_mask =
     gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
@@ -417,6 +414,6 @@ void test_loss_cone_mask_1x2v_p1_gk_dev()
 TEST_LIST = { { "test_loss_cone_mask_1x2v_p1_gk_ho", test_loss_cone_mask_1x2v_p1_gk_ho },
 
 #ifdef GKYL_HAVE_CUDA
-              { "test_loss_cone_mask_1x2v_p1_gk_dev", test_loss_cone_mask_1x2v_p1_gk_dev },
+  { "test_loss_cone_mask_1x2v_p1_gk_dev", test_loss_cone_mask_1x2v_p1_gk_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

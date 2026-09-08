@@ -15,7 +15,7 @@ typedef struct gkyl_moment_em_coupling gkyl_moment_em_coupling;
 * @param nT_sources Array of number density and temperature source terms for a single fluid species.
 */
 void explicit_nT_source_update_euler(const double mass, const double dt, double *fluid_old,
-                                     double *fluid_new, const double *nT_sources);
+  double *fluid_new, const double *nT_sources);
 
 /**
 * Integrate the number density and temperature source terms in the multi-fluid equation system within a single cell, using an explicit forcing
@@ -27,8 +27,7 @@ void explicit_nT_source_update_euler(const double mass, const double dt, double 
 * @param nT_sources_s Array of number density and temperature source terms.
 */
 void explicit_nT_source_update(const gkyl_moment_em_coupling *mom_em, const double dt,
-                               double *fluid_s[GKYL_MAX_SPECIES],
-                               const double *nT_sources_s[GKYL_MAX_SPECIES]);
+  double *fluid_s[GKYL_MAX_SPECIES], const double *nT_sources_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the frictional source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a
@@ -46,10 +45,8 @@ void explicit_nT_source_update(const gkyl_moment_em_coupling *mom_em, const doub
 * @param f_ion_new Array of new ion fluid variables (after source update).
 */
 void explicit_frictional_source_update_euler(const gkyl_moment_em_coupling *mom_em, const double Z,
-                                             const double T_elc, const double Lambda_ee,
-                                             double t_curr, const double dt, double *f_elc_old,
-                                             double *f_ion_old, double *f_elc_new,
-                                             double *f_ion_new);
+  const double T_elc, const double Lambda_ee, double t_curr, const double dt, double *f_elc_old,
+  double *f_ion_old, double *f_elc_new, double *f_ion_new);
 
 /**
 * Integrate the frictional source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a
@@ -61,7 +58,7 @@ void explicit_frictional_source_update_euler(const gkyl_moment_em_coupling *mom_
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
 void explicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                       const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
+  const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the volume-based geometrical source terms (e.g. for expanding/contracting box formalism) in the multi-fluid equation system for a
@@ -77,9 +74,8 @@ void explicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, do
 * @param fluid_new Array of new single-species 5-moment fluid variables (after source update).
 */
 void explicit_volume_source_5m_update_euler(const gkyl_moment_em_coupling *mom_em,
-                                            const double gas_gamma, const double U0,
-                                            const double R0, double t_curr, const double dt,
-                                            double *fluid_old, double *fluid_new);
+  const double gas_gamma, const double U0, const double R0, double t_curr, const double dt,
+  double *fluid_old, double *fluid_new);
 
 /**
 * Integrate the volume-based geometrical source terms (e.g. for expanding/contracting box formalism) in the multi-fluid equation system for a
@@ -94,8 +90,7 @@ void explicit_volume_source_5m_update_euler(const gkyl_moment_em_coupling *mom_e
 * @param fluid_new Array of new single-species 10-moment fluid variables (after source update).
 */
 void explicit_volume_source_10m_update_euler(const gkyl_moment_em_coupling *mom_em, const double U0,
-                                             const double R0, double t_curr, const double dt,
-                                             double *fluid_old, double *fluid_new);
+  const double R0, double t_curr, const double dt, double *fluid_old, double *fluid_new);
 
 /**
 * Integrate the volume-based geometrical source terms (e.g. for expanding/contracting box formalism) in the multi-fluid equation system for a
@@ -111,9 +106,8 @@ void explicit_volume_source_10m_update_euler(const gkyl_moment_em_coupling *mom_
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
 void explicit_volume_source_maxwell_update_euler(const gkyl_moment_em_coupling *mom_em,
-                                                 const double U0, const double R0, double t_curr,
-                                                 const double dt, double *em_old, double *em_new,
-                                                 const double *ext_em);
+  const double U0, const double R0, double t_curr, const double dt, double *em_old, double *em_new,
+  const double *ext_em);
 
 /**
 * Integrate the volume-based geometrical source terms (e.g. for expanding/contracting box formalism) in the multi-fluid equation system within
@@ -127,8 +121,7 @@ void explicit_volume_source_maxwell_update_euler(const gkyl_moment_em_coupling *
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
 void explicit_volume_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                   const double dt, double *fluid_s[GKYL_MAX_SPECIES], double *em,
-                                   const double *ext_em);
+  const double dt, double *fluid_s[GKYL_MAX_SPECIES], double *em, const double *ext_em);
 
 /**
 * Integrate the reactive source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a 
@@ -146,12 +139,9 @@ void explicit_volume_source_update(const gkyl_moment_em_coupling *mom_em, double
 * @param fluid_new Array of new fluid variables (after source update).
 */
 void explicit_reactive_source_update_euler(const gkyl_moment_em_coupling *mom_em,
-                                           const double gas_gamma,
-                                           const double specific_heat_capacity,
-                                           const double energy_of_formation,
-                                           const double ignition_temperature,
-                                           const double reaction_rate, double t_curr,
-                                           const double dt, double *fluid_old, double *fluid_new);
+  const double gas_gamma, const double specific_heat_capacity, const double energy_of_formation,
+  const double ignition_temperature, const double reaction_rate, double t_curr, const double dt,
+  double *fluid_old, double *fluid_new);
 
 /**
 * Integrate the reactive source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a
@@ -163,7 +153,7 @@ void explicit_reactive_source_update_euler(const gkyl_moment_em_coupling *mom_em
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
 void explicit_reactive_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                     const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
+  const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the coupled fluid-Einstein source terms in plane-symmetric spacetimes in the multi-fluid equation system within a single cell, using an
@@ -178,8 +168,8 @@ void explicit_reactive_source_update(const gkyl_moment_em_coupling *mom_em, doub
 * @param fluid_new Array of new fluid variables (after source update).
 */
 void explicit_medium_source_update_euler(const gkyl_moment_em_coupling *mom_em,
-                                         const double gas_gamma, const double kappa, double t_curr,
-                                         const double dt, double *fluid_old, double *fluid_new);
+  const double gas_gamma, const double kappa, double t_curr, const double dt, double *fluid_old,
+  double *fluid_new);
 
 /**
 * Integrate the coupled fluid-Einstein source terms in plane-symmetric spacetimes in the multi-fluid equation system within a single cell, using an
@@ -191,7 +181,7 @@ void explicit_medium_source_update_euler(const gkyl_moment_em_coupling *mom_em,
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
 void explicit_medium_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                   const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
+  const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the general relativistic source terms (Euler equations, ultra-relativistic equation of state) in the multi-fluid equation system within a
@@ -205,9 +195,7 @@ void explicit_medium_source_update(const gkyl_moment_em_coupling *mom_em, double
 * @param fluid_new Array of new fluid variables (after source update).
 */
 void explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling *mom_em,
-                                               const double gas_gamma, double t_curr,
-                                               const double dt, double *fluid_old,
-                                               double *fluid_new);
+  const double gas_gamma, double t_curr, const double dt, double *fluid_old, double *fluid_new);
 
 /**
 * Integrate the general relativistic source terms (Euler equations, ultra-relativistic equation of state) in the multi-fluid equation system within a
@@ -219,7 +207,7 @@ void explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling *mo
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
 void explicit_gr_ultra_rel_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                         const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
+  const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the general relativistic source terms (Euler equations, general equation of state) in the multi-fluid equation system within a
@@ -233,8 +221,7 @@ void explicit_gr_ultra_rel_source_update(const gkyl_moment_em_coupling *mom_em, 
 * @param fluid_new Array of new fluid variables (after source update).
 */
 void explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em,
-                                           const double gas_gamma, double t_curr, const double dt,
-                                           double *fluid_old, double *fluid_new);
+  const double gas_gamma, double t_curr, const double dt, double *fluid_old, double *fluid_new);
 
 /**
 * Integrate the general relativistic source terms (Euler equations, general equation of state) in the multi-fluid equation system within a
@@ -246,7 +233,7 @@ void explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
 void explicit_gr_euler_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                     const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
+  const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the electron coupling source terms in the general relativistic two-fluid equation system within a single cell, using an explicit
@@ -262,10 +249,8 @@ void explicit_gr_euler_source_update(const gkyl_moment_em_coupling *mom_em, doub
 * @param fluid_new Array of new fluid variables (after source update).
 */
 void explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling *mom_em,
-                                                  const double gas_gamma_elc, const double mass_elc,
-                                                  const double charge_elc, double t_curr,
-                                                  const double dt, double *fluid_old,
-                                                  double *fluid_new);
+  const double gas_gamma_elc, const double mass_elc, const double charge_elc, double t_curr,
+  const double dt, double *fluid_old, double *fluid_new);
 
 /**
 * Integrate the ion coupling source terms in the general relativistic two-fluid equation system within a single cell, using an explicit
@@ -281,10 +266,8 @@ void explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling 
 * @param fluid_new Array of new fluid variables (after source update).
 */
 void explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling *mom_em,
-                                                  const double gas_gamma_ion, const double mass_ion,
-                                                  const double charge_ion, double t_curr,
-                                                  const double dt, double *fluid_old,
-                                                  double *fluid_new);
+  const double gas_gamma_ion, const double mass_ion, const double charge_ion, double t_curr,
+  const double dt, double *fluid_old, double *fluid_new);
 
 /**
 * Integrate the electromagnetic coupling source terms in the general relativistic two-fluid equation system within a single cell, using an
@@ -303,10 +286,10 @@ void explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling 
 * @param fluid_old Array of old fluid variables (before source update).
 * @param fluid_new Array of new fluid variables (after source update).
 */
-void explicit_gr_twofluid_source_update_em_euler(
-  const gkyl_moment_em_coupling *mom_em, const double gas_gamma_elc, const double gas_gamma_ion,
-  const double mass_elc, const double charge_elc, const double mass_ion, const double charge_ion,
-  double e_fact, double t_curr, const double dt, double *fluid_old, double *fluid_new);
+void explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_em,
+  const double gas_gamma_elc, const double gas_gamma_ion, const double mass_elc,
+  const double charge_elc, const double mass_ion, const double charge_ion, double e_fact,
+  double t_curr, const double dt, double *fluid_old, double *fluid_new);
 
 /**
 * Integrate the curved spacetime coupling source terms for the electrons in the general relativistic two-fluid equation system within a single
@@ -320,9 +303,7 @@ void explicit_gr_twofluid_source_update_em_euler(
 * @param fluid_new Array of new fluid variables (after source update).
 */
 void explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coupling *mom_em,
-                                                            const double gas_gamma_elc,
-                                                            double t_curr, const double dt,
-                                                            double *fluid_old, double *fluid_new);
+  const double gas_gamma_elc, double t_curr, const double dt, double *fluid_old, double *fluid_new);
 
 /**
 * Integrate the curved spacetime coupling source terms for the ions in the general relativistic two-fluid equation system within a single
@@ -336,9 +317,7 @@ void explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em
 * @param fluid_new Array of new fluid variables (after source update).
 */
 void explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coupling *mom_em,
-                                                            const double gas_gamma_ion,
-                                                            double t_curr, const double dt,
-                                                            double *fluid_old, double *fluid_new);
+  const double gas_gamma_ion, double t_curr, const double dt, double *fluid_old, double *fluid_new);
 
 /**
 * Integrate all electron, ion, and electromagnetic coupling source terms in the general relativistic two-fluid equation system within a
@@ -350,7 +329,7 @@ void explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
 void explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                        const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
+  const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the vacuum Einstein source terms (Bona-Masso formalism) in the dynamic spacetime equation system within a single cell, using an
@@ -365,9 +344,8 @@ void explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling *mom_em, d
 * @param fluid_old Array of old fluid variables (before source update).
 * @param fluid_new Array of new fluid variables (after source update).
 */
-void explicit_vacuum_einstein_source_update_euler(
-  const gkyl_moment_em_coupling *mom_em, const double excision_threshold,
-  const enum gkyl_spacetime_slicing spacetime_slicing,
+void explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling *mom_em,
+  const double excision_threshold, const enum gkyl_spacetime_slicing spacetime_slicing,
   const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt,
   double *fluid_old, double *fluid_new);
 
@@ -381,7 +359,7 @@ void explicit_vacuum_einstein_source_update_euler(
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
 void explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                            const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
+  const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the vacuum Einstein source terms (conformal Bona-Masso formalism) in the dynamic spacetime equation system within a single cell, using an
@@ -396,9 +374,8 @@ void explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling *mom_e
 * @param fluid_old Array of old fluid variables (before source update).
 * @param fluid_new Array of new fluid variables (after source update).
 */
-void explicit_vacuum_einstein_conformal_source_update_euler(
-  const gkyl_moment_em_coupling *mom_em, const double excision_threshold,
-  const enum gkyl_spacetime_slicing spacetime_slicing,
+void explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coupling *mom_em,
+  const double excision_threshold, const enum gkyl_spacetime_slicing spacetime_slicing,
   const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt,
   double *fluid_old, double *fluid_new);
 
@@ -412,8 +389,7 @@ void explicit_vacuum_einstein_conformal_source_update_euler(
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
 void explicit_vacuum_einstein_conformal_source_update(const gkyl_moment_em_coupling *mom_em,
-                                                      double t_curr, const double dt,
-                                                      double *fluid_s[GKYL_MAX_SPECIES]);
+  double t_curr, const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the general relativistic source terms (general relativistic magnetohydrodynamics equations) in the multi-fluid equation system within a
@@ -427,8 +403,7 @@ single cell, using an explicit forcing solver (specifically a simple first-order
 * @param fluid_new Array of new fluid variables (after source update).
 */
 void explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em,
-                                         const double gas_gamma, double t_curr, const double dt,
-                                         double *fluid_old, double *fluid_new);
+  const double gas_gamma, double t_curr, const double dt, double *fluid_old, double *fluid_new);
 
 /**
 * Integrate the general relativistic source terms (general relativistic magnetohydrodynamics) in the multi-fluid equation system within a
@@ -440,7 +415,7 @@ void explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em,
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
 void explicit_gr_mhd_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                   const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
+  const double dt, double *fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the electric field source terms in the multi-field equation system within a single cell, using an explicit forcing solver (specifically
@@ -455,9 +430,8 @@ void explicit_gr_mhd_source_update(const gkyl_moment_em_coupling *mom_em, double
 * @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
 */
 void explicit_e_field_source_update_euler(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                          double dt, double e_field_old[3], double *e_field_new,
-                                          double *fluid_s[GKYL_MAX_SPECIES],
-                                          const double *app_current);
+  double dt, double e_field_old[3], double *e_field_new, double *fluid_s[GKYL_MAX_SPECIES],
+  const double *app_current);
 
 /**
 * Integrate the electric field source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically
@@ -474,9 +448,8 @@ void explicit_e_field_source_update_euler(const gkyl_moment_em_coupling *mom_em,
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
 void explicit_e_field_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
-                                    double *fluid_s[GKYL_MAX_SPECIES], double *em,
-                                    const double *app_current, const double *app_current1,
-                                    const double *app_current2, const double *ext_em);
+  double *fluid_s[GKYL_MAX_SPECIES], double *em, const double *app_current,
+  const double *app_current1, const double *app_current2, const double *ext_em);
 
 /**
 * Perform a Higuera-Cary particle push of the fluid momentum in the multi-fluid equation system within a single cell, assuming a cold relativistic
@@ -490,7 +463,7 @@ void explicit_e_field_source_update(const gkyl_moment_em_coupling *mom_em, doubl
 * @param b_field Array of magnetic field variables.
 */
 void explicit_higuera_cary_push(double *vel, const double q, const double m, const double dt,
-                                const double c, const double e_field[3], const double b_field[3]);
+  const double c, const double e_field[3], const double b_field[3]);
 
 /**
 * Integrate the momentum source terms in the multi-fluid equation system within a single cell, using a Higuera-Cary particle push, assuming a cold
@@ -505,9 +478,8 @@ void explicit_higuera_cary_push(double *vel, const double q, const double m, con
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
 void explicit_higuera_cary_update(const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
-                                  double *fluid_s[GKYL_MAX_SPECIES],
-                                  const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
-                                  const double *ext_em);
+  double *fluid_s[GKYL_MAX_SPECIES], const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
+  const double *ext_em);
 
 /**
 * Integrate the electromagnetic source terms in the multi-fluid equation system within each cell, using an explicit forcing solver (specifically
@@ -526,7 +498,6 @@ void explicit_higuera_cary_update(const gkyl_moment_em_coupling *mom_em, double 
 * @param nstrang Indictator of which step in the Strang splitting we are currently considering.
 */
 void explicit_source_coupling_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                     double dt, double *fluid_s[GKYL_MAX_SPECIES],
-                                     const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
-                                     const double *app_current, const double *app_current1,
-                                     const double *app_current2, const double *ext_em, int nstrang);
+  double dt, double *fluid_s[GKYL_MAX_SPECIES], const double *app_accel_s[GKYL_MAX_SPECIES],
+  double *em, const double *app_current, const double *app_current1, const double *app_current2,
+  const double *ext_em, int nstrang);

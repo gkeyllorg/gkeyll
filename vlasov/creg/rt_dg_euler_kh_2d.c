@@ -89,24 +89,24 @@ struct kh_2d_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct kh_2d_ctx ctx = { .pi = pi,
-                           .gas_gamma = gas_gamma,
-                           .rhol = rhol,
-                           .ul = ul,
-                           .pl = pl,
-                           .rhor = rhor,
-                           .ur = ur,
-                           .pr = pr,
-                           .yloc = yloc,
-                           .Nx = Nx,
-                           .Ny = Ny,
-                           .Lx = Lx,
-                           .Ly = Ly,
-                           .poly_order = poly_order,
-                           .cfl_frac = cfl_frac,
-                           .t_end = t_end,
-                           .num_frames = num_frames,
-                           .dt_failure_tol = dt_failure_tol,
-                           .num_failures_max = num_failures_max };
+    .gas_gamma = gas_gamma,
+    .rhol = rhol,
+    .ul = ul,
+    .pl = pl,
+    .rhor = rhor,
+    .ur = ur,
+    .pr = pr,
+    .yloc = yloc,
+    .Nx = Nx,
+    .Ny = Ny,
+    .Lx = Lx,
+    .Ly = Ly,
+    .poly_order = poly_order,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -267,8 +267,8 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -298,8 +298,8 @@ int main(int argc, char **argv)
     .skip_field = true,
 
     .parallelism = { .use_gpu = app_args.use_gpu,
-                     .cuts = { app_args.cuts[0], app_args.cuts[1] },
-                     .comm = comm }
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -351,8 +351,8 @@ int main(int argc, char **argv)
       gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_vlasov_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         break;
       }
     } else {
@@ -372,18 +372,18 @@ int main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_vlasov_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n",
-                         stat.stage_2_dt_diff[1]);
-    gkyl_vlasov_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n",
-                         stat.stage_2_dt_diff[0]);
+    gkyl_vlasov_app_cout(
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n",
-                       stat.species_coll_tm);
+  gkyl_vlasov_app_cout(
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n",
-                       stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);

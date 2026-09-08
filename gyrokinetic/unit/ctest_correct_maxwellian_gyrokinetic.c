@@ -147,8 +147,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0, 0.0 },
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
@@ -160,11 +159,10 @@ void test_1x1v(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
-  };
+    .basis = confBasis };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
-  gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext,
-                          &geometry_input.geo_local);
+  gkyl_create_grid_ranges(
+    &geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   struct gk_geometry *gk_geom_3d;
   gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
@@ -229,21 +227,21 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // Maxwellian (or bi-Maxwellian) projection updater.
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
-                                                           .conf_basis = &confBasis,
-                                                           .phase_basis = &basis,
-                                                           .conf_range = &confLocal,
-                                                           .conf_range_ext = &confLocal_ext,
-                                                           .vel_range = &velLocal,
-                                                           .gk_geom = gk_geom,
-                                                           .vel_map = gvm,
-                                                           .mass = mass,
-                                                           .bimaxwellian = false,
-                                                           .use_gpu = use_gpu };
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .mass = mass,
+    .bimaxwellian = false,
+    .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
   if (use_gpu) {
-    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max, &local, &confLocal, moms_in, false,
-                                             distf_cu);
+    gkyl_gk_maxwellian_proj_on_basis_advance(
+      proj_max, &local, &confLocal, moms_in, false, distf_cu);
     gkyl_array_copy(distf, distf_cu);
   } else {
     gkyl_gk_maxwellian_proj_on_basis_advance(proj_max, &local, &confLocal, moms_in, false, distf);
@@ -251,18 +249,18 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // Create a Maxwellian with corrected moments
   struct gkyl_gk_maxwellian_correct_inp inp = { .phase_grid = &grid,
-                                                .conf_basis = &confBasis,
-                                                .phase_basis = &basis,
-                                                .conf_range = &confLocal,
-                                                .conf_range_ext = &confLocal_ext,
-                                                .vel_range = &velLocal,
-                                                .mass = mass,
-                                                .max_iter = iter_max,
-                                                .eps = err_max,
-                                                .gk_geom = gk_geom,
-                                                .vel_map = gvm,
-                                                .divide_jacobgeo = true,
-                                                .use_gpu = use_gpu };
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .mass = mass,
+    .max_iter = iter_max,
+    .eps = err_max,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .divide_jacobgeo = true,
+    .use_gpu = use_gpu };
   gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
   // Correct all the moments
   struct gkyl_gk_maxwellian_correct_status status_corr;
@@ -277,15 +275,15 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // Compute the moments of our corrected distribution function
   struct gkyl_gk_maxwellian_moments_inp inp_mom = { .phase_grid = &grid,
-                                                    .conf_basis = &confBasis,
-                                                    .phase_basis = &basis,
-                                                    .conf_range = &confLocal,
-                                                    .conf_range_ext = &confLocal_ext,
-                                                    .gk_geom = gk_geom,
-                                                    .vel_map = gvm,
-                                                    .divide_jacobgeo = true,
-                                                    .mass = mass,
-                                                    .use_gpu = use_gpu };
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .divide_jacobgeo = true,
+    .mass = mass,
+    .use_gpu = use_gpu };
   gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew(&inp_mom);
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(use_gpu, 3 * confBasis.num_basis, confLocal_ext.volume);
@@ -312,9 +310,9 @@ void test_1x1v(int poly_order, bool use_gpu)
     TEST_CHECK(gkyl_compare(m1in[0], momsCorr[1 * confBasis.num_basis], 1.0e-10));
     TEST_CHECK(gkyl_compare(m2in[0], momsCorr[2 * confBasis.num_basis], 1.0e-10));
     TEST_MSG("Expected cell average: %.13e, \t%.13e, \t%.13e, \tin cell (%d)", m0in[0], m1in[0],
-             m2in[0], idx[0]);
+      m2in[0], idx[0]);
     TEST_MSG("Produced cell average: %.13e, \t%.13e, \t%.13e", momsCorr[0 * confBasis.num_basis],
-             momsCorr[1 * confBasis.num_basis], momsCorr[2 * confBasis.num_basis]);
+      momsCorr[1 * confBasis.num_basis], momsCorr[2 * confBasis.num_basis]);
   }
 
   // Release memory for moment data object
@@ -404,8 +402,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0, 0.0 },
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
@@ -417,11 +414,10 @@ void test_1x2v(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
-  };
+    .basis = confBasis };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
-  gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext,
-                          &geometry_input.geo_local);
+  gkyl_create_grid_ranges(
+    &geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   struct gk_geometry *gk_geom_3d;
   gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
@@ -486,21 +482,21 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Maxwellian (or bi-Maxwellian) projection updater.
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
-                                                           .conf_basis = &confBasis,
-                                                           .phase_basis = &basis,
-                                                           .conf_range = &confLocal,
-                                                           .conf_range_ext = &confLocal_ext,
-                                                           .vel_range = &velLocal,
-                                                           .gk_geom = gk_geom,
-                                                           .vel_map = gvm,
-                                                           .mass = mass,
-                                                           .bimaxwellian = false,
-                                                           .use_gpu = use_gpu };
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .mass = mass,
+    .bimaxwellian = false,
+    .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
   if (use_gpu) {
-    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max, &local, &confLocal, moms_in, false,
-                                             distf_cu);
+    gkyl_gk_maxwellian_proj_on_basis_advance(
+      proj_max, &local, &confLocal, moms_in, false, distf_cu);
     gkyl_array_copy(distf, distf_cu);
   } else {
     gkyl_gk_maxwellian_proj_on_basis_advance(proj_max, &local, &confLocal, moms_in, false, distf);
@@ -508,18 +504,18 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Create a Maxwellian with corrected moments
   struct gkyl_gk_maxwellian_correct_inp inp = { .phase_grid = &grid,
-                                                .conf_basis = &confBasis,
-                                                .phase_basis = &basis,
-                                                .conf_range = &confLocal,
-                                                .conf_range_ext = &confLocal_ext,
-                                                .vel_range = &velLocal,
-                                                .mass = mass,
-                                                .max_iter = iter_max,
-                                                .eps = err_max,
-                                                .gk_geom = gk_geom,
-                                                .vel_map = gvm,
-                                                .divide_jacobgeo = true,
-                                                .use_gpu = use_gpu };
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .mass = mass,
+    .max_iter = iter_max,
+    .eps = err_max,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .divide_jacobgeo = true,
+    .use_gpu = use_gpu };
   gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
   // Correct all the moments
   struct gkyl_gk_maxwellian_correct_status status_corr;
@@ -534,15 +530,15 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Compute the moments of our corrected distribution function
   struct gkyl_gk_maxwellian_moments_inp inp_mom = { .phase_grid = &grid,
-                                                    .conf_basis = &confBasis,
-                                                    .phase_basis = &basis,
-                                                    .conf_range = &confLocal,
-                                                    .conf_range_ext = &confLocal_ext,
-                                                    .gk_geom = gk_geom,
-                                                    .vel_map = gvm,
-                                                    .divide_jacobgeo = true,
-                                                    .mass = mass,
-                                                    .use_gpu = use_gpu };
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .divide_jacobgeo = true,
+    .mass = mass,
+    .use_gpu = use_gpu };
   gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew(&inp_mom);
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(use_gpu, 3 * confBasis.num_basis, confLocal_ext.volume);
@@ -569,9 +565,9 @@ void test_1x2v(int poly_order, bool use_gpu)
     TEST_CHECK(gkyl_compare(m1in[0], momsCorr[1 * confBasis.num_basis], 1.0e-10));
     TEST_CHECK(gkyl_compare(m2in[0], momsCorr[2 * confBasis.num_basis], 1.0e-10));
     TEST_MSG("Expected cell average: %.13e, \t%.13e, \t%.13e, \tin cell (%d)", m0in[0], m1in[0],
-             m2in[0], idx[0]);
+      m2in[0], idx[0]);
     TEST_MSG("Produced cell average: %.13e, \t%.13e, \t%.13e", momsCorr[0 * confBasis.num_basis],
-             momsCorr[1 * confBasis.num_basis], momsCorr[2 * confBasis.num_basis]);
+      momsCorr[1 * confBasis.num_basis], momsCorr[2 * confBasis.num_basis]);
   }
 
   // Release memory for moment data object
@@ -662,8 +658,7 @@ void test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0 },
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
@@ -675,11 +670,10 @@ void test_2x2v(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
-  };
+    .basis = confBasis };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
-  gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext,
-                          &geometry_input.geo_local);
+  gkyl_create_grid_ranges(
+    &geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   struct gk_geometry *gk_geom_3d;
   gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
@@ -744,21 +738,21 @@ void test_2x2v(int poly_order, bool use_gpu)
 
   // Maxwellian (or bi-Maxwellian) projection updater.
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
-                                                           .conf_basis = &confBasis,
-                                                           .phase_basis = &basis,
-                                                           .conf_range = &confLocal,
-                                                           .conf_range_ext = &confLocal_ext,
-                                                           .vel_range = &velLocal,
-                                                           .gk_geom = gk_geom,
-                                                           .vel_map = gvm,
-                                                           .mass = mass,
-                                                           .bimaxwellian = false,
-                                                           .use_gpu = use_gpu };
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .mass = mass,
+    .bimaxwellian = false,
+    .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
   if (use_gpu) {
-    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max, &local, &confLocal, moms_in, false,
-                                             distf_cu);
+    gkyl_gk_maxwellian_proj_on_basis_advance(
+      proj_max, &local, &confLocal, moms_in, false, distf_cu);
     gkyl_array_copy(distf, distf_cu);
   } else {
     gkyl_gk_maxwellian_proj_on_basis_advance(proj_max, &local, &confLocal, moms_in, false, distf);
@@ -766,18 +760,18 @@ void test_2x2v(int poly_order, bool use_gpu)
 
   // Create a Maxwellian with corrected moments
   struct gkyl_gk_maxwellian_correct_inp inp = { .phase_grid = &grid,
-                                                .conf_basis = &confBasis,
-                                                .phase_basis = &basis,
-                                                .conf_range = &confLocal,
-                                                .conf_range_ext = &confLocal_ext,
-                                                .vel_range = &velLocal,
-                                                .mass = mass,
-                                                .max_iter = iter_max,
-                                                .eps = err_max,
-                                                .gk_geom = gk_geom,
-                                                .vel_map = gvm,
-                                                .divide_jacobgeo = true,
-                                                .use_gpu = use_gpu };
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .mass = mass,
+    .max_iter = iter_max,
+    .eps = err_max,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .divide_jacobgeo = true,
+    .use_gpu = use_gpu };
   gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
   // Correct all the moments
   struct gkyl_gk_maxwellian_correct_status status_corr;
@@ -792,15 +786,15 @@ void test_2x2v(int poly_order, bool use_gpu)
 
   // Compute the moments of our corrected distribution function
   struct gkyl_gk_maxwellian_moments_inp inp_mom = { .phase_grid = &grid,
-                                                    .conf_basis = &confBasis,
-                                                    .phase_basis = &basis,
-                                                    .conf_range = &confLocal,
-                                                    .conf_range_ext = &confLocal_ext,
-                                                    .gk_geom = gk_geom,
-                                                    .vel_map = gvm,
-                                                    .divide_jacobgeo = true,
-                                                    .mass = mass,
-                                                    .use_gpu = use_gpu };
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .divide_jacobgeo = true,
+    .mass = mass,
+    .use_gpu = use_gpu };
   gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew(&inp_mom);
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(use_gpu, 3 * confBasis.num_basis, confLocal_ext.volume);
@@ -828,9 +822,9 @@ void test_2x2v(int poly_order, bool use_gpu)
       TEST_CHECK(gkyl_compare(m1in[0], momsCorr[1 * confBasis.num_basis], 1.0e-10));
       TEST_CHECK(gkyl_compare(m2in[0], momsCorr[2 * confBasis.num_basis], 1.0e-10));
       TEST_MSG("Expected cell average: %.13e, \t%.13e, \t%.13e, \tin cell (%d)", m0in[0], m1in[0],
-               m2in[0], idx[0]);
+        m2in[0], idx[0]);
       TEST_MSG("Produced cell average: %.13e, \t%.13e, \t%.13e", momsCorr[0 * confBasis.num_basis],
-               momsCorr[1 * confBasis.num_basis], momsCorr[2 * confBasis.num_basis]);
+        momsCorr[1 * confBasis.num_basis], momsCorr[2 * confBasis.num_basis]);
     }
   }
 
@@ -889,11 +883,11 @@ void test_correct_maxwellian_2x2v_p1_dev()
 #endif
 
 TEST_LIST = { { "test_correct_maxwellian_1x1v_p1_ho", test_correct_maxwellian_1x1v_p1_ho },
-              { "test_correct_maxwellian_1x2v_p1_ho", test_correct_maxwellian_1x2v_p1_ho },
-              { "test_correct_maxwellian_2x2v_p1_ho", test_correct_maxwellian_2x2v_p1_ho },
+  { "test_correct_maxwellian_1x2v_p1_ho", test_correct_maxwellian_1x2v_p1_ho },
+  { "test_correct_maxwellian_2x2v_p1_ho", test_correct_maxwellian_2x2v_p1_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_correct_maxwellian_1x1v_p1_dev", test_correct_maxwellian_1x1v_p1_dev },
-              { "test_correct_maxwellian_1x2v_p1_dev", test_correct_maxwellian_1x2v_p1_dev },
-              { "test_correct_maxwellian_2x2v_p1_dev", test_correct_maxwellian_2x2v_p1_dev },
+  { "test_correct_maxwellian_1x1v_p1_dev", test_correct_maxwellian_1x1v_p1_dev },
+  { "test_correct_maxwellian_1x2v_p1_dev", test_correct_maxwellian_1x2v_p1_dev },
+  { "test_correct_maxwellian_2x2v_p1_dev", test_correct_maxwellian_2x2v_p1_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

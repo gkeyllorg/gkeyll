@@ -101,12 +101,11 @@ void test_vlasov_3x3v_p1_(bool use_gpu)
   for (int n = 0; n < nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_set_auxfields(
-      eqn, (struct gkyl_dg_vlasov_auxfields){ .field = 0,
-                                              .cot_vec = 0,
-                                              .alpha_surf = 0,
-                                              .sgn_alpha_surf = 0,
-                                              .const_sgn_alpha = 0 }); // must set EM fields to use
+    gkyl_vlasov_set_auxfields(eqn, (struct gkyl_dg_vlasov_auxfields){ .field = 0,
+                                     .cot_vec = 0,
+                                     .alpha_surf = 0,
+                                     .sgn_alpha_surf = 0,
+                                     .const_sgn_alpha = 0 }); // must set EM fields to use
 
     gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
@@ -488,4 +487,4 @@ void test_hyper3x_dg_vlasov_3x3v_p1_ho()
 }
 
 TEST_LIST = { { "test_hyper3x_dg_vlasov_3x3v_p1_ho", test_hyper3x_dg_vlasov_3x3v_p1_ho },
-              { NULL, NULL } };
+  { NULL, NULL } };

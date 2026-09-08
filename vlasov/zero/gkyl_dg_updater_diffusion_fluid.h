@@ -47,11 +47,9 @@ struct gkyl_dg_updater_diffusion_fluid *gkyl_dg_updater_diffusion_fluid_new(
  * @param rhs RHS output
  */
 void gkyl_dg_updater_diffusion_fluid_advance(struct gkyl_dg_updater_diffusion_fluid *up,
-                                             const struct gkyl_range *update_rng,
-                                             const struct gkyl_array *coeff,
-                                             const struct gkyl_array *GKYL_RESTRICT fIn,
-                                             struct gkyl_array *GKYL_RESTRICT cflrate,
-                                             struct gkyl_array *GKYL_RESTRICT rhs);
+  const struct gkyl_range *update_rng, const struct gkyl_array *coeff,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
+  struct gkyl_array *GKYL_RESTRICT rhs);
 
 /**
  * Return total time spent in diffusion terms
@@ -59,8 +57,8 @@ void gkyl_dg_updater_diffusion_fluid_advance(struct gkyl_dg_updater_diffusion_fl
  * @param diffusion Updater object
  * @return timers
  */
-struct gkyl_dg_updater_diffusion_fluid_tm
-gkyl_dg_updater_diffusion_fluid_get_tm(const struct gkyl_dg_updater_diffusion_fluid *up);
+struct gkyl_dg_updater_diffusion_fluid_tm gkyl_dg_updater_diffusion_fluid_get_tm(
+  const struct gkyl_dg_updater_diffusion_fluid *up);
 
 /**
  * Delete updater.

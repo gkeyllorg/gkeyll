@@ -13,10 +13,8 @@
 
 // "derived" class constructors
 struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_pkpm_new(const struct gkyl_rect_grid *grid,
-                                                             const struct gkyl_basis *cbasis,
-                                                             const struct gkyl_basis *pbasis,
-                                                             const double *vBoundary, double mass,
-                                                             bool use_gpu)
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const double *vBoundary,
+  double mass, bool use_gpu)
 {
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
   bcorr_type = gkyl_mom_bcorr_lbo_pkpm_new(cbasis, pbasis, vBoundary, mass, use_gpu);

@@ -8,10 +8,10 @@ extern "C" {
 #include <gkyl_prim_bgk_cross_calc.h>
 }
 
-__global__ void gkyl_prim_bgk_cross_calc_advance_cu_kernel(
-  struct gkyl_basis basis, int vdim_phys, const struct gkyl_array *m0sdeltas, double massself,
-  const struct gkyl_array *primsself, double massother, const struct gkyl_array *primsother,
-  struct gkyl_range range, struct gkyl_array *crossprims)
+__global__ void gkyl_prim_bgk_cross_calc_advance_cu_kernel(struct gkyl_basis basis, int vdim_phys,
+  const struct gkyl_array *m0sdeltas, double massself, const struct gkyl_array *primsself,
+  double massother, const struct gkyl_array *primsother, struct gkyl_range range,
+  struct gkyl_array *crossprims)
 {
   unsigned num_basis = basis.num_basis;
   unsigned ndim = basis.ndim;
@@ -104,16 +104,14 @@ __global__ void gkyl_prim_bgk_cross_calc_advance_cu_kernel(
 }
 
 void gkyl_prim_bgk_cross_calc_advance_cu(struct gkyl_basis basis, int vdim_phys,
-                                         const struct gkyl_array *m0sdeltas, double massself,
-                                         const struct gkyl_array *primsself, double massother,
-                                         const struct gkyl_array *primsother,
-                                         const struct gkyl_range *range,
-                                         struct gkyl_array *crossprims)
+  const struct gkyl_array *m0sdeltas, double massself, const struct gkyl_array *primsself,
+  double massother, const struct gkyl_array *primsother, const struct gkyl_range *range,
+  struct gkyl_array *crossprims)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
 
-  gkyl_prim_bgk_cross_calc_advance_cu_kernel<<<nblocks, nthreads> > >(
-    basis, vdim_phys, m0sdeltas->on_dev, massself, primsself->on_dev, massother, primsother->on_dev,
-    *range, crossprims->on_dev);
+  gkyl_prim_bgk_cross_calc_advance_cu_kernel<<<nblocks, nthreads> > >(basis, vdim_phys,
+    m0sdeltas->on_dev, massself, primsself->on_dev, massother, primsother->on_dev, *range,
+    crossprims->on_dev);
 }

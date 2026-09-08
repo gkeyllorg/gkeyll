@@ -15,8 +15,8 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_vlasov_pkpm_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *bvar, const struct gkyl_array *bvar_surf,
+__global__ static void gkyl_vlasov_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
+  const struct gkyl_array *bvar, const struct gkyl_array *bvar_surf,
   const struct gkyl_array *pkpm_prim, const struct gkyl_array *pkpm_prim_surf,
   const struct gkyl_array *max_b, const struct gkyl_array *pkpm_lax, const struct gkyl_array *div_b,
   const struct gkyl_array *pkpm_accel_vars, const struct gkyl_array *g_dist_source)
@@ -34,20 +34,19 @@ __global__ static void gkyl_vlasov_pkpm_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_vlasov_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                       struct gkyl_dg_vlasov_pkpm_auxfields auxin)
+void gkyl_vlasov_pkpm_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
 {
-  gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1, 1> > >(
-    eqn, auxin.bvar->on_dev, auxin.bvar_surf->on_dev, auxin.pkpm_prim->on_dev,
-    auxin.pkpm_prim_surf->on_dev, auxin.max_b->on_dev, auxin.pkpm_lax->on_dev, auxin.div_b->on_dev,
-    auxin.pkpm_accel_vars->on_dev, auxin.g_dist_source->on_dev);
+  gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.bvar->on_dev,
+    auxin.bvar_surf->on_dev, auxin.pkpm_prim->on_dev, auxin.pkpm_prim_surf->on_dev,
+    auxin.max_b->on_dev, auxin.pkpm_lax->on_dev, auxin.div_b->on_dev, auxin.pkpm_accel_vars->on_dev,
+    auxin.g_dist_source->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov_pkpm kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm,
-                                                      enum gkyl_basis_type b_type, int cdim,
-                                                      int poly_order)
+__global__ static void dg_vlasov_pkpm_set_cu_dev_ptrs(
+  struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   vlasov_pkpm->auxfields.bvar = 0;
   vlasov_pkpm->auxfields.bvar_surf = 0;
@@ -108,9 +107,8 @@ __global__ static void dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vla
 }
 
 struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                   const struct gkyl_basis *pbasis,
-                                                   const struct gkyl_range *conf_range,
-                                                   const struct gkyl_range *phase_range)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm =
     (struct dg_vlasov_pkpm *)gkyl_malloc(sizeof(struct dg_vlasov_pkpm));

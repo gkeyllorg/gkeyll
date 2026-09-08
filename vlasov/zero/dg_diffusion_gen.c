@@ -26,8 +26,8 @@ void gkyl_diffusion_gen_free(const struct gkyl_ref_count *ref)
   gkyl_free(diffusion_gen);
 }
 
-void gkyl_diffusion_gen_set_auxfields(const struct gkyl_dg_eqn *eqn,
-                                      struct gkyl_dg_diffusion_gen_auxfields auxin)
+void gkyl_diffusion_gen_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.Dij)) {
@@ -40,8 +40,8 @@ void gkyl_diffusion_gen_set_auxfields(const struct gkyl_dg_eqn *eqn,
   diffusion_gen->auxfields.Dij = auxin.Dij;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(const struct gkyl_basis *cbasis,
-                                              const struct gkyl_range *conf_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -119,8 +119,8 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(const struct gkyl_basis *cbasis,
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                     const struct gkyl_range *conf_range)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range)
 {
   assert(false);
   return 0;

@@ -64,8 +64,8 @@ void train_ann(struct train_inp *nn_inp, const char *nn_name)
   float frac_val = 0.1f; // fraction of samples to use for validation
 
   // run training
-  kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals,
-                  out->vals);
+  kann_train_fnn1(
+    ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals, out->vals);
   kann_save(nn_name, ann); // save to file
 
   gkyl_kn_vec_release(inp);

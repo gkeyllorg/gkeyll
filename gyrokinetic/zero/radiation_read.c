@@ -42,8 +42,8 @@ struct all_radiation_states *gkyl_radiation_read_rad_fit_params()
   /* allocate pointers for each species. Unphysical states of charge_state>atomic_number
    * are allocated but not used for simplicity 
    */
-  rad_data->all_states = (struct radiating_state *)malloc(max_atomic_number * max_charge_state *
-                                                          sizeof(struct radiating_state));
+  rad_data->all_states = (struct radiating_state *)malloc(
+    max_atomic_number * max_charge_state * sizeof(struct radiating_state));
   for (int i = 0; i < max_atomic_number; i++) {
     for (int j = 0; j < max_charge_state; j++) {
       rad_data->all_states[i * max_charge_state + j].atomic_number = i + 1;
@@ -86,11 +86,11 @@ struct all_radiation_states *gkyl_radiation_read_rad_fit_params()
             ne[0] = 0;
           } else {
             sscanf(buf, "%lf%lf%lf%lf%lf%lf%d", &ne[0], &rad_data->all_states[index].rad_fits[k].A,
-                   &rad_data->all_states[index].rad_fits[k].alpha,
-                   &rad_data->all_states[index].rad_fits[k].beta,
-                   &rad_data->all_states[index].rad_fits[k].V0,
-                   &rad_data->all_states[index].rad_fits[k].gamma,
-                   &rad_data->all_states[index].rad_fits[k].te_intervals);
+              &rad_data->all_states[index].rad_fits[k].alpha,
+              &rad_data->all_states[index].rad_fits[k].beta,
+              &rad_data->all_states[index].rad_fits[k].V0,
+              &rad_data->all_states[index].rad_fits[k].gamma,
+              &rad_data->all_states[index].rad_fits[k].te_intervals);
             int te_intervals = rad_data->all_states[index].rad_fits[k].te_intervals;
             rad_data->all_states[index].rad_fits[k].te =
               (double *)malloc(te_intervals * sizeof(double));
@@ -121,24 +121,23 @@ struct all_radiation_states *gkyl_radiation_read_rad_fit_params()
 }
 
 int gkyl_radiation_read_get_num_densities(const struct all_radiation_states rad_data, int atomic_z,
-                                          int charge_state, double min_ne, double max_ne,
-                                          int *num_densities)
+  int charge_state, double min_ne, double max_ne, int *num_densities)
 {
   atomic_z = atomic_z - 1;
   int index = atomic_z * rad_data.max_atomic_number + charge_state;
   if (rad_data.all_states[index].number_of_densities < num_densities[0])
     printf("\nWarning! More densities selected for element %d, charge state %d than available. "
            "Setting to max available.\n",
-           atomic_z + 1, charge_state);
+      atomic_z + 1, charge_state);
   if (!rad_data.all_states[index].state_exists)
     return 1;
   if (!(num_densities[0] == 1 || rad_data.all_states[index].number_of_densities == 1)) {
     int count = 0;
     num_densities[0] = fmin(num_densities[0], rad_data.all_states[index].number_of_densities);
-    int idxmin = gkyl_radiation_read_find_nearest_idx(rad_data.all_states[index].electron_densities,
-                                                      log10(min_ne));
-    int idxmax = gkyl_radiation_read_find_nearest_idx(rad_data.all_states[index].electron_densities,
-                                                      log10(max_ne));
+    int idxmin = gkyl_radiation_read_find_nearest_idx(
+      rad_data.all_states[index].electron_densities, log10(min_ne));
+    int idxmax = gkyl_radiation_read_find_nearest_idx(
+      rad_data.all_states[index].electron_densities, log10(max_ne));
     int increment = fmax((int)((idxmax - idxmin) / (num_densities[0] - 1) + 0.5), 1);
     for (int i = idxmin; i <= idxmax && count < num_densities[0]; i = i + increment) {
       count = count + 1;
@@ -149,10 +148,9 @@ int gkyl_radiation_read_get_num_densities(const struct all_radiation_states rad_
 }
 
 int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_data, int atomic_z,
-                                       int charge_state, double *a, double *alpha, double *beta,
-                                       double *gamma, double *V0, int *num_densities,
-                                       double electron_densities[GKYL_MAX_RAD_DENSITIES],
-                                       double ref_dens, double min_ne, double max_ne)
+  int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0,
+  int *num_densities, double electron_densities[GKYL_MAX_RAD_DENSITIES], double ref_dens,
+  double min_ne, double max_ne)
 {
   double log_ref_dens = log10(ref_dens);
   atomic_z = atomic_z - 1;
@@ -174,10 +172,10 @@ int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_dat
   } else {
     int count = 0;
     num_densities[0] = fmin(num_densities[0], rad_data.all_states[index].number_of_densities);
-    int idxmin = gkyl_radiation_read_find_nearest_idx(rad_data.all_states[index].electron_densities,
-                                                      log10(min_ne));
-    int idxmax = gkyl_radiation_read_find_nearest_idx(rad_data.all_states[index].electron_densities,
-                                                      log10(max_ne));
+    int idxmin = gkyl_radiation_read_find_nearest_idx(
+      rad_data.all_states[index].electron_densities, log10(min_ne));
+    int idxmax = gkyl_radiation_read_find_nearest_idx(
+      rad_data.all_states[index].electron_densities, log10(max_ne));
     int increment = fmax((int)((idxmax - idxmin) / (num_densities[0] - 1) + 0.5), 1);
     for (int i = idxmin; i <= idxmax && count < num_densities[0]; i = i + increment) {
       a[count] = rad_data.all_states[index].rad_fits[i].A;
@@ -195,7 +193,7 @@ int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_dat
 }
 
 int gkyl_radiation_read_get_fit_lz(const struct all_radiation_states rad_data, int atomic_z,
-                                   int charge_state, double ne, double *te, double *Lz)
+  int charge_state, double ne, double *te, double *Lz)
 {
   atomic_z = atomic_z - 1;
   int index = atomic_z * rad_data.max_atomic_number + charge_state;

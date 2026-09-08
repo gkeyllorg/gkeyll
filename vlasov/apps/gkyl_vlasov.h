@@ -421,8 +421,8 @@ void gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app *app, int sidx, doub
  * @param app App object
  * @param fname file to read
  */
-struct gkyl_app_restart_status gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app,
-                                                               const char *fname);
+struct gkyl_app_restart_status gkyl_vlasov_app_from_file_field(
+  gkyl_vlasov_app *app, const char *fname);
 
 /**
  * Initialize Vlasov species from file
@@ -431,8 +431,8 @@ struct gkyl_app_restart_status gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
-                                                                 const char *fname);
+struct gkyl_app_restart_status gkyl_vlasov_app_from_file_species(
+  gkyl_vlasov_app *app, int sidx, const char *fname);
 
 /**
  * Initialize fluid species from file
@@ -441,8 +441,8 @@ struct gkyl_app_restart_status gkyl_vlasov_app_from_file_species(gkyl_vlasov_app
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app,
-                                                                       int sidx, const char *fname);
+struct gkyl_app_restart_status gkyl_vlasov_app_from_file_fluid_species(
+  gkyl_vlasov_app *app, int sidx, const char *fname);
 
 /**
  * Initialize field from frame
@@ -459,8 +459,8 @@ struct gkyl_app_restart_status gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app 
  * @param sidx gk species index
  * @param frame frame to read
  */
-struct gkyl_app_restart_status gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx,
-                                                                  int frame);
+struct gkyl_app_restart_status gkyl_vlasov_app_from_frame_species(
+  gkyl_vlasov_app *app, int sidx, int frame);
 
 /**
  * Initialize fluid species from frame
@@ -469,8 +469,8 @@ struct gkyl_app_restart_status gkyl_vlasov_app_from_frame_species(gkyl_vlasov_ap
  * @param sidx gk species index
  * @param frame frame to read
  */
-struct gkyl_app_restart_status gkyl_vlasov_app_from_frame_fluid_species(gkyl_vlasov_app *app,
-                                                                        int sidx, int frame);
+struct gkyl_app_restart_status gkyl_vlasov_app_from_frame_fluid_species(
+  gkyl_vlasov_app *app, int sidx, int frame);
 
 /**
  * Initialize the Vlasov app from a specific frame.

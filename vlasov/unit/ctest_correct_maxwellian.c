@@ -149,49 +149,49 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // projection updater to compute LTE distribution
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = { .phase_grid = &grid,
-                                                       .vel_grid = &vel_grid,
-                                                       .conf_basis = &confBasis,
-                                                       .vel_basis = &velBasis,
-                                                       .phase_basis = &basis,
-                                                       .conf_range = &confLocal,
-                                                       .conf_range_ext = &confLocal_ext,
-                                                       .vel_range = &velLocal,
-                                                       .phase_range = &local,
-                                                       .model_id = GKYL_MODEL_DEFAULT,
-                                                       .mass = 1.0,
-                                                       .use_gpu = false };
+    .vel_grid = &vel_grid,
+    .conf_basis = &confBasis,
+    .vel_basis = &velBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .phase_range = &local,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .mass = 1.0,
+    .use_gpu = false };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // Compute the moments of our corrected distribution function
   struct gkyl_vlasov_lte_moments_inp inp_mom = { .phase_grid = &grid,
-                                                 .vel_grid = &vel_grid,
-                                                 .conf_basis = &confBasis,
-                                                 .vel_basis = &velBasis,
-                                                 .phase_basis = &basis,
-                                                 .conf_range = &confLocal,
-                                                 .conf_range_ext = &confLocal_ext,
-                                                 .vel_range = &velLocal,
-                                                 .phase_range = &local,
-                                                 .model_id = GKYL_MODEL_DEFAULT,
-                                                 .mass = 1.0,
-                                                 .use_gpu = false };
+    .vel_grid = &vel_grid,
+    .conf_basis = &confBasis,
+    .vel_basis = &velBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .phase_range = &local,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .mass = 1.0,
+    .use_gpu = false };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
 
   // correction updater
   struct gkyl_vlasov_lte_correct_inp inp = { .phase_grid = &grid,
-                                             .vel_grid = &vel_grid,
-                                             .conf_basis = &confBasis,
-                                             .vel_basis = &velBasis,
-                                             .phase_basis = &basis,
-                                             .conf_range = &confLocal,
-                                             .conf_range_ext = &confLocal_ext,
-                                             .vel_range = &velLocal,
-                                             .phase_range = &local,
-                                             .model_id = GKYL_MODEL_DEFAULT,
-                                             .use_gpu = false,
-                                             .max_iter = 100,
-                                             .eps = 1e-12 };
+    .vel_grid = &vel_grid,
+    .conf_basis = &confBasis,
+    .vel_basis = &velBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .phase_range = &local,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .use_gpu = false,
+    .max_iter = 100,
+    .eps = 1e-12 };
   gkyl_vlasov_lte_correct *corr_lte = gkyl_vlasov_lte_correct_inew(&inp);
 
   // write distribution function to file
@@ -207,8 +207,8 @@ void test_1x1v(int poly_order, bool use_gpu)
   m2_n_corr_only = mkarr(confBasis.num_basis, confLocal_ext.volume);
   gkyl_array_set_offset_range(m0_n_corr_only, 1.0, moms, 0 * confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i_n_corr_only, 1.0, moms, 1 * confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(m2_n_corr_only, 1.0, moms, (vdim + 1) * confBasis.num_basis,
-                              &confLocal);
+  gkyl_array_set_offset_range(
+    m2_n_corr_only, 1.0, moms, (vdim + 1) * confBasis.num_basis, &confLocal);
 
   struct gkyl_vlasov_lte_correct_status stat_corr =
     gkyl_vlasov_lte_correct_all_moments(corr_lte, distf, moms, &local, &confLocal);
@@ -287,5 +287,4 @@ void test_correct_maxwellian_1x1v_p2_ho()
 }
 
 TEST_LIST = { { "test_correct_maxwellian_1x1v_p1_ho", test_correct_maxwellian_1x1v_p1_ho },
-              { "test_correct_maxwellian_1x1v_p2_ho", test_correct_maxwellian_1x1v_p2_ho },
-              { NULL, NULL } };
+  { "test_correct_maxwellian_1x1v_p2_ho", test_correct_maxwellian_1x1v_p2_ho }, { NULL, NULL } };

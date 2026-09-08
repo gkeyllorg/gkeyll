@@ -15,9 +15,8 @@ typedef struct bc_block_tensor bc_block_tensor;
  * @param use_gpu whether or not to use a gpu
  */
 struct bc_block_tensor *gkyl_bc_block_tensor_new(const struct gkyl_rect_grid *grid,
-                                                 const struct gkyl_range *range,
-                                                 const struct gkyl_range *range_ext,
-                                                 const struct gkyl_basis *basis, bool use_gpu);
+  const struct gkyl_range *range, const struct gkyl_range *range_ext,
+  const struct gkyl_basis *basis, bool use_gpu);
 
 /**
  * Take in modal expansions of duals of one block and tangents of the other (cartesian components)
@@ -32,7 +31,7 @@ struct bc_block_tensor *gkyl_bc_block_tensor_new(const struct gkyl_rect_grid *gr
  * @param e_i tangent vectors of block which fluxes leave
  */
 void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, const double *ej,
-                 const double *e_i, double *tj_i);
+  const double *e_i, double *tj_i);
 
 /**
  * Take in modal expansions of duals of one block and tangents of the other (cartesian components)
@@ -44,8 +43,8 @@ void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, cons
  * @param e_i tangent vectors of block which fluxes leave
  */
 void gkyl_bc_block_tensor_advance(struct bc_block_tensor *up, int dir, int edge1, int edge2,
-                                  struct gkyl_array *dxdz1, struct gkyl_array *dzdx2,
-                                  struct gkyl_range *range1, struct gkyl_range *range2);
+  struct gkyl_array *dxdz1, struct gkyl_array *dzdx2, struct gkyl_range *range1,
+  struct gkyl_range *range2);
 
 /**
  * Free the bc_block_tensor updater

@@ -65,28 +65,28 @@ struct amr_gr_mild_shock_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct amr_gr_mild_shock_ctx ctx = { .gas_gamma = gas_gamma,
-                                       .rhol = rhol,
-                                       .ul = ul,
-                                       .pl = pl,
-                                       .rhor = rhor,
-                                       .ur = ur,
-                                       .pr = pr,
-                                       .spacetime = spacetime,
-                                       .Nx = Nx,
-                                       .ref_factor = ref_factor,
-                                       .Lx = Lx,
-                                       .fine_Lx = fine_Lx,
-                                       .cfl_frac = cfl_frac,
-                                       .t_end = t_end,
-                                       .num_frames = num_frames,
-                                       .dt_failure_tol = dt_failure_tol,
-                                       .num_failures_max = num_failures_max };
+    .rhol = rhol,
+    .ul = ul,
+    .pl = pl,
+    .rhor = rhor,
+    .ur = ur,
+    .pr = pr,
+    .spacetime = spacetime,
+    .Nx = Nx,
+    .ref_factor = ref_factor,
+    .Lx = Lx,
+    .fine_Lx = fine_Lx,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                     void *ctx)
+void evalGREulerInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct amr_gr_mild_shock_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -226,27 +226,27 @@ int main(int argc, char **argv)
   struct amr_gr_mild_shock_ctx ctx = create_ctx(); // Context for initialization functions.
 
   struct gr_euler1d_single_init init = { .base_Nx = ctx.Nx,
-                                         .ref_factor = ctx.ref_factor,
+    .ref_factor = ctx.ref_factor,
 
-                                         .coarse_x1 = 0.0,
-                                         .coarse_x2 = ctx.Lx,
+    .coarse_x1 = 0.0,
+    .coarse_x2 = ctx.Lx,
 
-                                         .refined_x1 = (0.75 * ctx.Lx) - (0.5 * ctx.fine_Lx),
-                                         .refined_x2 = (0.75 * ctx.Lx) + (0.5 * ctx.fine_Lx),
+    .refined_x1 = (0.75 * ctx.Lx) - (0.5 * ctx.fine_Lx),
+    .refined_x2 = (0.75 * ctx.Lx) + (0.5 * ctx.fine_Lx),
 
-                                         .eval = evalGREulerInit,
-                                         .gas_gamma = ctx.gas_gamma,
-                                         .spacetime = ctx.spacetime,
+    .eval = evalGREulerInit,
+    .gas_gamma = ctx.gas_gamma,
+    .spacetime = ctx.spacetime,
 
-                                         .gr_euler_output = "amr_gr_mild_shock_l1",
+    .gr_euler_output = "amr_gr_mild_shock_l1",
 
-                                         .low_order_flux = true,
-                                         .cfl_frac = ctx.cfl_frac,
+    .low_order_flux = true,
+    .cfl_frac = ctx.cfl_frac,
 
-                                         .t_end = ctx.t_end,
-                                         .num_frames = ctx.num_frames,
-                                         .dt_failure_tol = ctx.dt_failure_tol,
-                                         .num_failures_max = ctx.num_failures_max };
+    .t_end = ctx.t_end,
+    .num_frames = ctx.num_frames,
+    .dt_failure_tol = ctx.dt_failure_tol,
+    .num_failures_max = ctx.num_failures_max };
 
   gr_euler1d_run_single(argc, argv, &init);
 }

@@ -96,8 +96,8 @@ void evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
   fout[0] = app->nuIon;
 }
 
-void eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void eval_density_ion(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   fout[0] = 1e17;
@@ -115,8 +115,8 @@ void eval_temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[0] = app->Ti0;
 }
 
-void eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                             void *ctx)
+void eval_density_ion_source(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xn[0];
@@ -135,14 +135,14 @@ void eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *G
   }
 }
 
-void eval_upar_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                          void *ctx)
+void eval_upar_ion_source(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                          void *ctx)
+void eval_temp_ion_source(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xn[0];
@@ -299,48 +299,48 @@ struct gk_mirror_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_mirror_ctx ctx = { .cdim = cdim,
-                               .vdim = vdim,
-                               .mi = mi,
-                               .qi = qi,
-                               .me = me,
-                               .qe = qe,
-                               .Te0 = Te0,
-                               .n0 = n0,
-                               .B_p = B_p,
-                               .beta = beta,
-                               .tau = tau,
-                               .Ti0 = Ti0,
-                               .nuFrac = nuFrac,
-                               .logLambdaIon = logLambdaIon,
-                               .nuIon = nuIon,
-                               .vti = vti,
-                               .c_s = c_s,
-                               .omega_ci = omega_ci,
-                               .rho_s = rho_s,
-                               .z_min = z_min,
-                               .z_max = z_max,
-                               .psi_min = psi_min,
-                               .psi_eval = psi_eval,
-                               .psi_max = psi_max,
-                               .vpar_max_ion = vpar_max_ion,
-                               .mu_max_ion = mu_max_ion,
-                               .Nz = Nz,
-                               .Nvpar = Nvpar,
-                               .Nmu = Nmu,
-                               .cells = { Nz, Nvpar, Nmu },
-                               .poly_order = poly_order,
-                               .write_phase_freq = write_phase_freq,
-                               .int_diag_calc_freq = int_diag_calc_freq,
-                               .dt_failure_tol = dt_failure_tol,
-                               .num_failures_max = num_failures_max,
-                               .ion_source_amplitude = ion_source_amplitude,
-                               .ion_source_sigma = ion_source_sigma,
-                               .ion_source_temp = ion_source_temp,
-                               // POA parameters
-                               .t_end = t_end,
-                               .num_frames = num_frames,
-                               .num_phases = num_phases,
-                               .poa_phases = poa_phases };
+    .vdim = vdim,
+    .mi = mi,
+    .qi = qi,
+    .me = me,
+    .qe = qe,
+    .Te0 = Te0,
+    .n0 = n0,
+    .B_p = B_p,
+    .beta = beta,
+    .tau = tau,
+    .Ti0 = Ti0,
+    .nuFrac = nuFrac,
+    .logLambdaIon = logLambdaIon,
+    .nuIon = nuIon,
+    .vti = vti,
+    .c_s = c_s,
+    .omega_ci = omega_ci,
+    .rho_s = rho_s,
+    .z_min = z_min,
+    .z_max = z_max,
+    .psi_min = psi_min,
+    .psi_eval = psi_eval,
+    .psi_max = psi_max,
+    .vpar_max_ion = vpar_max_ion,
+    .mu_max_ion = mu_max_ion,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = { Nz, Nvpar, Nmu },
+    .poly_order = poly_order,
+    .write_phase_freq = write_phase_freq,
+    .int_diag_calc_freq = int_diag_calc_freq,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
+    .ion_source_amplitude = ion_source_amplitude,
+    .ion_source_sigma = ion_source_sigma,
+    .ion_source_temp = ion_source_temp,
+    // POA parameters
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .num_phases = num_phases,
+    .poa_phases = poa_phases };
 
   return ctx;
 }
@@ -350,8 +350,8 @@ void release_ctx(struct gk_mirror_ctx *ctx)
   gkyl_free(ctx->poa_phases);
 }
 
-void calc_integrated_diagnostics(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app,
-                                 double t_curr, bool force_calc, double dt)
+void calc_integrated_diagnostics(
+  struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double t_curr, bool force_calc, double dt)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
@@ -362,7 +362,7 @@ void calc_integrated_diagnostics(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_a
 }
 
 void write_data(struct gkyl_tm_trigger *iot_conf, struct gkyl_tm_trigger *iot_phase,
-                gkyl_gyrokinetic_app *app, double t_curr, bool force_write)
+  gkyl_gyrokinetic_app *app, double t_curr, bool force_write)
 {
   bool trig_now_conf = gkyl_tm_trigger_check_and_bump(iot_conf, t_curr);
   if (trig_now_conf || force_write) {
@@ -387,9 +387,8 @@ struct time_frame_state {
 };
 
 void reset_io_triggers(struct gk_mirror_ctx *ctx, struct time_frame_state *tfs,
-                       struct gkyl_tm_trigger *trig_write_conf,
-                       struct gkyl_tm_trigger *trig_write_phase,
-                       struct gkyl_tm_trigger *trig_calc_intdiag)
+  struct gkyl_tm_trigger *trig_write_conf, struct gkyl_tm_trigger *trig_write_phase,
+  struct gkyl_tm_trigger *trig_calc_intdiag)
 {
   // Reset I/O triggers:
   double t_curr = tfs->t_curr;
@@ -418,9 +417,9 @@ void reset_io_triggers(struct gk_mirror_ctx *ctx, struct time_frame_state *tfs,
 }
 
 void run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_steps,
-               struct gkyl_tm_trigger *trig_write_conf, struct gkyl_tm_trigger *trig_write_phase,
-               struct gkyl_tm_trigger *trig_calc_intdiag, struct time_frame_state *tfs,
-               struct gk_poa_phase_params *pparams)
+  struct gkyl_tm_trigger *trig_write_conf, struct gkyl_tm_trigger *trig_write_phase,
+  struct gkyl_tm_trigger *trig_calc_intdiag, struct time_frame_state *tfs,
+  struct gk_poa_phase_params *pparams)
 {
   tfs->t_end = tfs->t_curr + pparams->duration;
   tfs->num_frames = tfs->frame_curr + pparams->num_frames;
@@ -434,18 +433,16 @@ void run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_
 
   // Reset simulation parameters and function pointers.
   struct gkyl_gyrokinetic_collisionless collisionless_inp = { .type = GKYL_GK_COLLISIONLESS_ES,
-                                                              .scale_factor = pparams->alpha };
+    .scale_factor = pparams->alpha };
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult = { .num_multipliers = 1,
-                                                        .multiplier[0] = {
-                                                          .type = pparams->fdot_mult_type,
-                                                          .cellwise_const = true,
-                                                          .write_diagnostics = true } };
+    .multiplier[0] = {
+      .type = pparams->fdot_mult_type, .cellwise_const = true, .write_diagnostics = true } };
   struct gkyl_gyrokinetic_field reset_field = { .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
-                                                .electron_mass = ctx->me,
-                                                .electron_charge = ctx->qe,
-                                                .electron_temp = ctx->Te0,
-                                                .polarization_bmag = ctx->B_p,
-                                                .is_static = pparams->is_static_field };
+    .electron_mass = ctx->me,
+    .electron_charge = ctx->qe,
+    .electron_temp = ctx->Te0,
+    .polarization_bmag = ctx->B_p,
+    .is_static = pparams->is_static_field };
   struct gkyl_gyrokinetic_positivity positivity_inp = {
     .type = pparams->is_positivity_enabled ? GKYL_GK_POSITIVITY_SHIFT : GKYL_GK_POSITIVITY_NONE,
     .write_diagnostics = pparams->is_positivity_enabled
@@ -491,10 +488,10 @@ void run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_
       gkyl_gyrokinetic_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
       gkyl_gyrokinetic_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
-        gkyl_gyrokinetic_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ",
-                                  dt_failure_tol);
-        gkyl_gyrokinetic_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                                  num_failures_max);
+        gkyl_gyrokinetic_app_cout(
+          app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_gyrokinetic_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         calc_integrated_diagnostics(trig_calc_intdiag, app, t_curr, true, status.dt_actual);
         write_data(trig_write_conf, trig_write_phase, app, t_curr, true);
         break;
@@ -602,11 +599,11 @@ int main(int argc, char **argv)
       .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP}}};
 
   struct gkyl_gyrokinetic_field field = { .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
-                                          .electron_mass = ctx.me,
-                                          .electron_charge = ctx.qe,
-                                          .electron_temp = ctx.Te0,
-                                          .polarization_bmag = ctx.B_p,
-                                          .is_static = false };
+    .electron_mass = ctx.me,
+    .electron_charge = ctx.qe,
+    .electron_temp = ctx.Te0,
+    .polarization_bmag = ctx.B_p,
+    .is_static = false };
 
   struct gkyl_mirror_geo_grid_inp grid_inp = {
     .filename_psi = "gyrokinetic/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
@@ -617,8 +614,7 @@ int main(int argc, char **argv)
     .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z // coordinate system for psi grid
   };
 
-  struct gkyl_gk app_inp = {
-    // GK app
+  struct gkyl_gk app_inp = { // GK app
     .name = "gk_wham_poa_1x2v_p1",
     .cdim = ctx.cdim,
     .lower = { ctx.z_min },
@@ -628,8 +624,8 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = { .geometry_id = GKYL_GEOMETRY_MIRROR,
-                  .world = { ctx.psi_eval, 0.0 },
-                  .mirror_grid_info = grid_inp },
+      .world = { ctx.psi_eval, 0.0 },
+      .mirror_grid_info = grid_inp },
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
@@ -664,7 +660,7 @@ int main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-                                gkyl_array_rio_status_msg(status.io_status));
+        gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
@@ -710,7 +706,7 @@ int main(int argc, char **argv)
   for (int pit = phase_idx_init; pit < phase_idx_end; pit++) {
     struct gk_poa_phase_params *phase_params = &ctx.poa_phases[pit];
     run_phase(app, &ctx, app_args.num_steps, &trig_write_conf, &trig_write_phase,
-              &trig_calc_intdiag, &tfs, phase_params);
+      &trig_calc_intdiag, &tfs, phase_params);
   }
 
   gkyl_gyrokinetic_app_stat_write(app);
@@ -721,10 +717,10 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_gyrokinetic_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n",
-                              stat.stage_2_dt_diff[1]);
-    gkyl_gyrokinetic_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n",
-                              stat.stage_2_dt_diff[0]);
+    gkyl_gyrokinetic_app_cout(
+      app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_gyrokinetic_app_cout(
+      app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);

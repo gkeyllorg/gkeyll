@@ -27,19 +27,17 @@ void gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
   gkyl_free(mom_gk);
 }
 
-struct gkyl_mom_type *
-gkyl_mom_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-                         const struct gkyl_range *conf_range, double mass, double charge,
-                         const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
-                         struct gkyl_array *phi, enum gkyl_distribution_moments mom_type,
-                         bool use_gpu)
+struct gkyl_mom_type *gkyl_mom_gyrokinetic_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, double mass, double charge,
+  const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
+  struct gkyl_array *phi, enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, charge, vel_map,
-                                           gk_geom, phi, mom_type);
+    return gkyl_mom_gyrokinetic_cu_dev_new(
+      cbasis, pbasis, conf_range, mass, charge, vel_map, gk_geom, phi, mom_type);
 #endif
 
   struct mom_type_gyrokinetic *mom_gk = gkyl_malloc(sizeof(struct mom_type_gyrokinetic));
@@ -164,19 +162,17 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basi
   return &mom_gk->momt;
 }
 
-struct gkyl_mom_type *
-gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-                             const struct gkyl_range *conf_range, double mass, double charge,
-                             const struct gkyl_velocity_map *vel_map,
-                             const struct gk_geometry *gk_geom, struct gkyl_array *phi,
-                             enum gkyl_distribution_moments mom_type, bool use_gpu)
+struct gkyl_mom_type *gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, double mass, double charge,
+  const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
+  struct gkyl_array *phi, enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_int_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, charge, vel_map,
-                                               gk_geom, phi, mom_type);
+    return gkyl_int_mom_gyrokinetic_cu_dev_new(
+      cbasis, pbasis, conf_range, mass, charge, vel_map, gk_geom, phi, mom_type);
 #endif
 
   struct mom_type_gyrokinetic *mom_gk = gkyl_malloc(sizeof(struct mom_type_gyrokinetic));

@@ -20,13 +20,13 @@ void gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Initialize the weight in the Laplacian operator.
   f->flr_rhoSq_sum =
     mkarr(app->use_gpu, (2 * (app->cdim - 1) - 1) * app->basis.num_basis, app->local_ext.volume);
-  gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxxj,
-                        0 * app->basis.num_basis);
+  gkyl_array_set_offset(
+    f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxxj, 0 * app->basis.num_basis);
   if (app->cdim > 2) {
-    gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxyj,
-                          1 * app->basis.num_basis);
-    gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gyyj,
-                          2 * app->basis.num_basis);
+    gkyl_array_set_offset(
+      f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxyj, 1 * app->basis.num_basis);
+    gkyl_array_set_offset(
+      f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gyyj, 2 * app->basis.num_basis);
   }
   // Initialize the factor multiplying the field in the FLR operator.
   f->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -65,8 +65,7 @@ void gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   }
   // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
   f->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis, app->local,
-                                            app->local, f->flr_rhoSq_sum, f->flr_kSq, flr_bc, NULL,
-                                            app->use_gpu);
+    app->local, f->flr_rhoSq_sum, f->flr_kSq, flr_bc, NULL, app->use_gpu);
 }
 
 void gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
@@ -74,8 +73,8 @@ void gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, stru
   gkyl_deflated_fem_poisson_advance(field->flr_op, phi, phi, phi);
 }
 
-void gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
-                              struct gkyl_array *phi)
+void gk_field_invert_flr_none(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
 {
 }
 

@@ -2,9 +2,8 @@
 #include <math.h>
 #include <gkyl_alloc.h>
 
-struct gkyl_emission_elastic_model *
-gkyl_emission_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat, double E_hat,
-                                      double W, double p, bool use_gpu)
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_furman_pivi_new(
+  double charge, double P1_inf, double P1_hat, double E_hat, double W, double p, bool use_gpu)
 {
   struct gkyl_emission_elastic_furman_pivi *model =
     gkyl_malloc(sizeof(struct gkyl_emission_elastic_furman_pivi));
@@ -22,8 +21,8 @@ gkyl_emission_elastic_furman_pivi_new(double charge, double P1_inf, double P1_ha
   return &model->elastic;
 }
 
-struct gkyl_emission_elastic_model *gkyl_emission_elastic_cazaux_new(double charge, double E_f,
-                                                                     double phi, bool use_gpu)
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_cazaux_new(
+  double charge, double E_f, double phi, bool use_gpu)
 {
   struct gkyl_emission_elastic_cazaux *model =
     gkyl_malloc(sizeof(struct gkyl_emission_elastic_cazaux));
@@ -38,8 +37,8 @@ struct gkyl_emission_elastic_model *gkyl_emission_elastic_cazaux_new(double char
   return &model->elastic;
 }
 
-struct gkyl_emission_elastic_model *gkyl_emission_elastic_constant_new(double charge, double delta,
-                                                                       bool use_gpu)
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_constant_new(
+  double charge, double delta, bool use_gpu)
 {
   struct gkyl_emission_elastic_constant *model =
     gkyl_malloc(sizeof(struct gkyl_emission_elastic_constant));
@@ -53,8 +52,8 @@ struct gkyl_emission_elastic_model *gkyl_emission_elastic_constant_new(double ch
   return &model->elastic;
 }
 
-struct gkyl_emission_elastic_model *
-gkyl_emission_elastic_model_acquire(const struct gkyl_emission_elastic_model *model)
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_model_acquire(
+  const struct gkyl_emission_elastic_model *model)
 {
   gkyl_ref_count_inc(&model->ref_count);
   return (struct gkyl_emission_elastic_model *)model;

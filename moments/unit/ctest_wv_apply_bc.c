@@ -27,7 +27,7 @@ static void rtheta_map(double t, const double *xc, double *xp, void *ctx)
 }
 
 static void bc_copy(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-                    double *restrict ghost, void *ctx)
+  double *restrict ghost, void *ctx)
 {
   for (int c = 0; c < nc; ++c)
     ghost[c] = skin[c];
@@ -287,16 +287,16 @@ struct skin_ghost_ranges {
 };
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr, const struct gkyl_range *parent,
-                                   const int *ghost)
+static void skin_ghost_ranges_init(
+  struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost)
 {
   int ndim = parent->ndim;
 
   for (int d = 0; d < ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent,
-                           ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent, ghost);
   }
 }
 
@@ -416,7 +416,5 @@ void test_apply_bc_buff_rtheta_ho()
 }
 
 TEST_LIST = { { "test_apply_bc_1_ho", test_apply_bc_1_ho },
-              { "test_apply_bc_2_ho", test_apply_bc_2_ho },
-              { "test_apply_bc_3_ho", test_apply_bc_3_ho },
-              { "test_apply_bc_buff_rtheta_ho", test_apply_bc_buff_rtheta_ho },
-              { NULL, NULL } };
+  { "test_apply_bc_2_ho", test_apply_bc_2_ho }, { "test_apply_bc_3_ho", test_apply_bc_3_ho },
+  { "test_apply_bc_buff_rtheta_ho", test_apply_bc_buff_rtheta_ho }, { NULL, NULL } };

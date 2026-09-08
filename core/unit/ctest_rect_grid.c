@@ -234,12 +234,10 @@ void test_grid_2d_dev()
 
 #endif
 
-TEST_LIST = { { "grid_2d_ho", test_grid_2d_ho },
-              { "grid_find_cell_1d_ho", test_find_cell_1d_ho },
-              { "grid_find_cell_2d_ho", test_find_cell_2d_ho },
-              { "grid_find_cell_3d_ho", test_find_cell_3d_ho },
-              { "grid_io_ho", test_grid_io_ho },
+TEST_LIST = { { "grid_2d_ho", test_grid_2d_ho }, { "grid_find_cell_1d_ho", test_find_cell_1d_ho },
+  { "grid_find_cell_2d_ho", test_find_cell_2d_ho },
+  { "grid_find_cell_3d_ho", test_find_cell_3d_ho }, { "grid_io_ho", test_grid_io_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "grid_2d_dev", test_grid_2d_dev },
+  { "grid_2d_dev", test_grid_2d_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

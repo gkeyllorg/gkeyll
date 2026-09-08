@@ -32,16 +32,16 @@ struct skin_ghost_ranges {
 };
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr, const struct gkyl_range *parent,
-                                   const int *ghost)
+static void skin_ghost_ranges_init(
+  struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost)
 {
   int ndim = parent->ndim;
 
   for (int d = 0; d < ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent,
-                           ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent, ghost);
   }
 }
 
@@ -240,11 +240,9 @@ void test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_array *prim_moms_cross_i =
     mkarr(3 * confBasis.num_basis, confLocal_ext.volume, use_gpu);
   gkyl_gyrokinetic_cross_prim_moms_bgk_advance(crossPrimMomsCalc, &confLocal, delta_sr,
-                                               betaGreenep1, me, prim_moms_e, mi, prim_moms_i,
-                                               prim_moms_cross_e);
+    betaGreenep1, me, prim_moms_e, mi, prim_moms_i, prim_moms_cross_e);
   gkyl_gyrokinetic_cross_prim_moms_bgk_advance(crossPrimMomsCalc, &confLocal, delta_sr,
-                                               betaGreenep1, mi, prim_moms_i, me, prim_moms_e,
-                                               prim_moms_cross_i);
+    betaGreenep1, mi, prim_moms_i, me, prim_moms_e, prim_moms_cross_i);
   gkyl_gyrokinetic_cross_prim_moms_bgk_release(crossPrimMomsCalc);
 
   // Write out on host
@@ -260,20 +258,20 @@ void test_1x1v(int poly_order, bool use_gpu)
     const double *primMomsCross_i = gkyl_array_cfetch(prim_moms_cross_i, linidx);
     TEST_CHECK(
       gkyl_compare(1.0e19, primMomsCross_e[0 * confBasis.num_basis] / sqrt(2), 1e-12 * 1.0e19));
-    TEST_CHECK(gkyl_compare(1.16391130e4, primMomsCross_e[1 * confBasis.num_basis] / sqrt(2),
-                            1e-12 * 1.16391130e4));
-    TEST_CHECK(gkyl_compare(5.27398867e12, primMomsCross_e[2 * confBasis.num_basis] / sqrt(2),
-                            1e-12 * 5.27398867e12));
+    TEST_CHECK(gkyl_compare(
+      1.16391130e4, primMomsCross_e[1 * confBasis.num_basis] / sqrt(2), 1e-12 * 1.16391130e4));
+    TEST_CHECK(gkyl_compare(
+      5.27398867e12, primMomsCross_e[2 * confBasis.num_basis] / sqrt(2), 1e-12 * 5.27398867e12));
     TEST_CHECK(
       gkyl_compare(1.0e19, primMomsCross_i[0 * confBasis.num_basis] / sqrt(2), 1e-12 * 1.0e19));
-    TEST_CHECK(gkyl_compare(1.16391130e4, primMomsCross_i[1 * confBasis.num_basis] / sqrt(2),
-                            1e-12 * 1.16391130e4));
-    TEST_CHECK(gkyl_compare(2.74816328e9, primMomsCross_i[2 * confBasis.num_basis] / sqrt(2),
-                            1e-12 * 2.74816328e9));
+    TEST_CHECK(gkyl_compare(
+      1.16391130e4, primMomsCross_i[1 * confBasis.num_basis] / sqrt(2), 1e-12 * 1.16391130e4));
+    TEST_CHECK(gkyl_compare(
+      2.74816328e9, primMomsCross_i[2 * confBasis.num_basis] / sqrt(2), 1e-12 * 2.74816328e9));
     TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e",
-             primMomsCross_e[0 * confBasis.num_basis] / sqrt(2),
-             primMomsCross_e[1 * confBasis.num_basis] / sqrt(2),
-             primMomsCross_e[2 * confBasis.num_basis] / sqrt(2));
+      primMomsCross_e[0 * confBasis.num_basis] / sqrt(2),
+      primMomsCross_e[1 * confBasis.num_basis] / sqrt(2),
+      primMomsCross_e[2 * confBasis.num_basis] / sqrt(2));
   } // The hard coded numbers are expected values. The basis is looked up in maxima with: load("basis-precalc/basisSer1x"); polyOrder:1$ basis:basisC[polyOrder];
 
   // Release memory for moment data object
@@ -435,11 +433,9 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_array *prim_moms_cross_i =
     mkarr(3 * confBasis.num_basis, confLocal_ext.volume, use_gpu);
   gkyl_gyrokinetic_cross_prim_moms_bgk_advance(crossPrimMomsCalc, &confLocal, delta_sr,
-                                               betaGreenep1, me, prim_moms_e, mi, prim_moms_i,
-                                               prim_moms_cross_e);
+    betaGreenep1, me, prim_moms_e, mi, prim_moms_i, prim_moms_cross_e);
   gkyl_gyrokinetic_cross_prim_moms_bgk_advance(crossPrimMomsCalc, &confLocal, delta_sr,
-                                               betaGreenep1, mi, prim_moms_i, me, prim_moms_e,
-                                               prim_moms_cross_i);
+    betaGreenep1, mi, prim_moms_i, me, prim_moms_e, prim_moms_cross_i);
   gkyl_gyrokinetic_cross_prim_moms_bgk_release(crossPrimMomsCalc);
 
   // Write out on host
@@ -455,18 +451,18 @@ void test_1x2v(int poly_order, bool use_gpu)
     const double *primMomsCross_i = gkyl_array_cfetch(prim_moms_cross_i, linidx);
     TEST_CHECK(
       gkyl_compare(1.0e19, primMomsCross_e[0 * confBasis.num_basis] / sqrt(2), 1e-12 * 1.0e19));
-    TEST_CHECK(gkyl_compare(1.16391130e4, primMomsCross_e[1 * confBasis.num_basis] / sqrt(2),
-                            1e-12 * 1.16391130e4));
-    TEST_CHECK(gkyl_compare(5.27373215e12, primMomsCross_e[2 * confBasis.num_basis] / sqrt(2),
-                            1e-12 * 5.27373215e12));
+    TEST_CHECK(gkyl_compare(
+      1.16391130e4, primMomsCross_e[1 * confBasis.num_basis] / sqrt(2), 1e-12 * 1.16391130e4));
+    TEST_CHECK(gkyl_compare(
+      5.27373215e12, primMomsCross_e[2 * confBasis.num_basis] / sqrt(2), 1e-12 * 5.27373215e12));
     TEST_CHECK(
       gkyl_compare(1.0e19, primMomsCross_i[0 * confBasis.num_basis] / sqrt(2), 1e-12 * 1.0e19));
-    TEST_CHECK(gkyl_compare(1.16391130e4, primMomsCross_i[1 * confBasis.num_basis] / sqrt(2),
-                            1e-12 * 1.16391130e4));
-    TEST_CHECK(gkyl_compare(2.86262992e9, primMomsCross_i[2 * confBasis.num_basis] / sqrt(2),
-                            1e-12 * 2.86262992e9));
+    TEST_CHECK(gkyl_compare(
+      1.16391130e4, primMomsCross_i[1 * confBasis.num_basis] / sqrt(2), 1e-12 * 1.16391130e4));
+    TEST_CHECK(gkyl_compare(
+      2.86262992e9, primMomsCross_i[2 * confBasis.num_basis] / sqrt(2), 1e-12 * 2.86262992e9));
     TEST_MSG("Expeced: %.9e | Got: %.9e\n", 2.86262992e9,
-             primMomsCross_i[2 * confBasis.num_basis] / sqrt(2));
+      primMomsCross_i[2 * confBasis.num_basis] / sqrt(2));
   } // The hard coded numbers are expected values. The basis is looked up in maxima with: load("basis-precalc/basisSer1x"); polyOrder:1$ basis:basisC[polyOrder];
 
   // Release memory for moment data object
@@ -509,5 +505,4 @@ void test_cross_prim_moms_bgk_1x2v_p1_ho()
   test_1x2v(1, false);
 }
 TEST_LIST = { { "test_cross_prim_moms_bgk_1x1v_p1_ho", test_cross_prim_moms_bgk_1x1v_p1_ho },
-              { "test_cross_prim_moms_bgk_1x2v_p1_ho", test_cross_prim_moms_bgk_1x2v_p1_ho },
-              { NULL, NULL } };
+  { "test_cross_prim_moms_bgk_1x2v_p1_ho", test_cross_prim_moms_bgk_1x2v_p1_ho }, { NULL, NULL } };

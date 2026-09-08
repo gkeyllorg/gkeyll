@@ -4,8 +4,7 @@
 #include <assert.h>
 
 struct gkyl_array_integrate *gkyl_array_integrate_new(const struct gkyl_rect_grid *grid,
-                                                      const struct gkyl_basis *basis, int num_comp,
-                                                      enum gkyl_array_integrate_op op, bool use_gpu)
+  const struct gkyl_basis *basis, int num_comp, enum gkyl_array_integrate_op op, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -36,9 +35,8 @@ struct gkyl_array_integrate *gkyl_array_integrate_new(const struct gkyl_rect_gri
 }
 
 void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_array *fin,
-                                  double factor, const struct gkyl_array *weight,
-                                  const struct gkyl_range *range,
-                                  const struct gkyl_range *weight_range, double *out)
+  double factor, const struct gkyl_array *weight, const struct gkyl_range *range,
+  const struct gkyl_range *weight_range, double *out)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {

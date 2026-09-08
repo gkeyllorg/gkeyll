@@ -27,16 +27,16 @@ static inline double maxwellian2D(double n, double vx, double vy, double ux, dou
   return n / (2 * M_PI * vth * vth) * exp(-v2 / (2 * vth * vth));
 }
 
-void evalDistFunc1x1v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void evalDistFunc1x1v(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], vx = xn[1];
 
   fout[0] = maxwellian1D(1.0, vx, 0.0, 1.0);
 }
 
-void evalDistFunc1x2v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void evalDistFunc1x2v(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2];
 
@@ -80,22 +80,22 @@ struct skin_ghost_ranges {
 };
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr, const struct gkyl_range *parent,
-                                   const int *ghost)
+static void skin_ghost_ranges_init(
+  struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost)
 {
   int ndim = parent->ndim;
 
   for (int d = 0; d < ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent,
-                           ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent, ghost);
   }
 }
 
 void test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_check[],
-               double vf_check[], double u_check[], double vth_check[], double ucross_check[],
-               double vthcross_check[])
+  double vf_check[], double u_check[], double vth_check[], double ucross_check[],
+  double vthcross_check[])
 {
   int pdim = cdim + vdim;
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM], confLower[GKYL_MAX_DIM], confUpper[GKYL_MAX_DIM];
@@ -268,8 +268,7 @@ void test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double 
   // MF 2022/09/13: the second moms here should be cross_moms, but we pass moms
   // for simplicity in this (infrastructure) test.
   gkyl_prim_lbo_cross_calc_advance(crossprimcalc, &confLocal, greene, self_m, moms, prim_moms,
-                                   cross_m, moms, cross_prim_moms, boundary_corrections, nu,
-                                   prim_moms_out);
+    cross_m, moms, cross_prim_moms, boundary_corrections, nu, prim_moms_out);
 
   gkyl_array_set_offset(u_out, 1., prim_moms_out, 0);
   gkyl_array_set_offset(vtsq_out, 1., prim_moms_out, vdim * confBasis.num_basis);
@@ -325,8 +324,8 @@ void test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double 
 
 #ifdef GKYL_HAVE_CUDA
 void test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_check[],
-                  double vf_check[], double u_check[], double vth_check[], double ucross_check[],
-                  double vthcross_check[])
+  double vf_check[], double u_check[], double vth_check[], double ucross_check[],
+  double vthcross_check[])
 {
   int pdim = cdim + vdim;
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM], confLower[GKYL_MAX_DIM], confUpper[GKYL_MAX_DIM];
@@ -446,8 +445,8 @@ void test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, doub
   prim_moms_cu = mkarr_cu((vdim + 1) * confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_prim_lbo_calc_advance(primcalc, &confLocal, moms_cu, boundary_corrections_cu, nu_cu,
-                             prim_moms_cu);
+  gkyl_prim_lbo_calc_advance(
+    primcalc, &confLocal, moms_cu, boundary_corrections_cu, nu_cu, prim_moms_cu);
 
   gkyl_array_set_offset(u_cu, 1., prim_moms_cu, 0);
   gkyl_array_set_offset(vth_cu, 1., prim_moms_cu, vdim * confBasis.num_basis);
@@ -492,8 +491,8 @@ void test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, doub
   // MF 2022/09/13: the second moms here should be cross_moms, but we pass moms
   // for simplicity in this (infrastructure) test.
   gkyl_prim_lbo_cross_calc_advance(crossprimcalc, &confLocal, greene_cu, self_m, moms_cu,
-                                   prim_moms_cu, cross_m, moms_cu, cross_prim_moms,
-                                   boundary_corrections_cu, nu_cu, prim_moms_out_cu);
+    prim_moms_cu, cross_m, moms_cu, cross_prim_moms, boundary_corrections_cu, nu_cu,
+    prim_moms_out_cu);
 
   gkyl_array_set_offset(u_out_cu, 1., prim_moms_out_cu, 0);
   gkyl_array_set_offset(vtsq_out_cu, 1., prim_moms_out_cu, vdim * confBasis.num_basis);
@@ -569,7 +568,7 @@ void test_prim_vlasov_1x1v_p2_ho()
   double vthcross_check[] = { 1.4142398195471544, 0.0, 0.0 };
 
   test_func(cdim, vdim, poly_order, evalDistFunc1x1v, f_check, vf_check, u_check, vth_check,
-            ucross_check, vthcross_check);
+    ucross_check, vthcross_check);
 }
 
 void test_prim_vlasov_1x2v_p2_ho()
@@ -585,7 +584,7 @@ void test_prim_vlasov_1x2v_p2_ho()
   double vthcross_check[] = { 1.4142398195471586, 0.0, 0.0 };
 
   test_func(cdim, vdim, poly_order, evalDistFunc1x2v, f_check, vf_check, u_check, vth_check,
-            ucross_check, vthcross_check);
+    ucross_check, vthcross_check);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -602,7 +601,7 @@ void test_prim_vlasov_1x1v_p2_dev()
   double vthcross_check[] = { 1.4142398195471544, 0.0, 0.0 };
 
   test_func_cu(cdim, vdim, poly_order, evalDistFunc1x1v, f_check, vf_check, u_check, vth_check,
-               ucross_check, vthcross_check);
+    ucross_check, vthcross_check);
 }
 
 void test_prim_vlasov_1x2v_p2_dev()
@@ -618,14 +617,14 @@ void test_prim_vlasov_1x2v_p2_dev()
   double vthcross_check[] = { 1.4142398195471586, 0.0, 0.0 };
 
   test_func_cu(cdim, vdim, poly_order, evalDistFunc1x2v, f_check, vf_check, u_check, vth_check,
-               ucross_check, vthcross_check);
+    ucross_check, vthcross_check);
 }
 #endif
 
 TEST_LIST = { { "test_prim_vlasov_1x1v_p2_ho", test_prim_vlasov_1x1v_p2_ho },
-              { "test_prim_vlasov_1x2v_p2_ho", test_prim_vlasov_1x2v_p2_ho },
+  { "test_prim_vlasov_1x2v_p2_ho", test_prim_vlasov_1x2v_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_prim_vlasov_1x1v_p2_dev", test_prim_vlasov_1x1v_p2_dev },
-              { "test_prim_vlasov_1x2v_p2_dev", test_prim_vlasov_1x2v_p2_dev },
+  { "test_prim_vlasov_1x1v_p2_dev", test_prim_vlasov_1x1v_p2_dev },
+  { "test_prim_vlasov_1x2v_p2_dev", test_prim_vlasov_1x2v_p2_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

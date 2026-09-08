@@ -6,10 +6,7 @@
 // Private function to create a pointer to the function that applies the BC,
 // i.e., the array_copy_func applied to expansion coefficients in ghost cell.
 struct gkyl_array_copy_func *gkyl_bc_basic_create_arr_copy_func(int dir, enum gkyl_edge_loc edge,
-                                                                int cdim,
-                                                                enum gkyl_bc_basic_type bctype,
-                                                                const struct gkyl_basis *basis,
-                                                                int ncomp, bool use_gpu)
+  int cdim, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int ncomp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -101,10 +98,9 @@ struct gkyl_array_copy_func *gkyl_bc_basic_create_arr_copy_func(int dir, enum gk
   return fout;
 }
 
-struct gkyl_bc_basic *
-gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, enum gkyl_bc_basic_type bctype,
-                  const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
-                  const struct gkyl_range *ghost_r, int num_comp, int cdim, bool use_gpu)
+struct gkyl_bc_basic *gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge,
+  enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, int num_comp, int cdim, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_bc_basic *up = gkyl_malloc(sizeof(struct gkyl_bc_basic));
@@ -124,15 +120,15 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, enum gkyl_bc_basic_type bcty
   return up;
 }
 
-void gkyl_bc_basic_buffer_fixed_func(const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr,
-                                     struct gkyl_array *f_arr)
+void gkyl_bc_basic_buffer_fixed_func(
+  const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
 {
   if (up->bctype == GKYL_BC_FIXED_FUNC)
     gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr, up->skin_r, up->array_copy_func->on_dev);
 }
 
-void gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr,
-                           struct gkyl_array *f_arr)
+void gkyl_bc_basic_advance(
+  const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
 {
   // Apply BC in two steps:
   // 1) Copy skin to buffer while applying array_copy_func.
@@ -152,13 +148,13 @@ void gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *bu
 
   case GKYL_BC_DISTF_REFLECT:
   case GKYL_BC_PKPM_SPECIES_REFLECT:
-    gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir + up->cdim, up->skin_r,
-                                      up->array_copy_func->on_dev);
+    gkyl_array_flip_copy_to_buffer_fn(
+      buff_arr->data, f_arr, up->dir + up->cdim, up->skin_r, up->array_copy_func->on_dev);
     break;
 
   case GKYL_BC_CONF_BOUNDARY_VALUE:
-    gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir, up->skin_r,
-                                      up->array_copy_func->on_dev);
+    gkyl_array_flip_copy_to_buffer_fn(
+      buff_arr->data, f_arr, up->dir, up->skin_r, up->array_copy_func->on_dev);
     break;
 
   case GKYL_BC_FIXED_FUNC: // if BC is fixed func, do nothing, buffer already full

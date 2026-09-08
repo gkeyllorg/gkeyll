@@ -35,11 +35,11 @@ struct gkyl_dg_updater_pkpm_tm {
  * 
  * @return New PKPM updater object
  */
-gkyl_dg_updater_pkpm *gkyl_dg_updater_pkpm_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const bool *is_zero_flux_dir, struct gkyl_dg_vlasov_pkpm_auxfields *vlasov_pkpm_inp,
+gkyl_dg_updater_pkpm *gkyl_dg_updater_pkpm_new(const struct gkyl_rect_grid *conf_grid,
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const bool *is_zero_flux_dir,
+  struct gkyl_dg_vlasov_pkpm_auxfields *vlasov_pkpm_inp,
   struct gkyl_dg_euler_pkpm_auxfields *euler_pkpm_inp, bool use_gpu);
 
 /**
@@ -54,12 +54,11 @@ gkyl_dg_updater_pkpm *gkyl_dg_updater_pkpm_new(
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_pkpm_advance(
-  gkyl_dg_updater_pkpm *pkpm, const struct gkyl_range *update_phase_rng,
-  const struct gkyl_range *update_conf_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
-  const struct gkyl_array *GKYL_RESTRICT fluidIn, struct gkyl_array *GKYL_RESTRICT cflrate_f,
-  struct gkyl_array *GKYL_RESTRICT cflrate_fluid, struct gkyl_array *GKYL_RESTRICT rhs_f,
-  struct gkyl_array *GKYL_RESTRICT rhs_fluid);
+void gkyl_dg_updater_pkpm_advance(gkyl_dg_updater_pkpm *pkpm,
+  const struct gkyl_range *update_phase_rng, const struct gkyl_range *update_conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, const struct gkyl_array *GKYL_RESTRICT fluidIn,
+  struct gkyl_array *GKYL_RESTRICT cflrate_f, struct gkyl_array *GKYL_RESTRICT cflrate_fluid,
+  struct gkyl_array *GKYL_RESTRICT rhs_f, struct gkyl_array *GKYL_RESTRICT rhs_fluid);
 
 /**
  * Return total time spent in PKPM kinetic equations and fluid equations

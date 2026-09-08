@@ -11,36 +11,29 @@
 
 // Types for various kernels
 typedef double (*vlasov_poisson_stream_surf_t)(const double *w, const double *dxv, const double *fl,
-                                               const double *fc, const double *fr,
-                                               double *GKYL_RESTRICT out);
+  const double *fc, const double *fr, double *GKYL_RESTRICT out);
 
 typedef double (*vlasov_poisson_stream_boundary_surf_t)(const double *w, const double *dxv,
-                                                        const int edge, const double *fEdge,
-                                                        const double *fSkin,
-                                                        double *GKYL_RESTRICT out);
+  const int edge, const double *fEdge, const double *fSkin, double *GKYL_RESTRICT out);
 
 typedef double (*vlasov_poisson_accel_surf_t)(const double *w, const double *dxv,
-                                              const double *pots, const double *EBext,
-                                              const double *fl, const double *fc, const double *fr,
-                                              double *GKYL_RESTRICT out);
+  const double *pots, const double *EBext, const double *fl, const double *fc, const double *fr,
+  double *GKYL_RESTRICT out);
 
 typedef double (*vlasov_poisson_accel_boundary_surf_t)(const double *w, const double *dxv,
-                                                       const double *pots, const double *EBext,
-                                                       const int edge, const double *fEdge,
-                                                       const double *fSkin,
-                                                       double *GKYL_RESTRICT out);
+  const double *pots, const double *EBext, const int edge, const double *fEdge, const double *fSkin,
+  double *GKYL_RESTRICT out);
 
 // Null kernels used for vxB term in case without external fields.
-GKYL_CU_DH static double
-kernel_vlasov_poisson_zero_accel_surf(const double *w, const double *dxv, const double *pots,
-                                      const double *EBext, const double *fl, const double *fc,
-                                      const double *fr, double *GKYL_RESTRICT out)
+GKYL_CU_DH static double kernel_vlasov_poisson_zero_accel_surf(const double *w, const double *dxv,
+  const double *pots, const double *EBext, const double *fl, const double *fc, const double *fr,
+  double *GKYL_RESTRICT out)
 {
   return 0.0;
 }
-GKYL_CU_DH static double kernel_vlasov_poisson_zero_accel_boundary_surf(
-  const double *w, const double *dxv, const double *pots, const double *EBext, const int edge,
-  const double *fEdge, const double *fSkin, double *GKYL_RESTRICT out)
+GKYL_CU_DH static double kernel_vlasov_poisson_zero_accel_boundary_surf(const double *w,
+  const double *dxv, const double *pots, const double *EBext, const int edge, const double *fEdge,
+  const double *fSkin, double *GKYL_RESTRICT out)
 {
   return 0.0;
 }
@@ -190,9 +183,8 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_boundary_surf_kern_list
 //
 
 GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -202,9 +194,8 @@ GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x1v_ser_p1(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -214,9 +205,8 @@ GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x1v_ser_p2(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -226,9 +216,8 @@ GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x2v_ser_p1(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -238,9 +227,8 @@ GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x2v_ser_p2(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -250,9 +238,8 @@ GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x3v_ser_p1(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -262,9 +249,8 @@ GKYL_CU_DH static double kernel_vlasov_poisson_vol_1x3v_ser_p2(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_poisson_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -274,9 +260,8 @@ GKYL_CU_DH static double kernel_vlasov_poisson_vol_2x2v_ser_p1(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_poisson_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -286,9 +271,8 @@ GKYL_CU_DH static double kernel_vlasov_poisson_vol_2x2v_ser_p2(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_poisson_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -298,9 +282,8 @@ GKYL_CU_DH static double kernel_vlasov_poisson_vol_2x3v_ser_p1(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_poisson_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -422,10 +405,9 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
 // Need to be separated like this for GPU build
 //
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                               const double *dx, const int *idx, const double *qIn,
-                                               double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_phiA_vol_1x1v_ser_p1(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -434,10 +416,9 @@ kernel_vlasov_poisson_ext_phiA_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, co
     xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                               const double *dx, const int *idx, const double *qIn,
-                                               double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_phiA_vol_1x1v_ser_p2(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -446,10 +427,9 @@ kernel_vlasov_poisson_ext_phiA_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, co
     xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                               const double *dx, const int *idx, const double *qIn,
-                                               double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_phiA_vol_1x2v_ser_p1(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -458,10 +438,9 @@ kernel_vlasov_poisson_ext_phiA_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, co
     xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                               const double *dx, const int *idx, const double *qIn,
-                                               double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_phiA_vol_1x2v_ser_p2(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -470,10 +449,9 @@ kernel_vlasov_poisson_ext_phiA_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, co
     xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                               const double *dx, const int *idx, const double *qIn,
-                                               double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_phiA_vol_1x3v_ser_p1(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -482,10 +460,9 @@ kernel_vlasov_poisson_ext_phiA_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, co
     xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                               const double *dx, const int *idx, const double *qIn,
-                                               double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_phiA_vol_1x3v_ser_p2(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -494,10 +471,9 @@ kernel_vlasov_poisson_ext_phiA_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, co
     xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                               const double *dx, const int *idx, const double *qIn,
-                                               double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p1(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -506,10 +482,9 @@ kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, co
     xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                               const double *dx, const int *idx, const double *qIn,
-                                               double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p2(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -518,10 +493,9 @@ kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, co
     xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                               const double *dx, const int *idx, const double *qIn,
-                                               double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p1(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -530,10 +504,9 @@ kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, co
     xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                               const double *dx, const int *idx, const double *qIn,
-                                               double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p2(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -670,133 +643,123 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
 // Need to be separated like this for GPU build
 //
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                             const double *dx, const int *idx, const double *qIn,
-                                             double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_EB_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_1x1v_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+  return vlasov_poisson_ext_EB_vol_1x1v_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
     (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                             const double *dx, const int *idx, const double *qIn,
-                                             double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_EB_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_1x1v_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+  return vlasov_poisson_ext_EB_vol_1x1v_ser_p2(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
     (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                             const double *dx, const int *idx, const double *qIn,
-                                             double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_EB_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_1x2v_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+  return vlasov_poisson_ext_EB_vol_1x2v_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
     (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                             const double *dx, const int *idx, const double *qIn,
-                                             double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_EB_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_1x2v_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+  return vlasov_poisson_ext_EB_vol_1x2v_ser_p2(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
     (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                             const double *dx, const int *idx, const double *qIn,
-                                             double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_EB_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_1x3v_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+  return vlasov_poisson_ext_EB_vol_1x3v_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
     (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                             const double *dx, const int *idx, const double *qIn,
-                                             double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_EB_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_1x3v_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+  return vlasov_poisson_ext_EB_vol_1x3v_ser_p2(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
     (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                             const double *dx, const int *idx, const double *qIn,
-                                             double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_EB_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_2x2v_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+  return vlasov_poisson_ext_EB_vol_2x2v_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
     (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                             const double *dx, const int *idx, const double *qIn,
-                                             double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_EB_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_2x2v_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+  return vlasov_poisson_ext_EB_vol_2x2v_ser_p2(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
     (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                             const double *dx, const int *idx, const double *qIn,
-                                             double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_2x3v_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+  return vlasov_poisson_ext_EB_vol_2x3v_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
     (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                             const double *dx, const int *idx, const double *qIn,
-                                             double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_2x3v_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+  return vlasov_poisson_ext_EB_vol_2x3v_ser_p2(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
     (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut);
 }
 
@@ -934,10 +897,9 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
 void gkyl_vlasov_poisson_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL,
-                             const double *xcC, const double *xcR, const double *dxL,
-                             const double *dxC, const double *dxR, const int *idxL, const int *idxC,
-                             const int *idxR, const double *qInL, const double *qInC,
-                             const double *qInR, double *GKYL_RESTRICT qRhsOut)
+  const double *xcC, const double *xcR, const double *dxL, const double *dxC, const double *dxR,
+  const int *idxL, const int *idxC, const int *idxR, const double *qInL, const double *qInC,
+  const double *qInR, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -945,18 +907,17 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const doubl
     return vlasov->stream_surf[dir](xcC, dxC, qInL, qInC, qInR, qRhsOut);
   } else {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxC);
-    return vlasov->accel_surf[dir - vlasov->cdim](
-      xcC, dxC, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+    return vlasov->accel_surf[dir - vlasov->cdim](xcC, dxC,
+      (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
       (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qInL, qInC, qInR,
       qRhsOut);
   }
 }
 
 GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge,
-                                      const double *xcSkin, const double *dxEdge,
-                                      const double *dxSkin, const int *idxEdge, const int *idxSkin,
-                                      const int edge, const double *qInEdge, const double *qInSkin,
-                                      double *GKYL_RESTRICT qRhsOut)
+  const double *xcSkin, const double *dxEdge, const double *dxSkin, const int *idxEdge,
+  const int *idxSkin, const int edge, const double *qInEdge, const double *qInSkin,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
@@ -964,8 +925,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, co
     return vlasov->stream_boundary_surf[dir](xcSkin, dxSkin, edge, qInEdge, qInSkin, qRhsOut);
   } else {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
-    return vlasov->accel_boundary_surf[dir - vlasov->cdim](
-      xcSkin, dxSkin, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
+    return vlasov->accel_boundary_surf[dir - vlasov->cdim](xcSkin, dxSkin,
+      (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
       (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), edge, qInEdge, qInSkin,
       qRhsOut);
   }
@@ -985,11 +946,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, co
  * @return Pointer to Vlasov equation object
  */
 struct gkyl_dg_eqn *gkyl_dg_vlasov_poisson_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                      const struct gkyl_basis *pbasis,
-                                                      const struct gkyl_range *conf_range,
-                                                      const struct gkyl_range *phase_range,
-                                                      enum gkyl_model_id model_id,
-                                                      enum gkyl_field_id field_id);
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, enum gkyl_model_id model_id, enum gkyl_field_id field_id);
 
 /**
  * CUDA device function to set auxiliary fields (e.g. q/m*EM) needed in updating the force terms.
@@ -997,6 +955,6 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_poisson_cu_dev_new(const struct gkyl_basis *c
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_poisson_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                          struct gkyl_dg_vlasov_poisson_auxfields auxin);
+void gkyl_vlasov_poisson_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin);
 #endif

@@ -4,10 +4,9 @@
 #include <gkyl_array_ops.h>
 #include <float.h>
 
-struct gkyl_positivity_shift_vlasov *
-gkyl_positivity_shift_vlasov_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-                                 struct gkyl_rect_grid grid, const struct gkyl_range *conf_rng_ext,
-                                 bool use_gpu)
+struct gkyl_positivity_shift_vlasov *gkyl_positivity_shift_vlasov_new(struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, struct gkyl_rect_grid grid, const struct gkyl_range *conf_rng_ext,
+  bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_positivity_shift_vlasov *up = gkyl_malloc(sizeof(*up));
@@ -48,11 +47,9 @@ gkyl_positivity_shift_vlasov_new(struct gkyl_basis cbasis, struct gkyl_basis pba
 }
 
 void gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov *up,
-                                          const struct gkyl_range *conf_rng,
-                                          const struct gkyl_range *phase_rng,
-                                          struct gkyl_array *GKYL_RESTRICT distf,
-                                          struct gkyl_array *GKYL_RESTRICT m0,
-                                          struct gkyl_array *GKYL_RESTRICT delta_m0)
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
+  struct gkyl_array *GKYL_RESTRICT delta_m0)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {

@@ -31,22 +31,22 @@ struct skin_ghost_ranges {
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 };
 
-static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr, const struct gkyl_range *parent,
-                                   const int *ghost)
+static void skin_ghost_ranges_init(
+  struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost)
 {
   // Create ghost and skin sub-ranges given a parent range
   int ndim = parent->ndim;
 
   for (int d = 0; d < ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent,
-                           ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent, ghost);
   }
 }
 
 void apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const int dir,
-                       const struct skin_ghost_ranges sgr)
+  const struct skin_ghost_ranges sgr)
 {
   // Apply periodic BCs along parallel direction
   gkyl_array_copy_to_buffer(buff->data, fld, &(sgr.lower_skin[dir]));
@@ -56,8 +56,8 @@ void apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const in
   gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.lower_ghost[dir]));
 }
 
-static void check_continuity_par(struct gkyl_range range, struct gkyl_basis basis,
-                                 struct gkyl_array *field)
+static void check_continuity_par(
+  struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field)
 {
   // Check continuity along last dim.
   if (basis.poly_order > 1)
@@ -102,7 +102,7 @@ static void check_continuity_par(struct gkyl_range range, struct gkyl_basis basi
       for (int i = 0; i < num_nodes_perp; i++) {
         TEST_CHECK(gkyl_compare(fn_lo[i], fn_up[i], 1e-9));
         TEST_MSG("idx_lo=%d, node %d: lower=%g upper=%g diff=%g\n", idx_lo[0], i, fn_lo[i],
-                 fn_up[i], fn_lo[i] - fn_up[i]);
+          fn_up[i], fn_lo[i] - fn_up[i]);
       }
     }
   }
@@ -110,8 +110,8 @@ static void check_continuity_par(struct gkyl_range range, struct gkyl_basis basi
   gkyl_array_release(nodes);
 }
 
-static void check_continuity_perp(struct gkyl_range range, struct gkyl_basis basis,
-                                  struct gkyl_array *field)
+static void check_continuity_perp(
+  struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field)
 {
   // Check continuity along perp directions.
   int ndim = basis.ndim;
@@ -164,7 +164,7 @@ static void check_continuity_perp(struct gkyl_range range, struct gkyl_basis bas
       for (int i = 0; i < nc; i++) {
         TEST_CHECK(gkyl_compare(fn_lo[i], fn_up[i], 1e-9));
         TEST_MSG("idx_lo=%d, node %d: lower=%g upper=%g diff=%g\n", idx_lo[0], i, fn_lo[i],
-                 fn_up[i], fn_lo[i] - fn_up[i]);
+          fn_up[i], fn_lo[i] - fn_up[i]);
       }
     }
   }
@@ -173,8 +173,8 @@ static void check_continuity_perp(struct gkyl_range range, struct gkyl_basis bas
 }
 
 void check_dirichlet_bc(struct gkyl_range local, struct gkyl_range local_ext,
-                        struct gkyl_basis basis, enum gkyl_fem_parproj_bc_type bctype,
-                        struct gkyl_array *field_dg, struct gkyl_array *field_fem)
+  struct gkyl_basis basis, enum gkyl_fem_parproj_bc_type bctype, struct gkyl_array *field_dg,
+  struct gkyl_array *field_fem)
 {
   // Check that two fields have the same boundary values in last dimension.
   if (basis.poly_order > 1)
@@ -238,16 +238,15 @@ void check_dirichlet_bc(struct gkyl_range local, struct gkyl_range local_ext,
         TEST_CHECK(gkyl_compare(fn_dg[i], fn_fem[i], 1e-12));
         if (ndim == 1)
           TEST_MSG("e=%d, idx_skin=%d, idx_diri=%d, node %d: dg=%g fem=%g diff=%g\n", e,
-                   iter.idx[0], diri_idx[0], off_skin + i, fn_dg[i], fn_fem[i],
-                   fn_dg[i] - fn_fem[i]);
+            iter.idx[0], diri_idx[0], off_skin + i, fn_dg[i], fn_fem[i], fn_dg[i] - fn_fem[i]);
         else if (ndim == 2)
           TEST_MSG("e=%d, idx_skin=%d,%d, idx_diri=%d,%d, node %d: dg=%g fem=%g diff=%g\n", e,
-                   iter.idx[0], iter.idx[1], diri_idx[0], diri_idx[1], off_skin + i, fn_dg[i],
-                   fn_fem[i], fn_dg[i] - fn_fem[i]);
+            iter.idx[0], iter.idx[1], diri_idx[0], diri_idx[1], off_skin + i, fn_dg[i], fn_fem[i],
+            fn_dg[i] - fn_fem[i]);
         else if (ndim == 3)
           TEST_MSG("e=%d, idx_skin=%d,%d,%d, idx_diri=%d,%d,%d, node %d: dg=%g fem=%g diff=%g\n", e,
-                   iter.idx[0], iter.idx[1], iter.idx[2], diri_idx[0], diri_idx[1], diri_idx[2],
-                   off_skin + i, fn_dg[i], fn_fem[i], fn_dg[i] - fn_fem[i]);
+            iter.idx[0], iter.idx[1], iter.idx[2], diri_idx[0], diri_idx[1], diri_idx[2],
+            off_skin + i, fn_dg[i], fn_fem[i], fn_dg[i] - fn_fem[i]);
       }
     }
   }
@@ -255,10 +254,9 @@ void check_dirichlet_bc(struct gkyl_range local, struct gkyl_range local_ext,
 }
 
 void check_dirichlet_bc_bias(struct gkyl_rect_grid grid, struct gkyl_range local,
-                             struct gkyl_range local_ext, struct gkyl_basis basis,
-                             enum gkyl_fem_parproj_bc_type bctype,
-                             struct gkyl_poisson_bias_line_list *bls, struct gkyl_array *field_dg,
-                             struct gkyl_array *field_fem)
+  struct gkyl_range local_ext, struct gkyl_basis basis, enum gkyl_fem_parproj_bc_type bctype,
+  struct gkyl_poisson_bias_line_list *bls, struct gkyl_array *field_dg,
+  struct gkyl_array *field_fem)
 {
   // Check that two fields have the same boundary values in last dimension,
   // except for the biased points. Check the bias is satisfied.
@@ -359,12 +357,11 @@ void check_dirichlet_bc_bias(struct gkyl_rect_grid grid, struct gkyl_range local
         }
         if (ndim == 1)
           TEST_MSG("e=%d, idx_skin=%d, idx_diri=%d, node %d: ref=%.9e fem=%.9e diff=%.9e\n", e,
-                   iter.idx[0], diri_idx[0], off_skin + i, ref_val, fn_fem[i],
-                   fn_dg[i] - fn_fem[i]);
+            iter.idx[0], diri_idx[0], off_skin + i, ref_val, fn_fem[i], fn_dg[i] - fn_fem[i]);
         else if (ndim == 2)
           TEST_MSG("e=%d, idx_skin=%d,%d, idx_diri=%d,%d, node %d: ref=%.9e fem=%.9e diff=%.9e\n",
-                   e, iter.idx[0], iter.idx[1], diri_idx[0], diri_idx[1], off_skin + i, ref_val,
-                   fn_fem[i], fn_dg[i] - fn_fem[i]);
+            e, iter.idx[0], iter.idx[1], diri_idx[0], diri_idx[1], off_skin + i, ref_val, fn_fem[i],
+            fn_dg[i] - fn_fem[i]);
         else if (ndim == 3)
           TEST_MSG(
             "e=%d, idx_skin=%d,%d,%d, idx_diri=%d,%d,%d, node %d: ref=%.9e fem=%.9e diff=%.9e\n", e,
@@ -390,19 +387,19 @@ void evalFunc1x_dirichlet(double t, const double *xn, double *restrict fout, voi
 }
 
 void ghost_from_skin_surf(bool use_gpu, int dim, struct skin_ghost_ranges *sgr,
-                          struct gkyl_basis *basis, struct gkyl_array *rho)
+  struct gkyl_basis *basis, struct gkyl_array *rho)
 {
   // The ghost range with the value of the skin at the boundary.
   struct gkyl_array *bc_buffer = mkarr(use_gpu, rho->ncomp, sgr->lower_ghost[dim - 1].volume);
 
-  struct gkyl_bc_basic_gyrokinetic *bc_op_lo = gkyl_bc_basic_gyrokinetic_new(
-    dim - 1, GKYL_LOWER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE, basis, &sgr->lower_skin[dim - 1],
+  struct gkyl_bc_basic_gyrokinetic *bc_op_lo = gkyl_bc_basic_gyrokinetic_new(dim - 1,
+    GKYL_LOWER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE, basis, &sgr->lower_skin[dim - 1],
     &sgr->lower_ghost[dim - 1], basis->num_basis, dim, use_gpu);
   gkyl_bc_basic_gyrokinetic_advance(bc_op_lo, bc_buffer, rho);
   gkyl_bc_basic_gyrokinetic_release(bc_op_lo);
 
-  struct gkyl_bc_basic_gyrokinetic *bc_op_up = gkyl_bc_basic_gyrokinetic_new(
-    dim - 1, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE, basis, &sgr->upper_skin[dim - 1],
+  struct gkyl_bc_basic_gyrokinetic *bc_op_up = gkyl_bc_basic_gyrokinetic_new(dim - 1,
+    GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE, basis, &sgr->upper_skin[dim - 1],
     &sgr->upper_ghost[dim - 1], basis->num_basis, dim, use_gpu);
   gkyl_bc_basic_gyrokinetic_advance(bc_op_up, bc_buffer, rho);
   gkyl_bc_basic_gyrokinetic_release(bc_op_up);
@@ -431,8 +428,7 @@ void test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
   // projection updater for DG field.
-  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(
-    &grid, &basis, poly_order + 1, 1,
+  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1,
     bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN ?
       evalFunc1x_dirichlet :
       evalFunc1x,
@@ -488,8 +484,8 @@ void test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
       const double sol[8] = { -0.9089542445638024, -0.4554124667453318, -0.8488758876834943,
-                              0.4900987222626481,  0.8488758876834943,  0.490098722262648,
-                              0.9089542445638024,  -0.4554124667453318 };
+        0.4900987222626481, 0.8488758876834943, 0.490098722262648, 0.9089542445638024,
+        -0.4554124667453318 };
       const double *phi_p;
       phi_p = gkyl_array_cfetch(phi_ho, 1);
       TEST_CHECK(gkyl_compare(sol[0], phi_p[0], 1e-14));
@@ -508,8 +504,8 @@ void test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked visually against g2):
       const double sol[8] = { -0.8638954769035714, -0.498770286141977, -0.8638954769035713,
-                              0.498770286141977,   0.8638954769035713, 0.498770286141977,
-                              0.8638954769035713,  -0.498770286141977 };
+        0.498770286141977, 0.8638954769035713, 0.498770286141977, 0.8638954769035713,
+        -0.498770286141977 };
       const double *phi_p;
       phi_p = gkyl_array_cfetch(phi_ho, 0);
       TEST_CHECK(gkyl_compare(sol[6], phi_p[0], 1e-14));
@@ -537,9 +533,9 @@ void test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually against g2):
       const double sol[12] = { -0.9010465429057769, -0.4272439810948228, 0.0875367707148495,
-                               -0.9039382020247494, 0.4172269800703625,  0.08107082435707,
-                               0.9039382020247495,  0.4172269800703625,  -0.0810708243570699,
-                               0.9010465429057768,  -0.4272439810948229, -0.0875367707148495 };
+        -0.9039382020247494, 0.4172269800703625, 0.08107082435707, 0.9039382020247495,
+        0.4172269800703625, -0.0810708243570699, 0.9010465429057768, -0.4272439810948229,
+        -0.0875367707148495 };
       const double *phi_p;
       phi_p = gkyl_array_cfetch(phi_ho, 1);
       TEST_CHECK(gkyl_compare(sol[0], phi_p[0], 1e-14));
@@ -560,9 +556,9 @@ void test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked visually against g2):
       const double sol[12] = { -0.9044201452112453, -0.418896480241106, 0.0799931666307734,
-                               -0.9044201452112451, 0.418896480241106,  0.0799931666307734,
-                               0.904420145211245,   0.418896480241106,  -0.0799931666307734,
-                               0.9044201452112451,  -0.418896480241106, -0.0799931666307734 };
+        -0.9044201452112451, 0.418896480241106, 0.0799931666307734, 0.904420145211245,
+        0.418896480241106, -0.0799931666307734, 0.9044201452112451, -0.418896480241106,
+        -0.0799931666307734 };
       const double *phi_p;
       phi_p = gkyl_array_cfetch(phi_ho, 0);
       TEST_CHECK(gkyl_compare(sol[9], phi_p[0], 1e-14));
@@ -648,8 +644,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
   // Projection updater for DG field.
-  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(
-    &grid, &basis, poly_order + 1, 1,
+  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1,
     bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN ?
       evalFunc2x_dirichlet :
       evalFunc2x,
@@ -716,8 +711,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked continuity manually):
-      const double sol[48] = {
-        // idx = [0,:]
+      const double sol[48] = { // idx = [0,:]
         -4.2253125086607479e-04, -4.2252954845312053e-04, -2.1170042428951191e-04,
         -2.1169957133119468e-04, -3.9460357085969891e-04, -3.9460198096965074e-04,
         2.2782447785903476e-04, 2.2782355993558733e-04, 3.9460357085969891e-04,
@@ -748,7 +742,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(0 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(0 * cells[1] + k) * basis.num_basis + m],
-                   idx0[0], idx0[1]);
+            idx0[0], idx0[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -758,7 +752,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(1 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(1 * cells[1] + k) * basis.num_basis + m],
-                   idx1[0], idx1[1]);
+            idx1[0], idx1[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -768,14 +762,13 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(2 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(2 * cells[1] + k) * basis.num_basis + m],
-                   idx2[0], idx2[1]);
+            idx2[0], idx2[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
       }
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked continuity manually):
-      const double sol[48] = {
-        // idx = [0,:]
+      const double sol[48] = { // idx = [0,:]
         -4.0158549086129289e-04, -4.0158387284051808e-04, -2.3185549125141544e-04,
         -2.3185455708668560e-04, -4.0158549086129284e-04, -4.0158387284051819e-04,
         2.3185549125141544e-04, 2.3185455708668560e-04, 4.0158549086129284e-04,
@@ -806,7 +799,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(0 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(0 * cells[1] + k) * basis.num_basis + m],
-                   idx0[0], idx0[1]);
+            idx0[0], idx0[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -816,7 +809,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(1 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(1 * cells[1] + k) * basis.num_basis + m],
-                   idx1[0], idx1[1]);
+            idx1[0], idx1[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -826,7 +819,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(2 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(2 * cells[1] + k) * basis.num_basis + m],
-                   idx2[0], idx2[1]);
+            idx2[0], idx2[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
       }
@@ -837,8 +830,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked continuity manually):
-      const double sol[96] = {
-        // idx = [0,:]
+      const double sol[96] = { // idx = [0,:]
         -1.1330777557967131e-03, -1.5185686084598735e-03, -5.3726486726801399e-04,
         -7.2005081530163346e-04, -1.0232451194644426e-03, 1.1007862855941796e-04,
         -5.0054690727467069e-04, 1.4752910728100009e-04, -1.1367140547768834e-03,
@@ -884,7 +876,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(0 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(0 * cells[1] + k) * basis.num_basis + m],
-                   idx0[0], idx0[1]);
+            idx0[0], idx0[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -894,7 +886,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(1 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(1 * cells[1] + k) * basis.num_basis + m],
-                   idx1[0], idx1[1]);
+            idx1[0], idx1[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -904,14 +896,13 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(2 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(2 * cells[1] + k) * basis.num_basis + m],
-                   idx2[0], idx2[1]);
+            idx2[0], idx2[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
       }
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked continuity manually):
-      const double sol[96] = {
-        // idx = [0,:]
+      const double sol[96] = { // idx = [0,:]
         -1.1373201046069117e-03, -1.5242542709806915e-03, -5.2676777629273737e-04,
         -7.0598244907199602e-04, -9.6464295277947558e-04, 1.0059244823554794e-04,
         -5.5693686845910558e-04, 1.3481557938732944e-04, -1.1373201046069115e-03,
@@ -957,7 +948,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(0 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(0 * cells[1] + k) * basis.num_basis + m],
-                   idx0[0], idx0[1]);
+            idx0[0], idx0[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -967,7 +958,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(1 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(1 * cells[1] + k) * basis.num_basis + m],
-                   idx1[0], idx1[1]);
+            idx1[0], idx1[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -977,7 +968,7 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[(2 * cells[1] + k) * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(2 * cells[1] + k) * basis.num_basis + m],
-                   idx2[0], idx2[1]);
+            idx2[0], idx2[1]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
       }
@@ -1013,8 +1004,7 @@ void test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use
   skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
   // Projection updater for DG field.
-  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(
-    &grid, &basis, poly_order + 1, 1,
+  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1,
     bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN ?
       evalFunc2x_dirichlet :
       evalFunc2x,
@@ -1138,8 +1128,7 @@ void test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool
                                         gkyl_array_acquire(jac);
 
   // Project distribution function on basis.
-  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(
-    &grid, &basis, poly_order + 1, 1,
+  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1,
     bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN ?
       evalFunc2x_dirichlet :
       evalFunc2x,
@@ -1290,8 +1279,8 @@ void test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, b
     memcpy(int_prodB_ho, int_prodB, sizeof(double));
 
   TEST_CHECK(gkyl_compare(int_prodA_ho[0], int_prodB_ho[0], 1e-14));
-  TEST_MSG("int phi_dg*rho_fem = %.13e | int phi_fem*rho_dg = %.13e", int_prodA_ho[0],
-           int_prodB_ho[0]);
+  TEST_MSG(
+    "int phi_dg*rho_fem = %.13e | int phi_fem*rho_dg = %.13e", int_prodA_ho[0], int_prodB_ho[0]);
   //  printf("\nint phi_dg*rho_fem = %.13e | int phi_fem*rho_dg = %.13e\n", int_prodA_ho[0],int_prodB_ho[0]);
 
   if (use_gpu) {
@@ -1349,8 +1338,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
   skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
   // projection updater for DG field.
-  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(
-    &grid, &basis, poly_order + 1, 1,
+  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1,
     bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN ?
       evalFunc3x_dirichlet :
       evalFunc3x,
@@ -1405,8 +1393,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
-      const double sol[96] = {
-        // idx = [0,1,:]
+      const double sol[96] = { // idx = [0,1,:]
         -2.9175130738000619e-04, -2.9175013189013625e-04, -2.0243038272814358e-04,
         -1.4617587558971766e-04, -2.0242956711958172e-04, -1.4617528663516419e-04,
         -1.0142349903065383e-04, -1.0142309038708445e-04, -2.7246767537113221e-04,
@@ -1452,7 +1439,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[k * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[k * basis.num_basis + m], idx0[0],
-                   idx0[1], idx0[2]);
+            idx0[1], idx0[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -1462,7 +1449,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[32 + k * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[32 + k * basis.num_basis + m], idx1[0],
-                   idx1[1], idx1[2]);
+            idx1[1], idx1[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -1472,14 +1459,13 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[64 + k * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[64 + k * basis.num_basis + m], idx2[0],
-                   idx0[2], idx2[2]);
+            idx0[2], idx2[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
       }
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked visually against g2):
-      const double sol[96] = {
-        // idx = [0,0,:]
+      const double sol[96] = { // idx = [0,0,:]
         -1.8667872535731117e-07, -1.8667797321346457e-07, -1.8667797321346459e-07,
         -1.0777901233701990e-07, -1.8667722107264865e-07, -1.0777857808656757e-07,
         -1.0777857808656758e-07, -1.0777814383786501e-07, -1.8667872535731120e-07,
@@ -1527,7 +1513,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[k * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[k * basis.num_basis + m], idx0[0],
-                   idx0[1], idx0[2]);
+            idx0[1], idx0[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -1537,7 +1523,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[32 + k * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[32 + k * basis.num_basis + m], idx1[0],
-                   idx1[1], idx1[2]);
+            idx1[1], idx1[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -1547,7 +1533,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[64 + k * basis.num_basis + m], phi_p[m], 1e-14));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[64 + k * basis.num_basis + m], idx2[0],
-                   idx2[1], idx2[2]);
+            idx2[1], idx2[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
       }
@@ -1558,8 +1544,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
       check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually against g2):
-      const double sol[240] = {
-        // idx = [0,1,:]
+      const double sol[240] = { // idx = [0,1,:]
         -8.5122112791349098e-04, -1.1408199279301246e-03, -3.0793150106132720e-04,
         -4.0361855482954289e-04, -4.1269463518755719e-04, -5.4093592784822922e-04,
         -1.4601008289058379e-04, -7.6870970263647495e-04, 3.9096141311460275e-04,
@@ -1653,7 +1638,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[k * basis.num_basis + m], phi_p[m], 1e-12));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[k * basis.num_basis + m], idx0[0],
-                   idx0[1], idx0[2]);
+            idx0[1], idx0[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -1663,7 +1648,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[80 + k * basis.num_basis + m], phi_p[m], 1e-12));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[80 + k * basis.num_basis + m], idx1[0],
-                   idx1[1], idx1[2]);
+            idx1[1], idx1[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -1673,14 +1658,13 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[160 + k * basis.num_basis + m], phi_p[m], 1e-12));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[160 + k * basis.num_basis + m],
-                   idx2[0], idx2[1], idx2[2]);
+            idx2[0], idx2[1], idx2[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
       }
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked visually against g2):
-      const double sol[240] = {
-        // idx = [0,0,:]
+      const double sol[240] = { // idx = [0,0,:]
         -1.4301948349911598e-06, -1.9167695855717431e-06, -1.9167695855717423e-06,
         -6.6241733513894548e-07, -2.5688847101699803e-06, -8.8778211883114730e-07,
         -8.8778211883114889e-07, -1.2130510689887676e-06, -1.2130510689887695e-06,
@@ -1774,7 +1758,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[k * basis.num_basis + m], phi_p[m], 1e-12));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[k * basis.num_basis + m], idx0[0],
-                   idx0[1], idx0[2]);
+            idx0[1], idx0[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -1784,7 +1768,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[80 + k * basis.num_basis + m], phi_p[m], 1e-12));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[80 + k * basis.num_basis + m], idx1[0],
-                   idx1[1], idx1[2]);
+            idx1[1], idx1[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
@@ -1794,7 +1778,7 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
         for (int m = 0; m < basis.num_basis; m++) {
           TEST_CHECK(gkyl_compare(sol[160 + k * basis.num_basis + m], phi_p[m], 1e-12));
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[160 + k * basis.num_basis + m],
-                   idx2[0], idx2[1], idx2[2]);
+            idx2[0], idx2[1], idx2[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
       }
@@ -1830,8 +1814,7 @@ void test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bo
   skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
   // projection updater for DG field.
-  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(
-    &grid, &basis, poly_order + 1, 1,
+  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1,
     bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN ?
       evalFunc3x_dirichlet :
       evalFunc3x,
@@ -2114,8 +2097,7 @@ void test_fem_parproj_3x_p2_bcperiodic_dev()
 }
 #endif
 
-TEST_LIST = {
-  { "test_fem_parproj_1x_p1_bcnone_ho", test_fem_parproj_1x_p1_bcnone_ho },
+TEST_LIST = { { "test_fem_parproj_1x_p1_bcnone_ho", test_fem_parproj_1x_p1_bcnone_ho },
   { "test_fem_parproj_1x_p1_bcdirichlet_ho", test_fem_parproj_1x_p1_bcdirichlet_ho },
   { "test_fem_parproj_1x_p1_bcperiodic_ho", test_fem_parproj_1x_p1_bcperiodic_ho },
   { "test_fem_parproj_1x_p2_bcnone_ho", test_fem_parproj_1x_p2_bcnone_ho },
@@ -2161,5 +2143,4 @@ TEST_LIST = {
   // { "test_fem_parproj_3x_p2_bcdirichlet_dev", test_fem_parproj_3x_p2_bcdirichlet_dev },
   { "test_fem_parproj_3x_p2_bcperiodic_dev", test_fem_parproj_3x_p2_bcperiodic_dev },
 #endif
-  { NULL, NULL }
-};
+  { NULL, NULL } };

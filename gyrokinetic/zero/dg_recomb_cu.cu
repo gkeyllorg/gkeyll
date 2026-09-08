@@ -12,14 +12,12 @@ extern "C" {
 #include <gkyl_const.h>
 }
 
-__global__ static void
-gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl_range conf_rng,
-                              const struct gkyl_range adas_rng, const struct gkyl_basis *adas_basis,
-                              const struct gkyl_array *prim_vars_elc,
-                              struct gkyl_array *coef_recomb, struct gkyl_array *recomb_data,
-                              double mass_elc, double elem_charge, double maxLogTe, double minLogTe,
-                              double dlogTe, int resTe, double maxLogM0, double minLogM0,
-                              double dlogM0, int resM0)
+__global__ static void gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up,
+  const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
+  const struct gkyl_basis *adas_basis, const struct gkyl_array *prim_vars_elc,
+  struct gkyl_array *coef_recomb, struct gkyl_array *recomb_data, double mass_elc,
+  double elem_charge, double maxLogTe, double minLogTe, double dlogTe, int resTe, double maxLogM0,
+  double minLogM0, double dlogM0, int resM0)
 {
   int cidx[GKYL_MAX_CDIM];
   for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < conf_rng.volume;
@@ -78,12 +76,12 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
 }
 
 void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up, const struct gkyl_array *prim_vars_elc,
-                            struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
+  struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
 {
-  gkyl_recomb_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(
-    up->on_dev, *up->conf_rng, up->adas_rng, up->basis_on_dev, prim_vars_elc->on_dev,
-    coef_recomb->on_dev, up->recomb_data->on_dev, up->mass_elc, up->elem_charge, up->maxLogTe,
-    up->minLogTe, up->dlogTe, up->resTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resM0);
+  gkyl_recomb_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(up->on_dev,
+    *up->conf_rng, up->adas_rng, up->basis_on_dev, prim_vars_elc->on_dev, coef_recomb->on_dev,
+    up->recomb_data->on_dev, up->mass_elc, up->elem_charge, up->maxLogTe, up->minLogTe, up->dlogTe,
+    up->resTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resM0);
 
   // cfl calculation
   //struct gkyl_range vel_rng;

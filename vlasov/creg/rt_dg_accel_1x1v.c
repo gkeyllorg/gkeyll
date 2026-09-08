@@ -68,20 +68,20 @@ struct accel_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct accel_ctx ctx = { .pi = pi,
-                           .epsilon0 = epsilon0,
-                           .mu0 = mu0,
-                           .mass_elc = mass_elc,
-                           .charge_elc = charge_elc,
-                           .Nx = Nx,
-                           .Nvx = Nvx,
-                           .Lx = Lx,
-                           .Lvx = Lvx,
-                           .poly_order = poly_order,
-                           .cfl_frac = cfl_frac,
-                           .t_end = t_end,
-                           .num_frames = num_frames,
-                           .dt_failure_tol = dt_failure_tol,
-                           .num_failures_max = num_failures_max };
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .Nx = Nx,
+    .Nvx = Nvx,
+    .Lx = Lx,
+    .Lvx = Lvx,
+    .poly_order = poly_order,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -156,8 +156,7 @@ int main(int argc, char **argv)
   int NVX = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nvx);
 
   // Electron species.
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
+  struct gkyl_vlasov_species elc = { .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .lower = { -0.5 * ctx.Lvx },
@@ -171,19 +170,18 @@ int main(int argc, char **argv)
     .app_accel_ctx = &ctx,
 
     .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 }
-  };
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 } };
 
   // Field.
   struct gkyl_vlasov_field field = { .epsilon0 = ctx.epsilon0,
-                                     .mu0 = ctx.mu0,
-                                     .elcErrorSpeedFactor = 0.0,
-                                     .mgnErrorSpeedFactor = 0.0,
+    .mu0 = ctx.mu0,
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
 
-                                     .is_static = true,
+    .is_static = true,
 
-                                     .init = evalFieldInit,
-                                     .ctx = &ctx };
+    .init = evalFieldInit,
+    .ctx = &ctx };
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -241,8 +239,8 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -320,8 +318,8 @@ int main(int argc, char **argv)
       gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_vlasov_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         break;
       }
     } else {
@@ -341,18 +339,18 @@ int main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_vlasov_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n",
-                         stat.stage_2_dt_diff[1]);
-    gkyl_vlasov_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n",
-                         stat.stage_2_dt_diff[0]);
+    gkyl_vlasov_app_cout(
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n",
-                       stat.species_coll_tm);
+  gkyl_vlasov_app_cout(
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n",
-                       stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);

@@ -47,11 +47,9 @@ struct gkyl_dg_updater_diffusion_vlasov *gkyl_dg_updater_diffusion_vlasov_new(
  * @param rhs RHS output
  */
 void gkyl_dg_updater_diffusion_vlasov_advance(struct gkyl_dg_updater_diffusion_vlasov *up,
-                                              const struct gkyl_range *update_rng,
-                                              const struct gkyl_array *coeff,
-                                              const struct gkyl_array *GKYL_RESTRICT fIn,
-                                              struct gkyl_array *GKYL_RESTRICT cflrate,
-                                              struct gkyl_array *GKYL_RESTRICT rhs);
+  const struct gkyl_range *update_rng, const struct gkyl_array *coeff,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
+  struct gkyl_array *GKYL_RESTRICT rhs);
 
 /**
  * Return total time spent in diffusion terms
@@ -59,8 +57,8 @@ void gkyl_dg_updater_diffusion_vlasov_advance(struct gkyl_dg_updater_diffusion_v
  * @param diffusion Updater object
  * @return timers
  */
-struct gkyl_dg_updater_diffusion_vlasov_tm
-gkyl_dg_updater_diffusion_vlasov_get_tm(const struct gkyl_dg_updater_diffusion_vlasov *up);
+struct gkyl_dg_updater_diffusion_vlasov_tm gkyl_dg_updater_diffusion_vlasov_get_tm(
+  const struct gkyl_dg_updater_diffusion_vlasov *up);
 
 /**
  * Delete updater.

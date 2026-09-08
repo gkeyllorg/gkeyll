@@ -42,11 +42,9 @@ struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
  * @param delta_m0 M0 moment of the shift in f.
  */
 void gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic *up,
-                                               const struct gkyl_range *conf_rng,
-                                               const struct gkyl_range *phase_rng,
-                                               struct gkyl_array *GKYL_RESTRICT distf,
-                                               struct gkyl_array *GKYL_RESTRICT m0,
-                                               struct gkyl_array *GKYL_RESTRICT delta_m0);
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
+  struct gkyl_array *GKYL_RESTRICT delta_m0);
 
 /**
  * Scale the distribution function in the indicated range after applying the
@@ -61,9 +59,9 @@ void gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic
  * @param m0s M0 moment of fs.
  * @param fs Distribution function of the species we wish to scale.
  */
-void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(
-  gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
-  const struct gkyl_range *phase_rng, const struct gkyl_array *GKYL_RESTRICT delta_m0s,
+void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gyrokinetic *up,
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  const struct gkyl_array *GKYL_RESTRICT delta_m0s,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
   const struct gkyl_array *GKYL_RESTRICT delta_m0r_tot, const struct gkyl_array *GKYL_RESTRICT m0s,
   struct gkyl_array *GKYL_RESTRICT fs);

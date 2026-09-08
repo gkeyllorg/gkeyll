@@ -51,7 +51,7 @@ void gkyl_dg_bin_op_mem_release(gkyl_dg_bin_op_mem *mem)
 
 // multiplication
 void gkyl_dg_mul_op(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_lop,
-                    const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop)
+  const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -87,8 +87,8 @@ void gkyl_dg_mul_op(const struct gkyl_basis *basis, int c_oop, struct gkyl_array
 }
 
 void gkyl_dg_mul_op_range(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
-                          int c_lop, const struct gkyl_array *lop, int c_rop,
-                          const struct gkyl_array *rop, const struct gkyl_range *range)
+  int c_lop, const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop,
+  const struct gkyl_range *range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -129,7 +129,7 @@ void gkyl_dg_mul_op_range(const struct gkyl_basis *basis, int c_oop, struct gkyl
 
 // Dot product.
 void gkyl_dg_dot_product_op(const struct gkyl_basis *basis, struct gkyl_array *out,
-                            const struct gkyl_array *lop, const struct gkyl_array *rop)
+  const struct gkyl_array *lop, const struct gkyl_array *rop)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -176,8 +176,7 @@ void gkyl_dg_dot_product_op(const struct gkyl_basis *basis, struct gkyl_array *o
 }
 
 void gkyl_dg_dot_product_op_range(const struct gkyl_basis *basis, struct gkyl_array *out,
-                                  const struct gkyl_array *lop, const struct gkyl_array *rop,
-                                  const struct gkyl_range *range)
+  const struct gkyl_array *lop, const struct gkyl_array *rop, const struct gkyl_range *range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -229,10 +228,8 @@ void gkyl_dg_dot_product_op_range(const struct gkyl_basis *basis, struct gkyl_ar
 
 // conf*phase multiplication.
 void gkyl_dg_mul_conf_phase_op_range(const struct gkyl_basis *cbasis,
-                                     const struct gkyl_basis *pbasis, struct gkyl_array *pout,
-                                     const struct gkyl_array *cop, const struct gkyl_array *pop,
-                                     const struct gkyl_range *crange,
-                                     const struct gkyl_range *prange)
+  const struct gkyl_basis *pbasis, struct gkyl_array *pout, const struct gkyl_array *cop,
+  const struct gkyl_array *pop, const struct gkyl_range *crange, const struct gkyl_range *prange)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pout)) {
@@ -268,15 +265,14 @@ void gkyl_dg_mul_conf_phase_op_range(const struct gkyl_basis *cbasis,
 }
 
 // conf*phase multiplication with accumulation to output.
-void gkyl_dg_mul_conf_phase_op_accumulate_range(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, struct gkyl_array *pout,
-  double a, const struct gkyl_array *cop, const struct gkyl_array *pop,
-  const struct gkyl_range *crange, const struct gkyl_range *prange)
+void gkyl_dg_mul_conf_phase_op_accumulate_range(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array *pout, double a, const struct gkyl_array *cop,
+  const struct gkyl_array *pop, const struct gkyl_range *crange, const struct gkyl_range *prange)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pout)) {
-    return gkyl_dg_mul_conf_phase_op_accumulate_range_cu(cbasis, pbasis, pout, a, cop, pop, crange,
-                                                         prange);
+    return gkyl_dg_mul_conf_phase_op_accumulate_range_cu(
+      cbasis, pbasis, pout, a, cop, pop, crange, prange);
   }
 #endif
 
@@ -310,8 +306,8 @@ void gkyl_dg_mul_conf_phase_op_accumulate_range(
 
 // division
 void gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop,
-                    struct gkyl_array *out, int c_lop, const struct gkyl_array *lop, int c_rop,
-                    const struct gkyl_array *rop)
+  struct gkyl_array *out, int c_lop, const struct gkyl_array *lop, int c_rop,
+  const struct gkyl_array *rop)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -364,8 +360,8 @@ void gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int
 }
 
 void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop,
-                          struct gkyl_array *out, int c_lop, const struct gkyl_array *lop,
-                          int c_rop, const struct gkyl_array *rop, const struct gkyl_range *range)
+  struct gkyl_array *out, int c_lop, const struct gkyl_array *lop, int c_rop,
+  const struct gkyl_array *rop, const struct gkyl_range *range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -433,7 +429,7 @@ void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basi
 }
 
 void gkyl_dg_inv_op(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
-                    const struct gkyl_array *iop)
+  const struct gkyl_array *iop)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -465,7 +461,7 @@ void gkyl_dg_inv_op(const struct gkyl_basis *basis, int c_oop, struct gkyl_array
 }
 
 void gkyl_dg_inv_op_range(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
-                          int c_iop, const struct gkyl_array *iop, const struct gkyl_range *range)
+  int c_iop, const struct gkyl_array *iop, const struct gkyl_range *range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -502,8 +498,7 @@ void gkyl_dg_inv_op_range(const struct gkyl_basis *basis, int c_oop, struct gkyl
 }
 
 void gkyl_dg_calc_op_range(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
-                           int c_iop, const struct gkyl_array *iop, struct gkyl_range range,
-                           enum gkyl_dg_op op)
+  int c_iop, const struct gkyl_array *iop, struct gkyl_range range, enum gkyl_dg_op op)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -533,13 +528,13 @@ void gkyl_dg_calc_op_range(const struct gkyl_basis *basis, int c_oop, struct gky
 }
 
 void gkyl_dg_calc_average_range(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
-                                int c_iop, const struct gkyl_array *iop, struct gkyl_range range)
+  int c_iop, const struct gkyl_array *iop, struct gkyl_range range)
 {
   gkyl_dg_calc_op_range(basis, c_oop, out, c_iop, iop, range, GKYL_DG_OP_MEAN);
 }
 
 void gkyl_dg_calc_l2_range(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
-                           int c_iop, const struct gkyl_array *iop, struct gkyl_range range)
+  int c_iop, const struct gkyl_array *iop, struct gkyl_range range)
 {
   gkyl_dg_calc_op_range(basis, c_oop, out, c_iop, iop, range, GKYL_DG_OP_MEAN_L2);
 }

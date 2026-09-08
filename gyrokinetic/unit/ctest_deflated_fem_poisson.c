@@ -20,7 +20,7 @@
 #include <gkyl_dg_bin_ops.h>
 
 double calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range range_ext,
-               struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
+  struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
 {
   struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range_ext.volume);
   struct gkyl_range_iter iter;
@@ -624,8 +624,7 @@ void test_deflated_fem_poisson_3x_dd_dd_ho()
 }
 
 TEST_LIST = { { "test_deflated_fem_poisson_zind_dd_ho", test_deflated_fem_poisson_zind_dd_ho },
-              { "test_deflated_fem_poisson_simplez_dd_ho",
-                test_deflated_fem_poisson_simplez_dd_ho },
-              { "test_deflated_fem_poisson_zdep_nd_ho", test_deflated_fem_poisson_zdep_nd_ho },
-              { "test_deflated_fem_poisson_3x_dd_dd_ho", test_deflated_fem_poisson_3x_dd_dd_ho },
-              { NULL, NULL } };
+  { "test_deflated_fem_poisson_simplez_dd_ho", test_deflated_fem_poisson_simplez_dd_ho },
+  { "test_deflated_fem_poisson_zdep_nd_ho", test_deflated_fem_poisson_zdep_nd_ho },
+  { "test_deflated_fem_poisson_3x_dd_dd_ho", test_deflated_fem_poisson_3x_dd_dd_ho },
+  { NULL, NULL } };

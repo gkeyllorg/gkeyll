@@ -33,8 +33,8 @@ struct gkyl_culinsolver_prob *gkyl_culinsolver_prob_new(int nprob, int mrow, int
  * @param prob cuSolver struct holding arrays used in problem.
  * @param tri (array of) coordinates & values of non-zero entries in A matrix (triplets).
  */
-void gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob,
-                                        struct gkyl_mat_triples **tri);
+void gkyl_culinsolver_amat_from_triples(
+  struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri);
 
 /**
  * Initialize right-hand-side cuSolver matrix B in Ax=B problem from a list of

@@ -7,7 +7,7 @@
 #include <gkyl_sources_implicit_priv.h>
 
 void pressure_tensor_rotate(double q_over_m, double dt, const double *em, const double *ext_em,
-                            double p_tensor_old[6], double p_tensor_rhs[6], double p_tensor_new[6])
+  double p_tensor_old[6], double p_tensor_rhs[6], double p_tensor_new[6])
 {
   double Bx = em[3] + ext_em[3];
   double By = em[4] + ext_em[4];
@@ -40,193 +40,196 @@ void pressure_tensor_rotate(double q_over_m, double dt, const double *em, const 
   p_tensor_new[0] =
     2.0 *
       (p_tensor_rhs[0] + 2.0 * dt1 * (Bz * p_tensor_rhs[1] - By * p_tensor_rhs[2]) * q_over_m +
-       dt1_sq *
-         (5.0 * Bx_sq * p_tensor_rhs[0] + 2.0 * Bx * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
-          Bz_sq * (3.0 * p_tensor_rhs[0] + 2.0 * p_tensor_rhs[3]) -
-          4.0 * By * Bz * p_tensor_rhs[4] +
-          By_sq * (3.0 * p_tensor_rhs[0] + 2.0 * p_tensor_rhs[5])) *
-         q_over_m_sq +
-       2.0 * dt1_cu *
-         (4.0 * Bx_sq * (Bz * p_tensor_rhs[1] - By * p_tensor_rhs[2]) -
-          (By_sq + Bz_sq) * (-(Bz * p_tensor_rhs[1]) + By * p_tensor_rhs[2]) -
-          3.0 * Bx *
-            (By_sq * p_tensor_rhs[4] - Bz_sq * p_tensor_rhs[4] +
-             By * Bz * (-p_tensor_rhs[3] + p_tensor_rhs[5]))) *
-         q_over_m_cu +
-       2.0 * dt1_qu *
-         (2.0 * Bx_qu * p_tensor_rhs[0] +
-          4.0 * Bx_cu * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) -
-          2.0 * Bx * (By_sq + Bz_sq) * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
-          (By_sq + Bz_sq) *
-            (Bz_sq * (p_tensor_rhs[0] + p_tensor_rhs[3]) - 2.0 * By * Bz * p_tensor_rhs[4] +
-             By_sq * (p_tensor_rhs[0] + p_tensor_rhs[5])) +
-          Bx_sq *
-            (4.0 * By * Bz * p_tensor_rhs[4] + By_sq * (3.0 * p_tensor_rhs[3] + p_tensor_rhs[5]) +
-             Bz_sq * (p_tensor_rhs[3] + 3.0 * p_tensor_rhs[5]))) *
-         q_over_m_qu) /
+        dt1_sq *
+          (5.0 * Bx_sq * p_tensor_rhs[0] +
+            2.0 * Bx * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
+            Bz_sq * (3.0 * p_tensor_rhs[0] + 2.0 * p_tensor_rhs[3]) -
+            4.0 * By * Bz * p_tensor_rhs[4] +
+            By_sq * (3.0 * p_tensor_rhs[0] + 2.0 * p_tensor_rhs[5])) *
+          q_over_m_sq +
+        2.0 * dt1_cu *
+          (4.0 * Bx_sq * (Bz * p_tensor_rhs[1] - By * p_tensor_rhs[2]) -
+            (By_sq + Bz_sq) * (-(Bz * p_tensor_rhs[1]) + By * p_tensor_rhs[2]) -
+            3.0 * Bx *
+              (By_sq * p_tensor_rhs[4] - Bz_sq * p_tensor_rhs[4] +
+                By * Bz * (-p_tensor_rhs[3] + p_tensor_rhs[5]))) *
+          q_over_m_cu +
+        2.0 * dt1_qu *
+          (2.0 * Bx_qu * p_tensor_rhs[0] +
+            4.0 * Bx_cu * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) -
+            2.0 * Bx * (By_sq + Bz_sq) * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
+            (By_sq + Bz_sq) *
+              (Bz_sq * (p_tensor_rhs[0] + p_tensor_rhs[3]) - 2.0 * By * Bz * p_tensor_rhs[4] +
+                By_sq * (p_tensor_rhs[0] + p_tensor_rhs[5])) +
+            Bx_sq *
+              (4.0 * By * Bz * p_tensor_rhs[4] + By_sq * (3.0 * p_tensor_rhs[3] + p_tensor_rhs[5]) +
+                Bz_sq * (p_tensor_rhs[3] + 3.0 * p_tensor_rhs[5]))) *
+          q_over_m_qu) /
       denom -
     p_tensor_old[0];
 
   p_tensor_new[1] =
     2.0 *
       (p_tensor_rhs[1] +
-       dt1 *
-         (Bx * p_tensor_rhs[2] + Bz * (-p_tensor_rhs[0] + p_tensor_rhs[3]) - By * p_tensor_rhs[4]) *
-         q_over_m +
-       dt1_sq *
-         (4.0 * Bx_sq * p_tensor_rhs[1] + 4.0 * By_sq * p_tensor_rhs[1] + Bz_sq * p_tensor_rhs[1] +
-          3.0 * By * Bz * p_tensor_rhs[2] +
-          Bx * (3.0 * Bz * p_tensor_rhs[4] +
-                By * (p_tensor_rhs[0] + p_tensor_rhs[3] - 2.0 * p_tensor_rhs[5]))) *
-         q_over_m_sq +
-       dt1_cu *
-         (4.0 * Bx_cu * p_tensor_rhs[2] - 2.0 * Bx * (By_sq + Bz_sq) * p_tensor_rhs[2] +
-          Bz_cu * (-p_tensor_rhs[0] + p_tensor_rhs[3]) - 4.0 * By_cu * p_tensor_rhs[4] +
-          2.0 * By * Bz_sq * p_tensor_rhs[4] -
-          By_sq * Bz * (p_tensor_rhs[0] - 4.0 * p_tensor_rhs[3] + 3.0 * p_tensor_rhs[5]) +
-          Bx_sq * (2.0 * By * p_tensor_rhs[4] +
-                   Bz * (-4.0 * p_tensor_rhs[0] + p_tensor_rhs[3] + 3.0 * p_tensor_rhs[5]))) *
-         q_over_m_cu +
-       2.0 * Bx * By * dt1_qu *
-         (6.0 * Bx * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
-          6.0 * By * Bz * p_tensor_rhs[4] -
-          Bz_sq * (p_tensor_rhs[0] + p_tensor_rhs[3] - 2.0 * p_tensor_rhs[5]) +
-          Bx_sq * (2.0 * p_tensor_rhs[0] - p_tensor_rhs[3] - p_tensor_rhs[5]) -
-          By_sq * (p_tensor_rhs[0] - 2.0 * p_tensor_rhs[3] + p_tensor_rhs[5])) *
-         q_over_m_qu) /
+        dt1 *
+          (Bx * p_tensor_rhs[2] + Bz * (-p_tensor_rhs[0] + p_tensor_rhs[3]) -
+            By * p_tensor_rhs[4]) *
+          q_over_m +
+        dt1_sq *
+          (4.0 * Bx_sq * p_tensor_rhs[1] + 4.0 * By_sq * p_tensor_rhs[1] + Bz_sq * p_tensor_rhs[1] +
+            3.0 * By * Bz * p_tensor_rhs[2] +
+            Bx * (3.0 * Bz * p_tensor_rhs[4] +
+                   By * (p_tensor_rhs[0] + p_tensor_rhs[3] - 2.0 * p_tensor_rhs[5]))) *
+          q_over_m_sq +
+        dt1_cu *
+          (4.0 * Bx_cu * p_tensor_rhs[2] - 2.0 * Bx * (By_sq + Bz_sq) * p_tensor_rhs[2] +
+            Bz_cu * (-p_tensor_rhs[0] + p_tensor_rhs[3]) - 4.0 * By_cu * p_tensor_rhs[4] +
+            2.0 * By * Bz_sq * p_tensor_rhs[4] -
+            By_sq * Bz * (p_tensor_rhs[0] - 4.0 * p_tensor_rhs[3] + 3.0 * p_tensor_rhs[5]) +
+            Bx_sq * (2.0 * By * p_tensor_rhs[4] +
+                      Bz * (-4.0 * p_tensor_rhs[0] + p_tensor_rhs[3] + 3.0 * p_tensor_rhs[5]))) *
+          q_over_m_cu +
+        2.0 * Bx * By * dt1_qu *
+          (6.0 * Bx * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
+            6.0 * By * Bz * p_tensor_rhs[4] -
+            Bz_sq * (p_tensor_rhs[0] + p_tensor_rhs[3] - 2.0 * p_tensor_rhs[5]) +
+            Bx_sq * (2.0 * p_tensor_rhs[0] - p_tensor_rhs[3] - p_tensor_rhs[5]) -
+            By_sq * (p_tensor_rhs[0] - 2.0 * p_tensor_rhs[3] + p_tensor_rhs[5])) *
+          q_over_m_qu) /
       denom -
     p_tensor_old[1];
 
   p_tensor_new[2] =
     2.0 *
       (p_tensor_rhs[2] +
-       dt1 *
-         (-(Bx * p_tensor_rhs[1]) + Bz * p_tensor_rhs[4] +
-          By * (p_tensor_rhs[0] - p_tensor_rhs[5])) *
-         q_over_m +
-       dt1_sq *
-         (3.0 * By * Bz * p_tensor_rhs[1] + 4.0 * Bx_sq * p_tensor_rhs[2] +
-          By_sq * p_tensor_rhs[2] + 4.0 * Bz_sq * p_tensor_rhs[2] +
-          Bx * (3.0 * By * p_tensor_rhs[4] +
-                Bz * (p_tensor_rhs[0] - 2.0 * p_tensor_rhs[3] + p_tensor_rhs[5]))) *
-         q_over_m_sq +
-       dt1_cu *
-         (-4.0 * Bx_cu * p_tensor_rhs[1] + 2.0 * Bx * (By_sq + Bz_sq) * p_tensor_rhs[1] -
-          2.0 * By_sq * Bz * p_tensor_rhs[4] + 4.0 * Bz_cu * p_tensor_rhs[4] +
-          By * Bz_sq * (p_tensor_rhs[0] + 3.0 * p_tensor_rhs[3] - 4.0 * p_tensor_rhs[5]) +
-          By_cu * (p_tensor_rhs[0] - p_tensor_rhs[5]) -
-          Bx_sq * (2.0 * Bz * p_tensor_rhs[4] +
-                   By * (-4.0 * p_tensor_rhs[0] + 3.0 * p_tensor_rhs[3] + p_tensor_rhs[5]))) *
-         q_over_m_cu +
-       2.0 * Bx * Bz * dt1_qu *
-         (6.0 * Bx * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
-          6.0 * By * Bz * p_tensor_rhs[4] -
-          Bz_sq * (p_tensor_rhs[0] + p_tensor_rhs[3] - 2.0 * p_tensor_rhs[5]) +
-          Bx_sq * (2.0 * p_tensor_rhs[0] - p_tensor_rhs[3] - p_tensor_rhs[5]) -
-          By_sq * (p_tensor_rhs[0] - 2.0 * p_tensor_rhs[3] + p_tensor_rhs[5])) *
-         q_over_m_qu) /
+        dt1 *
+          (-(Bx * p_tensor_rhs[1]) + Bz * p_tensor_rhs[4] +
+            By * (p_tensor_rhs[0] - p_tensor_rhs[5])) *
+          q_over_m +
+        dt1_sq *
+          (3.0 * By * Bz * p_tensor_rhs[1] + 4.0 * Bx_sq * p_tensor_rhs[2] +
+            By_sq * p_tensor_rhs[2] + 4.0 * Bz_sq * p_tensor_rhs[2] +
+            Bx * (3.0 * By * p_tensor_rhs[4] +
+                   Bz * (p_tensor_rhs[0] - 2.0 * p_tensor_rhs[3] + p_tensor_rhs[5]))) *
+          q_over_m_sq +
+        dt1_cu *
+          (-4.0 * Bx_cu * p_tensor_rhs[1] + 2.0 * Bx * (By_sq + Bz_sq) * p_tensor_rhs[1] -
+            2.0 * By_sq * Bz * p_tensor_rhs[4] + 4.0 * Bz_cu * p_tensor_rhs[4] +
+            By * Bz_sq * (p_tensor_rhs[0] + 3.0 * p_tensor_rhs[3] - 4.0 * p_tensor_rhs[5]) +
+            By_cu * (p_tensor_rhs[0] - p_tensor_rhs[5]) -
+            Bx_sq * (2.0 * Bz * p_tensor_rhs[4] +
+                      By * (-4.0 * p_tensor_rhs[0] + 3.0 * p_tensor_rhs[3] + p_tensor_rhs[5]))) *
+          q_over_m_cu +
+        2.0 * Bx * Bz * dt1_qu *
+          (6.0 * Bx * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
+            6.0 * By * Bz * p_tensor_rhs[4] -
+            Bz_sq * (p_tensor_rhs[0] + p_tensor_rhs[3] - 2.0 * p_tensor_rhs[5]) +
+            Bx_sq * (2.0 * p_tensor_rhs[0] - p_tensor_rhs[3] - p_tensor_rhs[5]) -
+            By_sq * (p_tensor_rhs[0] - 2.0 * p_tensor_rhs[3] + p_tensor_rhs[5])) *
+          q_over_m_qu) /
       denom -
     p_tensor_old[2];
 
   p_tensor_new[3] =
     2.0 *
       (p_tensor_rhs[3] +
-       (-2.0 * Bz * dt1 * p_tensor_rhs[1] + 2.0 * Bx * dt1 * p_tensor_rhs[4]) * q_over_m +
-       dt1_sq *
-         (2.0 * Bx * By * p_tensor_rhs[1] + 5.0 * By_sq * p_tensor_rhs[3] +
-          Bz_sq * (2.0 * p_tensor_rhs[0] + 3.0 * p_tensor_rhs[3]) +
-          Bz * (-4.0 * Bx * p_tensor_rhs[2] + 2.0 * By * p_tensor_rhs[4]) +
-          Bx_sq * (3.0 * p_tensor_rhs[3] + 2.0 * p_tensor_rhs[5])) *
-         q_over_m_sq +
-       2.0 * dt1_cu *
-         (Bx_sq * (-(Bz * p_tensor_rhs[1]) + 3.0 * By * p_tensor_rhs[2]) -
-          Bz * (4.0 * By_sq * p_tensor_rhs[1] + Bz_sq * p_tensor_rhs[1] +
-                3.0 * By * Bz * p_tensor_rhs[2]) +
-          Bx_cu * p_tensor_rhs[4] +
-          Bx * (4.0 * By_sq * p_tensor_rhs[4] + Bz_sq * p_tensor_rhs[4] +
-                3.0 * By * Bz * (-p_tensor_rhs[0] + p_tensor_rhs[5]))) *
-         q_over_m_cu +
-       2.0 * dt1_qu *
-         (-2.0 * Bx_cu * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
-          2.0 * Bx * (2.0 * By_sq - Bz_sq) * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
-          2.0 * By_qu * p_tensor_rhs[3] + Bz_qu * (p_tensor_rhs[0] + p_tensor_rhs[3]) +
-          4.0 * By_cu * Bz * p_tensor_rhs[4] - 2.0 * By * Bz_cu * p_tensor_rhs[4] +
-          Bx_qu * (p_tensor_rhs[3] + p_tensor_rhs[5]) +
-          By_sq * Bz_sq * (p_tensor_rhs[0] + 3.0 * p_tensor_rhs[5]) +
-          Bx_sq *
-            (-2.0 * By * Bz * p_tensor_rhs[4] + By_sq * (3.0 * p_tensor_rhs[0] + p_tensor_rhs[5]) +
-             Bz_sq * (p_tensor_rhs[0] + 2.0 * p_tensor_rhs[3] + p_tensor_rhs[5]))) *
-         q_over_m_qu) /
+        (-2.0 * Bz * dt1 * p_tensor_rhs[1] + 2.0 * Bx * dt1 * p_tensor_rhs[4]) * q_over_m +
+        dt1_sq *
+          (2.0 * Bx * By * p_tensor_rhs[1] + 5.0 * By_sq * p_tensor_rhs[3] +
+            Bz_sq * (2.0 * p_tensor_rhs[0] + 3.0 * p_tensor_rhs[3]) +
+            Bz * (-4.0 * Bx * p_tensor_rhs[2] + 2.0 * By * p_tensor_rhs[4]) +
+            Bx_sq * (3.0 * p_tensor_rhs[3] + 2.0 * p_tensor_rhs[5])) *
+          q_over_m_sq +
+        2.0 * dt1_cu *
+          (Bx_sq * (-(Bz * p_tensor_rhs[1]) + 3.0 * By * p_tensor_rhs[2]) -
+            Bz * (4.0 * By_sq * p_tensor_rhs[1] + Bz_sq * p_tensor_rhs[1] +
+                   3.0 * By * Bz * p_tensor_rhs[2]) +
+            Bx_cu * p_tensor_rhs[4] +
+            Bx * (4.0 * By_sq * p_tensor_rhs[4] + Bz_sq * p_tensor_rhs[4] +
+                   3.0 * By * Bz * (-p_tensor_rhs[0] + p_tensor_rhs[5]))) *
+          q_over_m_cu +
+        2.0 * dt1_qu *
+          (-2.0 * Bx_cu * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
+            2.0 * Bx * (2.0 * By_sq - Bz_sq) * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
+            2.0 * By_qu * p_tensor_rhs[3] + Bz_qu * (p_tensor_rhs[0] + p_tensor_rhs[3]) +
+            4.0 * By_cu * Bz * p_tensor_rhs[4] - 2.0 * By * Bz_cu * p_tensor_rhs[4] +
+            Bx_qu * (p_tensor_rhs[3] + p_tensor_rhs[5]) +
+            By_sq * Bz_sq * (p_tensor_rhs[0] + 3.0 * p_tensor_rhs[5]) +
+            Bx_sq * (-2.0 * By * Bz * p_tensor_rhs[4] +
+                      By_sq * (3.0 * p_tensor_rhs[0] + p_tensor_rhs[5]) +
+                      Bz_sq * (p_tensor_rhs[0] + 2.0 * p_tensor_rhs[3] + p_tensor_rhs[5]))) *
+          q_over_m_qu) /
       denom -
     p_tensor_old[3];
 
   p_tensor_new[4] =
     2.0 *
       (p_tensor_rhs[4] +
-       dt1 *
-         (By * p_tensor_rhs[1] - Bz * p_tensor_rhs[2] + Bx * (-p_tensor_rhs[3] + p_tensor_rhs[5])) *
-         q_over_m +
-       dt1_sq *
-         (3.0 * Bx * Bz * p_tensor_rhs[1] + Bx_sq * p_tensor_rhs[4] +
-          4.0 * By_sq * p_tensor_rhs[4] + 4.0 * Bz_sq * p_tensor_rhs[4] +
-          By * (3.0 * Bx * p_tensor_rhs[2] +
-                Bz * (-2.0 * p_tensor_rhs[0] + p_tensor_rhs[3] + p_tensor_rhs[5]))) *
-         q_over_m_sq +
-       dt1_cu *
-         (4.0 * By_cu * p_tensor_rhs[1] - 2.0 * By * Bz_sq * p_tensor_rhs[1] +
-          2.0 * By_sq * Bz * p_tensor_rhs[2] - 4.0 * Bz_cu * p_tensor_rhs[2] +
-          Bx_sq * (-2.0 * By * p_tensor_rhs[1] + 2.0 * Bz * p_tensor_rhs[2]) +
-          Bx_cu * (-p_tensor_rhs[3] + p_tensor_rhs[5]) +
-          Bx * (-(Bz_sq * (3.0 * p_tensor_rhs[0] + p_tensor_rhs[3] - 4.0 * p_tensor_rhs[5])) +
-                By_sq * (3.0 * p_tensor_rhs[0] - 4.0 * p_tensor_rhs[3] + p_tensor_rhs[5]))) *
-         q_over_m_cu -
-       2.0 * By * Bz * dt1_qu *
-         (-6.0 * Bx * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) -
-          6.0 * By * Bz * p_tensor_rhs[4] +
-          Bz_sq * (p_tensor_rhs[0] + p_tensor_rhs[3] - 2.0 * p_tensor_rhs[5]) +
-          By_sq * (p_tensor_rhs[0] - 2.0 * p_tensor_rhs[3] + p_tensor_rhs[5]) +
-          Bx_sq * (-2.0 * p_tensor_rhs[0] + p_tensor_rhs[3] + p_tensor_rhs[5])) *
-         q_over_m_qu) /
+        dt1 *
+          (By * p_tensor_rhs[1] - Bz * p_tensor_rhs[2] +
+            Bx * (-p_tensor_rhs[3] + p_tensor_rhs[5])) *
+          q_over_m +
+        dt1_sq *
+          (3.0 * Bx * Bz * p_tensor_rhs[1] + Bx_sq * p_tensor_rhs[4] +
+            4.0 * By_sq * p_tensor_rhs[4] + 4.0 * Bz_sq * p_tensor_rhs[4] +
+            By * (3.0 * Bx * p_tensor_rhs[2] +
+                   Bz * (-2.0 * p_tensor_rhs[0] + p_tensor_rhs[3] + p_tensor_rhs[5]))) *
+          q_over_m_sq +
+        dt1_cu *
+          (4.0 * By_cu * p_tensor_rhs[1] - 2.0 * By * Bz_sq * p_tensor_rhs[1] +
+            2.0 * By_sq * Bz * p_tensor_rhs[2] - 4.0 * Bz_cu * p_tensor_rhs[2] +
+            Bx_sq * (-2.0 * By * p_tensor_rhs[1] + 2.0 * Bz * p_tensor_rhs[2]) +
+            Bx_cu * (-p_tensor_rhs[3] + p_tensor_rhs[5]) +
+            Bx * (-(Bz_sq * (3.0 * p_tensor_rhs[0] + p_tensor_rhs[3] - 4.0 * p_tensor_rhs[5])) +
+                   By_sq * (3.0 * p_tensor_rhs[0] - 4.0 * p_tensor_rhs[3] + p_tensor_rhs[5]))) *
+          q_over_m_cu -
+        2.0 * By * Bz * dt1_qu *
+          (-6.0 * Bx * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) -
+            6.0 * By * Bz * p_tensor_rhs[4] +
+            Bz_sq * (p_tensor_rhs[0] + p_tensor_rhs[3] - 2.0 * p_tensor_rhs[5]) +
+            By_sq * (p_tensor_rhs[0] - 2.0 * p_tensor_rhs[3] + p_tensor_rhs[5]) +
+            Bx_sq * (-2.0 * p_tensor_rhs[0] + p_tensor_rhs[3] + p_tensor_rhs[5])) *
+          q_over_m_qu) /
       denom -
     p_tensor_old[4];
 
   p_tensor_new[5] =
     2.0 *
       (p_tensor_rhs[5] + 2.0 * dt1 * (By * p_tensor_rhs[2] - Bx * p_tensor_rhs[4]) * q_over_m +
-       dt1_sq *
-         (2.0 * Bx * Bz * p_tensor_rhs[2] +
-          By * (-4.0 * Bx * p_tensor_rhs[1] + 2 * Bz * p_tensor_rhs[4]) +
-          5.0 * Bz_sq * p_tensor_rhs[5] + By_sq * (2.0 * p_tensor_rhs[0] + 3.0 * p_tensor_rhs[5]) +
-          Bx_sq * (2.0 * p_tensor_rhs[3] + 3.0 * p_tensor_rhs[5])) *
-         q_over_m_sq -
-       2.0 * dt1_cu *
-         (Bx_sq * (3.0 * Bz * p_tensor_rhs[1] - By * p_tensor_rhs[2]) -
-          By * (3.0 * By * Bz * p_tensor_rhs[1] + By_sq * p_tensor_rhs[2] +
-                4.0 * Bz_sq * p_tensor_rhs[2]) +
-          Bx_cu * p_tensor_rhs[4] +
-          Bx * (3.0 * By * Bz * (-p_tensor_rhs[0] + p_tensor_rhs[3]) + By_sq * p_tensor_rhs[4] +
-                4.0 * Bz_sq * p_tensor_rhs[4])) *
-         q_over_m_cu +
-       2.0 * dt1_qu *
-         (-2.0 * Bx_cu * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) -
-          2.0 * Bx * (By_sq - 2.0 * Bz_sq) * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
-          By_sq * Bz_sq * (p_tensor_rhs[0] + 3.0 * p_tensor_rhs[3]) -
-          2.0 * By_cu * Bz * p_tensor_rhs[4] + 4.0 * By * Bz_cu * p_tensor_rhs[4] +
-          2.0 * Bz_qu * p_tensor_rhs[5] + By_qu * (p_tensor_rhs[0] + p_tensor_rhs[5]) +
-          Bx_qu * (p_tensor_rhs[3] + p_tensor_rhs[5]) +
-          Bx_sq *
-            (Bz_sq * (3.0 * p_tensor_rhs[0] + p_tensor_rhs[3]) - 2.0 * By * Bz * p_tensor_rhs[4] +
-             By_sq * (p_tensor_rhs[0] + p_tensor_rhs[3] + 2.0 * p_tensor_rhs[5]))) *
-         q_over_m_qu) /
+        dt1_sq *
+          (2.0 * Bx * Bz * p_tensor_rhs[2] +
+            By * (-4.0 * Bx * p_tensor_rhs[1] + 2 * Bz * p_tensor_rhs[4]) +
+            5.0 * Bz_sq * p_tensor_rhs[5] +
+            By_sq * (2.0 * p_tensor_rhs[0] + 3.0 * p_tensor_rhs[5]) +
+            Bx_sq * (2.0 * p_tensor_rhs[3] + 3.0 * p_tensor_rhs[5])) *
+          q_over_m_sq -
+        2.0 * dt1_cu *
+          (Bx_sq * (3.0 * Bz * p_tensor_rhs[1] - By * p_tensor_rhs[2]) -
+            By * (3.0 * By * Bz * p_tensor_rhs[1] + By_sq * p_tensor_rhs[2] +
+                   4.0 * Bz_sq * p_tensor_rhs[2]) +
+            Bx_cu * p_tensor_rhs[4] +
+            Bx * (3.0 * By * Bz * (-p_tensor_rhs[0] + p_tensor_rhs[3]) + By_sq * p_tensor_rhs[4] +
+                   4.0 * Bz_sq * p_tensor_rhs[4])) *
+          q_over_m_cu +
+        2.0 * dt1_qu *
+          (-2.0 * Bx_cu * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) -
+            2.0 * Bx * (By_sq - 2.0 * Bz_sq) * (By * p_tensor_rhs[1] + Bz * p_tensor_rhs[2]) +
+            By_sq * Bz_sq * (p_tensor_rhs[0] + 3.0 * p_tensor_rhs[3]) -
+            2.0 * By_cu * Bz * p_tensor_rhs[4] + 4.0 * By * Bz_cu * p_tensor_rhs[4] +
+            2.0 * Bz_qu * p_tensor_rhs[5] + By_qu * (p_tensor_rhs[0] + p_tensor_rhs[5]) +
+            Bx_qu * (p_tensor_rhs[3] + p_tensor_rhs[5]) +
+            Bx_sq *
+              (Bz_sq * (3.0 * p_tensor_rhs[0] + p_tensor_rhs[3]) - 2.0 * By * Bz * p_tensor_rhs[4] +
+                By_sq * (p_tensor_rhs[0] + p_tensor_rhs[3] + 2.0 * p_tensor_rhs[5]))) *
+          q_over_m_qu) /
       denom -
     p_tensor_old[5];
 }
 
 void implicit_em_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
-                               double fluid_rhs_s[GKYL_MAX_SPECIES][4],
-                               double *fluid_s[GKYL_MAX_SPECIES],
-                               const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
-                               const double *app_current, const double *ext_em)
+  double fluid_rhs_s[GKYL_MAX_SPECIES][4], double *fluid_s[GKYL_MAX_SPECIES],
+  const double *app_accel_s[GKYL_MAX_SPECIES], double *em, const double *app_current,
+  const double *ext_em)
 {
   int nfluids = mom_em->nfluids;
   double epsilon0 = mom_em->epsilon0;
@@ -278,11 +281,11 @@ void implicit_em_source_update(const gkyl_moment_em_coupling *mom_em, double t_c
     }
 
     J[i][0] = J_old[i][0] + (0.5 * dt * q_over_m[i] * rho *
-                             ((q_over_m[i] * ext_em[0] * scale_fact_E) + app_accel[0]));
+                              ((q_over_m[i] * ext_em[0] * scale_fact_E) + app_accel[0]));
     J[i][1] = J_old[i][1] + (0.5 * dt * q_over_m[i] * rho *
-                             ((q_over_m[i] * ext_em[1] * scale_fact_E) + app_accel[1]));
+                              ((q_over_m[i] * ext_em[1] * scale_fact_E) + app_accel[1]));
     J[i][2] = J_old[i][2] + (0.5 * dt * q_over_m[i] * rho *
-                             ((q_over_m[i] * ext_em[2] * scale_fact_E) + app_accel[2]));
+                              ((q_over_m[i] * ext_em[2] * scale_fact_E) + app_accel[2]));
 
     wc_dt[i] = q_over_m[i] * B_mag * dt;
     wp_dt_sq[i] = (rho * (q_over_m[i] * q_over_m[i]) * (dt * dt)) / epsilon0;
@@ -293,17 +296,17 @@ void implicit_em_source_update(const gkyl_moment_em_coupling *mom_em, double t_c
     delta += (wp_dt_sq[i] * wc_dt[i]) / denom;
 
     Kx -= (dt / denom) * (J[i][0] +
-                          (((wc_dt[i] * wc_dt[i]) / 4.0) * bx *
-                           ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
-                          ((wc_dt[i] / 2.0) * ((by * J[i][2]) - (bz * J[i][1]))));
+                           (((wc_dt[i] * wc_dt[i]) / 4.0) * bx *
+                             ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
+                           ((wc_dt[i] / 2.0) * ((by * J[i][2]) - (bz * J[i][1]))));
     Ky -= (dt / denom) * (J[i][1] +
-                          (((wc_dt[i] * wc_dt[i]) / 4.0) * by *
-                           ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
-                          ((wc_dt[i] / 2.0) * ((bz * J[i][0]) - (bx * J[i][2]))));
+                           (((wc_dt[i] * wc_dt[i]) / 4.0) * by *
+                             ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
+                           ((wc_dt[i] / 2.0) * ((bz * J[i][0]) - (bx * J[i][2]))));
     Kz -= (dt / denom) * (J[i][2] +
-                          (((wc_dt[i] * wc_dt[i]) / 4.0) * bz *
-                           ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
-                          ((wc_dt[i] / 2.0) * ((bx * J[i][1]) - (by * J[i][0]))));
+                           (((wc_dt[i] * wc_dt[i]) / 4.0) * bz *
+                             ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
+                           ((wc_dt[i] / 2.0) * ((bx * J[i][1]) - (by * J[i][0]))));
   }
 
   double Delta_sq = (delta * delta) / (1.0 + (w0_sq / 4.0));
@@ -327,21 +330,21 @@ void implicit_em_source_update(const gkyl_moment_em_coupling *mom_em, double t_c
   double Fx_bar =
     (1.0 / (1.0 + (w0_sq / 4.0) + (Delta_sq / 64.0))) *
     (Fx_K +
-     ((((Delta_sq / 64.0) - (gam_sq / 16.0)) / (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * bx *
-      ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) +
-     (((delta / 8.0) / (1.0 + (w0_sq / 4.0))) * ((by * Fz_K) - (bz * Fy_K))));
+      ((((Delta_sq / 64.0) - (gam_sq / 16.0)) / (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * bx *
+        ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) +
+      (((delta / 8.0) / (1.0 + (w0_sq / 4.0))) * ((by * Fz_K) - (bz * Fy_K))));
   double Fy_bar =
     (1.0 / (1.0 + (w0_sq / 4.0) + (Delta_sq / 64.0))) *
     (Fy_K +
-     ((((Delta_sq / 64.0) - (gam_sq / 16.0)) / (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * by *
-      ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) +
-     (((delta / 8.0) / (1.0 + (w0_sq / 4.0))) * ((bz * Fx_K) - (bx * Fz_K))));
+      ((((Delta_sq / 64.0) - (gam_sq / 16.0)) / (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * by *
+        ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) +
+      (((delta / 8.0) / (1.0 + (w0_sq / 4.0))) * ((bz * Fx_K) - (bx * Fz_K))));
   double Fz_bar =
     (1.0 / (1.0 + (w0_sq / 4.0) + (Delta_sq / 64.0))) *
     (Fz_K +
-     ((((Delta_sq / 64.0) - (gam_sq / 16.0)) / (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * bz *
-      ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) +
-     (((delta / 8.0) / (1.0 + (w0_sq / 4.0))) * ((bx * Fy_K) - (by * Fx_K))));
+      ((((Delta_sq / 64.0) - (gam_sq / 16.0)) / (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * bz *
+        ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) +
+      (((delta / 8.0) / (1.0 + (w0_sq / 4.0))) * ((bx * Fy_K) - (by * Fx_K))));
 
   if (mom_em->static_field) {
     em[0] = Fx_old / epsilon0;
@@ -361,22 +364,22 @@ void implicit_em_source_update(const gkyl_moment_em_coupling *mom_em, double t_c
     double Jz_star = J[i][2] + (Fz_bar * ((wp_dt_sq[i] / dt) / 2.0));
 
     double Jx_new = ((2.0 * (Jx_star +
-                             (((wc_dt[i] * wc_dt[i]) / 4.0) * bx *
-                              ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
-                             ((wc_dt[i] / 2.0) * ((by * Jz_star) - (bz * Jy_star))))) /
-                     (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) -
+                              (((wc_dt[i] * wc_dt[i]) / 4.0) * bx *
+                                ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
+                              ((wc_dt[i] / 2.0) * ((by * Jz_star) - (bz * Jy_star))))) /
+                      (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) -
                     J_old[i][0];
     double Jy_new = ((2.0 * (Jy_star +
-                             (((wc_dt[i] * wc_dt[i]) / 4.0) * by *
-                              ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
-                             ((wc_dt[i] / 2.0) * ((bz * Jx_star) - (bx * Jz_star))))) /
-                     (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) -
+                              (((wc_dt[i] * wc_dt[i]) / 4.0) * by *
+                                ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
+                              ((wc_dt[i] / 2.0) * ((bz * Jx_star) - (bx * Jz_star))))) /
+                      (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) -
                     J_old[i][1];
     double Jz_new = ((2.0 * (Jz_star +
-                             (((wc_dt[i] * wc_dt[i]) / 4.0) * bz *
-                              ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
-                             ((wc_dt[i] / 2.0) * ((bx * Jy_star) - (by * Jx_star))))) /
-                     (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) -
+                              (((wc_dt[i] * wc_dt[i]) / 4.0) * bz *
+                                ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
+                              ((wc_dt[i] / 2.0) * ((bx * Jy_star) - (by * Jx_star))))) /
+                      (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) -
                     J_old[i][2];
 
     f[1] = Jx_new / q_over_m[i];
@@ -386,10 +389,8 @@ void implicit_em_source_update(const gkyl_moment_em_coupling *mom_em, double t_c
 }
 
 void implicit_neut_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
-                                 double fluid_rhs_s[GKYL_MAX_SPECIES][4],
-                                 double *fluid_s[GKYL_MAX_SPECIES],
-                                 const double *app_accel_s[GKYL_MAX_SPECIES],
-                                 const double *p_rhs_s[GKYL_MAX_SPECIES])
+  double fluid_rhs_s[GKYL_MAX_SPECIES][4], double *fluid_s[GKYL_MAX_SPECIES],
+  const double *app_accel_s[GKYL_MAX_SPECIES], const double *p_rhs_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -453,8 +454,8 @@ void implicit_neut_source_update(const gkyl_moment_em_coupling *mom_em, double t
   }
 }
 
-void implicit_collision_source_update(const gkyl_moment_em_coupling *mom_em, double dt,
-                                      double *fluid_s[GKYL_MAX_SPECIES])
+void implicit_collision_source_update(
+  const gkyl_moment_em_coupling *mom_em, double dt, double *fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
@@ -624,12 +625,10 @@ void implicit_collision_source_update(const gkyl_moment_em_coupling *mom_em, dou
 }
 
 void implicit_frictional_source_update_half(const gkyl_moment_em_coupling *mom_em, const double Z,
-                                            const double T_elc, const double Lambda_ee,
-                                            double t_curr, const double dt, double *f_elc_old,
-                                            double *f_ion_old, double *f_elc_new, double *f_ion_new,
-                                            const double *app_accel_s[GKYL_MAX_SPECIES],
-                                            double *em_old, double *em_new,
-                                            const double *app_current, const double *ext_em)
+  const double T_elc, const double Lambda_ee, double t_curr, const double dt, double *f_elc_old,
+  double *f_ion_old, double *f_elc_new, double *f_ion_new,
+  const double *app_accel_s[GKYL_MAX_SPECIES], double *em_old, double *em_new,
+  const double *app_current, const double *ext_em)
 {
   int nfluids = mom_em->nfluids;
   double pi = M_PI;
@@ -667,8 +666,8 @@ void implicit_frictional_source_update_half(const gkyl_moment_em_coupling *mom_e
 
     double tau_ei =
       (1.0 / Z) * ((3.0 * sqrt(mass_elc) * ((4.0 * pi * epsilon0) * (4.0 * pi * epsilon0)) *
-                    pow(T_elc, 3.0 / 2.0)) /
-                   (4.0 * sqrt(2.0 * pi) * n_elc * exp(4.0) * log(Lambda_ee)));
+                     pow(T_elc, 3.0 / 2.0)) /
+                    (4.0 * sqrt(2.0 * pi) * n_elc * exp(4.0) * log(Lambda_ee)));
     double alpha_par =
       1.0 - (pow(Z, 2.0 / 3.0) / ((1.46 * pow(Z, 2.0 / 3.0)) - (0.33 * pow(Z, 1.0 / 3.0)) + 0.888));
 
@@ -742,9 +741,8 @@ void implicit_frictional_source_update_half(const gkyl_moment_em_coupling *mom_e
 }
 
 void implicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                       const double dt, double *fluid_s[GKYL_MAX_SPECIES],
-                                       const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
-                                       const double *app_current, const double *ext_em)
+  const double dt, double *fluid_s[GKYL_MAX_SPECIES], const double *app_accel_s[GKYL_MAX_SPECIES],
+  double *em, const double *app_current, const double *ext_em)
 {
   int nfluids = mom_em->nfluids;
 
@@ -771,11 +769,10 @@ void implicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, do
     }
 
     implicit_frictional_source_update_half(mom_em, Z, T_elc, Lambda_ee, t_curr, dt, f_elc_old,
-                                           f_ion_old, f_elc_stage1, f_ion_stage1, app_accel_s,
-                                           em_old, em_stage1, app_current, ext_em);
+      f_ion_old, f_elc_stage1, f_ion_stage1, app_accel_s, em_old, em_stage1, app_current, ext_em);
     implicit_frictional_source_update_half(mom_em, Z, T_elc, Lambda_ee, t_curr + (0.5 * dt), dt,
-                                           f_elc_stage1, f_ion_stage1, f_elc_new, f_ion_new,
-                                           app_accel_s, em_stage1, em_new, app_current, ext_em);
+      f_elc_stage1, f_ion_stage1, f_elc_new, f_ion_new, app_accel_s, em_stage1, em_new, app_current,
+      ext_em);
 
     for (int i = 0; i < 5; i++) {
       f_elc[i] = f_elc_new[i];
@@ -789,11 +786,9 @@ void implicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, do
 }
 
 void implicit_source_coupling_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-                                     double dt, double *fluid_s[GKYL_MAX_SPECIES],
-                                     const double *app_accel_s[GKYL_MAX_SPECIES],
-                                     const double *p_rhs_s[GKYL_MAX_SPECIES], double *em,
-                                     const double *app_current, const double *ext_em,
-                                     const double *nT_sources_s[GKYL_MAX_SPECIES])
+  double dt, double *fluid_s[GKYL_MAX_SPECIES], const double *app_accel_s[GKYL_MAX_SPECIES],
+  const double *p_rhs_s[GKYL_MAX_SPECIES], double *em, const double *app_current,
+  const double *ext_em, const double *nT_sources_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
   double ke_old[GKYL_MAX_SPECIES];
@@ -830,8 +825,8 @@ void implicit_source_coupling_update(const gkyl_moment_em_coupling *mom_em, doub
       // kinetic energy at known time (including potential transport terms)
       ke_old[i] =
         0.5 * (((fluid_rhs[i][1] * fluid_rhs[i][1]) + (fluid_rhs[i][2] * fluid_rhs[i][2]) +
-                (fluid_rhs[i][3] * fluid_rhs[i][3])) /
-               fluid_rhs[i][0]);
+                 (fluid_rhs[i][3] * fluid_rhs[i][3])) /
+                fluid_rhs[i][0]);
 
       // total energy at known time (including potential transport terms)
       energy_old[i] = energy + (0.5 * dt * energy_rhs);
@@ -864,8 +859,8 @@ void implicit_source_coupling_update(const gkyl_moment_em_coupling *mom_em, doub
       double exp_nu = exp(nu * dt);
 
       if (mom_em->is_charged_species) {
-        pressure_tensor_rotate(q_over_m, dt, em, ext_em, p_tensor_old, p_tensor_rhs,
-                               p_tensor_new[i]);
+        pressure_tensor_rotate(
+          q_over_m, dt, em, ext_em, p_tensor_old, p_tensor_rhs, p_tensor_new[i]);
       }
 
       p_tensor_new[i][0] = ((p_tensor_new[i][0] - p) / exp_nu) + p;
@@ -878,8 +873,8 @@ void implicit_source_coupling_update(const gkyl_moment_em_coupling *mom_em, doub
   }
 
   if (mom_em->is_charged_species) {
-    implicit_em_source_update(mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s, em, app_current,
-                              ext_em);
+    implicit_em_source_update(
+      mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s, em, app_current, ext_em);
   } else {
     implicit_neut_source_update(mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s, p_rhs_s);
   }
@@ -925,8 +920,8 @@ void implicit_source_coupling_update(const gkyl_moment_em_coupling *mom_em, doub
     if (mom_em->use_explicit_friction) {
       explicit_frictional_source_update(mom_em, t_curr, dt, fluid_s);
     } else {
-      implicit_frictional_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, app_current,
-                                        ext_em);
+      implicit_frictional_source_update(
+        mom_em, t_curr, dt, fluid_s, app_accel_s, em, app_current, ext_em);
     }
   }
   if (mom_em->has_volume_sources) {

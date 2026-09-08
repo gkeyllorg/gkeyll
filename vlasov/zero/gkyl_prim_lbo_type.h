@@ -8,16 +8,15 @@ struct gkyl_prim_lbo_type;
 
 // Self-primitive moment kernel pointer type
 typedef void (*self_prim_t)(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-                            struct gkyl_mat *rhs, const int *idx, const double *moms,
-                            const double *boundary_corrections, const double *nu);
+  struct gkyl_mat *rhs, const int *idx, const double *moms, const double *boundary_corrections,
+  const double *nu);
 
 // Cross-primitive moment kernel pointer type
 typedef void (*cross_prim_t)(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-                             struct gkyl_mat *rhs, const int *idx, const double *greene,
-                             const double m_self, const double *moms_self,
-                             const double *prim_moms_self, const double m_other,
-                             const double *moms_other, const double *prim_moms_other,
-                             const double *boundary_corrections, const double *nu);
+  struct gkyl_mat *rhs, const int *idx, const double *greene, const double m_self,
+  const double *moms_self, const double *prim_moms_self, const double m_other,
+  const double *moms_other, const double *prim_moms_other, const double *boundary_corrections,
+  const double *nu);
 
 struct gkyl_prim_lbo_type {
   int cdim; // config-space dim

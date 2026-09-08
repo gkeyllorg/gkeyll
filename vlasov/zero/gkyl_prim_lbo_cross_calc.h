@@ -18,9 +18,8 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
-struct gkyl_prim_lbo_cross_calc *gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
-                                                              struct gkyl_prim_lbo_type *prim,
-                                                              bool use_gpu);
+struct gkyl_prim_lbo_cross_calc *gkyl_prim_lbo_cross_calc_new(
+  const struct gkyl_rect_grid *grid, struct gkyl_prim_lbo_type *prim, bool use_gpu);
 
 /**
  * Compute cross-primitive moments of distribution function. The conf_rng
@@ -41,12 +40,12 @@ struct gkyl_prim_lbo_cross_calc *gkyl_prim_lbo_cross_calc_new(const struct gkyl_
  * @param nu Collision frequency.
  * @param prim_moms_out Output drift velocity and thermal speed squared.
  */
-void gkyl_prim_lbo_cross_calc_advance(
-  struct gkyl_prim_lbo_cross_calc *calc, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *alphaE, double self_m, const struct gkyl_array *self_moms,
-  const struct gkyl_array *self_prim_moms, double other_m, const struct gkyl_array *other_moms,
-  const struct gkyl_array *other_prim_moms, const struct gkyl_array *boundary_corrections,
-  const struct gkyl_array *nu, struct gkyl_array *prim_moms_out);
+void gkyl_prim_lbo_cross_calc_advance(struct gkyl_prim_lbo_cross_calc *calc,
+  const struct gkyl_range *conf_rng, const struct gkyl_array *alphaE, double self_m,
+  const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms, double other_m,
+  const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu,
+  struct gkyl_array *prim_moms_out);
 
 /**
  * Delete pointer to primitive moment calculator updater.

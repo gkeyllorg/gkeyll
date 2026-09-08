@@ -22,10 +22,8 @@ void test_iso_euler_mixture_twocomponent_basic_ho()
   double rho_total = (alpha1 * rho1) + ((1.0 - alpha1) * rho2);
   double vt_total = (alpha1 * vt1) + ((1.0 - alpha1) * vt2);
 
-  double q[7] = {
-    rho_total,          rho_total * vx_total, rho_total * vy_total, rho_total * vz_total,
-    rho_total * alpha1, alpha1 * rho1,        (1.0 - alpha1) * rho2
-  };
+  double q[7] = { rho_total, rho_total * vx_total, rho_total * vy_total, rho_total * vz_total,
+    rho_total * alpha1, alpha1 * rho1, (1.0 - alpha1) * rho2 };
 
   double prims[7];
   gkyl_iso_euler_mixture_prim_vars(2, vt_s, q, prims);
@@ -38,12 +36,12 @@ void test_iso_euler_mixture_twocomponent_basic_ho()
   TEST_CHECK(gkyl_compare(prims[5], rho1, 1e-16));
   TEST_CHECK(gkyl_compare(prims[6], rho2, 1e-16));
 
-  double fluxes[3][7] = {
-    { rho_total * vx_total,
-      (rho_total * (vx_total * vx_total)) + (rho_total * (vt_total * vt_total)),
-      rho_total * (vx_total * vy_total), rho_total * (vx_total * vz_total),
-      rho_total * vx_total * alpha1, alpha1 * (vx_total * rho1),
-      (1.0 - alpha1) * (vx_total * rho2) },
+  double fluxes[3][7] = { { rho_total * vx_total,
+                            (rho_total * (vx_total * vx_total)) +
+                              (rho_total * (vt_total * vt_total)),
+                            rho_total * (vx_total * vy_total), rho_total * (vx_total * vz_total),
+                            rho_total * vx_total * alpha1, alpha1 * (vx_total * rho1),
+                            (1.0 - alpha1) * (vx_total * rho2) },
     { rho_total * vy_total, rho_total * (vy_total * vx_total),
       (rho_total * (vy_total * vy_total)) + (rho_total * (vt_total * vt_total)),
       rho_total * (vy_total * vz_total), rho_total * vy_total * alpha1, alpha1 * (vy_total * rho1),
@@ -51,8 +49,7 @@ void test_iso_euler_mixture_twocomponent_basic_ho()
     { rho_total * vz_total, rho_total * (vz_total * vx_total), rho_total * (vz_total * vy_total),
       (rho_total * (vz_total * vz_total)) + (rho_total * (vt_total * vt_total)),
       rho_total * vz_total * alpha1, alpha1 * (vz_total * rho1),
-      (1.0 - alpha1) * (vz_total * rho2) }
-  };
+      (1.0 - alpha1) * (vz_total * rho2) } };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -62,11 +59,11 @@ void test_iso_euler_mixture_twocomponent_basic_ho()
 
   double q_local[7], flux_local[7], flux[7];
   for (int d = 0; d < 3; d++) {
-    iso_euler_mixture->rotate_to_local_func(iso_euler_mixture, tau1[d], tau2[d], norm[d], q,
-                                            q_local);
+    iso_euler_mixture->rotate_to_local_func(
+      iso_euler_mixture, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_iso_euler_mixture_flux(2, vt_s, q_local, flux_local);
-    iso_euler_mixture->rotate_to_global_func(iso_euler_mixture, tau1[d], tau2[d], norm[d],
-                                             flux_local, flux);
+    iso_euler_mixture->rotate_to_global_func(
+      iso_euler_mixture, tau1[d], tau2[d], norm[d], flux_local, flux);
 
     for (int i = 0; i < 7; i++) {
       TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-15));
@@ -116,15 +113,9 @@ void test_iso_euler_mixture_threecomponent_basic_ho()
   double rho_total = (alpha1 * rho1) + (alpha2 * rho2) + (1.0 - (alpha1 + alpha2)) * rho3;
   double vt_total = (alpha1 * vt1) + (alpha2 * vt2) + (1.0 - (alpha1 + alpha2)) * vt3;
 
-  double q[9] = { rho_total,
-                  rho_total * vx_total,
-                  rho_total * vy_total,
-                  rho_total * vz_total,
-                  rho_total * alpha1,
-                  rho_total * alpha2,
-                  alpha1 * rho1,
-                  alpha2 * rho2,
-                  (1.0 - (alpha1 + alpha2)) * rho3 };
+  double q[9] = { rho_total, rho_total * vx_total, rho_total * vy_total, rho_total * vz_total,
+    rho_total * alpha1, rho_total * alpha2, alpha1 * rho1, alpha2 * rho2,
+    (1.0 - (alpha1 + alpha2)) * rho3 };
 
   double prims[9];
   gkyl_iso_euler_mixture_prim_vars(3, vt_s, q, prims);
@@ -164,11 +155,11 @@ void test_iso_euler_mixture_threecomponent_basic_ho()
 
   double q_local[9], flux_local[9], flux[9];
   for (int d = 0; d < 3; d++) {
-    iso_euler_mixture->rotate_to_local_func(iso_euler_mixture, tau1[d], tau2[d], norm[d], q,
-                                            q_local);
+    iso_euler_mixture->rotate_to_local_func(
+      iso_euler_mixture, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_iso_euler_mixture_flux(3, vt_s, q_local, flux_local);
-    iso_euler_mixture->rotate_to_global_func(iso_euler_mixture, tau1[d], tau2[d], norm[d],
-                                             flux_local, flux);
+    iso_euler_mixture->rotate_to_global_func(
+      iso_euler_mixture, tau1[d], tau2[d], norm[d], flux_local, flux);
 
     for (int i = 0; i < 9; i++) {
       TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-15));
@@ -218,20 +209,12 @@ void test_iso_euler_mixture_twocomponent_waves_ho()
   double rho_total_r = (alpha1_r * rho1_r) + ((1.0 - alpha1_r) * rho2_r);
   double vt_total_r = (alpha1_r * vt1) + ((1.0 - alpha1_r) * vt2);
 
-  double ql[7] = { rho_total_l,
-                   rho_total_l * vx_total_l,
-                   rho_total_l * vy_total_l,
-                   rho_total_l * vz_total_l,
-                   rho_total_l * alpha1_l,
-                   alpha1_l * rho1_l,
-                   (1.0 - alpha1_l) * rho2_l };
-  double qr[7] = { rho_total_r,
-                   rho_total_r * vx_total_r,
-                   rho_total_r * vy_total_r,
-                   rho_total_r * vz_total_r,
-                   rho_total_r * alpha1_r,
-                   alpha1_r * rho1_r,
-                   (1.0 - alpha1_r) * rho2_r };
+  double ql[7] = { rho_total_l, rho_total_l * vx_total_l, rho_total_l * vy_total_l,
+    rho_total_l * vz_total_l, rho_total_l * alpha1_l, alpha1_l * rho1_l,
+    (1.0 - alpha1_l) * rho2_l };
+  double qr[7] = { rho_total_r, rho_total_r * vx_total_r, rho_total_r * vy_total_r,
+    rho_total_r * vz_total_r, rho_total_r * alpha1_r, alpha1_r * rho1_r,
+    (1.0 - alpha1_r) * rho2_r };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -252,15 +235,15 @@ void test_iso_euler_mixture_twocomponent_waves_ho()
     }
 
     gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0,
-                      1.0, waves_local, speeds);
+      1.0, waves_local, speeds);
 
     double apdq_local[7], amdq_local[7];
     gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-                       waves_local, speeds, amdq_local, apdq_local);
+      waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(iso_euler_mixture, tau1[d], tau2[d], norm[d],
-                                   &waves_local[i * 7], &waves[i * 7]);
+      gkyl_wv_eqn_rotate_to_global(
+        iso_euler_mixture, tau1[d], tau2[d], norm[d], &waves_local[i * 7], &waves[i * 7]);
     }
 
     double apdq[7], amdq[7];
@@ -305,20 +288,12 @@ void test_iso_euler_mixture_twocomponent_waves_2_ho()
   double rho_total_r = (alpha1_r * rho1_r) + ((1.0 - alpha1_r) * rho2_r);
   double vt_total_r = (alpha1_r * vt1) + ((1.0 - alpha1_r) * vt2);
 
-  double ql[7] = { rho_total_l,
-                   rho_total_l * vx_total_l,
-                   rho_total_l * vy_total_l,
-                   rho_total_l * vz_total_l,
-                   rho_total_l * alpha1_l,
-                   alpha1_l * rho1_l,
-                   (1.0 - alpha1_l) * rho2_l };
-  double qr[7] = { rho_total_r,
-                   rho_total_r * vx_total_r,
-                   rho_total_r * vy_total_r,
-                   rho_total_r * vz_total_r,
-                   rho_total_r * alpha1_r,
-                   alpha1_r * rho1_r,
-                   (1.0 - alpha1_r) * rho2_r };
+  double ql[7] = { rho_total_l, rho_total_l * vx_total_l, rho_total_l * vy_total_l,
+    rho_total_l * vz_total_l, rho_total_l * alpha1_l, alpha1_l * rho1_l,
+    (1.0 - alpha1_l) * rho2_l };
+  double qr[7] = { rho_total_r, rho_total_r * vx_total_r, rho_total_r * vy_total_r,
+    rho_total_r * vz_total_r, rho_total_r * alpha1_r, alpha1_r * rho1_r,
+    (1.0 - alpha1_r) * rho2_r };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -339,15 +314,15 @@ void test_iso_euler_mixture_twocomponent_waves_2_ho()
     }
 
     gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0,
-                      1.0, waves_local, speeds);
+      1.0, waves_local, speeds);
 
     double apdq_local[7], amdq_local[7];
     gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-                       waves_local, speeds, amdq_local, apdq_local);
+      waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(iso_euler_mixture, tau1[d], tau2[d], norm[d],
-                                   &waves_local[i * 7], &waves[i * 7]);
+      gkyl_wv_eqn_rotate_to_global(
+        iso_euler_mixture, tau1[d], tau2[d], norm[d], &waves_local[i * 7], &waves[i * 7]);
     }
 
     double apdq[7], amdq[7];
@@ -396,24 +371,12 @@ void test_iso_euler_mixture_threecomponent_waves_ho()
     (alpha1_r * rho1_r) + (alpha2_r * rho2_r) + ((1.0 - (alpha1_r + alpha2_r)) * rho3_r);
   double vt_total_r = (alpha1_r * vt1) + (alpha2_r * vt2) + ((1.0 - (alpha1_r + alpha2_r)) * vt3);
 
-  double ql[9] = { rho_total_l,
-                   rho_total_l * vx_total_l,
-                   rho_total_l * vy_total_l,
-                   rho_total_l * vz_total_l,
-                   rho_total_l * alpha1_l,
-                   rho_total_l * alpha2_l,
-                   alpha1_l * rho1_l,
-                   alpha2_l * rho2_l,
-                   (1.0 - (alpha1_l + alpha2_l)) * rho3_l };
-  double qr[9] = { rho_total_r,
-                   rho_total_r * vx_total_r,
-                   rho_total_r * vy_total_r,
-                   rho_total_r * vz_total_r,
-                   rho_total_r * alpha1_r,
-                   rho_total_r * alpha2_r,
-                   alpha1_r * rho1_r,
-                   alpha2_r * rho2_r,
-                   (1.0 - (alpha1_r + alpha2_r)) * rho3_r };
+  double ql[9] = { rho_total_l, rho_total_l * vx_total_l, rho_total_l * vy_total_l,
+    rho_total_l * vz_total_l, rho_total_l * alpha1_l, rho_total_l * alpha2_l, alpha1_l * rho1_l,
+    alpha2_l * rho2_l, (1.0 - (alpha1_l + alpha2_l)) * rho3_l };
+  double qr[9] = { rho_total_r, rho_total_r * vx_total_r, rho_total_r * vy_total_r,
+    rho_total_r * vz_total_r, rho_total_r * alpha1_r, rho_total_r * alpha2_r, alpha1_r * rho1_r,
+    alpha2_r * rho2_r, (1.0 - (alpha1_r + alpha2_r)) * rho3_r };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -434,15 +397,15 @@ void test_iso_euler_mixture_threecomponent_waves_ho()
     }
 
     gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0,
-                      1.0, waves_local, speeds);
+      1.0, waves_local, speeds);
 
     double apdq_local[9], amdq_local[9];
     gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-                       waves_local, speeds, amdq_local, apdq_local);
+      waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(iso_euler_mixture, tau1[d], tau2[d], norm[d],
-                                   &waves_local[i * 9], &waves[i * 9]);
+      gkyl_wv_eqn_rotate_to_global(
+        iso_euler_mixture, tau1[d], tau2[d], norm[d], &waves_local[i * 9], &waves[i * 9]);
     }
 
     double apdq[9], amdq[9];
@@ -491,24 +454,12 @@ void test_iso_euler_mixture_threecomponent_waves_2_ho()
     (alpha1_r * rho1_r) + (alpha2_r * rho2_r) + ((1.0 - (alpha1_r + alpha2_r)) * rho3_r);
   double vt_total_r = (alpha1_r * vt1) + (alpha2_r * vt2) + ((1.0 - (alpha1_r + alpha2_r)) * vt3);
 
-  double ql[9] = { rho_total_l,
-                   rho_total_l * vx_total_l,
-                   rho_total_l * vy_total_l,
-                   rho_total_l * vz_total_l,
-                   rho_total_l * alpha1_l,
-                   rho_total_l * alpha2_l,
-                   alpha1_l * rho1_l,
-                   alpha2_l * rho2_l,
-                   (1.0 - (alpha1_l + alpha2_l)) * rho3_l };
-  double qr[9] = { rho_total_r,
-                   rho_total_r * vx_total_r,
-                   rho_total_r * vy_total_r,
-                   rho_total_r * vz_total_r,
-                   rho_total_r * alpha1_r,
-                   rho_total_r * alpha2_r,
-                   alpha1_r * rho1_r,
-                   alpha2_r * rho2_r,
-                   (1.0 - (alpha1_r + alpha2_r)) * rho3_r };
+  double ql[9] = { rho_total_l, rho_total_l * vx_total_l, rho_total_l * vy_total_l,
+    rho_total_l * vz_total_l, rho_total_l * alpha1_l, rho_total_l * alpha2_l, alpha1_l * rho1_l,
+    alpha2_l * rho2_l, (1.0 - (alpha1_l + alpha2_l)) * rho3_l };
+  double qr[9] = { rho_total_r, rho_total_r * vx_total_r, rho_total_r * vy_total_r,
+    rho_total_r * vz_total_r, rho_total_r * alpha1_r, rho_total_r * alpha2_r, alpha1_r * rho1_r,
+    alpha2_r * rho2_r, (1.0 - (alpha1_r + alpha2_r)) * rho3_r };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -529,15 +480,15 @@ void test_iso_euler_mixture_threecomponent_waves_2_ho()
     }
 
     gkyl_wv_eqn_waves(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0,
-                      1.0, waves_local, speeds);
+      1.0, waves_local, speeds);
 
     double apdq_local[9], amdq_local[9];
     gkyl_wv_eqn_qfluct(iso_euler_mixture, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-                       waves_local, speeds, amdq_local, apdq_local);
+      waves_local, speeds, amdq_local, apdq_local);
 
     for (int i = 0; i < 2; i++) {
-      gkyl_wv_eqn_rotate_to_global(iso_euler_mixture, tau1[d], tau2[d], norm[d],
-                                   &waves_local[i * 9], &waves[i * 9]);
+      gkyl_wv_eqn_rotate_to_global(
+        iso_euler_mixture, tau1[d], tau2[d], norm[d], &waves_local[i * 9], &waves[i * 9]);
     }
 
     double apdq[9], amdq[9];
@@ -561,13 +512,12 @@ void test_iso_euler_mixture_threecomponent_waves_2_ho()
   gkyl_free(vt_s);
 }
 
-TEST_LIST = {
-  { "iso_euler_mixture_twocomponent_basic_ho", test_iso_euler_mixture_twocomponent_basic_ho },
+TEST_LIST = { { "iso_euler_mixture_twocomponent_basic_ho",
+                test_iso_euler_mixture_twocomponent_basic_ho },
   { "iso_euler_mixture_threecomponent_basic_ho", test_iso_euler_mixture_threecomponent_basic_ho },
   { "iso_euler_mixture_twocomponent_waves_ho", test_iso_euler_mixture_twocomponent_waves_ho },
   { "iso_euler_mixture_twocomponent_waves_2_ho", test_iso_euler_mixture_twocomponent_waves_2_ho },
   { "iso_euler_mixture_threecomponent_waves_ho", test_iso_euler_mixture_threecomponent_waves_ho },
   { "iso_euler_mixture_threecomponent_waves_2_ho",
     test_iso_euler_mixture_threecomponent_waves_2_ho },
-  { NULL, NULL }
-};
+  { NULL, NULL } };

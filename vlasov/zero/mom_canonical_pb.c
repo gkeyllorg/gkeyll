@@ -16,8 +16,8 @@ void gkyl_mom_can_pb_free(const struct gkyl_ref_count *ref)
   gkyl_free(momt);
 }
 
-void gkyl_mom_canonical_pb_set_auxfields(const struct gkyl_mom_type *momt,
-                                         struct gkyl_mom_canonical_pb_auxfields auxin)
+void gkyl_mom_canonical_pb_set_auxfields(
+  const struct gkyl_mom_type *momt, struct gkyl_mom_canonical_pb_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_mom_type_is_cu_dev(momt)) {
@@ -31,10 +31,8 @@ void gkyl_mom_canonical_pb_set_auxfields(const struct gkyl_mom_type *momt,
 }
 
 struct gkyl_mom_type *gkyl_mom_canonical_pb_new(const struct gkyl_basis *cbasis,
-                                                const struct gkyl_basis *pbasis,
-                                                const struct gkyl_range *phase_range,
-                                                enum gkyl_distribution_moments mom_type,
-                                                bool use_gpu)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range,
+  enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -113,10 +111,8 @@ struct gkyl_mom_type *gkyl_mom_canonical_pb_new(const struct gkyl_basis *cbasis,
 }
 
 struct gkyl_mom_type *gkyl_int_mom_canonical_pb_new(const struct gkyl_basis *cbasis,
-                                                    const struct gkyl_basis *pbasis,
-                                                    const struct gkyl_range *phase_range,
-                                                    enum gkyl_distribution_moments mom_type,
-                                                    bool use_gpu)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range,
+  enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   // Integrates all moments [ mM0, M1i_from_H, MEnergy ]
   assert(cbasis->poly_order == pbasis->poly_order);

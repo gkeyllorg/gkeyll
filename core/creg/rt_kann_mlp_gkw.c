@@ -60,10 +60,10 @@ void train_ann(struct train_inp *nn_inp, const char *nn_name)
   }
 
   struct gkyl_kann_train_params params = { .learning_rate = nn_inp->learning_rate,
-                                           .mini_size = 64,
-                                           .max_epoch = 50,
-                                           .max_drop_streak = 10,
-                                           .frac_val = 0.1f };
+    .mini_size = 64,
+    .max_epoch = 50,
+    .max_drop_streak = 10,
+    .frac_val = 0.1f };
 
   if (nn_inp->use_gpu) {
     // create device kn_vecs and copy data H2D

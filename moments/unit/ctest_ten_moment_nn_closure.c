@@ -35,8 +35,8 @@ static const double tol = 1.0e-5;
 
 // Fill a ten-moment cell with zero bulk velocity so the pressure tensor equals
 // the conserved P-components directly (p_ij = P_ij - rho u_i u_j = P_ij).
-static void set_fluid(double f[10], double rho, double p11, double p12, double p13, double p22,
-                      double p23, double p33)
+static void set_fluid(
+  double f[10], double rho, double p11, double p12, double p13, double p22, double p23, double p33)
 {
   f[TM_RHO] = rho;
   f[TM_MX] = 0.0;
@@ -368,8 +368,7 @@ static void test_nn_closure_consume_1d_p1_uniform_q_zero_source_ho(void)
   gkyl_ten_moment_nn_closure_release(nn);
 }
 
-TEST_LIST = {
-  { "nn_closure_dims_ho", test_nn_closure_dims_ho },
+TEST_LIST = { { "nn_closure_dims_ho", test_nn_closure_dims_ho },
   { "nn_closure_geom_1d_p1_uniform_bx_ho", test_nn_closure_geom_1d_p1_uniform_bx_ho },
   { "nn_closure_geom_1d_p1_uniform_bz_ho", test_nn_closure_geom_1d_p1_uniform_bz_ho },
   { "nn_closure_geom_1d_p1_diagonal_b_ho", test_nn_closure_geom_1d_p1_diagonal_b_ho },
@@ -381,5 +380,4 @@ TEST_LIST = {
   { "nn_closure_consume_1d_p1_sign_flip_ho", test_nn_closure_consume_1d_p1_sign_flip_ho },
   { "nn_closure_consume_1d_p1_uniform_q_zero_source_ho",
     test_nn_closure_consume_1d_p1_uniform_q_zero_source_ho },
-  { NULL, NULL }
-};
+  { NULL, NULL } };

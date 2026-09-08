@@ -10,9 +10,9 @@ extern "C" {
 // CUDA kernel to set device pointers to l2g, RHS src and solution
 // kernels. Doing function pointer stuff in here avoids troublesome
 // cudaMemcpyFromSymbol.
-__global__ static void
-ambi_bolt_potential_set_cu_ker_ptrs(struct gkyl_ambi_bolt_potential_kernels *kers,
-                                    enum gkyl_basis_type b_type, int dim, int poly_order)
+__global__ static void ambi_bolt_potential_set_cu_ker_ptrs(
+  struct gkyl_ambi_bolt_potential_kernels *kers, enum gkyl_basis_type b_type, int dim,
+  int poly_order)
 {
   const sheath_calc_kern_edge_list *sheath_calc_list;
   const phi_calc_kern_list *phi_calc_list;
@@ -34,10 +34,10 @@ ambi_bolt_potential_set_cu_ker_ptrs(struct gkyl_ambi_bolt_potential_kernels *ker
   ;
 }
 
-__global__ static void gkyl_ambi_bolt_potential_sheath_calc_cu_ker(
-  double dz, double charge_e, double mass_e, double temp_e,
-  struct gkyl_ambi_bolt_potential_kernels *kers, enum gkyl_edge_loc edge, struct gkyl_range skin_r,
-  struct gkyl_range ghost_r, const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
+__global__ static void gkyl_ambi_bolt_potential_sheath_calc_cu_ker(double dz, double charge_e,
+  double mass_e, double temp_e, struct gkyl_ambi_bolt_potential_kernels *kers,
+  enum gkyl_edge_loc edge, struct gkyl_range skin_r, struct gkyl_range ghost_r,
+  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, const struct gkyl_array *Jm0i,
   struct gkyl_array *sheath_vals)
 {
@@ -68,15 +68,15 @@ __global__ static void gkyl_ambi_bolt_potential_sheath_calc_cu_ker(
     const double *gammai_p = (const double *)gkyl_array_cfetch(gammai, ghost_loc);
     double *out_p = (double *)gkyl_array_cfetch(sheath_vals, ghost_loc);
 
-    kers->sheath_calc[keridx](dz, charge_e, mass_e, temp_e, cmag_p, jactotinv_p, gammai_p, m0i_p,
-                              Jm0i_p, out_p);
+    kers->sheath_calc[keridx](
+      dz, charge_e, mass_e, temp_e, cmag_p, jactotinv_p, gammai_p, m0i_p, Jm0i_p, out_p);
   }
 }
 
-__global__ static void gkyl_ambi_bolt_potential_phi_calc_cu_ker(
-  double charge_e, double temp_e, struct gkyl_ambi_bolt_potential_kernels *kers,
-  struct gkyl_range local_r, struct gkyl_range extlocal_r, const struct gkyl_array *m0i,
-  const struct gkyl_array *sheath_vals, struct gkyl_array *phi)
+__global__ static void gkyl_ambi_bolt_potential_phi_calc_cu_ker(double charge_e, double temp_e,
+  struct gkyl_ambi_bolt_potential_kernels *kers, struct gkyl_range local_r,
+  struct gkyl_range extlocal_r, const struct gkyl_array *m0i, const struct gkyl_array *sheath_vals,
+  struct gkyl_array *phi)
 {
   int idx[GKYL_MAX_CDIM], idx_g[GKYL_MAX_CDIM]; // Volume and ghost indices.
 
@@ -105,37 +105,32 @@ __global__ static void gkyl_ambi_bolt_potential_phi_calc_cu_ker(
   }
 }
 
-void ambi_bolt_potential_choose_kernels_cu(const struct gkyl_basis *basis,
-                                           struct gkyl_ambi_bolt_potential_kernels *kers)
+void ambi_bolt_potential_choose_kernels_cu(
+  const struct gkyl_basis *basis, struct gkyl_ambi_bolt_potential_kernels *kers)
 {
-  ambi_bolt_potential_set_cu_ker_ptrs<<<1, 1> > >(kers, basis->b_type, basis->ndim,
-                                                  basis->poly_order);
+  ambi_bolt_potential_set_cu_ker_ptrs<<<1, 1> > >(
+    kers, basis->b_type, basis->ndim, basis->poly_order);
 }
 
-void gkyl_ambi_bolt_potential_sheath_calc_cu(
-  struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge, const struct gkyl_range *skin_r,
-  const struct gkyl_range *ghost_r, const struct gkyl_array *cmag,
-  const struct gkyl_array *jacobtot_inv, const struct gkyl_array *gammai,
-  const struct gkyl_array *m0i, const struct gkyl_array *Jm0i, struct gkyl_array *sheath_vals)
+void gkyl_ambi_bolt_potential_sheath_calc_cu(struct gkyl_ambi_bolt_potential *up,
+  enum gkyl_edge_loc edge, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
+  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
+  const struct gkyl_array *gammai, const struct gkyl_array *m0i, const struct gkyl_array *Jm0i,
+  struct gkyl_array *sheath_vals)
 {
   int nblocks = ghost_r->nblocks, nthreads = ghost_r->nthreads;
 
-  gkyl_ambi_bolt_potential_sheath_calc_cu_ker<<<nblocks, nthreads> > >(
-    up->dz, up->charge_e, up->mass_e, up->temp_e, up->kernels_cu, edge, *skin_r, *ghost_r,
-    cmag->on_dev, jacobtot_inv->on_dev, gammai->on_dev, m0i->on_dev, Jm0i->on_dev,
-    sheath_vals->on_dev);
+  gkyl_ambi_bolt_potential_sheath_calc_cu_ker<<<nblocks, nthreads> > >(up->dz, up->charge_e,
+    up->mass_e, up->temp_e, up->kernels_cu, edge, *skin_r, *ghost_r, cmag->on_dev,
+    jacobtot_inv->on_dev, gammai->on_dev, m0i->on_dev, Jm0i->on_dev, sheath_vals->on_dev);
 }
 
 void gkyl_ambi_bolt_potential_phi_calc_cu(struct gkyl_ambi_bolt_potential *up,
-                                          const struct gkyl_range *local_r,
-                                          const struct gkyl_range *extlocal_r,
-                                          const struct gkyl_array *m0i,
-                                          const struct gkyl_array *sheath_vals,
-                                          struct gkyl_array *phi)
+  const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
+  const struct gkyl_array *m0i, const struct gkyl_array *sheath_vals, struct gkyl_array *phi)
 {
   int nblocks = local_r->nblocks, nthreads = local_r->nthreads;
 
-  gkyl_ambi_bolt_potential_phi_calc_cu_ker<<<nblocks, nthreads> > >(
-    up->charge_e, up->temp_e, up->kernels_cu, *local_r, *extlocal_r, m0i->on_dev,
-    sheath_vals->on_dev, phi->on_dev);
+  gkyl_ambi_bolt_potential_phi_calc_cu_ker<<<nblocks, nthreads> > >(up->charge_e, up->temp_e,
+    up->kernels_cu, *local_r, *extlocal_r, m0i->on_dev, sheath_vals->on_dev, phi->on_dev);
 }

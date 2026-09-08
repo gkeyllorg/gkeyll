@@ -76,10 +76,8 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(
  * @param rhs Output increment to fluid variables from sources
  */
 void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_vars *up,
-                                         const struct gkyl_range *conf_range,
-                                         const struct gkyl_array *background_n_gradient,
-                                         const struct gkyl_array *phi,
-                                         const struct gkyl_array *fluid, struct gkyl_array *rhs);
+  const struct gkyl_range *conf_range, const struct gkyl_array *background_n_gradient,
+  const struct gkyl_array *phi, const struct gkyl_array *fluid, struct gkyl_array *rhs);
 
 /**
  * Delete pointer to updater to compute canonical PB fluid variables.
@@ -99,7 +97,5 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu(
   struct gkyl_array *const_sgn_alpha);
 
 void gkyl_canonical_pb_fluid_vars_source_cu(struct gkyl_dg_calc_canonical_pb_fluid_vars *up,
-                                            const struct gkyl_range *conf_range,
-                                            const struct gkyl_array *background_n_gradient,
-                                            const struct gkyl_array *phi,
-                                            const struct gkyl_array *fluid, struct gkyl_array *rhs);
+  const struct gkyl_range *conf_range, const struct gkyl_array *background_n_gradient,
+  const struct gkyl_array *phi, const struct gkyl_array *fluid, struct gkyl_array *rhs);

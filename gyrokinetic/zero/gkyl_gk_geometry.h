@@ -292,15 +292,15 @@ struct gkyl_gk_geometry_inp {
  * @param geometry_inp geometry input struct containing grid, range, and other geo info
  * @param use_gpu whether or not to use gpu
  */
-struct gk_geometry *gkyl_gk_geometry_new(struct gk_geometry *geo_host,
-                                         struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu);
+struct gk_geometry *gkyl_gk_geometry_new(
+  struct gk_geometry *geo_host, struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu);
 
 /**
  * Create a new gk geometry object that lives on NV-GPU from a host geometry object: see new() method
  * above for documentation.
  */
-struct gk_geometry *gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host,
-                                                struct gkyl_gk_geometry_inp *geometry_inp);
+struct gk_geometry *gkyl_gk_geometry_cu_dev_new(
+  struct gk_geometry *geo_host, struct gkyl_gk_geometry_inp *geometry_inp);
 
 /**
  * Augment a grid with dim < 3 to 3d by adding 1 cell in the other directions
@@ -310,8 +310,8 @@ struct gk_geometry *gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host,
  * @param grid Input grid with dim <3.
  * @param geometry Geometry input struct with context for augmenting grid.
  */
-struct gkyl_rect_grid gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid,
-                                                    struct gkyl_gk_geometry_inp geometry);
+struct gkyl_rect_grid gkyl_gk_geometry_augment_grid(
+  struct gkyl_rect_grid grid, struct gkyl_gk_geometry_inp geometry);
 
 /**
  * Augment a range with dim < 3 to 3d by adding 1 cell in the other directions
@@ -324,7 +324,7 @@ struct gkyl_rect_grid gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid,
  * @param range Output, augmented range.
  */
 void gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *nghost,
-                                    struct gkyl_range *ext_range, struct gkyl_range *range);
+  struct gkyl_range *ext_range, struct gkyl_range *range);
 
 /**
  * Reduce bmag to get min or max value, by evaluating bmag at basis nodes.
@@ -344,8 +344,8 @@ double gkyl_gk_geometry_reduce_bmag(struct gk_geometry *up, enum gkyl_array_op o
  * @param op Operation to perform (GKYL_MAX or GKYL_MIN).
  * @param op Coordinate where extrema occurs.
  */
-double gkyl_gk_geometry_reduce_arg_bmag(struct gk_geometry *up, enum gkyl_array_op op,
-                                        double *coord);
+double gkyl_gk_geometry_reduce_arg_bmag(
+  struct gk_geometry *up, enum gkyl_array_op op, double *coord);
 
 /**
  * Init nodal range from modal range
@@ -354,8 +354,8 @@ double gkyl_gk_geometry_reduce_arg_bmag(struct gk_geometry *up, enum gkyl_array_
  * @param range modal Range.
  * @param poly_order Polynomial order.
  */
-void gkyl_gk_geometry_init_nodal_range(struct gkyl_range *nrange, struct gkyl_range *range,
-                                       int poly_order);
+void gkyl_gk_geometry_init_nodal_range(
+  struct gkyl_range *nrange, struct gkyl_range *range, int poly_order);
 
 /**
  * Init nodal grid from modal grid
@@ -364,8 +364,8 @@ void gkyl_gk_geometry_init_nodal_range(struct gkyl_range *nrange, struct gkyl_ra
  * @param grid Modal grid.
  * @param nrange Nodal range.
  */
-void gkyl_gk_geometry_init_nodal_grid(struct gkyl_rect_grid *ngrid, struct gkyl_rect_grid *grid,
-                                      struct gkyl_range *nrange);
+void gkyl_gk_geometry_init_nodal_grid(
+  struct gkyl_rect_grid *ngrid, struct gkyl_rect_grid *grid, struct gkyl_range *nrange);
 
 /**
  * Deflate geometry to lower dimensionality.
@@ -377,8 +377,8 @@ void gkyl_gk_geometry_init_nodal_grid(struct gkyl_rect_grid *ngrid, struct gkyl_
  * @param basis deflated basis
  * @param use_gpu whether or not to use gpu
  */
-struct gk_geometry *gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d,
-                                             struct gkyl_gk_geometry_inp *geometry_inp);
+struct gk_geometry *gkyl_gk_geometry_deflate(
+  const struct gk_geometry *up_3d, struct gkyl_gk_geometry_inp *geometry_inp);
 
 /**
  * Populate nodal arrays from modal geometry
@@ -393,8 +393,7 @@ void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom);
 * @param io_meta_basic_basic_len length of basic metadata
  */
 void gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp,
-                                 struct gkyl_msgpack_map_elem *io_meta_basic_basic,
-                                 int io_meta_basic_basic_len);
+  struct gkyl_msgpack_map_elem *io_meta_basic_basic, int io_meta_basic_basic_len);
 
 /**
  * Reset the metadata values with corresponding values in GK geometry object

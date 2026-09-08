@@ -46,8 +46,7 @@ gkyl_eval_on_nodes *gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp 
  * @return New updater pointer.
  */
 gkyl_eval_on_nodes *gkyl_eval_on_nodes_new(const struct gkyl_rect_grid *grid,
-                                           const struct gkyl_basis *basis, int num_ret_vals,
-                                           evalf_t eval, void *ctx);
+  const struct gkyl_basis *basis, int num_ret_vals, evalf_t eval, void *ctx);
 
 /**
  * Compute evaluation on nodes and corresponding expansion
@@ -62,7 +61,7 @@ gkyl_eval_on_nodes *gkyl_eval_on_nodes_new(const struct gkyl_rect_grid *grid,
  * @param out Output array
  */
 void gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up, double tm,
-                                const struct gkyl_range *update_rng, struct gkyl_array *out);
+  const struct gkyl_range *update_rng, struct gkyl_array *out);
 
 /**
  * Perform the nodal to modal transformation.
@@ -71,8 +70,8 @@ void gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up, double tm,
  * @param fun_at_nodes Function evaluated at nodes in one cell.
  * @param f Modal coefficients of the function in one cell.
  */
-void gkyl_eval_on_nodes_nod2mod(const gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes,
-                                double *f);
+void gkyl_eval_on_nodes_nod2mod(
+  const gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f);
 
 /**
  * Get the coordinates of a given node.

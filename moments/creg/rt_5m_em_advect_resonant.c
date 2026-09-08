@@ -87,25 +87,25 @@ struct em_advect_resonant_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct em_advect_resonant_ctx ctx = { .pi = pi,
-                                        .gas_gamma = gas_gamma,
-                                        .epsilon0 = epsilon0,
-                                        .mu0 = mu0,
-                                        .mass_elc = mass_elc,
-                                        .charge_elc = charge_elc,
-                                        .vt = vt,
-                                        .n0 = n0,
-                                        .B0 = B0,
-                                        .omega = omega,
-                                        .Nx = Nx,
-                                        .Lx = Lx,
-                                        .cfl_frac = cfl_frac,
-                                        .t_end = t_end,
-                                        .num_frames = num_frames,
-                                        .field_energy_calcs = field_energy_calcs,
-                                        .integrated_mom_calcs = integrated_mom_calcs,
-                                        .integrated_L2_f_calcs = integrated_L2_f_calcs,
-                                        .dt_failure_tol = dt_failure_tol,
-                                        .num_failures_max = num_failures_max };
+    .gas_gamma = gas_gamma,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .vt = vt,
+    .n0 = n0,
+    .B0 = B0,
+    .omega = omega,
+    .Nx = Nx,
+    .Lx = Lx,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .field_energy_calcs = field_energy_calcs,
+    .integrated_mom_calcs = integrated_mom_calcs,
+    .integrated_L2_f_calcs = integrated_L2_f_calcs,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -158,8 +158,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-void evalExternalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                           void *ctx)
+void evalExternalFieldInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct em_advect_resonant_ctx *app = ctx;
 
@@ -271,8 +271,8 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -281,26 +281,26 @@ int main(int argc, char **argv)
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
   struct gkyl_moment_species elc = { .name = "elc",
-                                     .charge = ctx.charge_elc,
-                                     .mass = ctx.mass_elc,
-                                     .equation = elc_euler,
+    .charge = ctx.charge_elc,
+    .mass = ctx.mass_elc,
+    .equation = elc_euler,
 
-                                     .init = evalElcInit,
-                                     .ctx = &ctx };
+    .init = evalElcInit,
+    .ctx = &ctx };
 
   // Field.
   struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
-                                     .mu0 = ctx.mu0,
-                                     .mag_error_speed_fact = 1.0,
+    .mu0 = ctx.mu0,
+    .mag_error_speed_fact = 1.0,
 
-                                     .is_static = true,
+    .is_static = true,
 
-                                     .init = evalFieldInit,
-                                     .ctx = &ctx,
+    .init = evalFieldInit,
+    .ctx = &ctx,
 
-                                     .ext_em = evalExternalFieldInit,
-                                     .ext_em_ctx = &ctx,
-                                     .ext_em_evolve = true };
+    .ext_em = evalExternalFieldInit,
+    .ext_em_ctx = &ctx,
+    .ext_em_evolve = true };
 
   // Moment app.
   struct gkyl_moment app_inp = {
@@ -371,8 +371,8 @@ int main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_moment_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         break;
       }
     } else {

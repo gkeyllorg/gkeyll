@@ -68,8 +68,8 @@ void gkyl_wv_maxwell_free(const struct gkyl_ref_count *ref);
 * @param q Conserved variable vector.
 * @return Maximum absolute wave speed for a given q.
 */
-GKYL_CU_DH static inline double gkyl_maxwell_max_abs_speed(double c, double e_fact, double b_fact,
-                                                           const double *q)
+GKYL_CU_DH static inline double gkyl_maxwell_max_abs_speed(
+  double c, double e_fact, double b_fact, const double *q)
 {
   return fmax(fmax(fabs((c * e_fact)), fabs(c)), fabs((b_fact * c)));
 }
@@ -83,8 +83,8 @@ GKYL_CU_DH static inline double gkyl_maxwell_max_abs_speed(double c, double e_fa
 * @param q Conserved variable vector.
 * @param flux Flux vector in direction 'dir' (output).
 */
-GKYL_CU_DH static inline void gkyl_maxwell_flux(double c, double e_fact, double b_fact,
-                                                const double *q, double *flux)
+GKYL_CU_DH static inline void gkyl_maxwell_flux(
+  double c, double e_fact, double b_fact, const double *q, double *flux)
 {
   flux[0] = (e_fact * ((c * c) * q[6]));
   flux[1] = ((c * c) * q[5]);
@@ -105,8 +105,8 @@ GKYL_CU_DH static inline void gkyl_maxwell_flux(double c, double e_fact, double 
 * @param q Conserved variable vector.
 * @param flux_deriv Flux Jacobian eigenvalues in direction 'dir' (output).
 */
-GKYL_CU_DH static inline void gkyl_maxwell_flux_deriv(double c, double e_fact, double b_fact,
-                                                      const double *q, double *flux_deriv)
+GKYL_CU_DH static inline void gkyl_maxwell_flux_deriv(
+  double c, double e_fact, double b_fact, const double *q, double *flux_deriv)
 {
   flux_deriv[0] = (-1.0 * (c * e_fact));
   flux_deriv[1] = (-1.0 * c);
@@ -126,8 +126,8 @@ GKYL_CU_DH static inline void gkyl_maxwell_flux_deriv(double c, double e_fact, d
 * @param qin Conserved variable vector (input).
 * @param wout Riemann variable vector (output).
 */
-GKYL_CU_DH static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                           const double *qin, double *wout)
+GKYL_CU_DH static inline void cons_to_riem(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 8; i++) {
@@ -143,8 +143,8 @@ GKYL_CU_DH static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const 
 * @param win Riemann variable vector (input).
 * @param qout Conserved variable vector (output).
 */
-GKYL_CU_DH static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                           const double *win, double *qout)
+GKYL_CU_DH static inline void riem_to_cons(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 8; i++) {
@@ -163,7 +163,7 @@ GKYL_CU_DH static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const 
 * @param ctx Context to pass to the function.
 */
 GKYL_CU_DH static void maxwell_wall(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                                    const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
+  const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
 {
   // Zero tangent for electric field.
   ghost[0] = skin[0];
@@ -191,7 +191,7 @@ GKYL_CU_DH static void maxwell_wall(const struct gkyl_wv_eqn *eqn, double t, int
 * @param ctx Context to pass to the function.
 */
 GKYL_CU_DH static void maxwell_no_slip(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                                       const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
+  const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
 {
   // Zero tangent for the electric field.
   ghost[0] = skin[0];
@@ -219,9 +219,8 @@ GKYL_CU_DH static void maxwell_no_slip(const struct gkyl_wv_eqn *eqn, double t, 
 * @param qlocal State vector in local coordinate frame (output).
 */
 GKYL_CU_DH static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                           const double *tau2, const double *norm,
-                                           const double *GKYL_RESTRICT qglobal,
-                                           double *GKYL_RESTRICT qlocal)
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
+  double *GKYL_RESTRICT qlocal)
 {
   // Rotate electric field vector to local coordinates.
   qlocal[0] = (qglobal[0] * norm[0]) + (qglobal[1] * norm[1]) + (qglobal[2] * norm[2]);
@@ -249,9 +248,8 @@ GKYL_CU_DH static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const 
 * @param qglobal State vector in global coordinate frame (output).
 */
 GKYL_CU_DH static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                            const double *tau2, const double *norm,
-                                            const double *GKYL_RESTRICT qlocal,
-                                            double *GKYL_RESTRICT qglobal)
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
+  double *GKYL_RESTRICT qglobal)
 {
   // Rotate electric field vector to global coordinates.
   qglobal[0] = (qlocal[0] * norm[0]) + (qlocal[1] * tau1[0]) + (qlocal[2] * tau2[0]);
@@ -280,7 +278,7 @@ GKYL_CU_DH static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const
 * @return Maximum wave speed.
 */
 GKYL_CU_DH static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta,
-                                  const double *ql, const double *qr, double *waves, double *s)
+  const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
   double c = maxwell->c; // Speed of light.
@@ -335,7 +333,7 @@ GKYL_CU_DH static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *d
 * @param apdq Right-moving fluctuations (output).
 */
 GKYL_CU_DH static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                                  const double *waves, const double *s, double *amdq, double *apdq)
+  const double *waves, const double *s, double *amdq, double *apdq)
 {
   const double *w0 = &waves[0], *w1 = &waves[8];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -372,8 +370,8 @@ GKYL_CU_DH static void wave_embed_pec(const double *q, double *qphi, double *del
 }
 
 GKYL_CU_DH static double wave_embedded(const struct gkyl_wv_eqn *eqn, const double *delta,
-                                       const double *ql, const double *qr, const double phil,
-                                       const double phir, double *waves, double *s)
+  const double *ql, const double *qr, const double phil, const double phir, double *waves,
+  double *s)
 {
   double qphi[8] = { 0.0 };
   double deltaphi[8] = { 0.0 };
@@ -407,8 +405,8 @@ GKYL_CU_DH static double wave_embedded(const struct gkyl_wv_eqn *eqn, const doub
 * @return Maximum wave speed.
 */
 GKYL_CU_DH static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                                    const double *delta, const double *ql, const double *qr,
-                                    double phil, double phir, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double phil, double phir, double *waves,
+  double *s)
 {
   if ((phil < 0.0) || (phir < 0.0))
     return wave_embedded(eqn, delta, ql, qr, phil, phir, waves, s);
@@ -429,9 +427,8 @@ GKYL_CU_DH static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_
 * @param apdq Right-moving fluctuations (output).
 */
 GKYL_CU_DH static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                                    const double *ql, const double *qr, double phil, double phir,
-                                    const double *waves, const double *s, double *amdq,
-                                    double *apdq)
+  const double *ql, const double *qr, double phil, double phir, const double *waves,
+  const double *s, double *amdq, double *apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
@@ -448,7 +445,7 @@ GKYL_CU_DH static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_
 * @return Maximum wave speed.
 */
 GKYL_CU_DH static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta,
-                                  const double *ql, const double *qr, double *waves, double *s)
+  const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
   double c = maxwell->c; // Speed of light.
@@ -518,7 +515,7 @@ GKYL_CU_DH static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *d
 * @param apdq Right-moving fluctuations (output).
 */
 GKYL_CU_DH static void qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                                  const double *waves, const double *s, double *amdq, double *apdq)
+  const double *waves, const double *s, double *amdq, double *apdq)
 {
   const double *w0 = &waves[0 * 8], *w1 = &waves[1 * 8], *w2 = &waves[2 * 8], *w3 = &waves[3 * 8],
                *w4 = &waves[4 * 8], *w5 = &waves[5 * 8];
@@ -548,8 +545,8 @@ GKYL_CU_DH static void qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *q
 * @return Maximum wave speed.
 */
 GKYL_CU_DH static double wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                              const double *delta, const double *ql, const double *qr, double phil,
-                              double phir, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double phil, double phir, double *waves,
+  double *s)
 {
   // clear waves and wave speeds
   int mwaves = (type == GKYL_WV_HIGH_ORDER_FLUX) ? eqn->num_waves : 2;
@@ -586,8 +583,8 @@ GKYL_CU_DH static double wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_t
 * @param apdq Right-moving fluctuations (output).
 */
 GKYL_CU_DH static void qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                              const double *ql, const double *qr, double phil, double phir,
-                              const double *waves, const double *s, double *amdq, double *apdq)
+  const double *ql, const double *qr, double phil, double phir, const double *waves,
+  const double *s, double *amdq, double *apdq)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
@@ -605,8 +602,8 @@ GKYL_CU_DH static void qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_t
 * @param flux_jump Jump in flux vector (output).
 * @return Maximum wave speeds for states ql and qr.
 */
-GKYL_CU_DH static double flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql,
-                                   const double *qr, double *flux_jump)
+GKYL_CU_DH static double flux_jump(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
   double c = maxwell->c; // Speed of light.
@@ -679,8 +676,8 @@ GKYL_CU_DH static double max_speed(const struct gkyl_wv_eqn *eqn, const double *
 * @param qin Conserved variable vector (input).
 * @param diag Diagnostic variable vector (output).
 */
-GKYL_CU_DH static inline void maxwell_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin,
-                                                   double *diag)
+GKYL_CU_DH static inline void maxwell_cons_to_diag(
+  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   for (int i = 0; i < 6; i++) {
     diag[i] = qin[i] * qin[i];
@@ -694,5 +691,5 @@ GKYL_CU_DH static inline void maxwell_cons_to_diag(const struct gkyl_wv_eqn *eqn
 * @param qin Conserved variable vector (input).
 * @param sout Forcing/source term vector (output).
 */
-GKYL_CU_DH static inline void maxwell_source(const struct gkyl_wv_eqn *eqn, const double *qin,
-                                             double *sout);
+GKYL_CU_DH static inline void maxwell_source(
+  const struct gkyl_wv_eqn *eqn, const double *qin, double *sout);

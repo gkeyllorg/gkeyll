@@ -20,8 +20,8 @@ typedef struct gkyl_bgk_collisions gkyl_bgk_collisions;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_bgk_collisions *gkyl_bgk_collisions_new(const struct gkyl_basis *cbasis,
-                                             const struct gkyl_basis *pbasis, bool use_gpu);
+gkyl_bgk_collisions *gkyl_bgk_collisions_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu);
 
 /**
  * Advance BGK operator (compute the BGK contribution to df/dt).
@@ -38,10 +38,9 @@ gkyl_bgk_collisions *gkyl_bgk_collisions_new(const struct gkyl_basis *cbasis,
  * @param cflfreq Output CFL frequency.
  */
 void gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up, const struct gkyl_range *crange,
-                                 const struct gkyl_range *prange, const struct gkyl_array *nu,
-                                 const struct gkyl_array *nufM, const struct gkyl_array *fin,
-                                 bool implicit_step, double dt, struct gkyl_array *out,
-                                 struct gkyl_array *cflfreq);
+  const struct gkyl_range *prange, const struct gkyl_array *nu, const struct gkyl_array *nufM,
+  const struct gkyl_array *fin, bool implicit_step, double dt, struct gkyl_array *out,
+  struct gkyl_array *cflfreq);
 
 /**
  * Delete updater.

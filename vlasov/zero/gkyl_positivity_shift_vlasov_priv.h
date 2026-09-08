@@ -18,8 +18,8 @@ enum gkyl_positivity_shift_type {
 // Function pointer type for sheath reflection kernels.
 typedef bool (*m0_pos_check_t)(const double *m0);
 typedef bool (*shift_t)(double ffloor, double *distf);
-typedef void (*m0_t)(const double *xc, const double *dx, const int *idx, const double *fIn,
-                     double *GKYL_RESTRICT out);
+typedef void (*m0_t)(
+  const double *xc, const double *dx, const int *idx, const double *fIn, double *GKYL_RESTRICT out);
 
 typedef struct {
   m0_pos_check_t kernels[3];
@@ -100,21 +100,17 @@ struct gkyl_positivity_shift_vlasov {
 // Declaration of cuda device functions.
 
 void pos_shift_vlasov_choose_shift_kernel_cu(struct gkyl_positivity_shift_vlasov_kernels *kernels,
-                                             struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-                                             enum gkyl_positivity_shift_type stype);
+  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype);
 
 void gkyl_positivity_shift_vlasov_advance_cu(gkyl_positivity_shift_vlasov *up,
-                                             const struct gkyl_range *conf_rng,
-                                             const struct gkyl_range *phase_rng,
-                                             struct gkyl_array *GKYL_RESTRICT distf,
-                                             struct gkyl_array *GKYL_RESTRICT m0,
-                                             struct gkyl_array *GKYL_RESTRICT delta_m0);
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
+  struct gkyl_array *GKYL_RESTRICT delta_m0);
 #endif
 
-GKYL_CU_D static void
-pos_shift_vlasov_choose_shift_kernel(struct gkyl_positivity_shift_vlasov_kernels *kernels,
-                                     struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-                                     enum gkyl_positivity_shift_type stype, bool use_gpu)
+GKYL_CU_D static void pos_shift_vlasov_choose_shift_kernel(
+  struct gkyl_positivity_shift_vlasov_kernels *kernels, struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {

@@ -12,7 +12,7 @@ typedef int (*dg_interp_grid2stencilIdx_t)(int idx, int num_cells, double dx_rat
 
 // Function pointer type for sheath reflection kernels.
 typedef void (*dg_interp_t)(const double *wDo, const double *wTar, const double *dxDo,
-                            const double *dxTar, const double *fldDo, double *fldTar);
+  const double *dxTar, const double *fldDo, double *fldTar);
 
 // For use in kernel tables.
 typedef struct {
@@ -51,107 +51,95 @@ struct gkyl_dg_interpolate {
 // Serendipity  kernels.
 GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_ser[] = { // 1x
   { .list = { { dg_interpolate_1x_ser_p1_x, NULL, NULL, NULL, NULL, NULL },
-              { dg_interpolate_1x_ser_p2_x, NULL, NULL, NULL, NULL, NULL } } },
+      { dg_interpolate_1x_ser_p2_x, NULL, NULL, NULL, NULL, NULL } } },
   // 2x
   { .list = { { dg_interpolate_2x_ser_p1_x, dg_interpolate_2x_ser_p1_y, NULL, NULL, NULL, NULL },
-              { dg_interpolate_2x_ser_p2_x, dg_interpolate_2x_ser_p2_y, NULL, NULL, NULL, NULL } } },
+      { dg_interpolate_2x_ser_p2_x, dg_interpolate_2x_ser_p2_y, NULL, NULL, NULL, NULL } } },
   // 3x
   { .list = { { dg_interpolate_3x_ser_p1_x, dg_interpolate_3x_ser_p1_y, dg_interpolate_3x_ser_p1_z,
                 NULL, NULL, NULL },
-              { dg_interpolate_3x_ser_p2_x, dg_interpolate_3x_ser_p2_y, dg_interpolate_3x_ser_p2_z,
-                NULL, NULL, NULL } } }
+      { dg_interpolate_3x_ser_p2_x, dg_interpolate_3x_ser_p2_y, dg_interpolate_3x_ser_p2_z, NULL,
+        NULL, NULL } } }
 };
 
 GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_gk_ser[] = { // 1x1v
   { .list = { { dg_interpolate_gyrokinetic_1x1v_ser_p1_x,
                 dg_interpolate_gyrokinetic_1x1v_ser_p1_vpar, NULL, NULL, NULL, NULL },
-              { dg_interpolate_gyrokinetic_1x1v_ser_p2_x,
-                dg_interpolate_gyrokinetic_1x1v_ser_p2_vpar, NULL, NULL, NULL, NULL } } },
+      { dg_interpolate_gyrokinetic_1x1v_ser_p2_x, dg_interpolate_gyrokinetic_1x1v_ser_p2_vpar, NULL,
+        NULL, NULL, NULL } } },
   // 1x2v
   { .list = { { dg_interpolate_gyrokinetic_1x2v_ser_p1_x,
                 dg_interpolate_gyrokinetic_1x2v_ser_p1_vpar,
                 dg_interpolate_gyrokinetic_1x2v_ser_p1_mu, NULL, NULL, NULL },
-              { dg_interpolate_gyrokinetic_1x2v_ser_p2_x,
-                dg_interpolate_gyrokinetic_1x2v_ser_p2_vpar,
-                dg_interpolate_gyrokinetic_1x2v_ser_p2_mu, NULL, NULL, NULL } } },
+      { dg_interpolate_gyrokinetic_1x2v_ser_p2_x, dg_interpolate_gyrokinetic_1x2v_ser_p2_vpar,
+        dg_interpolate_gyrokinetic_1x2v_ser_p2_mu, NULL, NULL, NULL } } },
   // 2x2v
   { .list = { { dg_interpolate_gyrokinetic_2x2v_ser_p1_x, dg_interpolate_gyrokinetic_2x2v_ser_p1_z,
                 dg_interpolate_gyrokinetic_2x2v_ser_p1_vpar,
                 dg_interpolate_gyrokinetic_2x2v_ser_p1_mu, NULL, NULL },
-              { dg_interpolate_gyrokinetic_2x2v_ser_p2_x, dg_interpolate_gyrokinetic_2x2v_ser_p2_z,
-                dg_interpolate_gyrokinetic_2x2v_ser_p2_vpar,
-                dg_interpolate_gyrokinetic_2x2v_ser_p2_mu, NULL, NULL } } },
+      { dg_interpolate_gyrokinetic_2x2v_ser_p2_x, dg_interpolate_gyrokinetic_2x2v_ser_p2_z,
+        dg_interpolate_gyrokinetic_2x2v_ser_p2_vpar, dg_interpolate_gyrokinetic_2x2v_ser_p2_mu,
+        NULL, NULL } } },
   // 3x2v
   { .list = { { dg_interpolate_gyrokinetic_3x2v_ser_p1_x, dg_interpolate_gyrokinetic_3x2v_ser_p1_y,
                 dg_interpolate_gyrokinetic_3x2v_ser_p1_z,
                 dg_interpolate_gyrokinetic_3x2v_ser_p1_vpar,
                 dg_interpolate_gyrokinetic_3x2v_ser_p1_mu, NULL },
-              { NULL, NULL, NULL, NULL, NULL, NULL } } }
+      { NULL, NULL, NULL, NULL, NULL, NULL } } }
 };
 
 GKYL_CU_D static const dg_interp_kern_p_list_vlasov dg_interp_kern_list_vlasov_ser[] = { // 1x
   { .vdim = { { .list = { { dg_interpolate_vlasov_1x1v_ser_p1_x,
                             dg_interpolate_vlasov_1x1v_ser_p1_vx, NULL, NULL, NULL, NULL },
-                          { dg_interpolate_vlasov_1x1v_ser_p2_x,
-                            dg_interpolate_vlasov_1x1v_ser_p2_vx, NULL, NULL, NULL, NULL } } },
-              { .list = { { dg_interpolate_vlasov_1x2v_ser_p1_x,
-                            dg_interpolate_vlasov_1x2v_ser_p1_vx,
-                            dg_interpolate_vlasov_1x2v_ser_p1_vy, NULL, NULL, NULL },
-                          { dg_interpolate_vlasov_1x2v_ser_p2_x,
-                            dg_interpolate_vlasov_1x2v_ser_p2_vx,
-                            dg_interpolate_vlasov_1x2v_ser_p2_vy, NULL, NULL, NULL } } },
-              { .list = { { dg_interpolate_vlasov_1x3v_ser_p1_x,
-                            dg_interpolate_vlasov_1x3v_ser_p1_vx,
-                            dg_interpolate_vlasov_1x2v_ser_p1_vy,
-                            dg_interpolate_vlasov_1x3v_ser_p1_vz, NULL, NULL },
-                          { dg_interpolate_vlasov_1x3v_ser_p2_x,
-                            dg_interpolate_vlasov_1x3v_ser_p2_vx,
-                            dg_interpolate_vlasov_1x2v_ser_p2_vy,
-                            dg_interpolate_vlasov_1x3v_ser_p2_vz, NULL, NULL } } } } },
+                  { dg_interpolate_vlasov_1x1v_ser_p2_x, dg_interpolate_vlasov_1x1v_ser_p2_vx, NULL,
+                    NULL, NULL, NULL } } },
+      { .list = { { dg_interpolate_vlasov_1x2v_ser_p1_x, dg_interpolate_vlasov_1x2v_ser_p1_vx,
+                    dg_interpolate_vlasov_1x2v_ser_p1_vy, NULL, NULL, NULL },
+          { dg_interpolate_vlasov_1x2v_ser_p2_x, dg_interpolate_vlasov_1x2v_ser_p2_vx,
+            dg_interpolate_vlasov_1x2v_ser_p2_vy, NULL, NULL, NULL } } },
+      { .list = { { dg_interpolate_vlasov_1x3v_ser_p1_x, dg_interpolate_vlasov_1x3v_ser_p1_vx,
+                    dg_interpolate_vlasov_1x2v_ser_p1_vy, dg_interpolate_vlasov_1x3v_ser_p1_vz,
+                    NULL, NULL },
+          { dg_interpolate_vlasov_1x3v_ser_p2_x, dg_interpolate_vlasov_1x3v_ser_p2_vx,
+            dg_interpolate_vlasov_1x2v_ser_p2_vy, dg_interpolate_vlasov_1x3v_ser_p2_vz, NULL,
+            NULL } } } } },
   // 2x
   { .vdim = { { .list = { { NULL, NULL, NULL, NULL, NULL, NULL },
-                          { NULL, NULL, NULL, NULL, NULL, NULL } } },
-              { .list = { { dg_interpolate_vlasov_2x2v_ser_p1_x, dg_interpolate_vlasov_2x2v_ser_p1_y,
-                            dg_interpolate_vlasov_2x2v_ser_p1_vx,
-                            dg_interpolate_vlasov_2x2v_ser_p1_vy, NULL, NULL },
-                          { dg_interpolate_vlasov_2x2v_ser_p2_x, dg_interpolate_vlasov_2x2v_ser_p2_y,
-                            dg_interpolate_vlasov_2x2v_ser_p2_vx,
-                            dg_interpolate_vlasov_2x2v_ser_p2_vy, NULL, NULL } } },
-              { .list = { { dg_interpolate_vlasov_2x3v_ser_p1_x, dg_interpolate_vlasov_2x3v_ser_p1_y,
-                            dg_interpolate_vlasov_2x3v_ser_p1_vx,
-                            dg_interpolate_vlasov_2x2v_ser_p1_vy,
-                            dg_interpolate_vlasov_2x3v_ser_p1_vz, NULL },
-                          { dg_interpolate_vlasov_2x3v_ser_p2_x, dg_interpolate_vlasov_2x3v_ser_p2_y,
-                            dg_interpolate_vlasov_2x3v_ser_p2_vx,
-                            dg_interpolate_vlasov_2x2v_ser_p2_vy,
-                            dg_interpolate_vlasov_2x3v_ser_p2_vz, NULL } } } } },
+                  { NULL, NULL, NULL, NULL, NULL, NULL } } },
+      { .list = { { dg_interpolate_vlasov_2x2v_ser_p1_x, dg_interpolate_vlasov_2x2v_ser_p1_y,
+                    dg_interpolate_vlasov_2x2v_ser_p1_vx, dg_interpolate_vlasov_2x2v_ser_p1_vy,
+                    NULL, NULL },
+          { dg_interpolate_vlasov_2x2v_ser_p2_x, dg_interpolate_vlasov_2x2v_ser_p2_y,
+            dg_interpolate_vlasov_2x2v_ser_p2_vx, dg_interpolate_vlasov_2x2v_ser_p2_vy, NULL,
+            NULL } } },
+      { .list = { { dg_interpolate_vlasov_2x3v_ser_p1_x, dg_interpolate_vlasov_2x3v_ser_p1_y,
+                    dg_interpolate_vlasov_2x3v_ser_p1_vx, dg_interpolate_vlasov_2x2v_ser_p1_vy,
+                    dg_interpolate_vlasov_2x3v_ser_p1_vz, NULL },
+          { dg_interpolate_vlasov_2x3v_ser_p2_x, dg_interpolate_vlasov_2x3v_ser_p2_y,
+            dg_interpolate_vlasov_2x3v_ser_p2_vx, dg_interpolate_vlasov_2x2v_ser_p2_vy,
+            dg_interpolate_vlasov_2x3v_ser_p2_vz, NULL } } } } },
   // 3x
   { .vdim = { { .list = { { NULL, NULL, NULL, NULL, NULL, NULL },
-                          { NULL, NULL, NULL, NULL, NULL, NULL } } },
-              { .list = { { NULL, NULL, NULL, NULL, NULL, NULL },
-                          { NULL, NULL, NULL, NULL, NULL, NULL } } },
-              { .list = { { dg_interpolate_vlasov_3x3v_ser_p1_x,
-                            dg_interpolate_vlasov_3x3v_ser_p1_y, dg_interpolate_vlasov_3x3v_ser_p1_z,
-                            dg_interpolate_vlasov_3x3v_ser_p1_vx,
-                            dg_interpolate_vlasov_3x3v_ser_p1_vy,
-                            dg_interpolate_vlasov_3x3v_ser_p1_vz },
-                          { NULL, NULL, NULL, NULL, NULL, NULL } } } } }
+                  { NULL, NULL, NULL, NULL, NULL, NULL } } },
+      { .list = { { NULL, NULL, NULL, NULL, NULL, NULL }, { NULL, NULL, NULL, NULL, NULL, NULL } } },
+      { .list = { { dg_interpolate_vlasov_3x3v_ser_p1_x, dg_interpolate_vlasov_3x3v_ser_p1_y,
+                    dg_interpolate_vlasov_3x3v_ser_p1_z, dg_interpolate_vlasov_3x3v_ser_p1_vx,
+                    dg_interpolate_vlasov_3x3v_ser_p1_vy, dg_interpolate_vlasov_3x3v_ser_p1_vz },
+          { NULL, NULL, NULL, NULL, NULL, NULL } } } } }
 };
 
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
 void dg_interp_choose_kernel_cu(struct gkyl_dg_interpolate_kernels *kernels, int cdim,
-                                struct gkyl_basis basis, int dir, double dxRat);
+  struct gkyl_basis basis, int dir, double dxRat);
 
 void gkyl_dg_interpolate_advance_1x_cu(gkyl_dg_interpolate *up,
-                                       const struct gkyl_range *phase_rng_do,
-                                       const struct gkyl_range *phase_rng_tar,
-                                       const struct gkyl_array *GKYL_RESTRICT fdo,
-                                       struct gkyl_array *GKYL_RESTRICT ftar);
+  const struct gkyl_range *phase_rng_do, const struct gkyl_range *phase_rng_tar,
+  const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar);
 #endif
 
-GKYL_CU_D static dg_interp_t dg_interp_choose_gk_interp_kernel(int cdim, struct gkyl_basis basis,
-                                                               int dir)
+GKYL_CU_D static dg_interp_t dg_interp_choose_gk_interp_kernel(
+  int cdim, struct gkyl_basis basis, int dir)
 {
   enum gkyl_basis_type basis_type = basis.b_type;
   int ndim = basis.ndim;
@@ -263,9 +251,8 @@ GKYL_CU_DH static int dg_interp_index_stencil_map_coarsen(int idx, int num_cells
   return stencilOut - 1;
 }
 
-static void dg_interpolate_check_cell_overlap(struct gkyl_dg_interpolate *up,
-                                              const struct gkyl_range *range_do,
-                                              const int *offset_upper)
+static void dg_interpolate_check_cell_overlap(
+  struct gkyl_dg_interpolate *up, const struct gkyl_range *range_do, const int *offset_upper)
 {
   // Check that for a given donor cell the target cells used are actually
   // overlapping with this donor. This code is similar to the one in the

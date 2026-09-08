@@ -76,16 +76,16 @@ struct skin_ghost_ranges {
 };
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr, const struct gkyl_range *parent,
-                                   const int *ghost)
+static void skin_ghost_ranges_init(
+  struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost)
 {
   int ndim = parent->ndim;
 
   for (int d = 0; d < ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent,
-                           ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent, ghost);
   }
 }
 
@@ -1422,17 +1422,17 @@ void test_mom_vlasov_big_2x2v_p2_dev()
 #endif
 
 TEST_LIST = { { "mom_vlasov_ho", test_mom_vlasov_ho },
-              { "test_mom_vlasov_1x1v_p1_ho", test_mom_vlasov_1x1v_p1_ho },
-              { "test_mom_vlasov_1x2v_p1_ho", test_mom_vlasov_1x2v_p1_ho },
-              { "test_mom_vlasov_2x2v_p1_ho", test_mom_vlasov_2x2v_p1_ho },
-              //  { "test_mom_vlasov_big_2x2v_p2_ho", test_mom_vlasov_big_2x2v_p2_ho },
-              { "test_mom_vlasov_2x3v_p1_ho", test_mom_vlasov_2x3v_p1_ho },
+  { "test_mom_vlasov_1x1v_p1_ho", test_mom_vlasov_1x1v_p1_ho },
+  { "test_mom_vlasov_1x2v_p1_ho", test_mom_vlasov_1x2v_p1_ho },
+  { "test_mom_vlasov_2x2v_p1_ho", test_mom_vlasov_2x2v_p1_ho },
+  //  { "test_mom_vlasov_big_2x2v_p2_ho", test_mom_vlasov_big_2x2v_p2_ho },
+  { "test_mom_vlasov_2x3v_p1_ho", test_mom_vlasov_2x3v_p1_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "mom_vlasov_dev", test_mom_vlasov_dev },
-              { "test_mom_vlasov_1x1v_p1_dev", test_mom_vlasov_1x1v_p1_dev },
-              { "test_mom_vlasov_1x2v_p1_dev", test_mom_vlasov_1x2v_p1_dev },
-              { "test_mom_vlasov_2x2v_p1_dev", test_mom_vlasov_2x2v_p1_dev },
-              { "test_mom_vlasov_2x3v_p1_dev", test_mom_vlasov_2x3v_p1_dev },
+  { "mom_vlasov_dev", test_mom_vlasov_dev },
+  { "test_mom_vlasov_1x1v_p1_dev", test_mom_vlasov_1x1v_p1_dev },
+  { "test_mom_vlasov_1x2v_p1_dev", test_mom_vlasov_1x2v_p1_dev },
+  { "test_mom_vlasov_2x2v_p1_dev", test_mom_vlasov_2x2v_p1_dev },
+  { "test_mom_vlasov_2x3v_p1_dev", test_mom_vlasov_2x3v_p1_dev },
 //  { "test_mom_vlasov_big_2x2v_p2_dev", test_mom_vlasov_big_2x2v_p2_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

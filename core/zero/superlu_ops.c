@@ -89,7 +89,7 @@ gkyl_superlu_prob *gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs
 
   for (size_t k = 0; k < prob->nprob; k++)
     dCreate_Dense_Matrix(prob->B[k], prob->mrow, prob->nrhs, &prob->rhs[k * prob->mrow], prob->mrow,
-                         SLU_DN, SLU_D, SLU_GE);
+      SLU_DN, SLU_D, SLU_GE);
 
   // Arguments needed by the expert driver.
   prob->equed = 'N';
@@ -163,8 +163,8 @@ void gkyl_superlu_amat_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_
     gkyl_mat_triples_iter_release(iter);
 
     // Create matrix A. See SuperLU manual for definitions.
-    dCreate_CompCol_Matrix(prob->A[k], prob->mrow, prob->ncol, prob->nnz, nzval, rowind, colptr,
-                           SLU_NC, SLU_D, SLU_GE);
+    dCreate_CompCol_Matrix(
+      prob->A[k], prob->mrow, prob->ncol, prob->nnz, nzval, rowind, colptr, SLU_NC, SLU_D, SLU_GE);
   }
 
   gkyl_free(colptr_assigned);
@@ -202,13 +202,13 @@ void gkyl_superlu_ludecomp(struct gkyl_superlu_prob *prob)
   int panel_size = sp_ienv(1);
   int relax = sp_ienv(2);
   dgstrf(&prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c, prob->perm_r[0],
-         prob->L[0], prob->U[0], &prob->Glu[0], &prob->stat, &prob->info);
+    prob->L[0], prob->U[0], &prob->Glu[0], &prob->stat, &prob->info);
 
   prob->options.Fact = prob->nprob == 1 ? FACTORED : SamePattern; // LU decomp done.
 
   for (size_t k = 1; k < prob->nprob; k++) {
     dgstrf(&prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c, prob->perm_r[k],
-           prob->L[k], prob->U[k], &prob->Glu[k], &prob->stat, &prob->info);
+      prob->L[k], prob->U[k], &prob->Glu[k], &prob->stat, &prob->info);
   }
 
   SUPERLU_FREE(etree);
@@ -284,7 +284,7 @@ void gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
   if (prob->options.Fact == FACTORED) {
     for (size_t k = 0; k < prob->nprob; k++)
       dgstrs(prob->trans, prob->L[k], prob->U[k], prob->perm_c, prob->perm_r[k], prob->B[k],
-             &prob->stat, &prob->info);
+        &prob->stat, &prob->info);
   } else {
     if (prob->options.Fact == SamePattern) {
       for (size_t k = 0; k < prob->nprob; k++) {
@@ -296,9 +296,9 @@ void gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
     superlu_alloc_work_if_needed(prob, 0);
 
     dgssvx(&prob->options, prob->A[0], prob->perm_c, prob->perm_r[0], prob->etree, &prob->equed,
-           prob->R, prob->C, prob->L[0], prob->U[0], prob->work[0], prob->lwork[0], prob->B[0],
-           prob->B[0], &prob->rpg, &prob->rcond, prob->ferr, prob->berr, &prob->Glu[0],
-           &prob->mem_usage, &prob->stat, &prob->info);
+      prob->R, prob->C, prob->L[0], prob->U[0], prob->work[0], prob->lwork[0], prob->B[0],
+      prob->B[0], &prob->rpg, &prob->rcond, prob->ferr, prob->berr, &prob->Glu[0], &prob->mem_usage,
+      &prob->stat, &prob->info);
 
     prob->options.Fact = prob->nprob == 1 ? FACTORED : SamePattern; // LU decomp done.
 
@@ -306,9 +306,9 @@ void gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
       superlu_alloc_work_if_needed(prob, k);
 
       dgssvx(&prob->options, prob->A[k], prob->perm_c, prob->perm_r[k], prob->etree, &prob->equed,
-             prob->R, prob->C, prob->L[k], prob->U[k], prob->work[k], prob->lwork[k], prob->B[k],
-             prob->B[k], &prob->rpg, &prob->rcond, prob->ferr, prob->berr, &prob->Glu[k],
-             &prob->mem_usage, &prob->stat, &prob->info);
+        prob->R, prob->C, prob->L[k], prob->U[k], prob->work[k], prob->lwork[k], prob->B[k],
+        prob->B[k], &prob->rpg, &prob->rcond, prob->ferr, prob->berr, &prob->Glu[k],
+        &prob->mem_usage, &prob->stat, &prob->info);
     }
 
     prob->LU_in_work = true;
@@ -316,8 +316,8 @@ void gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
   }
 }
 
-void gkyl_superlu_amat_update_from_triples(struct gkyl_superlu_prob *prob,
-                                           struct gkyl_mat_triples **tri)
+void gkyl_superlu_amat_update_from_triples(
+  struct gkyl_superlu_prob *prob, struct gkyl_mat_triples **tri)
 {
   for (size_t k = 0; k < prob->nprob; k++) {
     assert(gkyl_mat_triples_size(tri[k]) ==

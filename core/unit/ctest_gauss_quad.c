@@ -58,5 +58,4 @@ static void test_gauss_quad_ndim_ho()
 }
 
 TEST_LIST = { { "gauss_quad_basic_ho", test_gauss_quad_basic_ho },
-              { "gauss_quad_ndim_ho", test_gauss_quad_ndim_ho },
-              { NULL, NULL } };
+  { "gauss_quad_ndim_ho", test_gauss_quad_ndim_ho }, { NULL, NULL } };

@@ -389,7 +389,7 @@ static inline void integ_sq(int nc, const double *qin, double *integ_out)
 
 // function for copy BC
 static inline void bc_copy(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-                           double *GKYL_RESTRICT ghost, void *ctx)
+  double *GKYL_RESTRICT ghost, void *ctx)
 {
   for (int c = 0; c < nc; ++c)
     ghost[c] = skin[c];
@@ -397,14 +397,13 @@ static inline void bc_copy(const struct gkyl_wv_eqn *eqn, double t, int nc, cons
 
 // function for skip BCs
 static inline void bc_skip(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-                           double *GKYL_RESTRICT ghost, void *ctx)
+  double *GKYL_RESTRICT ghost, void *ctx)
 {
 }
 
 // Compute integrated quantities specified by i_func
 void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol, const struct gkyl_array *q,
-                      const struct gkyl_wave_geom *geom, struct gkyl_range update_rng,
-                      double *integ_q);
+  const struct gkyl_wave_geom *geom, struct gkyl_range update_rng, double *integ_q);
 
 // Check array "q" for nans
 bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng);
@@ -414,9 +413,8 @@ void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gky
 
 // Apply wedge-periodic BCs to array "f"
 void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
-                           const struct gkyl_range *update_rng, struct gkyl_array *bc_buffer,
-                           int dir, const struct gkyl_wv_apply_bc *lo,
-                           const struct gkyl_wv_apply_bc *up, struct gkyl_array *f);
+  const struct gkyl_range *update_rng, struct gkyl_array *bc_buffer, int dir,
+  const struct gkyl_wv_apply_bc *lo, const struct gkyl_wv_apply_bc *up, struct gkyl_array *f);
 
 /**
  * Return ghost cell layout for grid.
@@ -431,22 +429,22 @@ void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
 
 // Initialize the moment species object
 void moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_species *mom_sp,
-                         struct gkyl_moment_app *app, struct moment_species *sp);
+  struct gkyl_moment_app *app, struct moment_species *sp);
 
 // Apply BCs to species data "f"
-void moment_species_apply_bc(gkyl_moment_app *app, double tcurr, const struct moment_species *sp,
-                             struct gkyl_array *f);
+void moment_species_apply_bc(
+  gkyl_moment_app *app, double tcurr, const struct moment_species *sp, struct gkyl_array *f);
 
 // Maximum stable time-step from species
 double moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *sp);
 
 // Advance solution of species by time-step dt to tcurr+dt
-struct gkyl_update_status moment_species_update(gkyl_moment_app *app, struct moment_species *sp,
-                                                double tcurr, double dt);
+struct gkyl_update_status moment_species_update(
+  gkyl_moment_app *app, struct moment_species *sp, double tcurr, double dt);
 
 // Compute RHS of moment equations
 double moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
-                          const struct gkyl_array *fin, struct gkyl_array *rhs);
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 // Free memory allocated by species
 void moment_species_release(const struct moment_species *sp);
@@ -455,22 +453,22 @@ void moment_species_release(const struct moment_species *sp);
 
 // Initialize EM field
 void moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field *mom_fld,
-                       struct gkyl_moment_app *app, struct moment_field *fld);
+  struct gkyl_moment_app *app, struct moment_field *fld);
 
 // Apply BCs to EM field
-void moment_field_apply_bc(gkyl_moment_app *app, double tcurr, const struct moment_field *field,
-                           struct gkyl_array *f);
+void moment_field_apply_bc(
+  gkyl_moment_app *app, double tcurr, const struct moment_field *field, struct gkyl_array *f);
 
 // Maximum stable time-step due to EM fields
 double moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld);
 
 // Update EM field from tcurr to tcurr+dt
-struct gkyl_update_status moment_field_update(gkyl_moment_app *app, const struct moment_field *fld,
-                                              double tcurr, double dt);
+struct gkyl_update_status moment_field_update(
+  gkyl_moment_app *app, const struct moment_field *fld, double tcurr, double dt);
 
 // Compute RHS of EM equations
 double moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
-                        const struct gkyl_array *fin, struct gkyl_array *rhs);
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 // Release the EM field object
 void moment_field_release(const struct moment_field *fld);
@@ -483,20 +481,20 @@ void moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupl
 
 /** mhd_src functions */
 
-void mhd_src_init(const struct gkyl_moment_app *app, const struct gkyl_moment_species *sp,
-                  struct mhd_src *src);
+void mhd_src_init(
+  const struct gkyl_moment_app *app, const struct gkyl_moment_species *sp, struct mhd_src *src);
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step
-void mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang, double tcurr,
-                    double dt);
+void mhd_src_update(
+  gkyl_moment_app *app, struct mhd_src *src, int nstrang, double tcurr, double dt);
 
 void mhd_src_release(const struct mhd_src *src);
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step
-struct gkyl_update_status moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
-                                                 int nstrang, double tcurr, double dt);
+struct gkyl_update_status moment_coupling_update(
+  gkyl_moment_app *app, struct moment_coupling *src, int nstrang, double tcurr, double dt);
 
 // Release coupling sources
 void moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_coupling *src);

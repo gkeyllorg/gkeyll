@@ -44,8 +44,7 @@ __global__ static void gkyl_dg_calc_pkpm_em_coupling_set_one_fluid_cu_kernel(
     double *em_d = (double *)gkyl_array_fetch(em, loc);
 
     up->pkpm_em_coupling_set(linc1, up->num_species, up->qbym, up->epsilon0, up->pkpm_field_static,
-                             dt, As, xs, app_accels, ext_em_d, app_current_d, pkpm_moms, pkpm_flows,
-                             em_d);
+      dt, As, xs, app_accels, ext_em_d, app_current_d, pkpm_moms, pkpm_flows, em_d);
   }
 }
 
@@ -75,8 +74,8 @@ __global__ static void gkyl_dg_calc_pkpm_em_coupling_copy_one_fluid_cu_kernel(
     fluids[0] = (double *)gkyl_array_fetch(euler_pkpm, loc);
     double *em_d = (double *)gkyl_array_fetch(em, loc);
 
-    up->pkpm_em_coupling_copy(linc1, up->num_species, up->qbym, up->epsilon0, xs, pkpm_moms,
-                              pkpm_flows, fluids, em_d);
+    up->pkpm_em_coupling_copy(
+      linc1, up->num_species, up->qbym, up->epsilon0, xs, pkpm_moms, pkpm_flows, fluids, em_d);
   }
 }
 
@@ -116,8 +115,7 @@ __global__ static void gkyl_dg_calc_pkpm_em_coupling_set_two_fluids_cu_kernel(
     double *em_d = (double *)gkyl_array_fetch(em, loc);
 
     up->pkpm_em_coupling_set(linc1, up->num_species, up->qbym, up->epsilon0, up->pkpm_field_static,
-                             dt, As, xs, app_accels, ext_em_d, app_current_d, pkpm_moms, pkpm_flows,
-                             em_d);
+      dt, As, xs, app_accels, ext_em_d, app_current_d, pkpm_moms, pkpm_flows, em_d);
   }
 }
 
@@ -151,14 +149,13 @@ __global__ static void gkyl_dg_calc_pkpm_em_coupling_copy_two_fluids_cu_kernel(
     fluids[1] = (double *)gkyl_array_fetch(euler_pkpm_2, loc);
     double *em_d = (double *)gkyl_array_fetch(em, loc);
 
-    up->pkpm_em_coupling_copy(linc1, up->num_species, up->qbym, up->epsilon0, xs, pkpm_moms,
-                              pkpm_flows, fluids, em_d);
+    up->pkpm_em_coupling_copy(
+      linc1, up->num_species, up->qbym, up->epsilon0, xs, pkpm_moms, pkpm_flows, fluids, em_d);
   }
 }
 
 // Host-side wrapper for primitive variable calculation
-void gkyl_dg_calc_pkpm_em_coupling_advance_cu(
-  struct gkyl_dg_calc_pkpm_em_coupling *up, double dt,
+void gkyl_dg_calc_pkpm_em_coupling_advance_cu(struct gkyl_dg_calc_pkpm_em_coupling *up, double dt,
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
   const struct gkyl_array *app_current, const struct gkyl_array *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
   const struct gkyl_array *pkpm_u[GKYL_MAX_SPECIES],
@@ -170,16 +167,15 @@ void gkyl_dg_calc_pkpm_em_coupling_advance_cu(
 
   if (num_species == 1) {
     gkyl_dg_calc_pkpm_em_coupling_set_one_fluid_cu_kernel<<<conf_range.nblocks,
-                                                            conf_range.nthreads> > >(
-      up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, dt, app_accel[0]->on_dev,
-      ext_em->on_dev, app_current->on_dev, vlasov_pkpm_moms[0]->on_dev, pkpm_u[0]->on_dev,
-      em->on_dev);
+      conf_range.nthreads> > >(up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, dt,
+      app_accel[0]->on_dev, ext_em->on_dev, app_current->on_dev, vlasov_pkpm_moms[0]->on_dev,
+      pkpm_u[0]->on_dev, em->on_dev);
   } else if (num_species == 2) {
     gkyl_dg_calc_pkpm_em_coupling_set_two_fluids_cu_kernel<<<conf_range.nblocks,
-                                                             conf_range.nthreads> > >(
-      up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, dt, app_accel[0]->on_dev,
-      app_accel[1]->on_dev, ext_em->on_dev, app_current->on_dev, vlasov_pkpm_moms[0]->on_dev,
-      vlasov_pkpm_moms[1]->on_dev, pkpm_u[0]->on_dev, pkpm_u[1]->on_dev, em->on_dev);
+      conf_range.nthreads> > >(up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, dt,
+      app_accel[0]->on_dev, app_accel[1]->on_dev, ext_em->on_dev, app_current->on_dev,
+      vlasov_pkpm_moms[0]->on_dev, vlasov_pkpm_moms[1]->on_dev, pkpm_u[0]->on_dev,
+      pkpm_u[1]->on_dev, em->on_dev);
   }
 
   bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
@@ -187,13 +183,11 @@ void gkyl_dg_calc_pkpm_em_coupling_advance_cu(
 
   if (num_species == 1) {
     gkyl_dg_calc_pkpm_em_coupling_copy_one_fluid_cu_kernel<<<conf_range.nblocks,
-                                                             conf_range.nthreads> > >(
-      up->on_dev, up->xs->on_dev, conf_range, vlasov_pkpm_moms[0]->on_dev, pkpm_u[0]->on_dev,
-      euler_pkpm[0]->on_dev, em->on_dev);
+      conf_range.nthreads> > >(up->on_dev, up->xs->on_dev, conf_range, vlasov_pkpm_moms[0]->on_dev,
+      pkpm_u[0]->on_dev, euler_pkpm[0]->on_dev, em->on_dev);
   } else if (num_species == 2) {
     gkyl_dg_calc_pkpm_em_coupling_copy_two_fluids_cu_kernel<<<conf_range.nblocks,
-                                                              conf_range.nthreads> > >(
-      up->on_dev, up->xs->on_dev, conf_range, vlasov_pkpm_moms[0]->on_dev,
+      conf_range.nthreads> > >(up->on_dev, up->xs->on_dev, conf_range, vlasov_pkpm_moms[0]->on_dev,
       vlasov_pkpm_moms[1]->on_dev, pkpm_u[0]->on_dev, pkpm_u[1]->on_dev, euler_pkpm[0]->on_dev,
       euler_pkpm[1]->on_dev, em->on_dev);
   }
@@ -201,9 +195,8 @@ void gkyl_dg_calc_pkpm_em_coupling_advance_cu(
 
 // CUDA kernel to set device pointers to pkpm-em coupling kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void
-dg_calc_pkpm_em_coupling_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_em_coupling *up,
-                                         enum gkyl_basis_type b_type, int cdim, int poly_order)
+__global__ static void dg_calc_pkpm_em_coupling_set_cu_dev_ptrs(
+  struct gkyl_dg_calc_pkpm_em_coupling *up, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   up->pkpm_em_coupling_set = choose_pkpm_em_coupling_set_kern(b_type, cdim, poly_order);
   up->pkpm_em_coupling_copy = choose_pkpm_em_coupling_copy_kern(b_type, cdim, poly_order);
@@ -224,8 +217,8 @@ gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(
 
   // Linear system size is nc*(3*num_species + 3)
   up->num_species = num_species;
-  up->As = gkyl_nmat_cu_dev_new(mem_range->volume, nc * (3 * up->num_species + 3),
-                                nc * (3 * up->num_species + 3));
+  up->As = gkyl_nmat_cu_dev_new(
+    mem_range->volume, nc * (3 * up->num_species + 3), nc * (3 * up->num_species + 3));
   up->xs = gkyl_nmat_cu_dev_new(mem_range->volume, nc * (3 * up->num_species + 3), 1);
   up->mem = gkyl_nmat_linsolve_lu_cu_dev_new(up->As->num, up->As->nr);
 

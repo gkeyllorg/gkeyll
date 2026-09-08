@@ -13,8 +13,8 @@ extern "C" {
 #include <gkyl_gk_dg_geom.h>
 }
 
-struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_cu_dev_new_from_host(const struct gkyl_gk_dg_geom_inp *inp,
-                                                             struct gkyl_gk_dg_geom *up_host)
+struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_cu_dev_new_from_host(
+  const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host)
 {
   struct gkyl_gk_dg_geom *dgg = (struct gkyl_gk_dg_geom *)gkyl_malloc(sizeof *dgg);
 
@@ -35,9 +35,8 @@ struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_cu_dev_new_from_host(const struct gkyl_g
 
   struct gkyl_array *surf_geom_dev[ndim];
   for (int dir = 0; dir < ndim; ++dir) {
-    surf_geom_dev[dir] = gkyl_array_cu_dev_new(
-      GKYL_USER, sizeof(struct gkyl_gk_dg_surf_geom[dgg->surf_quad_range.volume]),
-      dgg->range.volume);
+    surf_geom_dev[dir] = gkyl_array_cu_dev_new(GKYL_USER,
+      sizeof(struct gkyl_gk_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume);
   }
 
   gkyl_array_copy(vol_geom_dev, up_host->vol_geom);

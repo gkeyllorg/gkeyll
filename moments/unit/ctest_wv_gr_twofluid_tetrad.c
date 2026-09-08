@@ -20,9 +20,9 @@ void test_gr_twofluid_tetrad_basic_minkowski_ho()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(
-    mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-    b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion,
+    charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
+    GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   TEST_CHECK(gr_twofluid_tetrad->num_equations == 84);
   TEST_CHECK(gr_twofluid_tetrad->num_waves == 6);
@@ -71,16 +71,14 @@ void test_gr_twofluid_tetrad_basic_minkowski_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-                                                 pow(10.0, -8.0), pow(10.0, -8.0),
-                                                 &extrinsic_curvature);
+        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
 
-      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-                                       pow(10.0, -8.0), &shift_der);
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-                                                pow(10.0, -8.0), pow(10.0, -8.0),
-                                                &spatial_metric_der);
+        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
 
       double *vel = gkyl_malloc(sizeof(double[3]));
       vel[0] = u;
@@ -232,7 +230,7 @@ void test_gr_twofluid_tetrad_basic_minkowski_ho()
             (rho_elc * he * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))),
           (lapse * sqrt(spatial_det)) *
             (((rho_elc * he * (W * W)) - p - (rho_elc * W)) * (vel[0] - (shift[0] / lapse)) +
-             (p * vel[0])),
+              (p * vel[0])),
           (lapse * sqrt(spatial_det)) * (rho_ion * W * (vel[0] - (shift[0] / lapse))),
           (lapse * sqrt(spatial_det)) *
             (rho_ion * hi * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
@@ -242,7 +240,7 @@ void test_gr_twofluid_tetrad_basic_minkowski_ho()
             (rho_ion * hi * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))),
           (lapse * sqrt(spatial_det)) *
             (((rho_ion * hi * (W * W)) - p - (rho_ion * W)) * (vel[0] - (shift[0] / lapse)) +
-             (p * vel[0])),
+              (p * vel[0])),
           e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
           -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
           b_fact * (light_speed * light_speed) * Bx },
@@ -255,7 +253,7 @@ void test_gr_twofluid_tetrad_basic_minkowski_ho()
             (rho_elc * he * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))),
           (lapse * sqrt(spatial_det)) *
             (((rho_elc * he * (W * W)) - p - (rho_elc * W)) * (vel[1] - (shift[1] / lapse)) +
-             (p * vel[1])),
+              (p * vel[1])),
           (lapse * sqrt(spatial_det)) * (rho_ion * W * (vel[1] - (shift[1] / lapse))),
           (lapse * sqrt(spatial_det)) *
             (rho_ion * hi * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
@@ -265,7 +263,7 @@ void test_gr_twofluid_tetrad_basic_minkowski_ho()
             (rho_ion * hi * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))),
           (lapse * sqrt(spatial_det)) *
             (((rho_ion * hi * (W * W)) - p - (rho_ion * W)) * (vel[1] - (shift[1] / lapse)) +
-             (p * vel[1])),
+              (p * vel[1])),
           -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
           (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
           b_fact * (light_speed * light_speed) * By },
@@ -278,7 +276,7 @@ void test_gr_twofluid_tetrad_basic_minkowski_ho()
             (rho_elc * he * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p),
           (lapse * sqrt(spatial_det)) *
             (((rho_elc * he * (W * W)) - p - (rho_elc * W)) * (vel[2] - (shift[2] / lapse)) +
-             (p * vel[2])),
+              (p * vel[2])),
           (lapse * sqrt(spatial_det)) * (rho_ion * W * (vel[2] - (shift[2] / lapse))),
           (lapse * sqrt(spatial_det)) *
             (rho_ion * hi * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
@@ -288,7 +286,7 @@ void test_gr_twofluid_tetrad_basic_minkowski_ho()
             (rho_ion * hi * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p),
           (lapse * sqrt(spatial_det)) *
             (((rho_ion * hi * (W * W)) - p - (rho_ion * W)) * (vel[2] - (shift[2] / lapse)) +
-             (p * vel[2])),
+              (p * vel[2])),
           (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
           e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
           b_fact * (light_speed * light_speed) * Bz }
@@ -302,14 +300,14 @@ void test_gr_twofluid_tetrad_basic_minkowski_ho()
 
       double q_local[84], flux_local_sr[84], flux_local_gr[84], flux[84];
       for (int d = 0; d < 3; d++) {
-        gr_twofluid_tetrad->rotate_to_local_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q,
-                                                 q_local);
-        gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
-                                     q_local, flux_local_sr);
+        gr_twofluid_tetrad->rotate_to_local_func(
+          gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
+        gkyl_gr_twofluid_tetrad_flux(
+          gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local_sr);
         gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-                                                b_fact, q_local, flux_local_sr, flux_local_gr);
-        gr_twofluid_tetrad->rotate_to_global_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d],
-                                                  flux_local_gr, flux);
+          b_fact, q_local, flux_local_sr, flux_local_gr);
+        gr_twofluid_tetrad->rotate_to_global_func(
+          gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux);
 
         for (int i = 0; i < 18; i++) {
           TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-8));
@@ -372,9 +370,9 @@ void test_gr_twofluid_tetrad_basic_schwarzschild_ho()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(
-    mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-    b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion,
+    charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
+    GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   TEST_CHECK(gr_twofluid_tetrad->num_equations == 84);
   TEST_CHECK(gr_twofluid_tetrad->num_waves == 6);
@@ -423,16 +421,14 @@ void test_gr_twofluid_tetrad_basic_schwarzschild_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-                                                 pow(10.0, -8.0), pow(10.0, -8.0),
-                                                 &extrinsic_curvature);
+        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
 
-      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-                                       pow(10.0, -8.0), &shift_der);
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-                                                pow(10.0, -8.0), pow(10.0, -8.0),
-                                                &spatial_metric_der);
+        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
 
       double *vel = gkyl_malloc(sizeof(double[3]));
       vel[0] = u;
@@ -585,7 +581,7 @@ void test_gr_twofluid_tetrad_basic_schwarzschild_ho()
               (rho_elc * he * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               (((rho_elc * he * (W * W)) - p - (rho_elc * W)) * (vel[0] - (shift[0] / lapse)) +
-               (p * vel[0])),
+                (p * vel[0])),
             (lapse * sqrt(spatial_det)) * (rho_ion * W * (vel[0] - (shift[0] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_ion * hi * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
@@ -595,7 +591,7 @@ void test_gr_twofluid_tetrad_basic_schwarzschild_ho()
               (rho_ion * hi * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               (((rho_ion * hi * (W * W)) - p - (rho_ion * W)) * (vel[0] - (shift[0] / lapse)) +
-               (p * vel[0])),
+                (p * vel[0])),
             e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
             -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
             b_fact * (light_speed * light_speed) * Bx },
@@ -608,7 +604,7 @@ void test_gr_twofluid_tetrad_basic_schwarzschild_ho()
               (rho_elc * he * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               (((rho_elc * he * (W * W)) - p - (rho_elc * W)) * (vel[1] - (shift[1] / lapse)) +
-               (p * vel[1])),
+                (p * vel[1])),
             (lapse * sqrt(spatial_det)) * (rho_ion * W * (vel[1] - (shift[1] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_ion * hi * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
@@ -618,7 +614,7 @@ void test_gr_twofluid_tetrad_basic_schwarzschild_ho()
               (rho_ion * hi * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               (((rho_ion * hi * (W * W)) - p - (rho_ion * W)) * (vel[1] - (shift[1] / lapse)) +
-               (p * vel[1])),
+                (p * vel[1])),
             -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
             (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
             b_fact * (light_speed * light_speed) * By },
@@ -631,7 +627,7 @@ void test_gr_twofluid_tetrad_basic_schwarzschild_ho()
               (rho_elc * he * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p),
             (lapse * sqrt(spatial_det)) *
               (((rho_elc * he * (W * W)) - p - (rho_elc * W)) * (vel[2] - (shift[2] / lapse)) +
-               (p * vel[2])),
+                (p * vel[2])),
             (lapse * sqrt(spatial_det)) * (rho_ion * W * (vel[2] - (shift[2] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_ion * hi * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
@@ -641,7 +637,7 @@ void test_gr_twofluid_tetrad_basic_schwarzschild_ho()
               (rho_ion * hi * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p),
             (lapse * sqrt(spatial_det)) *
               (((rho_ion * hi * (W * W)) - p - (rho_ion * W)) * (vel[2] - (shift[2] / lapse)) +
-               (p * vel[2])),
+                (p * vel[2])),
             (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
             e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
             b_fact * (light_speed * light_speed) * Bz }
@@ -655,14 +651,14 @@ void test_gr_twofluid_tetrad_basic_schwarzschild_ho()
 
         double q_local[84], flux_local_sr[84], flux_local_gr[84], flux[84];
         for (int d = 0; d < 3; d++) {
-          gr_twofluid_tetrad->rotate_to_local_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q,
-                                                   q_local);
-          gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
-                                       q_local, flux_local_sr);
+          gr_twofluid_tetrad->rotate_to_local_func(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
+          gkyl_gr_twofluid_tetrad_flux(
+            gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local_sr);
           gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-                                                  b_fact, q_local, flux_local_sr, flux_local_gr);
-          gr_twofluid_tetrad->rotate_to_global_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d],
-                                                    flux_local_gr, flux);
+            b_fact, q_local, flux_local_sr, flux_local_gr);
+          gr_twofluid_tetrad->rotate_to_global_func(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux);
 
           for (int i = 0; i < 18; i++) {
             TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-1));
@@ -726,9 +722,9 @@ void test_gr_twofluid_tetrad_basic_kerr_ho()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(
-    mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-    b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion,
+    charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
+    GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   TEST_CHECK(gr_twofluid_tetrad->num_equations == 84);
   TEST_CHECK(gr_twofluid_tetrad->num_waves == 6);
@@ -777,16 +773,14 @@ void test_gr_twofluid_tetrad_basic_kerr_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-                                                 pow(10.0, -8.0), pow(10.0, -8.0),
-                                                 &extrinsic_curvature);
+        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
 
-      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-                                       pow(10.0, -8.0), &shift_der);
+      spacetime->lapse_function_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+      spacetime->shift_vector_der_func(
+        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-                                                pow(10.0, -8.0), pow(10.0, -8.0),
-                                                &spatial_metric_der);
+        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
 
       double *vel = gkyl_malloc(sizeof(double[3]));
       vel[0] = u;
@@ -939,7 +933,7 @@ void test_gr_twofluid_tetrad_basic_kerr_ho()
               (rho_elc * he * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               (((rho_elc * he * (W * W)) - p - (rho_elc * W)) * (vel[0] - (shift[0] / lapse)) +
-               (p * vel[0])),
+                (p * vel[0])),
             (lapse * sqrt(spatial_det)) * (rho_ion * W * (vel[0] - (shift[0] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_ion * hi * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
@@ -949,7 +943,7 @@ void test_gr_twofluid_tetrad_basic_kerr_ho()
               (rho_ion * hi * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               (((rho_ion * hi * (W * W)) - p - (rho_ion * W)) * (vel[0] - (shift[0] / lapse)) +
-               (p * vel[0])),
+                (p * vel[0])),
             e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
             -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
             b_fact * (light_speed * light_speed) * Bx },
@@ -962,7 +956,7 @@ void test_gr_twofluid_tetrad_basic_kerr_ho()
               (rho_elc * he * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               (((rho_elc * he * (W * W)) - p - (rho_elc * W)) * (vel[1] - (shift[1] / lapse)) +
-               (p * vel[1])),
+                (p * vel[1])),
             (lapse * sqrt(spatial_det)) * (rho_ion * W * (vel[1] - (shift[1] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_ion * hi * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
@@ -972,7 +966,7 @@ void test_gr_twofluid_tetrad_basic_kerr_ho()
               (rho_ion * hi * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               (((rho_ion * hi * (W * W)) - p - (rho_ion * W)) * (vel[1] - (shift[1] / lapse)) +
-               (p * vel[1])),
+                (p * vel[1])),
             -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
             (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
             b_fact * (light_speed * light_speed) * By },
@@ -985,7 +979,7 @@ void test_gr_twofluid_tetrad_basic_kerr_ho()
               (rho_elc * he * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p),
             (lapse * sqrt(spatial_det)) *
               (((rho_elc * he * (W * W)) - p - (rho_elc * W)) * (vel[2] - (shift[2] / lapse)) +
-               (p * vel[2])),
+                (p * vel[2])),
             (lapse * sqrt(spatial_det)) * (rho_ion * W * (vel[2] - (shift[2] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_ion * hi * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
@@ -995,7 +989,7 @@ void test_gr_twofluid_tetrad_basic_kerr_ho()
               (rho_ion * hi * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p),
             (lapse * sqrt(spatial_det)) *
               (((rho_ion * hi * (W * W)) - p - (rho_ion * W)) * (vel[2] - (shift[2] / lapse)) +
-               (p * vel[2])),
+                (p * vel[2])),
             (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
             e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
             b_fact * (light_speed * light_speed) * Bz }
@@ -1009,14 +1003,14 @@ void test_gr_twofluid_tetrad_basic_kerr_ho()
 
         double q_local[84], flux_local_sr[84], flux_local_gr[84], flux[84];
         for (int d = 0; d < 3; d++) {
-          gr_twofluid_tetrad->rotate_to_local_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q,
-                                                   q_local);
-          gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
-                                       q_local, flux_local_sr);
+          gr_twofluid_tetrad->rotate_to_local_func(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
+          gkyl_gr_twofluid_tetrad_flux(
+            gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, q_local, flux_local_sr);
           gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-                                                  b_fact, q_local, flux_local_sr, flux_local_gr);
-          gr_twofluid_tetrad->rotate_to_global_func(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d],
-                                                    flux_local_gr, flux);
+            b_fact, q_local, flux_local_sr, flux_local_gr);
+          gr_twofluid_tetrad->rotate_to_global_func(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux);
 
           for (int i = 0; i < 18; i++) {
             TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-1));
@@ -1080,9 +1074,9 @@ void test_gr_twofluid_tetrad_waves_minkowski_ho()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(
-    mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-    b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion,
+    charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
+    GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -1149,25 +1143,23 @@ void test_gr_twofluid_tetrad_waves_minkowski_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
-                                                 &extrinsic_curvature_l);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
-                                                 &extrinsic_curvature_r);
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
 
       spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
+        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
       spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
+        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
       spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
+        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
       spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
+        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-                                                pow(10.0, -8.0), pow(10.0, -8.0),
-                                                &spatial_metric_der_l);
+        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-                                                pow(10.0, -8.0), pow(10.0, -8.0),
-                                                &spatial_metric_der_r);
+        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
 
       double *vel_l = gkyl_malloc(sizeof(double[3]));
       double *vel_r = gkyl_malloc(sizeof(double[3]));
@@ -1405,40 +1397,40 @@ void test_gr_twofluid_tetrad_waves_minkowski_ho()
         }
 
         gkyl_wv_eqn_waves(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local,
-                          1.0, 1.0, waves_local, speeds);
+          1.0, 1.0, waves_local, speeds);
 
         double apdq_local[84], amdq_local[84];
         gkyl_wv_eqn_qfluct(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-                           waves_local, speeds, amdq_local, apdq_local);
+          waves_local, speeds, amdq_local, apdq_local);
 
         for (int i = 0; i < 3; i++) {
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d],
-                                       &waves_local[i * 84], &waves[i * 84]);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
         }
 
         double apdq[84], amdq[84];
-        gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], apdq_local,
-                                     apdq);
-        gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], amdq_local,
-                                     amdq);
+        gkyl_wv_eqn_rotate_to_global(
+          gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+        gkyl_wv_eqn_rotate_to_global(
+          gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
         double fl_local_sr[84], fr_local_sr[84];
-        gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
-                                     ql_local, fl_local_sr);
-        gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
-                                     qr_local, fr_local_sr);
+        gkyl_gr_twofluid_tetrad_flux(
+          gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local_sr);
+        gkyl_gr_twofluid_tetrad_flux(
+          gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local_sr);
 
         double fl_local_gr[84], fr_local_gr[84];
         gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-                                                b_fact, ql_local, fl_local_sr, fl_local_gr);
+          b_fact, ql_local, fl_local_sr, fl_local_gr);
         gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-                                                b_fact, qr_local, fr_local_sr, fr_local_gr);
+          b_fact, qr_local, fr_local_sr, fr_local_gr);
 
         double fl[84], fr[84];
-        gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr,
-                                     fl);
-        gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr,
-                                     fr);
+        gkyl_wv_eqn_rotate_to_global(
+          gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
+        gkyl_wv_eqn_rotate_to_global(
+          gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
         for (int i = 0; i < 84; i++) {
           TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13));
@@ -1495,9 +1487,9 @@ void test_gr_twofluid_tetrad_waves_schwarzschild_ho()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(
-    mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-    b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion,
+    charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
+    GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -1567,25 +1559,23 @@ void test_gr_twofluid_tetrad_waves_schwarzschild_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
-                                                 &extrinsic_curvature_l);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
-                                                 &extrinsic_curvature_r);
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
 
       spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
+        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
       spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
+        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
       spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
+        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
       spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
+        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-                                                pow(10.0, -8.0), pow(10.0, -8.0),
-                                                &spatial_metric_der_l);
+        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-                                                pow(10.0, -8.0), pow(10.0, -8.0),
-                                                &spatial_metric_der_r);
+        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
 
       double *vel_l = gkyl_malloc(sizeof(double[3]));
       double *vel_r = gkyl_malloc(sizeof(double[3]));
@@ -1824,40 +1814,40 @@ void test_gr_twofluid_tetrad_waves_schwarzschild_ho()
           }
 
           gkyl_wv_eqn_waves(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local,
-                            1.0, 1.0, waves_local, speeds);
+            1.0, 1.0, waves_local, speeds);
 
           double apdq_local[84], amdq_local[84];
           gkyl_wv_eqn_qfluct(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0,
-                             1.0, waves_local, speeds, amdq_local, apdq_local);
+            1.0, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 3; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d],
-                                         &waves_local[i * 84], &waves[i * 84]);
+            gkyl_wv_eqn_rotate_to_global(
+              gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
           }
 
           double apdq[84], amdq[84];
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], apdq_local,
-                                       apdq);
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], amdq_local,
-                                       amdq);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
           double fl_local_sr[84], fr_local_sr[84];
-          gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
-                                       ql_local, fl_local_sr);
-          gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
-                                       qr_local, fr_local_sr);
+          gkyl_gr_twofluid_tetrad_flux(
+            gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local_sr);
+          gkyl_gr_twofluid_tetrad_flux(
+            gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local_sr);
 
           double fl_local_gr[84], fr_local_gr[84];
           gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-                                                  b_fact, ql_local, fl_local_sr, fl_local_gr);
+            b_fact, ql_local, fl_local_sr, fl_local_gr);
           gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-                                                  b_fact, qr_local, fr_local_sr, fr_local_gr);
+            b_fact, qr_local, fr_local_sr, fr_local_gr);
 
           double fl[84], fr[84];
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr,
-                                       fl);
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr,
-                                       fr);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
           for (int i = 0; i < 84; i++) {
             TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12));
@@ -1915,9 +1905,9 @@ void test_gr_twofluid_tetrad_waves_kerr_ho()
   double b_fact = 0.0;
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(
-    mass_elc, mass_ion, charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-    b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(mass_elc, mass_ion,
+    charge_elc, charge_ion, gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
+    GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -1987,25 +1977,23 @@ void test_gr_twofluid_tetrad_waves_kerr_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
-                                                 &extrinsic_curvature_l);
-      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
-                                                 &extrinsic_curvature_r);
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
+      spacetime->extrinsic_curvature_tensor_func(
+        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
 
       spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
+        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
       spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
+        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
       spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
+        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
       spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
+        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-                                                pow(10.0, -8.0), pow(10.0, -8.0),
-                                                &spatial_metric_der_l);
+        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-                                                pow(10.0, -8.0), pow(10.0, -8.0),
-                                                &spatial_metric_der_r);
+        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
 
       double *vel_l = gkyl_malloc(sizeof(double[3]));
       double *vel_r = gkyl_malloc(sizeof(double[3]));
@@ -2244,40 +2232,40 @@ void test_gr_twofluid_tetrad_waves_kerr_ho()
           }
 
           gkyl_wv_eqn_waves(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local,
-                            1.0, 1.0, waves_local, speeds);
+            1.0, 1.0, waves_local, speeds);
 
           double apdq_local[84], amdq_local[84];
           gkyl_wv_eqn_qfluct(gr_twofluid_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0,
-                             1.0, waves_local, speeds, amdq_local, apdq_local);
+            1.0, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 3; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d],
-                                         &waves_local[i * 84], &waves[i * 84]);
+            gkyl_wv_eqn_rotate_to_global(
+              gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 84], &waves[i * 84]);
           }
 
           double apdq[84], amdq[84];
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], apdq_local,
-                                       apdq);
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], amdq_local,
-                                       amdq);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
           double fl_local_sr[84], fr_local_sr[84];
-          gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
-                                       ql_local, fl_local_sr);
-          gkyl_gr_twofluid_tetrad_flux(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact,
-                                       qr_local, fr_local_sr);
+          gkyl_gr_twofluid_tetrad_flux(
+            gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, ql_local, fl_local_sr);
+          gkyl_gr_twofluid_tetrad_flux(
+            gas_gamma_elc, gas_gamma_ion, light_speed, e_fact, b_fact, qr_local, fr_local_sr);
 
           double fl_local_gr[84], fr_local_gr[84];
           gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-                                                  b_fact, ql_local, fl_local_sr, fl_local_gr);
+            b_fact, ql_local, fl_local_sr, fl_local_gr);
           gkyl_gr_twofluid_tetrad_flux_correction(gas_gamma_elc, gas_gamma_ion, light_speed, e_fact,
-                                                  b_fact, qr_local, fr_local_sr, fr_local_gr);
+            b_fact, qr_local, fr_local_sr, fr_local_gr);
 
           double fl[84], fr[84];
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr,
-                                       fl);
-          gkyl_wv_eqn_rotate_to_global(gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr,
-                                       fr);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_twofluid_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
           for (int i = 0; i < 84; i++) {
             TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12));
@@ -2321,12 +2309,10 @@ void test_gr_twofluid_tetrad_waves_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-TEST_LIST = {
-  { "gr_twofluid_tetrad_basic_minkowski_ho", test_gr_twofluid_tetrad_basic_minkowski_ho },
+TEST_LIST = { { "gr_twofluid_tetrad_basic_minkowski_ho",
+                test_gr_twofluid_tetrad_basic_minkowski_ho },
   { "gr_twofluid_tetrad_basic_schwarzschild_ho", test_gr_twofluid_tetrad_basic_schwarzschild_ho },
   { "gr_twofluid_tetrad_basic_kerr_ho", test_gr_twofluid_tetrad_basic_kerr_ho },
   { "gr_twofluid_tetrad_waves_minkowski_ho", test_gr_twofluid_tetrad_waves_minkowski_ho },
   { "gr_twofluid_tetrad_waves_schwarzschild_ho", test_gr_twofluid_tetrad_waves_schwarzschild_ho },
-  { "gr_twofluid_tetrad_waves_kerr_ho", test_gr_twofluid_tetrad_waves_kerr_ho },
-  { NULL, NULL }
-};
+  { "gr_twofluid_tetrad_waves_kerr_ho", test_gr_twofluid_tetrad_waves_kerr_ho }, { NULL, NULL } };

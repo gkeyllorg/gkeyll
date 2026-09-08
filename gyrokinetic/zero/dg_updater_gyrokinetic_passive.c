@@ -9,8 +9,8 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_eqn *
-gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(const gkyl_dg_updater_gyrokinetic_passive *up)
+struct gkyl_dg_eqn *gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(
+  const gkyl_dg_updater_gyrokinetic_passive *up)
 {
   return gkyl_dg_eqn_acquire(up->eqn_gyrokinetic_passive);
 }
@@ -54,8 +54,7 @@ gkyl_dg_updater_gyrokinetic_passive *gkyl_dg_updater_gyrokinetic_passive_new(
     zero_flux_flags[d] = zero_flux_flags[d + pdim] = 1; // zero-flux BCs in vel-space
 
   up->up_gyrokinetic_passive = gkyl_hyper_dg_new(grid, pbasis, up->eqn_gyrokinetic_passive,
-                                                 num_up_dirs, up_dirs, zero_flux_flags, 1,
-                                                 up->use_gpu);
+    num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->gyrokinetic_passive_tm = 0.0;
 
@@ -63,17 +62,16 @@ gkyl_dg_updater_gyrokinetic_passive *gkyl_dg_updater_gyrokinetic_passive_new(
 }
 
 void gkyl_dg_updater_gyrokinetic_passive_advance(gkyl_dg_updater_gyrokinetic_passive *up,
-                                                 const struct gkyl_range *update_rng,
-                                                 const struct gkyl_array *fIn,
-                                                 struct gkyl_array *cflrate, struct gkyl_array *rhs)
+  const struct gkyl_range *update_rng, const struct gkyl_array *fIn, struct gkyl_array *cflrate,
+  struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(up->up_gyrokinetic_passive, update_rng, fIn, cflrate, rhs);
   up->gyrokinetic_passive_tm += gkyl_time_diff_now_sec(wst);
 }
 
-struct gkyl_dg_updater_gyrokinetic_passive_tm
-gkyl_dg_updater_gyrokinetic_passive_get_tm(const gkyl_dg_updater_gyrokinetic_passive *up)
+struct gkyl_dg_updater_gyrokinetic_passive_tm gkyl_dg_updater_gyrokinetic_passive_get_tm(
+  const gkyl_dg_updater_gyrokinetic_passive *up)
 {
   return (struct gkyl_dg_updater_gyrokinetic_passive_tm){ .gyrokinetic_passive_tm =
                                                             up->gyrokinetic_passive_tm };

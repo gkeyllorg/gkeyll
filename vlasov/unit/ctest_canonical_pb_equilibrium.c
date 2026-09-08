@@ -184,8 +184,8 @@ void test_2x2v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2_corr);
   gkyl_array_set_offset_range(moms_corr, 1.0, m0_corr, 0 * confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(moms_corr, 1.0, m1i_corr, 1 * confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(moms_corr, 1.0, m2_corr, (vdim + 1) * confBasis.num_basis,
-                              &confLocal);
+  gkyl_array_set_offset_range(
+    moms_corr, 1.0, m2_corr, (vdim + 1) * confBasis.num_basis, &confLocal);
 
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
@@ -197,42 +197,42 @@ void test_2x2v(int poly_order)
 
   // projection updater to compute LTE distribution
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = { .phase_grid = &grid,
-                                                       .vel_grid = &vel_grid,
-                                                       .conf_basis = &confBasis,
-                                                       .vel_basis = &velBasis,
-                                                       .phase_basis = &basis,
-                                                       .conf_range = &confLocal,
-                                                       .conf_range_ext = &confLocal_ext,
-                                                       .vel_range = &velLocal,
-                                                       .phase_range = &local,
-                                                       .h_ij = h_ij,
-                                                       .h_ij_inv = h_ij_inv,
-                                                       .det_h = det_h,
-                                                       .hamil = hamil,
-                                                       .model_id = GKYL_MODEL_CANONICAL_PB,
-                                                       .use_gpu = false };
+    .vel_grid = &vel_grid,
+    .conf_basis = &confBasis,
+    .vel_basis = &velBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .phase_range = &local,
+    .h_ij = h_ij,
+    .h_ij_inv = h_ij_inv,
+    .det_h = det_h,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_CANONICAL_PB,
+    .use_gpu = false };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms_corr, distf);
 
   // Create a MJ with corrected moments
   struct gkyl_vlasov_lte_correct_inp inp_corr = { .phase_grid = &grid,
-                                                  .vel_grid = &vel_grid,
-                                                  .conf_basis = &confBasis,
-                                                  .vel_basis = &velBasis,
-                                                  .phase_basis = &basis,
-                                                  .conf_range = &confLocal,
-                                                  .conf_range_ext = &confLocal_ext,
-                                                  .vel_range = &velLocal,
-                                                  .phase_range = &local,
-                                                  .h_ij = h_ij,
-                                                  .h_ij_inv = h_ij_inv,
-                                                  .det_h = det_h,
-                                                  .hamil = hamil,
-                                                  .model_id = GKYL_MODEL_CANONICAL_PB,
-                                                  .use_gpu = false,
-                                                  .max_iter = 100,
-                                                  .eps = 1e-12 };
+    .vel_grid = &vel_grid,
+    .conf_basis = &confBasis,
+    .vel_basis = &velBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .phase_range = &local,
+    .h_ij = h_ij,
+    .h_ij_inv = h_ij_inv,
+    .det_h = det_h,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_CANONICAL_PB,
+    .use_gpu = false,
+    .max_iter = 100,
+    .eps = 1e-12 };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew(&inp_corr);
   // Correct the other moments (V_drift, T/m)
   struct gkyl_vlasov_lte_correct_status status_corr;
@@ -241,20 +241,20 @@ void test_2x2v(int poly_order)
 
   // Correct the distribution function
   struct gkyl_vlasov_lte_moments_inp inp_mom = { .phase_grid = &grid,
-                                                 .vel_grid = &vel_grid,
-                                                 .conf_basis = &confBasis,
-                                                 .vel_basis = &velBasis,
-                                                 .phase_basis = &basis,
-                                                 .conf_range = &confLocal,
-                                                 .conf_range_ext = &confLocal_ext,
-                                                 .vel_range = &velLocal,
-                                                 .phase_range = &local,
-                                                 .h_ij = h_ij,
-                                                 .h_ij_inv = h_ij_inv,
-                                                 .det_h = det_h,
-                                                 .hamil = hamil,
-                                                 .model_id = GKYL_MODEL_CANONICAL_PB,
-                                                 .use_gpu = false };
+    .vel_grid = &vel_grid,
+    .conf_basis = &confBasis,
+    .vel_basis = &velBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .phase_range = &local,
+    .h_ij = h_ij,
+    .h_ij_inv = h_ij_inv,
+    .det_h = det_h,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_CANONICAL_PB,
+    .use_gpu = false };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0 * confBasis.num_basis, &confLocal);
@@ -290,22 +290,21 @@ void test_2x2v(int poly_order)
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = { 7.4389850388405662e-02,  1.7498988694582379e-04,  -1.6382883487389720e-17,
-                       1.7197299332306699e-02,  3.2822469658429027e-02,  -1.9051820816360037e-17,
-                       4.0454209560577024e-05,  4.9092168630631525e-21,  1.0656980121831934e-05,
-                       -7.6987379919142147e-18, 7.5878339930642736e-03,  -2.5403806522323176e-07,
-                       3.2974119987810676e-17,  7.5084945021562221e-04,  4.7554160609826991e-03,
-                       -3.8806868619177323e-18, -8.4944236170183680e-18, 2.4638285484238750e-06,
-                       -6.4397560566823105e-19, 9.9292193500814258e-19,  -1.7752621932885157e-18,
-                       -5.3800406859115087e-08, -4.0406282606976761e-18, 1.7663092353389043e-06,
-                       9.4172562743832088e-19,  -1.2761443846712720e-07, -9.9102513835555478e-19,
-                       3.3129160987976626e-04,  -1.3065912240055999e-05, -1.9040936845099591e-18,
-                       1.0993477337869614e-03,  -1.9065090360074124e-18, -1.1892312193509850e-18,
-                       -9.2625386014206429e-19, 1.4106914282918907e-18,  1.2070464832265086e-18,
-                       8.4055411383828171e-19,  -2.7327786221909489e-08, -3.0311679157284978e-18,
-                       1.0759119767351509e-07,  2.4847617573171200e-18,  -7.1376119114334011e-19,
-                       -3.0205283019605368e-06, -1.2302654890054420e-19, -8.9199657870524351e-19,
-                       5.2545826282380972e-19,  2.1430222021587593e-18,  -4.5117742041723519e-19 };
+  double p2_vals[] = { 7.4389850388405662e-02, 1.7498988694582379e-04, -1.6382883487389720e-17,
+    1.7197299332306699e-02, 3.2822469658429027e-02, -1.9051820816360037e-17, 4.0454209560577024e-05,
+    4.9092168630631525e-21, 1.0656980121831934e-05, -7.6987379919142147e-18, 7.5878339930642736e-03,
+    -2.5403806522323176e-07, 3.2974119987810676e-17, 7.5084945021562221e-04, 4.7554160609826991e-03,
+    -3.8806868619177323e-18, -8.4944236170183680e-18, 2.4638285484238750e-06,
+    -6.4397560566823105e-19, 9.9292193500814258e-19, -1.7752621932885157e-18,
+    -5.3800406859115087e-08, -4.0406282606976761e-18, 1.7663092353389043e-06,
+    9.4172562743832088e-19, -1.2761443846712720e-07, -9.9102513835555478e-19,
+    3.3129160987976626e-04, -1.3065912240055999e-05, -1.9040936845099591e-18,
+    1.0993477337869614e-03, -1.9065090360074124e-18, -1.1892312193509850e-18,
+    -9.2625386014206429e-19, 1.4106914282918907e-18, 1.2070464832265086e-18, 8.4055411383828171e-19,
+    -2.7327786221909489e-08, -3.0311679157284978e-18, 1.0759119767351509e-07,
+    2.4847617573171200e-18, -7.1376119114334011e-19, -3.0205283019605368e-06,
+    -1.2302654890054420e-19, -8.9199657870524351e-19, 5.2545826282380972e-19,
+    2.1430222021587593e-18, -4.5117742041723519e-19 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[4]){ 1, 1, 8, 8 }));
 
@@ -353,4 +352,4 @@ void test_canonical_pb_equilibrium_2x2v_p2_ho()
 
 TEST_LIST = { { "test_canonical_pb_equilibrium_2x2v_p2_ho",
                 test_canonical_pb_equilibrium_2x2v_p2_ho },
-              { NULL, NULL } };
+  { NULL, NULL } };

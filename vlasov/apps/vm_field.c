@@ -58,8 +58,7 @@ struct vm_field *vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       f->ext_em_host = mkarr(false, 6 * app->confBasis.num_basis, app->local_ext.volume);
     }
     f->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-                                            app->confBasis.poly_order + 1, 6, f->info.ext_em,
-                                            f->info.ext_em_ctx);
+      app->confBasis.poly_order + 1, 6, f->info.ext_em, f->info.ext_em_ctx);
   }
 
   // Vlasov-Maxwell doesn't presently use external potentials.
@@ -82,8 +81,7 @@ struct vm_field *vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       f->app_current_host = mkarr(false, 3 * app->confBasis.num_basis, app->local_ext.volume);
     }
     f->app_current_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-                                                 app->confBasis.poly_order + 1, 3,
-                                                 f->info.app_current, f->info.app_current_ctx);
+      app->confBasis.poly_order + 1, 3, f->info.app_current, f->info.app_current_ctx);
   }
 
   // allocate cflrate (scalar array)
@@ -103,8 +101,8 @@ struct vm_field *vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   int up_dirs[GKYL_MAX_DIM] = { 0, 1, 2 }, zero_flux_flags[2 * GKYL_MAX_DIM] = { 0, 0, 0, 0, 0, 0 };
 
   // Maxwell solver
-  f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn, app->cdim, up_dirs, zero_flux_flags,
-                              1, app->use_gpu);
+  f->slvr = gkyl_hyper_dg_new(
+    &app->grid, &app->confBasis, eqn, app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
   // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)
@@ -113,8 +111,8 @@ struct vm_field *vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf, app->use_gpu);
   // Create updaters for limiting EM fields
-  f->calc_em_vars = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, maxwell,
-                                             app->geom, limiter_fac, 0, app->use_gpu);
+  f->calc_em_vars = gkyl_dg_calc_em_vars_new(
+    &app->grid, &app->confBasis, &app->local_ext, maxwell, app->geom, limiter_fac, 0, app->use_gpu);
   gkyl_wv_eqn_release(maxwell);
 
   // determine which directions are not periodic
@@ -173,8 +171,7 @@ struct vm_field *vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
-                                    &app->lower_skin[d], &app->lower_ghost[d], f->em->ncomp,
-                                    app->cdim, app->use_gpu);
+      &app->lower_skin[d], &app->lower_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_FIELD_COPY)
@@ -187,8 +184,7 @@ struct vm_field *vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
-                                    &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp,
-                                    app->cdim, app->use_gpu);
+      &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
   }
 
   gkyl_dg_eqn_release(eqn);
@@ -202,8 +198,8 @@ void vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
     return;
 
   int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, poly_order + 1, 8,
-                                                    field->info.init, field->info.ctx);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
+    &app->grid, &app->confBasis, poly_order + 1, 8, field->info.init, field->info.ctx);
 
   // run updater; need to project onto extended range for ease of handling
   // subsequent operations over extended range such as magnetic field unit vector computation
@@ -239,8 +235,8 @@ void vm_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double t
 void vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
   if (field->has_app_current) {
-    gkyl_proj_on_basis_advance(field->app_current_proj, tm, &app->local_ext,
-                               field->app_current_host);
+    gkyl_proj_on_basis_advance(
+      field->app_current_proj, tm, &app->local_ext, field->app_current_host);
     if (app->use_gpu) {
       // note: app_current_host is same as app_current when not on GPUs
       gkyl_array_copy(field->app_current, field->app_current_host);
@@ -249,7 +245,7 @@ void vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, dou
 }
 
 void vm_field_accumulate_current(gkyl_vlasov_app *app, const struct gkyl_array *fin[],
-                                 const struct gkyl_array *fluidin[], struct gkyl_array *emout)
+  const struct gkyl_array *fluidin[], struct gkyl_array *emout)
 {
   for (int i = 0; i < app->num_species; ++i) {
     struct vm_species *s = &app->species[i];
@@ -262,20 +258,20 @@ void vm_field_accumulate_current(gkyl_vlasov_app *app, const struct gkyl_array *
       double avals_ghost_current[1], avals_ghost_current_global[1];
       // First set the scalar ghost current array to the cell average
       // current/(epsilon0*nx) where nx is the number of x cells.
-      gkyl_array_set_range(app->field->ghost_current, qbyeps / app->grid.cells[0], s->m1i.marr,
-                           &app->local);
+      gkyl_array_set_range(
+        app->field->ghost_current, qbyeps / app->grid.cells[0], s->m1i.marr, &app->local);
       // Integrate the current over the whole domain to find the globally averaged ghost current.
       if (app->use_gpu) {
-        gkyl_array_reduce_range(app->field->red_ghost_current, app->field->ghost_current, GKYL_SUM,
-                                &app->local);
+        gkyl_array_reduce_range(
+          app->field->red_ghost_current, app->field->ghost_current, GKYL_SUM, &app->local);
         gkyl_cu_memcpy(avals_ghost_current, app->field->red_ghost_current, sizeof(double[1]),
-                       GKYL_CU_MEMCPY_D2H);
+          GKYL_CU_MEMCPY_D2H);
       } else {
-        gkyl_array_reduce_range(avals_ghost_current, app->field->ghost_current, GKYL_SUM,
-                                &app->local);
+        gkyl_array_reduce_range(
+          avals_ghost_current, app->field->ghost_current, GKYL_SUM, &app->local);
       }
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_ghost_current,
-                               avals_ghost_current_global);
+      gkyl_comm_allreduce_host(
+        app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_ghost_current, avals_ghost_current_global);
       // Set the scalar ghost current array to the global average current and accumulate to the electric field.
       gkyl_array_clear(app->field->ghost_current, avals_ghost_current_global[0]);
       gkyl_array_accumulate_range(emout, 1.0, app->field->ghost_current, &app->local);
@@ -286,8 +282,8 @@ void vm_field_accumulate_current(gkyl_vlasov_app *app, const struct gkyl_array *
   // If there are fluid species, then applied current coupling handled by implicit fluid-EM coupling
   // See vm_fluid_em_coupling.c
   if (app->field->has_app_current && !app->has_fluid_em_coupling) {
-    gkyl_array_accumulate_range(emout, -1.0 / app->field->info.epsilon0, app->field->app_current,
-                                &app->local);
+    gkyl_array_accumulate_range(
+      emout, -1.0 / app->field->info.epsilon0, app->field->app_current, &app->local);
   }
 }
 
@@ -304,8 +300,8 @@ void vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_
 
 // Compute the RHS for field update, returning maximum stable
 // time-step.
-double vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em,
-                    struct gkyl_array *rhs)
+double vm_field_rhs(
+  gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -344,8 +340,8 @@ void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struc
   struct timespec wst = gkyl_wall_clock();
 
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
-  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
-                           app->periodic_dirs, f);
+  gkyl_comm_array_per_sync(
+    app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, f);
 
   int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
   for (int d = 0; d < num_periodic_dir; ++d)

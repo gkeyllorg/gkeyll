@@ -15,25 +15,24 @@ extern "C" {
 // CUDA kernel to set pointer to g (second Rosenbluth potential).
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
-                                                                    const struct gkyl_array *g)
+__global__ static void gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel(
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *g)
 {
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   fpo_vlasov_diff->auxfields.g = g;
 }
 
 //// Host-side wrapper for device kernels setting g (second Rosenbluth potential).
-void gkyl_fpo_vlasov_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                           struct gkyl_dg_fpo_vlasov_diff_auxfields auxin)
+void gkyl_fpo_vlasov_diff_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_diff_auxfields auxin)
 {
   gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.g->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov fpo kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void
-dg_fpo_vlasov_diff_set_cu_dev_ptrs(struct dg_fpo_vlasov_diff *fpo_vlasov_diff,
-                                   enum gkyl_basis_type b_type, int cdim, int poly_order)
+__global__ static void dg_fpo_vlasov_diff_set_cu_dev_ptrs(
+  struct dg_fpo_vlasov_diff *fpo_vlasov_diff, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   fpo_vlasov_diff->auxfields.g = 0;
 
@@ -114,8 +113,8 @@ dg_fpo_vlasov_diff_set_cu_dev_ptrs(struct dg_fpo_vlasov_diff *fpo_vlasov_diff,
   fpo_vlasov_diff->boundary_surf[2][2] = CK(boundary_surf_zz_kernels, cdim, poly_order);
 }
 
-struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_cu_dev_new(const struct gkyl_basis *pbasis,
-                                                       const struct gkyl_range *phase_range)
+struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_cu_dev_new(
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range)
 {
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff =
     (struct dg_fpo_vlasov_diff *)gkyl_malloc(sizeof(struct dg_fpo_vlasov_diff));
@@ -138,11 +137,11 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_cu_dev_new(const struct gkyl_basis *
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff_cu =
     (struct dg_fpo_vlasov_diff *)gkyl_cu_malloc(sizeof(struct dg_fpo_vlasov_diff));
 
-  gkyl_cu_memcpy(fpo_vlasov_diff_cu, fpo_vlasov_diff, sizeof(struct dg_fpo_vlasov_diff),
-                 GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(
+    fpo_vlasov_diff_cu, fpo_vlasov_diff, sizeof(struct dg_fpo_vlasov_diff), GKYL_CU_MEMCPY_H2D);
 
-  dg_fpo_vlasov_diff_set_cu_dev_ptrs<<<1, 1> > >(fpo_vlasov_diff_cu, pbasis->b_type, cdim,
-                                                 poly_order);
+  dg_fpo_vlasov_diff_set_cu_dev_ptrs<<<1, 1> > >(
+    fpo_vlasov_diff_cu, pbasis->b_type, cdim, poly_order);
 
   fpo_vlasov_diff->eqn.on_dev = &fpo_vlasov_diff_cu->eqn;
 

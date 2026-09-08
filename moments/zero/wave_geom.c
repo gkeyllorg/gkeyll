@@ -25,8 +25,7 @@ void gkyl_wave_geom_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_wave_geom *gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
-                                          struct gkyl_range *range, evalf_t mapc2p, void *ctx,
-                                          bool use_gpu)
+  struct gkyl_range *range, evalf_t mapc2p, void *ctx, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {

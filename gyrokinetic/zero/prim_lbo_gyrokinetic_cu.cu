@@ -10,10 +10,9 @@ extern "C" {
 #include <gkyl_prim_lbo_gyrokinetic_priv.h>
 }
 
-__global__ static void
-gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs(struct prim_lbo_type_gyrokinetic *prim_gyrokinetic,
-                                          int cdim, int vdim, int poly_order,
-                                          enum gkyl_basis_type b_type)
+__global__ static void gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs(
+  struct prim_lbo_type_gyrokinetic *prim_gyrokinetic, int cdim, int vdim, int poly_order,
+  enum gkyl_basis_type b_type)
 {
   int pdim = cdim + vdim;
 
@@ -39,8 +38,8 @@ gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs(struct prim_lbo_type_gyrokinetic *prim
   prim_gyrokinetic->cross_prim = cross_prim_kernels[pdim - 2].kernels[poly_order];
 }
 
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                                const struct gkyl_basis *pbasis)
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -63,10 +62,10 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new(const struct gky
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic_cu =
     (struct prim_lbo_type_gyrokinetic *)gkyl_cu_malloc(sizeof(struct prim_lbo_type_gyrokinetic));
   gkyl_cu_memcpy(prim_gyrokinetic_cu, prim_gyrokinetic, sizeof(struct prim_lbo_type_gyrokinetic),
-                 GKYL_CU_MEMCPY_H2D);
+    GKYL_CU_MEMCPY_H2D);
 
-  gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(prim_gyrokinetic_cu, cdim, vdim, poly_order,
-                                                        cbasis->b_type);
+  gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(
+    prim_gyrokinetic_cu, cdim, vdim, poly_order, cbasis->b_type);
 
   prim_gyrokinetic->prim.on_dev = &prim_gyrokinetic_cu->prim;
 

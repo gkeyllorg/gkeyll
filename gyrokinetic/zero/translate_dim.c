@@ -3,8 +3,7 @@
 #include <gkyl_alloc.h>
 
 struct gkyl_translate_dim *gkyl_translate_dim_new(int cdim_do, struct gkyl_basis basis_do,
-                                                  int cdim_tar, struct gkyl_basis basis_tar,
-                                                  int dir, enum gkyl_edge_loc edge, bool use_gpu)
+  int cdim_tar, struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_translate_dim *up = gkyl_malloc(sizeof(*up));
@@ -45,9 +44,8 @@ struct gkyl_translate_dim *gkyl_translate_dim_new(int cdim_do, struct gkyl_basis
 }
 
 void gkyl_translate_dim_advance(gkyl_translate_dim *up, const struct gkyl_range *rng_do,
-                                const struct gkyl_range *rng_tar,
-                                const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
-                                struct gkyl_array *GKYL_RESTRICT ftar)
+  const struct gkyl_range *rng_tar, const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
+  struct gkyl_array *GKYL_RESTRICT ftar)
 {
   // Perform some basic checks.
   up->range_check_func(up->dir, up->cdim_do, up->cdim_tar, up->vdim_do, rng_do, rng_tar);
@@ -65,8 +63,8 @@ void gkyl_translate_dim_advance(gkyl_translate_dim *up, const struct gkyl_range 
   gkyl_range_iter_init(&iter, rng_tar);
   while (gkyl_range_iter_next(&iter)) {
     // Translate the target idx to the donor idx:
-    up->kernels->get_idx_do(up->cdim_tar, up->vdim_do, iter.idx, rng_do, up->cdim_do, idx_do,
-                            up->dir);
+    up->kernels->get_idx_do(
+      up->cdim_tar, up->vdim_do, iter.idx, rng_do, up->cdim_do, idx_do, up->dir);
 
     long linidx_do = gkyl_range_idx(rng_do, idx_do);
     long linidx_tar = gkyl_range_idx(rng_tar, iter.idx);

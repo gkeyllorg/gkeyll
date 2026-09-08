@@ -368,11 +368,9 @@ static void test_L_domain_sync_c3(void)
   gkyl_block_geom_release(geom);
 }
 
-TEST_LIST = {
-  { "test_multib_comm_conn_0_ho", test_multib_comm_conn_0_ho },
+TEST_LIST = { { "test_multib_comm_conn_0_ho", test_multib_comm_conn_0_ho },
   { "test_multib_comm_conn_L_domain_send_c1_ho", test_multib_comm_conn_L_domain_send_c1_ho },
   { "test_multib_comm_conn_L_domain_send_c3_ho", test_multib_comm_conn_L_domain_send_c3_ho },
   { "test_multib_comm_conn_L_domain_recv_c1_ho", test_multib_comm_conn_L_domain_recv_c1_ho },
   { "test_multib_comm_conn_L_domain_recv_c3_ho", test_multib_comm_conn_L_domain_recv_c3_ho },
-  { NULL, NULL }
-};
+  { NULL, NULL } };

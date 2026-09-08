@@ -68,13 +68,13 @@ int main(int argc, char **argv)
     .cfl_frac = 0.9,
 
     .field = { .epsilon0 = 1.0,
-               .mu0 = 1.0,
+      .mu0 = 1.0,
 
-               .limiter = GKYL_NO_LIMITER,
-               .init = evalFieldInit,
+      .limiter = GKYL_NO_LIMITER,
+      .init = evalFieldInit,
 
-               .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
-               .bcy = { GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE } }
+      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
+      .bcy = { GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE } }
   };
 
   // create app object

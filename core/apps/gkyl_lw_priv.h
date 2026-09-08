@@ -71,7 +71,7 @@ void gkyl_register_field_bc_types(lua_State *L);
 /**
  * Wrapper around Lua function for use in eval callbacks.
  */
-void gkyl_lw_eval_cb(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                     void *ctx);
+void gkyl_lw_eval_cb(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx);
 
 #endif

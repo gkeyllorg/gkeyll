@@ -4,9 +4,8 @@
 #include <assert.h>
 
 typedef void (*rz_derived_geo_kernel)(const double *gij, const double *bmag, const double *J,
-                                      double *Jinv, double *grij, double *bi, double *cmag,
-                                      double *Jtot, double *Jtotinv, double *gxxJ, double *gxyJ,
-                                      double *gyyJ, double *gxzJ, double *eps2);
+  double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *gxxJ,
+  double *gxyJ, double *gyyJ, double *gxzJ, double *eps2);
 
 typedef struct {
   rz_derived_geo_kernel kernels[3];
@@ -17,13 +16,13 @@ typedef struct {
 
 GKYL_CU_DH static const rz_derived_geo_node_list ser_rz_derived_geo_kernel_list[] = {
   { .list = { { NULL, NULL, NULL }, // 0x No 0D basis functions
-              { NULL, NULL, NULL }, // 1x Not tested yet
-              { NULL, NULL, NULL }, // 2x Not tested yet
-              { NULL, rz_derived_geo_3x_Ser_p1, rz_derived_geo_3x_Ser_p2 } } },
+      { NULL, NULL, NULL }, // 1x Not tested yet
+      { NULL, NULL, NULL }, // 2x Not tested yet
+      { NULL, rz_derived_geo_3x_Ser_p1, rz_derived_geo_3x_Ser_p2 } } },
   { .list = { { NULL, NULL, NULL }, // 0x No 0D basis functions
-              { NULL, NULL, NULL }, // 1x Not tested yet
-              { NULL, NULL, NULL }, // 2x Not tested yet
-              { NULL, rz_derived_geo_quad_3x_Ser_p1, NULL } } }
+      { NULL, NULL, NULL }, // 1x Not tested yet
+      { NULL, NULL, NULL }, // 2x Not tested yet
+      { NULL, rz_derived_geo_quad_3x_Ser_p1, NULL } } }
 
 };
 
@@ -37,8 +36,8 @@ struct gkyl_rz_calc_derived_geo {
   rz_derived_geo_kernel kernel;
 };
 
-GKYL_CU_DH static rz_derived_geo_kernel rz_derived_geo_choose_kernel(int dim, int basis_type,
-                                                                     int node_type, int poly_order)
+GKYL_CU_DH static rz_derived_geo_kernel rz_derived_geo_choose_kernel(
+  int dim, int basis_type, int node_type, int poly_order)
 {
   switch (basis_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

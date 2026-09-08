@@ -55,20 +55,18 @@ __global__ static void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(
 }
 
 void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up,
-                                                     const struct gkyl_range *conf_range,
-                                                     const struct gkyl_array *h_ij,
-                                                     const struct gkyl_array *h_ij_inv,
-                                                     const struct gkyl_array *det_h)
+  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
+  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h)
 {
   int vdim = up->pdim - up->cdim;
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
-  gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads> > >(
-    *conf_range, up->conf_basis_at_ords->on_dev, vdim, h_ij->on_dev, h_ij_inv->on_dev,
-    det_h->on_dev, up->h_ij_quad->on_dev, up->h_ij_inv_quad->on_dev, up->det_h_quad->on_dev);
+  gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads> > >(*conf_range,
+    up->conf_basis_at_ords->on_dev, vdim, h_ij->on_dev, h_ij_inv->on_dev, det_h->on_dev,
+    up->h_ij_quad->on_dev, up->h_ij_inv_quad->on_dev, up->det_h_quad->on_dev);
 }
 
-static void gkyl_parallelize_components_kernel_launch_dims(dim3 *dimGrid, dim3 *dimBlock,
-                                                           gkyl_range range, int ncomp)
+static void gkyl_parallelize_components_kernel_launch_dims(
+  dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp)
 {
   // Create a 2D thread grid so we launch ncomp*range.volume number of threads
   // so we can parallelize over components too
@@ -78,10 +76,10 @@ static void gkyl_parallelize_components_kernel_launch_dims(dim3 *dimGrid, dim3 *
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
 }
 
-__global__ static void gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker(
-  struct gkyl_range conf_range, int vdim, const struct gkyl_array *conf_basis_at_ords,
-  const struct gkyl_array *moms_lte, const struct gkyl_array *det_h_quad, bool is_relativistic,
-  bool is_canonical_pb, struct gkyl_array *moms_lte_quad, struct gkyl_array *expamp_quad)
+__global__ static void gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker(struct gkyl_range conf_range,
+  int vdim, const struct gkyl_array *conf_basis_at_ords, const struct gkyl_array *moms_lte,
+  const struct gkyl_array *det_h_quad, bool is_relativistic, bool is_canonical_pb,
+  struct gkyl_array *moms_lte_quad, struct gkyl_array *expamp_quad)
 {
   int num_conf_basis = conf_basis_at_ords->ncomp;
   int tot_conf_quad = conf_basis_at_ords->size;
@@ -173,8 +171,8 @@ __global__ static void gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(
     double *fq = (double *)gkyl_array_fetch(f_lte_quad, lidx);
 
     int cqidx = p2c_qidx[linc2];
-    comp_to_phys(pdim, (const double *)gkyl_array_cfetch(phase_ordinates, linc2), phase_grid.dx, xc,
-                 &xmu[0]);
+    comp_to_phys(
+      pdim, (const double *)gkyl_array_cfetch(phase_ordinates, linc2), phase_grid.dx, xc, &xmu[0]);
 
     fq[linc2] = f_floor;
     if (T_over_m_quad[cqidx] > 0.0) {
@@ -224,29 +222,27 @@ __global__ static void gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(
 }
 
 void gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
-                                              const struct gkyl_range *phase_range,
-                                              const struct gkyl_range *conf_range,
-                                              const struct gkyl_array *moms_lte,
-                                              struct gkyl_array *f_lte)
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *moms_lte, struct gkyl_array *f_lte)
 {
   int vdim = up->pdim - up->cdim;
 
   gkyl_array_clear(up->moms_lte_quad, 0.0);
   dim3 dimGrid_conf, dimBlock_conf;
   int tot_conf_quad = up->conf_basis_at_ords->size;
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid_conf, &dimBlock_conf, *conf_range,
-                                                 tot_conf_quad);
-  gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker<<<dimGrid_conf, dimBlock_conf> > >(
-    *conf_range, vdim, up->conf_basis_at_ords->on_dev, moms_lte->on_dev,
+  gkyl_parallelize_components_kernel_launch_dims(
+    &dimGrid_conf, &dimBlock_conf, *conf_range, tot_conf_quad);
+  gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker<<<dimGrid_conf, dimBlock_conf> > >(*conf_range,
+    vdim, up->conf_basis_at_ords->on_dev, moms_lte->on_dev,
     up->is_canonical_pb ? up->det_h_quad->on_dev : 0, up->is_relativistic, up->is_canonical_pb,
     up->moms_lte_quad->on_dev, up->expamp_quad->on_dev);
 
   dim3 dimGrid, dimBlock;
   int tot_phase_quad = up->basis_at_ords->size;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
-  gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker<<<dimGrid, dimBlock> > >(
-    up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev,
-    up->ordinates->on_dev, up->moms_lte_quad->on_dev, up->expamp_quad->on_dev,
+  gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker<<<dimGrid, dimBlock> > >(up->phase_grid,
+    *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->ordinates->on_dev,
+    up->moms_lte_quad->on_dev, up->expamp_quad->on_dev,
     up->is_canonical_pb ? up->h_ij_inv_quad->on_dev : 0, up->p2c_qidx, up->is_relativistic,
     up->is_canonical_pb, up->f_lte_quad->on_dev);
 
@@ -258,15 +254,15 @@ void gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
   // we construct through an expansion of the Bessel functions to avoid finite
   // precision effects in such a way that we can recover arbitrary temperature
   // relativistic LTE distributions by rescaling the distribution to the desired density.
-  gkyl_vlasov_lte_density_moment_advance(up->moments_up, phase_range, conf_range, f_lte,
-                                         up->num_ratio);
+  gkyl_vlasov_lte_density_moment_advance(
+    up->moments_up, phase_range, conf_range, f_lte, up->num_ratio);
 
   // compute number density ratio: num_ratio = n/n0
   // 0th component of moms_target is the target density
-  gkyl_dg_div_op_range(up->mem, &up->conf_basis, 0, up->num_ratio, 0, moms_lte, 0, up->num_ratio,
-                       conf_range);
+  gkyl_dg_div_op_range(
+    up->mem, &up->conf_basis, 0, up->num_ratio, 0, moms_lte, 0, up->num_ratio, conf_range);
 
   // rescale distribution function
-  gkyl_dg_mul_conf_phase_op_range(&up->conf_basis, &up->phase_basis, f_lte, up->num_ratio, f_lte,
-                                  conf_range, phase_range);
+  gkyl_dg_mul_conf_phase_op_range(
+    &up->conf_basis, &up->phase_basis, f_lte, up->num_ratio, f_lte, conf_range, phase_range);
 }

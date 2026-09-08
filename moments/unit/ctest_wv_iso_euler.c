@@ -24,8 +24,8 @@ void test_iso_euler_basic_ho()
   calcq(pv, q);
 
   double fluxes[3][4] = { { rho * u, rho * (u * u + vt * vt), rho * u * v, rho * u * w },
-                          { rho * v, rho * u * v, rho * (v * v + vt * vt), rho * v * w },
-                          { rho * w, rho * u * w, rho * v * w, rho * (w * w + vt * vt) } };
+    { rho * v, rho * u * v, rho * (v * v + vt * vt), rho * v * w },
+    { rho * w, rho * u * w, rho * v * w, rho * (w * w + vt * vt) } };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -110,17 +110,17 @@ void test_iso_euler_waves_ho()
     for (int i = 0; i < 4; ++i)
       delta[i] = qr_local[i] - ql_local[i];
 
-    gkyl_wv_eqn_waves(iso_euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-                      waves_local, speeds);
+    gkyl_wv_eqn_waves(
+      iso_euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw = 0; mw < 3; ++mw)
-      gkyl_wv_eqn_rotate_to_global(iso_euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 4],
-                                   &waves[mw * 4]);
+      gkyl_wv_eqn_rotate_to_global(
+        iso_euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 4], &waves[mw * 4]);
 
     double apdq[4], amdq[4];
-    gkyl_wv_eqn_qfluct(iso_euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq,
-                       apdq);
+    gkyl_wv_eqn_qfluct(
+      iso_euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq, apdq);
 
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[4], fr_local[4];
@@ -167,17 +167,17 @@ void test_iso_euler_waves_2_ho()
     for (int i = 0; i < 4; ++i)
       delta[i] = qr_local[i] - ql_local[i];
 
-    gkyl_wv_eqn_waves(iso_euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-                      waves_local, speeds);
+    gkyl_wv_eqn_waves(
+      iso_euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw = 0; mw < 3; ++mw)
-      gkyl_wv_eqn_rotate_to_global(iso_euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 4],
-                                   &waves[mw * 4]);
+      gkyl_wv_eqn_rotate_to_global(
+        iso_euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 4], &waves[mw * 4]);
 
     double apdq[4], amdq[4];
-    gkyl_wv_eqn_qfluct(iso_euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq,
-                       apdq);
+    gkyl_wv_eqn_qfluct(
+      iso_euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq, apdq);
 
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[4], fr_local[4];
@@ -196,6 +196,5 @@ void test_iso_euler_waves_2_ho()
 }
 
 TEST_LIST = { { "iso_euler_basic_ho", test_iso_euler_basic_ho },
-              { "iso_euler_waves_ho", test_iso_euler_waves_ho },
-              { "iso_euler_waves_2_ho", test_iso_euler_waves_2_ho },
-              { NULL, NULL } };
+  { "iso_euler_waves_ho", test_iso_euler_waves_ho },
+  { "iso_euler_waves_2_ho", test_iso_euler_waves_2_ho }, { NULL, NULL } };

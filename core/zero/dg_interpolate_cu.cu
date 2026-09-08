@@ -11,8 +11,7 @@ extern "C" {
 // CUDA kernel to set device pointer to interpolating kernel.
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void dg_interp_choose_kernel_ptrs_cu(struct gkyl_dg_interpolate_kernels *kernels,
-                                                       int cdim, struct gkyl_basis basis, int dir,
-                                                       double dxRat)
+  int cdim, struct gkyl_basis basis, int dir, double dxRat)
 {
   kernels->interp = dg_interp_choose_gk_interp_kernel(cdim, basis, dir);
 
@@ -24,7 +23,7 @@ __global__ static void dg_interp_choose_kernel_ptrs_cu(struct gkyl_dg_interpolat
 }
 
 void dg_interp_choose_kernel_cu(struct gkyl_dg_interpolate_kernels *kernels, int cdim,
-                                struct gkyl_basis basis, int dir, double dxRat)
+  struct gkyl_basis basis, int dir, double dxRat)
 {
   dg_interp_choose_kernel_ptrs_cu<<<1, 1> > >(kernels, cdim, basis, dir, dxRat);
 }
@@ -77,15 +76,13 @@ __global__ static void gkyl_dg_interpolate_advance_1x_cu_ker(
 }
 
 void gkyl_dg_interpolate_advance_1x_cu(gkyl_dg_interpolate *up, const struct gkyl_range *range_do,
-                                       const struct gkyl_range *range_tar,
-                                       const struct gkyl_array *GKYL_RESTRICT fdo,
-                                       struct gkyl_array *GKYL_RESTRICT ftar)
+  const struct gkyl_range *range_tar, const struct gkyl_array *GKYL_RESTRICT fdo,
+  struct gkyl_array *GKYL_RESTRICT ftar)
 {
   gkyl_array_clear_range(ftar, 0.0, range_tar);
 
   int nblocks = range_do->nblocks, nthreads = range_do->nthreads;
 
-  gkyl_dg_interpolate_advance_1x_cu_ker<<<nblocks, nthreads> > >(
-    up->kernels, up->dir, up->dxRat, up->offset_upper, up->grid_do, up->grid_tar, *range_do,
-    *range_tar, fdo->on_dev, ftar->on_dev);
+  gkyl_dg_interpolate_advance_1x_cu_ker<<<nblocks, nthreads> > >(up->kernels, up->dir, up->dxRat,
+    up->offset_upper, up->grid_do, up->grid_tar, *range_do, *range_tar, fdo->on_dev, ftar->on_dev);
 }

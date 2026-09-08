@@ -301,9 +301,9 @@ static void test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_
 
     for (int dir = 0; dir < ndim; ++dir) {
       gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE,
-                             &app->local_ext, nghost);
+        &app->local_ext, nghost);
       gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE,
-                             &app->local_ext, nghost);
+        &app->local_ext, nghost);
     }
 
     gkyl_cart_modal_serendip(&app->basis, ndim, poly_order);
@@ -346,24 +346,22 @@ static void test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_
     for (int ns = 0; ns < mbcc_recv[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_recv[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id,
-                                  rank_list);
+      gkyl_rrobin_decomp_getranks(
+        round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_recv[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[ns].range, &app->local_ext,
-                          mbcc_recv[bI]->comm_conn[ns].range.lower,
-                          mbcc_recv[bI]->comm_conn[ns].range.upper);
+        mbcc_recv[bI]->comm_conn[ns].range.lower, mbcc_recv[bI]->comm_conn[ns].range.upper);
     }
     for (int ns = 0; ns < mbcc_send[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_send[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id,
-                                  rank_list);
+      gkyl_rrobin_decomp_getranks(
+        round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_send[bI]->comm_conn[ns].range, &app->local_ext,
-                          mbcc_send[bI]->comm_conn[ns].range.lower,
-                          mbcc_send[bI]->comm_conn[ns].range.upper);
+        mbcc_send[bI]->comm_conn[ns].range.lower, mbcc_send[bI]->comm_conn[ns].range.upper);
     }
 
     // Sort connections according to rank and block ID.
@@ -376,8 +374,8 @@ static void test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_
   }
 
   // Sync blocks.
-  gkyl_multib_comm_conn_array_transfer(comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv,
-                                       fs, fs);
+  gkyl_multib_comm_conn_array_transfer(
+    comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv, fs, fs);
 
   // Check results.
   for (int bI = 0; bI < num_blocks_local; ++bI) {
@@ -399,7 +397,7 @@ static void test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_
         int k = 0;
         TEST_CHECK(gkyl_compare(ref, f_c[k], 1e-10));
         TEST_MSG("bid:%d | Expected: %.13e | Got: %.13e | Cell:%d,%d\n", bid, ref, f_c[k],
-                 iter.idx[0], iter.idx[1]);
+          iter.idx[0], iter.idx[1]);
         //        }
       }
     }
@@ -526,9 +524,9 @@ static void test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int 
 
     for (int dir = 0; dir < ndim; ++dir) {
       gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE,
-                             &app->local_ext, nghost);
+        &app->local_ext, nghost);
       gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE,
-                             &app->local_ext, nghost);
+        &app->local_ext, nghost);
     }
 
     gkyl_cart_modal_serendip(&app->basis, ndim, poly_order);
@@ -572,24 +570,22 @@ static void test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int 
     for (int ns = 0; ns < mbcc_recv[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_recv[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id,
-                                  rank_list);
+      gkyl_rrobin_decomp_getranks(
+        round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_recv[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[ns].range, &app->local_ext,
-                          mbcc_recv[bI]->comm_conn[ns].range.lower,
-                          mbcc_recv[bI]->comm_conn[ns].range.upper);
+        mbcc_recv[bI]->comm_conn[ns].range.lower, mbcc_recv[bI]->comm_conn[ns].range.upper);
     }
     for (int ns = 0; ns < mbcc_send[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_send[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id,
-                                  rank_list);
+      gkyl_rrobin_decomp_getranks(
+        round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_send[bI]->comm_conn[ns].range, &app->local_ext,
-                          mbcc_send[bI]->comm_conn[ns].range.lower,
-                          mbcc_send[bI]->comm_conn[ns].range.upper);
+        mbcc_send[bI]->comm_conn[ns].range.lower, mbcc_send[bI]->comm_conn[ns].range.upper);
     }
 
     // Sort connections according to rank and block ID.
@@ -602,8 +598,8 @@ static void test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int 
   }
 
   // Sync blocks.
-  gkyl_multib_comm_conn_array_transfer(comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv,
-                                       fs, fs);
+  gkyl_multib_comm_conn_array_transfer(
+    comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv, fs, fs);
 
   // Check results.
   for (int bI = 0; bI < num_blocks_local; ++bI) {
@@ -625,7 +621,7 @@ static void test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int 
         int k = 0;
         TEST_CHECK(gkyl_compare(ref, f_c[k], 1e-10));
         TEST_MSG("bid:%d | Expected: %.13e | Got: %.13e | Cell:%d,%d\n", bid, ref, f_c[k],
-                 iter.idx[0], iter.idx[1]);
+          iter.idx[0], iter.idx[1]);
         //        }
       }
     }
@@ -752,9 +748,9 @@ static void test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, 
 
     for (int dir = 0; dir < ndim; ++dir) {
       gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE,
-                             &app->local_ext, nghost);
+        &app->local_ext, nghost);
       gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE,
-                             &app->local_ext, nghost);
+        &app->local_ext, nghost);
     }
 
     gkyl_cart_modal_serendip(&app->basis, ndim, poly_order);
@@ -812,24 +808,22 @@ static void test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, 
     for (int ns = 0; ns < mbcc_recv[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_recv[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id,
-                                  rank_list);
+      gkyl_rrobin_decomp_getranks(
+        round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_recv[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[ns].range, &app->local_ext,
-                          mbcc_recv[bI]->comm_conn[ns].range.lower,
-                          mbcc_recv[bI]->comm_conn[ns].range.upper);
+        mbcc_recv[bI]->comm_conn[ns].range.lower, mbcc_recv[bI]->comm_conn[ns].range.upper);
     }
     for (int ns = 0; ns < mbcc_send[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_send[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id,
-                                  rank_list);
+      gkyl_rrobin_decomp_getranks(
+        round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_send[bI]->comm_conn[ns].range, &app->local_ext,
-                          mbcc_send[bI]->comm_conn[ns].range.lower,
-                          mbcc_send[bI]->comm_conn[ns].range.upper);
+        mbcc_send[bI]->comm_conn[ns].range.lower, mbcc_send[bI]->comm_conn[ns].range.upper);
     }
 
     // Sort connections according to rank and block ID.
@@ -842,8 +836,8 @@ static void test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, 
   }
 
   // Sync blocks.
-  gkyl_multib_comm_conn_array_transfer(comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv,
-                                       fs, fs);
+  gkyl_multib_comm_conn_array_transfer(
+    comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv, fs, fs);
 
   // Check results.
   for (int bI = 0; bI < num_blocks_local; ++bI) {
@@ -872,7 +866,7 @@ static void test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, 
         int k = 0;
         TEST_CHECK(gkyl_compare(ref, f_c[k], 1e-10));
         TEST_MSG("bid:%d | Expected: %.13e | Got: %.13e | Cell:%d,%d\n", bid, ref, f_c[k],
-                 iter.idx[0], iter.idx[1]);
+          iter.idx[0], iter.idx[1]);
         //        }
       }
     }
@@ -1044,11 +1038,11 @@ static void test_cyclic_domain_sync_ser_dev(void)
 #endif
 
 TEST_LIST = { { "test_L_domain_sync_ho", test_L_domain_sync_ho },
-              { "test_cyclic_domain_sync_ho", test_cyclic_domain_sync_ho },
-              { "test_cyclic_domain_sync_ser_ho", test_cyclic_domain_sync_ser_ho },
+  { "test_cyclic_domain_sync_ho", test_cyclic_domain_sync_ho },
+  { "test_cyclic_domain_sync_ser_ho", test_cyclic_domain_sync_ser_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_L_domain_sync_dev", test_L_domain_sync_dev },
-              { "test_cyclic_domain_sync_dev", test_cyclic_domain_sync_dev },
-              { "test_cyclic_domain_sync_ser_dev", test_cyclic_domain_sync_ser_dev },
+  { "test_L_domain_sync_dev", test_L_domain_sync_dev },
+  { "test_cyclic_domain_sync_dev", test_cyclic_domain_sync_dev },
+  { "test_cyclic_domain_sync_ser_dev", test_cyclic_domain_sync_ser_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

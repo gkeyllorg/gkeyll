@@ -27,9 +27,8 @@ typedef struct gkyl_dg_eval_at_coord_proj gkyl_dg_eval_at_coord_proj;
  * @param use_gpu       Whether to run on GPU.
  * @return New updater object.
  */
-struct gkyl_dg_eval_at_coord_proj *
-gkyl_dg_eval_at_coord_proj_new(int cdim_do, const struct gkyl_basis *basis_do, int num_eval_dirs,
-                               const int *eval_dirs, bool use_gpu);
+struct gkyl_dg_eval_at_coord_proj *gkyl_dg_eval_at_coord_proj_new(int cdim_do,
+  const struct gkyl_basis *basis_do, int num_eval_dirs, const int *eval_dirs, bool use_gpu);
 
 /**
  * Apply the dg_eval_at_coord operator.
@@ -46,11 +45,9 @@ gkyl_dg_eval_at_coord_proj_new(int cdim_do, const struct gkyl_basis *basis_do, i
  * @param ftar        Target DG field (written by this call).
  */
 void gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up,
-                                        const double *eval_coords,
-                                        const struct gkyl_rect_grid *grid, const bool *pick_lower,
-                                        const int *known_index, const struct gkyl_range *rng_do,
-                                        const struct gkyl_range *rng_tar,
-                                        const struct gkyl_array *fdo, struct gkyl_array *ftar);
+  const double *eval_coords, const struct gkyl_rect_grid *grid, const bool *pick_lower,
+  const int *known_index, const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar,
+  const struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
  * Return the properties of the target basis.
@@ -63,8 +60,7 @@ void gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up,
  * @param num_basis  Number of basis functions.
  */
 void gkyl_dg_eval_at_coord_proj_target_basis(struct gkyl_dg_eval_at_coord_proj *up, int *cdim,
-                                             int *ndim, enum gkyl_basis_type *btype,
-                                             int *poly_order, int *num_basis);
+  int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis);
 
 /**
  * Release the memory associated with this updater.

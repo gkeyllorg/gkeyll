@@ -10,8 +10,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-struct gkyl_dg_geom *gkyl_dg_geom_cu_dev_new_from_host(const struct gkyl_dg_geom_inp *inp,
-                                                       struct gkyl_dg_geom *up_host)
+struct gkyl_dg_geom *gkyl_dg_geom_cu_dev_new_from_host(
+  const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host)
 {
   struct gkyl_dg_geom *dgg = (struct gkyl_dg_geom *)gkyl_malloc(sizeof *dgg);
 

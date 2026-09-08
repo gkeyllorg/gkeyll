@@ -77,26 +77,26 @@ struct einstein_linearwave_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct einstein_linearwave_ctx ctx = { .pi = pi,
-                                         .amp = amp,
-                                         .spacetime = spacetime,
-                                         .excision_threshold = excision_threshold,
-                                         .spacetime_slicing = spacetime_slicing,
-                                         .spacetime_evolution = spacetime_evolution,
-                                         .Nx = Nx,
-                                         .Lx = Lx,
-                                         .cfl_frac = cfl_frac,
-                                         .t_end = t_end,
-                                         .num_frames = num_frames,
-                                         .field_energy_calcs = field_energy_calcs,
-                                         .integrated_mom_calcs = integrated_mom_calcs,
-                                         .dt_failure_tol = dt_failure_tol,
-                                         .num_failures_max = num_failures_max };
+    .amp = amp,
+    .spacetime = spacetime,
+    .excision_threshold = excision_threshold,
+    .spacetime_slicing = spacetime_slicing,
+    .spacetime_evolution = spacetime_evolution,
+    .Nx = Nx,
+    .Lx = Lx,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .field_energy_calcs = field_energy_calcs,
+    .integrated_mom_calcs = integrated_mom_calcs,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void evalVacuumEinsteinInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                            void *ctx)
+void evalVacuumEinsteinInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct einstein_linearwave_ctx *app = ctx;
@@ -145,15 +145,15 @@ void evalVacuumEinsteinInit(double t, const double *GKYL_RESTRICT xn, double *GK
   spacetime->excision_region_func(spacetime, 0.0, x, 0.0, 0.0, &in_excision_region);
 
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
-  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0,
-                                             &extrinsic_curvature);
+  spacetime->extrinsic_curvature_tensor_func(
+    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &extrinsic_curvature);
 
-  spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-                                     pow(10.0, -8.0), &lapse_der);
-  spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-                                   pow(10.0, -8.0), &shift_der);
+  spacetime->lapse_function_der_func(
+    spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+  spacetime->shift_vector_der_func(
+    spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
   spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0),
-                                            pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+    pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
 
   double b = amp * sin(2.0 * pi * x);
   spatial_metric[1][1] = 1.0 + b;
@@ -344,16 +344,16 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
   }
 }
 
-void calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr,
-                       bool force_calc)
+void calc_field_energy(
+  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
   }
 }
 
-void calc_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr,
-                         bool force_calc)
+void calc_integrated_mom(
+  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
@@ -383,8 +383,7 @@ int main(int argc, char **argv)
   struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(
     ctx.excision_threshold, ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
 
-  struct gkyl_moment_species einstein = {
-    .name = "vacuum_einstein",
+  struct gkyl_moment_species einstein = { .name = "vacuum_einstein",
     .equation = vacuum_einstein,
 
     .init = evalVacuumEinsteinInit,
@@ -394,8 +393,7 @@ int main(int argc, char **argv)
     .has_vacuum_einstein = true,
     .vacuum_einstein_excision_threshold = ctx.excision_threshold,
     .vacuum_einstein_spacetime_slicing = ctx.spacetime_slicing,
-    .vacuum_einstein_spacetime_evolution = ctx.spacetime_evolution
-  };
+    .vacuum_einstein_spacetime_evolution = ctx.spacetime_evolution };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -447,15 +445,14 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
 
   // Moment app.
-  struct gkyl_moment app_inp = {
-    .name = "vacuum_einstein_linearwave",
+  struct gkyl_moment app_inp = { .name = "vacuum_einstein_linearwave",
 
     .ndim = 1,
     .lower = { -0.5 * ctx.Lx },
@@ -473,8 +470,7 @@ int main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
-  };
+    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm } };
 
   // Create app object.
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
@@ -490,7 +486,7 @@ int main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-                           gkyl_array_rio_status_msg(status.io_status));
+        gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
@@ -505,25 +501,25 @@ int main(int argc, char **argv)
 
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = {
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = {
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames,
-                                     .tcurr = frame_curr * (t_end / num_frames),
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = {
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 
@@ -562,8 +558,8 @@ int main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_moment_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);

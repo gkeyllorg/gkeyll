@@ -26,8 +26,8 @@ struct gkyl_gkgeom {
   } quad_param;
 
   // pointer to root finder (depends on polyorder)
-  struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z, double xc[2],
-                                 double dx[2]);
+  struct RdRdZ_sol (*calc_roots)(
+    const double *psi, double psi0, double Z, double xc[2], double dx[2]);
 
   struct gkyl_gkgeom_stat stat;
 };
@@ -43,8 +43,8 @@ static inline double SQ(double x)
   return x * x;
 }
 
-static inline int get_idx(int dir, double x, const struct gkyl_rect_grid *grid,
-                          const struct gkyl_range *range)
+static inline int get_idx(
+  int dir, double x, const struct gkyl_rect_grid *grid, const struct gkyl_range *range)
 {
   double xlower = grid->lower[dir], dx = grid->dx[dir];
   int idx = range->lower[dir] + (int)floor((x - xlower) / dx);
@@ -58,8 +58,8 @@ struct RdRdZ_sol {
 };
 
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=1 DG cell
-static inline struct RdRdZ_sol calc_RdR_p1(const double *psi, double psi0, double Z, double xc[2],
-                                           double dx[2])
+static inline struct RdRdZ_sol calc_RdR_p1(
+  const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
   struct RdRdZ_sol sol = { .nsol = 0 };
 
@@ -82,8 +82,8 @@ static inline struct RdRdZ_sol calc_RdR_p1(const double *psi, double psi0, doubl
 }
 
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell
-static inline struct RdRdZ_sol calc_RdR_ser_p2(const double *psi, double psi0, double Z,
-                                               double xc[2], double dx[2])
+static inline struct RdRdZ_sol calc_RdR_ser_p2(
+  const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
   struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
@@ -144,8 +144,8 @@ static inline struct RdRdZ_sol calc_RdR_ser_p2(const double *psi, double psi0, d
 }
 
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell
-static inline struct RdRdZ_sol calc_RdR_ten_p2(const double *psi, double psi0, double Z,
-                                               double xc[2], double dx[2])
+static inline struct RdRdZ_sol calc_RdR_ten_p2(
+  const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
   struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
@@ -209,8 +209,8 @@ static inline struct RdRdZ_sol calc_RdR_ten_p2(const double *psi, double psi0, d
 // or no solutions. The number of roots found is returned and are
 // copied in the array R and dR. The calling function must ensure that
 // these arrays are big enough to hold all roots required
-static int R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots, double *R,
-                  double *dR)
+static int R_psiZ(
+  const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots, double *R, double *dR)
 {
   int zcell = get_idx(1, Z, &geo->rzgrid, &geo->rzlocal);
 
@@ -272,8 +272,7 @@ static inline double contour_func(double Z, void *ctx)
 // well, discontinuous, and adaptive quadrature struggles with such
 // functions.
 static double integrate_psi_contour_memo(const gkyl_gkgeom *geo, double psi, double zmin,
-                                         double zmax, double rclose, bool use_memo, bool fill_memo,
-                                         double *memo)
+  double zmax, double rclose, bool use_memo, bool fill_memo, double *memo)
 {
   struct contour_ctx ctx = { .geo = geo, .psi = psi, .ncall = 0, .last_R = rclose };
 
@@ -364,21 +363,21 @@ gkyl_gkgeom *gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
   return geo;
 }
 
-double gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi, double zmin,
-                                         double zmax, double rclose)
+double gkyl_gkgeom_integrate_psi_contour(
+  const gkyl_gkgeom *geo, double psi, double zmin, double zmax, double rclose)
 {
   return integrate_psi_contour_memo(geo, psi, zmin, zmax, rclose, false, false, 0);
 }
 
-int gkyl_gkgeom_R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots, double *R,
-                       double *dR)
+int gkyl_gkgeom_R_psiZ(
+  const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots, double *R, double *dR)
 {
   return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
 }
 
 // write out nodal coordinates
-static void write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
-                                    struct gkyl_array *nodes)
+static void write_nodal_coordinates(
+  const char *nm, struct gkyl_range *nrange, struct gkyl_array *nodes)
 {
   double lower[3] = { 0.0, 0.0, 0.0 };
   double upper[3] = { 1.0, 1.0, 1.0 };
@@ -392,8 +391,8 @@ static void write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
   gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
 }
 
-void gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp *inp,
-                          struct gkyl_array *mapc2p)
+void gkyl_gkgeom_calcgeom(
+  const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp *inp, struct gkyl_array *mapc2p)
 {
   int poly_order = inp->cbasis->poly_order;
   int nodes[3] = { 1, 1, 1 };
@@ -462,7 +461,7 @@ void gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_i
       arc_ctx.arcL = arcL_curr;
 
       struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx, zmin, zmax, -arcL_curr,
-                                            arcL - arcL_curr, geo->root_param.max_iter, 1e-10);
+        arcL - arcL_curr, geo->root_param.max_iter, 1e-10);
       double z_curr = res.res;
       ((gkyl_gkgeom *)geo)->stat.nroot_cont_calls += res.nevals;
 

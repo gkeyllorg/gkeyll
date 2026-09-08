@@ -7,9 +7,8 @@
 #include <assert.h>
 
 typedef double (*dg_cx_react_ratef_t)(const double a, const double b, double vt_sq_ion_min,
-                                      double vt_sq_neut_min, const double *maxwellian_moms_ion,
-                                      const double *maxwellian_moms_neut, const double *u_ion,
-                                      double *GKYL_RESTRICT v_sigma_cx);
+  double vt_sq_neut_min, const double *maxwellian_moms_ion, const double *maxwellian_moms_neut,
+  const double *u_ion, double *GKYL_RESTRICT v_sigma_cx);
 
 // for use in kernel tables
 typedef struct {
@@ -101,6 +100,6 @@ struct gkyl_dg_cx *gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
  */
 void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
-                        struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i,
-                        struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
+  struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
+  struct gkyl_array *cflrate);
 #endif

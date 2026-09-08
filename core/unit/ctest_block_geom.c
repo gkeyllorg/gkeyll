@@ -132,5 +132,4 @@ static void test_block_geom_mobius_domain_ho()
 }
 
 TEST_LIST = { { "block_geom_mobius_domain_ho", test_block_geom_mobius_domain_ho },
-              { "block_geom_L_domain_ho", test_block_geom_L_domain_ho },
-              { NULL, NULL } };
+  { "block_geom_L_domain_ho", test_block_geom_L_domain_ho }, { NULL, NULL } };

@@ -3,8 +3,7 @@
 // Compute the nc intergated values over the update_rgn, storing the
 // result in the integ_q
 void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol, const struct gkyl_array *q,
-                      const struct gkyl_wave_geom *geom, struct gkyl_range update_rng,
-                      double *integ_q)
+  const struct gkyl_wave_geom *geom, struct gkyl_range update_rng, double *integ_q)
 {
   int nc = eqn->num_diag;
   double integ_out[nc];
@@ -84,9 +83,8 @@ void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gky
 
 // apply wedge BCs
 void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
-                           const struct gkyl_range *update_rng, struct gkyl_array *bc_buffer,
-                           int dir, const struct gkyl_wv_apply_bc *lo,
-                           const struct gkyl_wv_apply_bc *up, struct gkyl_array *f)
+  const struct gkyl_range *update_rng, struct gkyl_array *bc_buffer, int dir,
+  const struct gkyl_wv_apply_bc *lo, const struct gkyl_wv_apply_bc *up, struct gkyl_array *f)
 {
   gkyl_wv_apply_bc_to_buff(lo, tcurr, update_rng, f, bc_buffer->data);
   gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.upper_ghost[dir]));

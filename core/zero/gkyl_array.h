@@ -54,8 +54,8 @@ struct gkyl_array *gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
  * @param buff Buffer to use for array data
  * @return Pointer to newly allocated array.
  */
-struct gkyl_array *gkyl_array_new_from_buff(enum gkyl_elem_type type, size_t ncomp, size_t size,
-                                            void *buff);
+struct gkyl_array *gkyl_array_new_from_buff(
+  enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff);
 
 /**
  * Create new array with data on NV-GPU. Delete using

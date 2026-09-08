@@ -34,11 +34,11 @@ struct gkyl_wv_embed_geo {
  * @param ctx Context to pass to bcfunc.
  * @return New updater pointer.
  */
-gkyl_wv_embed_geo *gkyl_wv_embed_geo_new(enum gkyl_embed_type type, void *mask_func,
-                                         wv_embed_func_t embed_func, void *ctx);
+gkyl_wv_embed_geo *gkyl_wv_embed_geo_new(
+  enum gkyl_embed_type type, void *mask_func, wv_embed_func_t embed_func, void *ctx);
 
 void gkyl_wv_embed_geo_new_mask(struct gkyl_wv_embed_geo *geo, struct gkyl_rect_grid *grid,
-                                struct gkyl_range *rng, struct gkyl_array *mask);
+  struct gkyl_range *rng, struct gkyl_array *mask);
 
 /**
  * Delete structure.

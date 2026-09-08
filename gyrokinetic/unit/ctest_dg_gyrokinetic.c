@@ -76,8 +76,7 @@ void test_dg_gyrokinetic_ho()
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0, 0.0 },
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
@@ -95,8 +94,7 @@ void test_dg_gyrokinetic_ho()
     .geo_local_ext = confRange_ext,
     .geo_global = confRange,
     .geo_global_ext = confRange_ext,
-    .geo_basis = confBasis
-  };
+    .geo_basis = confBasis };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
@@ -108,8 +106,8 @@ void test_dg_gyrokinetic_ho()
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
     c2p_in, phaseGrid, velGrid, phaseRange, phaseRange_ext, velLocal, velLocal_ext, false);
 
-  struct gkyl_dg_eqn *eqn = gkyl_dg_gyrokinetic_new(&confBasis, &basis, &confRange, &phaseRange,
-                                                    charge, mass, 0, gk_geom, gvm, false);
+  struct gkyl_dg_eqn *eqn = gkyl_dg_gyrokinetic_new(
+    &confBasis, &basis, &confRange, &phaseRange, charge, mass, 0, gk_geom, gvm, false);
 
   TEST_CHECK(eqn->num_equations == 1);
 
@@ -134,4 +132,4 @@ void test_dg_gyrokinetic_ho()
 TEST_LIST = { { "dg_gyrokinetic_ho", test_dg_gyrokinetic_ho },
 #ifdef GKYL_HAVE_CUDA
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

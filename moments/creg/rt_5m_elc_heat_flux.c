@@ -106,32 +106,32 @@ struct elc_heat_flux_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct elc_heat_flux_ctx ctx = { .pi = pi,
-                                   .gas_gamma = gas_gamma,
-                                   .epsilon0 = epsilon0,
-                                   .mu0 = mu0,
-                                   .mass_ion = mass_ion,
-                                   .charge_ion = charge_ion,
-                                   .mass_elc = mass_elc,
-                                   .charge_elc = charge_elc,
-                                   .n0 = n0,
-                                   .coll_fac = coll_fac,
-                                   .T_high = T_high,
-                                   .T_low = T_low,
-                                   .vte = vte,
-                                   .rho_elc = rho_elc,
-                                   .rho_ion = rho_ion,
-                                   .E_ion = E_ion,
-                                   .E_elc_lower = E_elc_lower,
-                                   .E_elc_upper = E_elc_upper,
-                                   .tau = tau,
-                                   .lambda = lambda,
-                                   .Nx = Nx,
-                                   .Lx = Lx,
-                                   .cfl_frac = cfl_frac,
-                                   .t_end = t_end,
-                                   .num_frames = num_frames,
-                                   .dt_failure_tol = dt_failure_tol,
-                                   .num_failures_max = num_failures_max };
+    .gas_gamma = gas_gamma,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .n0 = n0,
+    .coll_fac = coll_fac,
+    .T_high = T_high,
+    .T_low = T_low,
+    .vte = vte,
+    .rho_elc = rho_elc,
+    .rho_ion = rho_ion,
+    .E_ion = E_ion,
+    .E_elc_lower = E_elc_lower,
+    .E_elc_upper = E_elc_upper,
+    .tau = tau,
+    .lambda = lambda,
+    .Nx = Nx,
+    .Lx = Lx,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -195,7 +195,7 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
 }
 
 void evalElcLowerBC(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-                    double *GKYL_RESTRICT ghost, void *ctx)
+  double *GKYL_RESTRICT ghost, void *ctx)
 {
   struct elc_heat_flux_ctx *app = ctx;
 
@@ -213,7 +213,7 @@ void evalElcLowerBC(const struct gkyl_wv_eqn *eqn, double t, int nc, const doubl
 }
 
 void evalElcUpperBC(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-                    double *GKYL_RESTRICT ghost, void *ctx)
+  double *GKYL_RESTRICT ghost, void *ctx)
 {
   struct elc_heat_flux_ctx *app = ctx;
 
@@ -266,36 +266,36 @@ int main(int argc, char **argv)
   struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
   struct gkyl_moment_species elc = { .name = "elc",
-                                     .charge = ctx.charge_elc,
-                                     .mass = ctx.mass_elc,
-                                     .equation = elc_euler,
+    .charge = ctx.charge_elc,
+    .mass = ctx.mass_elc,
+    .equation = elc_euler,
 
-                                     .init = evalElcInit,
-                                     .ctx = &ctx,
+    .init = evalElcInit,
+    .ctx = &ctx,
 
-                                     .type_brag = GKYL_BRAG_UNMAG_FULL,
+    .type_brag = GKYL_BRAG_UNMAG_FULL,
 
-                                     .bcx = { GKYL_SPECIES_FUNC, GKYL_SPECIES_FUNC },
-                                     .bcx_func = { evalElcLowerBC, evalElcUpperBC } };
+    .bcx = { GKYL_SPECIES_FUNC, GKYL_SPECIES_FUNC },
+    .bcx_func = { evalElcLowerBC, evalElcUpperBC } };
 
   struct gkyl_moment_species ion = { .name = "ion",
-                                     .charge = ctx.charge_ion,
-                                     .mass = ctx.mass_ion,
-                                     .equation = ion_euler,
+    .charge = ctx.charge_ion,
+    .mass = ctx.mass_ion,
+    .equation = ion_euler,
 
-                                     .init = evalIonInit,
-                                     .ctx = &ctx,
+    .init = evalIonInit,
+    .ctx = &ctx,
 
-                                     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   // Field.
   struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
-                                     .mu0 = ctx.mu0,
-                                     .mag_error_speed_fact = 1.0,
+    .mu0 = ctx.mu0,
+    .mag_error_speed_fact = 1.0,
 
-                                     .is_static = false,
-                                     .init = evalFieldInit,
-                                     .ctx = &ctx };
+    .is_static = false,
+    .init = evalFieldInit,
+    .ctx = &ctx };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -355,8 +355,8 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -433,8 +433,8 @@ int main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_moment_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         break;
       }
     } else {

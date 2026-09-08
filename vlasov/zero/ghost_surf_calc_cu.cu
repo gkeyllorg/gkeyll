@@ -14,10 +14,8 @@ extern "C" {
 }
 
 __global__ static void gkyl_ghost_surf_calc_advance_cu_ker(const struct gkyl_ghost_surf_calc *gcalc,
-                                                           int dir, int edge,
-                                                           struct gkyl_range edge_rng,
-                                                           const struct gkyl_array *fIn,
-                                                           struct gkyl_array *rhs)
+  int dir, int edge, struct gkyl_range edge_rng, const struct gkyl_array *fIn,
+  struct gkyl_array *rhs)
 {
   double xcg[GKYL_MAX_DIM], xcs[GKYL_MAX_DIM];
   int idxg[GKYL_MAX_DIM], idxs[GKYL_MAX_DIM];
@@ -38,14 +36,12 @@ __global__ static void gkyl_ghost_surf_calc_advance_cu_ker(const struct gkyl_gho
     const double *fsptr = (const double *)gkyl_array_cfetch(fIn, lincs);
 
     gcalc->equation->boundary_surf_term(gcalc->equation, dir, xcs, xcg, gcalc->grid.dx,
-                                        gcalc->grid.dx, idxs, idxg, edge, fsptr, fgptr,
-                                        (double *)gkyl_array_fetch(rhs, lincg));
+      gcalc->grid.dx, idxs, idxg, edge, fsptr, fgptr, (double *)gkyl_array_fetch(rhs, lincg));
   }
 }
 
 void gkyl_ghost_surf_calc_advance_cu(struct gkyl_ghost_surf_calc *gcalc,
-                                     const struct gkyl_range *phase_rng,
-                                     const struct gkyl_array *fIn, struct gkyl_array *rhs)
+  const struct gkyl_range *phase_rng, const struct gkyl_array *fIn, struct gkyl_array *rhs)
 {
   struct gkyl_range edge_rng;
   int nblocks, nthreads;
@@ -64,8 +60,8 @@ void gkyl_ghost_surf_calc_advance_cu(struct gkyl_ghost_surf_calc *gcalc,
     nblocks = edge_rng.nblocks;
     nthreads = edge_rng.nthreads;
 
-    gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads> > >(gcalc->on_dev, dir, edge, edge_rng,
-                                                                 fIn->on_dev, rhs->on_dev);
+    gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads> > >(
+      gcalc->on_dev, dir, edge, edge_rng, fIn->on_dev, rhs->on_dev);
 
     edge = 1;
     clower_idx[dir] = phase_rng->upper[dir];
@@ -74,8 +70,8 @@ void gkyl_ghost_surf_calc_advance_cu(struct gkyl_ghost_surf_calc *gcalc,
     nblocks = edge_rng.nblocks;
     nthreads = edge_rng.nthreads;
 
-    gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads> > >(gcalc->on_dev, dir, edge, edge_rng,
-                                                                 fIn->on_dev, rhs->on_dev);
+    gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads> > >(
+      gcalc->on_dev, dir, edge, edge_rng, fIn->on_dev, rhs->on_dev);
 
     // Reset indices for loop over each velocity dimension
     clower_idx[dir] = phase_rng->lower[dir];
@@ -83,9 +79,8 @@ void gkyl_ghost_surf_calc_advance_cu(struct gkyl_ghost_surf_calc *gcalc,
   }
 }
 
-struct gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-                                                             const struct gkyl_dg_eqn *equation,
-                                                             int cdim)
+struct gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_cu_dev_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_dg_eqn *equation, int cdim)
 {
   struct gkyl_ghost_surf_calc *up =
     (struct gkyl_ghost_surf_calc *)gkyl_malloc(sizeof(struct gkyl_ghost_surf_calc));

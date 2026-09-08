@@ -12,20 +12,15 @@
 #include <assert.h>
 
 typedef void (*pkpm_em_coupling_set_t)(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-                                       double epsilon0, bool pkpm_field_static, double dt,
-                                       struct gkyl_nmat *A, struct gkyl_nmat *rhs,
-                                       const double *app_accel[GKYL_MAX_SPECIES],
-                                       const double *ext_em, const double *app_current,
-                                       const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
-                                       const double *pkpm_u[GKYL_MAX_SPECIES],
-                                       double *GKYL_RESTRICT em);
+  double epsilon0, bool pkpm_field_static, double dt, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current,
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double *pkpm_u[GKYL_MAX_SPECIES],
+  double *GKYL_RESTRICT em);
 
 typedef void (*pkpm_em_coupling_copy_t)(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-                                        double epsilon0, struct gkyl_nmat *x,
-                                        const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
-                                        const double *pkpm_u[GKYL_MAX_SPECIES],
-                                        double *GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES],
-                                        double *GKYL_RESTRICT em);
+  double epsilon0, struct gkyl_nmat *x, const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
+  const double *pkpm_u[GKYL_MAX_SPECIES], double *GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES],
+  double *GKYL_RESTRICT em);
 
 // for use in kernel tables
 typedef struct {
@@ -89,8 +84,8 @@ GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_copy_kern_list ten_pkpm_em_coupl
   { NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL } // 2
 };
 
-GKYL_CU_D static pkpm_em_coupling_set_t
-choose_pkpm_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_em_coupling_set_t choose_pkpm_em_coupling_set_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -105,8 +100,8 @@ choose_pkpm_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int poly
   }
 }
 
-GKYL_CU_D static pkpm_em_coupling_copy_t
-choose_pkpm_em_coupling_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_em_coupling_copy_t choose_pkpm_em_coupling_copy_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

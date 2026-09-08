@@ -25,8 +25,8 @@ static void rect_decomp_free(const struct gkyl_ref_count *ref)
   gkyl_free(decomp);
 }
 
-struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[],
-                                                        const struct gkyl_range *range)
+struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts(
+  int ndim, const int cuts[], const struct gkyl_range *range)
 {
   struct gkyl_rect_decomp *decomp = gkyl_malloc(sizeof(*decomp));
 
@@ -94,8 +94,8 @@ struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts
   return decomp;
 }
 
-struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts_and_cells(int ndim, const int cuts[],
-                                                                  const int cells[])
+struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts_and_cells(
+  int ndim, const int cuts[], const int cells[])
 {
   struct gkyl_range range;
   gkyl_create_global_range(ndim, cells, &range);
@@ -103,8 +103,8 @@ struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts_and_cells(int ndim, cons
 }
 
 // ext_range = a X b
-static void init_extend_range(struct gkyl_range *ext_range, const struct gkyl_range *a,
-                              const struct gkyl_range *b)
+static void init_extend_range(
+  struct gkyl_range *ext_range, const struct gkyl_range *a, const struct gkyl_range *b)
 {
   int adim = a->ndim, bdim = b->ndim;
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
@@ -121,8 +121,8 @@ static void init_extend_range(struct gkyl_range *ext_range, const struct gkyl_ra
   gkyl_range_init(ext_range, adim + bdim, lower, upper);
 }
 
-struct gkyl_rect_decomp *gkyl_rect_decomp_extended_new(const struct gkyl_range *arange,
-                                                       const struct gkyl_rect_decomp *decomp)
+struct gkyl_rect_decomp *gkyl_rect_decomp_extended_new(
+  const struct gkyl_range *arange, const struct gkyl_rect_decomp *decomp)
 {
   struct gkyl_rect_decomp *extd = gkyl_malloc(sizeof(*extd));
 
@@ -180,8 +180,8 @@ bool gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp)
 }
 
 // compute neighbors accounting for corner neighbors
-static struct gkyl_rect_decomp_neigh *calc_neigh_with_corners(const struct gkyl_rect_decomp *decomp,
-                                                              int nidx)
+static struct gkyl_rect_decomp_neigh *calc_neigh_with_corners(
+  const struct gkyl_rect_decomp *decomp, int nidx)
 {
   struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
   cont->l_neigh = cvec_int_init();
@@ -220,8 +220,8 @@ static struct gkyl_rect_decomp_neigh *calc_neigh_with_corners(const struct gkyl_
 
 // compute neighbors leaving out corner neighbors: only face neighbors
 // are included
-static struct gkyl_rect_decomp_neigh *calc_neigh_no_corners(const struct gkyl_rect_decomp *decomp,
-                                                            int nidx)
+static struct gkyl_rect_decomp_neigh *calc_neigh_no_corners(
+  const struct gkyl_rect_decomp *decomp, int nidx)
 {
   struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
   cont->l_neigh = cvec_int_init();
@@ -259,17 +259,16 @@ static struct gkyl_rect_decomp_neigh *calc_neigh_no_corners(const struct gkyl_re
   return &cont->neigh;
 }
 
-struct gkyl_rect_decomp_neigh *gkyl_rect_decomp_calc_neigh(const struct gkyl_rect_decomp *decomp,
-                                                           bool inc_corners, int nidx)
+struct gkyl_rect_decomp_neigh *gkyl_rect_decomp_calc_neigh(
+  const struct gkyl_rect_decomp *decomp, bool inc_corners, int nidx)
 {
   if (inc_corners)
     return calc_neigh_with_corners(decomp, nidx);
   return calc_neigh_no_corners(decomp, nidx);
 }
 
-struct gkyl_rect_decomp_neigh *
-gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp, int dir,
-                                     bool inc_corners, int nidx)
+struct gkyl_rect_decomp_neigh *gkyl_rect_decomp_calc_periodic_neigh(
+  const struct gkyl_rect_decomp *decomp, int dir, bool inc_corners, int nidx)
 {
   struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
   cont->l_neigh = cvec_int_init();
@@ -375,7 +374,7 @@ void gkyl_create_global_range(int ndim, const int *cells, struct gkyl_range *ran
 }
 
 void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid, const int *nghost,
-                             struct gkyl_range *ext_range, struct gkyl_range *range)
+  struct gkyl_range *ext_range, struct gkyl_range *range)
 {
   int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
@@ -393,7 +392,7 @@ void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid, const int *nghos
 }
 
 void gkyl_create_ranges(const struct gkyl_range *inrange, const int *nghost,
-                        struct gkyl_range *ext_range, struct gkyl_range *range)
+  struct gkyl_range *ext_range, struct gkyl_range *range)
 {
   int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
@@ -410,7 +409,7 @@ void gkyl_create_ranges(const struct gkyl_range *inrange, const int *nghost,
 }
 
 void gkyl_create_vertex_ranges(const struct gkyl_range *inrange, const int *nghost,
-                               struct gkyl_range *ext_range, struct gkyl_range *range)
+  struct gkyl_range *ext_range, struct gkyl_range *range)
 {
   int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
@@ -448,7 +447,7 @@ void gkyl_rect_decomp_get_cuts(struct gkyl_rect_decomp *decomp, int *cuts)
       for (int i = 0; i < ndim; i++) {
         if (i != d) {
           same_other_lims = same_other_lims && ((range_curr.lower[i] == other_dim_lo[i]) &&
-                                                (range_curr.upper[i] == other_dim_up[i]));
+                                                 (range_curr.upper[i] == other_dim_up[i]));
         }
       }
 

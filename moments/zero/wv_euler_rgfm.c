@@ -46,7 +46,7 @@ void gkyl_euler_rgfm_prim_vars(int num_species, double *gas_gamma_s, const doubl
   for (int i = 0; i < num_species; i++) {
     p_s[i] = (gas_gamma_s[i] - 1.0) *
              (E_total - (0.5 * rho_total *
-                         ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total))));
+                          ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total))));
   }
 
   double p_total = 0.0;
@@ -74,8 +74,8 @@ void gkyl_euler_rgfm_prim_vars(int num_species, double *gas_gamma_s, const doubl
   gkyl_free(p_s);
 }
 
-static inline double gkyl_euler_rgfm_max_abs_speed(int num_species, double *gas_gamma_s,
-                                                   const double *q)
+static inline double gkyl_euler_rgfm_max_abs_speed(
+  int num_species, double *gas_gamma_s, const double *q)
 {
   double *v = gkyl_malloc(sizeof(double[5 + (2 * num_species)]));
   gkyl_euler_rgfm_prim_vars(num_species, gas_gamma_s, q, v);
@@ -151,8 +151,8 @@ void gkyl_euler_rgfm_flux(int num_species, double *gas_gamma_s, const double *q,
   gkyl_free(rho_s);
 }
 
-static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                const double *qin, double *wout)
+static inline void cons_to_riem(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -163,8 +163,8 @@ static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qst
   }
 }
 
-static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                const double *win, double *qout)
+static inline void riem_to_cons(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -176,7 +176,7 @@ static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qst
 }
 
 static void euler_rgfm_wall(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-                            double *GKYL_RESTRICT ghost, void *ctx)
+  double *GKYL_RESTRICT ghost, void *ctx)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -189,7 +189,7 @@ static void euler_rgfm_wall(const struct gkyl_wv_eqn *eqn, double t, int nc, con
 }
 
 static void euler_rgfm_no_slip(const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin,
-                               double *GKYL_RESTRICT ghost, void *ctx)
+  double *GKYL_RESTRICT ghost, void *ctx)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -204,8 +204,8 @@ static void euler_rgfm_no_slip(const struct gkyl_wv_eqn *eqn, double t, int nc, 
 }
 
 static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                const double *tau2, const double *norm,
-                                const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
+  double *GKYL_RESTRICT qlocal)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -220,8 +220,8 @@ static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau
 }
 
 static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                 const double *tau2, const double *norm,
-                                 const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
+  double *GKYL_RESTRICT qglobal)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -236,7 +236,7 @@ static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *ta
 }
 
 static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-                       const double *qr, double *waves, double *s)
+  const double *qr, double *waves, double *s)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -268,7 +268,7 @@ static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const
 }
 
 static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                       const double *waves, const double *s, double *amdq, double *apdq)
+  const double *waves, const double *s, double *amdq, double *apdq)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -284,21 +284,21 @@ static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const do
 }
 
 static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                         const double *delta, const double *ql, const double *qr, const double phil,
-                         const double phir, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
 static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                         const double *ql, const double *qr, const double phil, const double phir,
-                         const double *waves, const double *s, double *amdq, double *apdq)
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
+  const double *s, double *amdq, double *apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                        double *flux_jump)
+static double flux_jump(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -366,8 +366,8 @@ static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_euler_rgfm_max_abs_speed(num_species, gas_gamma_s, q);
 }
 
-static inline void euler_rgfm_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin,
-                                           double *diag)
+static inline void euler_rgfm_cons_to_diag(
+  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -401,14 +401,14 @@ void gkyl_euler_rgfm_free(const struct gkyl_ref_count *ref)
   gkyl_free(euler_rgfm);
 }
 
-struct gkyl_wv_eqn *gkyl_wv_euler_rgfm_new(int num_species, double *gas_gamma_s, int reinit_freq,
-                                           bool use_gpu)
+struct gkyl_wv_eqn *gkyl_wv_euler_rgfm_new(
+  int num_species, double *gas_gamma_s, int reinit_freq, bool use_gpu)
 {
   return gkyl_wv_euler_rgfm_inew(&(struct gkyl_wv_euler_rgfm_inp){ .num_species = num_species,
-                                                                   .gas_gamma_s = gas_gamma_s,
-                                                                   .reinit_freq = reinit_freq,
-                                                                   .rp_type = WV_EULER_RGFM_RP_LAX,
-                                                                   .use_gpu = use_gpu });
+    .gas_gamma_s = gas_gamma_s,
+    .reinit_freq = reinit_freq,
+    .rp_type = WV_EULER_RGFM_RP_LAX,
+    .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *gkyl_wv_euler_rgfm_inew(const struct gkyl_wv_euler_rgfm_inp *inp)

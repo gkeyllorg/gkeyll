@@ -10,7 +10,7 @@
 
 // Function pointer type for array_integrate kernels.
 typedef void (*array_integrate_t)(double *dxSq, double vol, int num_comp, int num_basis,
-                                  const double *weight, const double *fIn, double *out);
+  const double *weight, const double *fIn, double *out);
 
 // For use in kernel tables.
 typedef struct {
@@ -63,13 +63,11 @@ GKYL_CU_D static const array_integrate_sq_weighted_kern_list
   };
 
 GKYL_CU_D static const array_integrate_sq_weighted_kern_list
-  gkyl_array_integrate_sq_weighted_ker_list_gkhyb[] = {
-    { NULL, NULL },
+  gkyl_array_integrate_sq_weighted_ker_list_gkhyb[] = { { NULL, NULL },
     { gkyl_array_integrate_op_sq_weighted_1x1v_gkhyb_p1, NULL },
     { gkyl_array_integrate_op_sq_weighted_1x2v_gkhyb_p1, NULL },
     { gkyl_array_integrate_op_sq_weighted_2x2v_gkhyb_p1, NULL },
-    { gkyl_array_integrate_op_sq_weighted_3x2v_gkhyb_p1, NULL }
-  };
+    { gkyl_array_integrate_op_sq_weighted_3x2v_gkhyb_p1, NULL } };
 
 GKYL_CU_D static const array_integrate_gradsq_kern_list gkyl_array_integrate_gradsq_ker_list[] = {
   { gkyl_array_integrate_op_grad_sq_1x_ser_p1, gkyl_array_integrate_op_grad_sq_1x_ser_p2 },
@@ -78,20 +76,17 @@ GKYL_CU_D static const array_integrate_gradsq_kern_list gkyl_array_integrate_gra
 };
 
 GKYL_CU_D static const array_integrate_gradperpsq_kern_list
-  gkyl_array_integrate_gradperpsq_ker_list[] = {
-    { NULL, NULL },
+  gkyl_array_integrate_gradperpsq_ker_list[] = { { NULL, NULL },
     { gkyl_array_integrate_op_grad_sq_2x_ser_p1, gkyl_array_integrate_op_grad_sq_2x_ser_p2 },
-    { gkyl_array_integrate_op_gradperp_sq_3x_ser_p1, gkyl_array_integrate_op_gradperp_sq_3x_ser_p2 }
-  };
+    { gkyl_array_integrate_op_gradperp_sq_3x_ser_p1,
+      gkyl_array_integrate_op_gradperp_sq_3x_ser_p2 } };
 
 GKYL_CU_D static const array_integrate_epsgradperpsq_kern_list
-  gkyl_array_integrate_epsgradperpsq_ker_list[] = {
-    { NULL, NULL },
+  gkyl_array_integrate_epsgradperpsq_ker_list[] = { { NULL, NULL },
     { gkyl_array_integrate_op_eps_gradperp_sq_2x_ser_p1,
       gkyl_array_integrate_op_eps_gradperp_sq_2x_ser_p2 },
     { gkyl_array_integrate_op_eps_gradperp_sq_3x_ser_p1,
-      gkyl_array_integrate_op_eps_gradperp_sq_3x_ser_p2 }
-  };
+      gkyl_array_integrate_op_eps_gradperp_sq_3x_ser_p2 } };
 
 // Primary struct in this updater.
 struct gkyl_array_integrate {
@@ -104,9 +99,8 @@ struct gkyl_array_integrate {
   struct gkyl_array_integrate *on_dev; // Pointer to itself on device.
 };
 
-GKYL_CU_D static void gkyl_array_integrate_choose_kernel(enum gkyl_array_integrate_op op,
-                                                         const struct gkyl_basis *basis,
-                                                         struct gkyl_array_integrate *up)
+GKYL_CU_D static void gkyl_array_integrate_choose_kernel(
+  enum gkyl_array_integrate_op op, const struct gkyl_basis *basis, struct gkyl_array_integrate *up)
 {
   int ndim = basis->ndim, poly_order = basis->poly_order;
 
@@ -135,11 +129,8 @@ GKYL_CU_D static void gkyl_array_integrate_choose_kernel(enum gkyl_array_integra
 }
 
 struct gkyl_array_integrate *gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid,
-                                                             const struct gkyl_basis *basis,
-                                                             int num_comp,
-                                                             enum gkyl_array_integrate_op op);
+  const struct gkyl_basis *basis, int num_comp, enum gkyl_array_integrate_op op);
 
 void gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl_array *arr,
-                                     double factor, const struct gkyl_array *weight,
-                                     const struct gkyl_range *range,
-                                     const struct gkyl_range *weight_range, double *out);
+  double factor, const struct gkyl_array *weight, const struct gkyl_range *range,
+  const struct gkyl_range *weight_range, double *out);

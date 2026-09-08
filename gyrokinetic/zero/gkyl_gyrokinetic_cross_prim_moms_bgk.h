@@ -14,9 +14,8 @@ typedef struct gkyl_gyrokinetic_cross_prim_moms_bgk gkyl_gyrokinetic_cross_prim_
  * @param conf_basis Configuration space basis functions.
  * @param use_gpu Boolian to determine if on GPU.
  */
-gkyl_gyrokinetic_cross_prim_moms_bgk *
-gkyl_gyrokinetic_cross_prim_moms_bgk_new(const struct gkyl_basis *phase_basis,
-                                         const struct gkyl_basis *conf_basis, bool use_gpu);
+gkyl_gyrokinetic_cross_prim_moms_bgk *gkyl_gyrokinetic_cross_prim_moms_bgk_new(
+  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, bool use_gpu);
 
 /**
  * Compute the cross moments with moments of each species.
@@ -31,10 +30,10 @@ gkyl_gyrokinetic_cross_prim_moms_bgk_new(const struct gkyl_basis *phase_basis,
  * @param moms_other Moments of the other species.
  * @param moms_cross Six output moments.
  */
-void gkyl_gyrokinetic_cross_prim_moms_bgk_advance(
-  gkyl_gyrokinetic_cross_prim_moms_bgk *up, const struct gkyl_range *conf_rng, double delta_sr,
-  double betap1, double m_self, const struct gkyl_array *prim_moms_self, double m_other,
-  const struct gkyl_array *prim_moms_other, struct gkyl_array *prim_moms_cross);
+void gkyl_gyrokinetic_cross_prim_moms_bgk_advance(gkyl_gyrokinetic_cross_prim_moms_bgk *up,
+  const struct gkyl_range *conf_rng, double delta_sr, double betap1, double m_self,
+  const struct gkyl_array *prim_moms_self, double m_other, const struct gkyl_array *prim_moms_other,
+  struct gkyl_array *prim_moms_cross);
 
 /**
  * Release memory needed in the cross moments calculation.

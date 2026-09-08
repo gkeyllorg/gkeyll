@@ -38,16 +38,16 @@ void test_maxwell_basic_ho()
                             b_fact * q[7], -q[EZ], q[EY],
 
                             e_fact * q[EX], b_fact * c2 * q[BX] },
-                          { -c2 * q[BZ], e_fact * c2 * q[6], c2 * q[BX],
+    { -c2 * q[BZ], e_fact * c2 * q[6], c2 * q[BX],
 
-                            q[EZ], b_fact * q[7], -q[EX],
+      q[EZ], b_fact * q[7], -q[EX],
 
-                            e_fact * q[EY], b_fact * c2 * q[BY] },
-                          { c2 * q[BY], -c2 * q[BX], e_fact * c2 * q[6],
+      e_fact * q[EY], b_fact * c2 * q[BY] },
+    { c2 * q[BY], -c2 * q[BX], e_fact * c2 * q[6],
 
-                            -q[EY], q[EX], b_fact * q[7],
+      -q[EY], q[EX], b_fact * q[7],
 
-                            e_fact * q[EZ], b_fact * c2 * q[BZ] }
+      e_fact * q[EZ], b_fact * c2 * q[BZ] }
 
   };
 
@@ -103,17 +103,17 @@ void test_maxwell_waves_ho()
     for (int i = 0; i < 8; ++i)
       delta[i] = qr_local[i] - ql_local[i];
 
-    gkyl_wv_eqn_waves(maxwell, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-                      waves_local, speeds);
+    gkyl_wv_eqn_waves(
+      maxwell, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     double apdq_local[8], amdq_local[8];
     gkyl_wv_eqn_qfluct(maxwell, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local,
-                       speeds, amdq_local, apdq_local);
+      speeds, amdq_local, apdq_local);
 
     // rotate waves back to global frame
     for (int mw = 0; mw < 6; ++mw)
-      gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], &waves_local[mw * 8],
-                                   &waves[mw * 8]);
+      gkyl_wv_eqn_rotate_to_global(
+        maxwell, tau1[d], tau2[d], norm[d], &waves_local[mw * 8], &waves[mw * 8]);
 
     double apdq[8], amdq[8];
     gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], apdq_local, apdq);
@@ -160,8 +160,8 @@ void test_wv_maxwell_dev()
 #endif
 
 TEST_LIST = { { "maxwell_basic_ho", test_maxwell_basic_ho },
-              { "maxwell_waves_ho", test_maxwell_waves_ho },
+  { "maxwell_waves_ho", test_maxwell_waves_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "wv_maxwell_dev", test_wv_maxwell_dev },
+  { "wv_maxwell_dev", test_wv_maxwell_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

@@ -18,8 +18,8 @@ struct gkyl_dg_updater_collisions *gkyl_dg_updater_rad_gyrokinetic_new(
 {
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
   up->use_gpu = use_gpu;
-  up->coll_drag = gkyl_dg_rad_gyrokinetic_drag_new(conf_basis, phase_basis, phase_range, conf_range,
-                                                   vel_map, use_gpu);
+  up->coll_drag = gkyl_dg_rad_gyrokinetic_drag_new(
+    conf_basis, phase_basis, phase_range, conf_range, vel_map, use_gpu);
   struct gkyl_dg_rad_gyrokinetic_auxfields *rad_inp = aux_inp;
   gkyl_rad_gyrokinetic_drag_set_auxfields(up->coll_drag, *rad_inp);
 
@@ -34,8 +34,8 @@ struct gkyl_dg_updater_collisions *gkyl_dg_updater_rad_gyrokinetic_new(
   for (int d = cdim; d < pdim; ++d)
     zero_flux_flags[d] = zero_flux_flags[d + pdim] = 1;
 
-  up->drag = gkyl_hyper_dg_new(grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs,
-                               zero_flux_flags, 1, use_gpu);
+  up->drag = gkyl_hyper_dg_new(
+    grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
 
   up->drag_tm = 0.0;
 
@@ -43,18 +43,16 @@ struct gkyl_dg_updater_collisions *gkyl_dg_updater_rad_gyrokinetic_new(
 }
 
 void gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *rad,
-                                             const struct gkyl_range *update_rng,
-                                             const struct gkyl_array *GKYL_RESTRICT fIn,
-                                             struct gkyl_array *GKYL_RESTRICT cflrate,
-                                             struct gkyl_array *GKYL_RESTRICT rhs)
+  const struct gkyl_range *update_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(rad->drag, update_rng, fIn, cflrate, rhs);
   rad->drag_tm += gkyl_time_diff_now_sec(wst);
 }
 
-struct gkyl_dg_updater_rad_gyrokinetic_tm
-gkyl_dg_updater_rad_gyrokinetic_get_tm(const struct gkyl_dg_updater_collisions *coll)
+struct gkyl_dg_updater_rad_gyrokinetic_tm gkyl_dg_updater_rad_gyrokinetic_get_tm(
+  const struct gkyl_dg_updater_collisions *coll)
 {
   return (struct gkyl_dg_updater_rad_gyrokinetic_tm){ .drag_tm = coll->drag_tm };
 }

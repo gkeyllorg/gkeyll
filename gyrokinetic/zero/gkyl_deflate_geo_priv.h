@@ -23,12 +23,10 @@ typedef struct {
 
 static const deflate_geo_surf_kernel_dim_list ser_deflate_surf_geo_kernel_list[] = {
   { .list = { { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL } } },
-  { .list = { { NULL, deflate_geo_surfx_1x_ser_p1, NULL },
-              { NULL, NULL, NULL },
-              { NULL, NULL, NULL } } },
+  { .list = { { NULL, deflate_geo_surfx_1x_ser_p1, NULL }, { NULL, NULL, NULL },
+      { NULL, NULL, NULL } } },
   { .list = { { NULL, deflate_geo_surfx_2x_ser_p1, NULL },
-              { NULL, deflate_geo_surfy_2x_ser_p1, NULL },
-              { NULL, NULL, NULL } } }
+      { NULL, deflate_geo_surfy_2x_ser_p1, NULL }, { NULL, NULL, NULL } } }
 };
 
 GKYL_CU_DH static const deflate_geo_kernel_remx_list ser_deflate_geo_kernel_rem_list[] = {
@@ -78,9 +76,8 @@ struct gkyl_deflate_geo_surf {
   bool use_gpu;
 };
 
-GKYL_CU_DH static deflate_geo_kernel deflate_geo_choose_kernel(const int *rem_dirs, const int cdim,
-                                                               const int basis_type,
-                                                               const int poly_order)
+GKYL_CU_DH static deflate_geo_kernel deflate_geo_choose_kernel(
+  const int *rem_dirs, const int cdim, const int basis_type, const int poly_order)
 {
   switch (basis_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -95,9 +92,8 @@ GKYL_CU_DH static deflate_geo_kernel deflate_geo_choose_kernel(const int *rem_di
   }
 }
 
-GKYL_CU_DH static deflate_geo_kernel deflate_geo_surf_choose_kernel(const int dir, const int cdim,
-                                                                    const int basis_type,
-                                                                    const int poly_order)
+GKYL_CU_DH static deflate_geo_kernel deflate_geo_surf_choose_kernel(
+  const int dir, const int cdim, const int basis_type, const int poly_order)
 {
   switch (basis_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

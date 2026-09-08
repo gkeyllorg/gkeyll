@@ -858,23 +858,16 @@ void test_mat_mm_arrays_dev()
 
 #endif
 
-TEST_LIST = { { "mat_base_ho", test_mat_base_ho },
-              { "mat_mm_op_ho", test_mat_mm_op_ho },
-              { "mat_linsolve_ho", test_mat_linsolve_ho },
-              { "nmat_base_ho", test_nmat_base_ho },
-              { "nmat_linsolve_ho", test_nmat_linsolve_ho },
-              { "nmat_linsolve_pa_ho", test_nmat_linsolve_pa_ho },
-              { "mat_mv_ho", test_mat_mv_ho },
-              { "nmat_mv_ho", test_nmat_mv_ho },
-              { "nmat_mm_ho", test_nmat_mm_ho },
-              { "mat_mm_arrays_ho", test_mat_mm_arrays_ho },
+TEST_LIST = { { "mat_base_ho", test_mat_base_ho }, { "mat_mm_op_ho", test_mat_mm_op_ho },
+  { "mat_linsolve_ho", test_mat_linsolve_ho }, { "nmat_base_ho", test_nmat_base_ho },
+  { "nmat_linsolve_ho", test_nmat_linsolve_ho },
+  { "nmat_linsolve_pa_ho", test_nmat_linsolve_pa_ho }, { "mat_mv_ho", test_mat_mv_ho },
+  { "nmat_mv_ho", test_nmat_mv_ho }, { "nmat_mm_ho", test_nmat_mm_ho },
+  { "mat_mm_arrays_ho", test_mat_mm_arrays_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "nmat_base_dev", test_nmat_base_dev },
-              { "nmat_linsolve_dev", test_nmat_linsolve_dev },
-              { "nmat_linsolve_pa_dev", test_nmat_linsolve_pa_dev },
-              { "nmat_mv_dev", test_nmat_mv_dev },
-              { "mat_mm_dev", test_mat_mm_dev },
-              { "nmat_mm_dev", test_nmat_mm_dev },
-              { "mat_mm_arrays_dev", test_mat_mm_arrays_dev },
+  { "nmat_base_dev", test_nmat_base_dev }, { "nmat_linsolve_dev", test_nmat_linsolve_dev },
+  { "nmat_linsolve_pa_dev", test_nmat_linsolve_pa_dev }, { "nmat_mv_dev", test_nmat_mv_dev },
+  { "mat_mm_dev", test_mat_mm_dev }, { "nmat_mm_dev", test_nmat_mm_dev },
+  { "mat_mm_arrays_dev", test_mat_mm_arrays_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

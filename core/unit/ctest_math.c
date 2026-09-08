@@ -34,7 +34,7 @@ static void show_qr_res(struct gkyl_qr_res res, const char *msg)
 {
   fprintf(stdout, "%s\n", msg);
   fprintf(stdout, ">> Status = %d. Res = %.15lg, Error = %g, Neval = %d. Nlevel = %d\n", res.status,
-          res.res, res.error, res.nevals, res.nlevels);
+    res.res, res.error, res.nevals, res.nlevels);
 }
 
 void test_math_dbl_exp_ho(void)
@@ -130,8 +130,8 @@ struct idx_status {
   bool status;
 };
 
-static struct idx_status check_in_list(int nvals, const double complex *vals,
-                                       double complex tocheck, double eps)
+static struct idx_status check_in_list(
+  int nvals, const double complex *vals, double complex tocheck, double eps)
 {
   for (int i = 0; i < nvals; ++i)
     if (gkyl_compare_double(creal(vals[i]), creal(tocheck), eps) &&
@@ -165,11 +165,11 @@ void test_math_poly2_roots_ho(void)
     rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_2, c1);
 
     istat = check_in_list(2, (double complex[]){ 2.0 - 3.0 * I, 2.0 + 3.0 * I },
-                          rts.rpart[0] + I * rts.impart[0], 1e-15);
+      rts.rpart[0] + I * rts.impart[0], 1e-15);
     TEST_CHECK(istat.status);
 
     istat = check_in_list(2, (double complex[]){ 2.0 - 3.0 * I, 2.0 + 3.0 * I },
-                          rts.rpart[1] + I * rts.impart[1], 1e-15);
+      rts.rpart[1] + I * rts.impart[1], 1e-15);
     TEST_CHECK(istat.status);
   } while (0);
 }
@@ -341,7 +341,7 @@ void test_math_sturn_root_intervals_ho(void)
 
     // Check the outputs of the roots via ridders
     double roots[4] = { -0.9419651451198933, -0.3357106870197288, 0.3357106870197288,
-                        0.9419651451198933 };
+      0.9419651451198933 };
     for (int i = 0; i < root_intervals.nroots; ++i) {
       TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
       TEST_CHECK(root_intervals.status_ridders[i] == 0);
@@ -354,9 +354,9 @@ void test_math_sturn_root_intervals_ho(void)
 
     // Check the outputs of the refinement pass
     double lower_refined[4] = { -9.4196514511995133e-01, -3.3571068701979812e-01,
-                                3.3571068701971285e-01, 9.4196514511986607e-01 };
+      3.3571068701971285e-01, 9.4196514511986607e-01 };
     double upper_refined[4] = { -9.4196514511986607e-01, -3.3571068701971285e-01,
-                                3.3571068701979812e-01, 9.4196514511995133e-01 };
+      3.3571068701979812e-01, 9.4196514511995133e-01 };
     for (int i = 0; i < root_intervals.nroots; ++i) {
       TEST_CHECK(gkyl_compare_double(upper_refined[i], root_intervals.root_bound_upper[i], 1e-12));
       TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
@@ -393,7 +393,7 @@ void test_math_sturn_root_intervals_ho(void)
 
     // Check the outputs of the roots via ridders
     double roots[4] = { -8.3856473883897131e-01, 6.5873479706025262e-01, 9.3592994177871747e-01,
-                        1.0000000000000040e+00 };
+      1.0000000000000040e+00 };
     for (int i = 0; i < root_intervals.nroots; ++i) {
       TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
       TEST_CHECK(root_intervals.status_ridders[i] == 0);
@@ -406,9 +406,9 @@ void test_math_sturn_root_intervals_ho(void)
 
     // Check the outputs of the refinement pass
     double lower_refined[4] = { -8.3856473883901117e-01, 6.5873479706024796e-01,
-                                9.3592994177868438e-01, 9.9999999999994316e-01 };
+      9.3592994177868438e-01, 9.9999999999994316e-01 };
     double upper_refined[4] = { -8.3856473883892590e-01, 6.5873479706033322e-01,
-                                9.3592994177874400e-01, 1.0000000000000284e+00 };
+      9.3592994177874400e-01, 1.0000000000000284e+00 };
     for (int i = 0; i < root_intervals.nroots; ++i) {
       TEST_CHECK(gkyl_compare_double(upper_refined[i], root_intervals.root_bound_upper[i], 1e-12));
       TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
@@ -468,9 +468,9 @@ void test_math_sturn_root_intervals_ho(void)
 
     // Check the outputs of the refinement pass
     double lower_refined[4] = { 9.9999999999997746e-01, -1.0000000000000455e+00,
-                                -1.6979010789934061e-14, 0.0 };
+      -1.6979010789934061e-14, 0.0 };
     double upper_refined[4] = { 1.0000000000000457e+00, -9.9999999999999434e-01,
-                                3.4180066184793154e-14, 0.0 };
+      3.4180066184793154e-14, 0.0 };
     for (int i = 0; i < root_intervals.nroots; ++i) {
       TEST_CHECK(gkyl_compare_double(upper_refined[i], root_intervals.root_bound_upper[i], 1e-12));
       TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
@@ -494,7 +494,7 @@ void test_math_sturn_root_intervals_ho(void)
 
     // Check the outputs
     double lower[4] = { -2.793966983697753e-10, -6.984911908129258e-11, 3.492467056294875e-11,
-                        0.0 };
+      0.0 };
     double upper[4] = { -6.984911908129258e-11, 3.492467056294875e-11, 1.396984602071901e-10, 0.0 };
     TEST_CHECK(root_intervals.status == 0);
     TEST_CHECK(root_intervals.nroots == 3);
@@ -525,9 +525,9 @@ void test_math_sturn_root_intervals_ho(void)
 
     // Check the outputs of the refinement pass
     double lower_refined[4] = { -1.0003297449638165e-10, -1.6979010789934061e-14,
-                                9.9999016474801779e-11, 0.0 };
+      9.9999016474801779e-11, 0.0 };
     double upper_refined[4] = { -9.9981815419406931e-11, 3.4180066184793154e-14,
-                                1.0005017555177650e-10, 0.0 };
+      1.0005017555177650e-10, 0.0 };
     for (int i = 0; i < root_intervals.nroots; ++i) {
       TEST_CHECK(gkyl_compare_double(upper_refined[i], root_intervals.root_bound_upper[i], 1e-12));
       TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
@@ -617,10 +617,8 @@ void test_math_sturn_root_intervals_ho(void)
 }
 
 TEST_LIST = { { "math_dbl_exp_ho", test_math_dbl_exp_ho },
-              { "math_ridders_ho", test_math_ridders_ho },
-              { "math_poly2_roots_ho", test_math_poly2_roots_ho },
-              { "math_poly3_roots_ho", test_math_poly3_roots_ho },
-              { "math_poly4_roots_ho", test_math_poly4_roots_ho },
-              { "math_sturn_root_intervals_ho", test_math_sturn_root_intervals_ho },
-              { "math_polyn_roots_ho", test_math_polyn_roots_ho },
-              { NULL, NULL } };
+  { "math_ridders_ho", test_math_ridders_ho }, { "math_poly2_roots_ho", test_math_poly2_roots_ho },
+  { "math_poly3_roots_ho", test_math_poly3_roots_ho },
+  { "math_poly4_roots_ho", test_math_poly4_roots_ho },
+  { "math_sturn_root_intervals_ho", test_math_sturn_root_intervals_ho },
+  { "math_polyn_roots_ho", test_math_polyn_roots_ho }, { NULL, NULL } };

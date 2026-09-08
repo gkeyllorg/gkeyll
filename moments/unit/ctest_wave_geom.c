@@ -480,13 +480,10 @@ void test_wv_geom_3d_dev()
 #endif
 
 TEST_LIST = { { "wv_geom_1d_1_ho", test_wv_geom_1d_1_ho },
-              { "wv_geom_1d_2_ho", test_wv_geom_1d_2_ho },
-              { "wv_geom_2d_1_ho", test_wv_geom_2d_1_ho },
-              { "wv_geom_2d_2_ho", test_wv_geom_2d_2_ho },
-              { "wv_geom_2d_3_ho", test_wv_geom_2d_3_ho },
-              { "wv_geom_3d_1_ho", test_wv_geom_3d_1_ho },
-              { "wv_geom_3d_2_ho", test_wv_geom_3d_2_ho },
+  { "wv_geom_1d_2_ho", test_wv_geom_1d_2_ho }, { "wv_geom_2d_1_ho", test_wv_geom_2d_1_ho },
+  { "wv_geom_2d_2_ho", test_wv_geom_2d_2_ho }, { "wv_geom_2d_3_ho", test_wv_geom_2d_3_ho },
+  { "wv_geom_3d_1_ho", test_wv_geom_3d_1_ho }, { "wv_geom_3d_2_ho", test_wv_geom_3d_2_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "wv_geom_3d_dev", test_wv_geom_3d_dev },
+  { "wv_geom_3d_dev", test_wv_geom_3d_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

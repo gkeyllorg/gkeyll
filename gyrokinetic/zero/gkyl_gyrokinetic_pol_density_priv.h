@@ -35,18 +35,16 @@ struct gkyl_gyrokinetic_pol_density {
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
 
-void gk_pol_den_choose_kernel_cu(struct gkyl_gyrokinetic_pol_density_kernels *kernels,
-                                 struct gkyl_basis cbasis);
+void gk_pol_den_choose_kernel_cu(
+  struct gkyl_gyrokinetic_pol_density_kernels *kernels, struct gkyl_basis cbasis);
 
 void gkyl_gyrokinetic_pol_density_advance_cu(gkyl_gyrokinetic_pol_density *up,
-                                             const struct gkyl_range *conf_rng,
-                                             const struct gkyl_array *GKYL_RESTRICT pol_weight,
-                                             const struct gkyl_array *GKYL_RESTRICT phi,
-                                             struct gkyl_array *GKYL_RESTRICT npol);
+  const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT pol_weight,
+  const struct gkyl_array *GKYL_RESTRICT phi, struct gkyl_array *GKYL_RESTRICT npol);
 #endif
 
-GKYL_CU_D static void gk_pol_den_choose_kernel(struct gkyl_gyrokinetic_pol_density_kernels *kernels,
-                                               struct gkyl_basis cbasis, bool use_gpu)
+GKYL_CU_D static void gk_pol_den_choose_kernel(
+  struct gkyl_gyrokinetic_pol_density_kernels *kernels, struct gkyl_basis cbasis, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {

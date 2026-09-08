@@ -54,8 +54,8 @@ struct gkyl_vlasov_lte_correct_status {
  * @param inp Input parameters defined in gkyl_vlasov_lte_correct_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_vlasov_lte_correct *
-gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp);
+struct gkyl_vlasov_lte_correct *gkyl_vlasov_lte_correct_inew(
+  const struct gkyl_vlasov_lte_correct_inp *inp);
 
 /**
  * Fix the LTE (local thermodynamic equlibrium) distribution function
@@ -80,10 +80,8 @@ struct gkyl_vlasov_lte_correct_status gkyl_vlasov_lte_correct_all_moments(
  * difference in cell averages between the target moments and iterative moments.
  */
 void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range,
-                                                     int num_comp, int nc,
-                                                     const struct gkyl_array *moms_target,
-                                                     const struct gkyl_array *moms_iter,
-                                                     struct gkyl_array *moms_abs_diff);
+  int num_comp, int nc, const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter,
+  struct gkyl_array *moms_abs_diff);
 
 /**
  * Delete updater.

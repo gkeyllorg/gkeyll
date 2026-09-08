@@ -581,12 +581,10 @@ static int block_topo_cmp_lw(lua_State *L)
 }
 
 // Module-level functions registered under G0.Zero
-static struct luaL_Reg zero_array_funcs[] = {
-  { "gkylFileType", gkyl_file_type_lw }, { "arrayNewFromFile", array_new_from_file_lw },
-  { "rectGridCmp", rect_grid_cmp_lw },   { "createGridRanges", create_grid_ranges_lw },
-  { "arrayDiff", array_diff_lw },        { "dynvecDiff", dynvec_diff_lw },
-  { "blockTopoCmp", block_topo_cmp_lw }, { 0, 0 }
-};
+static struct luaL_Reg zero_array_funcs[] = { { "gkylFileType", gkyl_file_type_lw },
+  { "arrayNewFromFile", array_new_from_file_lw }, { "rectGridCmp", rect_grid_cmp_lw },
+  { "createGridRanges", create_grid_ranges_lw }, { "arrayDiff", array_diff_lw },
+  { "dynvecDiff", dynvec_diff_lw }, { "blockTopoCmp", block_topo_cmp_lw }, { 0, 0 } };
 
 void gkyl_zero_lw_openlibs(lua_State *L)
 {

@@ -13,10 +13,9 @@ extern "C" {
 }
 
 // CUDA kernel to set device pointers to kernels.
-__global__ static void
-gkyl_dg_calc_gk_neut_hamil_set_cu_dev_ptrs(struct gkyl_dg_calc_gk_neut_hamil *up,
-                                           enum gkyl_basis_type b_type, int cdim, int vdim,
-                                           int poly_order)
+__global__ static void gkyl_dg_calc_gk_neut_hamil_set_cu_dev_ptrs(
+  struct gkyl_dg_calc_gk_neut_hamil *up, enum gkyl_basis_type b_type, int cdim, int vdim,
+  int poly_order)
 {
   up->calc_hamil = choose_kern(b_type, cdim, vdim, poly_order);
 };
@@ -47,9 +46,8 @@ __global__ static void gkyl_dg_calc_gk_neut_hamil_calc_cu_kernel(
 }
 
 void gkyl_dg_calc_gk_neut_hamil_calc_cu(struct gkyl_dg_calc_gk_neut_hamil *up,
-                                        const struct gkyl_range *conf_range,
-                                        const struct gkyl_range *phase_range,
-                                        const struct gkyl_array *gij, struct gkyl_array *hamil)
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_array *gij, struct gkyl_array *hamil)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
@@ -57,9 +55,8 @@ void gkyl_dg_calc_gk_neut_hamil_calc_cu(struct gkyl_dg_calc_gk_neut_hamil *up,
     up->on_dev, *conf_range, *phase_range, gij->on_dev, hamil->on_dev);
 }
 
-gkyl_dg_calc_gk_neut_hamil *
-gkyl_dg_calc_gk_neut_hamil_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
-                                      const struct gkyl_basis *basis, int cdim)
+gkyl_dg_calc_gk_neut_hamil *gkyl_dg_calc_gk_neut_hamil_cu_dev_new(
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *basis, int cdim)
 {
   gkyl_dg_calc_gk_neut_hamil *up = (struct gkyl_dg_calc_gk_neut_hamil *)gkyl_malloc(sizeof(*up));
 

@@ -63,10 +63,9 @@ gkyl_mp_scheme *gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *winp);
  * @param rhs RHS of PDE 
  */
 void gkyl_mp_scheme_advance(gkyl_mp_scheme *mp, const struct gkyl_range *update_range,
-                            const struct gkyl_array *qin, struct gkyl_array *qrec_l,
-                            struct gkyl_array *qrec_r, struct gkyl_array *amdq,
-                            struct gkyl_array *apdq, struct gkyl_array *cflrate,
-                            struct gkyl_array *phi, struct gkyl_array *rhs);
+  const struct gkyl_array *qin, struct gkyl_array *qrec_l, struct gkyl_array *qrec_r,
+  struct gkyl_array *amdq, struct gkyl_array *apdq, struct gkyl_array *cflrate,
+  struct gkyl_array *phi, struct gkyl_array *rhs);
 
 /**
  * Compute an estimate of maximum stable time-step for given input
@@ -76,8 +75,8 @@ void gkyl_mp_scheme_advance(gkyl_mp_scheme *mp, const struct gkyl_range *update_
  * @param qin Input to compute dt for
  * @return maximum stable time-step
  */
-double gkyl_mp_scheme_max_dt(const gkyl_mp_scheme *mp, const struct gkyl_range *update_range,
-                             const struct gkyl_array *qin);
+double gkyl_mp_scheme_max_dt(
+  const gkyl_mp_scheme *mp, const struct gkyl_range *update_range, const struct gkyl_array *qin);
 
 /**
  * Delete updater.

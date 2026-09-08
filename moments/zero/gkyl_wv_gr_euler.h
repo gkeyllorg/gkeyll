@@ -32,8 +32,8 @@ struct gkyl_wv_gr_euler_inp {
 * @return Pointer to the general relativistic Euler equations object with ideal gas equation of state.
 */
 struct gkyl_wv_eqn *gkyl_wv_gr_euler_new(double gas_gamma,
-                                         enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq,
-                                         struct gkyl_gr_spacetime *spacetime, bool use_gpu);
+  enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
+  bool use_gpu);
 
 /**
 * Create a new general relativistic Euler equations object with ideal gas equation of state, from an input context struct.

@@ -25,8 +25,8 @@
 #include <gkyl_tok_geo.h>
 #include <gkyl_util.h>
 
-void write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local,
-                    const char *name)
+void write_geometry(
+  gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local, const char *name)
 {
   const char *fmt = "%s-%s.gkyl";
   int sz = gkyl_calc_strlen(fmt, name, "jacobtot_inv");
@@ -84,8 +84,8 @@ void write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_ran
   gkyl_gk_geometry_init_nodal_range(&nrange, &local, up->basis.poly_order);
   struct gkyl_array *mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &grid, false);
-  gkyl_nodal_ops_m2n(n2m, &up->basis, &grid, &nrange, &local, 3, mc2p_nodal, up->geo_corn.mc2p,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &up->basis, &grid, &nrange, &local, 3, mc2p_nodal, up->geo_corn.mc2p, false);
   gkyl_nodal_ops_release(n2m);
   struct gkyl_rect_grid ngrid;
   gkyl_gk_geometry_init_nodal_grid(&ngrid, &grid, &nrange);
@@ -101,10 +101,10 @@ void test_tok_elliptical_ho()
   start = clock();
 
   struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
-                                    .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
-                                    .rz_poly_order = 2,
-                                    .flux_poly_order = 1,
-                                    .reflect = true
+    .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect = true
   };
 
   double psisep = -4.0;
@@ -124,30 +124,30 @@ void test_tok_elliptical_ho()
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_tok_geo_grid_inp ginp = { .rmin = 0.0,
-                                        .rmax = 5.0,
-                                        .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,
-                                        .rclose = 6.0,
-                                        .rright = 6.0,
-                                        .rleft = 0.0,
-                                        .zmin = -3.0,
-                                        .zmax = 3.0 };
+    .rmax = 5.0,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,
+    .rclose = 6.0,
+    .rright = 6.0,
+    .rleft = 0.0,
+    .zmin = -3.0,
+    .zmax = 3.0 };
 
   struct gkyl_gk_geometry_inp geometry_inp = { .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-                                               .efit_info = efit_inp,
-                                               .tok_grid_info = ginp,
-                                               .position_map = pmap,
-                                               .grid = cgrid,
-                                               .local = clocal,
-                                               .local_ext = clocal_ext,
-                                               .global = clocal,
-                                               .global_ext = clocal_ext,
-                                               .basis = cbasis,
-                                               .geo_grid = cgrid,
-                                               .geo_local = clocal,
-                                               .geo_local_ext = clocal_ext,
-                                               .geo_global = clocal,
-                                               .geo_global_ext = clocal_ext,
-                                               .geo_basis = cbasis };
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
+    .position_map = pmap,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis };
 
   struct gk_geometry *up = gkyl_gk_geometry_tok_new(&geometry_inp);
   gkyl_gk_geometry_release(up);
@@ -251,31 +251,31 @@ void test_tok_3x_p1_straight_cylinder_ho()
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_efit_inp inp = { // psiRZ and related inputs
-                               .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
-                               .rz_poly_order = 2,
-                               .flux_poly_order = 1,
-                               .reflect = true
+    .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect = true
   };
   struct gkyl_tok_geo_grid_inp ginp = {
     .rclose = 0.5, .zmin = -1., .zmax = 1., .rleft = 0.001, .rmax = 1.0, .rright = 1.0
   };
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-                                                 .efit_info = inp,
-                                                 .tok_grid_info = ginp,
-                                                 .position_map = pmap,
-                                                 .grid = grid,
-                                                 .local = range,
-                                                 .local_ext = ext_range,
-                                                 .global = range,
-                                                 .global_ext = ext_range,
-                                                 .basis = basis,
-                                                 .geo_grid = grid,
-                                                 .geo_local = range,
-                                                 .geo_local_ext = ext_range,
-                                                 .geo_global = range,
-                                                 .geo_global_ext = ext_range,
-                                                 .geo_basis = basis };
+    .efit_info = inp,
+    .tok_grid_info = ginp,
+    .position_map = pmap,
+    .grid = grid,
+    .local = range,
+    .local_ext = ext_range,
+    .global = range,
+    .global_ext = ext_range,
+    .basis = basis,
+    .geo_grid = grid,
+    .geo_local = range,
+    .geo_local_ext = ext_range,
+    .geo_global = range,
+    .geo_global_ext = ext_range,
+    .geo_basis = basis };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_input);
 
@@ -302,8 +302,8 @@ void test_tok_3x_p1_straight_cylinder_ho()
   // Check that |bhat|=1 at nodes
   struct gkyl_array *bhat_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, bhat_nodal,
-                     gk_geom->geo_int.bcart, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 3, bhat_nodal, gk_geom->geo_int.bcart, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -326,11 +326,11 @@ void test_tok_3x_p1_straight_cylinder_ho()
   struct gkyl_array *dualmag_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, dualmag_nodal,
-                     gk_geom->geo_int.dualmag, true);
+    gk_geom->geo_int.dualmag, true);
   struct gkyl_array *mapc2p_nodal_interior =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, mapc2p_nodal_interior,
-                     gk_geom->geo_int.mc2p, true);
+    gk_geom->geo_int.mc2p, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -356,11 +356,11 @@ void test_tok_3x_p1_straight_cylinder_ho()
 
   // Check bmag is what it should be
   struct gkyl_array *bmag_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->geo_corn.bmag,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->geo_corn.bmag, false);
   struct gkyl_array *mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p, false);
   for (int ia = nrange.lower[AL_IDX]; ia <= nrange.upper[AL_IDX]; ++ia) {
     for (int ip = nrange.lower[PSI_IDX]; ip <= nrange.upper[PSI_IDX]; ++ip) {
       for (int it = nrange.lower[TH_IDX]; it <= nrange.upper[TH_IDX]; ++it) {
@@ -384,8 +384,8 @@ void test_tok_3x_p1_straight_cylinder_ho()
 
   // Check cmag = 1
   struct gkyl_array *cmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, cmag_nodal,
-                     gk_geom->geo_int.cmag, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 1, cmag_nodal, gk_geom->geo_int.cmag, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -403,8 +403,8 @@ void test_tok_3x_p1_straight_cylinder_ho()
 
   // Check g_ij
   struct gkyl_array *gij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_nodal,
-                     gk_geom->geo_int.g_ij, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_nodal, gk_geom->geo_int.g_ij, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -436,7 +436,7 @@ void test_tok_3x_p1_straight_cylinder_ho()
   // Check g^ij
   struct gkyl_array *gij_contra_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_contra_nodal,
-                     gk_geom->geo_int.gij, true);
+    gk_geom->geo_int.gij, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -470,7 +470,7 @@ void test_tok_3x_p1_straight_cylinder_ho()
   struct gkyl_array *jacobgeo_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobgeo_nodal,
-                     gk_geom->geo_int.jacobgeo, true);
+    gk_geom->geo_int.jacobgeo, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -494,7 +494,7 @@ void test_tok_3x_p1_straight_cylinder_ho()
   struct gkyl_array *jacobgeo_inv_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobgeo_inv_nodal,
-                     gk_geom->geo_int.jacobgeo_inv, true);
+    gk_geom->geo_int.jacobgeo_inv, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -518,7 +518,7 @@ void test_tok_3x_p1_straight_cylinder_ho()
   struct gkyl_array *jacobtot_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobtot_nodal,
-                     gk_geom->geo_int.jacobtot, true);
+    gk_geom->geo_int.jacobtot, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -545,7 +545,7 @@ void test_tok_3x_p1_straight_cylinder_ho()
   struct gkyl_array *jacobtot_inv_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobtot_inv_nodal,
-                     gk_geom->geo_int.jacobtot_inv, true);
+    gk_geom->geo_int.jacobtot_inv, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -594,8 +594,8 @@ void test_tok_3x_p1_straight_cylinder_ho()
 
   // Check mc2nu_pos
   struct gkyl_array *mc2nu_pos_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mc2nu_pos_nodal,
-                     gk_geom->geo_corn.mc2nu_pos, false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 3, mc2nu_pos_nodal, gk_geom->geo_corn.mc2nu_pos, false);
   for (int ia = nrange.lower[AL_IDX]; ia <= nrange.upper[AL_IDX]; ++ia) {
     for (int ip = nrange.lower[PSI_IDX]; ip <= nrange.upper[PSI_IDX]; ++ip) {
       for (int it = nrange.lower[TH_IDX]; it <= nrange.upper[TH_IDX]; ++it) {
@@ -626,7 +626,7 @@ void test_tok_3x_p1_straight_cylinder_ho()
   struct gkyl_array *normals_nodal =
     gkyl_array_new(GKYL_DOUBLE, 9 * basis.num_basis, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 9 * basis.num_basis,
-                     normals_nodal, gk_geom->geo_int.normals, true);
+    normals_nodal, gk_geom->geo_int.normals, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -690,39 +690,39 @@ void test_tok_asdex_qprofile_core_ho()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
-                                    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
-                                    .rz_poly_order = 2,
-                                    .flux_poly_order = 1
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1
   };
   struct gkyl_tok_geo_grid_inp ginp = { .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
-                                        .rmin = 0.0,
-                                        .rmax = 5.0,
-                                        .rclose = 2.5,
-                                        .rright = 2.5,
-                                        .rleft = 0.7,
-                                        .zmin = -1.3,
-                                        .zmax = 1.0,
-                                        .zmin_left = -1.2,
-                                        .zmin_right = -1.0 };
+    .rmin = 0.0,
+    .rmax = 5.0,
+    .rclose = 2.5,
+    .rright = 2.5,
+    .rleft = 0.7,
+    .zmin = -1.3,
+    .zmax = 1.0,
+    .zmin_left = -1.2,
+    .zmin_right = -1.0 };
   // Initialize geometry
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-                                                 .efit_info = efit_inp,
-                                                 .tok_grid_info = ginp,
-                                                 .position_map = pmap,
-                                                 .grid = cgrid,
-                                                 .local = clocal,
-                                                 .local_ext = clocal_ext,
-                                                 .global = clocal,
-                                                 .global_ext = clocal_ext,
-                                                 .basis = cbasis,
-                                                 .geo_grid = cgrid,
-                                                 .geo_local = clocal,
-                                                 .geo_local_ext = clocal_ext,
-                                                 .geo_global = clocal,
-                                                 .geo_global_ext = clocal_ext,
-                                                 .geo_basis = cbasis };
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
+    .position_map = pmap,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_input);
   write_geometry(gk_geom, cgrid, clocal, "asdex_core");
@@ -760,40 +760,40 @@ void test_tok_asdex_qprofile_sol_ho()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
-                                    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
-                                    .rz_poly_order = 2,
-                                    .flux_poly_order = 1
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1
   };
 
   struct gkyl_tok_geo_grid_inp ginp = { .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
-                                        .rmin = 0.0,
-                                        .rmax = 5.0,
-                                        .rclose = 2.5,
-                                        .rright = 2.5,
-                                        .rleft = 0.7,
-                                        .zmin = -1.3,
-                                        .zmax = 1.0,
-                                        .zmin_left = -1.2,
-                                        .zmin_right = -1.0 };
+    .rmin = 0.0,
+    .rmax = 5.0,
+    .rclose = 2.5,
+    .rright = 2.5,
+    .rleft = 0.7,
+    .zmin = -1.3,
+    .zmax = 1.0,
+    .zmin_left = -1.2,
+    .zmin_right = -1.0 };
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_gk_geometry_inp geometry_inp = { .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-                                               .efit_info = efit_inp,
-                                               .tok_grid_info = ginp,
-                                               .position_map = pmap,
-                                               .grid = cgrid,
-                                               .local = clocal,
-                                               .local_ext = clocal_ext,
-                                               .global = clocal,
-                                               .global_ext = clocal_ext,
-                                               .basis = cbasis,
-                                               .geo_grid = cgrid,
-                                               .geo_local = clocal,
-                                               .geo_local_ext = clocal_ext,
-                                               .geo_global = clocal,
-                                               .geo_global_ext = clocal_ext,
-                                               .geo_basis = cbasis };
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
+    .position_map = pmap,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_inp);
   write_geometry(gk_geom, cgrid, clocal, "asdex_sol");
@@ -802,7 +802,6 @@ void test_tok_asdex_qprofile_sol_ho()
 }
 
 TEST_LIST = { { "test_tok_elliptical_ho", test_tok_elliptical_ho },
-              { "test_tok_3x_p1_straight_cylinder_ho", test_tok_3x_p1_straight_cylinder_ho },
-              { "test_tok_asdex_qprofile_core_ho", test_tok_asdex_qprofile_core_ho },
-              { "test_tok_asdex_qprofile_sol_ho", test_tok_asdex_qprofile_sol_ho },
-              { NULL, NULL } };
+  { "test_tok_3x_p1_straight_cylinder_ho", test_tok_3x_p1_straight_cylinder_ho },
+  { "test_tok_asdex_qprofile_core_ho", test_tok_asdex_qprofile_core_ho },
+  { "test_tok_asdex_qprofile_sol_ho", test_tok_asdex_qprofile_sol_ho }, { NULL, NULL } };

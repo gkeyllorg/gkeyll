@@ -21,8 +21,8 @@
 
 #include <gkyl_comm.h>
 
-void write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local,
-                    const char *name)
+void write_geometry(
+  gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local, const char *name)
 {
   const char *fmt = "%s-%s.gkyl";
   int sz = gkyl_calc_strlen(fmt, name, "jacobtot_inv");
@@ -76,8 +76,8 @@ void write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_ran
   gkyl_gk_geometry_init_nodal_range(&nrange, &local, up->basis.poly_order);
   struct gkyl_array *mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &grid, false);
-  gkyl_nodal_ops_m2n(n2m, &up->basis, &grid, &nrange, &local, 3, mc2p_nodal, up->geo_corn.mc2p,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &up->basis, &grid, &nrange, &local, 3, mc2p_nodal, up->geo_corn.mc2p, false);
   gkyl_nodal_ops_release(n2m);
   struct gkyl_rect_grid ngrid;
   gkyl_gk_geometry_init_nodal_grid(&ngrid, &grid, &nrange);
@@ -138,8 +138,7 @@ void test_mapc2p_3x_p1_ho()
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude
@@ -156,8 +155,7 @@ void test_mapc2p_3x_p1_ho()
     .geo_local_ext = ext_range,
     .geo_global = range,
     .geo_global_ext = ext_range,
-    .geo_basis = basis
-  };
+    .geo_basis = basis };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   //write_geometry(gk_geom, grid, range, "geomapc2p");
@@ -181,19 +179,19 @@ void test_mapc2p_3x_p1_ho()
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
 
   struct gkyl_array *mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p, false);
 
   struct gkyl_array *mapc2p_nodal_interior =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, mapc2p_nodal_interior,
-                     gk_geom->geo_int.mc2p, true);
+    gk_geom->geo_int.mc2p, true);
 
   // Check that |bhat|=1 at nodes
   struct gkyl_array *bhat_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, bhat_nodal,
-                     gk_geom->geo_int.bcart, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 3, bhat_nodal, gk_geom->geo_int.bcart, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -215,7 +213,7 @@ void test_mapc2p_3x_p1_ho()
   struct gkyl_array *dualmag_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, dualmag_nodal,
-                     gk_geom->geo_int.dualmag, true);
+    gk_geom->geo_int.dualmag, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -241,7 +239,7 @@ void test_mapc2p_3x_p1_ho()
   struct gkyl_array *jacobgeo_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobgeo_nodal,
-                     gk_geom->geo_int.jacobgeo, true);
+    gk_geom->geo_int.jacobgeo, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -265,8 +263,8 @@ void test_mapc2p_3x_p1_ho()
   // Check bmag is what it should be
   struct gkyl_array *bmag_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, bmag_nodal,
-                     gk_geom->geo_int.bmag, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 1, bmag_nodal, gk_geom->geo_int.bmag, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -293,8 +291,8 @@ void test_mapc2p_3x_p1_ho()
 
   // Check gij
   struct gkyl_array *gij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_nodal,
-                     gk_geom->geo_int.g_ij, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_nodal, gk_geom->geo_int.g_ij, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -400,8 +398,7 @@ void test_mapc2p_3x_p1_pmap_ho()
     gkyl_position_map_new(pos_map_inp, grid, range, ext_range, range, ext_range, basis);
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude
@@ -418,8 +415,7 @@ void test_mapc2p_3x_p1_pmap_ho()
     .geo_global = range,
     .geo_global_ext = ext_range,
     .geo_basis = basis,
-    .position_map = pos_map
-  };
+    .position_map = pos_map };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
@@ -448,13 +444,13 @@ void test_mapc2p_3x_p1_pmap_ho()
   double alpha_lo = grid.lower[AL_IDX] + dels[1] * grid.dx[AL_IDX] / 2.0;
 
   struct gkyl_array *mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p, false);
 
   struct gkyl_array *mapc2p_nodal_interior =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, mapc2p_nodal_interior,
-                     gk_geom->geo_int.mc2p, true);
+    gk_geom->geo_int.mc2p, true);
 
   // Check mapc2p
   for (int ia = nrange.lower[AL_IDX]; ia <= nrange.upper[AL_IDX]; ++ia) {
@@ -477,8 +473,8 @@ void test_mapc2p_3x_p1_pmap_ho()
         mapc2p(0.0, xn, fout, 0);
         for (int i = 0; i < 3; ++i) {
           TEST_CHECK(gkyl_compare(mapc2p_n[i], fout[i], 1e-8));
-          TEST_MSG("i %d, idx %d %d %d, mapc2p_n %g, fout %g\n", i, ip, ia, it, mapc2p_n[i],
-                   fout[i]);
+          TEST_MSG(
+            "i %d, idx %d %d %d, mapc2p_n %g, fout %g\n", i, ip, ia, it, mapc2p_n[i], fout[i]);
         }
       }
     }
@@ -489,7 +485,7 @@ void test_mapc2p_3x_p1_pmap_ho()
   struct gkyl_array *jacobgeo_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobgeo_nodal,
-                     gk_geom->geo_int.jacobgeo, true);
+    gk_geom->geo_int.jacobgeo, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -521,8 +517,8 @@ void test_mapc2p_3x_p1_pmap_ho()
 
   // Check bmag is what it should be
   struct gkyl_array *bmag_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->geo_corn.bmag,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->geo_corn.bmag, false);
   for (int ia = nrange.lower[AL_IDX]; ia <= nrange.upper[AL_IDX]; ++ia) {
     for (int ip = nrange.lower[PSI_IDX]; ip <= nrange.upper[PSI_IDX]; ++ip) {
       for (int it = nrange.lower[TH_IDX]; it <= nrange.upper[TH_IDX]; ++it) {
@@ -556,5 +552,4 @@ void test_mapc2p_3x_p1_pmap_ho()
 }
 
 TEST_LIST = { { "test_mapc2p_3x_p1_ho", test_mapc2p_3x_p1_ho },
-              { "test_mapc2p_3x_p1_pmap_ho", test_mapc2p_3x_p1_pmap_ho },
-              { NULL, NULL } };
+  { "test_mapc2p_3x_p1_pmap_ho", test_mapc2p_3x_p1_pmap_ho }, { NULL, NULL } };

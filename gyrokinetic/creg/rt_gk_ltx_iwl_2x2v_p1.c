@@ -173,8 +173,8 @@ void evalNuIonElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   fout[0] = app->nuIonElc;
 }
 
-void diffusion_D_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void diffusion_D_func(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -252,50 +252,50 @@ struct gk_app_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_app_ctx ctx = { .cdim = cdim,
-                            .vdim = vdim,
-                            .Lz = Lz,
-                            .z_min = -Lz / 2.,
-                            .z_max = Lz / 2.,
-                            .psi_min = psi_min,
-                            .psi_max = psi_max,
-                            .psi_LCFS = psi_LCFS,
-                            .Lx = Lx,
-                            .Lx_core = Lx_core,
+    .vdim = vdim,
+    .Lz = Lz,
+    .z_min = -Lz / 2.,
+    .z_max = Lz / 2.,
+    .psi_min = psi_min,
+    .psi_max = psi_max,
+    .psi_LCFS = psi_LCFS,
+    .Lx = Lx,
+    .Lx_core = Lx_core,
 
-                            .me = me,
-                            .qe = qe,
-                            .mi = mi,
-                            .qi = qi,
-                            .n0 = n0,
-                            .Te0 = Te0,
-                            .Ti0 = Ti0,
+    .me = me,
+    .qe = qe,
+    .mi = mi,
+    .qi = qi,
+    .n0 = n0,
+    .Te0 = Te0,
+    .Ti0 = Ti0,
 
-                            .nuFrac = nuFrac,
-                            .nuElc = nuElc,
-                            .nuIon = nuIon,
-                            .nuElcIon = nuElcIon,
-                            .nuIonElc = nuIonElc,
+    .nuFrac = nuFrac,
+    .nuElc = nuElc,
+    .nuIon = nuIon,
+    .nuElcIon = nuElcIon,
+    .nuIonElc = nuIonElc,
 
-                            .n_src = n_src,
-                            .Te_src = Te_src,
-                            .Ti_src = Ti_src,
+    .n_src = n_src,
+    .Te_src = Te_src,
+    .Ti_src = Ti_src,
 
-                            .Nz = Nz,
-                            .Nvpar = Nvpar,
-                            .Nmu = Nmu,
-                            .cells = { Nx, Nz, Nvpar, Nmu },
-                            .poly_order = poly_order,
-                            .vpar_max_elc = vpar_max_elc,
-                            .mu_max_elc = mu_max_elc,
-                            .vpar_max_ion = vpar_max_ion,
-                            .mu_max_ion = mu_max_ion,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = { Nx, Nz, Nvpar, Nmu },
+    .poly_order = poly_order,
+    .vpar_max_elc = vpar_max_elc,
+    .mu_max_elc = mu_max_elc,
+    .vpar_max_ion = vpar_max_ion,
+    .mu_max_ion = mu_max_ion,
 
-                            .t_end = t_end,
-                            .num_frames = num_frames,
-                            .write_phase_freq = write_phase_freq,
-                            .int_diag_calc_num = int_diag_calc_num,
-                            .dt_failure_tol = dt_failure_tol,
-                            .num_failures_max = num_failures_max };
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .write_phase_freq = write_phase_freq,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
   return ctx;
 }
 
@@ -442,33 +442,31 @@ int main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = { .gkfield_id = GKYL_GK_FIELD_ES,
-                                          .poisson_bcs = { { .dir = 0,
-                                                             .edge = GKYL_LOWER_EDGE,
-                                                             .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                                                             .value = { 0.0 } },
-                                                           { .dir = 0,
-                                                             .edge = GKYL_UPPER_EDGE,
-                                                             .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                                                             .value = { 0.0 } } } };
+    .poisson_bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = { 0.0 } },
+      { .dir = 0,
+        .edge = GKYL_UPPER_EDGE,
+        .type = GKYL_BC_GK_FIELD_DIRICHLET,
+        .value = { 0.0 } } } };
 
   struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
-                                    .filepath = "gyrokinetic/data/eqdsk/LTX_103955_03.eqdsk",
-                                    .rz_poly_order = 2,
-                                    .flux_poly_order = 1,
-                                    .reflect = true
+    .filepath = "gyrokinetic/data/eqdsk/LTX_103955_03.eqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect = true
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = { .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
-                                            .rclose = 0.7,
-                                            .rleft = 0.1,
-                                            .rright = 0.7,
-                                            .rmin = 0.1,
-                                            .rmax = 0.7,
-                                            .zmin = -0.35,
-                                            .zmax = 0.35,
-                                            .plate_spec = true,
-                                            .plate_func_lower = pfunc_lower,
-                                            .plate_func_upper = pfunc_upper };
+    .rclose = 0.7,
+    .rleft = 0.1,
+    .rright = 0.7,
+    .rmin = 0.1,
+    .rmax = 0.7,
+    .zmin = -0.35,
+    .zmax = 0.35,
+    .plate_spec = true,
+    .plate_func_lower = pfunc_lower,
+    .plate_func_upper = pfunc_upper };
 
   // GK app
   struct gkyl_gk app_inp = {
@@ -503,16 +501,15 @@ int main(int argc, char **argv)
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-                                              .time_stepping = {
-                                                .t_end = ctx.t_end,
-                                                .num_frames = ctx.num_frames,
-                                                .write_phase_freq = ctx.write_phase_freq,
-                                                .int_diag_calc_num = ctx.int_diag_calc_num,
-                                                .dt_failure_tol = ctx.dt_failure_tol,
-                                                .num_failures_max = ctx.num_failures_max,
-                                                .is_restart = app_args.is_restart,
-                                                .restart_frame = app_args.restart_frame,
-                                                .num_steps = app_args.num_steps } };
+    .time_stepping = { .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps } };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 

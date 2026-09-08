@@ -26,8 +26,8 @@ __global__ static void gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel(
 void gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gyrokinetic_auxfields auxin)
 {
-  gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.D->on_dev,
-                                                                    auxin.jacobgeo_inv->on_dev);
+  gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel<<<1, 1> > >(
+    eqn, auxin.D->on_dev, auxin.jacobgeo_inv->on_dev);
 }
 
 __global__ void static dg_diffusion_gyrokinetic_set_cu_dev_ptrs(
@@ -112,9 +112,9 @@ __global__ void static dg_diffusion_gyrokinetic_set_cu_dev_ptrs(
       CKSURF(boundary_diagz_kernels, diff_order, cdim, vdim, poly_order);
 }
 
-struct gkyl_dg_eqn *gkyl_dg_diffusion_gyrokinetic_cu_dev_new(
-  const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const,
-  const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis,
+  const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir, int diff_order,
+  const struct gkyl_range *diff_range)
 {
   struct dg_diffusion_gyrokinetic *diffusion =
     (struct dg_diffusion_gyrokinetic *)gkyl_malloc(sizeof(struct dg_diffusion_gyrokinetic));
@@ -139,10 +139,10 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gyrokinetic_cu_dev_new(
   // copy the host struct to device struct
   struct dg_diffusion_gyrokinetic *diffusion_cu =
     (struct dg_diffusion_gyrokinetic *)gkyl_cu_malloc(sizeof(struct dg_diffusion_gyrokinetic));
-  gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct dg_diffusion_gyrokinetic),
-                 GKYL_CU_MEMCPY_H2D);
-  dg_diffusion_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(diffusion_cu, cbasis->b_type, cdim, vdim,
-                                                       poly_order, diff_order, dirs_linidx);
+  gkyl_cu_memcpy(
+    diffusion_cu, diffusion, sizeof(struct dg_diffusion_gyrokinetic), GKYL_CU_MEMCPY_H2D);
+  dg_diffusion_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(
+    diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, diff_order, dirs_linidx);
 
   // set parent on_dev pointer
   diffusion->eqn.on_dev = &diffusion_cu->eqn;

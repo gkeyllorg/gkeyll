@@ -63,17 +63,14 @@ struct tool_description {
 };
 
 // List of available Tools
-static struct tool_description tool_list[] = {
-  { "man", "man.lua", "Gkeyll online manual" },
+static struct tool_description tool_list[] = { { "man", "man.lua", "Gkeyll online manual" },
   { "woman", "man.lua", "Gkeyll online manual (Woe without man)" },
   { "queryrdb", "queryrdb.lua", "Query/modify regression test DB" },
   { "exacteulerrp", "exacteulerrp.lua", "Exact Euler Riemann problem solver" },
   { "runregression", "runregression.lua", "Run regression/unit tests" },
   { "multimomlinear", "multimomlinear.lua",
     "Linear dispersion solver for multi-moment, multifluid equations" },
-  { "eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files" },
-  { 0, 0 }
-};
+  { "eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files" }, { 0, 0 } };
 
 static int max2(int a, int b)
 {
@@ -200,8 +197,8 @@ static void show_usage()
   fprintf(stdout, "  restart    Restart simulation \n");
   fprintf(stdout, "To get help for commands type command name followed by -h\n\n");
 
-  fprintf(stdout,
-          "Individual tools may take other options and commands. See their specific help.\n");
+  fprintf(
+    stdout, "Individual tools may take other options and commands. See their specific help.\n");
 }
 
 static void show_version()

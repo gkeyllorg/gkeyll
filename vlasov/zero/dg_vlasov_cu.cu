@@ -13,11 +13,9 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
-                                                           const struct gkyl_array *field,
-                                                           const struct gkyl_array *cot_vec,
-                                                           const struct gkyl_array *alpha_surf,
-                                                           const struct gkyl_array *sgn_alpha_surf,
-                                                           const struct gkyl_array *const_sgn_alpha)
+  const struct gkyl_array *field, const struct gkyl_array *cot_vec,
+  const struct gkyl_array *alpha_surf, const struct gkyl_array *sgn_alpha_surf,
+  const struct gkyl_array *const_sgn_alpha)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->auxfields.field = field;
@@ -28,12 +26,11 @@ __global__ static void gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                  struct gkyl_dg_vlasov_auxfields auxin)
+void gkyl_vlasov_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
-  gkyl_vlasov_set_auxfields_cu_kernel<<<1, 1> > >(
-    eqn, auxin.field ? auxin.field->on_dev : 0, auxin.cot_vec ? auxin.cot_vec->on_dev : 0,
-    auxin.alpha_surf ? auxin.alpha_surf->on_dev : 0,
+  gkyl_vlasov_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.field ? auxin.field->on_dev : 0,
+    auxin.cot_vec ? auxin.cot_vec->on_dev : 0, auxin.alpha_surf ? auxin.alpha_surf->on_dev : 0,
     auxin.sgn_alpha_surf ? auxin.sgn_alpha_surf->on_dev : 0,
     auxin.const_sgn_alpha ? auxin.const_sgn_alpha->on_dev : 0);
 }
@@ -41,10 +38,8 @@ void gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
 // CUDA kernel to set device pointers to range object and vlasov kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov,
-                                                 enum gkyl_basis_type b_type, int cv_index,
-                                                 int cdim, int vdim, int poly_order,
-                                                 enum gkyl_model_id model_id,
-                                                 enum gkyl_field_id field_id)
+  enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim, int poly_order,
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   vlasov->auxfields.field = 0;
   vlasov->auxfields.cot_vec = 0;
@@ -151,10 +146,9 @@ __global__ static void dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov,
     vlasov->stream_boundary_surf[2] = stream_boundary_surf_z_kernels[cv_index].kernels[poly_order];
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-                          const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-                          enum gkyl_model_id model_id, enum gkyl_field_id field_id)
+struct gkyl_dg_eqn *gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   struct dg_vlasov *vlasov = (struct dg_vlasov *)gkyl_malloc(sizeof(struct dg_vlasov));
 
@@ -177,7 +171,7 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_bas
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov), GKYL_CU_MEMCPY_H2D);
 
   dg_vlasov_set_cu_dev_ptrs<<<1, 1> > >(vlasov_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim,
-                                        vdim, poly_order, model_id, field_id);
+    vdim, poly_order, model_id, field_id);
 
   // set parent on_dev pointer
   vlasov->eqn.on_dev = &vlasov_cu->eqn;

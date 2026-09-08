@@ -36,10 +36,10 @@ struct gkyl_dg_updater_collisions *gkyl_dg_updater_lbo_vlasov_new(
   for (int d = cdim; d < pdim; ++d)
     zero_flux_flags[d] = zero_flux_flags[d + pdim] = 1;
 
-  up->drag = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs,
-                               zero_flux_flags, 1, use_gpu);
-  up->diff = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_diff, num_up_dirs, up_dirs,
-                               zero_flux_flags, 1, use_gpu);
+  up->drag = gkyl_hyper_dg_new(
+    phase_grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->diff = gkyl_hyper_dg_new(
+    phase_grid, phase_basis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
 
   up->diff_tm = 0.0;
   up->drag_tm = 0.0;
@@ -48,10 +48,8 @@ struct gkyl_dg_updater_collisions *gkyl_dg_updater_lbo_vlasov_new(
 }
 
 void gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
-                                        const struct gkyl_range *update_rng,
-                                        const struct gkyl_array *GKYL_RESTRICT fIn,
-                                        struct gkyl_array *GKYL_RESTRICT cflrate,
-                                        struct gkyl_array *GKYL_RESTRICT rhs)
+  const struct gkyl_range *update_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(lbo->drag, update_rng, fIn, cflrate, rhs);
@@ -62,11 +60,11 @@ void gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
   lbo->diff_tm += gkyl_time_diff_now_sec(wst);
 }
 
-struct gkyl_dg_updater_lbo_vlasov_tm
-gkyl_dg_updater_lbo_vlasov_get_tm(const gkyl_dg_updater_collisions *coll)
+struct gkyl_dg_updater_lbo_vlasov_tm gkyl_dg_updater_lbo_vlasov_get_tm(
+  const gkyl_dg_updater_collisions *coll)
 {
-  return (struct gkyl_dg_updater_lbo_vlasov_tm){ .diff_tm = coll->diff_tm,
-                                                 .drag_tm = coll->drag_tm };
+  return (
+    struct gkyl_dg_updater_lbo_vlasov_tm){ .diff_tm = coll->diff_tm, .drag_tm = coll->drag_tm };
 }
 
 void gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_collisions *coll)

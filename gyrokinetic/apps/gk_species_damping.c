@@ -4,13 +4,13 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_basis_ops.h>
 
-void gk_species_damping_write_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm,
-                                       int frame)
+void gk_species_damping_write_disabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
 }
 
-void gk_species_damping_write_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm,
-                                      int frame)
+void gk_species_damping_write_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
   // DG metadata for damping rate.
@@ -25,7 +25,7 @@ void gk_species_damping_write_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
   // Package metadata.
   int io_meta_len[] = { gks->io_meta_basic_len, mpe_drate_len, app->gk_geom->io_meta_basic_len };
   const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic, mpe_drate,
-                                                    app->gk_geom->io_meta_basic };
+    app->gk_geom->io_meta_basic };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -46,8 +46,8 @@ void gk_species_damping_write_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gk_species_damping_write_init_only(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                                        double tm, int frame)
+void gk_species_damping_write_init_only(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   gk_species_damping_write_enabled(app, gks, tm, frame);
   gks->damping.write_func = gk_species_damping_write_disabled;
@@ -60,8 +60,8 @@ static void proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, voi
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
 }
 
-void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
-                             struct gk_damping *damp)
+void gk_species_damping_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_damping *damp)
 {
   damp->type = gks->info.damping.type;
   damp->evolve = false; // Whether the rate is time dependent.
@@ -86,15 +86,15 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
       proj_on_basis_c2p_ctx.cdim = app->cdim;
       proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
       proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(
-        &(struct gkyl_proj_on_basis_inp){ .grid = &gks->grid,
-                                          .basis = &gks->basis,
-                                          .num_quad = num_quad,
-                                          .num_ret_vals = 1,
-                                          .eval = gks->info.damping.rate_profile,
-                                          .ctx = gks->info.damping.rate_profile_ctx,
-                                          .c2p_func = proj_on_basis_c2p_phase_func,
-                                          .c2p_func_ctx = &proj_on_basis_c2p_ctx });
+      gkyl_proj_on_basis *projup =
+        gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &gks->grid,
+          .basis = &gks->basis,
+          .num_quad = num_quad,
+          .num_ret_vals = 1,
+          .eval = gks->info.damping.rate_profile,
+          .ctx = gks->info.damping.rate_profile_ctx,
+          .c2p_func = proj_on_basis_c2p_phase_func,
+          .c2p_func_ctx = &proj_on_basis_c2p_ctx });
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, damp->rate_host);
       gkyl_proj_on_basis_release(projup);
       gkyl_array_copy(damp->rate, damp->rate_host);
@@ -112,8 +112,8 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
         gkyl_gk_geometry_reduce_arg_bmag(app->gk_geom, GKYL_MAX, bmag_max_coord_ho);
       double bmag_max_local = bmag_max_ho;
       double bmag_max_global;
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local,
-                               &bmag_max_global);
+      gkyl_comm_allreduce_host(
+        app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
       double bmag_max_coord_local[app->cdim], bmag_max_coord_global[app->cdim];
       if (fabs(bmag_max_ho - bmag_max_global) < 1e-16) {
         for (int d = 0; d < app->cdim; d++)
@@ -122,15 +122,15 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
         for (int d = 0; d < app->cdim; d++)
           bmag_max_coord_local[d] = -DBL_MAX;
       }
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, app->cdim, bmag_max_coord_local,
-                               bmag_max_coord_global);
+      gkyl_comm_allreduce_host(
+        app->comm, GKYL_DOUBLE, GKYL_MAX, app->cdim, bmag_max_coord_local, bmag_max_coord_global);
 
       if (app->use_gpu) {
         damp->bmag_max = gkyl_cu_malloc(sizeof(double));
         damp->bmag_max_coord = gkyl_cu_malloc(app->cdim * sizeof(double));
         gkyl_cu_memcpy(damp->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
-        gkyl_cu_memcpy(damp->bmag_max_coord, bmag_max_coord_ho, app->cdim * sizeof(double),
-                       GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(
+          damp->bmag_max_coord, bmag_max_coord_ho, app->cdim * sizeof(double), GKYL_CU_MEMCPY_H2D);
       } else {
         damp->bmag_max = gkyl_malloc(sizeof(double));
         damp->bmag_max_coord = gkyl_malloc(app->cdim * sizeof(double));
@@ -149,19 +149,19 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
 
       // Operator that projects the loss cone mask.
       struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = { .phase_grid = &gks->grid,
-                                                              .conf_basis = &app->basis,
-                                                              .phase_basis = &gks->basis,
-                                                              .conf_range = &app->local,
-                                                              .conf_range_ext = &app->local_ext,
-                                                              .vel_range = &gks->local_vel,
-                                                              .vel_map = gks->vel_map,
-                                                              .bmag = app->gk_geom->geo_int.bmag,
-                                                              .bmag_max = damp->bmag_max,
-                                                              .bmag_max_loc = damp->bmag_max_coord,
-                                                              .mass = gks->info.mass,
-                                                              .charge = gks->info.charge,
-                                                              .num_quad = num_quad,
-                                                              .use_gpu = app->use_gpu };
+        .conf_basis = &app->basis,
+        .phase_basis = &gks->basis,
+        .conf_range = &app->local,
+        .conf_range_ext = &app->local_ext,
+        .vel_range = &gks->local_vel,
+        .vel_map = gks->vel_map,
+        .bmag = app->gk_geom->geo_int.bmag,
+        .bmag_max = damp->bmag_max,
+        .bmag_max_loc = damp->bmag_max_coord,
+        .mass = gks->info.mass,
+        .charge = gks->info.charge,
+        .num_quad = num_quad,
+        .use_gpu = app->use_gpu };
       damp->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
       // Project the conf-space rate profile provided.
@@ -172,16 +172,15 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
                        gkyl_array_acquire(scale_prof_high_order);
 
       gkyl_proj_on_basis *projup = gkyl_proj_on_basis_new(&gks->grid, &gks->basis, num_quad, 1,
-                                                          gks->info.damping.rate_profile,
-                                                          gks->info.damping.rate_profile_ctx);
+        gks->info.damping.rate_profile, gks->info.damping.rate_profile_ctx);
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, scale_prof_high_order_ho);
       gkyl_proj_on_basis_release(projup);
       gkyl_array_copy(scale_prof_high_order, scale_prof_high_order_ho);
 
       damp->scale_prof =
         mkarr(app->use_gpu, num_quad == 1 ? 1 : gks->basis.num_basis, gks->local_ext.volume);
-      gkyl_array_set_offset(damp->scale_prof, pow(sqrt(2.0), gks->grid.ndim), scale_prof_high_order,
-                            0);
+      gkyl_array_set_offset(
+        damp->scale_prof, pow(sqrt(2.0), gks->grid.ndim), scale_prof_high_order, 0);
 
       gkyl_array_release(scale_prof_high_order_ho);
       gkyl_array_release(scale_prof_high_order);
@@ -189,13 +188,11 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
       // Compute the initial damping rate (assuming phi=0 because phi hasn't been computed).
       // Find the potential at the mirror throat.
       gkyl_dg_basis_ops_eval_array_at_coord_comp(app->field->phi_smooth, damp->bmag_max_coord,
-                                                 app->basis_on_dev, &app->grid, &app->local,
-                                                 damp->phi_m);
+        app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
       gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
       // Project the loss cone mask.
       gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-                                              app->field->phi_smooth, damp->phi_m_global,
-                                              damp->rate);
+        app->field->phi_smooth, damp->phi_m_global, damp->rate);
       // Multiply by the user's scaling profile.
       gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
     }
@@ -210,9 +207,8 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
 }
 
 void gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-                                struct gk_damping *damp, const struct gkyl_array *phi,
-                                const struct gkyl_array *fin, struct gkyl_array *f_buffer,
-                                struct gkyl_array *rhs, struct gkyl_array *cflrate)
+  struct gk_damping *damp, const struct gkyl_array *phi, const struct gkyl_array *fin,
+  struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   if (damp->type) {
     struct timespec wst = gkyl_wall_clock();
@@ -222,13 +218,13 @@ void gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_speci
       gkyl_array_accumulate(rhs, -1.0, f_buffer);
     } else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
       // Find the potential at the mirror throat.
-      gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, damp->bmag_max_coord, app->basis_on_dev,
-                                                 &app->grid, &app->local, damp->phi_m);
+      gkyl_dg_basis_ops_eval_array_at_coord_comp(
+        phi, damp->bmag_max_coord, app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
       gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
 
       // Project the loss cone mask.
-      gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local, phi,
-                                              damp->phi_m_global, damp->rate);
+      gkyl_loss_cone_mask_gyrokinetic_advance(
+        damp->lcm_proj_op, &gks->local, &app->local, phi, damp->phi_m_global, damp->rate);
 
       // Assemble the damping term -scale_prof * mask * f.
       gkyl_array_set(f_buffer, 1.0, fin);
@@ -244,14 +240,14 @@ void gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_speci
   }
 }
 
-void gk_species_damping_write(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm,
-                              int frame)
+void gk_species_damping_write(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   gks->damping.write_func(app, gks, tm, frame);
 }
 
-void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app,
-                                const struct gk_damping *damp)
+void gk_species_damping_release(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_damping *damp)
 {
   if (damp->type) {
     gkyl_array_release(damp->rate);

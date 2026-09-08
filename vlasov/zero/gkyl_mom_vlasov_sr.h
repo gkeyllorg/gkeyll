@@ -23,10 +23,8 @@ struct gkyl_mom_vlasov_sr_auxfields {
  * @param use_gpu bool to determine if on GPU
  */
 struct gkyl_mom_type *gkyl_mom_vlasov_sr_new(const struct gkyl_basis *cbasis,
-                                             const struct gkyl_basis *pbasis,
-                                             const struct gkyl_range *conf_range,
-                                             const struct gkyl_range *vel_range,
-                                             enum gkyl_distribution_moments mom_type, bool use_gpu);
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *vel_range, enum gkyl_distribution_moments mom_type, bool use_gpu);
 
 /**
  * Create new special relativistic Vlasov integrated moment type
@@ -40,10 +38,9 @@ struct gkyl_mom_type *gkyl_mom_vlasov_sr_new(const struct gkyl_basis *cbasis,
  * @param mom_type Name of moment to compute.
  * @param use_gpu bool to determine if on GPU
  */
-struct gkyl_mom_type *
-gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-                           const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-                           enum gkyl_distribution_moments mom_type, bool use_gpu);
+struct gkyl_mom_type *gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *vel_range, enum gkyl_distribution_moments mom_type, bool use_gpu);
 
 /**
  * Set the auxiliary fields needed in computing moments.
@@ -51,5 +48,5 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis *cbasis, const struct gkyl_ba
  * @param momt moment type.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_mom_vlasov_sr_set_auxfields(const struct gkyl_mom_type *momt,
-                                      struct gkyl_mom_vlasov_sr_auxfields auxin);
+void gkyl_mom_vlasov_sr_set_auxfields(
+  const struct gkyl_mom_type *momt, struct gkyl_mom_vlasov_sr_auxfields auxin);

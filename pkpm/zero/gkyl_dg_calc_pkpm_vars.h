@@ -45,10 +45,10 @@ typedef struct gkyl_dg_calc_pkpm_vars gkyl_dg_calc_pkpm_vars;
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
-struct gkyl_dg_calc_pkpm_vars *
-gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-                           const struct gkyl_range *mem_range, const struct gkyl_wv_eqn *wv_eqn,
-                           const struct gkyl_wave_geom *geom, double limiter_fac, bool use_gpu);
+struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
+  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range,
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, double limiter_fac,
+  bool use_gpu);
 
 /**
  * Create new updater to compute pkpm variables on
@@ -77,12 +77,9 @@ struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_cu_dev_new(
  *                   ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
  */
 void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
-                                    const struct gkyl_array *vlasov_pkpm_moms,
-                                    const struct gkyl_array *euler_pkpm,
-                                    const struct gkyl_array *p_ij,
-                                    const struct gkyl_array *pkpm_div_ppar,
-                                    struct gkyl_array *cell_avg_prim, struct gkyl_array *prim,
-                                    struct gkyl_array *prim_surf);
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
+  const struct gkyl_array *p_ij, const struct gkyl_array *pkpm_div_ppar,
+  struct gkyl_array *cell_avg_prim, struct gkyl_array *prim, struct gkyl_array *prim_surf);
 
 /**
  * Compute volume expansion of flow velocity u in the PKPM system.
@@ -95,9 +92,8 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
  * @param pkpm_u        Output array of volume expansion of flow velocity [ux, uy, uz]
  */
 void gkyl_dg_calc_pkpm_vars_u(struct gkyl_dg_calc_pkpm_vars *up,
-                              const struct gkyl_array *vlasov_pkpm_moms,
-                              const struct gkyl_array *euler_pkpm, struct gkyl_array *cell_avg_prim,
-                              struct gkyl_array *pkpm_u);
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
+  struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u);
 
 /**
  * Compute pkpm pressure p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij in the volume 
@@ -109,10 +105,8 @@ void gkyl_dg_calc_pkpm_vars_u(struct gkyl_dg_calc_pkpm_vars *up,
  * @param p_ij Output array of volume expansion of pressure tensor p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
  */
 void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up,
-                                     const struct gkyl_range *conf_range,
-                                     const struct gkyl_array *bvar,
-                                     const struct gkyl_array *vlasov_pkpm_moms,
-                                     struct gkyl_array *p_ij);
+  const struct gkyl_range *conf_range, const struct gkyl_array *bvar,
+  const struct gkyl_array *vlasov_pkpm_moms, struct gkyl_array *p_ij);
 
 /**
  * Compute pkpm acceleration variables
@@ -131,10 +125,9 @@ void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up,
           3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2 nu)
  */
 void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up,
-                                  const struct gkyl_range *conf_range,
-                                  const struct gkyl_array *prim_surf, const struct gkyl_array *prim,
-                                  const struct gkyl_array *bvar, const struct gkyl_array *div_b,
-                                  const struct gkyl_array *nu, struct gkyl_array *pkpm_accel);
+  const struct gkyl_range *conf_range, const struct gkyl_array *prim_surf,
+  const struct gkyl_array *prim, const struct gkyl_array *bvar, const struct gkyl_array *div_b,
+  const struct gkyl_array *nu, struct gkyl_array *pkpm_accel);
 
 /**
  * Compute surface expansions of pkpm penalization variables. These include:
@@ -161,11 +154,11 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up,
  * @param pkpm_lax          Output array of surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
  * @param pkpm_penalization Output array of surface expansion of total momentum penalization
  */
-void gkyl_dg_calc_pkpm_vars_penalization(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *conf_range_ext, const struct gkyl_array *vlasov_pkpm_moms,
-  const struct gkyl_array *p_ij, const struct gkyl_array *prim, const struct gkyl_array *euler_pkpm,
-  struct gkyl_array *pkpm_lax, struct gkyl_array *pkpm_penalization);
+void gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *p_ij,
+  const struct gkyl_array *prim, const struct gkyl_array *euler_pkpm, struct gkyl_array *pkpm_lax,
+  struct gkyl_array *pkpm_penalization);
 
 /**
  * Compute integrated PKPM variables (rho, rhoux, rhouy, rhouz, rhoux^2, rhouy^2, rhouz^2, p_parallel, p_perp).
@@ -178,11 +171,9 @@ void gkyl_dg_calc_pkpm_vars_penalization(
  * @param int_pkpm_vars Output array of integrated variables (6 components)
  */
 void gkyl_dg_calc_pkpm_integrated_vars(struct gkyl_dg_calc_pkpm_vars *up,
-                                       const struct gkyl_range *conf_range,
-                                       const struct gkyl_array *vlasov_pkpm_moms,
-                                       const struct gkyl_array *euler_pkpm,
-                                       const struct gkyl_array *prim,
-                                       struct gkyl_array *pkpm_int_vars);
+  const struct gkyl_range *conf_range, const struct gkyl_array *vlasov_pkpm_moms,
+  const struct gkyl_array *euler_pkpm, const struct gkyl_array *prim,
+  struct gkyl_array *pkpm_int_vars);
 
 /**
  * Compute pkpm model source terms.
@@ -195,10 +186,9 @@ void gkyl_dg_calc_pkpm_integrated_vars(struct gkyl_dg_calc_pkpm_vars *up,
  * @param rhs Output increment to fluid variables
  */
 void gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up,
-                                   const struct gkyl_range *conf_range,
-                                   const struct gkyl_array *qmem,
-                                   const struct gkyl_array *vlasov_pkpm_moms,
-                                   const struct gkyl_array *euler_pkpm, struct gkyl_array *rhs);
+  const struct gkyl_range *conf_range, const struct gkyl_array *qmem,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
+  struct gkyl_array *rhs);
 
 /**
  * Construct PKPM variables for I/O. Computes the conserved fluid variables 
@@ -221,11 +211,10 @@ void gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up,
  * @param pkpm_vars_io Output array of pkpm variables, primitive and acceleration (8 components)
  */
 void gkyl_dg_calc_pkpm_vars_io(struct gkyl_dg_calc_pkpm_vars *up,
-                               const struct gkyl_range *conf_range,
-                               const struct gkyl_array *vlasov_pkpm_moms,
-                               const struct gkyl_array *euler_pkpm, const struct gkyl_array *p_ij,
-                               const struct gkyl_array *prim, const struct gkyl_array *pkpm_accel,
-                               struct gkyl_array *fluid_io, struct gkyl_array *pkpm_vars_io);
+  const struct gkyl_range *conf_range, const struct gkyl_array *vlasov_pkpm_moms,
+  const struct gkyl_array *euler_pkpm, const struct gkyl_array *p_ij, const struct gkyl_array *prim,
+  const struct gkyl_array *pkpm_accel, struct gkyl_array *fluid_io,
+  struct gkyl_array *pkpm_vars_io);
 
 /**
  * Limit slopes for fluid variables in the PKPM system
@@ -238,10 +227,9 @@ void gkyl_dg_calc_pkpm_vars_io(struct gkyl_dg_calc_pkpm_vars *up,
  * @param fluid            Input (and Output after limiting) array of fluid variables [rho ux, rho uy, rho uz]
  */
 void gkyl_dg_calc_pkpm_vars_limiter(struct gkyl_dg_calc_pkpm_vars *up,
-                                    const struct gkyl_range *conf_range,
-                                    const struct gkyl_array *prim,
-                                    const struct gkyl_array *vlasov_pkpm_moms,
-                                    const struct gkyl_array *p_ij, struct gkyl_array *fluid);
+  const struct gkyl_range *conf_range, const struct gkyl_array *prim,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *p_ij,
+  struct gkyl_array *fluid);
 
 /**
  * Delete pointer to updater to compute pkpm variables.
@@ -255,60 +243,46 @@ void gkyl_dg_calc_pkpm_vars_release(struct gkyl_dg_calc_pkpm_vars *up);
  */
 
 void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
-                                       const struct gkyl_array *vlasov_pkpm_moms,
-                                       const struct gkyl_array *euler_pkpm,
-                                       const struct gkyl_array *p_ij,
-                                       const struct gkyl_array *pkpm_div_ppar,
-                                       struct gkyl_array *cell_avg_prim, struct gkyl_array *prim,
-                                       struct gkyl_array *prim_surf);
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
+  const struct gkyl_array *p_ij, const struct gkyl_array *pkpm_div_ppar,
+  struct gkyl_array *cell_avg_prim, struct gkyl_array *prim, struct gkyl_array *prim_surf);
 
 void gkyl_dg_calc_pkpm_vars_u_cu(struct gkyl_dg_calc_pkpm_vars *up,
-                                 const struct gkyl_array *vlasov_pkpm_moms,
-                                 const struct gkyl_array *euler_pkpm,
-                                 struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u);
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
+  struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u);
 
 void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up,
-                                        const struct gkyl_range *conf_range,
-                                        const struct gkyl_array *bvar,
-                                        const struct gkyl_array *vlasov_pkpm_moms,
-                                        struct gkyl_array *p_ij);
+  const struct gkyl_range *conf_range, const struct gkyl_array *bvar,
+  const struct gkyl_array *vlasov_pkpm_moms, struct gkyl_array *p_ij);
 
 void gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up,
-                                     const struct gkyl_range *conf_range,
-                                     const struct gkyl_array *prim_surf,
-                                     const struct gkyl_array *prim, const struct gkyl_array *bvar,
-                                     const struct gkyl_array *div_b, const struct gkyl_array *nu,
-                                     struct gkyl_array *pkpm_accel);
+  const struct gkyl_range *conf_range, const struct gkyl_array *prim_surf,
+  const struct gkyl_array *prim, const struct gkyl_array *bvar, const struct gkyl_array *div_b,
+  const struct gkyl_array *nu, struct gkyl_array *pkpm_accel);
 
-void gkyl_dg_calc_pkpm_vars_penalization_cu(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *conf_range_ext, const struct gkyl_array *vlasov_pkpm_moms,
-  const struct gkyl_array *p_ij, const struct gkyl_array *prim, const struct gkyl_array *euler_pkpm,
-  struct gkyl_array *pkpm_lax, struct gkyl_array *pkpm_penalization);
+void gkyl_dg_calc_pkpm_vars_penalization_cu(struct gkyl_dg_calc_pkpm_vars *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *p_ij,
+  const struct gkyl_array *prim, const struct gkyl_array *euler_pkpm, struct gkyl_array *pkpm_lax,
+  struct gkyl_array *pkpm_penalization);
 
 void gkyl_dg_calc_pkpm_integrated_vars_cu(struct gkyl_dg_calc_pkpm_vars *up,
-                                          const struct gkyl_range *conf_range,
-                                          const struct gkyl_array *vlasov_pkpm_moms,
-                                          const struct gkyl_array *euler_pkpm,
-                                          const struct gkyl_array *prim,
-                                          struct gkyl_array *pkpm_int_vars);
+  const struct gkyl_range *conf_range, const struct gkyl_array *vlasov_pkpm_moms,
+  const struct gkyl_array *euler_pkpm, const struct gkyl_array *prim,
+  struct gkyl_array *pkpm_int_vars);
 
 void gkyl_dg_calc_pkpm_vars_source_cu(struct gkyl_dg_calc_pkpm_vars *up,
-                                      const struct gkyl_range *conf_range,
-                                      const struct gkyl_array *qmem,
-                                      const struct gkyl_array *vlasov_pkpm_moms,
-                                      const struct gkyl_array *euler_pkpm, struct gkyl_array *rhs);
+  const struct gkyl_range *conf_range, const struct gkyl_array *qmem,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
+  struct gkyl_array *rhs);
 
 void gkyl_dg_calc_pkpm_vars_io_cu(struct gkyl_dg_calc_pkpm_vars *up,
-                                  const struct gkyl_range *conf_range,
-                                  const struct gkyl_array *vlasov_pkpm_moms,
-                                  const struct gkyl_array *euler_pkpm,
-                                  const struct gkyl_array *p_ij, const struct gkyl_array *prim,
-                                  const struct gkyl_array *pkpm_accel, struct gkyl_array *fluid_io,
-                                  struct gkyl_array *pkpm_vars_io);
+  const struct gkyl_range *conf_range, const struct gkyl_array *vlasov_pkpm_moms,
+  const struct gkyl_array *euler_pkpm, const struct gkyl_array *p_ij, const struct gkyl_array *prim,
+  const struct gkyl_array *pkpm_accel, struct gkyl_array *fluid_io,
+  struct gkyl_array *pkpm_vars_io);
 
 void gkyl_dg_calc_pkpm_vars_limiter_cu(struct gkyl_dg_calc_pkpm_vars *up,
-                                       const struct gkyl_range *conf_range,
-                                       const struct gkyl_array *prim,
-                                       const struct gkyl_array *vlasov_pkpm_moms,
-                                       const struct gkyl_array *p_ij, struct gkyl_array *fluid);
+  const struct gkyl_range *conf_range, const struct gkyl_array *prim,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *p_ij,
+  struct gkyl_array *fluid);

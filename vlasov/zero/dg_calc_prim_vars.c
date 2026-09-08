@@ -7,8 +7,7 @@
 #include <gkyl_util.h>
 
 void gkyl_calc_prim_vars_u_from_statevec(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
-                                         const struct gkyl_range *range,
-                                         const struct gkyl_array *statevec, struct gkyl_array *u_i)
+  const struct gkyl_range *range, const struct gkyl_array *statevec, struct gkyl_array *u_i)
 {
   // Find number of components of flow vector
   int num_comp = u_i->ncomp / basis.num_basis;
@@ -17,8 +16,8 @@ void gkyl_calc_prim_vars_u_from_statevec(gkyl_dg_bin_op_mem *mem, struct gkyl_ba
 }
 
 void gkyl_calc_prim_vars_u_from_rhou(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
-                                     const struct gkyl_range *range, const struct gkyl_array *rho,
-                                     const struct gkyl_array *rhou, struct gkyl_array *u_i)
+  const struct gkyl_range *range, const struct gkyl_array *rho, const struct gkyl_array *rhou,
+  struct gkyl_array *u_i)
 {
   // Find number of components of flow vector
   int num_comp = u_i->ncomp / basis.num_basis;

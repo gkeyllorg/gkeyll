@@ -2,7 +2,7 @@
 #include <gkyl_vlasov_priv.h>
 
 void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lte *lte,
-                         struct correct_all_moms_inp corr_inp)
+  struct correct_all_moms_inp corr_inp)
 {
   int cdim = app->cdim, vdim = app->vdim;
 
@@ -10,22 +10,22 @@ void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, stru
   vm_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
 
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = { .phase_grid = &s->grid,
-                                                        .vel_grid = &s->grid_vel,
-                                                        .conf_basis = &app->confBasis,
-                                                        .vel_basis = &app->velBasis,
-                                                        .phase_basis = &app->basis,
-                                                        .conf_range = &app->local,
-                                                        .conf_range_ext = &app->local_ext,
-                                                        .vel_range = &s->local_vel,
-                                                        .phase_range = &s->local,
-                                                        .gamma = s->gamma,
-                                                        .gamma_inv = s->gamma_inv,
-                                                        .h_ij = s->h_ij,
-                                                        .h_ij_inv = s->h_ij_inv,
-                                                        .det_h = s->det_h,
-                                                        .hamil = s->hamil,
-                                                        .model_id = s->model_id,
-                                                        .use_gpu = app->use_gpu };
+    .vel_grid = &s->grid_vel,
+    .conf_basis = &app->confBasis,
+    .vel_basis = &app->velBasis,
+    .phase_basis = &app->basis,
+    .conf_range = &app->local,
+    .conf_range_ext = &app->local_ext,
+    .vel_range = &s->local_vel,
+    .phase_range = &s->local,
+    .gamma = s->gamma,
+    .gamma_inv = s->gamma_inv,
+    .h_ij = s->h_ij,
+    .h_ij_inv = s->h_ij_inv,
+    .det_h = s->det_h,
+    .hamil = s->hamil,
+    .model_id = s->model_id,
+    .use_gpu = app->use_gpu };
   lte->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
   lte->correct_all_moms = corr_inp.correct_all_moms;
@@ -35,25 +35,25 @@ void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, stru
 
   if (lte->correct_all_moms) {
     struct gkyl_vlasov_lte_correct_inp inp_corr = { .phase_grid = &s->grid,
-                                                    .vel_grid = &s->grid_vel,
-                                                    .conf_basis = &app->confBasis,
-                                                    .vel_basis = &app->velBasis,
-                                                    .phase_basis = &app->basis,
-                                                    .conf_range = &app->local,
-                                                    .conf_range_ext = &app->local_ext,
-                                                    .vel_range = &s->local_vel,
-                                                    .phase_range = &s->local,
-                                                    .gamma = s->gamma,
-                                                    .gamma_inv = s->gamma_inv,
-                                                    .h_ij = s->h_ij,
-                                                    .h_ij_inv = s->h_ij_inv,
-                                                    .det_h = s->det_h,
-                                                    .hamil = s->hamil,
-                                                    .model_id = s->model_id,
-                                                    .use_gpu = app->use_gpu,
-                                                    .max_iter = max_iter,
-                                                    .eps = iter_eps,
-                                                    .use_last_converged = use_last_converged };
+      .vel_grid = &s->grid_vel,
+      .conf_basis = &app->confBasis,
+      .vel_basis = &app->velBasis,
+      .phase_basis = &app->basis,
+      .conf_range = &app->local,
+      .conf_range_ext = &app->local_ext,
+      .vel_range = &s->local_vel,
+      .phase_range = &s->local,
+      .gamma = s->gamma,
+      .gamma_inv = s->gamma_inv,
+      .h_ij = s->h_ij,
+      .h_ij_inv = s->h_ij_inv,
+      .det_h = s->det_h,
+      .hamil = s->hamil,
+      .model_id = s->model_id,
+      .use_gpu = app->use_gpu,
+      .max_iter = max_iter,
+      .eps = iter_eps,
+      .use_last_converged = use_last_converged };
     lte->niter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
 
@@ -66,7 +66,7 @@ void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, stru
 
 // Compute f_lte from input LTE moments
 void vm_species_lte_from_moms(gkyl_vlasov_app *app, const struct vm_species *species,
-                              struct vm_lte *lte, const struct gkyl_array *moms_lte)
+  struct vm_lte *lte, const struct gkyl_array *moms_lte)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -75,14 +75,14 @@ void vm_species_lte_from_moms(gkyl_vlasov_app *app, const struct vm_species *spe
   // Project the LTE distribution function to obtain f_lte.
   // e.g., Maxwellian for non-relativistic and Maxwell-Juttner for relativistic.
   // Projection routine also corrects the density of the projected distribution function.
-  gkyl_vlasov_lte_proj_on_basis_advance(lte->proj_lte, &species->local, &app->local, moms_lte,
-                                        lte->f_lte);
+  gkyl_vlasov_lte_proj_on_basis_advance(
+    lte->proj_lte, &species->local, &app->local, moms_lte, lte->f_lte);
 
   // Correct all the moments of the projected LTE distribution function.
   if (lte->correct_all_moms) {
     struct gkyl_vlasov_lte_correct_status status_corr;
-    status_corr = gkyl_vlasov_lte_correct_all_moments(lte->corr_lte, lte->f_lte, moms_lte,
-                                                      &species->local, &app->local);
+    status_corr = gkyl_vlasov_lte_correct_all_moments(
+      lte->corr_lte, lte->f_lte, moms_lte, &species->local, &app->local);
     double corr_vec[7] = { 0.0 };
     corr_vec[0] = status_corr.num_iter;
     corr_vec[1] = status_corr.iter_converged;
@@ -101,7 +101,7 @@ void vm_species_lte_from_moms(gkyl_vlasov_app *app, const struct vm_species *spe
 
 // Compute equivalent f_lte from fin
 void vm_species_lte(gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lte *lte,
-                    const struct gkyl_array *fin)
+  const struct gkyl_array *fin)
 {
   vm_species_moment_calc(&lte->moms, species->local, app->local, fin);
 

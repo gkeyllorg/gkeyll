@@ -198,8 +198,8 @@ static int gkyl_dynvec_write_mode(const gkyl_dynvec vec, const char *fname, cons
   return errno;
 }
 
-static int gkyl_dynvec_write_mode_wmeta(const gkyl_dynvec vec, const char *fname,
-                                        const struct gkyl_msgpack_data *meta, const char *mode)
+static int gkyl_dynvec_write_mode_wmeta(
+  const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta, const char *mode)
 {
   const char g0[5] = "gkyl0";
 
@@ -242,8 +242,8 @@ int gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname)
   return gkyl_dynvec_write_mode(vec, fname, "a");
 }
 
-int gkyl_dynvec_write_wmeta(const gkyl_dynvec vec, const char *fname,
-                            const struct gkyl_msgpack_data *meta)
+int gkyl_dynvec_write_wmeta(
+  const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta)
 {
   return gkyl_dynvec_write_mode_wmeta(vec, fname, meta, "w");
 }
@@ -378,8 +378,8 @@ bool gkyl_dynvec_read(gkyl_dynvec vec, const char *fname)
   return status;
 }
 
-void gkyl_dynvec_to_array(const gkyl_dynvec vec, struct gkyl_array *tm_mesh,
-                          struct gkyl_array *dyndata)
+void gkyl_dynvec_to_array(
+  const gkyl_dynvec vec, struct gkyl_array *tm_mesh, struct gkyl_array *dyndata)
 {
   int nv = gkyl_dynvec_size(vec);
   for (int i = 0; i < nv; ++i) {

@@ -34,10 +34,10 @@ struct gkyl_dg_updater_gyrokinetic_tm {
  * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
  * @return Pointer to updater object for Gyrokinetic equation
  */
-gkyl_dg_updater_gyrokinetic *gkyl_dg_updater_gyrokinetic_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const bool *is_zero_flux_bc, double charge, double mass,
+gkyl_dg_updater_gyrokinetic *gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const bool *is_zero_flux_bc, double charge, double mass,
   enum gkyl_gk_collisionless_type collless_type, const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
 
@@ -63,10 +63,8 @@ struct gkyl_dg_eqn *gkyl_dg_updater_gyrokinetic_acquire_eqn(const gkyl_dg_update
  * @param rhs RHS output
  */
 void gkyl_dg_updater_gyrokinetic_advance(gkyl_dg_updater_gyrokinetic *gyrokinetic,
-                                         const struct gkyl_range *update_rng,
-                                         const struct gkyl_array *GKYL_RESTRICT fIn,
-                                         struct gkyl_array *GKYL_RESTRICT cflrate,
-                                         struct gkyl_array *GKYL_RESTRICT rhs);
+  const struct gkyl_range *update_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs);
 
 /**
  * Return total time spent in gyrokinetic equation
@@ -74,8 +72,8 @@ void gkyl_dg_updater_gyrokinetic_advance(gkyl_dg_updater_gyrokinetic *gyrokineti
  * @param gyrokinetic Updater object
  * @return timers
  */
-struct gkyl_dg_updater_gyrokinetic_tm
-gkyl_dg_updater_gyrokinetic_get_tm(const gkyl_dg_updater_gyrokinetic *gyrokinetic);
+struct gkyl_dg_updater_gyrokinetic_tm gkyl_dg_updater_gyrokinetic_get_tm(
+  const gkyl_dg_updater_gyrokinetic *gyrokinetic);
 
 /**
  * Delete updater.

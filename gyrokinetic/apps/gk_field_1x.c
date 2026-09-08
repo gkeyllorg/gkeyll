@@ -115,8 +115,8 @@ void gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
     }
 
-  f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis, fem_parproj_bc, 0,
-                                        epsilon_global, 0, app->use_gpu);
+  f->fem_parproj = gkyl_fem_parproj_new(
+    &app->global, &app->grid, &app->basis, fem_parproj_bc, 0, epsilon_global, 0, app->use_gpu);
 
   f->es_energy_fac_1d = 0.5 * polarization_weight * f->info.kperpSq + es_energy_fac_1d_adiabatic;
 

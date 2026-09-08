@@ -90,33 +90,33 @@ struct escreen_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   return (struct escreen_ctx){ .pi = pi,
-                               .epsilon0 = epsilon0,
-                               .mu0 = mu0,
-                               .mass_ion = mass_ion,
-                               .charge_ion = charge_ion,
-                               .mass_elc = mass_elc,
-                               .charge_elc = charge_elc,
-                               .n0 = n0,
-                               .T = T,
-                               .E0 = E0,
-                               .noise_amp = noise_amp,
-                               .mode_init = mode_init,
-                               .mode_final = mode_final,
-                               .Nx = Nx,
-                               .Npx = Npx,
-                               .Lx = Lx,
-                               .px_max = px_max,
-                               .poly_order = poly_order,
-                               .cfl_frac = cfl_frac,
-                               .t_end = t_end,
-                               .num_frames = num_frames,
-                               .int_diag_calc_num = int_diag_calc_num,
-                               .dt_failure_tol = dt_failure_tol,
-                               .num_failures_max = num_failures_max };
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .n0 = n0,
+    .T = T,
+    .E0 = E0,
+    .noise_amp = noise_amp,
+    .mode_init = mode_init,
+    .mode_final = mode_final,
+    .Nx = Nx,
+    .Npx = Npx,
+    .Lx = Lx,
+    .px_max = px_max,
+    .poly_order = poly_order,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 }
 
-void evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                     void *ctx)
+void evalDensityInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct escreen_ctx *app = ctx;
 
@@ -126,8 +126,8 @@ void evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[0] = n;
 }
 
-void evalDensityPerturbInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                            void *ctx)
+void evalDensityPerturbInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct escreen_ctx *app = ctx;
   double x = xn[0];
@@ -304,90 +304,90 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
 
   // electrons
   struct gkyl_vlasov_species elc = { .name = "elc",
-                                     .model_id = GKYL_MODEL_SR,
-                                     .charge = ctx.charge_elc,
-                                     .mass = ctx.mass_elc,
-                                     .lower = { -ctx.px_max },
-                                     .upper = { ctx.px_max },
-                                     .cells = { NPX },
+    .model_id = GKYL_MODEL_SR,
+    .charge = ctx.charge_elc,
+    .mass = ctx.mass_elc,
+    .lower = { -ctx.px_max },
+    .upper = { ctx.px_max },
+    .cells = { NPX },
 
-                                     .num_init = 1,
-                                     .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
-                                                        .density = evalDensityPerturbInit,
-                                                        .ctx_density = &ctx,
-                                                        .temp = evalTempInit,
-                                                        .ctx_temp = &ctx,
-                                                        .V_drift = evalVDriftInit,
-                                                        .ctx_V_drift = &ctx,
-                                                        .correct_all_moms = true,
-                                                        .use_last_converged = true },
+    .num_init = 1,
+    .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityPerturbInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
+      .use_last_converged = true },
 
-                                     // Source is the same as initial condition without perturbation.
-                                     .source = { .source_id = GKYL_PROJ_SOURCE,
-                                                 .num_sources = 1,
-                                                 .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
-                                                                    .density = evalDensityInit,
-                                                                    .ctx_density = &ctx,
-                                                                    .temp = evalTempInit,
-                                                                    .ctx_temp = &ctx,
-                                                                    .V_drift = evalVDriftInit,
-                                                                    .ctx_V_drift = &ctx,
-                                                                    .correct_all_moms = true,
-                                                                    .use_last_converged = true } },
+    // Source is the same as initial condition without perturbation.
+    .source = { .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalVDriftInit,
+        .ctx_V_drift = &ctx,
+        .correct_all_moms = true,
+        .use_last_converged = true } },
 
-                                     .num_diag_moments = 2,
-                                     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1 } };
+    .num_diag_moments = 2,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1 } };
 
   // positrons
   struct gkyl_vlasov_species pos = { .name = "pos",
-                                     .model_id = GKYL_MODEL_SR,
-                                     .charge = ctx.charge_ion,
-                                     .mass = ctx.mass_ion,
-                                     .lower = { -ctx.px_max },
-                                     .upper = { ctx.px_max },
-                                     .cells = { NPX },
+    .model_id = GKYL_MODEL_SR,
+    .charge = ctx.charge_ion,
+    .mass = ctx.mass_ion,
+    .lower = { -ctx.px_max },
+    .upper = { ctx.px_max },
+    .cells = { NPX },
 
-                                     .num_init = 1,
-                                     // No perturbation in positron initial conditions.
-                                     .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
-                                                        .density = evalDensityInit,
-                                                        .ctx_density = &ctx,
-                                                        .temp = evalTempInit,
-                                                        .ctx_temp = &ctx,
-                                                        .V_drift = evalVDriftInit,
-                                                        .ctx_V_drift = &ctx,
-                                                        .correct_all_moms = true },
+    .num_init = 1,
+    // No perturbation in positron initial conditions.
+    .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true },
 
-                                     .source = { .source_id = GKYL_PROJ_SOURCE,
-                                                 .num_sources = 1,
-                                                 .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
-                                                                    .density = evalDensityInit,
-                                                                    .ctx_density = &ctx,
-                                                                    .temp = evalTempInit,
-                                                                    .ctx_temp = &ctx,
-                                                                    .V_drift = evalVDriftInit,
-                                                                    .ctx_V_drift = &ctx,
-                                                                    .correct_all_moms = true } },
+    .source = { .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalVDriftInit,
+        .ctx_V_drift = &ctx,
+        .correct_all_moms = true } },
 
-                                     .num_diag_moments = 2,
-                                     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1 } };
+    .num_diag_moments = 2,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1 } };
 
   // field
   struct gkyl_vlasov_field field = { .epsilon0 = ctx.epsilon0,
-                                     .mu0 = ctx.mu0,
-                                     .elcErrorSpeedFactor = 0.0,
-                                     .mgnErrorSpeedFactor = 0.0,
+    .mu0 = ctx.mu0,
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
 
-                                     .ctx = &ctx,
-                                     .init = evalFieldFunc };
+    .ctx = &ctx,
+    .init = evalFieldFunc };
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
@@ -428,7 +428,7 @@ int main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-                           gkyl_array_rio_status_msg(status.io_status));
+        gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
@@ -443,9 +443,9 @@ int main(int argc, char **argv)
 
   // Create triggers for IO.
   int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
-  struct gkyl_tm_trigger trig_write = { .dt = t_end / num_frames,
-                                        .tcurr = t_curr,
-                                        .curr = frame_curr };
+  struct gkyl_tm_trigger trig_write = {
+    .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr
+  };
   struct gkyl_tm_trigger trig_calc_intdiag = {
     .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr
   };
@@ -488,8 +488,8 @@ int main(int argc, char **argv)
       gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_vlasov_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
         write_data(&trig_write, app, t_curr, true);
         break;
@@ -510,18 +510,18 @@ int main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_vlasov_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n",
-                         stat.stage_2_dt_diff[1]);
-    gkyl_vlasov_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n",
-                         stat.stage_2_dt_diff[0]);
+    gkyl_vlasov_app_cout(
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n",
-                       stat.species_coll_tm);
+  gkyl_vlasov_app_cout(
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n",
-                       stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);

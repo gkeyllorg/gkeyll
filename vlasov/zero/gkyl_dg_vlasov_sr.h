@@ -26,10 +26,8 @@ struct gkyl_dg_vlasov_sr_auxfields {
  * @return Pointer to special relativistic Vlasov equation object
  */
 struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_new(const struct gkyl_basis *cbasis,
-                                          const struct gkyl_basis *pbasis,
-                                          const struct gkyl_range *conf_range,
-                                          const struct gkyl_range *vel_range,
-                                          enum gkyl_field_id field_id, bool use_gpu);
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *vel_range, enum gkyl_field_id field_id, bool use_gpu);
 
 /**
  * Create a new special relativistic Vlasov equation object that lives on NV-GPU
@@ -43,10 +41,8 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_new(const struct gkyl_basis *cbasis,
  * @return Pointer to special relativistic Vlasov equation object
  */
 struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                 const struct gkyl_basis *pbasis,
-                                                 const struct gkyl_range *conf_range,
-                                                 const struct gkyl_range *vel_range,
-                                                 enum gkyl_field_id field_id);
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *vel_range, enum gkyl_field_id field_id);
 
 /**
  * Set the auxiliary fields (e.g. q/m*EM) needed in updating the force terms.
@@ -54,8 +50,8 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_cu_dev_new(const struct gkyl_basis *cbasis
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_sr_set_auxfields(const struct gkyl_dg_eqn *eqn,
-                                  struct gkyl_dg_vlasov_sr_auxfields auxin);
+void gkyl_vlasov_sr_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_sr_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 /**
@@ -64,7 +60,7 @@ void gkyl_vlasov_sr_set_auxfields(const struct gkyl_dg_eqn *eqn,
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_sr_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                     struct gkyl_dg_vlasov_sr_auxfields auxin);
+void gkyl_vlasov_sr_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_sr_auxfields auxin);
 
 #endif

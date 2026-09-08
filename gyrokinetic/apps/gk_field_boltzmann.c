@@ -13,21 +13,21 @@
 #include <time.h>
 
 static void gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struct gk_field *field,
-                                                struct gk_species *s, struct gkyl_array **bflux)
+  struct gk_species *s, struct gkyl_array **bflux)
 {
   if (s->info.charge > 0.0) {
     // For Boltzmann electrons, we only need ion density (and the ion density
     // times the conf-space Jacobian), not charge density.
     // Rescale moment by inverse of Jacobian.
     gkyl_dg_div_op_range(s->m0.mem_geo, &app->basis, 0, field->rho_c, 0, s->m0.marr, 0,
-                         app->gk_geom->geo_int.jacobgeo, &app->local);
+      app->gk_geom->geo_int.jacobgeo, &app->local);
 
     // We also need the M0 flux of the boundary flux through the z
     // boundaries. Put it in the ghost cells of s->m0.marr.
     gk_species_bflux_get_flux_mom(&s->bflux, app->cdim - 1, GKYL_LOWER_EDGE, GKYL_F_MOMENT_M0,
-                                  bflux, s->m0.marr, &app->local_lower_ghost[app->cdim - 1]);
+      bflux, s->m0.marr, &app->local_lower_ghost[app->cdim - 1]);
     gk_species_bflux_get_flux_mom(&s->bflux, app->cdim - 1, GKYL_UPPER_EDGE, GKYL_F_MOMENT_M0,
-                                  bflux, s->m0.marr, &app->local_upper_ghost[app->cdim - 1]);
+      bflux, s->m0.marr, &app->local_upper_ghost[app->cdim - 1]);
   }
 }
 
@@ -49,27 +49,22 @@ static void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct
       // NOTE: this relies on the accumulate_rho_c calling gk_species_moment_calc(s->m0)
       // to calculate the particle flux and place it in the ghost cells of s->m0.marr.
       gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE,
-                                           &app->local_lower_skin[idx_par],
-                                           &app->local_lower_ghost[idx_par],
-                                           app->gk_geom->geo_int.cmag,
-                                           app->gk_geom->geo_int.jacobtot_inv, s->m0.marr,
-                                           field->rho_c, s->m0.marr, field->sheath_vals[off]);
+        &app->local_lower_skin[idx_par], &app->local_lower_ghost[idx_par],
+        app->gk_geom->geo_int.cmag, app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c,
+        s->m0.marr, field->sheath_vals[off]);
       gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE,
-                                           &app->local_upper_skin[idx_par],
-                                           &app->local_upper_ghost[idx_par],
-                                           app->gk_geom->geo_int.cmag,
-                                           app->gk_geom->geo_int.jacobtot_inv, s->m0.marr,
-                                           field->rho_c, s->m0.marr, field->sheath_vals[off + 1]);
+        &app->local_upper_skin[idx_par], &app->local_upper_ghost[idx_par],
+        app->gk_geom->geo_int.cmag, app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c,
+        s->m0.marr, field->sheath_vals[off + 1]);
 
       // Broadcast the sheath values from skin processes to other processes.
       gkyl_comm_array_bcast(app->comm, field->sheath_vals[off], field->sheath_vals[off], 0);
-      gkyl_comm_array_bcast(app->comm, field->sheath_vals[off + 1], field->sheath_vals[off + 1],
-                            comm_sz - 1);
+      gkyl_comm_array_bcast(
+        app->comm, field->sheath_vals[off + 1], field->sheath_vals[off + 1], comm_sz - 1);
 
       // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
       gkyl_array_copy_range_to_range(field->sheath_vals[off + 1], field->sheath_vals[off + 1],
-                                     &app->local_lower_ghost[idx_par],
-                                     &app->local_upper_ghost[idx_par]);
+        &app->local_lower_ghost[idx_par], &app->local_upper_ghost[idx_par]);
       gkyl_array_accumulate(field->sheath_vals[off], 1., field->sheath_vals[off + 1]);
       gkyl_array_scale(field->sheath_vals[off], 0.5);
     }
@@ -83,7 +78,7 @@ static void gk_field_rhs_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_f
 
   // Solve phi = phi_s + (Te/e)*ln(n_i/n_i,s).
   gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext, field->rho_c,
-                                    field->sheath_vals[2 * (app->cdim - 1)], field->phi_smooth);
+    field->sheath_vals[2 * (app->cdim - 1)], field->phi_smooth);
 
   // Smooth the potential along z.
   gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
@@ -132,8 +127,7 @@ void gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_fiel
   f->accumulate_rhoc_func = gk_field_accumulate_rho_c_boltzmann;
 
   f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, f->info.electron_mass,
-                                             f->info.electron_charge, f->info.electron_temp,
-                                             app->use_gpu);
+    f->info.electron_charge, f->info.electron_temp, app->use_gpu);
 
   // Sheath_vals contains both the density and potential sheath values.
   for (int j = 0; j < app->cdim; ++j) {
@@ -149,13 +143,13 @@ void gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_fiel
     }
   }
 
-  f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis, fem_parproj_bc, 0, 0,
-                                        0, app->use_gpu);
+  f->fem_parproj = gkyl_fem_parproj_new(
+    &app->global, &app->grid, &app->basis, fem_parproj_bc, 0, 0, 0, app->use_gpu);
 
   if (app->cdim == 1) {
     f->es_energy_fac_1d = polarization_weight;
-    f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 1,
-                                                 GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
+    f->calc_em_energy = gkyl_array_integrate_new(
+      &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
   } else {
     f->calc_em_energy = gkyl_array_integrate_new(
       &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);

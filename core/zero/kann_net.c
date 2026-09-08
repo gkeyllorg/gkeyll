@@ -105,8 +105,8 @@ void gkyl_kann_net_save(const struct gkyl_kann_net *net, const char *filename)
 // assembled on device via gather kernels.
 #ifdef GKYL_HAVE_CUDA
 static int kann_net_train_fnn1_cu(struct gkyl_kann_net *net,
-                                  const struct gkyl_kann_train_params *params,
-                                  const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
+  const struct gkyl_kann_train_params *params, const struct gkyl_kn_vec *inp,
+  const struct gkyl_kn_vec *out)
 {
   kann_t *ann = net->ann;
   int n = inp->nvec;
@@ -210,7 +210,7 @@ static int kann_net_train_fnn1_cu(struct gkyl_kann_net *net,
 
     if (kann_net_verbose >= 3)
       fprintf(stderr, "epoch: %d; training cost: %g; validation cost: %g\n", epoch + 1, train_cost,
-              val_cost);
+        val_cost);
 
     if (epoch >= params->max_drop_streak && n_val > 0) {
       if (val_cost < min_val_cost) {
@@ -245,7 +245,7 @@ static int kann_net_train_fnn1_cu(struct gkyl_kann_net *net,
 #endif
 
 int gkyl_kann_net_train_fnn1(struct gkyl_kann_net *net, const struct gkyl_kann_train_params *params,
-                             const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
+  const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
 {
   assert(inp->nvec == out->nvec);
   assert(inp->N == net->n_in);
@@ -257,14 +257,13 @@ int gkyl_kann_net_train_fnn1(struct gkyl_kann_net *net, const struct gkyl_kann_t
 #endif
 
   return kann_train_fnn1(net->ann, params->learning_rate, params->mini_size, params->max_epoch,
-                         params->max_drop_streak, params->frac_val, inp->nvec, inp->vals,
-                         out->vals);
+    params->max_drop_streak, params->frac_val, inp->nvec, inp->vals, out->vals);
 }
 
 // GPU inference: feed device input, run forward, copy output to device kn_vec
 #ifdef GKYL_HAVE_CUDA
-static void kann_net_apply_cu(struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp,
-                              struct gkyl_kn_vec *out)
+static void kann_net_apply_cu(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   int n_in = net->n_in, n_out = net->n_out;
   int nvec = inp->nvec;
@@ -294,8 +293,8 @@ static void kann_net_apply_cu(struct gkyl_kann_net *net, const struct gkyl_kn_ve
 }
 #endif
 
-void gkyl_kann_net_apply(struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp,
-                         struct gkyl_kn_vec *out)
+void gkyl_kann_net_apply(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   assert(inp->N == net->n_in);
   assert(out->N == net->n_out);
@@ -317,8 +316,8 @@ void gkyl_kann_net_apply(struct gkyl_kann_net *net, const struct gkyl_kn_vec *in
 // GPU sequential RNN inference: process one timestep at a time with
 // pre-recurrence between steps.
 #ifdef GKYL_HAVE_CUDA
-static void kann_net_apply_rnn_cu(struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp,
-                                  struct gkyl_kn_vec *out)
+static void kann_net_apply_rnn_cu(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   int n_in = net->n_in, n_out = net->n_out;
   int nvec = inp->nvec;
@@ -353,8 +352,8 @@ static void kann_net_apply_rnn_cu(struct gkyl_kann_net *net, const struct gkyl_k
 
     // Copy output for this timestep
     struct kann_cu_node *hn = &cg->h_nodes[out_idx];
-    gkyl_cu_memcpy(out->data + t * n_out, cg->x + hn->x_off, n_out * sizeof(float),
-                   GKYL_CU_MEMCPY_D2D);
+    gkyl_cu_memcpy(
+      out->data + t * n_out, cg->x + hn->x_off, n_out * sizeof(float), GKYL_CU_MEMCPY_D2D);
 
     // Apply pre-recurrence: copy output node x to h0 node x
     kann_cu_apply_pre(cg);
@@ -362,8 +361,8 @@ static void kann_net_apply_rnn_cu(struct gkyl_kann_net *net, const struct gkyl_k
 }
 #endif
 
-void gkyl_kann_net_apply_rnn(struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp,
-                             struct gkyl_kn_vec *out)
+void gkyl_kann_net_apply_rnn(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   assert(inp->N == net->n_in);
   assert(out->N == net->n_out);

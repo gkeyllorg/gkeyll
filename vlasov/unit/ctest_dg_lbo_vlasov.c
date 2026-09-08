@@ -111,11 +111,11 @@ void test_dg_lbo_vlasov_1x1v_p2_ho()
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum,
-                                                        .nuPrimMomsSum = nuPrimMomsSum };
+    .nuPrimMomsSum = nuPrimMomsSum };
   struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum,
-                                                        .nuPrimMomsSum = nuPrimMomsSum };
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp,
-                                        &diff_inp, false);
+    .nuPrimMomsSum = nuPrimMomsSum };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(
+    &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, false);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -236,11 +236,11 @@ void test_dg_lbo_vlasov_1x2v_p2_ho()
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum,
-                                                        .nuPrimMomsSum = nuPrimMomsSum };
+    .nuPrimMomsSum = nuPrimMomsSum };
   struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum,
-                                                        .nuPrimMomsSum = nuPrimMomsSum };
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp,
-                                        &diff_inp, false);
+    .nuPrimMomsSum = nuPrimMomsSum };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(
+    &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, false);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -395,11 +395,11 @@ void test_dg_lbo_vlasov_1x1v_p2_dev()
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum_cu,
-                                                        .nuPrimMomsSum = nuPrimMomsSum_cu };
+    .nuPrimMomsSum = nuPrimMomsSum_cu };
   struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum_cu,
-                                                        .nuPrimMomsSum = nuPrimMomsSum_cu };
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp,
-                                        &diff_inp, true);
+    .nuPrimMomsSum = nuPrimMomsSum_cu };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(
+    &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, true);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -531,11 +531,11 @@ void test_dg_lbo_vlasov_1x2v_p2_dev()
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum_cu,
-                                                        .nuPrimMomsSum = nuPrimMomsSum_cu };
+    .nuPrimMomsSum = nuPrimMomsSum_cu };
   struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum_cu,
-                                                        .nuPrimMomsSum = nuPrimMomsSum_cu };
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp,
-                                        &diff_inp, true);
+    .nuPrimMomsSum = nuPrimMomsSum_cu };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(
+    &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, true);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -628,9 +628,9 @@ void test_dg_lbo_vlasov_1x2v_p2_dev()
 #endif
 
 TEST_LIST = { { "test_dg_lbo_vlasov_1x1v_p2_ho", test_dg_lbo_vlasov_1x1v_p2_ho },
-              { "test_dg_lbo_vlasov_1x2v_p2_ho", test_dg_lbo_vlasov_1x2v_p2_ho },
+  { "test_dg_lbo_vlasov_1x2v_p2_ho", test_dg_lbo_vlasov_1x2v_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_dg_lbo_vlasov_1x1v_p2_dev", test_dg_lbo_vlasov_1x1v_p2_dev },
-              { "test_dg_lbo_vlasov_1x2v_p2_dev", test_dg_lbo_vlasov_1x2v_p2_dev },
+  { "test_dg_lbo_vlasov_1x1v_p2_dev", test_dg_lbo_vlasov_1x1v_p2_dev },
+  { "test_dg_lbo_vlasov_1x2v_p2_dev", test_dg_lbo_vlasov_1x2v_p2_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

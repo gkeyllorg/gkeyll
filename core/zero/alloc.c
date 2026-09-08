@@ -93,7 +93,7 @@ void *gkyl_aligned_alloc_(const char *file, int line, const char *func, size_t a
 }
 
 void *gkyl_aligned_realloc_(const char *file, int line, const char *func, void *ptr, size_t align,
-                            size_t old_sz, size_t new_sz)
+  size_t old_sz, size_t new_sz)
 {
   void *nptr = gkyl_aligned_alloc(align, new_sz);
   if (0 == nptr) {
@@ -229,8 +229,8 @@ void gkyl_cu_memcpy(void *dst, const void *src, size_t count, enum gkyl_cu_memcp
   }
 }
 
-void gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind,
-                          cudaStream_t stream)
+void gkyl_cu_memcpy_async(
+  void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream)
 {
   cudaError_t err = cudaMemcpyAsync(dst, src, count, kind, stream);
   if (err != cudaSuccess) {
@@ -279,8 +279,8 @@ void gkyl_cu_memcpy(void *dst, const void *src, size_t count, enum gkyl_cu_memcp
   assert(false);
 }
 
-void gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind,
-                          int stream)
+void gkyl_cu_memcpy_async(
+  void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, int stream)
 {
   assert(false);
 }

@@ -449,8 +449,8 @@ void test_null_comm_io_p1_p4_ho(void)
 {
   struct gkyl_rect_grid grid;
   struct gkyl_array_header_info hdr;
-  gkyl_grid_sub_array_header_read(&grid, &hdr,
-                                  "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+  gkyl_grid_sub_array_header_read(
+    &grid, &hdr, "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
   size_t nc = hdr.esznc / gkyl_elem_type_size[hdr.etype];
 
@@ -467,16 +467,16 @@ void test_null_comm_io_p1_p4_ho(void)
   gkyl_array_clear(s_arr, 0.0);
 
   int status;
-  status = gkyl_grid_sub_array_read(&grid, &range, s_arr,
-                                    "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+  status = gkyl_grid_sub_array_read(
+    &grid, &range, s_arr, "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
   TEST_CHECK(0 == status);
 
   struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
   gkyl_array_clear(p_arr, 0.0);
 
-  status = gkyl_comm_array_read(comm, &grid, &range, p_arr,
-                                "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+  status = gkyl_comm_array_read(
+    comm, &grid, &range, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -498,11 +498,10 @@ void test_null_comm_io_p1_p4_ho(void)
 }
 
 TEST_LIST = { { "test_null_comm_1d_ho", test_null_comm_1d_ho },
-              { "test_null_comm_allgather_1d_ho", test_null_comm_allgather_1d_ho },
-              { "test_null_comm_bcast_1d_ho", test_null_comm_bcast_1d_ho },
-              { "test_null_comm_2d_ho", test_null_comm_2d_ho },
-              { "test_null_comm_allgather_2d_ho", test_null_comm_allgather_2d_ho },
-              { "test_null_comm_bcast_2d_ho", test_null_comm_bcast_2d_ho },
-              { "test_null_comm_io_2d_ho", test_null_comm_io_2d_ho },
-              { "test_null_comm_io_p1_p4_ho", test_null_comm_io_p1_p4_ho },
-              { NULL, NULL } };
+  { "test_null_comm_allgather_1d_ho", test_null_comm_allgather_1d_ho },
+  { "test_null_comm_bcast_1d_ho", test_null_comm_bcast_1d_ho },
+  { "test_null_comm_2d_ho", test_null_comm_2d_ho },
+  { "test_null_comm_allgather_2d_ho", test_null_comm_allgather_2d_ho },
+  { "test_null_comm_bcast_2d_ho", test_null_comm_bcast_2d_ho },
+  { "test_null_comm_io_2d_ho", test_null_comm_io_2d_ho },
+  { "test_null_comm_io_p1_p4_ho", test_null_comm_io_p1_p4_ho }, { NULL, NULL } };

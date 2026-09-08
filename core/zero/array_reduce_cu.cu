@@ -66,9 +66,9 @@ __global__ void arrayMax_blockRedAtomic_cub(const struct gkyl_array *inp, double
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                        ::cuda::maximum()
+      ::cuda::maximum()
 #else
-                                        cub::Max()
+      cub::Max()
 #endif
     );
     if (threadIdx.x < BLOCKSIZE) {
@@ -78,8 +78,8 @@ __global__ void arrayMax_blockRedAtomic_cub(const struct gkyl_array *inp, double
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void arrayMax_range_blockRedAtomic_cub(const struct gkyl_array *inp,
-                                                  const struct gkyl_range range, double *out)
+__global__ void arrayMax_range_blockRedAtomic_cub(
+  const struct gkyl_array *inp, const struct gkyl_range range, double *out)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -105,9 +105,9 @@ __global__ void arrayMax_range_blockRedAtomic_cub(const struct gkyl_array *inp,
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                        ::cuda::maximum()
+      ::cuda::maximum()
 #else
-                                        cub::Max()
+      cub::Max()
 #endif
     );
     if (threadIdx.x < BLOCKSIZE) {
@@ -125,8 +125,8 @@ void gkyl_array_reduce_max_cu(double *out_d, const struct gkyl_array *inp)
   cudaDeviceSynchronize();
 }
 
-void gkyl_array_reduce_range_max_cu(double *out_d, const struct gkyl_array *inp,
-                                    const struct gkyl_range *range)
+void gkyl_array_reduce_range_max_cu(
+  double *out_d, const struct gkyl_array *inp, const struct gkyl_range *range)
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
@@ -159,9 +159,9 @@ __global__ void arrayMin_blockRedAtomic_cub(const struct gkyl_array *inp, double
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                        ::cuda::minimum()
+      ::cuda::minimum()
 #else
-                                        cub::Min()
+      cub::Min()
 #endif
     );
     if (threadIdx.x < BLOCKSIZE) {
@@ -171,8 +171,8 @@ __global__ void arrayMin_blockRedAtomic_cub(const struct gkyl_array *inp, double
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void arrayMin_range_blockRedAtomic_cub(const struct gkyl_array *inp,
-                                                  const struct gkyl_range range, double *out)
+__global__ void arrayMin_range_blockRedAtomic_cub(
+  const struct gkyl_array *inp, const struct gkyl_range range, double *out)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -198,9 +198,9 @@ __global__ void arrayMin_range_blockRedAtomic_cub(const struct gkyl_array *inp,
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                        ::cuda::minimum()
+      ::cuda::minimum()
 #else
-                                        cub::Min()
+      cub::Min()
 #endif
     );
     if (threadIdx.x < BLOCKSIZE) {
@@ -218,8 +218,8 @@ void gkyl_array_reduce_min_cu(double *out_d, const struct gkyl_array *inp)
   cudaDeviceSynchronize();
 }
 
-void gkyl_array_reduce_range_min_cu(double *out_d, const struct gkyl_array *inp,
-                                    const struct gkyl_range *range)
+void gkyl_array_reduce_range_min_cu(
+  double *out_d, const struct gkyl_array *inp, const struct gkyl_range *range)
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
@@ -251,9 +251,9 @@ __global__ void arraySum_blockRedAtomic_cub(const struct gkyl_array *inp, double
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                        ::cuda::std::plus()
+      ::cuda::std::plus()
 #else
-                                        cub::Sum()
+      cub::Sum()
 #endif
     );
     if (threadIdx.x == 0) {
@@ -263,8 +263,8 @@ __global__ void arraySum_blockRedAtomic_cub(const struct gkyl_array *inp, double
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void arraySum_range_blockRedAtomic_cub(const struct gkyl_array *inp,
-                                                  const struct gkyl_range range, double *out)
+__global__ void arraySum_range_blockRedAtomic_cub(
+  const struct gkyl_array *inp, const struct gkyl_range range, double *out)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -289,9 +289,9 @@ __global__ void arraySum_range_blockRedAtomic_cub(const struct gkyl_array *inp,
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                        ::cuda::std::plus()
+      ::cuda::std::plus()
 #else
-                                        cub::Sum()
+      cub::Sum()
 #endif
     );
     if (threadIdx.x == 0) {
@@ -311,8 +311,8 @@ void gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array *inp)
   cudaDeviceSynchronize();
 }
 
-void gkyl_array_reduce_range_sum_cu(double *out_d, const struct gkyl_array *inp,
-                                    const struct gkyl_range *range)
+void gkyl_array_reduce_range_sum_cu(
+  double *out_d, const struct gkyl_array *inp, const struct gkyl_range *range)
 {
   gkyl_cu_memset(out_d, 0, inp->ncomp * sizeof(double));
 

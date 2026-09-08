@@ -46,9 +46,8 @@ struct gkyl_array_average *gkyl_array_average_cu_dev_new(struct gkyl_array_avera
   return up;
 }
 
-__global__ void gkyl_array_average_advance_cu_ker(const struct gkyl_array_average *up,
-                                                  const struct gkyl_array *fin,
-                                                  struct gkyl_array *avgout)
+__global__ void gkyl_array_average_advance_cu_ker(
+  const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout)
 {
   int idx[GKYL_MAX_DIM] = { 0 };
   int idx_avg[GKYL_MAX_DIM] = { 0 };
@@ -86,17 +85,17 @@ __global__ void gkyl_array_average_advance_cu_ker(const struct gkyl_array_averag
   }
 }
 
-void gkyl_array_average_advance_cu(const struct gkyl_array_average *up,
-                                   const struct gkyl_array *fin, struct gkyl_array *avgout)
+void gkyl_array_average_advance_cu(
+  const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout)
 {
   int nblocks = up->local.nblocks, nthreads = up->local.nthreads;
 
   gkyl_array_clear_range(avgout, 0.0, &up->local_avg);
 
-  gkyl_array_average_advance_cu_ker<<<nblocks, nthreads> > >(up->on_dev, fin->on_dev,
-                                                             avgout->on_dev);
+  gkyl_array_average_advance_cu_ker<<<nblocks, nthreads> > >(
+    up->on_dev, fin->on_dev, avgout->on_dev);
 
   if (up->isweighted)
-    gkyl_dg_div_op_range(up->div_mem, &up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg,
-                         &up->local_avg);
+    gkyl_dg_div_op_range(
+      up->div_mem, &up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg);
 }

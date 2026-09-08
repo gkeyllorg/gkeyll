@@ -32,24 +32,17 @@ static const struct gkyl_str_int_pair distribution_moms[] = {
 
 // Species boundary conditions -> enum map.
 static const struct gkyl_str_int_pair species_bcs[] = { { "bcCopy", GKYL_SPECIES_COPY },
-                                                        { "bcWall", GKYL_SPECIES_REFLECT },
-                                                        { "bcReflect", GKYL_SPECIES_REFLECT },
-                                                        { "bcAbsorb", GKYL_SPECIES_ABSORB },
-                                                        { "bcNoSlip", GKYL_SPECIES_NO_SLIP },
-                                                        { "bcWedge", GKYL_SPECIES_WEDGE },
-                                                        { "bcFunc", GKYL_SPECIES_FUNC },
-                                                        { "bcFixedFunc", GKYL_SPECIES_FIXED_FUNC },
-                                                        { "bcZeroFlux", GKYL_SPECIES_ZERO_FLUX },
-                                                        { "bcRecycle", GKYL_SPECIES_RECYCLE },
-                                                        { 0, 0 } };
+  { "bcWall", GKYL_SPECIES_REFLECT }, { "bcReflect", GKYL_SPECIES_REFLECT },
+  { "bcAbsorb", GKYL_SPECIES_ABSORB }, { "bcNoSlip", GKYL_SPECIES_NO_SLIP },
+  { "bcWedge", GKYL_SPECIES_WEDGE }, { "bcFunc", GKYL_SPECIES_FUNC },
+  { "bcFixedFunc", GKYL_SPECIES_FIXED_FUNC }, { "bcZeroFlux", GKYL_SPECIES_ZERO_FLUX },
+  { "bcRecycle", GKYL_SPECIES_RECYCLE }, { 0, 0 } };
 
 // Field boundary conditions -> enum map.
-static const struct gkyl_str_int_pair field_bcs[] = {
-  { "bcCopy", GKYL_FIELD_COPY },           { "bcWall", GKYL_FIELD_PEC_WALL },
-  { "bcPECWall", GKYL_FIELD_PEC_WALL },    { "bcSymWall", GKYL_FIELD_SYM_WALL },
-  { "bcReservoir", GKYL_FIELD_RESERVOIR }, { "bcWedge", GKYL_FIELD_WEDGE },
-  { "bcFunc", GKYL_FIELD_FUNC },           { 0, 0 }
-};
+static const struct gkyl_str_int_pair field_bcs[] = { { "bcCopy", GKYL_FIELD_COPY },
+  { "bcWall", GKYL_FIELD_PEC_WALL }, { "bcPECWall", GKYL_FIELD_PEC_WALL },
+  { "bcSymWall", GKYL_FIELD_SYM_WALL }, { "bcReservoir", GKYL_FIELD_RESERVOIR },
+  { "bcWedge", GKYL_FIELD_WEDGE }, { "bcFunc", GKYL_FIELD_FUNC }, { 0, 0 } };
 
 void gkyl_register_distribution_moment_types(lua_State *L)
 {
@@ -66,8 +59,8 @@ void gkyl_register_field_bc_types(lua_State *L)
   register_types(L, field_bcs, "FieldBc");
 }
 
-void gkyl_lw_eval_cb(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                     void *ctx)
+void gkyl_lw_eval_cb(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct lua_func_ctx *fr = ctx;
   lua_State *L = fr->L;

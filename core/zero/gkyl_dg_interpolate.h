@@ -26,11 +26,9 @@ typedef struct gkyl_dg_interpolate gkyl_dg_interpolate;
  * @return New interpolation updater.
  */
 struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
-                                                    const struct gkyl_rect_grid *grid_do,
-                                                    const struct gkyl_rect_grid *grid_tar,
-                                                    const struct gkyl_range *range_do,
-                                                    const struct gkyl_range *range_tar,
-                                                    const int *nghost, bool use_gpu);
+  const struct gkyl_rect_grid *grid_do, const struct gkyl_rect_grid *grid_tar,
+  const struct gkyl_range *range_do, const struct gkyl_range *range_tar, const int *nghost,
+  bool use_gpu);
 
 /**
  * Run the interpolation updater in the indicated range.
@@ -39,8 +37,8 @@ struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_
  * @param fdo Donor field.
  * @param ftar Target field.
  */
-void gkyl_dg_interpolate_advance(gkyl_dg_interpolate *up, struct gkyl_array *fdo,
-                                 struct gkyl_array *ftar);
+void gkyl_dg_interpolate_advance(
+  gkyl_dg_interpolate *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
  * Release the memory associated with this interpolating updater.

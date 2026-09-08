@@ -48,9 +48,8 @@ struct gkyl_array_header_info {
  * @param fname Name of output file (include .gkyl extension)
  * @return Status flag
  */
-enum gkyl_array_rio_status gkyl_grid_sub_array_header_read(struct gkyl_rect_grid *grid,
-                                                           struct gkyl_array_header_info *hdr,
-                                                           const char *fname);
+enum gkyl_array_rio_status gkyl_grid_sub_array_header_read(
+  struct gkyl_rect_grid *grid, struct gkyl_array_header_info *hdr, const char *fname);
 
 /**
  * Free header info if needed (only of meta_size > 0) does this call
@@ -72,10 +71,8 @@ void gkyl_array_header_info_release(struct gkyl_array_header_info *info);
  * @return Status flag
  */
 enum gkyl_array_rio_status gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid,
-                                                     const struct gkyl_range *range,
-                                                     const struct gkyl_msgpack_data *meta,
-                                                     const struct gkyl_array *arr,
-                                                     const char *fname);
+  const struct gkyl_range *range, const struct gkyl_msgpack_data *meta,
+  const struct gkyl_array *arr, const char *fname);
 
 /**
  * Read grid and array data from file. The input array must be
@@ -88,8 +85,7 @@ enum gkyl_array_rio_status gkyl_grid_sub_array_write(const struct gkyl_rect_grid
  * @return Status flag
  */
 enum gkyl_array_rio_status gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid,
-                                                    const struct gkyl_range *range,
-                                                    struct gkyl_array *arr, const char *fname);
+  const struct gkyl_range *range, struct gkyl_array *arr, const char *fname);
 
 /**
  * Read grid and array data from file, creating a new array.

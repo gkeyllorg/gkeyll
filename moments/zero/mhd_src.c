@@ -40,8 +40,8 @@ gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp, const struct gkyl_ra
 // SOURCE UPDATE HELPERS //
 ///////////////////////////
 
-static void calc_divB(const gkyl_mhd_src *up, const struct gkyl_range *update_range,
-                      struct gkyl_array *q_array)
+static void calc_divB(
+  const gkyl_mhd_src *up, const struct gkyl_range *update_range, struct gkyl_array *q_array)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -73,8 +73,8 @@ static void calc_divB(const gkyl_mhd_src *up, const struct gkyl_range *update_ra
   }
 }
 
-static void calc_B_dot_gradPsi(const gkyl_mhd_src *up, const struct gkyl_range *update_range,
-                               struct gkyl_array *q_array)
+static void calc_B_dot_gradPsi(
+  const gkyl_mhd_src *up, const struct gkyl_range *update_range, struct gkyl_array *q_array)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -111,8 +111,8 @@ static void calc_B_dot_gradPsi(const gkyl_mhd_src *up, const struct gkyl_range *
 ////////////////////////////
 
 static void gkyl_mhd_src_eight_wave(const gkyl_mhd_src *up, double dt,
-                                    const struct gkyl_range *update_range,
-                                    struct gkyl_array *q_array, const struct gkyl_array *acc_array)
+  const struct gkyl_range *update_range, struct gkyl_array *q_array,
+  const struct gkyl_array *acc_array)
 {
   // Powell et al., JCP (1999), 10.1006/jcph.1999.6299
   calc_divB(up, update_range, q_array);
@@ -140,8 +140,8 @@ static void gkyl_mhd_src_eight_wave(const gkyl_mhd_src *up, double dt,
 }
 
 static void gkyl_mhd_src_glm(const gkyl_mhd_src *up, double dt,
-                             const struct gkyl_range *update_range, struct gkyl_array *q_array,
-                             const struct gkyl_array *acc_array)
+  const struct gkyl_range *update_range, struct gkyl_array *q_array,
+  const struct gkyl_array *acc_array)
 {
   // Dedner et al., JCP (2002), 10.1006/jcph.2001.6961
   // Mignone & Tzeferacos, JCP (2010), 10.1016/j.jcp.2009.11.026
@@ -178,7 +178,7 @@ static void gkyl_mhd_src_glm(const gkyl_mhd_src *up, double dt,
 /////////////////////////////
 
 void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt, const struct gkyl_range *update_range,
-                          struct gkyl_array *q_array, const struct gkyl_array *acc_array)
+  struct gkyl_array *q_array, const struct gkyl_array *acc_array)
 {
   switch (up->divergence_constraint) {
   case GKYL_MHD_DIVB_NONE:
@@ -194,8 +194,8 @@ void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt, const struct gkyl_r
   }
 }
 
-double gkyl_mhd_src_calc_divB(const gkyl_mhd_src *up, const struct gkyl_range *update_range,
-                              struct gkyl_array *q_array)
+double gkyl_mhd_src_calc_divB(
+  const gkyl_mhd_src *up, const struct gkyl_range *update_range, struct gkyl_array *q_array)
 {
   calc_divB(up, update_range, q_array);
 

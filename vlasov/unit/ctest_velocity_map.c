@@ -29,14 +29,14 @@ static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
   return a;
 }
 
-void test_vmap_1x2v_p1_mapc2p_vel_vpar(double t, const double *zc, double *GKYL_RESTRICT vp,
-                                       void *ctx)
+void test_vmap_1x2v_p1_mapc2p_vel_vpar(
+  double t, const double *zc, double *GKYL_RESTRICT vp, void *ctx)
 {
   double vparc = zc[0];
   vp[0] = vparc < 0. ? -pow(vparc, 2) : pow(vparc, 2); // Quadratic mapping.
 }
-void test_vmap_1x2v_p1_mapc2p_vel_mu(double t, const double *zc, double *GKYL_RESTRICT vp,
-                                     void *ctx)
+void test_vmap_1x2v_p1_mapc2p_vel_mu(
+  double t, const double *zc, double *GKYL_RESTRICT vp, void *ctx)
 {
   double muc = zc[0];
   vp[0] = pow(muc, 2); // Quadratic mapping.
@@ -109,8 +109,8 @@ void test_vmap_1x2v_p1(bool use_gpu)
   struct gkyl_mapc2p_inp c2p_in = { .mapping = test_vmap_1x2v_p1_mapc2p_vel, .ctx = NULL };
 
   // Velocity space mapping.
-  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, grid_vel, local, local_ext,
-                                                        local_vel, local_ext_vel, use_gpu);
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
+    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_ext_vel, use_gpu);
 
   // Check vmap.
   struct gkyl_array *vmap_ho = mkarr(false, gvm->vmap->ncomp, gvm->vmap->size);
@@ -235,6 +235,6 @@ void test_vmap_1x2v_p1_dev()
 TEST_LIST = { { "test_vmap_1x2v_p1_ho", test_vmap_1x2v_p1_ho },
 
 #ifdef GKYL_HAVE_CUDA
-              { "test_vmap_1x2v_p1_dev", test_vmap_1x2v_p1_dev },
+  { "test_vmap_1x2v_p1_dev", test_vmap_1x2v_p1_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

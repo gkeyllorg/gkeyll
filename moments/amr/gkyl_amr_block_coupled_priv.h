@@ -107,7 +107,7 @@ struct five_moment_copy_job_ctx {
 * @param ctx Context to pass to the function.
 */
 void five_moment_wall_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                         const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
+  const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
 
 /**
 * Boundary condition function for applying wall boundary conditions for the coupled ten-moment equations.
@@ -120,7 +120,7 @@ void five_moment_wall_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
 * @param ctx Context to pass to the function.
 */
 void ten_moment_wall_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                        const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
+  const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
 
 /**
 * Boundary condition function for applying wall boundary conditions for the Maxwell equations.
@@ -133,7 +133,7 @@ void ten_moment_wall_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
 * @param ctx Context to pass to the function.
 */
 void maxwell_wall_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                     const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
+  const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
 
 /**
 * Boundary condition function for applying copy boundary conditions for the coupled five-moment equations.
@@ -146,7 +146,7 @@ void maxwell_wall_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
 * @param ctx Context to pass to the function.
 */
 void five_moment_copy_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                         const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
+  const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
 
 /**
 * Boundary condition function for applying copy boundary conditions for the coupled ten-moment equations.
@@ -159,7 +159,7 @@ void five_moment_copy_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
 * @param ctx Context to pass to the function.
 */
 void ten_moment_copy_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                        const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
+  const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
 
 /**
 * Boundary condition function for applying copy boundary conditions for the Maxwell equations.
@@ -172,7 +172,7 @@ void ten_moment_copy_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
 * @param ctx Context to pass to the function.
 */
 void maxwell_copy_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                     const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
+  const double *GKYL_RESTRICT skin, double *GKYL_RESTRICT ghost, void *ctx);
 
 /**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
@@ -180,8 +180,8 @@ void maxwell_copy_bc(const struct gkyl_wv_eqn *eqn, double t, int nc,
 * @param bdata Block-structured data for the coupled five-moment equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void five_moment_block_bc_updaters_init(struct five_moment_block_data *bdata,
-                                        const struct gkyl_block_connections *conn);
+void five_moment_block_bc_updaters_init(
+  struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn);
 
 /**
 * Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
@@ -189,8 +189,8 @@ void five_moment_block_bc_updaters_init(struct five_moment_block_data *bdata,
 * @param bdata Block-structured data for the coupled five-moment equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void five_moment_nested_block_bc_updaters_init(struct five_moment_block_data *bdata,
-                                               const struct gkyl_block_connections *conn);
+void five_moment_nested_block_bc_updaters_init(
+  struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn);
 
 /**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled ten-moment equations.
@@ -198,8 +198,8 @@ void five_moment_nested_block_bc_updaters_init(struct five_moment_block_data *bd
 * @param bdata Block-structured data for the coupled ten-moment equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void ten_moment_block_bc_updaters_init(struct five_moment_block_data *bdata,
-                                       const struct gkyl_block_connections *conn);
+void ten_moment_block_bc_updaters_init(
+  struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn);
 
 /**
 * Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled ten-moment equations.
@@ -207,8 +207,8 @@ void ten_moment_block_bc_updaters_init(struct five_moment_block_data *bdata,
 * @param bdata Block-structured data for the coupled ten-moment equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void ten_moment_nested_block_bc_updaters_init(struct five_moment_block_data *bdata,
-                                              const struct gkyl_block_connections *conn);
+void ten_moment_nested_block_bc_updaters_init(
+  struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn);
 
 /**
 * Release block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
@@ -227,8 +227,7 @@ void five_moment_block_bc_updaters_release(struct five_moment_block_data *bdata)
 * @param fld_maxwell Output array (Maxwell field).
 */
 void five_moment_block_bc_updaters_apply(const struct five_moment_block_data *bdata, double tm,
-                                         struct gkyl_array *fld_elc, struct gkyl_array *fld_ion,
-                                         struct gkyl_array *fld_maxwell);
+  struct gkyl_array *fld_elc, struct gkyl_array *fld_ion, struct gkyl_array *fld_maxwell);
 
 /**
 * Coarse-to-fine projection operator for coupled, block-structured AMR, assuming a lower coarse block and a lower fine block.
@@ -246,12 +245,9 @@ void five_moment_block_bc_updaters_apply(const struct five_moment_block_data *bd
 * @param fld_maxwell Output array (Maxwell field).
 */
 void block_coupled_ll_projection_op(const int tbid, const int tdir, const int i, const int d,
-                                    const struct five_moment_block_data bdata[],
-                                    const struct gkyl_array *bc_buffer_elc,
-                                    const struct gkyl_array *bc_buffer_ion,
-                                    const struct gkyl_array *bc_buffer_maxwell,
-                                    struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[],
-                                    struct gkyl_array *fld_maxwell[]);
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]);
 
 /**
 * Fine-to-coarse restriction operator for coupled, block-structured AMR, assuming a lower fine block and a lower coarse block.
@@ -269,12 +265,9 @@ void block_coupled_ll_projection_op(const int tbid, const int tdir, const int i,
 * @param fld_maxwell Output array (Maxwell field).
 */
 void block_coupled_ll_restriction_op(const int tbid, const int tdir, const int i, const int d,
-                                     const struct five_moment_block_data bdata[],
-                                     const struct gkyl_array *bc_buffer_elc,
-                                     const struct gkyl_array *bc_buffer_ion,
-                                     const struct gkyl_array *bc_buffer_maxwell,
-                                     struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[],
-                                     struct gkyl_array *fld_maxwell[]);
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]);
 
 /**
 * Coarse-to-fine projection operator for coupled, block-structured AMR, assuming a lower coarse block and an upper fine block.
@@ -292,12 +285,9 @@ void block_coupled_ll_restriction_op(const int tbid, const int tdir, const int i
 * @param fld_maxwell Output array (Maxwell field).
 */
 void block_coupled_lu_projection_op(const int tbid, const int tdir, const int i, const int d,
-                                    const struct five_moment_block_data bdata[],
-                                    const struct gkyl_array *bc_buffer_elc,
-                                    const struct gkyl_array *bc_buffer_ion,
-                                    const struct gkyl_array *bc_buffer_maxwell,
-                                    struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[],
-                                    struct gkyl_array *fld_maxwell[]);
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]);
 
 /**
 * Fine-to-coarse restriction operator for coupled, block-structured AMR, assuming a lower fine block and an upper coarse block.
@@ -315,12 +305,9 @@ void block_coupled_lu_projection_op(const int tbid, const int tdir, const int i,
 * @param fld_maxwell Output array (Maxwell field).
 */
 void block_coupled_lu_restriction_op(const int tbid, const int tdir, const int i, const int d,
-                                     const struct five_moment_block_data bdata[],
-                                     const struct gkyl_array *bc_buffer_elc,
-                                     const struct gkyl_array *bc_buffer_ion,
-                                     const struct gkyl_array *bc_buffer_maxwell,
-                                     struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[],
-                                     struct gkyl_array *fld_maxwell[]);
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]);
 
 /**
 * Coarse-to-fine projection operator for coupled, block-structured AMR, assuming an upper coarse block and a lower fine block.
@@ -338,12 +325,9 @@ void block_coupled_lu_restriction_op(const int tbid, const int tdir, const int i
 * @param fld_maxwell Output array (Maxwell field).
 */
 void block_coupled_ul_projection_op(const int tbid, const int tdir, const int i, const int d,
-                                    const struct five_moment_block_data bdata[],
-                                    const struct gkyl_array *bc_buffer_elc,
-                                    const struct gkyl_array *bc_buffer_ion,
-                                    const struct gkyl_array *bc_buffer_maxwell,
-                                    struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[],
-                                    struct gkyl_array *fld_maxwell[]);
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]);
 
 /**
 * Fine-to-coarse restriction operator for coupled, block-structured AMR, assuming an upper fine block and a lower coarse block.
@@ -361,12 +345,9 @@ void block_coupled_ul_projection_op(const int tbid, const int tdir, const int i,
 * @param fld_maxwell Output array (Maxwell field).
 */
 void block_coupled_ul_restriction_op(const int tbid, const int tdir, const int i, const int d,
-                                     const struct five_moment_block_data bdata[],
-                                     const struct gkyl_array *bc_buffer_elc,
-                                     const struct gkyl_array *bc_buffer_ion,
-                                     const struct gkyl_array *bc_buffer_maxwell,
-                                     struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[],
-                                     struct gkyl_array *fld_maxwell[]);
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]);
 
 /**
 * Coarse-to-fine projection operator for coupled, block-structured AMR, assuming an upper coarse block and an upper fine block.
@@ -384,12 +365,9 @@ void block_coupled_ul_restriction_op(const int tbid, const int tdir, const int i
 * @param fld_maxwell Output array (Maxwell field).
 */
 void block_coupled_uu_projection_op(const int tbid, const int tdir, const int i, const int d,
-                                    const struct five_moment_block_data bdata[],
-                                    const struct gkyl_array *bc_buffer_elc,
-                                    const struct gkyl_array *bc_buffer_ion,
-                                    const struct gkyl_array *bc_buffer_maxwell,
-                                    struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[],
-                                    struct gkyl_array *fld_maxwell[]);
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]);
 
 /**
 * Fine-to-coarse restriction operator for coupled, block-structured AMR, assuming an upper fine block and an upper coarse block.
@@ -407,12 +385,9 @@ void block_coupled_uu_projection_op(const int tbid, const int tdir, const int i,
 * @param fld_maxwell Output array (Maxwell field).
 */
 void block_coupled_uu_restriction_op(const int tbid, const int tdir, const int i, const int d,
-                                     const struct five_moment_block_data bdata[],
-                                     const struct gkyl_array *bc_buffer_elc,
-                                     const struct gkyl_array *bc_buffer_ion,
-                                     const struct gkyl_array *bc_buffer_maxwell,
-                                     struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[],
-                                     struct gkyl_array *fld_maxwell[]);
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]);
 
 /**
 * Synchronize all blocks in the block AMR hierarchy by applying all appropriate physical (outer-block) and non-physical (inter-block)
@@ -425,9 +400,8 @@ void block_coupled_uu_restriction_op(const int tbid, const int tdir, const int i
 * @param fld_maxwell Output array (Maxwell field).
 */
 void five_moment_sync_blocks(const struct gkyl_block_topo *btopo,
-                             const struct five_moment_block_data bdata[],
-                             struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[],
-                             struct gkyl_array *fld_maxwell[]);
+  const struct five_moment_block_data bdata[], struct gkyl_array *fld_elc[],
+  struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]);
 
 /**
 * Write block-structured AMR simulation data for the coupled five-moment equations onto disk.
@@ -438,8 +412,7 @@ void five_moment_sync_blocks(const struct gkyl_block_topo *btopo,
 * @param bdata Block-structured data for the coupled five-moment equations.
 */
 void five_moment_block_data_write(const char *file_nm_elc, const char *file_nm_ion,
-                                  const char *file_nm_maxwell,
-                                  const struct five_moment_block_data *bdata);
+  const char *file_nm_maxwell, const struct five_moment_block_data *bdata);
 
 /**
 * Calculate the maximum stable time-step for the block-structured, coupled five-moment equations.
@@ -474,9 +447,8 @@ void five_moment_update_block_job_func_source(void *ctx);
 * @return Status of the update (success and suggested time-step).
 */
 struct gkyl_update_status five_moment_update_all_blocks(const struct gkyl_job_pool *job_pool,
-                                                        const struct gkyl_block_topo *btopo,
-                                                        const struct five_moment_block_data bdata[],
-                                                        double t_curr, double dt);
+  const struct gkyl_block_topo *btopo, const struct five_moment_block_data bdata[], double t_curr,
+  double dt);
 
 /**
 * Update the source terms for all blocks in the block AMR hierarchy by using the thread-based job pool for the coupled five-moment equations.
@@ -489,9 +461,8 @@ struct gkyl_update_status five_moment_update_all_blocks(const struct gkyl_job_po
 * @param nstrang Iteration number in the Strang splitting.
 */
 void five_moment_update_all_blocks_source(const struct gkyl_job_pool *job_pool,
-                                          const struct gkyl_block_topo *btopo,
-                                          const struct five_moment_block_data bdata[],
-                                          double t_curr, double dt, int nstrang);
+  const struct gkyl_block_topo *btopo, const struct five_moment_block_data bdata[], double t_curr,
+  double dt, int nstrang);
 
 /**
 * Initialize a new job in the thread-based job pool for updating the block-structured AMR simulation data for the coupled five-moment equations.
@@ -519,10 +490,8 @@ void five_moment_copy_job_func(void *ctx);
 * @return Status of the update (success, suggested time-step and actual time-step).
 */
 struct gkyl_update_status five_moment_update_block(const struct gkyl_job_pool *job_pool,
-                                                   const struct gkyl_block_topo *btopo,
-                                                   const struct five_moment_block_data bdata[],
-                                                   double t_curr, double dt0,
-                                                   struct sim_stats *stats);
+  const struct gkyl_block_topo *btopo, const struct five_moment_block_data bdata[], double t_curr,
+  double dt0, struct sim_stats *stats);
 
 /**
 * Write the complete simulation output for the entire block AMR hierarchy for the coupled five-moment equations onto disk.
@@ -531,8 +500,8 @@ struct gkyl_update_status five_moment_update_block(const struct gkyl_job_pool *j
 * @param num_blocks Number of blocks in the block hierarchy.
 * @param bdata Array of block-structured data for the coupled five-moment equations.
 */
-void five_moment_write_sol_block(const char *fbase, int num_blocks,
-                                 const struct five_moment_block_data bdata[]);
+void five_moment_write_sol_block(
+  const char *fbase, int num_blocks, const struct five_moment_block_data bdata[]);
 
 /**
 * Calculate the maximum stable time-step across all blocks in the block AMR hierarchy for the coupled five-moment equations.

@@ -25,11 +25,10 @@ typedef struct gkyl_bc_basic_gyrokinetic gkyl_bc_basic_gyrokinetic;
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_bc_basic_gyrokinetic *
-gkyl_bc_basic_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
-                              enum gkyl_gyrokinetic_bc_type bctype, const struct gkyl_basis *basis,
-                              const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-                              int num_comp, int cdim, bool use_gpu);
+struct gkyl_bc_basic_gyrokinetic *gkyl_bc_basic_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
+  enum gkyl_gyrokinetic_bc_type bctype, const struct gkyl_basis *basis,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, int num_comp, int cdim,
+  bool use_gpu);
 
 /**
  * Advance boundary conditions *in special case where buffer is fixed in time*. 
@@ -41,8 +40,7 @@ gkyl_bc_basic_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
  * @param f_arr Field array to apply BC to.
  */
 void gkyl_bc_basic_gyrokinetic_buffer_fixed_func(const struct gkyl_bc_basic_gyrokinetic *up,
-                                                 struct gkyl_array *buff_arr,
-                                                 struct gkyl_array *f_arr);
+  struct gkyl_array *buff_arr, struct gkyl_array *f_arr);
 
 /**
  * Advance boundary conditions. Fill buffer array based on boundary conditions and copy
@@ -53,7 +51,7 @@ void gkyl_bc_basic_gyrokinetic_buffer_fixed_func(const struct gkyl_bc_basic_gyro
  * @param f_arr Field array to apply BC to.
  */
 void gkyl_bc_basic_gyrokinetic_advance(const struct gkyl_bc_basic_gyrokinetic *up,
-                                       struct gkyl_array *buff_arr, struct gkyl_array *f_arr);
+  struct gkyl_array *buff_arr, struct gkyl_array *f_arr);
 
 /**
  * Free memory associated with bc_basic_gyrokinetic updater.

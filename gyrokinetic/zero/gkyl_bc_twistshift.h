@@ -55,12 +55,11 @@ struct gkyl_bc_twistshift *gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshi
  * @param use_gpu Whether to apply the BC using the GPU.
  * @return New updater pointer.
  */
-struct gkyl_bc_twistshift *
-gkyl_bc_twistshift_new(int bc_dir, int shift_dir, int shear_dir, enum gkyl_edge_loc edge, int cdim,
-                       const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost,
-                       const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid,
-                       evalf_t shift_func, void *shift_func_ctx, struct gkyl_array *shift_dg,
-                       int shift_poly_order, bool use_gpu);
+struct gkyl_bc_twistshift *gkyl_bc_twistshift_new(int bc_dir, int shift_dir, int shear_dir,
+  enum gkyl_edge_loc edge, int cdim, const struct gkyl_range *bcdir_ext_update_r,
+  const int *num_ghost, const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid,
+  evalf_t shift_func, void *shift_func_ctx, struct gkyl_array *shift_dg, int shift_poly_order,
+  bool use_gpu);
 
 /**
  * Apply the twist-shift. It assumes that periodicity along bc_dir has been
@@ -70,8 +69,8 @@ gkyl_bc_twistshift_new(int bc_dir, int shift_dir, int shear_dir, enum gkyl_edge_
  * @param fdo Donor field.
  * @param ftar Target field.
  */
-void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo,
-                                struct gkyl_array *ftar);
+void gkyl_bc_twistshift_advance(
+  struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
  * Return pointers to the discretized shift, its range, and grid and basis.
@@ -85,9 +84,7 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
  * @return Discretized shift.
  */
 struct gkyl_array *gkyl_bc_twistshift_get_shift_objects(struct gkyl_bc_twistshift *up,
-                                                        struct gkyl_rect_grid *shear_grid,
-                                                        struct gkyl_range *shear_r,
-                                                        struct gkyl_basis *shift_b);
+  struct gkyl_rect_grid *shear_grid, struct gkyl_range *shear_r, struct gkyl_basis *shift_b);
 
 /**
  * Free memory associated with bc_twistshift updater.

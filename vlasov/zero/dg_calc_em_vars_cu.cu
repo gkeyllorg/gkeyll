@@ -13,11 +13,9 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void
-gkyl_dg_calc_em_vars_set_cu_kernel(struct gkyl_dg_calc_em_vars *up, struct gkyl_nmat *As,
-                                   struct gkyl_nmat *xs, struct gkyl_range conf_range,
-                                   const struct gkyl_array *em, struct gkyl_array *cell_avg_magB2,
-                                   struct gkyl_array *temp_var)
+__global__ static void gkyl_dg_calc_em_vars_set_cu_kernel(struct gkyl_dg_calc_em_vars *up,
+  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  const struct gkyl_array *em, struct gkyl_array *cell_avg_magB2, struct gkyl_array *temp_var)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -43,11 +41,9 @@ gkyl_dg_calc_em_vars_set_cu_kernel(struct gkyl_dg_calc_em_vars *up, struct gkyl_
   }
 }
 
-__global__ static void
-gkyl_dg_calc_em_vars_copy_cu_kernel(struct gkyl_dg_calc_em_vars *up, struct gkyl_nmat *xs,
-                                    struct gkyl_range conf_range, const struct gkyl_array *em,
-                                    struct gkyl_array *cell_avg_magB2, struct gkyl_array *out,
-                                    struct gkyl_array *out_surf)
+__global__ static void gkyl_dg_calc_em_vars_copy_cu_kernel(struct gkyl_dg_calc_em_vars *up,
+  struct gkyl_nmat *xs, struct gkyl_range conf_range, const struct gkyl_array *em,
+  struct gkyl_array *cell_avg_magB2, struct gkyl_array *out, struct gkyl_array *out_surf)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -74,14 +70,13 @@ gkyl_dg_calc_em_vars_copy_cu_kernel(struct gkyl_dg_calc_em_vars *up, struct gkyl
 }
 
 void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up, const struct gkyl_array *em,
-                                     struct gkyl_array *cell_avg_magB2, struct gkyl_array *out,
-                                     struct gkyl_array *out_surf)
+  struct gkyl_array *cell_avg_magB2, struct gkyl_array *out, struct gkyl_array *out_surf)
 {
   gkyl_array_clear(up->temp_var, 0.0);
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_dg_calc_em_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
-    up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, em->on_dev, cell_avg_magB2->on_dev,
+  gkyl_dg_calc_em_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(up->on_dev,
+    up->As->on_dev, up->xs->on_dev, conf_range, em->on_dev, cell_avg_magB2->on_dev,
     up->temp_var->on_dev);
 
   if (up->poly_order > 1) {
@@ -89,14 +84,13 @@ void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up, const stru
     assert(status);
   }
 
-  gkyl_dg_calc_em_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
-    up->on_dev, up->xs->on_dev, conf_range, em->on_dev, cell_avg_magB2->on_dev, out->on_dev,
-    out_surf->on_dev);
+  gkyl_dg_calc_em_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(up->on_dev,
+    up->xs->on_dev, conf_range, em->on_dev, cell_avg_magB2->on_dev, out->on_dev, out_surf->on_dev);
 }
 
-__global__ void gkyl_dg_calc_em_vars_div_b_cu_kernel(
-  struct gkyl_dg_calc_em_vars *up, struct gkyl_range conf_range, const struct gkyl_array *bvar_surf,
-  const struct gkyl_array *bvar, struct gkyl_array *max_b, struct gkyl_array *div_b)
+__global__ void gkyl_dg_calc_em_vars_div_b_cu_kernel(struct gkyl_dg_calc_em_vars *up,
+  struct gkyl_range conf_range, const struct gkyl_array *bvar_surf, const struct gkyl_array *bvar,
+  struct gkyl_array *max_b, struct gkyl_array *div_b)
 {
   int cdim = up->cdim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
@@ -130,18 +124,16 @@ __global__ void gkyl_dg_calc_em_vars_div_b_cu_kernel(
       const double *bvar_surf_l = (const double *)gkyl_array_cfetch(bvar_surf, linl);
       const double *bvar_surf_r = (const double *)gkyl_array_cfetch(bvar_surf, linr);
 
-      up->em_div_b[dir](up->conf_grid.dx, bvar_surf_l, bvar_surf_c, bvar_surf_r, bvar_d, max_b_d,
-                        div_b_d);
+      up->em_div_b[dir](
+        up->conf_grid.dx, bvar_surf_l, bvar_surf_c, bvar_surf_r, bvar_d, max_b_d, div_b_d);
     }
   }
 }
 
 // Host-side wrapper for div(b) and max(|b_i|) variable calculations
 void gkyl_dg_calc_em_vars_div_b_cu(struct gkyl_dg_calc_em_vars *up,
-                                   const struct gkyl_range *conf_range,
-                                   const struct gkyl_array *bvar_surf,
-                                   const struct gkyl_array *bvar, struct gkyl_array *max_b,
-                                   struct gkyl_array *div_b)
+  const struct gkyl_range *conf_range, const struct gkyl_array *bvar_surf,
+  const struct gkyl_array *bvar, struct gkyl_array *max_b, struct gkyl_array *div_b)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
@@ -149,9 +141,8 @@ void gkyl_dg_calc_em_vars_div_b_cu(struct gkyl_dg_calc_em_vars *up,
     up->on_dev, *conf_range, bvar_surf->on_dev, bvar->on_dev, max_b->on_dev, div_b->on_dev);
 }
 
-__global__ void gkyl_dg_calc_em_vars_limiter_cu_kernel(struct gkyl_dg_calc_em_vars *up,
-                                                       struct gkyl_range conf_range,
-                                                       struct gkyl_array *em)
+__global__ void gkyl_dg_calc_em_vars_limiter_cu_kernel(
+  struct gkyl_dg_calc_em_vars *up, struct gkyl_range conf_range, struct gkyl_array *em)
 {
   int cdim = up->cdim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
@@ -188,20 +179,19 @@ __global__ void gkyl_dg_calc_em_vars_limiter_cu_kernel(struct gkyl_dg_calc_em_va
 }
 
 // Host-side wrapper for slope limiter of em variables
-void gkyl_dg_calc_em_vars_limiter_cu(struct gkyl_dg_calc_em_vars *up,
-                                     const struct gkyl_range *conf_range, struct gkyl_array *em)
+void gkyl_dg_calc_em_vars_limiter_cu(
+  struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, struct gkyl_array *em)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_em_vars_limiter_cu_kernel<<<nblocks, nthreads> > >(up->on_dev, *conf_range,
-                                                                  em->on_dev);
+  gkyl_dg_calc_em_vars_limiter_cu_kernel<<<nblocks, nthreads> > >(
+    up->on_dev, *conf_range, em->on_dev);
 }
 
 // CUDA kernel to set device pointers to em vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void dg_calc_em_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_em_vars *up,
-                                                       enum gkyl_basis_type b_type, int cdim,
-                                                       int poly_order, bool is_ExB)
+  enum gkyl_basis_type b_type, int cdim, int poly_order, bool is_ExB)
 {
   if (is_ExB) {
     up->em_calc_temp = choose_em_calc_num_ExB_kern(b_type, cdim, poly_order);
@@ -220,11 +210,9 @@ __global__ static void dg_calc_em_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_em_va
 }
 
 gkyl_dg_calc_em_vars *gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
-                                                      const struct gkyl_basis *cbasis,
-                                                      const struct gkyl_range *mem_range,
-                                                      const struct gkyl_wv_eqn *wv_eqn,
-                                                      const struct gkyl_wave_geom *wg,
-                                                      double limiter_fac, bool is_ExB)
+  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range,
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *wg, double limiter_fac,
+  bool is_ExB)
 {
   struct gkyl_dg_calc_em_vars *up =
     (struct gkyl_dg_calc_em_vars *)gkyl_malloc(sizeof(gkyl_dg_calc_em_vars));

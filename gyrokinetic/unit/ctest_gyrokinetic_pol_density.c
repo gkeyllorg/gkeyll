@@ -448,13 +448,13 @@ void test_pol_density_3x_flat_dev()
 }
 
 TEST_LIST = { { "test_pol_density_1x_flat_ho", test_pol_density_1x_flat_ho },
-              { "test_pol_density_1x_quad_ho", test_pol_density_1x_quad_ho },
-              { "test_pol_density_2x_quad_ho", test_pol_density_2x_quad_ho },
-              { "test_pol_density_3x_flat_ho", test_pol_density_3x_flat_ho },
+  { "test_pol_density_1x_quad_ho", test_pol_density_1x_quad_ho },
+  { "test_pol_density_2x_quad_ho", test_pol_density_2x_quad_ho },
+  { "test_pol_density_3x_flat_ho", test_pol_density_3x_flat_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_pol_density_1x_flat_dev", test_pol_density_1x_flat_dev },
-              { "test_pol_density_1x_quad_dev", test_pol_density_1x_quad_dev },
-              { "test_pol_density_2x_quad_dev", test_pol_density_2x_quad_dev },
-              { "test_pol_density_3x_flat_dev", test_pol_density_3x_flat_dev },
+  { "test_pol_density_1x_flat_dev", test_pol_density_1x_flat_dev },
+  { "test_pol_density_1x_quad_dev", test_pol_density_1x_quad_dev },
+  { "test_pol_density_2x_quad_dev", test_pol_density_2x_quad_dev },
+  { "test_pol_density_3x_flat_dev", test_pol_density_3x_flat_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

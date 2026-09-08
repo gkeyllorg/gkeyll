@@ -32,10 +32,8 @@ typedef struct gkyl_skin_surf_from_ghost gkyl_skin_surf_from_ghost;
  * @return Pointer to the newly created updater.
  */
 struct gkyl_skin_surf_from_ghost *gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge,
-                                                                const struct gkyl_basis basis,
-                                                                const struct gkyl_range *skin_r,
-                                                                const struct gkyl_range *ghost_r,
-                                                                bool use_gpu);
+  const struct gkyl_basis basis, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
+  bool use_gpu);
 
 /**
  * Enforce that the value of the skin cell at the node facing the ghost cell is equal to the ghost value
@@ -44,8 +42,8 @@ struct gkyl_skin_surf_from_ghost *gkyl_skin_surf_from_ghost_new(int dir, enum gk
  * @param up Pointer to the boundary condition updater.
  * @param field Array representing the field values to update (currently works only in configuration space).
  */
-void gkyl_skin_surf_from_ghost_advance(const struct gkyl_skin_surf_from_ghost *up,
-                                       struct gkyl_array *field);
+void gkyl_skin_surf_from_ghost_advance(
+  const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field);
 
 /**
  * Free the memory associated with the skin_surf_from_ghost updater.

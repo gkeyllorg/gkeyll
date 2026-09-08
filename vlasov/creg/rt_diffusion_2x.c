@@ -34,8 +34,8 @@ void D(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, voi
   fout[2] = y + 2.0;
 }
 
-void eval_advect_vel(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                     void *ctx)
+void eval_advect_vel(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
   double x = xn[0], y = xn[1];
@@ -67,15 +67,14 @@ int main(int argc, char **argv)
 
   struct gkyl_vlasov_fluid_species f = { .name = "f",
 
-                                         .charge = 0.0,
-                                         .mass = 1.0,
+    .charge = 0.0,
+    .mass = 1.0,
 
-                                         .ctx = &ctx,
-                                         .init = evalInit,
-                                         .equation = advect,
-                                         .advection = { .velocity = eval_advect_vel,
-                                                        .velocity_ctx = &ctx },
-                                         .diffusion = { .Dij = D, .Dij_ctx = 0 } };
+    .ctx = &ctx,
+    .init = evalInit,
+    .equation = advect,
+    .advection = { .velocity = eval_advect_vel, .velocity_ctx = &ctx },
+    .diffusion = { .Dij = D, .Dij_ctx = 0 } };
 
   // VM app
   struct gkyl_vm app_inp = {

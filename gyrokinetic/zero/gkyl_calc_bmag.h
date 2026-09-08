@@ -34,8 +34,7 @@ struct gkyl_bmag_ctx {
  * @return New updater pointer.
  */
 gkyl_calc_bmag *gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-                                   const struct gkyl_rect_grid *cgrid,
-                                   const struct gkyl_rect_grid *pgrid, bool use_gpu);
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, bool use_gpu);
 
 /**
  * Computes the magnitude of the magnetic field using a global field aligned representation.
@@ -61,11 +60,10 @@ void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx);
  */
 
 void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange,
-                            const struct gkyl_range *crange_ext,
-                            const struct gkyl_range *crange_global, const struct gkyl_range *prange,
-                            const struct gkyl_range *prange_ext, const struct gkyl_array *bmagrz,
-                            struct gkyl_array *bmag_compdg, struct gkyl_array *mapc2p,
-                            bool use_quad);
+  const struct gkyl_range *crange_ext, const struct gkyl_range *crange_global,
+  const struct gkyl_range *prange, const struct gkyl_range *prange_ext,
+  const struct gkyl_array *bmagrz, struct gkyl_array *bmag_compdg, struct gkyl_array *mapc2p,
+  bool use_quad);
 
 /**
  * Delete updater.

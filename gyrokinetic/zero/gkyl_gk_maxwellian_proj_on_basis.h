@@ -36,8 +36,8 @@ struct gkyl_gk_maxwellian_proj_on_basis_inp {
  * @param inp Input parameters defined in gkyl_gk_maxwellian_proj_on_basis_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_gk_maxwellian_proj_on_basis *
-gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_basis_inp *inp);
+struct gkyl_gk_maxwellian_proj_on_basis *gkyl_gk_maxwellian_proj_on_basis_inew(
+  const struct gkyl_gk_maxwellian_proj_on_basis_inp *inp);
 
 /**
  * Compute projection of Maxwellian (or bi-Maxwellian) distribution on basis. 
@@ -55,28 +55,22 @@ gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_ba
  * @param f_maxwellian Output Maxwellian (or bi-Maxwellian) distribution function
  */
 void gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
-                                              const struct gkyl_range *phase_range,
-                                              const struct gkyl_range *conf_range,
-                                              const struct gkyl_array *moms_maxwellian,
-                                              bool use_jacobtot, struct gkyl_array *f_maxwellian);
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *moms_maxwellian, bool use_jacobtot, struct gkyl_array *f_maxwellian);
 
 /**
  * Host-side wrapper for geometry variables (bmag and jacobtot) at quadrature points
  */
 void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(gkyl_gk_maxwellian_proj_on_basis *up,
-                                                        const struct gkyl_range *conf_range,
-                                                        const struct gkyl_array *bmag,
-                                                        const struct gkyl_array *jacobtot);
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag,
+  const struct gkyl_array *jacobtot);
 
 /**
  * Host-side wrapper for projection of Maxwellian distribution function on device
  */
 void gkyl_gk_maxwellian_proj_on_basis_advance_cu(gkyl_gk_maxwellian_proj_on_basis *up,
-                                                 const struct gkyl_range *phase_range,
-                                                 const struct gkyl_range *conf_range,
-                                                 const struct gkyl_array *moms_maxwellian,
-                                                 bool use_jacobtot,
-                                                 struct gkyl_array *f_maxwellian);
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *moms_maxwellian, bool use_jacobtot, struct gkyl_array *f_maxwellian);
 
 /**
  * Delete updater.

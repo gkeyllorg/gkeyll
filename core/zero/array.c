@@ -40,10 +40,10 @@ static void g_array_free(void *ptr)
 
 // size in bytes for various data-types
 static const size_t array_elem_size[] = { [GKYL_INT] = sizeof(int),
-                                          [GKYL_LONG] = sizeof(long),
-                                          [GKYL_FLOAT] = sizeof(float),
-                                          [GKYL_DOUBLE] = sizeof(double),
-                                          [GKYL_USER] = 1 };
+  [GKYL_LONG] = sizeof(long),
+  [GKYL_FLOAT] = sizeof(float),
+  [GKYL_DOUBLE] = sizeof(double),
+  [GKYL_USER] = 1 };
 
 static void array_free(const struct gkyl_ref_count *ref)
 {
@@ -66,8 +66,8 @@ static void array_free(const struct gkyl_ref_count *ref)
 }
 
 // internal method to allocate array
-static struct gkyl_array *array_new(enum gkyl_elem_type type, size_t ncomp, size_t size,
-                                    bool is_alloc_extern, void *buff)
+static struct gkyl_array *array_new(
+  enum gkyl_elem_type type, size_t ncomp, size_t size, bool is_alloc_extern, void *buff)
 {
   struct gkyl_array *arr = gkyl_malloc(sizeof(struct gkyl_array));
 
@@ -126,8 +126,8 @@ struct gkyl_array *gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
   return array_new(type, ncomp, size, false, 0);
 }
 
-struct gkyl_array *gkyl_array_new_from_buff(enum gkyl_elem_type type, size_t ncomp, size_t size,
-                                            void *buff)
+struct gkyl_array *gkyl_array_new_from_buff(
+  enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff)
 {
   return array_new(type, ncomp, size, true, buff);
 }
@@ -180,16 +180,16 @@ struct gkyl_array *gkyl_array_copy_async(struct gkyl_array *dest, const struct g
   if (src_is_cu_dev) {
     // source is on device
     if (dest_is_cu_dev)
-      gkyl_cu_memcpy_async(dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_D2D,
-                           src->iostream);
+      gkyl_cu_memcpy_async(
+        dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_D2D, src->iostream);
     else
-      gkyl_cu_memcpy_async(dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_D2H,
-                           src->iostream);
+      gkyl_cu_memcpy_async(
+        dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_D2H, src->iostream);
   } else {
     // source is on host
     if (dest_is_cu_dev)
-      gkyl_cu_memcpy_async(dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_H2D,
-                           dest->iostream);
+      gkyl_cu_memcpy_async(
+        dest->data, src->data, ncopy * src->esznc, GKYL_CU_MEMCPY_H2D, dest->iostream);
     else
       memcpy(dest->data, src->data, ncopy * src->esznc);
   }

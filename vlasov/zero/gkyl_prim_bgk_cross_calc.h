@@ -25,15 +25,11 @@
  * @return crossprims Cross primitive moments, u_sri and v_tsr^2.
  */
 void gkyl_prim_bgk_cross_calc_advance(struct gkyl_basis basis, int vdim_phys,
-                                      const struct gkyl_array *m0sdeltas, double massself,
-                                      const struct gkyl_array *primsself, double massother,
-                                      const struct gkyl_array *primsother,
-                                      const struct gkyl_range *range,
-                                      struct gkyl_array *crossprims);
+  const struct gkyl_array *m0sdeltas, double massself, const struct gkyl_array *primsself,
+  double massother, const struct gkyl_array *primsother, const struct gkyl_range *range,
+  struct gkyl_array *crossprims);
 
 void gkyl_prim_bgk_cross_calc_advance_cu(struct gkyl_basis basis, int vdim_phys,
-                                         const struct gkyl_array *m0sdeltas, double massself,
-                                         const struct gkyl_array *primsself, double massother,
-                                         const struct gkyl_array *primsother,
-                                         const struct gkyl_range *range,
-                                         struct gkyl_array *crossprims);
+  const struct gkyl_array *m0sdeltas, double massself, const struct gkyl_array *primsself,
+  double massother, const struct gkyl_array *primsother, const struct gkyl_range *range,
+  struct gkyl_array *crossprims);

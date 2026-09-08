@@ -12,14 +12,11 @@
 #include <assert.h>
 
 typedef int (*canonical_pb_fluid_alpha_surf_t)(const double *w, const double *dxv,
-                                               const double *phi, double *GKYL_RESTRICT alpha_surf,
-                                               double *GKYL_RESTRICT sgn_alpha_surf);
+  const double *phi, double *GKYL_RESTRICT alpha_surf, double *GKYL_RESTRICT sgn_alpha_surf);
 typedef void (*canonical_pb_fluid_source_t)(const double *dxv, double alpha, const double *phi,
-                                            const double *n0,
-                                            const double *adiabatic_coupling_phi_n,
-                                            double *GKYL_RESTRICT rhs);
-typedef void (*canonical_pb_fluid_subtract_zonal_t)(const double *phi_zonal, const double *n_zonal,
-                                                    double *GKYL_RESTRICT adiabatic_coupling_phi_n);
+  const double *n0, const double *adiabatic_coupling_phi_n, double *GKYL_RESTRICT rhs);
+typedef void (*canonical_pb_fluid_subtract_zonal_t)(
+  const double *phi_zonal, const double *n_zonal, double *GKYL_RESTRICT adiabatic_coupling_phi_n);
 
 // for use in kernel tables
 typedef struct {
@@ -224,9 +221,8 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_subtract_zonal_kern_list
     { NULL, NULL, NULL } // 2
   };
 
-GKYL_CU_D static canonical_pb_fluid_alpha_surf_t
-choose_canonical_pb_fluid_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, int cdim,
-                                          int poly_order)
+GKYL_CU_D static canonical_pb_fluid_alpha_surf_t choose_canonical_pb_fluid_alpha_surf_kern(
+  enum gkyl_basis_type b_type, int dir, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -251,9 +247,8 @@ choose_canonical_pb_fluid_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, 
   }
 }
 
-GKYL_CU_D static canonical_pb_fluid_alpha_surf_t
-choose_canonical_pb_fluid_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int dir, int cdim,
-                                               int poly_order)
+GKYL_CU_D static canonical_pb_fluid_alpha_surf_t choose_canonical_pb_fluid_alpha_edge_surf_kern(
+  enum gkyl_basis_type b_type, int dir, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -278,9 +273,8 @@ choose_canonical_pb_fluid_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int 
   }
 }
 
-GKYL_CU_D static canonical_pb_fluid_source_t
-choose_canonical_pb_fluid_hasegawa_mima_source_kern(enum gkyl_basis_type b_type, int cdim,
-                                                    int poly_order)
+GKYL_CU_D static canonical_pb_fluid_source_t choose_canonical_pb_fluid_hasegawa_mima_source_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -296,8 +290,8 @@ choose_canonical_pb_fluid_hasegawa_mima_source_kern(enum gkyl_basis_type b_type,
 }
 
 GKYL_CU_D static canonical_pb_fluid_source_t
-choose_canonical_pb_fluid_hasegawa_wakatani_source_kern(enum gkyl_basis_type b_type, int cdim,
-                                                        int poly_order)
+choose_canonical_pb_fluid_hasegawa_wakatani_source_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -312,14 +306,14 @@ choose_canonical_pb_fluid_hasegawa_wakatani_source_kern(enum gkyl_basis_type b_t
   }
 }
 
-GKYL_CU_D static canonical_pb_fluid_source_t
-choose_canonical_pb_fluid_default_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static canonical_pb_fluid_source_t choose_canonical_pb_fluid_default_source_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   return canonical_pb_fluid_default_source;
 }
 
-GKYL_CU_D static canonical_pb_fluid_subtract_zonal_t
-choose_canonical_pb_fluid_subtract_zonal_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static canonical_pb_fluid_subtract_zonal_t choose_canonical_pb_fluid_subtract_zonal_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

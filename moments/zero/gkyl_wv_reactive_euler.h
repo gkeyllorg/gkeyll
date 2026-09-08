@@ -32,9 +32,7 @@ struct gkyl_wv_reactive_euler_inp {
 * @return Pointer to the reactive Euler equations object.
 */
 struct gkyl_wv_eqn *gkyl_wv_reactive_euler_new(double gas_gamma, double specific_heat_capacity,
-                                               double energy_of_formation,
-                                               double ignition_temperature, double reaction_rate,
-                                               bool use_gpu);
+  double energy_of_formation, double ignition_temperature, double reaction_rate, bool use_gpu);
 
 /**
 * Create a new reactive Euler equations object, from an input context struct.

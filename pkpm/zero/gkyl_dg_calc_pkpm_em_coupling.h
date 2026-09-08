@@ -57,8 +57,7 @@ struct gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(
  *                                      (update is done in place with electric field modified to new time)
  * 
  */
-void gkyl_dg_calc_pkpm_em_coupling_advance(
-  struct gkyl_dg_calc_pkpm_em_coupling *up, double dt,
+void gkyl_dg_calc_pkpm_em_coupling_advance(struct gkyl_dg_calc_pkpm_em_coupling *up, double dt,
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
   const struct gkyl_array *app_current, const struct gkyl_array *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
   const struct gkyl_array *pkpm_u[GKYL_MAX_SPECIES],
@@ -75,8 +74,7 @@ void gkyl_dg_calc_pkpm_em_coupling_release(struct gkyl_dg_calc_pkpm_em_coupling 
  * Host-side wrappers for fluid vars operations on device
  */
 
-void gkyl_dg_calc_pkpm_em_coupling_advance_cu(
-  struct gkyl_dg_calc_pkpm_em_coupling *up, double dt,
+void gkyl_dg_calc_pkpm_em_coupling_advance_cu(struct gkyl_dg_calc_pkpm_em_coupling *up, double dt,
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
   const struct gkyl_array *app_current, const struct gkyl_array *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
   const struct gkyl_array *pkpm_u[GKYL_MAX_SPECIES],

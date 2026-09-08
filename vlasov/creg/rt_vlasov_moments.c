@@ -8,8 +8,8 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
 
-void evalDistFunc1x1v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void evalDistFunc1x1v(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], vx = xn[1];
   double n = 1.0 * sin(2 * M_PI * x);
@@ -20,8 +20,8 @@ void evalDistFunc1x1v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
   fout[0] = n / sqrt(2 * M_PI * Txx) * exp(-u2);
 }
 
-void evalDistFunc1x2v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void evalDistFunc1x2v(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2];
   double n = 1.0 * sin(2 * M_PI * x);
@@ -39,8 +39,8 @@ void evalDistFunc1x2v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
   fout[0] = n / (2 * M_PI * sqrt(detT)) * exp(-u2);
 }
 
-void evalDistFunc1x3v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void evalDistFunc1x3v(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
   double n = 1.0 * sin(2 * M_PI * x);
@@ -71,8 +71,8 @@ void evalDistFunc1x3v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
   fout[0] = n / sqrt((2 * M_PI) * (2 * M_PI) * (2 * M_PI) * detT) * exp(-u2);
 }
 
-void evalDistFunc2x2v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void evalDistFunc2x2v(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vx = xn[2], vy = xn[3];
   double n = 1.0 * sin(2 * M_PI * x) * sin(2 * M_PI * y);
@@ -91,8 +91,8 @@ void evalDistFunc2x2v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
   fout[0] = n / (2 * M_PI * sqrt(detT)) * exp(-u2);
 }
 
-void evalDistFunc2x3v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void evalDistFunc2x3v(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vx = xn[2], vy = xn[3], vz = xn[4];
   double n = 1.0 * sin(2 * M_PI * x) * sin(2 * M_PI * y);
@@ -124,8 +124,8 @@ void evalDistFunc2x3v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
   fout[0] = n / sqrt((2 * M_PI) * (2 * M_PI) * (2 * M_PI) * detT) * exp(-u2);
 }
 
-void evalDistFunc3x3v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void evalDistFunc3x3v(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2], vx = xn[3], vy = xn[4], vz = xn[5];
   double n = 1.0 * sin(2 * M_PI * x) * sin(2 * M_PI * y) * sin(2 * M_PI * z);
@@ -225,13 +225,13 @@ struct moment_inp get_inp(int argc, char **argv)
     eval = evalDistFunc3x3v;
 
   return (struct moment_inp){ .cdim = cdim,
-                              .vdim = vdim,
-                              .poly_order = poly_order,
-                              .ccells = { 8, 8, 8 },
-                              .vcells = { 16, 16, 16 },
-                              .nloop = nloop,
-                              .eval = eval,
-                              .use_gpu = use_gpu };
+    .vdim = vdim,
+    .poly_order = poly_order,
+    .ccells = { 8, 8, 8 },
+    .vcells = { 16, 16, 16 },
+    .nloop = nloop,
+    .eval = eval,
+    .use_gpu = use_gpu };
 }
 
 int main(int argc, char **argv)
@@ -258,8 +258,7 @@ int main(int argc, char **argv)
   printf("nloop = %d\n", inp.nloop);
 
   // electrons
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
+  struct gkyl_vlasov_species elc = { .name = "elc",
     .charge = -1.0,
     .mass = 1.0,
     .lower = { -6.0, -6.0, -6.0 },
@@ -268,8 +267,7 @@ int main(int argc, char **argv)
     .num_init = 1,
     .projection[0] = { .proj_id = GKYL_PROJ_FUNC, .func = inp.eval, .ctx_func = 0 },
     .num_diag_moments = 4,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ }
-  };
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ } };
 
   // field
   struct gkyl_vlasov_field field = { .epsilon0 = 1.0, .mu0 = 1.0, .init = evalFieldFunc };
@@ -277,18 +275,18 @@ int main(int argc, char **argv)
   // VM app
   struct gkyl_vm vm = { .name = "vlasov-moment",
 
-                        .cdim = inp.cdim,
-                        .vdim = inp.vdim,
-                        .lower = { -1.0, -1.0, -1.0 },
-                        .upper = { 1.0, 1.0, 1.0 },
-                        .cells = { inp.ccells[0], inp.ccells[1], inp.ccells[2] },
-                        .poly_order = inp.poly_order,
+    .cdim = inp.cdim,
+    .vdim = inp.vdim,
+    .lower = { -1.0, -1.0, -1.0 },
+    .upper = { 1.0, 1.0, 1.0 },
+    .cells = { inp.ccells[0], inp.ccells[1], inp.ccells[2] },
+    .poly_order = inp.poly_order,
 
-                        .num_species = 1,
-                        .species = { elc },
-                        .field = field,
+    .num_species = 1,
+    .species = { elc },
+    .field = field,
 
-                        .parallelism = { .use_gpu = inp.use_gpu } };
+    .parallelism = { .use_gpu = inp.use_gpu } };
 
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);

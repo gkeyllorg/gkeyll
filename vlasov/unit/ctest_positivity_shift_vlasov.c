@@ -228,17 +228,17 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Check the integrated moments.
   TEST_CHECK(gkyl_compare(intmom_shift[0], -4.22405166400353e-16, 1e-10));
-  TEST_MSG("intmom_shift[0]: produced: %.14e | expected: %.14e", intmom_shift[0],
-           -4.22405166400353e-16);
+  TEST_MSG(
+    "intmom_shift[0]: produced: %.14e | expected: %.14e", intmom_shift[0], -4.22405166400353e-16);
   TEST_CHECK(gkyl_compare(intmom_shift[1], 4.16333634234434e-16, 1e-10));
-  TEST_MSG("intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1],
-           4.16333634234434e-16);
+  TEST_MSG(
+    "intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1], 4.16333634234434e-16);
   TEST_CHECK(gkyl_compare(intmom_shift[2], 1.38777878078145e-17, 1e-10));
-  TEST_MSG("intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2],
-           1.38777878078145e-17);
+  TEST_MSG(
+    "intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2], 1.38777878078145e-17);
   TEST_CHECK(gkyl_compare(intmom_shift[3], 2.09905432920501e+01, 1e-10));
-  TEST_MSG("intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3],
-           2.09905432920501e+01);
+  TEST_MSG(
+    "intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3], 2.09905432920501e+01);
 
   gkyl_array_release(distf);
   gkyl_array_release(deltaf);
@@ -272,6 +272,6 @@ void test_positivity_shift_vlasov_1x2v_dev()
 
 TEST_LIST = { { "test_positivity_shift_vlasov_1x2v_ho", test_positivity_shift_vlasov_1x2v_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_positivity_shift_vlasov_1x2v_dev", test_positivity_shift_vlasov_1x2v_dev },
+  { "test_positivity_shift_vlasov_1x2v_dev", test_positivity_shift_vlasov_1x2v_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

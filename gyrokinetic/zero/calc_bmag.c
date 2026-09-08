@@ -10,8 +10,7 @@
 #include <gkyl_array_ops_priv.h>
 
 gkyl_calc_bmag *gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-                                   const struct gkyl_rect_grid *cgrid,
-                                   const struct gkyl_rect_grid *pgrid, bool use_gpu)
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, bool use_gpu)
 {
   gkyl_calc_bmag *up = gkyl_malloc(sizeof(gkyl_calc_bmag));
   up->cbasis = cbasis;
@@ -106,11 +105,10 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
 }
 
 void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange,
-                            const struct gkyl_range *crange_ext,
-                            const struct gkyl_range *crange_global, const struct gkyl_range *prange,
-                            const struct gkyl_range *prange_ext, const struct gkyl_array *bmagrz,
-                            struct gkyl_array *bmag_compdg, struct gkyl_array *mapc2p,
-                            bool use_quad)
+  const struct gkyl_range *crange_ext, const struct gkyl_range *crange_global,
+  const struct gkyl_range *prange, const struct gkyl_range *prange_ext,
+  const struct gkyl_array *bmagrz, struct gkyl_array *bmag_compdg, struct gkyl_array *mapc2p,
+  bool use_quad)
 {
   // Convert bmag into computational coordinates
   struct gkyl_bmag_ctx *ctx = gkyl_malloc(sizeof(*ctx));

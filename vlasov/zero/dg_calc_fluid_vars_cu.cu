@@ -15,9 +15,9 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void gkyl_dg_calc_fluid_vars_set_cu_kernel(
-  gkyl_dg_calc_fluid_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  struct gkyl_range conf_range, const struct gkyl_array *fluid, struct gkyl_array *cell_avg_prim)
+__global__ static void gkyl_dg_calc_fluid_vars_set_cu_kernel(gkyl_dg_calc_fluid_vars *up,
+  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  const struct gkyl_array *fluid, struct gkyl_array *cell_avg_prim)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -43,10 +43,8 @@ __global__ static void gkyl_dg_calc_fluid_vars_set_cu_kernel(
 }
 
 __global__ static void gkyl_dg_calc_fluid_vars_copy_cu_kernel(gkyl_dg_calc_fluid_vars *up,
-                                                              struct gkyl_nmat *xs,
-                                                              struct gkyl_range conf_range,
-                                                              struct gkyl_array *prim,
-                                                              struct gkyl_array *prim_surf)
+  struct gkyl_nmat *xs, struct gkyl_range conf_range, struct gkyl_array *prim,
+  struct gkyl_array *prim_surf)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -72,9 +70,8 @@ __global__ static void gkyl_dg_calc_fluid_vars_copy_cu_kernel(gkyl_dg_calc_fluid
 
 // Host-side wrapper for primitive variable calculation
 void gkyl_dg_calc_fluid_vars_advance_cu(struct gkyl_dg_calc_fluid_vars *up,
-                                        const struct gkyl_array *fluid,
-                                        struct gkyl_array *cell_avg_prim, struct gkyl_array *prim,
-                                        struct gkyl_array *prim_surf)
+  const struct gkyl_array *fluid, struct gkyl_array *cell_avg_prim, struct gkyl_array *prim,
+  struct gkyl_array *prim_surf)
 {
   struct gkyl_range conf_range = up->mem_range;
 
@@ -90,9 +87,9 @@ void gkyl_dg_calc_fluid_vars_advance_cu(struct gkyl_dg_calc_fluid_vars *up,
     up->on_dev, up->xs->on_dev, conf_range, prim->on_dev, prim_surf->on_dev);
 }
 
-__global__ void gkyl_calc_fluid_vars_pressure_cu_kernel(
-  struct gkyl_dg_calc_fluid_vars *up, struct gkyl_range conf_range, const struct gkyl_array *fluid,
-  const struct gkyl_array *u, struct gkyl_array *p, struct gkyl_array *p_surf)
+__global__ void gkyl_calc_fluid_vars_pressure_cu_kernel(struct gkyl_dg_calc_fluid_vars *up,
+  struct gkyl_range conf_range, const struct gkyl_array *fluid, const struct gkyl_array *u,
+  struct gkyl_array *p, struct gkyl_array *p_surf)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -118,9 +115,8 @@ __global__ void gkyl_calc_fluid_vars_pressure_cu_kernel(
 
 // Host-side wrapper for pressure calculation
 void gkyl_dg_calc_fluid_vars_pressure_cu(struct gkyl_dg_calc_fluid_vars *up,
-                                         const struct gkyl_range *conf_range,
-                                         const struct gkyl_array *fluid, const struct gkyl_array *u,
-                                         struct gkyl_array *p, struct gkyl_array *p_surf)
+  const struct gkyl_range *conf_range, const struct gkyl_array *fluid, const struct gkyl_array *u,
+  struct gkyl_array *p, struct gkyl_array *p_surf)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
@@ -129,9 +125,8 @@ void gkyl_dg_calc_fluid_vars_pressure_cu(struct gkyl_dg_calc_fluid_vars *up,
 }
 
 __global__ void gkyl_calc_fluid_vars_ke_cu_kernel(struct gkyl_dg_calc_fluid_vars *up,
-                                                  struct gkyl_range conf_range,
-                                                  const struct gkyl_array *fluid,
-                                                  const struct gkyl_array *u, struct gkyl_array *ke)
+  struct gkyl_range conf_range, const struct gkyl_array *fluid, const struct gkyl_array *u,
+  struct gkyl_array *ke)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -156,19 +151,17 @@ __global__ void gkyl_calc_fluid_vars_ke_cu_kernel(struct gkyl_dg_calc_fluid_vars
 
 // Host-side wrapper for kinetic energy calculation
 void gkyl_dg_calc_fluid_vars_ke_cu(struct gkyl_dg_calc_fluid_vars *up,
-                                   const struct gkyl_range *conf_range,
-                                   const struct gkyl_array *fluid, const struct gkyl_array *u,
-                                   struct gkyl_array *ke)
+  const struct gkyl_range *conf_range, const struct gkyl_array *fluid, const struct gkyl_array *u,
+  struct gkyl_array *ke)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_calc_fluid_vars_ke_cu_kernel<<<nblocks, nthreads> > >(up->on_dev, *conf_range, fluid->on_dev,
-                                                             u->on_dev, ke->on_dev);
+  gkyl_calc_fluid_vars_ke_cu_kernel<<<nblocks, nthreads> > >(
+    up->on_dev, *conf_range, fluid->on_dev, u->on_dev, ke->on_dev);
 }
 
-__global__ void gkyl_dg_calc_fluid_vars_limiter_cu_kernel(struct gkyl_dg_calc_fluid_vars *up,
-                                                          struct gkyl_range conf_range,
-                                                          struct gkyl_array *fluid)
+__global__ void gkyl_dg_calc_fluid_vars_limiter_cu_kernel(
+  struct gkyl_dg_calc_fluid_vars *up, struct gkyl_range conf_range, struct gkyl_array *fluid)
 {
   int cdim = up->cdim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
@@ -205,19 +198,18 @@ __global__ void gkyl_dg_calc_fluid_vars_limiter_cu_kernel(struct gkyl_dg_calc_fl
 }
 
 // Host-side wrapper for slope limiter of fluid variables
-void gkyl_dg_calc_fluid_vars_limiter_cu(struct gkyl_dg_calc_fluid_vars *up,
-                                        const struct gkyl_range *conf_range,
-                                        struct gkyl_array *fluid)
+void gkyl_dg_calc_fluid_vars_limiter_cu(
+  struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range, struct gkyl_array *fluid)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_fluid_vars_limiter_cu_kernel<<<nblocks, nthreads> > >(up->on_dev, *conf_range,
-                                                                     fluid->on_dev);
+  gkyl_dg_calc_fluid_vars_limiter_cu_kernel<<<nblocks, nthreads> > >(
+    up->on_dev, *conf_range, fluid->on_dev);
 }
 
-__global__ void gkyl_dg_calc_fluid_integrated_vars_cu_kernel(
-  struct gkyl_dg_calc_fluid_vars *up, struct gkyl_range conf_range, const struct gkyl_array *fluid,
-  const struct gkyl_array *u_i, const struct gkyl_array *p_ij, struct gkyl_array *int_fluid_vars)
+__global__ void gkyl_dg_calc_fluid_integrated_vars_cu_kernel(struct gkyl_dg_calc_fluid_vars *up,
+  struct gkyl_range conf_range, const struct gkyl_array *fluid, const struct gkyl_array *u_i,
+  const struct gkyl_array *p_ij, struct gkyl_array *int_fluid_vars)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -243,11 +235,8 @@ __global__ void gkyl_dg_calc_fluid_integrated_vars_cu_kernel(
 
 // Host-side wrapper for fluid integrated variables calculation
 void gkyl_dg_calc_fluid_integrated_vars_cu(struct gkyl_dg_calc_fluid_vars *up,
-                                           const struct gkyl_range *conf_range,
-                                           const struct gkyl_array *fluid,
-                                           const struct gkyl_array *u_i,
-                                           const struct gkyl_array *p_ij,
-                                           struct gkyl_array *int_fluid_vars)
+  const struct gkyl_range *conf_range, const struct gkyl_array *fluid, const struct gkyl_array *u_i,
+  const struct gkyl_array *p_ij, struct gkyl_array *int_fluid_vars)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
@@ -256,10 +245,8 @@ void gkyl_dg_calc_fluid_integrated_vars_cu(struct gkyl_dg_calc_fluid_vars *up,
 }
 
 __global__ void gkyl_dg_calc_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_fluid_vars *up,
-                                                         struct gkyl_range conf_range,
-                                                         const struct gkyl_array *app_accel,
-                                                         const struct gkyl_array *fluid,
-                                                         struct gkyl_array *rhs)
+  struct gkyl_range conf_range, const struct gkyl_array *app_accel, const struct gkyl_array *fluid,
+  struct gkyl_array *rhs)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -284,9 +271,8 @@ __global__ void gkyl_dg_calc_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_flu
 
 // Host-side wrapper for fluid source term calculations
 void gkyl_dg_calc_fluid_vars_source_cu(struct gkyl_dg_calc_fluid_vars *up,
-                                       const struct gkyl_range *conf_range,
-                                       const struct gkyl_array *app_accel,
-                                       const struct gkyl_array *fluid, struct gkyl_array *rhs)
+  const struct gkyl_range *conf_range, const struct gkyl_array *app_accel,
+  const struct gkyl_array *fluid, struct gkyl_array *rhs)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
@@ -297,9 +283,7 @@ void gkyl_dg_calc_fluid_vars_source_cu(struct gkyl_dg_calc_fluid_vars *up,
 // CUDA kernel to set device pointers to fluid vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void dg_calc_fluid_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_fluid_vars *up,
-                                                          const struct gkyl_wv_eqn *wv_eqn,
-                                                          enum gkyl_basis_type b_type, int cdim,
-                                                          int poly_order)
+  const struct gkyl_wv_eqn *wv_eqn, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   up->fluid_set = choose_fluid_set_kern(b_type, cdim, poly_order);
   up->fluid_copy = choose_fluid_copy_kern(b_type, cdim, poly_order);
@@ -313,10 +297,8 @@ __global__ static void dg_calc_fluid_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_fl
 }
 
 gkyl_dg_calc_fluid_vars *gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn,
-                                                            const struct gkyl_wave_geom *wg,
-                                                            const struct gkyl_basis *cbasis,
-                                                            const struct gkyl_range *mem_range,
-                                                            double limiter_fac)
+  const struct gkyl_wave_geom *wg, const struct gkyl_basis *cbasis,
+  const struct gkyl_range *mem_range, double limiter_fac)
 {
   struct gkyl_dg_calc_fluid_vars *up =
     (struct gkyl_dg_calc_fluid_vars *)gkyl_malloc(sizeof(gkyl_dg_calc_fluid_vars));

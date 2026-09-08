@@ -45,9 +45,8 @@ struct gkyl_bc_emission_elastic *gkyl_bc_emission_elastic_new(
  * @param basis Pointer to basis functions on host
  */
 void gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
-                                      struct gkyl_range *emit_skin_r, struct gkyl_array *buff_arr,
-                                      struct gkyl_array *f_skin, struct gkyl_array *f_emit,
-                                      struct gkyl_array *elastic_yield, struct gkyl_basis *basis);
+  struct gkyl_range *emit_skin_r, struct gkyl_array *buff_arr, struct gkyl_array *f_skin,
+  struct gkyl_array *f_emit, struct gkyl_array *elastic_yield, struct gkyl_basis *basis);
 
 /**
  * @param dir Direction in which to apply BC
@@ -56,9 +55,8 @@ void gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
  * @param ncomp Number of components
  * @param use_gpu Boolean to indicate whether to use the GPU
  */
-struct gkyl_array_copy_func *
-gkyl_bc_emission_elastic_create_arr_copy_func(int dir, int cdim, const struct gkyl_basis *basis,
-                                              int ncomp, bool use_gpu);
+struct gkyl_array_copy_func *gkyl_bc_emission_elastic_create_arr_copy_func(
+  int dir, int cdim, const struct gkyl_basis *basis, int ncomp, bool use_gpu);
 
 /**
  * Free memory associated with bc_emission_elastic updater.

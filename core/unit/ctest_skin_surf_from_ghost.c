@@ -29,8 +29,8 @@ void eval_field(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 // Function to set up and test the ghost-to-skin surface copy updater
-void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir,
-               bool control)
+void test_ssfg(
+  int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir, bool control)
 {
   double lower[cdim], upper[cdim];
   int cells[cdim];
@@ -231,6 +231,6 @@ double eval_f(const double *phi, const double x, const double y, const double z,
 // List of tests for the test framework
 TEST_LIST = { { "test_ssfg_ho", test_ssfg_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_ssfg_dev", test_ssfg_dev },
+  { "test_ssfg_dev", test_ssfg_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

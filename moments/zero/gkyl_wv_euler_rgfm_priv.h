@@ -24,8 +24,8 @@ struct wv_euler_rgfm {
 * @param q Conserved variable vector.
 * @param v Primitive variable vector (output).
 */
-GKYL_CU_D void gkyl_euler_rgfm_prim_vars(int num_species, double *gas_gamma_s, const double *q,
-                                         double *v);
+GKYL_CU_D void gkyl_euler_rgfm_prim_vars(
+  int num_species, double *gas_gamma_s, const double *q, double *v);
 
 /**
 * Compute maximum absolute wave speed.
@@ -35,8 +35,8 @@ GKYL_CU_D void gkyl_euler_rgfm_prim_vars(int num_species, double *gas_gamma_s, c
 * @param q Conserved variable vector.
 * @return Maximum absolute wave speed for a given q.
 */
-GKYL_CU_D static inline double gkyl_euler_rgfm_max_abs_speed(int num_species, double *gas_gamma_s,
-                                                             const double *q);
+GKYL_CU_D static inline double gkyl_euler_rgfm_max_abs_speed(
+  int num_species, double *gas_gamma_s, const double *q);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
@@ -46,8 +46,8 @@ GKYL_CU_D static inline double gkyl_euler_rgfm_max_abs_speed(int num_species, do
 * @param q Conserved variable vector.
 * @param flux Flux vector in direction 'dir' (output).
 */
-GKYL_CU_D void gkyl_euler_rgfm_flux(int num_species, double *gas_gamma_s, const double *q,
-                                    double *flux);
+GKYL_CU_D void gkyl_euler_rgfm_flux(
+  int num_species, double *gas_gamma_s, const double *q, double *flux);
 
 /**
 * Compute Riemann variables given the conserved variables.
@@ -57,8 +57,8 @@ GKYL_CU_D void gkyl_euler_rgfm_flux(int num_species, double *gas_gamma_s, const 
 * @param qin Conserved variable vector (input).
 * @param wout Riemann variable vector (output).
 */
-GKYL_CU_D static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                          const double *qin, double *wout);
+GKYL_CU_D static inline void cons_to_riem(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout);
 
 /**
 * Compute conserved variables given the Riemann variables.
@@ -68,8 +68,8 @@ GKYL_CU_D static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const d
 * @param win Riemann variable vector (input).
 * @param qout Conserved variable vector (output).
 */
-GKYL_CU_D static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                          const double *win, double *qout);
+GKYL_CU_D static inline void riem_to_cons(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout);
 
 /**
 * Boundary condition function for applying wall boundary conditions for the Euler Riemann ghost fluid equations.
@@ -82,7 +82,7 @@ GKYL_CU_D static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const d
 * @param ctx Context to pass to the function.
 */
 GKYL_CU_D static void euler_rgfm_wall(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                                      const double *skin, double *GKYL_RESTRICT ghost, void *ctx);
+  const double *skin, double *GKYL_RESTRICT ghost, void *ctx);
 
 /**
 * Boundary condition function for applying no-slip boundary conditions for the Euler Riemann ghost fluid equations.
@@ -95,8 +95,7 @@ GKYL_CU_D static void euler_rgfm_wall(const struct gkyl_wv_eqn *eqn, double t, i
 * @param ctx Context to pass to the function.
 */
 GKYL_CU_D static void euler_rgfm_no_slip(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                                         const double *skin, double *GKYL_RESTRICT ghost,
-                                         void *ctx);
+  const double *skin, double *GKYL_RESTRICT ghost, void *ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.
@@ -109,9 +108,8 @@ GKYL_CU_D static void euler_rgfm_no_slip(const struct gkyl_wv_eqn *eqn, double t
 * @param qlocal State vector in local coordinate frame (output).
 */
 GKYL_CU_D static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                          const double *tau2, const double *norm,
-                                          const double *GKYL_RESTRICT qglobal,
-                                          double *GKYL_RESTRICT qlocal);
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
+  double *GKYL_RESTRICT qlocal);
 
 /**
 * Rotate state vector from local to global coordinate frame.
@@ -124,9 +122,8 @@ GKYL_CU_D static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const d
 * @param qglobal State vector in global coordinate frame (output).
 */
 GKYL_CU_D static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                           const double *tau2, const double *norm,
-                                           const double *GKYL_RESTRICT qlocal,
-                                           double *GKYL_RESTRICT qglobal);
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
+  double *GKYL_RESTRICT qglobal);
 
 /**
 * Compute waves and speeds using Lax fluxes.
@@ -140,7 +137,7 @@ GKYL_CU_D static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const 
 * @return Maximum wave speed.
 */
 GKYL_CU_D static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta,
-                                 const double *ql, const double *qr, double *waves, double *s);
+  const double *ql, const double *qr, double *waves, double *s);
 
 /**
 * Compute fluctuations using Lax fluxes.
@@ -154,7 +151,7 @@ GKYL_CU_D static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *de
 * @param apdq Right-moving fluctuations (output).
 */
 GKYL_CU_D static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                                 const double *waves, const double *s, double *amdq, double *apdq);
+  const double *waves, const double *s, double *amdq, double *apdq);
 
 /**
 * Compute waves and speeds using Lax fluxes (with potential fallback).
@@ -169,8 +166,8 @@ GKYL_CU_D static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql
 * @return Maximum wave speed.
 */
 GKYL_CU_D static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                                   const double *delta, const double *ql, const double *qr,
-                                   const double phil, const double phir, double *waves, double *s);
+  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s);
 
 /**
 * Compute fluctuations using Lax fluxes (with potential fallback),
@@ -185,9 +182,8 @@ GKYL_CU_D static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_f
 * @param apdq Right-moving fluctuations (output).
 */
 GKYL_CU_D static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                                   const double *ql, const double *qr, const double phil,
-                                   const double phir, const double *waves, const double *s,
-                                   double *amdq, double *apdq);
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
+  const double *s, double *amdq, double *apdq);
 
 /**
 * Compute jump in flux given two conserved variable states.
@@ -198,8 +194,8 @@ GKYL_CU_D static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_f
 * @param flux_jump Jump in flux vector (output).
 * @return Maximum wave speeds for states ql and qr.
 */
-GKYL_CU_D static double flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                                  double *flux_jump);
+GKYL_CU_D static double flux_jump(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump);
 
 /**
 * Determine whether invariant domain of the Euler Riemann ghost fluid equations is satisfied.
@@ -226,8 +222,8 @@ GKYL_CU_D static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q
 * @param qin Conserved variable vector (input).
 * @param diag Diagnostic variable vector (output).
 */
-GKYL_CU_D static inline void euler_rgfm_cons_to_diag(const struct gkyl_wv_eqn *eqn,
-                                                     const double *qin, double *diag);
+GKYL_CU_D static inline void euler_rgfm_cons_to_diag(
+  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag);
 
 /**
 * Compute forcing/source term vector from conserved variable vector.
@@ -236,8 +232,8 @@ GKYL_CU_D static inline void euler_rgfm_cons_to_diag(const struct gkyl_wv_eqn *e
 * @param qin Conserved variable vector (input).
 * @param sout Forcing/source term vector (output).
 */
-GKYL_CU_DH static inline void euler_rgfm_source(const struct gkyl_wv_eqn *eqn, const double *qin,
-                                                double *sout);
+GKYL_CU_DH static inline void euler_rgfm_source(
+  const struct gkyl_wv_eqn *eqn, const double *qin, double *sout);
 
 /**
 * Free Euler Riemann ghost fluid equations object.

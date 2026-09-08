@@ -253,11 +253,8 @@ void test_4(void)
   /* lua_close(L); */
 }
 
-TEST_LIST = { { "test_0", test_0 },
-              { "test_1", test_1 },
-              { "test_2", test_2 },
-              { "test_3", test_3 },
-              { NULL, NULL } };
+TEST_LIST = { { "test_0", test_0 }, { "test_1", test_1 }, { "test_2", test_2 },
+  { "test_3", test_3 }, { NULL, NULL } };
 
 #else
 

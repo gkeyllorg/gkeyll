@@ -71,8 +71,8 @@ static void gkyl_emission_elastic_constant_free(const struct gkyl_ref_count *ref
 }
 
 // Furman-Pivi SEY calculation
-GKYL_CU_D static void gkyl_emission_elastic_furman_pivi_yield(double t, const double *xn,
-                                                              double *fout, void *ctx)
+GKYL_CU_D static void gkyl_emission_elastic_furman_pivi_yield(
+  double t, const double *xn, double *fout, void *ctx)
 // Electron impact model adapted from https://link.aps.org/doi/10.1103/PhysRevSTAB.5.124404
 {
   struct gkyl_emission_elastic_model *elastic = (struct gkyl_emission_elastic_model *)ctx;
@@ -99,8 +99,8 @@ GKYL_CU_D static void gkyl_emission_elastic_furman_pivi_yield(double t, const do
 }
 
 // Cazaux backscattering */
-GKYL_CU_D static void gkyl_emission_elastic_cazaux_yield(double t, const double *xn, double *fout,
-                                                         void *ctx)
+GKYL_CU_D static void gkyl_emission_elastic_cazaux_yield(
+  double t, const double *xn, double *fout, void *ctx)
 // Low-energy backscattering model adapted from https://doi.org/10.1063/1.3691956
 {
   struct gkyl_emission_elastic_model *elastic = (struct gkyl_emission_elastic_model *)ctx;
@@ -124,8 +124,8 @@ GKYL_CU_D static void gkyl_emission_elastic_cazaux_yield(double t, const double 
 }
 
 // Fixed constant reflection */
-GKYL_CU_D static void gkyl_emission_elastic_constant_yield(double t, const double *xn, double *fout,
-                                                           void *ctx)
+GKYL_CU_D static void gkyl_emission_elastic_constant_yield(
+  double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_emission_elastic_model *elastic = (struct gkyl_emission_elastic_model *)ctx;
   const struct gkyl_emission_elastic_constant *model =
@@ -147,9 +147,8 @@ GKYL_CU_D static void gkyl_emission_elastic_constant_yield(double t, const doubl
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_elastic_model *
-gkyl_emission_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat, double E_hat,
-                                      double W, double p, bool use_gpu);
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_furman_pivi_new(
+  double charge, double P1_inf, double P1_hat, double E_hat, double W, double p, bool use_gpu);
 
 /**
  * Create the elastic emission model using Cazaux
@@ -160,8 +159,8 @@ gkyl_emission_elastic_furman_pivi_new(double charge, double P1_inf, double P1_ha
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_elastic_model *gkyl_emission_elastic_cazaux_new(double charge, double E_f,
-                                                                     double phi, bool use_gpu);
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_cazaux_new(
+  double charge, double E_f, double phi, bool use_gpu);
 
 /**
  * Create the elastic emission model using constant yield
@@ -171,8 +170,8 @@ struct gkyl_emission_elastic_model *gkyl_emission_elastic_cazaux_new(double char
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_elastic_model *gkyl_emission_elastic_constant_new(double charge, double delta,
-                                                                       bool use_gpu);
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_constant_new(
+  double charge, double delta, bool use_gpu);
 
 /**
  * Acquire pointer to model object. Delete using the release()
@@ -181,8 +180,8 @@ struct gkyl_emission_elastic_model *gkyl_emission_elastic_constant_new(double ch
  * @param model Model object.
  * @return Acquired model obj pointer
  */
-struct gkyl_emission_elastic_model *
-gkyl_emission_elastic_model_acquire(const struct gkyl_emission_elastic_model *model);
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_model_acquire(
+  const struct gkyl_emission_elastic_model *model);
 
 /**
  * Delete model object

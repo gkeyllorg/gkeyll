@@ -39,8 +39,8 @@ enum gkyl_gyrokinetic_bc_type {
 //     GKYL_POISSON_ROBIN,  // a combination of dirichlet and neumann.
 //     GKYL_POISSON_DIRICHLET_VARYING, // sets the value, spatially varying.
 //   };
-static inline enum gkyl_poisson_bc_type
-gkyl_gyrokinetic_translate_poisson_bc_type(enum gkyl_gyrokinetic_bc_type bc_type)
+static inline enum gkyl_poisson_bc_type gkyl_gyrokinetic_translate_poisson_bc_type(
+  enum gkyl_gyrokinetic_bc_type bc_type)
 {
   enum gkyl_poisson_bc_type poisson_bc_type;
   switch (bc_type) {
@@ -75,8 +75,8 @@ gkyl_gyrokinetic_translate_poisson_bc_type(enum gkyl_gyrokinetic_bc_type bc_type
 //     GKYL_BC_FIXED_FUNC,
 //     GKYL_BC_CONF_BOUNDARY_VALUE,
 //   };
-static inline enum gkyl_bc_basic_type
-gkyl_gyrokinetic_translate_bc_basic_type(enum gkyl_gyrokinetic_bc_type bc_type)
+static inline enum gkyl_bc_basic_type gkyl_gyrokinetic_translate_bc_basic_type(
+  enum gkyl_gyrokinetic_bc_type bc_type)
 {
   enum gkyl_bc_basic_type bc_basic_type;
   switch (bc_type) {

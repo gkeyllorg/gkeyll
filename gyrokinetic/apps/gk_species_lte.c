@@ -2,7 +2,7 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 void gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lte *lte,
-                         struct correct_all_moms_inp corr_inp)
+  struct correct_all_moms_inp corr_inp)
 {
   int cdim = app->cdim;
 
@@ -10,15 +10,15 @@ void gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   gk_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_MAXWELLIAN, false);
 
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &s->grid,
-                                                           .conf_basis = &app->basis,
-                                                           .phase_basis = &s->basis,
-                                                           .conf_range = &app->local,
-                                                           .conf_range_ext = &app->local_ext,
-                                                           .vel_range = &s->local_vel,
-                                                           .gk_geom = app->gk_geom,
-                                                           .vel_map = s->vel_map,
-                                                           .mass = s->info.mass,
-                                                           .use_gpu = app->use_gpu };
+    .conf_basis = &app->basis,
+    .phase_basis = &s->basis,
+    .conf_range = &app->local,
+    .conf_range_ext = &app->local_ext,
+    .vel_range = &s->local_vel,
+    .gk_geom = app->gk_geom,
+    .vel_map = s->vel_map,
+    .mass = s->info.mass,
+    .use_gpu = app->use_gpu };
   lte->proj_max = gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
   lte->correct_all_moms = corr_inp.correct_all_moms;
@@ -28,18 +28,18 @@ void gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
   if (lte->correct_all_moms) {
     struct gkyl_gk_maxwellian_correct_inp inp_corr = { .phase_grid = &s->grid,
-                                                       .conf_basis = &app->basis,
-                                                       .phase_basis = &s->basis,
-                                                       .conf_range = &app->local,
-                                                       .conf_range_ext = &app->local_ext,
-                                                       .vel_range = &s->local_vel,
-                                                       .gk_geom = app->gk_geom,
-                                                       .vel_map = s->vel_map,
-                                                       .mass = s->info.mass,
-                                                       .max_iter = max_iter,
-                                                       .eps = iter_eps,
-                                                       .use_last_converged = use_last_converged,
-                                                       .use_gpu = app->use_gpu };
+      .conf_basis = &app->basis,
+      .phase_basis = &s->basis,
+      .conf_range = &app->local,
+      .conf_range_ext = &app->local_ext,
+      .vel_range = &s->local_vel,
+      .gk_geom = app->gk_geom,
+      .vel_map = s->vel_map,
+      .mass = s->info.mass,
+      .max_iter = max_iter,
+      .eps = iter_eps,
+      .use_last_converged = use_last_converged,
+      .use_gpu = app->use_gpu };
     lte->n_iter = 0; // Total number of iterations from correcting moments.
     lte->num_corr = 0; // Total number of times the correction updater is called.
     lte->corr_max = gkyl_gk_maxwellian_correct_inew(&inp_corr);
@@ -53,7 +53,7 @@ void gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
 // Compute f_lte from input Maxwellian (LTE=local thermodynamic equilibrium) moments
 void gk_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-                              struct gk_lte *lte, const struct gkyl_array *moms_lte)
+  struct gk_lte *lte, const struct gkyl_array *moms_lte)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -61,14 +61,14 @@ void gk_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_species
 
   // Project the Maxwellian distribution function to obtain f_lte.
   // Projection routine also corrects the density of the projected distribution function.
-  gkyl_gk_maxwellian_proj_on_basis_advance(lte->proj_max, &species->local, &app->local, moms_lte,
-                                           false, lte->f_lte);
+  gkyl_gk_maxwellian_proj_on_basis_advance(
+    lte->proj_max, &species->local, &app->local, moms_lte, false, lte->f_lte);
 
   // Correct all the moments of the projected Maxwellian distribution function.
   if (lte->correct_all_moms) {
     struct gkyl_gk_maxwellian_correct_status status_corr;
-    status_corr = gkyl_gk_maxwellian_correct_all_moments(lte->corr_max, lte->f_lte, moms_lte,
-                                                         &species->local, &app->local);
+    status_corr = gkyl_gk_maxwellian_correct_all_moments(
+      lte->corr_max, lte->f_lte, moms_lte, &species->local, &app->local);
     double corr_vec[5] = { 0.0 };
     corr_vec[0] = status_corr.num_iter;
     corr_vec[1] = status_corr.iter_converged;
@@ -87,7 +87,7 @@ void gk_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_species
 }
 
 void gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_lte *lte,
-                    const struct gkyl_array *fin)
+  const struct gkyl_array *fin)
 {
   struct timespec wst = gkyl_wall_clock();
   // Compute needed Maxwellian moments (J*n, u_par, T/m).
@@ -95,7 +95,7 @@ void gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 
   // Divide out the Jacobian from the density.
   gkyl_dg_div_op_range(lte->moms.mem_geo, &app->basis, 0, lte->moms.marr, 0, lte->moms.marr, 0,
-                       app->gk_geom->geo_int.jacobgeo, &app->local);
+    app->gk_geom->geo_int.jacobgeo, &app->local);
   app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);
 
   gk_species_lte_from_moms(app, species, lte, lte->moms.marr);
@@ -117,15 +117,12 @@ void gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app *app, struct gk_s
 
       if (gks->lte.is_first_corr_status_write_call) {
         // Write to a new file (this ensure previous output is removed).
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {
-          { .key = "Description",
-            .elem_type = GKYL_MP_STRING,
-            .cval = "Statistics on the Maxwellian correction." }
-        };
+        struct gkyl_msgpack_map_elem io_meta_phi[] = { { .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Statistics on the Maxwellian correction." } };
         int io_meta_len[] = { gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
         const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic,
-                                                          app->gk_geom->io_meta_basic,
-                                                          io_meta_phi };
+          app->gk_geom->io_meta_basic, io_meta_phi };
         struct gkyl_msgpack_data *mt =
           gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 

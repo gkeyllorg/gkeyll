@@ -51,24 +51,23 @@ static int v_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_mom_vlasov_sr_set_auxfields_cu_kernel(const struct gkyl_mom_type *momt,
-                                                                  const struct gkyl_array *gamma)
+__global__ static void gkyl_mom_vlasov_sr_set_auxfields_cu_kernel(
+  const struct gkyl_mom_type *momt, const struct gkyl_array *gamma)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
   mom_vm_sr->auxfields.gamma = gamma;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_mom_vlasov_sr_set_auxfields_cu(const struct gkyl_mom_type *momt,
-                                         struct gkyl_mom_vlasov_sr_auxfields auxin)
+void gkyl_mom_vlasov_sr_set_auxfields_cu(
+  const struct gkyl_mom_type *momt, struct gkyl_mom_vlasov_sr_auxfields auxin)
 {
   gkyl_mom_vlasov_sr_set_auxfields_cu_kernel<<<1, 1> > >(momt, auxin.gamma->on_dev);
 }
 
 __global__ static void set_cu_ptrs(struct mom_type_vlasov_sr *mom_vm_sr,
-                                   enum gkyl_distribution_moments mom_type,
-                                   enum gkyl_basis_type b_type, int vdim, int poly_order,
-                                   int tblidx)
+  enum gkyl_distribution_moments mom_type, enum gkyl_basis_type b_type, int vdim, int poly_order,
+  int tblidx)
 {
   mom_vm_sr->auxfields.gamma = 0;
 
@@ -129,10 +128,8 @@ __global__ static void set_cu_ptrs(struct mom_type_vlasov_sr *mom_vm_sr,
 }
 
 struct gkyl_mom_type *gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                    const struct gkyl_basis *pbasis,
-                                                    const struct gkyl_range *conf_range,
-                                                    const struct gkyl_range *vel_range,
-                                                    enum gkyl_distribution_moments mom_type)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *vel_range, enum gkyl_distribution_moments mom_type)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -164,8 +161,8 @@ struct gkyl_mom_type *gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis *cba
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  set_cu_ptrs<<<1, 1> > >(momt_cu, mom_type, cbasis->b_type, vdim, poly_order,
-                          cv_index[cdim].vdim[vdim]);
+  set_cu_ptrs<<<1, 1> > >(
+    momt_cu, mom_type, cbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_vm_sr->momt.on_dev = &momt_cu->momt;
 
@@ -173,9 +170,8 @@ struct gkyl_mom_type *gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis *cba
 }
 
 __global__ static void set_int_cu_ptrs(struct mom_type_vlasov_sr *mom_vm_sr,
-                                       enum gkyl_distribution_moments mom_type,
-                                       enum gkyl_basis_type b_type, int vdim, int poly_order,
-                                       int tblidx)
+  enum gkyl_distribution_moments mom_type, enum gkyl_basis_type b_type, int vdim, int poly_order,
+  int tblidx)
 {
   mom_vm_sr->auxfields.gamma = 0;
 
@@ -206,10 +202,8 @@ __global__ static void set_int_cu_ptrs(struct mom_type_vlasov_sr *mom_vm_sr,
 }
 
 struct gkyl_mom_type *gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                        const struct gkyl_basis *pbasis,
-                                                        const struct gkyl_range *conf_range,
-                                                        const struct gkyl_range *vel_range,
-                                                        enum gkyl_distribution_moments mom_type)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *vel_range, enum gkyl_distribution_moments mom_type)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -239,8 +233,8 @@ struct gkyl_mom_type *gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis 
     (struct mom_type_vlasov_sr *)gkyl_cu_malloc(sizeof(struct mom_type_vlasov_sr));
   gkyl_cu_memcpy(momt_cu, mom_vm_sr, sizeof(struct mom_type_vlasov_sr), GKYL_CU_MEMCPY_H2D);
 
-  set_int_cu_ptrs<<<1, 1> > >(momt_cu, mom_type, cbasis->b_type, vdim, poly_order,
-                              cv_index[cdim].vdim[vdim]);
+  set_int_cu_ptrs<<<1, 1> > >(
+    momt_cu, mom_type, cbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_vm_sr->momt.on_dev = &momt_cu->momt;
 

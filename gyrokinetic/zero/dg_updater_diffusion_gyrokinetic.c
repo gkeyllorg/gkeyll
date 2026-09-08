@@ -32,11 +32,10 @@ struct gkyl_dg_updater_diffusion_gyrokinetic *gkyl_dg_updater_diffusion_gyrokine
   for (int d = 0; d < cdim; d++)
     is_dir_diffusive[d] = diff_in_dir == NULL ? true : diff_in_dir[d];
 
-  up->dgeqn = gkyl_dg_diffusion_gyrokinetic_new(basis, cbasis, is_diff_const, is_dir_diffusive,
-                                                diff_order, diff_range, up->use_gpu);
+  up->dgeqn = gkyl_dg_diffusion_gyrokinetic_new(
+    basis, cbasis, is_diff_const, is_dir_diffusive, diff_order, diff_range, up->use_gpu);
 
-  gkyl_dg_diffusion_gyrokinetic_set_auxfields(
-    up->dgeqn,
+  gkyl_dg_diffusion_gyrokinetic_set_auxfields(up->dgeqn,
     (struct gkyl_dg_diffusion_gyrokinetic_auxfields){ .D = coeff, .jacobgeo_inv = jacobgeo_inv });
 
   int num_up_dirs = 0;
@@ -53,8 +52,8 @@ struct gkyl_dg_updater_diffusion_gyrokinetic *gkyl_dg_updater_diffusion_gyrokine
     zero_flux_flags[d + pdim] = is_zero_flux_bc[d + pdim] ? 1 : 0;
   }
 
-  up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1,
-                                  up->use_gpu);
+  up->hyperdg = gkyl_hyper_dg_new(
+    grid, basis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->diffusion_tm = 0.0;
 
@@ -62,18 +61,16 @@ struct gkyl_dg_updater_diffusion_gyrokinetic *gkyl_dg_updater_diffusion_gyrokine
 }
 
 void gkyl_dg_updater_diffusion_gyrokinetic_advance(struct gkyl_dg_updater_diffusion_gyrokinetic *up,
-                                                   const struct gkyl_range *update_rng,
-                                                   const struct gkyl_array *GKYL_RESTRICT fIn,
-                                                   struct gkyl_array *GKYL_RESTRICT cflrate,
-                                                   struct gkyl_array *GKYL_RESTRICT rhs)
+  const struct gkyl_range *update_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
   up->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
 
-struct gkyl_dg_updater_diffusion_gyrokinetic_tm
-gkyl_dg_updater_diffusion_gyrokinetic_get_tm(const struct gkyl_dg_updater_diffusion_gyrokinetic *up)
+struct gkyl_dg_updater_diffusion_gyrokinetic_tm gkyl_dg_updater_diffusion_gyrokinetic_get_tm(
+  const struct gkyl_dg_updater_diffusion_gyrokinetic *up)
 {
   return (struct gkyl_dg_updater_diffusion_gyrokinetic_tm){ .diffusion_tm = up->diffusion_tm };
 }

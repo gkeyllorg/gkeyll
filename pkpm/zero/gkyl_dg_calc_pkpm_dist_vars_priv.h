@@ -11,17 +11,14 @@
 #include <assert.h>
 
 typedef void (*pkpm_dist_mirror_force_t)(const double *w, const double *dxv,
-                                         const double *pkpm_prim, const double *nu_prim_moms_sum,
-                                         const double *div_b, const double *pkpm_accel_vars,
-                                         const double *f, const double *F_k_p_1,
-                                         double *GKYL_RESTRICT g_dist_source,
-                                         double *GKYL_RESTRICT F_k_m_1);
+  const double *pkpm_prim, const double *nu_prim_moms_sum, const double *div_b,
+  const double *pkpm_accel_vars, const double *f, const double *F_k_p_1,
+  double *GKYL_RESTRICT g_dist_source, double *GKYL_RESTRICT F_k_m_1);
 
 typedef void (*pkpm_dist_div_ppar_t)(const double *w, const double *dxv, const double *bvar_surf_l,
-                                     const double *bvar_surf_c, const double *bvar_surf_r,
-                                     const double *fl, const double *fc, const double *fr,
-                                     const double *bvar_c, const double *pkpm_max_b,
-                                     double *GKYL_RESTRICT pkpm_div_ppar);
+  const double *bvar_surf_c, const double *bvar_surf_r, const double *fl, const double *fc,
+  const double *fr, const double *bvar_c, const double *pkpm_max_b,
+  double *GKYL_RESTRICT pkpm_div_ppar);
 
 // for use in kernel tables
 typedef struct {
@@ -100,8 +97,8 @@ GKYL_CU_D static const gkyl_dg_pkpm_dist_div_ppar_kern_list ten_pkpm_dist_div_pp
   { NULL, pkpm_dist_div_ppar_z_3x1v_ser_p1, NULL } // 2
 };
 
-GKYL_CU_D static pkpm_dist_mirror_force_t
-choose_pkpm_dist_mirror_force_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_dist_mirror_force_t choose_pkpm_dist_mirror_force_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -116,8 +113,8 @@ choose_pkpm_dist_mirror_force_kern(enum gkyl_basis_type b_type, int cdim, int po
   }
 }
 
-GKYL_CU_D static pkpm_dist_div_ppar_t
-choose_pkpm_dist_div_ppar_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_dist_div_ppar_t choose_pkpm_dist_div_ppar_kern(
+  int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

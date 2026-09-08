@@ -7,15 +7,12 @@
 #include <gkyl_util.h>
 
 typedef void (*gyrokinetic_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs,
-                                        const double *moms, const double *boundary_corrections,
-                                        const double *nu);
+  const double *moms, const double *boundary_corrections, const double *nu);
 
 typedef void (*gyrokinetic_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs,
-                                         const double *alpha_E, const double m_self,
-                                         const double *moms_self, const double *prim_moms_self,
-                                         const double m_other, const double *moms_other,
-                                         const double *prim_moms_other,
-                                         const double *boundary_corrections, const double *nu);
+  const double *alpha_E, const double m_self, const double *moms_self, const double *prim_moms_self,
+  const double m_other, const double *moms_other, const double *prim_moms_other,
+  const double *boundary_corrections, const double *nu);
 
 // for use in kernel tables
 typedef struct {
@@ -73,8 +70,8 @@ struct prim_lbo_type_gyrokinetic {
 void prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D static void self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-                                struct gkyl_mat *rhs, const int *idx, const double *moms,
-                                const double *boundary_corrections, const double *nu)
+  struct gkyl_mat *rhs, const int *idx, const double *moms, const double *boundary_corrections,
+  const double *nu)
 {
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic =
     container_of(prim, struct prim_lbo_type_gyrokinetic, prim);
@@ -83,22 +80,21 @@ GKYL_CU_D static void self_prim(const struct gkyl_prim_lbo_type *prim, struct gk
 }
 
 GKYL_CU_D static void cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-                                 struct gkyl_mat *rhs, const int *idx, const double *alpha_E,
-                                 const double m_self, const double *moms_self,
-                                 const double *prim_moms_self, const double m_other,
-                                 const double *moms_other, const double *prim_moms_other,
-                                 const double *boundary_corrections, const double *nu)
+  struct gkyl_mat *rhs, const int *idx, const double *alpha_E, const double m_self,
+  const double *moms_self, const double *prim_moms_self, const double m_other,
+  const double *moms_other, const double *prim_moms_other, const double *boundary_corrections,
+  const double *nu)
 {
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic =
     container_of(prim, struct prim_lbo_type_gyrokinetic, prim);
 
   return prim_gyrokinetic->cross_prim(A, rhs, alpha_E, m_self, moms_self, prim_moms_self, m_other,
-                                      moms_other, prim_moms_other, boundary_corrections, nu);
+    moms_other, prim_moms_other, boundary_corrections, nu);
 }
 
 #ifdef GKYL_HAVE_CUDA
 
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                                const struct gkyl_basis *pbasis);
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
 
 #endif

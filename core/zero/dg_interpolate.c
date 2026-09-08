@@ -4,11 +4,9 @@
 #include <gkyl_alloc_flags_priv.h>
 
 struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
-                                                    const struct gkyl_rect_grid *grid_do,
-                                                    const struct gkyl_rect_grid *grid_tar,
-                                                    const struct gkyl_range *range_do,
-                                                    const struct gkyl_range *range_tar,
-                                                    const int *nghost, bool use_gpu)
+  const struct gkyl_rect_grid *grid_do, const struct gkyl_rect_grid *grid_tar,
+  const struct gkyl_range *range_do, const struct gkyl_range *range_tar, const int *nghost,
+  bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_dg_interpolate *up = gkyl_malloc(sizeof(*up));
@@ -82,8 +80,7 @@ struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_
   } else {
     for (int k = 0; k < up->num_interp_dirs; k++)
       up->interp_ops[k] = gkyl_dg_interpolate_new(cdim, basis, &up->grids[k], &up->grids[k + 1],
-                                                  &up->ranges[k], &up->ranges[k + 1], nghost,
-                                                  use_gpu);
+        &up->ranges[k], &up->ranges[k + 1], nghost, use_gpu);
   }
 
   // Pre-allocate fields for intermediate grids.
@@ -189,9 +186,8 @@ struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_
 }
 
 static void dg_interpolate_advance_1x(gkyl_dg_interpolate *up, const struct gkyl_range *range_do,
-                                      const struct gkyl_range *range_tar,
-                                      const struct gkyl_array *GKYL_RESTRICT fdo,
-                                      struct gkyl_array *GKYL_RESTRICT ftar)
+  const struct gkyl_range *range_tar, const struct gkyl_array *GKYL_RESTRICT fdo,
+  struct gkyl_array *GKYL_RESTRICT ftar)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -243,16 +239,16 @@ static void dg_interpolate_advance_1x(gkyl_dg_interpolate *up, const struct gkyl
   }
 }
 
-void gkyl_dg_interpolate_advance(gkyl_dg_interpolate *up, struct gkyl_array *fdo,
-                                 struct gkyl_array *ftar)
+void gkyl_dg_interpolate_advance(
+  gkyl_dg_interpolate *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
 {
   up->fields[0] = fdo;
   up->fields[up->num_interp_dirs] = ftar;
 
   // Loop over interpolating dimensions and do each interpolation separately.
   for (int k = 0; k < up->num_interp_dirs; k++) {
-    dg_interpolate_advance_1x(up->interp_ops[k], &up->ranges[k], &up->ranges[k + 1], up->fields[k],
-                              up->fields[k + 1]);
+    dg_interpolate_advance_1x(
+      up->interp_ops[k], &up->ranges[k], &up->ranges[k + 1], up->fields[k], up->fields[k + 1]);
   }
 }
 

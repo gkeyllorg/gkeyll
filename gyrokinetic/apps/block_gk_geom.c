@@ -45,8 +45,8 @@ int gkyl_gk_block_geom_num_blocks(const struct gkyl_gk_block_geom *bgeom)
   return bgeom->num_blocks;
 }
 
-void gkyl_gk_block_geom_set_block(struct gkyl_gk_block_geom *bgeom, int bidx,
-                                  const struct gkyl_gk_block_geom_info *info)
+void gkyl_gk_block_geom_set_block(
+  struct gkyl_gk_block_geom *bgeom, int bidx, const struct gkyl_gk_block_geom_info *info)
 {
   memcpy(&bgeom->blocks[bidx], info, sizeof(struct gkyl_gk_block_geom_info));
 
@@ -59,8 +59,8 @@ void gkyl_gk_block_geom_set_block(struct gkyl_gk_block_geom *bgeom, int bidx,
       bgeom->btopo->conn[bidx].connections[i][e] = info->connections[i][e];
 }
 
-void gkyl_gk_block_geom_reset_block_extents(struct gkyl_gk_block_geom *bgeom, int bidx,
-                                            double *lower, double *upper)
+void gkyl_gk_block_geom_reset_block_extents(
+  struct gkyl_gk_block_geom *bgeom, int bidx, double *lower, double *upper)
 {
   struct gkyl_gk_block_geom_info *bgi = &bgeom->blocks[bidx];
   for (int i = 0; i < bgeom->ndim; ++i) {
@@ -69,8 +69,8 @@ void gkyl_gk_block_geom_reset_block_extents(struct gkyl_gk_block_geom *bgeom, in
   }
 }
 
-const struct gkyl_gk_block_geom_info *
-gkyl_gk_block_geom_get_block(const struct gkyl_gk_block_geom *bgeom, int bidx)
+const struct gkyl_gk_block_geom_info *gkyl_gk_block_geom_get_block(
+  const struct gkyl_gk_block_geom *bgeom, int bidx)
 {
   return &bgeom->blocks[bidx];
 }

@@ -41,15 +41,14 @@ void gkyl_dg_diffusion_gyrokinetic_set_auxfields(
   diffusion->auxfields.jacobgeo_inv = auxin.jacobgeo_inv;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-                                  bool is_diff_const, const bool *diff_in_dir, int diff_order,
-                                  const struct gkyl_range *diff_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
+  const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir, int diff_order,
+  const struct gkyl_range *diff_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_diffusion_gyrokinetic_cu_dev_new(basis, cbasis, is_diff_const, diff_in_dir,
-                                                    diff_order, diff_range);
+    return gkyl_dg_diffusion_gyrokinetic_cu_dev_new(
+      basis, cbasis, is_diff_const, diff_in_dir, diff_order, diff_range);
 #endif
 
   struct dg_diffusion_gyrokinetic *diffusion = gkyl_malloc(sizeof(struct dg_diffusion_gyrokinetic));

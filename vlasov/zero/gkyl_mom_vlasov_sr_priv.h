@@ -34,97 +34,73 @@ typedef struct {
 } gkyl_vlasov_sr_mom_kern_list;
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_1x1v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_1x1v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_1x1v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_1x1v_ser_p2(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_1x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_1x2v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_1x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_1x2v_ser_p2(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_1x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_1x3v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_1x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_1x3v_ser_p2(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_2x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_2x2v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_2x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_2x2v_ser_p2(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_2x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_2x3v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_2x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_2x3v_ser_p2(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M0_3x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M0_3x3v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x1v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -141,9 +117,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x1v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x1v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -160,9 +134,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x1v_ser_p2(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -179,9 +151,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x2v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -198,9 +168,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x2v_ser_p2(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -217,9 +185,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x3v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -236,9 +202,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x3v_ser_p2(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -255,9 +219,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x2v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -274,9 +236,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x2v_ser_p2(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -293,9 +253,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x3v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -312,9 +270,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x3v_ser_p2(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M1i_3x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -331,9 +287,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_3x3v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_1x1v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -350,9 +304,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x1v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_1x1v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -369,9 +321,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x1v_ser_p2(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_1x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -388,9 +338,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x2v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_1x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -407,9 +355,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x2v_ser_p2(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_1x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -426,9 +372,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x3v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_1x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -445,9 +389,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x3v_ser_p2(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_2x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -464,9 +406,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_2x2v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_2x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -483,9 +423,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_2x2v_ser_p2(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_2x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -502,9 +440,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_2x3v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_2x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -521,9 +457,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_2x3v_ser_p2(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -540,97 +474,73 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_3x3v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x1v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_1x1v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x1v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_1x1v_ser_p2(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_1x2v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_1x2v_ser_p2(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_1x3v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_1x3v_ser_p2(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_2x2v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_2x2v_ser_p2(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_2x3v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_2x3v_ser_p2(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_M3i_3x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   return vlasov_sr_M3i_3x3v_ser_p1(xc, dx, idx, f, out);
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x1v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -647,9 +557,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x1v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x1v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -666,9 +574,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x1v_ser_p2(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -685,9 +591,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x2v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -704,9 +608,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x2v_ser_p2(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -723,9 +625,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x3v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -742,9 +642,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x3v_ser_p2(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -761,9 +659,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x2v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -780,9 +676,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x2v_ser_p2(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -799,9 +693,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x3v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -818,9 +710,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x3v_ser_p2(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Ni_3x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                       const double *xc, const double *dx,
-                                                       const int *idx, const double *f, double *out,
-                                                       void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -837,9 +727,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_3x3v_ser_p1(const struct gkyl_mom_typ
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x1v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -856,9 +744,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x1v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x1v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -875,9 +761,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x1v_ser_p2(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -894,9 +778,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x2v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -913,9 +795,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x2v_ser_p2(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -932,9 +812,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x3v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -951,9 +829,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x3v_ser_p2(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x2v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -970,9 +846,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x2v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x2v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -989,9 +863,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x2v_ser_p2(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1008,9 +880,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x3v_ser_p1(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x3v_ser_p2(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1027,9 +897,7 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x3v_ser_p2(const struct gkyl_mom_ty
 }
 
 GKYL_CU_DH static void kernel_vlasov_sr_Tij_3x3v_ser_p1(const struct gkyl_mom_type *momt,
-                                                        const double *xc, const double *dx,
-                                                        const int *idx, const double *f,
-                                                        double *out, void *param)
+  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1045,10 +913,9 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_3x3v_ser_p1(const struct gkyl_mom_ty
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x1v_ser_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1064,10 +931,9 @@ kernel_vlasov_sr_int_five_moments_1x1v_ser_p1(const struct gkyl_mom_type *momt, 
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x1v_ser_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1083,10 +949,9 @@ kernel_vlasov_sr_int_five_moments_1x1v_ser_p2(const struct gkyl_mom_type *momt, 
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x2v_ser_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1102,10 +967,9 @@ kernel_vlasov_sr_int_five_moments_1x2v_ser_p1(const struct gkyl_mom_type *momt, 
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x2v_ser_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1121,10 +985,9 @@ kernel_vlasov_sr_int_five_moments_1x2v_ser_p2(const struct gkyl_mom_type *momt, 
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x3v_ser_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1140,10 +1003,9 @@ kernel_vlasov_sr_int_five_moments_1x3v_ser_p1(const struct gkyl_mom_type *momt, 
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x3v_ser_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1159,10 +1021,9 @@ kernel_vlasov_sr_int_five_moments_1x3v_ser_p2(const struct gkyl_mom_type *momt, 
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x2v_ser_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1178,10 +1039,9 @@ kernel_vlasov_sr_int_five_moments_2x2v_ser_p1(const struct gkyl_mom_type *momt, 
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x2v_ser_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1197,10 +1057,9 @@ kernel_vlasov_sr_int_five_moments_2x2v_ser_p2(const struct gkyl_mom_type *momt, 
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x3v_ser_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1216,10 +1075,9 @@ kernel_vlasov_sr_int_five_moments_2x3v_ser_p1(const struct gkyl_mom_type *momt, 
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x3v_ser_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1235,10 +1093,9 @@ kernel_vlasov_sr_int_five_moments_2x3v_ser_p2(const struct gkyl_mom_type *momt, 
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_vlasov_sr_int_five_moments_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-                                              const double *dx, const int *idx, const double *f,
-                                              double *out, void *param)
+GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_3x3v_ser_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
 
@@ -1367,20 +1224,16 @@ void gkyl_mom_vm_sr_free(const struct gkyl_ref_count *ref);
  * see new() method above for documentation.
  */
 struct gkyl_mom_type *gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                    const struct gkyl_basis *pbasis,
-                                                    const struct gkyl_range *conf_range,
-                                                    const struct gkyl_range *vel_range,
-                                                    enum gkyl_distribution_moments mom_type);
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *vel_range, enum gkyl_distribution_moments mom_type);
 
 /**
  * Create new special relativistic Vlasov integrated moment type
  * object on NV-GPU: see new() method above for documentation.
  */
 struct gkyl_mom_type *gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                        const struct gkyl_basis *pbasis,
-                                                        const struct gkyl_range *conf_range,
-                                                        const struct gkyl_range *vel_range,
-                                                        enum gkyl_distribution_moments mom_type);
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *vel_range, enum gkyl_distribution_moments mom_type);
 
 /**
  * CUDA device function to set auxiliary fields needed in computing moments.
@@ -1388,6 +1241,6 @@ struct gkyl_mom_type *gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis 
  * @param momt moment type.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_mom_vlasov_sr_set_auxfields_cu(const struct gkyl_mom_type *momt,
-                                         struct gkyl_mom_vlasov_sr_auxfields auxin);
+void gkyl_mom_vlasov_sr_set_auxfields_cu(
+  const struct gkyl_mom_type *momt, struct gkyl_mom_vlasov_sr_auxfields auxin);
 #endif

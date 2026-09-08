@@ -45,7 +45,7 @@ void eval_T_over_m_neut(double t, const double *xn, double *restrict fout, void 
 }
 
 static inline void proj_on_basis_copy(const struct gkyl_proj_on_basis *proj_op, double tm,
-                                      struct gkyl_range *rng, struct gkyl_array *arr, bool use_gpu)
+  struct gkyl_range *rng, struct gkyl_array *arr, bool use_gpu)
 {
   struct gkyl_array *arr_ho = use_gpu ? mkarr(false, arr->ncomp, arr->size) :
                                         gkyl_array_acquire(arr);
@@ -86,10 +86,10 @@ void test_coll_cx_d(bool use_gpu)
   double vt_sq_ion_min = 1 * echarge / d_ion_mass;
   double vt_sq_neut_min = 1 * echarge / d_ion_mass;
   struct gkyl_dg_cx_inp cx_inp = { .cbasis = &basis,
-                                   .conf_rng = &confRange,
-                                   .vt_sq_ion_min = vt_sq_ion_min,
-                                   .vt_sq_neut_min = vt_sq_neut_min,
-                                   .type_ion = GKYL_ION_D };
+    .conf_rng = &confRange,
+    .vt_sq_ion_min = vt_sq_ion_min,
+    .vt_sq_neut_min = vt_sq_neut_min,
+    .type_ion = GKYL_ION_D };
 
   // Coll struct.
   struct gkyl_dg_cx *coll_cx_up = gkyl_dg_cx_new(&cx_inp, use_gpu);
@@ -137,7 +137,7 @@ void test_coll_cx_d(bool use_gpu)
 
   // Test against predicted value.
   double p1_vals[] = { 3.242709205939892e-14, 0.000000000000000e+00, 0.000000000000000e+00,
-                       0.000000000000000e+00 };
+    0.000000000000000e+00 };
   for (int i = 0; i < basis.num_basis; ++i) {
     TEST_CHECK(gkyl_compare_double(p1_vals[i] * check_fac, cv_cx[i] * check_fac, 1e-12));
     TEST_MSG("i:%d | Expected: %.9e | Got:%.9e\n", i, p1_vals[i] * check_fac, cv_cx[i] * check_fac);
@@ -176,6 +176,6 @@ void coll_cx_d_dev()
 
 TEST_LIST = { { "coll_cx_d_ho", coll_cx_d_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "coll_cx_d_dev", coll_cx_d_dev },
+  { "coll_cx_d_dev", coll_cx_d_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

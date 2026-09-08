@@ -24,21 +24,17 @@ __global__ static void gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_rad_gyrokinetic_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                                struct gkyl_dg_rad_gyrokinetic_auxfields auxin)
+void gkyl_rad_gyrokinetic_drag_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin)
 {
   gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.nvnu_surf->on_dev,
-                                                                auxin.nvnu->on_dev,
-                                                                auxin.nvsqnu_surf->on_dev,
-                                                                auxin.nvsqnu->on_dev);
+    auxin.nvnu->on_dev, auxin.nvsqnu_surf->on_dev, auxin.nvsqnu->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and rad_gyrokinetic_drag kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void dg_rad_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_rad_gyrokinetic_drag *grad,
-                                                               enum gkyl_basis_type b_type,
-                                                               int cv_index, int cdim, int vdim,
-                                                               int poly_order)
+  enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim, int poly_order)
 {
   grad->auxfields.nvnu_surf = 0;
   grad->auxfields.nvnu = 0;
@@ -78,10 +74,8 @@ __global__ static void dg_rad_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_rad_gyr
 }
 
 struct gkyl_dg_eqn *gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis *conf_basis,
-                                                            const struct gkyl_basis *phase_basis,
-                                                            const struct gkyl_range *phase_range,
-                                                            const struct gkyl_range *conf_range,
-                                                            const struct gkyl_velocity_map *vel_map)
+  const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_velocity_map *vel_map)
 {
   struct dg_rad_gyrokinetic_drag *grad =
     (struct dg_rad_gyrokinetic_drag *)gkyl_malloc(sizeof(*grad));

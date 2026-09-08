@@ -10,8 +10,8 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_util.h>
 
-struct gkyl_mom_type *
-gkyl_dg_updater_moment_gyrokinetic_acquire_type(const gkyl_dg_updater_moment *moment)
+struct gkyl_mom_type *gkyl_dg_updater_moment_gyrokinetic_acquire_type(
+  const gkyl_dg_updater_moment *moment)
 {
   return gkyl_mom_type_acquire(moment->type);
 }
@@ -31,11 +31,11 @@ struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_gyrokinetic_new(
   up->use_gpu = use_gpu;
 
   if (is_integrated)
-    up->type = gkyl_int_mom_gyrokinetic_new(conf_basis, phase_basis, conf_range, mass, charge,
-                                            vel_map, gk_geom, phi, mom_type, use_gpu);
+    up->type = gkyl_int_mom_gyrokinetic_new(
+      conf_basis, phase_basis, conf_range, mass, charge, vel_map, gk_geom, phi, mom_type, use_gpu);
   else
-    up->type = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_range, mass, charge, vel_map,
-                                        gk_geom, phi, mom_type, use_gpu);
+    up->type = gkyl_mom_gyrokinetic_new(
+      conf_basis, phase_basis, conf_range, mass, charge, vel_map, gk_geom, phi, mom_type, use_gpu);
 
   up->up_moment = gkyl_mom_calc_new(grid, up->type, use_gpu);
 
@@ -45,10 +45,8 @@ struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_gyrokinetic_new(
 }
 
 void gkyl_dg_updater_moment_gyrokinetic_advance(struct gkyl_dg_updater_moment *moment,
-                                                const struct gkyl_range *update_phase_rng,
-                                                const struct gkyl_range *update_conf_rng,
-                                                const struct gkyl_array *GKYL_RESTRICT fIn,
-                                                struct gkyl_array *GKYL_RESTRICT mout)
+  const struct gkyl_range *update_phase_rng, const struct gkyl_range *update_conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT mout)
 {
   struct timespec wst = gkyl_wall_clock();
   if (moment->use_gpu)
@@ -58,8 +56,8 @@ void gkyl_dg_updater_moment_gyrokinetic_advance(struct gkyl_dg_updater_moment *m
   moment->moment_tm += gkyl_time_diff_now_sec(wst);
 }
 
-struct gkyl_dg_updater_moment_tm
-gkyl_dg_updater_moment_gyrokinetic_get_tm(const gkyl_dg_updater_moment *moment)
+struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_gyrokinetic_get_tm(
+  const gkyl_dg_updater_moment *moment)
 {
   return (struct gkyl_dg_updater_moment_tm){ .moment_tm = moment->moment_tm };
 }

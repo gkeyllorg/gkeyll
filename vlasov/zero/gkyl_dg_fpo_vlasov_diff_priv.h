@@ -7,7 +7,7 @@
 
 // Types for various kernels
 typedef double (*fpo_vlasov_diff_surf_t)(const double *w, const double *dx, const double *g[27],
-                                         const double *f[27], double *GKYL_RESTRICT out);
+  const double *f[27], double *GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct {
@@ -36,9 +36,8 @@ struct dg_fpo_vlasov_diff {
 //
 
 GKYL_CU_DH static double kernel_fpo_vlasov_diff_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                                const double *xc, const double *dx,
-                                                                const int *idx, const double *qIn,
-                                                                double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
 
@@ -49,9 +48,8 @@ GKYL_CU_DH static double kernel_fpo_vlasov_diff_vol_1x3v_ser_p1(const struct gky
 }
 
 GKYL_CU_DH static double kernel_fpo_vlasov_diff_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn,
-                                                                const double *xc, const double *dx,
-                                                                const int *idx, const double *qIn,
-                                                                double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
 
@@ -108,127 +106,98 @@ GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_vol_kern_list ser_vol_kernels[] =
   // { NULL, kernel_fpo_vlasov_diff_vol_1x3v_ser_p1, kernel_fpo_vlasov_diff_vol_1x3v_ser_p2 }, // 0
   // { NULL, kernel_fpo_vlasov_diff_vol_2x3v_ser_p1, kernel_fpo_vlasov_diff_vol_2x3v_ser_p2 }, // 1
   // { NULL, kernel_fpo_vlasov_diff_vol_3x3v_ser_p1, NULL }, // 2
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL }
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: xx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_xx_kernels[] = {
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL }
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: xy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_xy_kernels[] = {
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL }
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: xz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_xz_kernels[] = {
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL }
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: yx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_yx_kernels[] = {
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL }
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: yy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_yy_kernels[] = {
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL }
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: yz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_yz_kernels[] = {
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL }
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: zx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_zx_kernels[] = {
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL }
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: zy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_zy_kernels[] = {
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL }
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: zz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_zz_kernels[] = {
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL }
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Boundary Surface kernel list: xx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_xx_kernels[] = { { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL } };
+  ser_boundary_surf_xx_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: xy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_xy_kernels[] = { { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL } };
+  ser_boundary_surf_xy_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: xz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_xz_kernels[] = { { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL } };
+  ser_boundary_surf_xz_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: yx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_yx_kernels[] = { { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL } };
+  ser_boundary_surf_yx_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: yy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_yy_kernels[] = { { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL } };
+  ser_boundary_surf_yy_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: yz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_yz_kernels[] = { { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL } };
+  ser_boundary_surf_yz_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: zx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_zx_kernels[] = { { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL } };
+  ser_boundary_surf_zx_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: zy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_zy_kernels[] = { { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL } };
+  ser_boundary_surf_zy_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: zz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_zz_kernels[] = { { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL },
-                                     { NULL, NULL, NULL } };
+  ser_boundary_surf_zz_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 /**
  * Free fpo_vlasov_diff equation object
@@ -238,9 +207,8 @@ GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
 void gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir1, int dir2, const double *xc,
-                             const double *dxc, const int *idxc, long sz_dim,
-                             const int idx[27][GKYL_MAX_DIM], const double *qIn[27],
-                             double *GKYL_RESTRICT qRhsOut)
+  const double *dxc, const int *idxc, long sz_dim, const int idx[27][GKYL_MAX_DIM],
+  const double *qIn[27], double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   int cdim = fpo_vlasov_diff->cdim;
@@ -257,9 +225,8 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir1, int dir2, 
 }
 
 GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir1, int dir2,
-                                      const double *xc, const double *dxc, const int *idxc,
-                                      long sz_dim, const int idx[27][GKYL_MAX_DIM],
-                                      const double *qIn[27], double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dxc, const int *idxc, long sz_dim,
+  const int idx[27][GKYL_MAX_DIM], const double *qIn[27], double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   int cdim = fpo_vlasov_diff->cdim;

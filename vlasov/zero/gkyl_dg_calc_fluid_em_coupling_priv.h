@@ -12,20 +12,16 @@
 #include <assert.h>
 
 typedef void (*fluid_em_coupling_set_t)(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-                                        double epsilon0, double dt, struct gkyl_nmat *A,
-                                        struct gkyl_nmat *rhs,
-                                        const double *app_accel[GKYL_MAX_SPECIES],
-                                        const double *ext_em, const double *app_current,
-                                        double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES],
-                                        double *GKYL_RESTRICT em);
+  double epsilon0, double dt, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current,
+  double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double *GKYL_RESTRICT em);
 
 typedef void (*fluid_em_coupling_copy_t)(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-                                         double epsilon0, struct gkyl_nmat *x,
-                                         double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES],
-                                         double *GKYL_RESTRICT em);
+  double epsilon0, struct gkyl_nmat *x, double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES],
+  double *GKYL_RESTRICT em);
 
-typedef void (*fluid_em_coupling_energy_t)(const double *ke_old, const double *ke_new,
-                                           double *GKYL_RESTRICT fluid);
+typedef void (*fluid_em_coupling_energy_t)(
+  const double *ke_old, const double *ke_new, double *GKYL_RESTRICT fluid);
 
 // for use in kernel tables
 typedef struct {
@@ -111,8 +107,8 @@ GKYL_CU_D static const gkyl_dg_fluid_em_coupling_energy_kern_list
     { NULL, fluid_em_coupling_energy_3x_ser_p1, NULL, NULL } // 2
   };
 
-GKYL_CU_D static fluid_em_coupling_set_t
-choose_fluid_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static fluid_em_coupling_set_t choose_fluid_em_coupling_set_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -127,8 +123,8 @@ choose_fluid_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int pol
   }
 }
 
-GKYL_CU_D static fluid_em_coupling_copy_t
-choose_fluid_em_coupling_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static fluid_em_coupling_copy_t choose_fluid_em_coupling_copy_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -143,8 +139,8 @@ choose_fluid_em_coupling_copy_kern(enum gkyl_basis_type b_type, int cdim, int po
   }
 }
 
-GKYL_CU_D static fluid_em_coupling_energy_t
-choose_fluid_em_coupling_energy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static fluid_em_coupling_energy_t choose_fluid_em_coupling_energy_kern(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

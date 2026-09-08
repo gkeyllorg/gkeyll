@@ -67,7 +67,7 @@ static void create_offsets_centers(const struct gkyl_range *range, long offsets[
 }
 
 static void var_setup(const gkyl_ten_moment_nn_closure *nnclosure, int start, int end,
-                      const double *fluid_d[], double rho[], double p[][6])
+  const double *fluid_d[], double rho[], double p[][6])
 {
   for (int j = start; j <= end; j++) {
     rho[j] = fluid_d[j][RHO];
@@ -107,9 +107,8 @@ int gkyl_ten_moment_nn_closure_n_out(const gkyl_ten_moment_nn_closure *nnclosure
 // here and reused in gkyl_ten_moment_nn_closure_construct, avoiding any duplicate work.
 // Exposed (non-static) for unit testing the geometry.
 void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure,
-                                          const double *fluid_d[], const double *em_tot_d[],
-                                          float *input_data,
-                                          struct gkyl_ten_moment_nn_closure_geom *geom)
+  const double *fluid_d[], const double *em_tot_d[], float *input_data,
+  struct gkyl_ten_moment_nn_closure_geom *geom)
 {
   const int ndim = nnclosure->ndim;
   const int poly_order = nnclosure->poly_order;
@@ -336,7 +335,7 @@ void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nncl
         ((B_avg[0] * dB_dx[0]) + (B_avg[1] * dB_dx[1]) + (B_avg[2] * dB_dx[2])) / b_mag;
       double b_mag_dx_dx =
         b_mag * ((dB_dx[0] * dB_dx[0]) + (B_avg[0] * dB_dx_dx[0]) + (dB_dx[1] * dB_dx[1]) +
-                 (B_avg[1] * dB_dx_dx[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
+                  (B_avg[1] * dB_dx_dx[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
       b_mag_dx_dx -= b_mag_dx * b_mag_dx;
       b_mag_dx_dx /= b_mag * b_mag;
 
@@ -351,7 +350,7 @@ void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nncl
       for (int i = 0; i < 3; i++) {
         local_mag_dx[i] = ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) / (b_mag * b_mag);
         local_mag_dx_dx[i] = (b_mag * b_mag) * ((b_mag_dx * dB_dx[i]) + (b_mag * dB_dx_dx[i]) -
-                                                (dB_dx[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dx));
+                                                 (dB_dx[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dx));
         local_mag_dx_dx[i] -= 2.0 * ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) * b_mag * b_mag_dx;
         local_mag_dx_dx[i] /= b_mag * b_mag * b_mag * b_mag;
       }
@@ -470,12 +469,12 @@ void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nncl
       p_avg[3] = calc_arithm_avg_2D(p[LL_2D][3], p[LU_2D][3], p[UL_2D][3], p[UU_2D][3]);
       p_avg[4] = calc_arithm_avg_2D(p[LL_2D][4], p[LU_2D][4], p[UL_2D][4], p[UU_2D][4]);
       p_avg[5] = calc_arithm_avg_2D(p[LL_2D][5], p[LU_2D][5], p[UL_2D][5], p[UU_2D][5]);
-      B_avg[0] = calc_arithm_avg_2D(em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX],
-                                    em_tot_d[UU_2D][BX]);
-      B_avg[1] = calc_arithm_avg_2D(em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY],
-                                    em_tot_d[UU_2D][BY]);
-      B_avg[2] = calc_arithm_avg_2D(em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ],
-                                    em_tot_d[UU_2D][BZ]);
+      B_avg[0] = calc_arithm_avg_2D(
+        em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
+      B_avg[1] = calc_arithm_avg_2D(
+        em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
+      B_avg[2] = calc_arithm_avg_2D(
+        em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
 
       drho_dx = calc_sym_gradx_2D(dx, rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
       dp_dx[0] = calc_sym_gradx_2D(dx, p[LL_2D][0], p[LU_2D][0], p[UL_2D][0], p[UU_2D][0]);
@@ -484,12 +483,12 @@ void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nncl
       dp_dx[3] = calc_sym_gradx_2D(dx, p[LL_2D][3], p[LU_2D][3], p[UL_2D][3], p[UU_2D][3]);
       dp_dx[4] = calc_sym_gradx_2D(dx, p[LL_2D][4], p[LU_2D][4], p[UL_2D][4], p[UU_2D][4]);
       dp_dx[5] = calc_sym_gradx_2D(dx, p[LL_2D][5], p[LU_2D][5], p[UL_2D][5], p[UU_2D][5]);
-      dB_dx[0] = calc_sym_gradx_2D(dx, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX],
-                                   em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
-      dB_dx[1] = calc_sym_gradx_2D(dx, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY],
-                                   em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
-      dB_dx[2] = calc_sym_gradx_2D(dx, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ],
-                                   em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
+      dB_dx[0] = calc_sym_gradx_2D(
+        dx, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
+      dB_dx[1] = calc_sym_gradx_2D(
+        dx, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
+      dB_dx[2] = calc_sym_gradx_2D(
+        dx, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
 
       drho_dy = calc_sym_grady_2D(dy, rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
       dp_dy[0] = calc_sym_grady_2D(dy, p[LL_2D][0], p[LU_2D][0], p[UL_2D][0], p[UU_2D][0]);
@@ -498,12 +497,12 @@ void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nncl
       dp_dy[3] = calc_sym_grady_2D(dy, p[LL_2D][3], p[LU_2D][3], p[UL_2D][3], p[UU_2D][3]);
       dp_dy[4] = calc_sym_grady_2D(dy, p[LL_2D][4], p[LU_2D][4], p[UL_2D][4], p[UU_2D][4]);
       dp_dy[5] = calc_sym_grady_2D(dy, p[LL_2D][5], p[LU_2D][5], p[UL_2D][5], p[UU_2D][5]);
-      dB_dy[0] = calc_sym_grady_2D(dy, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX],
-                                   em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
-      dB_dy[1] = calc_sym_grady_2D(dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY],
-                                   em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
-      dB_dy[2] = calc_sym_grady_2D(dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ],
-                                   em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
+      dB_dy[0] = calc_sym_grady_2D(
+        dy, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
+      dB_dy[1] = calc_sym_grady_2D(
+        dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
+      dB_dy[2] = calc_sym_grady_2D(
+        dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
 
       drho_dx_dy = calc_sym_gradxy_2D(dx, dy, rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
       dp_dx_dy[0] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][0], p[LU_2D][0], p[UL_2D][0], p[UU_2D][0]);
@@ -512,12 +511,12 @@ void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nncl
       dp_dx_dy[3] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][3], p[LU_2D][3], p[UL_2D][3], p[UU_2D][3]);
       dp_dx_dy[4] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][4], p[LU_2D][4], p[UL_2D][4], p[UU_2D][4]);
       dp_dx_dy[5] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][5], p[LU_2D][5], p[UL_2D][5], p[UU_2D][5]);
-      dB_dx_dy[0] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX],
-                                       em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
-      dB_dx_dy[1] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY],
-                                       em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
-      dB_dx_dy[2] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ],
-                                       em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
+      dB_dx_dy[0] = calc_sym_gradxy_2D(
+        dx, dy, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
+      dB_dx_dy[1] = calc_sym_gradxy_2D(
+        dx, dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
+      dB_dx_dy[2] = calc_sym_gradxy_2D(
+        dx, dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
 
       if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) &&
           fabs(B_avg[2]) < pow(10.0, -8.0)) {
@@ -543,7 +542,7 @@ void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nncl
         ((B_avg[0] * dB_dy[0]) + (B_avg[1] * dB_dy[1]) + (B_avg[2] * dB_dy[2])) / b_mag;
       double b_mag_dx_dy =
         b_mag * ((dB_dx[0] * dB_dy[0]) + (B_avg[0] * dB_dx_dy[0]) + (dB_dx[1] * dB_dy[1]) +
-                 (B_avg[1] * dB_dx_dy[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
+                  (B_avg[1] * dB_dx_dy[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
       b_mag_dx_dy -= b_mag_dx * b_mag_dy;
       b_mag_dx_dy /= b_mag * b_mag;
 
@@ -559,7 +558,7 @@ void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nncl
         local_mag_dx[i] = ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) / (b_mag * b_mag);
         local_mag_dy[i] = ((b_mag * dB_dy[i]) - (B_avg[i] * b_mag_dy)) / (b_mag * b_mag);
         local_mag_dx_dy[i] = (b_mag * b_mag) * ((b_mag_dy * dB_dx[i]) + (b_mag * dB_dx_dy[i]) -
-                                                (dB_dy[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dy));
+                                                 (dB_dy[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dy));
         local_mag_dx_dy[i] -= 2.0 * ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) * b_mag * b_mag_dy;
         local_mag_dx_dy[i] /= b_mag * b_mag * b_mag * b_mag;
       }
@@ -695,8 +694,8 @@ void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nncl
 // former calc_nn_closure_update, reading the geometry from the cache rather
 // than recomputing it. Exposed (non-static) for unit testing the coupling.
 void gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure,
-                                          const struct gkyl_ten_moment_nn_closure_geom *geom,
-                                          const float *output_data_predicted, double *rhs)
+  const struct gkyl_ten_moment_nn_closure_geom *geom, const float *output_data_predicted,
+  double *rhs)
 {
   const int ndim = nnclosure->ndim;
   const int poly_order = nnclosure->poly_order;
@@ -1097,11 +1096,9 @@ void gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nncl
 }
 
 void gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure,
-                                        const struct gkyl_range *heat_flux_rng,
-                                        const struct gkyl_range *update_rng,
-                                        const struct gkyl_array *fluid,
-                                        const struct gkyl_array *em_tot,
-                                        struct gkyl_array *heat_flux, struct gkyl_array *rhs)
+  const struct gkyl_range *heat_flux_rng, const struct gkyl_range *update_rng,
+  const struct gkyl_array *fluid, const struct gkyl_array *em_tot, struct gkyl_array *heat_flux,
+  struct gkyl_array *rhs)
 {
   int poly_order = nnclosure->poly_order;
   int ndim = update_rng->ndim;
@@ -1144,15 +1141,15 @@ void gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclos
         em_tot_d[i] = gkyl_array_cfetch(em_tot, linc_vertex + offsets_centers[i]);
         fluid_d[i] = gkyl_array_cfetch(fluid, linc_vertex + offsets_centers[i]);
       }
-      gkyl_ten_moment_nn_closure_geom_calc(nnclosure, fluid_d, em_tot_d, nn_in->vals[count],
-                                           &geom[count]);
+      gkyl_ten_moment_nn_closure_geom_calc(
+        nnclosure, fluid_d, em_tot_d, nn_in->vals[count], &geom[count]);
     } else {
       for (int i = 0; i < sz_p2[ndim - 1]; i++) {
         em_tot_d_p2[i] = gkyl_array_cfetch(em_tot, linc_vertex + offsets_centers_p2[i]);
         fluid_d_p2[i] = gkyl_array_cfetch(fluid, linc_vertex + offsets_centers_p2[i]);
       }
-      gkyl_ten_moment_nn_closure_geom_calc(nnclosure, fluid_d_p2, em_tot_d_p2, nn_in->vals[count],
-                                           &geom[count]);
+      gkyl_ten_moment_nn_closure_geom_calc(
+        nnclosure, fluid_d_p2, em_tot_d_p2, nn_in->vals[count], &geom[count]);
     }
 
     count += 1;
@@ -1192,8 +1189,8 @@ void gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclos
   gkyl_free(geom);
 }
 
-gkyl_ten_moment_nn_closure *
-gkyl_ten_moment_nn_closure_new(struct gkyl_ten_moment_nn_closure_inp inp)
+gkyl_ten_moment_nn_closure *gkyl_ten_moment_nn_closure_new(
+  struct gkyl_ten_moment_nn_closure_inp inp)
 {
   gkyl_ten_moment_nn_closure *up = gkyl_malloc(sizeof(gkyl_ten_moment_nn_closure));
 

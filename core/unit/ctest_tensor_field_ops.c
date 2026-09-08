@@ -793,8 +793,8 @@ void test_tensor_field_lower_idx_set_dev()
 
   // compute the lowering on device, save to ten_res
   int idx_to_raise = 0;
-  gkyl_tensor_field_lower_idx_set(diag_metric_cov_cu, idx_to_raise, diag_metric_contra_cu,
-                                  ten_res_cu);
+  gkyl_tensor_field_lower_idx_set(
+    diag_metric_cov_cu, idx_to_raise, diag_metric_contra_cu, ten_res_cu);
 
   // reset host array to zeros
   for (unsigned i = 0; i < size; ++i) {
@@ -936,8 +936,8 @@ void test_tensor_field_raise_idx_set_dev()
 
   // compute the lowering on device, save to ten_res
   int idx_to_raise = 0;
-  gkyl_tensor_field_raise_idx_set(diag_metric_contra_cu, idx_to_raise, diag_metric_cov_cu,
-                                  ten_res_cu);
+  gkyl_tensor_field_raise_idx_set(
+    diag_metric_contra_cu, idx_to_raise, diag_metric_cov_cu, ten_res_cu);
 
   // reset host array to zeros
   for (unsigned i = 0; i < size; ++i) {
@@ -1109,8 +1109,8 @@ void test_tensor_field_lower_idx_in_place_dev()
 
   // compute the lowering on device, save to ten_res
   int idx_to_raise = 0;
-  gkyl_tensor_field_lower_idx_in_place(diag_metric_cov_cu, idx_to_raise, diag_metric_contra_cu,
-                                       mem_cu);
+  gkyl_tensor_field_lower_idx_in_place(
+    diag_metric_cov_cu, idx_to_raise, diag_metric_contra_cu, mem_cu);
 
   TEST_CHECK(diag_metric_cov->iloc[0] == GKYL_TENSOR_INDEX_LOWER);
   TEST_CHECK(diag_metric_cov->iloc[1] == GKYL_TENSOR_INDEX_LOWER);
@@ -1274,8 +1274,8 @@ void test_tensor_field_raise_idx_in_place_dev()
 
   // compute the lowering on device, save to ten_res
   int idx_to_raise = 0;
-  gkyl_tensor_field_raise_idx_in_place(diag_metric_contra_cu, idx_to_raise, diag_metric_cov_cu,
-                                       mem_cu);
+  gkyl_tensor_field_raise_idx_in_place(
+    diag_metric_contra_cu, idx_to_raise, diag_metric_cov_cu, mem_cu);
 
   // reset host array to zeros
   for (unsigned i = 0; i < size; ++i) {
@@ -1323,8 +1323,8 @@ void test_tensor_field_raise_idx_in_place_dev()
 
 #endif
 
-TEST_LIST = {
-  { "test_tensor_field_raise_idx_in_place_ho", test_tensor_field_raise_idx_in_place_ho },
+TEST_LIST = { { "test_tensor_field_raise_idx_in_place_ho",
+                test_tensor_field_raise_idx_in_place_ho },
   { "test_tensor_field_lower_idx_in_place_ho", test_tensor_field_lower_idx_in_place_ho },
   { "test_tensor_field_lower_idx_in_place_2_ho", test_tensor_field_lower_idx_in_place_2_ho },
   { "test_tensor_field_raise_idx_in_place_2_ho", test_tensor_field_raise_idx_in_place_2_ho },
@@ -1338,5 +1338,4 @@ TEST_LIST = {
   { "tensor_field_lower_idx_set_dev", test_tensor_field_lower_idx_set_dev },
   { "tensor_field_raise_idx_set_dev", test_tensor_field_raise_idx_set_dev },
 #endif
-  { NULL, NULL }
-};
+  { NULL, NULL } };

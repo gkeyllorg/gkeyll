@@ -18,10 +18,9 @@ struct gkyl_dg_eqn *gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_flui
   return gkyl_dg_eqn_acquire(fluid->eqn_fluid);
 }
 
-gkyl_dg_updater_fluid *
-gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-                          const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn,
-                          const struct gkyl_wave_geom *geom, void *aux_inp, bool use_gpu)
+gkyl_dg_updater_fluid *gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, void *aux_inp, bool use_gpu)
 {
   gkyl_dg_updater_fluid *up = gkyl_malloc(sizeof(gkyl_dg_updater_fluid));
   up->eqn_id = wv_eqn->type;
@@ -48,8 +47,8 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
   }
   int num_up_dirs = cdim;
 
-  up->up_fluid = gkyl_hyper_dg_new(grid, cbasis, up->eqn_fluid, num_up_dirs, up_dirs,
-                                   zero_flux_flags, 1, up->use_gpu);
+  up->up_fluid = gkyl_hyper_dg_new(
+    grid, cbasis, up->eqn_fluid, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->fluid_tm = 0.0;
 
@@ -57,10 +56,8 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
 }
 
 void gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
-                                   const struct gkyl_range *update_rng,
-                                   const struct gkyl_array *GKYL_RESTRICT fluidIn,
-                                   struct gkyl_array *GKYL_RESTRICT cflrate,
-                                   struct gkyl_array *GKYL_RESTRICT rhs)
+  const struct gkyl_range *update_rng, const struct gkyl_array *GKYL_RESTRICT fluidIn,
+  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);

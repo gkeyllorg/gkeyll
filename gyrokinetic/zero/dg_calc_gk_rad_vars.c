@@ -9,9 +9,8 @@
 #include <gkyl_dg_calc_gk_rad_vars_priv.h>
 #include <gkyl_util.h>
 
-struct gkyl_gk_rad_drag *gkyl_dg_calc_gk_rad_vars_drag_new(int num_collisions,
-                                                           const int *num_densities, int ncomp,
-                                                           long sz, bool use_gpu)
+struct gkyl_gk_rad_drag *gkyl_dg_calc_gk_rad_vars_drag_new(
+  int num_collisions, const int *num_densities, int ncomp, long sz, bool use_gpu)
 {
   // Drag coefficient for each species.
   struct gkyl_gk_rad_drag *drag_s = gkyl_malloc(num_collisions * sizeof(struct gkyl_gk_rad_drag));
@@ -48,11 +47,11 @@ struct gkyl_gk_rad_drag *gkyl_dg_calc_gk_rad_vars_drag_new(int num_collisions,
     if (use_gpu) {
       drag_s[i].on_dev = gkyl_cu_malloc(num_densities[i] * sizeof(struct gkyl_gk_rad_drag));
       gkyl_cu_memcpy(drag_s[i].on_dev, drag_s_dev[i].on_dev,
-                     num_densities[i] * sizeof(struct gkyl_gk_rad_drag), GKYL_CU_MEMCPY_H2D);
+        num_densities[i] * sizeof(struct gkyl_gk_rad_drag), GKYL_CU_MEMCPY_H2D);
     } else {
       drag_s[i].on_dev = gkyl_malloc(num_densities[i] * sizeof(struct gkyl_gk_rad_drag));
-      memcpy(drag_s[i].on_dev, drag_s_dev[i].on_dev,
-             num_densities[i] * sizeof(struct gkyl_gk_rad_drag));
+      memcpy(
+        drag_s[i].on_dev, drag_s_dev[i].on_dev, num_densities[i] * sizeof(struct gkyl_gk_rad_drag));
     }
   }
 
@@ -65,8 +64,8 @@ struct gkyl_gk_rad_drag *gkyl_dg_calc_gk_rad_vars_drag_new(int num_collisions,
   return drag_s;
 }
 
-void gkyl_dg_calc_gk_rad_vars_drag_release(struct gkyl_gk_rad_drag *drag_s, int num_collisions,
-                                           bool use_gpu)
+void gkyl_dg_calc_gk_rad_vars_drag_release(
+  struct gkyl_gk_rad_drag *drag_s, int num_collisions, bool use_gpu)
 {
   // Free memory allocated to store a drag coefficient for each collision and each density.
   for (int i = 0; i < num_collisions; i++) {
@@ -86,15 +85,15 @@ void gkyl_dg_calc_gk_rad_vars_drag_release(struct gkyl_gk_rad_drag *drag_s, int 
   gkyl_free(drag_s);
 }
 
-gkyl_dg_calc_gk_rad_vars *gkyl_dg_calc_gk_rad_vars_new(
-  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *phase_basis, double charge, double mass,
-  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
+gkyl_dg_calc_gk_rad_vars *gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, double charge,
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
+  bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_dg_calc_gk_rad_vars_cu_dev_new(phase_grid, conf_basis, phase_basis, charge, mass,
-                                               gk_geom, vel_map);
+    return gkyl_dg_calc_gk_rad_vars_cu_dev_new(
+      phase_grid, conf_basis, phase_basis, charge, mass, gk_geom, vel_map);
   }
 #endif
 
@@ -125,16 +124,14 @@ gkyl_dg_calc_gk_rad_vars *gkyl_dg_calc_gk_rad_vars_new(
 }
 
 void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
-                                         const struct gkyl_range *conf_range,
-                                         const struct gkyl_range *phase_range, double a,
-                                         double alpha, double beta, double gamma, double v0,
-                                         struct gkyl_array *vnu_surf, struct gkyl_array *vnu,
-                                         struct gkyl_array *vsqnu_surf, struct gkyl_array *vsqnu)
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, double a, double alpha,
+  double beta, double gamma, double v0, struct gkyl_array *vnu_surf, struct gkyl_array *vnu,
+  struct gkyl_array *vsqnu_surf, struct gkyl_array *vsqnu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vnu_surf)) {
-    return gkyl_dg_calc_gk_rad_vars_nu_advance_cu(up, conf_range, phase_range, a, alpha, beta,
-                                                  gamma, v0, vnu_surf, vnu, vsqnu_surf, vsqnu);
+    return gkyl_dg_calc_gk_rad_vars_nu_advance_cu(
+      up, conf_range, phase_range, a, alpha, beta, gamma, v0, vnu_surf, vnu, vsqnu_surf, vsqnu);
   }
 #endif
   int pdim = up->pdim;
@@ -161,28 +158,26 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
     const double *vmap_d = gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
-    up->rad_nu_vpar(vmap_d, vmapSq_d, up->charge, up->mass, a, alpha, beta, gamma, v0, bmag_d,
-                    vnu_surf_d, vnu_d);
+    up->rad_nu_vpar(
+      vmap_d, vmapSq_d, up->charge, up->mass, a, alpha, beta, gamma, v0, bmag_d, vnu_surf_d, vnu_d);
     up->rad_nu_mu(vmap_d, vmapSq_d, up->charge, up->mass, a, alpha, beta, gamma, v0, bmag_d,
-                  vsqnu_surf_d, vsqnu_d);
+      vsqnu_surf_d, vsqnu_d);
   }
 }
 
-void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
-  const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_gk_rad_drag *vnu_surf,
-  const struct gkyl_gk_rad_drag *vnu, const struct gkyl_gk_rad_drag *vsqnu_surf,
-  const struct gkyl_gk_rad_drag *vsqnu, const struct gkyl_array *n_elc_rad,
-  const struct gkyl_array *n_elc, const struct gkyl_array *nI, struct gkyl_array *nvnu_surf,
-  struct gkyl_array *nvnu, struct gkyl_array *nvsqnu_surf, struct gkyl_array *nvsqnu,
-  struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq)
+void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_gk_rad_drag *vnu_surf, const struct gkyl_gk_rad_drag *vnu,
+  const struct gkyl_gk_rad_drag *vsqnu_surf, const struct gkyl_gk_rad_drag *vsqnu,
+  const struct gkyl_array *n_elc_rad, const struct gkyl_array *n_elc, const struct gkyl_array *nI,
+  struct gkyl_array *nvnu_surf, struct gkyl_array *nvnu, struct gkyl_array *nvsqnu_surf,
+  struct gkyl_array *nvsqnu, struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(nI)) {
     return gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(up, conf_range, phase_range, vnu_surf, vnu,
-                                                     vsqnu_surf, vsqnu, n_elc_rad, n_elc, nI,
-                                                     nvnu_surf, nvnu, nvsqnu_surf, nvsqnu,
-                                                     vtsq_min_normalized, vtsq);
+      vsqnu_surf, vsqnu, n_elc_rad, n_elc, nI, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu,
+      vtsq_min_normalized, vtsq);
   }
 #endif
   int pdim = up->pdim; // pdim and cdim are constant across densities
@@ -216,7 +211,7 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
       double *nvsqnu_d = gkyl_array_fetch(nvsqnu, loc_phase);
 
       up->rad_nI_nu(vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, nvnu_surf_d, nvnu_d,
-                    nvsqnu_surf_d, nvsqnu_d);
+        nvsqnu_surf_d, nvsqnu_d);
     }
   }
 }

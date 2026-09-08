@@ -14,17 +14,15 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void gkyl_hyper_dg_set_update_vol_cu_kernel(gkyl_hyper_dg *up,
-                                                              int update_vol_term)
+__global__ static void gkyl_hyper_dg_set_update_vol_cu_kernel(
+  gkyl_hyper_dg *up, int update_vol_term)
 {
   up->update_vol_term = update_vol_term;
 }
 
 __global__ static void gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg *up,
-                                                       struct gkyl_range update_range,
-                                                       const struct gkyl_array *GKYL_RESTRICT fIn,
-                                                       struct gkyl_array *GKYL_RESTRICT cflrate,
-                                                       struct gkyl_array *GKYL_RESTRICT rhs)
+  struct gkyl_range update_range, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs)
 {
   int ndim = up->ndim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
@@ -46,8 +44,7 @@ __global__ static void gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg *up,
 
     if (up->update_vol_term) {
       double cflr = up->equation->vol_term(up->equation, xcc, up->grid.dx, idxc,
-                                           (const double *)gkyl_array_cfetch(fIn, linc),
-                                           (double *)gkyl_array_fetch(rhs, linc));
+        (const double *)gkyl_array_cfetch(fIn, linc), (double *)gkyl_array_fetch(rhs, linc));
       double *cflrate_d = (double *)gkyl_array_fetch(cflrate, linc);
       cflrate_d[0] += cflr; // frequencies are additive
     }
@@ -68,10 +65,8 @@ __global__ static void gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg *up,
         long linl = gkyl_range_idx(&update_range, idxl);
 
         cfls = up->equation->boundary_surf_term(up->equation, dir, xcl, xcc, up->grid.dx,
-                                                up->grid.dx, idxl, idxc, edge,
-                                                (const double *)gkyl_array_cfetch(fIn, linl),
-                                                (const double *)gkyl_array_cfetch(fIn, linc),
-                                                (double *)gkyl_array_fetch(rhs, linc));
+          up->grid.dx, idxl, idxc, edge, (const double *)gkyl_array_cfetch(fIn, linl),
+          (const double *)gkyl_array_cfetch(fIn, linc), (double *)gkyl_array_fetch(rhs, linc));
       } else {
         idxl[dir] = idxl[dir] - 1;
         idxr[dir] = idxr[dir] + 1;
@@ -81,11 +76,9 @@ __global__ static void gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg *up,
         long linr = gkyl_range_idx(&update_range, idxr);
 
         cfls = up->equation->surf_term(up->equation, dir, xcl, xcc, xcr, up->grid.dx, up->grid.dx,
-                                       up->grid.dx, idxl, idxc, idxr,
-                                       (const double *)gkyl_array_cfetch(fIn, linl),
-                                       (const double *)gkyl_array_cfetch(fIn, linc),
-                                       (const double *)gkyl_array_cfetch(fIn, linr),
-                                       (double *)gkyl_array_fetch(rhs, linc));
+          up->grid.dx, idxl, idxc, idxr, (const double *)gkyl_array_cfetch(fIn, linl),
+          (const double *)gkyl_array_cfetch(fIn, linc),
+          (const double *)gkyl_array_cfetch(fIn, linr), (double *)gkyl_array_fetch(rhs, linc));
       }
       double *cflrate_d = (double *)gkyl_array_fetch(cflrate, linc);
       cflrate_d[0] += cfls; // frequencies are additive
@@ -95,15 +88,14 @@ __global__ static void gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg *up,
 
 // wrapper to call advance kernel on device
 void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg *up, const struct gkyl_range *update_range,
-                              const struct gkyl_array *GKYL_RESTRICT fIn,
-                              struct gkyl_array *GKYL_RESTRICT cflrate,
-                              struct gkyl_array *GKYL_RESTRICT rhs)
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
+  struct gkyl_array *GKYL_RESTRICT rhs)
 {
   int nblocks = update_range->nblocks;
   int nthreads = update_range->nthreads;
 
-  gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads> > >(up->on_dev, *update_range, fIn->on_dev,
-                                                           cflrate->on_dev, rhs->on_dev);
+  gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads> > >(
+    up->on_dev, *update_range, fIn->on_dev, cflrate->on_dev, rhs->on_dev);
 }
 
 void gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *up, int update_vol_term)
@@ -112,10 +104,8 @@ void gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *up, int update_vol_term)
 }
 
 gkyl_hyper_dg *gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
-                                        const struct gkyl_basis *basis,
-                                        const struct gkyl_dg_eqn *equation, int num_up_dirs,
-                                        int update_dirs[GKYL_MAX_DIM],
-                                        int zero_flux_flags[2 * GKYL_MAX_DIM], int update_vol_term)
+  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation, int num_up_dirs,
+  int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[2 * GKYL_MAX_DIM], int update_vol_term)
 {
   gkyl_hyper_dg *up = (gkyl_hyper_dg *)gkyl_malloc(sizeof(gkyl_hyper_dg));
 

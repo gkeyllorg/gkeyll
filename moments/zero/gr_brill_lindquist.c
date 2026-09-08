@@ -6,8 +6,8 @@
 #include <gkyl_gr_brill_lindquist.h>
 #include <gkyl_gr_spacetime_diff.h>
 
-double brill_lindquist_phi(const struct gkyl_gr_spacetime *spacetime, const double x,
-                           const double y, const double z)
+double brill_lindquist_phi(
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
 {
   const struct gr_brill_lindquist *brill_lindquist =
     container_of(spacetime, struct gr_brill_lindquist, spacetime);
@@ -26,10 +26,10 @@ double brill_lindquist_phi(const struct gkyl_gr_spacetime *spacetime, const doub
   double radial_12 =
     sqrt(((pos_x1 - pos_x2) * (pos_x1 - pos_x2)) + ((pos_y1 - pos_y2) * (pos_y1 - pos_y2)) +
          ((pos_z1 - pos_z2) * (pos_z1 - pos_z2)));
-  double radial_1 = sqrt(((x - pos_x1) * (x - pos_x1)) + ((y - pos_y1) * (y - pos_y1)) +
-                         ((z - pos_z1) * (z - pos_z1)));
-  double radial_2 = sqrt(((x - pos_x2) * (x - pos_x2)) + ((y - pos_y2) * (y - pos_y2)) +
-                         ((z - pos_z2) * (z - pos_z2)));
+  double radial_1 = sqrt(
+    ((x - pos_x1) * (x - pos_x1)) + ((y - pos_y1) * (y - pos_y1)) + ((z - pos_z1) * (z - pos_z1)));
+  double radial_2 = sqrt(
+    ((x - pos_x2) * (x - pos_x2)) + ((y - pos_y2) * (y - pos_y2)) + ((z - pos_z2) * (z - pos_z2)));
 
   double alpha1 =
     -(0.25 * ((2.0 * radial_12) + mass2 - mass1)) +
@@ -43,8 +43,8 @@ double brill_lindquist_phi(const struct gkyl_gr_spacetime *spacetime, const doub
   return 8.0 * ((alpha1 / radial_1) + (alpha2 / radial_2));
 }
 
-double brill_lindquist_psi(const struct gkyl_gr_spacetime *spacetime, const double x,
-                           const double y, const double z)
+double brill_lindquist_psi(
+  const struct gkyl_gr_spacetime *spacetime, const double x, const double y, const double z)
 {
   const struct gr_brill_lindquist *brill_lindquist =
     container_of(spacetime, struct gr_brill_lindquist, spacetime);
@@ -63,10 +63,10 @@ double brill_lindquist_psi(const struct gkyl_gr_spacetime *spacetime, const doub
   double radial_12 =
     sqrt(((pos_x1 - pos_x2) * (pos_x1 - pos_x2)) + ((pos_y1 - pos_y2) * (pos_y1 - pos_y2)) +
          ((pos_z1 - pos_z2) * (pos_z1 - pos_z2)));
-  double radial_1 = sqrt(((x - pos_x1) * (x - pos_x1)) + ((y - pos_y1) * (y - pos_y1)) +
-                         ((z - pos_z1) * (z - pos_z1)));
-  double radial_2 = sqrt(((x - pos_x2) * (x - pos_x2)) + ((y - pos_y2) * (y - pos_y2)) +
-                         ((z - pos_z2) * (z - pos_z2)));
+  double radial_1 = sqrt(
+    ((x - pos_x1) * (x - pos_x1)) + ((y - pos_y1) * (y - pos_y1)) + ((z - pos_z1) * (z - pos_z1)));
+  double radial_2 = sqrt(
+    ((x - pos_x2) * (x - pos_x2)) + ((y - pos_y2) * (y - pos_y2)) + ((z - pos_z2) * (z - pos_z2)));
 
   double alpha1 =
     -(0.25 * ((2.0 * radial_12) + mass2 - mass1)) +
@@ -84,8 +84,7 @@ double brill_lindquist_psi(const struct gkyl_gr_spacetime *spacetime, const doub
 }
 
 static void brill_lindquist_spatial_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                  const double t, const double x, const double y,
-                                                  const double z, double ***spatial_metric_tensor)
+  const double t, const double x, const double y, const double z, double ***spatial_metric_tensor)
 {
   double phi = brill_lindquist_phi(spacetime, x, y, z);
 
@@ -102,9 +101,7 @@ static void brill_lindquist_spatial_metric_tensor(const struct gkyl_gr_spacetime
 }
 
 static void brill_lindquist_spacetime_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                    const double t, const double x, const double y,
-                                                    const double z,
-                                                    double ***spacetime_metric_tensor)
+  const double t, const double x, const double y, const double z, double ***spacetime_metric_tensor)
 {
   double phi = brill_lindquist_phi(spacetime, x, y, z);
   double psi = brill_lindquist_psi(spacetime, x, y, z);
@@ -127,9 +124,8 @@ static void brill_lindquist_spacetime_metric_tensor(const struct gkyl_gr_spaceti
 }
 
 static void brill_lindquist_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                      const double t, const double x,
-                                                      const double y, const double z,
-                                                      double ***spatial_inv_metric_tensor)
+  const double t, const double x, const double y, const double z,
+  double ***spatial_inv_metric_tensor)
 {
   double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
@@ -139,11 +135,11 @@ static void brill_lindquist_spatial_inv_metric_tensor(const struct gkyl_gr_space
   brill_lindquist_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
   double spatial_metric_det =
     (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                             (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                              (spatial_metric[2][1] * spatial_metric[1][2]))) -
     (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                             (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                              (spatial_metric[1][2] * spatial_metric[2][0]))) +
     (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                             (spatial_metric[1][1] * spatial_metric[2][0])));
+                              (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -194,7 +190,7 @@ static void brill_lindquist_spatial_inv_metric_tensor(const struct gkyl_gr_space
       (*spatial_inv_metric_tensor)[i][j] =
         (1.0 / spatial_metric_det) *
         ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-         (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+          (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 
@@ -209,9 +205,8 @@ static void brill_lindquist_spatial_inv_metric_tensor(const struct gkyl_gr_space
 }
 
 static void brill_lindquist_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                        const double t, const double x,
-                                                        const double y, const double z,
-                                                        double ***spacetime_inv_metric_tensor)
+  const double t, const double x, const double y, const double z,
+  double ***spacetime_inv_metric_tensor)
 {
   double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
   double **inv_spatial_metric = gkyl_malloc(sizeof(double *[3]));
@@ -256,8 +251,7 @@ static void brill_lindquist_spacetime_inv_metric_tensor(const struct gkyl_gr_spa
 }
 
 static void brill_lindquist_spatial_metric_det(const struct gkyl_gr_spacetime *spacetime,
-                                               const double t, const double x, const double y,
-                                               const double z, double *spatial_metric_det)
+  const double t, const double x, const double y, const double z, double *spatial_metric_det)
 {
   double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
@@ -267,11 +261,11 @@ static void brill_lindquist_spatial_metric_det(const struct gkyl_gr_spacetime *s
   brill_lindquist_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
 
   *spatial_metric_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                                                 (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                                                  (spatial_metric[2][1] * spatial_metric[1][2]))) -
                         (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
-                                                 (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                                                  (spatial_metric[1][2] * spatial_metric[2][0]))) +
                         (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
-                                                 (spatial_metric[1][1] * spatial_metric[2][0])));
+                                                  (spatial_metric[1][1] * spatial_metric[2][0])));
 
   for (int i = 0; i < 3; i++) {
     gkyl_free(spatial_metric[i]);
@@ -280,8 +274,7 @@ static void brill_lindquist_spatial_metric_det(const struct gkyl_gr_spacetime *s
 }
 
 static void brill_lindquist_spacetime_metric_det(const struct gkyl_gr_spacetime *spacetime,
-                                                 const double t, const double x, const double y,
-                                                 const double z, double *spacetime_metric_det)
+  const double t, const double x, const double y, const double z, double *spacetime_metric_det)
 {
   double spatial_metric_det;
   double lapse_function;
@@ -292,29 +285,22 @@ static void brill_lindquist_spacetime_metric_det(const struct gkyl_gr_spacetime 
 }
 
 static void brill_lindquist_spatial_metric_tensor_der(const struct gkyl_gr_spacetime *spacetime,
-                                                      const double t, const double x,
-                                                      const double y, const double z,
-                                                      const double dx, const double dy,
-                                                      const double dz,
-                                                      double ****spatial_metric_tensor_der)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double ****spatial_metric_tensor_der)
 {
   gkyl_gr_spatial_metric_tensor_diff(spacetime, t, x, y, z, dx, dy, dz, spatial_metric_tensor_der);
 }
 
 static void brill_lindquist_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime *spacetime,
-                                                        const double t, const double x,
-                                                        const double y, const double z,
-                                                        const double dt, const double dx,
-                                                        const double dy, const double dz,
-                                                        double ****spacetime_metric_tensor_der)
+  const double t, const double x, const double y, const double z, const double dt, const double dx,
+  const double dy, const double dz, double ****spacetime_metric_tensor_der)
 {
-  gkyl_gr_spacetime_metric_tensor_diff(spacetime, t, x, y, z, dt, dx, dy, dz,
-                                       spacetime_metric_tensor_der);
+  gkyl_gr_spacetime_metric_tensor_diff(
+    spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_metric_tensor_der);
 }
 
 static void brill_lindquist_lapse_function(const struct gkyl_gr_spacetime *spacetime,
-                                           const double t, const double x, const double y,
-                                           const double z, double *lapse_function)
+  const double t, const double x, const double y, const double z, double *lapse_function)
 {
   double phi = brill_lindquist_phi(spacetime, x, y, z);
   double psi = brill_lindquist_psi(spacetime, x, y, z);
@@ -323,8 +309,7 @@ static void brill_lindquist_lapse_function(const struct gkyl_gr_spacetime *space
 }
 
 static void brill_lindquist_shift_vector(const struct gkyl_gr_spacetime *spacetime, const double t,
-                                         const double x, const double y, const double z,
-                                         double **shift_vector)
+  const double x, const double y, const double z, double **shift_vector)
 {
   for (int i = 0; i < 3; i++) {
     (*shift_vector)[i] = 0.0;
@@ -332,115 +317,93 @@ static void brill_lindquist_shift_vector(const struct gkyl_gr_spacetime *spaceti
 }
 
 static void brill_lindquist_lapse_function_der(const struct gkyl_gr_spacetime *spacetime,
-                                               const double t, const double x, const double y,
-                                               const double z, const double dx, const double dy,
-                                               const double dz, double **lapse_function_der)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double **lapse_function_der)
 {
   gkyl_gr_lapse_function_diff(spacetime, t, x, y, z, dx, dy, dz, lapse_function_der);
 }
 
 static void brill_lindquist_shift_vector_der(const struct gkyl_gr_spacetime *spacetime,
-                                             const double t, const double x, const double y,
-                                             const double z, const double dx, const double dy,
-                                             const double dz, double ***shift_vector_der)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double ***shift_vector_der)
 {
   gkyl_gr_shift_vector_diff(spacetime, t, x, y, z, dx, dy, dz, shift_vector_der);
 }
 
 static void brill_lindquist_spatial_christoffel(const struct gkyl_gr_spacetime *spacetime,
-                                                const double t, const double x, const double y,
-                                                const double z, const double dx, const double dy,
-                                                const double dz, double ****spatial_christoffel)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double ****spatial_christoffel)
 {
   gkyl_gr_spatial_christoffel_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_christoffel);
 }
 
 static void brill_lindquist_spacetime_christoffel(const struct gkyl_gr_spacetime *spacetime,
-                                                  const double t, const double x, const double y,
-                                                  const double z, const double dt, const double dx,
-                                                  const double dy, const double dz,
-                                                  double ****spacetime_christoffel)
+  const double t, const double x, const double y, const double z, const double dt, const double dx,
+  const double dy, const double dz, double ****spacetime_christoffel)
 {
   gkyl_gr_spacetime_christoffel_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_christoffel);
 }
 
 static void brill_lindquist_spatial_riemann_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                   const double t, const double x, const double y,
-                                                   const double z, const double dx, const double dy,
-                                                   const double dz,
-                                                   double *****spatial_riemann_tensor)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double *****spatial_riemann_tensor)
 {
   gkyl_gr_spatial_riemann_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_riemann_tensor);
 }
 
 static void brill_lindquist_spacetime_riemann_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                     const double t, const double x, const double y,
-                                                     const double z, const double dt,
-                                                     const double dx, const double dy,
-                                                     const double dz,
-                                                     double *****spacetime_riemann_tensor)
+  const double t, const double x, const double y, const double z, const double dt, const double dx,
+  const double dy, const double dz, double *****spacetime_riemann_tensor)
 {
-  gkyl_gr_spacetime_riemann_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz,
-                                      spacetime_riemann_tensor);
+  gkyl_gr_spacetime_riemann_tensor_fd(
+    spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_riemann_tensor);
 }
 
 static void brill_lindquist_spatial_ricci_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                 const double t, const double x, const double y,
-                                                 const double z, const double dx, const double dy,
-                                                 const double dz, double ***spatial_ricci_tensor)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double ***spatial_ricci_tensor)
 {
   gkyl_gr_spatial_ricci_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_tensor);
 }
 
 static void brill_lindquist_spacetime_ricci_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                   const double t, const double x, const double y,
-                                                   const double z, const double dt, const double dx,
-                                                   const double dy, const double dz,
-                                                   double ***spacetime_ricci_tensor)
+  const double t, const double x, const double y, const double z, const double dt, const double dx,
+  const double dy, const double dz, double ***spacetime_ricci_tensor)
 {
   gkyl_gr_spacetime_ricci_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_tensor);
 }
 
 static void brill_lindquist_spatial_ricci_scalar(const struct gkyl_gr_spacetime *spacetime,
-                                                 const double t, const double x, const double y,
-                                                 const double z, const double dx, const double dy,
-                                                 const double dz, double *spatial_ricci_scalar)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double *spatial_ricci_scalar)
 {
   gkyl_gr_spatial_ricci_scalar_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_scalar);
 }
 
 static void brill_lindquist_spacetime_ricci_scalar(const struct gkyl_gr_spacetime *spacetime,
-                                                   const double t, const double x, const double y,
-                                                   const double z, const double dt, const double dx,
-                                                   const double dy, const double dz,
-                                                   double *spacetime_ricci_scalar)
+  const double t, const double x, const double y, const double z, const double dt, const double dx,
+  const double dy, const double dz, double *spacetime_ricci_scalar)
 {
   gkyl_gr_spacetime_ricci_scalar_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_scalar);
 }
 
 static void brill_lindquist_spatial_weyl_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                const double t, const double x, const double y,
-                                                const double z, const double dx, const double dy,
-                                                const double dz, double *****spatial_weyl_tensor)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double *****spatial_weyl_tensor)
 {
   gkyl_gr_spatial_weyl_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_weyl_tensor);
 }
 
 static void brill_lindquist_spacetime_weyl_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                  const double t, const double x, const double y,
-                                                  const double z, const double dt, const double dx,
-                                                  const double dy, const double dz,
-                                                  double *****spacetime_weyl_tensor)
+  const double t, const double x, const double y, const double z, const double dt, const double dx,
+  const double dy, const double dz, double *****spacetime_weyl_tensor)
 {
   gkyl_gr_spacetime_weyl_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_weyl_tensor);
 }
 
 static void brill_lindquist_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime *spacetime,
-                                                       const double t, const double x,
-                                                       const double y, const double z,
-                                                       const double dx, const double dy,
-                                                       const double dz,
-                                                       double ***extrinsic_curvature_tensor)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double ***extrinsic_curvature_tensor)
 {
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -450,8 +413,7 @@ static void brill_lindquist_extrinsic_curvature_tensor(const struct gkyl_gr_spac
 }
 
 static void brill_lindquist_conformal_factor(const struct gkyl_gr_spacetime *spacetime,
-                                             const double t, const double x, const double y,
-                                             const double z, double *conformal_factor)
+  const double t, const double x, const double y, const double z, double *conformal_factor)
 {
   double spatial_metric_det;
   brill_lindquist_spatial_metric_det(spacetime, t, x, y, z, &spatial_metric_det);
@@ -460,8 +422,7 @@ static void brill_lindquist_conformal_factor(const struct gkyl_gr_spacetime *spa
 }
 
 static void brill_lindquist_bssn_conformal_factor(const struct gkyl_gr_spacetime *spacetime,
-                                                  const double t, const double x, const double y,
-                                                  const double z, double *bssn_conformal_factor)
+  const double t, const double x, const double y, const double z, double *bssn_conformal_factor)
 {
   double spatial_metric_det;
   brill_lindquist_spatial_metric_det(spacetime, t, x, y, z, &spatial_metric_det);
@@ -470,45 +431,36 @@ static void brill_lindquist_bssn_conformal_factor(const struct gkyl_gr_spacetime
 }
 
 static void brill_lindquist_conformal_factor_der(const struct gkyl_gr_spacetime *spacetime,
-                                                 const double t, const double x, const double y,
-                                                 const double z, const double dx, const double dy,
-                                                 const double dz, double **conformal_factor_der)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double **conformal_factor_der)
 {
   gkyl_gr_conformal_factor_diff(spacetime, t, x, y, z, dx, dy, dz, conformal_factor_der);
 }
 
 static void brill_lindquist_bssn_conformal_factor_der(const struct gkyl_gr_spacetime *spacetime,
-                                                      const double t, const double x,
-                                                      const double y, const double z,
-                                                      const double dx, const double dy,
-                                                      const double dz,
-                                                      double **bssn_conformal_factor_der)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double **bssn_conformal_factor_der)
 {
   gkyl_gr_bssn_conformal_factor_diff(spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor_der);
 }
 
 static void brill_lindquist_conformal_factor_der2(const struct gkyl_gr_spacetime *spacetime,
-                                                  const double t, const double x, const double y,
-                                                  const double z, const double dx, const double dy,
-                                                  const double dz, double ***conformal_factor_der2)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double ***conformal_factor_der2)
 {
   gkyl_gr_conformal_factor_diff2(spacetime, t, x, y, z, dx, dy, dz, conformal_factor_der2);
 }
 
 static void brill_lindquist_bssn_conformal_factor_der2(const struct gkyl_gr_spacetime *spacetime,
-                                                       const double t, const double x,
-                                                       const double y, const double z,
-                                                       const double dx, const double dy,
-                                                       const double dz,
-                                                       double ***bssn_conformal_factor_der2)
+  const double t, const double x, const double y, const double z, const double dx, const double dy,
+  const double dz, double ***bssn_conformal_factor_der2)
 {
-  gkyl_gr_bssn_conformal_factor_diff2(spacetime, t, x, y, z, dx, dy, dz,
-                                      bssn_conformal_factor_der2);
+  gkyl_gr_bssn_conformal_factor_diff2(
+    spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor_der2);
 }
 
 static void brill_lindquist_excision_region(const struct gkyl_gr_spacetime *spacetime,
-                                            const double t, const double x, const double y,
-                                            const double z, bool *in_excision_region)
+  const double t, const double x, const double y, const double z, bool *in_excision_region)
 {
   const struct gr_brill_lindquist *brill_lindquist =
     container_of(spacetime, struct gr_brill_lindquist, spacetime);
@@ -524,10 +476,10 @@ static void brill_lindquist_excision_region(const struct gkyl_gr_spacetime *spac
   double pos_y2 = brill_lindquist->pos_y2;
   double pos_z2 = brill_lindquist->pos_z2;
 
-  double r1 = sqrt(((x - pos_x1) * (x - pos_x1)) + ((y - pos_y1) * (y - pos_y1)) +
-                   ((z - pos_z1) * (z - pos_z1)));
-  double r2 = sqrt(((x - pos_x2) * (x - pos_x2)) + ((y - pos_y2) * (y - pos_y2)) +
-                   ((z - pos_z2) * (z - pos_z2)));
+  double r1 = sqrt(
+    ((x - pos_x1) * (x - pos_x1)) + ((y - pos_y1) * (y - pos_y1)) + ((z - pos_z1) * (z - pos_z1)));
+  double r2 = sqrt(
+    ((x - pos_x2) * (x - pos_x2)) + ((y - pos_y2) * (y - pos_y2)) + ((z - pos_z2) * (z - pos_z2)));
 
   if (r1 <= 2.0 * mass1 || r2 <= 2.0 * mass2) {
     *in_excision_region = true;
@@ -553,22 +505,21 @@ void gkyl_gr_brill_lindquist_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_gr_spacetime *gkyl_gr_brill_lindquist_new(bool use_gpu, double mass1, double mass2,
-                                                      double pos_x1, double pos_y1, double pos_z1,
-                                                      double pos_x2, double pos_y2, double pos_z2)
+  double pos_x1, double pos_y1, double pos_z1, double pos_x2, double pos_y2, double pos_z2)
 {
   return gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){ .use_gpu = use_gpu,
-                                                                             .mass1 = mass1,
-                                                                             .mass2 = mass2,
-                                                                             .pos_x1 = pos_x1,
-                                                                             .pos_y1 = pos_y1,
-                                                                             .pos_z1 = pos_z1,
-                                                                             .pos_x2 = pos_x2,
-                                                                             .pos_y2 = pos_y2,
-                                                                             .pos_z2 = pos_z2 });
+    .mass1 = mass1,
+    .mass2 = mass2,
+    .pos_x1 = pos_x1,
+    .pos_y1 = pos_y1,
+    .pos_z1 = pos_z1,
+    .pos_x2 = pos_x2,
+    .pos_y2 = pos_y2,
+    .pos_z2 = pos_z2 });
 }
 
-struct gkyl_gr_spacetime *
-gkyl_gr_brill_lindquist_inew(const struct gkyl_gr_brill_lindquist_inp *inp)
+struct gkyl_gr_spacetime *gkyl_gr_brill_lindquist_inew(
+  const struct gkyl_gr_brill_lindquist_inp *inp)
 {
   struct gr_brill_lindquist *gr_brill_lindquist = gkyl_malloc(sizeof(struct gr_brill_lindquist));
 

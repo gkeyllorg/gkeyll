@@ -30,10 +30,8 @@ struct gkyl_boundary_flux {
  * @return New updater pointer.
  */
 gkyl_boundary_flux *gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
-                                                  const struct gkyl_rect_grid *grid,
-                                                  const struct gkyl_range *skin_r,
-                                                  const struct gkyl_range *ghost_r, int num_eqns,
-                                                  const struct gkyl_dg_eqn **eqns);
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, int num_eqns, const struct gkyl_dg_eqn **eqns);
 
 /**
  * Compute the boundary flux on the GPU.
@@ -42,6 +40,6 @@ gkyl_boundary_flux *gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc ed
  * @param fIn Input distribution function.
  * @param fluxOut Output flux.
  */
-void gkyl_boundary_flux_advance_cu(gkyl_boundary_flux *up, const struct gkyl_array *fIn,
-                                   struct gkyl_array *fluxOut);
+void gkyl_boundary_flux_advance_cu(
+  gkyl_boundary_flux *up, const struct gkyl_array *fIn, struct gkyl_array *fluxOut);
 #endif

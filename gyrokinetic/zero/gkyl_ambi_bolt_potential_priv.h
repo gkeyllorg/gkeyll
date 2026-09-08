@@ -8,12 +8,12 @@
 
 // Function pointer type for sheath entrance calculations.
 typedef void (*sheathker_t)(const double sheathDirDx, double q_e, double m_e, double T_e,
-                            const double *cmag, const double *jacobtotInv, const double *GammaJac_i,
-                            const double *m0Ion, const double *m0JacIon, double *out);
+  const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0Ion,
+  const double *m0JacIon, double *out);
 
 // Function pointer type for phi calculation.
-typedef void (*phiker_t)(double q_e, double T_e, const double *m0JacIon, const double *sheathvals,
-                         double *phi);
+typedef void (*phiker_t)(
+  double q_e, double T_e, const double *m0JacIon, const double *sheathvals, double *phi);
 
 typedef struct {
   sheathker_t kernels[2];
@@ -30,18 +30,18 @@ typedef struct {
 GKYL_CU_D static const sheath_calc_kern_edge_list ser_sheath_calc_list[] = { // 1x
   { .list = { { ambi_bolt_potential_sheath_calc_lower_1x_ser_p1,
                 ambi_bolt_potential_sheath_calc_upper_1x_ser_p1 },
-              { ambi_bolt_potential_sheath_calc_lower_1x_ser_p2,
-                ambi_bolt_potential_sheath_calc_upper_1x_ser_p2 } } },
+      { ambi_bolt_potential_sheath_calc_lower_1x_ser_p2,
+        ambi_bolt_potential_sheath_calc_upper_1x_ser_p2 } } },
   // 2x
   { .list = { { ambi_bolt_potential_sheath_calc_lower_2x_ser_p1,
                 ambi_bolt_potential_sheath_calc_upper_2x_ser_p1 },
-              { ambi_bolt_potential_sheath_calc_lower_2x_ser_p2,
-                ambi_bolt_potential_sheath_calc_upper_2x_ser_p2 } } },
+      { ambi_bolt_potential_sheath_calc_lower_2x_ser_p2,
+        ambi_bolt_potential_sheath_calc_upper_2x_ser_p2 } } },
   //  // 3x
   { .list = { { ambi_bolt_potential_sheath_calc_lower_3x_ser_p1,
                 ambi_bolt_potential_sheath_calc_upper_3x_ser_p1 },
-              { ambi_bolt_potential_sheath_calc_lower_3x_ser_p2,
-                ambi_bolt_potential_sheath_calc_upper_3x_ser_p2 } } }
+      { ambi_bolt_potential_sheath_calc_lower_3x_ser_p2,
+        ambi_bolt_potential_sheath_calc_upper_3x_ser_p2 } } }
 };
 
 // Serendipity phi_calc kernels.
@@ -80,9 +80,8 @@ struct gkyl_ambi_bolt_potential {
 #define CSHEATHK(lst, dim, poly_order, loc) lst[dim - 1].list[poly_order - 1].kernels[loc]
 #define CPHIK(lst, dim, poly_order) lst[dim - 1].kernels[poly_order - 1]
 
-GKYL_CU_D static void
-ambi_bolt_potential_choose_kernels(const struct gkyl_basis *basis,
-                                   struct gkyl_ambi_bolt_potential_kernels *kers)
+GKYL_CU_D static void ambi_bolt_potential_choose_kernels(
+  const struct gkyl_basis *basis, struct gkyl_ambi_bolt_potential_kernels *kers)
 {
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
@@ -103,19 +102,16 @@ ambi_bolt_potential_choose_kernels(const struct gkyl_basis *basis,
 }
 
 #ifdef GKYL_HAVE_CUDA
-void ambi_bolt_potential_choose_kernels_cu(const struct gkyl_basis *basis,
-                                           struct gkyl_ambi_bolt_potential_kernels *kers);
+void ambi_bolt_potential_choose_kernels_cu(
+  const struct gkyl_basis *basis, struct gkyl_ambi_bolt_potential_kernels *kers);
 
-void gkyl_ambi_bolt_potential_sheath_calc_cu(
-  struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge, const struct gkyl_range *skin_r,
-  const struct gkyl_range *ghost_r, const struct gkyl_array *cmag,
-  const struct gkyl_array *jacobtot_inv, const struct gkyl_array *gammai,
-  const struct gkyl_array *m0i, const struct gkyl_array *Jm0i, struct gkyl_array *sheath_vals);
+void gkyl_ambi_bolt_potential_sheath_calc_cu(struct gkyl_ambi_bolt_potential *up,
+  enum gkyl_edge_loc edge, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
+  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
+  const struct gkyl_array *gammai, const struct gkyl_array *m0i, const struct gkyl_array *Jm0i,
+  struct gkyl_array *sheath_vals);
 
 void gkyl_ambi_bolt_potential_phi_calc_cu(struct gkyl_ambi_bolt_potential *up,
-                                          const struct gkyl_range *local_r,
-                                          const struct gkyl_range *extlocal_r,
-                                          const struct gkyl_array *m0i,
-                                          const struct gkyl_array *sheath_vals,
-                                          struct gkyl_array *phi);
+  const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
+  const struct gkyl_array *m0i, const struct gkyl_array *sheath_vals, struct gkyl_array *phi);
 #endif

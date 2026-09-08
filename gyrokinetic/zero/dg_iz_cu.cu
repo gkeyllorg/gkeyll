@@ -13,8 +13,8 @@ extern "C" {
 #include <gkyl_array_ops_priv.h>
 }
 
-__global__ static void gkyl_iz_react_rate_cu_ker(
-  const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
+__global__ static void gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up,
+  const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
   const struct gkyl_basis *adas_basis, const struct gkyl_array *maxwellian_moms_elc,
   struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz,
   struct gkyl_array *ioniz_data, enum gkyl_react_self_type type_self, double mass_elc,
@@ -105,12 +105,12 @@ __global__ static void gkyl_iz_react_rate_cu_ker(
 }
 
 void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *maxwellian_moms_elc,
-                        struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2,
-                        struct gkyl_array *coef_iz, struct gkyl_array *cflrate)
+  struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz,
+  struct gkyl_array *cflrate)
 {
-  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(
-    up->on_dev, *up->conf_rng, up->adas_rng, up->basis_on_dev, maxwellian_moms_elc->on_dev,
-    vtSq_iz1->on_dev, vtSq_iz2->on_dev, coef_iz->on_dev, up->ioniz_data->on_dev, up->type_self,
-    up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe, up->dlogTe, up->resTe,
-    up->maxLogM0, up->minLogM0, up->dlogM0, up->resM0);
+  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(up->on_dev,
+    *up->conf_rng, up->adas_rng, up->basis_on_dev, maxwellian_moms_elc->on_dev, vtSq_iz1->on_dev,
+    vtSq_iz2->on_dev, coef_iz->on_dev, up->ioniz_data->on_dev, up->type_self, up->mass_elc,
+    up->elem_charge, up->E, up->maxLogTe, up->minLogTe, up->dlogTe, up->resTe, up->maxLogM0,
+    up->minLogM0, up->dlogM0, up->resM0);
 }

@@ -19,9 +19,8 @@ void prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
   gkyl_free(gk);
 }
 
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis *cbasis,
-                                                         const struct gkyl_basis *pbasis,
-                                                         bool use_gpu)
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 

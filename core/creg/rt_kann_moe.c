@@ -68,8 +68,8 @@ static inline kad_node_t *weighted_expert(kad_node_t *expert, int n_output, floa
 }
 
 // Construct a "mixture of experts" architecture consisting of multiple single "experts" linked together (with tanh activation and MSE cost).
-static inline kad_node_t *mixture_of_experts(int n_input, int n_layers, int n_hidden, int n_experts,
-                                             int n_output)
+static inline kad_node_t *mixture_of_experts(
+  int n_input, int n_layers, int n_hidden, int n_experts, int n_output)
 {
   kad_node_t *input;
   kad_node_t **experts;
@@ -138,7 +138,7 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
     }
 
     kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N_expert,
-                    inp_expert->vals, out_expert->vals);
+      inp_expert->vals, out_expert->vals);
 
     gkyl_kn_vec_release(inp_expert);
     gkyl_kn_vec_release(out_expert);
@@ -158,8 +158,8 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
   }
 
   // Run mixture of experts training (i.e. finetuning).
-  kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals,
-                  out->vals);
+  kann_train_fnn1(
+    ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals, out->vals);
   kann_save(nn_name, ann); // Save to file.
 
   gkyl_kn_vec_release(inp);

@@ -138,10 +138,10 @@ int gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname
     struct gkyl_msgpack_data *amet = btopo_create_mpack(btopo);
     if (amet) {
       status = gkyl_header_meta_write_fp(
-        &(struct gkyl_array_header_info){ .file_type =
-                                            gkyl_file_type_int[GKYL_BLOCK_TOPO_DATA_FILE],
-                                          .meta_size = amet->meta_sz,
-                                          .meta = amet->meta },
+        &(struct gkyl_array_header_info){
+          .file_type = gkyl_file_type_int[GKYL_BLOCK_TOPO_DATA_FILE],
+          .meta_size = amet->meta_sz,
+          .meta = amet->meta },
         fp);
       btopo_array_meta_release(amet);
     } else {

@@ -10,10 +10,8 @@
 #include <gkyl_dg_bin_ops.h>
 
 gkyl_calc_metric_mirror *gkyl_calc_metric_mirror_new(const struct gkyl_basis *cbasis,
-                                                     const struct gkyl_rect_grid *grid,
-                                                     const struct gkyl_range *local,
-                                                     const struct gkyl_range *local_ext,
-                                                     bool use_gpu)
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *local,
+  const struct gkyl_range *local_ext, bool use_gpu)
 {
   gkyl_calc_metric_mirror *up = gkyl_malloc(sizeof(gkyl_calc_metric_mirror));
   up->cbasis = cbasis;
@@ -47,7 +45,7 @@ static inline void calc_dual(double J, const double e_2[3], const double e_3[3],
 }
 
 void gkyl_calc_metric_mirror_advance(gkyl_calc_metric_mirror *up, struct gk_geometry *gk_geom,
-                                     struct gkyl_mirror_grid_gen *mirror_grid)
+  struct gkyl_mirror_grid_gen *mirror_grid)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // Arrangement of computational coordinates.
   enum { R_IDX, Z_IDX, PHI_IDX }; // Arrangement of cartesian coordinates.
@@ -71,12 +69,12 @@ void gkyl_calc_metric_mirror_advance(gkyl_calc_metric_mirror *up, struct gk_geom
           gkyl_array_cfetch(mirror_grid->nodes_geom, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
 
         // Next fetch the gk_geometry nodal values at this location
-        double *mc2p_n = gkyl_array_fetch(gk_geom->geo_corn.mc2p_nodal,
-                                          gkyl_range_idx(&gk_geom->nrange_corn, cidx));
-        double *mc2nu_pos_n = gkyl_array_fetch(gk_geom->geo_corn.mc2nu_pos_nodal,
-                                               gkyl_range_idx(&gk_geom->nrange_corn, cidx));
-        double *bmag_n = gkyl_array_fetch(gk_geom->geo_corn.bmag_nodal,
-                                          gkyl_range_idx(&gk_geom->nrange_corn, cidx));
+        double *mc2p_n = gkyl_array_fetch(
+          gk_geom->geo_corn.mc2p_nodal, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
+        double *mc2nu_pos_n = gkyl_array_fetch(
+          gk_geom->geo_corn.mc2nu_pos_nodal, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
+        double *bmag_n = gkyl_array_fetch(
+          gk_geom->geo_corn.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_corn, cidx));
 
         // Set mapc2p
         mc2p_n[0] = mirror_rza_n[0]; // R
@@ -94,20 +92,19 @@ void gkyl_calc_metric_mirror_advance(gkyl_calc_metric_mirror *up, struct gk_geom
     }
   }
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3,
-                     gk_geom->geo_corn.mc2p_nodal, gk_geom->geo_corn.mc2p, false);
+    gk_geom->geo_corn.mc2p_nodal, gk_geom->geo_corn.mc2p, false);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 3,
-                     gk_geom->geo_corn.mc2nu_pos_nodal, gk_geom->geo_corn.mc2nu_pos, false);
+    gk_geom->geo_corn.mc2nu_pos_nodal, gk_geom->geo_corn.mc2nu_pos, false);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_corn, &gk_geom->local, 1,
-                     gk_geom->geo_corn.bmag_nodal, gk_geom->geo_corn.bmag, false);
+    gk_geom->geo_corn.bmag_nodal, gk_geom->geo_corn.bmag, false);
 
   // Need 1/B for LBO collisions, computed weakly.
-  gkyl_dg_inv_op_range(up->cbasis, 0, gk_geom->geo_corn.bmag_inv, 0, gk_geom->geo_corn.bmag,
-                       &gk_geom->local);
+  gkyl_dg_inv_op_range(
+    up->cbasis, 0, gk_geom->geo_corn.bmag_inv, 0, gk_geom->geo_corn.bmag, &gk_geom->local);
 }
 
 void gkyl_calc_metric_mirror_advance_interior(gkyl_calc_metric_mirror *up,
-                                              struct gk_geometry *gk_geom,
-                                              struct gkyl_mirror_grid_gen *mirror_grid)
+  struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
@@ -132,34 +129,34 @@ void gkyl_calc_metric_mirror_advance_interior(gkyl_calc_metric_mirror *up,
         // Next fetch the gk_geometry nodal values at this location
         double *mc2p_n =
           gkyl_array_fetch(gk_geom->geo_int.mc2p_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        double *jFld_n = gkyl_array_fetch(gk_geom->geo_int.jacobgeo_nodal,
-                                          gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double *jFld_n = gkyl_array_fetch(
+          gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double *bmag_n =
           gkyl_array_fetch(gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double *gFld_n =
           gkyl_array_fetch(gk_geom->geo_int.g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        double *bcartFld_n = gkyl_array_fetch(gk_geom->geo_int.bcart_nodal,
-                                              gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double *bcartFld_n = gkyl_array_fetch(
+          gk_geom->geo_int.bcart_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double *tanvecFld_n =
           gkyl_array_fetch(gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double *dualFld_n =
           gkyl_array_fetch(gk_geom->geo_int.dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        double *dualmagFld_n = gkyl_array_fetch(gk_geom->geo_int.dualmag_nodal,
-                                                gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        double *normFld_n = gkyl_array_fetch(gk_geom->geo_int.normals_nodal,
-                                             gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        double *curlbhat_n = gkyl_array_fetch(gk_geom->geo_int.curlbhat_nodal,
-                                              gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        double *dualcurlbhat_n = gkyl_array_fetch(gk_geom->geo_int.dualcurlbhat_nodal,
-                                                  gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double *dualmagFld_n = gkyl_array_fetch(
+          gk_geom->geo_int.dualmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double *normFld_n = gkyl_array_fetch(
+          gk_geom->geo_int.normals_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double *curlbhat_n = gkyl_array_fetch(
+          gk_geom->geo_int.curlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double *dualcurlbhat_n = gkyl_array_fetch(
+          gk_geom->geo_int.dualcurlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double *B3_n =
           gkyl_array_fetch(gk_geom->geo_int.B3_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        double *dualcurlbhatoverB_n = gkyl_array_fetch(gk_geom->geo_int.dualcurlbhatoverB_nodal,
-                                                       gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        double *rtg33inv_n = gkyl_array_fetch(gk_geom->geo_int.rtg33inv_nodal,
-                                              gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        double *bioverJB_n = gkyl_array_fetch(gk_geom->geo_int.bioverJB_nodal,
-                                              gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double *dualcurlbhatoverB_n = gkyl_array_fetch(
+          gk_geom->geo_int.dualcurlbhatoverB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double *rtg33inv_n = gkyl_array_fetch(
+          gk_geom->geo_int.rtg33inv_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double *bioverJB_n = gkyl_array_fetch(
+          gk_geom->geo_int.bioverJB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
 
         // Set mapc2p
         mc2p_n[0] = mirror_rza_n[0]; // R
@@ -219,12 +216,12 @@ void gkyl_calc_metric_mirror_advance_interior(gkyl_calc_metric_mirror *up,
         bcartFld_n[1] = dualFld_n[1] * bi[0] + dualFld_n[4] * bi[1] + dualFld_n[7] * bi[2];
         bcartFld_n[2] = dualFld_n[2] * bi[0] + dualFld_n[5] * bi[1] + dualFld_n[8] * bi[2];
 
-        double norm1 = sqrt(dualFld_n[0] * dualFld_n[0] + dualFld_n[1] * dualFld_n[1] +
-                            dualFld_n[2] * dualFld_n[2]);
-        double norm2 = sqrt(dualFld_n[3] * dualFld_n[3] + dualFld_n[4] * dualFld_n[4] +
-                            dualFld_n[5] * dualFld_n[5]);
-        double norm3 = sqrt(dualFld_n[6] * dualFld_n[6] + dualFld_n[7] * dualFld_n[7] +
-                            dualFld_n[8] * dualFld_n[8]);
+        double norm1 = sqrt(
+          dualFld_n[0] * dualFld_n[0] + dualFld_n[1] * dualFld_n[1] + dualFld_n[2] * dualFld_n[2]);
+        double norm2 = sqrt(
+          dualFld_n[3] * dualFld_n[3] + dualFld_n[4] * dualFld_n[4] + dualFld_n[5] * dualFld_n[5]);
+        double norm3 = sqrt(
+          dualFld_n[6] * dualFld_n[6] + dualFld_n[7] * dualFld_n[7] + dualFld_n[8] * dualFld_n[8]);
 
         dualmagFld_n[0] = norm1;
         dualmagFld_n[1] = norm2;
@@ -271,39 +268,37 @@ void gkyl_calc_metric_mirror_advance_interior(gkyl_calc_metric_mirror *up,
   }
 
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
-                     gk_geom->geo_int.mc2p_nodal, gk_geom->geo_int.mc2p, true);
+    gk_geom->geo_int.mc2p_nodal, gk_geom->geo_int.mc2p, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1,
-                     gk_geom->geo_int.bmag_nodal, gk_geom->geo_int.bmag, true);
+    gk_geom->geo_int.bmag_nodal, gk_geom->geo_int.bmag, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 6,
-                     gk_geom->geo_int.g_ij_nodal, gk_geom->geo_int.g_ij, true);
+    gk_geom->geo_int.g_ij_nodal, gk_geom->geo_int.g_ij, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1,
-                     gk_geom->geo_int.jacobgeo_nodal, gk_geom->geo_int.jacobgeo, true);
+    gk_geom->geo_int.jacobgeo_nodal, gk_geom->geo_int.jacobgeo, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
-                     gk_geom->geo_int.bcart_nodal, gk_geom->geo_int.bcart, true);
+    gk_geom->geo_int.bcart_nodal, gk_geom->geo_int.bcart, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 9,
-                     gk_geom->geo_int.dxdz_nodal, gk_geom->geo_int.dxdz, true);
+    gk_geom->geo_int.dxdz_nodal, gk_geom->geo_int.dxdz, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 9,
-                     gk_geom->geo_int.dzdx_nodal, gk_geom->geo_int.dzdx, true);
+    gk_geom->geo_int.dzdx_nodal, gk_geom->geo_int.dzdx, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
-                     gk_geom->geo_int.dualmag_nodal, gk_geom->geo_int.dualmag, true);
+    gk_geom->geo_int.dualmag_nodal, gk_geom->geo_int.dualmag, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 9,
-                     gk_geom->geo_int.normals_nodal, gk_geom->geo_int.normals, true);
+    gk_geom->geo_int.normals_nodal, gk_geom->geo_int.normals, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
-                     gk_geom->geo_int.dualcurlbhat_nodal, gk_geom->geo_int.dualcurlbhat, true);
+    gk_geom->geo_int.dualcurlbhat_nodal, gk_geom->geo_int.dualcurlbhat, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
-                     gk_geom->geo_int.dualcurlbhatoverB_nodal, gk_geom->geo_int.dualcurlbhatoverB,
-                     true);
+    gk_geom->geo_int.dualcurlbhatoverB_nodal, gk_geom->geo_int.dualcurlbhatoverB, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1,
-                     gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true);
+    gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
-                     gk_geom->geo_int.bioverJB_nodal, gk_geom->geo_int.bioverJB, true);
+    gk_geom->geo_int.bioverJB_nodal, gk_geom->geo_int.bioverJB, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1,
-                     gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true);
+    gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true);
 }
 
 void gkyl_calc_metric_mirror_advance_surface(gkyl_calc_metric_mirror *up, int dir,
-                                             struct gk_geometry *gk_geom,
-                                             struct gkyl_mirror_grid_gen *mirror_grid)
+  struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
@@ -327,36 +322,36 @@ void gkyl_calc_metric_mirror_advance_surface(gkyl_calc_metric_mirror *up, int di
           mirror_grid->nodes_geom, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
 
         // Next fetch the gk_geometry nodal values at this location
-        double *mc2p_n = gkyl_array_fetch(gk_geom->geo_surf[dir].mc2p_nodal,
-                                          gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *jFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal,
-                                          gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *bmag_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bmag_nodal,
-                                          gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *gFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].g_ij_nodal,
-                                          gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *biFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].b_i_nodal,
-                                           gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *cmagFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].cmag_nodal,
-                                             gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *bcartFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bcart_nodal,
-                                              gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *tanvecFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].dxdz_nodal,
-                                               gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *dualFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].dzdx_nodal,
-                                             gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *dualmagFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].dualmag_nodal,
-                                                gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *normFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normals_nodal,
-                                             gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *lenr_n = gkyl_array_fetch(gk_geom->geo_surf[dir].lenr_nodal,
-                                          gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *B3_n = gkyl_array_fetch(gk_geom->geo_surf[dir].B3_nodal,
-                                        gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double *curlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].curlbhat_nodal,
-                                              gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *mc2p_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].mc2p_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *jFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *bmag_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *gFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *biFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].b_i_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *cmagFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].cmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *bcartFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].bcart_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *tanvecFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *dualFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *dualmagFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].dualmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *normFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].normals_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *lenr_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].lenr_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *B3_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].B3_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *curlbhat_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         double *normcurlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normcurlbhat_nodal,
-                                                  gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
 
         // Set mapc2p
         mc2p_n[0] = mirror_rza_n[0]; // R
@@ -413,15 +408,15 @@ void gkyl_calc_metric_mirror_advance_surface(gkyl_calc_metric_mirror *up, int di
 
         cmagFld_n[0] = jFld_n[0] * bmag_n[0] / sqrt(gFld_n[5]);
         double *jtotinvFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].jacobtot_inv_nodal,
-                                                gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         jtotinvFld_n[0] = 1.0 / (jFld_n[0] * bmag_n[0]);
 
-        double norm1 = sqrt(dualFld_n[0] * dualFld_n[0] + dualFld_n[1] * dualFld_n[1] +
-                            dualFld_n[2] * dualFld_n[2]);
-        double norm2 = sqrt(dualFld_n[3] * dualFld_n[3] + dualFld_n[4] * dualFld_n[4] +
-                            dualFld_n[5] * dualFld_n[5]);
-        double norm3 = sqrt(dualFld_n[6] * dualFld_n[6] + dualFld_n[7] * dualFld_n[7] +
-                            dualFld_n[8] * dualFld_n[8]);
+        double norm1 = sqrt(
+          dualFld_n[0] * dualFld_n[0] + dualFld_n[1] * dualFld_n[1] + dualFld_n[2] * dualFld_n[2]);
+        double norm2 = sqrt(
+          dualFld_n[3] * dualFld_n[3] + dualFld_n[4] * dualFld_n[4] + dualFld_n[5] * dualFld_n[5]);
+        double norm3 = sqrt(
+          dualFld_n[6] * dualFld_n[6] + dualFld_n[7] * dualFld_n[7] + dualFld_n[8] * dualFld_n[8]);
 
         dualmagFld_n[0] = norm1;
         dualmagFld_n[1] = norm2;

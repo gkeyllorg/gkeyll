@@ -6,14 +6,12 @@
 
 // Types for various kernels
 typedef double (*lbo_pkpm_drag_surf_t)(const double *w, const double *dxv, const double *nuSum,
-                                       const double *nuPrimMomsSum, const double *fl,
-                                       const double *fc, const double *fr,
-                                       double *GKYL_RESTRICT out);
+  const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr,
+  double *GKYL_RESTRICT out);
 
 typedef double (*lbo_pkpm_drag_boundary_surf_t)(const double *w, const double *dxv,
-                                                const double *nuSum, const double *nuPrimMomsSum,
-                                                const int edge, const double *fSkin,
-                                                const double *fEdge, double *GKYL_RESTRICT out);
+  const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fSkin,
+  const double *fEdge, double *GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct {
@@ -38,8 +36,8 @@ struct dg_lbo_pkpm_drag {
   int num_cbasis;
 };
 
-GKYL_CU_DH static inline bool checkPrimMomCross(struct dg_lbo_pkpm_drag *lbo_pkpm_drag,
-                                                const double *nuSum_p, const double *nuVtSqSum_p)
+GKYL_CU_DH static inline bool checkPrimMomCross(
+  struct dg_lbo_pkpm_drag *lbo_pkpm_drag, const double *nuSum_p, const double *nuVtSqSum_p)
 {
   bool noPrimMomCross = true;
   noPrimMomCross = noPrimMomCross &&
@@ -53,9 +51,8 @@ GKYL_CU_DH static inline bool checkPrimMomCross(struct dg_lbo_pkpm_drag *lbo_pkp
 //
 
 GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                              const double *xc, const double *dx,
-                                                              const int *idx, const double *qIn,
-                                                              double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag = container_of(eqn, struct dg_lbo_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_pkpm_drag->conf_range, idx);
@@ -73,9 +70,8 @@ GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_1x1v_ser_p1(const struct gkyl_
 }
 
 GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn,
-                                                              const double *xc, const double *dx,
-                                                              const int *idx, const double *qIn,
-                                                              double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag = container_of(eqn, struct dg_lbo_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_pkpm_drag->conf_range, idx);
@@ -93,9 +89,8 @@ GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_1x1v_ser_p2(const struct gkyl_
 }
 
 GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_1x1v_tensor_p2(const struct gkyl_dg_eqn *eqn,
-                                                                 const double *xc, const double *dx,
-                                                                 const int *idx, const double *qIn,
-                                                                 double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag = container_of(eqn, struct dg_lbo_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_pkpm_drag->conf_range, idx);
@@ -113,9 +108,8 @@ GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_1x1v_tensor_p2(const struct gk
 }
 
 GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_2x1v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                              const double *xc, const double *dx,
-                                                              const int *idx, const double *qIn,
-                                                              double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag = container_of(eqn, struct dg_lbo_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_pkpm_drag->conf_range, idx);
@@ -133,9 +127,8 @@ GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_2x1v_ser_p1(const struct gkyl_
 }
 
 GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_2x1v_tensor_p2(const struct gkyl_dg_eqn *eqn,
-                                                                 const double *xc, const double *dx,
-                                                                 const int *idx, const double *qIn,
-                                                                 double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag = container_of(eqn, struct dg_lbo_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_pkpm_drag->conf_range, idx);
@@ -153,9 +146,8 @@ GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_2x1v_tensor_p2(const struct gk
 }
 
 GKYL_CU_DH static double kernel_lbo_pkpm_drag_vol_3x1v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                              const double *xc, const double *dx,
-                                                              const int *idx, const double *qIn,
-                                                              double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag = container_of(eqn, struct dg_lbo_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_pkpm_drag->conf_range, idx);
@@ -240,10 +232,9 @@ GKYL_CU_D static const gkyl_dg_lbo_pkpm_drag_boundary_surf_kern_list
 void gkyl_lbo_pkpm_drag_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL,
-                             const double *xcC, const double *xcR, const double *dxL,
-                             const double *dxC, const double *dxR, const int *idxL, const int *idxC,
-                             const int *idxR, const double *qInL, const double *qInC,
-                             const double *qInR, double *GKYL_RESTRICT qRhsOut)
+  const double *xcC, const double *xcR, const double *dxL, const double *dxC, const double *dxR,
+  const int *idxL, const int *idxC, const int *idxR, const double *qInL, const double *qInC,
+  const double *qInR, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag = container_of(eqn, struct dg_lbo_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_pkpm_drag->conf_range, idxC);
@@ -260,10 +251,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const doubl
 }
 
 GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge,
-                                      const double *xcSkin, const double *dxEdge,
-                                      const double *dxSkin, const int *idxEdge, const int *idxSkin,
-                                      const int edge, const double *qInEdge, const double *qInSkin,
-                                      double *GKYL_RESTRICT qRhsOut)
+  const double *xcSkin, const double *dxEdge, const double *dxSkin, const int *idxEdge,
+  const int *idxSkin, const int edge, const double *qInEdge, const double *qInSkin,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag = container_of(eqn, struct dg_lbo_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_pkpm_drag->conf_range, idxSkin);
@@ -274,8 +264,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, co
   const double *nuVtSqSum_p = &nuPrimMomsSum_p[lbo_pkpm_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_pkpm_drag, nuSum_p, nuVtSqSum_p);
   if ((dir >= lbo_pkpm_drag->cdim) && (noPrimMomCross)) {
-    return lbo_pkpm_drag->boundary_surf(xcSkin, dxSkin, nuSum_p, nuPrimMomsSum_p, edge, qInSkin,
-                                        qInEdge, qRhsOut);
+    return lbo_pkpm_drag->boundary_surf(
+      xcSkin, dxSkin, nuSum_p, nuPrimMomsSum_p, edge, qInSkin, qInEdge, qRhsOut);
   }
   return 0.;
 }

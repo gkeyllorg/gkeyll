@@ -15,25 +15,24 @@ struct gkyl_dg_eqn *gkyl_dg_updater_vlasov_poisson_acquire_eqn(const gkyl_dg_upd
   return gkyl_dg_eqn_acquire(vlasov->eqn_vlasov);
 }
 
-struct gkyl_dg_updater_vlasov_tm
-gkyl_dg_updater_vlasov_poisson_get_tm(const gkyl_dg_updater_vlasov *vlasov)
+struct gkyl_dg_updater_vlasov_tm gkyl_dg_updater_vlasov_poisson_get_tm(
+  const gkyl_dg_updater_vlasov *vlasov)
 {
   return (struct gkyl_dg_updater_vlasov_tm){ .vlasov_tm = vlasov->vlasov_tm };
 }
 
-gkyl_dg_updater_vlasov *gkyl_dg_updater_vlasov_poisson_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
-  const bool *is_zero_flux_bc, enum gkyl_model_id model_id, enum gkyl_field_id field_id,
-  void *aux_inp, bool use_gpu)
+gkyl_dg_updater_vlasov *gkyl_dg_updater_vlasov_poisson_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+  const struct gkyl_range *phase_range, const bool *is_zero_flux_bc, enum gkyl_model_id model_id,
+  enum gkyl_field_id field_id, void *aux_inp, bool use_gpu)
 {
   gkyl_dg_updater_vlasov *up = gkyl_malloc(sizeof(*up));
 
   up->use_gpu = use_gpu;
 
-  up->eqn_vlasov = gkyl_dg_vlasov_poisson_new(cbasis, pbasis, conf_range, phase_range, model_id,
-                                              field_id, up->use_gpu);
+  up->eqn_vlasov = gkyl_dg_vlasov_poisson_new(
+    cbasis, pbasis, conf_range, phase_range, model_id, field_id, up->use_gpu);
   struct gkyl_dg_vlasov_poisson_auxfields *vlasov_inp = aux_inp;
   gkyl_vlasov_poisson_set_auxfields(up->eqn_vlasov, *vlasov_inp);
 
@@ -53,8 +52,8 @@ gkyl_dg_updater_vlasov *gkyl_dg_updater_vlasov_poisson_new(
   for (int d = cdim; d < pdim; ++d)
     zero_flux_flags[d] = zero_flux_flags[d + pdim] = 1; // Zero-flux BCs in v-space.
 
-  up->hdg_vlasov = gkyl_hyper_dg_new(grid, pbasis, up->eqn_vlasov, num_up_dirs, up_dirs,
-                                     zero_flux_flags, 1, up->use_gpu);
+  up->hdg_vlasov = gkyl_hyper_dg_new(
+    grid, pbasis, up->eqn_vlasov, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->vlasov_tm = 0.0;
 
@@ -62,10 +61,8 @@ gkyl_dg_updater_vlasov *gkyl_dg_updater_vlasov_poisson_new(
 }
 
 void gkyl_dg_updater_vlasov_poisson_advance(gkyl_dg_updater_vlasov *vlasov,
-                                            const struct gkyl_range *update_rng,
-                                            const struct gkyl_array *GKYL_RESTRICT fIn,
-                                            struct gkyl_array *GKYL_RESTRICT cflrate,
-                                            struct gkyl_array *GKYL_RESTRICT rhs)
+  const struct gkyl_range *update_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(vlasov->hdg_vlasov, update_rng, fIn, cflrate, rhs);

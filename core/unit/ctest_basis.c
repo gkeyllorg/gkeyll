@@ -382,11 +382,10 @@ void test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
   int numnod;
 
   // Evaluate at left nodes on surf perp to dir 1.
-  doubleFunc_t funcs1l[] = {
-    gkhyb_1x2v_p1_surfx1_eval_quad_node_0_l, gkhyb_1x2v_p1_surfx1_eval_quad_node_1_l,
-    gkhyb_1x2v_p1_surfx1_eval_quad_node_2_l, gkhyb_1x2v_p1_surfx1_eval_quad_node_3_l,
-    gkhyb_1x2v_p1_surfx1_eval_quad_node_4_l, gkhyb_1x2v_p1_surfx1_eval_quad_node_5_l
-  };
+  doubleFunc_t funcs1l[] = { gkhyb_1x2v_p1_surfx1_eval_quad_node_0_l,
+    gkhyb_1x2v_p1_surfx1_eval_quad_node_1_l, gkhyb_1x2v_p1_surfx1_eval_quad_node_2_l,
+    gkhyb_1x2v_p1_surfx1_eval_quad_node_3_l, gkhyb_1x2v_p1_surfx1_eval_quad_node_4_l,
+    gkhyb_1x2v_p1_surfx1_eval_quad_node_5_l };
   numnod = sizeof(funcs1l) / sizeof(doubleFunc_t);
   double fout1l_a[] = {
     0.5477225575051661 * fin[11] - 0.3162277660168379 * fin[10] - 0.5477225575051661 * fin[9] +
@@ -421,11 +420,10 @@ void test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
   }
 
   // Evaluate at right nodes on surf perp to dir 1.
-  doubleFunc_t funcs1r[] = {
-    gkhyb_1x2v_p1_surfx1_eval_quad_node_0_r, gkhyb_1x2v_p1_surfx1_eval_quad_node_1_r,
-    gkhyb_1x2v_p1_surfx1_eval_quad_node_2_r, gkhyb_1x2v_p1_surfx1_eval_quad_node_3_r,
-    gkhyb_1x2v_p1_surfx1_eval_quad_node_4_r, gkhyb_1x2v_p1_surfx1_eval_quad_node_5_r
-  };
+  doubleFunc_t funcs1r[] = { gkhyb_1x2v_p1_surfx1_eval_quad_node_0_r,
+    gkhyb_1x2v_p1_surfx1_eval_quad_node_1_r, gkhyb_1x2v_p1_surfx1_eval_quad_node_2_r,
+    gkhyb_1x2v_p1_surfx1_eval_quad_node_3_r, gkhyb_1x2v_p1_surfx1_eval_quad_node_4_r,
+    gkhyb_1x2v_p1_surfx1_eval_quad_node_5_r };
   double fout1r_a[] = {
     -0.5477225575051661 * fin[11] - 0.3162277660168379 * fin[10] + 0.5477225575051661 * fin[9] +
       0.3162277660168379 * fin[8] + 0.8215838362577489 * fin[7] + 0.4743416490252568 * fin[6] -
@@ -460,9 +458,8 @@ void test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
 
   // Evaluate at left nodes on surf perp to dir 2.
   doubleFunc_t funcs2l[] = { gkhyb_1x2v_p1_surfx2_eval_quad_node_0_l,
-                             gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l,
-                             gkhyb_1x2v_p1_surfx2_eval_quad_node_2_l,
-                             gkhyb_1x2v_p1_surfx2_eval_quad_node_3_l };
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l, gkhyb_1x2v_p1_surfx2_eval_quad_node_2_l,
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_3_l };
   numnod = sizeof(funcs2l) / sizeof(doubleFunc_t);
   double fout2l_a[] = {
     0.7905694150420947 * fin[11] - 0.7905694150420948 * (fin[10] + fin[9]) +
@@ -492,9 +489,8 @@ void test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
 
   // Evaluate at right nodes on surf perp to dir 2.
   doubleFunc_t funcs2r[] = { gkhyb_1x2v_p1_surfx2_eval_quad_node_0_r,
-                             gkhyb_1x2v_p1_surfx2_eval_quad_node_1_r,
-                             gkhyb_1x2v_p1_surfx2_eval_quad_node_2_r,
-                             gkhyb_1x2v_p1_surfx2_eval_quad_node_3_r };
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_1_r, gkhyb_1x2v_p1_surfx2_eval_quad_node_2_r,
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_3_r };
   double fout2r_a[] = {
     0.7905694150420947 * fin[11] - 0.7905694150420948 * (fin[10] + fin[9]) +
       0.7905694150420947 * fin[8] + 0.6123724356957944 * fin[7] - 0.6123724356957944 * fin[6] +
@@ -522,11 +518,10 @@ void test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
   }
 
   // Evaluate at left nodes on surf perp to dir 3.
-  doubleFunc_t funcs3l[] = {
-    gkhyb_1x2v_p1_surfx3_eval_quad_node_0_l, gkhyb_1x2v_p1_surfx3_eval_quad_node_1_l,
-    gkhyb_1x2v_p1_surfx3_eval_quad_node_2_l, gkhyb_1x2v_p1_surfx3_eval_quad_node_3_l,
-    gkhyb_1x2v_p1_surfx3_eval_quad_node_4_l, gkhyb_1x2v_p1_surfx3_eval_quad_node_5_l
-  };
+  doubleFunc_t funcs3l[] = { gkhyb_1x2v_p1_surfx3_eval_quad_node_0_l,
+    gkhyb_1x2v_p1_surfx3_eval_quad_node_1_l, gkhyb_1x2v_p1_surfx3_eval_quad_node_2_l,
+    gkhyb_1x2v_p1_surfx3_eval_quad_node_3_l, gkhyb_1x2v_p1_surfx3_eval_quad_node_4_l,
+    gkhyb_1x2v_p1_surfx3_eval_quad_node_5_l };
   numnod = sizeof(funcs3l) / sizeof(doubleFunc_t);
   double fout3l_a[] = {
     0.5477225575051661 * fin[11] - 0.5477225575051661 * fin[10] - 0.3162277660168379 * fin[9] +
@@ -561,11 +556,10 @@ void test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
   }
 
   // Evaluate at right nodes on surf perp to dir 3.
-  doubleFunc_t funcs3r[] = {
-    gkhyb_1x2v_p1_surfx3_eval_quad_node_0_r, gkhyb_1x2v_p1_surfx3_eval_quad_node_1_r,
-    gkhyb_1x2v_p1_surfx3_eval_quad_node_2_r, gkhyb_1x2v_p1_surfx3_eval_quad_node_3_r,
-    gkhyb_1x2v_p1_surfx3_eval_quad_node_4_r, gkhyb_1x2v_p1_surfx3_eval_quad_node_5_r
-  };
+  doubleFunc_t funcs3r[] = { gkhyb_1x2v_p1_surfx3_eval_quad_node_0_r,
+    gkhyb_1x2v_p1_surfx3_eval_quad_node_1_r, gkhyb_1x2v_p1_surfx3_eval_quad_node_2_r,
+    gkhyb_1x2v_p1_surfx3_eval_quad_node_3_r, gkhyb_1x2v_p1_surfx3_eval_quad_node_4_r,
+    gkhyb_1x2v_p1_surfx3_eval_quad_node_5_r };
   double fout3r_a[] = {
     -0.5477225575051661 * fin[11] + 0.5477225575051661 * fin[10] - 0.3162277660168379 * fin[9] +
       0.3162277660168379 * fin[8] + 0.8215838362577489 * fin[7] - 0.8215838362577489 * fin[6] -
@@ -609,8 +603,7 @@ void test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
 
   typedef void (*voidFunc_t)(const double *fUpwindQuad, double *GKYL_RESTRICT fUpwind);
   voidFunc_t funcs[] = { gkhyb_1x2v_p1_xdir_upwind_quad_to_modal,
-                         gkhyb_1x2v_p1_vpardir_upwind_quad_to_modal,
-                         gkhyb_1x2v_p1_mudir_upwind_quad_to_modal };
+    gkhyb_1x2v_p1_vpardir_upwind_quad_to_modal, gkhyb_1x2v_p1_mudir_upwind_quad_to_modal };
   int numdirs = sizeof(funcs) / sizeof(voidFunc_t);
 
   typedef double (*doubleFunc_t)(const double *GKYL_RESTRICT f);
@@ -618,11 +611,10 @@ void test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
 
   // Evaluate at left nodes on surf perp to dir 1.
   dir = 0;
-  doubleFunc_t funcs1l[] = {
-    gkhyb_1x2v_p1_surfx1_eval_quad_node_0_l, gkhyb_1x2v_p1_surfx1_eval_quad_node_1_l,
-    gkhyb_1x2v_p1_surfx1_eval_quad_node_2_l, gkhyb_1x2v_p1_surfx1_eval_quad_node_3_l,
-    gkhyb_1x2v_p1_surfx1_eval_quad_node_4_l, gkhyb_1x2v_p1_surfx1_eval_quad_node_5_l
-  };
+  doubleFunc_t funcs1l[] = { gkhyb_1x2v_p1_surfx1_eval_quad_node_0_l,
+    gkhyb_1x2v_p1_surfx1_eval_quad_node_1_l, gkhyb_1x2v_p1_surfx1_eval_quad_node_2_l,
+    gkhyb_1x2v_p1_surfx1_eval_quad_node_3_l, gkhyb_1x2v_p1_surfx1_eval_quad_node_4_l,
+    gkhyb_1x2v_p1_surfx1_eval_quad_node_5_l };
   numnod = sizeof(funcs1l) / sizeof(doubleFunc_t);
   double f1l_n[numnod], f1l_c[numnod];
   for (int i = 0; i < numnod; i++) {
@@ -635,12 +627,11 @@ void test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
   // Check results.
   double fout1l_a[] = { 1.863864650467316e-16 * fin[9] + 1.643351536295413e-16 * fin[8] -
                           1.224744871391586 * fin[1] + 0.7071067811865468 * fin[0],
-                        0.7071067811865475 * fin[2] - 1.224744871391588 * fin[4],
-                        1.863864650467316e-16 * fin[11] - 1.224744871391586 * fin[5] +
-                          0.7071067811865468 * fin[3],
-                        0.7071067811865475 * fin[6] - 1.224744871391588 * fin[7],
-                        0.7071067811865472 * fin[8] - 1.22474487139159 * fin[9],
-                        0.7071067811865472 * fin[10] - 1.22474487139159 * fin[11] };
+    0.7071067811865475 * fin[2] - 1.224744871391588 * fin[4],
+    1.863864650467316e-16 * fin[11] - 1.224744871391586 * fin[5] + 0.7071067811865468 * fin[3],
+    0.7071067811865475 * fin[6] - 1.224744871391588 * fin[7],
+    0.7071067811865472 * fin[8] - 1.22474487139159 * fin[9],
+    0.7071067811865472 * fin[10] - 1.22474487139159 * fin[11] };
   for (int i = 0; i < numnod; i++) {
     TEST_CHECK(gkyl_compare(fout1l_a[i], f1l_c[i], 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout1l_a[i], i);
@@ -650,9 +641,8 @@ void test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
   // Evaluate at left nodes on surf perp to dir 2.
   dir = 1;
   doubleFunc_t funcs2l[] = { gkhyb_1x2v_p1_surfx2_eval_quad_node_0_l,
-                             gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l,
-                             gkhyb_1x2v_p1_surfx2_eval_quad_node_2_l,
-                             gkhyb_1x2v_p1_surfx2_eval_quad_node_3_l };
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l, gkhyb_1x2v_p1_surfx2_eval_quad_node_2_l,
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_3_l };
   numnod = sizeof(funcs2l) / sizeof(doubleFunc_t);
   double f2l_n[numnod], f2l_c[numnod];
   for (int i = 0; i < numnod; i++) {
@@ -663,12 +653,11 @@ void test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
   voidFunc_t n2mfunc2l = funcs[dir];
   n2mfunc2l(f2l_n, f2l_c);
   // Check results.
-  double fout2l_a[] = {
-    1.581138830084189 * fin[8] - 1.224744871391586 * fin[2] + 0.7071067811865468 * fin[0],
+  double fout2l_a[] = { 1.581138830084189 * fin[8] - 1.224744871391586 * fin[2] +
+                          0.7071067811865468 * fin[0],
     1.581138830084189 * fin[9] - 1.224744871391586 * fin[4] + 0.7071067811865468 * fin[1],
     1.581138830084189 * fin[10] - 1.224744871391586 * fin[6] + 0.7071067811865468 * fin[3],
-    1.581138830084189 * fin[11] - 1.224744871391586 * fin[7] + 0.7071067811865468 * fin[5]
-  };
+    1.581138830084189 * fin[11] - 1.224744871391586 * fin[7] + 0.7071067811865468 * fin[5] };
   for (int i = 0; i < numnod; i++) {
     TEST_CHECK(gkyl_compare(fout2l_a[i], f2l_c[i], 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout2l_a[i], i);
@@ -677,11 +666,10 @@ void test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
 
   // Evaluate at left nodes on surf perp to dir 3.
   dir = 2;
-  doubleFunc_t funcs3l[] = {
-    gkhyb_1x2v_p1_surfx3_eval_quad_node_0_l, gkhyb_1x2v_p1_surfx3_eval_quad_node_1_l,
-    gkhyb_1x2v_p1_surfx3_eval_quad_node_2_l, gkhyb_1x2v_p1_surfx3_eval_quad_node_3_l,
-    gkhyb_1x2v_p1_surfx3_eval_quad_node_4_l, gkhyb_1x2v_p1_surfx3_eval_quad_node_5_l
-  };
+  doubleFunc_t funcs3l[] = { gkhyb_1x2v_p1_surfx3_eval_quad_node_0_l,
+    gkhyb_1x2v_p1_surfx3_eval_quad_node_1_l, gkhyb_1x2v_p1_surfx3_eval_quad_node_2_l,
+    gkhyb_1x2v_p1_surfx3_eval_quad_node_3_l, gkhyb_1x2v_p1_surfx3_eval_quad_node_4_l,
+    gkhyb_1x2v_p1_surfx3_eval_quad_node_5_l };
   numnod = sizeof(funcs3l) / sizeof(doubleFunc_t);
   double f3l_n[numnod], f3l_c[numnod];
   for (int i = 0; i < numnod; i++) {
@@ -694,12 +682,11 @@ void test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
   // Check results.
   double fout3l_a[] = { 1.863864650467316e-16 * fin[10] + 1.643351536295413e-16 * fin[8] -
                           1.224744871391586 * fin[3] + 0.7071067811865468 * fin[0],
-                        1.863864650467316e-16 * fin[11] - 1.224744871391586 * fin[5] +
-                          0.7071067811865468 * fin[1],
-                        0.7071067811865475 * fin[2] - 1.224744871391588 * fin[6],
-                        0.7071067811865475 * fin[4] - 1.224744871391588 * fin[7],
-                        0.7071067811865472 * fin[8] - 1.22474487139159 * fin[10],
-                        0.7071067811865472 * fin[9] - 1.22474487139159 * fin[11] };
+    1.863864650467316e-16 * fin[11] - 1.224744871391586 * fin[5] + 0.7071067811865468 * fin[1],
+    0.7071067811865475 * fin[2] - 1.224744871391588 * fin[6],
+    0.7071067811865475 * fin[4] - 1.224744871391588 * fin[7],
+    0.7071067811865472 * fin[8] - 1.22474487139159 * fin[10],
+    0.7071067811865472 * fin[9] - 1.22474487139159 * fin[11] };
   for (int i = 0; i < numnod; i++) {
     TEST_CHECK(gkyl_compare(fout3l_a[i], f3l_c[i], 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout3l_a[i], i);
@@ -746,11 +733,9 @@ void test_basis_ser_2d_dev()
 #endif
 
 TEST_LIST = { { "basis_ser_1d_ho", test_basis_ser_1d_ho },
-              { "basis_ser_2d_ho", test_basis_ser_2d_ho },
-              { "basis_ten_2d_ho", test_basis_ten_2d_ho },
-              { "basis_hyb_ho", test_basis_hyb_ho },
-              { "basis_gkhyb_ho", test_basis_gkhyb_ho },
+  { "basis_ser_2d_ho", test_basis_ser_2d_ho }, { "basis_ten_2d_ho", test_basis_ten_2d_ho },
+  { "basis_hyb_ho", test_basis_hyb_ho }, { "basis_gkhyb_ho", test_basis_gkhyb_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "basis_ser_2d_dev", test_basis_ser_2d_dev },
+  { "basis_ser_2d_dev", test_basis_ser_2d_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

@@ -57,8 +57,7 @@ struct pkpm_field *pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *
       f->ext_em_host = mkarr(false, 6 * app->confBasis.num_basis, app->local_ext.volume);
     }
     f->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-                                            app->confBasis.poly_order + 1, 6, f->info.ext_em,
-                                            f->info.ext_em_ctx);
+      app->confBasis.poly_order + 1, 6, f->info.ext_em, f->info.ext_em_ctx);
   }
 
   // Initialize applied currents (always used by implicit fluid sources, so always initialize)
@@ -78,8 +77,7 @@ struct pkpm_field *pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *
       f->app_current_host = mkarr(false, 3 * app->confBasis.num_basis, app->local_ext.volume);
     }
     f->app_current_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-                                                 app->confBasis.poly_order + 1, 3,
-                                                 f->info.app_current, f->info.app_current_ctx);
+      app->confBasis.poly_order + 1, 3, f->info.app_current, f->info.app_current_ctx);
   }
 
   // allocate cflrate (scalar array)
@@ -99,8 +97,8 @@ struct pkpm_field *pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *
   int up_dirs[GKYL_MAX_DIM] = { 0, 1, 2 }, zero_flux_flags[2 * GKYL_MAX_DIM] = { 0, 0, 0, 0, 0, 0 };
 
   // Maxwell solver
-  f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn, app->cdim, up_dirs, zero_flux_flags,
-                              1, app->use_gpu);
+  f->slvr = gkyl_hyper_dg_new(
+    &app->grid, &app->confBasis, eqn, app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   // Allocate arrays for diagonstics/parallel-kinetic-perpendicular-moment arrays:
   // bvar = magnetic field unit vector (first 3 components) and unit tensor (last 6 components)
@@ -128,11 +126,11 @@ struct pkpm_field *pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *
 
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf, app->use_gpu);
   // Create updaters for bvar (needed by PKPM model)
-  f->calc_bvar = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, maxwell,
-                                          app->geom, limiter_fac, 0, app->use_gpu);
+  f->calc_bvar = gkyl_dg_calc_em_vars_new(
+    &app->grid, &app->confBasis, &app->local_ext, maxwell, app->geom, limiter_fac, 0, app->use_gpu);
   // Create updaters for limiting EM fields
-  f->calc_em_vars = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, maxwell,
-                                             app->geom, limiter_fac, 0, app->use_gpu);
+  f->calc_em_vars = gkyl_dg_calc_em_vars_new(
+    &app->grid, &app->confBasis, &app->local_ext, maxwell, app->geom, limiter_fac, 0, app->use_gpu);
   gkyl_wv_eqn_release(maxwell);
 
   // determine which directions are not periodic
@@ -178,8 +176,7 @@ struct pkpm_field *pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
-                                    &app->lower_skin[d], &app->lower_ghost[d], f->em->ncomp,
-                                    app->cdim, app->use_gpu);
+      &app->lower_skin[d], &app->lower_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_FIELD_COPY)
@@ -192,8 +189,7 @@ struct pkpm_field *pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
-                                    &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp,
-                                    app->cdim, app->use_gpu);
+      &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
   }
 
   gkyl_dg_eqn_release(eqn);
@@ -204,8 +200,8 @@ struct pkpm_field *pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *
 void pkpm_field_apply_ic(gkyl_pkpm_app *app, struct pkpm_field *field, double t0)
 {
   int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, poly_order + 1, 8,
-                                                    field->info.init, field->info.ctx);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
+    &app->grid, &app->confBasis, poly_order + 1, 8, field->info.init, field->info.ctx);
 
   // run updater; need to project onto extended range for ease of handling
   // subsequent operations over extended range such as magnetic field unit vector computation
@@ -238,8 +234,8 @@ void pkpm_field_calc_ext_em(gkyl_pkpm_app *app, struct pkpm_field *field, double
 void pkpm_field_calc_app_current(gkyl_pkpm_app *app, struct pkpm_field *field, double tm)
 {
   if (field->has_app_current) {
-    gkyl_proj_on_basis_advance(field->app_current_proj, tm, &app->local_ext,
-                               field->app_current_host);
+    gkyl_proj_on_basis_advance(
+      field->app_current_proj, tm, &app->local_ext, field->app_current_host);
     if (app->use_gpu) {
       // note: app_current_host is same as app_current when not on GPUs
       gkyl_array_copy(field->app_current, field->app_current_host);
@@ -258,13 +254,13 @@ void pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const st
   }
   // Assumes magnetic field boundary conditions applied so magnetic field
   // unit vector and unit tensor are defined everywhere in the domain
-  gkyl_dg_calc_em_vars_advance(field->calc_bvar, field->tot_em, field->cell_avg_magB2, field->bvar,
-                               field->bvar_surf);
+  gkyl_dg_calc_em_vars_advance(
+    field->calc_bvar, field->tot_em, field->cell_avg_magB2, field->bvar, field->bvar_surf);
 
   // Compute div(b) and max_b = max(|b_i_l|, |b_i_r|)
   gkyl_array_clear(field->div_b, 0.0); // Incremented in each dimension, so clear beforehand
-  gkyl_dg_calc_em_vars_div_b(field->calc_bvar, &app->local, field->bvar_surf, field->bvar,
-                             field->max_b, field->div_b);
+  gkyl_dg_calc_em_vars_div_b(
+    field->calc_bvar, &app->local, field->bvar_surf, field->bvar, field->max_b, field->div_b);
 
   app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
 }
@@ -285,8 +281,7 @@ void pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gky
 }
 
 void pkpm_field_explicit_accumulate_current(gkyl_pkpm_app *app, struct pkpm_field *field,
-                                            const struct gkyl_array *fluidin[],
-                                            struct gkyl_array *emout)
+  const struct gkyl_array *fluidin[], struct gkyl_array *emout)
 {
   struct timespec wst = gkyl_wall_clock();
   if (!field->info.is_static) {
@@ -298,8 +293,8 @@ void pkpm_field_explicit_accumulate_current(gkyl_pkpm_app *app, struct pkpm_fiel
     }
     // Accumulate applied current to electric field terms
     if (field->has_app_current) {
-      gkyl_array_accumulate_range(emout, -1.0 / field->info.epsilon0, field->app_current,
-                                  &app->local);
+      gkyl_array_accumulate_range(
+        emout, -1.0 / field->info.epsilon0, field->app_current, &app->local);
     }
   }
   app->stat.current_tm += gkyl_time_diff_now_sec(wst);
@@ -307,8 +302,8 @@ void pkpm_field_explicit_accumulate_current(gkyl_pkpm_app *app, struct pkpm_fiel
 
 // Compute the RHS for field update, returning maximum stable
 // time-step.
-double pkpm_field_rhs(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em,
-                      struct gkyl_array *rhs)
+double pkpm_field_rhs(
+  gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -347,8 +342,8 @@ void pkpm_field_apply_bc(gkyl_pkpm_app *app, const struct pkpm_field *field, str
   struct timespec wst = gkyl_wall_clock();
 
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
-  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
-                           app->periodic_dirs, f);
+  gkyl_comm_array_per_sync(
+    app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, f);
 
   int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
   for (int d = 0; d < num_periodic_dir; ++d)

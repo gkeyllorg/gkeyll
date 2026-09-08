@@ -176,23 +176,23 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-                                                 .world = { 0.0 },
-                                                 .mapc2p = mapc2p,
-                                                 .c2p_ctx = 0,
-                                                 .bfield_func = eval_bfield_1x,
-                                                 .bfield_ctx = &proj_ctx,
-                                                 .basis = confBasis,
-                                                 .grid = confGrid,
-                                                 .local = confLocal,
-                                                 .local_ext = confLocal_ext,
-                                                 .global = confLocal,
-                                                 .global_ext = confLocal_ext,
-                                                 .position_map = pmap };
+    .world = { 0.0 },
+    .mapc2p = mapc2p,
+    .c2p_ctx = 0,
+    .bfield_func = eval_bfield_1x,
+    .bfield_ctx = &proj_ctx,
+    .basis = confBasis,
+    .grid = confGrid,
+    .local = confLocal,
+    .local_ext = confLocal_ext,
+    .global = confLocal,
+    .global_ext = confLocal_ext,
+    .position_map = pmap };
   int geo_ghost[3] = { 1, 1, 1 };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext,
-                          &geometry_input.geo_global);
+    &geometry_input.geo_global);
   memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
   memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
   // Deflate geometry.
@@ -213,8 +213,8 @@ void test_1x2v(int poly_order, bool use_gpu)
     gkyl_velocity_map_new(c2p_in, grid, velGrid, local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // Compute the integrated moments of the original f.
-  struct gkyl_dg_updater_moment *int_mom_up = gkyl_dg_updater_moment_gyrokinetic_new(
-    &grid, &confBasis, &basis, &confLocal, proj_ctx.mass, 0, gvm, gk_geom, NULL,
+  struct gkyl_dg_updater_moment *int_mom_up = gkyl_dg_updater_moment_gyrokinetic_new(&grid,
+    &confBasis, &basis, &confLocal, proj_ctx.mass, 0, gvm, gk_geom, NULL,
     GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu);
 
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(int_mom_up);
@@ -269,8 +269,8 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Compute the integrated moments of the shift.
   struct gkyl_array *ps_intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
-  gkyl_dg_updater_moment_gyrokinetic_advance(int_mom_up, &local, &confLocal, deltaf,
-                                             ps_intmom_grid);
+  gkyl_dg_updater_moment_gyrokinetic_advance(
+    int_mom_up, &local, &confLocal, deltaf, ps_intmom_grid);
   gkyl_array_reduce_range(red_intmom, ps_intmom_grid, GKYL_SUM, &confLocal);
   double intmom_shift[2 + vdim];
   if (use_gpu)
@@ -287,17 +287,17 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Check the integrated moments.
   TEST_CHECK(gkyl_compare(intmom_shift[0], 9.13090909090910e+00, 1e-10));
-  TEST_MSG("intmom_shift[0]: produced: %.14e | expected: %.14e", intmom_shift[0],
-           9.13090909090910e+00);
+  TEST_MSG(
+    "intmom_shift[0]: produced: %.14e | expected: %.14e", intmom_shift[0], 9.13090909090910e+00);
   TEST_CHECK(gkyl_compare(intmom_shift[1], 8.61055942680578e-16, 1e-10));
-  TEST_MSG("intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1],
-           8.61055942680578e-16);
+  TEST_MSG(
+    "intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1], 8.61055942680578e-16);
   TEST_CHECK(gkyl_compare(intmom_shift[2], 1.79770909090909e+02, 1e-10));
-  TEST_MSG("intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2],
-           1.79770909090909e+02);
+  TEST_MSG(
+    "intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2], 1.79770909090909e+02);
   TEST_CHECK(gkyl_compare(intmom_shift[3], 4.58457166783993e+02, 1e-10));
-  TEST_MSG("intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3],
-           4.58457166783993e+02);
+  TEST_MSG(
+    "intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3], 4.58457166783993e+02);
 
   gkyl_array_release(bmag);
   gkyl_array_release(distf);
@@ -334,6 +334,6 @@ void test_positivity_shift_1x2v_dev()
 
 TEST_LIST = { { "test_positivity_shift_1x2v_ho", test_positivity_shift_1x2v_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_positivity_shift_1x2v_dev", test_positivity_shift_1x2v_dev },
+  { "test_positivity_shift_1x2v_dev", test_positivity_shift_1x2v_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

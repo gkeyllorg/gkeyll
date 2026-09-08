@@ -13,8 +13,8 @@
 typedef void (*eval_at_coord_t)(const double *coords, const double *fdo, double *ftar);
 
 // Function pointer type for kernels returning target basis.
-typedef void (*basis_tar_t)(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order,
-                            int *num_basis);
+typedef void (*basis_tar_t)(
+  int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis);
 
 // For use in kernel tables.
 typedef struct {
@@ -49,7 +49,7 @@ typedef struct {
 //   ndim_do = 6 -> index 5   (63 combos)
 GKYL_CU_D static const eval_at_coord_kern_list ser_eval_at_coord_list[6][63] = { // ndim_do = 1.
   { { gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0,
-      gkyl_dg_eval_at_coord_proj_1x_ser_p2_eval_dirs_0, NULL } },
+    gkyl_dg_eval_at_coord_proj_1x_ser_p2_eval_dirs_0, NULL } },
   // ndim_do = 2.
   { { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_0,
       gkyl_dg_eval_at_coord_proj_2x_ser_p2_eval_dirs_0, NULL },
@@ -196,7 +196,7 @@ GKYL_CU_D static const eval_at_coord_kern_list ser_eval_at_coord_list[6][63] = {
 
 GKYL_CU_D static const basis_tar_kern_list ser_basis_tar_list[6][63] = { // ndim_do = 1.
   { { gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0_target_basis,
-      gkyl_dg_eval_at_coord_proj_1x_ser_p2_eval_dirs_0_target_basis, NULL } },
+    gkyl_dg_eval_at_coord_proj_1x_ser_p2_eval_dirs_0_target_basis, NULL } },
   // ndim_do = 2.
   { { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_0_target_basis,
       gkyl_dg_eval_at_coord_proj_2x_ser_p2_eval_dirs_0_target_basis, NULL },
@@ -343,12 +343,8 @@ GKYL_CU_D static const basis_tar_kern_list ser_basis_tar_list[6][63] = { // ndim
 
 // Tensor kernels.
 GKYL_CU_D static const eval_at_coord_kern_list ten_eval_at_coord_list[3][7] = { // ndim_do = 1.
-  { { gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
+  { { gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL },
     { NULL, NULL, NULL } },
   // ndim_do = 2.
   { { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_0,
@@ -357,10 +353,7 @@ GKYL_CU_D static const eval_at_coord_kern_list ten_eval_at_coord_list[3][7] = { 
       gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_1, NULL },
     { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_01,
       gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_01, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL } },
+    { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL } },
   // ndim_do = 3.
   { { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_0, NULL, NULL },
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_1, NULL, NULL },
@@ -373,12 +366,8 @@ GKYL_CU_D static const eval_at_coord_kern_list ten_eval_at_coord_list[3][7] = { 
 
 GKYL_CU_D static const basis_tar_kern_list ten_basis_tar_list[3][7] = { // ndim_do = 1.
   { { gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0_target_basis, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL } },
+    { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL }, { NULL, NULL, NULL } },
   // ndim_do = 2.
   { { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_0_target_basis,
       gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_0_target_basis, NULL },
@@ -386,10 +375,7 @@ GKYL_CU_D static const basis_tar_kern_list ten_basis_tar_list[3][7] = { // ndim_
       gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_1_target_basis, NULL },
     { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_01_target_basis,
       gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_01_target_basis, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL },
-    { NULL, NULL, NULL } },
+    { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL } },
   // ndim_do = 3.
   { { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_0_target_basis, NULL, NULL },
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_1_target_basis, NULL, NULL },
@@ -525,9 +511,8 @@ GKYL_CU_D static const basis_tar_kern_list gkhyb_basis_tar_list[4][31] = { // 1x
     { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_01234_target_basis, NULL, NULL } }
 };
 
-GKYL_CU_DH static void eval_at_coord_get_idx_do(const bool *is_eval, int ndim_do,
-                                                const int *idx_tar, const int *cell_idx,
-                                                int *idx_do)
+GKYL_CU_DH static void eval_at_coord_get_idx_do(
+  const bool *is_eval, int ndim_do, const int *idx_tar, const int *cell_idx, int *idx_do)
 {
   // Translate a target index to the corresponding donor index.
   int c = 0;
@@ -560,16 +545,12 @@ struct gkyl_dg_eval_at_coord_proj {
 #ifdef GKYL_HAVE_CUDA
 // Host-side wrapper for the GPU implementation of gkyl_dg_eval_at_coord_proj_advance.
 void gkyl_dg_eval_at_coord_proj_advance_cu(struct gkyl_dg_eval_at_coord_proj *up,
-                                           const double *eval_coords,
-                                           const struct gkyl_rect_grid *grid,
-                                           const bool *pick_lower, const int *known_index,
-                                           const struct gkyl_range *rng_do,
-                                           const struct gkyl_range *rng_tar,
-                                           const struct gkyl_array *fdo, struct gkyl_array *ftar);
+  const double *eval_coords, const struct gkyl_rect_grid *grid, const bool *pick_lower,
+  const int *known_index, const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar,
+  const struct gkyl_array *fdo, struct gkyl_array *ftar);
 
-struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker_cu(int cdim, int ndim,
-                                                          const struct gkyl_basis *basis,
-                                                          int num_eval_dirs, const int *eval_dirs);
+struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker_cu(
+  int cdim, int ndim, const struct gkyl_basis *basis, int num_eval_dirs, const int *eval_dirs);
 #endif
 
 GKYL_CU_DH static int eval_dirs_to_mask(int num_eval_dirs, const int *eval_dirs)
@@ -582,9 +563,8 @@ GKYL_CU_DH static int eval_dirs_to_mask(int num_eval_dirs, const int *eval_dirs)
   return mask;
 }
 
-GKYL_CU_D static struct dg_ev_proj_kernels *
-dg_eval_at_coord_choose_ker(bool use_gpu, int cdim, int ndim, const struct gkyl_basis *basis,
-                            int num_eval_dirs, const int *eval_dirs)
+GKYL_CU_D static struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker(bool use_gpu, int cdim,
+  int ndim, const struct gkyl_basis *basis, int num_eval_dirs, const int *eval_dirs)
 {
   // Choose the projection kernel.
 

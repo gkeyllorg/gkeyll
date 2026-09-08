@@ -901,8 +901,7 @@ static void test_L_domain_allgather_dir0_cuts2_par_ho()
     local_ranges[bI] = gkyl_malloc(sizeof(struct gkyl_range));
     local_ranges_ext[bI] = gkyl_malloc(sizeof(struct gkyl_range));
     gkyl_multib_comm_conn_create_multib_ranges_in_dir(global_ranges_ext[bI], global_ranges[bI],
-                                                      nghost, nconnected[bid], block_list[bid], dir,
-                                                      decomp);
+      nghost, nconnected[bid], block_list[bid], dir, decomp);
 
     gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
     int brank = -1;
@@ -953,8 +952,8 @@ static void test_L_domain_allgather_dir0_cuts2_par_ho()
     for (int ns = 0; ns < mbcc_send[bI]->num_comm_conn; ++ns) {
       // need to get the actual rank that owns this cut
       int rank_idx = mbcc_send[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id,
-                                  rank_list);
+      gkyl_rrobin_decomp_getranks(
+        round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
       // Make range a subrange
       mbcc_send[bI]->comm_conn[ns].range = *local_ranges[bI];
@@ -962,18 +961,17 @@ static void test_L_domain_allgather_dir0_cuts2_par_ho()
     for (int nr = 0; nr < mbcc_recv[bI]->num_comm_conn; ++nr) {
       // need to get the actual rank that owns this cut
       int rank_idx = mbcc_recv[bI]->comm_conn[nr].rank;
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id,
-                                  rank_list);
+      gkyl_rrobin_decomp_getranks(
+        round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id, rank_list);
       mbcc_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
       // Make range a subrange
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[nr].range, global_ranges_ext[bI],
-                          mbcc_recv[bI]->comm_conn[nr].range.lower,
-                          mbcc_recv[bI]->comm_conn[nr].range.upper);
+        mbcc_recv[bI]->comm_conn[nr].range.lower, mbcc_recv[bI]->comm_conn[nr].range.upper);
     }
   }
 
-  int stat = gkyl_multib_comm_conn_array_transfer(comm, num_local_blocks, local_blocks, mbcc_send,
-                                                  mbcc_recv, array_local, array_global);
+  int stat = gkyl_multib_comm_conn_array_transfer(
+    comm, num_local_blocks, local_blocks, mbcc_send, mbcc_recv, array_local, array_global);
 
   for (int bI = 0; bI < num_local_blocks; ++bI) {
     struct gkyl_rect_grid grid;
@@ -1134,8 +1132,7 @@ static void test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     local_ranges[bI] = gkyl_malloc(sizeof(struct gkyl_range));
     local_ranges_ext[bI] = gkyl_malloc(sizeof(struct gkyl_range));
     gkyl_multib_comm_conn_create_multib_ranges_in_dir(global_ranges_ext[bI], global_ranges[bI],
-                                                      nghost, nconnected[bid], block_list[bid], dir,
-                                                      decomp);
+      nghost, nconnected[bid], block_list[bid], dir, decomp);
 
     gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
     int brank = -1;
@@ -1191,8 +1188,8 @@ static void test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     for (int ns = 0; ns < mbcc_send[bI]->num_comm_conn; ++ns) {
       // need to get the actual rank that owns this cut
       int rank_idx = mbcc_send[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id,
-                                  rank_list);
+      gkyl_rrobin_decomp_getranks(
+        round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
       // Make range a subrange
       mbcc_send[bI]->comm_conn[ns].range = *local_ranges[bI];
@@ -1200,13 +1197,12 @@ static void test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     for (int nr = 0; nr < mbcc_recv[bI]->num_comm_conn; ++nr) {
       // need to get the actual rank that owns this cut
       int rank_idx = mbcc_recv[bI]->comm_conn[nr].rank;
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id,
-                                  rank_list);
+      gkyl_rrobin_decomp_getranks(
+        round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id, rank_list);
       mbcc_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
       // Make range a subrange
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[nr].range, global_ranges_ext[bI],
-                          mbcc_recv[bI]->comm_conn[nr].range.lower,
-                          mbcc_recv[bI]->comm_conn[nr].range.upper);
+        mbcc_recv[bI]->comm_conn[nr].range.lower, mbcc_recv[bI]->comm_conn[nr].range.upper);
     }
 
     // Sort connections according to rank and block ID.
@@ -1215,8 +1211,8 @@ static void test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
   }
 
   printf("calling transfer\n");
-  int stat = gkyl_multib_comm_conn_array_transfer(comm, num_local_blocks, local_blocks, mbcc_send,
-                                                  mbcc_recv, array_local, array_global);
+  int stat = gkyl_multib_comm_conn_array_transfer(
+    comm, num_local_blocks, local_blocks, mbcc_send, mbcc_recv, array_local, array_global);
   printf("did transfer\n");
 
   for (int bI = 0; bI < num_local_blocks; ++bI) {

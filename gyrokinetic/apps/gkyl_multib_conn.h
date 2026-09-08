@@ -21,8 +21,8 @@ enum gkyl_conn_id {
  * @param conn_id type of connection : GKYL_CONN_NEIGHBOR, _ALL, or _CORNER
  * return number of connected blocks
  */
-int gkyl_multib_conn_get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir,
-                                       int corner_num, enum gkyl_conn_id conn_id);
+int gkyl_multib_conn_get_num_connected(
+  struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id);
 
 /** 
  * Given a block topology, connection type, block id, and direction, 
@@ -38,4 +38,4 @@ int gkyl_multib_conn_get_num_connected(struct gkyl_block_topo *block_topo, int b
  * return number of connected blocks
  */
 int gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx, int dir,
-                                    int corner_num, enum gkyl_conn_id conn_id, int *block_list);
+  int corner_num, enum gkyl_conn_id conn_id, int *block_list);

@@ -26,8 +26,7 @@
 #include <gkyl_dg_bin_ops.h>
 
 static double error_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
-                           struct gkyl_basis basis, struct gkyl_array *field1,
-                           struct gkyl_array *field2)
+  struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
 {
   // Compute the L2 norm of the difference between 2 fields.
   assert(field1->ncomp == field2->ncomp);
@@ -50,7 +49,7 @@ static double error_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
 }
 
 static double field_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
-                           struct gkyl_basis basis, struct gkyl_array *field)
+  struct gkyl_basis basis, struct gkyl_array *field)
 {
   // Compute the L2 norm of a single field.
   struct gkyl_array *l2_cell = gkyl_array_new(GKYL_DOUBLE, 1, field->size);
@@ -228,15 +227,15 @@ double z_envelope(double z)
 // Derive rho from: -nabla_perp^2 phi + kSq(x,y)*phi = rho
 //   => rho = (kx^2 + ky^2)*phi + kSq(x,y)*phi
 // This is consistent with any kSq(x,y), including the spatially varying evalFunc_ksquare.
-void evalFunc_sol_dirichletx_dirichlety_3x(double t, const double *xn, double *restrict fout,
-                                           void *ctx)
+void evalFunc_sol_dirichletx_dirichlety_3x(
+  double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double kx = M_PI, ky = M_PI;
   fout[0] = sin(kx * x) * sin(ky * y) * z_envelope(z);
 }
-void evalFunc_rhs_dirichletx_dirichlety_3x(double t, const double *xn, double *restrict fout,
-                                           void *ctx)
+void evalFunc_rhs_dirichletx_dirichlety_3x(
+  double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double kx = M_PI, ky = M_PI;
@@ -246,8 +245,8 @@ void evalFunc_rhs_dirichletx_dirichlety_3x(double t, const double *xn, double *r
   fout[0] = (kx * kx + ky * ky - kSq_val[0]) * phi_val;
 }
 
-void evalFunc_sol_dirichletx_periodicy_3x(double t, const double *xn, double *restrict fout,
-                                          void *ctx)
+void evalFunc_sol_dirichletx_periodicy_3x(
+  double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   fout[0] = trig_func(x, y, false);
@@ -255,8 +254,8 @@ void evalFunc_sol_dirichletx_periodicy_3x(double t, const double *xn, double *re
 }
 
 // Periodic case (This is not suitable for convergence test as it leaves a constant offset in the solution)
-void evalFunc_rhs_dirichletx_periodicy_3x(double t, const double *xn, double *restrict fout,
-                                          void *ctx)
+void evalFunc_rhs_dirichletx_periodicy_3x(
+  double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double kSq[1];
@@ -308,9 +307,8 @@ static void remove_factors(struct gkyl_array *eps, struct gkyl_array *kSqFld)
   gkyl_array_scale(kSqFld, 1.0 / ksq_factor());
 }
 
-static double solve_fem_helmholtz_perp_2x(int poly_order, const int *cells,
-                                          struct gkyl_poisson_bc bcs, bool use_gpu,
-                                          double *sol_L2_out)
+static double solve_fem_helmholtz_perp_2x(
+  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu, double *sol_L2_out)
 {
   double epsilon_0 = 1.0;
   double kSq = ksquare(); // Helmholtz wave number squared.
@@ -422,8 +420,8 @@ static double solve_fem_helmholtz_perp_2x(int poly_order, const int *cells,
       const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
       const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
       // Write cell center coordinates and the 0th basis coefficient (cell average)
-      fprintf(fp, "%.16e %.16e %.16e %.16e\n", xc[0], xc[1], phi_p[0] / dg0norm,
-              phisol_p[0] / dg0norm);
+      fprintf(
+        fp, "%.16e %.16e %.16e %.16e\n", xc[0], xc[1], phi_p[0] / dg0norm, phisol_p[0] / dg0norm);
     }
     fclose(fp);
   }
@@ -445,8 +443,8 @@ static double solve_fem_helmholtz_perp_2x(int poly_order, const int *cells,
   return err_L2;
 }
 
-void test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs,
-                                bool use_gpu)
+void test_fem_helmholtz_perp_2x(
+  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
 {
   if (helmholtz_write_output()) {
     // Single-resolution mode (called from Python): check relative L2 error < 1%.
@@ -471,9 +469,8 @@ void test_fem_helmholtz_perp_2x(int poly_order, const int *cells, struct gkyl_po
   }
 }
 
-static double solve_fem_helmholtz_perp_3x(int poly_order, const int *cells,
-                                          struct gkyl_poisson_bc bcs, bool use_gpu,
-                                          double *sol_L2_out)
+static double solve_fem_helmholtz_perp_3x(
+  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu, double *sol_L2_out)
 {
   double epsilon_0 = 1.0;
   double kSq = ksquare(); // Helmholtz wave number squared.
@@ -498,17 +495,17 @@ static double solve_fem_helmholtz_perp_3x(int poly_order, const int *cells,
   gkyl_proj_on_basis *projob = NULL, *projob_sol = NULL, *projob_kSq = NULL;
   if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
       (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET)) {
-    projob = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1,
-                                    evalFunc_rhs_dirichletx_dirichlety_3x, NULL);
-    projob_sol = gkyl_proj_on_basis_new(&grid, &basis, 2 * (poly_order + 1), 1,
-                                        evalFunc_sol_dirichletx_dirichlety_3x, NULL);
+    projob = gkyl_proj_on_basis_new(
+      &grid, &basis, poly_order + 1, 1, evalFunc_rhs_dirichletx_dirichlety_3x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(
+      &grid, &basis, 2 * (poly_order + 1), 1, evalFunc_sol_dirichletx_dirichlety_3x, NULL);
   } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET &&
-              bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+               bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
              (bcs.lo_type[1] == GKYL_POISSON_PERIODIC && bcs.up_type[1] == GKYL_POISSON_PERIODIC)) {
-    projob = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1,
-                                    evalFunc_rhs_dirichletx_periodicy_3x, NULL);
-    projob_sol = gkyl_proj_on_basis_new(&grid, &basis, 2 * (poly_order + 1), 1,
-                                        evalFunc_sol_dirichletx_periodicy_3x, NULL);
+    projob = gkyl_proj_on_basis_new(
+      &grid, &basis, poly_order + 1, 1, evalFunc_rhs_dirichletx_periodicy_3x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(
+      &grid, &basis, 2 * (poly_order + 1), 1, evalFunc_sol_dirichletx_periodicy_3x, NULL);
   }
   projob_kSq =
     gkyl_proj_on_basis_new(&grid, &basis, 2 * (poly_order + 1), 1, evalFunc_ksquare, NULL);
@@ -596,7 +593,7 @@ static double solve_fem_helmholtz_perp_3x(int poly_order, const int *cells,
       const double *phisol_p = gkyl_array_cfetch(phisol_ho, loc);
       // Write cell center coordinates and the 0th basis coefficient (cell average)
       fprintf(fp, "%.16e %.16e %.16e %.16e %.16e\n", xc[0], xc[1], xc[2], phi_p[0] / dg0norm,
-              phisol_p[0] / dg0norm);
+        phisol_p[0] / dg0norm);
     }
     fclose(fp);
   }
@@ -620,8 +617,8 @@ static double solve_fem_helmholtz_perp_3x(int poly_order, const int *cells,
   return err_L2;
 }
 
-void test_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs,
-                                bool use_gpu)
+void test_fem_helmholtz_perp_3x(
+  int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
 {
   // Validate poly_order and BC combination before running.
   if (poly_order != 1) {

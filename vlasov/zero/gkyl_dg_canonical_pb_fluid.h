@@ -30,16 +30,14 @@ struct gkyl_dg_canonical_pb_fluid_auxfields {
  * @return Pointer to special canonical-pb equation object
  */
 struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_new(const struct gkyl_basis *cbasis,
-                                                   const struct gkyl_range *conf_range,
-                                                   const struct gkyl_wv_eqn *wv_eqn, bool use_gpu);
+  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn, bool use_gpu);
 
 /**
  * Create a new canonical-pb equation object for fluid systems object on NV-GPU: 
  * see new() method above for documentation.
  */
 struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                          const struct gkyl_range *conf_range,
-                                                          const struct gkyl_wv_eqn *wv_eqn);
+  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn);
 
 /**
  * Set the auxiliary fields
@@ -47,8 +45,8 @@ struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_cu_dev_new(const struct gkyl_basi
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_canonical_pb_fluid_set_auxfields(const struct gkyl_dg_eqn *eqn,
-                                           struct gkyl_dg_canonical_pb_fluid_auxfields auxin);
+void gkyl_canonical_pb_fluid_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_fluid_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 /**
@@ -57,7 +55,7 @@ void gkyl_canonical_pb_fluid_set_auxfields(const struct gkyl_dg_eqn *eqn,
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_canonical_pb_fluid_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                              struct gkyl_dg_canonical_pb_fluid_auxfields auxin);
+void gkyl_canonical_pb_fluid_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_fluid_auxfields auxin);
 
 #endif

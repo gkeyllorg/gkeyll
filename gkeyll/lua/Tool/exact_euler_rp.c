@@ -55,8 +55,8 @@ static void release_ProblemState(struct ProblemState *ps)
   gkyl_free(ps);
 }
 
-static void prefun(const struct ProblemState *ps, double *F, double *FD, double P, double DK,
-                   double PK, double CK)
+static void prefun(
+  const struct ProblemState *ps, double *F, double *FD, double P, double DK, double PK, double CK)
 {
   double PRATIO, QRT, AK, BK;
   double gas_gamma = ps->gas_gamma;
@@ -215,8 +215,8 @@ static void starpu(struct ProblemState *ps, double *pm, double *um)
   *um = U;
 }
 
-static void sample(struct ProblemState *ps, double PM, double UM, double S, double *D, double *U,
-                   double *P)
+static void sample(
+  struct ProblemState *ps, double PM, double UM, double S, double *D, double *U, double *P)
 {
   double gas_gamma = ps->gas_gamma;
   // compute constants related to gamma
@@ -527,8 +527,8 @@ void solveRiemannProblem(struct _ProblemState _ps, const char *out_prefix)
   fprintf(stdout, "... done!\n");
 
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 1, (double[]){ _ps.lower }, (double[]){ _ps.upper },
-                      (int[]){ _ps.ncell });
+  gkyl_rect_grid_init(
+    &grid, 1, (double[]){ _ps.lower }, (double[]){ _ps.upper }, (int[]){ _ps.ncell });
 
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 1, (int[]){ _ps.ncell });

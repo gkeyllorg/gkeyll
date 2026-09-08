@@ -8,8 +8,7 @@
 #include <assert.h>
 
 static void translate_dim_range_check_conf_deflate(int dir, int cdim_do, int cdim_tar, int vdim,
-                                                   const struct gkyl_range *rng_do,
-                                                   const struct gkyl_range *rng_tar)
+  const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar)
 {
   int c = 0;
   for (int d = 0; d < cdim_do; d++) {
@@ -22,8 +21,7 @@ static void translate_dim_range_check_conf_deflate(int dir, int cdim_do, int cdi
 }
 
 static void translate_dim_range_check_conf_inflate(int dir, int cdim_do, int cdim_tar, int vdim,
-                                                   const struct gkyl_range *rng_do,
-                                                   const struct gkyl_range *rng_tar)
+  const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar)
 {
   for (int d = 0; d < cdim_do - 1; d++) {
     assert(rng_do->lower[d] == rng_tar->lower[d]);
@@ -34,8 +32,7 @@ static void translate_dim_range_check_conf_inflate(int dir, int cdim_do, int cdi
 }
 
 static void translate_dim_range_check_phase_deflate(int dir, int cdim_do, int cdim_tar, int vdim,
-                                                    const struct gkyl_range *rng_do,
-                                                    const struct gkyl_range *rng_tar)
+  const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar)
 {
   translate_dim_range_check_conf_deflate(dir, cdim_do, cdim_tar, vdim, rng_do, rng_tar);
   for (int d = 0; d < vdim; d++) {
@@ -45,8 +42,7 @@ static void translate_dim_range_check_phase_deflate(int dir, int cdim_do, int cd
 }
 
 static void translate_dim_range_check_phase_inflate(int dir, int cdim_do, int cdim_tar, int vdim,
-                                                    const struct gkyl_range *rng_do,
-                                                    const struct gkyl_range *rng_tar)
+  const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar)
 {
   translate_dim_range_check_conf_inflate(dir, cdim_do, cdim_tar, vdim, rng_do, rng_tar);
   for (int d = 0; d < vdim; d++) {
@@ -67,35 +63,28 @@ typedef struct {
 
 // Serendipity  kernels.
 GKYL_CU_D static const trans_dim_kern_list_updown trans_dim_kern_list_ser[] = { // 1x
-  { .list = { { NULL, NULL, NULL },
-              { NULL, NULL, NULL },
-              { NULL, NULL, NULL },
-              { translate_dim_1x_ser_p1_to_2x_p1, NULL, NULL },
-              { NULL, NULL, NULL },
-              { NULL, NULL, NULL },
-              { NULL, NULL, NULL },
-              { NULL, NULL, NULL },
-              { NULL, NULL, NULL } } },
+  { .list = { { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL },
+      { translate_dim_1x_ser_p1_to_2x_p1, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL },
+      { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL } } },
   // 2x
   { .list = { { translate_dim_2x_ser_p1_to_1x_p1_dirx_lo, NULL, NULL },
-              { translate_dim_2x_ser_p1_to_1x_p1_dirx_mid, NULL, NULL },
-              { translate_dim_2x_ser_p1_to_1x_p1_dirx_up, NULL, NULL },
-              { translate_dim_2x_ser_p1_to_1x_p1_diry_lo, NULL, NULL },
-              { translate_dim_2x_ser_p1_to_1x_p1_diry_mid, NULL, NULL },
-              { translate_dim_2x_ser_p1_to_1x_p1_diry_up, NULL, NULL },
-              { translate_dim_2x_ser_p1_to_3x_p1, NULL, NULL },
-              { NULL, NULL, NULL },
-              { NULL, NULL, NULL } } },
+      { translate_dim_2x_ser_p1_to_1x_p1_dirx_mid, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_dirx_up, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_diry_lo, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_diry_mid, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_diry_up, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_3x_p1, NULL, NULL }, { NULL, NULL, NULL },
+      { NULL, NULL, NULL } } },
   // 3x
   { .list = { { translate_dim_3x_ser_p1_to_2x_p1_dirx_lo, NULL, NULL },
-              { translate_dim_3x_ser_p1_to_2x_p1_dirx_mid, NULL, NULL },
-              { translate_dim_3x_ser_p1_to_2x_p1_dirx_up, NULL, NULL },
-              { translate_dim_3x_ser_p1_to_2x_p1_diry_lo, NULL, NULL },
-              { translate_dim_3x_ser_p1_to_2x_p1_diry_mid, NULL, NULL },
-              { translate_dim_3x_ser_p1_to_2x_p1_diry_up, NULL, NULL },
-              { translate_dim_3x_ser_p1_to_2x_p1_dirz_lo, NULL, NULL },
-              { translate_dim_3x_ser_p1_to_2x_p1_dirz_mid, NULL, NULL },
-              { translate_dim_3x_ser_p1_to_2x_p1_dirz_up, NULL, NULL } } }
+      { translate_dim_3x_ser_p1_to_2x_p1_dirx_mid, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirx_up, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_diry_lo, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_diry_mid, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_diry_up, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirz_lo, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirz_mid, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirz_up, NULL, NULL } } }
 };
 
 // GkHybrid kernels.
@@ -108,12 +97,11 @@ GKYL_CU_D static const trans_dim_kern_list trans_dim_kern_list_gkhyb[] = {
 struct gkyl_translate_dim_kernels {
   translate_dim_t translate; // Kernel that translate the DG coefficients.
   void (*get_idx_do)(int cdim_tar, int vdim, const int *idx_tar, const struct gkyl_range *rng_do,
-                     int cdim_do, int *idx_do, int dir);
+    int cdim_do, int *idx_do, int dir);
 };
 
 GKYL_CU_DH static void translate_dim_get_idx_do_gk(int cdim_tar, int vdim, const int *idx_tar,
-                                                   const struct gkyl_range *rng_do, int cdim_do,
-                                                   int *idx_do, int dir)
+  const struct gkyl_range *rng_do, int cdim_do, int *idx_do, int dir)
 {
   for (int d = 0; d < cdim_do - 1; d++)
     idx_do[d] = idx_tar[d];
@@ -123,9 +111,7 @@ GKYL_CU_DH static void translate_dim_get_idx_do_gk(int cdim_tar, int vdim, const
 }
 
 GKYL_CU_DH static void translate_dim_get_idx_do_conf_down(int cdim_tar, int vdim,
-                                                          const int *idx_tar,
-                                                          const struct gkyl_range *rng_do,
-                                                          int cdim_do, int *idx_do, int dir)
+  const int *idx_tar, const struct gkyl_range *rng_do, int cdim_do, int *idx_do, int dir)
 {
   int c = 0;
   for (int d = 0; d < cdim_do; d++) {
@@ -138,8 +124,7 @@ GKYL_CU_DH static void translate_dim_get_idx_do_conf_down(int cdim_tar, int vdim
 }
 
 GKYL_CU_DH static void translate_dim_get_idx_do_conf_up(int cdim_tar, int vdim, const int *idx_tar,
-                                                        const struct gkyl_range *rng_do,
-                                                        int cdim_do, int *idx_do, int dir)
+  const struct gkyl_range *rng_do, int cdim_do, int *idx_do, int dir)
 {
   for (int d = 0; d < cdim_do; d++)
     idx_do[d] = idx_tar[d];
@@ -157,25 +142,23 @@ struct gkyl_translate_dim {
   bool use_gpu;
   struct gkyl_translate_dim_kernels *kernels;
   void (*range_check_func)(int dir, int cdim_do, int cdim_tar, int vdim,
-                           const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar);
+    const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar);
 };
 
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
 void trans_dim_choose_kernel_cu(struct gkyl_translate_dim_kernels *kernels, int cdim_do,
-                                struct gkyl_basis basis_do, int cdim_tar,
-                                struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge);
+  struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir,
+  enum gkyl_edge_loc edge);
 
 void gkyl_translate_dim_advance_cu(gkyl_translate_dim *up, const struct gkyl_range *rng_do,
-                                   const struct gkyl_range *rng_tar,
-                                   const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
-                                   struct gkyl_array *GKYL_RESTRICT ftar);
+  const struct gkyl_range *rng_tar, const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
+  struct gkyl_array *GKYL_RESTRICT ftar);
 #endif
 
 GKYL_CU_D static void trans_dim_choose_kernel(struct gkyl_translate_dim_kernels *kernels,
-                                              int cdim_do, struct gkyl_basis basis_do, int cdim_tar,
-                                              struct gkyl_basis basis_tar, int dir,
-                                              enum gkyl_edge_loc edge, bool use_gpu)
+  int cdim_do, struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir,
+  enum gkyl_edge_loc edge, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {

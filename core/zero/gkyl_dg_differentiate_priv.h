@@ -106,13 +106,12 @@ GKYL_CU_D static const differentiate_op_kern_list ten_differentiate_list[3][3][2
     // dir2: not applicable for 2D
     { { NULL, NULL, NULL }, { NULL, NULL, NULL } } },
   // ndim = 3: no tensor kernels available
-  { { { NULL, NULL, NULL }, { NULL, NULL, NULL } },
-    { { NULL, NULL, NULL }, { NULL, NULL, NULL } },
+  { { { NULL, NULL, NULL }, { NULL, NULL, NULL } }, { { NULL, NULL, NULL }, { NULL, NULL, NULL } },
     { { NULL, NULL, NULL }, { NULL, NULL, NULL } } }
 };
 
-GKYL_CU_D static differentiate_op_t choose_ser_differentiate_kern(int ndim, int dir, int poly_order,
-                                                                  int diff_order)
+GKYL_CU_D static differentiate_op_t choose_ser_differentiate_kern(
+  int ndim, int dir, int poly_order, int diff_order)
 {
   assert(ndim >= 1 && ndim <= 3);
   assert(dir >= 0 && dir < ndim);
@@ -120,8 +119,8 @@ GKYL_CU_D static differentiate_op_t choose_ser_differentiate_kern(int ndim, int 
   return ser_differentiate_list[ndim - 1][dir][diff_order - 1].kernels[poly_order - 1];
 }
 
-GKYL_CU_D static differentiate_op_t choose_ten_differentiate_kern(int ndim, int dir, int poly_order,
-                                                                  int diff_order)
+GKYL_CU_D static differentiate_op_t choose_ten_differentiate_kern(
+  int ndim, int dir, int poly_order, int diff_order)
 {
   assert(ndim >= 1 && ndim <= 3);
   assert(dir >= 0 && dir < ndim);
@@ -133,11 +132,8 @@ GKYL_CU_D static differentiate_op_t choose_ten_differentiate_kern(int ndim, int 
  * Host-side wrappers for GPU implementations.
  */
 void gkyl_dg_differentiate_op_local_cu(const struct gkyl_basis *basis, int dir, int diff_order,
-                                       double dx, int c_oop, struct gkyl_array *out, int c_iop,
-                                       const struct gkyl_array *inp);
+  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp);
 
 void gkyl_dg_differentiate_op_local_range_cu(const struct gkyl_basis *basis, int dir,
-                                             int diff_order, double dx, int c_oop,
-                                             struct gkyl_array *out, int c_iop,
-                                             const struct gkyl_array *inp,
-                                             const struct gkyl_range *range);
+  int diff_order, double dx, int c_oop, struct gkyl_array *out, int c_iop,
+  const struct gkyl_array *inp, const struct gkyl_range *range);

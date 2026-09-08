@@ -42,11 +42,9 @@ typedef struct gkyl_gk_neut_fluid_prim_vars gkyl_gk_neut_fluid_prim_vars;
  * @param use_gpu Whether to run on the GPU.
  * @return New updater pointer.
  */
-struct gkyl_gk_neut_fluid_prim_vars *
-gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gkyl_basis *cbasis,
-                                 struct gkyl_rect_grid *grid, const struct gkyl_range *mem_range,
-                                 enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type,
-                                 bool is_integrated, bool use_gpu);
+struct gkyl_gk_neut_fluid_prim_vars *gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass,
+  const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid, const struct gkyl_range *mem_range,
+  enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type, bool is_integrated, bool use_gpu);
 
 /**
  * Compute the drift velocity vector (ux, uy, uz).
@@ -57,8 +55,7 @@ gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gky
  * @param out_coff Offset in out where to place drift velocity.
  */
 void gkyl_gk_neut_fluid_prim_vars_udrift_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                 const struct gkyl_array *moms,
-                                                 struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the pressure p = (gas_gamma - 1)*(E - 1/2 rho u^2).
@@ -68,8 +65,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_advance(struct gkyl_gk_neut_fluid_prim_
  * @param out_coff Offset in out where to place pressure.
  */
 void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                   const struct gkyl_array *moms,
-                                                   struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the temperature T = p/n = (gas_gamma - 1)*(mass * E - 1/2 (rho u)^2)/rho.
@@ -80,8 +76,7 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
  * @param out_coff Offset in out where to place temperature.
  */
 void gkyl_gk_neut_fluid_prim_vars_temp_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                               const struct gkyl_array *moms,
-                                               struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the thermal energy p/(gas_gamma - 1) = E - 1/2 rho u^2.
@@ -91,8 +86,7 @@ void gkyl_gk_neut_fluid_prim_vars_temp_advance(struct gkyl_gk_neut_fluid_prim_va
  * @param out_coff Offset in out where to place thermal energy.
  */
 void gkyl_gk_neut_fluid_prim_vars_thermal_energy_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                         const struct gkyl_array *moms,
-                                                         struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the drift velocity vector (ux, uy, uz)
@@ -104,8 +98,7 @@ void gkyl_gk_neut_fluid_prim_vars_thermal_energy_advance(struct gkyl_gk_neut_flu
  * @param out_coff Offset in out where to place primitive moments.
  */
 void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                          const struct gkyl_array *moms,
-                                                          struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the drift velocity vector (ux, uy, uz)
@@ -117,8 +110,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance(struct gkyl_gk_neut_fl
  * @param out_coff Offset in out where to place primitive moments.
  */
 void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                      const struct gkyl_array *moms,
-                                                      struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the LTE moments: density, drift velocity vector (ux, uy, uz)
@@ -130,8 +122,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance(struct gkyl_gk_neut_fluid_
  * @param out_coff Offset in out where to place primitive moments.
  */
 void gkyl_gk_neut_fluid_prim_vars_lte_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                              const struct gkyl_array *moms, struct gkyl_array *out,
-                                              int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the moments:

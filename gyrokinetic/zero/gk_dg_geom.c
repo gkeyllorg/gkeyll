@@ -47,9 +47,8 @@ struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *in
   gkyl_range_init_from_shape(&dgg->vol_quad_range, ndim, shape);
 
   for (int d = 0; d < ndim; ++d)
-    dgg->surf_geom[d] =
-      gkyl_array_new(GKYL_USER, sizeof(struct gkyl_gk_dg_surf_geom[dgg->surf_quad_range.volume]),
-                     dgg->range.volume);
+    dgg->surf_geom[d] = gkyl_array_new(GKYL_USER,
+      sizeof(struct gkyl_gk_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume);
 
   dgg->vol_geom = gkyl_array_new(
     GKYL_USER, sizeof(struct gkyl_gk_dg_vol_geom[dgg->vol_quad_range.volume]), dgg->range.volume);
@@ -62,8 +61,8 @@ struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *in
   return dgg;
 }
 
-struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new_from_host(const struct gkyl_gk_dg_geom_inp *inp,
-                                                      struct gkyl_gk_dg_geom *up_host, bool use_gpu)
+struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new_from_host(
+  const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -88,8 +87,8 @@ void gkyl_gk_dg_geom_release(const struct gkyl_gk_dg_geom *dgg)
   gkyl_ref_count_dec(&dgg->ref_count);
 }
 
-void gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom,
-                                  struct gk_geometry *gk_geom)
+void gkyl_gk_dg_geom_populate_vol(
+  struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom)
 {
   int ndim = gk_geom->grid.ndim;
   // Populate volume nodes
@@ -154,8 +153,8 @@ void gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_d
   }
 }
 
-void gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom,
-                                   struct gk_geometry *gk_geom)
+void gkyl_gk_dg_geom_populate_surf(
+  struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom)
 {
   int ndim = gk_geom->grid.ndim;
   // Populate surface nodes

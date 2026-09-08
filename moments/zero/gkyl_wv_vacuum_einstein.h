@@ -29,9 +29,8 @@ struct gkyl_wv_vacuum_einstein_inp {
 * @return Pointer to the vacuum Einstein equations object using the Bona-Masso formalism.
 */
 struct gkyl_wv_eqn *gkyl_wv_vacuum_einstein_new(double excision_threshold,
-                                                enum gkyl_spacetime_slicing spacetime_slicing,
-                                                enum gkyl_spacetime_evolution spacetime_evolution,
-                                                bool use_gpu);
+  enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution,
+  bool use_gpu);
 
 /**
 * Create a new vacuum Einstein equations object using the Bona-Masso formalism, from an input context struct.
@@ -55,8 +54,8 @@ double gkyl_wv_vacuum_einstein_excision_threshold(const struct gkyl_wv_eqn *eqn)
 * @param eqn Vacuum Einstein equations object using the Bona-Masso formalism.
 * @return Spacetime slicing condition.
 */
-enum gkyl_spacetime_slicing
-gkyl_wv_vacuum_einstein_spacetime_slicing(const struct gkyl_wv_eqn *eqn);
+enum gkyl_spacetime_slicing gkyl_wv_vacuum_einstein_spacetime_slicing(
+  const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get spacetime evolution system.
@@ -64,5 +63,5 @@ gkyl_wv_vacuum_einstein_spacetime_slicing(const struct gkyl_wv_eqn *eqn);
 * @param eqn Vacuum Einstein equations object using the Bona-Masso formalism.
 * @return Spacetime evolution system.
 */
-enum gkyl_spacetime_evolution
-gkyl_wv_vacuum_einstein_spacetime_evolution(const struct gkyl_wv_eqn *eqn);
+enum gkyl_spacetime_evolution gkyl_wv_vacuum_einstein_spacetime_evolution(
+  const struct gkyl_wv_eqn *eqn);

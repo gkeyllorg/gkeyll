@@ -243,10 +243,10 @@ void test_tensor_field_base_dev()
 #endif
 
 TEST_LIST = { { "test_tensor_field_ho", test_tensor_field_ho },
-              { "test_tensor_field_base_ho", test_tensor_field_base_ho },
-              { "test_tensor_field_fetch_ho", test_tensor_field_fetch_ho },
-              { "test_tensor_field_set_ho", test_tensor_field_set_ho },
+  { "test_tensor_field_base_ho", test_tensor_field_base_ho },
+  { "test_tensor_field_fetch_ho", test_tensor_field_fetch_ho },
+  { "test_tensor_field_set_ho", test_tensor_field_set_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "tensor_field_base_dev", test_tensor_field_base_dev },
+  { "tensor_field_base_dev", test_tensor_field_base_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

@@ -20,8 +20,7 @@ typedef struct gkyl_deflate_zsurf gkyl_deflate_zsurf;
  */
 
 struct gkyl_deflate_zsurf *gkyl_deflate_zsurf_new(const struct gkyl_basis *cbasis,
-                                                  const struct gkyl_basis *deflated_cbasis,
-                                                  int edge, bool use_gpu);
+  const struct gkyl_basis *deflated_cbasis, int edge, bool use_gpu);
 
 /**
  * Advance deflate_zsurf (compute the derived_zsurf coefficients).
@@ -36,10 +35,8 @@ struct gkyl_deflate_zsurf *gkyl_deflate_zsurf_new(const struct gkyl_basis *cbasi
  */
 
 void gkyl_deflate_zsurf_advance(const struct gkyl_deflate_zsurf *up, int zidx,
-                                const struct gkyl_range *range,
-                                const struct gkyl_range *deflated_range,
-                                const struct gkyl_array *field, struct gkyl_array *deflated_field,
-                                int ncomp);
+  const struct gkyl_range *range, const struct gkyl_range *deflated_range,
+  const struct gkyl_array *field, struct gkyl_array *deflated_field, int ncomp);
 
 /**
  * Delete updater.
@@ -53,7 +50,5 @@ void gkyl_deflate_zsurf_release(struct gkyl_deflate_zsurf *up);
  */
 
 void gkyl_deflate_zsurf_advance_cu(const struct gkyl_deflate_zsurf *up, int zidx,
-                                   const struct gkyl_range *range,
-                                   const struct gkyl_range *deflated_range,
-                                   const struct gkyl_array *field,
-                                   struct gkyl_array *deflated_field, int ncomp);
+  const struct gkyl_range *range, const struct gkyl_range *deflated_range,
+  const struct gkyl_array *field, struct gkyl_array *deflated_field, int ncomp);

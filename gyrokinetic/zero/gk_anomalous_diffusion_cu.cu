@@ -24,8 +24,8 @@ __global__ static void gkyl_gk_anomalous_diffusion_set_auxfields_cu_kernel(
 void gkyl_gk_anomalous_diffusion_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_gk_anomalous_diffusion_auxfields auxin)
 {
-  gkyl_gk_anomalous_diffusion_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.nu->on_dev,
-                                                                  auxin.jacobgeo_inv->on_dev);
+  gkyl_gk_anomalous_diffusion_set_auxfields_cu_kernel<<<1, 1> > >(
+    eqn, auxin.nu->on_dev, auxin.jacobgeo_inv->on_dev);
 }
 
 __global__ void static gk_anomalous_diffusion_set_cu_dev_ptrs(
@@ -124,10 +124,8 @@ __global__ void static gk_anomalous_diffusion_set_cu_dev_ptrs(
 }
 
 struct gkyl_dg_eqn *gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_basis *basis,
-                                                           const struct gkyl_basis *cbasis,
-                                                           const struct gkyl_range *conf_range,
-                                                           enum gkyl_gyrokinetic_bc_type bc_x_lower,
-                                                           enum gkyl_gyrokinetic_bc_type bc_x_upper)
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
+  enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper)
 {
   struct gk_anomalous_diffusion *diffusion =
     (struct gk_anomalous_diffusion *)gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
@@ -145,11 +143,11 @@ struct gkyl_dg_eqn *gkyl_gk_anomalous_diffusion_cu_dev_new(const struct gkyl_bas
   // Copy the host struct to device struct.
   struct gk_anomalous_diffusion *diffusion_cu =
     (struct gk_anomalous_diffusion *)gkyl_cu_malloc(sizeof(struct gk_anomalous_diffusion));
-  gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct gk_anomalous_diffusion),
-                 GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(
+    diffusion_cu, diffusion, sizeof(struct gk_anomalous_diffusion), GKYL_CU_MEMCPY_H2D);
 
-  gk_anomalous_diffusion_set_cu_dev_ptrs<<<1, 1> > >(diffusion_cu, cbasis->b_type, cdim, vdim,
-                                                     poly_order, bc_x_lower, bc_x_upper);
+  gk_anomalous_diffusion_set_cu_dev_ptrs<<<1, 1> > >(
+    diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, bc_x_lower, bc_x_upper);
 
   // Set parent on_dev pointer.
   diffusion->eqn.on_dev = &diffusion_cu->eqn;

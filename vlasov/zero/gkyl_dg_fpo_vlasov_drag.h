@@ -17,8 +17,8 @@ struct gkyl_dg_fpo_vlasov_drag_auxfields {
  * @param phase_range phase space range for use in indexing drag flux term
  * @return Pointer to fpo equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis *pbasis,
-                                                const struct gkyl_range *phase_range, bool use_gpu);
+struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_new(
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu);
 
 /**
  * Create a new FPO drag equation object that lives on NV-GPU
@@ -27,8 +27,8 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis *pbasis,
  * @param phase_range phase space range for use in indexing drag flux term
  * @return Pointer to fpo equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_cu_dev_new(const struct gkyl_basis *pbasis,
-                                                       const struct gkyl_range *phase_range);
+struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_cu_dev_new(
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range);
 
 /**
  * Set auxiliary fields needed in updating the drag flux term (a = grad(h), h solved for externally).
@@ -36,8 +36,8 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_cu_dev_new(const struct gkyl_basis *
  * @param eqn Equation pointer
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_fpo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn,
-                                        struct gkyl_dg_fpo_vlasov_drag_auxfields auxin);
+void gkyl_fpo_vlasov_drag_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_drag_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -47,7 +47,7 @@ void gkyl_fpo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn,
  * @param eqn Equation pointer
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_fpo_vlasov_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                           struct gkyl_dg_fpo_vlasov_drag_auxfields auxin);
+void gkyl_fpo_vlasov_drag_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_drag_auxfields auxin);
 
 #endif

@@ -511,13 +511,13 @@ void test_2x_op_gradsq(int poly_order, bool use_gpu)
         volFac / (dx0Sq * dx1Sq),
       fint_ho[0], 1e-12));
   else if (poly_order == 2)
-    TEST_CHECK(gkyl_compare(cells[0] * cells[1] * 12. *
-                              ((dx1Sq + 5 * dx0Sq) * fIn[7] * fIn[7] +
-                               (5 * dx1Sq + dx0Sq) * fIn[6] * fIn[6] + 5 * dx0Sq * fIn[5] * fIn[5] +
-                               5 * dx1Sq * fIn[4] * fIn[4] + (dx1Sq + dx0Sq) * fIn[3] * fIn[3] +
-                               dx0Sq * fIn[2] * fIn[2] + dx1Sq * fIn[1] * fIn[1]) *
-                              volFac / (dx0Sq * dx1Sq),
-                            fint_ho[0], 1e-12));
+    TEST_CHECK(gkyl_compare(
+      cells[0] * cells[1] * 12. *
+        ((dx1Sq + 5 * dx0Sq) * fIn[7] * fIn[7] + (5 * dx1Sq + dx0Sq) * fIn[6] * fIn[6] +
+          5 * dx0Sq * fIn[5] * fIn[5] + 5 * dx1Sq * fIn[4] * fIn[4] +
+          (dx1Sq + dx0Sq) * fIn[3] * fIn[3] + dx0Sq * fIn[2] * fIn[2] + dx1Sq * fIn[1] * fIn[1]) *
+        volFac / (dx0Sq * dx1Sq),
+      fint_ho[0], 1e-12));
   else
     assert(false);
 
@@ -656,13 +656,13 @@ void test_array_integrate_2x_gradsq_dev()
 #endif
 
 TEST_LIST = { { "test_array_integrate_1x_ho", test_array_integrate_1x_ho },
-              { "test_array_integrate_2x_ho", test_array_integrate_2x_ho },
-              { "test_array_integrate_1x_gradsq_ho", test_array_integrate_1x_gradsq_ho },
-              { "test_array_integrate_2x_gradsq_ho", test_array_integrate_2x_gradsq_ho },
+  { "test_array_integrate_2x_ho", test_array_integrate_2x_ho },
+  { "test_array_integrate_1x_gradsq_ho", test_array_integrate_1x_gradsq_ho },
+  { "test_array_integrate_2x_gradsq_ho", test_array_integrate_2x_gradsq_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_array_integrate_1x_dev", test_array_integrate_1x_dev },
-              { "test_array_integrate_2x_dev", test_array_integrate_2x_dev },
-              { "test_array_integrate_1x_gradsq_dev", test_array_integrate_1x_gradsq_dev },
-              { "test_array_integrate_2x_gradsq_dev", test_array_integrate_2x_gradsq_dev },
+  { "test_array_integrate_1x_dev", test_array_integrate_1x_dev },
+  { "test_array_integrate_2x_dev", test_array_integrate_2x_dev },
+  { "test_array_integrate_1x_gradsq_dev", test_array_integrate_1x_gradsq_dev },
+  { "test_array_integrate_2x_gradsq_dev", test_array_integrate_2x_gradsq_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

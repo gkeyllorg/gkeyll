@@ -7,8 +7,8 @@ struct rrobin_decomp {
   int *branks; // ranks per block
 };
 
-const struct gkyl_rrobin_decomp *gkyl_rrobin_decomp_new(int total_ranks, int nblocks,
-                                                        const int *branks)
+const struct gkyl_rrobin_decomp *gkyl_rrobin_decomp_new(
+  int total_ranks, int nblocks, const int *branks)
 {
   struct rrobin_decomp *rr = gkyl_malloc(sizeof(*rr));
   rr->rrobin.total_ranks = total_ranks;

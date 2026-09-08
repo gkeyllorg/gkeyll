@@ -9,9 +9,8 @@
 #include <gkyl_mom_bcorr_lbo_gyrokinetic_kernels.h>
 
 typedef void (*lbo_gyrokinetic_momf_t)(const int *idx, enum gkyl_vel_edge edge,
-                                       const double *vBoundary, const double *dxv,
-                                       const double *vmap_prime, double _m, const double *fIn,
-                                       double *GKYL_RESTRICT out);
+  const double *vBoundary, const double *dxv, const double *vmap_prime, double _m,
+  const double *fIn, double *GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -70,7 +69,7 @@ struct mom_type_bcorr_lbo_gyrokinetic {
 void gk_mom_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D static void kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-                             const int *idx, const double *f, double *out, void *param)
+  const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_bcorr_lbo_gyrokinetic *mom_bcorr =
     container_of(momt, struct mom_type_bcorr_lbo_gyrokinetic, momt);
@@ -83,9 +82,8 @@ GKYL_CU_D static void kernel(const struct gkyl_mom_type *momt, const double *xc,
   long vlinidx = gkyl_range_idx(&mom_bcorr->vel_map->local_vel, vidx);
 
   return mom_bcorr->kernel(idx, edge, mom_bcorr->vel_map->vbounds, dx,
-                           (const double *)gkyl_array_cfetch(mom_bcorr->vel_map->vmap_prime,
-                                                             vlinidx),
-                           mom_bcorr->_m, f, out);
+    (const double *)gkyl_array_cfetch(mom_bcorr->vel_map->vmap_prime, vlinidx), mom_bcorr->_m, f,
+    out);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -94,9 +92,7 @@ GKYL_CU_D static void kernel(const struct gkyl_mom_type *momt, const double *xc,
  * Create new LBO Gyrokinetic boundary correction moment type object on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_mom_type *
-gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis,
-                                          const struct gkyl_basis *pbasis, double mass,
-                                          const struct gkyl_velocity_map *vel_map);
+struct gkyl_mom_type *gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, double mass, const struct gkyl_velocity_map *vel_map);
 
 #endif

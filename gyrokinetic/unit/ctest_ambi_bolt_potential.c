@@ -122,10 +122,10 @@ void test_ambi_bolt_sheath_calc_1x_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -141,9 +141,9 @@ void test_ambi_bolt_sheath_calc_1x_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag,
-                                       jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
+    jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag,
-                                       jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+    jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
 
   // Serendipity 1x basis is [1/sqrt(2), sqrt(3/2)x].
   // sheath_vals stores both the ion density and sheath value
@@ -155,22 +155,22 @@ void test_ambi_bolt_sheath_calc_1x_ho()
   double *sheath_upper_c = ((double *)gkyl_array_cfetch(sheath_vals[1], 9));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_lower_c[2],
-                                 log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+  TEST_CHECK(gkyl_compare_double(
+    sheath_lower_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
   TEST_MSG(" Got: %.9e | Expected: %.9e\n", sheath_lower_c[2],
-           log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2));
+    log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[1], 0, 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c[2],
-                                 log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+  TEST_CHECK(gkyl_compare_double(
+    sheath_upper_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
 
   // This operation happens after the sheaths are determined in the app, so we should test this
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -178,8 +178,8 @@ void test_ambi_bolt_sheath_calc_1x_ho()
   double *sheath_lower_c_avg = ((double *)gkyl_array_cfetch(sheath_vals[0], 0));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[1], 0, 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[2],
-                                 log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+  TEST_CHECK(gkyl_compare_double(
+    sheath_lower_c_avg[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[3], 0, 1e-12));
 
   gkyl_free(basis);
@@ -231,10 +231,10 @@ void test_ambi_bolt_phi_calc_1x_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -250,14 +250,14 @@ void test_ambi_bolt_phi_calc_1x_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag,
-                                       jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
+    jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag,
-                                       jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+    jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -325,10 +325,10 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -347,9 +347,9 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag,
-                                       jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
+    jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag,
-                                       jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+    jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
 
   // Serendipity 1x basis is [1/sqrt(2), sqrt(3/2)x].
   // sheath_vals stores both the ion density and sheath value
@@ -361,19 +361,19 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
   double *sheath_upper_c = ((double *)gkyl_array_cfetch(sheath_vals[1], 9));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_lower_c[2],
-                                 log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+  TEST_CHECK(gkyl_compare_double(
+    sheath_lower_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[1], 0, 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c[2],
-                                 log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+  TEST_CHECK(gkyl_compare_double(
+    sheath_upper_c[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -381,8 +381,8 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
   double *sheath_lower_c_avg = ((double *)gkyl_array_cfetch(sheath_vals[0], 0));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[1], 0, 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[2],
-                                 log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
+  TEST_CHECK(gkyl_compare_double(
+    sheath_lower_c_avg[2], log(1 / (sqrt(2 * M_PI) * ambi->dz / 2)) * sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[3], 0, 1e-12));
 
   gkyl_free(basis);
@@ -435,10 +435,10 @@ void test_ambi_bolt_phi_calc_1x_hat_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -457,14 +457,14 @@ void test_ambi_bolt_phi_calc_1x_hat_ho()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[0], &lower_ghost[0], cmag,
-                                       jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
+    jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[0], &upper_ghost[0], cmag,
-                                       jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+    jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim - 1, off = 2 * idx_par;
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -571,10 +571,10 @@ void test_ambi_bolt_sheath_calc_2x_one_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -592,15 +592,13 @@ void test_ambi_bolt_sheath_calc_2x_one_ho()
 
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-                                       &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off]);
+    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-                                       &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off + 1]);
+    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -684,10 +682,10 @@ void test_ambi_bolt_sheath_calc_2x_hat_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -707,15 +705,13 @@ void test_ambi_bolt_sheath_calc_2x_hat_ho()
 
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-                                       &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off]);
+    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-                                       &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off + 1]);
+    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -800,10 +796,10 @@ void test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -823,15 +819,13 @@ void test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
 
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-                                       &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off]);
+    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-                                       &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off + 1]);
+    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -918,10 +912,10 @@ void test_ambi_bolt_phi_calc_2x_one_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -939,15 +933,13 @@ void test_ambi_bolt_phi_calc_2x_one_ho()
 
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-                                       &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off]);
+    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-                                       &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off + 1]);
+    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1017,10 +1009,10 @@ void test_ambi_bolt_phi_calc_2x_hat_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -1040,15 +1032,13 @@ void test_ambi_bolt_phi_calc_2x_hat_ho()
 
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-                                       &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off]);
+    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-                                       &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off + 1]);
+    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1118,10 +1108,10 @@ void test_ambi_bolt_phi_calc_2x_ramp_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -1141,15 +1131,13 @@ void test_ambi_bolt_phi_calc_2x_ramp_ho()
 
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-                                       &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off]);
+    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-                                       &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off + 1]);
+    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1219,10 +1207,10 @@ void test_ambi_bolt_phi_calc_2x_parabola_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -1242,15 +1230,13 @@ void test_ambi_bolt_phi_calc_2x_parabola_ho()
 
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-                                       &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off]);
+    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-                                       &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off + 1]);
+    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1326,10 +1312,10 @@ void test_ambi_bolt_phi_calc_3x_one_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -1349,15 +1335,13 @@ void test_ambi_bolt_phi_calc_3x_one_ho()
 
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-                                       &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off]);
+    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-                                       &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off + 1]);
+    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1437,10 +1421,10 @@ void test_ambi_bolt_phi_calc_3x_parabola_ho()
   // Local skin and ghost ranges for configuration space fields.
   struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext,
-                           ghost);
-    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
   }
 
   struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -1460,15 +1444,13 @@ void test_ambi_bolt_phi_calc_3x_parabola_ho()
 
   int idx_par = cdim - 1, off = 2 * idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, &lower_skin[idx_par],
-                                       &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off]);
+    &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE, &upper_skin[idx_par],
-                                       &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0,
-                                       sheath_vals[off + 1]);
+    &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off + 1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
-  gkyl_array_copy_range_to_range(sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par],
-                                 &upper_ghost[idx_par]);
+  gkyl_array_copy_range_to_range(
+    sheath_vals[off + 1], sheath_vals[off + 1], &lower_ghost[idx_par], &upper_ghost[idx_par]);
   gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off + 1]);
   gkyl_array_scale(sheath_vals[off], 0.5);
 
@@ -1510,19 +1492,18 @@ void test_ambi_bolt_phi_calc_3x_parabola_ho()
 }
 
 TEST_LIST = { { "test_ambi_bolt_init_1x_ho", test_ambi_bolt_init_1x_ho },
-              { "test_ambi_bolt_sheath_calc_1x_ho", test_ambi_bolt_sheath_calc_1x_ho },
-              { "test_ambi_bolt_phi_calc_1x_ho", test_ambi_bolt_phi_calc_1x_ho },
-              { "test_ambi_bolt_sheath_calc_1x_hat_ho", test_ambi_bolt_sheath_calc_1x_hat_ho },
-              { "test_ambi_bolt_phi_calc_1x_hat_ho", test_ambi_bolt_phi_calc_1x_hat_ho },
-              { "test_ambi_bolt_init_2x_ho", test_ambi_bolt_init_2x_ho },
-              { "test_ambi_bolt_sheath_calc_2x_one_ho", test_ambi_bolt_sheath_calc_2x_one_ho },
-              { "test_ambi_bolt_sheath_calc_2x_hat_ho", test_ambi_bolt_sheath_calc_2x_hat_ho },
-              { "test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho",
-                test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho },
-              { "test_ambi_bolt_phi_calc_2x_one_ho", test_ambi_bolt_phi_calc_2x_one_ho },
-              { "test_ambi_bolt_phi_calc_2x_hat_ho", test_ambi_bolt_phi_calc_2x_hat_ho },
-              { "test_ambi_bolt_phi_calc_2x_ramp_ho", test_ambi_bolt_phi_calc_2x_ramp_ho },
-              { "test_ambi_bolt_phi_calc_2x_parabola_ho", test_ambi_bolt_phi_calc_2x_parabola_ho },
-              { "test_ambi_bolt_phi_calc_3x_one_ho", test_ambi_bolt_phi_calc_3x_one_ho },
-              { "test_ambi_bolt_phi_calc_3x_parabola_ho", test_ambi_bolt_phi_calc_3x_parabola_ho },
-              { NULL, NULL } };
+  { "test_ambi_bolt_sheath_calc_1x_ho", test_ambi_bolt_sheath_calc_1x_ho },
+  { "test_ambi_bolt_phi_calc_1x_ho", test_ambi_bolt_phi_calc_1x_ho },
+  { "test_ambi_bolt_sheath_calc_1x_hat_ho", test_ambi_bolt_sheath_calc_1x_hat_ho },
+  { "test_ambi_bolt_phi_calc_1x_hat_ho", test_ambi_bolt_phi_calc_1x_hat_ho },
+  { "test_ambi_bolt_init_2x_ho", test_ambi_bolt_init_2x_ho },
+  { "test_ambi_bolt_sheath_calc_2x_one_ho", test_ambi_bolt_sheath_calc_2x_one_ho },
+  { "test_ambi_bolt_sheath_calc_2x_hat_ho", test_ambi_bolt_sheath_calc_2x_hat_ho },
+  { "test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho", test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho },
+  { "test_ambi_bolt_phi_calc_2x_one_ho", test_ambi_bolt_phi_calc_2x_one_ho },
+  { "test_ambi_bolt_phi_calc_2x_hat_ho", test_ambi_bolt_phi_calc_2x_hat_ho },
+  { "test_ambi_bolt_phi_calc_2x_ramp_ho", test_ambi_bolt_phi_calc_2x_ramp_ho },
+  { "test_ambi_bolt_phi_calc_2x_parabola_ho", test_ambi_bolt_phi_calc_2x_parabola_ho },
+  { "test_ambi_bolt_phi_calc_3x_one_ho", test_ambi_bolt_phi_calc_3x_one_ho },
+  { "test_ambi_bolt_phi_calc_3x_parabola_ho", test_ambi_bolt_phi_calc_3x_parabola_ho },
+  { NULL, NULL } };

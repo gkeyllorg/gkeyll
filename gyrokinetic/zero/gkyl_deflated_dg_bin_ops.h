@@ -32,9 +32,8 @@ typedef struct gkyl_deflated_dg_bin_ops gkyl_deflated_dg_bin_ops;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_deflated_dg_bin_ops *
-gkyl_deflated_dg_bin_ops_new(struct gkyl_rect_grid grid, struct gkyl_basis *basis_on_dev,
-                             struct gkyl_basis basis, struct gkyl_range local, bool use_gpu);
+struct gkyl_deflated_dg_bin_ops *gkyl_deflated_dg_bin_ops_new(struct gkyl_rect_grid grid,
+  struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, struct gkyl_range local, bool use_gpu);
 
 /**
  * Multiply the two input fields on surfaces constant in the last dimension
@@ -53,8 +52,7 @@ gkyl_deflated_dg_bin_ops_new(struct gkyl_rect_grid grid, struct gkyl_basis *basi
  *
  */
 void gkyl_deflated_dg_bin_ops_mul(struct gkyl_deflated_dg_bin_ops *up, int c_oop,
-                                  struct gkyl_array *out, int c_lop, struct gkyl_array *lop,
-                                  int c_rop, struct gkyl_array *rop);
+  struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array *rop);
 
 /**
 * Divide the two input fields on surfaces constant in the last dimension
@@ -73,8 +71,7 @@ void gkyl_deflated_dg_bin_ops_mul(struct gkyl_deflated_dg_bin_ops *up, int c_oop
 *
 */
 void gkyl_deflated_dg_bin_ops_div(struct gkyl_deflated_dg_bin_ops *up, int c_oop,
-                                  struct gkyl_array *out, int c_lop, struct gkyl_array *lop,
-                                  int c_rop, struct gkyl_array *rop);
+  struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array *rop);
 
 /**
  * Delete updater.

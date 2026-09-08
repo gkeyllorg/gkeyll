@@ -36,7 +36,7 @@ void proj_rho(double t, const double *xn, double *fout, void *ctx)
 
 // Check continuity along last dim in 2x
 void check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range,
-                         struct gkyl_basis basis, struct gkyl_array *field)
+  struct gkyl_basis basis, struct gkyl_array *field)
 {
   struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid.ndim, basis.num_basis);
   basis.node_list(gkyl_array_fetch(nodes, 0));
@@ -72,7 +72,7 @@ void check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range,
 }
 
 void check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
-                struct gkyl_array *field2)
+  struct gkyl_array *field2)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -214,6 +214,6 @@ void test_deflated_bop_dev(void)
 
 TEST_LIST = { { "test_deflated_bop_ho", test_deflated_bop_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_deflated_bop_dev", test_deflated_bop_dev },
+  { "test_deflated_bop_dev", test_deflated_bop_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

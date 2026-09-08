@@ -29,9 +29,7 @@ enum gkyl_array_integrate_op {
  * @param use_gpu Indicate whether to perform integral on the device.
  */
 struct gkyl_array_integrate *gkyl_array_integrate_new(const struct gkyl_rect_grid *grid,
-                                                      const struct gkyl_basis *basis, int num_comp,
-                                                      enum gkyl_array_integrate_op op,
-                                                      bool use_gpu);
+  const struct gkyl_basis *basis, int num_comp, enum gkyl_array_integrate_op op, bool use_gpu);
 
 /**
  * Compute the array integral.
@@ -45,9 +43,8 @@ struct gkyl_array_integrate *gkyl_array_integrate_new(const struct gkyl_rect_gri
  * @return out Output integral result(s). On device memory if use_gpu=true.
  */
 void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_array *fin,
-                                  double factor, const struct gkyl_array *weight,
-                                  const struct gkyl_range *range,
-                                  const struct gkyl_range *weight_range, double *out);
+  double factor, const struct gkyl_array *weight, const struct gkyl_range *range,
+  const struct gkyl_range *weight_range, double *out);
 
 /**
  * Release memory associated with this updater.

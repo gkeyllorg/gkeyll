@@ -129,7 +129,7 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
       s->gamma_inv_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
     }
     s->sr_vars = gkyl_dg_calc_sr_vars_new(&s->grid, &s->grid_vel, &app->confBasis, &app->velBasis,
-                                          &app->local, &s->local_vel, app->use_gpu);
+      &app->local, &s->local_vel, app->use_gpu);
     // Project gamma and its inverse
     gkyl_calc_sr_vars_init_p_vars(s->sr_vars, s->gamma, s->gamma_inv);
 
@@ -137,8 +137,7 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
 
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local,
-                                         &s->local_vel, &s->local, is_zero_flux, s->model_id,
-                                         s->field_id, &aux_inp, app->use_gpu);
+      &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   } else if (s->model_id == GKYL_MODEL_CANONICAL_PB || s->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
     // Allocate arrays for specified hamiltonian
     s->hamil = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -236,34 +235,30 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
     struct gkyl_dg_calc_canonical_pb_vars *calc_vars =
       gkyl_dg_calc_canonical_pb_vars_new(&s->grid, &app->confBasis, &app->basis, app->use_gpu);
     gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext,
-                                              s->hamil, s->alpha_surf, s->sgn_alpha_surf,
-                                              s->const_sgn_alpha);
+      s->hamil, s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
     gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 
     struct gkyl_dg_canonical_pb_auxfields aux_inp = { .hamil = s->hamil,
-                                                      .alpha_surf = s->alpha_surf,
-                                                      .sgn_alpha_surf = s->sgn_alpha_surf,
-                                                      .const_sgn_alpha = s->const_sgn_alpha };
+      .alpha_surf = s->alpha_surf,
+      .sgn_alpha_surf = s->sgn_alpha_surf,
+      .const_sgn_alpha = s->const_sgn_alpha };
 
     //create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local,
-                                         &s->local_vel, &s->local, is_zero_flux, s->model_id,
-                                         s->field_id, &aux_inp, app->use_gpu);
+      &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   } else {
     if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B) {
       struct gkyl_dg_vlasov_auxfields aux_inp = {
         .field = s->qmem, .cot_vec = 0, .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0
       };
       s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local,
-                                           &s->local_vel, &s->local, is_zero_flux, s->model_id,
-                                           s->field_id, &aux_inp, app->use_gpu);
+        &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
     } else {
       struct gkyl_dg_vlasov_poisson_auxfields aux_inp = { .potentials = s->qmem,
-                                                          .fields_ext = s->qmem_ext };
+        .fields_ext = s->qmem_ext };
       s->slvr = gkyl_dg_updater_vlasov_poisson_new(&s->grid, &app->confBasis, &app->basis,
-                                                   &app->local, &s->local_vel, &s->local,
-                                                   is_zero_flux, s->model_id, s->field_id, &aux_inp,
-                                                   app->use_gpu);
+        &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp,
+        app->use_gpu);
     }
   }
 
@@ -278,8 +273,7 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
   // allocate date for density (for use in charge density accumulation and weak division for V_drift)
   vm_species_moment_init(app, s, &s->m0, GKYL_F_MOMENT_M0, false);
   // allocate data for integrated moments
-  vm_species_moment_init(
-    app, s, &s->integ_moms,
+  vm_species_moment_init(app, s, &s->integ_moms,
     s->model_id == GKYL_MODEL_SR ? GKYL_F_MOMENT_M0ENERGYM3 : GKYL_F_MOMENT_M0M1M2, true);
 
   // allocate data for diagnostic moments
@@ -317,8 +311,7 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
       s->app_accel_host = mkarr(false, 3 * app->confBasis.num_basis, app->local_ext.volume);
     }
     s->app_accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-                                               app->confBasis.poly_order + 1, 3, s->info.app_accel,
-                                               s->info.app_accel_ctx);
+      app->confBasis.poly_order + 1, 3, s->info.app_accel, s->info.app_accel_ctx);
   }
 
   // initialize projection routine for initial conditions
@@ -346,9 +339,9 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
   if (s->info.output_f_lte) {
     // Always have correct moments on for the f_lte output
     struct correct_all_moms_inp corr_inp = { .correct_all_moms = true,
-                                             .max_iter = s->info.max_iter,
-                                             .iter_eps = s->info.iter_eps,
-                                             .use_last_converged = s->info.use_last_converged };
+      .max_iter = s->info.max_iter,
+      .iter_eps = s->info.iter_eps,
+      .use_last_converged = s->info.use_last_converged };
     vm_species_lte_init(app, s, &s->lte, corr_inp);
   }
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
@@ -366,10 +359,10 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
 
   // Local lower/upper skin and ghost ranges (for applying BCs).
   for (int dir = 0; dir < cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&s->lower_skin[dir], &s->lower_ghost[dir], dir, GKYL_LOWER_EDGE,
-                           &s->local_ext, ghost);
-    gkyl_skin_ghost_ranges(&s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE,
-                           &s->local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &s->lower_skin[dir], &s->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &s->local_ext, ghost);
+    gkyl_skin_ghost_ranges(
+      &s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
   }
 
   // Allocate buffer for applying BCs.
@@ -401,8 +394,7 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
         bctype = GKYL_BC_FIXED_FUNC;
 
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
-                                      &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim,
-                                      app->use_gpu);
+        &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
     }
 
     // Upper BC updater. Copy BCs by default.
@@ -421,8 +413,7 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
         bctype = GKYL_BC_FIXED_FUNC;
 
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
-                                      &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim,
-                                      app->use_gpu);
+        &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
     }
   }
   if (s->calc_bflux) {
@@ -472,8 +463,8 @@ void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, doubl
 void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm)
 {
   if (species->has_app_accel) {
-    gkyl_proj_on_basis_advance(species->app_accel_proj, tm, &app->local_ext,
-                               species->app_accel_host);
+    gkyl_proj_on_basis_advance(
+      species->app_accel_proj, tm, &app->local_ext, species->app_accel_host);
     if (app->use_gpu) {
       // note: app_accel_host is same as app_accel when not on GPUs
       gkyl_array_copy(species->app_accel, species->app_accel_host);
@@ -484,8 +475,7 @@ void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species,
 // Compute the RHS for species update, returning maximum stable
 // time-step.
 double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
-                      const struct gkyl_array *fin, const struct gkyl_array *em,
-                      struct gkyl_array *rhs)
+  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs)
 {
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
@@ -516,8 +506,8 @@ double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       }
     }
 
-    gkyl_dg_updater_vlasov_poisson_advance(species->slvr, &species->local, fin, species->cflrate,
-                                           rhs);
+    gkyl_dg_updater_vlasov_poisson_advance(
+      species->slvr, &species->local, fin, species->cflrate, rhs);
   }
 
   if (species->collision_id == GKYL_LBO_COLLISIONS) {
@@ -554,7 +544,7 @@ double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 // Compute the implicit RHS for species update, returning maximum stable
 // time-step.
 double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
-                               const struct gkyl_array *fin, struct gkyl_array *rhs, double dt)
+  const struct gkyl_array *fin, struct gkyl_array *rhs, double dt)
 {
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
@@ -585,14 +575,14 @@ double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
 
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
-void vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-                         struct gkyl_array *f, double tcurr)
+void vm_species_apply_bc(
+  gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f, double tcurr)
 {
   struct timespec wst = gkyl_wall_clock();
 
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
-  gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext, num_periodic_dir,
-                           app->periodic_dirs, f);
+  gkyl_comm_array_per_sync(
+    species->comm, &species->local, &species->local_ext, num_periodic_dir, app->periodic_dirs, f);
 
   int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
   for (int d = 0; d < num_periodic_dir; ++d)

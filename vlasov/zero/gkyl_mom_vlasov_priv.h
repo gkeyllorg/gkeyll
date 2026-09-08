@@ -17,8 +17,8 @@ static struct {
   { -1, -1, -1, 5 } // 3x kernel indices
 };
 
-typedef void (*vlasov_momf_t)(const double *xc, const double *dx, const int *idx, const double *fIn,
-                              double *GKYL_RESTRICT out);
+typedef void (*vlasov_momf_t)(
+  const double *xc, const double *dx, const int *idx, const double *fIn, double *GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct {
@@ -246,7 +246,7 @@ struct mom_type_vlasov {
 void gkyl_mom_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D static void kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-                             const int *idx, const double *f, double *out, void *param)
+  const int *idx, const double *f, double *out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
   return mom_vlasov->kernel(xc, dx, idx, f, out);
@@ -258,14 +258,12 @@ GKYL_CU_D static void kernel(const struct gkyl_mom_type *momt, const double *xc,
  * see new() method above for documentation.
  */
 struct gkyl_mom_type *gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                 const struct gkyl_basis *pbasis,
-                                                 enum gkyl_distribution_moments mom_type);
+  const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type);
 
 /**
  * Create new integrated Vlasov moment type object on NV-GPU:
  * see new() method above for documentation.
  */
 struct gkyl_mom_type *gkyl_int_mom_vlasov_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                     const struct gkyl_basis *pbasis,
-                                                     enum gkyl_distribution_moments mom_type);
+  const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type);
 #endif

@@ -566,21 +566,21 @@ void test_spitzer_coll_freq_3x_p2_dev()
 #endif
 
 TEST_LIST = { { "test_spitzer_coll_freq_1x_p1_ho", test_spitzer_coll_freq_1x_p1_ho },
-              { "test_spitzer_coll_freq_1x_p2_ho", test_spitzer_coll_freq_1x_p2_ho },
+  { "test_spitzer_coll_freq_1x_p2_ho", test_spitzer_coll_freq_1x_p2_ho },
 
-              { "test_spitzer_coll_freq_2x_p1_ho", test_spitzer_coll_freq_2x_p1_ho },
-              { "test_spitzer_coll_freq_2x_p2_ho", test_spitzer_coll_freq_2x_p2_ho },
+  { "test_spitzer_coll_freq_2x_p1_ho", test_spitzer_coll_freq_2x_p1_ho },
+  { "test_spitzer_coll_freq_2x_p2_ho", test_spitzer_coll_freq_2x_p2_ho },
 
-              { "test_spitzer_coll_freq_3x_p1_ho", test_spitzer_coll_freq_3x_p1_ho },
-              { "test_spitzer_coll_freq_3x_p2_ho", test_spitzer_coll_freq_3x_p2_ho },
+  { "test_spitzer_coll_freq_3x_p1_ho", test_spitzer_coll_freq_3x_p1_ho },
+  { "test_spitzer_coll_freq_3x_p2_ho", test_spitzer_coll_freq_3x_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_spitzer_coll_freq_1x_p1_dev", test_spitzer_coll_freq_1x_p1_dev },
-              { "test_spitzer_coll_freq_1x_p2_dev", test_spitzer_coll_freq_1x_p2_dev },
+  { "test_spitzer_coll_freq_1x_p1_dev", test_spitzer_coll_freq_1x_p1_dev },
+  { "test_spitzer_coll_freq_1x_p2_dev", test_spitzer_coll_freq_1x_p2_dev },
 
-              { "test_spitzer_coll_freq_2x_p1_dev", test_spitzer_coll_freq_2x_p1_dev },
-              { "test_spitzer_coll_freq_2x_p2_dev", test_spitzer_coll_freq_2x_p2_dev },
+  { "test_spitzer_coll_freq_2x_p1_dev", test_spitzer_coll_freq_2x_p1_dev },
+  { "test_spitzer_coll_freq_2x_p2_dev", test_spitzer_coll_freq_2x_p2_dev },
 
-              { "test_spitzer_coll_freq_3x_p1_dev", test_spitzer_coll_freq_3x_p1_dev },
-              { "test_spitzer_coll_freq_3x_p2_dev", test_spitzer_coll_freq_3x_p2_dev },
+  { "test_spitzer_coll_freq_3x_p1_dev", test_spitzer_coll_freq_3x_p1_dev },
+  { "test_spitzer_coll_freq_3x_p2_dev", test_spitzer_coll_freq_3x_p2_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

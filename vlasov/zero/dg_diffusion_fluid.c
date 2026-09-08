@@ -23,8 +23,8 @@ void gkyl_dg_diffusion_fluid_free(const struct gkyl_ref_count *ref)
   gkyl_free(diffusion);
 }
 
-void gkyl_dg_diffusion_fluid_set_auxfields(const struct gkyl_dg_eqn *eqn,
-                                           struct gkyl_dg_diffusion_fluid_auxfields auxin)
+void gkyl_dg_diffusion_fluid_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_fluid_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.D)) {
@@ -38,14 +38,13 @@ void gkyl_dg_diffusion_fluid_set_auxfields(const struct gkyl_dg_eqn *eqn,
 }
 
 struct gkyl_dg_eqn *gkyl_dg_diffusion_fluid_new(const struct gkyl_basis *basis, bool is_diff_const,
-                                                int num_equations, const bool *diff_in_dir,
-                                                int diff_order, const struct gkyl_range *diff_range,
-                                                bool use_gpu)
+  int num_equations, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
+  bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_diffusion_fluid_cu_dev_new(basis, is_diff_const, num_equations, diff_in_dir,
-                                              diff_order, diff_range);
+    return gkyl_dg_diffusion_fluid_cu_dev_new(
+      basis, is_diff_const, num_equations, diff_in_dir, diff_order, diff_range);
 #endif
 
   struct dg_diffusion_fluid *diffusion = gkyl_malloc(sizeof(struct dg_diffusion_fluid));

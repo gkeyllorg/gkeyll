@@ -110,37 +110,37 @@ struct rt_ctx create_ctx(void)
   double xloc = 0.5 * Lx; // Fluid boundary (x-coordinate).
 
   struct rt_ctx ctx = { .pi = pi,
-                        .gas_gamma = gas_gamma,
-                        .epsilon0 = epsilon0,
-                        .mu0 = mu0,
-                        .mass_ion = mass_ion,
-                        .charge_ion = charge_ion,
-                        .mass_elc = mass_elc,
-                        .charge_elc = charge_elc,
-                        .atwood = atwood,
-                        .g_hat = g_hat,
-                        .B0 = B0,
-                        .beta = beta,
-                        .Te_over_Ti = Te_over_Ti,
-                        .pert_max = pert_max,
-                        .omega_ci = omega_ci,
-                        .nl = nl,
-                        .nr = nr,
-                        .Ti = Ti,
-                        .Te = Te,
-                        .T = T,
-                        .vAi = vAi,
-                        .grav = grav,
-                        .Nx = Nx,
-                        .Ny = Ny,
-                        .Lx = Lx,
-                        .Ly = Ly,
-                        .cfl_frac = cfl_frac,
-                        .t_end = t_end,
-                        .num_frames = num_frames,
-                        .dt_failure_tol = dt_failure_tol,
-                        .num_failures_max = num_failures_max,
-                        .xloc = xloc };
+    .gas_gamma = gas_gamma,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .atwood = atwood,
+    .g_hat = g_hat,
+    .B0 = B0,
+    .beta = beta,
+    .Te_over_Ti = Te_over_Ti,
+    .pert_max = pert_max,
+    .omega_ci = omega_ci,
+    .nl = nl,
+    .nr = nr,
+    .Ti = Ti,
+    .Te = Te,
+    .T = T,
+    .vAi = vAi,
+    .grav = grav,
+    .Nx = Nx,
+    .Ny = Ny,
+    .Lx = Lx,
+    .Ly = Ly,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
+    .xloc = xloc };
 
   return ctx;
 }
@@ -277,13 +277,13 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   double Bz = 0.0;
 
   if (x < xloc) {
-    Bz = sqrt(B0 * B0 +
-              2 * mu0 * (mass_ion * grav * nl * x)); // Total magnetic field (z- direction, left).
+    Bz = sqrt(
+      B0 * B0 + 2 * mu0 * (mass_ion * grav * nl * x)); // Total magnetic field (z- direction, left).
   } else {
     Bz = sqrt(B0 * B0 +
               2 * mu0 *
                 ((nl - nr) * T + mass_ion * grav * nl * xloc +
-                 mass_ion * grav * nr * (x - xloc))); // Total magnetic field (z-direction, left).
+                  mass_ion * grav * nr * (x - xloc))); // Total magnetic field (z-direction, left).
   }
 
   // Set electric field.
@@ -346,40 +346,40 @@ int main(int argc, char **argv)
   struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
   struct gkyl_moment_species elc = { .name = "elc",
-                                     .charge = ctx.charge_elc,
-                                     .mass = ctx.mass_elc,
-                                     .equation = elc_euler,
+    .charge = ctx.charge_elc,
+    .mass = ctx.mass_elc,
+    .equation = elc_euler,
 
-                                     .init = evalElcInit,
-                                     .ctx = &ctx,
+    .init = evalElcInit,
+    .ctx = &ctx,
 
-                                     .app_accel = evalAppAccel,
-                                     .app_accel_ctx = &ctx,
+    .app_accel = evalAppAccel,
+    .app_accel_ctx = &ctx,
 
-                                     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT } };
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT } };
 
   struct gkyl_moment_species ion = { .name = "ion",
-                                     .charge = ctx.charge_ion,
-                                     .mass = ctx.mass_ion,
-                                     .equation = ion_euler,
+    .charge = ctx.charge_ion,
+    .mass = ctx.mass_ion,
+    .equation = ion_euler,
 
-                                     .init = evalIonInit,
-                                     .ctx = &ctx,
+    .init = evalIonInit,
+    .ctx = &ctx,
 
-                                     .app_accel = evalAppAccel,
-                                     .app_accel_ctx = &ctx,
+    .app_accel = evalAppAccel,
+    .app_accel_ctx = &ctx,
 
-                                     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT } };
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT } };
 
   // Field.
   struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
-                                     .mu0 = ctx.mu0,
-                                     .mag_error_speed_fact = 1.0,
+    .mu0 = ctx.mu0,
+    .mag_error_speed_fact = 1.0,
 
-                                     .init = evalFieldInit,
-                                     .ctx = &ctx,
+    .init = evalFieldInit,
+    .ctx = &ctx,
 
-                                     .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL } };
+    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -430,8 +430,8 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -454,8 +454,8 @@ int main(int argc, char **argv)
     .field = field,
 
     .parallelism = { .use_gpu = app_args.use_gpu,
-                     .cuts = { app_args.cuts[0], app_args.cuts[1] },
-                     .comm = comm }
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -507,8 +507,8 @@ int main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_moment_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         break;
       }
     } else {

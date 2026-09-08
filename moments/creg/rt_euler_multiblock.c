@@ -40,16 +40,16 @@ struct skin_ghost_ranges {
   struct gkyl_range upper_ghost[2];
 };
 
-void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr, const struct gkyl_range *parent,
-                            const int *ghost)
+void skin_ghost_ranges_init(
+  struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost)
 {
   int ndim = parent->ndim;
 
   for (int d = 0; d < ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent,
-                           ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent, ghost);
   }
 }
 
@@ -163,14 +163,12 @@ void block_bc_updaters_init(struct block_data *bdata, const struct gkyl_block_co
     // create BC updater in dir 'd' on lower edge
     if (conn->connections[d][0].edge == GKYL_PHYSICAL)
       bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d,
-                                                GKYL_LOWER_EDGE, nghost, bdata->euler->wall_bc_func,
-                                                0);
+        GKYL_LOWER_EDGE, nghost, bdata->euler->wall_bc_func, 0);
 
     // create BC updater in dir 'd' on upper edge
     if (conn->connections[d][1].edge == GKYL_PHYSICAL)
       bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d,
-                                                GKYL_UPPER_EDGE, nghost, bdata->euler->wall_bc_func,
-                                                0);
+        GKYL_UPPER_EDGE, nghost, bdata->euler->wall_bc_func, 0);
   }
 
   // create skin/ghost region
@@ -205,8 +203,8 @@ void block_bc_updaters_apply(const struct block_data *bdata, double tm, struct g
   }
 }
 
-void sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[],
-                 struct gkyl_array *fld[])
+void sync_blocks(
+  const struct gkyl_block_topo *btopo, const struct block_data bdata[], struct gkyl_array *fld[])
 {
   for (int i = 0; i < btopo->num_blocks; ++i) {
     for (int d = 0; d < btopo->ndim; ++d) {
@@ -225,14 +223,14 @@ void sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bd
         switch (te[0].edge) {
         case GKYL_LOWER_POSITIVE:
         case GKYL_LOWER_NEGATIVE:
-          gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data,
-                                      &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+          gkyl_array_copy_from_buffer(
+            fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
           break;
 
         case GKYL_UPPER_POSITIVE:
         case GKYL_UPPER_NEGATIVE:
-          gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data,
-                                      &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
+          gkyl_array_copy_from_buffer(
+            fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
           break;
 
         default:;
@@ -252,14 +250,14 @@ void sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bd
         switch (te[1].edge) {
         case GKYL_LOWER_POSITIVE:
         case GKYL_LOWER_NEGATIVE:
-          gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data,
-                                      &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+          gkyl_array_copy_from_buffer(
+            fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
           break;
 
         case GKYL_UPPER_POSITIVE:
         case GKYL_UPPER_NEGATIVE:
-          gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data,
-                                      &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
+          gkyl_array_copy_from_buffer(
+            fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
           break;
 
         default:;
@@ -299,17 +297,15 @@ void update_block_job_func(void *ctx)
   const struct block_data *bdata = ubctx->bdata;
 
   // run wave-prop updater
-  ubctx->stat = gkyl_wave_prop_advance(bdata->slvr[d], tcurr, dt, &bdata->range, NULL, bdata->f[d],
-                                       bdata->f[d + 1]);
+  ubctx->stat = gkyl_wave_prop_advance(
+    bdata->slvr[d], tcurr, dt, &bdata->range, NULL, bdata->f[d], bdata->f[d + 1]);
 
   // apply block-local boundary conditions
   block_bc_updaters_apply(bdata, tcurr, bdata->f[d + 1]);
 }
 
 struct gkyl_update_status update_all_blocks(const struct gkyl_job_pool *job_pool,
-                                            const struct gkyl_block_topo *btopo,
-                                            const struct block_data bdata[], double tcurr,
-                                            double dt)
+  const struct gkyl_block_topo *btopo, const struct block_data bdata[], double tcurr, double dt)
 {
   int num_blocks = btopo->num_blocks;
   double dt_suggested = DBL_MAX;
@@ -331,7 +327,7 @@ struct gkyl_update_status update_all_blocks(const struct gkyl_job_pool *job_pool
       // return immediately if a block failed
       if (block_ctx[i].stat.success == 0)
         return (struct gkyl_update_status){ .success = 0,
-                                            .dt_suggested = block_ctx[i].stat.dt_suggested };
+          .dt_suggested = block_ctx[i].stat.dt_suggested };
 
       dt_suggested = fmin(dt_suggested, block_ctx[i].stat.dt_suggested);
       fld[i] = bdata[i].f[d + 1]; // for use in block-boundary sync
@@ -369,9 +365,8 @@ void copy_job_func(void *ctx)
 
 // function that takes a time-step
 struct gkyl_update_status update(const struct gkyl_job_pool *job_pool,
-                                 const struct gkyl_block_topo *btopo,
-                                 const struct block_data bdata[], double tcurr, double dt0,
-                                 struct sim_stats *stats)
+  const struct gkyl_block_topo *btopo, const struct block_data bdata[], double tcurr, double dt0,
+  struct sim_stats *stats)
 {
   int num_blocks = btopo->num_blocks;
   double dt_suggested = DBL_MAX;
@@ -506,14 +501,13 @@ int main(int argc, char **argv)
     bdata[i].euler = gkyl_wv_euler_new(1.4, false);
 
     for (int d = 0; d < 2; ++d)
-      bdata[i].slvr[d] =
-        gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &bdata[i].grid,
-                                                         .equation = bdata[i].euler,
-                                                         .limiter = GKYL_MONOTONIZED_CENTERED,
-                                                         .num_up_dirs = 1,
-                                                         .update_dirs = { d },
-                                                         .cfl = 0.95,
-                                                         .geom = bdata[i].geom });
+      bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &bdata[i].grid,
+        .equation = bdata[i].euler,
+        .limiter = GKYL_MONOTONIZED_CENTERED,
+        .num_up_dirs = 1,
+        .update_dirs = { d },
+        .cfl = 0.95,
+        .geom = bdata[i].geom });
   }
 
   struct gkyl_block_topo *btopo = create_block_topo();

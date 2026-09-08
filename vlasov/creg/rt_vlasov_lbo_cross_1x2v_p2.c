@@ -119,39 +119,39 @@ struct lbo_cross_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct lbo_cross_ctx ctx = { .pi = pi,
-                               .mass_neut1 = mass_neut1,
-                               .mass_neut2 = mass_neut2,
-                               .charge_neut1 = charge_neut1,
-                               .charge_neut2 = charge_neut2,
-                               .p_neut1 = p_neut1,
-                               .p_neut2 = p_neut2,
-                               .n0_neut1 = n0_neut1,
-                               .n0_neut2 = n0_neut2,
-                               .ux0_neut1 = ux0_neut1,
-                               .ux0_neut2 = ux0_neut2,
-                               .uy0_neut1 = uy0_neut1,
-                               .uy0_neut2 = uy0_neut2,
-                               .nu_neut1 = nu_neut1,
-                               .nu_neut2 = nu_neut2,
-                               .vt_neut1 = vt_neut1,
-                               .vt_neut2 = vt_neut2,
-                               .Nx = Nx,
-                               .Nvx = Nvx,
-                               .Nvy = Nvy,
-                               .Lx = Lx,
-                               .vx_max_neut1 = vx_max_neut1,
-                               .vx_max_neut2 = vx_max_neut2,
-                               .vy_max_neut1 = vy_max_neut1,
-                               .vy_max_neut2 = vy_max_neut2,
-                               .poly_order = poly_order,
-                               .cfl_frac = cfl_frac,
-                               .t_end = t_end,
-                               .num_frames = num_frames,
-                               .field_energy_calcs = field_energy_calcs,
-                               .integrated_mom_calcs = integrated_mom_calcs,
-                               .integrated_L2_f_calcs = integrated_L2_f_calcs,
-                               .dt_failure_tol = dt_failure_tol,
-                               .num_failures_max = num_failures_max };
+    .mass_neut1 = mass_neut1,
+    .mass_neut2 = mass_neut2,
+    .charge_neut1 = charge_neut1,
+    .charge_neut2 = charge_neut2,
+    .p_neut1 = p_neut1,
+    .p_neut2 = p_neut2,
+    .n0_neut1 = n0_neut1,
+    .n0_neut2 = n0_neut2,
+    .ux0_neut1 = ux0_neut1,
+    .ux0_neut2 = ux0_neut2,
+    .uy0_neut1 = uy0_neut1,
+    .uy0_neut2 = uy0_neut2,
+    .nu_neut1 = nu_neut1,
+    .nu_neut2 = nu_neut2,
+    .vt_neut1 = vt_neut1,
+    .vt_neut2 = vt_neut2,
+    .Nx = Nx,
+    .Nvx = Nvx,
+    .Nvy = Nvy,
+    .Lx = Lx,
+    .vx_max_neut1 = vx_max_neut1,
+    .vx_max_neut2 = vx_max_neut2,
+    .vy_max_neut1 = vy_max_neut1,
+    .vy_max_neut2 = vy_max_neut2,
+    .poly_order = poly_order,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .field_energy_calcs = field_energy_calcs,
+    .integrated_mom_calcs = integrated_mom_calcs,
+    .integrated_L2_f_calcs = integrated_L2_f_calcs,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -236,24 +236,24 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr
   }
 }
 
-void calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr,
-                       bool force_calc)
+void calc_field_energy(
+  struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_field_energy(app, t_curr);
   }
 }
 
-void calc_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_vlasov_app *app, double t_curr,
-                         bool force_calc)
+void calc_integrated_mom(
+  struct gkyl_tm_trigger *imt, gkyl_vlasov_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
   }
 }
 
-void calc_integrated_L2_f(struct gkyl_tm_trigger *l2t, gkyl_vlasov_app *app, double t_curr,
-                          bool force_calc)
+void calc_integrated_L2_f(
+  struct gkyl_tm_trigger *l2t, gkyl_vlasov_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
@@ -337,15 +337,14 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
 
   // First neutral species.
-  struct gkyl_vlasov_species neut1 = {
-    .name = "neut1",
+  struct gkyl_vlasov_species neut1 = { .name = "neut1",
     .charge = ctx.charge_neut1,
     .mass = ctx.mass_neut1,
     .lower = { -ctx.vx_max_neut1, -ctx.vy_max_neut1 },
@@ -355,18 +354,16 @@ int main(int argc, char **argv)
     .num_init = 1,
     .projection[0] = { .proj_id = GKYL_PROJ_FUNC, .func = evalNeut1Init, .ctx_func = &ctx },
     .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
-                    .self_nu = evalNeut1Nu,
-                    .ctx = &ctx,
-                    .num_cross_collisions = 1,
-                    .collide_with = { "neut2" } },
+      .self_nu = evalNeut1Nu,
+      .ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "neut2" } },
 
     .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 }
-  };
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 } };
 
   // Second neutral species.
-  struct gkyl_vlasov_species neut2 = {
-    .name = "neut2",
+  struct gkyl_vlasov_species neut2 = { .name = "neut2",
     .charge = ctx.charge_neut2,
     .mass = ctx.mass_neut2,
     .lower = { -ctx.vx_max_neut2, -ctx.vy_max_neut2 },
@@ -376,14 +373,13 @@ int main(int argc, char **argv)
     .num_init = 1,
     .projection[0] = { .proj_id = GKYL_PROJ_FUNC, .func = evalNeut2Init, .ctx_func = &ctx },
     .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
-                    .self_nu = evalNeut2Nu,
-                    .ctx = &ctx,
-                    .num_cross_collisions = 1,
-                    .collide_with = { "neut1" } },
+      .self_nu = evalNeut2Nu,
+      .ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "neut1" } },
 
     .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 }
-  };
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 } };
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
@@ -425,7 +421,7 @@ int main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-                           gkyl_array_rio_status_msg(status.io_status));
+        gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
@@ -440,33 +436,33 @@ int main(int argc, char **argv)
 
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = {
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = {
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
-  struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs,
-                                      .tcurr = t_curr,
-                                      .curr = frame_curr };
+  struct gkyl_tm_trigger l2f_trig = {
+    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames,
-                                     .tcurr = frame_curr * (t_end / num_frames),
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = {
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 
@@ -506,8 +502,8 @@ int main(int argc, char **argv)
       gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_vlasov_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);
@@ -536,18 +532,18 @@ int main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_vlasov_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n",
-                         stat.stage_2_dt_diff[1]);
-    gkyl_vlasov_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n",
-                         stat.stage_2_dt_diff[0]);
+    gkyl_vlasov_app_cout(
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n",
-                       stat.species_coll_tm);
+  gkyl_vlasov_app_cout(
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n",
-                       stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);

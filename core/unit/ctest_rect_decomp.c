@@ -572,24 +572,23 @@ static void test_rect_decomp_from_cuts_and_cells_ho(void)
 }
 
 TEST_LIST = { { "rect_decomp_ranges_1d_ho", test_rect_decomp_ranges_1d_ho },
-              { "rect_decomp_ranges_2d_ho", test_rect_decomp_ranges_2d_ho },
-              { "rect_decomp_ranges_3d_ho", test_rect_decomp_ranges_3d_ho },
+  { "rect_decomp_ranges_2d_ho", test_rect_decomp_ranges_2d_ho },
+  { "rect_decomp_ranges_3d_ho", test_rect_decomp_ranges_3d_ho },
 
-              { "rect_decomp_ranges_from_range_2d_ho", test_rect_decomp_ranges_from_range_2d_ho },
-              { "rect_decomp_ranges_from_range_3d_ho", test_rect_decomp_ranges_from_range_3d_ho },
+  { "rect_decomp_ranges_from_range_2d_ho", test_rect_decomp_ranges_from_range_2d_ho },
+  { "rect_decomp_ranges_from_range_3d_ho", test_rect_decomp_ranges_from_range_3d_ho },
 
-              { "rect_decomp_2d_ho", test_rect_decomp_2d_ho },
-              { "rect_decomp_3d_ho", test_rect_decomp_3d_ho },
-              { "rect_decomp_4d_ho", test_rect_decomp_4d_ho },
+  { "rect_decomp_2d_ho", test_rect_decomp_2d_ho }, { "rect_decomp_3d_ho", test_rect_decomp_3d_ho },
+  { "rect_decomp_4d_ho", test_rect_decomp_4d_ho },
 
-              { "rect_decomp_per_2d_ho", test_rect_decomp_per_2d_ho },
-              { "rect_decomp_per_2d_2_ho", test_rect_decomp_per_2d_2_ho },
-              { "rect_decomp_per_3d_ho", test_rect_decomp_per_3d_ho },
+  { "rect_decomp_per_2d_ho", test_rect_decomp_per_2d_ho },
+  { "rect_decomp_per_2d_2_ho", test_rect_decomp_per_2d_2_ho },
+  { "rect_decomp_per_3d_ho", test_rect_decomp_per_3d_ho },
 
-              { "rect_decomp_per_2d_corner_ho", test_rect_decomp_per_2d_corner_ho },
+  { "rect_decomp_per_2d_corner_ho", test_rect_decomp_per_2d_corner_ho },
 
-              { "rect_decomp_2d_2v_ho", test_rect_decomp_2d_2v_ho },
+  { "rect_decomp_2d_2v_ho", test_rect_decomp_2d_2v_ho },
 
-              { "rect_decomp_from_cuts_and_cells_ho", test_rect_decomp_from_cuts_and_cells_ho },
+  { "rect_decomp_from_cuts_and_cells_ho", test_rect_decomp_from_cuts_and_cells_ho },
 
-              { NULL, NULL } };
+  { NULL, NULL } };

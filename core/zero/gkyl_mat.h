@@ -133,8 +133,8 @@ void gkyl_mat_show(const char *name, FILE *fp, const struct gkyl_mat *mat);
  * C is returned
  */
 struct gkyl_mat *gkyl_mat_mm(double alpha, double beta, enum gkyl_mat_trans transa,
-                             const struct gkyl_mat *A, enum gkyl_mat_trans transb,
-                             const struct gkyl_mat *B, struct gkyl_mat *, bool on_gpu);
+  const struct gkyl_mat *A, enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *,
+  bool on_gpu);
 
 /**
  * Computes matrix-vector product:
@@ -147,8 +147,7 @@ struct gkyl_mat *gkyl_mat_mm(double alpha, double beta, enum gkyl_mat_trans tran
  * C is returned
  */
 struct gkyl_mat *gkyl_mat_mv(double alpha, double beta, enum gkyl_mat_trans transa,
-                             const struct gkyl_mat *A, const struct gkyl_mat *x,
-                             struct gkyl_mat *y);
+  const struct gkyl_mat *A, const struct gkyl_mat *x, struct gkyl_mat *y);
 
 /**
  * Does a batch of matrix-vector products:
@@ -163,7 +162,7 @@ struct gkyl_mat *gkyl_mat_mv(double alpha, double beta, enum gkyl_mat_trans tran
  * @param y batch of output vectors
  */
 void gkyl_nmat_mv(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A,
-                  struct gkyl_nmat *x, struct gkyl_nmat *y);
+  struct gkyl_nmat *x, struct gkyl_nmat *y);
 
 /**
  * Does a batch of matrix-matrix products:
@@ -179,7 +178,7 @@ void gkyl_nmat_mv(double alpha, double beta, enum gkyl_mat_trans transa, struct 
  * @param C batch f output matrices
  */
 void gkyl_nmat_mm(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A,
-                  enum gkyl_mat_trans transb, struct gkyl_nmat *B, struct gkyl_nmat *C);
+  enum gkyl_mat_trans transb, struct gkyl_nmat *B, struct gkyl_nmat *C);
 
 /**
  * Solve system of linear equations using LU decomposition. On input
@@ -342,8 +341,7 @@ void gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem);
  * @return Preallocated memory
  */
 gkyl_mat_mm_array_mem *gkyl_mat_mm_array_mem_new(int nr, int nc, double alpha, double beta,
-                                                 enum gkyl_mat_trans transa,
-                                                 enum gkyl_mat_trans transb, bool use_gpu);
+  enum gkyl_mat_trans transa, enum gkyl_mat_trans transb, bool use_gpu);
 
 /**
  * Release memory allocated for batched LU solves.
@@ -364,8 +362,8 @@ void gkyl_mat_mm_array_mem_release(gkyl_mat_mm_array_mem *mem);
  * @param B gkyl_array matrix for computing A*B = C
  * @param C gkyl_array matrix for computing A*B = C
 */
-void gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B,
-                       struct gkyl_array *C);
+void gkyl_mat_mm_array(
+  struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
 
 /**
  * Solve a batched system of linear equations using LU

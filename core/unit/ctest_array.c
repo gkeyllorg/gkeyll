@@ -410,15 +410,15 @@ void test_grid_array_read_p1_ho(void)
   // read serial data for comparison
   struct gkyl_rect_grid s_grid;
   struct gkyl_array *s_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
-  int s_status = gkyl_grid_sub_array_read(&s_grid, &range, s_arr,
-                                          "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+  int s_status = gkyl_grid_sub_array_read(
+    &s_grid, &range, s_arr, "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
   // read parallel data (whole domain)
   do {
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
-    int p_status = gkyl_grid_sub_array_read(&p_grid, &range, p_arr,
-                                            "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+    int p_status = gkyl_grid_sub_array_read(
+      &p_grid, &range, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
     TEST_CHECK(0 == p_status);
 
@@ -442,8 +442,8 @@ void test_grid_array_read_p1_ho(void)
 
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, prange.volume);
-    int p_status = gkyl_grid_sub_array_read(&p_grid, &prange, p_arr,
-                                            "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+    int p_status = gkyl_grid_sub_array_read(
+      &p_grid, &prange, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
     TEST_CHECK(0 == p_status);
 
@@ -466,8 +466,8 @@ void test_grid_array_read_p1_ho(void)
 
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, prange.volume);
-    int p_status = gkyl_grid_sub_array_read(&p_grid, &prange, p_arr,
-                                            "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+    int p_status = gkyl_grid_sub_array_read(
+      &p_grid, &prange, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
     TEST_CHECK(0 == p_status);
 
@@ -660,17 +660,14 @@ void test_array_kernel_dev()
 
 #endif
 
-TEST_LIST = { { "array_0_ho", test_array_0_ho },
-              { "array_base_ho", test_array_base_ho },
-              { "array_fetch_ho", test_array_fetch_ho },
-              { "array_non_numeric_ho", test_array_non_numeric_ho },
-              { "grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho },
-              { "grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho },
-              { "grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho },
-              { "grid_array_read_p1_ho", test_grid_array_read_p1_ho },
-              { "array_from_buff_ho", test_array_from_buff_ho },
+TEST_LIST = { { "array_0_ho", test_array_0_ho }, { "array_base_ho", test_array_base_ho },
+  { "array_fetch_ho", test_array_fetch_ho }, { "array_non_numeric_ho", test_array_non_numeric_ho },
+  { "grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho },
+  { "grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho },
+  { "grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho },
+  { "grid_array_read_p1_ho", test_grid_array_read_p1_ho },
+  { "array_from_buff_ho", test_array_from_buff_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "array_base_dev", test_array_base_dev },
-              { "array_kernel_dev", test_array_kernel_dev },
+  { "array_base_dev", test_array_base_dev }, { "array_kernel_dev", test_array_kernel_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

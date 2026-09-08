@@ -6,11 +6,9 @@
 #include <gkyl_nccl_comm_priv.h>
 
 int gkyl_multib_comm_conn_array_transfer_nccl(struct gkyl_comm *comm, int num_blocks_local,
-                                              const int *local_blocks,
-                                              struct gkyl_multib_comm_conn **mbcc_send,
-                                              struct gkyl_multib_comm_conn **mbcc_recv,
-                                              struct gkyl_array **arr_send,
-                                              struct gkyl_array **arr_recv)
+  const int *local_blocks, struct gkyl_multib_comm_conn **mbcc_send,
+  struct gkyl_multib_comm_conn **mbcc_recv, struct gkyl_array **arr_send,
+  struct gkyl_array **arr_recv)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
 
@@ -37,7 +35,7 @@ int gkyl_multib_comm_conn_array_transfer_nccl(struct gkyl_comm *comm, int num_bl
             gkyl_mem_buff_resize(nccl->recv[nridx].buff, recv_vol);
 
           checkNCCL(ncclRecv(gkyl_mem_buff_data(nccl->recv[nridx].buff), recv_vol, ncclChar, nid,
-                             nccl->ncomm, nccl->custream));
+            nccl->ncomm, nccl->custream));
 
           nridx += 1;
         }
@@ -60,11 +58,11 @@ int gkyl_multib_comm_conn_array_transfer_nccl(struct gkyl_comm *comm, int num_bl
           if (gkyl_mem_buff_size(nccl->send[nsidx].buff) < send_vol)
             gkyl_mem_buff_resize(nccl->send[nsidx].buff, send_vol);
 
-          gkyl_array_copy_to_buffer(gkyl_mem_buff_data(nccl->send[nsidx].buff), arr_send[bI],
-                                    &mbcc_s->comm_conn[ns].range);
+          gkyl_array_copy_to_buffer(
+            gkyl_mem_buff_data(nccl->send[nsidx].buff), arr_send[bI], &mbcc_s->comm_conn[ns].range);
 
           checkNCCL(ncclSend(gkyl_mem_buff_data(nccl->send[nsidx].buff), send_vol, ncclChar, nid,
-                             nccl->ncomm, nccl->custream));
+            nccl->ncomm, nccl->custream));
 
           nsidx += 1;
         }
@@ -130,7 +128,7 @@ int gkyl_multib_comm_conn_array_transfer_nccl(struct gkyl_comm *comm, int num_bl
         int isrecv = mbcc_r->comm_conn[nr].range.volume;
         if (isrecv) {
           gkyl_array_copy_from_buffer(arr_recv[bI], gkyl_mem_buff_data(nccl->recv[nridx].buff),
-                                      &(mbcc_r->comm_conn[nr].range));
+            &(mbcc_r->comm_conn[nr].range));
           nridx += 1;
         }
       }
@@ -143,11 +141,9 @@ int gkyl_multib_comm_conn_array_transfer_nccl(struct gkyl_comm *comm, int num_bl
 #else
 
 int gkyl_multib_comm_conn_array_transfer_nccl(struct gkyl_comm *comm, int num_blocks_local,
-                                              const int *local_blocks,
-                                              struct gkyl_multib_comm_conn **mbcc_send,
-                                              struct gkyl_multib_comm_conn **mbcc_recv,
-                                              struct gkyl_array **arr_send,
-                                              struct gkyl_array **arr_recv)
+  const int *local_blocks, struct gkyl_multib_comm_conn **mbcc_send,
+  struct gkyl_multib_comm_conn **mbcc_recv, struct gkyl_array **arr_send,
+  struct gkyl_array **arr_recv)
 {
   return 1;
 }

@@ -75,8 +75,8 @@ gkyl_gkgeom *gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp);
  * @param R on output, R(psi,Z)
  * @param dR on output, dR/dZ
  */
-int gkyl_gkgeom_R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots, double *R,
-                       double *dR);
+int gkyl_gkgeom_R_psiZ(
+  const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots, double *R, double *dR);
 
 /**
  * Integrate along a specified psi countour and return its length. The
@@ -94,8 +94,8 @@ int gkyl_gkgeom_R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroo
  *    contours
  * @return Length of contour
  */
-double gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi, double zmin,
-                                         double zmax, double rclose);
+double gkyl_gkgeom_integrate_psi_contour(
+  const gkyl_gkgeom *geo, double psi, double zmin, double zmax, double rclose);
 
 /**
  * Compute geometry (mapc2p) on a specified computational grid. The
@@ -105,8 +105,8 @@ double gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi, dou
  * @param ginp Input structure for creating mapc2p
  * @param mapc2p On output, the DG representation of mapc2p
  */
-void gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp *ginp,
-                          struct gkyl_array *mapc2p);
+void gkyl_gkgeom_calcgeom(
+  const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp *ginp, struct gkyl_array *mapc2p);
 
 /**
  * Return cumulative statistics from geometry computations

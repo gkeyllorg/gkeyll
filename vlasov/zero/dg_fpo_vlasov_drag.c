@@ -22,8 +22,8 @@ void gkyl_fpo_vlasov_drag_free(const struct gkyl_ref_count *ref)
   gkyl_free(fpo_vlasov_drag);
 }
 
-void gkyl_fpo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn,
-                                        const struct gkyl_dg_fpo_vlasov_drag_auxfields auxin)
+void gkyl_fpo_vlasov_drag_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_fpo_vlasov_drag_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.h)) {
@@ -36,8 +36,8 @@ void gkyl_fpo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn,
   fpo_vlasov_drag->auxfields.h = auxin.h;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis *pbasis,
-                                                const struct gkyl_range *phase_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_new(
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -107,8 +107,8 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis *pbasis,
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_cu_dev_new(const struct gkyl_basis *pbasis,
-                                                       const struct gkyl_range *phase_range)
+struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_cu_dev_new(
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range)
 {
   assert(false);
   return 0;

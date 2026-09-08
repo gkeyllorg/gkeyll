@@ -167,8 +167,8 @@ int gkyl_dynvec_write(const gkyl_dynvec vec, const char *fname);
  * @param fname Name of output file.
  * @return 0 if succeeded.
  */
-int gkyl_dynvec_write_wmeta(const gkyl_dynvec vec, const char *fname,
-                            const struct gkyl_msgpack_data *meta);
+int gkyl_dynvec_write_wmeta(
+  const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta);
 
 /**
  * Write out dynvec to file. The dynvec is appened to the end of the
@@ -207,8 +207,8 @@ bool gkyl_dynvec_read(gkyl_dynvec vec, const char *fname);
  * @param tm_mesh On output, time-mesh of data
  * @param dyndata On output, data in dynamic array
  */
-void gkyl_dynvec_to_array(const gkyl_dynvec vec, struct gkyl_array *tm_mesh,
-                          struct gkyl_array *dyndata);
+void gkyl_dynvec_to_array(
+  const gkyl_dynvec vec, struct gkyl_array *tm_mesh, struct gkyl_array *dyndata);
 
 /**
  * Release dynvec.

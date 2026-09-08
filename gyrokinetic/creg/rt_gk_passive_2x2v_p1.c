@@ -90,33 +90,33 @@ struct passive_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct passive_ctx ctx = { .cdim = cdim,
-                             .vdim = vdim,
-                             .mass_elc = mass_elc,
-                             .charge_elc = charge_elc,
-                             .Te = Te,
-                             .n0 = n0,
-                             .B0 = B0,
-                             .ux = ux,
-                             uz = uz,
-                             .f_amplitude = f_amplitude,
-                             .f_floor = f_floor,
-                             .Nx = Nx,
-                             .Nz = Nz,
-                             .Nvpar = Nvpar,
-                             .Nmu = Nmu,
-                             .cells = { Nx, Nz, Nvpar, Nmu },
-                             .Lx = Lx,
-                             .Lz = Lz,
-                             .vpar_max_elc = vpar_max_elc,
-                             .mu_max_elc = mu_max_elc,
-                             .poly_order = poly_order,
-                             .cfl_frac = cfl_frac,
-                             .t_end = t_end,
-                             .num_frames = num_frames,
-                             .write_phase_freq = write_phase_freq,
-                             .int_diag_calc_num = int_diag_calc_num,
-                             .dt_failure_tol = dt_failure_tol,
-                             .num_failures_max = num_failures_max };
+    .vdim = vdim,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .Te = Te,
+    .n0 = n0,
+    .B0 = B0,
+    .ux = ux,
+    uz = uz,
+    .f_amplitude = f_amplitude,
+    .f_floor = f_floor,
+    .Nx = Nx,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = { Nx, Nz, Nvpar, Nmu },
+    .Lx = Lx,
+    .Lz = Lz,
+    .vpar_max_elc = vpar_max_elc,
+    .mu_max_elc = mu_max_elc,
+    .poly_order = poly_order,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .write_phase_freq = write_phase_freq,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -141,8 +141,8 @@ void distf_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
     fout[0] = f_floor;
 }
 
-void passive_velocity_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                          void *ctx)
+void passive_velocity_elc(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
 
@@ -154,8 +154,8 @@ void passive_velocity_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL
   fout[1] = uz;
 }
 
-static inline void mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp,
-                          void *ctx)
+static inline void mapc2p(
+  double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
 {
   struct passive_ctx *app = ctx;
   double x = zc[0], y = zc[1], z = zc[2];
@@ -218,9 +218,9 @@ int main(int argc, char **argv)
     .projection = { .proj_id = GKYL_PROJ_FUNC, .func = distf_elc, .ctx_func = &ctx },
 
     .collisionless = { .type = GKYL_GK_COLLISIONLESS_PASSIVE,
-                       .passive_speeds = passive_velocity_elc,
-                       .passive_speeds_ctx = &ctx,
-                       .write_diagnostics = true },
+      .passive_speeds = passive_velocity_elc,
+      .passive_speeds_ctx = &ctx,
+      .write_diagnostics = true },
 
     //    .bcs = {
     //      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, },
@@ -243,9 +243,9 @@ int main(int argc, char **argv)
   };
 
   // Field.
-  struct gkyl_gyrokinetic_field field = { .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
-                                          .zero_init_field = true,
-                                          .is_static = true };
+  struct gkyl_gyrokinetic_field field = {
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN, .zero_init_field = true, .is_static = true
+  };
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
@@ -260,11 +260,11 @@ int main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-                  .world = {},
-                  .mapc2p = mapc2p,
-                  .c2p_ctx = &ctx,
-                  .bfield_func = bfield_func,
-                  .bfield_ctx = &ctx },
+      .world = {},
+      .mapc2p = mapc2p,
+      .c2p_ctx = &ctx,
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
@@ -275,8 +275,8 @@ int main(int argc, char **argv)
     .field = field,
 
     .parallelism = { .use_gpu = app_args.use_gpu,
-                     .cuts = { app_args.cuts[0], app_args.cuts[1] },
-                     .comm = comm }
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Set app output name from the executable name (argv[0]).
@@ -285,14 +285,14 @@ int main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = { .t_end = ctx.t_end,
-                       .num_frames = ctx.num_frames,
-                       .write_phase_freq = ctx.write_phase_freq,
-                       .int_diag_calc_num = ctx.int_diag_calc_num,
-                       .dt_failure_tol = ctx.dt_failure_tol,
-                       .num_failures_max = ctx.num_failures_max,
-                       .is_restart = app_args.is_restart,
-                       .restart_frame = app_args.restart_frame,
-                       .num_steps = app_args.num_steps }
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps }
     //    .print_verbosity = {
     //      .enabled = true,
     //      .disable_timings = true,

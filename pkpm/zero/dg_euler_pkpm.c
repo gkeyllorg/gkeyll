@@ -24,8 +24,8 @@ void gkyl_euler_pkpm_free(const struct gkyl_ref_count *ref)
   gkyl_free(euler_pkpm);
 }
 
-void gkyl_euler_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn,
-                                   struct gkyl_dg_euler_pkpm_auxfields auxin)
+void gkyl_euler_pkpm_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
@@ -43,8 +43,8 @@ void gkyl_euler_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn,
   euler_pkpm->auxfields.pkpm_penalization = auxin.pkpm_penalization;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_new(const struct gkyl_basis *cbasis,
-                                           const struct gkyl_range *conf_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -115,8 +115,8 @@ struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_new(const struct gkyl_basis *cbasis,
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                  const struct gkyl_range *conf_range)
+struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range)
 {
   assert(false);
   return 0;

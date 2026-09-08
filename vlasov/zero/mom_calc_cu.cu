@@ -11,10 +11,8 @@ extern "C" {
 }
 
 __global__ static void gkyl_mom_calc_advance_cu_ker(const gkyl_mom_calc *mcalc,
-                                                    const struct gkyl_range phase_range,
-                                                    const struct gkyl_range conf_range,
-                                                    const struct gkyl_array *GKYL_RESTRICT fin,
-                                                    struct gkyl_array *GKYL_RESTRICT mout)
+  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
+  const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout)
 {
   double xc[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
@@ -46,18 +44,17 @@ __global__ static void gkyl_mom_calc_advance_cu_ker(const gkyl_mom_calc *mcalc,
 }
 
 void gkyl_mom_calc_advance_cu(const gkyl_mom_calc *mcalc, const struct gkyl_range *phase_range,
-                              const struct gkyl_range *conf_range,
-                              const struct gkyl_array *GKYL_RESTRICT fin,
-                              struct gkyl_array *GKYL_RESTRICT mout)
+  const struct gkyl_range *conf_range, const struct gkyl_array *GKYL_RESTRICT fin,
+  struct gkyl_array *GKYL_RESTRICT mout)
 {
   int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
   gkyl_array_clear_range(mout, 0.0, conf_range);
-  gkyl_mom_calc_advance_cu_ker<<<nblocks, nthreads> > >(mcalc->on_dev, *phase_range, *conf_range,
-                                                        fin->on_dev, mout->on_dev);
+  gkyl_mom_calc_advance_cu_ker<<<nblocks, nthreads> > >(
+    mcalc->on_dev, *phase_range, *conf_range, fin->on_dev, mout->on_dev);
 }
 
-gkyl_mom_calc *gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-                                        const struct gkyl_mom_type *momt)
+gkyl_mom_calc *gkyl_mom_calc_cu_dev_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt)
 {
   gkyl_mom_calc *up = (gkyl_mom_calc *)gkyl_malloc(sizeof(gkyl_mom_calc));
   up->grid = *grid;

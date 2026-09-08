@@ -12,28 +12,28 @@
 #include <gkyl_wv_eqn.h>
 #include <assert.h>
 
-typedef void (*gk_nf_udrift_set_prob_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
-                                        const double *moms);
+typedef void (*gk_nf_udrift_set_prob_t)(
+  int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *moms);
 
-typedef void (*gk_nf_udrift_get_sol_t)(int count, struct gkyl_nmat *xsol,
-                                       double *GKYL_RESTRICT out);
+typedef void (*gk_nf_udrift_get_sol_t)(
+  int count, struct gkyl_nmat *xsol, double *GKYL_RESTRICT out);
 
-typedef void (*gk_nf_pressure_t)(double gas_gamma, const double *moms, const double *u,
-                                 double *GKYL_RESTRICT out);
+typedef void (*gk_nf_pressure_t)(
+  double gas_gamma, const double *moms, const double *u, double *GKYL_RESTRICT out);
 
 typedef void (*gk_nf_temp_set_prob_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
-                                      const double *moms, double gas_gamma, double mass);
+  const double *moms, double gas_gamma, double mass);
 
 typedef void (*gk_nf_temp_get_sol_t)(int count, struct gkyl_nmat *xsol, double *GKYL_RESTRICT out);
 
 typedef void (*gk_nf_udrift_temp_set_prob_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
-                                             const double *moms, double gas_gamma, double mass);
+  const double *moms, double gas_gamma, double mass);
 
-typedef void (*gk_nf_udrift_temp_get_sol_t)(int count, struct gkyl_nmat *xsol,
-                                            double *GKYL_RESTRICT out);
+typedef void (*gk_nf_udrift_temp_get_sol_t)(
+  int count, struct gkyl_nmat *xsol, double *GKYL_RESTRICT out);
 
-typedef void (*gk_nf_flowE_set_prob_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
-                                       const double *moms);
+typedef void (*gk_nf_flowE_set_prob_t)(
+  int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *moms);
 
 typedef void (*gk_nf_flowE_get_sol_t)(int count, struct gkyl_nmat *xsol, double *GKYL_RESTRICT out);
 
@@ -99,7 +99,7 @@ struct gkyl_gk_neut_fluid_prim_vars {
 
   // Method chosen at runtime.
   void (*advance_func)(struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms,
-                       struct gkyl_array *out, int out_coff);
+    struct gkyl_array *out, int out_coff);
 };
 
 // Set matrices for computing fluid flow velocity (Serendipity kernels)
@@ -122,30 +122,26 @@ GKYL_CU_D static const gkyl_gk_nf_prim_vars_udrift_get_sol_kern_list
 
 // Scalar pressure p = (gas_gamma - 1)*(E - 1/2 rho u^2) (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_pressure_kern_list
-  ser_gk_nf_prim_vars_pressure_kernels[] = {
-    { gk_neut_fluid_prim_vars_pressure_1x_ser_p1, gk_neut_fluid_prim_vars_pressure_1x_ser_p2,
-      NULL },
+  ser_gk_nf_prim_vars_pressure_kernels[] = { { gk_neut_fluid_prim_vars_pressure_1x_ser_p1,
+                                               gk_neut_fluid_prim_vars_pressure_1x_ser_p2, NULL },
     { gk_neut_fluid_prim_vars_pressure_2x_ser_p1, NULL, NULL },
-    { gk_neut_fluid_prim_vars_pressure_3x_ser_p1, NULL, NULL }
-  };
+    { gk_neut_fluid_prim_vars_pressure_3x_ser_p1, NULL, NULL } };
 
 // Set matrices for computing temperature (Serendipity kernels).
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_temp_set_prob_kern_list
-  ser_gk_nf_prim_vars_temp_set_prob_kernels[] = {
-    { gk_neut_fluid_prim_vars_temp_set_prob_1x_ser_p1,
-      gk_neut_fluid_prim_vars_temp_set_prob_1x_ser_p2, NULL },
+  ser_gk_nf_prim_vars_temp_set_prob_kernels[] = { { gk_neut_fluid_prim_vars_temp_set_prob_1x_ser_p1,
+                                                    gk_neut_fluid_prim_vars_temp_set_prob_1x_ser_p2,
+                                                    NULL },
     { gk_neut_fluid_prim_vars_temp_set_prob_2x_ser_p1, NULL, NULL },
-    { gk_neut_fluid_prim_vars_temp_set_prob_3x_ser_p1, NULL, NULL }
-  };
+    { gk_neut_fluid_prim_vars_temp_set_prob_3x_ser_p1, NULL, NULL } };
 
 // Copy solution for temperature. (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_temp_get_sol_kern_list
-  ser_gk_nf_prim_vars_temp_get_sol_kernels[] = {
-    { gk_neut_fluid_prim_vars_temp_get_sol_1x_ser_p1,
-      gk_neut_fluid_prim_vars_temp_get_sol_1x_ser_p2, NULL },
+  ser_gk_nf_prim_vars_temp_get_sol_kernels[] = { { gk_neut_fluid_prim_vars_temp_get_sol_1x_ser_p1,
+                                                   gk_neut_fluid_prim_vars_temp_get_sol_1x_ser_p2,
+                                                   NULL },
     { gk_neut_fluid_prim_vars_temp_get_sol_2x_ser_p1, NULL, NULL },
-    { gk_neut_fluid_prim_vars_temp_get_sol_3x_ser_p1, NULL, NULL }
-  };
+    { gk_neut_fluid_prim_vars_temp_get_sol_3x_ser_p1, NULL, NULL } };
 
 // Set matrices for computing temperature (Serendipity kernels).
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_udrift_temp_set_prob_kern_list
@@ -176,15 +172,14 @@ GKYL_CU_D static const gkyl_gk_nf_prim_vars_flowE_set_prob_kern_list
 
 // Copy solution for fluid flow energy (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_flowE_get_sol_kern_list
-  ser_gk_nf_prim_vars_flowE_get_sol_kernels[] = {
-    { gk_neut_fluid_prim_vars_flowE_get_sol_1x_ser_p1,
-      gk_neut_fluid_prim_vars_flowE_get_sol_1x_ser_p2, NULL },
+  ser_gk_nf_prim_vars_flowE_get_sol_kernels[] = { { gk_neut_fluid_prim_vars_flowE_get_sol_1x_ser_p1,
+                                                    gk_neut_fluid_prim_vars_flowE_get_sol_1x_ser_p2,
+                                                    NULL },
     { gk_neut_fluid_prim_vars_flowE_get_sol_2x_ser_p1, NULL, NULL },
-    { gk_neut_fluid_prim_vars_flowE_get_sol_3x_ser_p1, NULL, NULL }
-  };
+    { gk_neut_fluid_prim_vars_flowE_get_sol_3x_ser_p1, NULL, NULL } };
 
-GKYL_CU_D static gk_nf_udrift_set_prob_t choose_udrift_set_prob_ker(enum gkyl_basis_type b_type,
-                                                                    int cdim, int poly_order)
+GKYL_CU_D static gk_nf_udrift_set_prob_t choose_udrift_set_prob_ker(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -197,8 +192,8 @@ GKYL_CU_D static gk_nf_udrift_set_prob_t choose_udrift_set_prob_ker(enum gkyl_ba
   return 0;
 }
 
-GKYL_CU_D static gk_nf_udrift_get_sol_t choose_udrift_get_sol_ker(enum gkyl_basis_type b_type,
-                                                                  int cdim, int poly_order)
+GKYL_CU_D static gk_nf_udrift_get_sol_t choose_udrift_get_sol_ker(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -211,8 +206,8 @@ GKYL_CU_D static gk_nf_udrift_get_sol_t choose_udrift_get_sol_ker(enum gkyl_basi
   return 0;
 }
 
-GKYL_CU_D static gk_nf_pressure_t choose_pressure_ker(enum gkyl_basis_type b_type, int cdim,
-                                                      int poly_order)
+GKYL_CU_D static gk_nf_pressure_t choose_pressure_ker(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -225,8 +220,8 @@ GKYL_CU_D static gk_nf_pressure_t choose_pressure_ker(enum gkyl_basis_type b_typ
   return 0;
 }
 
-GKYL_CU_D static gk_nf_temp_set_prob_t choose_temp_set_prob_ker(enum gkyl_basis_type b_type,
-                                                                int cdim, int poly_order)
+GKYL_CU_D static gk_nf_temp_set_prob_t choose_temp_set_prob_ker(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -239,8 +234,8 @@ GKYL_CU_D static gk_nf_temp_set_prob_t choose_temp_set_prob_ker(enum gkyl_basis_
   return 0;
 }
 
-GKYL_CU_D static gk_nf_temp_get_sol_t choose_temp_get_sol_ker(enum gkyl_basis_type b_type, int cdim,
-                                                              int poly_order)
+GKYL_CU_D static gk_nf_temp_get_sol_t choose_temp_get_sol_ker(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -253,8 +248,8 @@ GKYL_CU_D static gk_nf_temp_get_sol_t choose_temp_get_sol_ker(enum gkyl_basis_ty
   return 0;
 }
 
-GKYL_CU_D static gk_nf_udrift_temp_set_prob_t
-choose_udrift_temp_set_prob_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static gk_nf_udrift_temp_set_prob_t choose_udrift_temp_set_prob_ker(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -267,8 +262,8 @@ choose_udrift_temp_set_prob_ker(enum gkyl_basis_type b_type, int cdim, int poly_
   return 0;
 }
 
-GKYL_CU_D static gk_nf_udrift_temp_get_sol_t
-choose_udrift_temp_get_sol_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static gk_nf_udrift_temp_get_sol_t choose_udrift_temp_get_sol_ker(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -281,8 +276,8 @@ choose_udrift_temp_get_sol_ker(enum gkyl_basis_type b_type, int cdim, int poly_o
   return 0;
 }
 
-GKYL_CU_D static gk_nf_flowE_set_prob_t choose_flowE_set_prob_ker(enum gkyl_basis_type b_type,
-                                                                  int cdim, int poly_order)
+GKYL_CU_D static gk_nf_flowE_set_prob_t choose_flowE_set_prob_ker(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -295,8 +290,8 @@ GKYL_CU_D static gk_nf_flowE_set_prob_t choose_flowE_set_prob_ker(enum gkyl_basi
   return 0;
 }
 
-GKYL_CU_D static gk_nf_flowE_get_sol_t choose_flowE_get_sol_ker(enum gkyl_basis_type b_type,
-                                                                int cdim, int poly_order)
+GKYL_CU_D static gk_nf_flowE_get_sol_t choose_flowE_get_sol_ker(
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -331,8 +326,8 @@ GKYL_CU_D static gk_nf_flowE_get_sol_t choose_flowE_get_sol_ker(enum gkyl_basis_
  * @param use_gpu Whether to run on the GPU.
  * @return New updater pointer.
  */
-struct gkyl_gk_neut_fluid_prim_vars *gkyl_gk_neut_fluid_prim_vars_cu_dev_new(
-  double gas_gamma, double mass, const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid,
+struct gkyl_gk_neut_fluid_prim_vars *gkyl_gk_neut_fluid_prim_vars_cu_dev_new(double gas_gamma,
+  double mass, const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid,
   const struct gkyl_range *mem_range, enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type,
   bool is_integrated);
 
@@ -345,8 +340,7 @@ struct gkyl_gk_neut_fluid_prim_vars *gkyl_gk_neut_fluid_prim_vars_cu_dev_new(
  * @param out_coff Offset in out where to place drift velocity.
  */
 void gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                    const struct gkyl_array *moms,
-                                                    struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the pressure p = (gas_gamma - 1)*(E - 1/2 rho u^2) on NVIDIA GPU.
@@ -356,8 +350,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(struct gkyl_gk_neut_fluid_pr
  * @param out_coff Offset in out where to place pressure.
  */
 void gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                      const struct gkyl_array *moms,
-                                                      struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the temperature T = p/n = (gas_gamma - 1)*(mass * E - 1/2 (rho u)^2)/rho
@@ -369,8 +362,7 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(struct gkyl_gk_neut_fluid_
  * @param out_coff Offset in out where to place temperature.
  */
 void gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                  const struct gkyl_array *moms,
-                                                  struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the thermal energy p/(gas_gamma - 1) = E - 1/2 rho u^2 on NVIDIA GPU.
@@ -380,8 +372,7 @@ void gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(struct gkyl_gk_neut_fluid_prim
  * @param out_coff Offset in out where to place thermal energy.
  */
 void gkyl_gk_neut_fluid_prim_vars_thermal_energy_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                            const struct gkyl_array *moms,
-                                                            struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the drift velocity vector (ux, uy, uz)
@@ -392,9 +383,9 @@ void gkyl_gk_neut_fluid_prim_vars_thermal_energy_advance_cu(struct gkyl_gk_neut_
  * @param out Output primitive moments.
  * @param out_coff Offset in out where to place primitive moments.
  */
-void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                             const struct gkyl_array *moms,
-                                                             struct gkyl_array *out, int out_coff);
+void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(
+  struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
+  int out_coff);
 
 /**
  * Compute the drift velocity vector (ux, uy, uz)
@@ -407,8 +398,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(struct gkyl_gk_neut
  * @param out_coff Offset in out where to place primitive moments.
  */
 void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                         const struct gkyl_array *moms,
-                                                         struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the LTE moments: density, drift velocity vector (ux, uy, uz)
@@ -421,8 +411,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(struct gkyl_gk_neut_flu
  * @param out_coff Offset in out where to place primitive moments.
  */
 void gkyl_gk_neut_fluid_prim_vars_lte_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                 const struct gkyl_array *moms,
-                                                 struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the moments flow energy 0.5 rho u^2 on NVIDIA GPU.
@@ -432,8 +421,7 @@ void gkyl_gk_neut_fluid_prim_vars_lte_advance_cu(struct gkyl_gk_neut_fluid_prim_
  * @param out_coff Offset in out where to place thermal energy.
  */
 void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-                                                         const struct gkyl_array *moms,
-                                                         struct gkyl_array *out, int out_coff);
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff);
 
 /**
  * Compute the moments:

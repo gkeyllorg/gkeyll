@@ -320,7 +320,7 @@ int get_num_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int *
 }
 
 int gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx, int dir,
-                                    int corner_num, enum gkyl_conn_id conn_id, int *block_list)
+  int corner_num, enum gkyl_conn_id conn_id, int *block_list)
 {
   struct gkyl_block_connections conn = block_topo->conn[bidx];
   int num_connected = 0;
@@ -348,8 +348,8 @@ int gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx
   return num_connected;
 }
 
-int gkyl_multib_conn_get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir,
-                                       int corner_num, enum gkyl_conn_id conn_id)
+int gkyl_multib_conn_get_num_connected(
+  struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id)
 {
   int block_list[1000] = { -1 };
   int num_connected =

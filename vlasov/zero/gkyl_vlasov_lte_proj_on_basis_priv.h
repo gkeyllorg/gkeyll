@@ -15,9 +15,7 @@
 #include <assert.h>
 
 GKYL_CU_DH static inline void comp_to_phys(int ndim, const double *eta,
-                                           const double *GKYL_RESTRICT dx,
-                                           const double *GKYL_RESTRICT xc,
-                                           double *GKYL_RESTRICT xout)
+  const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xout)
 {
   for (int d = 0; d < ndim; ++d)
     xout[d] = 0.5 * dx[d] * eta[d] + xc[d];

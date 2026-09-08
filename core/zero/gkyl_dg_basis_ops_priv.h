@@ -13,8 +13,6 @@
  * @param out Evaluation of the array at coord (on GPU if arr is on GPU).
  **/
 void gkyl_dg_basis_ops_eval_array_at_coord_comp_cu(const struct gkyl_array *arr,
-                                                   const double *coord,
-                                                   const struct gkyl_basis *basis,
-                                                   const struct gkyl_rect_grid *grid,
-                                                   const struct gkyl_range *rng, double *out);
+  const double *coord, const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *rng, double *out);
 #endif

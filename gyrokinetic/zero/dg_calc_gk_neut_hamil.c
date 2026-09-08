@@ -8,9 +8,8 @@
 #include <gkyl_dg_calc_gk_neut_hamil_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_gk_neut_hamil *gkyl_dg_calc_gk_neut_hamil_new(const struct gkyl_rect_grid *phase_grid,
-                                                           const struct gkyl_basis *basis, int cdim,
-                                                           bool use_gpu)
+gkyl_dg_calc_gk_neut_hamil *gkyl_dg_calc_gk_neut_hamil_new(
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *basis, int cdim, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -34,9 +33,8 @@ gkyl_dg_calc_gk_neut_hamil *gkyl_dg_calc_gk_neut_hamil_new(const struct gkyl_rec
 }
 
 void gkyl_dg_calc_gk_neut_hamil_calc(struct gkyl_dg_calc_gk_neut_hamil *up,
-                                     const struct gkyl_range *conf_range,
-                                     const struct gkyl_range *phase_range,
-                                     const struct gkyl_array *gij, struct gkyl_array *hamil)
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_array *gij, struct gkyl_array *hamil)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(gij)) {

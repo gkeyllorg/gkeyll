@@ -82,8 +82,8 @@ void train_ann(struct train_inp *nn_inp, const char *nn_name)
   float frac_val = 0.1f; // fraction of samples to use for validation
 
   // run training
-  kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, Nx * Nt, inp->vals,
-                  out->vals);
+  kann_train_fnn1(
+    ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, Nx * Nt, inp->vals, out->vals);
   kann_save(nn_name, ann); // save to file
 
   gkyl_kn_vec_release(inp);
@@ -126,8 +126,8 @@ void write_to_gplot(void)
   }
 }
 
-void write_infer_data(const char *fname, const struct gkyl_kn_vec *inp,
-                      const struct gkyl_kn_vec *out)
+void write_infer_data(
+  const char *fname, const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
 {
   FILE *fp = 0;
   with_file(fp, fname, "w")
@@ -172,19 +172,19 @@ int main(int argc, char *argv[])
   if (p_train) {
     fprintf(stdout, "*** Training MLP\n");
     train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
-                                   .ndepth = 2,
-                                   .nwidth = 64,
-                                   .learning_rate = 1e-3f,
-                                   .layer_type = ANN_DENSE },
-              "rt_kann_cmp_arch_mlp.kann");
+                .ndepth = 2,
+                .nwidth = 64,
+                .learning_rate = 1e-3f,
+                .layer_type = ANN_DENSE },
+      "rt_kann_cmp_arch_mlp.kann");
 
     fprintf(stdout, "*** Training GRU\n");
     train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
-                                   .ndepth = 2,
-                                   .nwidth = 32,
-                                   .learning_rate = 1e-3f,
-                                   .layer_type = ANN_GRU },
-              "rt_kann_cmp_arch_gru.kann");
+                .ndepth = 2,
+                .nwidth = 32,
+                .learning_rate = 1e-3f,
+                .layer_type = ANN_GRU },
+      "rt_kann_cmp_arch_gru.kann");
   }
 
   if (p_infer) {

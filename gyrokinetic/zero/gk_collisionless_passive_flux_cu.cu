@@ -66,15 +66,13 @@ __global__ void gkyl_gk_collisionless_passive_flux_surf_conf_cu_kernel(
       if (idx[dir] == phase_range.lower[dir]) {
         // Lower domain/block boundary.
         cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d,
-                                                   up->charge, up->mass, dgs, gkdgs, bmag_d,
-                                                   jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, speeds_L,
-                                                   speeds_R, fL, fR, flux_surf_d);
+          up->charge, up->mass, dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d,
+          speeds_L, speeds_R, fL, fR, flux_surf_d);
       } else {
         // Interior, lower cell surface.
         cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge,
-                                           up->mass, dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d,
-                                           jacgeo_rat_surfR_d, speeds_L, speeds_R, fL, fR,
-                                           flux_surf_d);
+          up->mass, dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, speeds_L, speeds_R,
+          fL, fR, flux_surf_d);
       }
 
       // Upper domain boundary: compute the upper-edge surface expansion stored
@@ -108,12 +106,10 @@ __global__ void gkyl_gk_collisionless_passive_flux_surf_conf_cu_kernel(
 
         double *flux_surf_ghost_d = (double *)gkyl_array_fetch(flux_surf, loc_phase_ghost);
 
-        cflrate_ghost_d[0] = GKYL_MAX2(
-          cflrate_ghost_d[0],
+        cflrate_ghost_d[0] = GKYL_MAX2(cflrate_ghost_d[0],
           up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-                                     dgs_ghost, gkdgs_ghost, bmag_d, jacgeo_rat_surf_skin,
-                                     jacgeo_rat_surf_ghost, speeds_skin, speeds_ghost, f_skin,
-                                     f_ghost, flux_surf_ghost_d));
+            dgs_ghost, gkdgs_ghost, bmag_d, jacgeo_rat_surf_skin, jacgeo_rat_surf_ghost,
+            speeds_skin, speeds_ghost, f_skin, f_ghost, flux_surf_ghost_d));
       }
     }
     // No vpar loop: passive advection is conf-space only.
@@ -121,24 +117,21 @@ __global__ void gkyl_gk_collisionless_passive_flux_surf_conf_cu_kernel(
 }
 
 // Host-side wrapper for the passive surface flux kernel.
-void gkyl_gk_collisionless_passive_flux_surf_cu(
-  gkyl_gk_collisionless_passive_flux *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_ext_range,
-  const struct gkyl_range *phase_ext_range, const struct gkyl_array *fin,
-  struct gkyl_array *flux_surf, struct gkyl_array *cflrate)
+void gkyl_gk_collisionless_passive_flux_surf_cu(gkyl_gk_collisionless_passive_flux *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range,
+  const struct gkyl_array *fin, struct gkyl_array *flux_surf, struct gkyl_array *cflrate)
 {
   gkyl_gk_collisionless_passive_flux_surf_conf_cu_kernel<<<phase_range->volume,
-                                                           GKYL_DEFAULT_NUM_THREADS> > >(
-    up->on_dev, *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, fin->on_dev,
-    flux_surf->on_dev, cflrate->on_dev);
+    GKYL_DEFAULT_NUM_THREADS> > >(up->on_dev, *conf_range, *phase_range, *conf_ext_range,
+    *phase_ext_range, fin->on_dev, flux_surf->on_dev, cflrate->on_dev);
 }
 
 // CUDA kernel to set device function pointers.
 // Doing function-pointer work here avoids troublesome cudaMemcpyFromSymbol.
-__global__ static void
-gk_collisionless_passive_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_passive_flux *up,
-                                              int cdim, int vdim, int poly_order,
-                                              const enum gkyl_gyrokinetic_bc_type *bctype_conf)
+__global__ static void gk_collisionless_passive_flux_set_cu_dev_ptrs(
+  struct gkyl_gk_collisionless_passive_flux *up, int cdim, int vdim, int poly_order,
+  const enum gkyl_gyrokinetic_bc_type *bctype_conf)
 {
   for (int d = 0; d < cdim; d++) {
     up->flux_surf[d] =
@@ -192,15 +185,15 @@ gkyl_gk_collisionless_passive_flux *gkyl_gk_collisionless_passive_flux_cu_dev_ne
   enum gkyl_gyrokinetic_bc_type *bctype_conf_dev = (enum gkyl_gyrokinetic_bc_type *)gkyl_cu_malloc(
     2 * GKYL_MAX_CDIM * sizeof(enum gkyl_gyrokinetic_bc_type));
   gkyl_cu_memcpy(bctype_conf_dev, bctype_conf,
-                 2 * GKYL_MAX_CDIM * sizeof(enum gkyl_gyrokinetic_bc_type), GKYL_CU_MEMCPY_H2D);
+    2 * GKYL_MAX_CDIM * sizeof(enum gkyl_gyrokinetic_bc_type), GKYL_CU_MEMCPY_H2D);
 
   // Copy host struct to device and select kernels.
   struct gkyl_gk_collisionless_passive_flux *up_cu =
     (struct gkyl_gk_collisionless_passive_flux *)gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(*up), GKYL_CU_MEMCPY_H2D);
 
-  gk_collisionless_passive_flux_set_cu_dev_ptrs<<<1, 1> > >(up_cu, cdim, vdim, poly_order,
-                                                            bctype_conf_dev);
+  gk_collisionless_passive_flux_set_cu_dev_ptrs<<<1, 1> > >(
+    up_cu, cdim, vdim, poly_order, bctype_conf_dev);
 
   gkyl_cu_free(bctype_conf_dev);
 

@@ -15,8 +15,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-void write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local,
-                    const char *name)
+void write_geometry(
+  gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local, const char *name)
 {
   const char *fmt = "%s-%s.gkyl";
   int sz = gkyl_calc_strlen(fmt, name, "jacobtot_inv");
@@ -70,8 +70,8 @@ void write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_ran
   gkyl_gk_geometry_init_nodal_range(&nrange, &local, up->basis.poly_order);
   struct gkyl_array *mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &grid, false);
-  gkyl_nodal_ops_m2n(n2m, &up->basis, &grid, &nrange, &local, 3, mc2p_nodal, up->geo_corn.mc2p,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &up->basis, &grid, &nrange, &local, 3, mc2p_nodal, up->geo_corn.mc2p, false);
   gkyl_nodal_ops_release(n2m);
   struct gkyl_rect_grid ngrid;
   gkyl_gk_geometry_init_nodal_grid(&ngrid, &grid, &nrange);
@@ -83,10 +83,10 @@ void write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_ran
 void test_mirror_load_geometry_ho()
 {
   struct gkyl_efit_inp inp = { // psiRZ and related inputs
-                               .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
-                               .rz_poly_order = 2,
-                               .flux_poly_order = 1,
-                               .reflect = true
+    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect = true
   };
 
   clock_t start, end;
@@ -121,20 +121,20 @@ void test_mirror_load_geometry_ho()
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_gk_geometry_inp geometry_inp = { .geometry_id = GKYL_GEOMETRY_MIRROR,
-                                               .mirror_grid_info = ginp,
-                                               .position_map = pmap,
-                                               .grid = cgrid,
-                                               .local = clocal,
-                                               .local_ext = clocal_ext,
-                                               .global = clocal,
-                                               .global_ext = clocal_ext,
-                                               .basis = cbasis,
-                                               .geo_grid = cgrid,
-                                               .geo_local = clocal,
-                                               .geo_local_ext = clocal_ext,
-                                               .geo_global = clocal,
-                                               .geo_global_ext = clocal_ext,
-                                               .geo_basis = cbasis };
+    .mirror_grid_info = ginp,
+    .position_map = pmap,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis };
 
   struct gk_geometry *up = gkyl_gk_geometry_mirror_new(&geometry_inp);
   //write_geometry(up, cgrid, clocal, "whamlores");
@@ -259,20 +259,20 @@ void test_mirror_3x_p1_straight_cylinder_ho()
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MIRROR,
-                                                 .mirror_grid_info = ginp,
-                                                 .position_map = pos_map,
-                                                 .grid = grid,
-                                                 .local = range,
-                                                 .local_ext = ext_range,
-                                                 .global = range,
-                                                 .global_ext = ext_range,
-                                                 .basis = basis,
-                                                 .geo_grid = grid,
-                                                 .geo_local = range,
-                                                 .geo_local_ext = ext_range,
-                                                 .geo_global = range,
-                                                 .geo_global_ext = ext_range,
-                                                 .geo_basis = basis };
+    .mirror_grid_info = ginp,
+    .position_map = pos_map,
+    .grid = grid,
+    .local = range,
+    .local_ext = ext_range,
+    .global = range,
+    .global_ext = ext_range,
+    .basis = basis,
+    .geo_grid = grid,
+    .geo_local = range,
+    .geo_local_ext = ext_range,
+    .geo_global = range,
+    .geo_global_ext = ext_range,
+    .geo_basis = basis };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
 
@@ -300,8 +300,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
 
   // Check mapc2p
   struct gkyl_array *mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p, false);
   for (int ia = nrange.lower[AL_IDX]; ia <= nrange.upper[AL_IDX]; ++ia) {
     for (int ip = nrange.lower[PSI_IDX]; ip <= nrange.upper[PSI_IDX]; ++ip) {
       for (int it = nrange.lower[TH_IDX]; it <= nrange.upper[TH_IDX]; ++it) {
@@ -336,8 +336,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
 
   // Check mc2nu_pos
   struct gkyl_array *mc2nu_pos_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mc2nu_pos_nodal,
-                     gk_geom->geo_corn.mc2nu_pos, false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 3, mc2nu_pos_nodal, gk_geom->geo_corn.mc2nu_pos, false);
   for (int ia = nrange.lower[AL_IDX]; ia <= nrange.upper[AL_IDX]; ++ia) {
     for (int ip = nrange.lower[PSI_IDX]; ip <= nrange.upper[PSI_IDX]; ++ip) {
       for (int it = nrange.lower[TH_IDX]; it <= nrange.upper[TH_IDX]; ++it) {
@@ -370,8 +370,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
 
   // Check bmag is what it should be
   struct gkyl_array *bmag_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->geo_corn.bmag,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->geo_corn.bmag, false);
   for (int ia = nrange.lower[AL_IDX]; ia <= nrange.upper[AL_IDX]; ++ia) {
     for (int ip = nrange.lower[PSI_IDX]; ip <= nrange.upper[PSI_IDX]; ++ip) {
       for (int it = nrange.lower[TH_IDX]; it <= nrange.upper[TH_IDX]; ++it) {
@@ -412,7 +412,7 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   struct gkyl_array *mc2p_nodal_interior =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, mc2p_nodal_interior,
-                     gk_geom->geo_int.mc2p, true);
+    gk_geom->geo_int.mc2p, true);
   // Check that the mapc2p is what it should be
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
@@ -440,8 +440,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
         }
 
         // geo_int.mc2p_nodal
-        double *mc2p = gkyl_array_fetch(gk_geom->geo_int.mc2p_nodal,
-                                        gkyl_range_idx(&nrange_quad_interior, cidx));
+        double *mc2p = gkyl_array_fetch(
+          gk_geom->geo_int.mc2p_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         for (int i = 0; i < 3; ++i) {
           TEST_CHECK(gkyl_compare(mc2p[i], fout[i], 1e-8));
         }
@@ -453,7 +453,7 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   struct gkyl_array *bmag_nodal_interior =
     gkyl_array_new(GKYL_DOUBLE, 1, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, bmag_nodal_interior,
-                     gk_geom->geo_int.bmag, true);
+    gk_geom->geo_int.bmag, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -467,8 +467,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
         TEST_CHECK(gkyl_compare(bmag_n[0], fout[0], 1e-8));
 
         // geo_int.bmag_nodal
-        double *bmag = gkyl_array_fetch(gk_geom->geo_int.bmag_nodal,
-                                        gkyl_range_idx(&nrange_quad_interior, cidx));
+        double *bmag = gkyl_array_fetch(
+          gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         TEST_CHECK(gkyl_compare(bmag[0], fout[0], 1e-8));
       }
     }
@@ -476,8 +476,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
 
   // geo_int.g_ij
   struct gkyl_array *gij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_nodal,
-                     gk_geom->geo_int.g_ij, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_nodal, gk_geom->geo_int.g_ij, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -498,8 +498,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
           TEST_CHECK(gkyl_compare(gij_n[i], fout[i], 1e-6));
 
         // geo_int.g_ij_nodal
-        double *gij = gkyl_array_fetch(gk_geom->geo_int.g_ij_nodal,
-                                       gkyl_range_idx(&nrange_quad_interior, cidx));
+        double *gij = gkyl_array_fetch(
+          gk_geom->geo_int.g_ij_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         for (int i = 0; i < 6; ++i)
           TEST_CHECK(gkyl_compare(gij[i], fout[i], 1e-6));
       }
@@ -509,7 +509,7 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   // geo_int.gij
   struct gkyl_array *gij_contra_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_contra_nodal,
-                     gk_geom->geo_int.gij, true);
+    gk_geom->geo_int.gij, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -538,8 +538,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   // Check that |bhat|=1 at nodes
   struct gkyl_array *bhat_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, bhat_nodal,
-                     gk_geom->geo_int.bcart, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 3, bhat_nodal, gk_geom->geo_int.bcart, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -555,8 +555,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
         TEST_CHECK(gkyl_compare(bhat_mag, 1.0, 1e-12));
 
         // geo_int.bcart_nodal
-        double *bhat = gkyl_array_fetch(gk_geom->geo_int.bcart_nodal,
-                                        gkyl_range_idx(&nrange_quad_interior, cidx));
+        double *bhat = gkyl_array_fetch(
+          gk_geom->geo_int.bcart_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double bhat_mag_nodal = sqrt(bhat[0] * bhat[0] + bhat[1] * bhat[1] + bhat[2] * bhat[2]);
         TEST_CHECK(gkyl_compare(bhat_mag_nodal, 1.0, 1e-12));
       }
@@ -568,7 +568,7 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   struct gkyl_array *dualmag_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, dualmag_nodal,
-                     gk_geom->geo_int.dualmag, true);
+    gk_geom->geo_int.dualmag, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX] + 3;
@@ -590,8 +590,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
         TEST_CHECK(gkyl_compare(dualmag_n[2], dualmag_anal[2], 1e-6));
 
         // geo_int.dualmag_nodal
-        double *dualmag = gkyl_array_fetch(gk_geom->geo_int.dualmag_nodal,
-                                           gkyl_range_idx(&nrange_quad_interior, cidx));
+        double *dualmag = gkyl_array_fetch(
+          gk_geom->geo_int.dualmag_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         TEST_CHECK(gkyl_compare(dualmag[0], dualmag_anal[0], 1e-6));
         TEST_CHECK(gkyl_compare(dualmag[1], dualmag_anal[1], 1e-6));
         TEST_CHECK(gkyl_compare(dualmag[2], dualmag_anal[2], 1e-6));
@@ -601,8 +601,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
 
   // Check cmag = 1
   struct gkyl_array *cmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, cmag_nodal,
-                     gk_geom->geo_int.cmag, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 1, cmag_nodal, gk_geom->geo_int.cmag, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -622,7 +622,7 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   struct gkyl_array *jacobgeo_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobgeo_nodal,
-                     gk_geom->geo_int.jacobgeo, true);
+    gk_geom->geo_int.jacobgeo, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -649,7 +649,7 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   struct gkyl_array *jacobgeo_inv_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobgeo_inv_nodal,
-                     gk_geom->geo_int.jacobgeo_inv, true);
+    gk_geom->geo_int.jacobgeo_inv, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -672,7 +672,7 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   struct gkyl_array *jacobtot_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobtot_nodal,
-                     gk_geom->geo_int.jacobtot, true);
+    gk_geom->geo_int.jacobtot, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -699,7 +699,7 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   struct gkyl_array *jacobtot_inv_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobtot_inv_nodal,
-                     gk_geom->geo_int.jacobtot_inv, true);
+    gk_geom->geo_int.jacobtot_inv, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -727,7 +727,7 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   struct gkyl_array *normals_nodal =
     gkyl_array_new(GKYL_DOUBLE, 9 * basis.num_basis, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 9 * basis.num_basis,
-                     normals_nodal, gk_geom->geo_int.normals, true);
+    normals_nodal, gk_geom->geo_int.normals, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX] + 3;
@@ -753,8 +753,8 @@ void test_mirror_3x_p1_straight_cylinder_ho()
         }
 
         // geo_int.normals_nodal
-        double *normals = gkyl_array_fetch(gk_geom->geo_int.normals_nodal,
-                                           gkyl_range_idx(&nrange_quad_interior, cidx));
+        double *normals = gkyl_array_fetch(
+          gk_geom->geo_int.normals_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         for (int i = 0; i < 9; ++i) {
           TEST_CHECK(gkyl_compare(normals[i], fout[i], 1e-3));
         }
@@ -770,25 +770,25 @@ void test_mirror_3x_p1_straight_cylinder_ho()
   // create mirror geometry for surfaces
   struct gkyl_mirror_grid_gen *mirror_grid_surf[3];
   for (int dir = 0; dir < cdim; dir++) {
-    mirror_grid_surf[dir] = gkyl_mirror_grid_gen_surf_inew(
-      &(struct gkyl_mirror_grid_gen_inp){ .comp_grid = &grid,
-                                          .nrange = gk_geom->nrange_surf[dir],
-                                          .local = gk_geom->local,
-                                          .global = gk_geom->global,
-                                          .dir = dir,
-                                          .position_map = pos_map,
+    mirror_grid_surf[dir] =
+      gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp){ .comp_grid = &grid,
+        .nrange = gk_geom->nrange_surf[dir],
+        .local = gk_geom->local,
+        .global = gk_geom->global,
+        .dir = dir,
+        .position_map = pos_map,
 
-                                          .R = { psi_grid.lower[0], psi_grid.upper[0] },
-                                          .Z = { psi_grid.lower[1], psi_grid.upper[1] },
+        .R = { psi_grid.lower[0], psi_grid.upper[0] },
+        .Z = { psi_grid.lower[1], psi_grid.upper[1] },
 
-                                          // psi(R,Z) grid size
-                                          .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
-                                          .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
+        // psi(R,Z) grid size
+        .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
+        .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
 
-                                          .psiRZ = psi,
-                                          .fl_coord = ginp.fl_coord,
-                                          .include_axis = ginp.include_axis,
-                                          .write_psi_cubic = false });
+        .psiRZ = psi,
+        .fl_coord = ginp.fl_coord,
+        .include_axis = ginp.include_axis,
+        .write_psi_cubic = false });
   }
 
   for (int dir = 0; dir < cdim; dir++) {
@@ -818,37 +818,36 @@ void test_mirror_3x_p1_straight_cylinder_ho()
           const double theta = mirror_rza_n[1];
 
           // Next fetch the gk_geometry nodal values at this location
-          double *mc2p_n = gkyl_array_fetch(gk_geom->geo_surf[dir].mc2p_nodal,
-                                            gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *mc2p_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].mc2p_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
           double *jFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal,
-                                            gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *bmag_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bmag_nodal,
-                                            gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *gFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].g_ij_nodal,
-                                            gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *biFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].b_i_nodal,
-                                             gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *cmagFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].cmag_nodal,
-                                               gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *bcartFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bcart_nodal,
-                                                gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *tanvecFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].dxdz_nodal,
-                                                 gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *dualFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].dzdx_nodal,
-                                               gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *dualmagFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].dualmag_nodal,
-                                                  gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *normFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normals_nodal,
-                                               gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *lenr_n = gkyl_array_fetch(gk_geom->geo_surf[dir].lenr_nodal,
-                                            gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *B3_n = gkyl_array_fetch(gk_geom->geo_surf[dir].B3_nodal,
-                                          gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+            gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *bmag_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *gFld_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *biFld_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].b_i_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *cmagFld_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].cmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *bcartFld_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].bcart_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *tanvecFld_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *dualFld_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *dualmagFld_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].dualmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *normFld_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].normals_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *lenr_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].lenr_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *B3_n = gkyl_array_fetch(
+            gk_geom->geo_surf[dir].B3_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
           double *curlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].curlbhat_nodal,
-                                                gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-          double *normcurlbhat_n =
-            gkyl_array_fetch(gk_geom->geo_surf[dir].normcurlbhat_nodal,
-                             gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+            gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+          double *normcurlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normcurlbhat_nodal,
+            gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
 
           // Check mapc2p
           double fout[8];
@@ -1023,20 +1022,20 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MIRROR,
-                                                 .mirror_grid_info = ginp,
-                                                 .position_map = pos_map,
-                                                 .grid = grid,
-                                                 .local = range,
-                                                 .local_ext = ext_range,
-                                                 .global = range,
-                                                 .global_ext = ext_range,
-                                                 .basis = basis,
-                                                 .geo_grid = grid,
-                                                 .geo_local = range,
-                                                 .geo_local_ext = ext_range,
-                                                 .geo_global = range,
-                                                 .geo_global_ext = ext_range,
-                                                 .geo_basis = basis };
+    .mirror_grid_info = ginp,
+    .position_map = pos_map,
+    .grid = grid,
+    .local = range,
+    .local_ext = ext_range,
+    .global = range,
+    .global_ext = ext_range,
+    .basis = basis,
+    .geo_grid = grid,
+    .geo_local = range,
+    .geo_local_ext = ext_range,
+    .geo_global = range,
+    .geo_global_ext = ext_range,
+    .geo_basis = basis };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
 
@@ -1073,14 +1072,14 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
   double alpha_lo = grid.lower[AL_IDX] + dels[1] * grid.dx[AL_IDX] / 2.0;
 
   struct gkyl_array *mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p, false);
 
   // Check that |bhat|=1 at nodes
   struct gkyl_array *bhat_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, bhat_nodal,
-                     gk_geom->geo_int.bcart, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 3, bhat_nodal, gk_geom->geo_int.bcart, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -1103,11 +1102,11 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
   struct gkyl_array *dualmag_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, dualmag_nodal,
-                     gk_geom->geo_int.dualmag, true);
+    gk_geom->geo_int.dualmag, true);
   struct gkyl_array *mapc2p_nodal_interior =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 3, mapc2p_nodal_interior,
-                     gk_geom->geo_int.mc2p, true);
+    gk_geom->geo_int.mc2p, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX] + 3;
@@ -1137,8 +1136,8 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
 
   // Check bmag is what it should be
   struct gkyl_array *bmag_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->geo_corn.bmag,
-                     false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->geo_corn.bmag, false);
   for (int ia = nrange.lower[AL_IDX]; ia <= nrange.upper[AL_IDX]; ++ia) {
     for (int ip = nrange.lower[PSI_IDX]; ip <= nrange.upper[PSI_IDX]; ++ip) {
       for (int it = nrange.lower[TH_IDX]; it <= nrange.upper[TH_IDX]; ++it) {
@@ -1162,8 +1161,8 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
 
   // Check cmag = 1
   struct gkyl_array *cmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, cmag_nodal,
-                     gk_geom->geo_int.cmag, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 1, cmag_nodal, gk_geom->geo_int.cmag, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -1181,8 +1180,8 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
 
   // Check g_ij
   struct gkyl_array *gij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange_quad_interior.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_nodal,
-                     gk_geom->geo_int.g_ij, true);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_nodal, gk_geom->geo_int.g_ij, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -1212,7 +1211,7 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
   // Check g^ij
   struct gkyl_array *gij_contra_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 6, gij_contra_nodal,
-                     gk_geom->geo_int.gij, true);
+    gk_geom->geo_int.gij, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -1243,7 +1242,7 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
   struct gkyl_array *jacobgeo_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobgeo_nodal,
-                     gk_geom->geo_int.jacobgeo, true);
+    gk_geom->geo_int.jacobgeo, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -1270,7 +1269,7 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
   struct gkyl_array *jacobgeo_inv_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobgeo_inv_nodal,
-                     gk_geom->geo_int.jacobgeo_inv, true);
+    gk_geom->geo_int.jacobgeo_inv, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -1297,7 +1296,7 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
   struct gkyl_array *jacobtot_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobtot_nodal,
-                     gk_geom->geo_int.jacobtot, true);
+    gk_geom->geo_int.jacobtot, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -1326,7 +1325,7 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
   struct gkyl_array *jacobtot_inv_nodal =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 1, jacobtot_inv_nodal,
-                     gk_geom->geo_int.jacobtot_inv, true);
+    gk_geom->geo_int.jacobtot_inv, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX]; ip <= nrange_quad_interior.upper[PSI_IDX];
@@ -1378,8 +1377,8 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
 
   // Check mc2nu_pos
   struct gkyl_array *mc2nu_pos_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mc2nu_pos_nodal,
-                     gk_geom->geo_corn.mc2nu_pos, false);
+  gkyl_nodal_ops_m2n(
+    n2m, &basis, &grid, &nrange, &range, 3, mc2nu_pos_nodal, gk_geom->geo_corn.mc2nu_pos, false);
   for (int ia = nrange.lower[AL_IDX]; ia <= nrange.upper[AL_IDX]; ++ia) {
     for (int ip = nrange.lower[PSI_IDX]; ip <= nrange.upper[PSI_IDX]; ++ip) {
       for (int it = nrange.lower[TH_IDX]; it <= nrange.upper[TH_IDX]; ++it) {
@@ -1406,7 +1405,7 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
   struct gkyl_array *normals_nodal =
     gkyl_array_new(GKYL_DOUBLE, 9 * basis.num_basis, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange_quad_interior, &range, 9 * basis.num_basis,
-                     normals_nodal, gk_geom->geo_int.normals, true);
+    normals_nodal, gk_geom->geo_int.normals, true);
   for (int ia = nrange_quad_interior.lower[AL_IDX]; ia <= nrange_quad_interior.upper[AL_IDX];
        ++ia) {
     for (int ip = nrange_quad_interior.lower[PSI_IDX] + 3;
@@ -1453,9 +1452,7 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho()
   gkyl_gk_geometry_release(gk_geom);
 }
 
-TEST_LIST = {
-  { "test_mirror_load_geometry_ho", test_mirror_load_geometry_ho },
+TEST_LIST = { { "test_mirror_load_geometry_ho", test_mirror_load_geometry_ho },
   { "test_mirror_3x_p1_straight_cylinder_ho", test_mirror_3x_p1_straight_cylinder_ho },
   // { "test_mirror_3x_p1_pmap_straight_cylinder_ho", test_mirror_3x_p1_pmap_straight_cylinder_ho },
-  { NULL, NULL }
-};
+  { NULL, NULL } };

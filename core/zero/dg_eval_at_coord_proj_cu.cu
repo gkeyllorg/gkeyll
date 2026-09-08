@@ -8,9 +8,7 @@ extern "C" {
 }
 
 __global__ void dg_eval_at_coord_choose_ker_cu_ker(int cdim, int ndim, struct gkyl_basis basis,
-                                                   int num_eval_dirs,
-                                                   dg_evproj_struct_int_t eval_dirs,
-                                                   struct dg_ev_proj_kernels *kers)
+  int num_eval_dirs, dg_evproj_struct_int_t eval_dirs, struct dg_ev_proj_kernels *kers)
 {
   int dir_mask = eval_dirs_to_mask(num_eval_dirs, eval_dirs.c);
 
@@ -40,9 +38,8 @@ __global__ void dg_eval_at_coord_choose_ker_cu_ker(int cdim, int ndim, struct gk
   assert(kers->ev_ker);
 }
 
-struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker_cu(int cdim, int ndim,
-                                                          const struct gkyl_basis *basis,
-                                                          int num_eval_dirs, const int *eval_dirs)
+struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker_cu(
+  int cdim, int ndim, const struct gkyl_basis *basis, int num_eval_dirs, const int *eval_dirs)
 {
   struct dg_ev_proj_kernels *kers =
     (struct dg_ev_proj_kernels *)gkyl_cu_malloc(sizeof(struct dg_ev_proj_kernels));
@@ -51,17 +48,16 @@ struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker_cu(int cdim, int ndim,
   for (int i = 0; i < num_eval_dirs; i++)
     eval_dirs_st.c[i] = eval_dirs[i];
 
-  dg_eval_at_coord_choose_ker_cu_ker<<<1, 1> > >(cdim, ndim, *basis, num_eval_dirs, eval_dirs_st,
-                                                 kers);
+  dg_eval_at_coord_choose_ker_cu_ker<<<1, 1> > >(
+    cdim, ndim, *basis, num_eval_dirs, eval_dirs_st, kers);
 
   return kers;
 }
 
-__global__ void dg_eval_at_coord_proj_range_cu_kernel(
-  int num_basis_do, int num_basis_tar, int ncomp, dg_evproj_struct_bool_t is_eval,
-  dg_evproj_struct_double_t eval_coords_log, dg_evproj_struct_int_t cell_idx,
-  struct dg_ev_proj_kernels *kers, struct gkyl_range rng_do, struct gkyl_range rng_tar,
-  const struct gkyl_array *fdo, struct gkyl_array *ftar)
+__global__ void dg_eval_at_coord_proj_range_cu_kernel(int num_basis_do, int num_basis_tar,
+  int ncomp, dg_evproj_struct_bool_t is_eval, dg_evproj_struct_double_t eval_coords_log,
+  dg_evproj_struct_int_t cell_idx, struct dg_ev_proj_kernels *kers, struct gkyl_range rng_do,
+  struct gkyl_range rng_tar, const struct gkyl_array *fdo, struct gkyl_array *ftar)
 {
   int idx_tar[GKYL_MAX_DIM];
   int idx_do[GKYL_MAX_DIM];
@@ -85,12 +81,9 @@ __global__ void dg_eval_at_coord_proj_range_cu_kernel(
 }
 
 void gkyl_dg_eval_at_coord_proj_advance_cu(struct gkyl_dg_eval_at_coord_proj *up,
-                                           const double *eval_coords,
-                                           const struct gkyl_rect_grid *grid,
-                                           const bool *pick_lower, const int *known_index,
-                                           const struct gkyl_range *rng_do,
-                                           const struct gkyl_range *rng_tar,
-                                           const struct gkyl_array *fdo, struct gkyl_array *ftar)
+  const double *eval_coords, const struct gkyl_rect_grid *grid, const bool *pick_lower,
+  const int *known_index, const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar,
+  const struct gkyl_array *fdo, struct gkyl_array *ftar)
 {
   // We assume that if fdo has multiple DG fields (vector components), ftar has the
   // same number of vector components.
@@ -125,7 +118,7 @@ void gkyl_dg_eval_at_coord_proj_advance_cu(struct gkyl_dg_eval_at_coord_proj *up
   int nblocks = rng_tar->nblocks;
   int nthreads = rng_tar->nthreads;
 
-  dg_eval_at_coord_proj_range_cu_kernel<<<nblocks, nthreads> > >(
-    up->num_basis_do, num_basis_tar, ncomp, is_eval, eval_coords_log, cell_idx, up->kers, *rng_do,
-    *rng_tar, fdo->on_dev, ftar->on_dev);
+  dg_eval_at_coord_proj_range_cu_kernel<<<nblocks, nthreads> > >(up->num_basis_do, num_basis_tar,
+    ncomp, is_eval, eval_coords_log, cell_idx, up->kers, *rng_do, *rng_tar, fdo->on_dev,
+    ftar->on_dev);
 }

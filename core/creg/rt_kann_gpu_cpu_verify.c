@@ -46,10 +46,10 @@ static void train_and_save(int ntrain, int nwidth, int ndepth, bool use_gpu, con
   }
 
   struct gkyl_kann_train_params params = { .learning_rate = 1e-3f,
-                                           .mini_size = 64,
-                                           .max_epoch = 50,
-                                           .max_drop_streak = 10,
-                                           .frac_val = 0.1f };
+    .mini_size = 64,
+    .max_epoch = 50,
+    .max_drop_streak = 10,
+    .frac_val = 0.1f };
 
   gkyl_kann_net_train_fnn1(net, &params, inp_t, out_t);
   gkyl_kann_net_save(net, filename);
@@ -64,8 +64,8 @@ static void train_and_save(int ntrain, int nwidth, int ndepth, bool use_gpu, con
 }
 
 // Run inference and return outputs in out (always host kn_vec)
-static void infer(const char *filename, bool use_gpu, const struct gkyl_kn_vec *inp,
-                  struct gkyl_kn_vec *out)
+static void infer(
+  const char *filename, bool use_gpu, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   struct gkyl_kann_net *net = gkyl_kann_net_load(filename, use_gpu);
 
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
       const char *status = (mse < 0.05f && fabsf(val_at_0 - 1.0f) < 0.2f) ? "PASS" : "FAIL";
       fprintf(stdout, "  width=%3d depth=%d: mse=%.3e  f(0)=%.4f (exact=1.0)  [%s]\n", w, d, mse,
-              val_at_0, status);
+        val_at_0, status);
     }
   }
 

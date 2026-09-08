@@ -8,10 +8,9 @@ extern "C" {
 }
 
 // CUDA kernel to set device pointers to kernels.
-__global__ static void
-gkyl_pos_shift_gk_set_cu_ker_ptrs(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-                                  struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-                                  enum gkyl_positivity_shift_type stype)
+__global__ static void gkyl_pos_shift_gk_set_cu_ker_ptrs(
+  struct gkyl_positivity_shift_gyrokinetic_kernels *kernels, struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype)
 {
   int cdim = cbasis.ndim, pdim = pbasis.ndim;
   enum gkyl_basis_type cbasis_type = cbasis.b_type, pbasis_type = pbasis.b_type;
@@ -46,8 +45,7 @@ gkyl_pos_shift_gk_set_cu_ker_ptrs(struct gkyl_positivity_shift_gyrokinetic_kerne
 };
 
 void pos_shift_gk_choose_shift_kernel_cu(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-                                         struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-                                         enum gkyl_positivity_shift_type stype)
+  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype)
 {
   gkyl_pos_shift_gk_set_cu_ker_ptrs<<<1, 1> > >(kernels, cbasis, pbasis, stype);
 }
@@ -64,8 +62,8 @@ __device__ static __forceinline__ double pos_shift_atomicMax_double(double *addr
   return __longlong_as_double(ret);
 }
 
-__global__ void
-gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker(struct gkyl_array *out, int val)
+__global__ void gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker(
+  struct gkyl_array *out, int val)
 {
   int *out_d = (int *)out->data;
   unsigned long start_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -242,11 +240,9 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker(
 }
 
 void gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic *up,
-                                                  const struct gkyl_range *conf_rng,
-                                                  const struct gkyl_range *phase_rng,
-                                                  struct gkyl_array *GKYL_RESTRICT distf,
-                                                  struct gkyl_array *GKYL_RESTRICT m0,
-                                                  struct gkyl_array *GKYL_RESTRICT delta_m0)
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
+  struct gkyl_array *GKYL_RESTRICT delta_m0)
 {
   int nblocks_phase = phase_rng->nblocks, nthreads_phase = phase_rng->nthreads;
   int nblocks_conf = conf_rng->nblocks, nthreads_conf = conf_rng->nthreads;
@@ -341,7 +337,7 @@ void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(
   struct gkyl_array *GKYL_RESTRICT fs)
 {
   int nblocks = phase_rng->nblocks, nthreads = phase_rng->nthreads;
-  gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker<<<nblocks, nthreads> > >(
-    up->kernels, *conf_rng, *phase_rng, delta_m0s->on_dev, delta_m0s_tot->on_dev,
-    delta_m0r_tot->on_dev, m0s->on_dev, fs->on_dev);
+  gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker<<<nblocks, nthreads> > >(up->kernels,
+    *conf_rng, *phase_rng, delta_m0s->on_dev, delta_m0s_tot->on_dev, delta_m0r_tot->on_dev,
+    m0s->on_dev, fs->on_dev);
 }

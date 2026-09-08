@@ -9,9 +9,8 @@
 #include <float.h>
 
 void gkyl_dg_basis_ops_eval_array_at_coord_comp(const struct gkyl_array *arr, const double *coord,
-                                                const struct gkyl_basis *basis,
-                                                const struct gkyl_rect_grid *grid,
-                                                const struct gkyl_range *rng, double *out)
+  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, const struct gkyl_range *rng,
+  double *out)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
@@ -76,8 +75,8 @@ void gkyl_dg_calc_cubic_1d(const double val[2], const double grad[2], double *co
              0.05345224838248487 * val[0] + 0.05345224838248487 * grad[0];
 }
 
-void gkyl_dg_calc_cubic_2d(const double f[4], const double fx[4], const double fy[4],
-                           const double fxy[4], double *coeff)
+void gkyl_dg_calc_cubic_2d(
+  const double f[4], const double fx[4], const double fy[4], const double fxy[4], double *coeff)
 {
   coeff[0] = (-0.1666666666666667 * fy[3]) + 0.05555555555555555 * fxy[3] -
              0.1666666666666667 * fx[3] + 0.5 * f[3] + 0.1666666666666667 * fy[2] -
@@ -204,8 +203,7 @@ void gkyl_dg_basis_op_mem_release(gkyl_dg_basis_op_mem *mem)
 }
 
 void gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells, double dx,
-                                           const struct gkyl_array *nodal_vals,
-                                           struct gkyl_array *cubic)
+  const struct gkyl_array *nodal_vals, struct gkyl_array *cubic)
 {
   enum { I, LL, L, R, RR, XE }; // i, i-2, i-1, i+1, i+2 nodes
 
@@ -281,8 +279,7 @@ void gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells,
 }
 
 void gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], double dx[2],
-                                           const struct gkyl_array *nodal_vals,
-                                           struct gkyl_array *cubic)
+  const struct gkyl_array *nodal_vals, struct gkyl_array *cubic)
 {
   enum {
     I, // (i,j)
@@ -600,12 +597,11 @@ void gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[
 
     double val[4] = { val_I[0], val_T[0], val_R[0], val_RT[0] };
     double gradx[4] = { gradx_I[0] * dx[0] / 2, gradx_T[0] * dx[0] / 2, gradx_R[0] * dx[0] / 2,
-                        gradx_RT[0] * dx[0] / 2 };
+      gradx_RT[0] * dx[0] / 2 };
     double grady[4] = { grady_I[0] * dx[1] / 2, grady_T[0] * dx[1] / 2, grady_R[0] * dx[1] / 2,
-                        grady_RT[0] * dx[1] / 2 };
+      grady_RT[0] * dx[1] / 2 };
     double gradxy[4] = { gradxy_I[0] * dx[0] / 2 * dx[1] / 2, gradxy_T[0] * dx[0] / 2 * dx[1] / 2,
-                         gradxy_R[0] * dx[0] / 2 * dx[1] / 2,
-                         gradxy_RT[0] * dx[0] / 2 * dx[1] / 2 };
+      gradxy_R[0] * dx[0] / 2 * dx[1] / 2, gradxy_RT[0] * dx[0] / 2 * dx[1] / 2 };
 
     long cidx = gkyl_range_idx(&range, iter.idx);
     double *coeff = gkyl_array_fetch(cubic, cidx);
@@ -745,8 +741,8 @@ static void eval_cubic_wgrad2(double t, const double *xn, double *fout, void *ct
   }
 }
 
-struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
-                                                         const struct gkyl_array *nodal_vals)
+struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_array *nodal_vals)
 {
   if (grid->ndim > 2)
     return 0;
@@ -797,10 +793,9 @@ bool gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf,
 {
   struct dg_basis_ops_evalf_ctx *ectx = evf->ctx;
 
-  struct gkyl_msgpack_data *mdata = gkyl_msgpack_create(
-    2, (struct gkyl_msgpack_map_elem[]){
-         { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 3 },
-         { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = ectx->basis.id } });
+  struct gkyl_msgpack_data *mdata = gkyl_msgpack_create(2,
+    (struct gkyl_msgpack_map_elem[]){ { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 3 },
+      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = ectx->basis.id } });
 
   enum gkyl_array_rio_status status =
     gkyl_grid_sub_array_write(&ectx->grid, &ectx->local, mdata, ectx->cubic, fname);

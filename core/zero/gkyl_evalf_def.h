@@ -25,8 +25,8 @@ typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
  * @param ghost Pointer to data in ghost-cell
  * @param ctx Context for function evaluation. Can be NULL
  */
-typedef void (*wv_bc_func_t)(const struct gkyl_wv_eqn *eqn, double t, int ncomp, const double *skin,
-                             double *ghost, void *ctx);
+typedef void (*wv_bc_func_t)(
+  const struct gkyl_wv_eqn *eqn, double t, int ncomp, const double *skin, double *ghost, void *ctx);
 
 /**
  * Type of function for use in array copy op.

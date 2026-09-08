@@ -8,10 +8,9 @@
 #include <gkyl_dg_calc_fluid_em_coupling_priv.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_calc_fluid_em_coupling *
-gkyl_dg_calc_fluid_em_coupling_new(const struct gkyl_basis *cbasis,
-                                   const struct gkyl_range *mem_range, int num_fluids,
-                                   double qbym[GKYL_MAX_SPECIES], double epsilon0, bool use_gpu)
+struct gkyl_dg_calc_fluid_em_coupling *gkyl_dg_calc_fluid_em_coupling_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, int num_fluids,
+  double qbym[GKYL_MAX_SPECIES], double epsilon0, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -53,16 +52,14 @@ gkyl_dg_calc_fluid_em_coupling_new(const struct gkyl_basis *cbasis,
 }
 
 void gkyl_dg_calc_fluid_em_coupling_advance(struct gkyl_dg_calc_fluid_em_coupling *up, double dt,
-                                            const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
-                                            const struct gkyl_array *ext_em,
-                                            const struct gkyl_array *app_current,
-                                            struct gkyl_array *fluid[GKYL_MAX_SPECIES],
-                                            struct gkyl_array *em)
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
+  const struct gkyl_array *app_current, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
+  struct gkyl_array *em)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(em)) {
-    return gkyl_dg_calc_fluid_em_coupling_advance_cu(up, dt, app_accel, ext_em, app_current, fluid,
-                                                     em);
+    return gkyl_dg_calc_fluid_em_coupling_advance_cu(
+      up, dt, app_accel, ext_em, app_current, fluid, em);
   }
 #endif
   int num_fluids = up->num_fluids;
@@ -85,7 +82,7 @@ void gkyl_dg_calc_fluid_em_coupling_advance(struct gkyl_dg_calc_fluid_em_couplin
     double *em_d = gkyl_array_fetch(em, loc);
 
     up->fluid_em_coupling_set(count, up->num_fluids, up->qbym, up->epsilon0, dt, up->As, up->xs,
-                              app_accels, ext_em_d, app_current_d, fluids, em_d);
+      app_accels, ext_em_d, app_current_d, fluids, em_d);
 
     count += 1;
   }
@@ -110,9 +107,7 @@ void gkyl_dg_calc_fluid_em_coupling_advance(struct gkyl_dg_calc_fluid_em_couplin
 }
 
 void gkyl_dg_calc_fluid_em_coupling_energy(struct gkyl_dg_calc_fluid_em_coupling *up,
-                                           const struct gkyl_array *ke_old,
-                                           const struct gkyl_array *ke_new,
-                                           struct gkyl_array *fluid)
+  const struct gkyl_array *ke_old, const struct gkyl_array *ke_new, struct gkyl_array *fluid)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(fluid)) {

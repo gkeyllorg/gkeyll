@@ -23,8 +23,8 @@ static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
   return a;
 }
 
-static void eval_array_at_coord_1d_func(double t, const double *xc, double *GKYL_RESTRICT fout,
-                                        void *ctx)
+static void eval_array_at_coord_1d_func(
+  double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0];
   double Lx = 5.0;
@@ -74,8 +74,8 @@ void test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
     memcpy(eval_coord, eval_coord_ho, ndim * sizeof(double));
   }
 
-  gkyl_dg_basis_ops_eval_array_at_coord_comp(fld, eval_coord, basis_on_dev, &grid, &local,
-                                             fld_at_coord);
+  gkyl_dg_basis_ops_eval_array_at_coord_comp(
+    fld, eval_coord, basis_on_dev, &grid, &local, fld_at_coord);
 
   double fld_at_coord_ho[1];
   if (use_gpu)
@@ -140,21 +140,21 @@ void test_basis_ops_cubic_2d_ho(void)
   TEST_CHECK(gkyl_compare_double(val[2], b3.eval_expand((double[2]){ 1.0, -1.0 }, coeff), 1.0e-15));
   TEST_CHECK(gkyl_compare_double(val[3], b3.eval_expand((double[2]){ 1.0, 1.0 }, coeff), 1.0e-15));
 
-  TEST_CHECK(gkyl_compare_double(gradx[0], b3.eval_grad_expand(0, (double[2]){ -1.0, -1.0 }, coeff),
-                                 1.0e-15));
-  TEST_CHECK(gkyl_compare_double(gradx[1], b3.eval_grad_expand(0, (double[2]){ -1.0, 1.0 }, coeff),
-                                 1.0e-15));
-  TEST_CHECK(gkyl_compare_double(gradx[2], b3.eval_grad_expand(0, (double[2]){ 1.0, -1.0 }, coeff),
-                                 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(
+    gradx[0], b3.eval_grad_expand(0, (double[2]){ -1.0, -1.0 }, coeff), 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(
+    gradx[1], b3.eval_grad_expand(0, (double[2]){ -1.0, 1.0 }, coeff), 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(
+    gradx[2], b3.eval_grad_expand(0, (double[2]){ 1.0, -1.0 }, coeff), 1.0e-15));
   TEST_CHECK(
     gkyl_compare_double(gradx[3], b3.eval_grad_expand(0, (double[2]){ 1.0, 1.0 }, coeff), 1.0e-15));
 
-  TEST_CHECK(gkyl_compare_double(grady[0], b3.eval_grad_expand(1, (double[2]){ -1.0, -1.0 }, coeff),
-                                 1.0e-15));
-  TEST_CHECK(gkyl_compare_double(grady[1], b3.eval_grad_expand(1, (double[2]){ -1.0, 1.0 }, coeff),
-                                 1.0e-15));
-  TEST_CHECK(gkyl_compare_double(grady[2], b3.eval_grad_expand(1, (double[2]){ 1.0, -1.0 }, coeff),
-                                 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(
+    grady[0], b3.eval_grad_expand(1, (double[2]){ -1.0, -1.0 }, coeff), 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(
+    grady[1], b3.eval_grad_expand(1, (double[2]){ -1.0, 1.0 }, coeff), 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(
+    grady[2], b3.eval_grad_expand(1, (double[2]){ 1.0, -1.0 }, coeff), 1.0e-15));
   TEST_CHECK(
     gkyl_compare_double(grady[3], b3.eval_grad_expand(1, (double[2]){ 1.0, 1.0 }, coeff), 1.0e-15));
 }
@@ -244,13 +244,12 @@ void test_basis_ops_eval_array_at_coord_1d_dev()
 }
 #endif
 
-TEST_LIST = {
-  { "test_basis_ops_eval_array_at_coord_1d_ho", test_basis_ops_eval_array_at_coord_1d_ho },
+TEST_LIST = { { "test_basis_ops_eval_array_at_coord_1d_ho",
+                test_basis_ops_eval_array_at_coord_1d_ho },
   { "basis_ops_cubic_1d_ho", test_basis_ops_cubic_1d_ho },
   { "basis_ops_cubic_2d_ho", test_basis_ops_cubic_2d_ho },
   { "basis_ops_cubic_evalf_2d_ho", test_basis_ops_cubic_evalf_2d_ho },
 #ifdef GKYL_HAVE_CUDA
   { "test_basis_ops_eval_array_at_coord_1d_dev", test_basis_ops_eval_array_at_coord_1d_dev },
 #endif
-  { NULL, NULL }
-};
+  { NULL, NULL } };

@@ -54,22 +54,21 @@ static void fem_poisson_perp_bias_src_enabled(gkyl_fem_poisson_perp *up, struct 
             (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]) ||
             (idx1[bl->perp_dirs[0]] == bl_idx_m[0] && idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
             (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
-             idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
+              idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
           int edge[2] = { -1 + 2 * ((bl_idx_m[0] + 1) - idx1[bl->perp_dirs[0]]),
-                          -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]) };
-          up->kernels->bias_src_ker[keri](edge, bl->perp_dirs, bl->val, parProbOff, up->globalidx,
-                                          brhs_p);
+            -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]) };
+          up->kernels->bias_src_ker[keri](
+            edge, bl->perp_dirs, bl->val, parProbOff, up->globalidx, brhs_p);
         }
       }
     }
   }
 }
 
-struct gkyl_fem_poisson_perp *
-gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
-                          const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
-                          struct gkyl_poisson_bias_line_list *bias_lines,
-                          struct gkyl_array *epsilon, struct gkyl_array *kSq, bool use_gpu)
+struct gkyl_fem_poisson_perp *gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range,
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
+  struct gkyl_poisson_bias_line_list *bias_lines, struct gkyl_array *epsilon,
+  struct gkyl_array *kSq, bool use_gpu)
 {
   struct gkyl_fem_poisson_perp *up = gkyl_malloc(sizeof(struct gkyl_fem_poisson_perp));
 
@@ -195,8 +194,8 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     up->bcvals_cu = (double *)gkyl_cu_malloc(sizeof(double[PERP_DIM_MAX * 3 * 2]));
-    gkyl_cu_memcpy(up->bcvals_cu, up->bcvals, sizeof(double[PERP_DIM_MAX * 3 * 2]),
-                   GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(
+      up->bcvals_cu, up->bcvals, sizeof(double[PERP_DIM_MAX * 3 * 2]), GKYL_CU_MEMCPY_H2D);
   }
 #endif
 
@@ -278,9 +277,8 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
           }
         }
 
-        bool pick_lower[3] = {
-          true, true, true
-        }; // If at a cell boundary, pick the cell lower than the biased line.
+        bool pick_lower[3] = { true, true,
+          true }; // If at a cell boundary, pick the cell lower than the biased line.
         int line_idx[GKYL_MAX_CDIM];
         gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){ -1, -1, -1 }, line_idx);
 
@@ -297,8 +295,8 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
         for (int i = 0; i < bias_lines->num_bias_line; i++) {
           if (bl_in_solve_range[i]) {
             struct gkyl_poisson_bias_line *bl = &bias_lines->bl[i];
-            memcpy(&bias_lines_buff[blc], &bias_lines->bl[i],
-                   sizeof(struct gkyl_poisson_bias_line));
+            memcpy(
+              &bias_lines_buff[blc], &bias_lines->bl[i], sizeof(struct gkyl_poisson_bias_line));
             blc++;
           }
         }
@@ -313,10 +311,10 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
         gkyl_free(bias_lines_buff);
 
         // Select biasing kernels:
-        fem_poisson_perp_choose_bias_lhs_kernels(&basis, up->isdirperiodic,
-                                                 up->kernels->bias_lhs_ker);
-        fem_poisson_perp_choose_bias_src_kernels(&basis, up->isdirperiodic,
-                                                 up->kernels->bias_src_ker);
+        fem_poisson_perp_choose_bias_lhs_kernels(
+          &basis, up->isdirperiodic, up->kernels->bias_lhs_ker);
+        fem_poisson_perp_choose_bias_src_kernels(
+          &basis, up->isdirperiodic, up->kernels->bias_src_ker);
       }
     }
   }
@@ -411,13 +409,13 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 
             if ((idx1[bl->perp_dirs[0]] == bl_idx_m[0] && idx1[bl->perp_dirs[1]] == bl_idx_m[1]) ||
                 (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
-                 idx1[bl->perp_dirs[1]] == bl_idx_m[1]) ||
+                  idx1[bl->perp_dirs[1]] == bl_idx_m[1]) ||
                 (idx1[bl->perp_dirs[0]] == bl_idx_m[0] &&
-                 idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
+                  idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
                 (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
-                 idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
+                  idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
               int edge[2] = { -1 + 2 * ((bl_idx_m[0] + 1) - idx1[bl->perp_dirs[0]]),
-                              -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]) };
+                -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]) };
               up->kernels->bias_lhs_ker[keri](edge, bl->perp_dirs, up->globalidx, up->tri[paridx]);
             }
           }
@@ -522,8 +520,8 @@ void gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array 
 
 #ifdef GKYL_HAVE_CUDA
       if (up->use_gpu) {
-        gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM,
-                                &(up->perp_range[paridx]));
+        gkyl_array_reduce_range(
+          up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
         gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
       } else {
         gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
@@ -576,8 +574,8 @@ void gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array 
 
       long parProbOff = paridx * up->numnodes_global;
 
-      up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, parProbOff, up->globalidx,
-                                brhs_p);
+      up->kernels->srcker[keri](
+        eps_p, up->dx, rhsin_p, up->bcvals, parProbOff, up->globalidx, brhs_p);
     }
   }
 
@@ -625,14 +623,14 @@ void gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *p
 
       long parProbOff = paridx * up->numnodes_global;
 
-      up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), parProbOff, up->globalidx,
-                          phiout_p);
+      up->kernels->solker(
+        gkyl_superlu_get_rhs_ptr(up->prob, 0), parProbOff, up->globalidx, phiout_p);
     }
   }
 }
 
-void gkyl_fem_poisson_perp_update_lhs(gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon,
-                                      struct gkyl_array *kSq)
+void gkyl_fem_poisson_perp_update_lhs(
+  gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq)
 {
   assert(up->num_bias_line == 0); // Have not accounted for bias in csr_val_idx.
 #ifdef GKYL_HAVE_CUDA

@@ -75,7 +75,7 @@ void *gkyl_aligned_alloc_(const char *file, int line, const char *func, size_t a
  * @param new_sz New size of memory.
  */
 void *gkyl_aligned_realloc_(const char *file, int line, const char *func, void *ptr, size_t align,
-                            size_t old_sz, size_t new_sz);
+  size_t old_sz, size_t new_sz);
 
 /**
  * Free memory allocated by gkyl_aligned_alloc().
@@ -130,11 +130,11 @@ void gkyl_cu_memcpy(void *dst, const void *src, size_t count, enum gkyl_cu_memcp
 
 /** Copy data between host/device */
 #ifdef GKYL_HAVE_CUDA
-void gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind,
-                          cudaStream_t stream);
+void gkyl_cu_memcpy_async(
+  void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream);
 #else
-void gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind,
-                          int stream);
+void gkyl_cu_memcpy_async(
+  void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, int stream);
 #endif
 
 /** Set memory on device */

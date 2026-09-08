@@ -36,8 +36,7 @@ __global__ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu_kernel(
     int *const_sgn_alpha_d = (int *)gkyl_array_fetch(const_sgn_alpha, loc);
     for (int dir = 0; dir < cdim; ++dir) {
       const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->conf_grid.dx,
-                                                   (const double *)gkyl_array_cfetch(phi, loc),
-                                                   alpha_surf_d, sgn_alpha_surf_d);
+        (const double *)gkyl_array_cfetch(phi, loc), alpha_surf_d, sgn_alpha_surf_d);
 
       // If the configuration space index is at the local configuration space upper value, we
       // we are at the configuration space upper edge and we also need to evaluate
@@ -52,9 +51,8 @@ __global__ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu_kernel(
         double *alpha_surf_ext_d = (double *)gkyl_array_fetch(alpha_surf, loc_ext);
         double *sgn_alpha_surf_ext_d = (double *)gkyl_array_fetch(sgn_alpha_surf, loc_ext);
         int *const_sgn_alpha_ext_d = (int *)gkyl_array_fetch(const_sgn_alpha, loc_ext);
-        const_sgn_alpha_ext_d[dir] =
-          up->alpha_edge_surf[dir](xc, up->conf_grid.dx, (const double *)gkyl_array_fetch(phi, loc),
-                                   alpha_surf_ext_d, sgn_alpha_surf_ext_d);
+        const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->conf_grid.dx,
+          (const double *)gkyl_array_fetch(phi, loc), alpha_surf_ext_d, sgn_alpha_surf_ext_d);
       }
     }
   }
@@ -68,9 +66,9 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu_kernel<<<nblocks, nthreads> > >(
-    up->on_dev, *conf_range, *conf_ext_range, phi->on_dev, alpha_surf->on_dev,
-    sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev);
+  gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu_kernel<<<nblocks, nthreads> > >(up->on_dev,
+    *conf_range, *conf_ext_range, phi->on_dev, alpha_surf->on_dev, sgn_alpha_surf->on_dev,
+    const_sgn_alpha->on_dev);
 }
 
 __global__ void gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel(
@@ -120,8 +118,7 @@ __global__ void gkyl_canonical_pb_fluid_vars_source_cu_kernel(
     const double *n0_d = (const double *)gkyl_array_cfetch(n0, loc);
 
     double *rhs_d = (double *)gkyl_array_fetch(rhs, loc);
-    up->canonical_pb_fluid_source(
-      up->conf_grid.dx, up->alpha, phi_d, n0_d,
+    up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, phi_d, n0_d,
       adiabatic_coupling_phi_n ? (const double *)gkyl_array_cfetch(adiabatic_coupling_phi_n, loc) :
                                  0,
       rhs_d);
@@ -130,10 +127,8 @@ __global__ void gkyl_canonical_pb_fluid_vars_source_cu_kernel(
 
 // Host-side wrapper for source update of canonical PB fluid systems.
 void gkyl_canonical_pb_fluid_vars_source_cu(struct gkyl_dg_calc_canonical_pb_fluid_vars *up,
-                                            const struct gkyl_range *conf_range,
-                                            const struct gkyl_array *phi,
-                                            const struct gkyl_array *n0,
-                                            const struct gkyl_array *fluid, struct gkyl_array *rhs)
+  const struct gkyl_range *conf_range, const struct gkyl_array *phi, const struct gkyl_array *n0,
+  const struct gkyl_array *fluid, struct gkyl_array *rhs)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
@@ -151,23 +146,22 @@ void gkyl_canonical_pb_fluid_vars_source_cu(struct gkyl_dg_calc_canonical_pb_flu
       // Compute the zonal components of phi and n.
       gkyl_array_average_advance(up->int_y, phi, up->phi_zonal);
       gkyl_array_average_advance(up->int_y, up->n, up->n_zonal);
-      gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel<<<nblocks, nthreads> > >(
-        up->on_dev, *conf_range, up->x_local, up->phi_zonal->on_dev, up->n_zonal->on_dev,
+      gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel<<<nblocks, nthreads> > >(up->on_dev,
+        *conf_range, up->x_local, up->phi_zonal->on_dev, up->n_zonal->on_dev,
         up->adiabatic_coupling_phi_n->on_dev);
     }
   }
 
-  gkyl_canonical_pb_fluid_vars_source_cu_kernel<<<nblocks, nthreads> > >(
-    up->on_dev, *conf_range, phi->on_dev, n0->on_dev,
+  gkyl_canonical_pb_fluid_vars_source_cu_kernel<<<nblocks, nthreads> > >(up->on_dev, *conf_range,
+    phi->on_dev, n0->on_dev,
     up->adiabatic_coupling_phi_n ? up->adiabatic_coupling_phi_n->on_dev : 0, rhs->on_dev);
 }
 
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void
-dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_canonical_pb_fluid_vars *up,
-                                          enum gkyl_basis_type b_type, int cdim, int poly_order,
-                                          enum gkyl_eqn_type eqn_type, bool is_modified)
+__global__ static void dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(
+  struct gkyl_dg_calc_canonical_pb_fluid_vars *up, enum gkyl_basis_type b_type, int cdim,
+  int poly_order, enum gkyl_eqn_type eqn_type, bool is_modified)
 {
   if (eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
     up->canonical_pb_fluid_source =
@@ -255,8 +249,8 @@ gkyl_dg_calc_canonical_pb_fluid_vars *gkyl_dg_calc_canonical_pb_fluid_vars_cu_de
       sizeof(gkyl_dg_calc_canonical_pb_fluid_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_canonical_pb_fluid_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1, 1> > >(up_cu, conf_basis->b_type, cdim, poly_order,
-                                                        wv_eqn->type, up->is_modified);
+  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1, 1> > >(
+    up_cu, conf_basis->b_type, cdim, poly_order, wv_eqn->type, up->is_modified);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

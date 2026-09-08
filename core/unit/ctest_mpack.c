@@ -105,6 +105,5 @@ void test_msgpack_1_ho(void)
   TEST_CHECK(strcmp(elist[5].cval, "Hello, World!") == 0);
 }
 
-TEST_LIST = { { "mpack_map_1_ho", test_mpack_map_1_ho },
-              { "msgpack_1_ho", test_msgpack_1_ho },
-              { 0, 0 } };
+TEST_LIST = { { "mpack_map_1_ho", test_mpack_map_1_ho }, { "msgpack_1_ho", test_msgpack_1_ho },
+  { 0, 0 } };

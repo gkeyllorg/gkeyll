@@ -10,11 +10,10 @@ extern "C" {
 #include <gkyl_nodal_ops.h>
 }
 
-__global__ static void
-gkyl_nodal_ops_n2m_cu_kernel(const struct gkyl_basis *cbasis, struct gkyl_rect_grid grid,
-                             struct gkyl_range nrange, struct gkyl_range update_range,
-                             const struct gkyl_array *nodes, int num_comp,
-                             const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld)
+__global__ static void gkyl_nodal_ops_n2m_cu_kernel(const struct gkyl_basis *cbasis,
+  struct gkyl_rect_grid grid, struct gkyl_range nrange, struct gkyl_range update_range,
+  const struct gkyl_array *nodes, int num_comp, const struct gkyl_array *nodal_fld,
+  struct gkyl_array *modal_fld)
 {
   double xc[GKYL_MAX_DIM];
   int idx[GKYL_MAX_DIM];
@@ -72,23 +71,21 @@ gkyl_nodal_ops_n2m_cu_kernel(const struct gkyl_basis *cbasis, struct gkyl_rect_g
 }
 
 void gkyl_nodal_ops_n2m_cu(const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
-                           const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
-                           const struct gkyl_range *update_range, int num_comp,
-                           const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld)
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
+  const struct gkyl_range *update_range, int num_comp, const struct gkyl_array *nodal_fld,
+  struct gkyl_array *modal_fld)
 {
   int nblocks = update_range->nblocks;
   int nthreads = update_range->nthreads;
 
   gkyl_nodal_ops_n2m_cu_kernel<<<nblocks, nthreads> > >(cbasis, *grid, *nrange, *update_range,
-                                                        nodal_ops->nodes->on_dev, num_comp,
-                                                        nodal_fld->on_dev, modal_fld->on_dev);
+    nodal_ops->nodes->on_dev, num_comp, nodal_fld->on_dev, modal_fld->on_dev);
 }
 
-__global__ static void
-gkyl_nodal_ops_m2n_cu_kernel(const struct gkyl_basis *cbasis, struct gkyl_rect_grid grid,
-                             struct gkyl_range nrange, struct gkyl_range update_range,
-                             const struct gkyl_array *nodes, int num_comp,
-                             struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld)
+__global__ static void gkyl_nodal_ops_m2n_cu_kernel(const struct gkyl_basis *cbasis,
+  struct gkyl_rect_grid grid, struct gkyl_range nrange, struct gkyl_range update_range,
+  const struct gkyl_array *nodes, int num_comp, struct gkyl_array *nodal_fld,
+  const struct gkyl_array *modal_fld)
 {
   int idx[GKYL_MAX_DIM];
   int midx[GKYL_MAX_DIM];
@@ -124,16 +121,15 @@ gkyl_nodal_ops_m2n_cu_kernel(const struct gkyl_basis *cbasis, struct gkyl_rect_g
 }
 
 void gkyl_nodal_ops_m2n_cu(const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
-                           const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
-                           const struct gkyl_range *update_range, int num_comp,
-                           struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld)
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
+  const struct gkyl_range *update_range, int num_comp, struct gkyl_array *nodal_fld,
+  const struct gkyl_array *modal_fld)
 {
   int nblocks = update_range->nblocks;
   int nthreads = update_range->nthreads;
 
   gkyl_nodal_ops_m2n_cu_kernel<<<nblocks, nthreads> > >(cbasis, *grid, *nrange, *update_range,
-                                                        nodal_ops->nodes->on_dev, num_comp,
-                                                        nodal_fld->on_dev, modal_fld->on_dev);
+    nodal_ops->nodes->on_dev, num_comp, nodal_fld->on_dev, modal_fld->on_dev);
 }
 
 __global__ static void gkyl_nodal_ops_m2n_deflated_cu_kernel(
@@ -177,18 +173,15 @@ __global__ static void gkyl_nodal_ops_m2n_deflated_cu_kernel(
 }
 
 void gkyl_nodal_ops_m2n_deflated_cu(const struct gkyl_nodal_ops *nodal_ops,
-                                    const struct gkyl_basis *deflated_cbasis,
-                                    const struct gkyl_rect_grid *deflated_grid,
-                                    const struct gkyl_range *nrange,
-                                    const struct gkyl_range *deflated_nrange,
-                                    const struct gkyl_range *deflated_update_range, int num_comp,
-                                    struct gkyl_array *nodal_fld,
-                                    const struct gkyl_array *deflated_modal_fld, int extra_idx)
+  const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *deflated_grid,
+  const struct gkyl_range *nrange, const struct gkyl_range *deflated_nrange,
+  const struct gkyl_range *deflated_update_range, int num_comp, struct gkyl_array *nodal_fld,
+  const struct gkyl_array *deflated_modal_fld, int extra_idx)
 {
   int nblocks = deflated_update_range->nblocks;
   int nthreads = deflated_update_range->nthreads;
 
-  gkyl_nodal_ops_m2n_deflated_cu_kernel<<<nblocks, nthreads> > >(
-    deflated_cbasis, *deflated_grid, *nrange, *deflated_nrange, *deflated_update_range,
-    nodal_ops->nodes->on_dev, num_comp, nodal_fld->on_dev, deflated_modal_fld->on_dev, extra_idx);
+  gkyl_nodal_ops_m2n_deflated_cu_kernel<<<nblocks, nthreads> > >(deflated_cbasis, *deflated_grid,
+    *nrange, *deflated_nrange, *deflated_update_range, nodal_ops->nodes->on_dev, num_comp,
+    nodal_fld->on_dev, deflated_modal_fld->on_dev, extra_idx);
 }

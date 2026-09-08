@@ -57,8 +57,8 @@ void gkyl_iso_euler_mixture_prim_vars(int num_species, double *vt_s, const doubl
   gkyl_free(rho_s);
 }
 
-static inline double gkyl_iso_euler_mixture_max_abs_speed(int num_species, double *vt_s,
-                                                          const double *q)
+static inline double gkyl_iso_euler_mixture_max_abs_speed(
+  int num_species, double *vt_s, const double *q)
 {
   double *v = gkyl_malloc(sizeof(double[3 + (2 * num_species)]));
   gkyl_iso_euler_mixture_prim_vars(num_species, vt_s, q, v);
@@ -126,8 +126,8 @@ void gkyl_iso_euler_mixture_flux(int num_species, double *vt_s, const double *q,
   gkyl_free(rho_s);
 }
 
-static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                const double *qin, double *wout)
+static inline void cons_to_riem(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -139,8 +139,8 @@ static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qst
   }
 }
 
-static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                const double *win, double *qout)
+static inline void riem_to_cons(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -153,7 +153,7 @@ static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qst
 }
 
 static void iso_euler_mixture_wall(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                                   const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
+  const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -167,7 +167,7 @@ static void iso_euler_mixture_wall(const struct gkyl_wv_eqn *eqn, double t, int 
 }
 
 static void iso_euler_mixture_no_slip(const struct gkyl_wv_eqn *eqn, double t, int nc,
-                                      const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
+  const double *skin, double *GKYL_RESTRICT ghost, void *ctx)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -183,8 +183,8 @@ static void iso_euler_mixture_no_slip(const struct gkyl_wv_eqn *eqn, double t, i
 }
 
 static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                const double *tau2, const double *norm,
-                                const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
+  double *GKYL_RESTRICT qlocal)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -200,8 +200,8 @@ static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau
 }
 
 static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                 const double *tau2, const double *norm,
-                                 const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
+  double *GKYL_RESTRICT qglobal)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -217,7 +217,7 @@ static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *ta
 }
 
 static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-                       const double *qr, double *waves, double *s)
+  const double *qr, double *waves, double *s)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -249,7 +249,7 @@ static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const
 }
 
 static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                       const double *waves, const double *s, double *amdq, double *apdq)
+  const double *waves, const double *s, double *amdq, double *apdq)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -266,21 +266,21 @@ static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const do
 }
 
 static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                         const double *delta, const double *ql, const double *qr, const double phil,
-                         const double phir, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
 static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                         const double *ql, const double *qr, const double phil, const double phir,
-                         const double *waves, const double *s, double *amdq, double *apdq)
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
+  const double *s, double *amdq, double *apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
 static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
-                       const double *qr, double *waves, double *s)
+  const double *qr, double *waves, double *s)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -381,7 +381,7 @@ static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const
 }
 
 static void qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                       const double *waves, const double *s, double *amdq, double *apdq)
+  const double *waves, const double *s, double *amdq, double *apdq)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -399,8 +399,8 @@ static void qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const do
 }
 
 static double wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                         const double *delta, const double *ql, const double *qr, const double phil,
-                         const double phir, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return wave_roe(eqn, delta, ql, qr, waves, s);
@@ -412,8 +412,8 @@ static double wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
 }
 
 static void qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                         const double *ql, const double *qr, const double phil, const double phir,
-                         const double *waves, const double *s, double *amdq, double *apdq)
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves,
+  const double *s, double *amdq, double *apdq)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
@@ -422,8 +422,8 @@ static void qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type t
   }
 }
 
-static double flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-                        double *flux_jump)
+static double flux_jump(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -493,8 +493,8 @@ static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_iso_euler_mixture_max_abs_speed(num_species, vt_s, q);
 }
 
-static inline void iso_euler_mixture_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin,
-                                                  double *diag)
+static inline void iso_euler_mixture_cons_to_diag(
+  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -505,8 +505,8 @@ static inline void iso_euler_mixture_cons_to_diag(const struct gkyl_wv_eqn *eqn,
   }
 }
 
-static inline void iso_euler_mixture_source(const struct gkyl_wv_eqn *eqn, const double *qin,
-                                            double *sout)
+static inline void iso_euler_mixture_source(
+  const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   const struct wv_iso_euler_mixture *iso_euler_mixture =
     container_of(eqn, struct wv_iso_euler_mixture, eqn);
@@ -537,9 +537,9 @@ struct gkyl_wv_eqn *gkyl_wv_iso_euler_mixture_new(int num_species, double *vt_s,
 {
   return gkyl_wv_iso_euler_mixture_inew(
     &(struct gkyl_wv_iso_euler_mixture_inp){ .num_species = num_species,
-                                             .vt_s = vt_s,
-                                             .rp_type = WV_ISO_EULER_MIXTURE_RP_LAX,
-                                             .use_gpu = use_gpu });
+      .vt_s = vt_s,
+      .rp_type = WV_ISO_EULER_MIXTURE_RP_LAX,
+      .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *gkyl_wv_iso_euler_mixture_inew(const struct gkyl_wv_iso_euler_mixture_inp *inp)

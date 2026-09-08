@@ -52,8 +52,7 @@ struct vm_field *vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   // Create Poisson solver.
   vpf->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->confBasis,
-                                          &vpf->info.poisson_bcs, NULL, vpf->epsilon, NULL, true,
-                                          app->use_gpu);
+    &vpf->info.poisson_bcs, NULL, vpf->epsilon, NULL, true, app->use_gpu);
 
   vpf->field_id = GKYL_FIELD_PHI;
 
@@ -70,8 +69,7 @@ struct vm_field *vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
                                        gkyl_array_acquire(vpf->ext_pot);
 
     vpf->ext_pot_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 4,
-                                               vpf->info.external_potentials,
-                                               vpf->info.external_potentials_ctx);
+      vpf->info.external_potentials, vpf->info.external_potentials_ctx);
   }
 
   // Initialize external E and B fields.
@@ -87,8 +85,7 @@ struct vm_field *vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
                          mkarr(false, 6 * app->confBasis.num_basis, app->local_ext.volume) :
                          gkyl_array_acquire(vpf->ext_em);
     vpf->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-                                              app->confBasis.poly_order + 1, 6, vpf->info.ext_em,
-                                              vpf->info.ext_em_ctx);
+      app->confBasis.poly_order + 1, 6, vpf->info.ext_em, vpf->info.ext_em_ctx);
   }
 
   // Vlasov-Poisson doesn't presently use external currents or limiters.
@@ -108,15 +105,15 @@ struct vm_field *vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   vpf->es_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_shiftc(vpf->es_energy_fac, pow(sqrt(2.0), app->cdim), 0); // Sets es_energy_fac=1.
 
-  vpf->calc_es_energy = gkyl_array_integrate_new(&app->grid, &app->confBasis, 1,
-                                                 GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ, app->use_gpu);
+  vpf->calc_es_energy = gkyl_array_integrate_new(
+    &app->grid, &app->confBasis, 1, GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ, app->use_gpu);
   vpf->is_first_energy_write_call = true;
 
   return vpf;
 }
 
-void vp_field_accumulate_charge_dens(gkyl_vlasov_app *app, struct vm_field *field,
-                                     const struct gkyl_array *fin[])
+void vp_field_accumulate_charge_dens(
+  gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[])
 {
   // Calcualte the charge density.
 
@@ -137,22 +134,22 @@ void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field)
 
   struct timespec wst = gkyl_wall_clock();
   // Gather charge density into global array.
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c,
-                            field->rho_c_global);
+  gkyl_comm_array_allgather(
+    app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global);
 
   // Solve the Poisson problem.
   gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c_global, NULL);
   gkyl_fem_poisson_solve(field->fem_poisson, field->phi_global);
 
   // Copy the portion of global potential corresponding to this MPI pcross to the local potential.
-  gkyl_array_copy_range_to_range(field->phi, field->phi_global, &app->local,
-                                 &field->global_sub_range);
+  gkyl_array_copy_range_to_range(
+    field->phi, field->phi_global, &app->local, &field->global_sub_range);
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void vp_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[],
-                       double t0)
+void vp_field_apply_ic(
+  gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[], double t0)
 {
   if (!app->has_field)
     return;
@@ -179,16 +176,15 @@ void vp_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, const struc
 void vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
 {
   gkyl_array_integrate_advance(field->calc_es_energy, field->phi, app->grid.cellVolume,
-                               field->es_energy_fac, &app->local, &app->local,
-                               field->es_energy_red);
+    field->es_energy_fac, &app->local, &app->local, field->es_energy_red);
 
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->es_energy_red,
-                      field->es_energy_red_global);
+  gkyl_comm_allreduce(
+    app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->es_energy_red, field->es_energy_red_global);
 
   double energy_global[1] = { 0.0 };
   if (app->use_gpu)
-    gkyl_cu_memcpy(energy_global, field->es_energy_red_global, sizeof(double[1]),
-                   GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(
+      energy_global, field->es_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
   else
     energy_global[0] = field->es_energy_red_global[0];
 

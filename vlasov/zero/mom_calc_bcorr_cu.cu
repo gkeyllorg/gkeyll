@@ -14,11 +14,8 @@ extern "C" {
 }
 
 __global__ static void gkyl_mom_calc_bcorr_advance_cu_ker(const struct gkyl_mom_calc_bcorr *bcorr,
-                                                          const struct gkyl_range conf_rng,
-                                                          struct gkyl_range vel_rng,
-                                                          enum gkyl_vel_edge edge,
-                                                          const struct gkyl_array *fin,
-                                                          struct gkyl_array *out)
+  const struct gkyl_range conf_rng, struct gkyl_range vel_rng, enum gkyl_vel_edge edge,
+  const struct gkyl_array *fin, struct gkyl_array *out)
 {
   double xc[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
@@ -50,10 +47,8 @@ __global__ static void gkyl_mom_calc_bcorr_advance_cu_ker(const struct gkyl_mom_
 }
 
 void gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
-                                    const struct gkyl_range *phase_rng,
-                                    const struct gkyl_range *conf_rng,
-                                    const struct gkyl_array *GKYL_RESTRICT fin,
-                                    struct gkyl_array *GKYL_RESTRICT out)
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT out)
 {
   struct gkyl_range vel_rng;
   int nblocks, nthreads;
@@ -74,8 +69,8 @@ void gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
     nblocks = vel_rng.nblocks;
     nthreads = vel_rng.nthreads;
 
-    gkyl_mom_calc_bcorr_advance_cu_ker<<<nblocks, nthreads> > >(bcorr->on_dev, *conf_rng, vel_rng,
-                                                                edge, fin->on_dev, out->on_dev);
+    gkyl_mom_calc_bcorr_advance_cu_ker<<<nblocks, nthreads> > >(
+      bcorr->on_dev, *conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
 
     edge = gkyl_vel_edge(d);
     vlower_idx[conf_rng->ndim + d] = phase_rng->lower[conf_rng->ndim + d];
@@ -84,8 +79,8 @@ void gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
     nblocks = vel_rng.nblocks;
     nthreads = vel_rng.nthreads;
 
-    gkyl_mom_calc_bcorr_advance_cu_ker<<<nblocks, nthreads> > >(bcorr->on_dev, *conf_rng, vel_rng,
-                                                                edge, fin->on_dev, out->on_dev);
+    gkyl_mom_calc_bcorr_advance_cu_ker<<<nblocks, nthreads> > >(
+      bcorr->on_dev, *conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
 
     // Reset indices for loop over each velocity dimension
     vlower_idx[conf_rng->ndim + d] = phase_rng->lower[conf_rng->ndim + d];
@@ -93,8 +88,8 @@ void gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
   }
 }
 
-gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid,
-                                                    const struct gkyl_mom_type *momt)
+gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_cu_dev_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt)
 {
   gkyl_mom_calc_bcorr *up = (gkyl_mom_calc_bcorr *)gkyl_malloc(sizeof(gkyl_mom_calc_bcorr));
   up->grid = *grid;

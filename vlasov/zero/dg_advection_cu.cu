@@ -14,23 +14,22 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_advection_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
-                                                              const struct gkyl_array *u_i)
+__global__ static void gkyl_advection_set_auxfields_cu_kernel(
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *u_i)
 {
   struct dg_advection *advection = container_of(eqn, struct dg_advection, eqn);
   advection->auxfields.u_i = u_i;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_advection_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                     struct gkyl_dg_advection_auxfields auxin)
+void gkyl_advection_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin)
 {
   gkyl_advection_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.u_i->on_dev);
 }
 
-__global__ void static dg_advection_set_cu_dev_ptrs(struct dg_advection *advection,
-                                                    enum gkyl_basis_type b_type, int cdim,
-                                                    int poly_order)
+__global__ void static dg_advection_set_cu_dev_ptrs(
+  struct dg_advection *advection, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   advection->auxfields.u_i = 0;
 
@@ -62,8 +61,8 @@ __global__ void static dg_advection_set_cu_dev_ptrs(struct dg_advection *advecti
     advection->surf[2] = CK(surf_z_kernels, cdim, poly_order);
 }
 
-struct gkyl_dg_eqn *gkyl_dg_advection_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                 const struct gkyl_range *conf_range)
+struct gkyl_dg_eqn *gkyl_dg_advection_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range)
 {
   struct dg_advection *advection = (struct dg_advection *)gkyl_malloc(sizeof(struct dg_advection));
 
@@ -79,8 +78,8 @@ struct gkyl_dg_eqn *gkyl_dg_advection_cu_dev_new(const struct gkyl_basis *cbasis
   struct dg_advection *advection_cu =
     (struct dg_advection *)gkyl_cu_malloc(sizeof(struct dg_advection));
   gkyl_cu_memcpy(advection_cu, advection, sizeof(struct dg_advection), GKYL_CU_MEMCPY_H2D);
-  dg_advection_set_cu_dev_ptrs<<<1, 1> > >(advection_cu, cbasis->b_type, cbasis->ndim,
-                                           cbasis->poly_order);
+  dg_advection_set_cu_dev_ptrs<<<1, 1> > >(
+    advection_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
 
   // set parent on_dev pointer
   advection->eqn.on_dev = &advection_cu->eqn;

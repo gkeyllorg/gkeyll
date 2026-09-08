@@ -66,7 +66,7 @@ void gkyl_kann_net_save(const struct gkyl_kann_net *net, const char *filename);
  * @return Number of epochs completed
  */
 int gkyl_kann_net_train_fnn1(struct gkyl_kann_net *net, const struct gkyl_kann_train_params *params,
-                             const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out);
+  const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out);
 
 /**
  * Run inference on a batch of input vectors.
@@ -76,8 +76,8 @@ int gkyl_kann_net_train_fnn1(struct gkyl_kann_net *net, const struct gkyl_kann_t
  * @param out Output vectors (nvec samples, each of length N = n_out).
  *            Filled by this function.
  */
-void gkyl_kann_net_apply(struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp,
-                         struct gkyl_kn_vec *out);
+void gkyl_kann_net_apply(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out);
 
 /**
  * Run sequential RNN inference over a sequence of input vectors.
@@ -91,8 +91,8 @@ void gkyl_kann_net_apply(struct gkyl_kann_net *net, const struct gkyl_kn_vec *in
  * @param out Output vectors (nvec timesteps, each of length N = n_out).
  *            Filled by this function.
  */
-void gkyl_kann_net_apply_rnn(struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp,
-                             struct gkyl_kn_vec *out);
+void gkyl_kann_net_apply_rnn(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out);
 
 /**
  * Get the input dimension of the network (number of floats per input

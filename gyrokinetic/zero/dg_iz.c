@@ -70,7 +70,7 @@ struct gkyl_dg_iz *gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   // Allocate grid and DG array.
   struct gkyl_rect_grid tn_grid;
   gkyl_rect_grid_init(&tn_grid, 2, (double[]){ logTmin, logNmin }, (double[]){ logTmax, logNmax },
-                      (int[]){ data.NT - 1, data.NN - 1 });
+    (int[]){ data.NT - 1, data.NN - 1 });
 
   if (use_gpu) {
     // Allocate device basis if we are using GPUs.
@@ -91,8 +91,8 @@ struct gkyl_dg_iz *gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
     gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
-  gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal,
-                     adas_dg, false);
+  gkyl_nodal_ops_n2m(
+    n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg, false);
   gkyl_nodal_ops_release(n2m);
 
   // ADAS data pointers
@@ -124,8 +124,8 @@ struct gkyl_dg_iz *gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
 }
 
 void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *prim_vars_elc,
-                     struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2,
-                     struct gkyl_array *coef_iz, struct gkyl_array *cflrate)
+  struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz,
+  struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(coef_iz)) {

@@ -84,23 +84,23 @@ struct kh_2d_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct kh_2d_ctx ctx = { .pi = pi,
-                           .gas_gamma = gas_gamma,
-                           .rhol = rhol,
-                           .ul = ul,
-                           .pl = pl,
-                           .rhor = rhor,
-                           .ur = ur,
-                           .pr = pr,
-                           .yloc = yloc,
-                           .Nx = Nx,
-                           .Ny = Ny,
-                           .Lx = Lx,
-                           .Ly = Ly,
-                           .cfl_frac = cfl_frac,
-                           .t_end = t_end,
-                           .num_frames = num_frames,
-                           .dt_failure_tol = dt_failure_tol,
-                           .num_failures_max = num_failures_max };
+    .gas_gamma = gas_gamma,
+    .rhol = rhol,
+    .ul = ul,
+    .pl = pl,
+    .rhor = rhor,
+    .ur = ur,
+    .pr = pr,
+    .yloc = yloc,
+    .Nx = Nx,
+    .Ny = Ny,
+    .Lx = Lx,
+    .Ly = Ly,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -199,10 +199,10 @@ int main(int argc, char **argv)
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = { .name = "euler",
-                                       .equation = euler,
+    .equation = euler,
 
-                                       .init = evalEulerInit,
-                                       .ctx = &ctx };
+    .init = evalEulerInit,
+    .ctx = &ctx };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -253,8 +253,8 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -276,8 +276,8 @@ int main(int argc, char **argv)
     .species = { fluid },
 
     .parallelism = { .use_gpu = app_args.use_gpu,
-                     .cuts = { app_args.cuts[0], app_args.cuts[1] },
-                     .comm = comm }
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -329,8 +329,8 @@ int main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_moment_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         break;
       }
     } else {

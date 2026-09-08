@@ -99,38 +99,38 @@ struct amr_gr_bhl_spinning_ctx create_ctx(void)
   double x_loc = 1.0; // Shock location (x-direction).
 
   struct amr_gr_bhl_spinning_ctx ctx = { .pi = pi,
-                                         .gas_gamma = gas_gamma,
-                                         .rhol = rhol,
-                                         .ul = ul,
-                                         .pl = pl,
-                                         .rhor = rhor,
-                                         .ur = ur,
-                                         .pr = pr,
-                                         .mass = mass,
-                                         .spin = spin,
-                                         .pos_x = pos_x,
-                                         .pos_y = pos_y,
-                                         .pos_z = pos_z,
-                                         .spacetime = spacetime,
-                                         .Nx = Nx,
-                                         .Ny = Ny,
-                                         .ref_factor = ref_factor,
-                                         .Lx = Lx,
-                                         .Ly = Ly,
-                                         .fine_Lx = fine_Lx,
-                                         .fine_Ly = fine_Ly,
-                                         .cfl_frac = cfl_frac,
-                                         .t_end = t_end,
-                                         .num_frames = num_frames,
-                                         .dt_failure_tol = dt_failure_tol,
-                                         .num_failures_max = num_failures_max,
-                                         .x_loc = x_loc };
+    .gas_gamma = gas_gamma,
+    .rhol = rhol,
+    .ul = ul,
+    .pl = pl,
+    .rhor = rhor,
+    .ur = ur,
+    .pr = pr,
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .spacetime = spacetime,
+    .Nx = Nx,
+    .Ny = Ny,
+    .ref_factor = ref_factor,
+    .Lx = Lx,
+    .Ly = Ly,
+    .fine_Lx = fine_Lx,
+    .fine_Ly = fine_Ly,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
+    .x_loc = x_loc };
 
   return ctx;
 }
 
-void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                     void *ctx)
+void evalGREulerInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_gr_bhl_spinning_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -275,38 +275,38 @@ int main(int argc, char **argv)
   struct amr_gr_bhl_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
 
   struct gr_euler2d_single_init init = { .base_Nx = ctx.Nx,
-                                         .base_Ny = ctx.Ny,
-                                         .ref_factor = ctx.ref_factor,
+    .base_Ny = ctx.Ny,
+    .ref_factor = ctx.ref_factor,
 
-                                         .coarse_x1 = 0.0,
-                                         .coarse_y1 = 0.0,
-                                         .coarse_x2 = ctx.Lx,
-                                         .coarse_y2 = ctx.Ly,
+    .coarse_x1 = 0.0,
+    .coarse_y1 = 0.0,
+    .coarse_x2 = ctx.Lx,
+    .coarse_y2 = ctx.Ly,
 
-                                         .refined_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.fine_Lx),
-                                         .refined_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.fine_Ly),
-                                         .refined_x2 = (0.5 * ctx.Lx) + (0.5 * ctx.fine_Lx),
-                                         .refined_y2 = (0.5 * ctx.Ly) + (0.5 * ctx.fine_Ly),
+    .refined_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.fine_Lx),
+    .refined_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.fine_Ly),
+    .refined_x2 = (0.5 * ctx.Lx) + (0.5 * ctx.fine_Lx),
+    .refined_y2 = (0.5 * ctx.Ly) + (0.5 * ctx.fine_Ly),
 
-                                         .eval = evalGREulerInit,
-                                         .gas_gamma = ctx.gas_gamma,
-                                         .spacetime = ctx.spacetime,
+    .eval = evalGREulerInit,
+    .gas_gamma = ctx.gas_gamma,
+    .spacetime = ctx.spacetime,
 
-                                         .copy_x = true,
-                                         .copy_y = true,
+    .copy_x = true,
+    .copy_y = true,
 
-                                         .wall_x = false,
-                                         .wall_y = false,
+    .wall_x = false,
+    .wall_y = false,
 
-                                         .gr_euler_output = "amr_gr_bhl_spinning_l1",
+    .gr_euler_output = "amr_gr_bhl_spinning_l1",
 
-                                         .low_order_flux = true,
-                                         .cfl_frac = ctx.cfl_frac,
+    .low_order_flux = true,
+    .cfl_frac = ctx.cfl_frac,
 
-                                         .t_end = ctx.t_end,
-                                         .num_frames = ctx.num_frames,
-                                         .dt_failure_tol = ctx.dt_failure_tol,
-                                         .num_failures_max = ctx.num_failures_max };
+    .t_end = ctx.t_end,
+    .num_frames = ctx.num_frames,
+    .dt_failure_tol = ctx.dt_failure_tol,
+    .num_failures_max = ctx.num_failures_max };
 
   gr_euler2d_run_single(argc, argv, &init);
 }

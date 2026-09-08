@@ -43,8 +43,8 @@ __device__ static __forceinline__ double atomicMin_double(double *address, doubl
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void dg_arrayMax_blockRedAtomic_cub(const struct gkyl_array *inp, double *out, int comp,
-                                               const struct gkyl_basis *basis)
+__global__ void dg_arrayMax_blockRedAtomic_cub(
+  const struct gkyl_array *inp, double *out, int comp, const struct gkyl_basis *basis)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -73,9 +73,9 @@ __global__ void dg_arrayMax_blockRedAtomic_cub(const struct gkyl_array *inp, dou
   double bResult = 0;
   bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                      ::cuda::maximum()
+    ::cuda::maximum()
 #else
-                                      cub::Max()
+    cub::Max()
 #endif
   );
   if (threadIdx.x < BLOCKSIZE) {
@@ -85,8 +85,7 @@ __global__ void dg_arrayMax_blockRedAtomic_cub(const struct gkyl_array *inp, dou
 
 template <unsigned int BLOCKSIZE>
 __global__ void dg_arrayMax_range_blockRedAtomic_cub(const struct gkyl_array *inp, double *out,
-                                                     int comp, const struct gkyl_basis *basis,
-                                                     struct gkyl_range range)
+  int comp, const struct gkyl_basis *basis, struct gkyl_range range)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -117,9 +116,9 @@ __global__ void dg_arrayMax_range_blockRedAtomic_cub(const struct gkyl_array *in
   double bResult = 0;
   bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                      ::cuda::maximum()
+    ::cuda::maximum()
 #else
-                                      cub::Max()
+    cub::Max()
 #endif
   );
   if (threadIdx.x < BLOCKSIZE) {
@@ -127,8 +126,8 @@ __global__ void dg_arrayMax_range_blockRedAtomic_cub(const struct gkyl_array *in
   }
 }
 
-void gkyl_array_dg_reducec_max_cu(double *out_d, const struct gkyl_array *inp, int comp,
-                                  const struct gkyl_basis *basis)
+void gkyl_array_dg_reducec_max_cu(
+  double *out_d, const struct gkyl_array *inp, int comp, const struct gkyl_basis *basis)
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(inp->size, nthreads);
@@ -139,8 +138,7 @@ void gkyl_array_dg_reducec_max_cu(double *out_d, const struct gkyl_array *inp, i
 }
 
 void gkyl_array_dg_reducec_range_max_cu(double *out_d, const struct gkyl_array *inp, int comp,
-                                        const struct gkyl_basis *basis,
-                                        const struct gkyl_range *range)
+  const struct gkyl_basis *basis, const struct gkyl_range *range)
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
@@ -151,8 +149,8 @@ void gkyl_array_dg_reducec_range_max_cu(double *out_d, const struct gkyl_array *
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void dg_arrayMin_blockRedAtomic_cub(const struct gkyl_array *inp, double *out, int comp,
-                                               const struct gkyl_basis *basis)
+__global__ void dg_arrayMin_blockRedAtomic_cub(
+  const struct gkyl_array *inp, double *out, int comp, const struct gkyl_basis *basis)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -181,9 +179,9 @@ __global__ void dg_arrayMin_blockRedAtomic_cub(const struct gkyl_array *inp, dou
   double bResult = 0;
   bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                      ::cuda::minimum()
+    ::cuda::minimum()
 #else
-                                      cub::Min()
+    cub::Min()
 #endif
   );
   if (threadIdx.x < BLOCKSIZE) {
@@ -193,8 +191,7 @@ __global__ void dg_arrayMin_blockRedAtomic_cub(const struct gkyl_array *inp, dou
 
 template <unsigned int BLOCKSIZE>
 __global__ void dg_arrayMin_range_blockRedAtomic_cub(const struct gkyl_array *inp, double *out,
-                                                     int comp, const struct gkyl_basis *basis,
-                                                     struct gkyl_range range)
+  int comp, const struct gkyl_basis *basis, struct gkyl_range range)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -225,9 +222,9 @@ __global__ void dg_arrayMin_range_blockRedAtomic_cub(const struct gkyl_array *in
   double bResult = 0;
   bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                      ::cuda::minimum()
+    ::cuda::minimum()
 #else
-                                      cub::Min()
+    cub::Min()
 #endif
   );
   if (threadIdx.x < BLOCKSIZE) {
@@ -235,8 +232,8 @@ __global__ void dg_arrayMin_range_blockRedAtomic_cub(const struct gkyl_array *in
   }
 }
 
-void gkyl_array_dg_reducec_min_cu(double *out_d, const struct gkyl_array *inp, int comp,
-                                  const struct gkyl_basis *basis)
+void gkyl_array_dg_reducec_min_cu(
+  double *out_d, const struct gkyl_array *inp, int comp, const struct gkyl_basis *basis)
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(inp->size, nthreads);
@@ -247,8 +244,7 @@ void gkyl_array_dg_reducec_min_cu(double *out_d, const struct gkyl_array *inp, i
 }
 
 void gkyl_array_dg_reducec_range_min_cu(double *out_d, const struct gkyl_array *inp, int comp,
-                                        const struct gkyl_basis *basis,
-                                        const struct gkyl_range *range)
+  const struct gkyl_basis *basis, const struct gkyl_range *range)
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
@@ -259,8 +255,8 @@ void gkyl_array_dg_reducec_range_min_cu(double *out_d, const struct gkyl_array *
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void dg_arraySum_blockRedAtomic_cub(const struct gkyl_array *inp, double *out, int comp,
-                                               const struct gkyl_basis *basis)
+__global__ void dg_arraySum_blockRedAtomic_cub(
+  const struct gkyl_array *inp, double *out, int comp, const struct gkyl_basis *basis)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -288,9 +284,9 @@ __global__ void dg_arraySum_blockRedAtomic_cub(const struct gkyl_array *inp, dou
   double bResult = 0;
   bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                      ::cuda::std::plus()
+    ::cuda::std::plus()
 #else
-                                      cub::Sum()
+    cub::Sum()
 #endif
   );
   if (threadIdx.x == 0) {
@@ -300,8 +296,7 @@ __global__ void dg_arraySum_blockRedAtomic_cub(const struct gkyl_array *inp, dou
 
 template <unsigned int BLOCKSIZE>
 __global__ void dg_arraySum_range_blockRedAtomic_cub(const struct gkyl_array *inp, double *out,
-                                                     int comp, const struct gkyl_basis *basis,
-                                                     struct gkyl_range range)
+  int comp, const struct gkyl_basis *basis, struct gkyl_range range)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -331,9 +326,9 @@ __global__ void dg_arraySum_range_blockRedAtomic_cub(const struct gkyl_array *in
   double bResult = 0;
   bResult = BlockReduceT(temp).Reduce(f,
 #if CUDART_VERSION > 12090
-                                      ::cuda::std::plus()
+    ::cuda::std::plus()
 #else
-                                      cub::Sum()
+    cub::Sum()
 #endif
   );
   if (threadIdx.x == 0) {
@@ -341,8 +336,8 @@ __global__ void dg_arraySum_range_blockRedAtomic_cub(const struct gkyl_array *in
   }
 }
 
-void gkyl_array_dg_reducec_sum_cu(double *out_d, const struct gkyl_array *inp, int comp,
-                                  const struct gkyl_basis *basis)
+void gkyl_array_dg_reducec_sum_cu(
+  double *out_d, const struct gkyl_array *inp, int comp, const struct gkyl_basis *basis)
 {
   gkyl_cu_memset(out_d, 0, sizeof(double));
 
@@ -355,8 +350,7 @@ void gkyl_array_dg_reducec_sum_cu(double *out_d, const struct gkyl_array *inp, i
 }
 
 void gkyl_array_dg_reducec_range_sum_cu(double *out_d, const struct gkyl_array *inp, int comp,
-                                        const struct gkyl_basis *basis,
-                                        const struct gkyl_range *range)
+  const struct gkyl_basis *basis, const struct gkyl_range *range)
 {
   gkyl_cu_memset(out_d, 0, sizeof(double));
 

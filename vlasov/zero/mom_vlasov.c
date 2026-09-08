@@ -17,8 +17,7 @@ void gkyl_mom_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_mom_type *gkyl_mom_vlasov_new(const struct gkyl_basis *cbasis,
-                                          const struct gkyl_basis *pbasis,
-                                          enum gkyl_distribution_moments mom_type, bool use_gpu)
+  const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -128,8 +127,7 @@ struct gkyl_mom_type *gkyl_mom_vlasov_new(const struct gkyl_basis *cbasis,
 }
 
 struct gkyl_mom_type *gkyl_int_mom_vlasov_new(const struct gkyl_basis *cbasis,
-                                              const struct gkyl_basis *pbasis,
-                                              enum gkyl_distribution_moments mom_type, bool use_gpu)
+  const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 

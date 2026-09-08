@@ -12,10 +12,8 @@ extern "C" {
 // CUDA kernel to set pointer to nuSum, sum of collisionalities
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void
-gkyl_lbo_vlasov_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
-                                             const struct gkyl_array *nuSum,
-                                             const struct gkyl_array *nuPrimMomsSum)
+__global__ static void gkyl_lbo_vlasov_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
+  const struct gkyl_array *nuSum, const struct gkyl_array *nuPrimMomsSum)
 {
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
   lbo_vlasov_drag->auxfields.nuSum = nuSum;
@@ -23,19 +21,18 @@ gkyl_lbo_vlasov_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
 }
 
 //// Host-side wrapper for device kernels setting nuSum, nuUSum and nuVtSqSum.
-void gkyl_lbo_vlasov_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                           struct gkyl_dg_lbo_vlasov_drag_auxfields auxin)
+void gkyl_lbo_vlasov_drag_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_drag_auxfields auxin)
 {
-  gkyl_lbo_vlasov_drag_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.nuSum->on_dev,
-                                                           auxin.nuPrimMomsSum->on_dev);
+  gkyl_lbo_vlasov_drag_set_auxfields_cu_kernel<<<1, 1> > >(
+    eqn, auxin.nuSum->on_dev, auxin.nuPrimMomsSum->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov LBO kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void
-dg_lbo_vlasov_drag_set_cu_dev_ptrs(struct dg_lbo_vlasov_drag *lbo_vlasov_drag,
-                                   enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim,
-                                   int poly_order)
+__global__ static void dg_lbo_vlasov_drag_set_cu_dev_ptrs(
+  struct dg_lbo_vlasov_drag *lbo_vlasov_drag, enum gkyl_basis_type b_type, int cv_index, int cdim,
+  int vdim, int poly_order)
 {
   lbo_vlasov_drag->auxfields.nuSum = 0;
   lbo_vlasov_drag->auxfields.nuPrimMomsSum = 0;
@@ -81,9 +78,8 @@ dg_lbo_vlasov_drag_set_cu_dev_ptrs(struct dg_lbo_vlasov_drag *lbo_vlasov_drag,
 }
 
 struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_drag_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                       const struct gkyl_basis *pbasis,
-                                                       const struct gkyl_range *conf_range,
-                                                       const struct gkyl_rect_grid *pgrid)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_rect_grid *pgrid)
 {
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag =
     (struct dg_lbo_vlasov_drag *)gkyl_malloc(sizeof(struct dg_lbo_vlasov_drag));
@@ -113,11 +109,11 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_drag_cu_dev_new(const struct gkyl_basis *
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag_cu =
     (struct dg_lbo_vlasov_drag *)gkyl_cu_malloc(sizeof(struct dg_lbo_vlasov_drag));
 
-  gkyl_cu_memcpy(lbo_vlasov_drag_cu, lbo_vlasov_drag, sizeof(struct dg_lbo_vlasov_drag),
-                 GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(
+    lbo_vlasov_drag_cu, lbo_vlasov_drag, sizeof(struct dg_lbo_vlasov_drag), GKYL_CU_MEMCPY_H2D);
 
-  dg_lbo_vlasov_drag_set_cu_dev_ptrs<<<1, 1> > >(lbo_vlasov_drag_cu, cbasis->b_type,
-                                                 cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
+  dg_lbo_vlasov_drag_set_cu_dev_ptrs<<<1, 1> > >(
+    lbo_vlasov_drag_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
 
   lbo_vlasov_drag->eqn.on_dev = &lbo_vlasov_drag_cu->eqn;
 

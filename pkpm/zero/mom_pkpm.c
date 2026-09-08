@@ -20,8 +20,7 @@ void gkyl_mom_pkpm_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_mom_type *gkyl_mom_pkpm_new(const struct gkyl_basis *cbasis,
-                                        const struct gkyl_basis *pbasis, double mass, bool diag,
-                                        bool use_gpu)
+  const struct gkyl_basis *pbasis, double mass, bool diag, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -82,9 +81,8 @@ struct gkyl_mom_type *gkyl_mom_pkpm_new(const struct gkyl_basis *cbasis,
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_mom_type *gkyl_mom_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
-                                               const struct gkyl_basis *pbasis, double mass,
-                                               bool diag)
+struct gkyl_mom_type *gkyl_mom_pkpm_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass, bool diag)
 {
   assert(false);
   return 0;

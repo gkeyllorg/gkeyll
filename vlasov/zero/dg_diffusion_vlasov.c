@@ -23,8 +23,8 @@ void gkyl_dg_diffusion_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_free(diffusion);
 }
 
-void gkyl_dg_diffusion_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn,
-                                            struct gkyl_dg_diffusion_vlasov_auxfields auxin)
+void gkyl_dg_diffusion_vlasov_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_vlasov_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.D)) {
@@ -38,15 +38,13 @@ void gkyl_dg_diffusion_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn,
 }
 
 struct gkyl_dg_eqn *gkyl_dg_diffusion_vlasov_new(const struct gkyl_basis *basis,
-                                                 const struct gkyl_basis *cbasis,
-                                                 bool is_diff_const, const bool *diff_in_dir,
-                                                 int diff_order,
-                                                 const struct gkyl_range *diff_range, bool use_gpu)
+  const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir, int diff_order,
+  const struct gkyl_range *diff_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_diffusion_vlasov_cu_dev_new(basis, cbasis, is_diff_const, diff_in_dir,
-                                               diff_order, diff_range);
+    return gkyl_dg_diffusion_vlasov_cu_dev_new(
+      basis, cbasis, is_diff_const, diff_in_dir, diff_order, diff_range);
 #endif
 
   struct dg_diffusion_vlasov *diffusion = gkyl_malloc(sizeof(struct dg_diffusion_vlasov));

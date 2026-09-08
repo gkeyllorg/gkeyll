@@ -857,7 +857,7 @@ void nccl_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
         for (int n = 0; n < local.ndim; ++n) {
           TEST_CHECK(idx[n] == f[n]);
           TEST_MSG("rank:%d | At idx=(%d,%d) | Expected: %d | Produced: %.13e", rank, iter.idx[0],
-                   iter.idx[1], idx[n], f[n]);
+            iter.idx[1], idx[n], f[n]);
         }
       }
     }
@@ -918,8 +918,8 @@ void nccl_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
   delta[decomp_dir] = 2 * rank - 1;
   struct gkyl_range local_ext_x_shifted;
   gkyl_range_shift(&local_ext_x_shifted, &local_ext_x[decomp_dir], delta);
-  gkyl_sub_range_init(&local_ext_x[decomp_dir], &local_ext, local_ext_x_shifted.lower,
-                      local_ext_x_shifted.upper);
+  gkyl_sub_range_init(
+    &local_ext_x[decomp_dir], &local_ext, local_ext_x_shifted.lower, local_ext_x_shifted.upper);
 
   struct gkyl_array *arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
   struct gkyl_array *arr_ho = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
@@ -963,7 +963,7 @@ void nccl_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
         for (int n = 0; n < local.ndim; ++n) {
           TEST_CHECK(idx[n] == f[n]);
           TEST_MSG("rank:%d | At idx=(%d,%d) | Expected: %d | Produced: %.13e", rank, iter.idx[0],
-                   iter.idx[1], idx[n], f[n]);
+            iter.idx[1], idx[n], f[n]);
         }
       }
     }
@@ -1324,7 +1324,7 @@ void nccl_bcast_2d_test(int *cuts)
     double val = iter.idx[0] + iter.idx[1] * (bcast_rank + 1.0) + 10.0 * bcast_rank;
     TEST_CHECK(val == f[0]);
     TEST_MSG("rank:%d | At idx=(%d,%d) | Expected: %.13e | Produced: %.13e", rank, iter.idx[0],
-             iter.idx[1], val, f[0]);
+      iter.idx[1], val, f[0]);
   }
 
   gkyl_rect_decomp_release(decomp);
@@ -1449,7 +1449,7 @@ void nccl_bcast_2d_host_test(int *cuts)
     double val = iter.idx[0] + iter.idx[1] * (bcast_rank + 1.0) + 10.0 * bcast_rank;
     TEST_CHECK(val == f[0]);
     TEST_MSG("rank:%d | At idx=(%d,%d) | Expected: %.13e | Produced: %.13e", rank, iter.idx[0],
-             iter.idx[1], val, f[0]);
+      iter.idx[1], val, f[0]);
   }
 
   gkyl_rect_decomp_release(decomp);
@@ -1483,26 +1483,24 @@ void nccl_bcast_2d_host_dev()
 }
 
 TEST_LIST = { { "nccl_allreduce_dev", nccl_allreduce_dev },
-              { "nccl_n2_allgather_1d_dev", nccl_n2_allgather_1d_dev },
-              { "nccl_n4_allgather_2d_dev", nccl_n4_allgather_2d_dev },
-              { "nccl_n2_allgather_1d_host_dev", nccl_n2_allgather_1d_host_dev },
-              { "nccl_n4_allgather_2d_host_dev", nccl_n4_allgather_2d_host_dev },
-              //  {"nccl_n2_array_send_irecv_2d_dev", nccl_n2_array_send_irecv_2d_dev},
-              //  {"nccl_n2_array_isend_irecv_2d_dev", nccl_n2_array_isend_irecv_2d_dev},
-              { "nccl_n2_sync_1d_dev", nccl_n2_sync_1d_dev },
-              { "nccl_n4_sync_2d_no_corner_dev", nccl_n4_sync_2d_no_corner_dev },
-              { "nccl_n4_sync_2d_use_corner_dev", nccl_n4_sync_2d_use_corner_dev },
-              { "nccl_n4_sync_1x1v_dev", nccl_n4_sync_1x1v_dev },
-              { "nccl_n1_per_sync_2d_dev", nccl_n1_per_sync_2d_dev },
-              { "nccl_n2_per_sync_2d_dev", nccl_n2_per_sync_2d_dev },
-              { "nccl_n4_multicomm_2d_dev", nccl_n4_multicomm_2d_dev },
-              { "nccl_n4_create_comm_from_ranks_1_dev", nccl_n4_create_comm_from_ranks_1_dev },
-              { "nccl_n4_create_comm_from_ranks_2_dev", nccl_n4_create_comm_from_ranks_2_dev },
-              { "nccl_bcast_1d_dev", nccl_bcast_1d_dev },
-              { "nccl_bcast_2d_dev", nccl_bcast_2d_dev },
-              { "nccl_bcast_1d_host_dev", nccl_bcast_1d_host_dev },
-              { "nccl_bcast_2d_host_dev", nccl_bcast_2d_host_dev },
-              { NULL, NULL } };
+  { "nccl_n2_allgather_1d_dev", nccl_n2_allgather_1d_dev },
+  { "nccl_n4_allgather_2d_dev", nccl_n4_allgather_2d_dev },
+  { "nccl_n2_allgather_1d_host_dev", nccl_n2_allgather_1d_host_dev },
+  { "nccl_n4_allgather_2d_host_dev", nccl_n4_allgather_2d_host_dev },
+  //  {"nccl_n2_array_send_irecv_2d_dev", nccl_n2_array_send_irecv_2d_dev},
+  //  {"nccl_n2_array_isend_irecv_2d_dev", nccl_n2_array_isend_irecv_2d_dev},
+  { "nccl_n2_sync_1d_dev", nccl_n2_sync_1d_dev },
+  { "nccl_n4_sync_2d_no_corner_dev", nccl_n4_sync_2d_no_corner_dev },
+  { "nccl_n4_sync_2d_use_corner_dev", nccl_n4_sync_2d_use_corner_dev },
+  { "nccl_n4_sync_1x1v_dev", nccl_n4_sync_1x1v_dev },
+  { "nccl_n1_per_sync_2d_dev", nccl_n1_per_sync_2d_dev },
+  { "nccl_n2_per_sync_2d_dev", nccl_n2_per_sync_2d_dev },
+  { "nccl_n4_multicomm_2d_dev", nccl_n4_multicomm_2d_dev },
+  { "nccl_n4_create_comm_from_ranks_1_dev", nccl_n4_create_comm_from_ranks_1_dev },
+  { "nccl_n4_create_comm_from_ranks_2_dev", nccl_n4_create_comm_from_ranks_2_dev },
+  { "nccl_bcast_1d_dev", nccl_bcast_1d_dev }, { "nccl_bcast_2d_dev", nccl_bcast_2d_dev },
+  { "nccl_bcast_1d_host_dev", nccl_bcast_1d_host_dev },
+  { "nccl_bcast_2d_host_dev", nccl_bcast_2d_host_dev }, { NULL, NULL } };
 
 #else
 

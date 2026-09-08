@@ -1,10 +1,10 @@
 #include <gkyl_moment_non_ideal_priv.h>
 
 typedef void (*heat_flux_calc_t)(const gkyl_ten_moment_grad_closure *gces, const double *fluid_d[],
-                                 double *cflrate, double dt, double *q);
+  double *cflrate, double dt, double *q);
 
-typedef void (*heat_flux_update_t)(const gkyl_ten_moment_grad_closure *gces, const double *q[],
-                                   double *rhs);
+typedef void (*heat_flux_update_t)(
+  const gkyl_ten_moment_grad_closure *gces, const double *q[], double *rhs);
 
 struct gkyl_ten_moment_grad_closure {
   struct gkyl_rect_grid grid; // grid object
@@ -85,13 +85,13 @@ static void create_offsets_centers(const struct gkyl_range *range, long offsets[
 }
 
 GKYL_CU_D static void var_setup(const gkyl_ten_moment_grad_closure *gces, int start, int end,
-                                const double *fluid_d[], double rho[], double p[], double Tij[][6])
+  const double *fluid_d[], double rho[], double p[], double Tij[][6])
 {
   for (int j = start; j <= end; ++j) {
     rho[j] = fluid_d[j][RHO];
     p[j] = (fluid_d[j][P11] - fluid_d[j][MX] * fluid_d[j][MX] / fluid_d[j][RHO] + fluid_d[j][P22] -
-            fluid_d[j][MY] * fluid_d[j][MY] / fluid_d[j][RHO] + fluid_d[j][P33] -
-            fluid_d[j][MZ] * fluid_d[j][MZ] / fluid_d[j][RHO]) /
+             fluid_d[j][MY] * fluid_d[j][MY] / fluid_d[j][RHO] + fluid_d[j][P33] -
+             fluid_d[j][MZ] * fluid_d[j][MZ] / fluid_d[j][RHO]) /
            3.0;
     Tij[j][T11] =
       (fluid_d[j][P11] - fluid_d[j][MX] * fluid_d[j][MX] / fluid_d[j][RHO]) / fluid_d[j][RHO];
@@ -122,8 +122,8 @@ GKYL_CU_D static inline double calc_sym_grad_limiter_2D(double alpha, double a, 
   }
 }
 
-GKYL_CU_D static inline double calc_sym_grad_limiter_3D(double alpha, double a, double b, double c,
-                                                        double d)
+GKYL_CU_D static inline double calc_sym_grad_limiter_3D(
+  double alpha, double a, double b, double c, double d)
 {
   double avg = (a + b + c + d) / 4;
   double min = fmin(alpha * a, a / alpha);
@@ -138,8 +138,7 @@ GKYL_CU_D static inline double calc_sym_grad_limiter_3D(double alpha, double a, 
 }
 
 GKYL_CU_D static void calc_unmag_heat_flux_1d(const gkyl_ten_moment_grad_closure *gces,
-                                              const double *fluid_d[], double *cflrate, double dt,
-                                              double *q)
+  const double *fluid_d[], double *cflrate, double dt, double *q)
 {
   const int ndim = gces->ndim;
   double rho_avg = 0.0;
@@ -182,8 +181,8 @@ GKYL_CU_D static void calc_unmag_heat_flux_1d(const gkyl_ten_moment_grad_closure
   cflrate[0] = alpha * vth_avg * cfla;
 }
 
-GKYL_CU_D static void grad_closure_update_1d(const gkyl_ten_moment_grad_closure *gces,
-                                             const double *q[], double *rhs)
+GKYL_CU_D static void grad_closure_update_1d(
+  const gkyl_ten_moment_grad_closure *gces, const double *q[], double *rhs)
 {
   double div_qx[6] = { 0.0 };
 
@@ -209,8 +208,7 @@ GKYL_CU_D static void grad_closure_update_1d(const gkyl_ten_moment_grad_closure 
 }
 
 GKYL_CU_D static void calc_unmag_heat_flux_2d(const gkyl_ten_moment_grad_closure *gces,
-                                              const double *fluid_d[], double *cflrate, double dt,
-                                              double *q)
+  const double *fluid_d[], double *cflrate, double dt, double *q)
 {
   const int ndim = gces->ndim;
   double rho_avg = 0.0;
@@ -342,8 +340,8 @@ GKYL_CU_D static void calc_unmag_heat_flux_2d(const gkyl_ten_moment_grad_closure
   cflrate[0] = alpha * vth_avg * cfla;
 }
 
-GKYL_CU_D static void grad_closure_update_2d(const gkyl_ten_moment_grad_closure *gces,
-                                             const double *q[], double *rhs)
+GKYL_CU_D static void grad_closure_update_2d(
+  const gkyl_ten_moment_grad_closure *gces, const double *q[], double *rhs)
 {
   double div_qx[6] = { 0.0 };
   double div_qy[6] = { 0.0 };
@@ -352,30 +350,30 @@ GKYL_CU_D static void grad_closure_update_2d(const gkyl_ten_moment_grad_closure 
   const double dy = gces->grid.dx[1];
 
   div_qx[0] = calc_sym_gradx_2D(dx, q[LL_2D][UU_2D * 10 + Q111], q[LU_2D][UL_2D * 10 + Q111],
-                                q[UL_2D][LU_2D * 10 + Q111], q[UU_2D][LL_2D * 10 + Q111]);
+    q[UL_2D][LU_2D * 10 + Q111], q[UU_2D][LL_2D * 10 + Q111]);
   div_qx[1] = calc_sym_gradx_2D(dx, q[LL_2D][UU_2D * 10 + Q112], q[LU_2D][UL_2D * 10 + Q112],
-                                q[UL_2D][LU_2D * 10 + Q112], q[UU_2D][LL_2D * 10 + Q112]);
+    q[UL_2D][LU_2D * 10 + Q112], q[UU_2D][LL_2D * 10 + Q112]);
   div_qx[2] = calc_sym_gradx_2D(dx, q[LL_2D][UU_2D * 10 + Q113], q[LU_2D][UL_2D * 10 + Q113],
-                                q[UL_2D][LU_2D * 10 + Q113], q[UU_2D][LL_2D * 10 + Q113]);
+    q[UL_2D][LU_2D * 10 + Q113], q[UU_2D][LL_2D * 10 + Q113]);
   div_qx[3] = calc_sym_gradx_2D(dx, q[LL_2D][UU_2D * 10 + Q122], q[LU_2D][UL_2D * 10 + Q122],
-                                q[UL_2D][LU_2D * 10 + Q122], q[UU_2D][LL_2D * 10 + Q122]);
+    q[UL_2D][LU_2D * 10 + Q122], q[UU_2D][LL_2D * 10 + Q122]);
   div_qx[4] = calc_sym_gradx_2D(dx, q[LL_2D][UU_2D * 10 + Q123], q[LU_2D][UL_2D * 10 + Q123],
-                                q[UL_2D][LU_2D * 10 + Q123], q[UU_2D][LL_2D * 10 + Q123]);
+    q[UL_2D][LU_2D * 10 + Q123], q[UU_2D][LL_2D * 10 + Q123]);
   div_qx[5] = calc_sym_gradx_2D(dx, q[LL_2D][UU_2D * 10 + Q133], q[LU_2D][UL_2D * 10 + Q133],
-                                q[UL_2D][LU_2D * 10 + Q133], q[UU_2D][LL_2D * 10 + Q133]);
+    q[UL_2D][LU_2D * 10 + Q133], q[UU_2D][LL_2D * 10 + Q133]);
 
   div_qy[0] = calc_sym_grady_2D(dy, q[LL_2D][UU_2D * 10 + Q112], q[LU_2D][UL_2D * 10 + Q112],
-                                q[UL_2D][LU_2D * 10 + Q112], q[UU_2D][LL_2D * 10 + Q112]);
+    q[UL_2D][LU_2D * 10 + Q112], q[UU_2D][LL_2D * 10 + Q112]);
   div_qy[1] = calc_sym_grady_2D(dy, q[LL_2D][UU_2D * 10 + Q122], q[LU_2D][UL_2D * 10 + Q122],
-                                q[UL_2D][LU_2D * 10 + Q122], q[UU_2D][LL_2D * 10 + Q122]);
+    q[UL_2D][LU_2D * 10 + Q122], q[UU_2D][LL_2D * 10 + Q122]);
   div_qy[2] = calc_sym_grady_2D(dy, q[LL_2D][UU_2D * 10 + Q123], q[LU_2D][UL_2D * 10 + Q123],
-                                q[UL_2D][LU_2D * 10 + Q123], q[UU_2D][LL_2D * 10 + Q123]);
+    q[UL_2D][LU_2D * 10 + Q123], q[UU_2D][LL_2D * 10 + Q123]);
   div_qy[3] = calc_sym_grady_2D(dy, q[LL_2D][UU_2D * 10 + Q222], q[LU_2D][UL_2D * 10 + Q222],
-                                q[UL_2D][LU_2D * 10 + Q222], q[UU_2D][LL_2D * 10 + Q222]);
+    q[UL_2D][LU_2D * 10 + Q222], q[UU_2D][LL_2D * 10 + Q222]);
   div_qy[4] = calc_sym_grady_2D(dy, q[LL_2D][UU_2D * 10 + Q223], q[LU_2D][UL_2D * 10 + Q223],
-                                q[UL_2D][LU_2D * 10 + Q223], q[UU_2D][LL_2D * 10 + Q223]);
+    q[UL_2D][LU_2D * 10 + Q223], q[UU_2D][LL_2D * 10 + Q223]);
   div_qy[5] = calc_sym_grady_2D(dy, q[LL_2D][UU_2D * 10 + Q233], q[LU_2D][UL_2D * 10 + Q233],
-                                q[UL_2D][LU_2D * 10 + Q233], q[UU_2D][LL_2D * 10 + Q233]);
+    q[UL_2D][LU_2D * 10 + Q233], q[UU_2D][LL_2D * 10 + Q233]);
 
   rhs[RHO] = 0.0;
   rhs[MX] = 0.0;
@@ -390,8 +388,7 @@ GKYL_CU_D static void grad_closure_update_2d(const gkyl_ten_moment_grad_closure 
 }
 
 GKYL_CU_D static void calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure *gces,
-                                              const double *fluid_d[], double *cflrate, double dt,
-                                              double *q)
+  const double *fluid_d[], double *cflrate, double dt, double *q)
 {
   const int ndim = gces->ndim;
   double rho_avg = 0.0;
@@ -414,9 +411,9 @@ GKYL_CU_D static void calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure
   var_setup(gces, LLL_3D, UUU_3D, fluid_d, rho, p, Tij);
 
   rho_avg = calc_harmonic_avg_3D(rho[LLL_3D], rho[LLU_3D], rho[LUL_3D], rho[LUU_3D], rho[ULL_3D],
-                                 rho[ULU_3D], rho[UUL_3D], rho[UUU_3D]);
-  p_avg = calc_harmonic_avg_3D(p[LLL_3D], p[LLU_3D], p[LUL_3D], p[LUU_3D], p[ULL_3D], p[ULU_3D],
-                               p[UUL_3D], p[UUU_3D]);
+    rho[ULU_3D], rho[UUL_3D], rho[UUU_3D]);
+  p_avg = calc_harmonic_avg_3D(
+    p[LLL_3D], p[LLU_3D], p[LUL_3D], p[LUU_3D], p[ULL_3D], p[ULU_3D], p[UUL_3D], p[UUU_3D]);
 
   dTx[LL_2D][T11] = calc_sym_grad_1D(dx, Tij[LLL_3D][T11], Tij[ULL_3D][T11]);
   dTx[LL_2D][T12] = calc_sym_grad_1D(dx, Tij[LLL_3D][T12], Tij[ULL_3D][T12]);
@@ -446,57 +443,57 @@ GKYL_CU_D static void calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure
   dTx[UU_2D][T23] = calc_sym_grad_1D(dx, Tij[LUU_3D][T23], Tij[UUU_3D][T23]);
   dTx[UU_2D][T33] = calc_sym_grad_1D(dx, Tij[LUU_3D][T33], Tij[UUU_3D][T33]);
 
-  dTdx[LL_2D][T11] = calc_sym_grad_limiter_3D(limit, dTx[LL_2D][T11], dTx[LU_2D][T11],
-                                              dTx[UL_2D][T11], dTx[UU_2D][T11]);
-  dTdx[LL_2D][T12] = calc_sym_grad_limiter_3D(limit, dTx[LL_2D][T12], dTx[LU_2D][T12],
-                                              dTx[UL_2D][T12], dTx[UU_2D][T12]);
-  dTdx[LL_2D][T13] = calc_sym_grad_limiter_3D(limit, dTx[LL_2D][T13], dTx[LU_2D][T13],
-                                              dTx[UL_2D][T13], dTx[UU_2D][T13]);
-  dTdx[LL_2D][T22] = calc_sym_grad_limiter_3D(limit, dTx[LL_2D][T22], dTx[LU_2D][T22],
-                                              dTx[UL_2D][T22], dTx[UU_2D][T22]);
-  dTdx[LL_2D][T23] = calc_sym_grad_limiter_3D(limit, dTx[LL_2D][T23], dTx[LU_2D][T23],
-                                              dTx[UL_2D][T23], dTx[UU_2D][T23]);
-  dTdx[LL_2D][T33] = calc_sym_grad_limiter_3D(limit, dTx[LL_2D][T33], dTx[LU_2D][T33],
-                                              dTx[UL_2D][T33], dTx[UU_2D][T33]);
+  dTdx[LL_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTx[LL_2D][T11], dTx[LU_2D][T11], dTx[UL_2D][T11], dTx[UU_2D][T11]);
+  dTdx[LL_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTx[LL_2D][T12], dTx[LU_2D][T12], dTx[UL_2D][T12], dTx[UU_2D][T12]);
+  dTdx[LL_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTx[LL_2D][T13], dTx[LU_2D][T13], dTx[UL_2D][T13], dTx[UU_2D][T13]);
+  dTdx[LL_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTx[LL_2D][T22], dTx[LU_2D][T22], dTx[UL_2D][T22], dTx[UU_2D][T22]);
+  dTdx[LL_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTx[LL_2D][T23], dTx[LU_2D][T23], dTx[UL_2D][T23], dTx[UU_2D][T23]);
+  dTdx[LL_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTx[LL_2D][T33], dTx[LU_2D][T33], dTx[UL_2D][T33], dTx[UU_2D][T33]);
 
-  dTdx[LU_2D][T11] = calc_sym_grad_limiter_3D(limit, dTx[LU_2D][T11], dTx[LL_2D][T11],
-                                              dTx[UL_2D][T11], dTx[UU_2D][T11]);
-  dTdx[LU_2D][T12] = calc_sym_grad_limiter_3D(limit, dTx[LU_2D][T12], dTx[LL_2D][T12],
-                                              dTx[UL_2D][T12], dTx[UU_2D][T12]);
-  dTdx[LU_2D][T13] = calc_sym_grad_limiter_3D(limit, dTx[LU_2D][T13], dTx[LL_2D][T13],
-                                              dTx[UL_2D][T13], dTx[UU_2D][T13]);
-  dTdx[LU_2D][T22] = calc_sym_grad_limiter_3D(limit, dTx[LU_2D][T22], dTx[LL_2D][T22],
-                                              dTx[UL_2D][T22], dTx[UU_2D][T22]);
-  dTdx[LU_2D][T23] = calc_sym_grad_limiter_3D(limit, dTx[LU_2D][T23], dTx[LL_2D][T23],
-                                              dTx[UL_2D][T23], dTx[UU_2D][T23]);
-  dTdx[LU_2D][T33] = calc_sym_grad_limiter_3D(limit, dTx[LU_2D][T33], dTx[LL_2D][T33],
-                                              dTx[UL_2D][T33], dTx[UU_2D][T33]);
+  dTdx[LU_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTx[LU_2D][T11], dTx[LL_2D][T11], dTx[UL_2D][T11], dTx[UU_2D][T11]);
+  dTdx[LU_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTx[LU_2D][T12], dTx[LL_2D][T12], dTx[UL_2D][T12], dTx[UU_2D][T12]);
+  dTdx[LU_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTx[LU_2D][T13], dTx[LL_2D][T13], dTx[UL_2D][T13], dTx[UU_2D][T13]);
+  dTdx[LU_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTx[LU_2D][T22], dTx[LL_2D][T22], dTx[UL_2D][T22], dTx[UU_2D][T22]);
+  dTdx[LU_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTx[LU_2D][T23], dTx[LL_2D][T23], dTx[UL_2D][T23], dTx[UU_2D][T23]);
+  dTdx[LU_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTx[LU_2D][T33], dTx[LL_2D][T33], dTx[UL_2D][T33], dTx[UU_2D][T33]);
 
-  dTdx[UL_2D][T11] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T11], dTx[LL_2D][T11],
-                                              dTx[LU_2D][T11], dTx[UU_2D][T11]);
-  dTdx[UL_2D][T12] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T12], dTx[LL_2D][T12],
-                                              dTx[LU_2D][T12], dTx[UU_2D][T12]);
-  dTdx[UL_2D][T13] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T13], dTx[LL_2D][T13],
-                                              dTx[LU_2D][T13], dTx[UU_2D][T13]);
-  dTdx[UL_2D][T22] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T22], dTx[LL_2D][T22],
-                                              dTx[LU_2D][T22], dTx[UU_2D][T22]);
-  dTdx[UL_2D][T23] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T23], dTx[LL_2D][T23],
-                                              dTx[LU_2D][T23], dTx[UU_2D][T23]);
-  dTdx[UL_2D][T33] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T33], dTx[LL_2D][T33],
-                                              dTx[LU_2D][T33], dTx[UU_2D][T33]);
+  dTdx[UL_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T11], dTx[LL_2D][T11], dTx[LU_2D][T11], dTx[UU_2D][T11]);
+  dTdx[UL_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T12], dTx[LL_2D][T12], dTx[LU_2D][T12], dTx[UU_2D][T12]);
+  dTdx[UL_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T13], dTx[LL_2D][T13], dTx[LU_2D][T13], dTx[UU_2D][T13]);
+  dTdx[UL_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T22], dTx[LL_2D][T22], dTx[LU_2D][T22], dTx[UU_2D][T22]);
+  dTdx[UL_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T23], dTx[LL_2D][T23], dTx[LU_2D][T23], dTx[UU_2D][T23]);
+  dTdx[UL_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T33], dTx[LL_2D][T33], dTx[LU_2D][T33], dTx[UU_2D][T33]);
 
-  dTdx[UU_2D][T11] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T11], dTx[LL_2D][T11],
-                                              dTx[LU_2D][T11], dTx[UU_2D][T11]);
-  dTdx[UU_2D][T12] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T12], dTx[LL_2D][T12],
-                                              dTx[LU_2D][T12], dTx[UU_2D][T12]);
-  dTdx[UU_2D][T13] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T13], dTx[LL_2D][T13],
-                                              dTx[LU_2D][T13], dTx[UU_2D][T13]);
-  dTdx[UU_2D][T22] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T22], dTx[LL_2D][T22],
-                                              dTx[LU_2D][T22], dTx[UU_2D][T22]);
-  dTdx[UU_2D][T23] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T23], dTx[LL_2D][T23],
-                                              dTx[LU_2D][T23], dTx[UU_2D][T23]);
-  dTdx[UU_2D][T33] = calc_sym_grad_limiter_3D(limit, dTx[UL_2D][T33], dTx[LL_2D][T33],
-                                              dTx[LU_2D][T33], dTx[UU_2D][T33]);
+  dTdx[UU_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T11], dTx[LL_2D][T11], dTx[LU_2D][T11], dTx[UU_2D][T11]);
+  dTdx[UU_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T12], dTx[LL_2D][T12], dTx[LU_2D][T12], dTx[UU_2D][T12]);
+  dTdx[UU_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T13], dTx[LL_2D][T13], dTx[LU_2D][T13], dTx[UU_2D][T13]);
+  dTdx[UU_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T22], dTx[LL_2D][T22], dTx[LU_2D][T22], dTx[UU_2D][T22]);
+  dTdx[UU_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T23], dTx[LL_2D][T23], dTx[LU_2D][T23], dTx[UU_2D][T23]);
+  dTdx[UU_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTx[UL_2D][T33], dTx[LL_2D][T33], dTx[LU_2D][T33], dTx[UU_2D][T33]);
 
   dTy[LL_2D][T11] = calc_sym_grad_1D(dy, Tij[LLL_3D][T11], Tij[LUL_3D][T11]);
   dTy[LL_2D][T12] = calc_sym_grad_1D(dy, Tij[LLL_3D][T12], Tij[LUL_3D][T12]);
@@ -526,57 +523,57 @@ GKYL_CU_D static void calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure
   dTy[UU_2D][T23] = calc_sym_grad_1D(dy, Tij[ULU_3D][T23], Tij[UUU_3D][T23]);
   dTy[UU_2D][T33] = calc_sym_grad_1D(dy, Tij[ULU_3D][T33], Tij[UUU_3D][T33]);
 
-  dTdy[LL_2D][T11] = calc_sym_grad_limiter_3D(limit, dTy[LL_2D][T11], dTy[LU_2D][T11],
-                                              dTy[UL_2D][T11], dTy[UU_2D][T11]);
-  dTdy[LL_2D][T12] = calc_sym_grad_limiter_3D(limit, dTy[LL_2D][T12], dTy[LU_2D][T12],
-                                              dTy[UL_2D][T12], dTy[UU_2D][T12]);
-  dTdy[LL_2D][T13] = calc_sym_grad_limiter_3D(limit, dTy[LL_2D][T13], dTy[LU_2D][T13],
-                                              dTy[UL_2D][T13], dTy[UU_2D][T13]);
-  dTdy[LL_2D][T22] = calc_sym_grad_limiter_3D(limit, dTy[LL_2D][T22], dTy[LU_2D][T22],
-                                              dTy[UL_2D][T22], dTy[UU_2D][T22]);
-  dTdy[LL_2D][T23] = calc_sym_grad_limiter_3D(limit, dTy[LL_2D][T23], dTy[LU_2D][T23],
-                                              dTy[UL_2D][T23], dTy[UU_2D][T23]);
-  dTdy[LL_2D][T33] = calc_sym_grad_limiter_3D(limit, dTy[LL_2D][T33], dTy[LU_2D][T33],
-                                              dTy[UL_2D][T33], dTy[UU_2D][T33]);
+  dTdy[LL_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTy[LL_2D][T11], dTy[LU_2D][T11], dTy[UL_2D][T11], dTy[UU_2D][T11]);
+  dTdy[LL_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTy[LL_2D][T12], dTy[LU_2D][T12], dTy[UL_2D][T12], dTy[UU_2D][T12]);
+  dTdy[LL_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTy[LL_2D][T13], dTy[LU_2D][T13], dTy[UL_2D][T13], dTy[UU_2D][T13]);
+  dTdy[LL_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTy[LL_2D][T22], dTy[LU_2D][T22], dTy[UL_2D][T22], dTy[UU_2D][T22]);
+  dTdy[LL_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTy[LL_2D][T23], dTy[LU_2D][T23], dTy[UL_2D][T23], dTy[UU_2D][T23]);
+  dTdy[LL_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTy[LL_2D][T33], dTy[LU_2D][T33], dTy[UL_2D][T33], dTy[UU_2D][T33]);
 
-  dTdy[LU_2D][T11] = calc_sym_grad_limiter_3D(limit, dTy[LU_2D][T11], dTy[LL_2D][T11],
-                                              dTy[UL_2D][T11], dTy[UU_2D][T11]);
-  dTdy[LU_2D][T12] = calc_sym_grad_limiter_3D(limit, dTy[LU_2D][T12], dTy[LL_2D][T12],
-                                              dTy[UL_2D][T12], dTy[UU_2D][T12]);
-  dTdy[LU_2D][T13] = calc_sym_grad_limiter_3D(limit, dTy[LU_2D][T13], dTy[LL_2D][T13],
-                                              dTy[UL_2D][T13], dTy[UU_2D][T13]);
-  dTdy[LU_2D][T22] = calc_sym_grad_limiter_3D(limit, dTy[LU_2D][T22], dTy[LL_2D][T22],
-                                              dTy[UL_2D][T22], dTy[UU_2D][T22]);
-  dTdy[LU_2D][T23] = calc_sym_grad_limiter_3D(limit, dTy[LU_2D][T23], dTy[LL_2D][T23],
-                                              dTy[UL_2D][T23], dTy[UU_2D][T23]);
-  dTdy[LU_2D][T33] = calc_sym_grad_limiter_3D(limit, dTy[LU_2D][T33], dTy[LL_2D][T33],
-                                              dTy[UL_2D][T33], dTy[UU_2D][T33]);
+  dTdy[LU_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTy[LU_2D][T11], dTy[LL_2D][T11], dTy[UL_2D][T11], dTy[UU_2D][T11]);
+  dTdy[LU_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTy[LU_2D][T12], dTy[LL_2D][T12], dTy[UL_2D][T12], dTy[UU_2D][T12]);
+  dTdy[LU_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTy[LU_2D][T13], dTy[LL_2D][T13], dTy[UL_2D][T13], dTy[UU_2D][T13]);
+  dTdy[LU_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTy[LU_2D][T22], dTy[LL_2D][T22], dTy[UL_2D][T22], dTy[UU_2D][T22]);
+  dTdy[LU_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTy[LU_2D][T23], dTy[LL_2D][T23], dTy[UL_2D][T23], dTy[UU_2D][T23]);
+  dTdy[LU_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTy[LU_2D][T33], dTy[LL_2D][T33], dTy[UL_2D][T33], dTy[UU_2D][T33]);
 
-  dTdy[UL_2D][T11] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T11], dTy[LL_2D][T11],
-                                              dTy[LU_2D][T11], dTy[UU_2D][T11]);
-  dTdy[UL_2D][T12] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T12], dTy[LL_2D][T12],
-                                              dTy[LU_2D][T12], dTy[UU_2D][T12]);
-  dTdy[UL_2D][T13] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T13], dTy[LL_2D][T13],
-                                              dTy[LU_2D][T13], dTy[UU_2D][T13]);
-  dTdy[UL_2D][T22] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T22], dTy[LL_2D][T22],
-                                              dTy[LU_2D][T22], dTy[UU_2D][T22]);
-  dTdy[UL_2D][T23] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T23], dTy[LL_2D][T23],
-                                              dTy[LU_2D][T23], dTy[UU_2D][T23]);
-  dTdy[UL_2D][T33] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T33], dTy[LL_2D][T33],
-                                              dTy[LU_2D][T33], dTy[UU_2D][T33]);
+  dTdy[UL_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T11], dTy[LL_2D][T11], dTy[LU_2D][T11], dTy[UU_2D][T11]);
+  dTdy[UL_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T12], dTy[LL_2D][T12], dTy[LU_2D][T12], dTy[UU_2D][T12]);
+  dTdy[UL_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T13], dTy[LL_2D][T13], dTy[LU_2D][T13], dTy[UU_2D][T13]);
+  dTdy[UL_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T22], dTy[LL_2D][T22], dTy[LU_2D][T22], dTy[UU_2D][T22]);
+  dTdy[UL_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T23], dTy[LL_2D][T23], dTy[LU_2D][T23], dTy[UU_2D][T23]);
+  dTdy[UL_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T33], dTy[LL_2D][T33], dTy[LU_2D][T33], dTy[UU_2D][T33]);
 
-  dTdy[UU_2D][T11] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T11], dTy[LL_2D][T11],
-                                              dTy[LU_2D][T11], dTy[UU_2D][T11]);
-  dTdy[UU_2D][T12] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T12], dTy[LL_2D][T12],
-                                              dTy[LU_2D][T12], dTy[UU_2D][T12]);
-  dTdy[UU_2D][T13] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T13], dTy[LL_2D][T13],
-                                              dTy[LU_2D][T13], dTy[UU_2D][T13]);
-  dTdy[UU_2D][T22] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T22], dTy[LL_2D][T22],
-                                              dTy[LU_2D][T22], dTy[UU_2D][T22]);
-  dTdy[UU_2D][T23] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T23], dTy[LL_2D][T23],
-                                              dTy[LU_2D][T23], dTy[UU_2D][T23]);
-  dTdy[UU_2D][T33] = calc_sym_grad_limiter_3D(limit, dTy[UL_2D][T33], dTy[LL_2D][T33],
-                                              dTy[LU_2D][T33], dTy[UU_2D][T33]);
+  dTdy[UU_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T11], dTy[LL_2D][T11], dTy[LU_2D][T11], dTy[UU_2D][T11]);
+  dTdy[UU_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T12], dTy[LL_2D][T12], dTy[LU_2D][T12], dTy[UU_2D][T12]);
+  dTdy[UU_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T13], dTy[LL_2D][T13], dTy[LU_2D][T13], dTy[UU_2D][T13]);
+  dTdy[UU_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T22], dTy[LL_2D][T22], dTy[LU_2D][T22], dTy[UU_2D][T22]);
+  dTdy[UU_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T23], dTy[LL_2D][T23], dTy[LU_2D][T23], dTy[UU_2D][T23]);
+  dTdy[UU_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTy[UL_2D][T33], dTy[LL_2D][T33], dTy[LU_2D][T33], dTy[UU_2D][T33]);
 
   dTz[LL_2D][T11] = calc_sym_grad_1D(dz, Tij[LLL_3D][T11], Tij[LLU_3D][T11]);
   dTz[LL_2D][T12] = calc_sym_grad_1D(dz, Tij[LLL_3D][T12], Tij[LLU_3D][T12]);
@@ -606,57 +603,57 @@ GKYL_CU_D static void calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure
   dTz[UU_2D][T23] = calc_sym_grad_1D(dz, Tij[UUL_3D][T23], Tij[UUU_3D][T23]);
   dTz[UU_2D][T33] = calc_sym_grad_1D(dz, Tij[UUL_3D][T33], Tij[UUU_3D][T33]);
 
-  dTdz[LL_2D][T11] = calc_sym_grad_limiter_3D(limit, dTz[LL_2D][T11], dTz[LU_2D][T11],
-                                              dTz[UL_2D][T11], dTz[UU_2D][T11]);
-  dTdz[LL_2D][T12] = calc_sym_grad_limiter_3D(limit, dTz[LL_2D][T12], dTz[LU_2D][T12],
-                                              dTz[UL_2D][T12], dTz[UU_2D][T12]);
-  dTdz[LL_2D][T13] = calc_sym_grad_limiter_3D(limit, dTz[LL_2D][T13], dTz[LU_2D][T13],
-                                              dTz[UL_2D][T13], dTz[UU_2D][T13]);
-  dTdz[LL_2D][T22] = calc_sym_grad_limiter_3D(limit, dTz[LL_2D][T22], dTz[LU_2D][T22],
-                                              dTz[UL_2D][T22], dTz[UU_2D][T22]);
-  dTdz[LL_2D][T23] = calc_sym_grad_limiter_3D(limit, dTz[LL_2D][T23], dTz[LU_2D][T23],
-                                              dTz[UL_2D][T23], dTz[UU_2D][T23]);
-  dTdz[LL_2D][T33] = calc_sym_grad_limiter_3D(limit, dTz[LL_2D][T33], dTz[LU_2D][T33],
-                                              dTz[UL_2D][T33], dTz[UU_2D][T33]);
+  dTdz[LL_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTz[LL_2D][T11], dTz[LU_2D][T11], dTz[UL_2D][T11], dTz[UU_2D][T11]);
+  dTdz[LL_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTz[LL_2D][T12], dTz[LU_2D][T12], dTz[UL_2D][T12], dTz[UU_2D][T12]);
+  dTdz[LL_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTz[LL_2D][T13], dTz[LU_2D][T13], dTz[UL_2D][T13], dTz[UU_2D][T13]);
+  dTdz[LL_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTz[LL_2D][T22], dTz[LU_2D][T22], dTz[UL_2D][T22], dTz[UU_2D][T22]);
+  dTdz[LL_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTz[LL_2D][T23], dTz[LU_2D][T23], dTz[UL_2D][T23], dTz[UU_2D][T23]);
+  dTdz[LL_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTz[LL_2D][T33], dTz[LU_2D][T33], dTz[UL_2D][T33], dTz[UU_2D][T33]);
 
-  dTdz[LU_2D][T11] = calc_sym_grad_limiter_3D(limit, dTz[LU_2D][T11], dTz[LL_2D][T11],
-                                              dTz[UL_2D][T11], dTz[UU_2D][T11]);
-  dTdz[LU_2D][T12] = calc_sym_grad_limiter_3D(limit, dTz[LU_2D][T12], dTz[LL_2D][T12],
-                                              dTz[UL_2D][T12], dTz[UU_2D][T12]);
-  dTdz[LU_2D][T13] = calc_sym_grad_limiter_3D(limit, dTz[LU_2D][T13], dTz[LL_2D][T13],
-                                              dTz[UL_2D][T13], dTz[UU_2D][T13]);
-  dTdz[LU_2D][T22] = calc_sym_grad_limiter_3D(limit, dTz[LU_2D][T22], dTz[LL_2D][T22],
-                                              dTz[UL_2D][T22], dTz[UU_2D][T22]);
-  dTdz[LU_2D][T23] = calc_sym_grad_limiter_3D(limit, dTz[LU_2D][T23], dTz[LL_2D][T23],
-                                              dTz[UL_2D][T23], dTz[UU_2D][T23]);
-  dTdz[LU_2D][T33] = calc_sym_grad_limiter_3D(limit, dTz[LU_2D][T33], dTz[LL_2D][T33],
-                                              dTz[UL_2D][T33], dTz[UU_2D][T33]);
+  dTdz[LU_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTz[LU_2D][T11], dTz[LL_2D][T11], dTz[UL_2D][T11], dTz[UU_2D][T11]);
+  dTdz[LU_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTz[LU_2D][T12], dTz[LL_2D][T12], dTz[UL_2D][T12], dTz[UU_2D][T12]);
+  dTdz[LU_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTz[LU_2D][T13], dTz[LL_2D][T13], dTz[UL_2D][T13], dTz[UU_2D][T13]);
+  dTdz[LU_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTz[LU_2D][T22], dTz[LL_2D][T22], dTz[UL_2D][T22], dTz[UU_2D][T22]);
+  dTdz[LU_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTz[LU_2D][T23], dTz[LL_2D][T23], dTz[UL_2D][T23], dTz[UU_2D][T23]);
+  dTdz[LU_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTz[LU_2D][T33], dTz[LL_2D][T33], dTz[UL_2D][T33], dTz[UU_2D][T33]);
 
-  dTdz[UL_2D][T11] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T11], dTz[LL_2D][T11],
-                                              dTz[LU_2D][T11], dTz[UU_2D][T11]);
-  dTdz[UL_2D][T12] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T12], dTz[LL_2D][T12],
-                                              dTz[LU_2D][T12], dTz[UU_2D][T12]);
-  dTdz[UL_2D][T13] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T13], dTz[LL_2D][T13],
-                                              dTz[LU_2D][T13], dTz[UU_2D][T13]);
-  dTdz[UL_2D][T22] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T22], dTz[LL_2D][T22],
-                                              dTz[LU_2D][T22], dTz[UU_2D][T22]);
-  dTdz[UL_2D][T23] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T23], dTz[LL_2D][T23],
-                                              dTz[LU_2D][T23], dTz[UU_2D][T23]);
-  dTdz[UL_2D][T33] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T33], dTz[LL_2D][T33],
-                                              dTz[LU_2D][T33], dTz[UU_2D][T33]);
+  dTdz[UL_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T11], dTz[LL_2D][T11], dTz[LU_2D][T11], dTz[UU_2D][T11]);
+  dTdz[UL_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T12], dTz[LL_2D][T12], dTz[LU_2D][T12], dTz[UU_2D][T12]);
+  dTdz[UL_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T13], dTz[LL_2D][T13], dTz[LU_2D][T13], dTz[UU_2D][T13]);
+  dTdz[UL_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T22], dTz[LL_2D][T22], dTz[LU_2D][T22], dTz[UU_2D][T22]);
+  dTdz[UL_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T23], dTz[LL_2D][T23], dTz[LU_2D][T23], dTz[UU_2D][T23]);
+  dTdz[UL_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T33], dTz[LL_2D][T33], dTz[LU_2D][T33], dTz[UU_2D][T33]);
 
-  dTdz[UU_2D][T11] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T11], dTz[LL_2D][T11],
-                                              dTz[LU_2D][T11], dTz[UU_2D][T11]);
-  dTdz[UU_2D][T12] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T12], dTz[LL_2D][T12],
-                                              dTz[LU_2D][T12], dTz[UU_2D][T12]);
-  dTdz[UU_2D][T13] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T13], dTz[LL_2D][T13],
-                                              dTz[LU_2D][T13], dTz[UU_2D][T13]);
-  dTdz[UU_2D][T22] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T22], dTz[LL_2D][T22],
-                                              dTz[LU_2D][T22], dTz[UU_2D][T22]);
-  dTdz[UU_2D][T23] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T23], dTz[LL_2D][T23],
-                                              dTz[LU_2D][T23], dTz[UU_2D][T23]);
-  dTdz[UU_2D][T33] = calc_sym_grad_limiter_3D(limit, dTz[UL_2D][T33], dTz[LL_2D][T33],
-                                              dTz[LU_2D][T33], dTz[UU_2D][T33]);
+  dTdz[UU_2D][T11] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T11], dTz[LL_2D][T11], dTz[LU_2D][T11], dTz[UU_2D][T11]);
+  dTdz[UU_2D][T12] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T12], dTz[LL_2D][T12], dTz[LU_2D][T12], dTz[UU_2D][T12]);
+  dTdz[UU_2D][T13] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T13], dTz[LL_2D][T13], dTz[LU_2D][T13], dTz[UU_2D][T13]);
+  dTdz[UU_2D][T22] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T22], dTz[LL_2D][T22], dTz[LU_2D][T22], dTz[UU_2D][T22]);
+  dTdz[UU_2D][T23] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T23], dTz[LL_2D][T23], dTz[LU_2D][T23], dTz[UU_2D][T23]);
+  dTdz[UU_2D][T33] = calc_sym_grad_limiter_3D(
+    limit, dTz[UL_2D][T33], dTz[LL_2D][T33], dTz[LU_2D][T33], dTz[UU_2D][T33]);
 
   double alpha = 1.0 / gces->k0;
   double vth_avg = sqrt(p_avg / rho_avg);
@@ -770,8 +767,8 @@ GKYL_CU_D static void calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure
   cflrate[0] = alpha * vth_avg * cfla;
 }
 
-GKYL_CU_D static void grad_closure_update_3d(const gkyl_ten_moment_grad_closure *gces,
-                                             const double *q[], double *rhs)
+GKYL_CU_D static void grad_closure_update_3d(
+  const gkyl_ten_moment_grad_closure *gces, const double *q[], double *rhs)
 {
   double div_qx[6] = { 0.0 };
   double div_qy[6] = { 0.0 };
@@ -782,79 +779,61 @@ GKYL_CU_D static void grad_closure_update_3d(const gkyl_ten_moment_grad_closure 
   const double dz = gces->grid.dx[2];
 
   div_qx[0] = calc_sym_gradx_3D(dx, q[LLL_3D][UUU_3D * 10 + Q111], q[LLU_3D][UUL_3D * 10 + Q111],
-                                q[LUL_3D][ULU_3D * 10 + Q111], q[LUU_3D][ULL_3D * 10 + Q111],
-                                q[ULL_3D][LUU_3D * 10 + Q111], q[ULU_3D][LUL_3D * 10 + Q111],
-                                q[UUL_3D][LLU_3D * 10 + Q111], q[UUU_3D][LLL_3D * 10 + Q111]);
+    q[LUL_3D][ULU_3D * 10 + Q111], q[LUU_3D][ULL_3D * 10 + Q111], q[ULL_3D][LUU_3D * 10 + Q111],
+    q[ULU_3D][LUL_3D * 10 + Q111], q[UUL_3D][LLU_3D * 10 + Q111], q[UUU_3D][LLL_3D * 10 + Q111]);
   div_qx[1] = calc_sym_gradx_3D(dx, q[LLL_3D][UUU_3D * 10 + Q112], q[LLU_3D][UUL_3D * 10 + Q112],
-                                q[LUL_3D][ULU_3D * 10 + Q112], q[LUU_3D][ULL_3D * 10 + Q112],
-                                q[ULL_3D][LUU_3D * 10 + Q112], q[ULU_3D][LUL_3D * 10 + Q112],
-                                q[UUL_3D][LLU_3D * 10 + Q112], q[UUU_3D][LLL_3D * 10 + Q112]);
+    q[LUL_3D][ULU_3D * 10 + Q112], q[LUU_3D][ULL_3D * 10 + Q112], q[ULL_3D][LUU_3D * 10 + Q112],
+    q[ULU_3D][LUL_3D * 10 + Q112], q[UUL_3D][LLU_3D * 10 + Q112], q[UUU_3D][LLL_3D * 10 + Q112]);
   div_qx[2] = calc_sym_gradx_3D(dx, q[LLL_3D][UUU_3D * 10 + Q113], q[LLU_3D][UUL_3D * 10 + Q113],
-                                q[LUL_3D][ULU_3D * 10 + Q113], q[LUU_3D][ULL_3D * 10 + Q113],
-                                q[ULL_3D][LUU_3D * 10 + Q113], q[ULU_3D][LUL_3D * 10 + Q113],
-                                q[UUL_3D][LLU_3D * 10 + Q113], q[UUU_3D][LLL_3D * 10 + Q113]);
+    q[LUL_3D][ULU_3D * 10 + Q113], q[LUU_3D][ULL_3D * 10 + Q113], q[ULL_3D][LUU_3D * 10 + Q113],
+    q[ULU_3D][LUL_3D * 10 + Q113], q[UUL_3D][LLU_3D * 10 + Q113], q[UUU_3D][LLL_3D * 10 + Q113]);
   div_qx[3] = calc_sym_gradx_3D(dx, q[LLL_3D][UUU_3D * 10 + Q122], q[LLU_3D][UUL_3D * 10 + Q122],
-                                q[LUL_3D][ULU_3D * 10 + Q122], q[LUU_3D][ULL_3D * 10 + Q122],
-                                q[ULL_3D][LUU_3D * 10 + Q122], q[ULU_3D][LUL_3D * 10 + Q122],
-                                q[UUL_3D][LLU_3D * 10 + Q122], q[UUU_3D][LLL_3D * 10 + Q122]);
+    q[LUL_3D][ULU_3D * 10 + Q122], q[LUU_3D][ULL_3D * 10 + Q122], q[ULL_3D][LUU_3D * 10 + Q122],
+    q[ULU_3D][LUL_3D * 10 + Q122], q[UUL_3D][LLU_3D * 10 + Q122], q[UUU_3D][LLL_3D * 10 + Q122]);
   div_qx[4] = calc_sym_gradx_3D(dx, q[LLL_3D][UUU_3D * 10 + Q123], q[LLU_3D][UUL_3D * 10 + Q123],
-                                q[LUL_3D][ULU_3D * 10 + Q123], q[LUU_3D][ULL_3D * 10 + Q123],
-                                q[ULL_3D][LUU_3D * 10 + Q123], q[ULU_3D][LUL_3D * 10 + Q123],
-                                q[UUL_3D][LLU_3D * 10 + Q123], q[UUU_3D][LLL_3D * 10 + Q123]);
+    q[LUL_3D][ULU_3D * 10 + Q123], q[LUU_3D][ULL_3D * 10 + Q123], q[ULL_3D][LUU_3D * 10 + Q123],
+    q[ULU_3D][LUL_3D * 10 + Q123], q[UUL_3D][LLU_3D * 10 + Q123], q[UUU_3D][LLL_3D * 10 + Q123]);
   div_qx[5] = calc_sym_gradx_3D(dx, q[LLL_3D][UUU_3D * 10 + Q133], q[LLU_3D][UUL_3D * 10 + Q133],
-                                q[LUL_3D][ULU_3D * 10 + Q133], q[LUU_3D][ULL_3D * 10 + Q133],
-                                q[ULL_3D][LUU_3D * 10 + Q133], q[ULU_3D][LUL_3D * 10 + Q133],
-                                q[UUL_3D][LLU_3D * 10 + Q133], q[UUU_3D][LLL_3D * 10 + Q133]);
+    q[LUL_3D][ULU_3D * 10 + Q133], q[LUU_3D][ULL_3D * 10 + Q133], q[ULL_3D][LUU_3D * 10 + Q133],
+    q[ULU_3D][LUL_3D * 10 + Q133], q[UUL_3D][LLU_3D * 10 + Q133], q[UUU_3D][LLL_3D * 10 + Q133]);
 
   div_qy[0] = calc_sym_grady_3D(dy, q[LLL_3D][UUU_3D * 10 + Q112], q[LLU_3D][UUL_3D * 10 + Q112],
-                                q[LUL_3D][ULU_3D * 10 + Q112], q[LUU_3D][ULL_3D * 10 + Q112],
-                                q[ULL_3D][LUU_3D * 10 + Q112], q[ULU_3D][LUL_3D * 10 + Q112],
-                                q[UUL_3D][LLU_3D * 10 + Q112], q[UUU_3D][LLL_3D * 10 + Q112]);
+    q[LUL_3D][ULU_3D * 10 + Q112], q[LUU_3D][ULL_3D * 10 + Q112], q[ULL_3D][LUU_3D * 10 + Q112],
+    q[ULU_3D][LUL_3D * 10 + Q112], q[UUL_3D][LLU_3D * 10 + Q112], q[UUU_3D][LLL_3D * 10 + Q112]);
   div_qy[1] = calc_sym_grady_3D(dy, q[LLL_3D][UUU_3D * 10 + Q122], q[LLU_3D][UUL_3D * 10 + Q122],
-                                q[LUL_3D][ULU_3D * 10 + Q122], q[LUU_3D][ULL_3D * 10 + Q122],
-                                q[ULL_3D][LUU_3D * 10 + Q122], q[ULU_3D][LUL_3D * 10 + Q122],
-                                q[UUL_3D][LLU_3D * 10 + Q122], q[UUU_3D][LLL_3D * 10 + Q122]);
+    q[LUL_3D][ULU_3D * 10 + Q122], q[LUU_3D][ULL_3D * 10 + Q122], q[ULL_3D][LUU_3D * 10 + Q122],
+    q[ULU_3D][LUL_3D * 10 + Q122], q[UUL_3D][LLU_3D * 10 + Q122], q[UUU_3D][LLL_3D * 10 + Q122]);
   div_qy[2] = calc_sym_grady_3D(dy, q[LLL_3D][UUU_3D * 10 + Q123], q[LLU_3D][UUL_3D * 10 + Q123],
-                                q[LUL_3D][ULU_3D * 10 + Q123], q[LUU_3D][ULL_3D * 10 + Q123],
-                                q[ULL_3D][LUU_3D * 10 + Q123], q[ULU_3D][LUL_3D * 10 + Q123],
-                                q[UUL_3D][LLU_3D * 10 + Q123], q[UUU_3D][LLL_3D * 10 + Q123]);
+    q[LUL_3D][ULU_3D * 10 + Q123], q[LUU_3D][ULL_3D * 10 + Q123], q[ULL_3D][LUU_3D * 10 + Q123],
+    q[ULU_3D][LUL_3D * 10 + Q123], q[UUL_3D][LLU_3D * 10 + Q123], q[UUU_3D][LLL_3D * 10 + Q123]);
   div_qy[3] = calc_sym_grady_3D(dy, q[LLL_3D][UUU_3D * 10 + Q222], q[LLU_3D][UUL_3D * 10 + Q222],
-                                q[LUL_3D][ULU_3D * 10 + Q222], q[LUU_3D][ULL_3D * 10 + Q222],
-                                q[ULL_3D][LUU_3D * 10 + Q222], q[ULU_3D][LUL_3D * 10 + Q222],
-                                q[UUL_3D][LLU_3D * 10 + Q222], q[UUU_3D][LLL_3D * 10 + Q222]);
+    q[LUL_3D][ULU_3D * 10 + Q222], q[LUU_3D][ULL_3D * 10 + Q222], q[ULL_3D][LUU_3D * 10 + Q222],
+    q[ULU_3D][LUL_3D * 10 + Q222], q[UUL_3D][LLU_3D * 10 + Q222], q[UUU_3D][LLL_3D * 10 + Q222]);
   div_qy[4] = calc_sym_grady_3D(dy, q[LLL_3D][UUU_3D * 10 + Q223], q[LLU_3D][UUL_3D * 10 + Q223],
-                                q[LUL_3D][ULU_3D * 10 + Q223], q[LUU_3D][ULL_3D * 10 + Q223],
-                                q[ULL_3D][LUU_3D * 10 + Q223], q[ULU_3D][LUL_3D * 10 + Q223],
-                                q[UUL_3D][LLU_3D * 10 + Q223], q[UUU_3D][LLL_3D * 10 + Q223]);
+    q[LUL_3D][ULU_3D * 10 + Q223], q[LUU_3D][ULL_3D * 10 + Q223], q[ULL_3D][LUU_3D * 10 + Q223],
+    q[ULU_3D][LUL_3D * 10 + Q223], q[UUL_3D][LLU_3D * 10 + Q223], q[UUU_3D][LLL_3D * 10 + Q223]);
   div_qy[5] = calc_sym_grady_3D(dy, q[LLL_3D][UUU_3D * 10 + Q233], q[LLU_3D][UUL_3D * 10 + Q233],
-                                q[LUL_3D][ULU_3D * 10 + Q233], q[LUU_3D][ULL_3D * 10 + Q233],
-                                q[ULL_3D][LUU_3D * 10 + Q233], q[ULU_3D][LUL_3D * 10 + Q233],
-                                q[UUL_3D][LLU_3D * 10 + Q233], q[UUU_3D][LLL_3D * 10 + Q233]);
+    q[LUL_3D][ULU_3D * 10 + Q233], q[LUU_3D][ULL_3D * 10 + Q233], q[ULL_3D][LUU_3D * 10 + Q233],
+    q[ULU_3D][LUL_3D * 10 + Q233], q[UUL_3D][LLU_3D * 10 + Q233], q[UUU_3D][LLL_3D * 10 + Q233]);
 
   div_qz[0] = calc_sym_gradz_3D(dz, q[LLL_3D][UUU_3D * 10 + Q113], q[LLU_3D][UUL_3D * 10 + Q113],
-                                q[LUL_3D][ULU_3D * 10 + Q113], q[LUU_3D][ULL_3D * 10 + Q113],
-                                q[ULL_3D][LUU_3D * 10 + Q113], q[ULU_3D][LUL_3D * 10 + Q113],
-                                q[UUL_3D][LLU_3D * 10 + Q113], q[UUU_3D][LLL_3D * 10 + Q113]);
+    q[LUL_3D][ULU_3D * 10 + Q113], q[LUU_3D][ULL_3D * 10 + Q113], q[ULL_3D][LUU_3D * 10 + Q113],
+    q[ULU_3D][LUL_3D * 10 + Q113], q[UUL_3D][LLU_3D * 10 + Q113], q[UUU_3D][LLL_3D * 10 + Q113]);
   div_qz[1] = calc_sym_gradz_3D(dz, q[LLL_3D][UUU_3D * 10 + Q123], q[LLU_3D][UUL_3D * 10 + Q123],
-                                q[LUL_3D][ULU_3D * 10 + Q123], q[LUU_3D][ULL_3D * 10 + Q123],
-                                q[ULL_3D][LUU_3D * 10 + Q123], q[ULU_3D][LUL_3D * 10 + Q123],
-                                q[UUL_3D][LLU_3D * 10 + Q123], q[UUU_3D][LLL_3D * 10 + Q123]);
+    q[LUL_3D][ULU_3D * 10 + Q123], q[LUU_3D][ULL_3D * 10 + Q123], q[ULL_3D][LUU_3D * 10 + Q123],
+    q[ULU_3D][LUL_3D * 10 + Q123], q[UUL_3D][LLU_3D * 10 + Q123], q[UUU_3D][LLL_3D * 10 + Q123]);
   div_qz[2] = calc_sym_gradz_3D(dz, q[LLL_3D][UUU_3D * 10 + Q133], q[LLU_3D][UUL_3D * 10 + Q133],
-                                q[LUL_3D][ULU_3D * 10 + Q133], q[LUU_3D][ULL_3D * 10 + Q133],
-                                q[ULL_3D][LUU_3D * 10 + Q133], q[ULU_3D][LUL_3D * 10 + Q133],
-                                q[UUL_3D][LLU_3D * 10 + Q133], q[UUU_3D][LLL_3D * 10 + Q133]);
+    q[LUL_3D][ULU_3D * 10 + Q133], q[LUU_3D][ULL_3D * 10 + Q133], q[ULL_3D][LUU_3D * 10 + Q133],
+    q[ULU_3D][LUL_3D * 10 + Q133], q[UUL_3D][LLU_3D * 10 + Q133], q[UUU_3D][LLL_3D * 10 + Q133]);
   div_qz[3] = calc_sym_gradz_3D(dz, q[LLL_3D][UUU_3D * 10 + Q223], q[LLU_3D][UUL_3D * 10 + Q223],
-                                q[LUL_3D][ULU_3D * 10 + Q223], q[LUU_3D][ULL_3D * 10 + Q223],
-                                q[ULL_3D][LUU_3D * 10 + Q223], q[ULU_3D][LUL_3D * 10 + Q223],
-                                q[UUL_3D][LLU_3D * 10 + Q223], q[UUU_3D][LLL_3D * 10 + Q223]);
+    q[LUL_3D][ULU_3D * 10 + Q223], q[LUU_3D][ULL_3D * 10 + Q223], q[ULL_3D][LUU_3D * 10 + Q223],
+    q[ULU_3D][LUL_3D * 10 + Q223], q[UUL_3D][LLU_3D * 10 + Q223], q[UUU_3D][LLL_3D * 10 + Q223]);
   div_qz[4] = calc_sym_gradz_3D(dz, q[LLL_3D][UUU_3D * 10 + Q233], q[LLU_3D][UUL_3D * 10 + Q233],
-                                q[LUL_3D][ULU_3D * 10 + Q233], q[LUU_3D][ULL_3D * 10 + Q233],
-                                q[ULL_3D][LUU_3D * 10 + Q233], q[ULU_3D][LUL_3D * 10 + Q233],
-                                q[UUL_3D][LLU_3D * 10 + Q233], q[UUU_3D][LLL_3D * 10 + Q233]);
+    q[LUL_3D][ULU_3D * 10 + Q233], q[LUU_3D][ULL_3D * 10 + Q233], q[ULL_3D][LUU_3D * 10 + Q233],
+    q[ULU_3D][LUL_3D * 10 + Q233], q[UUL_3D][LLU_3D * 10 + Q233], q[UUU_3D][LLL_3D * 10 + Q233]);
   div_qz[5] = calc_sym_gradz_3D(dz, q[LLL_3D][UUU_3D * 10 + Q333], q[LLU_3D][UUL_3D * 10 + Q333],
-                                q[LUL_3D][ULU_3D * 10 + Q333], q[LUU_3D][ULL_3D * 10 + Q333],
-                                q[ULL_3D][LUU_3D * 10 + Q333], q[ULU_3D][LUL_3D * 10 + Q333],
-                                q[UUL_3D][LLU_3D * 10 + Q333], q[UUU_3D][LLL_3D * 10 + Q333]);
+    q[LUL_3D][ULU_3D * 10 + Q333], q[LUU_3D][ULL_3D * 10 + Q333], q[ULL_3D][LUU_3D * 10 + Q333],
+    q[ULU_3D][LUL_3D * 10 + Q333], q[UUL_3D][LLU_3D * 10 + Q333], q[UUU_3D][LLL_3D * 10 + Q333]);
 
   rhs[RHO] = 0.0;
   rhs[MX] = 0.0;
@@ -869,12 +848,10 @@ GKYL_CU_D static void grad_closure_update_3d(const gkyl_ten_moment_grad_closure 
 }
 
 GKYL_CU_D static const heat_flux_calc_t grad_closure_unmag_funcs[3] = { calc_unmag_heat_flux_1d,
-                                                                        calc_unmag_heat_flux_2d,
-                                                                        calc_unmag_heat_flux_3d };
+  calc_unmag_heat_flux_2d, calc_unmag_heat_flux_3d };
 
 GKYL_CU_D static const heat_flux_update_t grad_closure_update_funcs[3] = { grad_closure_update_1d,
-                                                                           grad_closure_update_2d,
-                                                                           grad_closure_update_3d };
+  grad_closure_update_2d, grad_closure_update_3d };
 
 GKYL_CU_D static void grad_closure_calc_q_choose(gkyl_ten_moment_grad_closure *gces)
 {

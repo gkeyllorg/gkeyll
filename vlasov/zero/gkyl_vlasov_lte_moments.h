@@ -41,8 +41,8 @@ struct gkyl_vlasov_lte_moments_inp {
  * @param inp Input parameters defined in gkyl_vlasov_lte_moments_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_vlasov_lte_moments *
-gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp);
+struct gkyl_vlasov_lte_moments *gkyl_vlasov_lte_moments_inew(
+  const struct gkyl_vlasov_lte_moments_inp *inp);
 
 /**
  * Compute the density moments of an arbitrary distribution function for the equivalent 
@@ -57,10 +57,8 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp);
  * @param density Output stationary-frame density
  */
 void gkyl_vlasov_lte_density_moment_advance(struct gkyl_vlasov_lte_moments *lte_moms,
-                                            const struct gkyl_range *phase_local,
-                                            const struct gkyl_range *conf_local,
-                                            const struct gkyl_array *fin,
-                                            struct gkyl_array *density);
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
+  const struct gkyl_array *fin, struct gkyl_array *density);
 
 /**
  * Compute the moments of an arbitrary distribution function for the equivalent 
@@ -76,9 +74,8 @@ void gkyl_vlasov_lte_density_moment_advance(struct gkyl_vlasov_lte_moments *lte_
  * @param moms Output LTE moments (n, V_drift, T/m)
  */
 void gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
-                                     const struct gkyl_range *phase_local,
-                                     const struct gkyl_range *conf_local,
-                                     const struct gkyl_array *fin, struct gkyl_array *moms);
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
+  const struct gkyl_array *fin, struct gkyl_array *moms);
 
 /**
  * Delete updater.

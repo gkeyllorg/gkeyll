@@ -187,7 +187,7 @@ GKYL_CU_DH static inline struct gkyl_dn2 gdn2_ssub(double s, struct gkyl_dn2 d1)
 GKYL_CU_DH static inline struct gkyl_dn2 gdn2_mul(struct gkyl_dn2 d1, struct gkyl_dn2 d2)
 {
   return (struct gkyl_dn2){ d1.x[0] * d2.x[0], d1.x[0] * d2.x[1] + d1.x[1] * d2.x[0],
-                            d1.x[0] * d2.x[2] + d1.x[2] * d2.x[0] };
+    d1.x[0] * d2.x[2] + d1.x[2] * d2.x[0] };
 }
 
 GKYL_CU_DH static inline struct gkyl_dn2 gdn2_smul(double s, struct gkyl_dn2 d1)
@@ -198,7 +198,7 @@ GKYL_CU_DH static inline struct gkyl_dn2 gdn2_smul(double s, struct gkyl_dn2 d1)
 GKYL_CU_DH static inline struct gkyl_dn2 gdn2_inv(struct gkyl_dn2 d1)
 {
   return (struct gkyl_dn2){ 1.0 / d1.x[0], -d1.x[1] / (d1.x[0] * d1.x[0]),
-                            -d1.x[2] / (d1.x[0] * d1.x[0]) };
+    -d1.x[2] / (d1.x[0] * d1.x[0]) };
 }
 
 GKYL_CU_DH static inline struct gkyl_dn2 gdn2_div(struct gkyl_dn2 d1, struct gkyl_dn2 d2)

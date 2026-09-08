@@ -11,17 +11,12 @@
 #include <assert.h>
 
 typedef void (*rad_gyrokinetic_nu_t)(const double *vmap, const double *vmapSq, double charge,
-                                     double mass, double a, double alpha, double beta, double gamma,
-                                     double v0, const double *bmag,
-                                     double *GKYL_RESTRICT drag_rad_surf,
-                                     double *GKYL_RESTRICT drag_rad);
+  double mass, double a, double alpha, double beta, double gamma, double v0, const double *bmag,
+  double *GKYL_RESTRICT drag_rad_surf, double *GKYL_RESTRICT drag_rad);
 
 typedef void (*rad_gyrokinetic_nI_nu_t)(const double *vnu_surf, const double *vnu,
-                                        const double *vsqnu_surf, const double *vsqnu,
-                                        const double *nI, double *GKYL_RESTRICT nvnu_surf,
-                                        double *GKYL_RESTRICT nvnu,
-                                        double *GKYL_RESTRICT nvsqnu_surf,
-                                        double *GKYL_RESTRICT nvsqnu);
+  const double *vsqnu_surf, const double *vsqnu, const double *nI, double *GKYL_RESTRICT nvnu_surf,
+  double *GKYL_RESTRICT nvnu, double *GKYL_RESTRICT nvsqnu_surf, double *GKYL_RESTRICT nvsqnu);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.
@@ -86,20 +81,20 @@ GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nI_nu_kern_list ser_rad_gyrokinet
   { NULL, rad_gyrokinetic_drag_nI_nu_3x2v_ser_p1, NULL } // 3
 };
 
-GKYL_CU_D static rad_gyrokinetic_nu_t choose_rad_gyrokinetic_nu_vpar_kern(int cdim, int vdim,
-                                                                          int poly_order)
+GKYL_CU_D static rad_gyrokinetic_nu_t choose_rad_gyrokinetic_nu_vpar_kern(
+  int cdim, int vdim, int poly_order)
 {
   return ser_rad_gyrokinetic_nu_vpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
 
-GKYL_CU_D static rad_gyrokinetic_nu_t choose_rad_gyrokinetic_nu_mu_kern(int cdim, int vdim,
-                                                                        int poly_order)
+GKYL_CU_D static rad_gyrokinetic_nu_t choose_rad_gyrokinetic_nu_mu_kern(
+  int cdim, int vdim, int poly_order)
 {
   return ser_rad_gyrokinetic_nu_mu_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
 
-GKYL_CU_D static rad_gyrokinetic_nI_nu_t choose_rad_gyrokinetic_nI_nu_kern(int cdim, int vdim,
-                                                                           int poly_order)
+GKYL_CU_D static rad_gyrokinetic_nI_nu_t choose_rad_gyrokinetic_nI_nu_kern(
+  int cdim, int vdim, int poly_order)
 {
   return ser_rad_gyrokinetic_nI_nu_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
@@ -110,8 +105,8 @@ GKYL_CU_D static rad_gyrokinetic_nI_nu_t choose_rad_gyrokinetic_nI_nu_kern(int c
  * @param target The value to find the closest index to
  * @return The index of the array with the value closest to target
  */
-GKYL_CU_D static inline int gkyl_dg_rad_gyrokinetic_find_nearest_idx(const struct gkyl_array *arr,
-                                                                     double target)
+GKYL_CU_D static inline int gkyl_dg_rad_gyrokinetic_find_nearest_idx(
+  const struct gkyl_array *arr, double target)
 {
   int left = 0;
   int right = arr->size - 1;
@@ -141,23 +136,19 @@ struct gkyl_dg_calc_gk_rad_vars *gkyl_dg_calc_gk_rad_vars_cu_dev_new(
  * radiation in gyrokinetics on the GPU.
  */
 void gkyl_dg_calc_gk_rad_vars_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars *up,
-                                            const struct gkyl_range *conf_range,
-                                            const struct gkyl_range *phase_range, double a,
-                                            double alpha, double beta, double gamma, double v0,
-                                            struct gkyl_array *vnu_surf, struct gkyl_array *vnu,
-                                            struct gkyl_array *vsqnu_surf,
-                                            struct gkyl_array *vsqnu);
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, double a, double alpha,
+  double beta, double gamma, double v0, struct gkyl_array *vnu_surf, struct gkyl_array *vnu,
+  struct gkyl_array *vsqnu_surf, struct gkyl_array *vsqnu);
 
 /**
  * Compute sum_s n_{i_s} nu_s(v) total drag coefficient for drag due to
  * radiation in gyrokinetics on the GPU.
  */
-void gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(
-  const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_gk_rad_drag *vnu_surf,
-  const struct gkyl_gk_rad_drag *vnu, const struct gkyl_gk_rad_drag *vsqnu_surf,
-  const struct gkyl_gk_rad_drag *vsqnu, const struct gkyl_array *n_elc_rad,
-  const struct gkyl_array *n_elc, const struct gkyl_array *nI, struct gkyl_array *nvnu_surf,
-  struct gkyl_array *nvnu, struct gkyl_array *nvsqnu_surf, struct gkyl_array *nvsqnu,
-  struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq);
+void gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_gk_rad_drag *vnu_surf, const struct gkyl_gk_rad_drag *vnu,
+  const struct gkyl_gk_rad_drag *vsqnu_surf, const struct gkyl_gk_rad_drag *vsqnu,
+  const struct gkyl_array *n_elc_rad, const struct gkyl_array *n_elc, const struct gkyl_array *nI,
+  struct gkyl_array *nvnu_surf, struct gkyl_array *nvnu, struct gkyl_array *nvsqnu_surf,
+  struct gkyl_array *nvsqnu, struct gkyl_array *vtsq_min_normalized, struct gkyl_array *vtsq);
 #endif

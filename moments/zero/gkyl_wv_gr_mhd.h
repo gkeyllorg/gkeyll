@@ -36,8 +36,8 @@ struct gkyl_wv_gr_mhd_inp {
 * @return Pointer to the general relativistic magnetohydrodynamics equations object with ideal gas equation of state.
 */
 struct gkyl_wv_eqn *gkyl_wv_gr_mhd_new(double gas_gamma, double light_speed, double b_fact,
-                                       enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq,
-                                       struct gkyl_gr_spacetime *spacetime, bool use_gpu);
+  enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
+  bool use_gpu);
 
 /**
 * Create a new general relativistic magnetohydrodynamics equations object with ideal gas equation of state, from an input context struct.

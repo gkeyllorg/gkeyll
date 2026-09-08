@@ -91,7 +91,7 @@ GKYL_CU_DH double gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_
 
   long loc = gkyl_ridx(tri->range, i, j);
   csmap_triple_put(&tri->triples, (struct mat_idx){ .row = i, .col = j },
-                   (struct gkyl_mtriple){ .row = i, .col = j, .val = val });
+    (struct gkyl_mtriple){ .row = i, .col = j, .val = val });
   return val;
 }
 
@@ -112,7 +112,7 @@ GKYL_CU_DH double gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t
     tot_val = (mt->second.val += val);
   } else {
     csmap_triple_put(&tri->triples, (struct mat_idx){ .row = i, .col = j },
-                     (struct gkyl_mtriple){ .row = i, .col = j, .val = val });
+      (struct gkyl_mtriple){ .row = i, .col = j, .val = val });
   }
 
   return tot_val;

@@ -10,9 +10,9 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(
-  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_basis basis, bool normNu, double betap1T2,
-  double massself, struct gkyl_array *m0self, struct gkyl_array *nuself, double massother,
+__global__ void gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(struct gkyl_nmat *As,
+  struct gkyl_nmat *xs, struct gkyl_basis basis, bool normNu, double betap1T2, double massself,
+  struct gkyl_array *m0self, struct gkyl_array *nuself, double massother,
   struct gkyl_array *m0other, struct gkyl_array *nuother, struct gkyl_range range,
   struct gkyl_array *out)
 {
@@ -83,10 +83,8 @@ __global__ void gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(
 }
 
 // Modeled after gkyl_dg_div_copy_sol_op_range_cu_kernel in dg_bin_ops_cu.cu.
-__global__ void gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel(struct gkyl_nmat *xs,
-                                                                  struct gkyl_basis basis,
-                                                                  struct gkyl_array *out,
-                                                                  struct gkyl_range range)
+__global__ void gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel(
+  struct gkyl_nmat *xs, struct gkyl_basis basis, struct gkyl_array *out, struct gkyl_range range)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -110,10 +108,8 @@ __global__ void gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel(struct gkyl_nm
 }
 
 void gkyl_prim_cross_m0deltas_advance_cu(gkyl_prim_cross_m0deltas *up, double massself,
-                                         const struct gkyl_array *m0self,
-                                         const struct gkyl_array *nuself, double massother,
-                                         const struct gkyl_array *m0other,
-                                         const struct gkyl_array *nuother, struct gkyl_array *out)
+  const struct gkyl_array *m0self, const struct gkyl_array *nuself, double massother,
+  const struct gkyl_array *m0other, const struct gkyl_array *nuother, struct gkyl_array *out)
 {
   int nblocks = up->range->nblocks;
   int nthreads = up->range->nthreads;
@@ -122,9 +118,9 @@ void gkyl_prim_cross_m0deltas_advance_cu(gkyl_prim_cross_m0deltas *up, double ma
   struct gkyl_nmat *x_d = up->mem->xs;
 
   // Construct matrices using CUDA kernel.
-  gkyl_prim_cross_m0deltas_set_op_range_cu_kernel<<<nblocks, nthreads> > >(
-    A_d->on_dev, x_d->on_dev, *up->basis, up->normNu, up->betap1T2, massself, m0self->on_dev,
-    nuself->on_dev, massother, m0other->on_dev, nuother->on_dev, *up->range, out->on_dev);
+  gkyl_prim_cross_m0deltas_set_op_range_cu_kernel<<<nblocks, nthreads> > >(A_d->on_dev, x_d->on_dev,
+    *up->basis, up->normNu, up->betap1T2, massself, m0self->on_dev, nuself->on_dev, massother,
+    m0other->on_dev, nuother->on_dev, *up->range, out->on_dev);
 
   // Invert all matrices in batch mode.
   bool status = gkyl_nmat_linsolve_lu_pa(up->mem->lu_mem, A_d, x_d);

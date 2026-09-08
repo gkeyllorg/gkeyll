@@ -119,45 +119,45 @@ struct multifluid_brio_wu_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct multifluid_brio_wu_ctx ctx = { .gas_gamma_elc = gas_gamma_elc,
-                                        .gas_gamma_ion = gas_gamma_ion,
-                                        .epsilon0 = epsilon0,
-                                        .mu0 = mu0,
-                                        .mass_ion = mass_ion,
-                                        .charge_ion = charge_ion,
-                                        .mass_elc = mass_elc,
-                                        .charge_elc = charge_elc,
-                                        .rhol_ion = rhol_ion,
-                                        .rhor_ion = rhor_ion,
-                                        .pl = pl,
-                                        .pr = pr,
-                                        .Bx = Bx,
-                                        .Byl = Byl,
-                                        .Byr = Byr,
-                                        .has_collision = has_collision,
-                                        .nu_base_ei = nu_base_ei,
-                                        .light_speed = light_speed,
-                                        .e_fact = e_fact,
-                                        .b_fact = b_fact,
-                                        .rhol_elc = rhol_elc,
-                                        .rhor_elc = rhor_elc,
-                                        .spacetime = spacetime,
-                                        .Nx = Nx,
-                                        .Lx = Lx,
-                                        .cfl_frac = cfl_frac,
-                                        .spacetime_gauge = spacetime_gauge,
-                                        .reinit_freq = reinit_freq,
-                                        .t_end = t_end,
-                                        .num_frames = num_frames,
-                                        .field_energy_calcs = field_energy_calcs,
-                                        .integrated_mom_calcs = integrated_mom_calcs,
-                                        .dt_failure_tol = dt_failure_tol,
-                                        .num_failures_max = num_failures_max };
+    .gas_gamma_ion = gas_gamma_ion,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .rhol_ion = rhol_ion,
+    .rhor_ion = rhor_ion,
+    .pl = pl,
+    .pr = pr,
+    .Bx = Bx,
+    .Byl = Byl,
+    .Byr = Byr,
+    .has_collision = has_collision,
+    .nu_base_ei = nu_base_ei,
+    .light_speed = light_speed,
+    .e_fact = e_fact,
+    .b_fact = b_fact,
+    .rhol_elc = rhol_elc,
+    .rhor_elc = rhor_elc,
+    .spacetime = spacetime,
+    .Nx = Nx,
+    .Lx = Lx,
+    .cfl_frac = cfl_frac,
+    .spacetime_gauge = spacetime_gauge,
+    .reinit_freq = reinit_freq,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .field_energy_calcs = field_energy_calcs,
+    .integrated_mom_calcs = integrated_mom_calcs,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void evalGRTwoFluidTetradInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                              void *ctx)
+void evalGRTwoFluidTetradInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct multifluid_brio_wu_ctx *app = ctx;
@@ -244,15 +244,15 @@ void evalGRTwoFluidTetradInit(double t, const double *GKYL_RESTRICT xn, double *
   spacetime->excision_region_func(spacetime, 0.0, x, 0.0, 0.0, &in_excision_region);
 
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
-  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0,
-                                             &extrinsic_curvature);
+  spacetime->extrinsic_curvature_tensor_func(
+    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &extrinsic_curvature);
 
-  spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-                                     pow(10.0, -8.0), &lapse_der);
-  spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
-                                   pow(10.0, -8.0), &shift_der);
+  spacetime->lapse_function_der_func(
+    spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+  spacetime->shift_vector_der_func(
+    spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
   spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0),
-                                            pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+    pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
 
   double We = 1.0;
   double Wi = 1.0;
@@ -434,16 +434,16 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
   }
 }
 
-void calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr,
-                       bool force_calc)
+void calc_field_energy(
+  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
   }
 }
 
-void calc_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr,
-                         bool force_calc)
+void calc_integrated_mom(
+  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
@@ -470,29 +470,29 @@ int main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(
-    ctx.mass_elc, ctx.mass_ion, ctx.charge_elc, ctx.charge_ion, ctx.gas_gamma_elc,
-    ctx.gas_gamma_ion, ctx.light_speed, ctx.e_fact, ctx.b_fact, ctx.spacetime_gauge,
-    ctx.reinit_freq, ctx.spacetime, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_twofluid_tetrad = gkyl_wv_gr_twofluid_tetrad_new(ctx.mass_elc,
+    ctx.mass_ion, ctx.charge_elc, ctx.charge_ion, ctx.gas_gamma_elc, ctx.gas_gamma_ion,
+    ctx.light_speed, ctx.e_fact, ctx.b_fact, ctx.spacetime_gauge, ctx.reinit_freq, ctx.spacetime,
+    app_args.use_gpu);
 
   struct gkyl_moment_species twofluid_tetrad = { .name = "gr_twofluid_tetrad",
-                                                 .equation = gr_twofluid_tetrad,
+    .equation = gr_twofluid_tetrad,
 
-                                                 .init = evalGRTwoFluidTetradInit,
-                                                 .force_low_order_flux = false, // Use HLL fluxes.
-                                                 .limiter = GKYL_MIN_MOD,
-                                                 .ctx = &ctx,
+    .init = evalGRTwoFluidTetradInit,
+    .force_low_order_flux = false, // Use HLL fluxes.
+    .limiter = GKYL_MIN_MOD,
+    .ctx = &ctx,
 
-                                                 .has_gr_twofluid = true,
-                                                 .gr_twofluid_mass_elc = ctx.mass_elc,
-                                                 .gr_twofluid_mass_ion = ctx.mass_ion,
-                                                 .gr_twofluid_charge_elc = ctx.charge_elc,
-                                                 .gr_twofluid_charge_ion = ctx.charge_ion,
-                                                 .gr_twofluid_gas_gamma_elc = ctx.gas_gamma_elc,
-                                                 .gr_twofluid_gas_gamma_ion = ctx.gas_gamma_ion,
-                                                 .gr_twofluid_e_fact = ctx.e_fact,
+    .has_gr_twofluid = true,
+    .gr_twofluid_mass_elc = ctx.mass_elc,
+    .gr_twofluid_mass_ion = ctx.mass_ion,
+    .gr_twofluid_charge_elc = ctx.charge_elc,
+    .gr_twofluid_charge_ion = ctx.charge_ion,
+    .gr_twofluid_gas_gamma_elc = ctx.gas_gamma_elc,
+    .gr_twofluid_gas_gamma_ion = ctx.gas_gamma_ion,
+    .gr_twofluid_e_fact = ctx.e_fact,
 
-                                                 .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -544,8 +544,8 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -582,7 +582,7 @@ int main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-                           gkyl_array_rio_status_msg(status.io_status));
+        gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
@@ -597,25 +597,25 @@ int main(int argc, char **argv)
 
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = {
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = {
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames,
-                                     .tcurr = frame_curr * (t_end / num_frames),
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = {
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 
@@ -654,8 +654,8 @@ int main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_moment_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);

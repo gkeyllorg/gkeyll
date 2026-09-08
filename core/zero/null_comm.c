@@ -11,8 +11,8 @@
 #include <gkyl_range.h>
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr, const struct gkyl_range *parent,
-                                   const int *ghost)
+static void skin_ghost_ranges_init(
+  struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost)
 {
 #define G_MAX(a, b) (a) > (b) ? (a) : (b)
 
@@ -20,14 +20,14 @@ static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr, const struct g
   long max_vol = 0;
 
   for (int d = 0; d < ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent, ghost);
 
     max_vol = G_MAX(max_vol, sgr->lower_skin[d].volume);
     max_vol = G_MAX(max_vol, sgr->lower_ghost[d].volume);
 
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent,
-                           ghost);
+    gkyl_skin_ghost_ranges(
+      &sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent, ghost);
 
     max_vol = G_MAX(max_vol, sgr->upper_skin[d].volume);
     max_vol = G_MAX(max_vol, sgr->upper_ghost[d].volume);
@@ -39,8 +39,8 @@ static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr, const struct g
 
 // Create ghost and skin sub-ranges given a parent range: includes
 // corners
-static void skin_ghost_ranges_with_corners_init(struct skin_ghost_ranges *sgr,
-                                                const struct gkyl_range *parent, const int *ghost)
+static void skin_ghost_ranges_with_corners_init(
+  struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost)
 {
 #define G_MAX(a, b) (a) > (b) ? (a) : (b)
 
@@ -48,14 +48,14 @@ static void skin_ghost_ranges_with_corners_init(struct skin_ghost_ranges *sgr,
   long max_vol = 0;
 
   for (int d = 0; d < ndim; ++d) {
-    gkyl_skin_ghost_with_corners_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d,
-                                        GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_with_corners_ranges(
+      &sgr->lower_skin[d], &sgr->lower_ghost[d], d, GKYL_LOWER_EDGE, parent, ghost);
 
     max_vol = G_MAX(max_vol, sgr->lower_skin[d].volume);
     max_vol = G_MAX(max_vol, sgr->lower_ghost[d].volume);
 
-    gkyl_skin_ghost_with_corners_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d,
-                                        GKYL_UPPER_EDGE, parent, ghost);
+    gkyl_skin_ghost_with_corners_ranges(
+      &sgr->upper_skin[d], &sgr->upper_ghost[d], d, GKYL_UPPER_EDGE, parent, ghost);
 
     max_vol = G_MAX(max_vol, sgr->upper_skin[d].volume);
     max_vol = G_MAX(max_vol, sgr->upper_ghost[d].volume);
@@ -90,7 +90,7 @@ static int get_size(struct gkyl_comm *comm, int *sz)
 }
 
 static int allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type, enum gkyl_array_op op,
-                     int nelem, const void *inp, void *out)
+  int nelem, const void *inp, void *out)
 {
   struct null_comm *null_comm = container_of(comm, struct null_comm, priv_comm.pub_comm);
   if (null_comm->use_gpu)
@@ -101,7 +101,7 @@ static int allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type, enum gkyl
 }
 
 static int allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type, enum gkyl_array_op op,
-                          int nelem, const void *inp, void *out)
+  int nelem, const void *inp, void *out)
 {
   struct null_comm *null_comm = container_of(comm, struct null_comm, priv_comm.pub_comm);
   memcpy(out, inp, gkyl_elem_type_size[type] * nelem);
@@ -109,29 +109,29 @@ static int allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type, enum
 }
 
 static int array_allgather(struct gkyl_comm *comm, const struct gkyl_range *local,
-                           const struct gkyl_range *global, const struct gkyl_array *array_local,
-                           struct gkyl_array *array_global)
+  const struct gkyl_range *global, const struct gkyl_array *array_local,
+  struct gkyl_array *array_global)
 {
   gkyl_array_copy(array_global, array_local);
   return 0;
 }
 
-static int array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
-                       struct gkyl_array *arecv, int root)
+static int array_bcast(
+  struct gkyl_comm *comm, const struct gkyl_array *asend, struct gkyl_array *arecv, int root)
 {
   gkyl_array_copy(arecv, asend);
   return 0;
 }
 
 static int array_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
-                      const struct gkyl_range *local_ext, struct gkyl_array *array)
+  const struct gkyl_range *local_ext, struct gkyl_array *array)
 {
   return 0;
 }
 
 // apply periodic BCs
-static void apply_periodic_bc(const struct skin_ghost_ranges *sgr, char *data, int dir,
-                              struct gkyl_array *f)
+static void apply_periodic_bc(
+  const struct skin_ghost_ranges *sgr, char *data, int dir, struct gkyl_array *f)
 {
   gkyl_array_copy_to_buffer(data, f, &(sgr->lower_skin[dir]));
   gkyl_array_copy_from_buffer(f, data, &(sgr->upper_ghost[dir]));
@@ -141,8 +141,7 @@ static void apply_periodic_bc(const struct skin_ghost_ranges *sgr, char *data, i
 }
 
 static int array_per_no_corners_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
-                                     const struct gkyl_range *local_ext, int nper_dirs,
-                                     const int *per_dirs, struct gkyl_array *array)
+  const struct gkyl_range *local_ext, int nper_dirs, const int *per_dirs, struct gkyl_array *array)
 {
   struct null_comm *null_comm = container_of(comm, struct null_comm, priv_comm.pub_comm);
 
@@ -173,8 +172,7 @@ static int array_per_no_corners_sync(struct gkyl_comm *comm, const struct gkyl_r
 }
 
 static int array_per_with_corners_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
-                                       const struct gkyl_range *local_ext, int nper_dirs,
-                                       const int *per_dirs, struct gkyl_array *array)
+  const struct gkyl_range *local_ext, int nper_dirs, const int *per_dirs, struct gkyl_array *array)
 {
   struct null_comm *null_comm = container_of(comm, struct null_comm, priv_comm.pub_comm);
 
@@ -205,8 +203,7 @@ static int array_per_with_corners_sync(struct gkyl_comm *comm, const struct gkyl
 }
 
 static int array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
-                          const struct gkyl_range *local_ext, int nper_dirs, const int *per_dirs,
-                          struct gkyl_array *array)
+  const struct gkyl_range *local_ext, int nper_dirs, const int *per_dirs, struct gkyl_array *array)
 {
   struct null_comm *null_comm = container_of(comm, struct null_comm, priv_comm.pub_comm);
   array_per_no_corners_sync(comm, local, local_ext, nper_dirs, per_dirs, array);
@@ -222,14 +219,14 @@ static int barrier(struct gkyl_comm *comm)
 }
 
 static int array_write(struct gkyl_comm *comm, const struct gkyl_rect_grid *grid,
-                       const struct gkyl_range *range, const struct gkyl_msgpack_data *meta,
-                       const struct gkyl_array *arr, const char *fname)
+  const struct gkyl_range *range, const struct gkyl_msgpack_data *meta,
+  const struct gkyl_array *arr, const char *fname)
 {
   return gkyl_grid_sub_array_write(grid, range, meta, arr, fname);
 }
 
 static int array_read(struct gkyl_comm *comm, const struct gkyl_rect_grid *grid,
-                      const struct gkyl_range *range, struct gkyl_array *arr, const char *fname)
+  const struct gkyl_range *range, struct gkyl_array *arr, const char *fname)
 {
   struct gkyl_rect_grid fgrid;
   int status = gkyl_grid_sub_array_read(&fgrid, range, arr, fname);
@@ -252,8 +249,8 @@ static struct gkyl_comm *extend_comm(const struct gkyl_comm *comm, const struct 
   return ext_comm;
 }
 
-static struct gkyl_comm *split_comm(const struct gkyl_comm *comm, int color,
-                                    struct gkyl_rect_decomp *new_decomp)
+static struct gkyl_comm *split_comm(
+  const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
 {
   struct null_comm *null_comm = container_of(comm, struct null_comm, priv_comm.pub_comm);
 
@@ -262,8 +259,7 @@ static struct gkyl_comm *split_comm(const struct gkyl_comm *comm, int color,
 }
 
 static struct gkyl_comm *create_comm_from_ranks(const struct gkyl_comm *comm, int nranks,
-                                                const int *ranks,
-                                                struct gkyl_rect_decomp *new_decomp, bool *is_valid)
+  const int *ranks, struct gkyl_rect_decomp *new_decomp, bool *is_valid)
 {
   if (nranks > 1) {
     *is_valid = false;

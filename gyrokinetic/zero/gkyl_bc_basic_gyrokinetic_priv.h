@@ -31,10 +31,9 @@ struct gkyl_bc_basic_gyrokinetic {
  * @param num_comp Number of components (DOFs) within a cell.
  * @return Pointer to array_copy_func which can be passed to array_copy_fn methods.
  */
-struct gkyl_array_copy_func *
-gkyl_bc_basic_gyrokinetic_create_arr_copy_func_cu(int dir, enum gkyl_edge_loc edge, int cdim,
-                                                  enum gkyl_gyrokinetic_bc_type bctype,
-                                                  const struct gkyl_basis *basis, int num_comp);
+struct gkyl_array_copy_func *gkyl_bc_basic_gyrokinetic_create_arr_copy_func_cu(int dir,
+  enum gkyl_edge_loc edge, int cdim, enum gkyl_gyrokinetic_bc_type bctype,
+  const struct gkyl_basis *basis, int num_comp);
 
 #endif
 

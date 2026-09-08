@@ -5,9 +5,8 @@
 #include <gkyl_dg_eval_at_coord_proj_priv.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_eval_at_coord_proj *
-gkyl_dg_eval_at_coord_proj_new(int cdim_do, const struct gkyl_basis *basis_do, int num_eval_dirs,
-                               const int *eval_dirs, bool use_gpu)
+struct gkyl_dg_eval_at_coord_proj *gkyl_dg_eval_at_coord_proj_new(int cdim_do,
+  const struct gkyl_basis *basis_do, int num_eval_dirs, const int *eval_dirs, bool use_gpu)
 {
   int ndim_do = basis_do->ndim;
   int ndim_tar = ndim_do - num_eval_dirs;
@@ -41,16 +40,14 @@ gkyl_dg_eval_at_coord_proj_new(int cdim_do, const struct gkyl_basis *basis_do, i
 }
 
 void gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up,
-                                        const double *eval_coords,
-                                        const struct gkyl_rect_grid *grid, const bool *pick_lower,
-                                        const int *known_index, const struct gkyl_range *rng_do,
-                                        const struct gkyl_range *rng_tar,
-                                        const struct gkyl_array *fdo, struct gkyl_array *ftar)
+  const double *eval_coords, const struct gkyl_rect_grid *grid, const bool *pick_lower,
+  const int *known_index, const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar,
+  const struct gkyl_array *fdo, struct gkyl_array *ftar)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_dg_eval_at_coord_proj_advance_cu(up, eval_coords, grid, pick_lower, known_index, rng_do,
-                                          rng_tar, fdo, ftar);
+    gkyl_dg_eval_at_coord_proj_advance_cu(
+      up, eval_coords, grid, pick_lower, known_index, rng_do, rng_tar, fdo, ftar);
     return;
   }
 #endif
@@ -105,8 +102,7 @@ void gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up,
 }
 
 void gkyl_dg_eval_at_coord_proj_target_basis(struct gkyl_dg_eval_at_coord_proj *up, int *cdim,
-                                             int *ndim, enum gkyl_basis_type *btype,
-                                             int *poly_order, int *num_basis)
+  int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis)
 {
   up->kers->basis_ker(cdim, ndim, btype, poly_order, num_basis);
 }

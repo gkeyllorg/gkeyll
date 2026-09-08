@@ -13,8 +13,8 @@
 
 #include <assert.h>
 
-struct gkyl_gk_maxwellian_correct *
-gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp)
+struct gkyl_gk_maxwellian_correct *gkyl_gk_maxwellian_correct_inew(
+  const struct gkyl_gk_maxwellian_correct_inp *inp)
 {
   gkyl_gk_maxwellian_correct *up = gkyl_malloc(sizeof(*up));
   up->eps = inp->eps;
@@ -37,12 +37,12 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
   // In the gyrokinetic system, we are correcting three moments for Maxwellian corrections: n, u_par, T/m
   // or if we are correcting a BiMaxwellian, we correct four moments: n, u_par, T_par/m, T_perp/m
   if (up->use_gpu) {
-    up->moms_iter = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_comp * inp->conf_basis->num_basis,
-                                          conf_range_ext_ncells);
-    up->d_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_comp * inp->conf_basis->num_basis,
-                                       conf_range_ext_ncells);
-    up->dd_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_comp * inp->conf_basis->num_basis,
-                                        conf_range_ext_ncells);
+    up->moms_iter = gkyl_array_cu_dev_new(
+      GKYL_DOUBLE, up->num_comp * inp->conf_basis->num_basis, conf_range_ext_ncells);
+    up->d_moms = gkyl_array_cu_dev_new(
+      GKYL_DOUBLE, up->num_comp * inp->conf_basis->num_basis, conf_range_ext_ncells);
+    up->dd_moms = gkyl_array_cu_dev_new(
+      GKYL_DOUBLE, up->num_comp * inp->conf_basis->num_basis, conf_range_ext_ncells);
     // Two additional GPU-specific allocations for iterating over the grid to find the absolute value of
     // the difference between the target and iterative moments, and the GPU-side array for performing the
     // thread-safe reduction to find the maximum error on the grid.
@@ -60,30 +60,30 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
 
   // Moments structure
   struct gkyl_gk_maxwellian_moments_inp inp_mom = { .phase_grid = inp->phase_grid,
-                                                    .conf_basis = inp->conf_basis,
-                                                    .phase_basis = inp->phase_basis,
-                                                    .conf_range = inp->conf_range,
-                                                    .conf_range_ext = inp->conf_range_ext,
-                                                    .mass = inp->mass,
-                                                    .gk_geom = inp->gk_geom,
-                                                    .vel_map = inp->vel_map,
-                                                    .divide_jacobgeo = inp->divide_jacobgeo,
-                                                    .use_gpu = inp->use_gpu };
+    .conf_basis = inp->conf_basis,
+    .phase_basis = inp->phase_basis,
+    .conf_range = inp->conf_range,
+    .conf_range_ext = inp->conf_range_ext,
+    .mass = inp->mass,
+    .gk_geom = inp->gk_geom,
+    .vel_map = inp->vel_map,
+    .divide_jacobgeo = inp->divide_jacobgeo,
+    .use_gpu = inp->use_gpu };
   up->moments_up = gkyl_gk_maxwellian_moments_inew(&inp_mom);
 
   // Create a projection updater for projecting the gyrokinetic Maxwellian or bi-Maxwellian
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = inp->phase_grid,
-                                                           .conf_basis = inp->conf_basis,
-                                                           .phase_basis = inp->phase_basis,
-                                                           .conf_range = inp->conf_range,
-                                                           .conf_range_ext = inp->conf_range_ext,
-                                                           .vel_range = inp->vel_range,
-                                                           .gk_geom = inp->gk_geom,
-                                                           .vel_map = inp->vel_map,
-                                                           .mass = inp->mass,
-                                                           .bimaxwellian = inp->bimaxwellian,
-                                                           .divide_jacobgeo = inp->divide_jacobgeo,
-                                                           .use_gpu = inp->use_gpu };
+    .conf_basis = inp->conf_basis,
+    .phase_basis = inp->phase_basis,
+    .conf_range = inp->conf_range,
+    .conf_range_ext = inp->conf_range_ext,
+    .vel_range = inp->vel_range,
+    .gk_geom = inp->gk_geom,
+    .vel_map = inp->vel_map,
+    .mass = inp->mass,
+    .bimaxwellian = inp->bimaxwellian,
+    .divide_jacobgeo = inp->divide_jacobgeo,
+    .use_gpu = inp->use_gpu };
   up->proj_max = gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
   return up;
@@ -121,11 +121,11 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
     // 1. Calculate the needed moments from the projected distribution
     // either Maxwellian (n, u_par, T/m) or bi-Maxwellian (n, u_par, Tpar/m, Tperp/m) moments
     if (up->bimaxwellian) {
-      gkyl_gk_bimaxwellian_moments_advance(up->moments_up, phase_range, conf_range, f_max,
-                                           up->moms_iter);
+      gkyl_gk_bimaxwellian_moments_advance(
+        up->moments_up, phase_range, conf_range, f_max, up->moms_iter);
     } else {
-      gkyl_gk_maxwellian_moments_advance(up->moments_up, phase_range, conf_range, f_max,
-                                         up->moms_iter);
+      gkyl_gk_maxwellian_moments_advance(
+        up->moments_up, phase_range, conf_range, f_max, up->moms_iter);
     }
 
     // a. Calculate  ddMi^(k+1) =  Mi_corr - Mi_new
@@ -144,8 +144,8 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
         // We insure the reduction to find the maximum error is thread-safe on GPUs
         // by first calling a specialized kernel for computing the absolute value
         // of the difference of the cell averages, then calling reduce_range.
-        gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(conf_range, num_comp, nc, moms_target,
-                                                           up->moms_iter, up->abs_diff_moms);
+        gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(
+          conf_range, num_comp, nc, moms_target, up->moms_iter, up->abs_diff_moms);
         gkyl_array_reduce_range(up->error_cu, up->abs_diff_moms, GKYL_MAX, conf_range);
         gkyl_cu_memcpy(up->error, up->error_cu, sizeof(double[num_comp]), GKYL_CU_MEMCPY_D2H);
       } else {
@@ -166,19 +166,19 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
           // so that we can converge to the correct target moments in SI units and minimize finite precision issues.
           up->error[0] =
             fmax(fabs(moms_local[0 * nc] - moms_target_local[0 * nc]) / moms_target_local[0 * nc],
-                 fabs(up->error[0]));
+              fabs(up->error[0]));
           up->error[2] =
             fmax(fabs(moms_local[2 * nc] - moms_target_local[2 * nc]) / moms_target_local[2 * nc],
-                 fabs(up->error[2]));
+              fabs(up->error[2]));
           // However, u_par may be ~ 0 and if it is, we normalize it with the target thermal veocity instead.
           if (fabs(moms_target_local[1 * nc]) < sqrt(moms_target_local[2 * nc])) {
             up->error[1] = fmax(fabs(moms_local[1 * nc] - moms_target_local[1 * nc]) /
                                   sqrt(moms_target_local[2 * nc]),
-                                fabs(up->error[1]));
+              fabs(up->error[1]));
           } else {
             up->error[1] = fmax(fabs(moms_local[1 * nc] - moms_target_local[1 * nc]) /
                                   fabs(moms_target_local[1 * nc]),
-                                fabs(up->error[1]));
+              fabs(up->error[1]));
           }
           // Check if density and temperature (or parallel temperature) are positive,
           // if they aren't we will break out of the iteration
@@ -189,7 +189,7 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
           if (up->bimaxwellian) {
             up->error[3] =
               fmax(fabs(moms_local[3 * nc] - moms_target_local[3 * nc]) / moms_target_local[3 * nc],
-                   fabs(up->error[3]));
+                fabs(up->error[3]));
             ispositive_f_lte = (moms_local[3 * nc] > 0.0) && ispositive_f_lte;
           }
         }
@@ -207,8 +207,8 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
     gkyl_array_accumulate(up->moms_iter, 1.0, up->d_moms);
 
     // 2. Update the gyrokinetic Maxwellian distribution function using the corrected moments.
-    gkyl_gk_maxwellian_proj_on_basis_advance(up->proj_max, phase_range, conf_range, up->moms_iter,
-                                             false, f_max);
+    gkyl_gk_maxwellian_proj_on_basis_advance(
+      up->proj_max, phase_range, conf_range, up->moms_iter, false, f_max);
 
     niter += 1;
   }
@@ -223,23 +223,23 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
   // we project the distribution function with the target moments.
   // We correct the density and then recompute moments/errors for this new projection.
   if (corr_status == 1 && !up->use_last_converged) {
-    gkyl_gk_maxwellian_proj_on_basis_advance(up->proj_max, phase_range, conf_range, moms_target,
-                                             false, f_max);
+    gkyl_gk_maxwellian_proj_on_basis_advance(
+      up->proj_max, phase_range, conf_range, moms_target, false, f_max);
 
     if (up->bimaxwellian) {
-      gkyl_gk_bimaxwellian_moments_advance(up->moments_up, phase_range, conf_range, f_max,
-                                           up->moms_iter);
+      gkyl_gk_bimaxwellian_moments_advance(
+        up->moments_up, phase_range, conf_range, f_max, up->moms_iter);
     } else {
-      gkyl_gk_maxwellian_moments_advance(up->moments_up, phase_range, conf_range, f_max,
-                                         up->moms_iter);
+      gkyl_gk_maxwellian_moments_advance(
+        up->moments_up, phase_range, conf_range, f_max, up->moms_iter);
     }
 
     if (up->use_gpu) {
       // We insure the reduction to find the maximum error is thread-safe on GPUs
       // by first calling a specialized kernel for computing the absolute value
       // of the difference of the cell averages, then calling reduce_range.
-      gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(conf_range, num_comp, nc, moms_target,
-                                                         up->moms_iter, up->abs_diff_moms);
+      gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(
+        conf_range, num_comp, nc, moms_target, up->moms_iter, up->abs_diff_moms);
       gkyl_array_reduce_range(up->error_cu, up->abs_diff_moms, GKYL_MAX, conf_range);
       gkyl_cu_memcpy(up->error, up->error_cu, sizeof(double[num_comp]), GKYL_CU_MEMCPY_D2H);
     } else {
@@ -260,10 +260,10 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
         // so that we can converge to the correct target moments in SI units and minimize finite precision issues.
         up->error[0] =
           fmax(fabs(moms_local[0 * nc] - moms_target_local[0 * nc]) / moms_target_local[0 * nc],
-               fabs(up->error[0]));
+            fabs(up->error[0]));
         up->error[2] =
           fmax(fabs(moms_local[2 * nc] - moms_target_local[2 * nc]) / moms_target_local[2 * nc],
-               fabs(up->error[2]));
+            fabs(up->error[2]));
         // However, u_par may be ~ 0 and if it is, we need to use absolute error. We can converge safely using
         // absolute error if u_par ~ O(1). Otherwise, we use relative error for u_par.
         if (fabs(moms_target_local[1 * nc]) < 1.0) {
@@ -272,14 +272,14 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
         } else {
           up->error[1] =
             fmax(fabs(moms_local[1 * nc] - moms_target_local[1 * nc]) / moms_target_local[1 * nc],
-                 fabs(up->error[1]));
+              fabs(up->error[1]));
         }
 
         // Also compute the error in Tperp/m if we are correcting a bi-Maxwellian
         if (up->bimaxwellian) {
           up->error[3] =
             fmax(fabs(moms_local[3 * nc] - moms_target_local[3 * nc]) / moms_target_local[3 * nc],
-                 fabs(up->error[3]));
+              fabs(up->error[3]));
           ispositive_f_lte = (moms_local[3 * nc] > 0.0) && ispositive_f_lte;
         }
       }
@@ -315,10 +315,8 @@ void gkyl_gk_maxwellian_correct_release(gkyl_gk_maxwellian_correct *up)
 #ifndef GKYL_HAVE_CUDA
 
 void gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range,
-                                                        int num_comp, int nc,
-                                                        const struct gkyl_array *moms_target,
-                                                        const struct gkyl_array *moms_iter,
-                                                        struct gkyl_array *moms_abs_diff)
+  int num_comp, int nc, const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter,
+  struct gkyl_array *moms_abs_diff)
 {
   assert(false);
 }

@@ -102,8 +102,7 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0, 0.0 },
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
@@ -115,11 +114,10 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
-  };
+    .basis = confBasis };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
-  gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext,
-                          &geometry_input.geo_local);
+  gkyl_create_grid_ranges(
+    &geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   struct gk_geometry *gk_geom_3d;
   gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
@@ -164,32 +162,32 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
 
   // bi-Maxwellian projection updater.
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
-                                                           .conf_basis = &confBasis,
-                                                           .phase_basis = &basis,
-                                                           .conf_range = &confLocal,
-                                                           .conf_range_ext = &confLocal_ext,
-                                                           .vel_range = &velLocal,
-                                                           .gk_geom = gk_geom,
-                                                           .vel_map = gvm,
-                                                           .mass = mass,
-                                                           .bimaxwellian = true,
-                                                           .use_gpu = use_gpu };
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .mass = mass,
+    .bimaxwellian = true,
+    .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
   if (use_gpu) {
-    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max, &local, &confLocal, prim_moms, false,
-                                             distf_cu);
+    gkyl_gk_maxwellian_proj_on_basis_advance(
+      proj_max, &local, &confLocal, prim_moms, false, distf_cu);
     gkyl_array_copy(distf, distf_cu);
   } else {
     gkyl_gk_maxwellian_proj_on_basis_advance(proj_max, &local, &confLocal, prim_moms, false, distf);
   }
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
-  double p1_vals[] = { 1.2845117649060e-03,  3.4098924955929e-20,  2.6352311336353e-05,
-                       -2.2927175349421e-04, -1.0358294364538e-20, 1.1737441012087e-20,
-                       -4.7036086346421e-06, 3.2926920104084e-21,  -2.0499212907186e-05,
-                       -6.6910161820819e-21, 3.6588925200118e-06,  -6.7667527142105e-21 };
+  double p1_vals[] = { 1.2845117649060e-03, 3.4098924955929e-20, 2.6352311336353e-05,
+    -2.2927175349421e-04, -1.0358294364538e-20, 1.1737441012087e-20, -4.7036086346421e-06,
+    3.2926920104084e-21, -2.0499212907186e-05, -6.6910161820819e-21, 3.6588925200118e-06,
+    -6.7667527142105e-21 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]){ 1, 9, 9 }));
 
@@ -228,6 +226,6 @@ void test_proj_bimaxwellian_1x2v_p1_gk_dev()
 TEST_LIST = { { "test_proj_bimaxwellian_1x2v_p1_gk_ho", test_proj_bimaxwellian_1x2v_p1_gk_ho },
 
 #ifdef GKYL_HAVE_CUDA
-              { "test_proj_bimaxwellian_1x2v_p1_gk_dev", test_proj_bimaxwellian_1x2v_p1_gk_dev },
+  { "test_proj_bimaxwellian_1x2v_p1_gk_dev", test_proj_bimaxwellian_1x2v_p1_gk_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

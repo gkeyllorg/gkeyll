@@ -145,7 +145,7 @@ struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app, double dt
     }
   }
 
-  return (struct gkyl_update_status){ .success = have_nans_occured ? false : true,
-                                      .dt_actual = dt,
-                                      .dt_suggested = dt_suggested };
+  return (struct gkyl_update_status){
+    .success = have_nans_occured ? false : true, .dt_actual = dt, .dt_suggested = dt_suggested
+  };
 }

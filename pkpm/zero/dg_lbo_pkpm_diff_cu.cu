@@ -15,10 +15,8 @@ extern "C" {
 // CUDA kernel to set pointer to nuSum and nuPrimMomsSum (collision frequency * primitive moments)
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void
-gkyl_lbo_pkpm_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
-                                           const struct gkyl_array *nuSum,
-                                           const struct gkyl_array *nuPrimMomsSum)
+__global__ static void gkyl_lbo_pkpm_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
+  const struct gkyl_array *nuSum, const struct gkyl_array *nuPrimMomsSum)
 {
   struct dg_lbo_pkpm_diff *lbo_pkpm_diff = container_of(eqn, struct dg_lbo_pkpm_diff, eqn);
   lbo_pkpm_diff->auxfields.nuSum = nuSum;
@@ -26,18 +24,17 @@ gkyl_lbo_pkpm_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
 }
 
 // Host-side wrapper for device kernels setting nuSum and nuPrimMomsSum.
-void gkyl_lbo_pkpm_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                         struct gkyl_dg_lbo_pkpm_diff_auxfields auxin)
+void gkyl_lbo_pkpm_diff_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_pkpm_diff_auxfields auxin)
 {
-  gkyl_lbo_pkpm_diff_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.nuSum->on_dev,
-                                                         auxin.nuPrimMomsSum->on_dev);
+  gkyl_lbo_pkpm_diff_set_auxfields_cu_kernel<<<1, 1> > >(
+    eqn, auxin.nuSum->on_dev, auxin.nuPrimMomsSum->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and Vlasov PKPM LBO diffusion kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_lbo_pkpm_diff_set_cu_dev_ptrs(struct dg_lbo_pkpm_diff *lbo_pkpm_diff,
-                                                        enum gkyl_basis_type b_type, int cdim,
-                                                        int poly_order)
+__global__ static void dg_lbo_pkpm_diff_set_cu_dev_ptrs(
+  struct dg_lbo_pkpm_diff *lbo_pkpm_diff, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   lbo_pkpm_diff->auxfields.nuSum = 0;
   lbo_pkpm_diff->auxfields.nuPrimMomsSum = 0;
@@ -77,9 +74,8 @@ __global__ static void dg_lbo_pkpm_diff_set_cu_dev_ptrs(struct dg_lbo_pkpm_diff 
 }
 
 struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_diff_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                     const struct gkyl_basis *pbasis,
-                                                     const struct gkyl_range *conf_range,
-                                                     const struct gkyl_rect_grid *pgrid)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_rect_grid *pgrid)
 {
   struct dg_lbo_pkpm_diff *lbo_pkpm_diff =
     (struct dg_lbo_pkpm_diff *)gkyl_malloc(sizeof(struct dg_lbo_pkpm_diff));
@@ -103,8 +99,8 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_diff_cu_dev_new(const struct gkyl_basis *cb
   struct dg_lbo_pkpm_diff *lbo_pkpm_diff_cu =
     (struct dg_lbo_pkpm_diff *)gkyl_cu_malloc(sizeof(struct dg_lbo_pkpm_diff));
 
-  gkyl_cu_memcpy(lbo_pkpm_diff_cu, lbo_pkpm_diff, sizeof(struct dg_lbo_pkpm_diff),
-                 GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(
+    lbo_pkpm_diff_cu, lbo_pkpm_diff, sizeof(struct dg_lbo_pkpm_diff), GKYL_CU_MEMCPY_H2D);
 
   dg_lbo_pkpm_diff_set_cu_dev_ptrs<<<1, 1> > >(lbo_pkpm_diff_cu, cbasis->b_type, cdim, poly_order);
 

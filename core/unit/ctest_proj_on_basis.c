@@ -67,11 +67,11 @@ void test_proj_on_basis_2_ho()
 
   gkyl_proj_on_basis *projDistf =
     gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-                                                              .basis = &basis,
-                                                              .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-                                                              .num_quad = 3,
-                                                              .num_ret_vals = 1,
-                                                              .eval = evalFunc });
+      .basis = &basis,
+      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+      .num_quad = 3,
+      .num_ret_vals = 1,
+      .eval = evalFunc });
 
   // create array range: no ghost-cells
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -113,11 +113,11 @@ void test_proj_on_basis_2_2d_ho()
 
   gkyl_proj_on_basis *projDistf =
     gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-                                                              .basis = &basis,
-                                                              .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-                                                              .num_quad = poly_order + 1,
-                                                              .num_ret_vals = 1,
-                                                              .eval = evalFunc });
+      .basis = &basis,
+      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+      .num_quad = poly_order + 1,
+      .num_ret_vals = 1,
+      .eval = evalFunc });
 
   // create array range: no ghost-cells
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -198,11 +198,11 @@ void test_proj_on_basis_2_3d_ho()
 
   gkyl_proj_on_basis *projDistf =
     gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-                                                              .basis = &basis,
-                                                              .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-                                                              .num_quad = poly_order + 1,
-                                                              .num_ret_vals = 1,
-                                                              .eval = evalFunc });
+      .basis = &basis,
+      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+      .num_quad = poly_order + 1,
+      .num_ret_vals = 1,
+      .eval = evalFunc });
 
   // create array range: no ghost-cells
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -293,11 +293,11 @@ void test_proj_on_basis_3_3d_ho()
 
   gkyl_proj_on_basis *projDistf =
     gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-                                                              .basis = &basis,
-                                                              .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-                                                              .num_quad = poly_order + 1,
-                                                              .num_ret_vals = 1,
-                                                              .eval = evalFuncP });
+      .basis = &basis,
+      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+      .num_quad = poly_order + 1,
+      .num_ret_vals = 1,
+      .eval = evalFuncP });
 
   // create array range: no ghost-cells
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -368,8 +368,7 @@ void test_proj_on_basis_3_3d_ho()
 }
 
 TEST_LIST = { { "test_proj_on_basis_1_ho", test_proj_on_basis_1_ho },
-              { "test_proj_on_basis_2_ho", test_proj_on_basis_2_ho },
-              { "test_proj_on_basis_2_2d_ho", test_proj_on_basis_2_2d_ho },
-              { "test_proj_on_basis_2_3d_ho", test_proj_on_basis_2_3d_ho },
-              { "test_proj_on_basis_3_3d_ho", test_proj_on_basis_3_3d_ho },
-              { NULL, NULL } };
+  { "test_proj_on_basis_2_ho", test_proj_on_basis_2_ho },
+  { "test_proj_on_basis_2_2d_ho", test_proj_on_basis_2_2d_ho },
+  { "test_proj_on_basis_2_3d_ho", test_proj_on_basis_2_3d_ho },
+  { "test_proj_on_basis_3_3d_ho", test_proj_on_basis_3_3d_ho }, { NULL, NULL } };

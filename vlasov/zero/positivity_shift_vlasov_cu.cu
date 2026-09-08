@@ -8,10 +8,9 @@ extern "C" {
 }
 
 // CUDA kernel to set device pointers to kernels.
-__global__ static void
-gkyl_pos_shift_vlasov_set_cu_ker_ptrs(struct gkyl_positivity_shift_vlasov_kernels *kernels,
-                                      struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-                                      enum gkyl_positivity_shift_type stype)
+__global__ static void gkyl_pos_shift_vlasov_set_cu_ker_ptrs(
+  struct gkyl_positivity_shift_vlasov_kernels *kernels, struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype)
 {
   int cdim = cbasis.ndim, pdim = pbasis.ndim;
   int vdim = pdim - cdim;
@@ -47,8 +46,7 @@ gkyl_pos_shift_vlasov_set_cu_ker_ptrs(struct gkyl_positivity_shift_vlasov_kernel
 };
 
 void pos_shift_vlasov_choose_shift_kernel_cu(struct gkyl_positivity_shift_vlasov_kernels *kernels,
-                                             struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-                                             enum gkyl_positivity_shift_type stype)
+  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype)
 {
   gkyl_pos_shift_vlasov_set_cu_ker_ptrs<<<1, 1> > >(kernels, cbasis, pbasis, stype);
 }
@@ -65,8 +63,8 @@ __device__ static __forceinline__ double pos_shift_atomicMax_double(double *addr
   return __longlong_as_double(ret);
 }
 
-__global__ void gkyl_positivity_shift_vlasov_advance_int_array_clear_cu_ker(struct gkyl_array *out,
-                                                                            int val)
+__global__ void gkyl_positivity_shift_vlasov_advance_int_array_clear_cu_ker(
+  struct gkyl_array *out, int val)
 {
   int *out_d = (int *)out->data;
   unsigned long start_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -221,11 +219,9 @@ __global__ static void gkyl_positivity_shift_vlasov_advance_m0fix_cu_ker(
 }
 
 void gkyl_positivity_shift_vlasov_advance_cu(gkyl_positivity_shift_vlasov *up,
-                                             const struct gkyl_range *conf_rng,
-                                             const struct gkyl_range *phase_rng,
-                                             struct gkyl_array *GKYL_RESTRICT distf,
-                                             struct gkyl_array *GKYL_RESTRICT m0,
-                                             struct gkyl_array *GKYL_RESTRICT delta_m0)
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
+  struct gkyl_array *GKYL_RESTRICT delta_m0)
 {
   int nblocks_phase = phase_rng->nblocks, nthreads_phase = phase_rng->nthreads;
   int nblocks_conf = conf_rng->nblocks, nthreads_conf = conf_rng->nthreads;

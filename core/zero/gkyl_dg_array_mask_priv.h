@@ -38,8 +38,8 @@ struct gkyl_dg_array_mask {
   bool (*eval_idx_func)(struct gkyl_dg_array_mask *mask, const int *idx);
 
   // Function pointer for scale_by_cell method, set at init time based on mask type.
-  void (*scale_by_cell_func)(struct gkyl_dg_array_mask *mask,
-                             const struct gkyl_array *arr_to_multiply);
+  void (*scale_by_cell_func)(
+    struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply);
 
   uint32_t flags;
   struct gkyl_dg_array_mask *on_dev; // Pointer to device object.
@@ -74,8 +74,8 @@ GKYL_CU_DH static bool eval_idx_ker_enabled(struct gkyl_dg_array_mask *mask, con
  * @param idx Multi-dimensional index array.
  * @return Value of the mask at the given index.
  */
-GKYL_CU_DH static inline bool gkyl_dg_array_mask_eval_idx_ker(struct gkyl_dg_array_mask *mask,
-                                                              const int *idx)
+GKYL_CU_DH static inline bool gkyl_dg_array_mask_eval_idx_ker(
+  struct gkyl_dg_array_mask *mask, const int *idx)
 {
   return mask->eval_idx_func(mask, idx);
 }
@@ -96,8 +96,8 @@ struct gkyl_dg_array_mask *gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_ma
  * @param mask dg_array_mask object.
  * @param arr_to_mask Array to mask.
  */
-void gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask,
-                                   const struct gkyl_array *arr_to_mask);
+void gkyl_dg_array_mask_advance_cu(
+  struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask);
 
 /**
  * CUDA device function to update the mask's threshold on GPU.
@@ -105,8 +105,8 @@ void gkyl_dg_array_mask_advance_cu(struct gkyl_dg_array_mask *mask,
  * @param mask dg_array_mask object.
  * @param global_max Global maximum value used for fractional thresholding.
  */
-void gkyl_dg_array_mask_advance_threshold_cu(struct gkyl_dg_array_mask *mask,
-                                             const double global_max);
+void gkyl_dg_array_mask_advance_threshold_cu(
+  struct gkyl_dg_array_mask *mask, const double global_max);
 
 /**
  * CUDA device function to evaluate the mask at an index.

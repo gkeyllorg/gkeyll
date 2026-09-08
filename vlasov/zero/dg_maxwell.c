@@ -26,8 +26,7 @@ void gkyl_maxwell_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_dg_eqn *gkyl_dg_maxwell_new(const struct gkyl_basis *cbasis, double lightSpeed,
-                                        double elcErrorSpeedFactor, double mgnErrorSpeedFactor,
-                                        bool use_gpu)
+  double elcErrorSpeedFactor, double mgnErrorSpeedFactor, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -95,8 +94,7 @@ struct gkyl_dg_eqn *gkyl_dg_maxwell_new(const struct gkyl_basis *cbasis, double 
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn *gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis *cbasis, double lightSpeed,
-                                               double elcErrorSpeedFactor,
-                                               double mgnErrorSpeedFactor)
+  double elcErrorSpeedFactor, double mgnErrorSpeedFactor)
 {
   assert(false);
   return 0;

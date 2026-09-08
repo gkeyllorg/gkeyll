@@ -76,31 +76,31 @@ struct reactive_detonation_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct reactive_detonation_ctx ctx = { .gas_gamma = gas_gamma,
-                                         .specific_heat_capacity = specific_heat_capacity,
-                                         .energy_of_formation = energy_of_formation,
-                                         .ignition_temperature = ignition_temperature,
-                                         .reaction_rate = reaction_rate,
-                                         .rhol = rhol,
-                                         .ul = ul,
-                                         .pl = pl,
-                                         .rhor = rhor,
-                                         .ur = ur,
-                                         .pr = pr,
-                                         .Nx = Nx,
-                                         .Lx = Lx,
-                                         .cfl_frac = cfl_frac,
-                                         .t_end = t_end,
-                                         .num_frames = num_frames,
-                                         .field_energy_calcs = field_energy_calcs,
-                                         .integrated_mom_calcs = integrated_mom_calcs,
-                                         .dt_failure_tol = dt_failure_tol,
-                                         .num_failures_max = num_failures_max };
+    .specific_heat_capacity = specific_heat_capacity,
+    .energy_of_formation = energy_of_formation,
+    .ignition_temperature = ignition_temperature,
+    .reaction_rate = reaction_rate,
+    .rhol = rhol,
+    .ul = ul,
+    .pl = pl,
+    .rhor = rhor,
+    .ur = ur,
+    .pr = pr,
+    .Nx = Nx,
+    .Lx = Lx,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .field_energy_calcs = field_energy_calcs,
+    .integrated_mom_calcs = integrated_mom_calcs,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void evalReactiveEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                           void *ctx)
+void evalReactiveEulerInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct reactive_detonation_ctx *app = ctx;
@@ -196,25 +196,24 @@ int main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *reactive_euler =
-    gkyl_wv_reactive_euler_new(ctx.gas_gamma, ctx.specific_heat_capacity, ctx.energy_of_formation,
-                               ctx.ignition_temperature, ctx.reaction_rate, app_args.use_gpu);
+  struct gkyl_wv_eqn *reactive_euler = gkyl_wv_reactive_euler_new(ctx.gas_gamma,
+    ctx.specific_heat_capacity, ctx.energy_of_formation, ctx.ignition_temperature,
+    ctx.reaction_rate, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = { .name = "reactive_euler",
-                                       .equation = reactive_euler,
+    .equation = reactive_euler,
 
-                                       .init = evalReactiveEulerInit,
-                                       .ctx = &ctx,
+    .init = evalReactiveEulerInit,
+    .ctx = &ctx,
 
-                                       .has_reactivity = true,
-                                       .reactivity_gas_gamma = ctx.gas_gamma,
-                                       .reactivity_specific_heat_capacity =
-                                         ctx.specific_heat_capacity,
-                                       .reactivity_energy_of_formation = ctx.energy_of_formation,
-                                       .reactivity_ignition_temperature = ctx.ignition_temperature,
-                                       .reactivity_reaction_rate = ctx.reaction_rate,
+    .has_reactivity = true,
+    .reactivity_gas_gamma = ctx.gas_gamma,
+    .reactivity_specific_heat_capacity = ctx.specific_heat_capacity,
+    .reactivity_energy_of_formation = ctx.energy_of_formation,
+    .reactivity_ignition_temperature = ctx.ignition_temperature,
+    .reactivity_reaction_rate = ctx.reaction_rate,
 
-                                       .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -266,8 +265,8 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
@@ -304,7 +303,7 @@ int main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-                           gkyl_array_rio_status_msg(status.io_status));
+        gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
@@ -319,25 +318,25 @@ int main(int argc, char **argv)
 
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = {
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = {
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames,
-                                     .tcurr = frame_curr * (t_end / num_frames),
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = {
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 
@@ -376,8 +375,8 @@ int main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                             num_failures_max);
+        gkyl_moment_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         break;
       }
     } else {

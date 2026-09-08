@@ -6,9 +6,8 @@
 // stability. The actual time-step and dt_suggested are returned in
 // the status object.
 static void forward_euler(gkyl_moment_app *app, double tcurr, double dt,
-                          const struct gkyl_array *fin[], const struct gkyl_array *emin,
-                          struct gkyl_array *fout[], struct gkyl_array *emout,
-                          struct gkyl_update_status *st)
+  const struct gkyl_array *fin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
+  struct gkyl_array *emout, struct gkyl_update_status *st)
 {
   app->stat.nfeuler += 1;
   double dtmin = DBL_MAX;
@@ -37,15 +36,15 @@ static void forward_euler(gkyl_moment_app *app, double tcurr, double dt,
 
   // complete update of species
   for (int i = 0; i < app->num_species; ++i) {
-    gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, &(app->local)), 1.0, fin[i],
-                                &(app->local));
+    gkyl_array_accumulate_range(
+      gkyl_array_scale_range(fout[i], dta, &(app->local)), 1.0, fin[i], &(app->local));
     moment_species_apply_bc(app, tcurr, &app->species[i], fout[i]);
   }
   if (app->has_field) {
     // complete update of field (even when field is static, it is
     // safest to do this accumulate as it ensure emout = emin)
-    gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, &(app->local)), 1.0, emin,
-                                &(app->local));
+    gkyl_array_accumulate_range(
+      gkyl_array_scale_range(emout, dta, &(app->local)), 1.0, emin, &(app->local));
 
     moment_field_apply_bc(app, tcurr, &app->field, emout);
   }
@@ -71,7 +70,7 @@ struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app, double dt0
         fout[i] = app->species[i].f1;
       }
       forward_euler(app, tcurr, dt, fin, app->has_field ? app->field.f0 : 0, fout,
-                    app->has_field ? app->field.f1 : 0, &st);
+        app->has_field ? app->field.f1 : 0, &st);
       dt = st.dt_actual;
       state = RK_STAGE_2;
       break;
@@ -82,7 +81,7 @@ struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app, double dt0
         fout[i] = app->species[i].fnew;
       }
       forward_euler(app, tcurr + dt, dt, fin, app->has_field ? app->field.f1 : 0, fout,
-                    app->has_field ? app->field.fnew : 0, &st);
+        app->has_field ? app->field.fnew : 0, &st);
       if (st.dt_actual < dt) {
         // collect stats
         double dt_rel_diff = (dt - st.dt_actual) / st.dt_actual;
@@ -96,10 +95,10 @@ struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app, double dt0
       } else {
         for (int i = 0; i < app->num_species; ++i)
           array_combine(app->species[i].f1, 3.0 / 4.0, app->species[i].f0, 1.0 / 4.0,
-                        app->species[i].fnew, &app->local_ext);
+            app->species[i].fnew, &app->local_ext);
         if (app->has_field)
-          array_combine(app->field.f1, 3.0 / 4.0, app->field.f0, 1.0 / 4.0, app->field.fnew,
-                        &app->local_ext);
+          array_combine(
+            app->field.f1, 3.0 / 4.0, app->field.f0, 1.0 / 4.0, app->field.fnew, &app->local_ext);
 
         state = RK_STAGE_3;
       }
@@ -111,7 +110,7 @@ struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app, double dt0
         fout[i] = app->species[i].fnew;
       }
       forward_euler(app, tcurr + dt / 2, dt, fin, app->has_field ? app->field.f1 : 0, fout,
-                    app->has_field ? app->field.fnew : 0, &st);
+        app->has_field ? app->field.fnew : 0, &st);
       if (st.dt_actual < dt) {
         // collect stats
         double dt_rel_diff = (dt - st.dt_actual) / st.dt_actual;
@@ -126,12 +125,12 @@ struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app, double dt0
       } else {
         for (int i = 0; i < app->num_species; ++i) {
           array_combine(app->species[i].f1, 1.0 / 3.0, app->species[i].f0, 2.0 / 3.0,
-                        app->species[i].fnew, &app->local_ext);
+            app->species[i].fnew, &app->local_ext);
           gkyl_array_copy_range(app->species[i].f0, app->species[i].f1, &app->local_ext);
         }
         if (app->has_field) {
-          array_combine(app->field.f1, 1.0 / 3.0, app->field.f0, 2.0 / 3.0, app->field.fnew,
-                        &app->local_ext);
+          array_combine(
+            app->field.f1, 1.0 / 3.0, app->field.f0, 2.0 / 3.0, app->field.fnew, &app->local_ext);
           gkyl_array_copy_range(app->field.f0, app->field.f1, &app->local_ext);
         }
 

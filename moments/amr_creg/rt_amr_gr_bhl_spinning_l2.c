@@ -105,41 +105,41 @@ struct amr_gr_bhl_spinning_ctx create_ctx(void)
   double x_loc = 1.0; // Shock location (x-direction).
 
   struct amr_gr_bhl_spinning_ctx ctx = { .pi = pi,
-                                         .gas_gamma = gas_gamma,
-                                         .rhol = rhol,
-                                         .ul = ul,
-                                         .pl = pl,
-                                         .rhor = rhor,
-                                         .ur = ur,
-                                         .pr = pr,
-                                         .mass = mass,
-                                         .spin = spin,
-                                         .pos_x = pos_x,
-                                         .pos_y = pos_y,
-                                         .pos_z = pos_z,
-                                         .spacetime = spacetime,
-                                         .Nx = Nx,
-                                         .Ny = Ny,
-                                         .ref_factor1 = ref_factor1,
-                                         .ref_factor2 = ref_factor2,
-                                         .Lx = Lx,
-                                         .Ly = Ly,
-                                         .intermediate_Lx = intermediate_Lx,
-                                         .intermediate_Ly = intermediate_Ly,
-                                         .fine_Lx = fine_Lx,
-                                         .fine_Ly = fine_Ly,
-                                         .cfl_frac = cfl_frac,
-                                         .t_end = t_end,
-                                         .num_frames = num_frames,
-                                         .dt_failure_tol = dt_failure_tol,
-                                         .num_failures_max = num_failures_max,
-                                         .x_loc = x_loc };
+    .gas_gamma = gas_gamma,
+    .rhol = rhol,
+    .ul = ul,
+    .pl = pl,
+    .rhor = rhor,
+    .ur = ur,
+    .pr = pr,
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .spacetime = spacetime,
+    .Nx = Nx,
+    .Ny = Ny,
+    .ref_factor1 = ref_factor1,
+    .ref_factor2 = ref_factor2,
+    .Lx = Lx,
+    .Ly = Ly,
+    .intermediate_Lx = intermediate_Lx,
+    .intermediate_Ly = intermediate_Ly,
+    .fine_Lx = fine_Lx,
+    .fine_Ly = fine_Ly,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
+    .x_loc = x_loc };
 
   return ctx;
 }
 
-void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                     void *ctx)
+void evalGREulerInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_gr_bhl_spinning_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -283,8 +283,7 @@ int main(int argc, char **argv)
 {
   struct amr_gr_bhl_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct gr_euler2d_double_init init = {
-    .base_Nx = ctx.Nx,
+  struct gr_euler2d_double_init init = { .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
     .ref_factor1 = ctx.ref_factor1,
     .ref_factor2 = ctx.ref_factor2,
@@ -322,8 +321,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max
-  };
+    .num_failures_max = ctx.num_failures_max };
 
   gr_euler2d_run_double(argc, argv, &init);
 }

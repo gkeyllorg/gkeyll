@@ -28,18 +28,16 @@ struct gkyl_dg_euler_auxfields {
  * @return Pointer to euler equation object
  */
 struct gkyl_dg_eqn *gkyl_dg_euler_new(const struct gkyl_basis *cbasis,
-                                      const struct gkyl_range *conf_range,
-                                      const struct gkyl_wv_eqn *wv_eqn,
-                                      const struct gkyl_wave_geom *geom, bool use_gpu);
+  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn,
+  const struct gkyl_wave_geom *geom, bool use_gpu);
 
 /**
  * Create new Euler equation object on NV-GPU: 
  * see new() method above for documentation.
  */
 struct gkyl_dg_eqn *gkyl_dg_euler_cu_dev_new(const struct gkyl_basis *cbasis,
-                                             const struct gkyl_range *conf_range,
-                                             const struct gkyl_wv_eqn *wv_eqn,
-                                             const struct gkyl_wave_geom *geom);
+  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn,
+  const struct gkyl_wave_geom *geom);
 
 /**
  * Set the auxiliary fields (e.g. velocity u = rho*u/rho) needed in updating euler equation.
@@ -56,7 +54,7 @@ void gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_eule
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_euler_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                 struct gkyl_dg_euler_auxfields auxin);
+void gkyl_euler_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin);
 
 #endif

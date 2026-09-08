@@ -10,9 +10,8 @@
 #include <gkyl_util.h>
 
 // Types for various kernels
-typedef double (*canonical_pb_fluid_surf_t)(
-  const double *w, const double *dxv, const double *phi, const double *alpha_surf_edge,
-  const double *alpha_surf_skin, const double *sgn_alpha_surf_edge,
+typedef double (*canonical_pb_fluid_surf_t)(const double *w, const double *dxv, const double *phi,
+  const double *alpha_surf_edge, const double *alpha_surf_skin, const double *sgn_alpha_surf_edge,
   const double *sgn_alpha_surf_skin, const int *const_sgn_alpha_edge,
   const int *const_sgn_alpha_skin, const double *fl, const double *fc, const double *fr,
   double *GKYL_RESTRICT out);
@@ -39,9 +38,8 @@ struct dg_canonical_pb_fluid {
 //
 
 GKYL_CU_DH static double kernel_canonical_pb_fluid_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                                 const double *xc, const double *dx,
-                                                                 const int *idx, const double *qIn,
-                                                                 double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb_fluid *can_pb_fluid = container_of(eqn, struct dg_canonical_pb_fluid, eqn);
   long cidx = gkyl_range_idx(&can_pb_fluid->conf_range, idx);
@@ -51,9 +49,8 @@ GKYL_CU_DH static double kernel_canonical_pb_fluid_vol_2x_ser_p1(const struct gk
 }
 
 GKYL_CU_DH static double kernel_canonical_pb_fluid_vol_2x_ser_p2(const struct gkyl_dg_eqn *eqn,
-                                                                 const double *xc, const double *dx,
-                                                                 const int *idx, const double *qIn,
-                                                                 double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb_fluid *can_pb_fluid = container_of(eqn, struct dg_canonical_pb_fluid, eqn);
   long cidx = gkyl_range_idx(&can_pb_fluid->conf_range, idx);
@@ -88,10 +85,9 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_vol_kern_list tensor_vol_kerne
 // Need to be separated like this for GPU build
 //
 
-GKYL_CU_DH static double
-kernel_canonical_pb_two_fluid_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                            const double *dx, const int *idx, const double *qIn,
-                                            double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_two_fluid_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb_fluid *can_pb_fluid = container_of(eqn, struct dg_canonical_pb_fluid, eqn);
   long cidx = gkyl_range_idx(&can_pb_fluid->conf_range, idx);
@@ -100,10 +96,9 @@ kernel_canonical_pb_two_fluid_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn, const
     xc, dx, (const double *)gkyl_array_cfetch(can_pb_fluid->auxfields.phi, cidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_two_fluid_vol_2x_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-                                            const double *dx, const int *idx, const double *qIn,
-                                            double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_two_fluid_vol_2x_ser_p2(const struct gkyl_dg_eqn *eqn,
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb_fluid *can_pb_fluid = container_of(eqn, struct dg_canonical_pb_fluid, eqn);
   long cidx = gkyl_range_idx(&can_pb_fluid->conf_range, idx);
@@ -221,10 +216,9 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list tensor_two_flui
 void gkyl_canonical_pb_fluid_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL,
-                             const double *xcC, const double *xcR, const double *dxL,
-                             const double *dxC, const double *dxR, const int *idxL, const int *idxC,
-                             const int *idxR, const double *qInL, const double *qInC,
-                             const double *qInR, double *GKYL_RESTRICT qRhsOut)
+  const double *xcC, const double *xcR, const double *dxL, const double *dxC, const double *dxR,
+  const int *idxL, const int *idxC, const int *idxR, const double *qInL, const double *qInC,
+  const double *qInR, double *GKYL_RESTRICT qRhsOut)
 {
   // Each cell owns the *lower* edge surface alpha
   // Since alpha is continuous, fetch alpha_surf in center cell for lower edge
@@ -233,8 +227,8 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const doubl
   long cidxC = gkyl_range_idx(&can_pb_fluid->conf_range, idxC);
   long cidxR = gkyl_range_idx(&can_pb_fluid->conf_range, idxR);
   if (dir < can_pb_fluid->cdim) {
-    return can_pb_fluid->surf[dir](
-      xcC, dxC, (const double *)gkyl_array_cfetch(can_pb_fluid->auxfields.phi, cidxC),
+    return can_pb_fluid->surf[dir](xcC, dxC,
+      (const double *)gkyl_array_cfetch(can_pb_fluid->auxfields.phi, cidxC),
       (const double *)gkyl_array_cfetch(can_pb_fluid->auxfields.alpha_surf, cidxC),
       (const double *)gkyl_array_cfetch(can_pb_fluid->auxfields.alpha_surf, cidxR),
       (const double *)gkyl_array_cfetch(can_pb_fluid->auxfields.sgn_alpha_surf, cidxC),

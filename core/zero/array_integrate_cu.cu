@@ -10,9 +10,8 @@ extern "C" {
 #include <gkyl_array_integrate_priv.h>
 }
 
-__global__ static void gkyl_array_integrate_set_ker_cu(struct gkyl_array_integrate *up,
-                                                       enum gkyl_array_integrate_op op,
-                                                       struct gkyl_basis basis)
+__global__ static void gkyl_array_integrate_set_ker_cu(
+  struct gkyl_array_integrate *up, enum gkyl_array_integrate_op op, struct gkyl_basis basis)
 {
   int ndim = basis.ndim, poly_order = basis.poly_order;
 
@@ -40,9 +39,7 @@ __global__ static void gkyl_array_integrate_set_ker_cu(struct gkyl_array_integra
 }
 
 struct gkyl_array_integrate *gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid,
-                                                             const struct gkyl_basis *basis,
-                                                             int num_comp,
-                                                             enum gkyl_array_integrate_op op)
+  const struct gkyl_basis *basis, int num_comp, enum gkyl_array_integrate_op op)
 {
   // Allocate space for new updater.
   struct gkyl_array_integrate *up =
@@ -77,10 +74,8 @@ struct gkyl_array_integrate *gkyl_array_integrate_cu_dev_new(const struct gkyl_r
 
 template <unsigned int BLOCKSIZE>
 __global__ void array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up,
-                                                   const struct gkyl_array *inp, double factor,
-                                                   const struct gkyl_array *weight,
-                                                   const struct gkyl_range range,
-                                                   struct gkyl_range weight_range, double *out)
+  const struct gkyl_array *inp, double factor, const struct gkyl_array *weight,
+  const struct gkyl_range range, struct gkyl_range weight_range, double *out)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -118,9 +113,9 @@ __global__ void array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(outLocal[k],
 #if CUDART_VERSION > 12090
-                                        ::cuda::std::plus()
+      ::cuda::std::plus()
 #else
-                                        cub::Sum()
+      cub::Sum()
 #endif
     );
     if (threadIdx.x == 0)
@@ -129,9 +124,8 @@ __global__ void array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *
 }
 
 void gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl_array *fin,
-                                     double factor, const struct gkyl_array *weight,
-                                     const struct gkyl_range *range,
-                                     const struct gkyl_range *weight_range, double *out)
+  double factor, const struct gkyl_array *weight, const struct gkyl_range *range,
+  const struct gkyl_range *weight_range, double *out)
 {
   gkyl_cu_memset(out, 0, up->num_comp * sizeof(double));
 

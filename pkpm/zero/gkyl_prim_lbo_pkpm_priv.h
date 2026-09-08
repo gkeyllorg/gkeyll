@@ -9,7 +9,7 @@
 #include <gkyl_util.h>
 
 typedef void (*pkpm_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *moms,
-                                 const double *boundary_corrections, const double *nu);
+  const double *boundary_corrections, const double *nu);
 
 // for use in kernel tables
 typedef struct {
@@ -50,8 +50,8 @@ struct prim_lbo_type_pkpm {
 void prim_lbo_pkpm_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D static void self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-                                struct gkyl_mat *rhs, const int *idx, const double *moms,
-                                const double *boundary_corrections, const double *nu)
+  struct gkyl_mat *rhs, const int *idx, const double *moms, const double *boundary_corrections,
+  const double *nu)
 {
   struct prim_lbo_type_pkpm *prim_pkpm = container_of(prim, struct prim_lbo_type_pkpm, prim);
 

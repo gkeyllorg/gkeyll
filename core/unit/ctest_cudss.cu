@@ -21,7 +21,7 @@ void test_cudss_ops_multiple_rhs();
     if (status != CUDSS_STATUS_SUCCESS) {                                                       \
       printf("Example FAILED: CUDSS call ended unsuccessfully with status = %d, details: " #msg \
              "\n",                                                                              \
-             status);                                                                           \
+        status);                                                                                \
       exit(EXIT_FAILURE);                                                                       \
     }                                                                                           \
   } while (0);
@@ -138,12 +138,12 @@ void test_cudss_simple()
 
   int64_t nrows = n, ncols = n;
   int ldb = ncols, ldx = nrows;
-  checkCUDSS(cudssMatrixCreateDn(&b, ncols, nrhs, ldb, b_values_d, CUDA_R_64F,
-                                 CUDSS_LAYOUT_COL_MAJOR),
-             status, "cudssMatrixCreateDn for b");
-  checkCUDSS(cudssMatrixCreateDn(&x, nrows, nrhs, ldx, x_values_d, CUDA_R_64F,
-                                 CUDSS_LAYOUT_COL_MAJOR),
-             status, "cudssMatrixCreateDn for x");
+  checkCUDSS(
+    cudssMatrixCreateDn(&b, ncols, nrhs, ldb, b_values_d, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
+    status, "cudssMatrixCreateDn for b");
+  checkCUDSS(
+    cudssMatrixCreateDn(&x, nrows, nrhs, ldx, x_values_d, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
+    status, "cudssMatrixCreateDn for x");
 
   /* Create a matrix object for the sparse input matrix. */
   cudssMatrix_t A;
@@ -151,20 +151,20 @@ void test_cudss_simple()
   cudssMatrixViewType_t mview = CUDSS_MVIEW_UPPER;
   cudssIndexBase_t base = CUDSS_BASE_ZERO;
   checkCUDSS(cudssMatrixCreateCsr(&A, nrows, ncols, nnz, csr_offsets_d, NULL, csr_columns_d,
-                                  csr_values_d, CUDA_R_32I, CUDA_R_64F, mtype, mview, base),
-             status, "cudssMatrixCreateCsr");
+               csr_values_d, CUDA_R_32I, CUDA_R_64F, mtype, mview, base),
+    status, "cudssMatrixCreateCsr");
 
   /* Symbolic factorization */
   checkCUDSS(cudssExecute(handle, CUDSS_PHASE_ANALYSIS, solverConfig, solverData, A, x, b), status,
-             "cudssExecute for analysis");
+    "cudssExecute for analysis");
 
   /* Factorization */
   checkCUDSS(cudssExecute(handle, CUDSS_PHASE_FACTORIZATION, solverConfig, solverData, A, x, b),
-             status, "cudssExecute for factor");
+    status, "cudssExecute for factor");
 
   /* Solving */
   checkCUDSS(cudssExecute(handle, CUDSS_PHASE_SOLVE, solverConfig, solverData, A, x, b), status,
-             "cudssExecute for solve");
+    "cudssExecute for solve");
 
   /* Destroying opaque objects, matrix wrappers and the cuDSS library handle */
   checkCUDSS(cudssMatrixDestroy(A), status, "cudssMatrixDestroy for A");
@@ -267,16 +267,16 @@ void test_cudss_ops()
   gkyl_culinsolver_finish_host(prob);
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
-  GKYL_CU_CHECK(gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14),
-                &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14), &nfail);
 
   gkyl_culinsolver_prob_release(prob);
 }
@@ -341,16 +341,16 @@ void test_cudss_ops_update_amat()
   gkyl_culinsolver_finish_host(prob);
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
-  GKYL_CU_CHECK(gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14),
-                &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14), &nfail);
 
   // Now update the LHS matrix. Multiply it by a constant so the solution should be the same as before but divided by that constant.
   double prob_fac = 1.3;
@@ -383,21 +383,21 @@ void test_cudss_ops_update_amat()
   gkyl_culinsolver_finish_host(prob);
 
   // Solution is: (1/prob_fac)*[-1/32, 11/168, 3/224, 1/16, 11/336].
-  GKYL_CU_CHECK(gkyl_compare_double((1.0 / prob_fac) * (-1.0 / 32.0),
-                                    gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double((1.0 / prob_fac) * (11.0 / 168.0),
-                                    gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double((1.0 / prob_fac) * (3.0 / 224.0),
-                                    gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double((1.0 / prob_fac) * (1.0 / 16.0),
-                                    gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double((1.0 / prob_fac) * (11.0 / 336.0),
-                                    gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14),
-                &nfail);
+  GKYL_CU_CHECK(gkyl_compare_double(
+                  (1.0 / prob_fac) * (-1.0 / 32.0), gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14),
+    &nfail);
+  GKYL_CU_CHECK(gkyl_compare_double(
+                  (1.0 / prob_fac) * (11.0 / 168.0), gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14),
+    &nfail);
+  GKYL_CU_CHECK(gkyl_compare_double(
+                  (1.0 / prob_fac) * (3.0 / 224.0), gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14),
+    &nfail);
+  GKYL_CU_CHECK(gkyl_compare_double(
+                  (1.0 / prob_fac) * (1.0 / 16.0), gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14),
+    &nfail);
+  GKYL_CU_CHECK(gkyl_compare_double(
+                  (1.0 / prob_fac) * (11.0 / 336.0), gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14),
+    &nfail);
 
   gkyl_mat_triples_release(tri);
   gkyl_free(tri_arr);
@@ -472,38 +472,38 @@ void test_cudss_ops_multiple_rhs()
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
   // 1st problem
-  GKYL_CU_CHECK(gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14),
-                &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 0), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 1), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 2), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 3), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 4), 1e-14), &nfail);
   // 2nd problem
-  GKYL_CU_CHECK(gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 5), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 6), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 7), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 8), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 9), 1e-14),
-                &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 5), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 6), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 7), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 8), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 9), 1e-14), &nfail);
   // 3rd problem
-  GKYL_CU_CHECK(gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 10), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 11), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 12), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 13), 1e-14),
-                &nfail);
-  GKYL_CU_CHECK(gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 14), 1e-14),
-                &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, 10), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, 11), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, 12), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, 13), 1e-14), &nfail);
+  GKYL_CU_CHECK(
+    gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, 14), 1e-14), &nfail);
 
   gkyl_culinsolver_prob_release(prob);
 }
@@ -575,16 +575,16 @@ void test_cudss_ops_update_amat_multiple_rhs()
     int off = m * k;
     GKYL_CU_CHECK(
       gkyl_compare_double(-1.0 / 32.0, gkyl_culinsolver_get_sol_lin(prob, off + 0), 1e-14), &nfail);
-    GKYL_CU_CHECK(gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, off + 1),
-                                      1e-14),
-                  &nfail);
+    GKYL_CU_CHECK(
+      gkyl_compare_double(11.0 / 168.0, gkyl_culinsolver_get_sol_lin(prob, off + 1), 1e-14),
+      &nfail);
     GKYL_CU_CHECK(
       gkyl_compare_double(3.0 / 224.0, gkyl_culinsolver_get_sol_lin(prob, off + 2), 1e-14), &nfail);
     GKYL_CU_CHECK(
       gkyl_compare_double(1.0 / 16.0, gkyl_culinsolver_get_sol_lin(prob, off + 3), 1e-14), &nfail);
-    GKYL_CU_CHECK(gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, off + 4),
-                                      1e-14),
-                  &nfail);
+    GKYL_CU_CHECK(
+      gkyl_compare_double(11.0 / 336.0, gkyl_culinsolver_get_sol_lin(prob, off + 4), 1e-14),
+      &nfail);
   }
 
   // Now update the LHS matrix. Multiply it by a constant, and multiply the RHS
@@ -633,21 +633,21 @@ void test_cudss_ops_update_amat_multiple_rhs()
   for (int k = 0; k < nrhs; k++) {
     int off = m * k;
     double fac = prob_fac_per_rhs[k] / prob_fac;
-    GKYL_CU_CHECK(gkyl_compare_double(fac * (-1.0 / 32.0),
-                                      gkyl_culinsolver_get_sol_lin(prob, off + 0), 1e-14),
-                  &nfail);
-    GKYL_CU_CHECK(gkyl_compare_double(fac * (11.0 / 168.0),
-                                      gkyl_culinsolver_get_sol_lin(prob, off + 1), 1e-14),
-                  &nfail);
-    GKYL_CU_CHECK(gkyl_compare_double(fac * (3.0 / 224.0),
-                                      gkyl_culinsolver_get_sol_lin(prob, off + 2), 1e-14),
-                  &nfail);
-    GKYL_CU_CHECK(gkyl_compare_double(fac * (1.0 / 16.0),
-                                      gkyl_culinsolver_get_sol_lin(prob, off + 3), 1e-14),
-                  &nfail);
-    GKYL_CU_CHECK(gkyl_compare_double(fac * (11.0 / 336.0),
-                                      gkyl_culinsolver_get_sol_lin(prob, off + 4), 1e-14),
-                  &nfail);
+    GKYL_CU_CHECK(
+      gkyl_compare_double(fac * (-1.0 / 32.0), gkyl_culinsolver_get_sol_lin(prob, off + 0), 1e-14),
+      &nfail);
+    GKYL_CU_CHECK(
+      gkyl_compare_double(fac * (11.0 / 168.0), gkyl_culinsolver_get_sol_lin(prob, off + 1), 1e-14),
+      &nfail);
+    GKYL_CU_CHECK(
+      gkyl_compare_double(fac * (3.0 / 224.0), gkyl_culinsolver_get_sol_lin(prob, off + 2), 1e-14),
+      &nfail);
+    GKYL_CU_CHECK(
+      gkyl_compare_double(fac * (1.0 / 16.0), gkyl_culinsolver_get_sol_lin(prob, off + 3), 1e-14),
+      &nfail);
+    GKYL_CU_CHECK(
+      gkyl_compare_double(fac * (11.0 / 336.0), gkyl_culinsolver_get_sol_lin(prob, off + 4), 1e-14),
+      &nfail);
   }
 
   gkyl_free(prob_fac_per_rhs);

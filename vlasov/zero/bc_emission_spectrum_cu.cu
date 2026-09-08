@@ -23,10 +23,9 @@ __global__ static void gkyl_bc_emission_spectrum_set_exterm_params_cu_ker(
   yield_model->mass = mass_in;
 }
 
-__global__ static void
-gkyl_bc_emission_spectrum_sey_calc_cu_ker(struct gkyl_rect_grid grid,
-                                          const struct gkyl_range ghost_r, struct gkyl_array *yield,
-                                          struct gkyl_emission_yield_model *yield_model)
+__global__ static void gkyl_bc_emission_spectrum_sey_calc_cu_ker(struct gkyl_rect_grid grid,
+  const struct gkyl_range ghost_r, struct gkyl_array *yield,
+  struct gkyl_emission_yield_model *yield_model)
 {
   double xc[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM];
@@ -45,10 +44,10 @@ gkyl_bc_emission_spectrum_sey_calc_cu_ker(struct gkyl_rect_grid grid,
   }
 }
 
-__global__ static void gkyl_bc_emission_spectrum_advance_cu_weight_ker(
-  int cdim, int dir, enum gkyl_edge_loc edge, const struct gkyl_array *bflux,
-  struct gkyl_array *weight, struct gkyl_rect_grid grid, struct gkyl_array *yield,
-  const struct gkyl_range impact_buff_r, const struct gkyl_range impact_cbuff_r)
+__global__ static void gkyl_bc_emission_spectrum_advance_cu_weight_ker(int cdim, int dir,
+  enum gkyl_edge_loc edge, const struct gkyl_array *bflux, struct gkyl_array *weight,
+  struct gkyl_rect_grid grid, struct gkyl_array *yield, const struct gkyl_range impact_buff_r,
+  const struct gkyl_range impact_cbuff_r)
 {
   double xc[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
@@ -112,17 +111,15 @@ __global__ static void gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(
   }
 }
 
-void gkyl_bc_emission_spectrum_set_extern_params_cu(const struct gkyl_bc_emission_spectrum *up,
-                                                    int cdim, int vdim, double mass_in,
-                                                    double mass_out)
+void gkyl_bc_emission_spectrum_set_extern_params_cu(
+  const struct gkyl_bc_emission_spectrum *up, int cdim, int vdim, double mass_in, double mass_out)
 {
   gkyl_bc_emission_spectrum_set_exterm_params_cu_ker<<<1, 1> > >(
     up->spectrum_model->on_dev, up->yield_model->on_dev, cdim, vdim, mass_in, mass_out);
 }
 
 void gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up,
-                                           struct gkyl_array *yield, struct gkyl_rect_grid *grid,
-                                           const struct gkyl_range *impact_buff_r)
+  struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *impact_buff_r)
 {
   int nblocks = impact_buff_r->nblocks, nthreads = impact_buff_r->nthreads;
 
@@ -131,25 +128,23 @@ void gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectru
 }
 
 void gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
-                                          struct gkyl_range *impact_buff_r,
-                                          struct gkyl_range *impact_cbuff_r,
-                                          struct gkyl_range *emit_buff_r, struct gkyl_array *bflux,
-                                          struct gkyl_array *f_emit, struct gkyl_array *yield,
-                                          struct gkyl_array *spectrum, struct gkyl_array *weight,
-                                          struct gkyl_array *flux, struct gkyl_array *k)
+  struct gkyl_range *impact_buff_r, struct gkyl_range *impact_cbuff_r,
+  struct gkyl_range *emit_buff_r, struct gkyl_array *bflux, struct gkyl_array *f_emit,
+  struct gkyl_array *yield, struct gkyl_array *spectrum, struct gkyl_array *weight,
+  struct gkyl_array *flux, struct gkyl_array *k)
 {
   int nblocks = impact_buff_r->nblocks, nthreads = impact_buff_r->nthreads;
 
   // Calculate weighted mean numerator and denominator
-  gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads> > >(
-    up->cdim, up->dir, up->edge, bflux->on_dev, weight->on_dev, *up->grid, yield->on_dev,
-    *impact_buff_r, *impact_cbuff_r);
+  gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads> > >(up->cdim, up->dir,
+    up->edge, bflux->on_dev, weight->on_dev, *up->grid, yield->on_dev, *impact_buff_r,
+    *impact_cbuff_r);
 
   nblocks = emit_buff_r->nblocks;
   nthreads = emit_buff_r->nthreads;
 
   // Finish weighted mean calculation and accumulate to buffer
-  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads> > >(
-    spectrum->on_dev, f_emit->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *emit_buff_r,
-    *impact_cbuff_r, up->spectrum_model->on_dev);
+  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads> > >(spectrum->on_dev,
+    f_emit->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *emit_buff_r, *impact_cbuff_r,
+    up->spectrum_model->on_dev);
 }

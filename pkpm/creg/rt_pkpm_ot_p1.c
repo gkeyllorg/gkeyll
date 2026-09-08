@@ -165,61 +165,61 @@ struct ot_ctx create_ctx(void)
   int num_tests = 15; // Number of times to test neural network.
 
   struct ot_ctx ctx = { .pi = pi,
-                        .epsilon0 = epsilon0,
-                        .mu0 = mu0,
-                        .mass_elc = mass_elc,
-                        .charge_elc = charge_elc,
-                        .mass_ion = mass_ion,
-                        .charge_ion = charge_ion,
-                        .n0 = n0,
-                        .vAe = vAe,
-                        .beta = beta,
-                        .B0 = B0,
-                        .vAi = vAi,
-                        .vte = vte,
-                        .vti = vti,
-                        .omega_ci = omega_ci,
-                        .d_i = d_i,
-                        .delta_B0 = delta_B0,
-                        .delta_u0 = delta_u0,
-                        .nu_elc = nu_elc,
-                        .nu_ion = nu_ion,
-                        .Nx = Nx,
-                        .Ny = Ny,
-                        .Nvx = Nvx,
-                        .Lx = Lx,
-                        .Ly = Ly,
-                        .vx_max_elc = vx_max_elc,
-                        .vx_max_ion = vx_max_ion,
-                        .poly_order = poly_order,
-                        .cfl_frac = cfl_frac,
-                        .t_end = t_end,
-                        .num_frames = num_frames,
-                        .field_energy_calcs = field_energy_calcs,
-                        .integrated_mom_calcs = integrated_mom_calcs,
-                        .integrated_L2_f_calcs = integrated_L2_f_calcs,
-                        .dt_failure_tol = dt_failure_tol,
-                        .num_failures_max = num_failures_max,
-                        .train_nn = train_nn,
-                        .train_ab_initio = train_ab_initio,
-                        .nn_width = nn_width,
-                        .nn_depth = nn_depth,
-                        .train_nn_file = train_nn_file,
-                        .num_trains = num_trains,
-                        .num_nn_writes = num_nn_writes,
-                        .num_input_moms = num_input_moms,
-                        .input_moms = input_moms,
-                        .num_output_moms = num_output_moms,
-                        .output_moms = output_moms,
-                        .test_nn = test_nn,
-                        .test_nn_file = test_nn_file,
-                        .num_tests = num_tests };
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .n0 = n0,
+    .vAe = vAe,
+    .beta = beta,
+    .B0 = B0,
+    .vAi = vAi,
+    .vte = vte,
+    .vti = vti,
+    .omega_ci = omega_ci,
+    .d_i = d_i,
+    .delta_B0 = delta_B0,
+    .delta_u0 = delta_u0,
+    .nu_elc = nu_elc,
+    .nu_ion = nu_ion,
+    .Nx = Nx,
+    .Ny = Ny,
+    .Nvx = Nvx,
+    .Lx = Lx,
+    .Ly = Ly,
+    .vx_max_elc = vx_max_elc,
+    .vx_max_ion = vx_max_ion,
+    .poly_order = poly_order,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .field_energy_calcs = field_energy_calcs,
+    .integrated_mom_calcs = integrated_mom_calcs,
+    .integrated_L2_f_calcs = integrated_L2_f_calcs,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
+    .train_nn = train_nn,
+    .train_ab_initio = train_ab_initio,
+    .nn_width = nn_width,
+    .nn_depth = nn_depth,
+    .train_nn_file = train_nn_file,
+    .num_trains = num_trains,
+    .num_nn_writes = num_nn_writes,
+    .num_input_moms = num_input_moms,
+    .input_moms = input_moms,
+    .num_output_moms = num_output_moms,
+    .output_moms = output_moms,
+    .test_nn = test_nn,
+    .test_nn_file = test_nn_file,
+    .num_tests = num_tests };
 
   return ctx;
 }
 
-void evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                     void *ctx)
+void evalElcDistInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct ot_ctx *app = ctx;
   double vx = xn[2];
@@ -238,8 +238,8 @@ void evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[1] = G;
 }
 
-void evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void evalElcFluidInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct ot_ctx *app = ctx;
   double x = xn[0], y = xn[1];
@@ -256,7 +256,7 @@ void evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
   double Ly = app->Ly;
 
   double Jz = (delta_B0 * (4.0 * pi / Lx) * cos(4.0 * pi * x / Lx) +
-               delta_B0 * (2.0 * pi / Ly) * cos(2.0 * pi * y / Ly)) /
+                delta_B0 * (2.0 * pi / Ly) * cos(2.0 * pi * y / Ly)) /
               mu0;
 
   double vx_drift = -delta_u0 * sin(2.0 * pi * y / Ly); // Electron drift velocity (x-direction).
@@ -273,8 +273,8 @@ void evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
   fout[2] = mom_z;
 }
 
-void evalIonDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                     void *ctx)
+void evalIonDistInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct ot_ctx *app = ctx;
   double vx = xn[2];
@@ -293,8 +293,8 @@ void evalIonDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[1] = G;
 }
 
-void evalIonFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void evalIonFluidInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct ot_ctx *app = ctx;
   double x = xn[0], y = xn[1];
@@ -339,7 +339,7 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   double Ly = app->Ly;
 
   double Jz = (delta_B0 * (4.0 * pi / Lx) * cos(4.0 * pi * x / Lx) +
-               delta_B0 * (2.0 * pi / Ly) * cos(2.0 * pi * y / Ly)) /
+                delta_B0 * (2.0 * pi / Ly) * cos(2.0 * pi * y / Ly)) /
               mu0;
 
   double Bx = -delta_B0 * sin(2.0 * pi * y / Ly); // Total magnetic field (x-direction).
@@ -401,24 +401,24 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, 
   }
 }
 
-void calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_pkpm_app *app, double t_curr,
-                       bool force_calc)
+void calc_field_energy(
+  struct gkyl_tm_trigger *fet, gkyl_pkpm_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_field_energy(app, t_curr);
   }
 }
 
-void calc_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_pkpm_app *app, double t_curr,
-                         bool force_calc)
+void calc_integrated_mom(
+  struct gkyl_tm_trigger *imt, gkyl_pkpm_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
   }
 }
 
-void calc_integrated_L2_f(struct gkyl_tm_trigger *l2t, gkyl_pkpm_app *app, double t_curr,
-                          bool force_calc)
+void calc_integrated_L2_f(
+  struct gkyl_tm_trigger *l2t, gkyl_pkpm_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
@@ -426,8 +426,8 @@ void calc_integrated_L2_f(struct gkyl_tm_trigger *l2t, gkyl_pkpm_app *app, doubl
 }
 
 void train_mom(struct gkyl_tm_trigger *nn, gkyl_pkpm_app *app, double t_curr, bool force_train,
-               struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
-               int *output_moms, struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data)
+  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
+  int *output_moms, struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data)
 {
   if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
     int frame = nn->curr - 1;
@@ -436,12 +436,12 @@ void train_mom(struct gkyl_tm_trigger *nn, gkyl_pkpm_app *app, double t_curr, bo
     }
 
     gkyl_pkpm_app_train(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms,
-                        output_moms, input_data, output_data);
+      output_moms, input_data, output_data);
   }
 }
 
 void write_nn(struct gkyl_tm_trigger *nnw, gkyl_pkpm_app *app, double t_curr, bool force_write,
-              struct gkyl_kann_net **ann)
+  struct gkyl_kann_net **ann)
 {
   if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
     int frame = nnw->curr - 1;
@@ -454,9 +454,9 @@ void write_nn(struct gkyl_tm_trigger *nnw, gkyl_pkpm_app *app, double t_curr, bo
 }
 
 void test_mom(struct gkyl_tm_trigger *nnt, gkyl_pkpm_app *app, double t_curr, bool force_test,
-              struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
-              int *output_moms, struct gkyl_kn_vec *input_data_real,
-              struct gkyl_kn_vec *output_data_real, struct gkyl_kn_vec *output_data_predicted)
+  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
+  int *output_moms, struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
+  struct gkyl_kn_vec *output_data_predicted)
 {
   if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
     int frame = nnt->curr - 1;
@@ -465,7 +465,7 @@ void test_mom(struct gkyl_tm_trigger *nnt, gkyl_pkpm_app *app, double t_curr, bo
     }
 
     gkyl_pkpm_app_test(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms,
-                       output_moms, input_data_real, output_data_real, output_data_predicted);
+      output_moms, input_data_real, output_data_real, output_data_predicted);
   }
 }
 
@@ -546,15 +546,14 @@ int main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
-              ncuts);
+      fprintf(
+        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
 
   // Electrons.
-  struct gkyl_pkpm_species elc = {
-    .name = "elc",
+  struct gkyl_pkpm_species elc = { .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .lower = { -ctx.vx_max_elc },
@@ -568,12 +567,10 @@ int main(int argc, char **argv)
 
     .collisions = { .collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalElcNu, .ctx = &ctx },
 
-    .diffusion = { .D = 1.0e-4, .order = 4 }
-  };
+    .diffusion = { .D = 1.0e-4, .order = 4 } };
 
   // Ions.
-  struct gkyl_pkpm_species ion = {
-    .name = "ion",
+  struct gkyl_pkpm_species ion = { .name = "ion",
     .charge = ctx.charge_ion,
     .mass = ctx.mass_ion,
     .lower = { -ctx.vx_max_ion },
@@ -587,17 +584,16 @@ int main(int argc, char **argv)
 
     .collisions = { .collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalIonNu, .ctx = &ctx },
 
-    .diffusion = { .D = 1.0e-4, .order = 4 }
-  };
+    .diffusion = { .D = 1.0e-4, .order = 4 } };
 
   // Field.
   struct gkyl_pkpm_field field = { .epsilon0 = ctx.epsilon0,
-                                   .mu0 = ctx.mu0,
-                                   .elcErrorSpeedFactor = 0.0,
-                                   .mgnErrorSpeedFactor = 0.0,
+    .mu0 = ctx.mu0,
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
 
-                                   .init = evalFieldInit,
-                                   .ctx = &ctx };
+    .init = evalFieldInit,
+    .ctx = &ctx };
 
   // PKPM app.
   struct gkyl_pkpm app_inp = {
@@ -623,8 +619,8 @@ int main(int argc, char **argv)
     .field = field,
 
     .parallelism = { .use_gpu = app_args.use_gpu,
-                     .cuts = { app_args.cuts[0], app_args.cuts[1] },
-                     .comm = comm }
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -643,7 +639,7 @@ int main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_pkpm_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-                         gkyl_array_rio_status_msg(status.io_status));
+        gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
@@ -658,41 +654,41 @@ int main(int argc, char **argv)
 
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = {
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = {
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
-  struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs,
-                                      .tcurr = t_curr,
-                                      .curr = frame_curr };
+  struct gkyl_tm_trigger l2f_trig = {
+    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames,
-                                     .tcurr = frame_curr * (t_end / num_frames),
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = {
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 
   // Create trigger for neural network training.
   int num_trains = ctx.num_trains;
-  struct gkyl_tm_trigger nn_trig = { .dt = t_end / num_trains,
-                                     .tcurr = t_curr,
-                                     .curr = frame_curr };
+  struct gkyl_tm_trigger nn_trig = {
+    .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr
+  };
 
   kad_node_t **t = gkyl_malloc(sizeof(kad_node_t *) * app_inp.num_species);
   struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app_inp.num_species);
@@ -740,7 +736,7 @@ int main(int argc, char **argv)
           ann[i] = 0;
           ctx.train_nn = false;
           fprintf(stderr, "Neural network for species %s not found! Disabling NN training.\n",
-                  app_inp.species[i].name);
+            app_inp.species[i].name);
         }
       }
     }
@@ -763,14 +759,14 @@ int main(int argc, char **argv)
 
   if (ctx.train_nn) {
     train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms,
-              ctx.num_output_moms, ctx.output_moms, input_data, output_data);
+      ctx.num_output_moms, ctx.output_moms, input_data, output_data);
   }
 
   // Create trigger for neural network writing.
   int num_nn_writes = ctx.num_nn_writes;
-  struct gkyl_tm_trigger nnw_trig = { .dt = t_end / num_nn_writes,
-                                      .tcurr = t_curr,
-                                      .curr = frame_curr };
+  struct gkyl_tm_trigger nnw_trig = {
+    .dt = t_end / num_nn_writes, .tcurr = t_curr, .curr = frame_curr
+  };
 
   if (ctx.train_nn) {
     write_nn(&nnw_trig, app, t_curr, false, ann);
@@ -778,9 +774,9 @@ int main(int argc, char **argv)
 
   // Create trigger for neural network testing.
   int num_tests = ctx.num_tests;
-  struct gkyl_tm_trigger nnt_trig = { .dt = t_end / num_tests,
-                                      .tcurr = t_curr,
-                                      .curr = frame_curr };
+  struct gkyl_tm_trigger nnt_trig = {
+    .dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr
+  };
 
   struct gkyl_kann_net **ann_test =
     gkyl_malloc(sizeof(struct gkyl_kann_net *) * app_inp.num_species);
@@ -799,7 +795,7 @@ int main(int argc, char **argv)
         ann_test[i] = 0;
         ctx.test_nn = false;
         fprintf(stderr, "Neural network for species %s not found! Disabling NN testing.\n",
-                app_inp.species[i].name);
+          app_inp.species[i].name);
       }
     }
   }
@@ -810,8 +806,8 @@ int main(int argc, char **argv)
 
   if (ctx.test_nn) {
     test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
-             ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
-             output_data_predicted);
+      ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
+      output_data_predicted);
   }
 
   // Compute initial guess of maximum stable time-step.
@@ -841,13 +837,13 @@ int main(int argc, char **argv)
     write_data(&io_trig, app, t_curr, false);
     if (ctx.train_nn) {
       train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms,
-                ctx.num_output_moms, ctx.output_moms, input_data, output_data);
+        ctx.num_output_moms, ctx.output_moms, input_data, output_data);
       write_nn(&nnw_trig, app, t_curr, false, ann);
     }
     if (ctx.test_nn) {
       test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
-               ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
-               output_data_predicted);
+        ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
+        output_data_predicted);
     }
 
     if (dt_init < 0.0) {
@@ -860,8 +856,8 @@ int main(int argc, char **argv)
       gkyl_pkpm_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_pkpm_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_pkpm_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
-                           num_failures_max);
+        gkyl_pkpm_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);
@@ -869,13 +865,13 @@ int main(int argc, char **argv)
         write_data(&io_trig, app, t_curr, true);
         if (ctx.train_nn) {
           train_mom(&nn_trig, app, t_curr, true, ann, ctx.num_input_moms, ctx.input_moms,
-                    ctx.num_output_moms, ctx.output_moms, input_data, output_data);
+            ctx.num_output_moms, ctx.output_moms, input_data, output_data);
           write_nn(&nnw_trig, app, t_curr, true, ann);
         }
         if (ctx.test_nn) {
           test_mom(&nnt_trig, app, t_curr, true, ann_test, ctx.num_input_moms, ctx.input_moms,
-                   ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
-                   output_data_predicted);
+            ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
+            output_data_predicted);
         }
 
         break;
@@ -893,7 +889,7 @@ int main(int argc, char **argv)
   write_data(&io_trig, app, t_curr, false);
   if (ctx.train_nn) {
     train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms,
-              ctx.num_output_moms, ctx.output_moms, input_data, output_data);
+      ctx.num_output_moms, ctx.output_moms, input_data, output_data);
     write_nn(&nnw_trig, app, t_curr, false, ann);
 
     for (int i = 0; i < app_inp.num_species; i++) {
@@ -902,8 +898,8 @@ int main(int argc, char **argv)
   }
   if (ctx.test_nn) {
     test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
-             ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
-             output_data_predicted);
+      ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
+      output_data_predicted);
 
     for (int i = 0; i < app_inp.num_species; i++) {
       gkyl_kann_net_release(ann_test[i]);
@@ -918,24 +914,24 @@ int main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_pkpm_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n",
-                       stat.stage_2_dt_diff[1]);
-    gkyl_pkpm_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n",
-                       stat.stage_2_dt_diff[0]);
+    gkyl_pkpm_app_cout(
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_pkpm_app_cout(
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_pkpm_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n",
-                     stat.species_coll_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Fluid species RHS calc took %g secs\n",
-                     stat.fluid_species_rhs_tm);
+  gkyl_pkpm_app_cout(
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_pkpm_app_cout(
+    app, stdout, "Fluid species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
   gkyl_pkpm_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_pkpm_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Species collisional moments took %g secs\n",
-                     stat.species_coll_mom_tm);
+  gkyl_pkpm_app_cout(
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_pkpm_app_cout(app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n",
-                     stat.current_tm);
+  gkyl_pkpm_app_cout(
+    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
   gkyl_pkpm_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);

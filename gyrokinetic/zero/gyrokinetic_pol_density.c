@@ -2,9 +2,8 @@
 #include <gkyl_gyrokinetic_pol_density_priv.h>
 #include <gkyl_alloc.h>
 
-struct gkyl_gyrokinetic_pol_density *gkyl_gyrokinetic_pol_density_new(struct gkyl_basis cbasis,
-                                                                      struct gkyl_rect_grid cgrid,
-                                                                      bool use_gpu)
+struct gkyl_gyrokinetic_pol_density *gkyl_gyrokinetic_pol_density_new(
+  struct gkyl_basis cbasis, struct gkyl_rect_grid cgrid, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_gyrokinetic_pol_density *up = gkyl_malloc(sizeof(*up));
@@ -29,10 +28,8 @@ struct gkyl_gyrokinetic_pol_density *gkyl_gyrokinetic_pol_density_new(struct gky
 }
 
 void gkyl_gyrokinetic_pol_density_advance(gkyl_gyrokinetic_pol_density *up,
-                                          const struct gkyl_range *conf_rng,
-                                          const struct gkyl_array *GKYL_RESTRICT pol_weight,
-                                          const struct gkyl_array *GKYL_RESTRICT phi,
-                                          struct gkyl_array *GKYL_RESTRICT npol)
+  const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT pol_weight,
+  const struct gkyl_array *GKYL_RESTRICT phi, struct gkyl_array *GKYL_RESTRICT npol)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {

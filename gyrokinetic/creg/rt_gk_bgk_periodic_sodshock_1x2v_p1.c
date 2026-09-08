@@ -87,38 +87,38 @@ struct sodshock_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct sodshock_ctx ctx = { .cdim = cdim,
-                              .vdim = vdim,
-                              .mass = mass,
-                              .charge = charge,
-                              .nl = nl,
-                              .Tl = Tl,
-                              .nr = nr,
-                              .Tr = Tr,
-                              .B0 = B0,
-                              .n0 = n0,
-                              .vt = vt,
-                              .nu = nu,
-                              .Nz = Nz,
-                              .Nvpar = Nvpar,
-                              .Nmu = Nmu,
-                              .cells = { Nz, Nvpar, Nmu },
-                              .Lz = Lz,
-                              .vpar_max = vpar_max,
-                              .mu_max = mu_max,
-                              .poly_order = poly_order,
-                              .cfl_frac = cfl_frac,
-                              .t_end = t_end,
-                              .num_frames = num_frames,
-                              .write_phase_freq = write_phase_freq,
-                              .int_diag_calc_num = int_diag_calc_num,
-                              .dt_failure_tol = dt_failure_tol,
-                              .num_failures_max = num_failures_max };
+    .vdim = vdim,
+    .mass = mass,
+    .charge = charge,
+    .nl = nl,
+    .Tl = Tl,
+    .nr = nr,
+    .Tr = Tr,
+    .B0 = B0,
+    .n0 = n0,
+    .vt = vt,
+    .nu = nu,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = { Nz, Nvpar, Nmu },
+    .Lz = Lz,
+    .vpar_max = vpar_max,
+    .mu_max = mu_max,
+    .poly_order = poly_order,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .write_phase_freq = write_phase_freq,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                     void *ctx)
+void evalDensityInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sodshock_ctx *app = ctx;
   double z = xn[0];
@@ -174,8 +174,8 @@ void evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[0] = nu;
 }
 
-static inline void mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp,
-                          void *ctx)
+static inline void mapc2p(
+  double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
 {
   // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
   xp[0] = zc[0];
@@ -222,8 +222,7 @@ int main(int argc, char **argv)
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Neutral species.
-  struct gkyl_gyrokinetic_species neut = {
-    .name = "neut",
+  struct gkyl_gyrokinetic_species neut = { .name = "neut",
     .charge = ctx.charge,
     .mass = ctx.mass,
     .vdim = ctx.vdim,
@@ -233,18 +232,18 @@ int main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = { .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-                    .density = evalDensityInit,
-                    .ctx_density = &ctx,
-                    .temp = evalTempInit,
-                    .ctx_temp = &ctx,
-                    .upar = evalUparInit,
-                    .ctx_upar = &ctx,
-                    .correct_all_moms = true },
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .upar = evalUparInit,
+      .ctx_upar = &ctx,
+      .correct_all_moms = true },
 
     .correct = { .correct_all_moms = true,
-                 .use_last_converged = true,
-                 .iter_eps = 1e-12,
-                 .max_iter = 10 },
+      .use_last_converged = true,
+      .iter_eps = 1e-12,
+      .max_iter = 10 },
 
     .collisionless = { .type = GKYL_GK_COLLISIONLESS_ES },
 
@@ -252,8 +251,7 @@ int main(int argc, char **argv)
 
     .num_diag_moments = 6,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-                      GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN }
-  };
+      GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN } };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
@@ -280,12 +278,12 @@ int main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-                  .world = { 0.0, 0.0 },
+      .world = { 0.0, 0.0 },
 
-                  .mapc2p = mapc2p,
-                  .c2p_ctx = &ctx,
-                  .bfield_func = bfield_func,
-                  .bfield_ctx = &ctx },
+      .mapc2p = mapc2p,
+      .c2p_ctx = &ctx,
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
@@ -301,16 +299,15 @@ int main(int argc, char **argv)
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-                                              .time_stepping = {
-                                                .t_end = ctx.t_end,
-                                                .num_frames = ctx.num_frames,
-                                                .write_phase_freq = ctx.write_phase_freq,
-                                                .int_diag_calc_num = ctx.int_diag_calc_num,
-                                                .dt_failure_tol = ctx.dt_failure_tol,
-                                                .num_failures_max = ctx.num_failures_max,
-                                                .is_restart = app_args.is_restart,
-                                                .restart_frame = app_args.restart_frame,
-                                                .num_steps = app_args.num_steps } };
+    .time_stepping = { .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps } };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 

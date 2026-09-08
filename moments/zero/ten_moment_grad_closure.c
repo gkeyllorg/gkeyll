@@ -7,8 +7,8 @@
 #include <gkyl_ten_moment_grad_closure.h>
 #include <gkyl_ten_moment_grad_closure_priv.h>
 
-gkyl_ten_moment_grad_closure *
-gkyl_ten_moment_grad_closure_new(const struct gkyl_ten_moment_grad_closure_inp *inp)
+gkyl_ten_moment_grad_closure *gkyl_ten_moment_grad_closure_new(
+  const struct gkyl_ten_moment_grad_closure_inp *inp)
 {
   gkyl_ten_moment_grad_closure *up = gkyl_malloc(sizeof(gkyl_ten_moment_grad_closure));
 
@@ -101,15 +101,14 @@ struct gkyl_ten_moment_grad_closure_status gkyl_ten_moment_grad_closure_advance(
 
   if (is_cfl_violated > 0.0) {
     // indicate failure, and return smaller stable time-step
-    return (struct gkyl_ten_moment_grad_closure_status){ .success = 0,
-                                                         .dt_suggested = dt_suggested };
+    return (
+      struct gkyl_ten_moment_grad_closure_status){ .success = 0, .dt_suggested = dt_suggested };
   }
   // on success, suggest only bigger time-step; (Only way dt can
   // reduce is if the update fails. If the code comes here the update
   // succeeded and so we should not allow dt to reduce).
-  return (struct gkyl_ten_moment_grad_closure_status){
-    .success = is_cfl_violated > 0.0 ? 0 : 1, .dt_suggested = dt_suggested > dt ? dt_suggested : dt
-  };
+  return (struct gkyl_ten_moment_grad_closure_status){ .success = is_cfl_violated > 0.0 ? 0 : 1,
+    .dt_suggested = dt_suggested > dt ? dt_suggested : dt };
 }
 
 void gkyl_ten_moment_grad_closure_release(gkyl_ten_moment_grad_closure *up)

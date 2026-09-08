@@ -380,21 +380,21 @@ void test_powsqrt_3x_p2_dev()
 #endif
 
 TEST_LIST = { { "test_powsqrt_1x_p1_ho", test_powsqrt_1x_p1_ho },
-              { "test_powsqrt_1x_p2_ho", test_powsqrt_1x_p2_ho },
+  { "test_powsqrt_1x_p2_ho", test_powsqrt_1x_p2_ho },
 
-              { "test_powsqrt_2x_p1_ho", test_powsqrt_2x_p1_ho },
-              { "test_powsqrt_2x_p2_ho", test_powsqrt_2x_p2_ho },
+  { "test_powsqrt_2x_p1_ho", test_powsqrt_2x_p1_ho },
+  { "test_powsqrt_2x_p2_ho", test_powsqrt_2x_p2_ho },
 
-              { "test_powsqrt_3x_p1_ho", test_powsqrt_3x_p1_ho },
-              { "test_powsqrt_3x_p2_ho", test_powsqrt_3x_p2_ho },
+  { "test_powsqrt_3x_p1_ho", test_powsqrt_3x_p1_ho },
+  { "test_powsqrt_3x_p2_ho", test_powsqrt_3x_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_powsqrt_1x_p1_dev", test_powsqrt_1x_p1_dev },
-              { "test_powsqrt_1x_p2_dev", test_powsqrt_1x_p2_dev },
+  { "test_powsqrt_1x_p1_dev", test_powsqrt_1x_p1_dev },
+  { "test_powsqrt_1x_p2_dev", test_powsqrt_1x_p2_dev },
 
-              { "test_powsqrt_2x_p1_dev", test_powsqrt_2x_p1_dev },
-              { "test_powsqrt_2x_p2_dev", test_powsqrt_2x_p2_dev },
+  { "test_powsqrt_2x_p1_dev", test_powsqrt_2x_p1_dev },
+  { "test_powsqrt_2x_p2_dev", test_powsqrt_2x_p2_dev },
 
-              { "test_powsqrt_3x_p1_dev", test_powsqrt_3x_p1_dev },
-              { "test_powsqrt_3x_p2_dev", test_powsqrt_3x_p2_dev },
+  { "test_powsqrt_3x_p1_dev", test_powsqrt_3x_p1_dev },
+  { "test_powsqrt_3x_p2_dev", test_powsqrt_3x_p2_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

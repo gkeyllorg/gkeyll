@@ -10,7 +10,7 @@
 #include <gkyl_util.h>
 
 void gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc, const struct gkyl_range *phase_rng,
-                                  const struct gkyl_array *fIn, struct gkyl_array *rhs)
+  const struct gkyl_array *fIn, struct gkyl_array *rhs)
 {
   // Ghost and skin index and cell center coordinates.
   int idxg[GKYL_MAX_DIM], idxs[GKYL_MAX_DIM];
@@ -44,9 +44,9 @@ void gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc, const struct gkyl
       long ling = gkyl_range_idx(&edge_rng, idxg);
       long lins = gkyl_range_idx(&edge_rng, idxs);
 
-      gcalc->equation->boundary_surf_term(
-        gcalc->equation, dir, xcs, xcg, gcalc->grid.dx, gcalc->grid.dx, idxs, idxg, -1,
-        gkyl_array_cfetch(fIn, lins), gkyl_array_cfetch(fIn, ling), gkyl_array_fetch(rhs, ling));
+      gcalc->equation->boundary_surf_term(gcalc->equation, dir, xcs, xcg, gcalc->grid.dx,
+        gcalc->grid.dx, idxs, idxg, -1, gkyl_array_cfetch(fIn, lins), gkyl_array_cfetch(fIn, ling),
+        gkyl_array_fetch(rhs, ling));
     }
 
     // Ghost surf at upper boundary.
@@ -66,9 +66,9 @@ void gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc, const struct gkyl
       long lins = gkyl_range_idx(&edge_rng, idxs);
       long ling = gkyl_range_idx(&edge_rng, idxg);
 
-      gcalc->equation->boundary_surf_term(
-        gcalc->equation, dir, xcs, xcg, gcalc->grid.dx, gcalc->grid.dx, idxs, idxg, 1,
-        gkyl_array_cfetch(fIn, lins), gkyl_array_cfetch(fIn, ling), gkyl_array_fetch(rhs, ling));
+      gcalc->equation->boundary_surf_term(gcalc->equation, dir, xcs, xcg, gcalc->grid.dx,
+        gcalc->grid.dx, idxs, idxg, 1, gkyl_array_cfetch(fIn, lins), gkyl_array_cfetch(fIn, ling),
+        gkyl_array_fetch(rhs, ling));
     }
 
     // Reset clower and cupper for the next iteration.
@@ -77,9 +77,8 @@ void gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc, const struct gkyl
   }
 }
 
-gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_new(const struct gkyl_rect_grid *grid,
-                                               const struct gkyl_dg_eqn *equation, int cdim,
-                                               bool use_gpu)
+gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_dg_eqn *equation, int cdim, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -110,14 +109,13 @@ void gkyl_ghost_surf_calc_release(gkyl_ghost_surf_calc *up)
 #ifndef GKYL_HAVE_CUDA
 
 void gkyl_ghost_surf_calc_advance_cu(gkyl_ghost_surf_calc *gcalc,
-                                     const struct gkyl_range *phase_rng,
-                                     const struct gkyl_array *fIn, struct gkyl_array *rhs)
+  const struct gkyl_range *phase_rng, const struct gkyl_array *fIn, struct gkyl_array *rhs)
 {
   assert(false);
 }
 
-gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-                                                      const struct gkyl_dg_eqn *equation, int cdim)
+gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_cu_dev_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_dg_eqn *equation, int cdim)
 {
   assert(false);
 }

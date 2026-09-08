@@ -10,22 +10,21 @@
 #include <gkyl_vlasov_pkpm_kernels.h>
 
 // Types for various kernels
-typedef double (*vlasov_pkpm_stream_surf_t)(
-  const double *w, const double *dxv, const double *bvar_surf_l, const double *bvar_surf_c,
-  const double *bvar_surf_r, const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c,
-  const double *pkpm_prim_surf_r, const double *fl, const double *fc, const double *fr,
-  const double *max_b, const double *pkpm_lax_l, const double *pkpm_lax_r,
+typedef double (*vlasov_pkpm_stream_surf_t)(const double *w, const double *dxv,
+  const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r,
+  const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r,
+  const double *fl, const double *fc, const double *fr, const double *max_b,
+  const double *pkpm_lax_l, const double *pkpm_lax_r, double *GKYL_RESTRICT out);
+
+typedef double (*vlasov_pkpm_accel_surf_t)(const double *w, const double *dxv, const double *div_b,
+  const double *pkpm_accel_vars, const double *g_dist_sourcel, const double *g_dist_sourcec,
+  const double *g_dist_sourcer, const double *fl, const double *fc, const double *fr,
   double *GKYL_RESTRICT out);
 
-typedef double (*vlasov_pkpm_accel_surf_t)(
-  const double *w, const double *dxv, const double *div_b, const double *pkpm_accel_vars,
-  const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer,
-  const double *fl, const double *fc, const double *fr, double *GKYL_RESTRICT out);
-
-typedef double (*vlasov_pkpm_accel_boundary_surf_t)(
-  const double *w, const double *dxv, const double *div_b, const double *pkpm_accel_vars,
-  const double *g_dist_sourceEdge, const double *g_dist_sourceSkin, const int edge,
-  const double *fEdge, const double *fSkin, double *GKYL_RESTRICT out);
+typedef double (*vlasov_pkpm_accel_boundary_surf_t)(const double *w, const double *dxv,
+  const double *div_b, const double *pkpm_accel_vars, const double *g_dist_sourceEdge,
+  const double *g_dist_sourceSkin, const int edge, const double *fEdge, const double *fSkin,
+  double *GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct {
@@ -59,16 +58,15 @@ struct dg_vlasov_pkpm {
 //
 
 GKYL_CU_DH static double kernel_vlasov_pkpm_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                            const double *xc, const double *dx,
-                                                            const int *idx, const double *qIn,
-                                                            double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
 
   long cidx = gkyl_range_idx(&vlasov_pkpm->conf_range, idx);
   long pidx = gkyl_range_idx(&vlasov_pkpm->phase_range, idx);
-  return vlasov_pkpm_vol_1x1v_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
+  return vlasov_pkpm_vol_1x1v_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx),
@@ -76,16 +74,15 @@ GKYL_CU_DH static double kernel_vlasov_pkpm_vol_1x1v_ser_p1(const struct gkyl_dg
 }
 
 GKYL_CU_DH static double kernel_vlasov_pkpm_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn,
-                                                            const double *xc, const double *dx,
-                                                            const int *idx, const double *qIn,
-                                                            double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
 
   long cidx = gkyl_range_idx(&vlasov_pkpm->conf_range, idx);
   long pidx = gkyl_range_idx(&vlasov_pkpm->phase_range, idx);
-  return vlasov_pkpm_vol_1x1v_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
+  return vlasov_pkpm_vol_1x1v_ser_p2(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx),
@@ -93,16 +90,15 @@ GKYL_CU_DH static double kernel_vlasov_pkpm_vol_1x1v_ser_p2(const struct gkyl_dg
 }
 
 GKYL_CU_DH static double kernel_vlasov_pkpm_vol_1x1v_tensor_p2(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
 
   long cidx = gkyl_range_idx(&vlasov_pkpm->conf_range, idx);
   long pidx = gkyl_range_idx(&vlasov_pkpm->phase_range, idx);
-  return vlasov_pkpm_vol_1x1v_tensor_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
+  return vlasov_pkpm_vol_1x1v_tensor_p2(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx),
@@ -110,16 +106,15 @@ GKYL_CU_DH static double kernel_vlasov_pkpm_vol_1x1v_tensor_p2(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_pkpm_vol_2x1v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                            const double *xc, const double *dx,
-                                                            const int *idx, const double *qIn,
-                                                            double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
 
   long cidx = gkyl_range_idx(&vlasov_pkpm->conf_range, idx);
   long pidx = gkyl_range_idx(&vlasov_pkpm->phase_range, idx);
-  return vlasov_pkpm_vol_2x1v_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
+  return vlasov_pkpm_vol_2x1v_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx),
@@ -127,16 +122,15 @@ GKYL_CU_DH static double kernel_vlasov_pkpm_vol_2x1v_ser_p1(const struct gkyl_dg
 }
 
 GKYL_CU_DH static double kernel_vlasov_pkpm_vol_2x1v_tensor_p2(const struct gkyl_dg_eqn *eqn,
-                                                               const double *xc, const double *dx,
-                                                               const int *idx, const double *qIn,
-                                                               double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
 
   long cidx = gkyl_range_idx(&vlasov_pkpm->conf_range, idx);
   long pidx = gkyl_range_idx(&vlasov_pkpm->phase_range, idx);
-  return vlasov_pkpm_vol_2x1v_tensor_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
+  return vlasov_pkpm_vol_2x1v_tensor_p2(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx),
@@ -144,16 +138,15 @@ GKYL_CU_DH static double kernel_vlasov_pkpm_vol_2x1v_tensor_p2(const struct gkyl
 }
 
 GKYL_CU_DH static double kernel_vlasov_pkpm_vol_3x1v_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                            const double *xc, const double *dx,
-                                                            const int *idx, const double *qIn,
-                                                            double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
 
   long cidx = gkyl_range_idx(&vlasov_pkpm->conf_range, idx);
   long pidx = gkyl_range_idx(&vlasov_pkpm->phase_range, idx);
-  return vlasov_pkpm_vol_3x1v_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
+  return vlasov_pkpm_vol_3x1v_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx),
     (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx),
@@ -293,10 +286,9 @@ GKYL_CU_D static const gkyl_dg_vlasov_pkpm_accel_boundary_surf_kern_list
 void gkyl_vlasov_pkpm_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL,
-                             const double *xcC, const double *xcR, const double *dxL,
-                             const double *dxC, const double *dxR, const int *idxL, const int *idxC,
-                             const int *idxR, const double *qInL, const double *qInC,
-                             const double *qInR, double *GKYL_RESTRICT qRhsOut)
+  const double *xcC, const double *xcR, const double *dxL, const double *dxC, const double *dxR,
+  const int *idxL, const int *idxC, const int *idxR, const double *qInL, const double *qInC,
+  const double *qInR, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
   long cidx_c = gkyl_range_idx(&vlasov_pkpm->conf_range, idxC);
@@ -304,8 +296,8 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const doubl
   if (dir < vlasov_pkpm->cdim) {
     long cidx_l = gkyl_range_idx(&vlasov_pkpm->conf_range, idxL);
     long cidx_r = gkyl_range_idx(&vlasov_pkpm->conf_range, idxR);
-    return vlasov_pkpm->stream_surf[dir](
-      xcC, dxC, (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar_surf, cidx_l),
+    return vlasov_pkpm->stream_surf[dir](xcC, dxC,
+      (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar_surf, cidx_l),
       (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar_surf, cidx_c),
       (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar_surf, cidx_r),
       (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim_surf, cidx_l),
@@ -317,8 +309,8 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const doubl
   } else {
     long pidx_l = gkyl_range_idx(&vlasov_pkpm->phase_range, idxL);
     long pidx_r = gkyl_range_idx(&vlasov_pkpm->phase_range, idxR);
-    return vlasov_pkpm->accel_surf(
-      xcC, dxC, (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx_c),
+    return vlasov_pkpm->accel_surf(xcC, dxC,
+      (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx_c),
       (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx_c),
       (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidx_l),
       (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidx_c),
@@ -328,10 +320,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const doubl
 }
 
 GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge,
-                                      const double *xcSkin, const double *dxEdge,
-                                      const double *dxSkin, const int *idxEdge, const int *idxSkin,
-                                      const int edge, const double *qInEdge, const double *qInSkin,
-                                      double *GKYL_RESTRICT qRhsOut)
+  const double *xcSkin, const double *dxEdge, const double *dxSkin, const int *idxEdge,
+  const int *idxSkin, const int edge, const double *qInEdge, const double *qInSkin,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
 
@@ -340,8 +331,8 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, co
     long cidx = gkyl_range_idx(&vlasov_pkpm->conf_range, idxSkin);
     long pidxSkin = gkyl_range_idx(&vlasov_pkpm->phase_range, idxSkin);
     long pidxEdge = gkyl_range_idx(&vlasov_pkpm->phase_range, idxEdge);
-    return vlasov_pkpm->accel_boundary_surf(
-      xcSkin, dxSkin, (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx),
+    return vlasov_pkpm->accel_boundary_surf(xcSkin, dxSkin,
+      (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx),
       (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx),
       (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidxEdge),
       (const double *)gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidxSkin), edge,

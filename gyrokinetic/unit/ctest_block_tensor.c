@@ -320,6 +320,5 @@ void test_cartesian_3x_onecell()
 
 TEST_LIST = { //{ "test_block_tensor_cartesian_2x_z_ho", test_block_tensor_cartesian_2x_z_ho},
   //{ "test_block_tensor_cartesian_2x_x_ho", test_block_tensor_cartesian_2x_x_ho},
-  { "test_block_tensor_cyl_cart_2x_z_ho", test_block_tensor_cyl_cart_2x_z_ho },
-  { NULL, NULL }
+  { "test_block_tensor_cyl_cart_2x_z_ho", test_block_tensor_cyl_cart_2x_z_ho }, { NULL, NULL }
 };

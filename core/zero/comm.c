@@ -25,52 +25,51 @@ int gkyl_comm_get_size(struct gkyl_comm *pcomm, int *sz)
 }
 
 int gkyl_comm_allreduce(struct gkyl_comm *pcomm, enum gkyl_elem_type type, enum gkyl_array_op op,
-                        int nelem, const void *inp, void *out)
+  int nelem, const void *inp, void *out)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   return comm->allreduce(pcomm, type, op, nelem, inp, out);
 }
 
 int gkyl_comm_allreduce_host(struct gkyl_comm *pcomm, enum gkyl_elem_type type,
-                             enum gkyl_array_op op, int nelem, const void *inp, void *out)
+  enum gkyl_array_op op, int nelem, const void *inp, void *out)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   return comm->allreduce_host(pcomm, type, op, nelem, inp, out);
 }
 
 int gkyl_comm_array_allgather(struct gkyl_comm *pcomm, const struct gkyl_range *local,
-                              const struct gkyl_range *global, const struct gkyl_array *array_local,
-                              struct gkyl_array *array_global)
+  const struct gkyl_range *global, const struct gkyl_array *array_local,
+  struct gkyl_array *array_global)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   return comm->gkyl_array_allgather(pcomm, local, global, array_local, array_global);
 }
 
 int gkyl_comm_array_allgather_host(struct gkyl_comm *pcomm, const struct gkyl_range *local,
-                                   const struct gkyl_range *global,
-                                   const struct gkyl_array *array_local,
-                                   struct gkyl_array *array_global)
+  const struct gkyl_range *global, const struct gkyl_array *array_local,
+  struct gkyl_array *array_global)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   return comm->gkyl_array_allgather_host(pcomm, local, global, array_local, array_global);
 }
 
 int gkyl_comm_array_bcast(struct gkyl_comm *pcomm, const struct gkyl_array *array_send,
-                          struct gkyl_array *array_recv, int root)
+  struct gkyl_array *array_recv, int root)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   return comm->gkyl_array_bcast(pcomm, array_send, array_recv, root);
 }
 
 int gkyl_comm_array_bcast_host(struct gkyl_comm *pcomm, const struct gkyl_array *array_send,
-                               struct gkyl_array *array_recv, int root)
+  struct gkyl_array *array_recv, int root)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   return comm->gkyl_array_bcast_host(pcomm, array_send, array_recv, root);
 }
 
 int gkyl_comm_array_sync(struct gkyl_comm *pcomm, const struct gkyl_range *local,
-                         const struct gkyl_range *local_ext, struct gkyl_array *array)
+  const struct gkyl_range *local_ext, struct gkyl_array *array)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   comm->barrier(pcomm);
@@ -78,8 +77,7 @@ int gkyl_comm_array_sync(struct gkyl_comm *pcomm, const struct gkyl_range *local
 }
 
 int gkyl_comm_array_per_sync(struct gkyl_comm *pcomm, const struct gkyl_range *local,
-                             const struct gkyl_range *local_ext, int nper_dirs, const int *per_dirs,
-                             struct gkyl_array *array)
+  const struct gkyl_range *local_ext, int nper_dirs, const int *per_dirs, struct gkyl_array *array)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   comm->barrier(pcomm);
@@ -105,8 +103,8 @@ void gkyl_comm_group_call_end(struct gkyl_comm *pcomm)
 }
 
 int gkyl_comm_array_write(struct gkyl_comm *pcomm, const struct gkyl_rect_grid *grid,
-                          const struct gkyl_range *range, const struct gkyl_msgpack_data *meta,
-                          const struct gkyl_array *arr, const char *fname)
+  const struct gkyl_range *range, const struct gkyl_msgpack_data *meta,
+  const struct gkyl_array *arr, const char *fname)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   int status = comm->gkyl_array_write(pcomm, grid, range, meta, arr, fname);
@@ -115,7 +113,7 @@ int gkyl_comm_array_write(struct gkyl_comm *pcomm, const struct gkyl_rect_grid *
 }
 
 int gkyl_comm_array_read(struct gkyl_comm *pcomm, const struct gkyl_rect_grid *grid,
-                         const struct gkyl_range *range, struct gkyl_array *arr, const char *fname)
+  const struct gkyl_range *range, struct gkyl_array *arr, const char *fname)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   int status = comm->gkyl_array_read(pcomm, grid, range, arr, fname);
@@ -123,24 +121,22 @@ int gkyl_comm_array_read(struct gkyl_comm *pcomm, const struct gkyl_rect_grid *g
   return status;
 }
 
-struct gkyl_comm *gkyl_comm_extend_comm(const struct gkyl_comm *pcomm,
-                                        const struct gkyl_range *erange)
+struct gkyl_comm *gkyl_comm_extend_comm(
+  const struct gkyl_comm *pcomm, const struct gkyl_range *erange)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   return comm->extend_comm(pcomm, erange);
 }
 
-struct gkyl_comm *gkyl_comm_split_comm(const struct gkyl_comm *pcomm, int color,
-                                       struct gkyl_rect_decomp *new_decomp)
+struct gkyl_comm *gkyl_comm_split_comm(
+  const struct gkyl_comm *pcomm, int color, struct gkyl_rect_decomp *new_decomp)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   return comm->split_comm(pcomm, color, new_decomp);
 }
 
 struct gkyl_comm *gkyl_comm_create_comm_from_ranks(const struct gkyl_comm *pcomm, int nranks,
-                                                   const int *ranks,
-                                                   struct gkyl_rect_decomp *new_decomp,
-                                                   bool *is_valid)
+  const int *ranks, struct gkyl_rect_decomp *new_decomp, bool *is_valid)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);
   return comm->create_comm_from_ranks(pcomm, nranks, ranks, new_decomp, is_valid);

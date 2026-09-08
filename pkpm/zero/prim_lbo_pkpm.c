@@ -20,8 +20,7 @@ void prim_lbo_pkpm_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_new(const struct gkyl_basis *cbasis,
-                                                  const struct gkyl_basis *pbasis,
-                                                  const struct gkyl_range *conf_range, bool use_gpu)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -77,8 +76,7 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_new(const struct gkyl_basis *cbasi
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                         const struct gkyl_basis *pbasis,
-                                                         const struct gkyl_range *conf_range)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range)
 {
   assert(false);
   return 0;

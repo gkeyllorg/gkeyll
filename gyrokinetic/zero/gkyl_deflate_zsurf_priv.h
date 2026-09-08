@@ -18,9 +18,9 @@ GKYL_CU_D static const deflate_zsurf_kernel_dim_list ser_deflate_zsurf_kernel_di
   { .list = { { NULL, NULL, NULL }, { NULL, NULL, NULL } } },
   { .list = { { NULL, NULL, NULL }, { NULL, NULL, NULL } } },
   { .list = { { NULL, deflate_surfy_lower_2x_ser_p1, deflate_surfy_lower_2x_ser_p2 },
-              { NULL, deflate_surfy_upper_2x_ser_p1, deflate_surfy_upper_2x_ser_p2 } } },
+      { NULL, deflate_surfy_upper_2x_ser_p1, deflate_surfy_upper_2x_ser_p2 } } },
   { .list = { { NULL, deflate_surfz_lower_3x_ser_p1, deflate_surfz_lower_3x_ser_p2 },
-              { NULL, deflate_surfz_upper_3x_ser_p1, deflate_surfz_upper_3x_ser_p2 } } }
+      { NULL, deflate_surfz_upper_3x_ser_p1, deflate_surfz_upper_3x_ser_p2 } } }
 };
 
 struct gkyl_deflate_zsurf {
@@ -33,8 +33,8 @@ struct gkyl_deflate_zsurf {
   bool use_gpu;
 };
 
-GKYL_CU_D static deflate_zsurf_kernel deflate_zsurf_choose_kernel(enum gkyl_basis_type basis_type,
-                                                                  int dim, int edge, int poly_order)
+GKYL_CU_D static deflate_zsurf_kernel deflate_zsurf_choose_kernel(
+  enum gkyl_basis_type basis_type, int dim, int edge, int poly_order)
 {
   switch (basis_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -52,6 +52,5 @@ GKYL_CU_D static deflate_zsurf_kernel deflate_zsurf_choose_kernel(enum gkyl_basi
  * Create new updater deflate a 2d (x,z)  or 3d (x,y,z) modal expansion to a 1d (x) modal expansion or 2d (x,y)
  * NV-GPU. See new() method for documentation.
  */
-struct gkyl_deflate_zsurf *gkyl_deflate_zsurf_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                         const struct gkyl_basis *deflated_cbasis,
-                                                         int edge);
+struct gkyl_deflate_zsurf *gkyl_deflate_zsurf_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *deflated_cbasis, int edge);

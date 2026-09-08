@@ -67,13 +67,13 @@ __global__ void ker_cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn, int *nf
     for (int i = 0; i < 10; ++i)
       delta[i] = qr_local[i] - ql_local[i];
 
-    eqn->waves_func(eqn, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local,
-                    speeds);
+    eqn->waves_func(
+      eqn, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw = 0; mw < 5; ++mw)
-      eqn->rotate_to_global_func(eqn, tau1[d], tau2[d], norm[d], &waves_local[mw * 10],
-                                 &waves[mw * 10]);
+      eqn->rotate_to_global_func(
+        eqn, tau1[d], tau2[d], norm[d], &waves_local[mw * 10], &waves[mw * 10]);
 
     double apdq[10], amdq[10];
     eqn->qfluct_func(eqn, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq, apdq);

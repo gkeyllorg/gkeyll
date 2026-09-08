@@ -10,9 +10,9 @@ extern "C" {
 // CUDA kernel to set device pointers to l2g kernel function.
 // Doing function pointer stuff in here avoids troublesome
 // cudaMemcpyFromSymbol.
-__global__ static void
-fem_poisson_perp_set_cu_l2gker_ptrs(struct gkyl_fem_poisson_perp_kernels *kers, int ndim,
-                                    enum gkyl_basis_type b_type, int poly_order, const int *bckey)
+__global__ static void fem_poisson_perp_set_cu_l2gker_ptrs(
+  struct gkyl_fem_poisson_perp_kernels *kers, int ndim, enum gkyl_basis_type b_type, int poly_order,
+  const int *bckey)
 {
   int ndim_perp = ndim - 1;
 
@@ -37,8 +37,7 @@ fem_poisson_perp_set_cu_l2gker_ptrs(struct gkyl_fem_poisson_perp_kernels *kers, 
 
 // CUDA kernel to set device pointers to RHS src and solution kernels.
 __global__ static void fem_poisson_perp_set_cu_ker_ptrs(struct gkyl_fem_poisson_perp_kernels *kers,
-                                                        enum gkyl_basis_type b_type, int ndim,
-                                                        int poly_order, const int *bckey)
+  enum gkyl_basis_type b_type, int ndim, int poly_order, const int *bckey)
 {
   int ndim_perp = ndim - 1;
 
@@ -90,9 +89,9 @@ __global__ static void fem_poisson_perp_set_cu_ker_ptrs(struct gkyl_fem_poisson_
   kers->solker = solstencil_kernels[ndim].kernels[poly_order];
 }
 
-__global__ static void
-fem_poisson_perp_set_cu_biasker_ptrs(struct gkyl_fem_poisson_perp_kernels *kers, int ndim,
-                                     enum gkyl_basis_type b_type, int poly_order, const int *bckey)
+__global__ static void fem_poisson_perp_set_cu_biasker_ptrs(
+  struct gkyl_fem_poisson_perp_kernels *kers, int ndim, enum gkyl_basis_type b_type, int poly_order,
+  const int *bckey)
 {
   // Set biasing kernels.
   int ndim_perp = ndim - 1;
@@ -119,9 +118,8 @@ fem_poisson_perp_set_cu_biasker_ptrs(struct gkyl_fem_poisson_perp_kernels *kers,
 }
 
 void fem_poisson_perp_choose_kernels_cu(const struct gkyl_basis *basis,
-                                        const struct gkyl_poisson_bc *bcs,
-                                        const bool *isdirperiodic,
-                                        struct gkyl_fem_poisson_perp_kernels *kers)
+  const struct gkyl_poisson_bc *bcs, const bool *isdirperiodic,
+  struct gkyl_fem_poisson_perp_kernels *kers)
 {
   int poly_order = basis->poly_order;
   int ndim = basis->ndim;
@@ -161,10 +159,10 @@ void fem_poisson_perp_choose_kernels_cu(const struct gkyl_basis *basis,
   gkyl_cu_free(bckey_d);
 }
 
-__global__ void gkyl_fem_poisson_perp_set_rhs_kernel(
-  struct gkyl_array *epsilon, const double *dx, double *rhs_global, struct gkyl_array *rhs_local,
-  const struct gkyl_range range, struct gkyl_range par_range1d, const double *bcvals,
-  struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global)
+__global__ void gkyl_fem_poisson_perp_set_rhs_kernel(struct gkyl_array *epsilon, const double *dx,
+  double *rhs_global, struct gkyl_array *rhs_local, const struct gkyl_range range,
+  struct gkyl_range par_range1d, const double *bcvals, struct gkyl_fem_poisson_perp_kernels *kers,
+  long numnodes_global)
 {
   int idx[GKYL_MAX_CDIM];
   int idx0[GKYL_MAX_CDIM];
@@ -211,18 +209,18 @@ void gkyl_fem_poisson_perp_set_rhs_cu(gkyl_fem_poisson_perp *up, struct gkyl_arr
   gkyl_culinsolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
 
-  gkyl_fem_poisson_perp_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads> > >(
-    up->epsilon->on_dev, up->dx_cu, rhs_cu, rhsin->on_dev, *up->solve_range, up->par_range1d,
-    up->bcvals_cu, up->kernels_cu, up->numnodes_global);
+  gkyl_fem_poisson_perp_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads> > >(up->epsilon->on_dev,
+    up->dx_cu, rhs_cu, rhsin->on_dev, *up->solve_range, up->par_range1d, up->bcvals_cu,
+    up->kernels_cu, up->numnodes_global);
 
   // Set the corresponding entries to the biasing potential.
   up->bias_line_src(up, rhsin);
 }
 
-__global__ void gkyl_fem_poisson_perp_bias_src_kernel(
-  double *rhs_global, struct gkyl_rect_grid grid, const struct gkyl_range range,
-  struct gkyl_range par_range1d, struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global,
-  int num_bias_line, struct gkyl_poisson_bias_line *bias_lines)
+__global__ void gkyl_fem_poisson_perp_bias_src_kernel(double *rhs_global,
+  struct gkyl_rect_grid grid, const struct gkyl_range range, struct gkyl_range par_range1d,
+  struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global, int num_bias_line,
+  struct gkyl_poisson_bias_line *bias_lines)
 {
   const int bl_ndim_perp = 2;
 
@@ -269,7 +267,7 @@ __global__ void gkyl_fem_poisson_perp_bias_src_kernel(
           (idx[bl->perp_dirs[0]] == bl_idx_m[0] && idx[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
           (idx[bl->perp_dirs[0]] == bl_idx_m[0] + 1 && idx[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
         int edge[2] = { -1 + 2 * ((bl_idx_m[0] + 1) - idx[bl->perp_dirs[0]]),
-                        -1 + 2 * ((bl_idx_m[1] + 1) - idx[bl->perp_dirs[1]]) };
+          -1 + 2 * ((bl_idx_m[1] + 1) - idx[bl->perp_dirs[1]]) };
         kers->bias_src_ker[keri](edge, bl->perp_dirs, bl->val, parProbOff, globalidx, rhs_global);
       }
     }
@@ -279,14 +277,14 @@ __global__ void gkyl_fem_poisson_perp_bias_src_kernel(
 void gkyl_fem_poisson_perp_bias_src_enabled_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
-  gkyl_fem_poisson_perp_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads> > >(
-    rhs_cu, up->grid, *up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global,
-    up->num_bias_line, up->bias_lines);
+  gkyl_fem_poisson_perp_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads> > >(rhs_cu, up->grid,
+    *up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global, up->num_bias_line,
+    up->bias_lines);
 }
 
-__global__ void gkyl_fem_poisson_perp_get_sol_kernel(
-  struct gkyl_array *x_local, const double *x_global, struct gkyl_range range,
-  struct gkyl_range par_range1d, struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global)
+__global__ void gkyl_fem_poisson_perp_get_sol_kernel(struct gkyl_array *x_local,
+  const double *x_global, struct gkyl_range range, struct gkyl_range par_range1d,
+  struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global)
 {
   int idx[GKYL_MAX_CDIM];
   int idx0[GKYL_MAX_CDIM];
@@ -335,11 +333,10 @@ void gkyl_fem_poisson_perp_solve_cu(struct gkyl_fem_poisson_perp *up, struct gky
     phiout->on_dev, x_cu, *up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global);
 }
 
-__global__ void gkyl_fem_poisson_perp_update_lhs_kernel(
-  bool is_helmholtz, const double *dx, const double *bcvals, const struct gkyl_range range,
-  struct gkyl_range par_range1d, struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global,
-  struct gkyl_array *csr_val_idx, struct gkyl_array *epsilon, struct gkyl_array *kSq,
-  double *csr_values)
+__global__ void gkyl_fem_poisson_perp_update_lhs_kernel(bool is_helmholtz, const double *dx,
+  const double *bcvals, const struct gkyl_range range, struct gkyl_range par_range1d,
+  struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global, struct gkyl_array *csr_val_idx,
+  struct gkyl_array *epsilon, struct gkyl_array *kSq, double *csr_values)
 {
   int idx[GKYL_MAX_CDIM];
   int idx0[GKYL_MAX_CDIM];
@@ -385,8 +382,8 @@ __global__ void gkyl_fem_poisson_perp_update_lhs_kernel(
   }
 }
 
-void gkyl_fem_poisson_perp_update_lhs_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon,
-                                         struct gkyl_array *kSq)
+void gkyl_fem_poisson_perp_update_lhs_cu(
+  gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq)
 {
   gkyl_culinsolver_clear_csr_values(up->prob_cu, 0);
   double *csr_val_cu = gkyl_culinsolver_get_csr_values_ptr(up->prob_cu, 0);

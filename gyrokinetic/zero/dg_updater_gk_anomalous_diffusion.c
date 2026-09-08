@@ -45,8 +45,7 @@ struct gkyl_dg_updater_gk_anomalous_diffusion *gkyl_dg_updater_gk_anomalous_diff
   up->dgeqn =
     gkyl_gk_anomalous_diffusion_new(basis, cbasis, conf_range, bc_x_lower, bc_x_upper, up->use_gpu);
 
-  gkyl_gk_anomalous_diffusion_set_auxfields(
-    up->dgeqn,
+  gkyl_gk_anomalous_diffusion_set_auxfields(up->dgeqn,
     (struct gkyl_gk_anomalous_diffusion_auxfields){ .nu = nu, .jacobgeo_inv = jacobgeo_inv });
 
   int num_up_dirs = 1;
@@ -64,8 +63,8 @@ struct gkyl_dg_updater_gk_anomalous_diffusion *gkyl_dg_updater_gk_anomalous_diff
         (bc_x_upper == GKYL_BC_GK_SPECIES_FIXED_FUNC)))
     use_boundary_surf[0 + pdim] = 1;
 
-  up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, num_up_dirs, up_dirs, use_boundary_surf,
-                                  1, up->use_gpu);
+  up->hyperdg = gkyl_hyper_dg_new(
+    grid, basis, up->dgeqn, num_up_dirs, up_dirs, use_boundary_surf, 1, up->use_gpu);
 
   up->diffusion_tm = 0.0;
 

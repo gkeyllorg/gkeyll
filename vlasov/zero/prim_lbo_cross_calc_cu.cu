@@ -11,12 +11,12 @@ extern "C" {
 #include <stdio.h>
 }
 
-__global__ static void gkyl_prim_lbo_cross_calc_set_cu_ker(
-  gkyl_prim_lbo_cross_calc *calc, struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  const struct gkyl_range conf_rng, const struct gkyl_array *alpha_E, double self_m,
-  const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms, double other_m,
-  const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
-  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu)
+__global__ static void gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc *calc,
+  struct gkyl_nmat *As, struct gkyl_nmat *xs, const struct gkyl_range conf_rng,
+  const struct gkyl_array *alpha_E, double self_m, const struct gkyl_array *self_moms,
+  const struct gkyl_array *self_prim_moms, double other_m, const struct gkyl_array *other_moms,
+  const struct gkyl_array *other_prim_moms, const struct gkyl_array *boundary_corrections,
+  const struct gkyl_array *nu)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -47,14 +47,12 @@ __global__ static void gkyl_prim_lbo_cross_calc_set_cu_ker(
     gkyl_mat_clear(&rhs, 0.0);
 
     calc->prim->cross_prim(calc->prim, &lhs, &rhs, idx, alpha_E_d, self_m, self_moms_d,
-                           self_prim_moms_d, other_m, other_moms_d, other_prim_moms_d,
-                           boundary_corrections_d, nu_d);
+      self_prim_moms_d, other_m, other_moms_d, other_prim_moms_d, boundary_corrections_d, nu_d);
   }
 }
 
 __global__ static void gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
-                                                     const struct gkyl_range conf_rng, int nc,
-                                                     int udim, struct gkyl_array *prim_moms_out)
+  const struct gkyl_range conf_rng, int nc, int udim, struct gkyl_array *prim_moms_out)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -76,12 +74,12 @@ __global__ static void gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
   }
 }
 
-void gkyl_prim_lbo_cross_calc_advance_cu(
-  struct gkyl_prim_lbo_cross_calc *calc, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *alpha_E, double self_m, const struct gkyl_array *self_moms,
-  const struct gkyl_array *self_prim_moms, double other_m, const struct gkyl_array *other_moms,
-  const struct gkyl_array *other_prim_moms, const struct gkyl_array *boundary_corrections,
-  const struct gkyl_array *nu, struct gkyl_array *prim_moms_out)
+void gkyl_prim_lbo_cross_calc_advance_cu(struct gkyl_prim_lbo_cross_calc *calc,
+  const struct gkyl_range *conf_rng, const struct gkyl_array *alpha_E, double self_m,
+  const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms, double other_m,
+  const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu,
+  struct gkyl_array *prim_moms_out)
 {
   int nc = calc->prim->num_config;
   int udim = calc->prim->udim;
@@ -94,9 +92,9 @@ void gkyl_prim_lbo_cross_calc_advance_cu(
     calc->is_first = false;
   }
 
-  gkyl_prim_lbo_cross_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads> > >(
-    calc->on_dev, calc->As->on_dev, calc->xs->on_dev, *conf_rng, alpha_E->on_dev, self_m,
-    self_moms->on_dev, self_prim_moms->on_dev, other_m, other_moms->on_dev, other_prim_moms->on_dev,
+  gkyl_prim_lbo_cross_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads> > >(calc->on_dev,
+    calc->As->on_dev, calc->xs->on_dev, *conf_rng, alpha_E->on_dev, self_m, self_moms->on_dev,
+    self_prim_moms->on_dev, other_m, other_moms->on_dev, other_prim_moms->on_dev,
     boundary_corrections->on_dev, nu->on_dev);
 
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
@@ -105,8 +103,8 @@ void gkyl_prim_lbo_cross_calc_advance_cu(
     calc->xs->on_dev, *conf_rng, nc, udim, prim_moms_out->on_dev);
 }
 
-gkyl_prim_lbo_cross_calc *gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-                                                              struct gkyl_prim_lbo_type *prim)
+gkyl_prim_lbo_cross_calc *gkyl_prim_lbo_cross_calc_cu_dev_new(
+  const struct gkyl_rect_grid *grid, struct gkyl_prim_lbo_type *prim)
 {
   gkyl_prim_lbo_cross_calc *up =
     (gkyl_prim_lbo_cross_calc *)gkyl_malloc(sizeof(gkyl_prim_lbo_cross_calc));

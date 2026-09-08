@@ -3,11 +3,9 @@
 #include <gkyl_alloc.h>
 #include <assert.h>
 
-struct gkyl_bc_sheath_gyrokinetic *
-gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
-                               const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-                               const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm,
-                               bool use_gpu)
+struct gkyl_bc_sheath_gyrokinetic *gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
+  const struct gkyl_basis *basis, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
+  const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_bc_sheath_gyrokinetic *up = gkyl_malloc(sizeof(*up));
@@ -45,9 +43,8 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
 
 /* Modeled after gkyl_array_flip_copy_to_buffer_fn */
 void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up,
-                                        const struct gkyl_array *phi,
-                                        const struct gkyl_array *phi_wall, struct gkyl_array *distf,
-                                        const struct gkyl_range *conf_r)
+  const struct gkyl_array *phi, const struct gkyl_array *phi_wall, struct gkyl_array *distf,
+  const struct gkyl_range *conf_r)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {

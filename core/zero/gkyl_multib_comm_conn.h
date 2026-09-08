@@ -33,8 +33,8 @@ struct gkyl_multib_comm_conn {
  * @param comm_conn List of individual communication connections
  * @return New communication connection object
  */
-struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new(int num,
-                                                        const struct gkyl_comm_conn *comm_conn);
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new(
+  int num, const struct gkyl_comm_conn *comm_conn);
 
 /**
  * Construct the send communication connections for a rank from its
@@ -47,10 +47,9 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new(int num,
  * @param decomp List of decomposition objects for each block
  * @return New communication connection object for sends
  */
-struct gkyl_multib_comm_conn *
-gkyl_multib_comm_conn_new_send(int block_id, int block_rank, const int *nghost,
-                               const struct gkyl_block_connections *block_conn,
-                               struct gkyl_rect_decomp **decomp);
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send(int block_id, int block_rank,
+  const int *nghost, const struct gkyl_block_connections *block_conn,
+  struct gkyl_rect_decomp **decomp);
 
 /**
  * Construct the received communication connections for a rank from
@@ -63,10 +62,9 @@ gkyl_multib_comm_conn_new_send(int block_id, int block_rank, const int *nghost,
  * @param decomp List of decomposition objects for each block
  * @return New communication connection object receives
  */
-struct gkyl_multib_comm_conn *
-gkyl_multib_comm_conn_new_recv(int block_id, int block_rank, const int *nghost,
-                               const struct gkyl_block_connections *block_conn,
-                               struct gkyl_rect_decomp **decomp);
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv(int block_id, int block_rank,
+  const int *nghost, const struct gkyl_block_connections *block_conn,
+  struct gkyl_rect_decomp **decomp);
 
 /**
  * Construct the send communication connections for a rank from its
@@ -80,10 +78,9 @@ gkyl_multib_comm_conn_new_recv(int block_id, int block_rank, const int *nghost,
  * @param decomp List of decomposition objects for each block
  * @return New communication connection object for sends
  */
-struct gkyl_multib_comm_conn *
-gkyl_multib_comm_conn_new_send_from_connections(int block_id, int block_rank, const int *nghost,
-                                                int nconnected, int *block_list, int dir,
-                                                struct gkyl_rect_decomp **decomp);
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send_from_connections(int block_id,
+  int block_rank, const int *nghost, int nconnected, int *block_list, int dir,
+  struct gkyl_rect_decomp **decomp);
 
 /**
  * Construct the recv communication connections for a rank from its
@@ -97,10 +94,9 @@ gkyl_multib_comm_conn_new_send_from_connections(int block_id, int block_rank, co
  * @param decomp List of decomposition objects for each block
  * @return New communication connection object for sends
  */
-struct gkyl_multib_comm_conn *
-gkyl_multib_comm_conn_new_recv_from_connections(int block_id, int block_rank, const int *nghost,
-                                                int nconnected, int *block_list, int dir,
-                                                struct gkyl_rect_decomp **decomp);
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv_from_connections(int block_id,
+  int block_rank, const int *nghost, int nconnected, int *block_list, int dir,
+  struct gkyl_rect_decomp **decomp);
 
 /**
  * Transfer data from 'ain' and to 'aout' according to connections in
@@ -115,11 +111,9 @@ gkyl_multib_comm_conn_new_recv_from_connections(int block_id, int block_rank, co
  * @param arr_recv Array to receive into (for each local block).
  */
 int gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm, int num_blocks_local,
-                                         const int *local_blocks,
-                                         struct gkyl_multib_comm_conn **mbcc_send,
-                                         struct gkyl_multib_comm_conn **mbcc_recv,
-                                         struct gkyl_array **arr_send,
-                                         struct gkyl_array **arr_recv);
+  const int *local_blocks, struct gkyl_multib_comm_conn **mbcc_send,
+  struct gkyl_multib_comm_conn **mbcc_recv, struct gkyl_array **arr_send,
+  struct gkyl_array **arr_recv);
 
 /**
  * Create a multib range and extended range that spans
@@ -133,10 +127,8 @@ int gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm, int num_blocks_
  * @param decomp List of decomposition objects for each block
  */
 void gkyl_multib_comm_conn_create_multib_ranges_in_dir(struct gkyl_range *multib_range_ext,
-                                                       struct gkyl_range *multib_range,
-                                                       const int *nghost, int nconnected,
-                                                       int *block_list, int dir,
-                                                       struct gkyl_rect_decomp **decomp);
+  struct gkyl_range *multib_range, const int *nghost, int nconnected, int *block_list, int dir,
+  struct gkyl_rect_decomp **decomp);
 
 /**
  * Sort the connections in ascending order according to rank, and block id.

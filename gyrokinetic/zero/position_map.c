@@ -51,16 +51,13 @@ struct gkyl_position_map *gkyl_position_map_null_new()
 
 struct gkyl_position_map *gkyl_position_map_inew(struct gkyl_position_map_inew_inp inp)
 {
-  return gkyl_position_map_new(inp.pmap_info, inp.grid, inp.local, inp.local_ext, inp.global,
-                               inp.global_ext, inp.basis);
+  return gkyl_position_map_new(
+    inp.pmap_info, inp.grid, inp.local, inp.local_ext, inp.global, inp.global_ext, inp.basis);
 }
 
 struct gkyl_position_map *gkyl_position_map_new(struct gkyl_position_map_inp pmap_info,
-                                                struct gkyl_rect_grid grid, struct gkyl_range local,
-                                                struct gkyl_range local_ext,
-                                                struct gkyl_range global,
-                                                struct gkyl_range global_ext,
-                                                struct gkyl_basis basis)
+  struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_range local_ext,
+  struct gkyl_range global, struct gkyl_range global_ext, struct gkyl_basis basis)
 {
   struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
   gpm->id = pmap_info.id;
@@ -69,7 +66,7 @@ struct gkyl_position_map *gkyl_position_map_new(struct gkyl_position_map_inp pma
   gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, global_ext.volume);
   gpm->to_optimize = false;
   gpm->use_map_derivs = (pmap_info.id == GKYL_PMAP_XPT_COMPRESSION ||
-                         pmap_info.id == GKYL_PMAP_USER_INPUT_W_DERIVATIVE) ?
+                          pmap_info.id == GKYL_PMAP_USER_INPUT_W_DERIVATIVE) ?
                           true :
                           false;
 
@@ -172,8 +169,8 @@ void gkyl_position_map_set_mc2nu(struct gkyl_position_map *gpm, struct gkyl_arra
   gkyl_array_copy(gpm->mc2nu, mc2nu);
 }
 
-void gkyl_position_map_set_bmag(struct gkyl_position_map *gpm, struct gkyl_comm *comm,
-                                struct gkyl_array *bmag)
+void gkyl_position_map_set_bmag(
+  struct gkyl_position_map *gpm, struct gkyl_comm *comm, struct gkyl_array *bmag)
 {
   gpm->to_optimize = true;
   int N_boundaries = gpm->constB_ctx->N_theta_boundaries;
@@ -185,13 +182,13 @@ void gkyl_position_map_set_bmag(struct gkyl_position_map *gpm, struct gkyl_comm 
     gpm->bmag_ctx->bmag = gkyl_array_acquire(bmag);
     return;
   } else {
-    gkyl_comm_array_allgather_host(comm, &gpm->local, &gpm->global, bmag,
-                                   (struct gkyl_array *)gpm->bmag_ctx->bmag);
+    gkyl_comm_array_allgather_host(
+      comm, &gpm->local, &gpm->global, bmag, (struct gkyl_array *)gpm->bmag_ctx->bmag);
   }
 }
 
-void gkyl_position_map_set_compression(struct gkyl_position_map *gpm, double zcut, double zcenter,
-                                       double w, double psisep)
+void gkyl_position_map_set_compression(
+  struct gkyl_position_map *gpm, double zcut, double zcenter, double w, double psisep)
 {
   gpm->xpt_ctx->zcut = zcut;
   gpm->xpt_ctx->zcenter = zcenter;
@@ -220,8 +217,8 @@ void gkyl_position_map_set_compression(struct gkyl_position_map *gpm, double zcu
   }
 }
 
-void gkyl_position_map_eval_mc2nu(const struct gkyl_position_map *gpm, const double *x_comp,
-                                  double *x_fa)
+void gkyl_position_map_eval_mc2nu(
+  const struct gkyl_position_map *gpm, const double *x_comp, double *x_fa)
 {
   int cidx[GKYL_MAX_CDIM];
   for (int i = 0; i < gpm->grid.ndim; i++) {
@@ -248,8 +245,8 @@ void gkyl_position_map_eval_mc2nu(const struct gkyl_position_map *gpm, const dou
   x_fa[gpm->grid.ndim - 1] = xyz_fa[2];
 }
 
-void gkyl_position_map_optimize(struct gkyl_position_map *gpm, struct gkyl_rect_grid grid,
-                                struct gkyl_range global)
+void gkyl_position_map_optimize(
+  struct gkyl_position_map *gpm, struct gkyl_rect_grid grid, struct gkyl_range global)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   gpm->constB_ctx->psi_max = grid.upper[PSI_IDX];
@@ -305,7 +302,7 @@ void gkyl_position_map_optimize(struct gkyl_position_map *gpm, struct gkyl_rect_
 }
 
 double gkyl_position_map_slope(const struct gkyl_position_map *gpm, int ix_map, double x, double dx,
-                               int ix_comp, const struct gkyl_range *nrange)
+  int ix_comp, const struct gkyl_range *nrange)
 {
   if (gpm->use_map_derivs) {
     double slope;

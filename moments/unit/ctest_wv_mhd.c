@@ -38,14 +38,13 @@ void test_mhd_basic_ho()
   double u_dot_b = u * bx + v * by + w * bz;
   double E = q[4];
 
-  double fluxes[3][8] = {
-    { rho * u, rho * u * u - bx * bx + pr + pb, rho * u * v - bx * by, rho * u * w - bx * bz,
-      (E + pr + pb) * u - bx * u_dot_b, 0.0, u * by - v * bx, u * bz - w * bx },
+  double fluxes[3][8] = { { rho * u, rho * u * u - bx * bx + pr + pb, rho * u * v - bx * by,
+                            rho * u * w - bx * bz, (E + pr + pb) * u - bx * u_dot_b, 0.0,
+                            u * by - v * bx, u * bz - w * bx },
     { rho * v, rho * v * u - bx * by, rho * v * v - by * by + pr + pb, rho * v * w - by * bz,
       (E + pr + pb) * v - by * u_dot_b, v * bx - u * by, 0.0, v * bz - w * by },
     { rho * w, rho * w * u - bx * bz, rho * w * v - by * bz, rho * w * w - bz * bz + pr + pb,
-      (E + pr + pb) * w - bz * u_dot_b, w * bx - u * bz, w * by - v * bz, 0.0 }
-  };
+      (E + pr + pb) * w - bz * u_dot_b, w * bx - u * bz, w * by - v * bz, 0.0 } };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -89,8 +88,8 @@ void test_mhd_basic_ho()
 /* CHECK IF SUM OF LEFT/RIGHT GOING FLUCTUATIONS SUM TO JUMP IN FLUX */
 /*********************************************************************/
 void do_test_mhd_qfluct(enum gkyl_wv_mhd_rp rp_type, enum gkyl_wv_flux_type ftype,
-                        enum gkyl_wv_mhd_div_constraint divb, const double vl[], const double vr[],
-                        const int d, const double eps)
+  enum gkyl_wv_mhd_div_constraint divb, const double vl[], const double vr[], const int d,
+  const double eps)
 {
   double gas_gamma = 5.0 / 3.0;
   double ch = 1.2345;
@@ -129,8 +128,8 @@ void do_test_mhd_qfluct(enum gkyl_wv_mhd_rp rp_type, enum gkyl_wv_flux_type ftyp
   gkyl_wv_eqn_waves(eqn, ftype, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
   // compute left/right-going fluctuations in local frame
-  gkyl_wv_eqn_qfluct(eqn, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local,
-                     apdq_local);
+  gkyl_wv_eqn_qfluct(
+    eqn, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
   // compute fluxes in local frame
   if (divb == GKYL_MHD_DIVB_GLM) {
@@ -143,8 +142,8 @@ void do_test_mhd_qfluct(enum gkyl_wv_mhd_rp rp_type, enum gkyl_wv_flux_type ftyp
 
   // rotate local-frame waves back to global frame
   for (int mw = 0; mw < mwv; ++mw)
-    gkyl_wv_eqn_rotate_to_global(eqn, tau1[d], tau2[d], norm[d], &waves_local[mw * meq],
-                                 &waves[mw * meq]);
+    gkyl_wv_eqn_rotate_to_global(
+      eqn, tau1[d], tau2[d], norm[d], &waves_local[mw * meq], &waves[mw * meq]);
 
   // rotate local-frame fluctuations back to global frame
   gkyl_wv_eqn_rotate_to_global(eqn, tau1[d], tau2[d], norm[d], amdq_local, amdq);
@@ -242,10 +241,8 @@ void test_glm_mhd_qfluct_hlld_ho()
 }
 
 TEST_LIST = { { "mhd_basic_ho", test_mhd_basic_ho },
-              { "mhd_qfluct_lax_ho", test_mhd_qfluct_lax_ho },
-              { "mhd_qfluct_roe_ho", test_mhd_qfluct_roe_ho },
-              { "mhd_qfluct_hlld_ho", test_mhd_qfluct_hlld_ho },
-              { "glm_mhd_qfluct_lax_ho", test_glm_mhd_qfluct_lax_ho },
-              { "glm_mhd_qfluct_roe_ho", test_glm_mhd_qfluct_roe_ho },
-              { "glm_mhd_qfluct_hlld_ho", test_glm_mhd_qfluct_hlld_ho },
-              { NULL, NULL } };
+  { "mhd_qfluct_lax_ho", test_mhd_qfluct_lax_ho }, { "mhd_qfluct_roe_ho", test_mhd_qfluct_roe_ho },
+  { "mhd_qfluct_hlld_ho", test_mhd_qfluct_hlld_ho },
+  { "glm_mhd_qfluct_lax_ho", test_glm_mhd_qfluct_lax_ho },
+  { "glm_mhd_qfluct_roe_ho", test_glm_mhd_qfluct_roe_ho },
+  { "glm_mhd_qfluct_hlld_ho", test_glm_mhd_qfluct_hlld_ho }, { NULL, NULL } };

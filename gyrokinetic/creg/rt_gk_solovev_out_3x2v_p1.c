@@ -68,7 +68,7 @@ void eval_density(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
     source_floor = 1e-2; // higher floor to left of source peak
   source_density =
     fmax(exp(-(x - x_source) * (x - x_source) / ((2 * lambda_source) * (2 * lambda_source))),
-         source_floor);
+      source_floor);
 
   // find source temp at z = 0
   double source_temp = 0;
@@ -120,8 +120,8 @@ void eval_temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
     fout[0] = 20 * eV;
 }
 
-void eval_density_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                         void *ctx)
+void eval_density_source(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_solovev_ctx *app = ctx;
   double x = xn[0], y = xn[1], z = xn[2];
@@ -134,19 +134,19 @@ void eval_density_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_
   if (fabs(z) < Lz / 4)
     fout[0] = 3.800419e+23 * fmax(exp(-(x - x_source) * (x - x_source) /
                                       ((2 * lambda_source) * (2 * lambda_source))),
-                                  source_floor);
+                               source_floor);
   else
     fout[0] = 3.800419e+23 * 1e-40;
 }
 
-void eval_upar_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void eval_upar_source(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void eval_temp_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                          void *ctx)
+void eval_temp_elc_source(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_solovev_ctx *app = ctx;
   double x = xn[0], y = xn[1], z = xn[2];
@@ -159,8 +159,8 @@ void eval_temp_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL
     fout[0] = 30 * eV;
 }
 
-void eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                          void *ctx)
+void eval_temp_ion_source(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_solovev_ctx *app = ctx;
   double x = xn[0], y = xn[1], z = xn[2];
@@ -265,41 +265,41 @@ struct gk_solovev_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_solovev_ctx ctx = { .cdim = cdim,
-                                .vdim = vdim,
-                                .chargeElc = qe,
-                                .massElc = me,
-                                .chargeIon = qi,
-                                .massIon = mi,
-                                .Te = Te,
-                                .Ti = Ti,
-                                .c_s = c_s,
-                                .nuElc = nuElc,
-                                .nuIon = nuIon,
-                                .nuElcIon = nuElcIon,
-                                .nuIonElc = nuIonElc,
-                                .B0 = B0,
-                                .n0 = n0,
-                                .Lx = Lx,
-                                .Ly = Ly,
-                                .Lz = Lz,
-                                .lambda_source = lambda_source,
-                                .x_source = x_source,
-                                .vpar_max_elc = vpar_max_elc,
-                                .mu_max_elc = mu_max_elc,
-                                .vpar_max_ion = vpar_max_ion,
-                                .mu_max_ion = mu_max_ion,
-                                .Nx = Nx,
-                                .Ny = Ny,
-                                .Nz = Nz,
-                                .Nvpar = Nvpar,
-                                .Nmu = Nmu,
-                                .cells = { Nx, Ny, Nz, Nvpar, Nmu },
-                                .t_end = t_end,
-                                .num_frames = num_frames,
-                                .write_phase_freq = write_phase_freq,
-                                .int_diag_calc_num = int_diag_calc_num,
-                                .dt_failure_tol = dt_failure_tol,
-                                .num_failures_max = num_failures_max };
+    .vdim = vdim,
+    .chargeElc = qe,
+    .massElc = me,
+    .chargeIon = qi,
+    .massIon = mi,
+    .Te = Te,
+    .Ti = Ti,
+    .c_s = c_s,
+    .nuElc = nuElc,
+    .nuIon = nuIon,
+    .nuElcIon = nuElcIon,
+    .nuIonElc = nuIonElc,
+    .B0 = B0,
+    .n0 = n0,
+    .Lx = Lx,
+    .Ly = Ly,
+    .Lz = Lz,
+    .lambda_source = lambda_source,
+    .x_source = x_source,
+    .vpar_max_elc = vpar_max_elc,
+    .mu_max_elc = mu_max_elc,
+    .vpar_max_ion = vpar_max_ion,
+    .mu_max_ion = mu_max_ion,
+    .Nx = Nx,
+    .Ny = Ny,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = { Nx, Ny, Nz, Nvpar, Nmu },
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .write_phase_freq = write_phase_freq,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
   return ctx;
 }
 
@@ -470,12 +470,9 @@ int main(int argc, char **argv)
                        .edge = GKYL_LOWER_EDGE,
                        .type = GKYL_BC_GK_FIELD_DIRICHLET,
                        .value = { 0.0 } },
-                     { .dir = 0,
-                       .edge = GKYL_UPPER_EDGE,
-                       .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                       .value = { 0.0 } },
-                     { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC },
-                     { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC } },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = { 0.0 } },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC } },
     .time_rate_diagnostics = true
   };
 
@@ -508,8 +505,8 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = { .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-                  .efit_info = efit_inp,
-                  .tok_grid_info = grid_inp },
+      .efit_info = efit_inp,
+      .tok_grid_info = grid_inp },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
@@ -519,23 +516,22 @@ int main(int argc, char **argv)
     .field = field,
 
     .parallelism = { .use_gpu = app_args.use_gpu,
-                     .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
-                     .comm = comm }
+      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .comm = comm }
   };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-                                              .time_stepping = {
-                                                .t_end = ctx.t_end,
-                                                .num_frames = ctx.num_frames,
-                                                .write_phase_freq = ctx.write_phase_freq,
-                                                .int_diag_calc_num = ctx.int_diag_calc_num,
-                                                .dt_failure_tol = ctx.dt_failure_tol,
-                                                .num_failures_max = ctx.num_failures_max,
-                                                .is_restart = app_args.is_restart,
-                                                .restart_frame = app_args.restart_frame,
-                                                .num_steps = app_args.num_steps } };
+    .time_stepping = { .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps } };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 

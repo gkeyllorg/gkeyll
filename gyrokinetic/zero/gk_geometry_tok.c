@@ -82,8 +82,8 @@ struct gk_geometry *gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_i
   gkyl_tok_geo_calc_interior(up, &up->nrange_int, up->dzc, geo, &ginp, geometry_inp->position_map);
   // Calculate bmag and mapc2p in cylindrical coords at surfaces.
   for (int dir = 0; dir < up->grid.ndim; dir++)
-    gkyl_tok_geo_calc_surface(up, dir, &up->nrange_surf[dir], up->dzc, geo, &ginp,
-                              geometry_inp->position_map);
+    gkyl_tok_geo_calc_surface(
+      up, dir, &up->nrange_surf[dir], up->dzc, geo, &ginp, geometry_inp->position_map);
 
   // Now calculate the metrics at interior nodes.
   struct gkyl_calc_metric *mcalc = gkyl_calc_metric_new(
@@ -96,10 +96,9 @@ struct gk_geometry *gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_i
   gkyl_rz_calc_derived_geo *jcalculator =
     gkyl_rz_calc_derived_geo_new(&up->basis, &up->grid, 1, false);
   gkyl_rz_calc_derived_geo_advance(jcalculator, &up->local, up->geo_int.g_ij, up->geo_int.bmag,
-                                   up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij,
-                                   up->geo_int.b_i, up->geo_int.cmag, up->geo_int.jacobtot,
-                                   up->geo_int.jacobtot_inv, up->geo_int.gxxj, up->geo_int.gxyj,
-                                   up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
+    up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij, up->geo_int.b_i,
+    up->geo_int.cmag, up->geo_int.jacobtot, up->geo_int.jacobtot_inv, up->geo_int.gxxj,
+    up->geo_int.gxyj, up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
   gkyl_rz_calc_derived_geo_release(jcalculator);
   // Calculate metrics/derived geo quantities at surface.
   for (int dir = 0; dir < up->grid.ndim; dir++) {
@@ -208,8 +207,8 @@ struct gk_geometry *gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geomet
     else
       gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
-    gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm,
-                               gk_geom->geo_int.bmag);
+    gkyl_position_map_set_bmag(
+      geometry_inp->position_map, geometry_inp->comm, gk_geom->geo_int.bmag);
 
     gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
@@ -220,8 +219,7 @@ struct gk_geometry *gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geomet
 }
 
 void gkyl_gk_geometry_tok_set_grid_extents(struct gkyl_efit_inp efit_info,
-                                           struct gkyl_tok_geo_grid_inp grid_info, double *theta_lo,
-                                           double *theta_up)
+  struct gkyl_tok_geo_grid_inp grid_info, double *theta_lo, double *theta_up)
 {
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&efit_info, &grid_info);
   gkyl_tok_geo_set_extent(&grid_info, geo, theta_lo, theta_up);

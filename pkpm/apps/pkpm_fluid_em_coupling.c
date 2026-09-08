@@ -21,14 +21,13 @@ struct pkpm_fluid_em_coupling *pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app 
 
   // Initialize solver
   pkpm_em->slvr = gkyl_dg_calc_pkpm_em_coupling_new(&app->confBasis, &app->local, num_species, qbym,
-                                                    app->field->info.epsilon0,
-                                                    app->field->info.is_static, app->use_gpu);
+    app->field->info.epsilon0, app->field->info.is_static, app->use_gpu);
 
   return pkpm_em;
 }
 
-void pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app,
-                                   struct pkpm_fluid_em_coupling *pkpm_em, double tcurr, double dt)
+void pkpm_fluid_em_coupling_update(
+  struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em, double tcurr, double dt)
 {
   int num_species = app->num_species;
 
@@ -43,8 +42,8 @@ void pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app,
     // Compute the PKPM moments from the kinetic equation at the current time
     pkpm_species_moment_calc(&s->pkpm_moms, s->local, app->local, s->f);
     // Compute the flow velocity at the current time
-    gkyl_dg_calc_pkpm_vars_u(s->calc_pkpm_vars, s->pkpm_moms.marr, s->fluid, s->cell_avg_prim,
-                             s->pkpm_u);
+    gkyl_dg_calc_pkpm_vars_u(
+      s->calc_pkpm_vars, s->pkpm_moms.marr, s->fluid, s->cell_avg_prim, s->pkpm_u);
 
     fluids[i] = s->fluid;
     vlasov_pkpm_moms[i] = s->pkpm_moms.marr;
@@ -68,8 +67,7 @@ void pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app,
   }
 
   gkyl_dg_calc_pkpm_em_coupling_advance(pkpm_em->slvr, dt, app_accels, app->field->ext_em,
-                                        app->field->app_current, vlasov_pkpm_moms, pkpm_u, fluids,
-                                        app->field->em);
+    app->field->app_current, vlasov_pkpm_moms, pkpm_u, fluids, app->field->em);
 
   for (int i = 0; i < num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
@@ -78,8 +76,8 @@ void pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app,
   pkpm_field_apply_bc(app, app->field, app->field->em);
 }
 
-void pkpm_fluid_em_coupling_release(struct gkyl_pkpm_app *app,
-                                    struct pkpm_fluid_em_coupling *pkpm_em)
+void pkpm_fluid_em_coupling_release(
+  struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em)
 {
   gkyl_dg_calc_pkpm_em_coupling_release(pkpm_em->slvr);
   gkyl_free(pkpm_em);

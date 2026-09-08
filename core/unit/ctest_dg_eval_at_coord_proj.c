@@ -73,8 +73,8 @@ static void test_1x_to_scalar(int poly_order, bool use_gpu)
   double eval_coords[] = { x0 };
   bool pick_lower[] = { false };
   int known_index[] = { -1 };
-  gkyl_dg_eval_at_coord_proj_advance(up, eval_coords, &grid_do, pick_lower, known_index, &local_do,
-                                     &local_tar, fdo, ftar);
+  gkyl_dg_eval_at_coord_proj_advance(
+    up, eval_coords, &grid_do, pick_lower, known_index, &local_do, &local_tar, fdo, ftar);
 
   // Reference: f(x0) / sqrt(2).
   double fref;
@@ -132,8 +132,8 @@ static void eval_f_2x_at_coord(double t, const double *xn, double *restrict fout
 }
 
 static void test_2x_ev_at_1dcoord(int ndim_do, const double *lower_do, const double *upper_do,
-                                  const int *cells_do, int num_eval_dirs, const int *eval_dirs,
-                                  const double *eval_coords, int poly_order, bool use_gpu)
+  const int *cells_do, int num_eval_dirs, const int *eval_dirs, const double *eval_coords,
+  int poly_order, bool use_gpu)
 {
   // Project a 2D DG field onto 1D by evaluating in x at a fixed
   // computational coordinate x0. Verified by comparing against a direct 1D
@@ -206,8 +206,8 @@ static void test_2x_ev_at_1dcoord(int ndim_do, const double *lower_do, const dou
 
   // Project f at eval_coords[0] directly onto the target basis.
   struct gkyl_array *fref_ho = mkarr(false, basis_tar.num_basis, local_ext_tar.volume);
-  gkyl_proj_on_basis *proj_tar = gkyl_proj_on_basis_new(&grid_tar, &basis_tar, poly_order + 1, 1,
-                                                        eval_f_2x_at_coord, &eval_params);
+  gkyl_proj_on_basis *proj_tar = gkyl_proj_on_basis_new(
+    &grid_tar, &basis_tar, poly_order + 1, 1, eval_f_2x_at_coord, &eval_params);
   gkyl_proj_on_basis_advance(proj_tar, 0.0, &local_tar, fref_ho);
 
   // Evaluate eval_coords and project.
@@ -219,8 +219,8 @@ static void test_2x_ev_at_1dcoord(int ndim_do, const double *lower_do, const dou
                                          gkyl_array_acquire(ftar);
   bool pick_lower[] = { false, false, false, false, false, false };
   int known_index[] = { -1, -1, -1, -1, -1, -1 };
-  gkyl_dg_eval_at_coord_proj_advance(up, eval_coords, &grid_do, pick_lower, known_index, &local_do,
-                                     &local_tar, fdo, ftar);
+  gkyl_dg_eval_at_coord_proj_advance(
+    up, eval_coords, &grid_do, pick_lower, known_index, &local_do, &local_tar, fdo, ftar);
 
   // Check answer.
   gkyl_array_copy(ftar_ho, ftar);
@@ -264,13 +264,13 @@ static void test_2x_to_1x(int poly_order, bool use_gpu)
   eval_dirs[0] = 0;
   eval_coords[0] = 0.75; // lies in the second x-cell [0.5, 1.0]
   test_2x_ev_at_1dcoord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs, eval_dirs,
-                        eval_coords, poly_order, use_gpu);
+    eval_coords, poly_order, use_gpu);
 
   // Evaluate at y.
   eval_dirs[0] = 1;
   eval_coords[0] = 0.25; // lies in the second x-cell [0.5, 1.0]
   test_2x_ev_at_1dcoord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs, eval_dirs,
-                        eval_coords, poly_order, use_gpu);
+    eval_coords, poly_order, use_gpu);
 }
 
 static void test_2x_to_scalar(int poly_order, bool use_gpu)
@@ -324,8 +324,8 @@ static void test_2x_to_scalar(int poly_order, bool use_gpu)
   double eval_coords[] = { x0, y0 };
   bool pick_lower[] = { false, false };
   int known_index[] = { -1, -1 };
-  gkyl_dg_eval_at_coord_proj_advance(up, eval_coords, &grid_do, pick_lower, known_index, &local_do,
-                                     &local_tar, fdo, ftar);
+  gkyl_dg_eval_at_coord_proj_advance(
+    up, eval_coords, &grid_do, pick_lower, known_index, &local_do, &local_tar, fdo, ftar);
 
   // Check the results.
   double fref;
@@ -375,8 +375,8 @@ static void eval_f_3x_at_coord(double t, const double *xn, double *restrict fout
 }
 
 static void test_3x_ev_at_coord(int ndim_do, const double *lower_do, const double *upper_do,
-                                const int *cells_do, int num_eval_dirs, const int *eval_dirs,
-                                const double *eval_coords, int poly_order, bool use_gpu)
+  const int *cells_do, int num_eval_dirs, const int *eval_dirs, const double *eval_coords,
+  int poly_order, bool use_gpu)
 {
   // Project a 3D DG field onto a lower-dimensional target by evaluating at
   // fixed coordinates in eval_dirs. Verified by comparing against a direct
@@ -447,8 +447,8 @@ static void test_3x_ev_at_coord(int ndim_do, const double *lower_do, const doubl
 
   // Project f at eval_coords directly onto the target basis.
   struct gkyl_array *fref_ho = mkarr(false, basis_tar.num_basis, local_ext_tar.volume);
-  gkyl_proj_on_basis *proj_tar = gkyl_proj_on_basis_new(&grid_tar, &basis_tar, poly_order + 1, 1,
-                                                        eval_f_3x_at_coord, &eval_params);
+  gkyl_proj_on_basis *proj_tar = gkyl_proj_on_basis_new(
+    &grid_tar, &basis_tar, poly_order + 1, 1, eval_f_3x_at_coord, &eval_params);
   gkyl_proj_on_basis_advance(proj_tar, 0.0, &local_tar, fref_ho);
 
   // Evaluate eval_coords and project.
@@ -460,8 +460,8 @@ static void test_3x_ev_at_coord(int ndim_do, const double *lower_do, const doubl
                                          gkyl_array_acquire(ftar);
   bool pick_lower[] = { false, false, false, false, false, false };
   int known_index[] = { -1, -1, -1, -1, -1, -1 };
-  gkyl_dg_eval_at_coord_proj_advance(up, eval_coords, &grid_do, pick_lower, known_index, &local_do,
-                                     &local_tar, fdo, ftar);
+  gkyl_dg_eval_at_coord_proj_advance(
+    up, eval_coords, &grid_do, pick_lower, known_index, &local_do, &local_tar, fdo, ftar);
 
   // Check answer.
   gkyl_array_copy(ftar_ho, ftar);
@@ -501,19 +501,19 @@ static void test_3x_to_2x(int poly_order, bool use_gpu)
   eval_dirs[0] = 0;
   eval_coords[0] = 0.75;
   test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs, eval_dirs, eval_coords,
-                      poly_order, use_gpu);
+    poly_order, use_gpu);
 
   // Evaluate at y.
   eval_dirs[0] = 1;
   eval_coords[0] = 0.25;
   test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs, eval_dirs, eval_coords,
-                      poly_order, use_gpu);
+    poly_order, use_gpu);
 
   // Evaluate at z.
   eval_dirs[0] = 2;
   eval_coords[0] = 0.6;
   test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs, eval_dirs, eval_coords,
-                      poly_order, use_gpu);
+    poly_order, use_gpu);
 }
 
 static void test_3x_to_1x(int poly_order, bool use_gpu)
@@ -532,7 +532,7 @@ static void test_3x_to_1x(int poly_order, bool use_gpu)
   eval_coords[0] = 0.75;
   eval_coords[1] = 0.25;
   test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs, eval_dirs, eval_coords,
-                      poly_order, use_gpu);
+    poly_order, use_gpu);
 
   // Evaluate at (x, z).
   eval_dirs[0] = 0;
@@ -540,7 +540,7 @@ static void test_3x_to_1x(int poly_order, bool use_gpu)
   eval_coords[0] = 0.75;
   eval_coords[1] = 0.6;
   test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs, eval_dirs, eval_coords,
-                      poly_order, use_gpu);
+    poly_order, use_gpu);
 
   // Evaluate at (y, z).
   eval_dirs[0] = 1;
@@ -548,7 +548,7 @@ static void test_3x_to_1x(int poly_order, bool use_gpu)
   eval_coords[0] = 0.25;
   eval_coords[1] = 0.6;
   test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs, eval_dirs, eval_coords,
-                      poly_order, use_gpu);
+    poly_order, use_gpu);
 }
 
 static void test_3x_to_scalar(int poly_order, bool use_gpu)
@@ -602,8 +602,8 @@ static void test_3x_to_scalar(int poly_order, bool use_gpu)
   double eval_coords[] = { x0, y0, z0 };
   bool pick_lower[] = { false, false, false };
   int known_index[] = { -1, -1, -1 };
-  gkyl_dg_eval_at_coord_proj_advance(up, eval_coords, &grid_do, pick_lower, known_index, &local_do,
-                                     &local_tar, fdo, ftar);
+  gkyl_dg_eval_at_coord_proj_advance(
+    up, eval_coords, &grid_do, pick_lower, known_index, &local_do, &local_tar, fdo, ftar);
 
   // Reference: f(x0, y0, z0) / sqrt(2).
   double fref;
@@ -716,23 +716,23 @@ void test_dg_evproj_3x_to_scalar_p1_dev(void)
 #endif
 
 TEST_LIST = { { "test_dg_evproj_1x_to_scalar_p1_ho", test_dg_evproj_1x_to_scalar_p1_ho },
-              { "test_dg_evproj_1x_to_scalar_p2_ho", test_dg_evproj_1x_to_scalar_p2_ho },
-              { "test_dg_evproj_2x_to_1x_p1_ho", test_dg_evproj_2x_to_1x_p1_ho },
-              { "test_dg_evproj_2x_to_1x_p2_ho", test_dg_evproj_2x_to_1x_p2_ho },
-              { "test_dg_evproj_2x_to_scalar_p1_ho", test_dg_evproj_2x_to_scalar_p1_ho },
-              { "test_dg_evproj_2x_to_scalar_p2_ho", test_dg_evproj_2x_to_scalar_p2_ho },
-              { "test_dg_evproj_3x_to_2x_p1_ho", test_dg_evproj_3x_to_2x_p1_ho },
-              { "test_dg_evproj_3x_to_1x_p1_ho", test_dg_evproj_3x_to_1x_p1_ho },
-              { "test_dg_evproj_3x_to_scalar_p1_ho", test_dg_evproj_3x_to_scalar_p1_ho },
+  { "test_dg_evproj_1x_to_scalar_p2_ho", test_dg_evproj_1x_to_scalar_p2_ho },
+  { "test_dg_evproj_2x_to_1x_p1_ho", test_dg_evproj_2x_to_1x_p1_ho },
+  { "test_dg_evproj_2x_to_1x_p2_ho", test_dg_evproj_2x_to_1x_p2_ho },
+  { "test_dg_evproj_2x_to_scalar_p1_ho", test_dg_evproj_2x_to_scalar_p1_ho },
+  { "test_dg_evproj_2x_to_scalar_p2_ho", test_dg_evproj_2x_to_scalar_p2_ho },
+  { "test_dg_evproj_3x_to_2x_p1_ho", test_dg_evproj_3x_to_2x_p1_ho },
+  { "test_dg_evproj_3x_to_1x_p1_ho", test_dg_evproj_3x_to_1x_p1_ho },
+  { "test_dg_evproj_3x_to_scalar_p1_ho", test_dg_evproj_3x_to_scalar_p1_ho },
 #ifdef GKYL_HAVE_CUDA
-              { "test_dg_evproj_1x_to_scalar_p1_dev", test_dg_evproj_1x_to_scalar_p1_dev },
-              { "test_dg_evproj_1x_to_scalar_p2_dev", test_dg_evproj_1x_to_scalar_p2_dev },
-              { "test_dg_evproj_2x_to_1x_p1_dev", test_dg_evproj_2x_to_1x_p1_dev },
-              { "test_dg_evproj_2x_to_1x_p2_dev", test_dg_evproj_2x_to_1x_p2_dev },
-              { "test_dg_evproj_2x_to_scalar_p1_dev", test_dg_evproj_2x_to_scalar_p1_dev },
-              { "test_dg_evproj_2x_to_scalar_p2_dev", test_dg_evproj_2x_to_scalar_p2_dev },
-              { "test_dg_evproj_3x_to_2x_p1_dev", test_dg_evproj_3x_to_2x_p1_dev },
-              { "test_dg_evproj_3x_to_1x_p1_dev", test_dg_evproj_3x_to_1x_p1_dev },
-              { "test_dg_evproj_3x_to_scalar_p1_dev", test_dg_evproj_3x_to_scalar_p1_dev },
+  { "test_dg_evproj_1x_to_scalar_p1_dev", test_dg_evproj_1x_to_scalar_p1_dev },
+  { "test_dg_evproj_1x_to_scalar_p2_dev", test_dg_evproj_1x_to_scalar_p2_dev },
+  { "test_dg_evproj_2x_to_1x_p1_dev", test_dg_evproj_2x_to_1x_p1_dev },
+  { "test_dg_evproj_2x_to_1x_p2_dev", test_dg_evproj_2x_to_1x_p2_dev },
+  { "test_dg_evproj_2x_to_scalar_p1_dev", test_dg_evproj_2x_to_scalar_p1_dev },
+  { "test_dg_evproj_2x_to_scalar_p2_dev", test_dg_evproj_2x_to_scalar_p2_dev },
+  { "test_dg_evproj_3x_to_2x_p1_dev", test_dg_evproj_3x_to_2x_p1_dev },
+  { "test_dg_evproj_3x_to_1x_p1_dev", test_dg_evproj_3x_to_1x_p1_dev },
+  { "test_dg_evproj_3x_to_scalar_p1_dev", test_dg_evproj_3x_to_scalar_p1_dev },
 #endif
-              { NULL, NULL } };
+  { NULL, NULL } };

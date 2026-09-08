@@ -9,10 +9,9 @@
 #include <gkyl_dg_calc_canonical_pb_vars_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_canonical_pb_vars *
-gkyl_dg_calc_canonical_pb_vars_new(const struct gkyl_rect_grid *phase_grid,
-                                   const struct gkyl_basis *conf_basis,
-                                   const struct gkyl_basis *phase_basis, bool use_gpu)
+gkyl_dg_calc_canonical_pb_vars *gkyl_dg_calc_canonical_pb_vars_new(
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -51,17 +50,15 @@ gkyl_dg_calc_canonical_pb_vars_new(const struct gkyl_rect_grid *phase_grid,
   return up;
 }
 
-void gkyl_dg_calc_canonical_pb_vars_alpha_surf(
-  struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range,
-  struct gkyl_array *hamil, struct gkyl_array *alpha_surf, struct gkyl_array *sgn_alpha_surf,
-  struct gkyl_array *const_sgn_alpha)
+void gkyl_dg_calc_canonical_pb_vars_alpha_surf(struct gkyl_dg_calc_canonical_pb_vars *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *phase_ext_range, struct gkyl_array *hamil, struct gkyl_array *alpha_surf,
+  struct gkyl_array *sgn_alpha_surf, struct gkyl_array *const_sgn_alpha)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_surf)) {
     return gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(up, conf_range, phase_range,
-                                                        phase_ext_range, hamil, alpha_surf,
-                                                        sgn_alpha_surf, const_sgn_alpha);
+      phase_ext_range, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
   }
 #endif
   int pdim = up->pdim;
@@ -84,16 +81,14 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf(
 
     // Fill in the velocity space alpha_surf
     for (int dir = 0; dir < vdim; ++dir) {
-      const_sgn_alpha_d[dir + cdim] = up->alpha_surf[dir + cdim](
-        xc, up->phase_grid.dx, (const double *)gkyl_array_cfetch(hamil, loc_phase), alpha_surf_d,
-        sgn_alpha_surf_d);
+      const_sgn_alpha_d[dir + cdim] = up->alpha_surf[dir + cdim](xc, up->phase_grid.dx,
+        (const double *)gkyl_array_cfetch(hamil, loc_phase), alpha_surf_d, sgn_alpha_surf_d);
     }
 
     // Fill in the conf space alpha_surf
     for (int dir = 0; dir < cdim; ++dir) {
-      const_sgn_alpha_d[dir] = up->alpha_surf[dir](
-        xc, up->phase_grid.dx, (const double *)gkyl_array_cfetch(hamil, loc_phase), alpha_surf_d,
-        sgn_alpha_surf_d);
+      const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx,
+        (const double *)gkyl_array_cfetch(hamil, loc_phase), alpha_surf_d, sgn_alpha_surf_d);
 
       // If the phase space index is at the local configuration space upper value, we
       // we are at the configuration space upper edge and we also need to evaluate
@@ -108,23 +103,23 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf(
         double *alpha_surf_ext_d = gkyl_array_fetch(alpha_surf, loc_phase_ext);
         double *sgn_alpha_surf_ext_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
         int *const_sgn_alpha_ext_d = gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
-        const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](
-          xc, up->phase_grid.dx, (const double *)gkyl_array_cfetch(hamil, loc_phase),
-          alpha_surf_ext_d, sgn_alpha_surf_ext_d);
+        const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->phase_grid.dx,
+          (const double *)gkyl_array_cfetch(hamil, loc_phase), alpha_surf_ext_d,
+          sgn_alpha_surf_ext_d);
       }
     }
   }
 }
 
-void gkyl_canonical_pb_contra_to_covariant_m1i(
-  struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *h_ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
-  struct gkyl_array *V_drift_cov, struct gkyl_array *M1i_cov)
+void gkyl_canonical_pb_contra_to_covariant_m1i(struct gkyl_dg_calc_canonical_pb_vars *up,
+  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
+  const struct gkyl_array *V_drift, const struct gkyl_array *M1i, struct gkyl_array *V_drift_cov,
+  struct gkyl_array *M1i_cov)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(V_drift_cov)) {
-    return gkyl_canonical_pb_contra_to_covariant_m1i_cu(up, conf_range, h_ij, V_drift, M1i,
-                                                        V_drift_cov, M1i_cov);
+    return gkyl_canonical_pb_contra_to_covariant_m1i_cu(
+      up, conf_range, h_ij, V_drift, M1i, V_drift_cov, M1i_cov);
   }
 #endif
   int cdim = up->cdim;
@@ -145,10 +140,9 @@ void gkyl_canonical_pb_contra_to_covariant_m1i(
 }
 
 void gkyl_canonical_pb_pressure(struct gkyl_dg_calc_canonical_pb_vars *up,
-                                const struct gkyl_range *conf_range,
-                                const struct gkyl_array *h_ij_inv, const struct gkyl_array *MEnergy,
-                                const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
-                                struct gkyl_array *pressure)
+  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij_inv,
+  const struct gkyl_array *MEnergy, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
+  struct gkyl_array *pressure)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pressure)) {

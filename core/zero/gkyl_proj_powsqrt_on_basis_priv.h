@@ -18,5 +18,5 @@ struct gkyl_proj_powsqrt_on_basis {
 };
 
 void gkyl_proj_powsqrt_on_basis_advance_cu(const gkyl_proj_powsqrt_on_basis *up,
-                                           const struct gkyl_range *range, double expIn,
-                                           const struct gkyl_array *fIn, struct gkyl_array *fOut);
+  const struct gkyl_range *range, double expIn, const struct gkyl_array *fIn,
+  struct gkyl_array *fOut);

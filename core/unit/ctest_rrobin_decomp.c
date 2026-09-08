@@ -190,10 +190,9 @@ static void test_rrobin_decomp_7_ho(void)
 }
 
 TEST_LIST = { { "test_rrobin_decomp_1_ho", test_rrobin_decomp_1_ho },
-              { "test_rrobin_decomp_2_ho", test_rrobin_decomp_2_ho },
-              { "test_rrobin_decomp_3_ho", test_rrobin_decomp_3_ho },
-              { "test_rrobin_decomp_4_ho", test_rrobin_decomp_4_ho },
-              { "test_rrobin_decomp_5_ho", test_rrobin_decomp_5_ho },
-              { "test_rrobin_decomp_6_ho", test_rrobin_decomp_6_ho },
-              { "test_rrobin_decomp_7_ho", test_rrobin_decomp_7_ho },
-              { NULL, NULL } };
+  { "test_rrobin_decomp_2_ho", test_rrobin_decomp_2_ho },
+  { "test_rrobin_decomp_3_ho", test_rrobin_decomp_3_ho },
+  { "test_rrobin_decomp_4_ho", test_rrobin_decomp_4_ho },
+  { "test_rrobin_decomp_5_ho", test_rrobin_decomp_5_ho },
+  { "test_rrobin_decomp_6_ho", test_rrobin_decomp_6_ho },
+  { "test_rrobin_decomp_7_ho", test_rrobin_decomp_7_ho }, { NULL, NULL } };

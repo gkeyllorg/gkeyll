@@ -17,10 +17,9 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_canonical_pb_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *hamil,
-  const struct gkyl_array *alpha_surf, const struct gkyl_array *sgn_alpha_surf,
-  const struct gkyl_array *const_sgn_alpha)
+__global__ static void gkyl_canonical_pb_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
+  const struct gkyl_array *hamil, const struct gkyl_array *alpha_surf,
+  const struct gkyl_array *sgn_alpha_surf, const struct gkyl_array *const_sgn_alpha)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   canonical_pb->auxfields.hamil = hamil;
@@ -29,20 +28,17 @@ __global__ static void gkyl_canonical_pb_set_auxfields_cu_kernel(
   canonical_pb->auxfields.const_sgn_alpha = const_sgn_alpha;
 }
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_canonical_pb_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
-                                        struct gkyl_dg_canonical_pb_auxfields auxin)
+void gkyl_canonical_pb_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_auxfields auxin)
 {
   gkyl_canonical_pb_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.hamil->on_dev,
-                                                        auxin.alpha_surf->on_dev,
-                                                        auxin.sgn_alpha_surf->on_dev,
-                                                        auxin.const_sgn_alpha->on_dev);
+    auxin.alpha_surf->on_dev, auxin.sgn_alpha_surf->on_dev, auxin.const_sgn_alpha->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and canonical_pb kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb,
-                                                       enum gkyl_basis_type b_type, int cv_index,
-                                                       int cdim, int vdim, int poly_order)
+  enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim, int poly_order)
 {
   canonical_pb->auxfields.hamil = 0;
   canonical_pb->auxfields.alpha_surf = 0;
@@ -151,8 +147,7 @@ __global__ static void dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *c
 }
 
 struct gkyl_dg_eqn *gkyl_dg_canonical_pb_cu_dev_new(const struct gkyl_basis *cbasis,
-                                                    const struct gkyl_basis *pbasis,
-                                                    const struct gkyl_range *phase_range)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range)
 {
   struct dg_canonical_pb *canonical_pb =
     (struct dg_canonical_pb *)gkyl_malloc(sizeof(struct dg_canonical_pb));
@@ -175,8 +170,8 @@ struct gkyl_dg_eqn *gkyl_dg_canonical_pb_cu_dev_new(const struct gkyl_basis *cba
     (struct dg_canonical_pb *)gkyl_cu_malloc(sizeof(struct dg_canonical_pb));
   gkyl_cu_memcpy(canonical_pb_cu, canonical_pb, sizeof(struct dg_canonical_pb), GKYL_CU_MEMCPY_H2D);
 
-  dg_canonical_pb_set_cu_dev_ptrs<<<1, 1> > >(canonical_pb_cu, pbasis->b_type,
-                                              cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
+  dg_canonical_pb_set_cu_dev_ptrs<<<1, 1> > >(
+    canonical_pb_cu, pbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
 
   // set parent on_dev pointer
   canonical_pb->eqn.on_dev = &canonical_pb_cu->eqn;

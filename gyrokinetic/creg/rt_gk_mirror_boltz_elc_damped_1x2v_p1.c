@@ -101,17 +101,17 @@ double psi_RZ(double RIn, double ZIn, void *ctx)
   double Z_m = app->Z_m;
   double psi = 0.5 * pow(RIn, 2.) * mcB *
                (1. / (M_PI * gamma * (1. + pow((ZIn - Z_m) / gamma, 2.))) +
-                1. / (M_PI * gamma * (1. + pow((ZIn + Z_m) / gamma, 2.))));
+                 1. / (M_PI * gamma * (1. + pow((ZIn + Z_m) / gamma, 2.))));
   return psi;
 }
 
 double R_psiZ(double psiIn, double ZIn, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double Rout =
-    sqrt(2.0 * psiIn /
-         (app->mcB * (1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - app->Z_m) / app->gamma, 2.))) +
-                      1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2.))))));
+  double Rout = sqrt(
+    2.0 * psiIn /
+    (app->mcB * (1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - app->Z_m) / app->gamma, 2.))) +
+                  1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2.))))));
   return Rout;
 }
 
@@ -125,9 +125,9 @@ void Bfield_psiZ(double psiIn, double ZIn, void *ctx, double *BRad, double *BZ, 
   *BRad =
     -(1.0 / 2.0) * Rcoord * mcB *
     (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn - Z_m) / gamma, 2.), 2.))) -
-     2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn + Z_m) / gamma, 2.), 2.))));
+      2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn + Z_m) / gamma, 2.), 2.))));
   *BZ = mcB * (1.0 / (M_PI * gamma * (1.0 + pow((ZIn - Z_m) / gamma, 2.))) +
-               1.0 / (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2.))));
+                1.0 / (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2.))));
   *Bmag = sqrt(pow(*BRad, 2) + pow(*BZ, 2));
 }
 
@@ -186,8 +186,8 @@ double Z_psiz(double psiIn, double zIn, void *ctx)
 
 // -- Source functions.
 
-void eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                             void *ctx)
+void eval_density_ion_source(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
@@ -205,14 +205,14 @@ void eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *G
   }
 }
 
-void eval_upar_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                          void *ctx)
+void eval_upar_ion_source(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                          void *ctx)
+void eval_temp_ion_source(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
@@ -228,8 +228,8 @@ void eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL
 }
 
 // Ion initial conditions
-void eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
-                      void *ctx)
+void eval_density_ion(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
@@ -335,8 +335,8 @@ void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *c
   fout[2] = BZ;
 }
 
-void loss_cone_damping_rate_profile(double t, const double *GKYL_RESTRICT xn,
-                                    double *GKYL_RESTRICT fout, void *ctx)
+void loss_cone_damping_rate_profile(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double z = xn[0], vpar = xn[1], mu = xn[2];
 
@@ -375,8 +375,8 @@ void loss_cone_damping_rate_profile(double t, const double *GKYL_RESTRICT xn,
   fout[0] = (1.0 - alpha) * (vt / Lpar) * loss_cone_mask;
 }
 
-void loss_cone_damping_rate_scaling(double t, const double *GKYL_RESTRICT xn,
-                                    double *GKYL_RESTRICT fout, void *ctx)
+void loss_cone_damping_rate_scaling(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double z = xn[0], vpar = xn[1], mu = xn[2];
 
@@ -491,72 +491,72 @@ struct gk_mirror_ctx create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_mirror_ctx ctx = { .cdim = cdim,
-                               .vdim = vdim,
-                               .mi = mi,
-                               .qi = qi,
-                               .me = me,
-                               .qe = qe,
-                               .Te0 = Te0,
-                               .n0 = n0,
-                               .B_p = B_p,
-                               .beta = beta,
-                               .tau = tau,
-                               .Ti0 = Ti0,
-                               .alim = alim,
-                               .alphaIC0 = alphaIC0,
-                               .alphaIC1 = alphaIC1,
-                               .nuFrac = nuFrac,
-                               .logLambdaIon = logLambdaIon,
-                               .nuIon = nuIon,
-                               .vti = vti,
-                               .vte = vte,
-                               .c_s = c_s,
-                               .omega_ci = omega_ci,
-                               .rho_s = rho_s,
-                               .RatZeq0 = RatZeq0,
-                               .Z_min = Z_min,
-                               .Z_max = Z_max,
-                               .z_min = z_min,
-                               .z_max = z_max,
-                               .psi_eval = psi_eval,
-                               .mcB = mcB,
-                               .gamma = gamma,
-                               .Z_m = Z_m,
-                               .B_bt = B_bt,
-                               .R_bt = R_bt,
-                               .Z_bt = Z_bt,
-                               .z_bt = z_bt,
-                               .R_m = R_m,
-                               .B_m = B_m,
-                               .z_m = z_m,
-                               .n_m = n_m,
-                               .Ti_m = Ti_m,
-                               .cs_m = cs_m,
-                               .NSrcIon = NSrcIon,
-                               .lineLengthSrcIon = lineLengthSrcIon,
-                               .sigSrcIon = sigSrcIon,
-                               .NSrcFloorIon = NSrcFloorIon,
-                               .TSrc0Ion = TSrc0Ion,
-                               .TSrcFloorIon = TSrcFloorIon,
-                               .alpha = alpha,
-                               .vpar_max_ion = vpar_max_ion,
-                               .mu_max_ion = mu_max_ion,
-                               .Nz = Nz,
-                               .Nvpar = Nvpar,
-                               .Nmu = Nmu,
-                               .cells = { Nz, Nvpar, Nmu },
-                               .poly_order = poly_order,
-                               .t_end = t_end,
-                               .num_frames = num_frames,
-                               .write_phase_freq = write_phase_freq,
-                               .int_diag_calc_num = int_diag_calc_num,
-                               .dt_failure_tol = dt_failure_tol,
-                               .num_failures_max = num_failures_max };
+    .vdim = vdim,
+    .mi = mi,
+    .qi = qi,
+    .me = me,
+    .qe = qe,
+    .Te0 = Te0,
+    .n0 = n0,
+    .B_p = B_p,
+    .beta = beta,
+    .tau = tau,
+    .Ti0 = Ti0,
+    .alim = alim,
+    .alphaIC0 = alphaIC0,
+    .alphaIC1 = alphaIC1,
+    .nuFrac = nuFrac,
+    .logLambdaIon = logLambdaIon,
+    .nuIon = nuIon,
+    .vti = vti,
+    .vte = vte,
+    .c_s = c_s,
+    .omega_ci = omega_ci,
+    .rho_s = rho_s,
+    .RatZeq0 = RatZeq0,
+    .Z_min = Z_min,
+    .Z_max = Z_max,
+    .z_min = z_min,
+    .z_max = z_max,
+    .psi_eval = psi_eval,
+    .mcB = mcB,
+    .gamma = gamma,
+    .Z_m = Z_m,
+    .B_bt = B_bt,
+    .R_bt = R_bt,
+    .Z_bt = Z_bt,
+    .z_bt = z_bt,
+    .R_m = R_m,
+    .B_m = B_m,
+    .z_m = z_m,
+    .n_m = n_m,
+    .Ti_m = Ti_m,
+    .cs_m = cs_m,
+    .NSrcIon = NSrcIon,
+    .lineLengthSrcIon = lineLengthSrcIon,
+    .sigSrcIon = sigSrcIon,
+    .NSrcFloorIon = NSrcFloorIon,
+    .TSrc0Ion = TSrc0Ion,
+    .TSrcFloorIon = TSrcFloorIon,
+    .alpha = alpha,
+    .vpar_max_ion = vpar_max_ion,
+    .mu_max_ion = mu_max_ion,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = { Nz, Nvpar, Nmu },
+    .poly_order = poly_order,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .write_phase_freq = write_phase_freq,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max };
   return ctx;
 }
 
 void calc_integrated_diagnostics(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app,
-                                 double t_curr, bool is_restart_IC, bool force_calc, double dt)
+  double t_curr, bool is_restart_IC, bool force_calc, double dt)
 {
   if (!is_restart_IC && (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc)) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
@@ -568,7 +568,7 @@ void calc_integrated_diagnostics(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_a
 }
 
 void write_data(struct gkyl_tm_trigger *iot_conf, struct gkyl_tm_trigger *iot_phase,
-                gkyl_gyrokinetic_app *app, double t_curr, bool is_restart_IC, bool force_write)
+  gkyl_gyrokinetic_app *app, double t_curr, bool is_restart_IC, bool force_write)
 {
   bool trig_now_conf = gkyl_tm_trigger_check_and_bump(iot_conf, t_curr);
   if (trig_now_conf || force_write) {
@@ -666,14 +666,13 @@ int main(int argc, char **argv)
       GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN}};
 
   struct gkyl_gyrokinetic_field field = { .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
-                                          .electron_mass = ctx.me,
-                                          .electron_charge = ctx.qe,
-                                          .electron_temp = ctx.Te0,
-                                          .polarization_bmag = ctx.B_p };
+    .electron_mass = ctx.me,
+    .electron_charge = ctx.qe,
+    .electron_temp = ctx.Te0,
+    .polarization_bmag = ctx.B_p };
 
   // GK app
-  struct gkyl_gk app_inp = {
-    .cdim = ctx.cdim,
+  struct gkyl_gk app_inp = { .cdim = ctx.cdim,
     .lower = { ctx.z_min },
     .upper = { ctx.z_max },
     .cells = { cells_x[0] },
@@ -681,11 +680,11 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-                  .world = { ctx.psi_eval, 0.0 },
-                  .mapc2p = mapc2p, // Mapping of computational to physical space.
-                  .c2p_ctx = &ctx,
-                  .bfield_func = bfield_func, // Magnetic field.
-                  .bfield_ctx = &ctx },
+      .world = { ctx.psi_eval, 0.0 },
+      .mapc2p = mapc2p, // Mapping of computational to physical space.
+      .c2p_ctx = &ctx,
+      .bfield_func = bfield_func, // Magnetic field.
+      .bfield_ctx = &ctx },
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
@@ -695,23 +694,21 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
-  };
+    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm } };
 
   // Create app object.
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = { .app_inp = app_inp,
-                                              .time_stepping = {
-                                                .t_end = ctx.t_end,
-                                                .num_frames = ctx.num_frames,
-                                                .write_phase_freq = ctx.write_phase_freq,
-                                                .int_diag_calc_num = ctx.int_diag_calc_num,
-                                                .dt_failure_tol = ctx.dt_failure_tol,
-                                                .num_failures_max = ctx.num_failures_max,
-                                                .is_restart = app_args.is_restart,
-                                                .restart_frame = app_args.restart_frame,
-                                                .num_steps = app_args.num_steps } };
+    .time_stepping = { .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps } };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 

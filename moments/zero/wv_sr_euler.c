@@ -16,15 +16,15 @@ static void sr_euler_free(const struct gkyl_ref_count *ref)
   gkyl_free(sr_euler);
 }
 
-static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                const double *qin, double *wout)
+static inline void cons_to_riem(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: this should use proper L matrix
   for (int i = 0; i < 5; ++i)
     wout[i] = qin[i];
 }
-static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate,
-                                const double *win, double *qout)
+static inline void riem_to_cons(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: this should use proper L matrix
   for (int i = 0; i < 5; ++i)
@@ -32,8 +32,8 @@ static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qst
 }
 
 static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                const double *tau2, const double *norm,
-                                const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qglobal,
+  double *GKYL_RESTRICT qlocal)
 {
   // Mass density and energy are scalars
   qlocal[0] = qglobal[0];
@@ -45,8 +45,8 @@ static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau
 }
 
 static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
-                                 const double *tau2, const double *norm,
-                                 const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+  const double *tau2, const double *norm, const double *GKYL_RESTRICT qlocal,
+  double *GKYL_RESTRICT qglobal)
 {
   // Mass density and energy are scalars
   qglobal[0] = qlocal[0];
@@ -59,8 +59,8 @@ static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *ta
 
 // Waves and speeds using Roe averaging
 static double wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                       const double *delta, const double *ql, const double *qr, const double phil,
-                       const double phir, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
   double vl[5], vr[5];
@@ -145,8 +145,8 @@ static double wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type typ
 }
 
 static void qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql,
-                       const double *qr, const double phil, const double phir, const double *waves,
-                       const double *s, double *amdq, double *apdq)
+  const double *qr, const double phil, const double phir, const double *waves, const double *s,
+  double *amdq, double *apdq)
 {
   const double *w0 = &waves[0], *w1 = &waves[5], *w2 = &waves[10];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);

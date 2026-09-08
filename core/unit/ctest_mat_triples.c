@@ -130,6 +130,5 @@ void test_mat_triples_3_ho()
 }
 
 TEST_LIST = { { "mat_triples_1_ho", test_mat_triples_1_ho },
-              { "mat_triples_2_ho", test_mat_triples_2_ho },
-              { "mat_triples_3_ho", test_mat_triples_3_ho },
-              { NULL, NULL } };
+  { "mat_triples_2_ho", test_mat_triples_2_ho }, { "mat_triples_3_ho", test_mat_triples_3_ho },
+  { NULL, NULL } };

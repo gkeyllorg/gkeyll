@@ -10,13 +10,13 @@
 // functions
 
 // Types for various kernels
-typedef double (*euler_pkpm_surf_t)(
-  const double *w, const double *dxv, const double *vlasov_pkpm_moms_l,
-  const double *vlasov_pkpm_moms_c, const double *vlasov_pkpm_moms_r, const double *prim_surf_l,
-  const double *prim_surf_c, const double *prim_surf_r, const double *p_ij_l, const double *p_ij_c,
-  const double *p_ij_r, const double *euler_pkpm_l, const double *euler_pkpm_c,
-  const double *euler_pkpm_r, const double *pkpm_lax_l, const double *pkpm_lax_r,
-  const double *pkpm_penalization_l, const double *pkpm_penalization_r, double *GKYL_RESTRICT out);
+typedef double (*euler_pkpm_surf_t)(const double *w, const double *dxv,
+  const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_c,
+  const double *vlasov_pkpm_moms_r, const double *prim_surf_l, const double *prim_surf_c,
+  const double *prim_surf_r, const double *p_ij_l, const double *p_ij_c, const double *p_ij_r,
+  const double *euler_pkpm_l, const double *euler_pkpm_c, const double *euler_pkpm_r,
+  const double *pkpm_lax_l, const double *pkpm_lax_r, const double *pkpm_penalization_l,
+  const double *pkpm_penalization_r, double *GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct {
@@ -39,67 +39,62 @@ struct dg_euler_pkpm {
 //
 
 GKYL_CU_DH static double kernel_euler_pkpm_vol_1x_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                         const double *xc, const double *dx,
-                                                         const int *idx, const double *qIn,
-                                                         double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   long cidx = gkyl_range_idx(&euler_pkpm->conf_range, idx);
 
-  return euler_pkpm_vol_1x_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
+  return euler_pkpm_vol_1x_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij, cidx), qIn, qRhsOut);
 }
 
 GKYL_CU_DH static double kernel_euler_pkpm_vol_1x_ser_p2(const struct gkyl_dg_eqn *eqn,
-                                                         const double *xc, const double *dx,
-                                                         const int *idx, const double *qIn,
-                                                         double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   long cidx = gkyl_range_idx(&euler_pkpm->conf_range, idx);
 
-  return euler_pkpm_vol_1x_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
+  return euler_pkpm_vol_1x_ser_p2(xc, dx,
+    (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij, cidx), qIn, qRhsOut);
 }
 
 GKYL_CU_DH static double kernel_euler_pkpm_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                         const double *xc, const double *dx,
-                                                         const int *idx, const double *qIn,
-                                                         double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   long cidx = gkyl_range_idx(&euler_pkpm->conf_range, idx);
 
-  return euler_pkpm_vol_2x_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
+  return euler_pkpm_vol_2x_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij, cidx), qIn, qRhsOut);
 }
 
 GKYL_CU_DH static double kernel_euler_pkpm_vol_2x_tensor_p2(const struct gkyl_dg_eqn *eqn,
-                                                            const double *xc, const double *dx,
-                                                            const int *idx, const double *qIn,
-                                                            double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   long cidx = gkyl_range_idx(&euler_pkpm->conf_range, idx);
 
-  return euler_pkpm_vol_2x_tensor_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
+  return euler_pkpm_vol_2x_tensor_p2(xc, dx,
+    (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij, cidx), qIn, qRhsOut);
 }
 
 GKYL_CU_DH static double kernel_euler_pkpm_vol_3x_ser_p1(const struct gkyl_dg_eqn *eqn,
-                                                         const double *xc, const double *dx,
-                                                         const int *idx, const double *qIn,
-                                                         double *GKYL_RESTRICT qRhsOut)
+  const double *xc, const double *dx, const int *idx, const double *qIn,
+  double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   long cidx = gkyl_range_idx(&euler_pkpm->conf_range, idx);
 
-  return euler_pkpm_vol_3x_ser_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
+  return euler_pkpm_vol_3x_ser_p1(xc, dx,
+    (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
     (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij, cidx), qIn, qRhsOut);
 }
 
@@ -167,10 +162,9 @@ GKYL_CU_D static const gkyl_dg_euler_pkpm_surf_kern_list ten_surf_z_kernels[] = 
 void gkyl_euler_pkpm_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL,
-                             const double *xcC, const double *xcR, const double *dxL,
-                             const double *dxC, const double *dxR, const int *idxL, const int *idxC,
-                             const int *idxR, const double *qInL, const double *qInC,
-                             const double *qInR, double *GKYL_RESTRICT qRhsOut)
+  const double *xcC, const double *xcR, const double *dxL, const double *dxC, const double *dxR,
+  const int *idxL, const int *idxC, const int *idxR, const double *qInL, const double *qInC,
+  const double *qInR, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
 
@@ -178,8 +172,8 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const doubl
   long cidx_c = gkyl_range_idx(&euler_pkpm->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&euler_pkpm->conf_range, idxR);
 
-  return euler_pkpm->surf[dir](
-    xcC, dxC, (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_l),
+  return euler_pkpm->surf[dir](xcC, dxC,
+    (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_l),
     (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_c),
     (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_r),
     (const double *)gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim_surf, cidx_l),
@@ -195,10 +189,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const doubl
 }
 
 GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge,
-                                      const double *xcSkin, const double *dxEdge,
-                                      const double *dxSkin, const int *idxEdge, const int *idxSkin,
-                                      const int edge, const double *qInEdge, const double *qInSkin,
-                                      double *GKYL_RESTRICT qRhsOut)
+  const double *xcSkin, const double *dxEdge, const double *dxSkin, const int *idxEdge,
+  const int *idxSkin, const int edge, const double *qInEdge, const double *qInSkin,
+  double *GKYL_RESTRICT qRhsOut)
 {
   return 0.;
 }

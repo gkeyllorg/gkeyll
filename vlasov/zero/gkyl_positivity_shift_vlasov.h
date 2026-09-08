@@ -21,10 +21,9 @@ typedef struct gkyl_positivity_shift_vlasov gkyl_positivity_shift_vlasov;
  * @param use_gpu bool to determine if on GPU.
  * @return New positivity shift updater pointer.
  */
-struct gkyl_positivity_shift_vlasov *
-gkyl_positivity_shift_vlasov_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-                                 struct gkyl_rect_grid pgrid, const struct gkyl_range *conf_rng_ext,
-                                 bool use_gpu);
+struct gkyl_positivity_shift_vlasov *gkyl_positivity_shift_vlasov_new(struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, struct gkyl_rect_grid pgrid, const struct gkyl_range *conf_rng_ext,
+  bool use_gpu);
 
 /**
  * Run the positivity shift updater in the indicated range.
@@ -37,11 +36,9 @@ gkyl_positivity_shift_vlasov_new(struct gkyl_basis cbasis, struct gkyl_basis pba
  * @param delta_m0 M0 moment of the shift in f.
  */
 void gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov *up,
-                                          const struct gkyl_range *conf_rng,
-                                          const struct gkyl_range *phase_rng,
-                                          struct gkyl_array *GKYL_RESTRICT distf,
-                                          struct gkyl_array *GKYL_RESTRICT m0,
-                                          struct gkyl_array *GKYL_RESTRICT delta_m0);
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
+  struct gkyl_array *GKYL_RESTRICT delta_m0);
 
 /**
  * Release the memory associated with this positivity shift updater.

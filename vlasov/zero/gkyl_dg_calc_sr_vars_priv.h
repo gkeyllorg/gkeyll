@@ -11,22 +11,21 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*p_vars_t)(const double *w, const double *dv, double *GKYL_RESTRICT gamma,
-                         double *GKYL_RESTRICT gamma_inv);
+typedef void (*p_vars_t)(
+  const double *w, const double *dv, double *GKYL_RESTRICT gamma, double *GKYL_RESTRICT gamma_inv);
 
-typedef void (*sr_n_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *M0,
-                           const double *M1i);
+typedef void (*sr_n_set_t)(
+  int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *M0, const double *M1i);
 
-typedef void (*sr_n_copy_t)(int count, struct gkyl_nmat *x, const double *M0,
-                            double *GKYL_RESTRICT n);
+typedef void (*sr_n_copy_t)(
+  int count, struct gkyl_nmat *x, const double *M0, double *GKYL_RESTRICT n);
 
 typedef void (*sr_GammaV_t)(const double *u_i, double *GKYL_RESTRICT u_i_sq,
-                            double *GKYL_RESTRICT GammaV, double *GKYL_RESTRICT GammaV_sq);
+  double *GKYL_RESTRICT GammaV, double *GKYL_RESTRICT GammaV_sq);
 
 typedef void (*sr_pressure_t)(const double *w, const double *dxv, const double *gamma,
-                              const double *gamma_inv, const double *u_i, const double *u_i_sq,
-                              const double *GammaV, const double *GammaV_sq, const double *f,
-                              double *GKYL_RESTRICT sr_pressure);
+  const double *gamma_inv, const double *u_i, const double *u_i_sq, const double *GammaV,
+  const double *GammaV_sq, const double *f, double *GKYL_RESTRICT sr_pressure);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -145,8 +144,8 @@ GKYL_CU_D static const gkyl_dg_sr_vars_pressure_kern_list ser_sr_vars_pressure_k
   { NULL, sr_vars_pressure_3x3v_ser_p1, NULL } // 5
 };
 
-GKYL_CU_D static p_vars_t choose_sr_p_vars_kern(enum gkyl_basis_type b_type, int vdim,
-                                                int poly_order)
+GKYL_CU_D static p_vars_t choose_sr_p_vars_kern(
+  enum gkyl_basis_type b_type, int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -158,8 +157,8 @@ GKYL_CU_D static p_vars_t choose_sr_p_vars_kern(enum gkyl_basis_type b_type, int
   }
 }
 
-GKYL_CU_D static sr_n_set_t choose_sr_vars_n_set_kern(enum gkyl_basis_type b_type, int cdim,
-                                                      int vdim, int poly_order)
+GKYL_CU_D static sr_n_set_t choose_sr_vars_n_set_kern(
+  enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -171,8 +170,8 @@ GKYL_CU_D static sr_n_set_t choose_sr_vars_n_set_kern(enum gkyl_basis_type b_typ
   }
 }
 
-GKYL_CU_D static sr_n_copy_t choose_sr_vars_n_copy_kern(enum gkyl_basis_type b_type, int cdim,
-                                                        int vdim, int poly_order)
+GKYL_CU_D static sr_n_copy_t choose_sr_vars_n_copy_kern(
+  enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -184,8 +183,8 @@ GKYL_CU_D static sr_n_copy_t choose_sr_vars_n_copy_kern(enum gkyl_basis_type b_t
   }
 }
 
-GKYL_CU_D static sr_GammaV_t choose_sr_vars_GammaV_kern(enum gkyl_basis_type b_type, int cdim,
-                                                        int vdim, int poly_order)
+GKYL_CU_D static sr_GammaV_t choose_sr_vars_GammaV_kern(
+  enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -197,8 +196,8 @@ GKYL_CU_D static sr_GammaV_t choose_sr_vars_GammaV_kern(enum gkyl_basis_type b_t
   }
 }
 
-GKYL_CU_D static sr_pressure_t choose_sr_vars_pressure_kern(enum gkyl_basis_type b_type, int cdim,
-                                                            int vdim, int poly_order)
+GKYL_CU_D static sr_pressure_t choose_sr_vars_pressure_kern(
+  enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

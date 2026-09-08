@@ -33,8 +33,8 @@ typedef struct gkyl_ten_moment_grad_closure gkyl_ten_moment_grad_closure;
  *
  * @param inp Input parameters to updater
  */
-gkyl_ten_moment_grad_closure *
-gkyl_ten_moment_grad_closure_new(const struct gkyl_ten_moment_grad_closure_inp *inp);
+gkyl_ten_moment_grad_closure *gkyl_ten_moment_grad_closure_new(
+  const struct gkyl_ten_moment_grad_closure_inp *inp);
 
 /**
  * Compute RHS contribution from symmetrized gradient-based closure
