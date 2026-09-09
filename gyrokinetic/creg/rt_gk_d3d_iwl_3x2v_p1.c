@@ -538,7 +538,7 @@ create_ctx(void)
   double floor_src = 1e-2;
 
   // Grid parameters
-  int Nx = 8;
+  int Nx = 32;
   int Ny = 4;
   int Nz = 8;
   int Nvpar = 8;

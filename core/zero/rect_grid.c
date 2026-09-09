@@ -103,7 +103,7 @@ gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
       }
       for (int i=0; i<search_num; i++){	
 	for (int j=0; j<2; j++){
-	  new_index[i] = GKYL_MAX2(GKYL_MIN2(mid_index[i] + plusminus[j],cells[i]),0);
+	  new_index[i] = GKYL_MAX2(GKYL_MIN2(mid_index[i] + plusminus[j],cells[search_dim[i]]),1);
 	  if (is_in_cell(grid, point, new_index, dim_trans, known_index))
 	    low_high_index[j*nDim+search_dim[i]] = new_index[i];	    	  
 	}
@@ -212,4 +212,3 @@ gkyl_rect_grid_release(struct gkyl_rect_grid *grid)
 {
   gkyl_free(grid);
 }
-
