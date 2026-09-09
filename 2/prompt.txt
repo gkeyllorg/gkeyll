@@ -1,0 +1,1 @@
+‎gyrokinetic/unit/ctest_gk_cross_prim_moms_bgk_equal.c‎ and gyrokinetic/unit/ctest_gyrokinetic_cross_prim_moms_bgk.c appear to test the same solver. Can you pleace the test from the former into the latter please?

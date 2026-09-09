@@ -3,7 +3,7 @@
   "checkpoint_id": "01M2427GN9106RWXGEEAWE35TF",
   "strategy": "manual-commit",
   "branch": "agent_tools-jenkins-core-gyrokinetic",
-  "checkpoints_count": 5,
+  "checkpoints_count": 6,
   "files_touched": [
     "core/unit/ctest_nodal_ops.c",
     "gyrokinetic/unit/ctest_asdex.c",
@@ -34,14 +34,21 @@
       "compact_transcript": "/1/transcript.jsonl",
       "content_hash": "/1/content_hash.txt",
       "prompt": "/1/prompt.txt"
+    },
+    {
+      "metadata": "/2/metadata.json",
+      "transcript": "/2/full.jsonl",
+      "compact_transcript": "/2/transcript.jsonl",
+      "content_hash": "/2/content_hash.txt",
+      "prompt": "/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 144,
-    "cache_creation_tokens": 386362,
-    "cache_read_tokens": 6670481,
-    "output_tokens": 39310,
-    "api_call_count": 72,
+    "input_tokens": 178,
+    "cache_creation_tokens": 507482,
+    "cache_read_tokens": 7546398,
+    "output_tokens": 44803,
+    "api_call_count": 89,
     "subagent_tokens": {
       "input_tokens": 0,
       "cache_creation_tokens": 0,
