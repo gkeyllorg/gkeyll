@@ -807,9 +807,9 @@ TEST_LIST = {
   { "test_1x2v_p1_Li0_30eV", test_1x2v_p1_30eV },
   { "test_1x2v_p1_Li0_5000eV", test_1x2v_p1_5000eV },
   { "test_1x2v_p1_H", test_1x2v_p1_H },
-  // { "test_1x2v_p1_Li1_lowNe", test_1x2v_p1_Li1_lowNe },
-  // { "test_1x2v_p1_Li1_midNe", test_1x2v_p1_Li1_midNe },
-  // { "test_1x2v_p1_Li1_highNe", test_1x2v_p1_Li1_highNe },
+  { "test_1x2v_p1_Li1_lowNe", test_1x2v_p1_Li1_lowNe },
+  { "test_1x2v_p1_Li1_midNe", test_1x2v_p1_Li1_midNe },
+  { "test_1x2v_p1_Li1_highNe", test_1x2v_p1_Li1_highNe },
   { "test_2x2v_p1", test_2x2v_p1 },
 
 #ifdef GKYL_HAVE_CUDA

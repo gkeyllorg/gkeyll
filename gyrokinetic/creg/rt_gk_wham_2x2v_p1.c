@@ -657,16 +657,6 @@ int main(int argc, char **argv)
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
-    
-    .time_rate_multiplier = {
-      .num_multipliers = 1,
-      .multiplier[0] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,
-        .cfl_dt_min_value = 1e-9,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-      },
-    },
 
     .projection = elc_ic,
 
@@ -737,16 +727,6 @@ int main(int argc, char **argv)
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
-    },
-
-    .time_rate_multiplier = {
-      .num_multipliers = 1,
-      .multiplier[0] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,
-        .cfl_dt_min_value = 1e-9,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-      },
     },
 
     .projection = ion_ic,

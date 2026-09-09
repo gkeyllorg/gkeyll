@@ -31,9 +31,6 @@ GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1(
   hamil[2] = 0.5*vmapSq[2]*m_; 
 
   double JRatfL[3] = {0.}; 
-  JRatfL[0] = 0.5*jacobgeo_rat_surfL[0]*(1.7320508075688772*JfL[1]+JfL[0]); 
-  JRatfL[1] = 0.5*jacobgeo_rat_surfL[0]*(1.7320508075688772*JfL[3]+JfL[2]); 
-  JRatfL[2] = 0.1*jacobgeo_rat_surfL[0]*(8.660254037844387*JfL[5]+5.0*JfL[4]); 
 
   double *flux_surf_nodal = &flux_surf[0]; 
   double cfl = 0.0; 
@@ -70,7 +67,7 @@ GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1(
   alpha_quad = (mvpar_quad[0]*B3_quad/(m_*bmag_quad))*area_elem_quad/Jc_quad; 
 
   cfl = fmax(fabs(alpha_quad), fabs(cfl)); 
-  JfL_quad = 0.6324555320336759*JRatfL[2]-0.9486832980505137*JRatfL[1]+0.7071067811865475*JRatfL[0]; 
+  JfL_quad = 0.0; 
   JfR_quad = -(0.7745966692414834*JfR[5])+0.4472135954999579*JfR[4]+1.1618950038622249*JfR[3]-0.6708203932499369*JfR[2]-0.8660254037844386*JfR[1]+0.5*JfR[0]; 
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
@@ -79,7 +76,7 @@ GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1(
   alpha_quad = (mvpar_quad[1]*B3_quad/(m_*bmag_quad))*area_elem_quad/Jc_quad; 
 
   cfl = fmax(fabs(alpha_quad), fabs(cfl)); 
-  JfL_quad = 0.7071067811865475*JRatfL[0]-0.7905694150420947*JRatfL[2]; 
+  JfL_quad = 0.0; 
   JfR_quad = 0.9682458365518543*JfR[5]-0.5590169943749475*JfR[4]-0.8660254037844386*JfR[1]+0.5*JfR[0]; 
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
@@ -88,7 +85,7 @@ GKYL_CU_DH double gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1(
   alpha_quad = (mvpar_quad[2]*B3_quad/(m_*bmag_quad))*area_elem_quad/Jc_quad; 
 
   cfl = fmax(fabs(alpha_quad), fabs(cfl)); 
-  JfL_quad = 0.6324555320336759*JRatfL[2]+0.9486832980505137*JRatfL[1]+0.7071067811865475*JRatfL[0]; 
+  JfL_quad = 0.0; 
   JfR_quad = -(0.7745966692414834*JfR[5])+0.4472135954999579*JfR[4]-1.1618950038622249*JfR[3]+0.6708203932499369*JfR[2]-0.8660254037844386*JfR[1]+0.5*JfR[0]; 
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 

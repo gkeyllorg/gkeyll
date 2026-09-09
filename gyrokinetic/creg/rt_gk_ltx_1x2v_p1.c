@@ -412,8 +412,8 @@ create_ctx(void)
 
   // Grid parameters
   int Nz = 16;
-  int Nvpar = 16;
-  int Nmu = 11;
+  int Nvpar = 12;
+  int Nmu = 8;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;

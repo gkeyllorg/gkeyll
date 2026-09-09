@@ -751,17 +751,6 @@ int main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
-    .time_rate_multiplier = {
-      .num_multipliers = 1,
-      .multiplier[0] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-        .time_dilation_scale_const = 0.05,
-      },
-    },
-    .write_omega_cfl = true,
-
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElc,
@@ -820,23 +809,7 @@ int main(int argc, char **argv)
 
     .collisionless = {
       .type = GKYL_GK_COLLISIONLESS_ES,
-    },    
-
-    .time_rate_multiplier = {
-      .num_multipliers = 1,
-      .multiplier[0] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-        .time_dilation_scale_const = 0.05,
-      },
-      .multiplier[1] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-      },
     },
-    .write_omega_cfl = true,
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,

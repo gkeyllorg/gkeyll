@@ -137,7 +137,7 @@ vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s,
   if (emit->write) {
     if (app->use_gpu)
       gkyl_array_copy(emit->f_emit_host, emit->f_emit);
-    // gkyl_grid_sub_array_write(emit->emit_grid, emit->emit_buff_r, mt, emit->f_emit_host, fileNm);
+    gkyl_grid_sub_array_write(emit->emit_grid, emit->emit_buff_r, mt, emit->f_emit_host, fileNm);
   }
 }
 

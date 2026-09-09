@@ -883,8 +883,8 @@ test_2x2v(int poly_order, bool use_gpu)
           TEST_CHECK( gkyl_compare( m1Correct[(i*cells[1]+j)*confBasis.num_basis+k], m1ptr[k], 1e-12) );
         // Check M2.
         double *m2ptr = gkyl_array_fetch(m2_ho, gkyl_range_idx(&confLocal, idx)); 
-        // for (int k=0; k<confBasis.num_basis; k++) 
-        //   TEST_CHECK( gkyl_compare( m2Correct[(i*cells[1]+j)*confBasis.num_basis+k], m2ptr[k], 1e-12) );
+        for (int k=0; k<confBasis.num_basis; k++) 
+          TEST_CHECK( gkyl_compare( m2Correct[(i*cells[1]+j)*confBasis.num_basis+k], m2ptr[k], 1e-12) );
       }
     }
   
