@@ -43,3 +43,4 @@ Each file must have a clear descriptive name.
 Filenames help organize the code into the relevant sections.
 When a set of code could be made smaller and refactored into a sub-module, it should.
 The purpose and intent of the file should be clear from its name.
+Prefer descriptive names over abbreviations or comments.
