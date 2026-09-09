@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M23Z4JREFV4T7MY83E2D9EWC",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-jenkins-core-gyrokinetic",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "core/unit/ctest_array_ops.c",
+    "core/unit/ctest_array_ops_extra.c",
+    "core/unit/ctest_basis.c",
+    "core/unit/ctest_basis_extra.c",
+    "core/unit/ctest_mat.c",
+    "core/unit/ctest_mat_extra.c",
+    "core/unit/ctest_range.c",
+    "core/unit/ctest_range_extra.c",
+    "core/unit/ctest_rect_grid.c",
+    "core/unit/ctest_rect_grid_extra.c",
+    "core/unit/ctest_util.c",
+    "core/unit/ctest_util_extra.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 146,
+    "cache_creation_tokens": 175900,
+    "cache_read_tokens": 4607529,
+    "output_tokens": 16149,
+    "api_call_count": 73,
+    "subagent_tokens": {
+      "input_tokens": 172,
+      "cache_creation_tokens": 184980,
+      "cache_read_tokens": 6742211,
+      "output_tokens": 40553,
+      "api_call_count": 86
+    }
+  }
+}

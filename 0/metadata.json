@@ -1,0 +1,114 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M23Z4JREFV4T7MY83E2D9EWC",
+  "session_id": "80c3eda4-d3b6-4cfb-b5d4-f397b8346259",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-09T20:53:20.230816Z",
+  "branch": "agent_tools-jenkins-core-gyrokinetic",
+  "checkpoints_count": 3,
+  "save_step_count": 3,
+  "files_touched": [
+    "core/unit/ctest_array_ops.c",
+    "core/unit/ctest_array_ops_extra.c",
+    "core/unit/ctest_basis.c",
+    "core/unit/ctest_basis_extra.c",
+    "core/unit/ctest_mat.c",
+    "core/unit/ctest_mat_extra.c",
+    "core/unit/ctest_range.c",
+    "core/unit/ctest_range_extra.c",
+    "core/unit/ctest_rect_grid.c",
+    "core/unit/ctest_rect_grid_extra.c",
+    "core/unit/ctest_util.c",
+    "core/unit/ctest_util_extra.c"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "11e91e9f510e",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 146,
+    "cache_creation_tokens": 175900,
+    "cache_read_tokens": 4607529,
+    "output_tokens": 16149,
+    "api_call_count": 73,
+    "subagent_tokens": {
+      "input_tokens": 172,
+      "cache_creation_tokens": 184980,
+      "cache_read_tokens": 6742211,
+      "output_tokens": 40553,
+      "api_call_count": 86
+    }
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-09T20:53:20.195919Z",
+    "agent_lines": 0,
+    "agent_removed": 303,
+    "human_added": 0,
+    "human_modified": 454,
+    "human_removed": 137,
+    "total_committed": 260,
+    "total_lines_changed": 894,
+    "agent_percentage": 33.89261744966443,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 55274,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/scheduled_tasks.lock": 1,
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/unit/ctest_fem_parproj_couplex.c.orig": 1128,
+        "gyrokinetic/unit/ctest_ts_qprofiles.c": 796,
+        "gyrokinetic/unit/run_test.c": 20,
+        "log.txt": 216,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "tmp.sh": 43,
+        "tmp.txt": 23
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 455,
+      "user_lines_removed": 591,
+      "agent_lines_added": 55387,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/scheduled_tasks.lock": 1,
+        "core/unit/ctest_array_ops.c": 8,
+        "core/unit/ctest_basis.c": 131,
+        "core/unit/ctest_range.c": 129,
+        "core/unit/ctest_util.c": 186
+      },
+      "user_removed_per_file": {
+        "core/unit/ctest_array_ops_extra.c": 129,
+        "core/unit/ctest_basis_extra.c": 140,
+        "core/unit/ctest_range_extra.c": 136,
+        "core/unit/ctest_util_extra.c": 186
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 56124,
+      "agent_lines_removed": 894,
+      "user_added_per_file": {
+        ".claude/scheduled_tasks.lock": 1
+      }
+    }
+  ]
+}
