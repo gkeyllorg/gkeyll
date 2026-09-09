@@ -9,6 +9,55 @@
 #include <gkyl_basis_gkhyb_1x2v_p1_upwind_quad_to_modal.h>
 
 void
+test_ser_1d_p0_members(struct gkyl_basis basis1)
+{
+  TEST_CHECK( basis1.ndim == 1 );
+  TEST_CHECK( basis1.poly_order == 0 );
+  TEST_CHECK( basis1.num_basis == 1 );
+  TEST_CHECK( strcmp(basis1.id, "serendipity") == 0 );
+  TEST_CHECK( basis1.b_type == GKYL_BASIS_MODAL_SERENDIPITY );
+
+  double z[basis1.num_basis], b[basis1.num_basis];
+
+  z[0] = 0.0;
+  basis1.eval(z, b);
+
+  TEST_CHECK( gkyl_compare(b[0], 1/sqrt(2.0), 1e-15) );
+
+  z[0] = 0.5; basis1.eval(z, b);
+  
+  TEST_CHECK( gkyl_compare(b[0], 1/sqrt(2.0), 1e-15) );
+
+  double nodes[basis1.ndim*basis1.num_basis];
+  basis1.node_list(nodes);
+
+  TEST_CHECK( nodes[0] == 0.0 );
+
+  double f[basis1.num_basis];
+  for (int i=0; i<basis1.num_basis; ++i) f[i] = 1.0;
+
+  z[0] = 0.5;
+  TEST_CHECK ( gkyl_compare(f[0]/sqrt(2.0), basis1.eval_expand(z, f), 1e-15) );
+
+  z[0] = 0.25;
+  TEST_CHECK ( gkyl_compare(f[0]/sqrt(2.0), basis1.eval_expand(z, f), 1e-15) );
+  TEST_CHECK ( gkyl_compare(0.0, basis1.eval_grad_expand(0, z, f), 1e-15) );
+}
+
+void
+test_basis_ser_1d_p0_ho()
+{
+  struct gkyl_basis basis1;
+  gkyl_cart_modal_serendip(&basis1, 1, 0);
+  test_ser_1d_p0_members(basis1);
+
+  struct gkyl_basis *basis2 = gkyl_cart_modal_serendip_new(1, 0);
+  TEST_CHECK(basis1.num_basis == gkyl_cart_modal_basis_get_num_basis(basis2));
+  test_ser_1d_p0_members(*basis2);
+  gkyl_cart_modal_basis_release(basis2);
+}
+
+void
 test_ser_1d_members(struct gkyl_basis basis1)
 {
   TEST_CHECK( basis1.ndim == 1 );
@@ -698,6 +747,7 @@ test_cu_ser_2d()
 #endif
 
 TEST_LIST = {
+  { "basis_ser_1d_p0_ho", test_basis_ser_1d_p0_ho },
   { "ser_1d", test_ser_1d },
   { "ser_2d", test_ser_2d },
   { "ten_2d", test_ten_2d },
