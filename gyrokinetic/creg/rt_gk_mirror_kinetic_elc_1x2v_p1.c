@@ -609,12 +609,12 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nz = 32;
-  int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 48;  // Number of cells in the mu direction 192
+  int Nz = 16;
+  int Nvpar = 16; // Number of cells in the paralell velocity direction 96
+  int Nmu = 12;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 4.0e-8;
+  double t_end = 4.0e-9;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
@@ -751,17 +751,6 @@ int main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
-    .time_rate_multiplier = {
-      .num_multipliers = 1,
-      .multiplier[0] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-        .time_dilation_scale_const = 0.05,
-      },
-    },
-    .write_omega_cfl = true,
-
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElc,
@@ -820,23 +809,7 @@ int main(int argc, char **argv)
 
     .collisionless = {
       .type = GKYL_GK_COLLISIONLESS_ES,
-    },    
-
-    .time_rate_multiplier = {
-      .num_multipliers = 1,
-      .multiplier[0] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-        .time_dilation_scale_const = 0.05,
-      },
-      .multiplier[1] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-      },
     },
-    .write_omega_cfl = true,
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
