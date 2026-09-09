@@ -312,11 +312,10 @@ create_ctx(void)
   double z_max = Lz/2;
 
   // Grid parameters
-  int Nx = 4;
-  int Ny = 4;
-  int Nz = 4;
-  int Nvpar = 4;
-  int Nmu = 2;
+  int Nx = 8; // (16)
+  int Nz = 6; // (12)
+  int Nvpar = 5; // (10)
+  int Nmu = 4; // (5)
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
