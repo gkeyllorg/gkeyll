@@ -268,8 +268,8 @@ create_ctx(void)
 
   // Number of cells.
   int Nz = 4;
-  int Nvpar = 6;
-  int Nmu = 4;
+  int Nvpar = 12;
+  int Nmu = 8;
 
   double t_end = 1.0e-4; 
   double num_frames = 1;
