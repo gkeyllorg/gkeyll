@@ -187,6 +187,15 @@ void write_out_fields(int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
   int io_meta_conf_len = sizeof(io_meta_conf)/sizeof(io_meta_conf[0]);
   struct gkyl_msgpack_data *mt_conf = gkyl_msgpack_create(io_meta_conf_len, io_meta_conf);
 
+  // char fname[256];
+  // const char *fmt = "bc_sheath_%dx%dv_%s_%s_%s.gkyl";
+  // snprintf(fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE? "lower" : "upper", use_gpu? "gpu" : "cpu", "distf_out");
+  // gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, fname);
+  // snprintf(fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE? "lower" : "upper", use_gpu? "gpu" : "cpu", "phi_mpe");
+  // gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt_conf, phi_ho, fname);
+  // snprintf(fname, sizeof(fname), fmt, cdim, vdim, edge == GKYL_LOWER_EDGE? "lower" : "upper", use_gpu? "gpu" : "cpu", "phi_wall");
+  // gkyl_grid_sub_array_write(&grid_conf, &local_conf, mt_conf, phiw_ho, fname);
+
   gkyl_msgpack_data_release(mt);
   gkyl_msgpack_data_release(mt_conf);
 }

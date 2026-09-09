@@ -306,7 +306,8 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
       .basis_type = basis.id
     }
   );
-  if (write_f){}
+  // if (write_f)
+  //   gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho, "ctest_bc_twistshift_3x_fig6_do.gkyl");
 
   // Create a range only extended in bc_dir.
   struct gkyl_range update_rng;
@@ -562,7 +563,9 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
       .basis_type = basis.id
     }
   );
-  if (write_f) {}
+  // if (write_f)
+  //   gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho, "ctest_bc_twistshift_3x2v_fig6_do.gkyl");
+
   // Create a range only extended in bc_dir.
   struct gkyl_range update_rng;
   int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
@@ -960,7 +963,9 @@ test_bc_twistshift_3x_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
       .basis_type = basis.id
     }
   );
-  if (write_f){}
+  // if (write_f)
+  //   gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho, "ctest_bc_twistshift_3x_fig11_do.gkyl");
+
   // Create a range only extended in bc_dir.
   struct gkyl_range update_rng;
   int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
@@ -1775,7 +1780,8 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
       .basis_type = basis.id
     }
   );
-  if (write_f) {}
+  // if (write_f)
+  //   gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho, "ctest_bc_twistshift_3x2v_fig11_do.gkyl");
 
   // Create a range only extended in bc_dir.
   struct gkyl_range update_rng;
