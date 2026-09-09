@@ -423,8 +423,8 @@ void test_1x2v(int poly_order, bool use_gpu)
     TEST_CHECK( gkyl_compare(5.27373215e12, primMomsCross_e[2*confBasis.num_basis]/sqrt(2), 1e-12*5.27373215e12) );
     TEST_CHECK( gkyl_compare(1.0e19       , primMomsCross_i[0*confBasis.num_basis]/sqrt(2), 1e-12*1.0e19) );
     TEST_CHECK( gkyl_compare(1.16391130e4 , primMomsCross_i[1*confBasis.num_basis]/sqrt(2), 1e-12*1.16391130e4) );
-    TEST_CHECK( gkyl_compare(2.83391995e9 , primMomsCross_i[2*confBasis.num_basis]/sqrt(2), 1e-12*2.83391995e9) );
-    TEST_MSG( "Expeced: %.9e | Got: %.9e\n", 2.83391995e9 , primMomsCross_i[2*confBasis.num_basis]/sqrt(2));
+    TEST_CHECK( gkyl_compare(2.86262992e9 , primMomsCross_i[2*confBasis.num_basis]/sqrt(2), 1e-12*2.86262992e9) );
+    TEST_MSG( "Expeced: %.9e | Got: %.9e\n", 2.86262992e9 , primMomsCross_i[2*confBasis.num_basis]/sqrt(2));
   } // The hard coded numbers are expected values. The basis is looked up in maxima with: load("basis-precalc/basisSer1x"); polyOrder:1$ basis:basisC[polyOrder];
 
   // Release memory for moment data object

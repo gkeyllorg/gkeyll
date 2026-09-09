@@ -290,6 +290,9 @@ gkyl_range_deflate(struct gkyl_range* srng,
   SET_SUB_RANGE(srng->flags);
 
   // for CUDA ops
+  struct gkyl_range sub_range;
+  gkyl_range_init(&sub_range, srng->ndim, srng->lower, srng->upper);
+  gkyl_copy_long_arr(GKYL_MAX_DIM+1, sub_range.ac, srng->iac);
   srng->nthreads = GKYL_DEFAULT_NUM_THREADS;
   srng->nblocks = srng->volume/srng->nthreads + 1;
 }

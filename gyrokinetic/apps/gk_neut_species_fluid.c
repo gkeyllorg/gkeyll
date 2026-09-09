@@ -308,7 +308,9 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   }
 
   // Initialize projection routine for initial conditions.
-  gk_neut_species_projection_init(app, ns, ns->info.projection, &ns->proj_init);
+  if (ns->info.init_from_file.type == 0) {
+    gk_neut_species_projection_init(app, ns, ns->info.projection, &ns->proj_init);
+  }
 
   // Allocate objects for computing diagnostic moments.
   int ndm = ns->info.num_diag_moments;

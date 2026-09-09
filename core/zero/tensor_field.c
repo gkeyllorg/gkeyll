@@ -109,9 +109,9 @@ gkyl_tensor_field_cu_dev_new(size_t rank, size_t ndim, size_t size, const enum g
   // so that the whole tfld->on_dev struct can be passed to a device kernel
   tfld->on_dev = gkyl_cu_malloc(sizeof(struct gkyl_tensor_field));
   gkyl_cu_memcpy(tfld->on_dev, tfld, sizeof(struct gkyl_tensor_field), GKYL_CU_MEMCPY_H2D);
-  // set device-side data pointer in tfld->on_dev to tfld->data 
+  // set device-side data pointer in tfld->on_dev to tfld->data->on-dev
   // (which is the host-side pointer to the device data)
-  gkyl_cu_memcpy(&((tfld->on_dev)->tdata), &tfld->tdata, sizeof(void*), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(&((tfld->on_dev)->tdata), &tfld->tdata->on_dev, sizeof(void*), GKYL_CU_MEMCPY_H2D);
 
   return tfld;
 }

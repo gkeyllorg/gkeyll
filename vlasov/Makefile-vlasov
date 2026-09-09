@@ -160,8 +160,30 @@ endif
 
 .PHONY: check valcheck
 # Run all unit tests
-check: unit ## Build (if needed) and run all unit tests
-	$(foreach unit,${UNITS},echo $(unit); cd ../; ./vlasov/$(unit) -E; cd vlasov;)
+check: unit unit-run ## Build (if needed) and run all unit tests
+
+# Run all unit tests without (re)building them
+unit-run: ## Run unit tests without (re)building them
+	@cd ..; app=vlasov; own_log=0; \
+	if [ -z "$$GKYL_TEST_LOG" ]; then GKYL_TEST_LOG=$$(mktemp); own_log=1; fi; \
+	npass=0; nfail=0; \
+	for unit in ${UNITS}; do \
+	  tname=$$(basename $$unit); \
+	  if ./$$app/$$unit -E; then \
+	    npass=$$((npass+1)); echo "PASS $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
+	  else \
+	    nfail=$$((nfail+1)); echo "FAIL $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
+	  fi; \
+	done; \
+	if [ $$own_log -eq 1 ]; then \
+	  echo "==================== $$app test summary ===================="; \
+	  echo "Passed: $$npass   Failed: $$nfail"; \
+	  if [ $$nfail -gt 0 ]; then \
+	    echo "Failed tests:"; grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; rm -f "$$GKYL_TEST_LOG"; exit 1; \
+	  else \
+	    echo "All $$app unit tests passed."; rm -f "$$GKYL_TEST_LOG"; \
+	  fi; \
+	fi
 
 valcheck: unit ## Run valgrind on unit test
 	cd ../ && $(foreach unit,$(UNITS),valgrind --leak-check=full ./$(patsubst ../%,%,$(unit)) -E 2>./$(patsubst ../%,%,$(unit))_val_err 1>/dev/null;)

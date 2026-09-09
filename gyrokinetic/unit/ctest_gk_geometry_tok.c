@@ -169,7 +169,7 @@ void mapc2p(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   fout[0] = sqrt(psi * 4 ); // Function fed is psi = 0.5/2 * R^2 from the efit file
   fout[1] = theta * 1.0 / M_PI; // Note that this does not have pi-1e-2 in it because the coordinate zeta is always defined -pi to pi
-  fout[2] = -alpha; // There is a minus due to conventions
+  fout[2] = alpha; // There is a minus due to conventions
 }
 
 void exact_gij(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -209,15 +209,15 @@ void exact_normals(double t, const double *xn, double* GKYL_RESTRICT fout, void 
 {
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   // Remember cylindrical angle = - alpha
-  fout[0] = -cos(-alpha);
-  fout[1] = -sin(-alpha);
+  fout[0] = cos(alpha);
+  fout[1] = sin(alpha);
   fout[2] = 0.0;
-  fout[3] = -sin(-alpha);
-  fout[4] = cos(-alpha);
+  fout[3] = -sin(alpha);
+  fout[4] = cos(alpha);
   fout[5] = 0.0;
   fout[6] = 0.0;
   fout[7] = 0.0;
-  fout[8] = -1.0;
+  fout[8] = 1.0;
 }
 
 void bmag_func(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx){
@@ -241,12 +241,10 @@ test_3x_p1_straight_cylinder()
   
   double psiMax = 0.2;
   double psiMin = 0.1;
-  int Nz = 10;
 
   double lower[3] = {psiMin, -1.0, -M_PI+1e-14};
   double upper[3] = {psiMax,  1.0,  M_PI-1e-14};
-  // int cells[3] = { 18, 18, Nz };
-  int cells[3] = { 8, 1, 8};
+  int cells[3] = { 8, 2, 8};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
   
@@ -344,11 +342,11 @@ test_3x_p1_straight_cylinder()
         double *dualmag_n = gkyl_array_fetch(dualmag_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
         double xn[3] = {mapc2p_n[0], mapc2p_n[1], mapc2p_n[2]};
-        double dualmag_anal[3];
-        exact_dual_magnitude(0, xn, dualmag_anal, 0);
-        TEST_CHECK( gkyl_compare( dualmag_n[0], dualmag_anal[0], 1e-6) );
-        TEST_CHECK( gkyl_compare( dualmag_n[1], dualmag_anal[1], 1e-6) );
-        TEST_CHECK( gkyl_compare( dualmag_n[2], dualmag_anal[2], 1e-6) );
+        double dualmag_ana[3];
+        exact_dual_magnitude(0, xn, dualmag_ana, 0);
+        TEST_CHECK( gkyl_compare( dualmag_n[0], dualmag_ana[0], 1e-6) );
+        TEST_CHECK( gkyl_compare( dualmag_n[1], dualmag_ana[1], 1e-6) );
+        TEST_CHECK( gkyl_compare( dualmag_n[2], dualmag_ana[2], 1e-6) );
       }
     }
   }
@@ -369,9 +367,9 @@ test_3x_p1_straight_cylinder()
         double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
         double xn[3] = {psi, alpha, theta};
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(&nrange, cidx));
-        double bmag_anal[1];
-        bmag_func(0, xn, bmag_anal, 0);
-        TEST_CHECK( gkyl_compare( bmag_n[0], bmag_anal[0], 1e-8) );
+        double bmag_ana[1];
+        bmag_func(0, xn, bmag_ana, 0);
+        TEST_CHECK( gkyl_compare( bmag_n[0], bmag_ana[0], 1e-8) );
       }
     }
   }
@@ -458,8 +456,8 @@ test_3x_p1_straight_cylinder()
         cidx[TH_IDX] = it;
         double *jacobgeo_n = gkyl_array_fetch(jacobgeo_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double jacobian_analytic = 2/M_PI;
-        TEST_CHECK( gkyl_compare( jacobgeo_n[0], jacobian_analytic, 1e-6) );
+        double jacobian_anaytic = 2/M_PI;
+        TEST_CHECK( gkyl_compare( jacobgeo_n[0], jacobian_anaytic, 1e-6) );
       }
     }
   }
@@ -475,8 +473,8 @@ test_3x_p1_straight_cylinder()
         cidx[TH_IDX] = it;
         double *jacobgeo_inv_n = gkyl_array_fetch(jacobgeo_inv_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double jacobian_analytic = 2/M_PI;
-        TEST_CHECK( gkyl_compare( jacobgeo_inv_n[0], 1/jacobian_analytic, 1e-6) );
+        double jacobian_anaytic = 2/M_PI;
+        TEST_CHECK( gkyl_compare( jacobgeo_inv_n[0], 1/jacobian_anaytic, 1e-6) );
       }
     }
   }
@@ -493,10 +491,10 @@ test_3x_p1_straight_cylinder()
         double *jacobtot_n = gkyl_array_fetch(jacobtot_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double jacobian_analytic = 2/M_PI;
+        double jacobian_anaytic = 2/M_PI;
         double magnetic_field = 0.5;
-        double jacobtot_analytic = jacobian_analytic * magnetic_field;
-        TEST_CHECK( gkyl_compare( jacobtot_n[0], jacobtot_analytic, 1e-6) );
+        double jacobtot_anaytic = jacobian_anaytic * magnetic_field;
+        TEST_CHECK( gkyl_compare( jacobtot_n[0], jacobtot_anaytic, 1e-6) );
       }
     }
   }
@@ -513,10 +511,10 @@ test_3x_p1_straight_cylinder()
         double *jacobtot_inv_n = gkyl_array_fetch(jacobtot_inv_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double jacobian_analytic = 2/M_PI;
+        double jacobian_anaytic = 2/M_PI;
         double magnetic_field = 0.5;
-        double jacobtot_analytic = jacobian_analytic * magnetic_field;
-        TEST_CHECK( gkyl_compare( jacobtot_inv_n[0], 1/jacobtot_analytic, 1e-6) );
+        double jacobtot_anaytic = jacobian_anaytic * magnetic_field;
+        TEST_CHECK( gkyl_compare( jacobtot_inv_n[0], 1/jacobtot_anaytic, 1e-6) );
       }
     }
   }
@@ -554,7 +552,7 @@ test_3x_p1_straight_cylinder()
         double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
         double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
         double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
-        double xn[3] = {psi, -alpha, theta};
+        double xn[3] = {psi, alpha, theta};
         double *mc2nu_pos_n = gkyl_array_fetch(mc2nu_pos_nodal, gkyl_range_idx(&nrange, cidx));
         for (int i=0; i<3; ++i) {
           TEST_CHECK( gkyl_compare( mc2nu_pos_n[i], xn[i], 1e-8) );
@@ -616,7 +614,7 @@ test_asdex_qprofile_core()
 {
   double clower[] = { -0.09, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.14975, 0.01, M_PI-1e-14 };
-  int ccells[] = { 16, 1, 4 };
+  int ccells[] = { 4, 1, 4 };
 
   int cpoly_order = 1;
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
@@ -646,10 +644,13 @@ test_asdex_qprofile_core()
     .zmin_right = -1.0,
   };
   // Initialize geometry
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -681,6 +682,7 @@ test_asdex_qprofile_core()
 //  gkyl_array_release(mc2p_nodal);
 
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_position_map_release(pmap);
 }
 
 void
@@ -688,7 +690,7 @@ test_asdex_qprofile_sol()
 {
   double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 16 };
+  int ccells[] = { 4, 1, 4 };
 
   int cpoly_order = 1;
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
@@ -719,10 +721,13 @@ test_asdex_qprofile_sol()
     .zmin_right = -1.0,
   };
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -740,6 +745,7 @@ test_asdex_qprofile_sol()
   struct gk_geometry* gk_geom = gkyl_gk_geometry_tok_new(&geometry_inp);
   write_geometry(gk_geom, cgrid, clocal, "asdex_sol");
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_position_map_release(pmap);
 }
 
 TEST_LIST = {

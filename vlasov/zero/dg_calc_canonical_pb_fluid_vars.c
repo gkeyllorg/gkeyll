@@ -66,7 +66,7 @@ gkyl_dg_calc_canonical_pb_fluid_vars_new(const struct gkyl_rect_grid *conf_grid,
         .avg_dim = int_dim_y,
         .use_gpu = use_gpu
       };
-      up->int_y = gkyl_array_average_new(&inp_int_y);
+      up->int_y = gkyl_array_average_inew(&inp_int_y);
       up->phi_zonal = gkyl_array_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
       up->n_zonal = gkyl_array_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
       up->subtract_zonal = choose_canonical_pb_fluid_subtract_zonal_kern(conf_basis->b_type, cdim, poly_order);
