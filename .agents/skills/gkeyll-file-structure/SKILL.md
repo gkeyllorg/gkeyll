@@ -37,7 +37,8 @@ Each of the solvers' folders have the sub-folders:
 * data/: data needed for some simulations.
 * unit/: unit tests of specific components in zero/.
 * apps/: apps are called by input files or regression tests, and they organize
-  solver workflow or simulations and call modules in zero/.
+  solver workflow or simulations and call modules in zero/. Communication
+  happens in the app level.
 * creg/: C regression tests or short simulations to ensure solvers work (these
   are also examples of C input files).
 * luareg/: Lua regression tests or short simulations to ensure solvers work

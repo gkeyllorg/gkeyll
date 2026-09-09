@@ -36,3 +36,10 @@ Most modules in zero/ or apps/ consist of 3 public functions:
 3. A deletion function, typically called gkyl_<module>_release.
 
 There may also be some additional auxiliary private or public functions.
+
+## Modular design
+
+Each file must have a clear descriptive name.
+Filenames help organize the code into the relevant sections.
+When a set of code could be made smaller and refactored into a sub-module, it should.
+The purpose and intent of the file should be clear from its name.
