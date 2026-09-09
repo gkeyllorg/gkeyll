@@ -259,9 +259,9 @@ create_ctx(void)
   double mu_min_elc_c = 0.;
   double mu_max_elc_c = 1.;
 
-  int Nx = 4; // Number of cells in x.
-  int Nz = 4; // Number of cells in z, originally 8.
-  int Nvpar = 8; // Number of cells in vpar.
+  int Nx = 16; // Number of cells in x.
+  int Nz = 16; // Number of cells in z, originally 8.
+  int Nvpar = 16; // Number of cells in vpar.
   int Nmu = 8; // Number of cells in mu.
 
   double t_end = 1.0e-8;
