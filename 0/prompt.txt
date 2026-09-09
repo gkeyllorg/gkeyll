@@ -1,0 +1,198 @@
+I'm trying to run the rt_gk_ltx_iwl_2x2v_p1.c regression test with "../gkylsoft/gkeyll/bin/gkeyll runregression -v run create -r gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c", which is a gyrokinetic test and should not be run as a moments, vlasov or pkpm test. But the output seems to indicate some confusion or path issue persists because I see outputs like "[C]   Compiling pkpm/creg/rt_gk_ltx_iwl_2x2v_p1 ..." and later reports having run moments/vlasov/gyrokinetic/pkpm tests with
+  Layer moments       total=1  passed=0  failed=0
+  Layer vlasov        total=1  passed=0  failed=0
+  Layer gyrokinetic   total=1  passed=0  failed=0
+  Layer pkpm          total=1  passed=0  failed=0
+Can you find out why this is happening please?
+
+---
+
+<task-notification>
+<task-id>a9ca10db07aefaaeb</task-id>
+<tool-use-id>toolu_vrtx_01PAhbbDXxv71povCWkb8fjA</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/5fd6fb47-e03f-4e3b-bb4a-a0f7fd5cf4a4/tasks/a9ca10db07aefaaeb.output</output-file>
+<status>completed</status>
+<summary>Agent "Find runregression CLI implementation" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>## Summary
+
+The `runregression` tool is implemented entirely in Lua at:
+
+**`gkeyll/lua/Tool/runregression.lua`** (2272 lines), registered as a gkeyll subcommand in `gkeyll/gkeyll.c:74`:
+```c
+{"runregression", "runregression.lua", "Run regression/unit tests"},
+```
+
+### 1. Source files
+
+- `gkeyll/lua/Tool/runregression.lua` — the whole CLI, test discovery, compile, run, compare, and reporting logic.
+- `gkeyll/lua/Tool/queryrdb.lua` — a companion tool for querying the per-layer SQLite DBs that `runregression` creates (not part of the run path itself).
+- `ci/jenkins/check_regression_results.lua` — CI wrapper that invokes `runregression run check --moat`.
+
+### 2. How layer is determined — and the `-r` flag is NOT it
+
+This is the crux of the confusion. There are **two different flags that look similar but do very different things**:
+
+- **Layer selection** is *not* a flag at all. It's done by a positional token pre-scan, before argparse even runs (`gkeyll/lua/Tool/runregression.lua:123-142`):
+```lua
+local LAYERS = {
+   { name = "moments",     src = "moments"     },
+   { name = "vlasov",      src = "vlasov"      },
+   { name = "gyrokinetic", src = "gyrokinetic" },
+   { name = "pkpm",        src = "pkpm"        },
+}
+...
+local detectedLayer = nil
+local filteredCmds  = {}
+for i = 1, #GKYL_COMMANDS_L do
+   local arg = GKYL_COMMANDS_L[i]
+   if VALID_LAYER_NAMES[arg] then
+      if detectedLayer == nil then
+         detectedLayer = arg
+      end
+   else
+      filteredCmds[#filteredCmds + 1] = arg
+   end
+end
+```
+  So you'd select a layer with e.g. `gkeyll runregression run gyrokinetic create`, not with `-r`.
+
+- **`-r` / `--run-only`** (`gkeyll/lua/Tool/runregression.lua:2225-2228`) is a completely different option — it filters which *individual test(s)* to run within whatever layer(s) are being scanned:
+```lua
+c_run:option("-r --run-only",
+   "Run only these tests (comma-separated).\n"
+   .. "Accepts bare names (rt_foo), absolute paths, or directories.\n"
+   .. "Use --c-only/--lua-only to disambiguate when a C and Lua test share the same name.")
+```
+
+**This is almost certainly the root of the reported bug.** The invocation `bin/gkeyll runregression -v run create -r gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c` never mentions a bare layer-name token (`moments`, `vlasov`, `gyrokinetic`, `pkpm`) as a standalone argument — the string `"gyrokinetic"` only appears embedded inside the `-r` path value `gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c`. The pre-scan in lines 132-142 only matches tokens where `VALID_LAYER_NAMES[arg]` is true, i.e. the *entire* argument must equal `"moments"`, `"vlasov"`, `"gyrokinetic"`, or `"pkpm"` — not a substring/prefix. Since `gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c` != `"gyrokinetic"`, `detectedLayer` stays `nil`, and the run proceeds with **all layers**.
+
+### 3. Path resolution for `-r` and how it could resolve to `pkpm`
+
+In `list_tests()` (`gkeyll/lua/Tool/runregression.lua:647-862`), when `activeLayers` (i.e. `detectedLayer`) is `nil`, `layersToScan = LAYERS` (line 668) — **all four layers are scanned**, regardless of the `-r` value.
+
+For the C-test branch, `--run-only` entries are resolved per scanned layer at lines 781-801:
+```lua
+elseif args.run_only then
+   for _, ro in ipairs(runOnlyEntries) do
+      local a = lfs.attributes(ro)
+      if a then
+         runOnlyFound[ro] = true
+         if a.mode == "file" then
+            addCTest(ro)
+         elseif a.mode == "directory" then
+            ...
+         end
+      else
+         -- Bare test name (e.g. "rt_10m_sodshock"): search this layer's creg/.
+         local candidate = cregSrcDir .. "/" .. ro .. ".c"
+         if lfs.attributes(candidate) then
+            runOnlyFound[ro] = true
+            addCTest(candidate)
+         end
+      end
+   end
+```
+Key points:
+- `ro = "gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c"` is a **relative** path. `lfs.attributes(ro)` will only succeed if this relative path exists **relative to the tool's current working directory** at invocation time — not relative to `configVals.source_dir`. If the user runs `bin/gkeyll runregression ...` from some other directory (e.g. the install/build dir, or a different layer's directory), `lfs.attributes(ro)` fails (`a` is nil), and the code falls into the "bare test name" branch (`else` at line 793), which does:
+```lua
+local candidate = cregSrcDir .. "/" .. ro .. ".c"
+```
+  This builds `cregSrcDir .. "/" .. "gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c" .. ".c"` for **every layer being scanned** (`cregSrcDir = configVals.source_dir .. "/" .. layer.src .. "/creg"`), producing garbage paths like `.../pkpm/creg/gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c.c`, which won't exist on disk — so normally this fails silently for every layer, and `runOnlyFound[ro]` stays false, triggering the "no regression test found" error at lines 818-859.
+
+  However — this "unknown test" error path (lines 815-859) is only reached in `list_tests()`, which both `list_action` and `run_action` call. But the actual reported symptom is that it seems to be compiling under `pkpm/creg/...` — which suggests the addCTest layer-affinity guard is where the mismatch actually happens. Look at `addCTest` (lines 748-773):
+```lua
+local function addCTest(fn)
+   -- Layer-affinity guard for absolute paths (e.g. from --run-only).
+   if string.sub(fn, 1, 1) == "/" then
+      local cregPath = "/" .. layer.src .. "/creg/"
+      if not string.find(fn, cregPath, 1, true) then return end
+   end
+   ...
+   table.insert(cTests, {
+      src      = fn,
+      layer    = layer.name,
+      layer_src = layer.src,
+      name     = layer.name .. "/creg/" .. testname,
+   })
+end
+```
+  Critically: **the layer-affinity guard only applies when `fn` starts with `/`** (an absolute path). If `ro` is a *relative* path like `gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c` and it happens to resolve via `lfs.attributes(ro)` successfully (e.g., because the user's CWD is the gkeyll source root, so `gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c` really exists relative to CWD), then `a.mode == "file"` is true and `addCTest(ro)` is called **once per layer in `layersToScan`** — i.e., for `moments`, `vlasov`, `gyrokinetic`, AND `pkpm` — with the *same relative-path string* `fn = "gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c"` each time. Since `fn` doesn't start with `/`, the "layer-affinity guard" (`string.sub(fn,1,1) == "/"`) is **skipped entirely**, so the test gets added to `cTests` under **every layer**, each time tagged with that iteration's `layer.name`/`layer.src` (moments, vlasov, gyrokinetic, pkpm) — not the layer implied by the path text itself. The `test.name` and `test.layer_src` fields come from the loop variable `layer`, not from parsing the `gyrokinetic/` prefix in the path string.
+
+  This explains items 4 and part of 3: the same source file `gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c` gets registered as a test under `pkpm` (as well as moments/vlasov/gyrokinetic), with `test.layer = "pkpm"`, `test.layer_src = "pkpm"`, `test.name = "pkpm/creg/rt_gk_ltx_iwl_2x2v_p1"`.
+
+  Then in `prepareCRun()` (lines 972-975):
+```lua
+local testname = stripext(basename(test.src))
+local runDir   = configVals.results_dir .. "/" .. test.layer
+   .. "/creg-runs/" .. testname
+```
+  `test.layer` is `"pkpm"` for that spurious entry, so the compile/run scratch directory becomes `&lt;results_dir&gt;/pkpm/creg-runs/rt_gk_ltx_iwl_2x2v_p1` — i.e. it compiles as **pkpm/creg/rt_gk_ltx_iwl_2x2v_p1** even though the actual source lives only in `gyrokinetic/creg/`. Compilation copies `test.src` (the literal relative path string `gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c`, still resolvable relative to whatever CWD the whole process started in) into that pkpm scratch dir (`compileCTest`, lines 894-926, `cp -f '%s' '%s/'`), so it actually compiles the *gyrokinetic* source file but labels/stores it as a pkpm-layer test.
+
+### 4. Looping over all layers / "Layer X ... total=... passed=... failed=..." summary
+
+The per-layer summary lines are printed at the end of `run_action` (`gkeyll/lua/Tool/runregression.lua:2110-2128`):
+```lua
+for _, layer in ipairs(LAYERS) do
+   local cnt = layerCounts[layer.name]
+   if cnt.total &gt; 0 then
+      insertRegressionMeta(layer.name, runID, runDate, ...)
+      local summary = string.format(
+         "  Layer %-12s  total=%d  passed=%d  failed=%d",
+         layer.name, cnt.total, cnt.passed, cnt.failed)
+      ...
+      log(summary .. "\n")
+   end
+end
+```
+This always iterates the full `LAYERS` array (moments, vlasov, gyrokinetic, pkpm — defined at line 48-53) and prints a summary line for **any layer that ended up with `cnt.total &gt; 0`**. `layerCounts` is populated as tests are added/run based on each test's `test.layer` field (set in `addCTest`/`addLuaTest`), which — per the bug traced above — can include `pkpm` (and potentially `moments`/`vlasov` too) even when the user only intended to run one gyrokinetic C test, because:
+- `detectedLayer` was never set (since `-r`'s value isn't a bare layer-name token), so `list_tests()` scans `layersToScan = LAYERS` (all four), and
+- The relative-path `--run-only` match in `addCTest` bypasses the absolute-path layer-affinity guard, letting the same file get inserted into `cTests` once per layer in the scan loop.
+
+So you'd see up to four "Layer ..." lines (moments/vlasov/gyrokinetic/pkpm), each showing `total=1 passed=... failed=...` for what the user thought was a single, gyrokinetic-only test — and the compile scratch dir for the "pkpm" copy is `pkpm/creg-runs/rt_gk_ltx_iwl_2x2v_p1`, matching the reported "pkpm/creg/rt_gk_ltx_iwl_2x2v_p1" naming.
+
+### 5. Name collision check
+
+I confirmed on disk that `rt_gk_ltx_iwl_2x2v_p1.c` exists **only** under `gyrokinetic/creg/`:
+```
+./gyrokinetic/creg/rt_gk_ltx_iwl_2x2v_p1.c
+```
+It does **not** exist under `pkpm/creg/`, `moments/creg/`, or `vlasov/creg/` (those directories don't even contain any `*ltx_iwl*` files; `moments/creg` and `pkpm/creg` in this checkout appear to have no matching files at all in the search). So there is no genuine duplicate-filename collision across layers — the "pkpm/creg/..." naming is **synthetic**, produced by the `addCTest` loop mislabeling the layer (as traced in #3/#4), not by an actual file of the same name living under `pkpm/creg/`.
+
+### Key fix-relevant locations
+
+| Concern | File | Lines |
+|---|---|---|
+| Layer registration table `LAYERS` | `gkeyll/lua/Tool/runregression.lua` | 48-53 |
+| Layer pre-scan (`detectedLayer`) — only matches exact bare tokens | same | 123-142 |
+| `list_tests()` — `layersToScan` decision | same | 658-669 |
+| `--run-only` C-test resolution per layer | same | 781-801 |
+| `addCTest` — layer-affinity guard only for absolute paths | same | 748-773 |
+| `prepareCRun` — builds `runDir` from `test.layer` | same | 972-975 |
+| Final per-layer summary print loop ("Layer %-12s total=... passed=... failed=...") | same | 2110-2128 |
+| CLI option definitions (`-r --run-only`, `run` subcommand help text) | same | 2204-2205, 2219-2228 |
+| gkeyll subcommand registration | `gkeyll/gkeyll.c` | 74 |
+
+**Practical takeaway:** to run just the intended gyrokinetic test unambiguously, the layer should be given as its own token (`gkeyll runregression run gyrokinetic create -r rt_gk_ltx_iwl_2x2v_p1`), and `-r` should ideally be given a bare test name or an absolute path rather than a layer-prefixed relative path, since relative layer-prefixed paths bypass the intended per-layer filtering and get replicated across all four layers due to the `string.sub(fn,1,1)=="/"` guard only firing for absolute paths.</result>
+<usage><subagent_tokens>58251</subagent_tokens><tool_uses>10</tool_uses><duration_ms>301485</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpi4nomhb</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/5fd6fb47-e03f-4e3b-bb4a-a0f7fd5cf4a4/tasks/bpi4nomhb.output</output-file>
+<status>completed</status>
+<summary>Background command "Run the reported regression test command with the fix applied" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bfvvybvx5</task-id>
+<tool-use-id>toolu_vrtx_017Rb7KKMHdtuvAKdhBoCawm</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/5fd6fb47-e03f-4e3b-bb4a-a0f7fd5cf4a4/tasks/bfvvybvx5.output</output-file>
+<status>completed</status>
+<summary>Background command "Re-run the reported regression test command after syncing the fix" completed (exit code 0)</summary>
+</task-notification>
