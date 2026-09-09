@@ -141,7 +141,7 @@ test_ltx_miller()
   };
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
-  write_geometry(up, cgrid, cbasis, clocal, "ltx_miller");
+  // write_geometry(up, cgrid, cbasis, clocal, "ltx_miller");
   gkyl_gk_geometry_release(up);
   gkyl_position_map_release(pmap);
 

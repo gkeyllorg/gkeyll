@@ -282,7 +282,7 @@ test_3x_p1_straight_cylinder()
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
 
-  write_geometry(gk_geom, grid, range, "straight_cylinder");
+  // write_geometry(gk_geom, grid, range, "straight_cylinder");
 
   // Define nodal operations
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates

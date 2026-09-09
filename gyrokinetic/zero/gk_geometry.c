@@ -70,7 +70,6 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
     gkyl_cart_modal_serendip(&up->surf_basis, 1, 0);
   }
   up->num_surf_basis = up->surf_basis.num_basis;
-  up->num_surf_basis = up->surf_basis.num_basis;
 
   gk_geometry_corn_alloc_expansions(up);
   gk_geometry_corn_alloc_nodal(up);
