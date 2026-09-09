@@ -1,0 +1,1102 @@
+The updater gyrokinetic/zero/gk_collisionless_flux.c computes the collisionless gyrokinetic flux at cell surfaces in our DG scheme. It has a while loop over cells and within it a for loop over directions. Within that for loop it computes the flux for interior cell surfaces, and it has a special case ("idx[dir] == phase_range->upper[dir]") for the upper cell so it computes the upper domain surface flux. Can you change this so that there are special cases at both the lower and upper domain surfaces please? just modify the .c file for now, we will add the new Maxima-generated kernels into gkyl_gk_collisionless_flux_priv.h and modify the CUDA version at a subsequent stage.
+
+---
+
+The updater gyrokinetic/zero/gk_collisionless_flux.c computes the collisionless gyrokinetic flux at cell surfaces in our DG scheme. It has a while loop over cells and within it a for loop over directions. Within that for loop it computes the flux for interior cell surfaces, and it has a special case ("idx[dir] == phase_range->upper[dir]") for the upper cell so it computes the upper domain surface flux. Can you change this so that there are special cases at both the lower and upper domain surfaces please? You may need to need to modify gkyl_gk_collisionless_flux_priv.h to add the new Maxima-generated kernels; i've only generated the 1x2v ones as examples, gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_surfx_1x2v_ser_p1.c and gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_boundary_surfx_1x2v_ser_p1.c. And we will modify the CUDA version at a subsequent stage when we've finalized the C version.
+
+---
+
+The updater gyrokinetic/zero/gk_collisionless_flux.c computes the collisionless gyrokinetic flux at cell surfaces in
+  our DG scheme. It has a while loop over cells and within it a for loop over directions. Within that for loop it
+  computes the flux for interior cell surfaces, and it has a special case ("idx[dir] == phase_range->upper[dir]") for
+  the upper cell so it computes the upper domain surface flux. Can you change this so that there are special cases at
+  both the lower and upper domain surfaces please? You may need to need to modify gkyl_gk_collisionless_flux_priv.h to
+  add the new Maxima-generated kernels; i've only generated the 1x2v ones as examples,
+  gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_surfx_1x2v_ser_p1.c and
+  gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_boundary_surfx_1x2v_ser_p1.c. And we will modify the CUDA
+  version at a subsequent stage when we've finalized the C version.
+
+---
+
+<task-notification>
+<task-id>a27aff9ba6d150e15</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/5fd6fb47-e03f-4e3b-bb4a-a0f7fd5cf4a4/tasks/a27aff9ba6d150e15.output</output-file>
+<status>completed</status>
+<summary>Agent "Explore full priv.h and updater .c structure" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Here are both files reproduced verbatim in full.
+
+## 1. `gyrokinetic/zero/gk_collisionless_flux.c`
+
+```c
+#include &lt;assert.h&gt;
+#include &lt;float.h&gt;
+
+#include &lt;gkyl_alloc.h&gt;
+#include &lt;gkyl_alloc_flags_priv.h&gt;
+#include &lt;gkyl_array_ops.h&gt;
+#include &lt;gkyl_array_ops_priv.h&gt;
+#include &lt;gkyl_dg_bin_ops_priv.h&gt;
+#include &lt;gkyl_gk_collisionless_flux.h&gt;
+#include &lt;gkyl_gk_collisionless_flux_priv.h&gt;
+#include &lt;gkyl_util.h&gt;
+
+gkyl_gk_collisionless_flux*
+gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const double charge, const double mass,
+  enum gkyl_gk_collisionless_type type,
+  const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
+  const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
+  const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    return gkyl_gk_collisionless_flux_cu_dev_new(phase_grid, conf_basis, phase_basis,
+      charge, mass, type, gk_geom, dg_geom, gk_dg_geom, vel_map, bctype_conf);
+#endif     
+
+  gkyl_gk_collisionless_flux *up = gkyl_malloc(sizeof(gkyl_gk_collisionless_flux));
+
+  up-&gt;phase_grid = *phase_grid;
+  int cdim = conf_basis-&gt;ndim;
+  int pdim = phase_basis-&gt;ndim;
+  int vdim = pdim - cdim;
+  int poly_order = phase_basis-&gt;poly_order;
+  up-&gt;cdim = cdim;
+  up-&gt;pdim = pdim;
+
+  up-&gt;charge = charge;
+  up-&gt;mass = mass;
+
+  up-&gt;gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+  up-&gt;dg_geom = gkyl_dg_geom_acquire(dg_geom);
+  up-&gt;gk_dg_geom = gkyl_gk_dg_geom_acquire(gk_dg_geom);
+  up-&gt;vel_map = gkyl_velocity_map_acquire(vel_map);
+
+  if (type == GKYL_GK_COLLISIONLESS_ES) {
+    for (int d=0; d&lt;cdim; ++d) {
+      // BC option in -&gt;flux_surf kernel doesn't matter as long as it's not SKIP.
+      up-&gt;flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+      up-&gt;flux_surf_edge_lo[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim,
+        poly_order, bctype_conf[d]);
+      up-&gt;flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(d, cdim, vdim,
+        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+    }
+    up-&gt;flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
+  }
+  else if (type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
+    for (int d=0; d&lt;cdim; ++d) {
+      // BC option in -&gt;flux_surf kernel doesn't matter as long as it's not SKIP.
+      up-&gt;flux_surf[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+      up-&gt;flux_surf_edge_lo[d] = choose_gk_collisionless_flux_no_by_surf_conf_kern(d, cdim, vdim,
+        poly_order, bctype_conf[d]);
+      up-&gt;flux_surf_edge_up[d] = choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(d, cdim, vdim,
+        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+    }
+    up-&gt;flux_surfvpar[0] = choose_gk_collisionless_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
+  }
+
+  up-&gt;flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up-&gt;flags);
+  up-&gt;on_dev = up; // self-reference on host
+  
+  return up;
+}
+
+void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
+  const struct gkyl_array *fin, struct gkyl_array *yfield, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(flux_surf)) {
+    return gkyl_gk_collisionless_flux_surf_cu(up, conf_range, phase_range,
+      conf_ext_range, phase_ext_range, phi, fin, flux_surf, cflrate);
+  }
+#endif
+  int pdim = up-&gt;pdim;
+  int cdim = up-&gt;cdim;
+  int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM], idx_vel[2];
+  int idxL[GKYL_MAX_DIM];
+  int idx_velL[2];
+  double xc[GKYL_MAX_DIM];
+
+  struct gkyl_range vpar_range;
+  int extend_lo[GKYL_MAX_DIM] = {0};
+  int extend_up[GKYL_MAX_DIM] = {0};
+  extend_lo[cdim] = -1;
+  gkyl_range_extend(&amp;vpar_range, phase_range, extend_lo, extend_up);
+
+  gkyl_array_clear(yfield, 0.0);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&amp;iter, phase_range);
+  while (gkyl_range_iter_next(&amp;iter)) {
+    gkyl_copy_int_arr(pdim, iter.idx, idx);
+
+    for (int d=cdim; d&lt;pdim; d++) idx_vel[d-cdim] = iter.idx[d];
+
+    long loc_conf = gkyl_range_idx(conf_range, idx);
+    long loc_vel = gkyl_range_idx(&amp;up-&gt;vel_map-&gt;local_vel, idx_vel);
+    long loc_phase = gkyl_range_idx(phase_range, idx);
+
+    gkyl_rect_grid_cell_center(&amp;up-&gt;phase_grid, idx, xc);
+
+    const double *bmag_d = gkyl_array_cfetch(up-&gt;gk_geom-&gt;geo_corn.bmag, loc_conf);
+    const double *vmap_d = gkyl_array_cfetch(up-&gt;vel_map-&gt;vmap, loc_vel);
+    const double *vmapSq_d = gkyl_array_cfetch(up-&gt;vel_map-&gt;vmap_sq, loc_vel);
+
+    double *flux_surf_d = gkyl_array_fetch(flux_surf, loc_phase);
+    double *cflrate_d = gkyl_array_fetch(cflrate, loc_phase);
+
+    for (int dir = 0; dir&lt;cdim; ++dir) {
+      gkyl_copy_int_arr(pdim, idx, idxL);
+      idxL[dir] = idx[dir] - 1;
+      long loc_confL = gkyl_range_idx(conf_range, idxL);
+      long locL = gkyl_range_idx(phase_range, idxL);
+      const double *fL = gkyl_array_cfetch(fin, locL);
+      const double *fR = gkyl_array_cfetch(fin, loc_phase);
+
+      const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up-&gt;dg_geom, dir, idx);
+      const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up-&gt;gk_dg_geom, dir, idx);
+
+      const double *jacgeo_rat_surfL_d = gkyl_array_cfetch(up-&gt;gk_geom-&gt;geo_surf[dir].jacobgeo_ratio, loc_confL);
+      const double *jacgeo_rat_surfR_d = gkyl_array_cfetch(up-&gt;gk_geom-&gt;geo_surf[dir].jacobgeo_ratio, loc_conf);
+
+      const double *phiL_d = gkyl_array_cfetch(phi, loc_confL);
+      const double *phiR_d = gkyl_array_cfetch(phi, loc_conf);
+
+      double *yfieldL = gkyl_array_fetch(yfield, locL);
+      double *yfieldR = gkyl_array_fetch(yfield, loc_phase);
+
+      if (idx[dir] == phase_range-&gt;lower[dir]) {
+        // Lower domain/block boundary.
+        cflrate_d[0] += up-&gt;flux_surf_edge_lo[dir](xc, up-&gt;phase_grid.dx, vmap_d, vmapSq_d, up-&gt;charge, up-&gt;mass,
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_d);
+      } else {
+        // Interior, lower cell surface.
+        cflrate_d[0] += up-&gt;flux_surf[dir](xc, up-&gt;phase_grid.dx, vmap_d, vmapSq_d, up-&gt;charge, up-&gt;mass,
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_d);
+      }
+
+      // Upper domain/block boundary.
+      // If the phase space index is at the local configuration space upper value, we
+      // we are at the configuration space upper edge and we also need to evaluate 
+      // alpha = +1 to avoid evaluating the geometry information in the ghost cells 
+      // where it is not defined when computing the final surface alpha we need
+      // (since the surface alpha array stores only the *lower* surface expansion)
+      if (idx[dir] == phase_range-&gt;upper[dir]) {
+        gkyl_copy_int_arr(pdim, idx, idx_edge);
+        idx_edge[dir] = idx_edge[dir]+1;
+        long loc_conf_ext = gkyl_range_idx(conf_ext_range, idx_edge);
+        long loc_phase_ext = gkyl_range_idx(phase_ext_range, idx_edge);
+
+        double *cflrate_ext_d = gkyl_array_fetch(cflrate, loc_phase_ext);
+
+        const double *fL = gkyl_array_cfetch(fin, loc_phase);
+        const double *fR = gkyl_array_cfetch(fin, loc_phase_ext);
+
+        const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up-&gt;dg_geom, dir, idx_edge);
+        const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up-&gt;gk_dg_geom, dir, idx_edge);
+
+        const double *jacgeo_rat_surfL_d = gkyl_array_cfetch(up-&gt;gk_geom-&gt;geo_surf[dir].jacobgeo_ratio, loc_conf);
+        const double *jacgeo_rat_surfR_d = gkyl_array_cfetch(up-&gt;gk_geom-&gt;geo_surf[dir].jacobgeo_ratio, loc_conf_ext);
+
+        const double *phiL_d = gkyl_array_cfetch(phi, loc_conf);
+        const double *phiR_d = gkyl_array_cfetch(phi, loc_conf_ext);
+
+        double *yfieldL = gkyl_array_fetch(yfield, loc_phase);
+        double *yfieldR = gkyl_array_fetch(yfield, loc_phase_ext);
+
+        double* flux_surf_ext_d = gkyl_array_fetch(flux_surf, loc_phase_ext);
+
+        cflrate_ext_d[0] += up-&gt;flux_surf_edge_up[dir](xc, up-&gt;phase_grid.dx, vmap_d, vmapSq_d, up-&gt;charge, up-&gt;mass,
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_ext_d);
+      }  
+    }
+  }
+
+  gkyl_range_iter_init(&amp;iter, &amp;vpar_range);
+  while (gkyl_range_iter_next(&amp;iter)) {
+    gkyl_copy_int_arr(pdim, iter.idx, idx);
+
+    for (int d=cdim; d&lt;pdim; d++) idx_vel[d-cdim] = iter.idx[d];
+
+    long loc_conf = gkyl_range_idx(conf_range, idx);
+    long loc_vel = gkyl_range_idx(&amp;up-&gt;vel_map-&gt;local_vel, idx_vel);
+    long loc_phase = gkyl_range_idx(phase_range, idx);
+
+    gkyl_rect_grid_cell_center(&amp;up-&gt;phase_grid, idx, xc);
+
+    const double *bmag_d = gkyl_array_cfetch(up-&gt;gk_geom-&gt;geo_corn.bmag, loc_conf);
+    const double *vmap_d = gkyl_array_cfetch(up-&gt;vel_map-&gt;vmap, loc_vel);
+    const double *vmapSq_d = gkyl_array_cfetch(up-&gt;vel_map-&gt;vmap_sq, loc_vel);
+    const double *yfield_d = gkyl_array_cfetch(yfield, loc_phase);
+
+    double *flux_surf_d = gkyl_array_fetch(flux_surf, loc_phase);
+    double *cflrate_d = gkyl_array_fetch(cflrate, loc_phase);
+
+    int dir=cdim;
+    gkyl_copy_int_arr(pdim, idx, idxL);
+    idxL[dir] = idx[dir] - 1;
+    gkyl_copy_int_arr(pdim-cdim, idx_vel, idx_velL);
+    idx_velL[0] = idx_velL[0]-1;
+    long locL = gkyl_range_idx(phase_range, idxL);
+    long loc_velL = gkyl_range_idx(&amp;up-&gt;vel_map-&gt;local_vel, idx_velL);
+    const double *fL = gkyl_array_cfetch(fin, locL);
+    const double *fR = gkyl_array_cfetch(fin, loc_phase);
+
+    const double *vpL = gkyl_array_cfetch(up-&gt;vel_map-&gt;vmap_prime, loc_velL);
+    const double *vpR = gkyl_array_cfetch(up-&gt;vel_map-&gt;vmap_prime, loc_vel);
+
+    const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up-&gt;dg_geom, idx);
+    const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up-&gt;gk_dg_geom, idx);
+    cflrate_d[0] += up-&gt;flux_surfvpar[0](xc, up-&gt;phase_grid.dx, vpL, vpR, vmap_d, vmapSq_d, up-&gt;charge, up-&gt;mass,
+      dgv, gkdgv, bmag_d, yfield_d, fL, fR, flux_surf_d);
+  }
+}
+
+void gkyl_gk_collisionless_flux_release(gkyl_gk_collisionless_flux *up)
+{
+  gkyl_gk_geometry_release(up-&gt;gk_geom);
+  gkyl_dg_geom_release(up-&gt;dg_geom);
+  gkyl_gk_dg_geom_release(up-&gt;gk_dg_geom);
+  gkyl_velocity_map_release(up-&gt;vel_map);
+  
+  if (GKYL_IS_CU_ALLOC(up-&gt;flags))
+    gkyl_cu_free(up-&gt;on_dev);
+  gkyl_free(up);
+}
+```
+
+## 2. `gyrokinetic/zero/gkyl_gk_collisionless_flux_priv.h`
+
+```c
+// Private header: not for direct use
+#pragma once
+
+#include &lt;math.h&gt;
+
+#include &lt;gkyl_array.h&gt;
+#include &lt;gkyl_basis.h&gt;
+#include &lt;gkyl_gk_collisionless_flux_kernels.h&gt;
+#include &lt;gkyl_range.h&gt;
+#include &lt;gkyl_util.h&gt;
+#include &lt;assert.h&gt;
+
+typedef double (*gk_collisionless_flux_surf_t)(const double *w, const double *dxv, 
+  const double *vmap, const double *vmapSq, const double q_, const double m_, 
+  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
+  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+  const double *phiL, const double *phiR, const double *JfL, const double *JfR,
+  double* GKYL_RESTRICT yfieldL, double* GKYL_RESTRICT yfieldR, double* GKYL_RESTRICT flux_surf); 
+
+typedef double (*gk_collisionless_flux_surfvpar_t)( 
+  const double *w, const double *dxv, 
+  const double *vmap_prime_l, const double *vmap_prime_r,
+  const double *vmap, const double *vmapSq, const double q_, const double m_, 
+  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
+  const double *bmag, const double *yfield, const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf); 
+
+// The cv_index[cd].vdim[vd] is used to index the various list of
+// kernels below.
+GKYL_CU_D
+static struct { int vdim[3]; } cv_index[] = {
+  {-1, -1, -1}, // 0x makes no sense.
+  {-1,  0,  1}, // 1x kernel indices.
+  {-1, -1,  2}, // 2x kernel indices.
+  {-1, -1,  3}, // 3x kernel indices.
+};
+
+// for use in kernel tables
+typedef struct { gk_collisionless_flux_surf_t kernels[3]; } gkyl_gk_collisionless_flux_surf_kern_list;
+typedef struct { gk_collisionless_flux_surfvpar_t kernels[3]; } gkyl_gk_collisionless_flux_surfvpar_kern_list;
+
+struct gkyl_gk_collisionless_flux {
+  struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
+  int cdim; // Configuration space dimensionality
+  int pdim; // Phase space dimensionality
+  gk_collisionless_flux_surf_t flux_surf[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
+  gk_collisionless_flux_surf_t flux_surf_edge_lo[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
+  gk_collisionless_flux_surf_t flux_surf_edge_up[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
+                                                        // at upper configuration space edge
+  gk_collisionless_flux_surfvpar_t flux_surfvpar[1]; // kernel for computing surface expansion of phase space flux alpha
+  double charge, mass;
+  const struct gk_geometry *gk_geom; // Pointer to geometry struct.
+  const struct gkyl_dg_geom *dg_geom; // Pointer to vol dg geometry struct.
+  const struct gkyl_gk_dg_geom *gk_dg_geom; // Pointer to vol gk dg geometry struct.
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
+
+  uint32_t flags;
+  struct gkyl_gk_collisionless_flux *on_dev; // pointer to itself or device data
+};
+
+//
+// Serendipity surface kernels.
+//
+// Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_surfx_kernels[] = {
+  { NULL, gk_collisionless_flux_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_surfx_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_surfx_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha edge surface expansions in x (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_edge_surfx_kernels[] = {
+  { NULL, gk_collisionless_flux_edge_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_edge_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_edge_surfx_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_edge_surfx_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux flux surface expansions in y (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_surfy_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, gk_collisionless_flux_surfy_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_surfy_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux flux edge surface expansions in y (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_edge_surfy_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, gk_collisionless_flux_edge_surfy_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_edge_surfy_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux flux surface expansions in z (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_surfz_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  { NULL, gk_collisionless_flux_surfz_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux flux edge surface expansions in z (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_edge_surfz_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  { NULL, gk_collisionless_flux_edge_surfz_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha surface expansions in vpar (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surfvpar_kern_list ser_gk_collisionless_flux_surfvpar_kernels[] = {
+  { NULL, gk_collisionless_flux_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_surfvpar_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_surfvpar_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_surfvpar_3x2v_ser_p1, NULL }, // 3
+};
+
+//
+// Kernels used at multiblock boundaries.
+//
+
+// Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_multib_boundary_surfx_kernels[] = {
+  { NULL, gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_multib_boundary_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_multib_boundary_surfx_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_multib_boundary_surfx_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha edge surface expansions in x (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_multib_boundary_edge_surfx_kernels[] = {
+  { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux flux surface expansions in y (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_multib_boundary_surfy_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, gk_collisionless_flux_multib_boundary_surfy_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_multib_boundary_surfy_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux flux edge surface expansions in y (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_multib_boundary_edge_surfy_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, gk_collisionless_flux_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux flux surface expansions in z (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_multib_boundary_surfz_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  { NULL, gk_collisionless_flux_multib_boundary_surfz_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux flux edge surface expansions in z (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_multib_boundary_edge_surfz_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  { NULL, gk_collisionless_flux_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
+};
+
+
+//
+// Serendipity surface kernels without toroidal field (by=0)
+//
+// Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_surfx_kernels[] = {
+  { NULL, gk_collisionless_flux_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_no_by_surfx_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_surfx_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha edge surface expansions in x (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_edge_surfx_kernels[] = {
+  { NULL, gk_collisionless_flux_edge_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_edge_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_no_by_edge_surfx_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_edge_surfx_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha surface expansions in y (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_surfy_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, gk_collisionless_flux_no_by_surfy_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_surfy_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha edge surface expansions in y (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_edge_surfy_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, gk_collisionless_flux_no_by_edge_surfy_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_edge_surfy_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha surface expansions in z (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_surfz_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_surfz_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha edge surface expansions in z (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_edge_surfz_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_edge_surfz_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha surface expansions in vpar (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surfvpar_kern_list ser_gk_collisionless_flux_no_by_surfvpar_kernels[] = {
+  { NULL, gk_collisionless_flux_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_surfvpar_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_no_by_surfvpar_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1, NULL }, // 3
+};
+
+//
+// Kernels used at multiblock boundaries.
+//
+
+// Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_multib_boundary_surfx_kernels[] = {
+  { NULL, gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_multib_boundary_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_no_by_multib_boundary_surfx_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_multib_boundary_surfx_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha edge surface expansions in x (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfx_kernels[] = {
+  { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfx_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfx_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha surface expansions in y (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_multib_boundary_surfy_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, gk_collisionless_flux_no_by_multib_boundary_surfy_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_multib_boundary_surfy_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha edge surface expansions in y (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfy_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfy_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha surface expansions in z (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_multib_boundary_surfz_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_multib_boundary_surfz_3x2v_ser_p1, NULL }, // 3
+};
+
+// Gyrokinetic phase space flux alpha edge surface expansions in z (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfz_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfz_3x2v_ser_p1, NULL }, // 3
+};
+
+
+GKYL_CU_D
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+{
+  if (bc == GKYL_BC_GK_SKIP) {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_multib_boundary_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_multib_boundary_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_multib_boundary_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+  else {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+}
+
+GKYL_CU_D
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_edge_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+{
+  if (bc == GKYL_BC_GK_SKIP) {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_multib_boundary_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_multib_boundary_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_multib_boundary_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+  else {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+}
+
+GKYL_CU_D
+static gk_collisionless_flux_surfvpar_t
+choose_gk_collisionless_flux_surf_vpar_kern(int cdim, int vdim, int poly_order)
+{
+  return ser_gk_collisionless_flux_surfvpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+}
+
+GKYL_CU_D
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_no_by_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+{
+  if (bc == GKYL_BC_GK_SKIP) {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_no_by_multib_boundary_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)                                       
+      return ser_gk_collisionless_flux_no_by_multib_boundary_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)                                       
+      return ser_gk_collisionless_flux_no_by_multib_boundary_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+  else {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_no_by_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_no_by_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_no_by_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+}
+
+GKYL_CU_D
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+{
+  if (bc == GKYL_BC_GK_SKIP) {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+  else {
+    if (dir == 0)
+      return ser_gk_collisionless_flux_no_by_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 1)
+      return ser_gk_collisionless_flux_no_by_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else if (dir == 2)
+      return ser_gk_collisionless_flux_no_by_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    else
+      return NULL;
+  }
+}
+
+GKYL_CU_D
+static gk_collisionless_flux_surfvpar_t
+choose_gk_collisionless_flux_no_by_surf_vpar_kern(int cdim, int vdim, int poly_order)
+{
+  return ser_gk_collisionless_flux_no_by_surfvpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+}
+
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Create new updater to compute gyrokinetic variables on
+ * NV-GPU. See new() method for documentation.
+ */
+struct gkyl_gk_collisionless_flux* 
+gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  double charge, double mass,
+  enum gkyl_gk_collisionless_type collless_type,
+  const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
+  const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
+  const enum gkyl_gyrokinetic_bc_type *bctype_conf);
+
+/**
+ * Host-side wrappers for gyrokinetic vars operations on device
+ */
+void gkyl_gk_collisionless_flux_surf_cu(struct gkyl_gk_collisionless_flux *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
+  const struct gkyl_array* fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate);
+#endif
+```
+
+Both files reproduced above are complete and verbatim (240 lines for the `.c` file, 450 lines for the `.h` file), including all comments.</result>
+<usage><subagent_tokens>42241</subagent_tokens><tool_uses>2</tool_uses><duration_ms>108539</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>a06f24a7cb7e48304</task-id>
+<tool-use-id>toolu_vrtx_012WFet4ikWaWyfvReutzLLG</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/5fd6fb47-e03f-4e3b-bb4a-a0f7fd5cf4a4/tasks/a06f24a7cb7e48304.output</output-file>
+<status>completed</status>
+<summary>Agent "Explore periodic BC detection for gk collisionless flux" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>This is a research-only task — I did not modify any files. Here are the complete findings.
+
+## 1. `gk_collisionless_flux.c` — constructor and struct populated
+
+File: `/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/gyrokinetic/zero/gk_collisionless_flux.c:13-74`
+
+```c
+gkyl_gk_collisionless_flux*
+gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  const double charge, const double mass,
+  enum gkyl_gk_collisionless_type type,
+  const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom,
+  const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
+  const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu)
+```
+
+Key points (lines 46-67):
+- `bctype_conf` is a flat array of length `2*GKYL_MAX_CDIM`: `bctype_conf[d]` = lower-edge BC type for conf-dir `d`, `bctype_conf[GKYL_MAX_CDIM+d]` = upper-edge BC type for conf-dir `d`.
+- Per direction `d` (0..cdim-1), the constructor calls the kernel choosers, passing the BC type only to select interior/edge kernels:
+  - `up-&gt;flux_surf[d]` — chosen with a **hardcoded** `GKYL_BC_GK_SPECIES_ABSORB` (comment: "BC option in -&gt;flux_surf kernel doesn't matter as long as it's not SKIP") — line 49/60.
+  - `up-&gt;flux_surf_edge_lo[d]` — chosen using `bctype_conf[d]` (real lower BC) — line 50-51/61-62.
+  - `up-&gt;flux_surf_edge_up[d]` — chosen using `bctype_conf[GKYL_MAX_CDIM+d]` (real upper BC) — line 52-53/63-64.
+- There is **no separate periodicity flag** passed in at all — only `bctype_conf` (an `enum gkyl_gyrokinetic_bc_type` per lower/upper edge per direction). The only distinction the chooser functions make is `bc == GKYL_BC_GK_SKIP` (→ pick "multib boundary" kernel table) vs. anything else, including `GKYL_BC_GK_SPECIES_PERIODIC` (→ pick the regular/interior kernel table). So **periodicity itself is not directly tested inside this updater**; what matters is whether the BC type equals `GKYL_BC_GK_SKIP` or not. Non-`SKIP` covers both PERIODIC and all the various non-periodic species BCs (COPY, REFLECT, ABSORB, SHEATH, etc.) — they all route to the same (non-multib) kernel table.
+
+## 2. Public header `gkyl_gk_collisionless_flux.h`
+
+File: `/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/gyrokinetic/zero/gkyl_gk_collisionless_flux.h:34-41`
+
+```c
+struct gkyl_gk_collisionless_flux* 
+gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const double charge, const double mass,
+  enum gkyl_gk_collisionless_type collless_type,
+  const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
+  const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
+  const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);
+```
+
+Doxygen comment (line 30): `@param bctype_conf Type of conf-space BCs.`
+
+### `enum gkyl_gyrokinetic_bc_type` — full definition
+
+File: `/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/gyrokinetic/zero/gkyl_gk_bc_type.h:8-29`
+
+```c
+enum gkyl_gyrokinetic_bc_type {
+  // Particle BCs.
+  GKYL_BC_GK_SKIP = 0, // Do not apply any BCs 
+  GKYL_BC_GK_SPECIES_COPY, // Copy skin into ghost.
+  GKYL_BC_GK_SPECIES_REFLECT, // Reflect particles.
+  GKYL_BC_GK_SPECIES_ABSORB, // Absorbing BCs.
+  GKYL_BC_GK_SPECIES_FUNC, // Fill ghost cell using a user-function.
+  GKYL_BC_GK_SPECIES_FIXED_FUNC, // Fixed function, time-independent.
+  GKYL_BC_GK_SPECIES_ZERO_FLUX, // Zero flux.
+  GKYL_BC_GK_SPECIES_SHEATH, // Sheath.
+  GKYL_BC_GK_SPECIES_RECYCLE, // Recycling.
+  GKYL_BC_GK_SPECIES_PERIODIC, // Periodic.
+  GKYL_BC_GK_SPECIES_TWISTSHIFT, // Twist-shift.
+  GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, // Skin value at the boundary.
+  // Field BCs.
+  GKYL_BC_GK_FIELD_PERIODIC, // Periodic.
+  GKYL_BC_GK_FIELD_DIRICHLET, // Dirichlet.
+  GKYL_BC_GK_FIELD_NEUMANN, // Nemann.
+  GKYL_BC_GK_FIELD_DIRICHLET_VARYING, // Spatially varying Dirichlet.
+  GKYL_BC_GK_FIELD_BOUNDARY_VALUE, // Skin value at the boundary.
+  GKYL_BC_GK_FIELD_TWISTSHIFT, // Twist-shift.
+};
+```
+
+Note `GKYL_BC_GK_SKIP = 0` is explicitly documented as "Do not apply any BCs" — in the multiblock context, this is what a block face assigns to a direction/edge that is an *internal* multiblock boundary (i.e., not a true physical/periodic boundary of that block), signaling the collisionless-flux updater to use the "multib boundary" kernel variant instead of the ordinary boundary kernel.
+
+Also relevant, `enum gkyl_gk_collisionless_type` (`/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/core/zero/gkyl_eqn_type.h:181-188`):
+```c
+enum gkyl_gk_collisionless_type {
+  GKYL_GK_COLLISIONLESS_NONE = 0,
+  GKYL_GK_COLLISIONLESS_ES,
+  GKYL_GK_COLLISIONLESS_ES_NO_BY,
+  GKYL_GK_COLLISIONLESS_EM_BPERP,
+  GKYL_GK_COLLISIONLESS_EM_BPAR,
+  GKYL_GK_COLLISIONLESS_EM,
+  GKYL_GK_COLLISIONLESS_NEUTRAL,
+};
+```
+
+## 3. Call site — `gk_species_collisionless.c`
+
+Only one call site in the repo: `/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/gyrokinetic/apps/gk_species_collisionless.c:158-167`
+
+```c
+enum gkyl_gyrokinetic_bc_type bctype_conf[2*GKYL_MAX_CDIM];
+for (int d=0; d&lt;app-&gt;cdim; d++) {
+  bctype_conf[d] = gks-&gt;lower_bc[d].type;
+  bctype_conf[GKYL_MAX_CDIM+d] = gks-&gt;upper_bc[d].type;
+}
+
+gkcls-&gt;surf_flux_op = gkyl_gk_collisionless_flux_new(&amp;gks-&gt;grid, &amp;app-&gt;basis, &amp;gks-&gt;basis, 
+  gks-&gt;info.charge, gks-&gt;info.mass,
+  gkcls-&gt;collisionless_id, app-&gt;gk_geom, 
+  app-&gt;dg_geom, app-&gt;gk_dg_geom, gks-&gt;vel_map, bctype_conf, app-&gt;use_gpu);
+```
+
+`gks-&gt;lower_bc[d].type` / `gks-&gt;upper_bc[d].type` are populated earlier in `gk_species.c:1470-1499` (`/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/gyrokinetic/apps/gk_species.c`):
+
+```c
+gks-&gt;num_periodic_dir = app-&gt;num_periodic_dir;
+for (int d=0; d&lt;gks-&gt;num_periodic_dir; ++d)
+  gks-&gt;periodic_dirs[d] = app-&gt;periodic_dirs[d];
+
+for (int d=0; d&lt;app-&gt;cdim; ++d) gks-&gt;bc_is_np[d] = true;
+for (int d=0; d&lt;gks-&gt;num_periodic_dir; ++d)
+  gks-&gt;bc_is_np[gks-&gt;periodic_dirs[d]] = false;
+
+// Store the BCs from the input file.
+for (int d=0; d&lt;app-&gt;cdim; ++d) {
+  if (gks-&gt;bc_is_np[d]) {
+    struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(gks-&gt;info.bcs, 2*app-&gt;cdim, d, GKYL_LOWER_EDGE);
+    if (bc_lo != 0) gks-&gt;lower_bc[d] = *bc_lo;
+    else            gks-&gt;lower_bc[d].type = GKYL_BC_GK_SKIP;
+    struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(gks-&gt;info.bcs, 2*app-&gt;cdim, d, GKYL_UPPER_EDGE);
+    if (bc_up != 0) gks-&gt;upper_bc[d] = *bc_up;
+    else            gks-&gt;upper_bc[d].type = GKYL_BC_GK_SKIP;
+  }
+  else {
+    gks-&gt;lower_bc[d].type = GKYL_BC_GK_SPECIES_PERIODIC;
+    gks-&gt;upper_bc[d].type = GKYL_BC_GK_SPECIES_PERIODIC;
+  }
+}
+```
+
+**This is the key finding for your question**: `app-&gt;num_periodic_dir` / `app-&gt;periodic_dirs[]` (populated from the top-level app input, `gyrokinetic.c:191-193`, from `struct gkyl_gk` field `gkyl_gyrokinetic.h:619-620`, and similarly for multib apps `gyrokinetic_multib.c:101-103`/`gkyl_gyrokinetic_multib.h:164-165`) is exactly the app-level per-direction periodicity array that already exists at species-init time. It's turned into `gks-&gt;bc_is_np[d]` (bool, true = non-periodic) at `gk_species.c:1476-1478`, and then that boolean directly determines whether `gks-&gt;lower_bc[d].type`/`gks-&gt;upper_bc[d].type` get set to `GKYL_BC_GK_SPECIES_PERIODIC` or to whatever real BC (or `GKYL_BC_GK_SKIP` if none given) was specified in the input file.
+
+So: **at the time `gkyl_gk_collisionless_flux_new` is called, only the resulting `enum gkyl_gyrokinetic_bc_type` per lower/upper/dir is passed in (`bctype_conf`) — not a raw periodicity boolean.** Periodicity information does exist earlier in the pipeline as `app-&gt;num_periodic_dir`/`app-&gt;periodic_dirs[]` (and `gks-&gt;bc_is_np[]`/`gks-&gt;periodic_dirs[]` copies), but by the time it reaches `gk_species_collisionless_init` (where the flux updater is constructed) it has already been collapsed into the `GKYL_BC_GK_SPECIES_PERIODIC` enum value stored in `gks-&gt;lower_bc[d].type` / `gks-&gt;upper_bc[d].type`. If your planned changes to `gk_collisionless_flux.c`/`_priv.h` need to specifically distinguish PERIODIC from other non-SKIP BCs (rather than just SKIP vs. non-SKIP as currently done), you would either:
+- test `bctype_conf[...] == GKYL_BC_GK_SPECIES_PERIODIC` directly inside the chooser functions (the enum value is already available, no new plumbing needed), or
+- thread through `gks-&gt;bc_is_np[]`/`is_dir_periodic[]`-style bool array as an additional constructor parameter if you need it independent of the BC-type enum.
+
+Note also `gks-&gt;bc_is_np[GKYL_MAX_CDIM]` and `gks-&gt;periodic_dirs[GKYL_MAX_CDIM]`/`num_periodic_dir` are stored fields on `struct gk_species` (defined at `/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/gyrokinetic/apps/gkyl_gyrokinetic_priv.h:1060-1065`), so they are readily accessible at the `gk_species_collisionless_init` call site (`gkcls` init is called with `gks` in scope) without extra plumbing if you decide to pass a periodicity bool array instead of/alongside `bctype_conf`.
+
+Analogous pattern also exists for neutral species (`gk_neut_species_kinetic.c:679-687`, `gk_neut_species_fluid.c:231-239`) and for the field itself (`gk_field_2x3x.c:530-531`, `gk_field_flr.c:39-40` compute a `bc_is_np[]` from `app-&gt;num_periodic_dir`/`app-&gt;periodic_dirs[]`), confirming this is the standard app-wide idiom for periodicity.
+
+## 4. Private header `gkyl_gk_collisionless_flux_priv.h`
+
+File: `/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/gyrokinetic/zero/gkyl_gk_collisionless_flux_priv.h`
+
+### `struct gkyl_gk_collisionless_flux` (lines 41-58)
+
+```c
+struct gkyl_gk_collisionless_flux {
+  struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
+  int cdim; // Configuration space dimensionality
+  int pdim; // Phase space dimensionality
+  gk_collisionless_flux_surf_t flux_surf[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
+  gk_collisionless_flux_surf_t flux_surf_edge_lo[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
+  gk_collisionless_flux_surf_t flux_surf_edge_up[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
+                                                        // at upper configuration space edge
+  gk_collisionless_flux_surfvpar_t flux_surfvpar[1]; // kernel for computing surface expansion of phase space flux alpha
+  double charge, mass;
+  const struct gk_geometry *gk_geom; // Pointer to geometry struct.
+  const struct gkyl_dg_geom *dg_geom; // Pointer to vol dg geometry struct.
+  const struct gkyl_gk_dg_geom *gk_dg_geom; // Pointer to vol gk dg geometry struct.
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
+
+  uint32_t flags;
+  struct gkyl_gk_collisionless_flux *on_dev; // pointer to itself or device data
+};
+```
+
+There is **no periodicity field stored** in this struct at all — only the resolved kernel function pointers (already baked in at construction time based on `bctype_conf`), plus grid/geometry/species data.
+
+### Chooser function signatures (lines 310-426)
+
+```c
+// ES variant
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc);   // line 312
+
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_edge_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc);  // line 338
+
+static gk_collisionless_flux_surfvpar_t
+choose_gk_collisionless_flux_surf_vpar_kern(int cdim, int vdim, int poly_order);   // line 364 (no bc param)
+
+// ES_NO_BY variant
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_no_by_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc);  // line 371
+
+static gk_collisionless_flux_surf_t
+choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc);  // line 397
+
+static gk_collisionless_flux_surfvpar_t
+choose_gk_collisionless_flux_no_by_surf_vpar_kern(int cdim, int vdim, int poly_order);   // line 423 (no bc param)
+```
+
+Each of the `_surf_conf_kern`/`_edge_surf_conf_kern` choosers does exactly this (e.g. lines 312-334):
+
+```c
+if (bc == GKYL_BC_GK_SKIP) {
+  // pick from the "multib_boundary" (or "no_by_multib_boundary") kernel table for this dir
+} else {
+  // pick from the regular (interior-style) kernel table for this dir
+}
+```
+
+i.e., **`bc` is used solely as a boolean discriminator: `== GKYL_BC_GK_SKIP` vs. everything else** (there is no `switch` over all enum values — any non-`SKIP` value, including `GKYL_BC_GK_SPECIES_PERIODIC`, `ABSORB`, `REFLECT`, `SHEATH`, etc., takes the same non-multib branch).
+
+### Kernel list table struct definitions (lines 13-39)
+
+```c
+typedef double (*gk_collisionless_flux_surf_t)(const double *w, const double *dxv, 
+  const double *vmap, const double *vmapSq, const double q_, const double m_, 
+  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
+  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+  const double *phiL, const double *phiR, const double *JfL, const double *JfR,
+  double* GKYL_RESTRICT yfieldL, double* GKYL_RESTRICT yfieldR, double* GKYL_RESTRICT flux_surf); 
+
+typedef double (*gk_collisionless_flux_surfvpar_t)( 
+  const double *w, const double *dxv, 
+  const double *vmap_prime_l, const double *vmap_prime_r,
+  const double *vmap, const double *vmapSq, const double q_, const double m_, 
+  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
+  const double *bmag, const double *yfield, const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf); 
+
+// The cv_index[cd].vdim[vd] is used to index the various list of kernels below.
+static struct { int vdim[3]; } cv_index[] = {
+  {-1, -1, -1}, // 0x makes no sense.
+  {-1,  0,  1}, // 1x kernel indices.
+  {-1, -1,  2}, // 2x kernel indices.
+  {-1, -1,  3}, // 3x kernel indices.
+};
+
+typedef struct { gk_collisionless_flux_surf_t kernels[3]; } gkyl_gk_collisionless_flux_surf_kern_list;
+typedef struct { gk_collisionless_flux_surfvpar_t kernels[3]; } gkyl_gk_collisionless_flux_surfvpar_kern_list;
+```
+
+### Sample instantiation for indexing scheme (1x2v example, lines 65-70)
+
+```c
+static const gkyl_gk_collisionless_flux_surf_kern_list ser_gk_collisionless_flux_surfx_kernels[] = {
+  { NULL, gk_collisionless_flux_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gk_collisionless_flux_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gk_collisionless_flux_surfx_2x2v_ser_p1, NULL }, // 2
+  { NULL, gk_collisionless_flux_surfx_3x2v_ser_p1, NULL }, // 3
+};
+```
+
+Indexing scheme: outer array index = `cv_index[cdim].vdim[vdim]` (a combined config/velocity-dim code: 0 = 1x1v, 1 = 1x2v, 2 = 2x2v, 3 = 3x2v — per the `cv_index` table above, e.g. `cv_index[1].vdim[1] == 0` for 1x1v, `cv_index[1].vdim[2] == 1` for 1x2v, `cv_index[2].vdim[2] == 2` for 2x2v, `cv_index[3].vdim[2] == 3` for 3x2v). Inner array `.kernels[poly_order]` (fixed size 3: indices 0,1,2 for p=0,1,2, though currently only p1 kernels are populated — everything else is `NULL`). So for 1x2v at `poly_order=1`: `ser_gk_collisionless_flux_surfx_kernels[1].kernels[1] == gk_collisionless_flux_surfx_1x2v_ser_p1`.
+
+There are 4 families of these tables (regular / edge / multib-boundary / multib-boundary-edge) × surfx/surfy/surfz × (ES with-by / ES no-by) — all following the identical `[cv_index].kernels[poly_order]` indexing.
+
+### Summary answer to your core question
+
+At construction time of `gkyl_gk_collisionless_flux`, the code does **not** carry an explicit `is_dir_periodic[cdim]` bool array or a raw `enum gkyl_edge` per boundary. It only receives `bctype_conf` (an `enum gkyl_gyrokinetic_bc_type` array of size `2*GKYL_MAX_CDIM`, lower dirs then upper dirs), and the only discrimination made internally is `bc == GKYL_BC_GK_SKIP` (used for multiblock "skip"/internal-boundary handling) vs. anything else (which includes periodic and all other physical non-periodic BCs, treated identically by this updater). The genuine periodicity information (`app-&gt;num_periodic_dir`, `app-&gt;periodic_dirs[]`, and species-level `gks-&gt;bc_is_np[]`/`gks-&gt;periodic_dirs[]`) is computed earlier in `gk_species.c` (`/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/gyrokinetic/apps/gk_species.c:1470-1499`) and is available in scope at the `gk_species_collisionless_init` call site if you want to thread it through as a new parameter, but currently it's collapsed into `GKYL_BC_GK_SPECIES_PERIODIC`/`GKYL_BC_GK_FIELD_PERIODIC` enum values before reaching `gkyl_gk_collisionless_flux_new`.</result>
+<usage><subagent_tokens>65641</subagent_tokens><tool_uses>13</tool_uses><duration_ms>130367</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>a42f2ea0dc196e798</task-id>
+<tool-use-id>toolu_vrtx_019mf7P1yBVtJN7BJW7smung</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/5fd6fb47-e03f-4e3b-bb4a-a0f7fd5cf4a4/tasks/a42f2ea0dc196e798.output</output-file>
+<status>completed</status>
+<summary>Agent "Explore new 1x2v boundary kernel files" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>I have all the information needed. Here is my report.
+
+## 1. `gk_collisionless_flux_boundary_surfx_1x2v_ser_p1.c` (754 lines)
+
+**Function signature** — identical across all 4 functions (lines 2-8, 191-197, 380-386, 567-573):
+```c
+GKYL_CU_DH double gk_collisionless_flux_boundary_surfx_&lt;lower|upper&gt;_&lt;periodic|nonperiodic&gt;_1x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, const double *bmag,
+    const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR, const double *phiL, const double *phiR,
+    const double *JfL, const double *JfR, double* GKYL_RESTRICT yfieldL, double* GKYL_RESTRICT yfieldR,
+    double* GKYL_RESTRICT flux_surf)
+```
+Confirmed byte-identical parameter list across all 4 (only the function name differs).
+
+**Last function: `gk_collisionless_flux_boundary_surfx_upper_nonperiodic_1x2v_ser_p1`** (file.c:567-753):
+
+- **Hamiltonian (hamil[])**: built entirely from `phiL` (line 597: `(2.4494897427831783*phiL[1]+1.4142135623730951*phiL[0])*q_+...`), matching the "upper" boundary convention (same as `upper_periodic`, which also uses phiL for hamil). `phiR` never appears in the hamil construction here.
+- **ypotderR correction line**: absent. Unlike the two "lower" variants (which have `ypotderR[1] += -(3.4641...*phiR[0]*q_*rdx2)-...` at line 39/228), `upper_periodic` (line 380 block) and `upper_nonperiodic` (line 567 block) both omit this correction entirely — go straight from `hamil[4]=...;` to `double *ypotderL = &amp;yfieldL[0];` / `double *ypotderR = &amp;yfieldR[0];` then directly to `flux_surf_nodal`.
+- **JfR usage**: read normally from the array, exactly like all other 3 variants — e.g. line 645: `JfR_quad = 0.5477225575051661*JfR[11]-0.3162277660168379*JfR[10]-...`. No hardcoding/zeroing of `JfR_quad` in this file at all (that behavior only appears in the `multib__` file, see part 2).
+- **ypotL_quad / ypotR_quad structural difference**: this is the notable difference vs `lower_nonperiodic` and the interior kernel. In `upper_nonperiodic`, **both** `ypotL_quad` and `ypotR_quad` are computed using **phiL only** (e.g. lines 649-650: `ypotL_quad = 0.5*((2.44...*phiL[1]+1.41...*phiL[0])*q_+...)` and `ypotR_quad = 0.5*((2.44...*phiL[1]+1.41...*phiL[0])*q_+...)` — same expression duplicated for L and R). This mirrors what `lower_nonperiodic` does with phiR-only for both L and R (lines 275-276), i.e. the "nonperiodic" boundary variants use only the interior-side potential for both ypotL_quad and ypotR_quad (since there's no neighbor cell across the physical boundary), whereas the "periodic" variants (and the interior kernel) use phiL for ypotL_quad and phiR for ypotR_quad (genuine two-sided).
+- Otherwise structurally identical to the other 3: same hamil pattern (only differs in phiL vs phiR term choice per lower/upper), same quadrature loop structure computing `flux_surf_nodal[0..5]` and `ypot_der_surf_n[0..5]`, and identical final `ypotderL[...]`/`ypotderR[...]` projection block and `return cfl*1.5*rdx2;`.
+
+## 2. `gk_collisionless_flux_boundary_surfxmultib__1x2v_ser_p1.c` (761 lines)
+
+Function starts: `lower_periodic` at line 2, `lower_nonperiodic` at line 193, `upper_periodic` at line 384, `upper_nonperiodic` at line 573-761.
+
+**`upper_nonperiodic` (lines 573-761)**:
+- **`JfR_quad = 0.0;` hardcoded**: Yes — confirmed at lines 653, 667, 681, 695, 709, 723 (all 6 quadrature points), identical pattern to the other 3 multib variants (`lower_periodic`: 84,98,112,126,140,154; `lower_nonperiodic`: 275,289,303,317,331,345; `upper_periodic`: 464,478,492,506,520,534). `JfR` array itself is never read in any of the 4 multib functions — only `JfL[...]` terms appear; `JfR_quad` is unconditionally set to the literal `0.0`.
+- **`JRatfR[6]` unused placeholder**: Yes — declared at line 608 (`double JRatfR[6] = {0.};`) exactly as in the other 3 variants (lines 37, 228, 419). Grep across the whole file confirms `JRatfR` is never referenced again anywhere except at its declaration in each of the 4 functions — it is dead/unused in all four, including `upper_nonperiodic`.
+- **Hamiltonian**: built from `phiL` only (line 603), same as `upper_periodic` and matching the non-multib `upper_nonperiodic`.
+- **ypotderR correction line** (`ypotderR[1] += -(3.4641...` etc.): present only in `lower_periodic` (line 41) and `lower_nonperiodic` (line 232); absent in `upper_periodic` and `upper_nonperiodic` — same asymmetric pattern as file 1.
+- **ypotL_quad/ypotR_quad**: both computed from phiL only (lines 657-658, 671-672, etc. — duplicated phiL expression for both L and R), matching the "nonperiodic" pattern seen in file 1's `upper_nonperiodic`.
+- No structural surprises beyond these — the function is otherwise a straightforward duplicate of the other 3 multib variants' skeleton (6-point quadrature loop, `ypotderL/R[0..11]` projection block, `return cfl*1.5*rdx2;`).
+
+Signature for all 4 multib functions (lines 2-8, 193-199, 384-390, 573-579) is identical to each other:
+```c
+GKYL_CU_DH double gk_collisionless_flux_boundary_surfxmultib__&lt;lower|upper&gt;_&lt;periodic|nonperiodic&gt;_1x2v_ser_p1(
+    const double *w, const double *dxv,
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, const double *bmag,
+    const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR, const double *phiL, const double *phiR,
+    const double *JfL, const double *JfR, double* GKYL_RESTRICT yfieldL, double* GKYL_RESTRICT yfieldR,
+    double* GKYL_RESTRICT flux_surf)
+```
+
+## 3. Signature comparison across all three kernel families
+
+The parameter list (names, order, types) is **byte-identical** across:
+- `gk_collisionless_flux_surfx_1x2v_ser_p1` (surfx file, line 2 — the existing/already-wired interior kernel)
+- All 4 functions in `gk_collisionless_flux_boundary_surfx_1x2v_ser_p1.c`
+- All 4 functions in `gk_collisionless_flux_boundary_surfxmultib__1x2v_ser_p1.c`
+
+All 9 functions share exactly: `(const double *w, const double *dxv, const double *vmap, const double *vmapSq, const double q_, const double m_, const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR, const double *phiL, const double *phiR, const double *JfL, const double *JfR, double* GKYL_RESTRICT yfieldL, double* GKYL_RESTRICT yfieldR, double* GKYL_RESTRICT flux_surf)`, and all return `double`. Only the function names differ (base name, `boundary_` prefix, `multib__` infix, and `_lower/upper_periodic/nonperiodic` suffix). So the new boundary/multib kernels are drop-in signature-compatible with the already-wired interior `gk_collisionless_flux_surfx_1x2v_ser_p1` kernel — no signature adaptation needed for wiring them up.</result>
+<usage><subagent_tokens>107518</subagent_tokens><tool_uses>11</tool_uses><duration_ms>135914</duration_ms></usage>
+</task-notification>
+
+---
+
+sorry that was a mistake. Please continue
+
+---
+
+<task-notification>
+<task-id>ac0f7d4915bfd6949</task-id>
+<tool-use-id>toolu_vrtx_01UsauuRc3Q7A43yjVAtaD53</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/5fd6fb47-e03f-4e3b-bb4a-a0f7fd5cf4a4/tasks/ac0f7d4915bfd6949.output</output-file>
+<status>failed</status>
+<summary>Agent "Find Maxima kernel naming generator convention" failed: Agent stalled: no progress for 600s (stream watchdog did not recover)</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Found the exact generator. Let's confirm by checking the header-generation script too, and verify against git history in gkylcas.</result>
+</task-notification>
+
+---
+
+please continue, or tell me what you need to continue
+
+---
+
+please continue, or tell me what you need to continue creating the plan.
+
+---
+
+I have added new versions of the kernels and header file in gyrokinetic/ker/gk_collisionless_flux that should have resolved the naming issues.
+
+---
+
+Are you sure the new multib kernel set also splits into periodic/nonperiodic variants? i added new versions in gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_boundary_surfx_multib_1x2v_ser_p1.c and those don't split into periodic/nonperiodic, it's just split into lower and upper ?
+
+---
+
+I added new gk_collisionless_flux kernels for all dimensionalities. Can you check that everything is on order please?
+
+---
+
+I added new gk_collisionless_flux kernels for all dimensionalities. Can you check that everything is on order please?
