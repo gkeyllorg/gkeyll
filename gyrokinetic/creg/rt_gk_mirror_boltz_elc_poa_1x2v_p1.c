@@ -540,15 +540,15 @@ create_ctx(void)
   double alpha_oap = 0.01;
   double alpha_fdp = 1.0;
   // Duration of each phase.
-  double tau_oap = 100e-9;
-  double tau_fdp = 1e-9;
+  double tau_oap = 2400.0e-9;
+  double tau_fdp = 24.0e-9;
   double tau_fdp_extra = 2*tau_fdp;
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
   int num_frames_oap = 1; // Frames per OAP phase
   int num_frames_fdp = 1; // Frames per FDP phase
-  int num_frames_fdp_extra = 1;  // Frames for the extra FDP phase
+  int num_frames_fdp_extra = 2*num_frames_fdp;  // Frames for the extra FDP phase
 
   // Whether to evolve the field.
   bool is_static_field_oap = true;
