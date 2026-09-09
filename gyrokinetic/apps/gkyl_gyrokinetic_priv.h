@@ -26,6 +26,7 @@
 #include <gkyl_bc_emission_elastic.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_bc_twistshift.h>
+#include <gkyl_twistshift_dg.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_boundary_flux.h>
 #include <gkyl_dg_advection.h>
@@ -1097,6 +1098,14 @@ struct gk_species {
   struct gkyl_range local_upper_skin_par_sol , local_upper_ghost_par_sol;
   // GK IWL sims need a core range extended in z, and a TS BC updater.
   struct gkyl_range local_par_ext_core; // Core range extended in parallel direction.
+  // Objects used in IWL simulations and TS BCs.
+  struct gkyl_rect_grid bc_ts_grid; // Higher resolution grid for TS BC.
+  struct gkyl_range bc_ts_local_ext, bc_ts_local; // Higher resolution ranges for TS BC.
+  struct gkyl_range bc_ts_local_lower_skin_par, bc_ts_local_upper_skin_par; // Parallel skin for TS BC.
+  struct gkyl_range bc_ts_local_lower_ghost_par, bc_ts_local_upper_ghost_par; // Parallel ghost for TS BC.
+  struct gkyl_dg_interpolate *bc_ts_prolong, *bc_ts_coarsen; // Interpolation operators for TS BC.
+  struct gkyl_array *bc_ts_buffer_fine, *bc_ts_buffer_coar; // Buffer for TS BCs.
+  struct gkyl_range bc_ts_local_par_ext; // Range extended in parallel direction for TS BC.
   struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
 
   struct gk_proj proj_init; // Projector for initial conditions.
@@ -1393,7 +1402,14 @@ struct gk_field {
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
 
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
+  struct gkyl_rect_grid bc_ts_grid; // Higher resolution grid for TS BC.
+  struct gkyl_range bc_ts_global_ext, bc_ts_global; // Higher resolution ranges for TS BC.
+  struct gkyl_range bc_ts_global_lower_skin_par, bc_ts_global_upper_skin_par; // Parallel skin for TS BC.
+  struct gkyl_range bc_ts_global_lower_ghost_par, bc_ts_global_upper_ghost_par; // Parallel ghost for TS BC.
+  struct gkyl_dg_interpolate *bc_ts_prolong, *bc_ts_coarsen; // Interpolation operators for TS BC.
+  struct gkyl_array *bc_ts_buffer_fine, *bc_ts_buffer_coar; // Buffer for TS BCs.
+  struct gkyl_range bc_ts_global_par_ext; // Range extended in parallel direction for TS BC.
+  struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up; // Fills z-ghosts with TS BC.
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_up; // Fills upper core  z-ghost with skin  boundary value.
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_lo; // Fills lower core  z-ghost with skin  boundary value.
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
@@ -1427,6 +1443,9 @@ struct gkyl_gyrokinetic_app {
   
   int cdim; // Configuration space dimensions.
   int poly_order; // Polynomial order.
+  int ts_upsample_factor; // Twist-shift supersampling factor (0/1 = none).
+  int ts_filter_half_width; // Twist-shift filter half-width (0 = off).
+  double ts_filter_cutoff_wavelength; // Twist-shift filter cutoff wavelength.
   double tcurr; // Current time.
   double cfl; // CFL number.
   double cfl_omegaH; // CFL number used for omega_H.

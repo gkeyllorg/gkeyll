@@ -172,6 +172,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   int cdim = app->cdim = gk->cdim;
   int poly_order = app->poly_order = gk->poly_order;
+  app->ts_upsample_factor = gk->geometry.ts_upsample_factor;
+  app->ts_filter_half_width = gk->geometry.ts_filter_half_width;
+  app->ts_filter_cutoff_wavelength = gk->geometry.ts_filter_cutoff_wavelength;
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;
 
@@ -1245,7 +1248,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
   for (int eI = 0; eI < 2; eI++) {
     int ghost[] = {1, 1, 1};
     // TS BC updater.
-    struct gkyl_bc_twistshift_inp ts_inp = {
+    struct gkyl_twistshift_dg_inp ts_inp = {
       .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
       .shear_dir = 0, // shift varies with x.
@@ -1259,10 +1262,10 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
       .shift_func_ctx = eI == 0? app->gk_geom->parallel_lower_bc_shift_ctx : app->gk_geom->parallel_upper_bc_shift_ctx,
       .use_gpu = app->use_gpu,
     };
-    struct gkyl_bc_twistshift *bc_ts_op = gkyl_bc_twistshift_inew(&ts_inp);
+    struct gkyl_twistshift_dg *bc_ts_op = gkyl_twistshift_dg_inew(&ts_inp);
 
     struct gkyl_array *delta_ts_x = eI == 0? app->delta_ts_x_lo : app->delta_ts_x_up;
-    delta_ts_x = gkyl_bc_twistshift_get_shift_objects(bc_ts_op,
+    delta_ts_x = gkyl_twistshift_dg_get_shift_objects(bc_ts_op,
       &app->delta_ts_x_grid, &app->delta_ts_x_rng, &app->delta_ts_x_basis);
 
     bool has_LCFS = app->gk_geom->has_LCFS;
@@ -1308,7 +1311,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
 
     gkyl_array_release(delta_ts_x);
     gkyl_msgpack_data_release(mt_shift);
-    gkyl_bc_twistshift_release(bc_ts_op);
+    gkyl_twistshift_dg_release(bc_ts_op);
   }
 }
 

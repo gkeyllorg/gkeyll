@@ -7,6 +7,7 @@
 #include <gkyl_gk_field_priv.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_comm_io.h>
+#include <gkyl_dg_interpolate.h>
 
 #include <assert.h>
 #include <float.h>
@@ -65,6 +66,7 @@ gk_field_fem_projection_par_phi_ts_3x(gkyl_gyrokinetic_app *app, struct gk_field
   gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
     &app->global_lower_ghost[par_dir], &app->global_upper_skin[par_dir]);
   gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+  // Fill upper parallel boundary ghost with skin boundary value.
   gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg);
 
   // Smooth the the DG array.
@@ -227,7 +229,7 @@ gk_field_2x3x_fill_fem_parproj_bias_lines(struct gkyl_gyrokinetic_app *app, stru
 }
 
 static void
-gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f, struct gkyl_poisson_bc *poisson_bcs)
+gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf, struct gkyl_poisson_bc *poisson_bcs)
 {
   // Allocation ranges and updaters for TS field solve.
 
@@ -239,19 +241,20 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
     fem_parproj_bc_rho_core = GKYL_FEM_PARPROJ_PERIODIC;
     fem_parproj_bc_phi_core = GKYL_FEM_PARPROJ_PERIODIC;
 
-    f->fem_projection_par_rho_func = gk_field_fem_projection_par_rho_ts_2x;
-    f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_ts_2x;
+    gkf->fem_projection_par_rho_func = gk_field_fem_projection_par_rho_ts_2x;
+    gkf->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_ts_2x;
   }
   else if (app->cdim == 3) {
-    // Here fem_parproj_bc_rho is not actually relevant because we don't use f->fem_parproj_rho.
+    // Here fem_parproj_bc_rho is not actually relevant because we don't use gkf->fem_parproj_rho.
     fem_parproj_bc_rho_core = 0;
     fem_parproj_bc_phi_core = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
 
-    f->fem_projection_par_rho_func = gk_field_fem_projection_par;
-    f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_ts_3x;
+    gkf->fem_projection_par_rho_func = gk_field_fem_projection_par;
+    gkf->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_ts_3x;
 
+    int num_ghost[] = {1, 1, 1};
     int par_dir = app->cdim-1; // Parallel direction index.
-    int ghost[] = {1, 1, 1};
+
     // TS BC updater for lower edge.
     struct gkyl_bc_twistshift_inp T_LU_lo = {
       .bc_dir = par_dir,
@@ -260,10 +263,13 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       .edge = GKYL_LOWER_EDGE,
       .cdim = app->cdim,
       .bcdir_ext_update_r = &app->global_par_ext,
-      .num_ghost = ghost, // one ghost per config direction
+      .num_ghost = num_ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,
       .use_gpu = app->use_gpu,
+      .upsample_factor = app->ts_upsample_factor,
+      .filter_half_width = app->ts_filter_half_width,
+      .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_LU_lo.shift_dg = app->delta_ts_x_lo;
@@ -271,7 +277,7 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       T_LU_lo.shift_func     = app->gk_geom->parallel_lower_bc_shift_func;
       T_LU_lo.shift_func_ctx = app->gk_geom->parallel_lower_bc_shift_ctx;
     }
-    f->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
+    gkf->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
 
     // TS BC updater for upper edge.
     struct gkyl_bc_twistshift_inp T_UL_up = {
@@ -281,10 +287,13 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       .edge = GKYL_UPPER_EDGE,
       .cdim = app->cdim,
       .bcdir_ext_update_r = &app->global_par_ext,
-      .num_ghost = ghost, // one ghost per config direction
+      .num_ghost = num_ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,
       .use_gpu = app->use_gpu,
+      .upsample_factor = app->ts_upsample_factor,
+      .filter_half_width = app->ts_filter_half_width,
+      .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_UL_up.shift_dg = app->delta_ts_x_up;
@@ -292,35 +301,35 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       T_UL_up.shift_func     = app->gk_geom->parallel_upper_bc_shift_func;
       T_UL_up.shift_func_ctx = app->gk_geom->parallel_upper_bc_shift_ctx;
     }
-    f->bc_ts_up = gkyl_bc_twistshift_inew(&T_UL_up);
+    gkf->bc_ts_up = gkyl_bc_twistshift_inew(&T_UL_up);
 
     long buff_sz = app->global_lower_ghost[par_dir].volume;
-    f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+    gkf->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
-    f->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
+    gkf->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
       app->basis_on_dev, &app->global_upper_skin[par_dir], &app->global_upper_ghost[par_dir],
       app->basis.num_basis, app->cdim, app->use_gpu);
 
-    f->gfss_bc_op_core_lo = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_LOWER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
+    gkf->gfss_bc_op_core_lo = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_LOWER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
       app->basis_on_dev, &app->global_lower_skin[par_dir], &app->global_lower_ghost[par_dir],
       app->basis.num_basis, app->cdim, app->use_gpu);
 
   }
 
   // Parallel smoother for the charge density.
-  f->fem_parproj_rho_core = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
+  gkf->fem_parproj_rho_core = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
     fem_parproj_bc_rho_core, 0, 0, 0, app->use_gpu);
 
   // Fill bias line list for fem_parproj_phi.
-  gk_field_2x3x_fill_fem_parproj_bias_lines(app, f, poisson_bcs);
+  gk_field_2x3x_fill_fem_parproj_bias_lines(app, gkf, poisson_bcs);
     
   // Parallel smoother for the potential.
-  f->fem_parproj_phi_core = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
-    fem_parproj_bc_phi_core, &f->fem_parproj_bias_line_list, 0, 0, app->use_gpu);
+  gkf->fem_parproj_phi_core = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
+    fem_parproj_bc_phi_core, &gkf->fem_parproj_bias_line_list, 0, 0, app->use_gpu);
 }
 
 static void
-gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f, struct gkyl_poisson_bc *poisson_bcs)
+gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf, struct gkyl_poisson_bc *poisson_bcs)
 {
   // Allocation ranges and updaters for IWL field solve.
 
@@ -334,18 +343,18 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     fem_parproj_bc_phi_core = GKYL_FEM_PARPROJ_PERIODIC;
     fem_parproj_bc_phi_sol  = GKYL_FEM_PARPROJ_NONE;
 
-    f->fem_projection_par_rho_func = gk_field_fem_projection_par_rho_iwl_2x;
-    f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_2x;
+    gkf->fem_projection_par_rho_func = gk_field_fem_projection_par_rho_iwl_2x;
+    gkf->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_2x;
   }
   else if (app->cdim == 3) {
-    // Here fem_parproj_bc_rho is not actually relevant because we don't use f->fem_parproj_rho.
+    // Here fem_parproj_bc_rho is not actually relevant because we don't use gkf->fem_parproj_rho.
     fem_parproj_bc_rho_core = 0;
     fem_parproj_bc_rho_sol  = 0;
     fem_parproj_bc_phi_core = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
     fem_parproj_bc_phi_sol  = GKYL_FEM_PARPROJ_DIRICHLET_SKIN;
 
-    f->fem_projection_par_rho_func = gk_field_fem_projection_par;
-    f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_3x;
+    gkf->fem_projection_par_rho_func = gk_field_fem_projection_par;
+    gkf->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_3x;
 
     int par_dir = app->cdim-1; // Parallel direction index.
     // TS BC updater for up to low TS for the lower edge. This sets ghost_L = T_LU(ghost_L).
@@ -361,6 +370,9 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
       .basis = &app->basis,
       .grid = &app->grid,
       .use_gpu = app->use_gpu,
+      .upsample_factor = app->ts_upsample_factor,
+      .filter_half_width = app->ts_filter_half_width,
+      .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_LU_lo.shift_dg = app->delta_ts_x_lo;
@@ -368,30 +380,30 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
       T_LU_lo.shift_func     = app->gk_geom->parallel_lower_bc_shift_func;
       T_LU_lo.shift_func_ctx = app->gk_geom->parallel_lower_bc_shift_ctx;
     }
-    f->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
+    gkf->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
 
     long buff_sz = GKYL_MAX2(app->global_lower_ghost_par_sol.volume, app->global_lower_ghost_par_core.volume);
-    f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+    gkf->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
-    f->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
+    gkf->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
       app->basis_on_dev, &app->global_upper_skin_par_core, &app->global_upper_ghost_par_core,
       app->basis.num_basis, app->cdim, app->use_gpu);
   }
 
   // Parallel smoother for the charge density.
-  f->fem_parproj_rho_core = gkyl_fem_parproj_new(&app->global_core, &app->grid, &app->basis,
+  gkf->fem_parproj_rho_core = gkyl_fem_parproj_new(&app->global_core, &app->grid, &app->basis,
     fem_parproj_bc_rho_core, 0, 0, 0, app->use_gpu);
-  f->fem_parproj_rho_sol = gkyl_fem_parproj_new(&app->global_sol, &app->grid, &app->basis,
+  gkf->fem_parproj_rho_sol = gkyl_fem_parproj_new(&app->global_sol, &app->grid, &app->basis,
     fem_parproj_bc_rho_sol, 0, 0, 0, app->use_gpu);
 
   // Fill bias line list for fem_parproj_phi.
-  gk_field_2x3x_fill_fem_parproj_bias_lines(app, f, poisson_bcs);
+  gk_field_2x3x_fill_fem_parproj_bias_lines(app, gkf, poisson_bcs);
     
   // Parallel smoother for the potential.
-  f->fem_parproj_phi_core = gkyl_fem_parproj_new(&app->global_core, &app->grid, &app->basis,
-    fem_parproj_bc_phi_core, &f->fem_parproj_bias_line_list, 0, 0, app->use_gpu);
-  f->fem_parproj_phi_sol = gkyl_fem_parproj_new(&app->global_sol, &app->grid, &app->basis,
-    fem_parproj_bc_phi_sol, &f->fem_parproj_bias_line_list, 0, 0, app->use_gpu);
+  gkf->fem_parproj_phi_core = gkyl_fem_parproj_new(&app->global_core, &app->grid, &app->basis,
+    fem_parproj_bc_phi_core, &gkf->fem_parproj_bias_line_list, 0, 0, app->use_gpu);
+  gkf->fem_parproj_phi_sol = gkyl_fem_parproj_new(&app->global_sol, &app->grid, &app->basis,
+    fem_parproj_bc_phi_sol, &gkf->fem_parproj_bias_line_list, 0, 0, app->use_gpu);
     
 }
 

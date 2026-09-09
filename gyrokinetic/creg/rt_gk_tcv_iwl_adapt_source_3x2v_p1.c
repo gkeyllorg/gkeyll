@@ -439,10 +439,10 @@ struct gk_app_ctx create_ctx(void)
   double floor_srcRECY = 1e-10;
 
   // Grid parameters (reduced resolution for the regression test, minimal recommended values in comments)
-  int Nx = 24; // (24) The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
-  int Ny = 4; // (16)
+  int Nx = 15; // (24) The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
+  int Ny = 8; // (16)
   int Nz = 8; // (12)
-  int Nvpar = 8; // (12)
+  int Nvpar = 4; // (12)
   int Nmu = 4; // (8)
   int poly_order = 1;
   // Velocity box dimensions
@@ -822,7 +822,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_geometry geometry = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.},
-    .mapc2p = mapc2p, // mapping of cCOREutational to physical space
+    .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = &ctx,
     .bfield_func = bfield_func, // magnetic field
     .bfield_ctx = &ctx,
@@ -832,6 +832,9 @@ main(int argc, char **argv)
     .parallel_upper_bc_shift_func = bc_shift_func_up,
     .parallel_lower_bc_shift_ctx = &ctx,
     .parallel_upper_bc_shift_ctx = &ctx,
+    .ts_filter_cutoff_wavelength = 2.0*ctx.Lx/ctx.Nx,
+    .ts_filter_half_width = 1,
+    .ts_upsample_factor = 2,
   };
 
   // Parallelism
@@ -869,6 +872,7 @@ main(int argc, char **argv)
   
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
