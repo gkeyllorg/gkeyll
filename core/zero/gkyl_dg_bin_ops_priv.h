@@ -12,6 +12,9 @@
 #include <gkyl_binop_cross_mul_tensor.h>
 #include <gkyl_binop_cross_mul_hyb.h>
 #include <gkyl_binop_cross_mul_gkhyb.h>
+#include <gkyl_basis_ser_1x_p0_inv.h>
+#include <gkyl_basis_ser_2x_p0_inv.h>
+#include <gkyl_basis_ser_3x_p0_inv.h>
 #include <gkyl_basis_ser_1x_p1_inv.h>
 #include <gkyl_basis_ser_2x_p1_inv.h>
 #include <gkyl_basis_ser_3x_p1_inv.h>
@@ -300,9 +303,9 @@ static const div_set_op_kern_list ten_div_set_list[] = {
 GKYL_CU_D
 static const inv_op_kern_list ser_inv_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, ser_1x_p1_inv, NULL, NULL },
-  { NULL, ser_2x_p1_inv, NULL, NULL },
-  { NULL, ser_3x_p1_inv, NULL, NULL } 
+  { ser_1x_p0_inv, ser_1x_p1_inv, NULL, NULL },
+  { ser_2x_p0_inv, ser_2x_p1_inv, NULL, NULL },
+  { ser_3x_p0_inv, ser_3x_p1_inv, NULL, NULL } 
 };
 
 GKYL_CU_D
