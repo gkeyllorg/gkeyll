@@ -206,10 +206,10 @@ create_ctx(void)
   double nuIon = nuFrac*logLambdaIon*pow(eV, 4.0)*n0/(12.0*M_PI*sqrt(M_PI)*eps0*eps0*sqrt(mAr)*(TAr*sqrt(TAr)));
 
   // Simulation parameters.
-  int Nx = 10; // Cell count (configuration space: x-direction).
-  int Ny = 10; // Cell count (configuration space: y-direction).
-  int Nz = 8; // Cell count (configuration space: z-direction).
-  int Nvpar = 8; // Cell count (velocity space: parallel velocity direction).
+  int Nx = 5; // Cell count (configuration space: x-direction).
+  int Ny = 5; // Cell count (configuration space: y-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
+  int Nvpar = 4; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 0.5; // Lx box size in meters
   double Ly = 0.5; // Ly box size in meters

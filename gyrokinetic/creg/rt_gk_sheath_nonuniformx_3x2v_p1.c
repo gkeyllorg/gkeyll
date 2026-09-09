@@ -130,7 +130,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 4; // Cell count (configuration space: x-direction).
   int Ny = 1; // Cell count (configuration space: y-direction).
-  int Nz = 8; // Cell count (configuration space: z-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
   int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 50.0 * rho_s; // Domain size (configuration space: x-direction).

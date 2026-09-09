@@ -926,8 +926,8 @@ create_ctx(void)
   int Npsi_core = 18;
   int Ntheta_divertor = 4;
   int Ntheta_sol = 8;
-  int Nvpar = 16; // Number of cells in vpar.
-  int Nmu = 8; // Number of cells in mu.
+  int Nvpar = 4; // Number of cells in vpar.
+  int Nmu = 4; // Number of cells in mu.
 
   // Adjust psi_min_core to ensure that dx_core = dx_sol.
   // we need ((psi_sep-shift_fac_core * psi_min_core)/Npsi_core) / ((psi_max_sol-psi_sep)/Npsi_sol) = 1

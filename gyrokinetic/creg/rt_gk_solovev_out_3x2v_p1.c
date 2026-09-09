@@ -256,7 +256,7 @@ create_ctx(void)
 
   int Nx = 4; // Number of cells in x.
   int Ny = 2; // Number of cells in y.
-  int Nz = 8; // Number of cells in z.
+  int Nz = 4; // Number of cells in z.
   int Nvpar = 6; // Number of cells in vpar.
   int Nmu = 4; // Number of cells in mu.
 
