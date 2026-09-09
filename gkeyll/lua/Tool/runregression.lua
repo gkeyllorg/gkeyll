@@ -674,12 +674,12 @@ local function list_tests(activeLayers, args)
       local dirAttr   = lfs.attributes(luaregDir)
       if dirAttr and dirAttr.mode == "directory" then
          local function addLuaTest(fn)
-            -- When an absolute path is given (e.g. via --run-only), only accept
-            -- files that actually live under this layer's luareg directory.
-            -- This prevents the per-layer loop from adding the same file to
-            -- every layer in layersToScan.
-            if string.sub(fn, 1, 1) == "/" then
-               local luaregPath = "/" .. layer.src .. "/luareg/"
+            -- When a path (absolute or relative, e.g. via --run-only) contains
+            -- a 'luareg/' directory component, only accept it if it specifically
+            -- names this layer's luareg directory. This prevents the per-layer
+            -- loop from adding the same file to every layer in layersToScan.
+            if string.find(fn, "luareg/", 1, true) then
+               local luaregPath = layer.src .. "/luareg/"
                if not string.find(fn, luaregPath, 1, true) then return end
             end
             if not isLuaRegressionTest(fn) then return end
@@ -746,9 +746,13 @@ local function list_tests(activeLayers, args)
       local cDirAttr   = lfs.attributes(cregSrcDir)
       if cDirAttr and cDirAttr.mode == "directory" then
          local function addCTest(fn)
-            -- Layer-affinity guard for absolute paths (e.g. from --run-only).
-            if string.sub(fn, 1, 1) == "/" then
-               local cregPath = "/" .. layer.src .. "/creg/"
+            -- Layer-affinity guard (e.g. from --run-only). When a path (absolute
+            -- or relative) contains a 'creg/' directory component, only accept
+            -- it if it specifically names this layer's creg directory. This
+            -- prevents the per-layer loop from adding the same file to every
+            -- layer in layersToScan.
+            if string.find(fn, "creg/", 1, true) then
+               local cregPath = layer.src .. "/creg/"
                if not string.find(fn, cregPath, 1, true) then return end
             end
             -- Must match rt_*.c pattern.
