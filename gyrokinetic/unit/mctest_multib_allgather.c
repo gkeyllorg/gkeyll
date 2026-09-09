@@ -1037,7 +1037,7 @@ test_L_domain_allgather_dir0_cuts2_par()
     gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
     char str[50];
     sprintf(str, "lb%d_r%d.gkyl",bI, my_rank);
-    gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global[bI], str);
+    // gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global[bI], str);
   }
 
   for (int bI = 0; bI<num_local_blocks; ++bI) {
@@ -1277,7 +1277,7 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
     char str[50];
     sprintf(str, "lb%d_r%d.gkyl",bI, my_rank);
-    gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global_ho[bI], str);
+    // gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global_ho[bI], str);
   }
 
   printf("checking\n");
