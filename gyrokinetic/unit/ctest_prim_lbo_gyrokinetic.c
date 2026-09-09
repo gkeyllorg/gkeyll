@@ -38,15 +38,15 @@ check_prim(int cdim, int vdim, int poly_order)
   gkyl_prim_lbo_type_release(prim);
 }
 
-void test_prim_1x1v_p1() { check_prim(1, 1, 1); }
-void test_prim_1x2v_p1() { check_prim(1, 2, 1); }
-void test_prim_2x2v_p1() { check_prim(2, 2, 1); }
-void test_prim_3x2v_p1() { check_prim(3, 2, 1); }
-void test_prim_1x1v_p2() { check_prim(1, 1, 2); }
-void test_prim_2x2v_p2() { check_prim(2, 2, 2); }
+void test_prim_ctor_1x1v_p1() { check_prim(1, 1, 1); }
+void test_prim_ctor_1x2v_p1() { check_prim(1, 2, 1); }
+void test_prim_ctor_2x2v_p1() { check_prim(2, 2, 1); }
+void test_prim_ctor_3x2v_p1() { check_prim(3, 2, 1); }
+void test_prim_ctor_1x1v_p2() { check_prim(1, 1, 2); }
+void test_prim_ctor_2x2v_p2() { check_prim(2, 2, 2); }
 
 void
-test_prim_acquire()
+test_prim_ctor_acquire()
 {
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 1);
@@ -69,12 +69,12 @@ test_prim_acquire()
 }
 
 TEST_LIST = {
-  { "prim_1x1v_p1", test_prim_1x1v_p1 },
-  { "prim_1x2v_p1", test_prim_1x2v_p1 },
-  { "prim_2x2v_p1", test_prim_2x2v_p1 },
-  { "prim_3x2v_p1", test_prim_3x2v_p1 },
-  { "prim_1x1v_p2", test_prim_1x1v_p2 },
-  { "prim_2x2v_p2", test_prim_2x2v_p2 },
-  { "prim_acquire", test_prim_acquire },
+  { "prim_ctor_1x1v_p1", test_prim_ctor_1x1v_p1 },
+  { "prim_ctor_1x2v_p1", test_prim_ctor_1x2v_p1 },
+  { "prim_ctor_2x2v_p1", test_prim_ctor_2x2v_p1 },
+  { "prim_ctor_3x2v_p1", test_prim_ctor_3x2v_p1 },
+  { "prim_ctor_1x1v_p2", test_prim_ctor_1x1v_p2 },
+  { "prim_ctor_2x2v_p2", test_prim_ctor_2x2v_p2 },
+  { "prim_ctor_acquire", test_prim_ctor_acquire },
   { NULL, NULL },
 };

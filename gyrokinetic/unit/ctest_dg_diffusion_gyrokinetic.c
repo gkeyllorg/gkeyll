@@ -54,44 +54,44 @@ check_diffusion(int cdim, int vdim, int poly_order, bool const_coeff, const bool
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_diff_1x1v_p1_const()
+void test_diff_ctor_1x1v_p1_const()
 {
   bool dir[] = { true };
   check_diffusion(1, 1, 1, true, dir);
 }
 
-void test_diff_1x2v_p1_var()
+void test_diff_ctor_1x2v_p1_var()
 {
   bool dir[] = { true };
   check_diffusion(1, 2, 1, false, dir);
 }
 
-void test_diff_2x2v_p1_xy()
+void test_diff_ctor_2x2v_p1_xy()
 {
   bool dir[] = { true, true };
   check_diffusion(2, 2, 1, true, dir);
 }
 
-void test_diff_2x2v_p1_x_only()
+void test_diff_ctor_2x2v_p1_x_only()
 {
   bool dir[] = { true, false };
   check_diffusion(2, 2, 1, true, dir);
 }
 
-void test_diff_3x2v_p1()
+void test_diff_ctor_3x2v_p1()
 {
   bool dir[] = { true, true, true };
   check_diffusion(3, 2, 1, true, dir);
 }
 
-void test_diff_1x1v_p2_const()
+void test_diff_ctor_1x1v_p2_const()
 {
   bool dir[] = { true };
   check_diffusion(1, 1, 2, true, dir);
 }
 
 void
-test_diff_acquire()
+test_diff_ctor_acquire()
 {
   struct gkyl_basis basis, cbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 1);
@@ -116,12 +116,12 @@ test_diff_acquire()
 }
 
 TEST_LIST = {
-  { "diff_1x1v_p1_const", test_diff_1x1v_p1_const },
-  { "diff_1x2v_p1_var", test_diff_1x2v_p1_var },
-  { "diff_2x2v_p1_xy", test_diff_2x2v_p1_xy },
-  { "diff_2x2v_p1_x_only", test_diff_2x2v_p1_x_only },
-  { "diff_3x2v_p1", test_diff_3x2v_p1 },
-  { "diff_1x1v_p2_const", test_diff_1x1v_p2_const },
-  { "diff_acquire", test_diff_acquire },
+  { "diff_ctor_1x1v_p1_const", test_diff_ctor_1x1v_p1_const },
+  { "diff_ctor_1x2v_p1_var", test_diff_ctor_1x2v_p1_var },
+  { "diff_ctor_2x2v_p1_xy", test_diff_ctor_2x2v_p1_xy },
+  { "diff_ctor_2x2v_p1_x_only", test_diff_ctor_2x2v_p1_x_only },
+  { "diff_ctor_3x2v_p1", test_diff_ctor_3x2v_p1 },
+  { "diff_ctor_1x1v_p2_const", test_diff_ctor_1x1v_p2_const },
+  { "diff_ctor_acquire", test_diff_ctor_acquire },
   { NULL, NULL },
 };

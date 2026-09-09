@@ -73,25 +73,25 @@ check_bcorr(int cdim, int vdim, int poly_order, double *plower, double *pupper, 
   gkyl_velocity_map_release(gvm);
 }
 
-void test_bcorr_1x1v_p1()
+void test_bcorr_ctor_1x1v_p1()
 {
   double lo[] = {-1.0, -6.0}, up[] = {1.0, 6.0};
   int cells[] = {4, 8};
   check_bcorr(1, 1, 1, lo, up, cells);
 }
-void test_bcorr_1x2v_p1()
+void test_bcorr_ctor_1x2v_p1()
 {
   double lo[] = {-1.0, -6.0, 0.0}, up[] = {1.0, 6.0, 36.0};
   int cells[] = {4, 8, 4};
   check_bcorr(1, 2, 1, lo, up, cells);
 }
-void test_bcorr_2x2v_p1()
+void test_bcorr_ctor_2x2v_p1()
 {
   double lo[] = {-1.0, -1.0, -6.0, 0.0}, up[] = {1.0, 1.0, 6.0, 36.0};
   int cells[] = {4, 4, 8, 4};
   check_bcorr(2, 2, 1, lo, up, cells);
 }
-void test_bcorr_3x2v_p1()
+void test_bcorr_ctor_3x2v_p1()
 {
   double lo[] = {-1.0, -1.0, -1.0, -6.0, 0.0}, up[] = {1.0, 1.0, 1.0, 6.0, 36.0};
   int cells[] = {2, 2, 2, 8, 4};
@@ -99,7 +99,7 @@ void test_bcorr_3x2v_p1()
 }
 
 void
-test_bcorr_acquire()
+test_bcorr_ctor_acquire()
 {
   double lo[] = {-1.0, -6.0, 0.0}, up[] = {1.0, 6.0, 36.0};
   int cells[] = {4, 8, 4};
@@ -126,10 +126,10 @@ test_bcorr_acquire()
 }
 
 TEST_LIST = {
-  { "bcorr_1x1v_p1", test_bcorr_1x1v_p1 },
-  { "bcorr_1x2v_p1", test_bcorr_1x2v_p1 },
-  { "bcorr_2x2v_p1", test_bcorr_2x2v_p1 },
-  { "bcorr_3x2v_p1", test_bcorr_3x2v_p1 },
-  { "bcorr_acquire", test_bcorr_acquire },
+  { "bcorr_ctor_1x1v_p1", test_bcorr_ctor_1x1v_p1 },
+  { "bcorr_ctor_1x2v_p1", test_bcorr_ctor_1x2v_p1 },
+  { "bcorr_ctor_2x2v_p1", test_bcorr_ctor_2x2v_p1 },
+  { "bcorr_ctor_3x2v_p1", test_bcorr_ctor_3x2v_p1 },
+  { "bcorr_ctor_acquire", test_bcorr_ctor_acquire },
   { NULL, NULL },
 };
