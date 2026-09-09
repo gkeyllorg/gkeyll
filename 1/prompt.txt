@@ -1,0 +1,9 @@
+Check status of remaining core/unit test-file merge fork agents (array_ops, basis) via ListAgents. If all notifications have arrived, summarize results and verify final state (git status, ls core/unit for remaining _extra.c files). If not all done, keep waiting.
+
+---
+
+In gyrokinetic/unit/ctest_efit.c the gkyl_grid_sub_array_write lines have been commented out. Instead of doing that, just wrap them in an if-statement that dependes on a boolean named write_files at the beginning of each function, and see it to false.
+
+---
+
+also please move the commented out printf statement into this if block in each test.
