@@ -7,7 +7,6 @@ description: Apply Gkeyll file, function, and variable naming conventions and mo
 
 ### Files.
 
-Gkeyll is written in C and CUDA, in addition to some Lua input files.
 - Public header files have names starting with gkyl_ and ending in .h.
 - Private header files have names starting with gkyl_ and ending in _priv.h.
 - CUDA files have names ending in _cu.cu. 
