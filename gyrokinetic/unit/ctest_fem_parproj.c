@@ -64,7 +64,7 @@ static void check_continuity_par(struct gkyl_range range, struct gkyl_basis basi
   if (basis.poly_order > 1) return;
   int ndim = basis.ndim;
   int pardir = ndim-1;
-  enum { num_nodes_perp_max = 4 }; // 3x p=1.
+  int num_nodes_perp_max = 4; // 3x p=1.
   int num_nodes_perp = 1;
   if (ndim == 2)
     num_nodes_perp = 2;
@@ -176,7 +176,7 @@ void check_dirichlet_bc(struct gkyl_range local, struct gkyl_range local_ext, st
 
   int ndim = basis.ndim;
   int pardir = ndim-1;
-  enum { num_nodes_perp_max = 4 }; // 3x p=1.
+  int num_nodes_perp_max = 4; // 3x p=1.
   int num_nodes_perp = 1;
   if (ndim == 2)
     num_nodes_perp = 2;
@@ -256,7 +256,7 @@ void check_dirichlet_bc_bias(struct gkyl_rect_grid grid, struct gkyl_range local
 
   int ndim = basis.ndim;
   int pardir = ndim-1;
-  enum { num_nodes_perp_max = 4 }; // 3x p=1.
+  int num_nodes_perp_max = 4; // 3x p=1.
   int num_nodes_perp = 1;
   if (ndim == 2)
     num_nodes_perp = 2;

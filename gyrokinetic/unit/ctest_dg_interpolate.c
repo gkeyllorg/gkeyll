@@ -2426,13 +2426,13 @@ void test_3x2v_gk_dev()
 
 TEST_LIST = {
   { "test_1x_ho", test_1x_ho },
-  // { "test_2x_ho", test_2x_ho },
+  { "test_2x_ho", test_2x_ho },
   { "test_1x1v_vlasov_ho", test_1x1v_vlasov_ho },
   { "test_1x2v_vlasov_ho", test_1x2v_vlasov_ho },
   { "test_1x1v_gk_ho", test_1x1v_gk_ho },
   { "test_1x2v_gk_ho", test_1x2v_gk_ho },
-  // { "test_2x2v_gk_ho", test_2x2v_gk_ho },
-  // { "test_3x2v_gk_ho", test_3x2v_gk_ho },
+  { "test_2x2v_gk_ho", test_2x2v_gk_ho },
+  { "test_3x2v_gk_ho", test_3x2v_gk_ho },
 #ifdef GKYL_HAVE_CUDA
   { "test_1x_dev", test_1x_dev },
   { "test_2x_dev", test_2x_dev },
