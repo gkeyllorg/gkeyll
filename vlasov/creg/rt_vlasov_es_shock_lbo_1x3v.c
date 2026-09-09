@@ -95,10 +95,10 @@ create_ctx(void)
   double nu_ion = (nu_elc / sqrt(mass_ion)) * (Te_over_Ti * sqrt(Te_over_Ti)); // Ion collision frequency.
 
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
-  int Nvx = 12; // Cell count (velocity space: vx-direction).
-  int Nvy = 12; // Cell count (velocity space: vy-direction).
-  int Nvz = 12; // Cell count (velocity space: vz-direction).
+  int Nx = 4; // Cell count (configuration space: x-direction).
+  int Nvx = 6; // Cell count (velocity space: vx-direction).
+  int Nvy = 6; // Cell count (velocity space: vy-direction).
+  int Nvz = 6; // Cell count (velocity space: vz-direction).
   double Lx = 256.0; // Domain size (configuration space: x-direction).
   double vx_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vx-direction).
   double vy_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vy-direction).

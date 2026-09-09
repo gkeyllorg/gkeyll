@@ -121,8 +121,8 @@ create_ctx(void)
   int Nx = 2; // Cell count (configuration space: x-direction).
   int Ny = 2; // Cell count (configuration space: y-direction).
   int Nz = 4; // Cell count (configuration space: z-direction).
-  int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
+  int Nvpar = 4; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
   double Ly = 1.0; // Domain size (configuration space: y-direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).

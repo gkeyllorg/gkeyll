@@ -348,9 +348,9 @@ create_ctx(void)
   double Ti_src = 40*eV;
 
   // Grid parameters
-  int Nz = 64;
+  int Nz = 16;
   int Nvpar = 16;
-  int Nmu = 45;
+  int Nmu = 16;
   int poly_order = 1;
 
   double vpar_max_ion = 4.*vti;

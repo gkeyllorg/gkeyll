@@ -376,10 +376,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_dev.gkyl", poly_order);
   else
     sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_ho.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, mask_ho, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, mask_ho, fname);
 
   sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_ref.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, mask_ref_ho, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, mask_ref_ho, fname);
 
   if (use_gpu) {
     gkyl_cu_free(bmag_max);

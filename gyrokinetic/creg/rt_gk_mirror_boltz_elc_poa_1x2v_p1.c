@@ -521,8 +521,8 @@ create_ctx(void)
 //  double mu_max_ion_c = 1.0/pow(mu_lin_fac_inv,(mu_pow-1)/mu_pow);
 
   // Grid DOF:
-  int Nz = 64; // Number of cells in z direction.
-  int Nvpar = 32; // Number of cells in parallel velocity direction.
+  int Nz = 16; // Number of cells in z direction.
+  int Nvpar = 16; // Number of cells in parallel velocity direction.
   int Nmu = 16;  // Number of cells in mu direction.
   int poly_order = 1;
 

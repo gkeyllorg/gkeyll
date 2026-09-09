@@ -612,9 +612,9 @@ five_moment_sync_patches(const struct gkyl_block_topo* ptopo, const struct five_
 void
 five_moment_patch_data_write(const char* file_nm_elc, const char* file_nm_ion, const char* file_nm_maxwell, const struct five_moment_patch_data* pdata)
 {
-  gkyl_grid_sub_array_write(&pdata->grid, &pdata->range, 0, pdata->f_elc[0], file_nm_elc);
-  gkyl_grid_sub_array_write(&pdata->grid, &pdata->range, 0, pdata->f_ion[0], file_nm_ion);
-  gkyl_grid_sub_array_write(&pdata->grid, &pdata->range, 0, pdata->f_maxwell[0], file_nm_maxwell);
+  // gkyl_grid_sub_array_write(&pdata->grid, &pdata->range, 0, pdata->f_elc[0], file_nm_elc);
+  // gkyl_grid_sub_array_write(&pdata->grid, &pdata->range, 0, pdata->f_ion[0], file_nm_ion);
+  // gkyl_grid_sub_array_write(&pdata->grid, &pdata->range, 0, pdata->f_maxwell[0], file_nm_maxwell);
 }
 
 double

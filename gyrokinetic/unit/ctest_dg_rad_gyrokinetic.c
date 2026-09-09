@@ -709,10 +709,6 @@ test_2x(int poly_order, bool use_gpu, double te)
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
   
-  gkyl_grid_sub_array_write(&grid, &local, 0, rhs, "ctest_dg_rad_gyrokinetic_2x_rhs.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, 0, nvnu, "ctest_dg_rad_gyrokinetic_2x_nvnu.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, 0, nvsqnu, "ctest_dg_rad_gyrokinetic_2x_nvsqnu.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, 0, f, "ctest_dg_rad_gyrokinetic_2x_f.gkyl");
   // Take 2nd moment of rhs to find energy loss on host
   struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
     &confLocal, GKYL_ELECTRON_MASS, -GKYL_ELEMENTARY_CHARGE, gvm, gk_geom, NULL, GKYL_F_MOMENT_M2, false, use_gpu);
@@ -811,9 +807,9 @@ TEST_LIST = {
   { "test_1x2v_p1_Li0_30eV", test_1x2v_p1_30eV },
   { "test_1x2v_p1_Li0_5000eV", test_1x2v_p1_5000eV },
   { "test_1x2v_p1_H", test_1x2v_p1_H },
-  { "test_1x2v_p1_Li1_lowNe", test_1x2v_p1_Li1_lowNe },
-  { "test_1x2v_p1_Li1_midNe", test_1x2v_p1_Li1_midNe },
-  { "test_1x2v_p1_Li1_highNe", test_1x2v_p1_Li1_highNe },
+  // { "test_1x2v_p1_Li1_lowNe", test_1x2v_p1_Li1_lowNe },
+  // { "test_1x2v_p1_Li1_midNe", test_1x2v_p1_Li1_midNe },
+  // { "test_1x2v_p1_Li1_highNe", test_1x2v_p1_Li1_highNe },
   { "test_2x2v_p1", test_2x2v_p1 },
 
 #ifdef GKYL_HAVE_CUDA

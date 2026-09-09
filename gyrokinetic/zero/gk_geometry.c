@@ -649,11 +649,11 @@ gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp,
     { .key = "zmid", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmid},
     { .key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim},
   };
-  int io_meta_basic_rz_len = sizeof(io_meta_basic_rz)/sizeof(io_meta_basic_rz[0]);
-  int io_meta_basic_len[] = {io_meta_basic_basic_len, io_meta_basic_rz_len};
-  const struct gkyl_msgpack_map_elem* io_meta_basic[] = {io_meta_basic_basic, io_meta_basic_rz};
-  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_basic_len)/sizeof(int), io_meta_basic_len, io_meta_basic);
-  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, fileNm);
+  int io_meta_rz_len = sizeof(io_meta_basic_rz)/sizeof(io_meta_basic_rz[0]);
+  int io_meta_len[] = {io_meta_basic_basic_len, io_meta_rz_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {io_meta_basic_basic, io_meta_basic_rz};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  // gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, fileNm);
 
   gkyl_msgpack_data_release(mt);
 }
@@ -740,6 +740,5 @@ gkyl_gk_geometry_release(const struct gk_geometry *up)
 {
   gkyl_ref_count_dec(&up->ref_count);
 }
-
 
 

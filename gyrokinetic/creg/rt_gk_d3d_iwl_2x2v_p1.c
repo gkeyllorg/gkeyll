@@ -461,7 +461,7 @@ create_ctx(void)
 
   // Grid parameters
   int Nx = 8;
-  int Nz = 12;
+  int Nz = 6;
   int Nvpar = 8;
   int Nmu = 4;
   int poly_order = 1;

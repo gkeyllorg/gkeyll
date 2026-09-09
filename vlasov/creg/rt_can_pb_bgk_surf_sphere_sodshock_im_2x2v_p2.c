@@ -90,9 +90,9 @@ create_ctx(void)
   double nu = 15000.0; // Collision frequency.
 
   // Simulation parameters.
-  int Ntheta = 128; // Cell count (configuration space: polar angular direction).
+  int Ntheta = 4; // Cell count (configuration space: polar angular direction).
   int Nphi = 1; // Cell count (configuration space: azimuthal angular direction).
-  int Nvtheta = 12; // Cell count (velocity space: polar angular direction).
+  int Nvtheta = 6; // Cell count (velocity space: polar angular direction).
   int Nvphi = 12; // Cell count (velocity space: azimuthal angular direction).
   double Ltheta = (3.0 * pi) / 8.0; // Domain size (configuration space: polar angular direction).
   double Lphi = 2.0 * pi; // Domain size (configuration space: azimuthal angular direction).

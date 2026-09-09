@@ -216,8 +216,8 @@ compare_quad_and_cub(void)
   );
   struct gkyl_array *psi_cubic_DG = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis_advance(projCub, 0.0, &local, psi_cubic_DG);
-  gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic_DG, "psi_cubic.gkyl");
-  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "psi_quad.gkyl");
+  // gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic_DG, "psi_cubic.gkyl");
+  // gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "psi_quad.gkyl");
 
   // Now pick a value of Z. Let's choose Z = 0.0
   // We want to see how long each one takes to find the roots

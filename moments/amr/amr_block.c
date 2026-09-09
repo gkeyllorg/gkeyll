@@ -718,7 +718,7 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
 void
 euler_block_data_write(const char* file_nm, const struct euler_block_data* bdata)
 {
-  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f[0], file_nm);
+  // gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f[0], file_nm);
 }
 
 double

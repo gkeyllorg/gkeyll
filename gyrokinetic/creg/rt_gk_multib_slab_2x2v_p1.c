@@ -111,9 +111,9 @@ create_ctx(void)
   double T_src = 285.0*5.0/8.0 * GKYL_ELEMENTARY_CHARGE; // Source Temperature
 
   // Simulation parameters.
-  int Nx = 8; // Cell count (configuration space: x-direction).
+  int Nx = 4; // Cell count (configuration space: x-direction).
   int Nz = 8; // Cell count (configuration space: z-direction).
-  int Nvpar = 12; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 6; // Cell count (velocity space: magnetic moment direction).
   double Lx = 0.06; // Domain size (configuration space: x-direction).
   double Lz = 120.0; // Domain size (configuration space: z-direction).

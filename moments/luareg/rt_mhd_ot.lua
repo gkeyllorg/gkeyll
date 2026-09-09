@@ -12,8 +12,8 @@ p = 5.0 / (12.0 * pi) -- Fluid pressure.
 B0 = 1.0 / math.sqrt(4.0 * pi) -- Reference magnetic field strength.
 
 -- Simulation parameters.
-Nx = 128 -- Cell count (x-direction).
-Ny = 128 -- Cell count (y-direction).
+Nx = 256 -- Cell count (x-direction).
+Ny = 256 -- Cell count (y-direction).
 Lx = 1.0 -- Domain size (x-direction).
 Ly = 1.0 -- Domain size (y-direction).
 cfl_frac = 0.95 -- CFL coefficient.

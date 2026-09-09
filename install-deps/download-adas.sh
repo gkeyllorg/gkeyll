@@ -8,7 +8,7 @@ ADAS_DIR="$GKYLSOFT/gkeyll/share"
 
 mkdir -p $ADAS_DIR/adas
 #cd -
-python ../gyrokinetic/data/adas/process_adas.py
+python3 ../gyrokinetic/data/adas/process_adas.py
 rm *.dat
 cp *.npy $ADAS_DIR/adas/.
 mv *.npy ../gyrokinetic/data/adas/.

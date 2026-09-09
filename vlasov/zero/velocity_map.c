@@ -197,7 +197,7 @@ gkyl_velocity_map_write(const struct gkyl_velocity_map* gvm, struct gkyl_comm* s
     sz = gkyl_calc_strlen(fmt0, app_name, species_name);
     char fileNm0[sz+1]; // ensures no buffer overflow
     snprintf(fileNm0, sizeof fileNm0, fmt0, app_name, species_name);
-    gkyl_grid_sub_array_write(&gvm->grid_vel, &gvm->local_vel, NULL, vmap_ho, fileNm0);
+    // gkyl_grid_sub_array_write(&gvm->grid_vel, &gvm->local_vel, NULL, vmap_ho, fileNm0);
   }
 
   // Write out the velocity space Jacobian.
