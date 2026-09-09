@@ -125,7 +125,16 @@ def buildRegressionBaseline(String mkdepsScript, String configureScript, String 
     }
 }
 
-properties([disableConcurrentBuilds(abortPrevious: true)])
+properties([
+    disableConcurrentBuilds(abortPrevious: true),
+    parameters([
+        booleanParam(
+            name: 'FORCE_BUILD',
+            defaultValue: false,
+            description: 'Override this build\'s allowedPrAuthors/branch restrictions on every node (use "Build with Parameters" to set it for one manual run).'
+        )
+    ])
+])
 
 // Jenkins node label -> config to use on that machine (machines/ has a
 // mkdeps/configure script variant per OS/site). This map is shared across
@@ -140,6 +149,12 @@ properties([disableConcurrentBuilds(abortPrevious: true)])
 // that shouldn't run arbitrary contributors' PR code. Omit it (as for a
 // shared/team node) to build PRs from anyone. Builds of `main` itself are
 // never restricted, since there's no CHANGE_AUTHOR for those.
+//
+// Every node also only builds `main` and PRs, never a plain branch pushed
+// directly (e.g. one still awaiting a PR, or one Jenkins indexed before its
+// PR was opened) — see below. Both restrictions can be bypassed for a single
+// manual run via the FORCE_BUILD parameter (Build with Parameters), e.g. to
+// deliberately run a specific contributor's PR on a personal machine.
 def nodes = [
     'manauref_lt1': [mkdeps: 'mkdeps.macos.sh', configure: 'configure.macos.sh', allowedPrAuthors: ['manauref']],
 ]
@@ -159,8 +174,12 @@ def myNodes = nodes.findAll { label, cfg -> ownedLabels.contains(label) }
 
 def branches = myNodes.collectEntries { label, cfg ->
     [(label): {
-        if (env.CHANGE_AUTHOR && cfg.allowedPrAuthors && !cfg.allowedPrAuthors.contains(env.CHANGE_AUTHOR)) {
-            echo "Skipping ${label}: PR author '${env.CHANGE_AUTHOR}' is not in this node's allowedPrAuthors ${cfg.allowedPrAuthors}."
+        if (!params.FORCE_BUILD && env.CHANGE_AUTHOR && cfg.allowedPrAuthors && !cfg.allowedPrAuthors.contains(env.CHANGE_AUTHOR)) {
+            echo "Skipping ${label}: PR author '${env.CHANGE_AUTHOR}' is not in this node's allowedPrAuthors ${cfg.allowedPrAuthors}. Rebuild with FORCE_BUILD checked to override."
+            return
+        }
+        if (!params.FORCE_BUILD && !env.CHANGE_ID && env.BRANCH_NAME != 'main') {
+            echo "Skipping ${label}: plain branch build of '${env.BRANCH_NAME}' -- only 'main' and PRs are built here. Rebuild with FORCE_BUILD checked to override."
             return
         }
         node(label) {

@@ -175,6 +175,20 @@ Don't assume this matches another node's value — especially across OSes.
 - **Shared/team machine**: omit `allowedPrAuthors` from its entry — it will
   build PRs from anyone.
 
+Separately from `allowedPrAuthors`, every node only builds `main` and PRs —
+never a plain branch pushed directly to the repo (e.g. a contributor's branch
+that Jenkins indexes before its PR is opened, or one never opened as a PR at
+all). This applies regardless of the "Discover branches" strategy configured
+on the multibranch job, since branch discovery can't itself distinguish
+"someone's personal topic branch" from "main".
+
+To manually build a PR or branch that would otherwise be skipped by either of
+these restrictions (e.g. you've reviewed a contributor's PR and want to
+deliberately run it on your personal machine), use "Build with Parameters" on
+that item instead of the plain "Build Now" button, and check `FORCE_BUILD`.
+This bypasses both checks for that one run only; it does not change what
+triggers automatically afterward.
+
 ### 4.4. Register the node in the Jenkinsfile
 
 Add (or confirm) an entry in the `nodes` map in `ci/jenkins/Jenkinsfile`,
