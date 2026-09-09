@@ -88,10 +88,10 @@ create_ctx(void)
   double nu = 15000.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nr = 128; // Cell count (configuration space: radial direction).
+  int Nr = 8; // Cell count (configuration space: radial direction).
   int Ntheta = 1; // Cell count (configuration space: angular direction).
-  int Nvr = 12; // Cell count (velocity space: radial direction).
-  int Nvtheta = 12; // Cell count (velocity space: angular direction).
+  int Nvr = 6; // Cell count (velocity space: radial direction).
+  int Nvtheta = 6; // Cell count (velocity space: angular direction).
   double Lr = 1.0; // Domain size (configuration space: radial direction).
   double Ltheta = 2.0 * pi; // Domain size (configuration space: angular direction).
   double vr_max = 8.0 * vt; // Domain boundary (velocity space: radial direction).

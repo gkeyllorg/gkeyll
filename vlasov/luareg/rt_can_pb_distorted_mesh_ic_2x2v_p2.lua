@@ -21,10 +21,10 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nz1 = 16 -- Cell count (configuration space: radial direction).
-Nz2 = 16 -- Cell count (configuration space: angular direction).
-Nvz1 = 24 -- Cell count (velocity space: radial direction).
-Nvz2 = 24 -- Cell count (velocity space: angular direction).
+Nz1 = 8 -- Cell count (configuration space: radial direction).
+Nz2 = 8 -- Cell count (configuration space: angular direction).
+Nvz1 = 8 -- Cell count (velocity space: radial direction).
+Nvz2 = 8 -- Cell count (velocity space: angular direction).
 Lz1 = 2.0 -- Domain size (configuration space: radial direction).
 Lz2 = 2.0 -- Domain size (configuration space: angular direction).
 vr_max = 12.0 * vt -- Domain boundary (velocity space: radial direction).
@@ -34,7 +34,7 @@ basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 0.000000001 -- Final simulation time.
+t_end = 2e-3 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

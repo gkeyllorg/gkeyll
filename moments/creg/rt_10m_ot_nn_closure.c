@@ -102,8 +102,8 @@ create_ctx(void)
   double delta_u0 = 0.2 * vAi; // Reference fluid velocity perturbation.
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (x-direction).
-  int Ny = 128; // Cell count (y-direction).
+  int Nx = 8; // Cell count (x-direction).
+  int Ny = 16; // Cell count (y-direction).
   double Lx = 20.48 * d_i; // Domain size (x-direction).
   double Ly = 20.48 * d_i; // Domain size (y-direction).
   double k0 = 5000.0; // Closure parameter.

@@ -108,7 +108,7 @@ create_ctx(void)
   double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (x-drection).
+  int Nx = 64; // Cell count (x-drection).
   int Ny = 64; // Cell count (y-direction).
   double Lx = 25.6 * di; // Domain size (x-direction).
   double Ly = 12.8 * di; // Domain size (y-direction).
