@@ -1,0 +1,70 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M23G0NBEKKCKR6VF11NYZ19E",
+  "session_id": "02163d3c-4cd2-42f4-adbf-e0ebf313b7e8",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-09T16:29:11.034941Z",
+  "branch": "agent_tools-jenkins",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/creg/rt_gk_asdex_solonly_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_cbc_passive_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_multib_asdex_solonly_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_multib_nstx_solonly_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_passive_2x2v_p1.c"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "68c6059826ae",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 90,
+    "cache_creation_tokens": 313736,
+    "cache_read_tokens": 4330968,
+    "output_tokens": 40640,
+    "api_call_count": 45
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-09T16:29:10.995255Z",
+    "agent_lines": 5,
+    "agent_removed": 5,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 5,
+    "total_lines_changed": 10,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 55274,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/scheduled_tasks.lock": 1,
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/unit/ctest_fem_parproj_couplex.c.orig": 1128,
+        "gyrokinetic/unit/ctest_ts_qprofiles.c": 796,
+        "gyrokinetic/unit/run_test.c": 20,
+        "log.txt": 216,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "tmp.sh": 43,
+        "tmp.txt": 23
+      }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+here is the log output from by the runregression tool: /Users/mfrancis/Documents/gkeyll/code/gkeyll_v1/gkeyll/log.txt. Can you make a list of the tests run please? and make a second list of the tests that didn't run for some reason. Don't look anywhere else in the codebase, only look at this file.
+
+---
+
+Ok, now in the current directory (/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll), can you make sure all regression tests in gyrokinetic/creg/ set num_frames = 1? we want all tests to output a single frame

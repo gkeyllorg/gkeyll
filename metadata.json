@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M23G0NBEKKCKR6VF11NYZ19E",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-jenkins",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "gyrokinetic/creg/rt_gk_asdex_solonly_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_cbc_passive_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_multib_asdex_solonly_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_multib_nstx_solonly_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_passive_2x2v_p1.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 90,
+    "cache_creation_tokens": 313736,
+    "cache_read_tokens": 4330968,
+    "output_tokens": 40640,
+    "api_call_count": 45
+  }
+}
