@@ -1,0 +1,77 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M242GC9E5PDBSR5WKV3MRQW0",
+  "session_id": "dbe860c7-9e4e-49da-82df-5f54bbce0700",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-09T21:52:11.920819Z",
+  "branch": "agent_tools-jenkins-core-gyrokinetic",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/unit/ctest_dg_diffusion_gyrokinetic.c",
+    "gyrokinetic/unit/ctest_dg_diffusion_gyrokinetic_ctor.c",
+    "gyrokinetic/unit/ctest_dg_lbo_gyrokinetic_diff.c",
+    "gyrokinetic/unit/ctest_dg_lbo_gyrokinetic_diff_ctor.c",
+    "gyrokinetic/unit/ctest_dg_lbo_gyrokinetic_drag.c",
+    "gyrokinetic/unit/ctest_dg_lbo_gyrokinetic_drag_ctor.c",
+    "gyrokinetic/unit/ctest_gk_anomalous_diffusion.c",
+    "gyrokinetic/unit/ctest_gk_anomalous_diffusion_ctor.c",
+    "gyrokinetic/unit/ctest_mom_bcorr_lbo_gyrokinetic.c",
+    "gyrokinetic/unit/ctest_mom_bcorr_lbo_gyrokinetic_ctor.c",
+    "gyrokinetic/unit/ctest_prim_lbo_gyrokinetic.c",
+    "gyrokinetic/unit/ctest_prim_lbo_gyrokinetic_ctor.c"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "a81cdb591fd2",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 44,
+    "cache_creation_tokens": 200600,
+    "cache_read_tokens": 1158432,
+    "output_tokens": 9727,
+    "api_call_count": 22
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-09T21:52:11.897988Z",
+    "agent_lines": 795,
+    "agent_removed": 795,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 795,
+    "total_lines_changed": 1590,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 55274,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/scheduled_tasks.lock": 1,
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/unit/ctest_fem_parproj_couplex.c.orig": 1128,
+        "gyrokinetic/unit/ctest_ts_qprofiles.c": 796,
+        "gyrokinetic/unit/run_test.c": 20,
+        "log.txt": 216,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "tmp.sh": 43,
+        "tmp.txt": 23
+      }
+    }
+  ]
+}

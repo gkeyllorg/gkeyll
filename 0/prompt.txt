@@ -1,0 +1,1 @@
+there are 6 unit tests in gyrokinetic/unit whose file names end in _ctor.c, for constructor because they mainly check the solver/updater is constructed successfully. Can you move these tests into a file that doesn't have _ctor in its name, adding ctor to the test name within the file? if a file testing that solver/updater already exists, just add the test to that existing file.
