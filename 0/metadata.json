@@ -1,0 +1,110 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M2427GN9106RWXGEEAWE35TF",
+  "session_id": "1497aa0c-efaf-4736-b48b-0b73b1e83e00",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-09T21:47:21.730765Z",
+  "branch": "agent_tools-jenkins-core-gyrokinetic",
+  "checkpoints_count": 2,
+  "save_step_count": 2,
+  "files_touched": [
+    "core/unit/ctest_nodal_ops.c",
+    "gyrokinetic/unit/ctest_asdex.c",
+    "gyrokinetic/unit/ctest_bc_sheath_gyrokinetic.c",
+    "gyrokinetic/unit/ctest_bc_twistshift.c",
+    "gyrokinetic/unit/ctest_dg_interpolate.c",
+    "gyrokinetic/unit/ctest_efit.c",
+    "gyrokinetic/unit/ctest_fem_parproj.c",
+    "gyrokinetic/unit/ctest_gk_cross_prim_moms_bgk_equal.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mapc2p.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mirror.c",
+    "gyrokinetic/unit/ctest_gyrokinetic_cross_prim_moms_bgk.c",
+    "gyrokinetic/unit/ctest_ltx_miller.c",
+    "gyrokinetic/unit/ctest_nodal_ops.c",
+    "gyrokinetic/unit/ctest_nodal_ops_deflated.c"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "a16b297007ec",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 78,
+    "cache_creation_tokens": 230978,
+    "cache_read_tokens": 2552962,
+    "output_tokens": 21488,
+    "api_call_count": 39
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-09T21:47:21.701181Z",
+    "agent_lines": 465,
+    "agent_removed": 663,
+    "human_added": 0,
+    "human_modified": 1,
+    "human_removed": 236,
+    "total_committed": 466,
+    "total_lines_changed": 1365,
+    "agent_percentage": 82.63736263736263,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 55702,
+      "user_lines_removed": 236,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/scheduled_tasks.lock": 1,
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/unit/ctest_asdex.c": 53,
+        "gyrokinetic/unit/ctest_bc_sheath_gyrokinetic.c": 8,
+        "gyrokinetic/unit/ctest_bc_twistshift.c": 6,
+        "gyrokinetic/unit/ctest_dg_interpolate.c": 3,
+        "gyrokinetic/unit/ctest_efit.c": 79,
+        "gyrokinetic/unit/ctest_fem_parproj.c": 3,
+        "gyrokinetic/unit/ctest_fem_parproj_couplex.c.orig": 1128,
+        "gyrokinetic/unit/ctest_gk_geometry_mapc2p.c": 60,
+        "gyrokinetic/unit/ctest_gk_geometry_mirror.c": 61,
+        "gyrokinetic/unit/ctest_gyrokinetic_cross_prim_moms_bgk.c": 99,
+        "gyrokinetic/unit/ctest_ltx_miller.c": 56,
+        "gyrokinetic/unit/ctest_ts_qprofiles.c": 796,
+        "gyrokinetic/unit/run_test.c": 20,
+        "log.txt": 216,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "tmp.sh": 43,
+        "tmp.txt": 23
+      },
+      "user_removed_per_file": {
+        "gyrokinetic/unit/ctest_asdex.c": 53,
+        "gyrokinetic/unit/ctest_bc_sheath_gyrokinetic.c": 8,
+        "gyrokinetic/unit/ctest_bc_twistshift.c": 6,
+        "gyrokinetic/unit/ctest_dg_interpolate.c": 3,
+        "gyrokinetic/unit/ctest_efit.c": 41,
+        "gyrokinetic/unit/ctest_fem_parproj.c": 3,
+        "gyrokinetic/unit/ctest_gk_cross_prim_moms_bgk_equal.c": 120,
+        "gyrokinetic/unit/ctest_gk_geometry_mirror.c": 1,
+        "gyrokinetic/unit/ctest_ltx_miller.c": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 55701,
+      "agent_lines_removed": 236,
+      "user_added_per_file": {
+        ".claude/scheduled_tasks.lock": 1
+      }
+    }
+  ]
+}

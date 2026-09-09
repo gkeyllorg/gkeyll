@@ -1,0 +1,5 @@
+should gyrokinetic/unit/ctest_nodal_ops.c move to core/unit? it seems to test a core object
+
+---
+
+Proceed with option 1

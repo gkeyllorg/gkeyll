@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M2427GN9106RWXGEEAWE35TF",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-jenkins-core-gyrokinetic",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "core/unit/ctest_nodal_ops.c",
+    "gyrokinetic/unit/ctest_asdex.c",
+    "gyrokinetic/unit/ctest_bc_sheath_gyrokinetic.c",
+    "gyrokinetic/unit/ctest_bc_twistshift.c",
+    "gyrokinetic/unit/ctest_dg_interpolate.c",
+    "gyrokinetic/unit/ctest_efit.c",
+    "gyrokinetic/unit/ctest_fem_parproj.c",
+    "gyrokinetic/unit/ctest_gk_cross_prim_moms_bgk_equal.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mapc2p.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mirror.c",
+    "gyrokinetic/unit/ctest_gyrokinetic_cross_prim_moms_bgk.c",
+    "gyrokinetic/unit/ctest_ltx_miller.c",
+    "gyrokinetic/unit/ctest_nodal_ops.c",
+    "gyrokinetic/unit/ctest_nodal_ops_deflated.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 78,
+    "cache_creation_tokens": 230978,
+    "cache_read_tokens": 2552962,
+    "output_tokens": 21488,
+    "api_call_count": 39
+  }
+}
