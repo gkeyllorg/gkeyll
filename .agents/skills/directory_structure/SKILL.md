@@ -1,11 +1,14 @@
 ---
-name: gkeyll-file-structure
-description: Locate Gkeyll solver code, updaters, apps, kernels, and tests. Use when exploring the repository or deciding where implementation belongs.
+name: directory_structure
+description: Explanation of the Gkeyll directories.
 ---
 
-# Gkeyll file structure
+# Instructions
 
-Operate relative to the repository root (`git rev-parse --show-toplevel`).
+* Use when exploring the repository, trying to find something, or deciding where new code belongs.
+* Operate relative to the repository root (`git rev-parse --show-toplevel`).
+
+# Gkeyll file structure
 
 Gkeyll has four PDE solvers: 
 * Moments or fluid solver.
@@ -26,8 +29,9 @@ dependencies:
 * moments depends on core.
 * vlasov depends on moments.
 * gyrokinetic depends on vlasov.
-* The current PKPM build also links gyrokinetic (see `pkpm/Makefile-pkpm`).
-  Keep lower layers independent of higher layers.
+* pkpm depends on gyrokinetic.
+
+Keep lower layers independent of higher layers.
 
 Each of the solvers' folders have the sub-folders:
 * ker/: C kernels generated with Maxima stored in the gkylcas repository. Do
