@@ -724,7 +724,10 @@ local function list_tests(activeLayers, args)
                   -- name without extension (e.g. "moments/luareg/rt_euler_sodshock",
                   -- as printed by 'list' and in error messages): strip any leading
                   -- "<layer>/luareg/" so we don't double the directory component.
+                  -- Also strip a trailing ".lua" so a name given with the extension
+                  -- (e.g. "rt_euler_sodshock.lua") doesn't get doubled either.
                   local base = ro:match("^" .. layer.name .. "/luareg/(.+)$") or ro
+                  base = base:match("^(.+)%.lua$") or base
                   local candidate = luaregDir .. "/" .. base .. ".lua"
                   if lfs.attributes(candidate) then
                      runOnlyFound[ro] = true
@@ -803,7 +806,10 @@ local function list_tests(activeLayers, args)
                   -- name without extension (e.g. "gyrokinetic/creg/rt_gk_sheath_2x2v_p1",
                   -- as printed by 'list' and in error messages): strip any leading
                   -- "<layer>/creg/" so we don't double the directory component.
+                  -- Also strip a trailing ".c" so a name given with the extension
+                  -- (e.g. "rt_10m_sodshock.c") doesn't get doubled either.
                   local base = ro:match("^" .. layer.name .. "/creg/(.+)$") or ro
+                  base = base:match("^(.+)%.c$") or base
                   local candidate = cregSrcDir .. "/" .. base .. ".c"
                   if lfs.attributes(candidate) then
                      runOnlyFound[ro] = true
