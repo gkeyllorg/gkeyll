@@ -67,21 +67,34 @@ func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
 }
 
 static void
-gk_species_projection_calc_proj_func(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_proj *proj, struct gkyl_array *f, double tm) 
+gk_species_projection_multiply_jacobians(gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gkyl_array *f)
 {
-  if (app->use_gpu) {
-    gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local, proj->proj_host);
-    gkyl_array_copy(f, proj->proj_host);
-  }
-  else {
-    gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local, f);
-  }
   // Multiply by the gyrocenter coord jacobian (bmag).
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
-      app->gk_geom->geo_corn.bmag, f, &app->local, &s->local); 
-  // Multiply by the velocity-space jacobian. 
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f,
+      app->gk_geom->geo_corn.bmag, f, &app->local, &s->local);
+  // Multiply by the velocity-space jacobian.
   gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);
+}
+
+static void
+gk_species_projection_calc_proj_func(gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_proj *proj, struct gkyl_array *f, double tm)
+{
+  // The projection runs on the host or on the device (directly into f)
+  // depending on how proj_func was created.
+  gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local, f);
+  gk_species_projection_multiply_jacobians(app, s, f);
+}
+
+static void
+gk_species_projection_calc_proj_func_host(gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_proj *proj, struct gkyl_array *f, double tm)
+{
+  // Project on the host and copy to the device.
+  gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local, proj->proj_host);
+  gkyl_array_copy(f, proj->proj_host);
+  gk_species_projection_multiply_jacobians(app, s, f);
 }
 
 static void
@@ -430,22 +443,59 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   proj->proj_on_basis_c2p_ctx.vel_map = s->vel_map;
   proj->proj_on_basis_c2p_ctx.pos_map = app->position_map;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-    proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &s->grid,
-        .basis = &s->basis,
-        .qtype = GKYL_GAUSS_QUAD,
-        .num_quad = app->basis.poly_order+1,
-        .num_ret_vals = 1,
-        .eval = inp.func,
-        .ctx = inp.ctx_func,
-        .c2p_func = proj_on_basis_c2p_phase_func,
-        .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-      }
-    );
-    if (app->use_gpu)
-      proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
+    proj->proj_host = 0;
+    proj->proj_on_basis_c2p_ctx_dev = 0;
 
-    proj->projection_calc = gk_species_projection_calc_proj_func;
+    bool proj_on_gpu = false;
+#ifdef GKYL_HAVE_CUDA
+    proj_on_gpu = app->use_gpu && (inp.func_on_dev != 0);
+    if (proj_on_gpu) {
+      // Project on the device with the user's device function. The c2p
+      // context must live on the device and hold the maps' device objects.
+      struct gk_proj_on_basis_c2p_func_ctx c2p_ctx_dev_ho = {
+        .cdim = app->cdim,
+        .vdim = s->local_vel.ndim,
+        .vel_map = s->vel_map->on_dev,
+        .pos_map = app->position_map->on_dev,
+      };
+      proj->proj_on_basis_c2p_ctx_dev = gkyl_cu_malloc(sizeof(struct gk_proj_on_basis_c2p_func_ctx));
+      gkyl_cu_memcpy(proj->proj_on_basis_c2p_ctx_dev, &c2p_ctx_dev_ho,
+        sizeof(struct gk_proj_on_basis_c2p_func_ctx), GKYL_CU_MEMCPY_H2D);
+
+      proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+          .grid = &s->grid,
+          .basis = &s->basis,
+          .qtype = GKYL_GAUSS_QUAD,
+          .num_quad = app->basis.poly_order+1,
+          .num_ret_vals = 1,
+          .eval = inp.func_on_dev,
+          .ctx = inp.ctx_func_on_dev,
+          .c2p_func = gk_species_projection_c2p_phase_func_cu_dev_ptr(),
+          .c2p_func_ctx = proj->proj_on_basis_c2p_ctx_dev,
+          .use_gpu = true,
+        }
+      );
+    }
+#endif
+    if (!proj_on_gpu) {
+      proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+          .grid = &s->grid,
+          .basis = &s->basis,
+          .qtype = GKYL_GAUSS_QUAD,
+          .num_quad = app->basis.poly_order+1,
+          .num_ret_vals = 1,
+          .eval = inp.func,
+          .ctx = inp.ctx_func,
+          .c2p_func = proj_on_basis_c2p_phase_func,
+          .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
+        }
+      );
+      if (app->use_gpu)
+        proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
+    }
+
+    proj->projection_calc = (app->use_gpu && !proj_on_gpu) ?
+      gk_species_projection_calc_proj_func_host : gk_species_projection_calc_proj_func;
     proj->moms_correct = gk_species_projection_correct_all_moms_none;
   }
   else {
@@ -478,9 +528,14 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
 {
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     gkyl_proj_on_basis_release(proj->proj_func);
-    if (app->use_gpu) {
+    if (proj->proj_host) {
       gkyl_array_release(proj->proj_host);
     }
+#ifdef GKYL_HAVE_CUDA
+    if (proj->proj_on_basis_c2p_ctx_dev) {
+      gkyl_cu_free(proj->proj_on_basis_c2p_ctx_dev);
+    }
+#endif
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) { 
     gkyl_array_release(proj->dens);

@@ -127,6 +127,37 @@ inline cudaError_t __checkCudaErrors__(cudaError_t code, const char *func, const
   return code;
 }
 
+#ifdef __CUDACC__
+// Define a host-callable function 'getter' that returns the device-side
+// address of the __device__ (or __device__ __host__) function 'func', so it
+// can be handed to updaters that call it inside kernels (e.g.
+// gkyl_proj_on_basis with use_gpu=true). The pointer is assigned inside a
+// kernel, where 'func' resolves to its device address (this avoids
+// troublesome cudaMemcpyFromSymbol). Only available in CUDA translation
+// units (.cu files); expose the getter to C code with an extern "C" wrapper.
+// Example:
+//
+//   GKYL_CU_DH static void ef(double t, const double *xn, double *fout, void *ctx) { ... }
+//   GKYL_DEFINE_CU_DEV_FUNC_GETTER(ef, evalf_t, ef_dev_ptr);
+//   ...
+//   evalf_t eval_dev = ef_dev_ptr();
+#define GKYL_DEFINE_CU_DEV_FUNC_GETTER(func, func_type, getter)         \
+  static __global__ void getter##_set_cu_ker(func_type *fptr_d)         \
+  {                                                                     \
+    *fptr_d = func;                                                     \
+  }                                                                     \
+  static func_type getter(void)                                         \
+  {                                                                     \
+    func_type *fptr_d, fptr_ho;                                         \
+    checkCuda(cudaMalloc(&fptr_d, sizeof(func_type)));                  \
+    getter##_set_cu_ker<<<1,1>>>(fptr_d);                               \
+    checkCuda(cudaMemcpy(&fptr_ho, fptr_d, sizeof(func_type),           \
+      cudaMemcpyDeviceToHost));                                         \
+    checkCuda(cudaFree(fptr_d));                                        \
+    return fptr_ho;                                                     \
+  }
+#endif // __CUDACC__
+
 #else
 
 #undef GKYL_HAVE_CUDA

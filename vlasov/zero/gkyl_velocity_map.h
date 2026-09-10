@@ -6,6 +6,9 @@
 #include <gkyl_array.h>
 #include <gkyl_comm.h>
 #include <gkyl_comm_io.h>
+#include <gkyl_util.h>
+
+#include <math.h>
 
 typedef void (*mapc2p_t)(double t, const double *zc, double *vp, void *ctx);
 
@@ -114,6 +117,47 @@ gkyl_velocity_map_reduce_dv_range(const struct gkyl_velocity_map* gvm, enum gkyl
  */
 void
 gkyl_velocity_map_eval_c2p(const struct gkyl_velocity_map* gvm, const double *zc, double *vp);
+
+/**
+ * Evaluate the velocity mapping at a specific computational (velocity)
+ * coordinate. Unlike gkyl_velocity_map_eval_c2p, this variant uses the vmap
+ * and vmap_basis members (not their _ho host copies), so it is callable
+ * inside device kernels when given the device object (gvm->on_dev). On GPU
+ * builds do not call it on the host with the host object, whose vmap data
+ * lives on the device.
+ *
+ * @param gvm Velocity map object (on_dev object inside kernels).
+ * @param zc Computational velocity coordinates.
+ * @param vp Resulting physical velocity coordinates.
+ */
+GKYL_CU_DH static inline void
+gkyl_velocity_map_eval_c2p_dev(const struct gkyl_velocity_map* gvm, const double *zc, double *vp)
+{
+  // Find the index of the cell containing zc.
+  int idx_zc[GKYL_MAX_VDIM];
+  for (int d=0; d<gvm->local_ext_vel.ndim; d++) {
+    int idx = gvm->local_ext_vel.lower[d] + (int) floor((zc[d] - (gvm->grid_vel.lower[d]) )/gvm->grid_vel.dx[d]);
+    // Bound idx to the range in the grid. If it falls outside of that is due
+    // to floating point arithmetic, or due to an error in the code.
+    idx = GKYL_MIN2(idx, gvm->local_ext_vel.upper[d]);
+    idx = GKYL_MAX2(idx, gvm->local_ext_vel.lower[d]);
+    idx_zc[d] = idx;
+  }
+
+  // Fetch DG coefficients of the velocity map in idx_zc.
+  long lidx_zc = gkyl_range_idx(&gvm->local_ext_vel, idx_zc);
+  const double *vmap_c = (const double *) gkyl_array_cfetch(gvm->vmap, lidx_zc);
+
+  double zc_cc[GKYL_MAX_VDIM];
+  gkyl_rect_grid_cell_center(&gvm->grid_vel, idx_zc, zc_cc);
+
+  for (int d=0; d<gvm->local_ext_vel.ndim; d++) {
+    // Convert computational to logical coord.
+    double zlog[] = {(zc[d] - zc_cc[d]) / (0.5*gvm->grid_vel.dx[d])};
+    // Evaluate vmap expansion at logical coord.
+    vp[d] = gvm->vmap_basis->eval_expand(zlog, &vmap_c[d*gvm->vmap_basis->num_basis]);
+  }
+}
 
 /**
  * Indicate if this velocity map object is allocated on the GPU.

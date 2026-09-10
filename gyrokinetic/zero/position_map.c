@@ -9,6 +9,7 @@
 
 #include <float.h>
 #include <assert.h>
+#include <stddef.h>
 
 // Remove with the print statements at the bottom
 #include <gkyl_util.h>
@@ -39,6 +40,8 @@ gkyl_position_map_null_new()
   gpm->xpt_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_xpt_ctx));
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
   gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+  gpm->mc2nu_dev = 0;
+  gpm->on_dev = gpm; // On the CPU the object points to itself.
   gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
   
   for (int i = 0; i < 3; i++){
@@ -161,6 +164,8 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->basis = basis;
   gpm->cdim = grid.ndim; 
   gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 3*gpm->basis.num_basis, gpm->local_ext.volume);
+  gpm->mc2nu_dev = 0;
+  gpm->on_dev = gpm; // On the CPU the object points to itself.
   gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
 
   struct gkyl_position_map *gpm_out = gpm;
@@ -171,6 +176,8 @@ void
 gkyl_position_map_set_mc2nu(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu)
 {
   gkyl_array_copy(gpm->mc2nu, mc2nu);
+  if (gpm->mc2nu_dev)
+    gkyl_array_copy(gpm->mc2nu_dev, gpm->mc2nu);
 }
 
 void
@@ -225,31 +232,53 @@ gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut, do
   }
 }
 
-void 
-gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *x_comp, double *x_fa)
+void
+gkyl_position_map_make_cu_dev(struct gkyl_position_map* gpm)
 {
-  int cidx[GKYL_MAX_CDIM];
-  for(int i = 0; i < gpm->grid.ndim; i++){
-    int idxtemp = gpm->global.lower[i] + (int) floor((x_comp[i] - (gpm->grid.lower[i]) )/gpm->grid.dx[i]);
-    idxtemp = GKYL_MAX2(GKYL_MIN2(idxtemp, gpm->local.upper[i]), gpm->local.lower[i]);
-    cidx[i] = idxtemp;
+#ifdef GKYL_HAVE_CUDA
+  // Device mirror of the mapping's DG coefficients, kept in sync by set_mc2nu.
+  gpm->mc2nu_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, gpm->mc2nu->ncomp, gpm->mc2nu->size);
+  gkyl_array_copy(gpm->mc2nu_dev, gpm->mc2nu);
+
+  // Clone with device pointers; host-only members are nulled.
+  struct gkyl_position_map gpm_ho = *gpm;
+  gpm_ho.mc2nu = gpm->mc2nu_dev->on_dev;
+  for (int i=0; i<3; i++) {
+    gpm_ho.maps[i] = 0;
+    gpm_ho.map_derivs[i] = 0;
+    gpm_ho.ctxs[i] = 0;
   }
-  long lidx = gkyl_range_idx(&gpm->local, cidx);
-  const double *pmap_coeffs = gkyl_array_cfetch(gpm->mc2nu, lidx);
-  double cxc[gpm->grid.ndim];
-  double x_log[gpm->grid.ndim];
-  gkyl_rect_grid_cell_center(&gpm->grid, cidx, cxc);
-  for(int i = 0; i < gpm->grid.ndim; i++){
-    x_log[i] = (x_comp[i]-cxc[i])/(gpm->grid.dx[i]*0.5);
+  gpm_ho.bmag_ctx = 0;
+  gpm_ho.constB_ctx = 0;
+  gpm_ho.xpt_ctx = 0;
+
+  struct gkyl_position_map *gpm_cu = gkyl_cu_malloc(sizeof(struct gkyl_position_map));
+  gpm_ho.on_dev = gpm_cu;
+  gkyl_cu_memcpy(gpm_cu, &gpm_ho, sizeof(struct gkyl_position_map), GKYL_CU_MEMCPY_H2D);
+
+  // Overwrite the basis in the clone with one whose function pointers are
+  // device addresses (the temporary device container can be released after
+  // copying its contents; the code addresses it holds remain valid).
+  struct gkyl_basis *basis_cu;
+  switch (gpm->basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      basis_cu = gkyl_cart_modal_serendip_cu_dev_new(gpm->basis.ndim, gpm->basis.poly_order);
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      basis_cu = gkyl_cart_modal_tensor_cu_dev_new(gpm->basis.ndim, gpm->basis.poly_order);
+      break;
+    default:
+      assert(false);
+      break;
   }
-  double xyz_fa[3];
-  for(int i = 0; i < 3; i++){
-    xyz_fa[i] = gpm->basis.eval_expand(x_log, &pmap_coeffs[i*gpm->basis.num_basis]);
-  }
-  for (int i=0; i<gpm->grid.ndim; i++) {
-    x_fa[i] = xyz_fa[i];
-  }
-  x_fa[gpm->grid.ndim-1] = xyz_fa[2];
+  gkyl_cu_memcpy((char *)gpm_cu + offsetof(struct gkyl_position_map, basis), basis_cu,
+    sizeof(struct gkyl_basis), GKYL_CU_MEMCPY_D2D);
+  gkyl_cart_modal_basis_release_cu(basis_cu);
+
+  gpm->on_dev = gpm_cu;
+#else
+  assert(false);
+#endif
 }
 
 void
@@ -364,6 +393,10 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
   struct gkyl_position_map *gpm = container_of(ref, struct gkyl_position_map, ref_count);
   gkyl_array_release(gpm->mc2nu);
   gkyl_array_release(gpm->bmag_ctx->bmag);
+  if (gpm->mc2nu_dev)
+    gkyl_array_release(gpm->mc2nu_dev);
+  if (gpm->on_dev != gpm)
+    gkyl_cu_free(gpm->on_dev);
   if (gpm->to_optimize == true)
   {
     gkyl_free(gpm->constB_ctx->theta_extrema);

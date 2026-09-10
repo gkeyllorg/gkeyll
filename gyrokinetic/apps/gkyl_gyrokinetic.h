@@ -38,8 +38,18 @@ struct gkyl_gyrokinetic_projection {
       // Distribution function to project and its context. For fluid neutrals
       // this function returns mass density, momentum density, and total
       // energy density.
-      void (*func)(double t, const double *xn, double *fout, void *ctx); 
-      void *ctx_func; 
+      void (*func)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_func;
+
+      // Optionally, when running on GPUs, the device address of a
+      // device-callable version of 'func' (defined in a CUDA-compiled
+      // translation unit and obtained with GKYL_DEFINE_CU_DEV_FUNC_GETTER)
+      // and a device-resident context. When provided, the projection is
+      // performed on the GPU; the user must place the context on the GPU
+      // themselves as the app has no way to perform that copy. If absent,
+      // the function is projected on the host and copied to the GPU.
+      void (*func_on_dev)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_func_on_dev;
     };
     struct {
       // For Maxwellians (or BiMaxwellians), specify density, parallel speed

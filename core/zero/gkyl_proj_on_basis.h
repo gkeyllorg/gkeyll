@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
@@ -28,6 +30,13 @@ struct gkyl_proj_on_basis_inp {
   proj_on_basis_c2p_t c2p_func; // Function that transforms a set of ndim
                                 // computational coordinates to physical ones.
   void *c2p_func_ctx; // Context for c2p_func.
+
+  bool use_gpu; // Whether to run the projection on the GPU. If true, 'eval'
+                // (and 'c2p_func', if provided) must be device function
+                // pointers (see GKYL_DEFINE_CU_DEV_FUNC_GETTER in gkyl_util.h)
+                // and 'ctx'/'c2p_func_ctx' must point to GPU-resident memory;
+                // the user must place their context on the GPU themselves as
+                // this updater has no way to perform that copy.
 };
 
 /**
@@ -63,7 +72,7 @@ gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
  * @param pob Project on basis updater to run
  * @param tm Time at which projection must be computed
  * @param update_rng Range on which to run projection.
- * @param out Output array
+ * @param out Output array (a device array if the updater was created with use_gpu=true).
  */
 void gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *pob,
   double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);

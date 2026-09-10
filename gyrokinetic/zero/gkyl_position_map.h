@@ -6,6 +6,9 @@
 #include <gkyl_array.h>
 #include <gkyl_comm.h>
 #include <gkyl_comm_io.h>
+#include <gkyl_util.h>
+
+#include <math.h>
 
 enum gkyl_position_map_id {
   GKYL_PMAP_USER_INPUT = 0, // Function projection. User specified. Default
@@ -62,7 +65,11 @@ struct gkyl_position_map {
   // Stuff for constant B mapping
   struct gkyl_bmag_ctx *bmag_ctx; // Context for magnetic field calculation
   struct gkyl_position_map_const_B_ctx *constB_ctx; // Context for constant B mapping
-  struct gkyl_position_map_xpt_ctx *xpt_ctx; // Context for X-point compression mapping 
+  struct gkyl_position_map_xpt_ctx *xpt_ctx; // Context for X-point compression mapping
+
+  struct gkyl_array *mc2nu_dev; // Device mirror of mc2nu (only with a device copy, see
+                                // gkyl_position_map_make_cu_dev; kept in sync by set_mc2nu).
+  struct gkyl_position_map *on_dev; // Device copy of itself (points to itself on CPU).
 };
 
 struct gkyl_position_map_const_B_ctx {
@@ -176,15 +183,53 @@ gkyl_position_map_set_compression(struct gkyl_position_map* gpm, double zcut,
     double zcenter, double w, double psisep);
 
 /**
- * Evaluate the position mapping at a specific computational (position) coordinate.
- * NOTE: done on the host.
+ * Create a device (GPU) copy of the position map object, stored in
+ * gpm->on_dev, for use inside device kernels with
+ * gkyl_position_map_eval_mc2nu. Call it after the geometry has set the
+ * mc2nu array (gkyl_position_map_set_mc2nu keeps the device mirror in sync
+ * afterwards). Only available in GPU builds.
  *
- * @param gpm Gkyl position map object.
- * @param xc Computational position coordinates.
- * @param xnu Resulting non-uniform position coordinates.
+ * @param gpm Position map object.
  */
 void
-gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *xc, double *xnu);
+gkyl_position_map_make_cu_dev(struct gkyl_position_map* gpm);
+
+/**
+ * Evaluate the position mapping at a specific computational (position) coordinate.
+ * Callable on the host with the host object, or inside device kernels with the
+ * device object (gpm->on_dev). On GPU builds do not call it on the host with
+ * the device object or vice-versa.
+ *
+ * @param gpm Gkyl position map object.
+ * @param x_comp Computational position coordinates.
+ * @param x_fa Resulting non-uniform position coordinates.
+ */
+GKYL_CU_DH static inline void
+gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *x_comp, double *x_fa)
+{
+  int cidx[GKYL_MAX_CDIM];
+  for (int i=0; i<gpm->grid.ndim; i++) {
+    int idxtemp = gpm->global.lower[i] + (int) floor((x_comp[i] - (gpm->grid.lower[i]) )/gpm->grid.dx[i]);
+    idxtemp = GKYL_MAX2(GKYL_MIN2(idxtemp, gpm->local.upper[i]), gpm->local.lower[i]);
+    cidx[i] = idxtemp;
+  }
+  long lidx = gkyl_range_idx(&gpm->local, cidx);
+  const double *pmap_coeffs = (const double *) gkyl_array_cfetch(gpm->mc2nu, lidx);
+  double cxc[GKYL_MAX_CDIM];
+  double x_log[GKYL_MAX_CDIM];
+  gkyl_rect_grid_cell_center(&gpm->grid, cidx, cxc);
+  for (int i=0; i<gpm->grid.ndim; i++) {
+    x_log[i] = (x_comp[i]-cxc[i])/(gpm->grid.dx[i]*0.5);
+  }
+  double xyz_fa[3];
+  for (int i=0; i<3; i++) {
+    xyz_fa[i] = gpm->basis.eval_expand(x_log, &pmap_coeffs[i*gpm->basis.num_basis]);
+  }
+  for (int i=0; i<gpm->grid.ndim; i++) {
+    x_fa[i] = xyz_fa[i];
+  }
+  x_fa[gpm->grid.ndim-1] = xyz_fa[2];
+}
 
 /**
  * Evaluate the slope of the position mapping at a specific computational (position) coordinate.

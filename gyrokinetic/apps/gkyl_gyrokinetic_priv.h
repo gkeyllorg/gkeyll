@@ -724,12 +724,9 @@ struct gk_scaling {
     struct gk_scaling *sca, int ridx, double tm, int frame);
 };
 
-// Context for c2p function passed to proj_on_basis.
-struct gk_proj_on_basis_c2p_func_ctx {
-  int cdim, vdim;
-  struct gkyl_position_map *pos_map;
-  struct gkyl_velocity_map *vel_map;
-};
+// Context for c2p function passed to proj_on_basis is defined in
+// gkyl_gk_proj_on_basis_c2p_priv.h (shared with gk_species_projection_cu.cu).
+#include <gkyl_gk_proj_on_basis_c2p_priv.h>
 
 struct gk_proj {
   enum gkyl_projection_id proj_id; // Type of projection.
@@ -739,6 +736,8 @@ struct gk_proj {
     struct {
       struct gkyl_proj_on_basis *proj_func; // Projection operator for specified function.
       struct gkyl_array *proj_host; // Array for projection on host-side if running on GPUs.
+      struct gk_proj_on_basis_c2p_func_ctx *proj_on_basis_c2p_ctx_dev; // Device copy of the
+                                                                       // c2p context (GPU projection).
     };
     // Maxwellian and Bi-Maxwellian projection from primitive moments.
     struct {

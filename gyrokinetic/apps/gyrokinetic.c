@@ -417,6 +417,14 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   gkyl_position_map_set_mc2nu(app->position_map, app->gk_geom->geo_corn.mc2nu_pos);
 
+#ifdef GKYL_HAVE_CUDA
+  if (app->use_gpu) {
+    // Device copy of the position map, used e.g. by projections that
+    // evaluate the c2p mapping inside device kernels.
+    gkyl_position_map_make_cu_dev(app->position_map);
+  }
+#endif
+
   const struct gkyl_dg_geom_inp dg_geom_inp = {
     .grid = &app->grid,
     .range = &app->local_ext,
