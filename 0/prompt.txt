@@ -1,0 +1,5 @@
+when I run the gyrokinetic/creg/rt_gk_sheath_1x2v_p1.c regression test, the simulation crashes (meaning the
+  simulation terminates because the time step becomes too small). Can you help me figure out what I did wrong in my
+  new collisionless gyrokinetic solver (gk_collisionless_flux and dg_dg_updater_gyrokinetic)? Previously I had tested
+  this new approach for periodic boundaries and found it to work fine, but now that I've adapted it for nonperiodic
+  boundaries something is wrong for that case.
