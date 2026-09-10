@@ -720,8 +720,12 @@ local function list_tests(activeLayers, args)
                      for dir, fn, _ in dirtree(ro) do addLuaTest(dir .. "/" .. fn) end
                   end
                else
-                  -- Bare test name (e.g. "rt_euler_sodshock"): search this layer's luareg/.
-                  local candidate = luaregDir .. "/" .. ro .. ".lua"
+                  -- Bare test name (e.g. "rt_euler_sodshock") or a layer-qualified
+                  -- name without extension (e.g. "moments/luareg/rt_euler_sodshock",
+                  -- as printed by 'list' and in error messages): strip any leading
+                  -- "<layer>/luareg/" so we don't double the directory component.
+                  local base = ro:match("^" .. layer.name .. "/luareg/(.+)$") or ro
+                  local candidate = luaregDir .. "/" .. base .. ".lua"
                   if lfs.attributes(candidate) then
                      runOnlyFound[ro] = true
                      addLuaTest(candidate)
@@ -795,8 +799,12 @@ local function list_tests(activeLayers, args)
                      end
                   end
                else
-                  -- Bare test name (e.g. "rt_10m_sodshock"): search this layer's creg/.
-                  local candidate = cregSrcDir .. "/" .. ro .. ".c"
+                  -- Bare test name (e.g. "rt_10m_sodshock") or a layer-qualified
+                  -- name without extension (e.g. "gyrokinetic/creg/rt_gk_sheath_2x2v_p1",
+                  -- as printed by 'list' and in error messages): strip any leading
+                  -- "<layer>/creg/" so we don't double the directory component.
+                  local base = ro:match("^" .. layer.name .. "/creg/(.+)$") or ro
+                  local candidate = cregSrcDir .. "/" .. base .. ".c"
                   if lfs.attributes(candidate) then
                      runOnlyFound[ro] = true
                      addCTest(candidate)
