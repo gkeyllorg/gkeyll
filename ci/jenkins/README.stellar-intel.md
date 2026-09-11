@@ -80,24 +80,39 @@ SSH to the Intel side and approve Duo:
 ssh <NetID>@stellar.princeton.edu
 ```
 
-From a disposable checkout on the selected shared filesystem, validate the
-same environment the job will use:
+Create a disposable checkout below the CI root. This branch contains the
+Stellar pipeline files; do not use an unrelated checkout that might lack the
+`machines/` configuration scripts or Slurm test payload.
+
+```sh
+export GKEYLL_CI_ROOT=/scratch/gpfs/<user_name>/gkeyll_ci
+mkdir "$GKEYLL_CI_ROOT"
+cd "$GKEYLL_CI_ROOT"
+git clone --branch agent_tools-jenkins-stellar_intel --single-branch \
+  https://github.com/gkeyllorg/gkeyll.git gkeyll
+cd gkeyll
+```
+
+From this `gkeyll/` checkout, validate the same environment the job will use:
+`PREFIX="$PWD/../gkylsoft"` places the dependencies at
+`$GKEYLL_CI_ROOT/gkylsoft`, beside the disposable source checkout.
 
 ```sh
 module purge
-PREFIX="$PWD/gkylsoft" ./machines/mkdeps.stellar-intel.sh
+PREFIX="$PWD/../gkylsoft" ./machines/mkdeps.stellar-intel.sh
 module purge
-PREFIX="$PWD/gkylsoft" ./machines/configure.stellar-intel.sh
-make -j3 unit
-sbatch --wait --qos <your-qos> --nodes 1 --ntasks 1 --cpus-per-task 1 \
+PREFIX="$PWD/../gkylsoft" ./machines/configure.stellar-intel.sh
+make -j32 unit
+sbatch --wait --qos pppl-short --nodes 1 --ntasks 1 --cpus-per-task 1 \
   --time 00:30:00 --chdir "$PWD" \
+  --export=ALL,CI_WORKSPACE="$PWD" \
   ci/jenkins/slurm-unit-tests.stellar-intel.sh
 ```
 
 For PPPL/CIMES, add `--account <your-account>` to the `sbatch` command. This
-must complete successfully before introducing Jenkins. The configuration
-targets `-march=cascadelake`, the documented Intel compute-node architecture;
-it intentionally does not use login-node `-march=native` detection.
+must complete successfully before introducing Jenkins. `CI_WORKSPACE` is the
+shared checkout path that the batch payload uses after it starts on a compute
+node; Jenkins supplies the same variable when it submits this job.
 
 ## 3. Install and run Jenkins privately
 
