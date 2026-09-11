@@ -272,7 +272,7 @@ cuts_array_release(int num_blocks, int **cuts_arr)
 }
 
 static void
-test_L_domain_send_connections_dir0_cuts1()
+test_L_domain_send_connections_dir0_cuts1_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -361,7 +361,7 @@ test_L_domain_send_connections_dir0_cuts1()
 }
 
 static void
-test_L_domain_recv_connections_dir0_cuts1()
+test_L_domain_recv_connections_dir0_cuts1_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -450,7 +450,7 @@ test_L_domain_recv_connections_dir0_cuts1()
 }
 
 static void
-test_L_domain_send_connections_dir0_cuts2()
+test_L_domain_send_connections_dir0_cuts2_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -564,7 +564,7 @@ test_L_domain_send_connections_dir0_cuts2()
 }
 
 static void
-test_L_domain_send_connections_dir0_cuts2_par()
+test_L_domain_send_connections_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -714,7 +714,7 @@ test_L_domain_send_connections_dir0_cuts2_par()
 }
 
 static void
-test_L_domain_recv_connections_dir0_cuts2_par()
+test_L_domain_recv_connections_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -863,7 +863,7 @@ test_L_domain_recv_connections_dir0_cuts2_par()
 }
 
 static void
-test_L_domain_allgather_dir0_cuts2_par()
+test_L_domain_allgather_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -1361,13 +1361,13 @@ test_SOL_domain_allgather_dir1_cuts2_par_dev(void)
 
 
 TEST_LIST = {
-  //{ "test_L_domain_send_connections_dir0_cuts1", test_L_domain_send_connections_dir0_cuts1},
-  //{ "test_L_domain_recv_connections_dir0_cuts1", test_L_domain_recv_connections_dir0_cuts1},
-  //{ "test_L_domain_send_connections_dir0_cuts2", test_L_domain_send_connections_dir0_cuts2},
+  //{ "test_L_domain_send_connections_dir0_cuts1_ho", test_L_domain_send_connections_dir0_cuts1_ho},
+  //{ "test_L_domain_recv_connections_dir0_cuts1_ho", test_L_domain_recv_connections_dir0_cuts1_ho},
+  //{ "test_L_domain_send_connections_dir0_cuts2_ho", test_L_domain_send_connections_dir0_cuts2_ho},
   //
-  //{ "test_L_domain_send_connections_dir0_cuts2_par", test_L_domain_send_connections_dir0_cuts2_par},
-  //{ "test_L_domain_recv_connections_dir0_cuts2_par", test_L_domain_recv_connections_dir0_cuts2_par},
-  //{ "test_L_domain_allgather_dir0_cuts2_par", test_L_domain_allgather_dir0_cuts2_par},
+  //{ "test_L_domain_send_connections_dir0_cuts2_par_ho", test_L_domain_send_connections_dir0_cuts2_par_ho},
+  //{ "test_L_domain_recv_connections_dir0_cuts2_par_ho", test_L_domain_recv_connections_dir0_cuts2_par_ho},
+  //{ "test_L_domain_allgather_dir0_cuts2_par_ho", test_L_domain_allgather_dir0_cuts2_par_ho},
   { "test_SOL_domain_allgather_dir1_cuts2_par_ho", test_SOL_domain_allgather_dir1_cuts2_par_ho},
 #ifdef GKYL_HAVE_NCCL
   { "test_SOL_domain_allgather_dir1_cuts2_par_dev", test_SOL_domain_allgather_dir1_cuts2_par_dev},

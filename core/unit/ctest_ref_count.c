@@ -42,7 +42,7 @@ range_release(const struct range *rng)
 }
 
 void
-test_ref_count()
+test_ref_count_ho()
 {
   struct range *rng = range_new(10);
   TEST_CHECK( rng->ref_count.count == 1 );
@@ -58,6 +58,6 @@ test_ref_count()
 }
 
 TEST_LIST = {
-  { "ref_count", test_ref_count },
+  { "ref_count_ho", test_ref_count_ho },
   { NULL, NULL },  
 };

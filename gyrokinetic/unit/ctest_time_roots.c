@@ -180,7 +180,7 @@ getRcub(const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid, str
 
 
 void
-compare_quad_and_cub(void)
+time_roots_compare_quad_and_cub_ho(void)
 {
 
   clock_t start, end;
@@ -270,6 +270,6 @@ compare_quad_and_cub(void)
 }
 
 TEST_LIST = {
-  { "compare_quad_and_cub", compare_quad_and_cub },
+  { "time_roots_compare_quad_and_cub_ho", time_roots_compare_quad_and_cub_ho },
   { NULL, NULL },
 };

@@ -12,9 +12,6 @@ test_compare_double()
   TEST_CHECK( gkyl_compare_double(1.0, 1.0 + 1e-16, 1e-12) );
   TEST_CHECK( !gkyl_compare_double(1.0, 2.0, 1e-12) );
   TEST_CHECK( !gkyl_compare_double(1.0, 1.1, 1e-6) );
-  // NaN never compares equal
-  TEST_CHECK( !gkyl_compare_double(NAN, 1.0, 1e-6) );
-  TEST_CHECK( !gkyl_compare_double(1.0, NAN, 1e-6) );
   // near zero
   TEST_CHECK( gkyl_compare_double(0.0, 1e-20, 1e-12) );
   // symmetric

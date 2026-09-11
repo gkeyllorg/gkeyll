@@ -282,11 +282,11 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_vlasov_lte_moments_release(lte_moms);
 }
 
-void test_1x1v_p1() { test_1x1v(1, false); }
-void test_1x1v_p2() { test_1x1v(2, false); }
+void test_correct_maxwellian_1x1v_p1_ho() { test_1x1v(1, false); }
+void test_correct_maxwellian_1x1v_p2_ho() { test_1x1v(2, false); }
 
 TEST_LIST = {
-  { "test_1x1v_p1", test_1x1v_p1 },
-  { "test_1x1v_p2", test_1x1v_p2 },
+  { "test_correct_maxwellian_1x1v_p1_ho", test_correct_maxwellian_1x1v_p1_ho },
+  { "test_correct_maxwellian_1x1v_p2_ho", test_correct_maxwellian_1x1v_p2_ho },
   { NULL, NULL },
 };

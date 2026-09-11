@@ -875,15 +875,15 @@ test_1x3v(int poly_order)
 }
 
 // special note, the p1 basis does not function
-void test_1x1v_p2() { test_1x1v(2); }
-void test_1x1v_p2_spatially_varied() { test_1x1v_spatially_varied(2); }
-void test_1x2v_p2() { test_1x2v(2); }
-void test_1x3v_p2() { test_1x3v(2); }
+void test_correct_mj_integrated_1x1v_p2_ho() { test_1x1v(2); }
+void test_correct_mj_integrated_1x1v_p2_spatially_varied_ho() { test_1x1v_spatially_varied(2); }
+void test_correct_mj_integrated_1x2v_p2_ho() { test_1x2v(2); }
+void test_correct_mj_integrated_1x3v_p2_ho() { test_1x3v(2); }
 
 TEST_LIST = {
-  {"test_1x1v_p2", test_1x1v_p2},
-  {"test_1x1v_p2_spatially_varied", test_1x1v_p2_spatially_varied},
-  {"test_1x2v_p2", test_1x2v_p2},
-  {"test_1x3v_p2", test_1x3v_p2},
+  {"test_correct_mj_integrated_1x1v_p2_ho", test_correct_mj_integrated_1x1v_p2_ho},
+  {"test_correct_mj_integrated_1x1v_p2_spatially_varied_ho", test_correct_mj_integrated_1x1v_p2_spatially_varied_ho},
+  {"test_correct_mj_integrated_1x2v_p2_ho", test_correct_mj_integrated_1x2v_p2_ho},
+  {"test_correct_mj_integrated_1x3v_p2_ho", test_correct_mj_integrated_1x3v_p2_ho},
   {NULL, NULL},
 };

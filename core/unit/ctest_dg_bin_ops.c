@@ -1703,23 +1703,23 @@ test_4d(int poly_order, bool use_gpu)
   }
 }
 
-void test_1d_p1(){ test_1d(1, false); }
-void test_1d_p2(){ test_1d(2, false); }
-void test_1d_p3(){ test_1d(3, false); }
+void test_bin_ops_1d_p1_ho(){ test_1d(1, false); }
+void test_bin_ops_1d_p2_ho(){ test_1d(2, false); }
+void test_bin_ops_1d_p3_ho(){ test_1d(3, false); }
 
-void test_inv_1d_p1(){ test_inv_1d(1, false); }
+void test_bin_ops_inv_1d_p1_ho(){ test_inv_1d(1, false); }
 
-void test_2d_p1(){ test_2d(1, false); }
-void test_2d_p2(){ test_2d(2, false); }
-void test_2d_p3(){ test_2d(3, false); }
+void test_bin_ops_2d_p1_ho(){ test_2d(1, false); }
+void test_bin_ops_2d_p2_ho(){ test_2d(2, false); }
+void test_bin_ops_2d_p3_ho(){ test_2d(3, false); }
 
-void test_inv_2d_p1(){ test_inv_2d(1, false); }
+void test_bin_ops_inv_2d_p1_ho(){ test_inv_2d(1, false); }
 
-void test_3d_p1(){ test_3d(1, false); }
-void test_3d_p2(){ test_3d(2, false); }
+void test_bin_ops_3d_p1_ho(){ test_3d(1, false); }
+void test_bin_ops_3d_p2_ho(){ test_3d(2, false); }
 
-void test_4d_p1(){ test_4d(1, false); }
-void test_4d_p2(){ test_4d(2, false); }
+void test_bin_ops_4d_p1_ho(){ test_4d(1, false); }
+void test_bin_ops_4d_p2_ho(){ test_4d(2, false); }
 
 void f_3d_p3(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -1738,7 +1738,7 @@ void g_3d_p3(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 void
-test_3d_p3()
+test_bin_ops_3d_p3_ho()
 {
   int poly_order = 3;
   double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
@@ -1954,29 +1954,29 @@ test_subspace_accumulate(int poly_order, bool use_gpu)
   gkyl_array_release(pout_ho);
 }
 
-void test_conf_phase_accumulate_subtract_p1() { test_subspace_accumulate(1, false); }
-void test_conf_phase_accumulate_subtract_p2() { test_subspace_accumulate(2, false); }
+void test_bin_ops_conf_phase_accumulate_subtract_p1_ho() { test_subspace_accumulate(1, false); }
+void test_bin_ops_conf_phase_accumulate_subtract_p2_ho() { test_subspace_accumulate(2, false); }
 
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_1d_p1_cu(){ test_1d(1, true); }
-void test_1d_p2_cu(){ test_1d(2, true); }
-void test_1d_p3_cu(){ test_1d(3, true); }
+void test_bin_ops_1d_p1_dev(){ test_1d(1, true); }
+void test_bin_ops_1d_p2_dev(){ test_1d(2, true); }
+void test_bin_ops_1d_p3_dev(){ test_1d(3, true); }
 
-void test_inv_1d_p1_cu(){ test_inv_1d(1, true); }
+void test_bin_ops_inv_1d_p1_dev(){ test_inv_1d(1, true); }
 
-void test_2d_p1_cu(){ test_2d(1, true); }
-void test_2d_p2_cu(){ test_2d(2, true); }
-void test_2d_p3_cu(){ test_2d(3, true); }
+void test_bin_ops_2d_p1_dev(){ test_2d(1, true); }
+void test_bin_ops_2d_p2_dev(){ test_2d(2, true); }
+void test_bin_ops_2d_p3_dev(){ test_2d(3, true); }
 
-void test_inv_2d_p1_cu(){ test_inv_2d(1, true); }
+void test_bin_ops_inv_2d_p1_dev(){ test_inv_2d(1, true); }
 
-void test_3d_p1_cu(){ test_3d(1, true); }
-void test_3d_p2_cu(){ test_3d(2, true); }
+void test_bin_ops_3d_p1_dev(){ test_3d(1, true); }
+void test_bin_ops_3d_p2_dev(){ test_3d(2, true); }
 
 void
-test_3d_p3_cu()
+test_bin_ops_3d_p3_dev()
 {
   int poly_order = 3;
   double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
@@ -2093,41 +2093,41 @@ test_3d_p3_cu()
   gkyl_dg_bin_op_mem_release(mem);
 }
 
-void test_conf_phase_accumulate_subtract_p1_cu() { test_subspace_accumulate(1, true); }
-void test_conf_phase_accumulate_subtract_p2_cu() { test_subspace_accumulate(2, true); }
+void test_bin_ops_conf_phase_accumulate_subtract_p1_dev() { test_subspace_accumulate(1, true); }
+void test_bin_ops_conf_phase_accumulate_subtract_p2_dev() { test_subspace_accumulate(2, true); }
 
 #endif
 
 TEST_LIST = {
-  { "test_1d_p1", test_1d_p1 },
-  { "test_inv_1d_p1", test_inv_1d_p1 },
-  { "test_1d_p2", test_1d_p2 },
-  { "test_1d_p3", test_1d_p3 },
-  { "test_2d_p1", test_2d_p1 },
-  { "test_inv_2d_p1", test_inv_2d_p1 },
-  { "test_2d_p2", test_2d_p2 },
-  { "test_2d_p3", test_2d_p3 },
-  { "test_3d_p1", test_3d_p1 },
-  { "test_3d_p2", test_3d_p2 },
-  { "test_3d_p3", test_3d_p3 },
-  { "test_4d_p1", test_4d_p1 },
-  { "test_4d_p2", test_4d_p2 },
-  { "test_conf_phase_accumulate_subtract_p1", test_conf_phase_accumulate_subtract_p1 },
-  { "test_conf_phase_accumulate_subtract_p2", test_conf_phase_accumulate_subtract_p2 },
+  { "test_bin_ops_1d_p1_ho", test_bin_ops_1d_p1_ho },
+  { "test_bin_ops_inv_1d_p1_ho", test_bin_ops_inv_1d_p1_ho },
+  { "test_bin_ops_1d_p2_ho", test_bin_ops_1d_p2_ho },
+  { "test_bin_ops_1d_p3_ho", test_bin_ops_1d_p3_ho },
+  { "test_bin_ops_2d_p1_ho", test_bin_ops_2d_p1_ho },
+  { "test_bin_ops_inv_2d_p1_ho", test_bin_ops_inv_2d_p1_ho },
+  { "test_bin_ops_2d_p2_ho", test_bin_ops_2d_p2_ho },
+  { "test_bin_ops_2d_p3_ho", test_bin_ops_2d_p3_ho },
+  { "test_bin_ops_3d_p1_ho", test_bin_ops_3d_p1_ho },
+  { "test_bin_ops_3d_p2_ho", test_bin_ops_3d_p2_ho },
+  { "test_bin_ops_3d_p3_ho", test_bin_ops_3d_p3_ho },
+  { "test_bin_ops_4d_p1_ho", test_bin_ops_4d_p1_ho },
+  { "test_bin_ops_4d_p2_ho", test_bin_ops_4d_p2_ho },
+  { "test_bin_ops_conf_phase_accumulate_subtract_p1_ho", test_bin_ops_conf_phase_accumulate_subtract_p1_ho },
+  { "test_bin_ops_conf_phase_accumulate_subtract_p2_ho", test_bin_ops_conf_phase_accumulate_subtract_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_1d_p1_cu", test_1d_p1_cu },
-  { "test_inv_1d_p1_cu", test_inv_1d_p1_cu },
-  { "test_1d_p2_cu", test_1d_p2_cu },
-  { "test_1d_p3_cu", test_1d_p3_cu },
-  { "test_2d_p1_cu", test_2d_p1_cu },
-  { "test_inv_2d_p1_cu", test_inv_2d_p1_cu },
-  { "test_2d_p2_cu", test_2d_p2_cu },
-  { "test_2d_p3_cu", test_2d_p3_cu },
-  { "test_3d_p1_cu", test_3d_p1_cu },
-  { "test_3d_p2_cu", test_3d_p2_cu },
-  { "test_3d_p3_cu", test_3d_p3_cu },
-  { "test_conf_phase_accumulate_subtract_p1_cu", test_conf_phase_accumulate_subtract_p1_cu },
-  { "test_conf_phase_accumulate_subtract_p2_cu", test_conf_phase_accumulate_subtract_p2_cu },
+  { "test_bin_ops_1d_p1_dev", test_bin_ops_1d_p1_dev },
+  { "test_bin_ops_inv_1d_p1_dev", test_bin_ops_inv_1d_p1_dev },
+  { "test_bin_ops_1d_p2_dev", test_bin_ops_1d_p2_dev },
+  { "test_bin_ops_1d_p3_dev", test_bin_ops_1d_p3_dev },
+  { "test_bin_ops_2d_p1_dev", test_bin_ops_2d_p1_dev },
+  { "test_bin_ops_inv_2d_p1_dev", test_bin_ops_inv_2d_p1_dev },
+  { "test_bin_ops_2d_p2_dev", test_bin_ops_2d_p2_dev },
+  { "test_bin_ops_2d_p3_dev", test_bin_ops_2d_p3_dev },
+  { "test_bin_ops_3d_p1_dev", test_bin_ops_3d_p1_dev },
+  { "test_bin_ops_3d_p2_dev", test_bin_ops_3d_p2_dev },
+  { "test_bin_ops_3d_p3_dev", test_bin_ops_3d_p3_dev },
+  { "test_bin_ops_conf_phase_accumulate_subtract_p1_dev", test_bin_ops_conf_phase_accumulate_subtract_p1_dev },
+  { "test_bin_ops_conf_phase_accumulate_subtract_p2_dev", test_bin_ops_conf_phase_accumulate_subtract_p2_dev },
 #endif
   { NULL, NULL },
 };

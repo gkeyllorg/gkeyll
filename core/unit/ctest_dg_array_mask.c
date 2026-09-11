@@ -1513,22 +1513,22 @@ void test_mask_advance_frac_threshold_spatial_greater_ho()
   test_mask_advance_frac_threshold_spatial_greater(false);
 }
 
-void test_mask_advance_threshold_ext_range_ho_1()
+void test_mask_advance_threshold_ext_range_1_ho()
 {
   test_mask_advance_threshold_ext_range(false, 9, 3);
 }
 
-void test_mask_advance_threshold_ext_range_ho_2()
+void test_mask_advance_threshold_ext_range_2_ho()
 {
   test_mask_advance_threshold_ext_range(false, 9, 2);
 }
 
-void test_mask_advance_threshold_ext_range_ho_3()
+void test_mask_advance_threshold_ext_range_3_ho()
 {
   test_mask_advance_threshold_ext_range(false, 10, 3);
 }
 
-void test_mask_advance_threshold_ext_range_ho_4()
+void test_mask_advance_threshold_ext_range_4_ho()
 {
   test_mask_advance_threshold_ext_range(false, 10, 2);
 }
@@ -1636,22 +1636,22 @@ void test_mask_advance_frac_threshold_spatial_greater_dev()
   test_mask_advance_frac_threshold_spatial_greater(true);
 }
 
-void test_mask_advance_threshold_ext_range_dev_1()
+void test_mask_advance_threshold_ext_range_1_dev()
 {
   test_mask_advance_threshold_ext_range(true, 9, 3);
 }
 
-void test_mask_advance_threshold_ext_range_dev_2()
+void test_mask_advance_threshold_ext_range_2_dev()
 {
   test_mask_advance_threshold_ext_range(true, 9, 2);
 }
 
-void test_mask_advance_threshold_ext_range_dev_3()
+void test_mask_advance_threshold_ext_range_3_dev()
 {
   test_mask_advance_threshold_ext_range(true, 10, 3);
 }
 
-void test_mask_advance_threshold_ext_range_dev_4()
+void test_mask_advance_threshold_ext_range_4_dev()
 {
   test_mask_advance_threshold_ext_range(true, 10, 2);
 }
@@ -1669,59 +1669,59 @@ void test_mask_advance_frac_threshold_spatial_ext_range_dev()
 #endif
 
 TEST_LIST = {
-  { "mask_new", test_mask_new_ho },
-  { "mask_none_type", test_mask_none_type_ho },
-  { "mask_advance_threshold", test_mask_advance_threshold_ho },
-  { "mask_advance_all_below", test_mask_advance_all_below_ho },
-  { "mask_advance_all_above", test_mask_advance_all_above_ho },
-  { "mask_advance_negative_values", test_mask_advance_negative_values_ho },
-  { "mask_advance_greater_than_threshold", test_mask_advance_greater_than_threshold_ho },
-  { "mask_advance_greater_than_all_above", test_mask_advance_greater_than_all_above_ho },
-  { "mask_advance_greater_than_all_below", test_mask_advance_greater_than_all_below_ho },
-  { "mask_advance_greater_than_neg_vals", test_mask_advance_greater_than_negative_values_ho },
-  { "mask_eval", test_mask_eval_ho },
-  { "mask_eval_none_type", test_mask_eval_none_type_ho },
-  { "mask_scale_by_cell", test_mask_scale_by_cell_ho },
-  { "mask_acquire_release", test_mask_acquire_release_ho },
-  { "mask_threshold_scaling", test_mask_threshold_scaling_ho },
-  { "mask_advance_frac_threshold", test_mask_advance_frac_threshold_ho },
-  { "mask_advance_frac_threshold_greater", test_mask_advance_frac_threshold_greater_ho },
-  { "mask_advance_frac_threshold_spatial", test_mask_advance_frac_threshold_spatial_ho },
-  { "mask_advance_frac_threshold_spatial_greater",
+  { "mask_new_ho", test_mask_new_ho },
+  { "mask_none_type_ho", test_mask_none_type_ho },
+  { "mask_advance_threshold_ho", test_mask_advance_threshold_ho },
+  { "mask_advance_all_below_ho", test_mask_advance_all_below_ho },
+  { "mask_advance_all_above_ho", test_mask_advance_all_above_ho },
+  { "mask_advance_negative_values_ho", test_mask_advance_negative_values_ho },
+  { "mask_advance_greater_than_threshold_ho", test_mask_advance_greater_than_threshold_ho },
+  { "mask_advance_greater_than_all_above_ho", test_mask_advance_greater_than_all_above_ho },
+  { "mask_advance_greater_than_all_below_ho", test_mask_advance_greater_than_all_below_ho },
+  { "mask_advance_greater_than_neg_vals_ho", test_mask_advance_greater_than_negative_values_ho },
+  { "mask_eval_ho", test_mask_eval_ho },
+  { "mask_eval_none_type_ho", test_mask_eval_none_type_ho },
+  { "mask_scale_by_cell_ho", test_mask_scale_by_cell_ho },
+  { "mask_acquire_release_ho", test_mask_acquire_release_ho },
+  { "mask_threshold_scaling_ho", test_mask_threshold_scaling_ho },
+  { "mask_advance_frac_threshold_ho", test_mask_advance_frac_threshold_ho },
+  { "mask_advance_frac_threshold_greater_ho", test_mask_advance_frac_threshold_greater_ho },
+  { "mask_advance_frac_threshold_spatial_ho", test_mask_advance_frac_threshold_spatial_ho },
+  { "mask_advance_frac_threshold_spatial_greater_ho",
     test_mask_advance_frac_threshold_spatial_greater_ho },
-  { "mask_advance_threshold_ext_range_1", test_mask_advance_threshold_ext_range_ho_1 },
-  { "mask_advance_threshold_ext_range_2", test_mask_advance_threshold_ext_range_ho_2 },
-  { "mask_advance_threshold_ext_range_3", test_mask_advance_threshold_ext_range_ho_3 },
-  { "mask_advance_threshold_ext_range_4", test_mask_advance_threshold_ext_range_ho_4 },
-  { "mask_advance_frac_threshold_ext_range", test_mask_advance_frac_threshold_ext_range_ho },
-  { "mask_advance_frac_threshold_spatial_ext_range",
+  { "mask_advance_threshold_ext_range_1_ho", test_mask_advance_threshold_ext_range_1_ho },
+  { "mask_advance_threshold_ext_range_2_ho", test_mask_advance_threshold_ext_range_2_ho },
+  { "mask_advance_threshold_ext_range_3_ho", test_mask_advance_threshold_ext_range_3_ho },
+  { "mask_advance_threshold_ext_range_4_ho", test_mask_advance_threshold_ext_range_4_ho },
+  { "mask_advance_frac_threshold_ext_range_ho", test_mask_advance_frac_threshold_ext_range_ho },
+  { "mask_advance_frac_threshold_spatial_ext_range_ho",
     test_mask_advance_frac_threshold_spatial_ext_range_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "mask_new_gpu", test_mask_new_dev },
-  { "mask_none_type_gpu", test_mask_none_type_dev },
-  { "mask_advance_threshold_gpu", test_mask_advance_threshold_dev },
-  { "mask_advance_all_below_gpu", test_mask_advance_all_below_dev },
-  { "mask_advance_all_above_gpu", test_mask_advance_all_above_dev },
-  { "mask_advance_negative_values_gpu", test_mask_advance_negative_values_dev },
-  { "mask_advance_greater_than_threshold_gpu", test_mask_advance_greater_than_threshold_dev },
-  { "mask_advance_greater_than_all_above_gpu", test_mask_advance_greater_than_all_above_dev },
-  { "mask_advance_greater_than_all_below_gpu", test_mask_advance_greater_than_all_below_dev },
-  { "mask_advance_greater_than_neg_vals_gpu", test_mask_advance_greater_than_negative_values_dev },
-  { "mask_eval_none_type_gpu", test_mask_eval_none_type_dev },
-  { "mask_scale_by_cell_gpu", test_mask_scale_by_cell_dev },
-  { "mask_acquire_release_gpu", test_mask_acquire_release_dev },
-  { "mask_threshold_scaling_gpu", test_mask_threshold_scaling_dev },
-  { "mask_advance_frac_threshold_gpu", test_mask_advance_frac_threshold_dev },
-  { "mask_advance_frac_threshold_greater_gpu", test_mask_advance_frac_threshold_greater_dev },
-  { "mask_advance_frac_threshold_spatial_gpu", test_mask_advance_frac_threshold_spatial_dev },
-  { "mask_advance_frac_threshold_spatial_greater_gpu",
+  { "mask_new_dev", test_mask_new_dev },
+  { "mask_none_type_dev", test_mask_none_type_dev },
+  { "mask_advance_threshold_dev", test_mask_advance_threshold_dev },
+  { "mask_advance_all_below_dev", test_mask_advance_all_below_dev },
+  { "mask_advance_all_above_dev", test_mask_advance_all_above_dev },
+  { "mask_advance_negative_values_dev", test_mask_advance_negative_values_dev },
+  { "mask_advance_greater_than_threshold_dev", test_mask_advance_greater_than_threshold_dev },
+  { "mask_advance_greater_than_all_above_dev", test_mask_advance_greater_than_all_above_dev },
+  { "mask_advance_greater_than_all_below_dev", test_mask_advance_greater_than_all_below_dev },
+  { "mask_advance_greater_than_neg_vals_dev", test_mask_advance_greater_than_negative_values_dev },
+  { "mask_eval_none_type_dev", test_mask_eval_none_type_dev },
+  { "mask_scale_by_cell_dev", test_mask_scale_by_cell_dev },
+  { "mask_acquire_release_dev", test_mask_acquire_release_dev },
+  { "mask_threshold_scaling_dev", test_mask_threshold_scaling_dev },
+  { "mask_advance_frac_threshold_dev", test_mask_advance_frac_threshold_dev },
+  { "mask_advance_frac_threshold_greater_dev", test_mask_advance_frac_threshold_greater_dev },
+  { "mask_advance_frac_threshold_spatial_dev", test_mask_advance_frac_threshold_spatial_dev },
+  { "mask_advance_frac_threshold_spatial_greater_dev",
     test_mask_advance_frac_threshold_spatial_greater_dev },
-  { "mask_advance_threshold_ext_range_1_gpu", test_mask_advance_threshold_ext_range_dev_1 },
-  { "mask_advance_threshold_ext_range_2_gpu", test_mask_advance_threshold_ext_range_dev_2 },
-  { "mask_advance_threshold_ext_range_3_gpu", test_mask_advance_threshold_ext_range_dev_3 },
-  { "mask_advance_threshold_ext_range_4_gpu", test_mask_advance_threshold_ext_range_dev_4 },
-  { "mask_advance_frac_threshold_ext_range_gpu", test_mask_advance_frac_threshold_ext_range_dev },
-  { "mask_advance_frac_threshold_spatial_ext_range_gpu",
+  { "mask_advance_threshold_ext_range_1_dev", test_mask_advance_threshold_ext_range_1_dev },
+  { "mask_advance_threshold_ext_range_2_dev", test_mask_advance_threshold_ext_range_2_dev },
+  { "mask_advance_threshold_ext_range_3_dev", test_mask_advance_threshold_ext_range_3_dev },
+  { "mask_advance_threshold_ext_range_4_dev", test_mask_advance_threshold_ext_range_4_dev },
+  { "mask_advance_frac_threshold_ext_range_dev", test_mask_advance_frac_threshold_ext_range_dev },
+  { "mask_advance_frac_threshold_spatial_ext_range_dev",
     test_mask_advance_frac_threshold_spatial_ext_range_dev },
 #endif
   { NULL, NULL },

@@ -7,17 +7,17 @@
 
 #include <stdbool.h>
 
-void test_cusolver_qr();
-void test_cusolver_rf();
-void test_cusolver_ops();
-void test_cusolver_ops_multiple_rhs();
-void test_cusolver_ops_multiple_prob();
-void test_cudss_simple();
-void test_cudss_ops();
-void test_cudss_ops_update_amat();
-void test_cudss_ops_multiple_rhs();
+void test_cusolver_qr_dev();
+void test_cusolver_rf_dev();
+void test_cusolver_ops_dev();
+void test_cusolver_ops_multiple_rhs_dev();
+void test_cusolver_ops_multiple_prob_dev();
+void test_cudss_simple_dev();
+void test_cudss_ops_dev();
+void test_cudss_ops_update_amat_dev();
+void test_cudss_ops_multiple_rhs_dev();
 
-void test_slu_example()
+void test_slu_example_ho()
 {
 /*  
  * This is the small 5x5 example used in the Sections 2 and 3 of the 
@@ -96,7 +96,7 @@ void test_slu_example()
 void test_superlu_ops(const bool separateLUdecomp)
 {
   /*  
-   * Like test_slu_example but using superlu_ops.
+   * Like test_slu_example_ho but using superlu_ops.
    *
    */
   double s, u, p, e, r, l;
@@ -167,17 +167,17 @@ void test_superlu_ops(const bool separateLUdecomp)
 
 }
 
-void test_superlu_ops_basic() {
+void test_superlu_ops_basic_ho() {
   test_superlu_ops(false);
 }
 
-void test_superlu_ops_separateLU() {
+void test_superlu_ops_separateLU_ho() {
   test_superlu_ops(true);
 }
 
-void test_superlu_ops_basic_update_amat() {
+void test_superlu_ops_basic_update_amat_ho() {
   /*  
-   * Like test_slu_example but using superlu_ops.
+   * Like test_slu_example_ho but using superlu_ops.
    *
    */
   double s, u, p, e, r, l;
@@ -310,7 +310,7 @@ double superlu_test_answer(double s, double u, double p, double e, double r, dou
   return sol;
 };
 
-void test_superlu_ops_multiple_prob()
+void test_superlu_ops_multiple_prob_ho()
 {
   double s, u, p, e, r, l;
   int    nprob, m, n;
@@ -379,7 +379,7 @@ void test_superlu_ops_multiple_prob()
   gkyl_superlu_prob_release(prob);
 }
 
-void test_superlu_ops_multiple_prob_update_amat()
+void test_superlu_ops_multiple_prob_update_amat_ho()
 {
   double s, u, p, e, r, l;
   int    nprob, m, n;
@@ -509,24 +509,24 @@ void test_superlu_ops_multiple_prob_update_amat()
 }
 
 TEST_LIST = {
-  { "slu_example", test_slu_example },
-  { "superlu_ops_basic", test_superlu_ops_basic },
-  { "superlu_ops_basic_update_amat", test_superlu_ops_basic_update_amat },
-  { "superlu_ops_separateLU", test_superlu_ops_separateLU },
-  { "superlu_ops_multiple_prob", test_superlu_ops_multiple_prob },
-  { "superlu_ops_multiple_prob_update_amat", test_superlu_ops_multiple_prob_update_amat },
+  { "slu_example_ho", test_slu_example_ho },
+  { "superlu_ops_basic_ho", test_superlu_ops_basic_ho },
+  { "superlu_ops_basic_update_amat_ho", test_superlu_ops_basic_update_amat_ho },
+  { "superlu_ops_separateLU_ho", test_superlu_ops_separateLU_ho },
+  { "superlu_ops_multiple_prob_ho", test_superlu_ops_multiple_prob_ho },
+  { "superlu_ops_multiple_prob_update_amat_ho", test_superlu_ops_multiple_prob_update_amat_ho },
 #ifdef GKYL_HAVE_CUDA
 #ifdef GKYL_HAVE_CUDSS
-  { "cudss_simple", test_cudss_simple },
-  { "cudss_ops", test_cudss_ops },
-  { "cudss_ops_update_amat", test_cudss_ops_update_amat },
-  { "cudss_ops_multiple_rhs", test_cudss_ops_multiple_rhs },
+  { "cudss_simple_dev", test_cudss_simple_dev },
+  { "cudss_ops_dev", test_cudss_ops_dev },
+  { "cudss_ops_update_amat_dev", test_cudss_ops_update_amat_dev },
+  { "cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs_dev },
 #else
-  { "cusolver_qr", test_cusolver_qr },
-  { "cusolver_rf", test_cusolver_rf },
-  { "cusolver_ops", test_cusolver_ops },
-  { "cusolver_ops_multiple_rhs", test_cusolver_ops_multiple_rhs },
-  { "cusolver_ops_multiple_prob", test_cusolver_ops_multiple_prob },
+  { "cusolver_qr_dev", test_cusolver_qr_dev },
+  { "cusolver_rf_dev", test_cusolver_rf_dev },
+  { "cusolver_ops_dev", test_cusolver_ops_dev },
+  { "cusolver_ops_multiple_rhs_dev", test_cusolver_ops_multiple_rhs_dev },
+  { "cusolver_ops_multiple_prob_dev", test_cusolver_ops_multiple_prob_dev },
 #endif
 #endif
   { NULL, NULL }

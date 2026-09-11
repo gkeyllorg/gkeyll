@@ -512,44 +512,44 @@ test_3x(int poly_order, bool use_gpu)
   gkyl_spitzer_coll_freq_release(spitz_up);
 }
 
-void test_1x_p1() { test_1x(1, false); }
-void test_1x_p2() { test_1x(2, false); }
+void test_spitzer_coll_freq_1x_p1_ho() { test_1x(1, false); }
+void test_spitzer_coll_freq_1x_p2_ho() { test_1x(2, false); }
 
-void test_2x_p1() { test_2x(1, false); }
-void test_2x_p2() { test_2x(2, false); }
+void test_spitzer_coll_freq_2x_p1_ho() { test_2x(1, false); }
+void test_spitzer_coll_freq_2x_p2_ho() { test_2x(2, false); }
 
-void test_3x_p1() { test_3x(1, false); }
-void test_3x_p2() { test_3x(2, false); }
+void test_spitzer_coll_freq_3x_p1_ho() { test_3x(1, false); }
+void test_spitzer_coll_freq_3x_p2_ho() { test_3x(2, false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_1x_p1_gpu() { test_1x(1, true); }
-void test_1x_p2_gpu() { test_1x(2, true); }
+void test_spitzer_coll_freq_1x_p1_dev() { test_1x(1, true); }
+void test_spitzer_coll_freq_1x_p2_dev() { test_1x(2, true); }
 
-void test_2x_p1_gpu() { test_2x(1, true); }
-void test_2x_p2_gpu() { test_2x(2, true); }
+void test_spitzer_coll_freq_2x_p1_dev() { test_2x(1, true); }
+void test_spitzer_coll_freq_2x_p2_dev() { test_2x(2, true); }
 
-void test_3x_p1_gpu() { test_3x(1, true); }
-void test_3x_p2_gpu() { test_3x(2, true); }
+void test_spitzer_coll_freq_3x_p1_dev() { test_3x(1, true); }
+void test_spitzer_coll_freq_3x_p2_dev() { test_3x(2, true); }
 #endif
 
 TEST_LIST = {
-  { "test_1x_p1", test_1x_p1 },
-  { "test_1x_p2", test_1x_p2 },
+  { "test_spitzer_coll_freq_1x_p1_ho", test_spitzer_coll_freq_1x_p1_ho },
+  { "test_spitzer_coll_freq_1x_p2_ho", test_spitzer_coll_freq_1x_p2_ho },
 
-  { "test_2x_p1", test_2x_p1 },
-  { "test_2x_p2", test_2x_p2 },
+  { "test_spitzer_coll_freq_2x_p1_ho", test_spitzer_coll_freq_2x_p1_ho },
+  { "test_spitzer_coll_freq_2x_p2_ho", test_spitzer_coll_freq_2x_p2_ho },
 
-  { "test_3x_p1", test_3x_p1 },
-  { "test_3x_p2", test_3x_p2 },
+  { "test_spitzer_coll_freq_3x_p1_ho", test_spitzer_coll_freq_3x_p1_ho },
+  { "test_spitzer_coll_freq_3x_p2_ho", test_spitzer_coll_freq_3x_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x_p1_gpu", test_1x_p1_gpu },
-  { "test_1x_p2_gpu", test_1x_p2_gpu },
+  { "test_spitzer_coll_freq_1x_p1_dev", test_spitzer_coll_freq_1x_p1_dev },
+  { "test_spitzer_coll_freq_1x_p2_dev", test_spitzer_coll_freq_1x_p2_dev },
 
-  { "test_2x_p1_gpu", test_2x_p1_gpu },
-  { "test_2x_p2_gpu", test_2x_p2_gpu },
+  { "test_spitzer_coll_freq_2x_p1_dev", test_spitzer_coll_freq_2x_p1_dev },
+  { "test_spitzer_coll_freq_2x_p2_dev", test_spitzer_coll_freq_2x_p2_dev },
 
-  { "test_3x_p1_gpu", test_3x_p1_gpu },
-  { "test_3x_p2_gpu", test_3x_p2_gpu },
+  { "test_spitzer_coll_freq_3x_p1_dev", test_spitzer_coll_freq_3x_p1_dev },
+  { "test_spitzer_coll_freq_3x_p2_dev", test_spitzer_coll_freq_3x_p2_dev },
 #endif
   { NULL, NULL },
 };

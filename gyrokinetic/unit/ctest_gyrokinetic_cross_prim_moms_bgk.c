@@ -554,11 +554,12 @@ void test_equal_1x1v_p1() { run_equal_species(1, 1, 1, 2.0e19, 1.0e4, 5.0e11); }
 void test_equal_1x2v_p1() { run_equal_species(1, 2, 1, 3.0e19, -2.0e4, 8.0e11); }
 void test_equal_1x1v_zeroflow_p1() { run_equal_species(1, 1, 1, 1.0e19, 0.0, 1.0e12); }
 
-void test_1x1v_p1() {test_1x1v(1, false);}
-void test_1x2v_p1() {test_1x2v(1, false);}
+void test_cross_prim_moms_bgk_1x1v_p1_ho() {test_1x1v(1, false);}
+void test_cross_prim_moms_bgk_1x2v_p1_ho() {test_1x2v(1, false);}
+
 TEST_LIST = {
-  {"test_1x1v_p1", test_1x1v_p1},
-  {"test_1x2v_p1", test_1x2v_p1},
+  {"test_cross_prim_moms_bgk_1x1v_p1_ho", test_cross_prim_moms_bgk_1x1v_p1_ho},
+  {"test_cross_prim_moms_bgk_1x2v_p1_ho", test_cross_prim_moms_bgk_1x2v_p1_ho},
   { "equal_1x1v_p1", test_equal_1x1v_p1 },
   { "equal_1x2v_p1", test_equal_1x2v_p1 },
   { "equal_1x1v_zeroflow_p1", test_equal_1x1v_zeroflow_p1 },

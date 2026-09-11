@@ -14,7 +14,7 @@
 
 #include <gkyl_efit.h>
 
-void test_solovev(){
+void test_efit_solovev_ho(){
   bool write_files = false;
 
   struct gkyl_efit_inp inp  = {
@@ -36,7 +36,7 @@ void test_solovev(){
 
 }
 
-void test_step(){
+void test_efit_step_ho(){
   bool write_files = false;
 
   struct gkyl_efit_inp inp  = {
@@ -58,7 +58,7 @@ void test_step(){
 
 }
 
-void test_nstxu(){
+void test_efit_nstxu_ho(){
   bool write_files = false;
 
   // Uses DN configuration by default, but one can switch to SN by changing the filepath if desired.
@@ -81,7 +81,7 @@ void test_nstxu(){
 
 }
 
-void test_asdex(){
+void test_efit_asdex_ho(){
   bool write_files = false;
 
   struct gkyl_efit_inp inp  = {
@@ -102,7 +102,7 @@ void test_asdex(){
 
 }
 
-void test_cerfon(){
+void test_efit_cerfon_ho(){
   bool write_files = false;
 
   struct gkyl_efit_inp inp  = {
@@ -124,7 +124,7 @@ void test_cerfon(){
 
 }
 
-void test_elliptical(){
+void test_efit_elliptical_ho(){
   bool write_files = false;
 
   struct gkyl_efit_inp inp  = {
@@ -146,7 +146,7 @@ void test_elliptical(){
 
 }
 
-void test_wham(){
+void test_efit_wham_ho(){
   bool write_files = false;
 
   struct gkyl_efit_inp inp  = {
@@ -169,7 +169,7 @@ void test_wham(){
 }
 
 
-void test_tcv(){
+void test_efit_tcv_ho(){
   bool write_files = false;
 
   struct gkyl_efit_inp inp  = {
@@ -190,7 +190,7 @@ void test_tcv(){
 
 }
 
-void test_mast(){
+void test_efit_mast_ho(){
   bool write_files = false;
 
   struct gkyl_efit_inp inp  = {
@@ -212,7 +212,7 @@ void test_mast(){
 
 }
 
-void test_ltx(){
+void test_efit_ltx_ho(){
   bool write_files = false;
 
   struct gkyl_efit_inp inp  = {
@@ -235,15 +235,15 @@ void test_ltx(){
 }
 
 TEST_LIST = {
-  { "test_solovev", test_solovev},
-  { "test_step", test_step},
-  { "test_asdex", test_asdex},
-  { "test_nstxu", test_nstxu},
-  { "test_cerfon", test_cerfon},
-  { "test_elliptical", test_elliptical},
-  { "test_wham", test_wham},
-  { "test_tcv", test_tcv},
-  { "test_mast", test_mast},
-  { "test_ltx", test_ltx},
+  { "test_efit_solovev_ho", test_efit_solovev_ho},
+  { "test_efit_step_ho", test_efit_step_ho},
+  { "test_efit_asdex_ho", test_efit_asdex_ho},
+  { "test_efit_nstxu_ho", test_efit_nstxu_ho},
+  { "test_efit_cerfon_ho", test_efit_cerfon_ho},
+  { "test_efit_elliptical_ho", test_efit_elliptical_ho},
+  { "test_efit_wham_ho", test_efit_wham_ho},
+  { "test_efit_tcv_ho", test_efit_tcv_ho},
+  { "test_efit_mast_ho", test_efit_mast_ho},
+  { "test_efit_ltx_ho", test_efit_ltx_ho},
   { NULL, NULL },
 };

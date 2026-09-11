@@ -787,38 +787,38 @@ test_2x(int poly_order, bool use_gpu, double te)
 static int num_ne[1] = {1};
 static int num_ne2[1] = {20};
 void test_1x2v_p1_10eV() { test_1x(1, false, 10.0, 3, 0, num_ne, 1); }
-void test_1x2v_p1_30eV() { test_1x(1, false, 30.0, 3, 0, num_ne, 1); }
-void test_1x2v_p1_H() { test_1x(1, false, 30.0, 1, 0, num_ne, 1); }
+void test_rad_gk_1x2v_p1_30eV_ho() { test_1x(1, false, 30.0, 3, 0, num_ne, 1); }
+void test_rad_gk_1x2v_p1_H_ho() { test_1x(1, false, 30.0, 1, 0, num_ne, 1); }
 void test_1x2v_p1_100eV() { test_1x(1, false, 100.0, 3, 0, num_ne, 1); }
 void test_1x2v_p1_500eV() { test_1x(1, false, 500.0, 3, 0, num_ne, 1); }
 void test_1x2v_p1_1000eV() { test_1x(1, false, 1000.0, 3, 0, num_ne, 1); }
-void test_1x2v_p1_5000eV() { test_1x(1, false, 5000.0, 3, 0, num_ne, 1); }
+void test_rad_gk_1x2v_p1_5000eV_ho() { test_1x(1, false, 5000.0, 3, 0, num_ne, 1); }
 void test_1x2v_p1_10000eV() { test_1x(1, false, 10000.0, 3, 0, num_ne, 1); }
-void test_2x2v_p1() { test_2x(1, false, 30.0); }
+void test_rad_gk_2x2v_p1_ho() { test_2x(1, false, 30.0); }
 
-void test_1x2v_p1_Li1_lowNe() { test_1x(1, false, 30.0, 3, 1, num_ne2, 1); }
-void test_1x2v_p1_Li1_midNe() { test_1x(1, false, 30.0, 3, 1, num_ne2, 6); }
-void test_1x2v_p1_Li1_highNe() { test_1x(1, false, 30.0, 3, 1, num_ne2, 13); }
+void test_rad_gk_1x2v_p1_Li1_lowNe_ho() { test_1x(1, false, 30.0, 3, 1, num_ne2, 1); }
+void test_rad_gk_1x2v_p1_Li1_midNe_ho() { test_1x(1, false, 30.0, 3, 1, num_ne2, 6); }
+void test_rad_gk_1x2v_p1_Li1_highNe_ho() { test_1x(1, false, 30.0, 3, 1, num_ne2, 13); }
 
 #ifdef GKYL_HAVE_CUDA
 
-void test_1x2v_p1_gpu() { test_1x(1, true, 30.0, 3, 0, num_ne, 1); }
-void test_1x2v_p1_L1_midNe_gpu() {test_1x(1, true, 30.0, 3, 1, num_ne2, 6); }
+void test_rad_gk_1x2v_p1_dev() { test_1x(1, true, 30.0, 3, 0, num_ne, 1); }
+void test_rad_gk_1x2v_p1_L1_midNe_dev() {test_1x(1, true, 30.0, 3, 1, num_ne2, 6); }
 
 #endif
 
 TEST_LIST = {
-  { "test_1x2v_p1_Li0_30eV", test_1x2v_p1_30eV },
-  { "test_1x2v_p1_Li0_5000eV", test_1x2v_p1_5000eV },
-  { "test_1x2v_p1_H", test_1x2v_p1_H },
-  { "test_1x2v_p1_Li1_lowNe", test_1x2v_p1_Li1_lowNe },
-  { "test_1x2v_p1_Li1_midNe", test_1x2v_p1_Li1_midNe },
-  { "test_1x2v_p1_Li1_highNe", test_1x2v_p1_Li1_highNe },
-  { "test_2x2v_p1", test_2x2v_p1 },
+  { "test_rad_gk_1x2v_p1_Li0_30eV_ho", test_rad_gk_1x2v_p1_30eV_ho },
+  { "test_rad_gk_1x2v_p1_Li0_5000eV_ho", test_rad_gk_1x2v_p1_5000eV_ho },
+  { "test_rad_gk_1x2v_p1_H_ho", test_rad_gk_1x2v_p1_H_ho },
+  { "test_rad_gk_1x2v_p1_Li1_lowNe_ho", test_rad_gk_1x2v_p1_Li1_lowNe_ho },
+  { "test_rad_gk_1x2v_p1_Li1_midNe_ho", test_rad_gk_1x2v_p1_Li1_midNe_ho },
+  { "test_rad_gk_1x2v_p1_Li1_highNe_ho", test_rad_gk_1x2v_p1_Li1_highNe_ho },
+  { "test_rad_gk_2x2v_p1_ho", test_rad_gk_2x2v_p1_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x2v_p1_gpu", test_1x2v_p1_gpu },
-  { "test_1x2v_p1_L1_midNe_gpu", test_1x2v_p1_L1_midNe_gpu},
+  { "test_rad_gk_1x2v_p1_dev", test_rad_gk_1x2v_p1_dev },
+  { "test_rad_gk_1x2v_p1_L1_midNe_dev", test_rad_gk_1x2v_p1_L1_midNe_dev},
 
 #endif
   { NULL, NULL },
