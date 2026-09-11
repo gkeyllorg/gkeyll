@@ -42,11 +42,11 @@ struct gk_app_ctx {
   double psi_sep;
   double Lx, Ly, Lz;
   double x_min, x_max, y_min, y_max, z_min, z_max, rho_min, rho_max;
-  int num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu;
+  int Nx, Ny, Nz, Nvpar, Nmu;
   int cells[GKYL_MAX_DIM], poly_order;
   double vpar_max_elc, mu_max_elc, vpar_max_ion, mu_max_ion;
   // Simulation control parameters
-  double final_time, write_phase_freq;
+  double t_end, write_phase_freq;
   int num_frames, int_diag_calc_num, num_failures_max;
   double dt_failure_tol;
 };
@@ -260,11 +260,11 @@ struct gk_app_ctx create_ctx(void)
   double temp_recycle_srcWALL = 4.0 * eV;
 
   // Grid parameters
-  int num_cell_x = 12; 
-  int num_cell_y = 12;
-  int num_cell_z = 8;
-  int num_cell_vpar = 8;
-  int num_cell_mu = 4;
+  int Nx = 12; 
+  int Ny = 12;
+  int Nz = 8;
+  int Nvpar = 8;
+  int Nmu = 4;
   int poly_order = 1;
 
   // Velocity box dimensions
@@ -273,7 +273,7 @@ struct gk_app_ctx create_ctx(void)
   double vpar_max_ion = 6.*vti;
   double mu_max_ion   = mi*pow(4*vti,2)/(2*B0);
 
-  double final_time = 1.0e-4;
+  double t_end = 1.0e-7;
   int num_frames = 1;
   double write_phase_freq = 0.01;
   int int_diag_calc_num = num_frames*100;
@@ -314,17 +314,17 @@ struct gk_app_ctx create_ctx(void)
     .energy_srcWALL = energy_srcWALL,  .particle_srcWALL = particle_srcWALL,
     .floor_srcWALL = floor_srcWALL,
     .temp_recycle_srcWALL = temp_recycle_srcWALL,
-    .num_cell_x     = num_cell_x,
-    .num_cell_y     = num_cell_y,
-    .num_cell_z     = num_cell_z,
-    .num_cell_vpar  = num_cell_vpar,
-    .num_cell_mu    = num_cell_mu,
-    .cells = {num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu},
+    .Nx     = Nx,
+    .Ny     = Ny,
+    .Nz     = Nz,
+    .Nvpar  = Nvpar,
+    .Nmu    = Nmu,
+    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
     .poly_order   = poly_order,
     .vpar_max_elc = vpar_max_elc,  .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
     .write_phase_freq = write_phase_freq,
-    .final_time = final_time,  .num_frames = num_frames,
+    .t_end = t_end,  .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
@@ -666,7 +666,7 @@ main(int argc, char **argv)
     .cfl_frac = 1.0,
 
     .geometry = {
-      .geometry_id = GKYL_GEOMETRY_FROMFILE,
+      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
     },
@@ -688,7 +688,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
-      .t_end = ctx.final_time,
+      .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
       .int_diag_calc_num = ctx.int_diag_calc_num,
