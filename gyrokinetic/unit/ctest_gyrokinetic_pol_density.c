@@ -116,12 +116,12 @@ void test_1x_flat( bool use_gpu )
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
-void test_1x_flat_cpu() 
+void test_pol_density_1x_flat_ho() 
 {
   test_1x_flat(false);
 }
 
-void test_1x_flat_gpu() 
+void test_pol_density_1x_flat_dev() 
 {
   test_1x_flat(true);
 }
@@ -234,12 +234,12 @@ void test_1x_quad( bool use_gpu )
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
-void test_1x_quad_cpu() 
+void test_pol_density_1x_quad_ho() 
 {
   test_1x_quad(false);
 }
 
-void test_1x_quad_gpu() 
+void test_pol_density_1x_quad_dev() 
 {
   test_1x_quad(true);
 }
@@ -349,12 +349,12 @@ test_2x_quad( bool use_gpu )
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
-void test_2x_quad_cpu() 
+void test_pol_density_2x_quad_ho() 
 {
   test_2x_quad(false);
 }
 
-void test_2x_quad_gpu() 
+void test_pol_density_2x_quad_dev() 
 {
   test_2x_quad(true);
 }
@@ -437,27 +437,27 @@ test_3x_flat( bool use_gpu )
 }
 
 void
-test_3x_flat_cpu() 
+test_pol_density_3x_flat_ho() 
 {
   test_3x_flat(false);
 }
 
 void
-test_3x_flat_gpu() 
+test_pol_density_3x_flat_dev() 
 {
   test_3x_flat(true);
 }
 
 TEST_LIST = {
-  { "test_1x_flat_cpu", test_1x_flat_cpu },
-  { "test_1x_quad_cpu", test_1x_quad_cpu },
-  { "test_2x_quad_cpu", test_2x_quad_cpu },
-  { "test_3x_flat_cpu", test_3x_flat_cpu },
+  { "test_pol_density_1x_flat_ho", test_pol_density_1x_flat_ho },
+  { "test_pol_density_1x_quad_ho", test_pol_density_1x_quad_ho },
+  { "test_pol_density_2x_quad_ho", test_pol_density_2x_quad_ho },
+  { "test_pol_density_3x_flat_ho", test_pol_density_3x_flat_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x_flat_gpu", test_1x_flat_gpu },
-  { "test_1x_quad_gpu", test_1x_quad_gpu },
-  { "test_2x_quad_gpu", test_2x_quad_gpu },
-  { "test_3x_flat_gpu", test_3x_flat_gpu },
+  { "test_pol_density_1x_flat_dev", test_pol_density_1x_flat_dev },
+  { "test_pol_density_1x_quad_dev", test_pol_density_1x_quad_dev },
+  { "test_pol_density_2x_quad_dev", test_pol_density_2x_quad_dev },
+  { "test_pol_density_3x_flat_dev", test_pol_density_3x_flat_dev },
 #endif
   { NULL, NULL },
 };

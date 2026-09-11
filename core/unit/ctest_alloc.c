@@ -2,7 +2,7 @@
 #include <gkyl_alloc.h>
 
 void
-test_aligned_alloc()
+test_aligned_alloc_ho()
 {
   int *d1 = gkyl_aligned_alloc(8, 100*sizeof(int));
   TEST_CHECK( (ptrdiff_t) d1 % 8 == 0 );
@@ -22,7 +22,7 @@ test_aligned_alloc()
 }
 
 void
-test_aligned_realloc()
+test_aligned_realloc_ho()
 {
   int n = 10;
   int *d = gkyl_aligned_alloc(16, n*sizeof(int));
@@ -113,12 +113,12 @@ void test_mem_buff(bool use_gpu)
   gkyl_mem_buff_release(mbuff);
 }
 
-void test_mem_buff_ho(){ test_mem_buff(false); }
-void test_mem_buff_dev(){ test_mem_buff(true); }
+void test_alloc_mem_buff_ho(){ test_mem_buff(false); }
+void test_alloc_mem_buff_dev(){ test_mem_buff(true); }
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_cu_malloc()
+test_malloc_dev()
 {
   // Test a simple allocation on the GPU.
   int nelem = 6;
@@ -142,7 +142,7 @@ test_cu_malloc()
 int dev_cu_malloc_array(double **arr, int narr, int nelem);
 
 void
-test_cu_malloc_array()
+test_malloc_array_dev()
 {
   // Test allocation of arrays of arrays on the GPU.
   int narr = 2;
@@ -180,13 +180,13 @@ test_cu_malloc_array()
 #endif
 
 TEST_LIST = {
-  { "aligned_alloc", test_aligned_alloc },
-  { "aligned_realloc", test_aligned_realloc },
-  { "mem_buff_ho", test_mem_buff_ho },
+  { "aligned_alloc_ho", test_aligned_alloc_ho },
+  { "aligned_realloc_ho", test_aligned_realloc_ho },
+  { "alloc_mem_buff_ho", test_alloc_mem_buff_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "cu_malloc", test_cu_malloc },
-  { "cu_malloc_array", test_cu_malloc_array },
-  { "mem_buff_dev", test_mem_buff_dev },
+  { "malloc_dev", test_malloc_dev },
+  { "malloc_array_dev", test_malloc_array_dev },
+  { "alloc_mem_buff_dev", test_alloc_mem_buff_dev },
 #endif
   { NULL, NULL },
 };

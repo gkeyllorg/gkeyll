@@ -29,7 +29,7 @@ show_qr_res(struct gkyl_qr_res res, const char *msg)
 }
 
 void
-test_dbl_exp(void)
+test_math_dbl_exp_ho(void)
 {
   do {
     struct gkyl_qr_res res = gkyl_dbl_exp(func_1, 0, 0.0, 1.0, 10, 1e-11);
@@ -83,7 +83,7 @@ double rfunc_3(double x, void *ctx)
 }
 
 void
-test_ridders(void)
+test_math_ridders_ho(void)
 {
   do {
     double x1 = 0.5, x2 = 2.0;
@@ -138,7 +138,7 @@ check_in_list(int nvals, const double complex *vals, double complex tocheck, dou
 }
 
 void
-test_poly2_roots(void)
+test_math_poly2_roots_ho(void)
 {
   struct gkyl_lo_poly_roots rts;
 
@@ -177,7 +177,7 @@ test_poly2_roots(void)
 }
 
 void
-test_poly3_roots(void)
+test_math_poly3_roots_ho(void)
 {
   struct gkyl_lo_poly_roots rts;
 
@@ -212,7 +212,7 @@ test_poly3_roots(void)
 }
 
 void
-test_poly4_roots(void)
+test_math_poly4_roots_ho(void)
 {
   struct gkyl_lo_poly_roots rts;
 
@@ -248,7 +248,7 @@ test_poly4_roots(void)
 }
 
 void
-test_polyn_roots(void)
+test_math_polyn_roots_ho(void)
 {
 
   do {
@@ -287,7 +287,7 @@ test_polyn_roots(void)
 
 
 void
-test_sturn_root_intervals(void)
+test_math_sturn_root_intervals_ho(void)
 {
 
   // Test from wiki example: 2 real, distinct roots
@@ -638,12 +638,12 @@ test_sturn_root_intervals(void)
 }
 
 TEST_LIST = {
-  { "dbl_exp", test_dbl_exp },
-  { "ridders", test_ridders },
-  { "poly2_roots", test_poly2_roots },
-  { "poly3_roots", test_poly3_roots },
-  { "poly4_roots", test_poly4_roots },
-  { "strun_root_intervals", test_sturn_root_intervals },
-  { "polyn_roots", test_polyn_roots },  
+  { "math_dbl_exp_ho", test_math_dbl_exp_ho },
+  { "math_ridders_ho", test_math_ridders_ho },
+  { "math_poly2_roots_ho", test_math_poly2_roots_ho },
+  { "math_poly3_roots_ho", test_math_poly3_roots_ho },
+  { "math_poly4_roots_ho", test_math_poly4_roots_ho },
+  { "math_sturn_root_intervals_ho", test_math_sturn_root_intervals_ho },
+  { "math_polyn_roots_ho", test_math_polyn_roots_ho },  
   { NULL, NULL },
 };

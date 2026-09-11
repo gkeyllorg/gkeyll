@@ -9,7 +9,7 @@
  *   TEST_VERBOSE: when set, enables writing the DG L2 error in standard output (default: no extra output)
  * 
  *  Example:
- *   TEST_NX=32 TEST_NY=32 TEST_NZ=16 TEST_OUTPUT=1 TEST_VERBOSE=1 ./ctest_fem_poisson_perp_kSq test_3x_p1_dirichletx_dirichlety
+ *   TEST_NX=32 TEST_NY=32 TEST_NZ=16 TEST_OUTPUT=1 TEST_VERBOSE=1 ./ctest_fem_poisson_perp_kSq test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho
 */
 
 #include <acutest.h>
@@ -620,7 +620,7 @@ test_fem_helmholtz_perp_3x(int poly_order, const int *cells, struct gkyl_poisson
 }
 
 // 2x test wrappers
-void test_2x_p1_dirichletx() {
+void test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho() {
   int cells[2]; get_2x_cells(cells);
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET; bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
@@ -628,7 +628,7 @@ void test_2x_p1_dirichletx() {
   test_fem_helmholtz_perp_2x(1, cells, bc_tv, false);
 }
 
-void test_2x_p1_periodicx() {
+void test_fem_poisson_perp_ksq_2x_p1_periodicx_ho() {
   int cells[2]; get_2x_cells(cells);
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC; bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
@@ -637,7 +637,7 @@ void test_2x_p1_periodicx() {
 }
 
 // 3x test wrappers
-void test_3x_p1_dirichletx_dirichlety() {
+void test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho() {
   int cells[3]; get_3x_cells(cells);
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET; bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
@@ -647,7 +647,7 @@ void test_3x_p1_dirichletx_dirichlety() {
   test_fem_helmholtz_perp_3x(1, cells, bc_tv, false);
 }
 
-void test_3x_p1_dirichletx_periodicy() {
+void test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho() {
   int cells[3]; get_3x_cells(cells);
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET; bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
@@ -658,7 +658,7 @@ void test_3x_p1_dirichletx_periodicy() {
 }
 
 #ifdef GKYL_HAVE_CUDA
-void gpu_test_2x_p1_dirichletx() {
+void test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev() {
   int cells[2]; get_2x_cells(cells);
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -668,7 +668,7 @@ void gpu_test_2x_p1_dirichletx() {
   test_fem_helmholtz_perp_2x(1, cells, bc_tv, true);
 }
 
-void gpu_test_2x_p1_periodicx() {
+void test_fem_poisson_perp_ksq_2x_p1_periodicx_dev() {
   int cells[2]; get_2x_cells(cells);
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
@@ -678,7 +678,7 @@ void gpu_test_2x_p1_periodicx() {
   test_fem_helmholtz_perp_2x(1, cells, bc_tv, true);
 }
 
-void gpu_test_3x_p1_dirichletx_dirichlety() {
+void test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev() {
   int cells[3]; get_3x_cells(cells);
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -692,7 +692,7 @@ void gpu_test_3x_p1_dirichletx_dirichlety() {
   test_fem_helmholtz_perp_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_3x_p1_dirichletx_periodicy() {
+void test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev() {
   int cells[3]; get_3x_cells(cells);
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -709,18 +709,18 @@ void gpu_test_3x_p1_dirichletx_periodicy() {
 
 TEST_LIST = {
   // 2x tests
-  { "test_2x_p1_dirichletx", test_2x_p1_dirichletx },
-  { "test_2x_p1_periodicx", test_2x_p1_periodicx },
+  { "test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho", test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho },
+  { "test_fem_poisson_perp_ksq_2x_p1_periodicx_ho", test_fem_poisson_perp_ksq_2x_p1_periodicx_ho },
 
   // 3x tests
-  { "test_3x_p1_dirichletx_dirichlety", test_3x_p1_dirichletx_dirichlety },
-  { "test_3x_p1_dirichletx_periodicy", test_3x_p1_dirichletx_periodicy },
+  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho", test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho },
+  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho", test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  { "gpu_test_2x_p1_dirichletx", gpu_test_2x_p1_dirichletx },
-  { "gpu_test_2x_p1_periodicx", gpu_test_2x_p1_periodicx },
-  { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety },
-  { "gpu_test_3x_p1_dirichletx_periodicy", gpu_test_3x_p1_dirichletx_periodicy },
+  { "test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev", test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev },
+  { "test_fem_poisson_perp_ksq_2x_p1_periodicx_dev", test_fem_poisson_perp_ksq_2x_p1_periodicx_dev },
+  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev", test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev },
+  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev", test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev },
 #endif
   { NULL, NULL },
 };

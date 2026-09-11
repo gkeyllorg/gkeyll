@@ -12,7 +12,7 @@ void evalFunc(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 void
-test_1()
+test_fv_proj_1_ho()
 {
   double lower[] = {-2.0}, upper[] = {4.0};
   int cells[] = {2};
@@ -45,6 +45,6 @@ test_1()
 }
 
 TEST_LIST = {
-  { "test_1", test_1 },
+  { "test_fv_proj_1_ho", test_fv_proj_1_ho },
   { NULL, NULL },
 };

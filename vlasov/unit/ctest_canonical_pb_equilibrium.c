@@ -356,9 +356,9 @@ test_2x2v(int poly_order)
 
 
 // special note, the p1 basis does not function
-void test_2x2v_p2() { test_2x2v(2); }
+void test_canonical_pb_equilibrium_2x2v_p2_ho() { test_2x2v(2); }
 
 TEST_LIST = {
-  {"test_2x2v_p2", test_2x2v_p2},
+  {"test_canonical_pb_equilibrium_2x2v_p2_ho", test_canonical_pb_equilibrium_2x2v_p2_ho},
   {NULL, NULL},
 };

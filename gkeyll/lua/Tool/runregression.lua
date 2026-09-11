@@ -720,8 +720,15 @@ local function list_tests(activeLayers, args)
                      for dir, fn, _ in dirtree(ro) do addLuaTest(dir .. "/" .. fn) end
                   end
                else
-                  -- Bare test name (e.g. "rt_euler_sodshock"): search this layer's luareg/.
-                  local candidate = luaregDir .. "/" .. ro .. ".lua"
+                  -- Bare test name (e.g. "rt_euler_sodshock") or a layer-qualified
+                  -- name without extension (e.g. "moments/luareg/rt_euler_sodshock",
+                  -- as printed by 'list' and in error messages): strip any leading
+                  -- "<layer>/luareg/" so we don't double the directory component.
+                  -- Also strip a trailing ".lua" so a name given with the extension
+                  -- (e.g. "rt_euler_sodshock.lua") doesn't get doubled either.
+                  local base = ro:match("^" .. layer.name .. "/luareg/(.+)$") or ro
+                  base = base:match("^(.+)%.lua$") or base
+                  local candidate = luaregDir .. "/" .. base .. ".lua"
                   if lfs.attributes(candidate) then
                      runOnlyFound[ro] = true
                      addLuaTest(candidate)
@@ -795,8 +802,15 @@ local function list_tests(activeLayers, args)
                      end
                   end
                else
-                  -- Bare test name (e.g. "rt_10m_sodshock"): search this layer's creg/.
-                  local candidate = cregSrcDir .. "/" .. ro .. ".c"
+                  -- Bare test name (e.g. "rt_10m_sodshock") or a layer-qualified
+                  -- name without extension (e.g. "gyrokinetic/creg/rt_gk_sheath_2x2v_p1",
+                  -- as printed by 'list' and in error messages): strip any leading
+                  -- "<layer>/creg/" so we don't double the directory component.
+                  -- Also strip a trailing ".c" so a name given with the extension
+                  -- (e.g. "rt_10m_sodshock.c") doesn't get doubled either.
+                  local base = ro:match("^" .. layer.name .. "/creg/(.+)$") or ro
+                  base = base:match("^(.+)%.c$") or base
+                  local candidate = cregSrcDir .. "/" .. base .. ".c"
                   if lfs.attributes(candidate) then
                      runOnlyFound[ro] = true
                      addCTest(candidate)
@@ -1094,6 +1108,12 @@ local function executeBatch(items)
          :gsub("\n?__END__:%d+\n?",   "\n")
       local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$")) or 0
       local runlog   = stripped:gsub("\n?__EXIT__:%d+%s*$", "")
+      -- Guarantee a trailing newline so whatever runregression logs next
+      -- (e.g. "... saving accepted results" or the first "Comparing" line)
+      -- doesn't get glued onto the test's own last line of output.
+      if runlog ~= "" and runlog:sub(-1) ~= "\n" then
+         runlog = runlog .. "\n"
+      end
 
       table.insert(results, {
          runtm    = runtm,
@@ -1322,6 +1342,9 @@ local function create_action(test, runDir, testType)
    local aDir = acceptedDir(test, testType)
    log(string.format("... saving accepted results to %s ...\n", aDir))
    mkdir(aDir)
+   -- Remove any stale accepted files first, so append-mode dynvector files
+   -- from a previous campaign can't linger and merge with the fresh copy.
+   os.execute(string.format("rm -f '%s'/*.gkyl 2>/dev/null", aDir))
    -- Copy all .gkyl output files from the scratch directory to the accepted dir.
    os.execute(string.format("cp -f '%s'/*.gkyl '%s/' 2>/dev/null", runDir, aDir))
    return -2

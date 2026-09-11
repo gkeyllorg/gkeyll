@@ -1290,52 +1290,52 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
 }
 
 // Check the 1x1v_p1/2 continuity
-void test_1x1v_p1_continuity_tensor() { test_1x1v(1, GKYL_BASIS_MODAL_TENSOR); }
-void test_1x1v_p1_continuity_ser() { test_1x1v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
-void test_1x1v_p2_continuity_tensor() { test_1x1v(2, GKYL_BASIS_MODAL_TENSOR); }
-void test_1x1v_p2_continuity_ser() { test_1x1v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_canonical_pb_1x1v_p1_continuity_tensor_ho() { test_1x1v(1, GKYL_BASIS_MODAL_TENSOR); }
+void test_canonical_pb_1x1v_p1_continuity_ser_ho() { test_1x1v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_canonical_pb_1x1v_p2_continuity_tensor_ho() { test_1x1v(2, GKYL_BASIS_MODAL_TENSOR); }
+void test_canonical_pb_1x1v_p2_continuity_ser_ho() { test_1x1v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
 // Check the 1x2v_p1/2 continuity
-void test_1x2v_p1_continuity_tensor() { test_1x2v(1, GKYL_BASIS_MODAL_TENSOR); }
-void test_1x2v_p1_continuity_ser() { test_1x2v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
-void test_1x2v_p2_continuity_tensor() { test_1x2v(2, GKYL_BASIS_MODAL_TENSOR); }
-void test_1x2v_p2_continuity_ser() { test_1x2v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_canonical_pb_1x2v_p1_continuity_tensor_ho() { test_1x2v(1, GKYL_BASIS_MODAL_TENSOR); }
+void test_canonical_pb_1x2v_p1_continuity_ser_ho() { test_1x2v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_canonical_pb_1x2v_p2_continuity_tensor_ho() { test_1x2v(2, GKYL_BASIS_MODAL_TENSOR); }
+void test_canonical_pb_1x2v_p2_continuity_ser_ho() { test_1x2v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
 // Check the 1x3v_p1/2 continuity
-void test_1x3v_p1_continuity_tensor() { test_1x3v(1, GKYL_BASIS_MODAL_TENSOR); }
-void test_1x3v_p1_continuity_ser() { test_1x3v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
-void test_1x3v_p2_continuity_tensor() { test_1x3v(2, GKYL_BASIS_MODAL_TENSOR); }
-void test_1x3v_p2_continuity_ser() { test_1x3v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_canonical_pb_1x3v_p1_continuity_tensor_ho() { test_1x3v(1, GKYL_BASIS_MODAL_TENSOR); }
+void test_canonical_pb_1x3v_p1_continuity_ser_ho() { test_1x3v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_canonical_pb_1x3v_p2_continuity_tensor_ho() { test_1x3v(2, GKYL_BASIS_MODAL_TENSOR); }
+void test_canonical_pb_1x3v_p2_continuity_ser_ho() { test_1x3v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
 // Check the 2x2v_p1/2 continuity
-void test_2x2v_p1_continuity_tensor() { test_2x2v(1, GKYL_BASIS_MODAL_TENSOR); }
-void test_2x2v_p1_continuity_ser() { test_2x2v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
-void test_2x2v_p2_continuity_tensor() { test_2x2v(2, GKYL_BASIS_MODAL_TENSOR); }
-void test_2x2v_p2_continuity_ser() { test_2x2v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_canonical_pb_2x2v_p1_continuity_tensor_ho() { test_2x2v(1, GKYL_BASIS_MODAL_TENSOR); }
+void test_canonical_pb_2x2v_p1_continuity_ser_ho() { test_2x2v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_canonical_pb_2x2v_p2_continuity_tensor_ho() { test_2x2v(2, GKYL_BASIS_MODAL_TENSOR); }
+void test_canonical_pb_2x2v_p2_continuity_ser_ho() { test_2x2v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
 // Check the 2x3v_p1/2 continuity
-void test_2x3v_p1_continuity_tensor() { test_2x3v(1, GKYL_BASIS_MODAL_TENSOR); }
-void test_2x3v_p1_continuity_ser() { test_2x3v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
-void test_2x3v_p2_continuity_ser() { test_2x3v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_canonical_pb_2x3v_p1_continuity_tensor_ho() { test_2x3v(1, GKYL_BASIS_MODAL_TENSOR); }
+void test_canonical_pb_2x3v_p1_continuity_ser_ho() { test_2x3v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_canonical_pb_2x3v_p2_continuity_ser_ho() { test_2x3v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
 // Check the 3x3v p1 (tensor only)
-void test_3x3v_p1_continuity_tensor() { test_3x3v(1, GKYL_BASIS_MODAL_TENSOR); }
+void test_canonical_pb_3x3v_p1_continuity_tensor_ho() { test_3x3v(1, GKYL_BASIS_MODAL_TENSOR); }
 
 TEST_LIST = {
-  {"test_1x1v_p1_continuity_ten", test_1x1v_p1_continuity_tensor},
-  {"test_1x1v_p1_continuity_hyb", test_1x1v_p1_continuity_ser},
-  {"test_1x1v_p2_continuity_ten", test_1x1v_p2_continuity_tensor},
-  {"test_1x1v_p2_continuity_ser", test_1x1v_p2_continuity_ser},
-  {"test_1x2v_p1_continuity_ten", test_1x2v_p1_continuity_tensor},
-  {"test_1x2v_p1_continuity_hyb", test_1x2v_p1_continuity_ser},
-  {"test_1x2v_p2_continuity_ten", test_1x2v_p2_continuity_tensor},
-  {"test_1x2v_p2_continuity_ser", test_1x2v_p2_continuity_ser},
-  {"test_1x3v_p1_continuity_ten", test_1x3v_p1_continuity_tensor},
-  {"test_1x3v_p1_continuity_hyb", test_1x3v_p1_continuity_ser},
-  {"test_1x3v_p2_continuity_ten", test_1x3v_p2_continuity_tensor},
-  {"test_1x3v_p2_continuity_ser", test_1x3v_p2_continuity_ser},
-  {"test_2x2v_p1_continuity_ten", test_2x2v_p1_continuity_tensor},
-  {"test_2x2v_p1_continuity_hyb", test_2x2v_p1_continuity_ser},
-  {"test_2x2v_p2_continuity_ten", test_2x2v_p2_continuity_tensor},
-  {"test_2x2v_p2_continuity_ser", test_2x2v_p2_continuity_ser},
-  {"test_2x3v_p1_continuity_ten", test_2x3v_p1_continuity_tensor},
-  {"test_2x3v_p1_continuity_hyb", test_2x3v_p1_continuity_ser},
-  {"test_2x3v_p2_continuity_ser", test_2x3v_p2_continuity_ser},
-  {"test_3x3v_p1_continuity_ten", test_3x3v_p1_continuity_tensor},
+  {"test_canonical_pb_1x1v_p1_continuity_tensor_ho", test_canonical_pb_1x1v_p1_continuity_tensor_ho},
+  {"test_canonical_pb_1x1v_p1_continuity_ser_ho", test_canonical_pb_1x1v_p1_continuity_ser_ho},
+  {"test_canonical_pb_1x1v_p2_continuity_tensor_ho", test_canonical_pb_1x1v_p2_continuity_tensor_ho},
+  {"test_canonical_pb_1x1v_p2_continuity_ser_ho", test_canonical_pb_1x1v_p2_continuity_ser_ho},
+  {"test_canonical_pb_1x2v_p1_continuity_tensor_ho", test_canonical_pb_1x2v_p1_continuity_tensor_ho},
+  {"test_canonical_pb_1x2v_p1_continuity_ser_ho", test_canonical_pb_1x2v_p1_continuity_ser_ho},
+  {"test_canonical_pb_1x2v_p2_continuity_tensor_ho", test_canonical_pb_1x2v_p2_continuity_tensor_ho},
+  {"test_canonical_pb_1x2v_p2_continuity_ser_ho", test_canonical_pb_1x2v_p2_continuity_ser_ho},
+  {"test_canonical_pb_1x3v_p1_continuity_tensor_ho", test_canonical_pb_1x3v_p1_continuity_tensor_ho},
+  {"test_canonical_pb_1x3v_p1_continuity_ser_ho", test_canonical_pb_1x3v_p1_continuity_ser_ho},
+  {"test_canonical_pb_1x3v_p2_continuity_tensor_ho", test_canonical_pb_1x3v_p2_continuity_tensor_ho},
+  {"test_canonical_pb_1x3v_p2_continuity_ser_ho", test_canonical_pb_1x3v_p2_continuity_ser_ho},
+  {"test_canonical_pb_2x2v_p1_continuity_tensor_ho", test_canonical_pb_2x2v_p1_continuity_tensor_ho},
+  {"test_canonical_pb_2x2v_p1_continuity_ser_ho", test_canonical_pb_2x2v_p1_continuity_ser_ho},
+  {"test_canonical_pb_2x2v_p2_continuity_tensor_ho", test_canonical_pb_2x2v_p2_continuity_tensor_ho},
+  {"test_canonical_pb_2x2v_p2_continuity_ser_ho", test_canonical_pb_2x2v_p2_continuity_ser_ho},
+  {"test_canonical_pb_2x3v_p1_continuity_tensor_ho", test_canonical_pb_2x3v_p1_continuity_tensor_ho},
+  {"test_canonical_pb_2x3v_p1_continuity_ser_ho", test_canonical_pb_2x3v_p1_continuity_ser_ho},
+  {"test_canonical_pb_2x3v_p2_continuity_ser_ho", test_canonical_pb_2x3v_p2_continuity_ser_ho},
+  {"test_canonical_pb_3x3v_p1_continuity_tensor_ho", test_canonical_pb_3x3v_p1_continuity_tensor_ho},
   {NULL, NULL},
 };

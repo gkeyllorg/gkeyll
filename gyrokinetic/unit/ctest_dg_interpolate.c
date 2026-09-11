@@ -2342,106 +2342,106 @@ void test_3x2v_gk_hodev(bool use_gpu)
   test_3x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
-void test_1x_ho()
+void test_dg_interpolate_1x_ho()
 {
   test_1x_hodev(false);
 }
 
-void test_2x_ho()
+void test_dg_interpolate_2x_ho()
 {
   test_2x_hodev(false);
 }
 
-void test_1x1v_vlasov_ho()
+void test_dg_interpolate_1x1v_vlasov_ho()
 {
   test_1x1v_vlasov_hodev(false);
 }
 
-void test_1x2v_vlasov_ho()
+void test_dg_interpolate_1x2v_vlasov_ho()
 {
   test_1x2v_vlasov_hodev(false);
 }
 
-void test_1x1v_gk_ho()
+void test_dg_interpolate_1x1v_gk_ho()
 {
   test_1x1v_gk_hodev(false);
 }
 
-void test_1x2v_gk_ho()
+void test_dg_interpolate_1x2v_gk_ho()
 {
   test_1x2v_gk_hodev(false);
 }
 
-void test_2x2v_gk_ho()
+void test_dg_interpolate_2x2v_gk_ho()
 {
   test_2x2v_gk_hodev(false);
 }
 
-void test_3x2v_gk_ho()
+void test_dg_interpolate_3x2v_gk_ho()
 {
   test_3x2v_gk_hodev(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_1x_dev()
+void test_dg_interpolate_1x_dev()
 {
   test_1x_hodev(true);
 }
 
-void test_2x_dev()
+void test_dg_interpolate_2x_dev()
 {
   test_2x_hodev(true);
 }
 
-void test_1x1v_vlasov_dev()
+void test_dg_interpolate_1x1v_vlasov_dev()
 {
   test_1x1v_vlasov_hodev(true);
 }
 
-void test_1x2v_vlasov_dev()
+void test_dg_interpolate_1x2v_vlasov_dev()
 {
   test_1x2v_vlasov_hodev(true);
 }
 
-void test_1x1v_gk_dev()
+void test_dg_interpolate_1x1v_gk_dev()
 {
   test_1x1v_gk_hodev(true);
 }
 
-void test_1x2v_gk_dev()
+void test_dg_interpolate_1x2v_gk_dev()
 {
   test_1x2v_gk_hodev(true);
 }
 
-void test_2x2v_gk_dev()
+void test_dg_interpolate_2x2v_gk_dev()
 {
   test_2x2v_gk_hodev(true);
 }
 
-void test_3x2v_gk_dev()
+void test_dg_interpolate_3x2v_gk_dev()
 {
   test_3x2v_gk_hodev(true);
 }
 #endif
 
 TEST_LIST = {
-  { "test_1x_ho", test_1x_ho },
-  { "test_2x_ho", test_2x_ho },
-  { "test_1x1v_vlasov_ho", test_1x1v_vlasov_ho },
-  { "test_1x2v_vlasov_ho", test_1x2v_vlasov_ho },
-  { "test_1x1v_gk_ho", test_1x1v_gk_ho },
-  { "test_1x2v_gk_ho", test_1x2v_gk_ho },
-  { "test_2x2v_gk_ho", test_2x2v_gk_ho },
-  { "test_3x2v_gk_ho", test_3x2v_gk_ho },
+  { "test_dg_interpolate_1x_ho", test_dg_interpolate_1x_ho },
+  { "test_dg_interpolate_2x_ho", test_dg_interpolate_2x_ho },
+  { "test_dg_interpolate_1x1v_vlasov_ho", test_dg_interpolate_1x1v_vlasov_ho },
+  { "test_dg_interpolate_1x2v_vlasov_ho", test_dg_interpolate_1x2v_vlasov_ho },
+  { "test_dg_interpolate_1x1v_gk_ho", test_dg_interpolate_1x1v_gk_ho },
+  { "test_dg_interpolate_1x2v_gk_ho", test_dg_interpolate_1x2v_gk_ho },
+  { "test_dg_interpolate_2x2v_gk_ho", test_dg_interpolate_2x2v_gk_ho },
+  { "test_dg_interpolate_3x2v_gk_ho", test_dg_interpolate_3x2v_gk_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x_dev", test_1x_dev },
-  { "test_2x_dev", test_2x_dev },
-  { "test_1x1v_vlasov_dev", test_1x1v_vlasov_dev },
-  { "test_1x2v_vlasov_dev", test_1x2v_vlasov_dev },
-  { "test_1x1v_gk_dev", test_1x1v_gk_dev },
-  { "test_1x2v_gk_dev", test_1x2v_gk_dev },
-  { "test_2x2v_gk_dev", test_2x2v_gk_dev },
-  { "test_3x2v_gk_dev", test_3x2v_gk_dev },
+  { "test_dg_interpolate_1x_dev", test_dg_interpolate_1x_dev },
+  { "test_dg_interpolate_2x_dev", test_dg_interpolate_2x_dev },
+  { "test_dg_interpolate_1x1v_vlasov_dev", test_dg_interpolate_1x1v_vlasov_dev },
+  { "test_dg_interpolate_1x2v_vlasov_dev", test_dg_interpolate_1x2v_vlasov_dev },
+  { "test_dg_interpolate_1x1v_gk_dev", test_dg_interpolate_1x1v_gk_dev },
+  { "test_dg_interpolate_1x2v_gk_dev", test_dg_interpolate_1x2v_gk_dev },
+  { "test_dg_interpolate_2x2v_gk_dev", test_dg_interpolate_2x2v_gk_dev },
+  { "test_dg_interpolate_3x2v_gk_dev", test_dg_interpolate_3x2v_gk_dev },
 #endif
   { NULL, NULL },
 };

@@ -85,7 +85,10 @@ gkyl_gk_collisionless_passive_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionl
         long loc_conf_ghost  = gkyl_range_idx(&conf_ext_range, idx_ghost);
         long loc_phase_ghost = gkyl_range_idx(&phase_ext_range, idx_ghost);
 
-        double *cflrate_ghost_d = (double*) gkyl_array_fetch(cflrate, loc_phase_ghost);
+        // Write into the skin cell's own cflrate (not the ghost cell's, which is excluded
+        // from the CFL reduction range). Use a max instead of accumulating since cflrate_d
+        // already holds this cell's lower-surface contribution from earlier in this dir loop.
+        double *cflrate_ghost_d = (double*) gkyl_array_fetch(cflrate, loc_phase);
         const double *f_skin  = (const double*) gkyl_array_cfetch(fin, loc_phase);
         const double *f_ghost = (const double*) gkyl_array_cfetch(fin, loc_phase_ghost);
 
@@ -100,12 +103,12 @@ gkyl_gk_collisionless_passive_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionl
 
         double *flux_surf_ghost_d = (double*) gkyl_array_fetch(flux_surf, loc_phase_ghost);
 
-        cflrate_ghost_d[0] += up->flux_surf_edge_up[dir](xc, up->phase_grid.dx,
+        cflrate_ghost_d[0] = GKYL_MAX2(cflrate_ghost_d[0], up->flux_surf_edge_up[dir](xc, up->phase_grid.dx,
           vmap_d, vmapSq_d, up->charge, up->mass,
           dgs_ghost, gkdgs_ghost, bmag_d,
           jacgeo_rat_surf_skin, jacgeo_rat_surf_ghost,
           speeds_skin, speeds_ghost,
-          f_skin, f_ghost, flux_surf_ghost_d);
+          f_skin, f_ghost, flux_surf_ghost_d));
       }
     }
     // No vpar loop: passive advection is conf-space only.

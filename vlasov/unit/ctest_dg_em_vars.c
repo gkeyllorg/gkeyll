@@ -936,50 +936,50 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   gkyl_dg_calc_em_vars_release(calc_ExB);
 }
 
-void test_1x_p1() { test(1, 8, 1, 1.0e-12, 0, 0, false); }
-void test_2x_p1() { test(2, 8, 1, 1.0e-12, 0, 0, false); }
-void test_3x_p1() { test(3, 4, 1, 1.0e-12, 0, 0, false); }
+void test_dg_em_vars_1x_p1_ho() { test(1, 8, 1, 1.0e-12, 0, 0, false); }
+void test_dg_em_vars_2x_p1_ho() { test(2, 8, 1, 1.0e-12, 0, 0, false); }
+void test_dg_em_vars_3x_p1_ho() { test(3, 4, 1, 1.0e-12, 0, 0, false); }
 
-void test_1x_p2() { test(1, 8, 2, 1.0e-12, 0, 0, false); }
+void test_dg_em_vars_1x_p2_ho() { test(1, 8, 2, 1.0e-12, 0, 0, false); }
 // Higher dimensions, p=2, *only* testing is b . b = 1 like we expect
-void test_2x_tensor_p2() { test(2, 8, 2, 1.0e-12, 1, 0, false); }
-void test_3x_tensor_p2() { test(3, 8, 2, 1.0e-12, 1, 0, false); }
+void test_dg_em_vars_2x_tensor_p2_ho() { test(2, 8, 2, 1.0e-12, 1, 0, false); }
+void test_dg_em_vars_3x_tensor_p2_ho() { test(3, 8, 2, 1.0e-12, 1, 0, false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_1x_p1_gpu() { test(1, 8, 1, 1.0e-12, 0, 0, true); }
-void test_2x_p1_gpu() { test(2, 8, 1, 1.0e-12, 0, 0, true); }
-void test_3x_p1_gpu() { test(3, 8, 1, 1.0e-12, 0, 0, true); }
+void test_dg_em_vars_1x_p1_dev() { test(1, 8, 1, 1.0e-12, 0, 0, true); }
+void test_dg_em_vars_2x_p1_dev() { test(2, 8, 1, 1.0e-12, 0, 0, true); }
+void test_dg_em_vars_3x_p1_dev() { test(3, 8, 1, 1.0e-12, 0, 0, true); }
 
-void test_1x_p2_gpu() { test(1, 8, 2, 1.0e-12, 0, 0, true); }
-void test_2x_tensor_p2_gpu() { test(2, 8, 2, 1.0e-12, 1, 0, true); }
-void test_3x_tensor_p2_gpu() { test(3, 8, 2, 1.0e-12, 1, 0, true); }
+void test_dg_em_vars_1x_p2_dev() { test(1, 8, 2, 1.0e-12, 0, 0, true); }
+void test_dg_em_vars_2x_tensor_p2_dev() { test(2, 8, 2, 1.0e-12, 1, 0, true); }
+void test_dg_em_vars_3x_tensor_p2_dev() { test(3, 8, 2, 1.0e-12, 1, 0, true); }
 
 
 #endif
 
 TEST_LIST = {
-  { "test_1x_p1", test_1x_p1 },
-  { "test_2x_p1", test_2x_p1 },
-  { "test_3x_p1", test_3x_p1 },
+  { "test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho },
+  { "test_dg_em_vars_2x_p1_ho", test_dg_em_vars_2x_p1_ho },
+  { "test_dg_em_vars_3x_p1_ho", test_dg_em_vars_3x_p1_ho },
 
-  { "test_1x_p2", test_1x_p2 },
+  { "test_dg_em_vars_1x_p2_ho", test_dg_em_vars_1x_p2_ho },
   // The tensor p2 bvar comparison is disabled (CPU and GPU): the em_vars
   // operator's positivity-control fallback keeps only the cell average of
   // b_i b_j in cells where b_i b_i is negative at control points, while the
   // bin_op reference here does the plain weak division everywhere, so they
   // disagree by design in those cells.
-  // { "test_2x_tensor_p2", test_2x_tensor_p2 },
-  // { "test_3x_tensor_p2", test_3x_tensor_p2 },
+  // { "test_dg_em_vars_2x_tensor_p2_ho", test_dg_em_vars_2x_tensor_p2_ho },
+  // { "test_dg_em_vars_3x_tensor_p2_ho", test_dg_em_vars_3x_tensor_p2_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x_p1_gpu", test_1x_p1_gpu },
-  { "test_2x_p1_gpu", test_2x_p1_gpu },
-  { "test_3x_p1_gpu", test_3x_p1_gpu },
+  { "test_dg_em_vars_1x_p1_dev", test_dg_em_vars_1x_p1_dev },
+  { "test_dg_em_vars_2x_p1_dev", test_dg_em_vars_2x_p1_dev },
+  { "test_dg_em_vars_3x_p1_dev", test_dg_em_vars_3x_p1_dev },
 
-  { "test_1x_p2_gpu", test_1x_p2_gpu },
+  { "test_dg_em_vars_1x_p2_dev", test_dg_em_vars_1x_p2_dev },
   // Disabled for the same positivity-fallback reason as the CPU tensor tests.
-  // { "test_2x_tensor_p2_gpu", test_2x_tensor_p2_gpu },
-  // { "test_3x_tensor_p2_gpu", test_3x_tensor_p2_gpu },
+  // { "test_dg_em_vars_2x_tensor_p2_dev", test_dg_em_vars_2x_tensor_p2_dev },
+  // { "test_dg_em_vars_3x_tensor_p2_dev", test_dg_em_vars_3x_tensor_p2_dev },
 
 #endif
   { NULL, NULL },

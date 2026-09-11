@@ -7,7 +7,7 @@
 #include <gkyl_gr_blackhole.h>
 
 void
-test_gr_mhd_tetrad_basic_minkowski()
+test_gr_mhd_tetrad_basic_minkowski_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -308,7 +308,7 @@ test_gr_mhd_tetrad_basic_minkowski()
 }
 
 void
-test_gr_mhd_tetrad_basic_schwarzschild()
+test_gr_mhd_tetrad_basic_schwarzschild_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -611,7 +611,7 @@ test_gr_mhd_tetrad_basic_schwarzschild()
 }
 
 void
-test_gr_mhd_tetrad_basic_kerr()
+test_gr_mhd_tetrad_basic_kerr_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -914,7 +914,7 @@ test_gr_mhd_tetrad_basic_kerr()
 }
 
 void
-test_gr_mhd_tetrad_waves_minkowski()
+test_gr_mhd_tetrad_waves_minkowski_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -1278,7 +1278,7 @@ test_gr_mhd_tetrad_waves_minkowski()
 }
 
 void
-test_gr_mhd_tetrad_waves_schwarzschild()
+test_gr_mhd_tetrad_waves_schwarzschild_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -1647,7 +1647,7 @@ test_gr_mhd_tetrad_waves_schwarzschild()
 }
 
 void
-test_gr_mhd_tetrad_waves_kerr()
+test_gr_mhd_tetrad_waves_kerr_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -2016,11 +2016,11 @@ test_gr_mhd_tetrad_waves_kerr()
 }
 
 TEST_LIST = {
-  { "gr_mhd_tetrad_basic_minkowski", test_gr_mhd_tetrad_basic_minkowski},
-  { "gr_mhd_tetrad_basic_schwarzschild", test_gr_mhd_tetrad_basic_schwarzschild },
-  { "gr_mhd_tetrad_basic_kerr", test_gr_mhd_tetrad_basic_kerr },
-  { "gr_mhd_tetrad_waves_minkowski", test_gr_mhd_tetrad_waves_minkowski },
-  { "gr_mhd_tetrad_waves_schwarzschild", test_gr_mhd_tetrad_waves_schwarzschild },
-  { "gr_mhd_tetrad_waves_kerr", test_gr_mhd_tetrad_waves_kerr },
+  { "gr_mhd_tetrad_basic_minkowski_ho", test_gr_mhd_tetrad_basic_minkowski_ho},
+  { "gr_mhd_tetrad_basic_schwarzschild_ho", test_gr_mhd_tetrad_basic_schwarzschild_ho },
+  { "gr_mhd_tetrad_basic_kerr_ho", test_gr_mhd_tetrad_basic_kerr_ho },
+  { "gr_mhd_tetrad_waves_minkowski_ho", test_gr_mhd_tetrad_waves_minkowski_ho },
+  { "gr_mhd_tetrad_waves_schwarzschild_ho", test_gr_mhd_tetrad_waves_schwarzschild_ho },
+  { "gr_mhd_tetrad_waves_kerr_ho", test_gr_mhd_tetrad_waves_kerr_ho },
   { NULL, NULL },
 };

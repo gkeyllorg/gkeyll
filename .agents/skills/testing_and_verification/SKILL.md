@@ -57,7 +57,6 @@ unit test (for example `mctest_mpi_comm.c`) may be run with
 
 # Running regression tests
 
-
 ## C regression tests
 
 Regression tests written in C and located in `creg/` directories need to be compiled first,
@@ -115,6 +114,19 @@ Run Lua inputs using the installed executable:
 ```sh
 <path_to_gkylsoft>/gkylsoft/gkeyll/bin/gkeyll <Lua_input_file>
 ```
+
+## The runregression tool
+
+After installing the Gkeyll library and executable one may use the `runregression` tool to run
+regression tests, see
+
+```sh
+<path_to_gkylsoft>/gkylsoft/gkeyll/bin/gkeyll runregression -h
+```
+
+After configuring runregression, and having generated accepted results with
+`runregression run create`, one may check the test using `runregression run check`. Note that the
+flag `-r` allows check a specific test or set of tests.
 
 # Memory checks
 

@@ -7,7 +7,7 @@
 #include <gkyl_gr_brill_lindquist.h>
 
 void
-test_gr_minkowski()
+test_gr_spacetime_minkowski_ho()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
@@ -321,7 +321,7 @@ test_gr_minkowski()
 }
 
 void
-test_gr_schwarzschild()
+test_gr_spacetime_schwarzschild_ho()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
 
@@ -673,7 +673,7 @@ test_gr_schwarzschild()
 }
 
 void
-test_gr_kerr()
+test_gr_spacetime_kerr_ho()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
 
@@ -1025,7 +1025,7 @@ test_gr_kerr()
 }
 
 void
-test_gr_neutronstar_static()
+test_gr_spacetime_neutronstar_static_ho()
 {
   double mass = 0.1;
   double spin = 0.0;
@@ -1306,7 +1306,7 @@ test_gr_neutronstar_static()
 }
 
 void
-test_gr_neutronstar_spinning()
+test_gr_spacetime_neutronstar_spinning_ho()
 {
   double mass = 0.1;
   double spin = -0.12;
@@ -1587,7 +1587,7 @@ test_gr_neutronstar_spinning()
 }
 
 void
-test_gr_brill_lindquist()
+test_gr_spacetime_brill_lindquist_ho()
 {
   double mass1 = 0.5;
   double mass2 = 0.5;
@@ -1865,11 +1865,11 @@ test_gr_brill_lindquist()
 }
 
 TEST_LIST = {
-  { "gr_minkowski", test_gr_minkowski },
-  { "gr_schwarzschild", test_gr_schwarzschild },
-  { "gr_kerr", test_gr_kerr },
-  { "gr_neutronstar_static", test_gr_neutronstar_static },
-  { "gr_neutronstar_spinning", test_gr_neutronstar_spinning },
-  { "gr_brill_lindquist", test_gr_brill_lindquist },
+  { "gr_spacetime_minkowski_ho", test_gr_spacetime_minkowski_ho },
+  { "gr_spacetime_schwarzschild_ho", test_gr_spacetime_schwarzschild_ho },
+  { "gr_spacetime_kerr_ho", test_gr_spacetime_kerr_ho },
+  { "gr_spacetime_neutronstar_static_ho", test_gr_spacetime_neutronstar_static_ho },
+  { "gr_spacetime_neutronstar_spinning_ho", test_gr_spacetime_neutronstar_spinning_ho },
+  { "gr_spacetime_brill_lindquist_ho", test_gr_spacetime_brill_lindquist_ho },
   { NULL, NULL },
 };

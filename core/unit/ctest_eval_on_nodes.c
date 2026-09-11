@@ -1347,49 +1347,49 @@ void test_2x2v_hyb(int poly_order, int test_func_op)
 }
 
 
-void test_1x_p1_quad() { test_1x(1, 0); };
-void test_1x_p1_trig() { test_1x(1, 1); };
-void test_1x1v_hyb_quad() { test_1x1v_hyb(1, 0); };
-void test_1x1v_hyb_trig() { test_1x1v_hyb(1, 1); };
-void test_2x_p1_quad() { test_2x(1, 0); };
-void test_2x_p1_trig() { test_2x(1, 1); };
-void test_3x_p1_quad() { test_3x(1, 0); };
-void test_3x_p1_trig() { test_3x(1, 1); };
-void test_4x_p1_quad() { test_4x(1, 0); };
-void test_4x_p1_trig() { test_4x(1, 1); };
-void test_2x2v_hyb_quad() { test_2x2v_hyb(1, 0); };
-void test_2x2v_hyb_trig() { test_2x2v_hyb(1, 1); };
+void test_eval_on_nodes_1x_p1_quad_ho() { test_1x(1, 0); };
+void test_eval_on_nodes_1x_p1_trig_ho() { test_1x(1, 1); };
+void test_eval_on_nodes_1x1v_hyb_quad_ho() { test_1x1v_hyb(1, 0); };
+void test_eval_on_nodes_1x1v_hyb_trig_ho() { test_1x1v_hyb(1, 1); };
+void test_eval_on_nodes_2x_p1_quad_ho() { test_2x(1, 0); };
+void test_eval_on_nodes_2x_p1_trig_ho() { test_2x(1, 1); };
+void test_eval_on_nodes_3x_p1_quad_ho() { test_3x(1, 0); };
+void test_eval_on_nodes_3x_p1_trig_ho() { test_3x(1, 1); };
+void test_eval_on_nodes_4x_p1_quad_ho() { test_4x(1, 0); };
+void test_eval_on_nodes_4x_p1_trig_ho() { test_4x(1, 1); };
+void test_eval_on_nodes_2x2v_hyb_quad_ho() { test_2x2v_hyb(1, 0); };
+void test_eval_on_nodes_2x2v_hyb_trig_ho() { test_2x2v_hyb(1, 1); };
 
-void test_1x_p2_quad() { test_1x(2, 0); };
-void test_1x_p2_trig() { test_1x(2, 1); };
-void test_2x_p2_quad() { test_2x(2, 0); };
-void test_2x_p2_trig() { test_2x(2, 1); };
-void test_3x_p2_quad() { test_3x(2, 0); };
-void test_3x_p2_trig() { test_3x(2, 1); };
-void test_4x_p2_quad() { test_4x(2, 0); };
-void test_4x_p2_trig() { test_4x(2, 1); };
+void test_eval_on_nodes_1x_p2_quad_ho() { test_1x(2, 0); };
+void test_eval_on_nodes_1x_p2_trig_ho() { test_1x(2, 1); };
+void test_eval_on_nodes_2x_p2_quad_ho() { test_2x(2, 0); };
+void test_eval_on_nodes_2x_p2_trig_ho() { test_2x(2, 1); };
+void test_eval_on_nodes_3x_p2_quad_ho() { test_3x(2, 0); };
+void test_eval_on_nodes_3x_p2_trig_ho() { test_3x(2, 1); };
+void test_eval_on_nodes_4x_p2_quad_ho() { test_4x(2, 0); };
+void test_eval_on_nodes_4x_p2_trig_ho() { test_4x(2, 1); };
 
 TEST_LIST = {
-  { "test_1x_p1_quad", test_1x_p1_quad },
-  { "test_1x_p1_trig", test_1x_p1_trig },
-  { "test_1x1v_hyb_quad", test_1x1v_hyb_quad },
-  { "test_1x1v_hyb_trig", test_1x1v_hyb_trig },
-  { "test_2x_p1_quad", test_2x_p1_quad },
-  { "test_2x_p1_trig", test_2x_p1_trig },
-  { "test_3x_p1_quad", test_3x_p1_quad },
-  { "test_3x_p1_trig", test_3x_p1_trig },
-  { "test_4x_p1_quad", test_4x_p1_quad },
-  { "test_4x_p1_trig", test_4x_p1_trig },
-  { "test_2x2v_hyb_quad", test_2x2v_hyb_quad },
-  { "test_2x2v_hyb_trig", test_2x2v_hyb_trig },
+  { "test_eval_on_nodes_1x_p1_quad_ho", test_eval_on_nodes_1x_p1_quad_ho },
+  { "test_eval_on_nodes_1x_p1_trig_ho", test_eval_on_nodes_1x_p1_trig_ho },
+  { "test_eval_on_nodes_1x1v_hyb_quad_ho", test_eval_on_nodes_1x1v_hyb_quad_ho },
+  { "test_eval_on_nodes_1x1v_hyb_trig_ho", test_eval_on_nodes_1x1v_hyb_trig_ho },
+  { "test_eval_on_nodes_2x_p1_quad_ho", test_eval_on_nodes_2x_p1_quad_ho },
+  { "test_eval_on_nodes_2x_p1_trig_ho", test_eval_on_nodes_2x_p1_trig_ho },
+  { "test_eval_on_nodes_3x_p1_quad_ho", test_eval_on_nodes_3x_p1_quad_ho },
+  { "test_eval_on_nodes_3x_p1_trig_ho", test_eval_on_nodes_3x_p1_trig_ho },
+  { "test_eval_on_nodes_4x_p1_quad_ho", test_eval_on_nodes_4x_p1_quad_ho },
+  { "test_eval_on_nodes_4x_p1_trig_ho", test_eval_on_nodes_4x_p1_trig_ho },
+  { "test_eval_on_nodes_2x2v_hyb_quad_ho", test_eval_on_nodes_2x2v_hyb_quad_ho },
+  { "test_eval_on_nodes_2x2v_hyb_trig_ho", test_eval_on_nodes_2x2v_hyb_trig_ho },
 //
-  { "test_1x_p2_quad", test_1x_p2_quad },
-  { "test_1x_p2_trig", test_1x_p2_trig },
-  { "test_2x_p2_quad", test_2x_p2_quad },
-  { "test_2x_p2_trig", test_2x_p2_trig },
-  { "test_3x_p2_quad", test_3x_p2_quad },
-  { "test_3x_p2_trig", test_3x_p2_trig },
-  { "test_4x_p2_quad", test_4x_p2_quad },
-  { "test_4x_p2_trig", test_4x_p2_trig },
+  { "test_eval_on_nodes_1x_p2_quad_ho", test_eval_on_nodes_1x_p2_quad_ho },
+  { "test_eval_on_nodes_1x_p2_trig_ho", test_eval_on_nodes_1x_p2_trig_ho },
+  { "test_eval_on_nodes_2x_p2_quad_ho", test_eval_on_nodes_2x_p2_quad_ho },
+  { "test_eval_on_nodes_2x_p2_trig_ho", test_eval_on_nodes_2x_p2_trig_ho },
+  { "test_eval_on_nodes_3x_p2_quad_ho", test_eval_on_nodes_3x_p2_quad_ho },
+  { "test_eval_on_nodes_3x_p2_trig_ho", test_eval_on_nodes_3x_p2_trig_ho },
+  { "test_eval_on_nodes_4x_p2_quad_ho", test_eval_on_nodes_4x_p2_quad_ho },
+  { "test_eval_on_nodes_4x_p2_trig_ho", test_eval_on_nodes_4x_p2_trig_ho },
   { NULL, NULL },
 };

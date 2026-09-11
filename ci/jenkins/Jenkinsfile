@@ -157,6 +157,7 @@ properties([
 // deliberately run a specific contributor's PR on a personal machine.
 def nodes = [
     'manauref_lt1': [mkdeps: 'mkdeps.macos.sh', configure: 'configure.macos.sh', allowedPrAuthors: ['manauref']],
+    'antoine_mac': [mkdeps: 'mkdeps.macos.sh', configure: 'configure.macos.sh', allowedPrAuthors: ['Antoinehoff']],
 ]
 
 // Every controller running this Jenkinsfile shares the `nodes` map above,

@@ -81,7 +81,7 @@ bmag_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, 
 }
 
 void
-test_position_map_init_1x()
+test_position_map_init_1x_ho()
 {
   int cells[] = {32};
   int poly_order = 1;
@@ -119,7 +119,7 @@ test_position_map_init_1x()
 
 
 void
-test_position_map_init_1x_null()
+test_position_map_init_1x_null_ho()
 {
   int cells[] = {8};
   int poly_order = 1;
@@ -166,7 +166,7 @@ test_position_map_init_1x_null()
 }
 
 void
-test_position_map_init_2x()
+test_position_map_init_2x_ho()
 {
   int cells[] = {8,8};
   int poly_order = 1;
@@ -203,7 +203,7 @@ test_position_map_init_2x()
 }
 
 void
-test_position_map_init_3x()
+test_position_map_init_3x_ho()
 {
   int cells[] = {8, 8, 8};
   int poly_order = 1;
@@ -240,7 +240,7 @@ test_position_map_init_3x()
 }
 
 void
-test_position_map_set()
+test_position_map_set_ho()
 {
   int cells[] = {8, 8, 8};
   int poly_order = 1;
@@ -282,7 +282,7 @@ test_position_map_set()
 
 
 void
-test_gkyl_position_map_eval_mc2nu()
+test_position_map_eval_mc2nu_ho()
 {
   int cells[] = {8, 8, 8};
   int poly_order = 2;
@@ -340,7 +340,7 @@ test_gkyl_position_map_eval_mc2nu()
 
 
 void
-test_gkyl_position_map_slope()
+test_position_map_slope_ho()
 {
   int cells[] = {8, 8, 8};
   int poly_order = 2;
@@ -404,7 +404,7 @@ test_gkyl_position_map_slope()
 }
 
 void
-test_position_polynomial_map_optimize_1x()
+test_position_polynomial_map_optimize_1x_ho()
 {
   int cells[] = {64};
   int poly_order = 1;
@@ -463,7 +463,7 @@ test_position_polynomial_map_optimize_1x()
 }
 
 void
-test_position_map_numeric_optimize_1x()
+test_position_map_numeric_optimize_1x_ho()
 {
   int cells[] = {64};
   int poly_order = 1;
@@ -522,7 +522,7 @@ test_position_map_numeric_optimize_1x()
 
 
 void
-test_position_map_numeric_calculate_1x()
+test_position_map_numeric_calculate_1x_ho()
 {
   int cells[] = {64};
   int poly_order = 1;
@@ -696,16 +696,16 @@ test_set_compression()
 }
 
 TEST_LIST = {
-  { "test_position_map_init_1x", test_position_map_init_1x },
-  { "test_position_map_init_1x_null", test_position_map_init_1x_null },
-  { "test_position_map_init_2x", test_position_map_init_2x },
-  { "test_position_map_init_3x", test_position_map_init_3x },
-  { "test_position_map_set", test_position_map_set },
-  { "test_position_map_eval_mc2nu", test_gkyl_position_map_eval_mc2nu },
-  { "test_position_map_slope", test_gkyl_position_map_slope },
-  { "test_position_map_polynomial_optimize_1x", test_position_polynomial_map_optimize_1x },
-  { "test_position_map_numeric_optimize_1x", test_position_map_numeric_optimize_1x },
-  { "test_position_map_numeric_calculate_1x", test_position_map_numeric_calculate_1x },
+  { "test_position_map_init_1x_ho", test_position_map_init_1x_ho },
+  { "test_position_map_init_1x_null_ho", test_position_map_init_1x_null_ho },
+  { "test_position_map_init_2x_ho", test_position_map_init_2x_ho },
+  { "test_position_map_init_3x_ho", test_position_map_init_3x_ho },
+  { "test_position_map_set_ho", test_position_map_set_ho },
+  { "test_position_map_eval_mc2nu_ho", test_position_map_eval_mc2nu_ho }, 
+  { "test_position_map_slope_ho", test_position_map_slope_ho },
+  { "test_position_polynomial_map_optimize_1x_ho", test_position_polynomial_map_optimize_1x_ho },
+  { "test_position_map_numeric_optimize_1x_ho", test_position_map_numeric_optimize_1x_ho },
+  { "test_position_map_numeric_calculate_1x_ho", test_position_map_numeric_calculate_1x_ho },
   { "test_position_map_null_map_is_identity", test_null_map_is_identity },
   { "test_position_map_inew_constructor", test_inew_constructor },
   { "test_position_map_acquire_refcount", test_acquire_refcount },
