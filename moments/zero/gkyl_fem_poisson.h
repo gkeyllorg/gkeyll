@@ -59,6 +59,19 @@ void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, co
 void gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout);
 
 /**
+ * Apply the LHS operator, i.e. compute xout = M^{-1}*(M+K)*xin where M is the
+ * mass matrix and M+K is the (Helmholtz) LHS matrix. With epsilon=rho^2 and
+ * kSq=-1 this returns the weak image of (1 - rho^2*Lap)*xin. Assumes xin is
+ * continuous (in the FEM space) and requires a Helmholtz solver (kSq!=NULL).
+ * Runs on the CPU (SuperLU) or GPU (cuDSS/cuSPARSE).
+ *
+ * @param up FEM poisson updater to run.
+ * @param xin Continuous DG field to apply the operator to.
+ * @param xout DG field holding the result.
+ */
+void gkyl_fem_poisson_lhs_apply(gkyl_fem_poisson* up, struct gkyl_array *xin, struct gkyl_array *xout);
+
+/**
  * Delete updater.
  *
  * @param up Updater to delete.

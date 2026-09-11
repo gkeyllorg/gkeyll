@@ -319,3 +319,19 @@ gkyl_fem_poisson_solve_cu(gkyl_fem_poisson *up, struct gkyl_array *phiout)
     x_cu, *up->solve_range, up->kernels_cu); 
 }
 
+void
+gkyl_fem_poisson_lhs_apply_cu(gkyl_fem_poisson *up, struct gkyl_array *xin, struct gkyl_array *xout)
+{
+  // Recover the global nodal vector x_nodal = M^{-1}*(M_src*xin).
+  gkyl_fem_poisson_set_rhs(up->mass, xin, NULL);
+  gkyl_culinsolver_solve(up->mass->prob_cu);
+  gkyl_culinsolver_sync(up->mass->prob_cu);
+  double *x_nodal = gkyl_culinsolver_get_sol_ptr(up->mass->prob_cu, 0);
+
+  // Dual d = (M+K)*x_nodal, then solve M*z = d (-> modal xout).
+  gkyl_culinsolver_mat_vec(up->prob_cu, x_nodal, up->lhs_dual_cu);
+  double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->mass->prob_cu, 0);
+  gkyl_cu_memcpy(rhs_cu, up->lhs_dual_cu, sizeof(double)*up->numnodes_global, GKYL_CU_MEMCPY_D2D);
+  gkyl_fem_poisson_solve(up->mass, xout);
+}
+

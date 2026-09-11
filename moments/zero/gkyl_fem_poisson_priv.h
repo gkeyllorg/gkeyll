@@ -1959,12 +1959,24 @@ struct gkyl_fem_poisson {
 
   int num_bias_plane; // Number of biased planes.
   struct gkyl_poisson_bias_plane *bias_planes; // Biased planes.
-  bias_src_func_t bias_plane_src; // Function to enforce biasing in RHS source. 
+  bias_src_func_t bias_plane_src; // Function to enforce biasing in RHS source.
+
+  // Objects to apply the LHS operator (M+K), used to apply 1-rho^2*Lap.
+  bool has_lhs_apply; // Whether the LHS-apply objects are allocated.
+  struct gkyl_poisson_bc bcs; // Saved BCs (used to build the mass solver).
+  struct gkyl_poisson_bias_plane_list bias_list_ho; // Host-side copy of the bias
+                                                    // plane list (used to build the mass solver).
+  struct gkyl_fem_poisson *mass; // Mass-matrix (M) solver for the LHS apply.
+  double *lhs_dual; // Host global dual (M+K)*x vector.
+  double *lhs_dual_cu; // Device global dual (M+K)*x vector.
 };
 
 void
 fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs,
   bool isvareps, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers);
+
+void
+gkyl_fem_poisson_lhs_apply_cu(gkyl_fem_poisson *up, struct gkyl_array *xin, struct gkyl_array *xout);
 
 static long
 gkyl_fem_poisson_global_num_nodes(const int dim, const int poly_order,

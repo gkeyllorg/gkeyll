@@ -1157,7 +1157,7 @@ struct gk_species {
   struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density.
   struct gkyl_array *flr_rhoSqD2; // Laplacian weight in FLR operator.
   struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
-  struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
+  struct gkyl_deflated_fem_poisson *flr_op; // Screened Poisson solver used to gyroaverage fields.
   // Pointer to function that performs the gyroaverage.
   void (*gyroaverage)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     struct gkyl_array *field_in, struct gkyl_array *field_gyroavg);
@@ -1360,13 +1360,14 @@ struct gk_field {
   struct gkyl_fem_parproj *fem_parproj_rho_core, *fem_parproj_phi_core; // FEM projection in the core.
 
   struct gkyl_fem_poisson_perp *fem_poisson_perp; // Solves - nabla . (epsilon * nabla phi) - kSq * phi = rho.
+  struct gkyl_poisson_bc poisson_bcs; // Boundary conditions for Poisson solver.
 
   // Objects needed for FLR effects.
   bool use_flr; // Whether to apply FLR effects.
-  void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi); // Function inverting  FLR  operator.
-  struct gkyl_array *flr_rhoSq_sum; // Laplacian weight in FLR operator.
-  struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
-  struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
+  void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi); // Function retrieving phi from the modified potential Phi_0 by inverting the FLR operator, i.e. applying A = 1 - rho^2*nabla_perp^2.
+  struct gkyl_array *flr_rhoSq; // rho^2 weight (times J*g^ij) in the perpendicular Laplacian of A.
+  struct gkyl_array *flr_kSq; // k^2=1 weight in the FLR operator.
+  struct gkyl_fem_poisson_perp *flr_op; // Apply the operator 1 - rho_i^2*nabla_perp^2 to invert the FLR operator.
 
   struct gkyl_array_integrate *calc_em_energy; // Operator computing EM energy.
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy

@@ -18,7 +18,7 @@ struct gk_app_ctx {
   // Geometry and magnetic field parameters
   double a_shift, Z_axis, R_axis, R0, a_mid, x_inner, r0, B0, kappa, delta, q0, Cy, Bref, x_LCFS;
   // Plasma parameters
-  double me, qe, mi, qi, n0, Te0, Ti0;
+  double me, qe, mi, qi, n0, Te0, Ti0, rho_i;
   // Collision parameters
   double nuFrac, nuElc, nuIon;
   // Source parameters
@@ -353,6 +353,7 @@ struct gk_app_ctx create_ctx(void)
   double c_s = sqrt(Te0/mi);
   double omega_ci = fabs(qi*B0/mi);
   double rho_s = c_s/omega_ci;
+  double rho_i = vti/omega_ci;
 
   // Configuration domain parameters 
   double Lx = Rmid_max-Rmid_min; // Domain size along x.
@@ -446,6 +447,7 @@ struct gk_app_ctx create_ctx(void)
     .me = me, .qe = qe,
     .mi = mi, .qi = qi,
     .n0 = n0, .Te0 = Te0, .Ti0 = Ti0,
+    .rho_i = rho_i,
     .nuFrac = nuFrac, .nuElc = nuElc, .nuIon = nuIon,
     .num_sources = num_sources,
 
@@ -625,6 +627,11 @@ main(int argc, char **argv)
       .collide_with = { "ion"},
     },
 
+    .flr = {
+      .type = GKYL_GK_FLR_PADE_CONST,
+      .Tperp = ctx.Te0,
+    },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
@@ -706,6 +713,11 @@ main(int argc, char **argv)
       .collide_with = { "elc"},
     },
 
+    .flr = {
+      .type = GKYL_GK_FLR_PADE_CONST,
+      .Tperp = ctx.Ti0,
+    },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
@@ -761,11 +773,6 @@ main(int argc, char **argv)
      .val = 0.0, // Biasing value.
     },
   };
-  
-  struct gkyl_poisson_bias_line_list bias_line_list = {
-    .num_bias_line = 2,
-    .bl = target_corner_bcs,
-  };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
@@ -775,8 +782,11 @@ main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
-    .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
+    .flr = {
+      .type = GKYL_GK_FLR_PADE_CONST,
+      .gyroradius = ctx.rho_i,
+    },
   };
 
   // Geometry

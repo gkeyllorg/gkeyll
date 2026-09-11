@@ -339,6 +339,8 @@ struct gkyl_gyrokinetic_flr {
   double Tperp; // Perp temperature used to evaluate gyroradius. 
   double bmag; // Magnetic field used to evaluate gyroradius. If not provided
                // it'll use B in the center of the domain.
+  double gyroradius; // Reference (e.g. main ion) gyroradius used in the field-level
+                     // operator retrieving phi from the modified potential.
 };
 
 struct gkyl_gyrokinetic_correct_inp {
@@ -587,6 +589,8 @@ struct gkyl_gyrokinetic_field {
   bool phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent  
 
   struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
+
+  struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
 };
 
 struct gkyl_gyrokinetic_eirene {

@@ -1,6 +1,7 @@
 #include <gkyl_fem_poisson.h>
 #include <gkyl_fem_poisson_priv.h>
 #include <gkyl_array_reduce.h>
+#include <math.h>
 
 static void
 fem_poisson_bias_src_disabled(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
@@ -61,6 +62,20 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   up->kernels_cu = up->kernels;
 #endif
 
+  up->has_lhs_apply = false;
+  up->bcs = *bcs;
+  // Keep a host-side copy of the bias plane list (used to build the mass
+  // solver in the LHS apply).
+  up->bias_list_ho.num_bias_plane = 0;
+  up->bias_list_ho.bp = 0;
+  if (bias_planes) {
+    if (bias_planes->num_bias_plane > 0) {
+      up->bias_list_ho.num_bias_plane = bias_planes->num_bias_plane;
+      size_t bp_sz = bias_planes->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane);
+      up->bias_list_ho.bp = gkyl_malloc(bp_sz);
+      memcpy(up->bias_list_ho.bp, bias_planes->bp, bp_sz);
+    }
+  }
   up->solve_range = solve_range;
   up->ndim = grid->ndim;
   up->grid = *grid;
@@ -403,8 +418,82 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
 }
 
+static void
+fem_poisson_lhs_apply_init(gkyl_fem_poisson *up)
+{
+  // Build a mass-matrix (M) solver: same operator with epsilon=0 and a constant
+  // kSq=-1 (so the LHS stencil reduces to the mass matrix).
+  struct gkyl_array *eps_zero, *kSq_mass;
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    eps_zero = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
+    kSq_mass = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_basis, up->epsilon->size);
+  } else {
+    eps_zero = gkyl_array_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
+    kSq_mass = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->epsilon->size);
+  }
+#else
+  eps_zero = gkyl_array_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
+  kSq_mass = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->epsilon->size);
+#endif
+  gkyl_array_clear(eps_zero, 0.0);
+  gkyl_array_clear(kSq_mass, 0.0);
+  gkyl_array_shiftc(kSq_mass, -pow(sqrt(2.0), up->ndim), 0);
+
+  // Bias the mass solver like the LHS so biased values pass through the apply.
+  struct gkyl_poisson_bias_plane_list *bias_list = up->bias_list_ho.num_bias_plane > 0? &up->bias_list_ho : NULL;
+  up->mass = gkyl_fem_poisson_new(up->solve_range, &up->grid, up->basis, &up->bcs, bias_list,
+    eps_zero, kSq_mass, true, up->use_gpu);
+
+  up->lhs_dual = gkyl_malloc(sizeof(double[up->numnodes_global]));
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    up->lhs_dual_cu = gkyl_cu_malloc(sizeof(double[up->numnodes_global]));
+#endif
+
+  gkyl_array_release(eps_zero);
+  gkyl_array_release(kSq_mass);
+  up->has_lhs_apply = true;
+}
+
+void
+gkyl_fem_poisson_lhs_apply(gkyl_fem_poisson* up, struct gkyl_array *xin, struct gkyl_array *xout)
+{
+  assert(up->ishelmholtz);
+  if (!up->has_lhs_apply) fem_poisson_lhs_apply_init(up);
+
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_fem_poisson_lhs_apply_cu(up, xin, xout);
+    return;
+  }
+#endif
+
+  // Recover the global nodal vector x_nodal = M^{-1}*(M_src*xin).
+  gkyl_fem_poisson_set_rhs(up->mass, xin, NULL);
+  gkyl_superlu_solve(up->mass->prob);
+  double *x_nodal = gkyl_superlu_get_rhs_ptr(up->mass->prob, 0);
+
+  // Dual d = (M+K)*x_nodal, then solve M*z = d (-> modal xout).
+  gkyl_superlu_mat_vec(up->prob, x_nodal, up->lhs_dual);
+  gkyl_superlu_brhs_from_array(up->mass->prob, up->lhs_dual);
+  gkyl_fem_poisson_solve(up->mass, xout);
+}
+
 void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 {
+  if (up->has_lhs_apply) {
+    gkyl_fem_poisson_release(up->mass);
+    gkyl_free(up->lhs_dual);
+#ifdef GKYL_HAVE_CUDA
+    if (up->use_gpu)
+      gkyl_cu_free(up->lhs_dual_cu);
+#endif
+  }
+
+  if (up->bias_list_ho.num_bias_plane > 0)
+    gkyl_free(up->bias_list_ho.bp);
+
   if (up->isdomperiodic) {
     gkyl_array_release(up->rhs_cellavg);
     gkyl_free(up->rhs_avg);
