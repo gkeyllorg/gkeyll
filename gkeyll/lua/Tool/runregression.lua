@@ -1108,6 +1108,12 @@ local function executeBatch(items)
          :gsub("\n?__END__:%d+\n?",   "\n")
       local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$")) or 0
       local runlog   = stripped:gsub("\n?__EXIT__:%d+%s*$", "")
+      -- Guarantee a trailing newline so whatever runregression logs next
+      -- (e.g. "... saving accepted results" or the first "Comparing" line)
+      -- doesn't get glued onto the test's own last line of output.
+      if runlog ~= "" and runlog:sub(-1) ~= "\n" then
+         runlog = runlog .. "\n"
+      end
 
       table.insert(results, {
          runtm    = runtm,
