@@ -61,7 +61,7 @@ CPU targets are located in `build/`, and  GPU targets are in `cuda-build/`.
 Match test targets to the configured build directory.
 
 For executing the resulting tests, see
-[testing_and_verification](../testing_and_verification/SKILL.md).
+[testing-and-verification](../testing-and-verification/SKILL.md).
 
 ### Compiling all or groups of C unit tests
 
@@ -72,11 +72,11 @@ unit tests at once run
 make -j"$NPROC" unit
 ```
 
-Alternatively, you can compile all the unit tests for a specific solver. For example, to compute all
+Alternatively, you can compile all the unit tests for a specific solver. For example, to compile all
 the unit tests for the gyrokinetic solver use
 
 ```sh
-make -j"$NPROC" unit-run
+make -j"$NPROC" gyrokinetic-unit
 ```
 
 ## Compiling C input files
@@ -89,12 +89,12 @@ in `gyrokinetic/creg/`, it can be compiled with
 make -j"$NPROC" build/gyrokinetic/creg/my_sim
 ```
 
-If the input file is outside of the repository, one needs to use the shared makefile in
-`<path_to_gkylsoft>/gkylsoft/gkeyll/share/`. For example, if `my_other_sim.c` is an input file in `$HOME/new_sim/`,
-compile it with: 
+If the input file is outside of the repository, use the shared makefile in
+`<gkeyll_install_prefix>/share/`. Run it from the directory containing the input
+file, using the installation prefix from the build configuration:
 
 ```sh
-cd ~
-cp <path_to_gkylsoft>/gkylsoft/gkeyll/share/Makefile ./
+cd <input_directory>
+cp <gkeyll_install_prefix>/share/Makefile ./
 make
 ```
