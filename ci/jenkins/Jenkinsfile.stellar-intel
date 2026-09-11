@@ -69,8 +69,12 @@ def submitUnitTests() {
                 --wait
                 "--job-name=gkyl-ci-${BUILD_NUMBER}"
                 --nodes=1
+                # make unit-run is launched once. Four CPUs for its one task
+                # supply the roughly 30 GB needed by the
+                # high-order 3x2v gyrokinetic interpolation unit test on
+                # Stellar (7.5 GB is the per-core default).
                 --ntasks=1
-                --cpus-per-task=1
+                --cpus-per-task=4
                 "--qos=${CI_STELLAR_QOS}"
                 "--time=${CI_STELLAR_TIME}"
                 "--output=${CI_WORKSPACE}/slurm-%j.out"

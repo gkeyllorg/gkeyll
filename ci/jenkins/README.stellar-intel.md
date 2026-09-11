@@ -66,11 +66,14 @@ sshare
 users but required for PPPL/CIMES users when their project policy requires
 `--account`.
 
-The initial job intentionally requests one CPU core because `make unit-run`
-does not distribute the full unit suite as a Slurm MPI job. Stellar may place
-requests of 47 cores or fewer in its low-priority serial queue. Do not request
-an entire 96-core node merely to bypass that queue; add a genuinely parallel
-test profile first.
+The initial job requests one task with four CPUs. `make unit-run` is launched
+only once and does not distribute the full suite as a Slurm MPI job; the
+four-CPU allocation is needed for its roughly 30 GB default memory allocation
+(Stellar allocates 7.5 GB per core by default). In particular,
+`test_dg_interpolate_3x2v_gk_ho` did not fit in a one-core allocation. Stellar
+may place requests of 47 cores or fewer in its low-priority serial queue. Do
+not request an entire 96-core node merely to bypass that queue; add a genuinely
+parallel test profile first.
 
 ## 2. Validate the cluster setup by hand
 
@@ -103,7 +106,7 @@ PREFIX="$PWD/../gkylsoft" ./machines/mkdeps.stellar-intel.sh
 module purge
 PREFIX="$PWD/../gkylsoft" ./machines/configure.stellar-intel.sh
 make -j32 unit
-sbatch --wait --qos pppl-short --nodes 1 --ntasks 1 --cpus-per-task 1 \
+sbatch --wait --qos pppl-short --nodes 1 --ntasks 1 --cpus-per-task 4 \
   --time 00:30:00 --chdir "$PWD" \
   --export=ALL,CI_WORKSPACE="$PWD" \
   ci/jenkins/slurm-unit-tests.stellar-intel.sh
