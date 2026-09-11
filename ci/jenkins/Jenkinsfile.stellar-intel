@@ -1,0 +1,137 @@
+// Manual, CPU-only Level-1 CI for Princeton's Stellar Intel cluster.
+//
+// Configure the Jenkins job to load *this file* from a reviewed, trusted CI
+// branch while Level 1 is being brought up. The PR checkout below is
+// intentionally separate: a pull request must not be able to replace the
+// pipeline that decides what SLURM work to submit. Once validated, the job can
+// move to main without changing this file.
+
+properties([
+    disableConcurrentBuilds(),
+    parameters([
+        string(
+            name: 'PR_NUMBER',
+            defaultValue: '',
+            trim: true,
+            description: 'Required GitHub pull-request number to build and test.'
+        )
+    ])
+])
+
+def requireEnv(String name) {
+    def value = env[name]?.trim()
+    if (!value) {
+        error("${name} is not configured. See ci/jenkins/README.stellar-intel.md.")
+    }
+    return value
+}
+
+def buildJobs() {
+    def value = (env.STELLAR_BUILD_JOBS ?: '3').trim()
+    if (!(value ==~ /[1-9][0-9]*/)) {
+        error("STELLAR_BUILD_JOBS must be a positive integer, got '${value}'.")
+    }
+    return value
+}
+
+def checkoutPullRequest(String credentialsId) {
+    checkout([
+        $class: 'GitSCM',
+        branches: [[name: "refs/remotes/origin/pr/${params.PR_NUMBER}"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
+        ],
+        userRemoteConfigs: [[
+            credentialsId: credentialsId,
+            refspec: "+refs/pull/${params.PR_NUMBER}/head:refs/remotes/origin/pr/${params.PR_NUMBER}",
+            url: 'https://github.com/gkeyllorg/gkeyll.git'
+        ]]
+    ])
+}
+
+def submitUnitTests() {
+    def qos = requireEnv('STELLAR_SLURM_QOS')
+    def timeLimit = (env.STELLAR_SLURM_TIME ?: '00:30:00').trim()
+    def account = env.STELLAR_SLURM_ACCOUNT?.trim()
+
+    withEnv([
+        "CI_WORKSPACE=${env.WORKSPACE}",
+        "CI_STELLAR_QOS=${qos}",
+        "CI_STELLAR_TIME=${timeLimit}",
+        "CI_STELLAR_ACCOUNT=${account ?: ''}"
+    ]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+
+            sbatch_args=(
+                --wait
+                "--job-name=gkyl-ci-${BUILD_NUMBER}"
+                --nodes=1
+                --ntasks=1
+                --cpus-per-task=1
+                "--qos=${CI_STELLAR_QOS}"
+                "--time=${CI_STELLAR_TIME}"
+                "--output=${CI_WORKSPACE}/slurm-%j.out"
+                "--chdir=${CI_WORKSPACE}"
+                "--export=ALL,CI_WORKSPACE=${CI_WORKSPACE}"
+            )
+            if [[ -n "${CI_STELLAR_ACCOUNT}" ]]; then
+                sbatch_args+=("--account=${CI_STELLAR_ACCOUNT}")
+            fi
+
+            sbatch "${sbatch_args[@]}" ci/jenkins/slurm-unit-tests.stellar-intel.sh
+        '''
+    }
+}
+
+if (!(params.PR_NUMBER ==~ /[1-9][0-9]*/)) {
+    error("PR_NUMBER must be a positive integer, got '${params.PR_NUMBER}'.")
+}
+
+def nodeLabel = (env.STELLAR_INTEL_NODE_LABEL ?: 'stellar-intel').trim()
+def workspaceRoot = requireEnv('CI_STELLAR_WORKSPACE_ROOT')
+def credentialsId = requireEnv('STELLAR_GITHUB_CREDENTIAL_ID')
+
+node(nodeLabel) {
+    // Stellar compute nodes must see this path. Configure the root on a shared
+    // filesystem such as the project's /scratch/gpfs location, never /tmp.
+    ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
+        try {
+            stage('Checkout PR') {
+                deleteDir()
+                checkoutPullRequest(credentialsId)
+                sh 'git rev-parse HEAD | tee ci-pr-commit.txt'
+                sh 'git status --short'
+            }
+            stage('Build dependencies') {
+                withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
+                    sh '''#!/bin/bash -l
+                        set -euo pipefail
+                        module purge
+                        ./machines/mkdeps.stellar-intel.sh
+                    '''
+                }
+            }
+            stage('Configure') {
+                withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
+                    sh '''#!/bin/bash -l
+                        set -euo pipefail
+                        module purge
+                        ./machines/configure.stellar-intel.sh
+                    '''
+                }
+            }
+            stage('Build unit tests') {
+                sh "make -j${buildJobs()} unit"
+            }
+            stage('Run unit tests (SLURM)') {
+                submitUnitTests()
+            }
+        } finally {
+            archiveArtifacts allowEmptyArchive: true,
+                artifacts: 'ci-pr-commit.txt,slurm-*.out,build/**/*.log'
+        }
+    }
+}
