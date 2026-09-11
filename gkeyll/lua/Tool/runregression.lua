@@ -1336,6 +1336,9 @@ local function create_action(test, runDir, testType)
    local aDir = acceptedDir(test, testType)
    log(string.format("... saving accepted results to %s ...\n", aDir))
    mkdir(aDir)
+   -- Remove any stale accepted files first, so append-mode dynvector files
+   -- from a previous campaign can't linger and merge with the fresh copy.
+   os.execute(string.format("rm -f '%s'/*.gkyl 2>/dev/null", aDir))
    -- Copy all .gkyl output files from the scratch directory to the accepted dir.
    os.execute(string.format("cp -f '%s'/*.gkyl '%s/' 2>/dev/null", runDir, aDir))
    return -2

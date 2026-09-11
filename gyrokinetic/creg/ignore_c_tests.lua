@@ -15,4 +15,3 @@ return {
    gpu = {
    },
 }
---      "rt_gk_multib_step_sol_2x2v_p1",
