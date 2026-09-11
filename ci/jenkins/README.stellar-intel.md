@@ -30,24 +30,30 @@ PR branch. After the pipeline has been validated and the change is merged,
 switch its SCM branch specifier to `*/main`. No pipeline-code change is needed
 at that point.
 
-## 1. Obtain approval and choose locations
+## 1. Choose the CI root and Slurm settings
 
-Before installing anything, ask Princeton Research Computing whether a
-personal persistent Jenkins service is permitted on the Stellar Intel login
-node and whether binding it to localhost is acceptable. Do not proceed on an
-assumption: the login nodes are shared and must only be used for interactive
-work such as compilation and job submission.
-
-Choose a shared workspace root that compute nodes can access. Set it under the
-project's `/scratch/gpfs` allocation, for example:
+Keep the Jenkins controller, its installation, its workspaces, and all CI
+artifacts under one shared, compute-node-visible directory:
 
 ```sh
-/scratch/gpfs/<project>/jenkins-workspaces
+export GKEYLL_CI_ROOT=/scratch/gpfs/<user_name>/gkeyll_ci
 ```
 
-Do not use `/tmp`, which is node-local, and do not use an unbounded directory
-in `/home`. The pipeline creates an isolated workspace below this root for
-each Jenkins build. Arrange a site-appropriate scratch cleanup policy.
+Replace `<user_name>` with your Stellar user name. The setup below creates:
+
+```text
+$GKEYLL_CI_ROOT/jenkins.war          Jenkins installation archive
+$GKEYLL_CI_ROOT/jenkins_home/        JENKINS_HOME: controller configuration, plugins, jobs
+$GKEYLL_CI_ROOT/jenkins_webroot/     unpacked Jenkins web application
+$GKEYLL_CI_ROOT/tmp/                 controller temporary files
+$GKEYLL_CI_ROOT/logs/                controller logs
+$GKEYLL_CI_ROOT/workspaces/          Pipeline build workspaces and Slurm output
+```
+
+Do not use `/tmp`, `/home`, or a project directory for these CI files. The
+pipeline creates an isolated workspace below `$GKEYLL_CI_ROOT/workspaces` for every
+build. Since scratch storage can be purged, do not treat Jenkins build history
+or credentials stored there as durable backups.
 
 Record the Slurm values for your group:
 
@@ -93,12 +99,73 @@ must complete successfully before introducing Jenkins. The configuration
 targets `-march=cascadelake`, the documented Intel compute-node architecture;
 it intentionally does not use login-node `-march=native` detection.
 
-## 3. Install and expose Jenkins privately
+## 3. Install and run Jenkins privately
 
-Follow the Research Computing-approved installation method and run Jenkins as
-the account that owns the Slurm allocation. Bind it to `127.0.0.1` only.
-Do not expose a public port or configure a GitHub webhook for this Level-1
-setup.
+Stellar Intel is Red Hat Enterprise Linux 8.10. Because this is an
+unprivileged personal setup, use the Jenkins WAR directly rather than a
+system RPM/service. This procedure requires no root access: do not use
+`sudo`, `dnf`, `rpm`, or `systemctl`. The login node's default Java is Java
+17; current Jenkins requires Java 21 or later. Stellar's Java 21 location is
+`/usr/lib/jvm/java-21-openjdk-21.0.12.1.1-1.1.el8.x86_64`. Do not use the
+default `java` command unless `java -version` confirms it is Java 21 or newer.
+
+After logging in through Duo, set up the scratch-only controller directory:
+
+```sh
+export GKEYLL_CI_ROOT=/scratch/gpfs/<user_name>/gkeyll_ci
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-21.0.12.1.1-1.1.el8.x86_64
+export PATH="$JAVA_HOME/bin:$PATH"
+export JENKINS_HOME="$GKEYLL_CI_ROOT/jenkins_home"
+export JENKINS_WEBROOT="$GKEYLL_CI_ROOT/jenkins_webroot"
+export TMPDIR="$GKEYLL_CI_ROOT/tmp"
+
+mkdir -p "$JENKINS_HOME" "$JENKINS_WEBROOT" "$TMPDIR" \
+  "$GKEYLL_CI_ROOT/logs" "$GKEYLL_CI_ROOT/workspaces"
+java -version
+```
+
+The final command must report Java 21 or newer. Download the Jenkins LTS WAR
+into the same directory; if Stellar cannot reach the download URL, download it
+on the laptop and copy it into `$GKEYLL_CI_ROOT` through the authenticated SSH
+connection instead:
+
+```sh
+cd "$GKEYLL_CI_ROOT"
+curl -fL -o jenkins.war https://get.jenkins.io/war-stable/latest/jenkins.war
+```
+
+Start Jenkins in a named tmux session. This is the initial operational mode:
+it keeps the controller available after SSH disconnects without installing a
+system service. Stop it after a test session if it is not needed.
+
+```sh
+tmux new -s gkeyll-jenkins
+
+export GKEYLL_CI_ROOT=/scratch/gpfs/<user_name>/gkeyll_ci
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-21.0.12.1.1-1.1.el8.x86_64
+export PATH="$JAVA_HOME/bin:$PATH"
+export JENKINS_HOME="$GKEYLL_CI_ROOT/jenkins_home"
+export JENKINS_WEBROOT="$GKEYLL_CI_ROOT/jenkins_webroot"
+export TMPDIR="$GKEYLL_CI_ROOT/tmp"
+
+java -Djava.io.tmpdir="$TMPDIR" -jar "$GKEYLL_CI_ROOT/jenkins.war" \
+  --webroot="$JENKINS_WEBROOT" \
+  --httpListenAddress=127.0.0.1 \
+  --httpPort=8080 \
+  2>&1 | tee -a "$GKEYLL_CI_ROOT/logs/jenkins.log"
+```
+
+In another Stellar shell, use these commands to manage that controller:
+
+```sh
+tmux attach -t gkeyll-jenkins   # return to the Jenkins console
+tmux ls                         # verify the session exists
+tmux kill-session -t gkeyll-jenkins  # stop Jenkins after testing
+```
+
+The controller must run as the same Unix account that owns the Slurm
+allocation. It binds only to `127.0.0.1`; do not expose a public port or
+configure a GitHub webhook for this Level-1 setup.
 
 After SSH/Duo authentication from the laptop, open a tunnel. The first port is
 on the laptop and can be any unused port; the second is Jenkins' listening
@@ -113,6 +180,12 @@ Then open `http://localhost:8081` in the laptop browser. The Mac Jenkins
 remains at `http://localhost:8080`; both interfaces can be open at once. If
 you configure the Stellar Jenkins service itself to listen on a non-default
 remote port, replace only the final `8080` in the tunnel command.
+
+On its first start, get the unlock password with:
+
+```sh
+cat "$JENKINS_HOME/secrets/initialAdminPassword"
+```
 
 Complete Jenkins initial setup and create an administrator account.
 
@@ -142,7 +215,7 @@ set:
 
 | Name | Required value |
 | --- | --- |
-| `CI_STELLAR_WORKSPACE_ROOT` | Shared project path, e.g. `/scratch/gpfs/<project>/jenkins-workspaces` |
+| `CI_STELLAR_WORKSPACE_ROOT` | `/scratch/gpfs/<user_name>/gkeyll_ci/workspaces` (enter the expanded path, not `$GKEYLL_CI_ROOT`) |
 | `STELLAR_GITHUB_CREDENTIAL_ID` | Jenkins credential ID, e.g. `gkeyll-github-read` |
 | `STELLAR_SLURM_QOS` | Your valid CPU QoS, e.g. `pppl-short` |
 | `STELLAR_SLURM_ACCOUNT` | Project account, if required; otherwise omit it |
