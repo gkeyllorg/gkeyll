@@ -1,5 +1,5 @@
 ---
-name: software_design
+name: software-design
 description: Some design practices in Gkeyll code to consider when implementing new modules (apps, updaters) or modifying existing ones.
 ---
 

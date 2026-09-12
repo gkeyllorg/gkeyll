@@ -1,6 +1,6 @@
 ---
-name: naming_conventions
-description: Determine the correct name for files, functions, modules and variables.
+name: naming-conventions
+description: Apply Gkeyll naming conventions when creating, editing, or reviewing C, CUDA, or Lua files and code elements.
 ---
 
 # Instructions
@@ -30,4 +30,3 @@ description: Determine the correct name for files, functions, modules and variab
 ### Variables
 
 - Do not use single letter names for variables whose scope spans more than 15 lines.
-
