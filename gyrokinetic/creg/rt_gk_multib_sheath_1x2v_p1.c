@@ -424,7 +424,7 @@ bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout
   // Set Cartesian components of magnetic field.
   fout[0] = 0.0;
   fout[1] = 0.0;
-  fout[0] = B0;
+  fout[2] = B0;
 }
 
 struct gkyl_gk_block_geom*

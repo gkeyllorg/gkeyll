@@ -100,7 +100,7 @@ test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
 }
 
 void
-test_cubic_1d(void)
+test_basis_ops_cubic_1d_ho(void)
 {
   double val[2] = { 1.0, 2.0 };
   double grad[2] = { -1.0, -2.0 };
@@ -119,7 +119,7 @@ test_cubic_1d(void)
 }
 
 void
-test_cubic_2d(void)
+test_basis_ops_cubic_2d_ho(void)
 {
   double val[4] = { 1.0, 2.0, 3.0, 4.0 };
   double gradx[4] = { -1.0, -2.0, -3.0, -4.0 };
@@ -149,7 +149,7 @@ test_cubic_2d(void)
 }
 
 void
-test_cubic_evalf_2d(void)
+test_basis_ops_cubic_evalf_2d_ho(void)
 {
   double lower[] = { 0.0, 0.0 }, upper[] = { 5.0, 5.0 };
   int cells[] = { 8, 8 };
@@ -222,26 +222,26 @@ test_cubic_evalf_2d(void)
 }
 
 void
-test_eval_array_at_coord_1d_ho() {
+test_basis_ops_eval_array_at_coord_1d_ho() {
   // p = 1
   test_eval_array_at_coord_1d_p_hodev(1, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_eval_array_at_coord_1d_dev() {
+test_basis_ops_eval_array_at_coord_1d_dev() {
   // p = 1
   test_eval_array_at_coord_1d_p_hodev(1, true);
 }
 #endif
 
 TEST_LIST = {
-  { "test_eval_array_at_coord_1d_ho", test_eval_array_at_coord_1d_ho },
-  { "cubic_1d", test_cubic_1d },
-  { "cubic_2d", test_cubic_2d },
-  { "cubic_evalf_2d", test_cubic_evalf_2d },
+  { "test_basis_ops_eval_array_at_coord_1d_ho", test_basis_ops_eval_array_at_coord_1d_ho },
+  { "basis_ops_cubic_1d_ho", test_basis_ops_cubic_1d_ho },
+  { "basis_ops_cubic_2d_ho", test_basis_ops_cubic_2d_ho },
+  { "basis_ops_cubic_evalf_2d_ho", test_basis_ops_cubic_evalf_2d_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_eval_array_at_coord_1d_dev", test_eval_array_at_coord_1d_dev },
+  { "test_basis_ops_eval_array_at_coord_1d_dev", test_basis_ops_eval_array_at_coord_1d_dev },
 #endif
   { NULL, NULL },
 };

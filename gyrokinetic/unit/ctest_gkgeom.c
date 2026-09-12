@@ -28,7 +28,7 @@ psi_ellip(double t, const double *xn, double *fout, void *ctx)
 }
 
 void
-ellip_unit(void)
+gkgeom_ellip_unit_ho(void)
 {
   // create RZ grid
   double lower[] = { 0.5, -4.0 }, upper[] = { 6.0, 4.0 };
@@ -57,7 +57,7 @@ ellip_unit(void)
   gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
   gkyl_eval_on_nodes_release(eon);
 
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "ellip_psi.gkyl");
+  // gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "ellip_psi.gkyl");
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
       // psiRZ and related inputs
@@ -124,7 +124,7 @@ psi_cerfon(double t, const double *xn, double *fout, void *ctx)
 }
 
 void
-cerfon_unit(void)
+gkgeom_cerfon_unit_ho(void)
 {
   // Cerfon Double Null Configuration
   
@@ -155,7 +155,7 @@ cerfon_unit(void)
   gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
   gkyl_eval_on_nodes_release(eon);
 
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "cerfon_psi.gkyl");
+  // gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "cerfon_psi.gkyl");
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
       // psiRZ and related inputs
@@ -315,7 +315,7 @@ psi_wham(double t, const double *xn, double *fout, void *ctx)
 }
 
 void
-wham_2l_unit(void)
+gkgeom_wham_2l_unit_ho(void)
 {
   
   // WHAM Configuration
@@ -351,7 +351,7 @@ wham_2l_unit(void)
   gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
   gkyl_eval_on_nodes_release(eon);
 
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "wham_psi.gkyl");
+  // gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "wham_psi.gkyl");
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
       // psiRZ and related inputs
@@ -492,8 +492,8 @@ wham_beta0_rt(void)
 }
 
 TEST_LIST = {
-  { "ellip", ellip_unit },
-  { "cerfon", cerfon_unit },
-  { "wham", wham_2l_unit },
+  { "gkgeom_ellip_ho", gkgeom_ellip_unit_ho },
+  { "gkgeom_cerfon_ho", gkgeom_cerfon_unit_ho },
+  { "gkgeom_wham_ho", gkgeom_wham_2l_unit_ho },
   { NULL, NULL }
 };

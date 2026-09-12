@@ -68,7 +68,7 @@ create_L_domain(void)
 }
 
 static void
-test_L_domain()
+test_block_topo_L_domain_ho()
 {
   struct gkyl_block_topo *btopo = create_L_domain();
 
@@ -79,7 +79,7 @@ test_L_domain()
 }
 
 static void
-test_mobius_domain()
+test_block_topo_mobius_domain_ho()
 {
   // 2D with 1 block
   struct gkyl_block_topo *btopo = gkyl_block_topo_new(2, 1);
@@ -116,7 +116,7 @@ test_mobius_domain()
 }
 
 static void
-test_topo_io()
+test_topo_io_ho()
 {
   struct gkyl_block_topo *btopo = create_L_domain();
   int status_out = gkyl_block_topo_write(btopo, "ctest_block_topo_L_domain.gkyl");
@@ -139,8 +139,8 @@ test_topo_io()
 }
 
 TEST_LIST = {
-  { "mobius_domain", test_mobius_domain },
-  { "L_domain", test_L_domain },
-  { "topo_io", test_topo_io },  
+  { "block_topo_mobius_domain_ho", test_block_topo_mobius_domain_ho },
+  { "block_topo_L_domain_ho", test_block_topo_L_domain_ho },
+  { "topo_io_ho", test_topo_io_ho },  
   { NULL, NULL },
 };

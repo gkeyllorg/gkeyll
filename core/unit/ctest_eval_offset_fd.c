@@ -11,7 +11,7 @@ void elc_field_1d(double t, const double *xn, double* restrict fout, void *ctx)
   fout[2] = x*x*x+0.3;
 }
 
-void test_1d()
+void test_eval_offset_fd_1d_ho()
 {
   double lower[] = {-2.0}, upper[] = {2.0};
   int cells[] = {2};
@@ -70,6 +70,6 @@ void test_1d()
 }
 
 TEST_LIST = {
-  { "test_1d", test_1d },
+  { "test_eval_offset_fd_1d_ho", test_eval_offset_fd_1d_ho },
   { NULL, NULL },  
 };

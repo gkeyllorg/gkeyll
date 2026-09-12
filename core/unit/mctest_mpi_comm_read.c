@@ -87,14 +87,14 @@ mpi_read(int nrank, int cuts[2])
   gkyl_array_release(p_arr);
 }
 
-void mpi_n1_read() { mpi_read(1, (int[]){1, 1}); }
-void mpi_n2_read() { mpi_read(2, (int[]){2, 1}); }
-void mpi_n4_read() { mpi_read(4, (int[]){2, 2}); }
+void mpi_n1_read_ho() { mpi_read(1, (int[]){1, 1}); }
+void mpi_n2_read_ho() { mpi_read(2, (int[]){2, 1}); }
+void mpi_n4_read_ho() { mpi_read(4, (int[]){2, 2}); }
 
 TEST_LIST = {
-  {"mpi_n1_read", mpi_n1_read},
-  {"mpi_n2_read", mpi_n2_read},
-  {"mpi_n4_read", mpi_n4_read},
+  {"mpi_n1_read_ho", mpi_n1_read_ho},
+  {"mpi_n2_read_ho", mpi_n2_read_ho},
+  {"mpi_n4_read_ho", mpi_n4_read_ho},
   {NULL, NULL},
 };
 

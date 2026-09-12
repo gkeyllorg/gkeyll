@@ -2,7 +2,7 @@
 #include <gkyl_block_geom.h>
 
 static void
-test_L_domain()
+test_block_geom_L_domain_ho()
 {
   // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -101,7 +101,7 @@ test_L_domain()
 }
 
 static void
-test_mobius_domain()
+test_block_geom_mobius_domain_ho()
 {
   // 2D with 1 block
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 1);
@@ -141,7 +141,7 @@ test_mobius_domain()
 
 
 TEST_LIST = {
-  { "mobius_domain", test_mobius_domain },
-  { "L_domain", test_L_domain },
+  { "block_geom_mobius_domain_ho", test_block_geom_mobius_domain_ho },
+  { "block_geom_L_domain_ho", test_block_geom_L_domain_ho },
   { NULL, NULL },
 };

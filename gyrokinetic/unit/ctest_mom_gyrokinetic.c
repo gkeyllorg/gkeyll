@@ -60,7 +60,7 @@ bfield_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx
 }
 
 void
-test_mom_gyrokinetic()
+test_mom_gyrokinetic_ho()
 {
   double mass = 1.0;
   double charge = 1.0;
@@ -988,38 +988,37 @@ test_2x2v(int poly_order, bool use_gpu)
   gkyl_position_map_release(pmap);
 }
 
-void test_1x1v_p1() { test_1x1v(1, false); } 
-void test_1x1v_p2() { test_1x1v(2, false); } 
-void test_1x2v_p1() { test_1x2v(1, false); } 
-void test_1x2v_p2() { test_1x2v(2, false); } 
-void test_2x2v_p1() { test_2x2v(1, false); } 
-void test_2x2v_p2() { test_2x2v(2, false); } 
+void test_mom_gyrokinetic_1x1v_p1_ho() { test_1x1v(1, false); } 
+void test_mom_gyrokinetic_1x1v_p2_ho() { test_1x1v(2, false); } 
+void test_mom_gyrokinetic_1x2v_p1_ho() { test_1x2v(1, false); } 
+void test_mom_gyrokinetic_1x2v_p2_ho() { test_1x2v(2, false); } 
+void test_mom_gyrokinetic_2x2v_p1_ho() { test_2x2v(1, false); } 
+void test_mom_gyrokinetic_2x2v_p2_ho() { test_2x2v(2, false); } 
 
 #ifdef GKYL_HAVE_CUDA
-void test_1x1v_p1_cu() { test_1x1v(1, true); } 
-void test_1x1v_p2_cu() { test_1x1v(2, true); } 
-void test_1x2v_p1_cu() { test_1x2v(1, true); } 
-void test_1x2v_p2_cu() { test_1x2v(2, true); } 
-void test_2x2v_p1_cu() { test_2x2v(1, true); } 
-void test_2x2v_p2_cu() { test_2x2v(2, true); } 
+void test_mom_gyrokinetic_1x1v_p1_dev() { test_1x1v(1, true); } 
+void test_mom_gyrokinetic_1x1v_p2_dev() { test_1x1v(2, true); } 
+void test_mom_gyrokinetic_1x2v_p1_dev() { test_1x2v(1, true); } 
+void test_mom_gyrokinetic_1x2v_p2_dev() { test_1x2v(2, true); } 
+void test_mom_gyrokinetic_2x2v_p1_dev() { test_2x2v(1, true); } 
+void test_mom_gyrokinetic_2x2v_p2_dev() { test_2x2v(2, true); } 
 #endif
 
 TEST_LIST = {
-  { "mom_gyrokinetic", test_mom_gyrokinetic },
-  { "test_1x1v_p1", test_1x1v_p1 },
-// { "test_1x1v_p2", test_1x1v_p2 },
-  { "test_1x2v_p1", test_1x2v_p1 },
-// { "test_1x2v_p2", test_1x2v_p2 },
-  { "test_2x2v_p1", test_2x2v_p1 },
-// { "test_2x2v_p2", test_2x2v_p2 },
+  { "mom_gyrokinetic_ho", test_mom_gyrokinetic_ho },
+  { "test_mom_gyrokinetic_1x1v_p1_ho", test_mom_gyrokinetic_1x1v_p1_ho },
+// { "test_mom_gyrokinetic_1x1v_p2_ho", test_mom_gyrokinetic_1x1v_p2_ho },
+  { "test_mom_gyrokinetic_1x2v_p1_ho", test_mom_gyrokinetic_1x2v_p1_ho },
+// { "test_mom_gyrokinetic_1x2v_p2_ho", test_mom_gyrokinetic_1x2v_p2_ho },
+  { "test_mom_gyrokinetic_2x2v_p1_ho", test_mom_gyrokinetic_2x2v_p1_ho },
+// { "test_mom_gyrokinetic_2x2v_p2_ho", test_mom_gyrokinetic_2x2v_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-//  { "cu_mom_gyrokinetic", test_cu_mom_gyrokinetic },
-  { "test_1x1v_p1_cu", test_1x1v_p1_cu },
-// { "test_1x1v_p2_cu", test_1x1v_p2_cu },
-  { "test_1x2v_p1_cu", test_1x2v_p1_cu },
-// { "test_1x2v_p2_cu", test_1x2v_p2_cu },
-  { "test_2x2v_p1_cu", test_2x2v_p1_cu },
-// { "test_2x2v_p2_cu", test_2x2v_p2_cu },
+  { "test_mom_gyrokinetic_1x1v_p1_dev", test_mom_gyrokinetic_1x1v_p1_dev },
+// { "test_mom_gyrokinetic_1x1v_p2_dev", test_mom_gyrokinetic_1x1v_p2_dev },
+  { "test_mom_gyrokinetic_1x2v_p1_dev", test_mom_gyrokinetic_1x2v_p1_dev },
+// { "test_mom_gyrokinetic_1x2v_p2_dev", test_mom_gyrokinetic_1x2v_p2_dev },
+  { "test_mom_gyrokinetic_2x2v_p1_dev", test_mom_gyrokinetic_2x2v_p1_dev },
+// { "test_mom_gyrokinetic_2x2v_p2_dev", test_mom_gyrokinetic_2x2v_p2_dev },
 #endif
   { NULL, NULL },
 };

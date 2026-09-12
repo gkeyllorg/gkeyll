@@ -139,7 +139,7 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_basis ba
 
 
 void
-test_fixed_z()
+test_asdex_fixed_z_ho()
 {
   clock_t start, end;
   double cpu_time_used;
@@ -212,7 +212,7 @@ test_fixed_z()
 }
 
 void
-test_shaped_plate()
+test_asdex_shaped_plate_ho()
 {
   clock_t start, end;
   double cpu_time_used;
@@ -286,7 +286,7 @@ test_shaped_plate()
 }
 
 void
-test_lower()
+test_asdex_lower_ho()
 {
   clock_t start, end;
   double cpu_time_used;
@@ -359,7 +359,7 @@ test_lower()
 }
 
 void
-test_middle()
+test_asdex_middle_ho()
 {
   clock_t start, end;
   double cpu_time_used;
@@ -432,7 +432,7 @@ test_middle()
 }
 
 void
-test_upper()
+test_asdex_upper_ho()
 {
   clock_t start, end;
   double cpu_time_used;
@@ -507,10 +507,10 @@ test_upper()
 
 
 TEST_LIST = {
-  //{ "test_fixed_z", test_fixed_z},
-  { "test_shaped_plate", test_shaped_plate},
-  { "test_lower", test_lower},
-  { "test_middle", test_middle},
-  { "test_upper", test_upper},
+  //{ "test_asdex_fixed_z_ho", test_asdex_fixed_z_ho},
+  { "test_asdex_shaped_plate_ho", test_asdex_shaped_plate_ho},
+  { "test_asdex_lower_ho", test_asdex_lower_ho},
+  { "test_asdex_middle_ho", test_asdex_middle_ho},
+  { "test_asdex_upper_ho", test_asdex_upper_ho},
   { NULL, NULL },
 };

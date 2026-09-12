@@ -47,7 +47,7 @@ double func_1_1(double x)
   return 2*x/(3+x*x*x) - 3*x*x*x*x/((3+x*x*x)*(3+x*x*x)) - 1/(x*x) - 2;
 }
 
-void test_basic(void)
+void test_dual_num_basic_ho(void)
 {
   double x10 = 2.5;
   struct gkyl_dn x1 = gdn_new1(x10);
@@ -85,7 +85,7 @@ void test_basic(void)
 
 }
 
-void test_basic2(void)
+void test_dual_num_basic2_ho(void)
 {
   double x10 = 2.5;
   struct gkyl_dn2 x1 = gdn2_new(x10, 1.0, 2.0);
@@ -149,7 +149,7 @@ custom_xy( struct gkyl_dn2 x, struct gkyl_dn2 y)
   };
 }
 
-void test_xy(void)
+void test_dual_num_xy_ho(void)
 {
   struct gkyl_dn2 x = gdn2_new10(2.5), y = gdn2_new01(1.5);
   struct gkyl_dn2 res = { };
@@ -193,7 +193,7 @@ inv_mapc2p(double x, void *ctx)
   return gdn_inv_mapc2p(gdn_new0(x),ctx).x[0];
 }
 
-void test_inv_mapc2p(void)
+void test_dual_num_inv_mapc2p_ho(void)
 {
   struct inv_map_ctx imctx = { 0.75 };
   double xl = 0.0, xr = 5.0;
@@ -220,7 +220,7 @@ mapc2p(const struct gkyl_dn xc[2], struct gkyl_dn xp[2])
   xp[1] = gdn_mul(xc[0], gdn_sin(xc[1]));
 }
 
-void test_mapc2p(void)
+void test_dual_num_mapc2p_ho(void)
 {
   double r = 1.5, theta = M_PI/3;
   struct gkyl_dn xc[2], xp[2];
@@ -254,7 +254,7 @@ mapc2p_2(const struct gkyl_dn2 xc[2], struct gkyl_dn2 xp[2])
   xp[1] = gdn2_mul(xc[0], gdn2_sin(xc[1]));
 }
 
-void test_mapc2p_2(void)
+void test_dual_num_mapc2p_2_ho(void)
 {
   double r = 1.5, theta = M_PI/3;
   struct gkyl_dn2 xc[2], xp[2];
@@ -290,7 +290,7 @@ RpsiZ_ellip(const struct gkyl_dn2 psiZ[2])
 /* } */
 
 void
-test_psi_mapping(void)
+test_dual_num_psi_mapping_ho(void)
 {
   double pz[2] = { 1.0, 2.0 };
   struct gkyl_dn2 psiZ[2] = { gdn2_new10(pz[0]), gdn2_new01(pz[1]) };
@@ -302,12 +302,12 @@ test_psi_mapping(void)
 }
 
 TEST_LIST = {
-  { "test_basic", test_basic },
-  { "test_basic2", test_basic2 },
-  { "test_xy", test_xy },
-  { "test_inv_mapc2p", test_inv_mapc2p },
-  { "test_mapc2p", test_mapc2p },
-  { "test_mapc2p_2", test_mapc2p_2 },
-  { "test_psi_mapping", test_psi_mapping  },
+  { "test_dual_num_basic_ho", test_dual_num_basic_ho },
+  { "test_dual_num_basic2_ho", test_dual_num_basic2_ho },
+  { "test_dual_num_xy_ho", test_dual_num_xy_ho },
+  { "test_dual_num_inv_mapc2p_ho", test_dual_num_inv_mapc2p_ho },
+  { "test_dual_num_mapc2p_ho", test_dual_num_mapc2p_ho },
+  { "test_dual_num_mapc2p_2_ho", test_dual_num_mapc2p_2_ho },
+  { "test_dual_num_psi_mapping_ho", test_dual_num_psi_mapping_ho  },
   { NULL, NULL },  
 };

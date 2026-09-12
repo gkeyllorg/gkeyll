@@ -454,20 +454,20 @@ struct gk_app_ctx create_ctx(void)
   double sigma_srcCORE[3] = {0.03*Lx, 0.0, Lz/6}; //  the electron source will be at +Lz/2.
   double floor_srcCORE = 1e-10;
   // Grid parameters
-  int Nx = 8;
-  int Ny = 4;
-  int Nz = 8;
-  int Nvpar = 12;
-  int Nmu = 8;
+  int Nx = 8; // (24)
+  int Ny = 4; // (16)
+  int Nz = 4; // (12)
+  int Nvpar = 4; // (12)
+  int Nmu = 2; // (8)
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 6.*vte;
   double mu_max_elc   = 1.5*me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 6.*vti;
   double mu_max_ion   = 1.5*mi*pow(4*vti,2)/(2*B0);
-  double t_end = 25*0.00551633e-6;
+  double t_end = 1e-6;
   int num_frames = 1;
-  double write_phase_freq = 0.2;
+  double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
