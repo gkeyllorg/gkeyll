@@ -1,6 +1,6 @@
 ---
-name: gyrokinetic_details
-description: Details specific to the gyrokinetic solver.
+name: gyrokinetic-details
+description: Apply gyrokinetic solver conventions when working on gyrokinetic-related source code or input files.
 ---
 
 # Instructions
@@ -24,7 +24,7 @@ dimension. Choose the partition flag by dimensionality:
 For example, run the compiled 2x2v sheath regression on four MPI ranks:
 
 ```sh
-<path_to_gkylsoft>/gkylsoft/openmpi/bin/mpirun -np 4 ./build/gyrokinetic/creg/rt_gk_sheath_2x2v_p1 -M -d 4
+<mpi_install_prefix>/bin/mpirun -np 4 ./build/gyrokinetic/creg/rt_gk_sheath_2x2v_p1 -M -d 4
 ```
 
 Use the MPI installation matching the build. `-M` enables MPI in the
@@ -32,5 +32,5 @@ regression executable; `-d 4` partitions its second configuration dimension.
 Add `-s1` for a one-step smoke test.
 
 See [compiling](../compiling/SKILL.md) when a build is needed,
-and [testing_and_verification](../testing_and_verification/SKILL.md) for general test
+and [testing-and-verification](../testing-and-verification/SKILL.md) for general test
 execution and memory checks.

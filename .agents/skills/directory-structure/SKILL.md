@@ -1,6 +1,6 @@
 ---
-name: directory_structure
-description: Explanation of the Gkeyll directories.
+name: directory-structure
+description: Locate Gkeyll code and understand solver dependencies when exploring the repository or deciding where new code belongs.
 ---
 
 # Instructions

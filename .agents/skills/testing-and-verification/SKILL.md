@@ -1,13 +1,18 @@
 ---
-name: testing_and_verification
+name: testing-and-verification
 description: How to run Gkeyll unit and regression tests, as well as performing memory checks. Use when testing changes and verifying that changes didn't break the code or change simulation results.
 ---
 
 # Instructions
 
-* Run unit tests after completing a project.
-* Ask the user whether to run regression tests, or which regression test they
-  would like to run (running all of them takes a long time).
+* For code changes, run relevant unit tests and focused regression tests when
+  simulation behavior is affected. Choose tests based on the changed component.
+* Do not run the entire regression suite unless you are asked to; it can take a long time.
+  Use the task's scope and available resources to choose the suitable testing scope.
+* For documentation or agent configuration changes, validate the changed files
+  and references; solver tests and memory checks are unnecessary.
+* Report what was checked and any checks that could not run. If required context
+  is missing or unreadable, report the exact path rather than silently skipping it.
 
 # Running unit tests
 
@@ -20,7 +25,7 @@ In order to run all Gkeyll unit tests:
 make -j"$NPROC" unit-run
 ```
 
-In order to run all unit tests for a specific solversolversolver, e.g. gyrokinetic:
+In order to run all unit tests for a specific solver, e.g. gyrokinetic:
 1. Compile all unit tests for that solver; see [compilation](../compiling/SKILL.md).
 2. Run all unit tests for that solver, e.g. for gyrokinetic use
 ```sh
@@ -52,7 +57,7 @@ For example if Gkeyll was built and configured with the MPI in `gkylsoft/openmpi
 unit test (for example `mctest_mpi_comm.c`) may be run with
 
 ```sh
-<path_to_gkylsoft>/gkylsoft/openmpi/bin/mpirun -np 4 build/core/unit/mctest_mpi_comm
+<mpi_install_prefix>/bin/mpirun -np 4 build/core/unit/mctest_mpi_comm
 ```
 
 # Running regression tests
@@ -93,18 +98,18 @@ it is assumed to be 1.
 For example, we may run `gyrokinetic/creg/rt_gk_sheath_2x2v_p1` using 2 cores in the second
 dimension with
 ```sh
-<path_to_gkylsoft>/openmpi/bin/mpirun -np 2 ./build/gyrokinetic/creg/rt_gk_sheath_2x2v_p1 -M -d 2
+<mpi_install_prefix>/bin/mpirun -np 2 ./build/gyrokinetic/creg/rt_gk_sheath_2x2v_p1 -M -d 2
 ```
 
 For gyrokinetic partition restrictions and an example, read
-[gyrokinetic_details](../gyrokinetic_details/SKILL.md).
+[gyrokinetic-details](../gyrokinetic-details/SKILL.md).
 
 It is also possible to run with multiple GPUs. Gkeyll's model is to match each MPI process to a
 single GPU. The procedure is similar as for multiple GPUs, but the additional `-g` flag is needed.
 For example, to run `gyrokinetic/creg/rt_gk_sheath_2x2v_p1` using 2 GPUs in the second dimension
 with
 ```sh
-<path_to_gkylsoft>/openmpi/bin/mpirun -np 2 ./build/gyrokinetic/creg/rt_gk_sheath_2x2v_p1 -g -M -d 2
+<mpi_install_prefix>/bin/mpirun -np 2 ./build/gyrokinetic/creg/rt_gk_sheath_2x2v_p1 -g -M -d 2
 ```
 
 ## Lua regression tests
@@ -112,7 +117,7 @@ with
 Run Lua inputs using the installed executable:
 
 ```sh
-<path_to_gkylsoft>/gkylsoft/gkeyll/bin/gkeyll <Lua_input_file>
+<gkeyll_install_prefix>/bin/gkeyll <Lua_input_file>
 ```
 
 ## The runregression tool
@@ -121,7 +126,7 @@ After installing the Gkeyll library and executable one may use the `runregressio
 regression tests, see
 
 ```sh
-<path_to_gkylsoft>/gkylsoft/gkeyll/bin/gkeyll runregression -h
+<gkeyll_install_prefix>/bin/gkeyll runregression -h
 ```
 
 After configuring runregression, and having generated accepted results with
