@@ -4,6 +4,7 @@
 #include <complex.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 // Opt-in for routing half-domain blocks through the extended, topology-aware
 // node construction instead of the separatrix-chord one.  Off by default, so
@@ -962,6 +963,11 @@ double tok_plate_psi_func(double s, void *ctx);
 /*
  * Used to set zmin and zmax and attributes of arc_ctx before looping over arc length
 */
+// Experimental reuse of the existing bounded extended turning-point finder.
+bool tok_ext_turning_point(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, double psi, bool upper,
+  double *rturn, double *zturn);
+
 void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
 
 /* Initialize only the state needed by the ordered X-point mapping.  Unlike
@@ -985,3 +991,43 @@ void tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *
  * Used to set arc_ctx attributes before using ridders to find z
 */
 void tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL_curr, double* rclose, double *ridders_min, double* ridders_max);
+
+// Fallback only after the original plate has no resolved intersection.
+// Follows a connected wall continuation from an endpoint, never a global wall root.
+bool tok_limiter_plate_intersection(const struct gkyl_tok_geo *geo,
+  plate_func plate, double psi, double *R, double *Z);
+
+// A configured target is authoritative: never fall back to a different wall
+// region or an old callback when this target has no unique native flux root.
+int tok_divertor_wall_slot(const struct gkyl_tok_geo *geo, plate_func plate);
+bool tok_divertor_wall_intersection(const struct gkyl_tok_geo *geo, int slot,
+  double psi, double *r, double *z);
+
+// 0: covered; 1: only an explicit enabled wall target lacks a root;
+// 2: an original/extension-disabled plate lacks coverage. Only status 1 is
+// eligible for a reported inward rho retry, with fixed bounds still covered.
+int tok_plate_coverage_status(const struct gkyl_tok_geo *geo,
+  const struct gkyl_tok_geo_grid_inp *inp, double psi);
+
+// Hard material-domain guard. On-wall points are accepted to roundoff tolerance.
+bool tok_wall_point_inside(const struct gkyl_efit *efit, const double p[2]);
+// Reporting only; see the definition. Returns metres outside the outline, 0.0
+// if the segment never leaves it. Never used to decide containment.
+double tok_wall_segment_excursion(const struct gkyl_efit *efit,
+  const double a[2], const double b[2]);
+
+bool tok_wall_segment_inside(const struct gkyl_efit *efit,
+  const double a[2], const double b[2]);
+
+// This project builds with -ffast-math, which can erase isfinite() checks.
+// Inspect the IEEE-754 exponent without floating-point comparisons.
+static inline bool tok_geo_finite(double value)
+{
+  uint64_t bits;
+  memcpy(&bits,&value,sizeof bits);
+  return (bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
+}
+
+// Contains the entire represented quadratic (or linear) boundary curve.
+bool tok_wall_curve_inside(const struct gkyl_efit *efit,
+  const double p0[2], const double pm[2], const double p1[2]);

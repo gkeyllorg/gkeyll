@@ -11,6 +11,54 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_tok_geo_priv.h>
+#include <gkyl_tok_geo_wall_trial_priv.h>
+#include <gkyl_tok_geo_wall_target_priv.h>
+
+static _Thread_local bool wall_trial_active;
+static _Thread_local long wall_trial_failures;
+static _Thread_local int wall_trial_movable_edge;
+static _Thread_local bool wall_trial_fixed_violation;
+static _Thread_local bool wall_trial_capture;
+static _Thread_local int wall_trial_block;
+static _Thread_local double wall_trial_rho;
+
+void tok_wall_trial_begin(int movable_radial_edge)
+{
+  if (wall_trial_active) abort();
+  wall_trial_active = true;
+  wall_trial_failures = 0;
+  wall_trial_movable_edge = movable_radial_edge;
+  wall_trial_fixed_violation = false;
+  wall_trial_capture = false;
+}
+
+void tok_wall_trial_capture_requested(int block, double rho)
+{
+  if (!wall_trial_active) abort();
+  wall_trial_capture = true;
+  wall_trial_block = block;
+  wall_trial_rho = rho;
+}
+
+long tok_wall_trial_end(void)
+{
+  if (!wall_trial_active) abort();
+  wall_trial_active = false;
+  return wall_trial_failures;
+}
+
+bool tok_wall_trial_record(bool fixed_radial_boundary)
+{
+  if (!wall_trial_active) return false;
+  ++wall_trial_failures;
+  wall_trial_fixed_violation |= fixed_radial_boundary;
+  return true;
+}
+
+bool tok_wall_trial_has_fixed_violation(void)
+{
+  return wall_trial_fixed_violation;
+}
 #include <gkyl_dg_bin_ops.h>
 
 #include <float.h>
@@ -1286,6 +1334,9 @@ static bool
 tok_plate_flux_intersection(const struct gkyl_tok_geo *geo,
   plate_func plate, double psi, int ftype, double *r, double *z)
 {
+  int wall_slot=tok_divertor_wall_slot(geo,plate);
+  if (wall_slot!=-1)
+    return tok_divertor_wall_intersection(geo,wall_slot,psi,r,z);
   if (!plate)
     return false;
 
@@ -1333,6 +1384,8 @@ tok_plate_flux_intersection(const struct gkyl_tok_geo *geo,
     rz0[0] = rz1[0]; rz0[1] = rz1[1]; f0 = f1;
   }
   if (nroots == 0) {
+    if (tok_limiter_plate_intersection(geo, plate, psi, r, z))
+      return true;
     fprintf(stderr,
       "TOK_ORDERED_MAP plate root count=0 ftype=%d psi=%.17g\n", ftype, psi);
     return false;
@@ -1724,6 +1777,54 @@ tok_ext_topology_from_ftype(enum gkyl_tok_geo_type ftype, bool half_domain,
   top->seed_names_side =
     top->lower.kind == TOK_EXT_XPT_RAY &&
     top->upper.kind == TOK_EXT_XPT_RAY;
+  return true;
+}
+
+// A material theta face follows the supplied limiter arc as psi varies. Its
+// corner chord can cross a concave bend even though every contour ends on the
+// wall. Validate that native map separately; never call the chord contained.
+static bool
+tok_divertor_material_cap(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, int theta_edge, const double p[2], const double q[2])
+{
+  struct tok_ext_topology top;
+  if (!geo->extend_to_limiter || !geo->plate_spec ||
+      !tok_ext_topology_from_ftype(inp->ftype,inp->half_domain,&top)) return false;
+  const struct tok_ext_endpoint *end=theta_edge ? &top.upper : &top.lower;
+  if (end->kind!=TOK_EXT_PLATE) return false;
+  int slot=end->plate_slot==TOK_EXT_PLATE_LOWER ? 0 : 1;
+  const struct gkyl_tok_geo_wall_target *target=&geo->divertor_wall[slot];
+  if (!tok_wall_target_cap(geo->efit,target->num_segments,target->segments,p,q)) return false;
+  double sp,sq;
+  if (!tok_wall_target_coordinate(geo->efit,target->num_segments,target->segments,p,&sp) ||
+      !tok_wall_target_coordinate(geo->efit,target->num_segments,target->segments,q,&sq)) return false;
+  double psi_p=tok_eval_psi_rz_local(geo,p[0],p[1]);
+  double psi_q=tok_eval_psi_rz_local(geo,q[0],q[1]);
+  double tol=1e-8*fmax(1.0,fmax(geo->efit->rdim,geo->efit->zdim));
+  double previous=sp;
+  for (int k=0;k<=16;++k) {
+    double psi=psi_p+(psi_q-psi_p)*k/16.0,rz[2],s;
+    if (!tok_divertor_wall_intersection(geo,slot,psi,&rz[0],&rz[1]) ||
+        !tok_wall_target_coordinate(geo->efit,target->num_segments,target->segments,rz,&s)) return false;
+    if (s<fmin(sp,sq)-tol || s>fmax(sp,sq)+tol ||
+        (sq>=sp ? s<previous-tol : s>previous+tol)) return false;
+    previous=s;
+  }
+  // Include every wall vertex traversed by the material map: uniform psi
+  // samples alone must not skip a bend or substitute a disconnected root.
+  for (int k=0;k<target->num_segments;++k) for (int d=0;d<2;++d) {
+    int v=(target->segments[k]+d)%geo->efit->limiter_n;
+    double vertex[2]={geo->efit->limiter_R[v],geo->efit->limiter_Z[v]},s;
+    if (!tok_wall_target_coordinate(geo->efit,target->num_segments,target->segments,vertex,&s)) return false;
+    if (s<fmin(sp,sq)+tol || s>fmax(sp,sq)-tol) continue;
+    double psi=tok_eval_psi_rz_local(geo,vertex[0],vertex[1]),rz[2];
+    double ftol=1e-10*fmax(1.0,fmax(fabs(psi_p),fabs(psi_q)));
+    if (psi<fmin(psi_p,psi_q)-ftol || psi>fmax(psi_p,psi_q)+ftol ||
+        !tok_divertor_wall_intersection(geo,slot,psi,&rz[0],&rz[1]) ||
+        hypot(rz[0]-vertex[0],rz[1]-vertex[1])>tol) return false;
+  }
+  fprintf(stderr,"TOK_GEO_DIVERTOR_CAP trial=%d ftype=%d theta_edge=%d slot=%d psi0=%.17g psi1=%.17g R0=%.17g Z0=%.17g R1=%.17g Z1=%.17g s0=%.17g s1=%.17g straight_chord_outside=1 native_arc=validated\n",
+    wall_trial_active,inp->ftype,theta_edge,slot,psi_p,psi_q,p[0],p[1],q[0],q[1],sp,sq);
   return true;
 }
 
@@ -2887,7 +2988,7 @@ tok_ext_build_z_branch_trace(const struct gkyl_tok_geo_grid_inp *inp,
     2.0*gap_resid);
 }
 
-static bool
+bool
 tok_ext_turning_point(const struct gkyl_tok_geo_grid_inp *inp,
   const struct gkyl_tok_geo *geo, double psi, bool upper,
   double *rturn, double *zturn)
@@ -4801,6 +4902,103 @@ tok_ext_gradpsi_map(const struct gkyl_tok_geo_grid_inp *inp,
     +t*(arc_ctx->gradpsi_map_v[i+1]-arc_ctx->gradpsi_map_v[i]);
 }
 
+// Experimental composition on legacy blocks connected to an extended radial
+// neighbor. The common measure comes from that neighbor's separatrix contour;
+// the transformation is independent of psi and preserves theta endpoints.
+// This deliberately does not request a straight off-separatrix X-point cut.
+static double
+tok_shared_theta(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *ctx, double theta, double *slope)
+{
+  *slope = 1.0;
+  const struct gkyl_tok_geo_grid_inp *peer = inp->shared_theta_peer;
+  if (!peer)
+    return theta;
+  if (tok_xpt_mapping_requested(inp) || !tok_ext_ladder_gradpsi_theta_enabled(peer)) {
+    fprintf(stderr, "TOK_SHARED_THETA unsupported mapping policy ftype=%d\n", inp->ftype);
+    abort();
+  }
+  if (!ctx->gradpsi_map_ready) {
+    double edge = inp->shared_theta_radial_edge ? inp->cgrid.upper[0] : inp->cgrid.lower[0];
+    double physical_edge;
+    ctx->position_map->maps[0](0.0, &edge, &physical_edge, ctx->position_map->ctxs[0]);
+    if (!tok_geo_same_flux(physical_edge, ctx->geo->psisep)) {
+      fprintf(stderr, "TOK_SHARED_THETA radial interface is not the separatrix ftype=%d psi=%.17g\n", inp->ftype, physical_edge);
+      abort();
+    }
+    const int cap = ctx->sep_trace_capacity, ns = GKYL_MIN2(257, cap);
+    double *buf = gkyl_malloc(sizeof(double[6*cap]));
+    double *lr=buf, *lz=buf+cap, *ls=buf+2*cap;
+    double *pr=buf+3*cap, *pz=buf+4*cap, *ps=buf+5*cap;
+    // EFIT identity was checked before this view was supplied. Copy scalar
+    // endpoint/root settings so the peer's plate functions and bounds apply.
+    struct gkyl_tok_geo peer_geo = *ctx->geo;
+    peer_geo.rleft=peer->rleft; peer_geo.rright=peer->rright;
+    peer_geo.rmin=peer->rmin; peer_geo.rmax=peer->rmax;
+    peer_geo.plate_spec=peer->plate_spec;
+    peer_geo.plate_func_lower=peer->plate_func_lower;
+    peer_geo.plate_func_upper=peer->plate_func_upper;
+    const char *peer_extend=getenv("EXTEND_TO_LIMITER");
+    peer_geo.extend_to_limiter=peer_extend ? !strcmp(peer_extend,"1") : peer->extend_to_limiter;
+    for (int slot=0;slot<2;++slot) {
+      const struct gkyl_tok_geo_wall_target *target=&peer->divertor_wall[slot];
+      if ((target->num_segments || target->segments) &&
+          (!peer->plate_spec || !(slot ? peer->plate_func_upper : peer->plate_func_lower) ||
+           peer->plate_func_lower==peer->plate_func_upper ||
+           !tok_wall_target_valid(peer_geo.efit,target->num_segments,target->segments))) {
+        fprintf(stderr,"TOK_GEO_DIVERTOR_TARGET_INVALID scope=shared_theta_peer slot=%d\n",slot);
+        abort();
+      }
+      peer_geo.divertor_wall[slot]=*target;
+    }
+    struct arc_length_ctx lc = { .geo=ctx->geo, .sep_trace_capacity=cap };
+    struct arc_length_ctx pc = { .geo=&peer_geo, .sep_trace_capacity=cap };
+    int ln=0, pn=0;
+    bool lp=false, pp=false, lclosed=false, pclosed=false;
+    bool ok = tok_ext_build_domain_trace(inp, &lc, ctx->geo->psisep, true,
+      lr,lz,ls,&ln,&lp,&lclosed);
+    ok = ok && tok_ext_build_domain_trace(peer, &pc, ctx->geo->psisep, true,
+      pr,pz,ps,&pn,&pp,&pclosed);
+    double gap=0.0;
+    for (int i=0; ok && i<ns; ++i) {
+      double u=i/(double)(ns-1), aR,aZ,bR,bZ;
+      double v=inp->shared_theta_reverse ? 1.0-u : u;
+      ok = tok_trace_sample(ctx->geo, ctx->geo->psisep, lr,lz,ls,ln,lp,u,&aR,&aZ)
+        && tok_trace_sample(&peer_geo, ctx->geo->psisep, pr,pz,ps,pn,pp,v,&bR,&bZ);
+      if (ok) gap=fmax(gap,hypot(aR-bR,aZ-bZ));
+    }
+    double scale=ok ? fmax(ls[ln-1],ps[pn-1]) : 0.0;
+    // SOL-mid is open in the bulk, while its separatrix coincides with the
+    // closed core contour. The sampled curve (including endpoints) decides.
+    ok = ok && gap <= sqrt(DBL_EPSILON)*scale;
+    ok = ok && tok_ext_ladder_seed_by_gradpsi(&peer_geo,ctx->geo->psisep,
+      pr,pz,ps,pn,pp,ns,ctx->gradpsi_map_v,ns,peer->ftype);
+    if (!ok) {
+      fprintf(stderr, "TOK_SHARED_THETA incompatible contour ftype=%d peer_ftype=%d gap=%.17g scale=%.17g\n",
+        inp->ftype,peer->ftype,gap,scale);
+      gkyl_free(buf);
+      abort();
+    }
+    if (inp->shared_theta_reverse) {
+      for (int i=0; i<ns; ++i) lr[i]=1.0-ctx->gradpsi_map_v[ns-1-i];
+      for (int i=0; i<ns; ++i) ctx->gradpsi_map_v[i]=lr[i];
+    }
+    ctx->gradpsi_map_n=ns;
+    ctx->gradpsi_map_ready=true;
+    fprintf(stderr,"TOK_SHARED_THETA ready ftype=%d peer_ftype=%d contour_gap=%.17g local_arc=%.17g peer_arc=%.17g n=%d\n",
+      inp->ftype,peer->ftype,gap,ls[ln-1],ps[pn-1],ns);
+    gkyl_free(buf);
+  }
+  double lo=inp->cgrid.lower[2], width=inp->cgrid.upper[2]-lo;
+  double u=(theta-lo)/width;
+  int n=ctx->gradpsi_map_n;
+  double x=u*(n-1);
+  int i=GKYL_MAX2(0,GKYL_MIN2(n-2,(int)floor(x)));
+  double delta=ctx->gradpsi_map_v[i+1]-ctx->gradpsi_map_v[i];
+  *slope=delta*(n-1);
+  return lo+width*(ctx->gradpsi_map_v[i]+(x-i)*delta);
+}
+
 static bool
 tok_ordered_chord_point(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx, double psi, double u, double *r, double *z)
@@ -6600,8 +6798,35 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
   geo->efit = gkyl_efit_new(inp);
 
   geo->plate_spec = ginp->plate_spec;
+  geo->extend_to_limiter = ginp->extend_to_limiter;
+  const char *extend = getenv("EXTEND_TO_LIMITER");
+  if (extend) {
+    if (strcmp(extend, "0") && strcmp(extend, "1")) {
+      fprintf(stderr, "TOK_GEO_PLATE_INVALID EXTEND_TO_LIMITER must be 0 or 1\n");
+      abort();
+    }
+    geo->extend_to_limiter = !strcmp(extend, "1");
+  }
   geo->plate_func_lower = ginp->plate_func_lower;
   geo->plate_func_upper = ginp->plate_func_upper;
+  for (int slot=0;slot<2;++slot) {
+    const struct gkyl_tok_geo_wall_target *target=&ginp->divertor_wall[slot];
+    if (!target->num_segments && !target->segments) continue;
+    if (!ginp->plate_spec || !(slot ? ginp->plate_func_upper : ginp->plate_func_lower) ||
+        ginp->plate_func_lower==ginp->plate_func_upper ||
+        !tok_wall_target_valid(geo->efit,target->num_segments,target->segments)) {
+      fprintf(stderr,"TOK_GEO_DIVERTOR_TARGET_INVALID slot=%d count=%d\n",slot,target->num_segments);
+      abort();
+    }
+    int *segments=gkyl_malloc(target->num_segments*sizeof(int));
+    memcpy(segments,target->segments,target->num_segments*sizeof(int));
+    geo->divertor_wall[slot]=(struct gkyl_tok_geo_wall_target){target->num_segments,segments};
+    if (geo->extend_to_limiter) {
+      fprintf(stderr,"TOK_GEO_DIVERTOR_TARGET slot=%d segments=",slot);
+      for (int k=0;k<target->num_segments;++k) fprintf(stderr,"%s%d",k ? "," : "",segments[k]);
+      fprintf(stderr,"\n");
+    }
+  }
 
   geo->rzbasis = geo->efit->rzbasis;
   geo->rzbasis_cubic = geo->efit->rzbasis_cubic;
@@ -6693,6 +6918,16 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map)
 {
 
+  // Vessel-outline policy for this block, decided once. An acknowledged absent
+  // outline builds without wall enforcement; an unusable outline with no
+  // acknowledgement never reaches here (the multiblock preflight rejects it),
+  // and the standalone path rejects at the first containment test below.
+  const bool enforce_wall = gkyl_tok_wall_policy_for(inp,geo->efit)==GKYL_TOK_WALL_ENFORCE;
+  if (!enforce_wall)
+    fprintf(stderr,"TOK_GEO_WALL_NOT_ENFORCED ftype=%d limiter_status=%d vertices=%d reason=%s\n",
+      inp->ftype,geo->efit->limiter_status,geo->efit->limiter_n,
+      gkyl_tok_wall_policy_reason(gkyl_tok_wall_policy_for(inp,geo->efit)));
+
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
 
@@ -6712,7 +6947,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
     psi_lo = up->grid.lower[PSI_IDX] + (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX])*up->grid.dx[PSI_IDX],
     alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
     
-  double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
+  double dx_fact = 1.0/up->basis.poly_order;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   double rclose = inp->rclose;
@@ -6811,6 +7046,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         double Theta_curr;
         position_map->maps[2](0.0, &theta_curr,  &Theta_curr,  position_map->ctxs[2]);
         theta_curr = Theta_curr;
+        double shared_slope;
+        theta_curr = tok_shared_theta(inp, &arc_ctx, theta_curr, &shared_slope);
 
         struct tok_ordered_point ordered = { 0.0 };
         bool ordered_mapping = tok_ordered_map_lookup(inp, &arc_ctx,
@@ -6977,6 +7214,71 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
     }
   }
 
+  // The material wall is a hard constraint, independent of extension and of
+  // diagnostic fold overrides. A physical theta-face with an explicit wall
+  // target uses its native material arc; all other edges retain chord checks.
+  // Capture only diagnostic requested-boundary curves from the native corner
+  // array. Reduced-dimensional app arrays have not retained these nodal data.
+  if (wall_trial_active && wall_trial_capture) {
+    int ip=wall_trial_movable_edge ? nrange->upper[PSI_IDX] : nrange->lower[PSI_IDX];
+    for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+      int idx[3]={ip,nrange->lower[AL_IDX],it};
+      const double *p=gkyl_array_cfetch(up->geo_corn.mc2p_nodal,gkyl_range_idx(nrange,idx));
+      fprintf(stderr,"TOK_RHO_WALL_REQUESTED_CONTOUR block=%d node=%d rho=%.17g R=%.17g Z=%.17g\n",
+        wall_trial_block,it-nrange->lower[TH_IDX],wall_trial_rho,p[0],p[1]);
+    }
+  }
+  if (enforce_wall)
+  for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+    for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+      int idx[3]={ip,nrange->lower[AL_IDX],it};
+      const double *p=gkyl_array_cfetch(up->geo_corn.mc2p_nodal,gkyl_range_idx(nrange,idx));
+      bool ok=tok_wall_point_inside(geo->efit,p);
+      // Report WHICH test failed. The old message printed only the node, so a
+      // segment violation looked like a point violation -- and the node it
+      // named was often comfortably inside the wall, which is actively
+      // misleading when diagnosing a rejection.
+      const char *fail_scope = ok ? "none" : "corner_node";
+      double fail_q[2] = {p[0],p[1]};
+      bool fixed_row=ip==(wall_trial_movable_edge==0 ? nrange->upper[PSI_IDX] : nrange->lower[PSI_IDX]);
+      bool fixed_failure=!ok && fixed_row;
+      for (int d=0; d<3 && ok; d+=2) {
+        if (idx[d]>=nrange->upper[d]) continue;
+        idx[d]++;
+        const double *q=gkyl_array_cfetch(up->geo_corn.mc2p_nodal,gkyl_range_idx(nrange,idx));
+        ok=tok_wall_segment_inside(geo->efit,p,q);
+        if (!ok) { fail_scope = d==PSI_IDX ? "segment_psi" : "segment_theta";
+                   fail_q[0]=q[0]; fail_q[1]=q[1]; }
+        if (!ok && d==PSI_IDX) {
+          bool lower=it==nrange->lower[TH_IDX] && up->local.lower[TH_IDX]==up->global.lower[TH_IDX];
+          bool upper=it==nrange->upper[TH_IDX] && up->local.upper[TH_IDX]==up->global.upper[TH_IDX];
+          if (lower || upper) ok=tok_divertor_material_cap(inp,geo,upper,p,q);
+          if (ok) fail_scope="none";
+        }
+        if (!ok && d==TH_IDX && fixed_row) fixed_failure=true;
+        idx[d]--;
+      }
+      if (!ok) {
+        // Distinguish "a node is outside the machine" from "both nodes are
+        // inside and the edge between them bulges out". The first is a
+        // declaration to move; the second is a resolution to refine. They used
+        // to print identically, so telling them apart meant running a
+        // refinement sweep by hand.
+        bool far_inside = tok_wall_point_inside(geo->efit,fail_q);
+        bool segment_bulge = far_inside &&
+          strncmp(fail_scope,"segment_",8)==0;
+        double excursion = segment_bulge
+          ? tok_wall_segment_excursion(geo->efit,p,fail_q) : 0.0;
+        fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d ip=%d it=%d rz=(%.17g,%.17g) "
+          "scope=%s to_rz=(%.17g,%.17g) limiter_status=%d endpoints=%s excursion_m=%.17g\n",
+          inp->ftype,ip,it,p[0],p[1],fail_scope,fail_q[0],fail_q[1],
+          geo->efit->limiter_status,
+          far_inside ? "inside" : "node_outside", excursion);
+        if (!tok_wall_trial_record(fixed_failure)) abort();
+      }
+    }
+  }
+
   // A folded cell is a grid that is wrong, not merely poor: the map from
   // computational to physical coordinates has reversed orientation there, so
   // the Jacobian changes sign inside the block. Such a block used to be written
@@ -7113,6 +7415,31 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
 
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_corn.mc2p_nodal, up->geo_corn.mc2p, false);
+  // Validate each complete polynomial edge on both radial boundaries of the
+  // block. Corner/face samples alone can miss a p2 overshoot between nodes.
+  if (enforce_wall && inp->cbasis.poly_order>2) {
+    fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED unsupported boundary order=%d\n",inp->cbasis.poly_order);
+    abort();
+  }
+  if (enforce_wall)
+  for (int side=0;side<2;++side) {
+    int idx[3]={side ? up->local.upper[PSI_IDX] : up->local.lower[PSI_IDX],
+      up->local.lower[AL_IDX],up->local.lower[TH_IDX]};
+    for (;idx[TH_IDX]<=up->local.upper[TH_IDX];++idx[TH_IDX]) {
+      const double *coeff=gkyl_array_cfetch(up->geo_corn.mc2p,gkyl_range_idx(&up->local,idx));
+      double points[3][2];
+      for (int k=0;k<3;++k) {
+        double eta[3]={side ? 1.0 : -1.0,0.0,k-1.0};
+        for(int d=0;d<2;++d)
+          points[k][d]=inp->cbasis.eval_expand(eta,coeff+d*inp->cbasis.num_basis);
+      }
+      if (!tok_wall_curve_inside(geo->efit,points[0],points[1],points[2])) {
+        fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=radial_boundary_curve side=%d theta_cell=%d\n",inp->ftype,side,idx[TH_IDX]);
+        if (!tok_wall_trial_record(side!=wall_trial_movable_edge)) abort();
+      }
+    }
+  }
+
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_corn.mc2nu_pos_nodal, up->geo_corn.mc2nu_pos, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, up->geo_corn.bmag_nodal, up->geo_corn.bmag, false);
   gkyl_nodal_ops_release(n2m);
@@ -7134,6 +7461,16 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
 void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
     struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map)
 {
+
+  // Vessel-outline policy for this block, decided once. An acknowledged absent
+  // outline builds without wall enforcement; an unusable outline with no
+  // acknowledgement never reaches here (the multiblock preflight rejects it),
+  // and the standalone path rejects at the first containment test below.
+  const bool enforce_wall = gkyl_tok_wall_policy_for(inp,geo->efit)==GKYL_TOK_WALL_ENFORCE;
+  if (!enforce_wall)
+    fprintf(stderr,"TOK_GEO_WALL_NOT_ENFORCED ftype=%d limiter_status=%d vertices=%d reason=%s\n",
+      inp->ftype,geo->efit->limiter_status,geo->efit->limiter_n,
+      gkyl_tok_wall_policy_reason(gkyl_tok_wall_policy_for(inp,geo->efit)));
 
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
@@ -7159,7 +7496,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   psi_lo = psi_lo + dels[1]*dpsi/2.0;
   alpha_lo = alpha_lo + dels[1]*dalpha/2.0;
     
-  double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
+  double dx_fact = 1.0/up->basis.poly_order;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
@@ -7302,6 +7639,9 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           double dTheta_dtheta = gkyl_position_map_slope(position_map, 2, theta_curr,\
             delta_theta, it, nrange);
           theta_curr = Theta_curr;
+          double shared_slope;
+          theta_curr = tok_shared_theta(inp, &arc_ctx, theta_curr, &shared_slope);
+          dTheta_dtheta *= shared_slope;
 
           struct tok_ordered_point ordered = { 0.0 };
           bool ordered_mapping = tok_ordered_map_lookup(inp, &arc_ctx,
@@ -7492,6 +7832,15 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   }
 
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
+  struct gkyl_range_iter wall_iter;
+  gkyl_range_iter_init(&wall_iter,nrange);
+  while (enforce_wall && gkyl_range_iter_next(&wall_iter)) {
+    const double *p=gkyl_array_cfetch(up->geo_int.mc2p_nodal,gkyl_range_idx(nrange,wall_iter.idx));
+    if (!tok_wall_point_inside(geo->efit,p)) {
+      fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=interior rz=(%.17g,%.17g)\n",inp->ftype,p[0],p[1]);
+      if (!tok_wall_trial_record(false)) abort();
+    }
+  }
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_int.mc2p_nodal, up->geo_int.mc2p, true);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, up->geo_int.bmag_nodal, up->geo_int.bmag, true);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, qprofile_nodal, up->geo_int.qprofile, true);
@@ -7512,6 +7861,16 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
 void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_range *nrange, double dzc[3], 
     struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map)
 {
+
+  // Vessel-outline policy for this block, decided once. An acknowledged absent
+  // outline builds without wall enforcement; an unusable outline with no
+  // acknowledgement never reaches here (the multiblock preflight rejects it),
+  // and the standalone path rejects at the first containment test below.
+  const bool enforce_wall = gkyl_tok_wall_policy_for(inp,geo->efit)==GKYL_TOK_WALL_ENFORCE;
+  if (!enforce_wall)
+    fprintf(stderr,"TOK_GEO_WALL_NOT_ENFORCED ftype=%d limiter_status=%d vertices=%d reason=%s\n",
+      inp->ftype,geo->efit->limiter_status,geo->efit->limiter_n,
+      gkyl_tok_wall_policy_reason(gkyl_tok_wall_policy_for(inp,geo->efit)));
 
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
@@ -7538,7 +7897,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   alpha_lo += dir == 1 ? 0. : dels[1]*dalpha/2.0;
 
     
-  double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
+  double dx_fact = 1.0/up->basis.poly_order;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // Used for finite differences.
@@ -7665,6 +8024,9 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           double dTheta_dtheta = gkyl_position_map_slope(position_map, 2, theta_curr,\
             delta_theta, it, nrange);
           theta_curr = Theta_curr;
+          double shared_slope;
+          theta_curr = tok_shared_theta(inp, &arc_ctx, theta_curr, &shared_slope);
+          dTheta_dtheta *= shared_slope;
 
           struct tok_ordered_point ordered = { 0.0 };
           bool ordered_mapping = tok_ordered_map_lookup(inp, &arc_ctx,
@@ -7784,6 +8146,16 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           mc2p_fd_n[lidx+Z_IDX] = phi_curr;
 
           if(ip_delta==0){
+            // Gate ONLY the containment test. This block also writes the surface
+            // metric quantities below; gating the whole block skips them and
+            // yields J=0 at check_right_handed.
+            if (enforce_wall) {
+              double wall_point[2]={r_curr,z_curr};
+              if (!tok_wall_point_inside(geo->efit,wall_point)) {
+                fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=face dir=%d rz=(%.17g,%.17g)\n",inp->ftype,dir,r_curr,z_curr);
+                if (!tok_wall_trial_record(false)) abort();
+              }
+            }
             if (ordered_mapping) {
               ddtheta_n[0] = ordered.dr_dtheta*dTheta_dtheta;
               ddtheta_n[1] = ordered.dz_dtheta*dTheta_dtheta;
@@ -7914,6 +8286,7 @@ gkyl_tok_geo_release(struct gkyl_tok_geo *geo)
   gkyl_array_release(geo->fpoldg);
   gkyl_array_release(geo->fpolprimedg);
   gkyl_array_release(geo->qdg);
+  for (int slot=0;slot<2;++slot) gkyl_free((void *)geo->divertor_wall[slot].segments);
   gkyl_efit_release(geo->efit);
   gkyl_free(geo);
 }

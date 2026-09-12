@@ -6,7 +6,9 @@
 #include <gkyl_basis.h>
 #include <gkyl_comm.h>
 #include <gkyl_eval_on_nodes.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_util.h>
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_gk_geometry_tok.h>
 #include <gkyl_math.h>
@@ -502,6 +504,25 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry *up = gkyl_calloc(1,sizeof(struct gk_geometry));
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
+
+  // Construction forms bmag_inv = 1/|B| with gkyl_dg_inv_op_range, whose
+  // kernel table is sparse. Ask before building rather than discovering it as a
+  // NULL function pointer several thousand nodes in: at poly_order 2 the DG
+  // inverse kernel does not exist in 3x, so a p2 tokamak geometry cannot be
+  // completed no matter what the gridding does. Refuse here, while nothing has
+  // been allocated and no geometry file has been written.
+  //
+  // This asks whether the kernel exists rather than testing the order, so the
+  // refusal lifts by itself once the kernel is generated.
+  if (!gkyl_dg_inv_op_supported(&up->basis)) {
+    fprintf(stderr,
+      "GKYL_GEOMETRY_UNSUPPORTED_POLY_ORDER poly_order=%d ndim=%d "
+      "reason=no_dg_inverse_kernel context=bmag_inv\n",
+      up->basis.poly_order, up->basis.ndim);
+    gkyl_exit("gk_geometry_tok: no DG inverse kernel for this basis, so "
+      "bmag_inv cannot be formed; polynomial order 1 is the implemented "
+      "contract");
+  }
   up->local = geometry_inp->geo_local;
   up->local_ext = geometry_inp->geo_local_ext;
   up->global = geometry_inp->geo_global;

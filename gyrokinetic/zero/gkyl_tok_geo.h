@@ -24,6 +24,14 @@ struct gkyl_tok_geo_stat {
 
 typedef void (*plate_func)(double s, double* RZ);
 
+// Explicit material target on the unchanged EQDSK limiter. Segment i joins
+// vertex i to (i+1)%limiter_n. Supply a connected, nonclosed sequence in either
+// file order or its reverse; no device-dependent divertor labels are inferred.
+struct gkyl_tok_geo_wall_target {
+  int num_segments;
+  const int *segments;
+};
+
 // Type of flux surface
 enum gkyl_tok_geo_type {
   // Full blocks to be used as stand alone simulations
@@ -107,12 +115,31 @@ struct gkyl_tok_geo {
 
   // Flag and functions to specify the plate location/shape in RZ coordinates
   // The functions should specify R(s) and Z(s) on the plate where s is a parameter \in [0,1]
+  //
+  // RESOLUTION FLOOR. The strike point is found by sampling the plate at 512
+  // uniform values of s and bracketing sign changes of psi(plate(s)) - psi0.
+  // Two consequences a plate author needs to know, both measured (gate 4):
+  //
+  //   * Two crossings of the same flux surface separated by less than the
+  //     sample spacing, 1/512 of the plate parameter, are not resolved.
+  //   * A crossing that is TANGENT -- the plate grazes the surface without
+  //     passing through it -- is not found at all, because there is no sign
+  //     change to bracket.
+  //
+  // In both cases the library REFUSES the domain (TOK_GEO_ACTIVE_PLATE_FAILED)
+  // rather than guessing a strike point, so the failure is conservative. Shape
+  // a plate with features coarser than 1/512 of its length, and avoid grazing
+  // incidence, or expect a rejection you have to diagnose.
   // For single null, the "lower" plate is the outboard plate and the "upper plate" is the inboard plate
   // For IWL, when s=0, the plate function must return the coordinates of the corner of the limiter plate
   // at the inboard midplane which lies on the LCFS.
   bool plate_spec;
+  // Continue an insufficient plate on the actual EQDSK limiter. Default off.
+  // Environment EXTEND_TO_LIMITER=0 or 1 overrides this input.
+  bool extend_to_limiter;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
+  struct gkyl_tok_geo_wall_target divertor_wall[2]; // owned copies; callback lower/upper slots
 
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
@@ -167,6 +194,11 @@ struct gkyl_tok_geo_xpt_seam_trial_status {
 
 // Inputs to create geometry for a specific computational grid
 struct gkyl_tok_geo_grid_inp {
+  // Experimental internal view of an actual radial neighbor. Owned by the
+  // multiblock declaration; used only during geometry construction.
+  const struct gkyl_tok_geo_grid_inp *shared_theta_peer;
+  int shared_theta_radial_edge;
+  bool shared_theta_reverse;
   struct gkyl_rect_grid cgrid;
   struct gkyl_basis cbasis;
   enum gkyl_tok_geo_type ftype; // type of geometry
@@ -183,7 +215,31 @@ struct gkyl_tok_geo_grid_inp {
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
 
   // Specifications for divertor plate
-  bool plate_spec; // whether a shape function is provided for divertor plates
+  bool plate_spec;
+  // Continue an insufficient plate on the actual EQDSK limiter. Default off.
+  // Environment EXTEND_TO_LIMITER=0 or 1 overrides this input.
+  bool extend_to_limiter; // whether a shape function is provided for divertor plates
+  // With extension enabled, explicit wall arcs replace the corresponding
+  // material plate target. Slot 0 is plate_func_lower, slot 1 plate_func_upper
+  // (LSN: outboard/inboard, not geometric lower/upper). Zero entries preserve
+  // the original plate policy. Inputs are copied. Native material-face maps
+  // follow the wall bends; strike-point chords only visualize that curved face.
+  struct gkyl_tok_geo_wall_target divertor_wall[2];
+
+  // Explicit acknowledgement that this equilibrium supplies NO usable vessel
+  // outline, so geometry is built without wall enforcement. Required because
+  // silence must never disable a safety constraint: an equilibrium whose
+  // outline is absent (limiter_status 0) or degenerate (status 2) and which
+  // carries no acknowledgement is REJECTED. Every block built under this
+  // acknowledgement reports TOK_GEO_WALL_NOT_ENFORCED, so an unenforced wall is
+  // always visible in the run log.
+  //
+  // The acknowledgement is checked, not trusted, and is refused two ways:
+  //   * a usable outline exists  -> contradictory declaration, rejected;
+  //   * the record is MALFORMED (status -1) -> unreadable or non-finite data is
+  //     an input error to fix, never something to declare away.
+  // It grants no permission to leave a wall that does exist.
+  bool no_vessel_outline;
   plate_func plate_func_lower; // lower plate specification. Gives R,Z in terms of s \in [0,1]
   plate_func plate_func_upper; // upper plate specification. Gives R,Z in terms of s \in [0,1]
                                // In a lower single null "lower" is the outer divertor and
@@ -231,6 +287,52 @@ struct gkyl_tok_geo_grid_inp {
     double eps; // typically 1e-10
   } quad_param;
 };
+
+// A usable vessel outline: enough finite vertices to bound a region. This is the
+// single predicate behind every wall decision; the enforcement sites must not
+// re-derive it, or they will disagree the way the reader and its consumers did.
+static inline bool
+gkyl_tok_wall_usable(const struct gkyl_efit *e)
+{
+  return e && e->limiter_status == 1 && e->limiter_n >= 3 && e->limiter_R && e->limiter_Z;
+}
+
+enum gkyl_tok_wall_policy {
+  GKYL_TOK_WALL_ENFORCE = 0,          // usable outline: enforce containment
+  GKYL_TOK_WALL_NOT_ENFORCED,         // no usable outline, acknowledged: build unenforced
+  GKYL_TOK_WALL_REJECT_UNDECLARED,    // no usable outline and no acknowledgement
+  GKYL_TOK_WALL_REJECT_CONTRADICTED,  // acknowledged, yet a usable outline exists
+  GKYL_TOK_WALL_REJECT_MALFORMED,     // unreadable/non-finite record: never declarable
+};
+
+// Decide the vessel-outline policy for one block. Pure: the caller reports, with
+// its own context. Absence of a wall is deliberately NOT treated as being
+// outside one -- that conflation is what made wall-less equilibria unbuildable.
+static inline enum gkyl_tok_wall_policy
+gkyl_tok_wall_policy_for(const struct gkyl_tok_geo_grid_inp *inp, const struct gkyl_efit *e)
+{
+  bool usable = gkyl_tok_wall_usable(e);
+  if (inp && inp->no_vessel_outline) {
+    if (usable) return GKYL_TOK_WALL_REJECT_CONTRADICTED;
+    if (e && e->limiter_status == -1) return GKYL_TOK_WALL_REJECT_MALFORMED;
+    return GKYL_TOK_WALL_NOT_ENFORCED;
+  }
+  return usable ? GKYL_TOK_WALL_ENFORCE : GKYL_TOK_WALL_REJECT_UNDECLARED;
+}
+
+// Name for diagnostics, so every site reports the same reason string.
+static inline const char *
+gkyl_tok_wall_policy_reason(enum gkyl_tok_wall_policy p)
+{
+  switch (p) {
+    case GKYL_TOK_WALL_ENFORCE: return "enforced";
+    case GKYL_TOK_WALL_NOT_ENFORCED: return "acknowledged_absent_outline";
+    case GKYL_TOK_WALL_REJECT_UNDECLARED: return "outline_unusable_and_undeclared";
+    case GKYL_TOK_WALL_REJECT_CONTRADICTED: return "declared_absent_but_outline_usable";
+    case GKYL_TOK_WALL_REJECT_MALFORMED: return "outline_malformed_not_declarable";
+  }
+  return "unknown";
+}
 
 
 /**
@@ -368,3 +470,10 @@ bool gkyl_tok_geo_uses_extended_construction(const struct gkyl_tok_geo_grid_inp 
  * @param geo Geometry object to delete
  */
 void gkyl_tok_geo_release(struct gkyl_tok_geo *geo);
+
+/** Check active material endpoints at a requested flux, without writing a grid.
+ * Uses the same native psi evaluator and connected limiter continuation as mapping.
+ * False means that this requested surface cannot terminate on its active plate.
+ */
+bool gkyl_tok_geo_check_plate_coverage(const struct gkyl_tok_geo *geo,
+  const struct gkyl_tok_geo_grid_inp *inp, double psi);

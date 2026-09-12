@@ -35,6 +35,31 @@ struct gkyl_efit{
   double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
   double rmin, rmax, zmin, zmax;
 
+  // Actual EQDSK limiter polyline, in file order (not xpt_bound_*).
+  // The outline closes last-to-first; reflection does not alter these vertices.
+  // Owned by this object.
+  // 1: usable -- >=3 finite vertices, enough to bound a region.
+  // 0: absent -- the file supplies no limiter record, or declares zero vertices.
+  // 2: degenerate -- a readable record with 1 or 2 vertices, which cannot bound
+  //    a region. Benign input, not corrupt data; separated from -1 so that an
+  //    explicit no-vessel-outline declaration may cover it while corrupt data
+  //    stays un-declarable.
+  // -1: malformed -- counts or coordinates could not be read, were out of range,
+  //    or were non-finite. Says nothing about polygon SHAPE: convexity,
+  //    self-intersection and winding are not examined here or anywhere else.
+  int limiter_status;
+  int limiter_n;
+  double *limiter_R, *limiter_Z;
+
+  // Outline SHAPE, examined separately from the vertex-count classification
+  // above. Reported, never enforced: a self-intersecting outline is still
+  // limiter_status = 1, because the one real instance we have measured
+  // (tcv_upper_SN.geqdsk) is a degenerate pinch that encloses no area and
+  // changes no containment answer. Refusing on that evidence would reject
+  // usable data; saying nothing would let a genuinely overlapping outline be
+  // handed an arbitrary interior by the crossing-number test.
+  int limiter_self_intersections; // 0 for a well-formed outline
+
   double psisep; // Separatrix psi for our DG representation
   double psisep_cubic; // Separatrix psi for our cubic DG representation
                  // Can differ from sibry, but we need to keep sibry
@@ -98,6 +123,18 @@ struct gkyl_efit{
  */
 
 gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp);
+
+/**
+ * Number of properly crossing non-adjacent edge pairs in the vessel outline.
+ *
+ * Zero for a well-formed outline. A nonzero count means the outline overlaps
+ * itself, so the crossing-number interior test is answering a question with no
+ * single right answer. Reported, never enforced -- see limiter_self_intersections.
+ *
+ * @param e EFIT object with a usable outline (limiter_status == 1).
+ * @return Number of crossing edge pairs; 0 if there is no usable outline.
+ */
+int gkyl_efit_limiter_self_intersections(const struct gkyl_efit *e);
 
 /**
  * Fetch magnetic-axis and separatrix psi from an EFIT object.

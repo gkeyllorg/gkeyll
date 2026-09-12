@@ -420,14 +420,8 @@ void
 gkyl_gk_geometry_init_nodal_range( struct gkyl_range *nrange, struct gkyl_range *range, int poly_order)
 {
     int nodes[GKYL_MAX_DIM];
-    if (poly_order == 1) {
-      for (int d=0; d<range->ndim; ++d)
-        nodes[d] = gkyl_range_shape(range, d) + 1;
-    }
-    if (poly_order == 2) {
-      for (int d=0; d<range->ndim; ++d)
-        nodes[d] = 2*gkyl_range_shape(range, d) + 1;
-    }
+    for (int d=0; d<range->ndim; ++d)
+      nodes[d] = gkyl_dg_nodes_per_dir(poly_order, gkyl_range_shape(range, d));
     gkyl_range_init_from_shape(nrange, range->ndim, nodes);
 
 }

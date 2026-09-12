@@ -1,4 +1,5 @@
 #include <gkyl_tok_geo_priv.h>
+#include <gkyl_tok_geo_wall_target_priv.h>
 #include <assert.h>
 #include <float.h>
 #include <stdio.h>
@@ -37,6 +38,448 @@ tok_eval_psi_rz(const struct gkyl_tok_geo *geo, double R, double Z)
   return geo->rzbasis.eval_expand(xy, coeffs);
 }
 
+static double
+tok_wall_tolerance(const struct gkyl_efit *e)
+{
+  return 1e-8*fmax(1.0,fmax(e->rdim,e->zdim));
+}
+
+bool
+tok_wall_point_inside(const struct gkyl_efit *e, const double p[2])
+{
+  // "No usable outline" answers false here because the question -- is this point
+  // inside the wall? -- has no answer without one. Callers must therefore not
+  // reach this when the outline is acknowledged absent; they gate on
+  // gkyl_tok_wall_policy_for first.
+  if (!gkyl_tok_wall_usable(e) || !tok_geo_finite(p[0]) || !tok_geo_finite(p[1])) return false;
+  for (int i=0; i<e->limiter_n; ++i)
+    if (!tok_geo_finite(e->limiter_R[i]) || !tok_geo_finite(e->limiter_Z[i])) return false;
+  bool inside=false;
+  double tol=tok_wall_tolerance(e);
+  // EQDSK supplies an ordered vessel outline. Its last-to-first edge closes
+  // the polygon; a repeated first vertex is optional.
+  for (int i=0,j=e->limiter_n-1; i<e->limiter_n; j=i++) {
+    double ax=e->limiter_R[j],ay=e->limiter_Z[j];
+    double bx=e->limiter_R[i],by=e->limiter_Z[i];
+    if (!tok_geo_finite(ax) || !tok_geo_finite(ay) || !tok_geo_finite(bx) || !tok_geo_finite(by)) return false;
+    double dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;
+    if (l2>0.0) {
+      double t=fmax(0.0,fmin(1.0,((p[0]-ax)*dx+(p[1]-ay)*dy)/l2));
+      if (hypot(p[0]-ax-t*dx,p[1]-ay-t*dy)<=tol) return true;
+    }
+    if ((ay>p[1])!=(by>p[1]) && p[0]<ax+(p[1]-ay)*dx/(by-ay)) inside=!inside;
+  }
+  return inside;
+}
+
+static int
+tok_wall_compare_double(const void *a, const void *b)
+{
+  double x=*(const double *)a,y=*(const double *)b;
+  return (x>y)-(x<y);
+}
+
+bool
+tok_wall_segment_inside(const struct gkyl_efit *e,
+  const double a[2], const double b[2])
+{
+  if (!tok_wall_point_inside(e,a) || !tok_wall_point_inside(e,b)) return false;
+  double dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy;
+  double tol=tok_wall_tolerance(e);
+  if (l2<=tol*tol) return true;
+  // Partition at EVERY intersection (including collinear wall vertices), then
+  // test each open interval. Endpoints alone miss excursions across a concavity.
+  double *cuts=gkyl_malloc((2*e->limiter_n+2)*sizeof(double));
+  int n=0;cuts[n++]=0.0;cuts[n++]=1.0;
+  for (int i=0,j=e->limiter_n-1; i<e->limiter_n; j=i++) {
+    double px=e->limiter_R[j]-a[0],py=e->limiter_Z[j]-a[1];
+    double ex=e->limiter_R[i]-e->limiter_R[j],ey=e->limiter_Z[i]-e->limiter_Z[j];
+    double den=dx*ey-dy*ex;
+    double roundoff=64.0*DBL_EPSILON*fmax(DBL_MIN,sqrt(l2)*hypot(ex,ey));
+    if (fabs(den)>roundoff) {
+      double t=(px*ey-py*ex)/den,u=(px*dy-py*dx)/den;
+      if (t>0.0 && t<1.0 && u>=0.0 && u<=1.0) cuts[n++]=t;
+    }
+    else if (fabs(px*dy-py*dx)<=tol*sqrt(l2)) {
+      double t=(px*dx+py*dy)/l2;
+      if (t>0.0 && t<1.0) cuts[n++]=t;
+      t=((px+ex)*dx+(py+ey)*dy)/l2;
+      if (t>0.0 && t<1.0) cuts[n++]=t;
+    }
+  }
+  qsort(cuts,n,sizeof(double),tok_wall_compare_double);
+  bool ok=true;
+  for (int i=1; i<n && ok; ++i) {
+    double t=0.5*(cuts[i-1]+cuts[i]);
+    double p[2]={a[0]+t*dx,a[1]+t*dy};
+    ok=tok_wall_point_inside(e,p);
+  }
+  gkyl_free(cuts);
+  return ok;
+}
+
+// Distance from a point to the wall outline, as a positive number. Only
+// meaningful for a point already known to be outside.
+static double
+tok_wall_distance_to_outline(const struct gkyl_efit *e, const double p[2])
+{
+  double best = DBL_MAX;
+  for (int i=0,j=e->limiter_n-1; i<e->limiter_n; j=i++) {
+    double ax=e->limiter_R[j],ay=e->limiter_Z[j];
+    double bx=e->limiter_R[i],by=e->limiter_Z[i];
+    double dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;
+    double t = l2>0.0 ? fmax(0.0,fmin(1.0,((p[0]-ax)*dx+(p[1]-ay)*dy)/l2)) : 0.0;
+    double d = hypot(p[0]-ax-t*dx, p[1]-ay-t*dy);
+    if (d < best) best = d;
+  }
+  return best==DBL_MAX ? 0.0 : best;
+}
+
+// REPORTING ONLY: how far outside the wall this segment gets, in metres.
+//
+// This does not decide anything. tok_wall_segment_inside above is the verdict,
+// and it is exact; this exists so a rejection can say whether it is a
+// millimetre of discretisation overshoot or a quarter metre of misdeclared
+// domain. It reuses the same partition so the outside intervals are found
+// exactly, then samples within them -- so the figure is a lower bound on the
+// true maximum, tight enough to tell those two cases apart.
+//
+// Runs only on the rejection path, so an O(samples x vertices) scan is cheap.
+double
+tok_wall_segment_excursion(const struct gkyl_efit *e,
+  const double a[2], const double b[2])
+{
+  if (!gkyl_tok_wall_usable(e)) return 0.0;
+  double dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy;
+  double tol=tok_wall_tolerance(e);
+  if (l2<=tol*tol) return 0.0;
+
+  double *cuts=gkyl_malloc((2*e->limiter_n+2)*sizeof(double));
+  int n=0;cuts[n++]=0.0;cuts[n++]=1.0;
+  for (int i=0,j=e->limiter_n-1; i<e->limiter_n; j=i++) {
+    double px=e->limiter_R[j]-a[0],py=e->limiter_Z[j]-a[1];
+    double ex=e->limiter_R[i]-e->limiter_R[j],ey=e->limiter_Z[i]-e->limiter_Z[j];
+    double den=dx*ey-dy*ex;
+    double roundoff=64.0*DBL_EPSILON*fmax(DBL_MIN,sqrt(l2)*hypot(ex,ey));
+    if (fabs(den)>roundoff) {
+      double t=(px*ey-py*ex)/den,u=(px*dy-py*dx)/den;
+      if (t>0.0 && t<1.0 && u>=0.0 && u<=1.0) cuts[n++]=t;
+    }
+  }
+  qsort(cuts,n,sizeof(double),tok_wall_compare_double);
+
+  double worst=0.0;
+  const int nsample=64;
+  for (int i=1; i<n; ++i) {
+    double t0=cuts[i-1],t1=cuts[i];
+    double tm=0.5*(t0+t1);
+    double pm[2]={a[0]+tm*dx,a[1]+tm*dy};
+    if (tok_wall_point_inside(e,pm)) continue;   // this interval is inside
+    for (int k=0; k<=nsample; ++k) {
+      double t=t0+(t1-t0)*k/(double)nsample;
+      double p[2]={a[0]+t*dx,a[1]+t*dy};
+      if (tok_wall_point_inside(e,p)) continue;
+      double d=tok_wall_distance_to_outline(e,p);
+      if (d>worst) worst=d;
+    }
+  }
+  gkyl_free(cuts);
+  return worst;
+}
+
+// Roots of a*t^2+b*t+c in [0,1], with a stable quadratic formula.
+static int
+tok_wall_quadratic_roots(double a, double b, double c, double roots[2])
+{
+  double scale=fmax(fabs(a),fmax(fabs(b),fabs(c)));
+  if (scale==0.0) return 0;
+  a/=scale;b/=scale;c/=scale;
+  int n=0;
+  if (fabs(a)<=64*DBL_EPSILON) {
+    if (fabs(b)>64*DBL_EPSILON) {
+      double t=-c/b;if(t>0.0 && t<1.0)roots[n++]=t;
+    }
+  }
+  else {
+    double disc=b*b-4*a*c;
+    if (disc>=0.0) {
+      double q=-0.5*(b+copysign(sqrt(disc),b));
+      double t=q/a;
+      if(t>0.0 && t<1.0)roots[n++]=t;
+      if(q!=0.0) {
+        t=c/q;if(t>0.0 && t<1.0)roots[n++]=t;
+      }
+    }
+  }
+  return n;
+}
+
+// Exact containment test for the represented p1/p2 boundary curve through
+// t=0,1/2,1. This catches an excursion between all three interpolation nodes.
+bool
+tok_wall_curve_inside(const struct gkyl_efit *e,
+  const double p0[2], const double pm[2], const double p1[2])
+{
+  if (!tok_wall_point_inside(e,p0) || !tok_wall_point_inside(e,pm) ||
+      !tok_wall_point_inside(e,p1)) return false;
+  double a[2],b[2];
+  for(int d=0;d<2;++d) {
+    a[d]=2*(p1[d]+p0[d]-2*pm[d]);
+    b[d]=4*pm[d]-3*p0[d]-p1[d];
+  }
+  double *cuts=gkyl_malloc((4*e->limiter_n+2)*sizeof(double));
+  int nc=0;cuts[nc++]=0.0;cuts[nc++]=1.0;
+  double tol=tok_wall_tolerance(e);
+  for(int i=0,j=e->limiter_n-1;i<e->limiter_n;j=i++) {
+    double ex=e->limiter_R[i]-e->limiter_R[j],ey=e->limiter_Z[i]-e->limiter_Z[j];
+    double l2=ex*ex+ey*ey;
+    if(l2==0.0)continue;
+    double cx=p0[0]-e->limiter_R[j],cy=p0[1]-e->limiter_Z[j];
+    double qa=a[0]*ey-a[1]*ex,qb=b[0]*ey-b[1]*ex,qc=cx*ey-cy*ex;
+    double roots[2];
+    double threshold=64*DBL_EPSILON*sqrt(l2)*fmax(1.0,hypot(a[0],a[1])+hypot(b[0],b[1])+hypot(cx,cy));
+    if(fmax(fabs(qa),fmax(fabs(qb),fabs(qc)))<=threshold) {
+      // Curve lies on this wall line. Its passage past either end of the
+      // finite wall segment still partitions inside from outside intervals.
+      int d=fabs(ex)>=fabs(ey) ? 0 : 1;
+      for(int end=0;end<2;++end) {
+        int vertex=end ? i : j;
+        double value=d==0 ? e->limiter_R[vertex] : e->limiter_Z[vertex];
+        int nr=tok_wall_quadratic_roots(a[d],b[d],p0[d]-value,roots);
+        for(int k=0;k<nr;++k)cuts[nc++]=roots[k];
+      }
+    }
+    else {
+      int nr=tok_wall_quadratic_roots(qa,qb,qc,roots);
+      for(int k=0;k<nr;++k) {
+        double t=roots[k],r=p0[0]+t*(b[0]+t*a[0]),z=p0[1]+t*(b[1]+t*a[1]);
+        double u=((r-e->limiter_R[j])*ex+(z-e->limiter_Z[j])*ey)/l2;
+        if(u>=-tol/sqrt(l2) && u<=1.0+tol/sqrt(l2))cuts[nc++]=t;
+      }
+    }
+  }
+  qsort(cuts,nc,sizeof(double),tok_wall_compare_double);
+  bool ok=true;
+  for(int i=1;i<nc && ok;++i) {
+    double t=0.5*(cuts[i-1]+cuts[i]);
+    double p[2]={p0[0]+t*(b[0]+t*a[0]),p0[1]+t*(b[1]+t*a[1])};
+    ok=tok_wall_point_inside(e,p);
+  }
+  gkyl_free(cuts);return ok;
+}
+
+// A join is geometric, not a device-specific distance allowance. Require the
+// callback endpoint (and a nearby interior point) to lie on the stored wall.
+static bool
+tok_wall_contains(const struct gkyl_efit *efit, const double p[2], double tol)
+{
+  for (int j=0; j<efit->limiter_n; ++j) {
+    int next=(j+1)%efit->limiter_n;
+    double dr=efit->limiter_R[next]-efit->limiter_R[j];
+    double dz=efit->limiter_Z[next]-efit->limiter_Z[j];
+    double l2=dr*dr+dz*dz;
+    if (l2 == 0.0) continue;
+    double t=((p[0]-efit->limiter_R[j])*dr+(p[1]-efit->limiter_Z[j])*dz)/l2;
+    t=fmax(0.0, fmin(1.0, t));
+    if (hypot(p[0]-efit->limiter_R[j]-t*dr,
+        p[1]-efit->limiter_Z[j]-t*dz) <= tol) return true;
+  }
+  return false;
+}
+
+static bool
+tok_wall_in_equilibrium(const struct gkyl_tok_geo *geo, const double p[2])
+{
+  const struct gkyl_rect_grid *g=geo->use_cubics ? &geo->rzgrid_cubic : &geo->rzgrid;
+  return p[0]>=g->lower[0] && p[0]<=g->upper[0] &&
+    p[1]>=g->lower[1] && p[1]<=g->upper[1];
+}
+
+int
+tok_divertor_wall_slot(const struct gkyl_tok_geo *geo, plate_func plate)
+{
+  if (!geo->extend_to_limiter || !plate) return -1;
+  int slot=-1;
+  if (plate==geo->plate_func_lower && geo->divertor_wall[0].num_segments) slot=0;
+  if (plate==geo->plate_func_upper && geo->divertor_wall[1].num_segments)
+    slot=slot>=0 ? -2 : 1;
+  return slot;
+}
+
+// Solve only on the explicitly named connected material target. Requiring a
+// unique native root prevents a remote leg/root from replacing an earlier
+// contact. The retained contour and all nonmaterial edges are still checked
+// against the entire wall after construction.
+bool
+tok_divertor_wall_intersection(const struct gkyl_tok_geo *geo, int slot,
+  double psi, double *r, double *z)
+{
+  if (slot<0 || slot>1 || !tok_geo_finite(psi)) return false;
+  const struct gkyl_tok_geo_wall_target *target=&geo->divertor_wall[slot];
+  const struct gkyl_efit *e=geo->efit;
+  const struct gkyl_rect_grid *grid=geo->use_cubics ? &geo->rzgrid_cubic : &geo->rzgrid;
+  if (!tok_wall_target_valid(e,target->num_segments,target->segments)) return false;
+  double step=0.1*fmin(grid->dx[0],grid->dx[1]);
+  if (!(step>0.0) || !tok_geo_finite(step)) return false;
+  double flux_tol=1e-10*fmax(1.0,fabs(psi)), root_r=0.0,root_z=0.0;
+  int roots=0;
+  for (int k=0;k<target->num_segments;++k) {
+    int i=target->segments[k],j=(i+1)%e->limiter_n;
+    double a[2]={e->limiter_R[i],e->limiter_Z[i]};
+    double b[2]={e->limiter_R[j],e->limiter_Z[j]};
+    if (!tok_wall_in_equilibrium(geo,a) || !tok_wall_in_equilibrium(geo,b)) return false;
+    double count=ceil(hypot(b[0]-a[0],b[1]-a[1])/step);
+    if (!tok_geo_finite(count) || count>100000) return false;
+    int ns=(int)count;
+    ns=GKYL_MAX2(ns,32);
+    if (ns>100000) return false;
+    double f0=tok_eval_psi_rz(geo,a[0],a[1])-psi;
+    if (!tok_geo_finite(f0)) return false;
+    for (int t=0;t<=ns;++t) {
+      double u=t/(double)ns;
+      double p[2]={a[0]+u*(b[0]-a[0]),a[1]+u*(b[1]-a[1])};
+      double f=tok_eval_psi_rz(geo,p[0],p[1])-psi;
+      if (!tok_geo_finite(f)) return false;
+      bool exact=fabs(f)<=flux_tol;
+      if (exact || (t && f*f0<0.0)) {
+        if (!exact) {
+          double lo=(t-1)/(double)ns,hi=u,flo=f0;
+          for (int iter=0;iter<64;++iter) {
+            double mid=0.5*(lo+hi);
+            double fm=tok_eval_psi_rz(geo,a[0]+mid*(b[0]-a[0]),a[1]+mid*(b[1]-a[1]))-psi;
+            if (!tok_geo_finite(fm)) return false;
+            if (flo*fm<=0.0) hi=mid;
+            else {lo=mid;flo=fm;}
+          }
+          u=0.5*(lo+hi);
+          p[0]=a[0]+u*(b[0]-a[0]);p[1]=a[1]+u*(b[1]-a[1]);
+        }
+        if (fabs(tok_eval_psi_rz(geo,p[0],p[1])-psi)>flux_tol) return false;
+        if (roots && hypot(p[0]-root_r,p[1]-root_z)>tok_wall_tolerance(e)) {
+          fprintf(stderr,"TOK_GEO_DIVERTOR_ROOT_FAILED reason=ambiguous slot=%d psi=%.17g\n",slot,psi);
+          return false;
+        }
+        root_r=p[0];root_z=p[1];++roots;
+      }
+      f0=f;
+    }
+  }
+  if (!roots) return false;
+  *r=root_r;*z=root_z;
+  return true;
+}
+
+// Follow one outward endpoint continuation in file order or its reverse.
+// Stop if flux turns away before reaching the target, or if wall data runs
+// out. This deliberately refuses to jump to another leg elsewhere on the wall.
+static bool
+tok_wall_walk(const struct gkyl_tok_geo *geo, int seg, int dir,
+  const double start[2], double psi, double *r, double *z, double *distance)
+{
+  const struct gkyl_efit *e=geo->efit;
+  double p[2]={start[0],start[1]}, travelled=0.0;
+  if (!tok_wall_in_equilibrium(geo,p)) return false;
+  double f=tok_eval_psi_rz(geo,p[0],p[1])-psi;
+  double tol=1e-10*fmax(1.0,fabs(psi));
+  const struct gkyl_rect_grid *g=geo->use_cubics ? &geo->rzgrid_cubic : &geo->rzgrid;
+  double step=0.05*fmin(g->dx[0],g->dx[1]);
+  for (int visited=0; visited<e->limiter_n; ++visited) {
+    int v=dir>0 ? (seg+1)%e->limiter_n : seg;
+    double end[2]={e->limiter_R[v],e->limiter_Z[v]};
+    double base[2]={p[0],p[1]}, length=hypot(end[0]-p[0],end[1]-p[1]);
+    int ns=(int)ceil(length/step);
+    ns=GKYL_MAX2(ns,32);
+    if (ns>100000) return false;
+    for (int k=1; k<=ns; ++k) {
+      double q[2]={base[0]+(end[0]-base[0])*k/ns,
+        base[1]+(end[1]-base[1])*k/ns};
+      if (!tok_wall_in_equilibrium(geo,q)) return false;
+      double fq=tok_eval_psi_rz(geo,q[0],q[1])-psi;
+      if (!tok_geo_finite(fq) || !tok_geo_finite(f)) return false;
+      if (f*fq<=0.0 || fabs(fq)<=tol) {
+        double lo=0.0, hi=1.0, flo=f;
+        if (fabs(fq)>tol) {
+          for (int it=0; it<64; ++it) {
+            double t=0.5*(lo+hi);
+            double fm=tok_eval_psi_rz(geo,p[0]+t*(q[0]-p[0]),p[1]+t*(q[1]-p[1]))-psi;
+            if (!tok_geo_finite(fm)) return false;
+            if (flo*fm<=0.0) hi=t;
+            else {lo=t;flo=fm;}
+          }
+        }
+        double t=fabs(fq)<=tol ? 1.0 : 0.5*(lo+hi);
+        *r=p[0]+t*(q[0]-p[0]); *z=p[1]+t*(q[1]-p[1]);
+        *distance=travelled+hypot(*r-p[0],*z-p[1]);
+        return fabs(tok_eval_psi_rz(geo,*r,*z)-psi)<=tol;
+      }
+      if (fabs(fq)>fabs(f)+tol) return false;
+      travelled+=hypot(q[0]-p[0],q[1]-p[1]);
+      p[0]=q[0];p[1]=q[1];f=fq;
+    }
+    seg=(seg+dir+e->limiter_n)%e->limiter_n;
+  }
+  return false;
+}
+
+bool
+tok_limiter_plate_intersection(const struct gkyl_tok_geo *geo,
+  plate_func plate, double psi, double *r, double *z)
+{
+  const struct gkyl_efit *e=geo->efit;
+  if (!geo->extend_to_limiter || !plate || e->limiter_status!=1) return false;
+  double tol=1e-8*fmax(1.0,fmax(e->rdim,e->zdim));
+  // Extend the endpoint through which this flux family leaves the original
+  // plate's range. The remote endpoint can otherwise reach the same psi after
+  // walking around the vessel onto the other divertor leg.
+  double closest_flux=DBL_MAX;
+  for (int i=0; i<=512; ++i) {
+    double p[2];plate(i/512.0,p);
+    if (!tok_wall_in_equilibrium(geo,p)) return false;
+    double f=fabs(tok_eval_psi_rz(geo,p[0],p[1])-psi);
+    if (!tok_geo_finite(f)) return false;
+    closest_flux=fmin(closest_flux,f);
+  }
+  double flux_tol=1e-10*fmax(1.0,fabs(psi));
+  int found=0, picked_end=-1;
+  double best_r=0.0,best_z=0.0,best_dist=0.0;
+  for (int edge=0; edge<2; ++edge) {
+    double p[2],inside[2];
+    plate(edge,p);plate(edge ? 1.0-1e-4 : 1e-4,inside);
+    if (fabs(tok_eval_psi_rz(geo,p[0],p[1])-psi)>closest_flux+flux_tol) continue;
+    if (!tok_wall_contains(e,p,tol) || !tok_wall_contains(e,inside,tol)) continue;
+    double tr=p[0]-inside[0],tz=p[1]-inside[1],tn=hypot(tr,tz);
+    if (tn<=tol) continue;
+    int start_seg=-1,start_dir=0,joins=0;
+    for (int j=0; j<e->limiter_n; ++j) {
+      int next=(j+1)%e->limiter_n;
+      double dr=e->limiter_R[next]-e->limiter_R[j];
+      double dz=e->limiter_Z[next]-e->limiter_Z[j],ln=hypot(dr,dz);
+      if (ln<=tol) continue;
+      double t=((p[0]-e->limiter_R[j])*dr+(p[1]-e->limiter_Z[j])*dz)/(ln*ln);
+      if (t < -tol/ln || t > 1.0+tol/ln) continue;
+      if (hypot(p[0]-e->limiter_R[j]-t*dr,p[1]-e->limiter_Z[j]-t*dz)>tol) continue;
+      double align=(tr*dr+tz*dz)/(tn*ln);
+      if (fabs(align)<0.5) continue;
+      int dir=align>0.0 ? 1 : -1;
+      if ((dir>0 && (1.0-t)*ln<=tol) || (dir<0 && t*ln<=tol)) continue;
+      start_seg=j;start_dir=dir;++joins;
+    }
+    if (joins!=1) continue;
+    double rr,zz,dist;
+    if (tok_wall_walk(geo,start_seg,start_dir,p,psi,&rr,&zz,&dist)) {
+      if (found && hypot(rr-best_r,zz-best_z)>tol) return false;
+      best_r=rr;best_z=zz;best_dist=dist;picked_end=edge;++found;
+    }
+  }
+  if (!found) return false;
+  *r=best_r;*z=best_z;
+  static int nreport=0;
+  if (nreport++<8)
+    fprintf(stderr,"TOK_GEO_PLATE_EXTENDED psi=%.17g endpoint=%d rz=(%.17g,%.17g) wall_distance=%.17g\n",
+      psi,picked_end,*r,*z,best_dist);
+  return true;
+}
+
 // Find the unique intersection of psi=psi0 with a shaped plate.  The search
 // uses only the fixed target surface, so the cached X-point ray is identical
 // in corner, interior, and surface geometry passes.
@@ -44,6 +487,8 @@ static bool
 tok_plate_intersection(const struct gkyl_tok_geo *geo, plate_func plate,
   double psi0, double *rplate, double *zplate)
 {
+  int slot=tok_divertor_wall_slot(geo,plate);
+  if (slot!=-1) return tok_divertor_wall_intersection(geo,slot,psi0,rplate,zplate);
   if (!plate)
     return false;
   const int nsamp = 512;
@@ -119,11 +564,87 @@ tok_plate_intersection(const struct gkyl_tok_geo *geo, plate_func plate,
     root_s = best_s;
   }
   else if (nroot != 1)
-    return false;
+    return tok_limiter_plate_intersection(geo,plate,psi0,rplate,zplate);
+
+  // The sign-change test cannot tell a crossing from a DISCONTINUITY in the
+  // plate. plate_func is not required to be continuous -- two separate divertor
+  // tiles are an ordinary thing to describe -- and where two disjoint pieces
+  // sit on opposite sides of the surface, f changes sign with no root between
+  // them. Bisection then converges onto the gap, and every value it evaluates
+  // stays on one piece, so it never notices.
+  //
+  // Measured before this check existed: a plate split by a gap spanning 40% of
+  // its length reported a strike point about 55 mm from the requested surface
+  // AND reported success -- a false acceptance, where every other failure mode
+  // in this routine refuses. So confirm the point actually lies on the surface
+  // before accepting it. A genuine bisected root converges to ~1e-23 here and a
+  // root found by the endpoint test satisfies this by construction, so the
+  // existing tolerance is the right bar rather than a new tuned one.
   double rz[2];
   plate(root_s, rz);
+  double resid = tok_eval_psi_rz(geo, rz[0], rz[1]) - psi0;
+  if (!isfinite(resid) || fabs(resid) > flux_tol) {
+    fprintf(stderr,
+      "TOK_GEO_PLATE_ROOT_REJECTED reason=residual s=%.17g psi_target=%.17g "
+      "residual=%.17g tol=%.17g\n", root_s, psi0, resid, flux_tol);
+    return false;
+  }
   *rplate = rz[0]; *zplate = rz[1];
   return isfinite(*rplate) && isfinite(*zplate);
+}
+
+// Only material endpoints actually owned by this block are mandatory. In
+// particular, half-domain PF setup also evaluates the other, unused plate.
+static bool
+tok_plate_slot_required(const struct gkyl_tok_geo *geo,
+  enum gkyl_tok_geo_type ftype, double psi, int side)
+{
+  bool lower=false,upper=false;
+  switch (ftype) {
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN:
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL: lower=upper=true;break;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO:
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
+    case GKYL_GEOMETRY_TOKAMAK_PF_UP_L: lower=true;break;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP:
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP:
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
+    case GKYL_GEOMETRY_TOKAMAK_PF_UP_R: upper=true;break;
+    case GKYL_GEOMETRY_TOKAMAK_IWL:
+      lower=upper=(psi-geo->sibry)*(geo->sibry-geo->efit->simag)>=0.0;break;
+    default: break;
+  }
+  return side ? upper : lower;
+}
+
+int
+tok_plate_coverage_status(const struct gkyl_tok_geo *geo,
+  const struct gkyl_tok_geo_grid_inp *inp, double psi)
+{
+  if (!geo->plate_spec) return 0;
+  int status=0;
+  for (int side=0; side<2; ++side) {
+    if (!tok_plate_slot_required(geo,inp->ftype,psi,side)) continue;
+    double r,z;
+    if (!tok_plate_intersection(geo,side ? geo->plate_func_upper : geo->plate_func_lower,psi,&r,&z)) {
+      fprintf(stderr,"TOK_GEO_ACTIVE_PLATE_FAILED ftype=%d plate=%s psi=%.17g EXTEND_TO_LIMITER=%d limiter_status=%d\n",
+        inp->ftype,side ? "upper" : "lower",psi,geo->extend_to_limiter,geo->efit->limiter_status);
+      int failure=geo->extend_to_limiter && geo->divertor_wall[side].num_segments ? 1 : 2;
+      status=GKYL_MAX2(status,failure);
+    }
+  }
+  return status;
+}
+
+bool
+gkyl_tok_geo_check_plate_coverage(const struct gkyl_tok_geo *geo,
+  const struct gkyl_tok_geo_grid_inp *inp, double psi)
+{
+  return tok_plate_coverage_status(geo,inp,psi)==0;
 }
 
 enum tok_xpt_sector {
@@ -1300,6 +1821,37 @@ tok_plate_root_s(const struct gkyl_qr_res *res, bool lower, double psi)
   return clamped;
 }
 
+static void
+tok_legacy_plate_point(struct gkyl_tok_geo *geo, bool lower, enum gkyl_tok_geo_type ftype, double psi,
+  const struct gkyl_qr_res *res, double *s, double rz[2])
+{
+  plate_func plate=lower ? geo->plate_func_lower : geo->plate_func_upper;
+  int slot=lower ? 0 : 1;
+  if (geo->extend_to_limiter && geo->divertor_wall[slot].num_segments) {
+    if (tok_divertor_wall_intersection(geo,slot,psi,&rz[0],&rz[1])) {
+      *s=-1.0;
+      return;
+    }
+    if (tok_plate_slot_required(geo,ftype,psi,slot)) {
+      fprintf(stderr,"TOK_GEO_DIVERTOR_ROOT_FAILED slot=%d psi=%.17g\n",slot,psi);
+      abort();
+    }
+    // Inactive half-domain endpoints retain the existing auxiliary fallback;
+    // this point is never granted ownership of a material face.
+
+  }
+  if (res->res>=0.0 && res->res<=1.0) {
+    *s=res->res;plate(*s,rz);return;
+  }
+  if (tok_plate_intersection(geo,plate,psi,&rz[0],&rz[1])) {
+    *s=-1.0; // resolved R,Z may be on the wall, outside the callback's domain
+    return;
+  }
+  // This can only serve an auxiliary endpoint: active endpoints are checked
+  // before contour construction. Keep the historical half-domain clamp here.
+  *s=tok_plate_root_s(res,lower,psi);plate(*s,rz);
+}
+
 void set_upper_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr)
 {
       double rzplate[2];
@@ -1311,11 +1863,13 @@ void set_upper_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, s
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = tok_plate_root_s(&res, false, psi_curr);
+      double smax;
+      tok_legacy_plate_point(geo, false, arc_ctx->ftype, psi_curr, &res, &smax, rzplate);
       double s_leg;
-      if (tok_plate_select_leg_root(geo, pctx, smax, &s_leg))
+      if (smax>=0.0 && smax<=1.0 && tok_plate_select_leg_root(geo, pctx, smax, &s_leg)) {
         smax = s_leg;
-      geo->plate_func_upper(smax, rzplate);
+        geo->plate_func_upper(smax, rzplate);
+      }
       arc_ctx->zmax = rzplate[1];
       if (tok_extent_diag_enabled()) {
         fprintf(stderr,
@@ -1338,11 +1892,13 @@ void set_lower_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, s
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = tok_plate_root_s(&res, true, psi_curr);
+      double smin;
+      tok_legacy_plate_point(geo, true, arc_ctx->ftype, psi_curr, &res, &smin, rzplate);
       double s_leg;
-      if (tok_plate_select_leg_root(geo, pctx, smin, &s_leg))
+      if (smin>=0.0 && smin<=1.0 && tok_plate_select_leg_root(geo, pctx, smin, &s_leg)) {
         smin = s_leg;
-      geo->plate_func_lower(smin, rzplate);
+        geo->plate_func_lower(smin, rzplate);
+      }
       arc_ctx->zmin = rzplate[1];
       if (tok_extent_diag_enabled()) {
         fprintf(stderr,
@@ -1366,8 +1922,8 @@ void set_upper_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ct
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = tok_plate_root_s(&res, false, psi_curr);
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      tok_legacy_plate_point(geo, false, arc_ctx->ftype, psi_curr, &res, &smax, rzplate);
       arc_ctx->zmax_iwl_plate = rzplate[1];
       geo->rmin = rzplate[0];
 }
@@ -1384,8 +1940,8 @@ void set_lower_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ct
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = tok_plate_root_s(&res, true, psi_curr);
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      tok_legacy_plate_point(geo, true, arc_ctx->ftype, psi_curr, &res, &smin, rzplate);
       arc_ctx->zmin_iwl_plate = rzplate[1];
       geo->rmin = rzplate[0];
 }
@@ -1576,8 +2132,13 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, &pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = tok_plate_root_s(&res, false, geo->psisep);
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      if (geo->extend_to_limiter && geo->divertor_wall[1].num_segments)
+        tok_legacy_plate_point(geo,false,inp->ftype,geo->psisep,&res,&smax,rzplate);
+      else {
+        smax=tok_plate_root_s(&res,false,geo->psisep);
+        geo->plate_func_upper(smax,rzplate);
+      }
       arc_ctx.zmin_left = rzplate[1];
 
       pctx.lower=true;
@@ -1587,8 +2148,13 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, &pctx);
       res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = tok_plate_root_s(&res, true, geo->psisep);
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      if (geo->extend_to_limiter && geo->divertor_wall[0].num_segments)
+        tok_legacy_plate_point(geo,true,inp->ftype,geo->psisep,&res,&smin,rzplate);
+      else {
+        smin=tok_plate_root_s(&res,true,geo->psisep);
+        geo->plate_func_lower(smin,rzplate);
+      }
       arc_ctx.zmin_right = rzplate[1];
     }
     else{
@@ -1655,8 +2221,13 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, &pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = tok_plate_root_s(&res, false, geo->psisep);
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      if (geo->extend_to_limiter && geo->divertor_wall[1].num_segments)
+        tok_legacy_plate_point(geo,false,inp->ftype,geo->psisep,&res,&smax,rzplate);
+      else {
+        smax=tok_plate_root_s(&res,false,geo->psisep);
+        geo->plate_func_upper(smax,rzplate);
+      }
       arc_ctx.zmin_left = rzplate[1];
 
 
@@ -1667,8 +2238,13 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, &pctx);
       res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = tok_plate_root_s(&res, true, geo->psisep);
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      if (geo->extend_to_limiter && geo->divertor_wall[0].num_segments)
+        tok_legacy_plate_point(geo,true,inp->ftype,geo->psisep,&res,&smin,rzplate);
+      else {
+        smin=tok_plate_root_s(&res,true,geo->psisep);
+        geo->plate_func_lower(smin,rzplate);
+      }
       arc_ctx.zmin_right = rzplate[1];
     }
     else{
@@ -1721,8 +2297,13 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, &pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = tok_plate_root_s(&res, false, geo->psisep);
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      if (geo->extend_to_limiter && geo->divertor_wall[1].num_segments)
+        tok_legacy_plate_point(geo,false,inp->ftype,geo->psisep,&res,&smax,rzplate);
+      else {
+        smax=tok_plate_root_s(&res,false,geo->psisep);
+        geo->plate_func_upper(smax,rzplate);
+      }
       arc_ctx.zmax_right= rzplate[1];
 
       pctx.lower=true;
@@ -1732,8 +2313,13 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, &pctx);
       res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = tok_plate_root_s(&res, true, geo->psisep);
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      if (geo->extend_to_limiter && geo->divertor_wall[0].num_segments)
+        tok_legacy_plate_point(geo,true,inp->ftype,geo->psisep,&res,&smin,rzplate);
+      else {
+        smin=tok_plate_root_s(&res,true,geo->psisep);
+        geo->plate_func_lower(smin,rzplate);
+      }
       arc_ctx.zmax_left= rzplate[1];
     }
     else{
@@ -1776,6 +2362,9 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
 
+
+  if (!gkyl_tok_geo_check_plate_coverage(geo,inp,psi_curr))
+    abort();
 
   // Set psicurr no matter what
   arc_ctx->psi = psi_curr;
@@ -1859,8 +2448,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = tok_plate_root_s(&res, false, psi_curr);
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      tok_legacy_plate_point(geo, false, arc_ctx->ftype, psi_curr, &res, &smax, rzplate);
       arc_ctx->zmin_left = rzplate[1];
 
       pctx->lower=true;
@@ -1870,8 +2459,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, pctx);
       res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = tok_plate_root_s(&res, true, psi_curr);
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      tok_legacy_plate_point(geo, true, arc_ctx->ftype, psi_curr, &res, &smin, rzplate);
       arc_ctx->zmin_right = rzplate[1];
     }
     else{
@@ -1925,8 +2514,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = tok_plate_root_s(&res, false, psi_curr);
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      tok_legacy_plate_point(geo, false, arc_ctx->ftype, psi_curr, &res, &smax, rzplate);
       arc_ctx->zmax_right= rzplate[1];
 
       pctx->lower=true;
@@ -1936,8 +2525,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, pctx);
       res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = tok_plate_root_s(&res, true, psi_curr);
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      tok_legacy_plate_point(geo, true, arc_ctx->ftype, psi_curr, &res, &smin, rzplate);
       arc_ctx->zmax_left= rzplate[1];
     }
     else{
@@ -2008,7 +2597,19 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     //Find the  upper turning point
     arc_ctx->zmax = inp->zmax; // Initial guess
     double zlo = fmax(inp->zmin_left, inp->zmin_right);
-    find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 0);
+    const char *bounded_turn = getenv("GKYL_TOK_LEGACY_BOUNDED_TURN");
+    if (bounded_turn && bounded_turn[0] && bounded_turn[0] != '0') {
+      double rturn;
+      if (!tok_ext_turning_point(inp, geo, psi_curr, true, &rturn, &arc_ctx->zmax)) {
+        fprintf(stderr, "TOK_LEGACY_BOUNDED_TURN failed ftype=%d psi=%.17g\n", inp->ftype, psi_curr);
+        abort();
+      }
+      if (getenv("GKYL_TOK_LEGACY_TURN_DIAG"))
+        fprintf(stderr, "TOK_LEGACY_BOUNDED_TURN ftype=%d psi=%.17g guess=%.17g turn=(%.17g,%.17g)\n",
+          inp->ftype, psi_curr, inp->zmax, rturn, arc_ctx->zmax);
+    }
+    else
+      find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 0);
 
     // Set zmin left and zmin right wither with plate or fixed
     // This one can't be used with the general func for setting upper and lower plates because it uses zmin left and zmin right
@@ -2022,8 +2623,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = tok_plate_root_s(&res, false, psi_curr);
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      tok_legacy_plate_point(geo, false, arc_ctx->ftype, psi_curr, &res, &smax, rzplate);
       arc_ctx->zmin_left = rzplate[1];
 
       pctx->lower=true;
@@ -2033,8 +2634,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, pctx);
       res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = tok_plate_root_s(&res, true, psi_curr);
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      tok_legacy_plate_point(geo, true, arc_ctx->ftype, psi_curr, &res, &smin, rzplate);
       arc_ctx->zmin_right = rzplate[1];
     }
     else{

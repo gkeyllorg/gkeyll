@@ -37,14 +37,9 @@ static void gk_geometry_set_nodal_ranges(struct gk_geometry* up)
 
   // nodes tensor
   int num_nodes_corners[GKYL_MAX_CDIM];
-  if (poly_order == 1) {
-    for (int d=0; d<up->grid.ndim; ++d)
-      num_nodes_corners[d] = gkyl_range_shape(&up->local, d) + 1;
-  }
-  if (poly_order == 2) {
-    for (int d=0; d<up->grid.ndim; ++d)
-      num_nodes_corners[d] = 2*gkyl_range_shape(&up->local, d) + 1;
-  }
+  for (int d=0; d<up->grid.ndim; ++d)
+    num_nodes_corners[d] = gkyl_dg_nodes_per_dir(poly_order,
+      gkyl_range_shape(&up->local, d));
 
   int num_quad_points = poly_order+1;
 

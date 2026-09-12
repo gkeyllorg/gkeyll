@@ -16,6 +16,16 @@
 #include <assert.h>
 #include <ctype.h>
 #include <float.h>
+#include <stdint.h>
+
+// Keep malformed-file rejection effective under -ffast-math.
+static bool efit_finite(double value)
+{
+  uint64_t bits;
+  memcpy(&bits,&value,sizeof bits);
+  return (bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
+}
+
 
 static double
 efit_xpt_value(const double *arr, int n, int idx)
@@ -72,6 +82,62 @@ write_xpt_diag_once(const struct gkyl_efit *up)
     up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
     up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic);
   fclose(csv);
+}
+
+// Do any two non-adjacent edges of the closed outline properly cross?
+//
+// O(n^2) over n = 31..87 vertices, run once when an equilibrium is read, so the
+// quadratic cost is irrelevant. Adjacent edges share an endpoint by
+// construction and are skipped; zero-length edges (a repeated vertex, which is
+// common and benign -- all 450 NSTX-U outlines have two) are skipped as well,
+// since they cannot cross anything.
+//
+// A properly crossing pair means the crossing-number interior test is being
+// asked a question that has no single right answer.
+int
+gkyl_efit_limiter_self_intersections(const struct gkyl_efit *e)
+{
+  if (!e || e->limiter_status != 1 || e->limiter_n < 4) return 0;
+  const int n = e->limiter_n;
+  int crossings = 0, overlaps = 0;
+  for (int i=0; i<n; ++i) {
+    double ax=e->limiter_R[i], ay=e->limiter_Z[i];
+    double bx=e->limiter_R[(i+1)%n], by=e->limiter_Z[(i+1)%n];
+    if (ax==bx && ay==by) continue;                    // zero-length edge
+    for (int j=i+1; j<n; ++j) {
+      // Skip the two edges that share a vertex with edge i, including the
+      // wrap-around pair (i=0, j=n-1).
+      if (j==i+1 || (i==0 && j==n-1)) continue;
+      double cx=e->limiter_R[j], cy=e->limiter_Z[j];
+      double dx=e->limiter_R[(j+1)%n], dy=e->limiter_Z[(j+1)%n];
+      if (cx==dx && cy==dy) continue;
+      double r1=(bx-ax)*(cy-ay)-(by-ay)*(cx-ax);
+      double r2=(bx-ax)*(dy-ay)-(by-ay)*(dx-ax);
+      double r3=(dx-cx)*(ay-cy)-(dy-cy)*(ax-cx);
+      double r4=(dx-cx)*(by-cy)-(dy-cy)*(bx-cx);
+      // A proper crossing: strict sign changes on both tests. The interior is
+      // genuinely ambiguous here.
+      if (((r1>0)!=(r2>0)) && ((r3>0)!=(r4>0))) { crossings++; continue; }
+      // Collinear edges that OVERLAP over a positive length: the outline
+      // retraces part of itself. This does not change the crossing-number
+      // interior (retracing a line preserves parity), which is why the one
+      // real instance measures as zero area and zero containment difference --
+      // but it is still malformed input worth naming. Touching at a single
+      // point is NOT counted: that is what a duplicate vertex produces, and
+      // every one of the 450 NSTX-U outlines has two of those.
+      if (r1==0.0 && r2==0.0 && r3==0.0 && r4==0.0) {
+        double ux=bx-ax, uy=by-ay, uu=ux*ux+uy*uy;
+        if (uu>0.0) {
+          double tc=((cx-ax)*ux+(cy-ay)*uy)/uu;
+          double td=((dx-ax)*ux+(dy-ay)*uy)/uu;
+          double t0=tc<td?tc:td, t1=tc<td?td:tc;
+          double lo=t0>0.0?t0:0.0, hi=t1<1.0?t1:1.0;
+          if (hi-lo > 0.0) overlaps++;
+        }
+      }
+    }
+  }
+  return crossings + overlaps;
 }
 
 gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
@@ -349,6 +415,56 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux, false);
 
 
+  // Standard EQDSK tail: plasma boundary count, limiter count, then R,Z pairs.
+  // Older equilibrium files can omit the tail; only a requested extension
+  // requires it. Never expose a partially read wall as usable geometry.
+  int nboundary = 0, nlimiter = 0;
+  int counts = fscanf(ptr, "%d %d", &nboundary, &nlimiter);
+  if (counts != EOF) {
+    up->limiter_status = -1;
+    if (counts == 2 && nboundary >= 0 && nboundary <= 1000000 &&
+        nlimiter >= 0 && nlimiter <= 1000000) {
+      bool valid = true;
+      double R, Z;
+      for (int i=0; i<nboundary && valid; ++i)
+        valid = fscanf(ptr, "%lf %lf", &R, &Z) == 2 && efit_finite(R) && efit_finite(Z);
+      // Classify by vertex count exhaustively. Previously nlimiter==1 matched
+      // neither branch and kept the pessimistic -1, so a readable record was
+      // reported as corrupt (this is why step.geqdsk read as malformed); and
+      // nlimiter==2 was accepted as status 1 even though every consumer
+      // requires >=3, so the reader and its consumers disagreed.
+      if (valid && nlimiter >= 1) {
+        double *wall_R = gkyl_malloc(nlimiter*sizeof(double));
+        double *wall_Z = gkyl_malloc(nlimiter*sizeof(double));
+        for (int i=0; i<nlimiter && valid; ++i)
+          valid = fscanf(ptr, "%lf %lf", &wall_R[i], &wall_Z[i]) == 2 &&
+            efit_finite(wall_R[i]) && efit_finite(wall_Z[i]);
+        if (valid && nlimiter >= 3) {
+          up->limiter_n = nlimiter;
+          up->limiter_R = wall_R; up->limiter_Z = wall_Z;
+          up->limiter_status = 1;
+          // Shape is diagnosed here and nowhere else. It does NOT feed
+          // limiter_status: this reports, it does not decide.
+          up->limiter_self_intersections = gkyl_efit_limiter_self_intersections(up);
+          if (up->limiter_self_intersections > 0)
+            fprintf(stderr,
+              "TOK_GEO_WALL_MALFORMED_SHAPE name=%s vertices=%d self_intersections=%d\n",
+              up->name, up->limiter_n, up->limiter_self_intersections);
+        }
+        else if (valid) {
+          // Readable, but too few vertices to bound a region. Keep the count
+          // for diagnostics; do not expose an unusable outline as geometry.
+          up->limiter_n = nlimiter;
+          gkyl_free(wall_R); gkyl_free(wall_Z);
+          up->limiter_status = 2;
+        }
+        else { gkyl_free(wall_R); gkyl_free(wall_Z); }
+      }
+      else if (valid && nlimiter == 0)
+        up->limiter_status = 0;
+    }
+  }
+
   // Make the cubic interpolator
   up->evf  = gkyl_dg_basis_ops_evalf_new(&up->rzgrid_cubic, psizr_n);
   gkyl_dg_basis_op_mem *mem = 0;
@@ -442,7 +558,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_array_release(bpolzr_n);
   gkyl_array_release(bphizr_n);
   gkyl_array_release(bmagzr_n);
-  // Done, don't care about the rest
+  // Done reading the equilibrium and its optional material boundary.
   
   fclose(ptr);
 
@@ -501,6 +617,8 @@ void gkyl_efit_release(gkyl_efit* up){
   gkyl_free(up->Zxpt);
   gkyl_free(up->Rxpt_cubic);
   gkyl_free(up->Zxpt_cubic);
+  gkyl_free(up->limiter_R);
+  gkyl_free(up->limiter_Z);
   gkyl_free(up->xpt_bound_R);
   gkyl_free(up->xpt_bound_Z);
   gkyl_array_release(up->psizr);
