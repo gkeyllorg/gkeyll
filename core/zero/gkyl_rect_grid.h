@@ -50,7 +50,7 @@ struct gkyl_rect_grid* gkyl_rect_grid_new(int ndim,
  * @param pick_lower If point is on a cell boundary, pick the lower cell if true (per direction).
  * @param known_index Any known indices of where the point is (<0 if not known).
  * @param cell_index Pointer to cell indices.
- * Asserts: point lies within cell(s) specified by knownIdx (if specified).
+ * Asserts: point lies within cell(s) specified by known_index (if specified). 
  */
 GKYL_CU_DH
 void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
@@ -158,4 +158,3 @@ bool gkyl_rect_grid_read(struct gkyl_rect_grid *grid, FILE *fp);
  * @param grid Grid object.
  */
 void gkyl_rect_grid_release(struct gkyl_rect_grid *grid);
-

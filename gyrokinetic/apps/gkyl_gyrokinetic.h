@@ -100,6 +100,10 @@ struct gkyl_gyrokinetic_collisionless {
   enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
   bool write_diagnostics; // Whether to output diagnostics.
   double scale_factor; // Factor multiplying collisionless terms (should be > 0).
+  // Passive advection speeds in x, y, z (for GKYL_GK_COLLISIONLESS_PASSIVE).
+  // Assumes no advection/dependence on vpar/mu. Should return cdim values.
+  evalf_t passive_speeds;
+  void *passive_speeds_ctx; // Context for passive_speeds.
 };
 
 // Parameters for species collisions
