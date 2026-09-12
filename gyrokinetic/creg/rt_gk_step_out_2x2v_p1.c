@@ -508,6 +508,12 @@ main(int argc, char **argv)
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,     // type of geometry
+    // step.geqdsk has a single limiter vertex (limitr=1), i.e. limiter_status=2:
+    // a degenerate outline that cannot bound a region. The wall policy rejects an
+    // unusable outline that is not acknowledged. Checked, not trusted: refused as
+    // contradictory if a usable outline ever appears, and never accepted for a
+    // malformed record. Each block reports TOK_GEO_WALL_NOT_ENFORCED.
+    .no_vessel_outline = true,
     .rclose = 6.2,                // closest R to region of interest
     .rright = 6.2,                // Closest R to outboard SOL
     .rleft = 2.0,                 // closest R to inboard SOL
