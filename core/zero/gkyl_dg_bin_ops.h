@@ -199,6 +199,20 @@ void gkyl_dg_inv_op_range(const struct gkyl_basis *basis,
   const struct gkyl_range *range);
 
 /**
+ * Whether gkyl_dg_inv_op / gkyl_dg_inv_op_range has a kernel for this basis.
+ *
+ * The inverse kernels are generated per basis type, dimension and polynomial
+ * order, and the table is sparse: at the time of writing only polynomial order
+ * 1 is populated in 2x and 3x. Callers that would otherwise reach
+ * `assert(inv_op)` deep inside the operator can ask first and refuse with a
+ * diagnostic of their own.
+ *
+ * @param basis Basis functions used in expansions.
+ * @return true if a kernel exists, false if the combination is not implemented.
+ */
+bool gkyl_dg_inv_op_supported(const struct gkyl_basis *basis);
+
+/**
  * Compute the cell-average of input array iop and store it in out
  * array.
  *
