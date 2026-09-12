@@ -107,36 +107,33 @@ singleb_app_new_geom_from_block(const struct gkyl_gyrokinetic_multib *mbinp,
   app_inp->geometry = bgi->geometry;
   // Measure-only prototype: obtain the radial partner from the declaration,
   // keeping the legacy block's off-separatrix cuts and radial domain intact.
-  const char *shared_theta = getenv("GKYL_TOK_SHARED_SEP_THETA");
-  if (shared_theta && shared_theta[0] && shared_theta[0] != '0' &&
-      bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
-      !gkyl_tok_geo_uses_extended_construction(&bgi->geometry.tok_grid_info)) {
-    for (int e=0; e<2; ++e) {
-      const struct gkyl_target_edge *edge = &bgi->connections[0][e];
-      if (edge->edge == GKYL_PHYSICAL || edge->bid == bid)
-        continue;
-      const struct gkyl_gk_block_geom_info *peer =
-        gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, edge->bid);
-      if (peer->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK ||
-          !gkyl_tok_geo_uses_extended_construction(&peer->geometry.tok_grid_info))
-        continue;
-      const struct gkyl_efit_inp *a = &bgi->geometry.efit_info;
-      const struct gkyl_efit_inp *b = &peer->geometry.efit_info;
-      if (app_inp->geometry.tok_grid_info.shared_theta_peer || edge->dir != 0 ||
-          strcmp(a->filepath, b->filepath) || a->reflect != b->reflect ||
-          a->rz_poly_order != b->rz_poly_order || a->flux_poly_order != b->flux_poly_order ||
-          a->xpt_bound_n != 0 || b->xpt_bound_n != 0 ||
-          bgi->geometry.tok_grid_info.use_cubics != peer->geometry.tok_grid_info.use_cubics) {
-        fprintf(stderr, "TOK_SHARED_THETA unsupported interface descriptor block=%d peer=%d\n", bid, edge->bid);
-        abort();
-      }
-      app_inp->geometry.tok_grid_info.shared_theta_peer = &peer->geometry.tok_grid_info;
-      app_inp->geometry.tok_grid_info.shared_theta_radial_edge = e;
-      app_inp->geometry.tok_grid_info.shared_theta_reverse =
-        edge->edge == GKYL_LOWER_NEGATIVE || edge->edge == GKYL_UPPER_NEGATIVE;
-      fprintf(stderr, "TOK_SHARED_THETA declared block=%d ftype=%d edge=%d peer=%d peer_ftype=%d\n",
-        bid, bgi->geometry.tok_grid_info.ftype, e, edge->bid, peer->geometry.tok_grid_info.ftype);
+  // Eligibility lives in gkyl_gk_block_geom_shared_sep_row_status(): the
+  // seam-participation guard asks the same question about the same interface
+  // to decide whether a mixed declaration can still misparameterize the row,
+  // and two copies of the predicate would drift apart.
+  for (int e=0; e<2; ++e) {
+    const struct gkyl_target_edge *edge = &bgi->connections[0][e];
+    if (edge->edge == GKYL_PHYSICAL || edge->bid == bid)
+      continue;
+    const struct gkyl_gk_block_geom_info *peer =
+      gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, edge->bid);
+    enum gkyl_gk_shared_sep_row_status st =
+      gkyl_gk_block_geom_shared_sep_row_status(bgi, peer, 0, edge->dir);
+    if (st == GKYL_GK_SHARED_SEP_ROW_NONE)
+      continue;
+    // A block can take its row from at most one peer, so a second eligible
+    // radial edge is as unsupported as an incompatible descriptor.
+    if (st == GKYL_GK_SHARED_SEP_ROW_UNSUPPORTED ||
+        app_inp->geometry.tok_grid_info.shared_theta_peer) {
+      fprintf(stderr, "TOK_SHARED_THETA unsupported interface descriptor block=%d peer=%d\n", bid, edge->bid);
+      abort();
     }
+    app_inp->geometry.tok_grid_info.shared_theta_peer = &peer->geometry.tok_grid_info;
+    app_inp->geometry.tok_grid_info.shared_theta_radial_edge = e;
+    app_inp->geometry.tok_grid_info.shared_theta_reverse =
+      edge->edge == GKYL_LOWER_NEGATIVE || edge->edge == GKYL_UPPER_NEGATIVE;
+    fprintf(stderr, "TOK_SHARED_THETA declared block=%d ftype=%d edge=%d peer=%d peer_ftype=%d\n",
+      bid, bgi->geometry.tok_grid_info.ftype, e, edge->bid, peer->geometry.tok_grid_info.ftype);
   }
   // This constructor only builds geometry; species and neutral inputs are not
   // populated in the single-block geometry app.
