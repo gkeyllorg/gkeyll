@@ -7,13 +7,12 @@ description: How to run Gkeyll unit and regression tests, as well as performing 
 
 * For code changes, run relevant unit tests and focused regression tests when
   simulation behavior is affected. Choose tests based on the changed component.
-* A one-step regression is a smoke test, not evidence of numerical agreement.
-  Compare appropriate diagnostics with accepted results when verifying physics
-  or numerical changes.
-* Do not run the entire regression suite by default; it can take a long time.
-  Use the task's agreed scope and available resources to choose broader runs.
+* Do not run the entire regression suite unless you are asked to; it can take a long time.
+  Use the task's scope and available resources to choose the suitable testing scope.
 * For documentation or agent configuration changes, validate the changed files
   and references; solver tests and memory checks are unnecessary.
+* Report what was checked and any checks that could not run. If required context
+  is missing or unreadable, report the exact path rather than silently skipping it.
 
 # Running unit tests
 

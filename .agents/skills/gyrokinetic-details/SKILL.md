@@ -1,6 +1,6 @@
 ---
 name: gyrokinetic-details
-description: Apply gyrokinetic solver conventions and MPI partition restrictions when working on gyrokinetic code or input files.
+description: Apply gyrokinetic solver conventions when working on gyrokinetic-related source code or input files.
 ---
 
 # Instructions

@@ -91,10 +91,10 @@ make -j"$NPROC" build/gyrokinetic/creg/my_sim
 
 If the input file is outside of the repository, use the shared makefile in
 `<gkeyll_install_prefix>/share/`. Run it from the directory containing the input
-file, using the installation prefix from the build configuration:
+file:
 
 ```sh
-cd <input_directory>
+cd <input_file_directory>
 cp <gkeyll_install_prefix>/share/Makefile ./
 make
 ```
