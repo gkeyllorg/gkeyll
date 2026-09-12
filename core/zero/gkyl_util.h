@@ -260,6 +260,21 @@ int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr);
 void gkyl_exit(const char* msg);
 
 /**
+ * Number of nodes along one direction of a nodal grid laid over `cells` cells
+ * of a modal DG basis of order `poly_order`. The nodal grid is finer than the
+ * cell grid by exactly the polynomial order, so this is poly_order*cells + 1.
+ *
+ * Polynomial orders outside the implemented contract (1 and 2) are refused
+ * explicitly rather than leaving a shape unset for a caller to size a range
+ * from. Fatal: it does not return.
+ *
+ * @param poly_order Polynomial order of the modal basis.
+ * @param cells Number of cells along the direction.
+ * @return Number of nodes along the direction.
+ */
+int gkyl_dg_nodes_per_dir(int poly_order, int cells);
+
+/**
  * Compares two float numbers 'a' and 'b' to check if they are
  * sufficiently close by, where 'eps' is the relative tolerance.
  */

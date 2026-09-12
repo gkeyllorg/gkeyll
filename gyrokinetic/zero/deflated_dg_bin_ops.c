@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <gkyl_util.h>
 
 #include <gkyl_deflated_dg_bin_ops.h>
 #include <gkyl_deflated_dg_bin_ops_priv.h>
@@ -28,14 +29,8 @@ gkyl_deflated_dg_bin_ops_new(struct gkyl_rect_grid grid,
 
   // Create 2d/3d nodal range nodal array to be populated
   int nodes[GKYL_MAX_DIM];
-  if (poly_order == 1) {
-    for (int d=0; d<up->cdim; ++d)
-      nodes[d] = gkyl_range_shape(&up->local, d) + 1;
-  }
-  if (poly_order == 2) {
-    for (int d=0; d<up->cdim; ++d)
-      nodes[d] = 2*gkyl_range_shape(&up->local, d) + 1;
-  }
+  for (int d=0; d<up->cdim; ++d)
+    nodes[d] = gkyl_dg_nodes_per_dir(poly_order, gkyl_range_shape(&up->local, d));
   gkyl_range_init_from_shape(&up->nrange, up->cdim, nodes);
 
   // Create deflated 1d/2d grid, ranges, basis, and nodal range

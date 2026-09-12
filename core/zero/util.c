@@ -53,6 +53,21 @@ gkyl_exit(const char* msg)
 }
 
 int
+gkyl_dg_nodes_per_dir(int poly_order, int cells)
+{
+  // Orders 1 and 2 are the implemented contract. Anything else used to fall
+  // through four separate copies of this calculation and leave the caller's
+  // shape array uninitialised, so stack garbage reached range construction.
+  if (poly_order < 1 || poly_order > 2) {
+    fprintf(stderr,
+      "GKYL_GEOMETRY_UNSUPPORTED_POLY_ORDER poly_order=%d supported=1,2 "
+      "context=nodal_shape\n", poly_order);
+    gkyl_exit("unsupported basis polynomial order for a nodal grid");
+  }
+  return poly_order*cells + 1;
+}
+
+int
 gkyl_compare_float(float a, float b, float eps)
 {
   //if (isnanf(a) || isnanf(b)) return 0;
