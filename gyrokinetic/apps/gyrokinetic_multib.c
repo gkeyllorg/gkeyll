@@ -782,7 +782,7 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
         fprintf(stderr,"TOK_RHO_WALL_BOUND block=%d family=%s edge=%d requested_rho=%.17g effective_rho=%.17g requested_psi=%.17g effective_psi=%.17g steps=%d\n",
           b,bounds[b].family==1 ? "SOL" : "PF",bounds[b].edge,bounds[b].requested,rho,bounds[b].requested_psi,psi,bounds[bounds[b].group].steps);
       }
-      fprintf(stderr,"TOK_RHO_WALL_ADJUST_SELECTED iterations=%d step_rho=0.001; rebuilding with hard wall guards\n",iteration);
+      fprintf(stderr,"TOK_RHO_WALL_ADJUST_SELECTED iterations=%d step_rho=%g; rebuilding with hard wall guards\n",iteration,GKYL_RHO_WALL_STEP);
       ok=true;
       break;
     }

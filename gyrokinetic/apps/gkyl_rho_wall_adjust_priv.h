@@ -6,7 +6,12 @@
 #include <stdint.h>
 #include <string.h>
 
-#define GKYL_RHO_WALL_STEP 0.001
+// Inward rho increment for the wall adjustment. Finer means the selected
+// boundary sits closer to the largest admissible one: with a 1e-3 step the
+// search could overshoot the true limit by up to 1e-3 of rho and discard SOL
+// width that would have fit. MAX_STEPS*STEP bounds the total reach (1.0 of
+// rho here), which is far beyond any physical SOL.
+#define GKYL_RHO_WALL_STEP 0.0001
 #define GKYL_RHO_WALL_MAX_STEPS 10000
 
 // Material-boundary adjustment families. Core, IWL, and the unimplemented
