@@ -198,8 +198,8 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
   {
     static double tol = -1.0;
     static int strict = -1;
-    static long reported = 0;
-    const long report_cap = 20;
+    static double worst_seen = 0.0;
+    static double last_reported = 0.0;
     if (tol < 0.0) {
       const char *s = getenv("GKYL_METRIC_ORTHONORMALITY_TOL");
       tol = (s && s[0]) ? atof(s) : 1.0e-6;
@@ -216,17 +216,30 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
         if (d > worst) { worst = d; wi = i; wj = j; }
       }
     }
-    if (worst > tol) {
-      if (reported < report_cap) {
+    // Track the RUNNING MAXIMUM rather than capping a count of violations.
+    //
+    // A fixed report cap reports the FIRST N residuals, which are not the worst
+    // ones, so the true maximum can be suppressed and never seen. Worse, a cap
+    // keyed on the tolerance is blind to residuals that creep upward while
+    // still passing -- exactly the latent error this check exists to catch.
+    //
+    // Reporting only on a NEW maximum means the last line emitted IS the worst
+    // residual encountered, so nothing is skipped. Requiring each report to
+    // double the previous one bounds the output to roughly log2 of the observed
+    // range (tens of lines at most) without a magic count, and surfaces the
+    // magnitude even when every value is comfortably inside tolerance.
+    if (worst > worst_seen) {
+      worst_seen = worst;
+      bool over_tol = worst > tol;
+      if (over_tol || worst >= 2.0*last_reported) {
         fprintf(stderr,
-          "TOK_METRIC_ORTHONORMALITY residual=%.9e at e_%d.e^%d tol=%.3e "
-          "diag=[%.9e,%.9e,%.9e]\n",
-          worst, wi+1, wj+1, tol, prod[0][0], prod[1][1], prod[2][2]);
-        if (++reported == report_cap)
-          fprintf(stderr, "TOK_METRIC_ORTHONORMALITY further reports suppressed "
-                          "after %ld\n", report_cap);
+          "TOK_METRIC_ORTHONORMALITY_MAX residual=%.9e at e_%d.e^%d tol=%.3e "
+          "status=%s diag=[%.9e,%.9e,%.9e]\n",
+          worst, wi+1, wj+1, tol, over_tol ? "OVER_TOLERANCE" : "within_tolerance",
+          prod[0][0], prod[1][1], prod[2][2]);
+        last_reported = worst;
       }
-      if (strict) {
+      if (over_tol && strict) {
         fprintf(stderr, "calc_metric.c: orthonormality residual %.9e exceeds "
                         "tolerance %.3e under GKYL_METRIC_STRICT_ORTHONORMALITY\n",
                         worst, tol);
