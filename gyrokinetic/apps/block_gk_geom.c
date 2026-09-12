@@ -1,4 +1,5 @@
 #include <gkyl_gk_block_geom.h>
+#include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_alloc.h>
 #include <gkyl_tok_geo.h>
 
@@ -108,11 +109,9 @@ gkyl_gk_block_geom_get_block(const struct gkyl_gk_block_geom *bgeom, int bidx)
 // is 0.6-0.8 cells at x1 and DOUBLES at every refinement, because it is a fixed
 // offset rather than a convergence error.
 //
-// Every interface that fails is such a mixed pair, and every uniform pair
-// passes; step (12 of 12 declared) and the NSTX-U half-domain set (all blocks
-// declared) have no mixed pair and no seam failure.  So this is the invariant
-// worth stating, and it is a property of the DECLARATION -- checkable here,
-// on any device, at any resolution, without constructing anything.
+// This detects one declaration-level risk without constructing geometry.
+// Uniform participation alone does not establish interface alignment or
+// interior ordering; those still require checks on the constructed grid.
 //
 // Note the participation predicate deliberately comes from
 // gkyl_tok_geo_uses_extended_construction() rather than being restated: it also
@@ -123,7 +122,8 @@ gkyl_gk_block_geom_get_block(const struct gkyl_gk_block_geom *bgeom, int bidx)
 // multiblock cases carry mixed interfaces today and would begin failing at
 // setup.  Set GKYL_TOK_STRICT_SEAM_PARTICIPATION=1 to make it an error.
 static int
-gk_block_geom_check_seam_participation(const struct gkyl_gk_block_geom *bgeom)
+gk_block_geom_check_seam_participation(const struct gkyl_gk_block_geom *bgeom,
+  int *interfaces_examined, int *mixed)
 {
   const char *strict_env = getenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
   bool strict = strict_env && strict_env[0] != '\0' && strict_env[0] != '0';
@@ -189,10 +189,10 @@ gk_block_geom_check_seam_participation(const struct gkyl_gk_block_geom *bgeom)
         if (nmixed == 0)
           fprintf(stderr,
             "TOK_SEAM_PARTICIPATION mixed extended construction across a declared "
-            "interface: the two blocks reparameterize their shared row "
-            "differently, so its interior nodes will not line up and the gap "
-            "doubles at every refinement. Make participation uniform across the "
-            "seam (declare straight_xpt_ray on both, or neither).\n");
+            "interface: the blocks may parameterize their shared row "
+            "differently. Uniform participation is a declaration check; "
+            "constructed seam alignment and interior ordering still need "
+            "validation.\n");
 
         fprintf(stderr,
           "TOK_SEAM_PARTICIPATION block=%d ftype=%d extended=%d <-> block=%d "
@@ -210,6 +210,9 @@ gk_block_geom_check_seam_participation(const struct gkyl_gk_block_geom *bgeom)
       "TOK_SEAM_PARTICIPATION_DIAG interfaces_examined=%d mixed=%d\n",
       nchecked, nmixed);
 
+  *interfaces_examined = nchecked;
+  *mixed = nmixed;
+
   if (nmixed > 0 && strict) {
     fprintf(stderr,
       "TOK_SEAM_PARTICIPATION %d mixed interface(s); failing because "
@@ -219,19 +222,98 @@ gk_block_geom_check_seam_participation(const struct gkyl_gk_block_geom *bgeom)
   return 1;
 }
 
+static int
+gk_block_geom_check_consistency(const struct gkyl_gk_block_geom *bgeom,
+  int *interfaces_examined, int *mixed)
+{
+  *interfaces_examined = 0;
+  *mixed = 0;
+  if (!bgeom || bgeom->ndim < 1 || bgeom->ndim > GKYL_MAX_CDIM ||
+      bgeom->num_blocks < 1 || !bgeom->blocks || !bgeom->btopo ||
+      !bgeom->btopo->conn || bgeom->btopo->ndim != bgeom->ndim ||
+      bgeom->btopo->num_blocks != bgeom->num_blocks) {
+    fprintf(stderr, "GKYL_BLOCK_GEOMETRY_INVALID missing or invalid block geometry\n");
+    return 0;
+  }
+
+  // Validate target indices before following them. The gyrokinetic range
+  // transforms still require aligned logical directions.
+  int topo_ok = 1;
+  for (int i=0; i<bgeom->num_blocks; ++i)
+    for (int d=0; d<bgeom->ndim; ++d)
+      for (int e=0; e<2; ++e) {
+        const struct gkyl_target_edge *te = &bgeom->btopo->conn[i].connections[d][e];
+        if (te->edge < GKYL_LOWER_POSITIVE || te->edge > GKYL_PHYSICAL ||
+            (te->edge != GKYL_PHYSICAL &&
+             (te->bid < 0 || te->bid >= bgeom->num_blocks ||
+              te->dir != d))) {
+          fprintf(stderr,
+            "GKYL_BLOCK_GEOMETRY_INVALID block=%d dir=%d edge=%d "
+            "target_block=%d target_dir=%d target_edge=%d\n",
+            i, d, e, te->bid, te->dir, (int) te->edge);
+          topo_ok = 0;
+        }
+      }
+  // Follow the declared target direction/edge when checking reciprocity.
+  // Same-side radial edges are valid: TCV CORE and LSN_SOL_MID both use their
+  // upper radial edge at the separatrix. Follow the target edge rather than
+  // assuming it is the opposite of the source edge.
+  if (topo_ok)
+    for (int i=0; i<bgeom->num_blocks; ++i)
+      for (int d=0; d<bgeom->ndim; ++d)
+        for (int e=0; e<2; ++e) {
+          const struct gkyl_target_edge *te = &bgeom->btopo->conn[i].connections[d][e];
+          if (te->edge == GKYL_PHYSICAL)
+            continue;
+          int target_edge = te->edge <= GKYL_LOWER_NEGATIVE ? 0 : 1;
+          bool negative = te->edge == GKYL_LOWER_NEGATIVE || te->edge == GKYL_UPPER_NEGATIVE;
+          int expected_edge = (e ? GKYL_UPPER_POSITIVE : GKYL_LOWER_POSITIVE) + negative;
+          const struct gkyl_target_edge *back =
+            &bgeom->btopo->conn[te->bid].connections[te->dir][target_edge];
+          if (back->bid != i || back->dir != d || back->edge != expected_edge) {
+            fprintf(stderr,
+              "GKYL_BLOCK_GEOMETRY_INVALID nonreciprocal block=%d dir=%d edge=%d "
+              "target_block=%d target_dir=%d target_edge=%d\n",
+              i, d, e, te->bid, te->dir, (int) te->edge);
+            topo_ok = 0;
+          }
+        }
+  if (!topo_ok)
+    fprintf(stderr, "GKYL_BLOCK_GEOMETRY_INVALID inconsistent topology\n");
+
+  // Participation diagnostics remain useful even when topology is invalid.
+  int seam_ok = gk_block_geom_check_seam_participation(bgeom,
+    interfaces_examined, mixed);
+  return topo_ok && seam_ok;
+}
+
 int
 gkyl_gk_block_geom_check_consistency(const struct gkyl_gk_block_geom *bgeom)
 {
-  // MORE TESTS ARE NEEDED HERE
-  //
-  // Run BOTH checks and combine, rather than short-circuiting on the topology.
-  // They answer independent questions -- "are the connections well formed" and
-  // "do connected blocks agree about how they parameterize the row they share"
-  // -- and letting the first gate the second means a declaration error stays
-  // invisible in exactly the cases that have a topology problem too.
-  int topo_ok = gkyl_block_topo_check_consistency(bgeom->btopo);
-  int seam_ok = gk_block_geom_check_seam_participation(bgeom);
-  return topo_ok && seam_ok;
+  int interfaces_examined, mixed;
+  return gk_block_geom_check_consistency(bgeom, &interfaces_examined, &mixed);
+}
+
+int
+gkyl_gyrokinetic_multib_app_geometry_preflight(const struct gkyl_gyrokinetic_multib *mbinp)
+{
+  const struct gkyl_gk_block_geom *bgeom = mbinp ? mbinp->gk_block_geom : 0;
+  int interfaces_examined, mixed;
+  int ok = gk_block_geom_check_consistency(bgeom, &interfaces_examined, &mixed);
+  if (mbinp && bgeom && mbinp->cdim != bgeom->ndim) {
+    fprintf(stderr, "GKYL_BLOCK_GEOMETRY_INVALID app_cdim=%d geometry_ndim=%d\n",
+      mbinp->cdim, bgeom->ndim);
+    ok = 0;
+  }
+  const char *strict_env = getenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
+  bool strict = strict_env && strict_env[0] != '\0' && strict_env[0] != '0';
+  fprintf(stderr,
+    "GKYL_GEOMETRY_PREFLIGHT status=%s scope=declaration num_blocks=%d "
+    "strict=%d interfaces_examined=%d mixed=%d\n",
+    ok ? "PASS" : "FAIL", bgeom ? bgeom->num_blocks : 0,
+    (int) strict, interfaces_examined, mixed);
+  fflush(stderr);
+  return ok;
 }
 
 struct gkyl_gk_block_geom *

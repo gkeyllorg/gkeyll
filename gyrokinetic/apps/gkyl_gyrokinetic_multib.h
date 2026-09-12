@@ -186,20 +186,53 @@ struct gkyl_gyrokinetic_multib {
 };
 
 /**
+ * Check block declarations without constructing geometry or accessing the
+ * communicator. Checks topology and extended-construction participation;
+ * mixed participation is an error only with
+ * GKYL_TOK_STRICT_SEAM_PARTICIPATION=1 (reported otherwise).
+ * Requires aligned logical directions and reciprocal target edges. Same-side
+ * radial connections are supported; reciprocal rotated axes remain unsupported.
+ *
+ * Writes a GKYL_GEOMETRY_PREFLIGHT summary to stderr including status, block
+ * count, strict mode, interfaces examined, and mixed interfaces. A PASS only
+ * validates these declarations; it does not validate the constructed grid.
+ * The caller owns any declaration-only exit and cleanup.
+ *
+ * @param mbinp App inputs; only cdim and gk_block_geom are inspected.
+ * @return 1 if declarations pass, 0 otherwise (including NULL inputs).
+ */
+int gkyl_gyrokinetic_multib_app_geometry_preflight(const struct gkyl_gyrokinetic_multib *mbinp);
+
+/**
  * Construct a new gk multi-block app.
+ *
+ * Experimental ADJUST_IF_EXCEEDING_WALL=1 selects wall-contained SOL/PF
+ * bounds using 0.001 normalized-rho steps, on an owned declaration copy.
+ * SOL rho decreases; PF rho increases toward 1. Core and fixed-boundary
+ * violations reject. Default/unset/0 preserves requested bounds. Present
+ * adjustment scope is serial p1 with identity or built-in X-point maps and
+ * the multiblock seam optimizer disabled.
+ * Actual no-output trials are discarded, then hard-guarded geometry is built.
+ * Requested/effective bounds are reported as TOK_RHO_WALL_BOUND diagnostics.
+ * EXTEND_TO_LIMITER remains a separate plate-coverage policy.
  *
  * @param mbinp App inputs. See struct docs. All struct params MUST be
  *     initialized
- * @return New multi-block gk app object.
+ * @return New multi-block gk app object, or NULL if declarations or process
+ *     counts are invalid. Rejected declarations allocate no app resources.
  */
 gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp);
 
 /**
  * Construct a new gk multi-block app (geom only).
  *
+ * The experimental ADJUST_IF_EXCEEDING_WALL policy has the same scope and
+ * semantics as gkyl_gyrokinetic_multib_app_new above.
+ *
  * @param mbinp App inputs. See struct docs. All struct params MUST be
  *     initialized
- * @return New multi-block gk app object.
+ * @return New multi-block gk app object, or NULL if declarations or process
+ *     counts are invalid. Rejected declarations allocate no app resources.
  */
 gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp);
 

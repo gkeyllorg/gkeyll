@@ -6,6 +6,10 @@
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_gyrokinetic_multib_priv.h>
 #include <gkyl_multib_conn.h>
+#include <gkyl_null_comm.h>
+#include <gkyl_rho_wall_adjust_priv.h>
+#include <gkyl_tok_geo_wall_trial_priv.h>
+#include <gkyl_tok_geo_priv.h>
 
 #include <mpack.h>
 #include <errno.h>
@@ -101,6 +105,39 @@ singleb_app_new_geom_from_block(const struct gkyl_gyrokinetic_multib *mbinp,
   }
 
   app_inp->geometry = bgi->geometry;
+  // Measure-only prototype: obtain the radial partner from the declaration,
+  // keeping the legacy block's off-separatrix cuts and radial domain intact.
+  const char *shared_theta = getenv("GKYL_TOK_SHARED_SEP_THETA");
+  if (shared_theta && shared_theta[0] && shared_theta[0] != '0' &&
+      bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
+      !gkyl_tok_geo_uses_extended_construction(&bgi->geometry.tok_grid_info)) {
+    for (int e=0; e<2; ++e) {
+      const struct gkyl_target_edge *edge = &bgi->connections[0][e];
+      if (edge->edge == GKYL_PHYSICAL || edge->bid == bid)
+        continue;
+      const struct gkyl_gk_block_geom_info *peer =
+        gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, edge->bid);
+      if (peer->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK ||
+          !gkyl_tok_geo_uses_extended_construction(&peer->geometry.tok_grid_info))
+        continue;
+      const struct gkyl_efit_inp *a = &bgi->geometry.efit_info;
+      const struct gkyl_efit_inp *b = &peer->geometry.efit_info;
+      if (app_inp->geometry.tok_grid_info.shared_theta_peer || edge->dir != 0 ||
+          strcmp(a->filepath, b->filepath) || a->reflect != b->reflect ||
+          a->rz_poly_order != b->rz_poly_order || a->flux_poly_order != b->flux_poly_order ||
+          a->xpt_bound_n != 0 || b->xpt_bound_n != 0 ||
+          bgi->geometry.tok_grid_info.use_cubics != peer->geometry.tok_grid_info.use_cubics) {
+        fprintf(stderr, "TOK_SHARED_THETA unsupported interface descriptor block=%d peer=%d\n", bid, edge->bid);
+        abort();
+      }
+      app_inp->geometry.tok_grid_info.shared_theta_peer = &peer->geometry.tok_grid_info;
+      app_inp->geometry.tok_grid_info.shared_theta_radial_edge = e;
+      app_inp->geometry.tok_grid_info.shared_theta_reverse =
+        edge->edge == GKYL_LOWER_NEGATIVE || edge->edge == GKYL_UPPER_NEGATIVE;
+      fprintf(stderr, "TOK_SHARED_THETA declared block=%d ftype=%d edge=%d peer=%d peer_ftype=%d\n",
+        bid, bgi->geometry.tok_grid_info.ftype, e, edge->bid, peer->geometry.tok_grid_info.ftype);
+    }
+  }
   // This constructor only builds geometry; species and neutral inputs are not
   // populated in the single-block geometry app.
   app_inp->num_species = 0;
@@ -144,7 +181,7 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
 {
   const struct gkyl_gk_block_geom_info *bgi =
     gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, bid);
-  return singleb_app_new_geom_from_block(mbinp, bid, mbapp, bgi, true);
+  return singleb_app_new_geom_from_block(mbinp, bid, mbapp, bgi, false);
 }
 
 // Construct single-block App solver for given block ID.
@@ -431,9 +468,404 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   gkyl_free(app_inp);
 }
 
-gkyl_gyrokinetic_multib_app*
-gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp)
+// The grid's psi values are the MAPPED ones: tok_geo applies maps[0] to psi
+// before using it. Sampling the raw computational bounds therefore inspects
+// surfaces the grid does not have, and goes wrong in both directions -- passing
+// a domain that cannot be built, and refusing one that can while naming a psi
+// the grid never uses.
+//
+// Only some maps can be evaluated this early. USER_INPUT carries the caller's
+// own function and is usable immediately; the constant-dB and X-point maps are
+// installed by gkyl_position_map_optimize, which needs the geometry this check
+// runs before. Returns NULL when the map cannot be resolved yet, so callers can
+// say the check is advisory rather than assert a verdict they cannot support.
+static mc2nu_t
+tok_preflight_radial_map(const struct gkyl_gk_block_geom_info *bi, void **ctx)
 {
+  const struct gkyl_position_map_inp *pmi = &bi->geometry.position_map_info;
+  *ctx = pmi->ctxs[0];
+  if (!pmi->maps[0]) return 0;   // unset: identity, and raw == mapped
+  if (pmi->id == GKYL_PMAP_USER_INPUT ||
+      pmi->id == GKYL_PMAP_USER_INPUT_W_DERIVATIVE)
+    return pmi->maps[0];
+  return 0;
+}
+
+// True when a map exists but cannot be resolved at preflight time.
+static bool
+tok_preflight_map_unresolved(const struct gkyl_gk_block_geom_info *bi)
+{
+  const struct gkyl_position_map_inp *pmi = &bi->geometry.position_map_info;
+  return pmi->id != GKYL_PMAP_USER_INPUT &&
+         pmi->id != GKYL_PMAP_USER_INPUT_W_DERIVATIVE;
+}
+
+// Cheap material-domain rejection before allocating/writing any block. The
+// actual corner/interior/face passes also enforce the material boundary.
+static bool
+gyrokinetic_multib_material_preflight(const struct gkyl_gyrokinetic_multib *inp)
+{
+  const struct gkyl_gk_block_geom *bg=inp->gk_block_geom;
+  for (int b=0; b<gkyl_gk_block_geom_num_blocks(bg); ++b) {
+    const struct gkyl_gk_block_geom_info *bi=gkyl_gk_block_geom_get_block(bg,b);
+    if (bi->geometry.geometry_id!=GKYL_GEOMETRY_TOKAMAK) continue;
+    const struct gkyl_tok_geo_grid_inp *ti=&bi->geometry.tok_grid_info;
+    struct gkyl_tok_geo *geo=gkyl_tok_geo_new(&bi->geometry.efit_info,ti);
+    enum gkyl_tok_wall_policy policy=gkyl_tok_wall_policy_for(ti,geo->efit);
+    bool ok=policy!=GKYL_TOK_WALL_REJECT_UNDECLARED &&
+            policy!=GKYL_TOK_WALL_REJECT_CONTRADICTED &&
+            policy!=GKYL_TOK_WALL_REJECT_MALFORMED;
+    if (!ok)
+      fprintf(stderr,"TOK_GEO_WALL_UNAVAILABLE block=%d limiter_status=%d vertices=%d reason=%s\n",
+        b,geo->efit->limiter_status,geo->efit->limiter_n,gkyl_tok_wall_policy_reason(policy));
+    // An acknowledged absent outline builds without wall enforcement. Say so on
+    // every such block, so an unenforced wall is never silent in the log.
+    if (policy==GKYL_TOK_WALL_NOT_ENFORCED)
+      fprintf(stderr,"TOK_GEO_WALL_NOT_ENFORCED block=%d limiter_status=%d vertices=%d\n",
+        b,geo->efit->limiter_status,geo->efit->limiter_n);
+    // Includes both radial bounds. This early check does not substitute for
+    // checks at the actual mapped radial coordinates during construction.
+    // Plate coverage is a material-target question, so it is only meaningful
+    // where a wall is enforced.
+    void *pmctx=0;
+    mc2nu_t pmap=tok_preflight_radial_map(bi,&pmctx);
+    bool unresolved=tok_preflight_map_unresolved(bi);
+    if (unresolved)
+      fprintf(stderr,"GKYL_MATERIAL_PREFLIGHT scope=advisory block=%d "
+        "reason=position_map_not_resolved_yet id=%d\n",
+        b,(int)bi->geometry.position_map_info.id);
+    // An advisory check cannot reject based on raw surfaces the resolved map
+    // may never use. Actual mapped geometry still enforces plate/wall limits.
+    for (int i=0; i<=32 && ok && !unresolved && policy==GKYL_TOK_WALL_ENFORCE; ++i) {
+      double psi=bi->lower[0]+(bi->upper[0]-bi->lower[0])*i/32.0;
+      if (pmap) pmap(0.0,&psi,&psi,pmctx);
+      ok=gkyl_tok_geo_check_plate_coverage(geo,ti,psi);
+    }
+    gkyl_tok_geo_release(geo);
+    if (!ok) {
+      fprintf(stderr,"GKYL_MATERIAL_PREFLIGHT status=FAIL block=%d\n",b);
+      return false;
+    }
+  }
+  fprintf(stderr,"GKYL_MATERIAL_PREFLIGHT status=PASS\n");
+  return true;
+}
+
+struct rho_wall_bound {
+  int family, edge, group, steps;
+  double requested, requested_psi, other, axis, sep;
+};
+
+static bool
+rho_wall_isfinite(double x)
+{
+  uint64_t bits;
+  memcpy(&bits, &x, sizeof bits);
+  return (bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
+}
+
+static bool
+rho_wall_same(double a, double b)
+{
+  return rho_wall_isfinite(a) && rho_wall_isfinite(b) &&
+    fabs(a-b) <= 128.0*DBL_EPSILON*fmax(1.0, fmax(fabs(a),fabs(b)));
+}
+
+static int
+rho_wall_group(struct rho_wall_bound *bounds, int b)
+{
+  while (bounds[b].group != b) b = bounds[b].group;
+  return b;
+}
+
+// Return an owned effective declaration. Every trial uses the actual mapper,
+// fresh compression/map state and the requested cell counts. Trials have no
+// output and are always released. Only the subsequent ordinary constructor
+// can expose a geometry; its wall checks are never in collection mode.
+static struct gkyl_gk_block_geom *
+gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
+{
+  const int n = gkyl_gk_block_geom_num_blocks(inp->gk_block_geom);
+  const int ndim = gkyl_gk_block_geom_ndim(inp->gk_block_geom);
+  // Every allocation below is sized by n, and n reaches memset() as
+  // n*sizeof(*p). Nothing here bounded n, so the compiler had to assume a
+  // negative value was reachable and warned that the length could wrap
+  // (-Wstringop-overflow at the two memsets in the iteration loop). State the
+  // invariant once, before anything is allocated, rather than silencing it.
+  if (n <= 0 || ndim <= 0) {
+    fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=empty_block_geometry blocks=%d ndim=%d\n",n,ndim);
+    return 0;
+  }
+  struct gkyl_gk_block_geom *bg = gkyl_gk_block_geom_new(ndim,n);
+  struct rho_wall_bound *bounds = gkyl_calloc(n,sizeof(*bounds));
+  bool *failed = gkyl_calloc(n,sizeof(*failed));
+  bool *bad_block = gkyl_calloc(n,sizeof(*bad_block));
+  int *order = gkyl_malloc(n*sizeof(*order));
+  for (int b=0; b<n; ++b) order[b]=b;
+  struct gkyl_gyrokinetic_multib *probe_inp = gkyl_malloc(sizeof(*probe_inp));
+  *probe_inp = *inp;
+  probe_inp->gk_block_geom = bg;
+  probe_inp->use_gpu = false;
+  struct gkyl_gyrokinetic_multib_app *probe = gkyl_calloc(1,sizeof(*probe));
+  probe->gk_block_geom = bg;
+  probe->block_comms = gkyl_calloc(n,sizeof(*probe->block_comms));
+  struct gkyl_comm *serial = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp) {
+    .use_gpu = false,
+  });
+  bool ok = false;
+
+  // Initial opt-in scope: p1, serial application, identity or fresh built-in
+  // X-point compression. Other modes need their own trial/transfer contract.
+  int ranks = 0;
+  gkyl_comm_get_size(inp->comm,&ranks);
+  if (ranks != 1 || inp->poly_order != 1) {
+    fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=unsupported_configuration ranks=%d poly_order=%d\n",ranks,inp->poly_order);
+    goto cleanup;
+  }
+
+  for (int b=0; b<n; ++b) {
+    const struct gkyl_gk_block_geom_info *bi = gkyl_gk_block_geom_get_block(inp->gk_block_geom,b);
+    gkyl_gk_block_geom_set_block(bg,b,bi);
+    bounds[b].group = b;
+    probe->block_comms[b] = serial;
+    if (bi->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
+    if (bi->geometry.tok_grid_info.relaxed_xpt_seam_optimize) {
+      fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=unsupported_seam_optimizer block=%d\n",b);
+      goto cleanup;
+    }
+    const struct gkyl_position_map_inp *pm = &bi->geometry.position_map_info;
+    if ((pm->id != GKYL_PMAP_USER_INPUT && pm->id != GKYL_PMAP_XPT_COMPRESSION) ||
+        pm->maps[0] || pm->maps[1] || pm->maps[2]) {
+      fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=unsupported_position_map block=%d\n",b);
+      goto cleanup;
+    }
+    struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&bi->geometry.efit_info,&bi->geometry.tok_grid_info);
+    double axis=geo->efit->simag, sep=geo->psisep;
+    // Adjustment moves a bound so the domain fits inside the wall, so it is
+    // only meaningful where a wall exists. Same predicate as everywhere else.
+    bool wall_ok=gkyl_tok_wall_usable(geo->efit);
+    gkyl_tok_geo_release(geo);
+    if (!wall_ok || !rho_wall_isfinite(axis) || !rho_wall_isfinite(sep) || axis==sep) {
+      fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=wall_or_flux_unavailable block=%d\n",b);
+      goto cleanup;
+    }
+    bounds[b].axis=axis; bounds[b].sep=sep;
+    const int family=gkyl_rho_wall_family(bi->geometry.tok_grid_info.ftype);
+    if (!family) continue; // Core and other types are checked but never moved.
+    double r2lo=(bi->lower[0]-axis)/(sep-axis), r2hi=(bi->upper[0]-axis)/(sep-axis);
+    if (!rho_wall_isfinite(r2lo) || !rho_wall_isfinite(r2hi) || r2lo<0 || r2hi<0) {
+      fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=invalid_rho block=%d\n",b);
+      goto cleanup;
+    }
+    double rlo=sqrt(r2lo), rhi=sqrt(r2hi);
+    int edge = family==1 ? (rhi>rlo) : (rhi<rlo);
+    // Only move a physical radial boundary; never move a declared radial join.
+    if (bi->connections[0][edge].edge != GKYL_PHYSICAL) continue;
+    bounds[b].family=family; bounds[b].edge=edge;
+    bounds[b].requested=edge ? rhi : rlo;
+    bounds[b].requested_psi=edge ? bi->upper[0] : bi->lower[0];
+    bounds[b].other=edge ? rlo : rhi;
+  }
+
+  // Same-family theta/alpha neighbors own the same outer boundary. Keep
+  // unrelated PF/core contours distinct even when their numeric flux agrees.
+  for (int b=0; b<n; ++b) {
+    const struct gkyl_gk_block_geom_info *bi=gkyl_gk_block_geom_get_block(bg,b);
+    if (!bounds[b].family) continue;
+    for (int d=1; d<ndim; ++d) for (int e=0; e<2; ++e) {
+      const struct gkyl_target_edge *te=&bi->connections[d][e];
+      if (te->edge==GKYL_PHYSICAL || te->bid==b) continue;
+      int j=te->bid;
+      const struct gkyl_gk_block_geom_info *bj=gkyl_gk_block_geom_get_block(bg,j);
+      if (bj->geometry.geometry_id==GKYL_GEOMETRY_TOKAMAK &&
+          gkyl_rho_wall_family(bj->geometry.tok_grid_info.ftype)==bounds[b].family && !bounds[j].family) {
+        fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=mixed_boundary_ownership block=%d peer=%d\n",b,j);
+        goto cleanup;
+      }
+      if (bounds[b].family!=bounds[j].family) continue;
+      const struct gkyl_efit_inp *a=&bi->geometry.efit_info, *c=&bj->geometry.efit_info;
+      if (!rho_wall_same(bounds[b].requested,bounds[j].requested) ||
+          !rho_wall_same(bounds[b].other,bounds[j].other) ||
+          !rho_wall_same(bounds[b].axis,bounds[j].axis) || !rho_wall_same(bounds[b].sep,bounds[j].sep) ||
+          strcmp(a->filepath,c->filepath) || a->reflect!=c->reflect ||
+          a->rz_poly_order!=c->rz_poly_order || a->flux_poly_order!=c->flux_poly_order ||
+          bi->geometry.tok_grid_info.use_cubics!=bj->geometry.tok_grid_info.use_cubics) {
+        fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=incompatible_boundary_group block=%d peer=%d\n",b,j);
+        goto cleanup;
+      }
+      int rb=rho_wall_group(bounds,b), rj=rho_wall_group(bounds,j);
+      if (rb!=rj) bounds[rj].group=rb;
+    }
+  }
+  for (int b=0; b<n; ++b) bounds[b].group=rho_wall_group(bounds,b);
+
+  for (int iteration=0; iteration<=10000; ++iteration) {
+    memset(failed,0,n*sizeof(*failed));
+    memset(bad_block,0,n*sizeof(*bad_block));
+    bool any=false;
+    // An explicitly supplied wall target can lose its far-bound root because
+    // the requested contour exits elsewhere on the wall (ASDEX wide PF).
+    // Permit the same inward rho search before constructing that contour.
+    // Original plate failures and fixed-bound target failures still reject.
+    for (int b=0;b<n;++b) {
+      const struct gkyl_gk_block_geom_info *bi=gkyl_gk_block_geom_get_block(bg,b);
+      if (bi->geometry.geometry_id!=GKYL_GEOMETRY_TOKAMAK) continue;
+      const struct gkyl_tok_geo_grid_inp *ti=&bi->geometry.tok_grid_info;
+      struct gkyl_tok_geo *geo=gkyl_tok_geo_new(&bi->geometry.efit_info,ti);
+      double fixed=bounds[b].edge ? bi->lower[0] : bi->upper[0];
+      if (tok_plate_coverage_status(geo,ti,fixed)) {
+        gkyl_tok_geo_release(geo);
+        fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=fixed_boundary_target_unavailable block=%d\n",b);
+        goto cleanup;
+      }
+      bool fatal=false;
+      void *pmctx=0;
+      mc2nu_t pmap=tok_preflight_radial_map(bi,&pmctx);
+      for (int j=0;j<=32;++j) {
+        double psi=bi->lower[0]+(bi->upper[0]-bi->lower[0])*j/32.0;
+        if (pmap) pmap(0.0,&psi,&psi,pmctx);
+        int status=tok_plate_coverage_status(geo,ti,psi);
+        if (!status) continue;
+        if (status!=1 || !bounds[b].family) { fatal=true;break; }
+        failed[bounds[b].group]=true;bad_block[b]=true;any=true;
+        fprintf(stderr,"TOK_RHO_WALL_TARGET_RETRY block=%d family=%s psi=%.17g reason=explicit_target_root_unavailable\n",
+          b,bounds[b].family==1 ? "SOL" : "PF",psi);
+        // Other active endpoints/fluxes are checked on the next candidate;
+        // no geometry is constructed while any target lacks coverage.
+        break;
+      }
+      gkyl_tok_geo_release(geo);
+      if (fatal) {
+        fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=original_plate_coverage block=%d\n",b);
+        goto cleanup;
+      }
+    }
+    if (any) goto advance_wall_bounds;
+    for (int k=0; k<n; ++k) {
+      int b=order[k];
+      // Once a group fails, this candidate cannot be selected. Probe its
+      // previous offender first next time, and defer the other members and
+      // unchanged core until a candidate can actually pass. Iteration zero
+      // visits the original ordering and captures every requested contour.
+      if (iteration>0 && (failed[bounds[b].group] || (any && !bounds[b].family))) continue;
+      struct gkyl_gk_block_geom_info bi=*gkyl_gk_block_geom_get_block(bg,b);
+      if (bi.geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
+      for (int d=0; d<ndim; ++d) bi.cuts[d]=1;
+      fprintf(stderr,"TOK_RHO_WALL_TRIAL iteration=%d block=%d\n",iteration,b);
+      tok_wall_trial_begin(bounds[b].family ? bounds[b].edge : -1);
+      if (iteration==0 && bounds[b].family)
+        tok_wall_trial_capture_requested(b,bounds[b].requested);
+      struct gkyl_gyrokinetic_app *app=singleb_app_new_geom_from_block(probe_inp,b,probe,&bi,false);
+      long violations=tok_wall_trial_end();
+      bool fixed_violation=tok_wall_trial_has_fixed_violation();
+      gkyl_gyrokinetic_app_release_geom(app);
+      if (violations) {
+        fprintf(stderr,"TOK_RHO_WALL_TRIAL_REJECTED iteration=%d block=%d wall_checks_failed=%ld\n",iteration,b,violations);
+        if (fixed_violation) {
+          fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=fixed_boundary_wall_violation block=%d\n",b);
+          goto cleanup;
+        }
+        if (!bounds[b].family) {
+          fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=unadjustable_wall_violation block=%d\n",b);
+          goto cleanup;
+        }
+        failed[bounds[b].group]=true;
+        bad_block[b]=true;
+        any=true;
+      }
+    }
+    if (!any) {
+      for (int b=0; b<n; ++b) if (bounds[b].family) {
+        const struct gkyl_gk_block_geom_info *bi=gkyl_gk_block_geom_get_block(bg,b);
+        double psi=bounds[b].edge ? bi->upper[0] : bi->lower[0];
+        double rho=sqrt((psi-bounds[b].axis)/(bounds[b].sep-bounds[b].axis));
+        fprintf(stderr,"TOK_RHO_WALL_BOUND block=%d family=%s edge=%d requested_rho=%.17g effective_rho=%.17g requested_psi=%.17g effective_psi=%.17g steps=%d\n",
+          b,bounds[b].family==1 ? "SOL" : "PF",bounds[b].edge,bounds[b].requested,rho,bounds[b].requested_psi,psi,bounds[bounds[b].group].steps);
+      }
+      fprintf(stderr,"TOK_RHO_WALL_ADJUST_SELECTED iterations=%d step_rho=0.001; rebuilding with hard wall guards\n",iteration);
+      ok=true;
+      break;
+    }
+advance_wall_bounds:
+    if (iteration==10000) break;
+    int next=0;
+    for (int b=0; b<n; ++b) if (bad_block[b]) order[next++]=b;
+    for (int b=0; b<n; ++b) if (!bad_block[b] && bounds[b].family) order[next++]=b;
+    for (int b=0; b<n; ++b) if (!bounds[b].family) order[next++]=b;
+    for (int g=0; g<n; ++g) if (failed[g]) ++bounds[g].steps;
+    for (int b=0; b<n; ++b) {
+      int g=bounds[b].group;
+      if (!failed[g]) continue;
+      double rho,psi;
+      if (!gkyl_rho_wall_next(bounds[g].requested,bounds[g].other,bounds[g].axis,bounds[g].sep,
+          bounds[g].family,bounds[g].steps,&rho,&psi)) {
+        fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=no_admissible_increment group=%d requested_rho=%.17g steps=%d\n",
+          g,bounds[g].requested,bounds[g].steps);
+        goto cleanup;
+      }
+      struct gkyl_gk_block_geom_info bi=*gkyl_gk_block_geom_get_block(bg,b);
+      if (bounds[b].edge) bi.upper[0]=psi; else bi.lower[0]=psi;
+      gkyl_gk_block_geom_set_block(bg,b,&bi);
+      fprintf(stderr,"TOK_RHO_WALL_ADJUST_STEP block=%d family=%s step=%d rho=%.17g psi=%.17g\n",
+        b,bounds[b].family==1 ? "SOL" : "PF",bounds[g].steps,rho,psi);
+    }
+  }
+
+cleanup:
+  gkyl_comm_release(serial);
+  gkyl_free(probe->block_comms); gkyl_free(probe); gkyl_free(probe_inp);
+  gkyl_free(bounds); gkyl_free(failed);
+  gkyl_free(bad_block); gkyl_free(order);
+  if (!ok) { gkyl_gk_block_geom_release(bg); return 0; }
+  return bg;
+}
+
+static gkyl_gyrokinetic_multib_app *gyrokinetic_multib_app_new_geom_impl(const struct gkyl_gyrokinetic_multib *);
+static gkyl_gyrokinetic_multib_app *gyrokinetic_multib_app_new_impl(const struct gkyl_gyrokinetic_multib *);
+
+static gkyl_gyrokinetic_multib_app *
+gyrokinetic_multib_app_wall_wrapper(const struct gkyl_gyrokinetic_multib *inp, bool geometry_only)
+{
+  const char *adjust=getenv("ADJUST_IF_EXCEEDING_WALL");
+  if (adjust && strcmp(adjust,"0") && strcmp(adjust,"1")) {
+    fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED ADJUST_IF_EXCEEDING_WALL must be 0 or 1\n");
+    return 0;
+  }
+  if (!adjust || !strcmp(adjust,"0"))
+    return geometry_only ? gyrokinetic_multib_app_new_geom_impl(inp) : gyrokinetic_multib_app_new_impl(inp);
+  if (!gkyl_gyrokinetic_multib_app_geometry_preflight(inp)) return 0;
+  struct gkyl_gk_block_geom *bg=gyrokinetic_multib_adjust_wall(inp);
+  if (!bg) return 0;
+  struct gkyl_gyrokinetic_multib *effective=gkyl_malloc(sizeof(*effective));
+  *effective=*inp; effective->gk_block_geom=bg;
+  gkyl_gyrokinetic_multib_app *app=geometry_only ?
+    gyrokinetic_multib_app_new_geom_impl(effective) : gyrokinetic_multib_app_new_impl(effective);
+  gkyl_free(effective);
+  gkyl_gk_block_geom_release(bg);
+  return app;
+}
+
+gkyl_gyrokinetic_multib_app *
+gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *inp)
+{
+  return gyrokinetic_multib_app_wall_wrapper(inp,true);
+}
+
+gkyl_gyrokinetic_multib_app *
+gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *inp)
+{
+  return gyrokinetic_multib_app_wall_wrapper(inp,false);
+}
+
+static gkyl_gyrokinetic_multib_app*
+gyrokinetic_multib_app_new_geom_impl(const struct gkyl_gyrokinetic_multib *mbinp)
+{
+  // Reject invalid declarations before communicator access or app allocation.
+  if (!gkyl_gyrokinetic_multib_app_geometry_preflight(mbinp))
+    return 0;
+  if (!gyrokinetic_multib_material_preflight(mbinp))
+    return 0;
+
   int my_rank, num_ranks;
   gkyl_comm_get_rank(mbinp->comm, &my_rank);
   gkyl_comm_get_size(mbinp->comm, &num_ranks);
@@ -454,15 +886,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   
   mbapp->gk_block_geom = gkyl_gk_block_geom_acquire(mbinp->gk_block_geom);
   mbapp->block_topo = gkyl_gk_block_geom_topo(mbinp->gk_block_geom);
-
-  // Check the declaration before anything is built from it.  This is the only
-  // point where every block's input and the topology are both in hand, so it is
-  // the only place a cross-block declaration error can be caught at all -- a
-  // per-block construction cannot see that its NEIGHBOUR disagrees with it.
-  // Reports by default and does not abort; see the participation check in
-  // block_gk_geom.c for what it looks for and why.  Called on BOTH entry
-  // points: the geometry-only one is what the device geometry drivers use.
-  gkyl_gk_block_geom_check_consistency(mbapp->gk_block_geom);
 
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
@@ -693,11 +1116,21 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     }
   }
 
+  // No partial grid: all local blocks and their hard material checks must
+  // finish on every rank before any block's geometry is written.
+  gkyl_comm_barrier(mbapp->comm);
+  gkyl_gyrokinetic_multib_app_write_geometry(mbapp);
   return mbapp;
 }
 
-gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp)
+static gkyl_gyrokinetic_multib_app* gyrokinetic_multib_app_new_impl(const struct gkyl_gyrokinetic_multib *mbinp)
 {
+  // Reject invalid declarations before communicator access or app allocation.
+  if (!gkyl_gyrokinetic_multib_app_geometry_preflight(mbinp))
+    return 0;
+  if (!gyrokinetic_multib_material_preflight(mbinp))
+    return 0;
+
   int my_rank, num_ranks;
   gkyl_comm_get_rank(mbinp->comm, &my_rank);
   gkyl_comm_get_size(mbinp->comm, &num_ranks);
@@ -718,15 +1151,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   
   mbapp->gk_block_geom = gkyl_gk_block_geom_acquire(mbinp->gk_block_geom);
   mbapp->block_topo = gkyl_gk_block_geom_topo(mbinp->gk_block_geom);
-
-  // Check the declaration before anything is built from it.  This is the only
-  // point where every block's input and the topology are both in hand, so it is
-  // the only place a cross-block declaration error can be caught at all -- a
-  // per-block construction cannot see that its NEIGHBOUR disagrees with it.
-  // Reports by default and does not abort; see the participation check in
-  // block_gk_geom.c for what it looks for and why.  Called on BOTH entry
-  // points: the geometry-only one is what the device geometry drivers use.
-  gkyl_gk_block_geom_check_consistency(mbapp->gk_block_geom);
 
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
@@ -1120,6 +1544,10 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   gkyl_free(rank_list);
   gkyl_free(branks);
 
+  // No partial grid: all local blocks and their hard material checks must
+  // finish on every rank before any block's geometry is written.
+  gkyl_comm_barrier(mbapp->comm);
+  gkyl_gyrokinetic_multib_app_write_geometry(mbapp);
   return mbapp;
 }
 
@@ -2667,9 +3095,8 @@ enum { XPT_OPTIMIZER_MAX_PAIRS = 64 };
 
 // Verify that the partner's own connection record points back to (bid,
 // dir=1, edge) with the same orientation.  gkyl_gk_block_geom_check_consistency
-// checks this redundant data for the whole mesh, but is never called
-// automatically during app construction, so the X-point seam optimizer
-// checks the one interface it is about to use directly.
+// checks this redundant data for the whole mesh during app preflight. The
+// X-point seam optimizer also checks the specific interface it will use.
 static bool
 xpt_optimizer_reciprocal_topology(const struct gkyl_gyrokinetic_multib_app *app,
   int bid, int edge, int partner_bid, int partner_dir,
@@ -3357,6 +3784,8 @@ xpt_optimizer_evaluate_candidate(
     return result;
   }
 
+  fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=candidate event=begin\n");
+  fflush(stderr);
   struct gkyl_gyrokinetic_app **trial_apps =
     gkyl_malloc(sizeof(*trial_apps)*app->num_local_blocks);
   bool *owned = gkyl_calloc(app->num_local_blocks, sizeof(bool));
@@ -3478,6 +3907,8 @@ xpt_optimizer_evaluate_candidate(
       gkyl_gyrokinetic_app_release_geom(trial_apps[b]);
   gkyl_free(owned);
   gkyl_free(trial_apps);
+  fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=candidate event=end accepted=0\n");
+  fflush(stderr);
   return result;
 }
 
@@ -3696,6 +4127,8 @@ xpt_optimizer_apply_selection(const struct gkyl_gyrokinetic_multib *mbinp,
   gkyl_gyrokinetic_multib_app *app, const struct xpt_optimizer_pair *pair,
   double coefficient)
 {
+  fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=revalidation event=begin\n");
+  fflush(stderr);
   struct gkyl_gyrokinetic_app **candidate_apps =
     gkyl_malloc(sizeof(*candidate_apps)*app->num_local_blocks);
   bool *owned = gkyl_calloc(app->num_local_blocks, sizeof(bool));
@@ -3785,6 +4218,8 @@ xpt_optimizer_apply_selection(const struct gkyl_gyrokinetic_multib *mbinp,
     gkyl_gk_block_geom_apply_xpt_seam_selection(app->gk_block_geom,
       pair->bid[1], coefficient, pair->bound);
   }
+  fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=revalidation event=end accepted=%d\n", (int) success);
+  fflush(stderr);
   return success ? XPT_APPLY_APPLIED : XPT_APPLY_REVALIDATION_FAILED;
 }
 
