@@ -2822,7 +2822,7 @@ test_2x_bias(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool 
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, rho, d, skin_ghost);
 
-  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho_ho, "ctest_fem_poisson_2x_rho_1.gkyl");
+  // gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho_ho, "ctest_fem_poisson_2x_rho_1.gkyl");
 
 //  // Specify a bias at a fixed x:
 //  struct gkyl_poisson_bias_plane bias = {
@@ -2877,7 +2877,7 @@ test_2x_bias(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool 
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
 
-  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi_ho, "ctest_fem_poisson_2x_phi_1.gkyl");
+  // gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi_ho, "ctest_fem_poisson_2x_phi_1.gkyl");
 
   gkyl_array_copy(phi_ho, phi);
 

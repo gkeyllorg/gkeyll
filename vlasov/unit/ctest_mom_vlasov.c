@@ -220,7 +220,7 @@ test_mom_vlasov_1x1v_p1_ho()
   //int sz = snprintf(0, 0, fmt, name, speciesName, momName, frame);
   //char fileNm[sz+1]; // ensures no buffer overflow
   //snprintf(fileNm, sizeof fileNm, fmt, name, speciesName, momName, frame);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, "ctest_mom_vlasov_distf_0.gkyl");
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, "ctest_mom_vlasov_distf_0.gkyl");
 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);

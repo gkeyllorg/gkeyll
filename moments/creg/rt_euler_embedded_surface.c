@@ -59,8 +59,8 @@ create_ctx(void)
   double p1 = 1.0;
   
   // Simulation parameters.
-  int Nx = 300; // Cell count (x-direction).
-  int Ny = 300; // Cell count (y-direction).
+  int Nx = 150; // Cell count (x-direction).
+  int Ny = 150; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Ly = 1.0; // Domain size (y-direction).
   double cfl_frac = 0.9; // CFL coefficient.

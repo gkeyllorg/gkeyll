@@ -96,9 +96,9 @@ create_ctx(void)
   double vt_neut2 = sqrt(p_neut2 / (n0_neut2 * mass_neut2)); // Second neutral thermal velocity.
 
   // Simulation parameters.
-  int Nx = 16; // Cell count (configuration space: x-direction).
-  int Nvx = 32; // Cell count (velocity space: vx-direction).
-  int Nvy = 32; // Cell count (velocity space: vy-direction).
+  int Nx = 8; // Cell count (configuration space: x-direction).
+  int Nvx = 16; // Cell count (velocity space: vx-direction).
+  int Nvy = 16; // Cell count (velocity space: vy-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
   double vx_max_neut1 = 6.0 * vt_neut1; // First neutral domain boundary (velocity space: vx-direction).
   double vx_max_neut2 = 6.0 * vt_neut2; // Second neutral domain boundary (velocity space: vx-direction).

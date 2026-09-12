@@ -212,7 +212,7 @@ main(int argc, char **argv)
   double t_curr = 0.0, t_end = 0.6;
 
   // Create trigger for IO.
-  int num_frames = 4;
+  int num_frames = 1;
   struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // Initialize simulation.

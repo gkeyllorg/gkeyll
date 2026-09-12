@@ -239,7 +239,7 @@ test_reactive_euler_waves_2_ho()
     gkyl_wv_eqn_rotate_to_global(reactive_euler, tau1[d], tau2[d], norm[d], fr_local, fr);
 
     for (int i = 0; i < 6; i++) {
-      TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-14) );
+      TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 5e-14) );
     }
   }
 

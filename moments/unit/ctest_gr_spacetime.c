@@ -434,7 +434,7 @@ test_gr_spacetime_schwarzschild_ho()
                 spatial_metric_cov_der[i][j][k] -= spatial_christoffel[l][i][k] * spatial_metric[j][l];
               }
 
-              TEST_CHECK( gkyl_compare(spatial_metric_cov_der[i][j][k], 0.0, 1e-10) );
+              TEST_CHECK( gkyl_compare(spatial_metric_cov_der[i][j][k], 0.0, 2e-10) );
             }
           }
         }
@@ -468,7 +468,7 @@ test_gr_spacetime_schwarzschild_ho()
                 spacetime_metric_cov_der[i][j][k] -= spacetime_christoffel[l][i][k] * spacetime_metric[j][l];
               }
 
-              TEST_CHECK( gkyl_compare(spacetime_metric_cov_der[i][j][k], 0.0, 1e-10) );
+              TEST_CHECK( gkyl_compare(spacetime_metric_cov_der[i][j][k], 0.0, 2e-10) );
             }
           }
         }

@@ -119,7 +119,7 @@ create_ctx(void)
     + n1 * (Ti1 + Te1) - n2 * Ti2) / n2; // Magnetosheath electron temperature (so that the system is in force balance).
 
   // Simulation parameters.
-  int Nx = 256; // Cell count (x-direction).
+  int Nx = 64; // Cell count (x-direction).
   int Ny = 128; // Cell count (y-direction).
   double Lx = 40.96 * di; // Domain size (x-direction).
   double Ly = 20.48 * di; // Domain size (y-direction).

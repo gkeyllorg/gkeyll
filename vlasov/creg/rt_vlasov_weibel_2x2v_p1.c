@@ -112,8 +112,8 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 8; // Cell count (configuration space: x-direction).
   int Ny = 8; // Cell count (configuration space: y-direction).
-  int Nvx = 16; // Cell count (velocity space: vx-direction).
-  int Nvy = 16; // Cell count (velocity space: vy-direction).
+  int Nvx = 8; // Cell count (velocity space: vx-direction).
+  int Nvy = 8; // Cell count (velocity space: vy-direction).
   double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
   double Ly = 2.0 * pi / ky; // Domain size (configuration space: y-direction).
   double vx_max = 0.9; // Domain boundary (velocity space: vx-direction).
