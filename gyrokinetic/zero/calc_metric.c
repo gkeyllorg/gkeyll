@@ -180,6 +180,60 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
       }
     }
   }
+
+  // The loop above tests only the SIGN of the diagonal, so a metric wrong by a
+  // scale factor, or carrying non-zero off-diagonal products, passes it
+  // silently.  Measure the full identity |e_i . e^j - delta_ij| as well.
+  //
+  // This REPORTS by default and is fatal only under
+  // GKYL_METRIC_STRICT_ORTHONORMALITY=1, following the same opt-in pattern as
+  // the seam-participation guard.  The coordinate system is genuinely singular
+  // at X-point and divertor-plate corners, so a check that aborted by default
+  // would reject geometry the plan explicitly expects to build; what matters is
+  // WHERE the residual is large, not merely that it is non-zero somewhere.
+  //
+  // The tolerance is deliberately loose by default and tunable, because the
+  // representative residual has not yet been measured across devices; pick a
+  // threshold from that measurement rather than asserting one up front.
+  {
+    static double tol = -1.0;
+    static int strict = -1;
+    static long reported = 0;
+    const long report_cap = 20;
+    if (tol < 0.0) {
+      const char *s = getenv("GKYL_METRIC_ORTHONORMALITY_TOL");
+      tol = (s && s[0]) ? atof(s) : 1.0e-6;
+      if (!(tol > 0.0)) tol = 1.0e-6;
+    }
+    if (strict < 0) {
+      const char *s = getenv("GKYL_METRIC_STRICT_ORTHONORMALITY");
+      strict = (s && s[0] && s[0] != '0') ? 1 : 0;
+    }
+    double worst = 0.0; int wi = 0, wj = 0;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        double d = fabs(prod[i][j] - (i == j ? 1.0 : 0.0));
+        if (d > worst) { worst = d; wi = i; wj = j; }
+      }
+    }
+    if (worst > tol) {
+      if (reported < report_cap) {
+        fprintf(stderr,
+          "TOK_METRIC_ORTHONORMALITY residual=%.9e at e_%d.e^%d tol=%.3e "
+          "diag=[%.9e,%.9e,%.9e]\n",
+          worst, wi+1, wj+1, tol, prod[0][0], prod[1][1], prod[2][2]);
+        if (++reported == report_cap)
+          fprintf(stderr, "TOK_METRIC_ORTHONORMALITY further reports suppressed "
+                          "after %ld\n", report_cap);
+      }
+      if (strict) {
+        fprintf(stderr, "calc_metric.c: orthonormality residual %.9e exceeds "
+                        "tolerance %.3e under GKYL_METRIC_STRICT_ORTHONORMALITY\n",
+                        worst, tol);
+        assert(!exit_at_check);
+      }
+    }
+  }
 }
 
 static inline void
