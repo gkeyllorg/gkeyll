@@ -36,10 +36,10 @@ Keep the Jenkins controller, its installation, its workspaces, and all CI
 artifacts under one shared, compute-node-visible directory:
 
 ```sh
-export GKEYLL_CI_ROOT=/scratch/gpfs/<user_name>/gkeyll_ci
+export GKEYLL_CI_ROOT=/scratch/gpfs/$USER/gkeyll_ci
 ```
 
-Replace `<user_name>` with your Stellar user name. The setup below creates:
+Stellar provides the username through `$USER`. The setup below creates:
 
 ```text
 $GKEYLL_CI_ROOT/jenkins.war          Jenkins installation archive
@@ -88,7 +88,7 @@ Stellar pipeline files; do not use an unrelated checkout that might lack the
 `machines/` configuration scripts or Slurm test payload.
 
 ```sh
-export GKEYLL_CI_ROOT=/scratch/gpfs/<user_name>/gkeyll_ci
+export GKEYLL_CI_ROOT=/scratch/gpfs/$USER/gkeyll_ci
 mkdir "$GKEYLL_CI_ROOT"
 cd "$GKEYLL_CI_ROOT"
 git clone --branch agent_tools-jenkins-stellar_intel --single-branch \
@@ -130,7 +130,7 @@ default `java` command unless `java -version` confirms it is Java 21 or newer.
 After logging in through Duo, set up the scratch-only controller directory:
 
 ```sh
-export GKEYLL_CI_ROOT=/scratch/gpfs/<user_name>/gkeyll_ci
+export GKEYLL_CI_ROOT=/scratch/gpfs/$USER/gkeyll_ci
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-21.0.12.1.1-1.1.el8.x86_64
 export PATH="$JAVA_HOME/bin:$PATH"
 export JENKINS_HOME="$GKEYLL_CI_ROOT/jenkins_home"
@@ -159,7 +159,7 @@ system service. Stop it after a test session if it is not needed.
 ```sh
 tmux new -s gkeyll-jenkins
 
-export GKEYLL_CI_ROOT=/scratch/gpfs/<user_name>/gkeyll_ci
+export GKEYLL_CI_ROOT=/scratch/gpfs/$USER/gkeyll_ci
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-21.0.12.1.1-1.1.el8.x86_64
 export PATH="$JAVA_HOME/bin:$PATH"
 export JENKINS_HOME="$GKEYLL_CI_ROOT/jenkins_home"
@@ -233,7 +233,7 @@ set:
 
 | Name | Required value |
 | --- | --- |
-| `CI_STELLAR_WORKSPACE_ROOT` | `/scratch/gpfs/<user_name>/gkeyll_ci/workspaces` (enter the expanded path, not `$GKEYLL_CI_ROOT`) |
+| `CI_STELLAR_WORKSPACE_ROOT` | `/scratch/gpfs/$USER/gkeyll_ci/workspaces` |
 | `STELLAR_GITHUB_CREDENTIAL_ID` | Jenkins credential ID, e.g. `gkeyll-github-read` |
 | `STELLAR_SLURM_QOS` | Your valid CPU QoS, e.g. `pppl-short` |
 | `STELLAR_SLURM_ACCOUNT` | Project account, if required; otherwise omit it |
@@ -247,7 +247,7 @@ job.
 
 ## 6. Create the one parameterized Pipeline job
 
-Create **New Item → Pipeline** named `gkeyll-stellar-intel-ci`.
+Create **New Item → Pipeline** named `gkeyll-ci-stellar-intel`.
 
 Configure its pipeline definition as **Pipeline script from SCM**:
 
