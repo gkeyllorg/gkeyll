@@ -51,5 +51,3 @@ working directory. Links inside a skill are relative to that skill's directory.
   changes, check paths and metadata; solver builds are unnecessary.
 - Report what was checked and any checks that could not run. If required context
   is missing or unreadable, report the exact path rather than silently skipping it.
-
-For setup and maintenance of these instructions, see [.agents/README.md](.agents/README.md).
