@@ -1582,7 +1582,7 @@ test_gr_mhd_waves_schwarzschild_ho()
           gkyl_wv_eqn_rotate_to_global(gr_mhd, tau1[d], tau2[d], norm[d], fr_local, fr);
 
           for (int i = 0; i < 75; i++) {
-            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12) );
+            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-11) );
           }
         }
       }

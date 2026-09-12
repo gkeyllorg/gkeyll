@@ -1,5 +1,10 @@
 # Jenkins CI for Gkeyll
 
+For the separate, manually triggered CPU-only pipeline on Princeton's Stellar
+Intel cluster, see [README.stellar-intel.md](README.stellar-intel.md). It uses
+`Jenkinsfile.stellar-intel`, not the multibranch `Jenkinsfile` described
+below.
+
 This sets up Jenkins (following the pattern used by
 [SUNDIALS](https://github.com/llnl/sundials/tree/main/test/jenkins), adapted
 for GitHub instead of Bitbucket) to build Gkeyll and run its unit tests on our
