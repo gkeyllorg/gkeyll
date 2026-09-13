@@ -1,0 +1,18 @@
+In /Users/mfrancis/Downloads/gkeyll_jenkins_hpc_slurm_ci_handoff.md you can find a
+  conversation I had with chat GPT. Can you create a plan, with implementation stages and a
+  hierarchical level of complexity (for levels 1 and 2 mentioned in the chatGPT
+  conversation), for the approach where the user crosses the Duo boundary, not Jenkins. I
+  like the idea of having a separate Jenkinsfile for clusters, and having a parametrized job
+  according to PR number.
+
+---
+
+Implement Level 1, specifically for the Stellar cluster at Princeton (https://researchcomputing.princeton.edu/systems/stellar), so we will use the stellar-intel machine files in machines/ and focus on CPU testing for now (not GPUs). I think it makes sense to name the new Jenkins config file Jenkinsfile.stellar-intel as there may be other Jenkinsfile's for other clusters in the future. Let me know what I need to manually do at every stage.
+
+---
+
+The Jenkins build/test made it farther this time, but it still failed to run the tests. See /Users/mfrancis/Downloads/run_7.txt
+
+---
+
+Your change may be fine, but out of curiosity, is it possible to do this from the Jenkinsfile or other Jenkins-specific script instead?
