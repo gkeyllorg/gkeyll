@@ -29,7 +29,7 @@ struct gk_app_ctx {
   // Grid parameters
   double Lx, Ly, Lz;
   double x_min, x_max, y_min, y_max, z_min, z_max;
-  int num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu;
+  int Nx, Ny, Nz, Nvpar, Nmu;
   int cells[GKYL_MAX_DIM], poly_order;
   double vpar_max_elc, mu_max_elc, vpar_max_ion, mu_max_ion;
   // Simulation control parameters
@@ -454,11 +454,11 @@ struct gk_app_ctx create_ctx(void)
   double sigma_srcCORE[3] = {0.03*Lx, 0.0, Lz/6}; //  the electron source will be at +Lz/2.
   double floor_srcCORE = 1e-10;
   // Grid parameters
-  int num_cell_x = 8;
-  int num_cell_y = 4;
-  int num_cell_z = 8;
-  int num_cell_vpar = 12;
-  int num_cell_mu = 8;
+  int Nx = 8;
+  int Ny = 4;
+  int Nz = 8;
+  int Nvpar = 12;
+  int Nmu = 8;
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 6.*vte;
@@ -505,12 +505,12 @@ struct gk_app_ctx create_ctx(void)
     .sigma_srcCORE = {sigma_srcCORE[0], sigma_srcCORE[1], sigma_srcCORE[2]},
     .energy_srcCORE = energy_srcCORE,  .particle_srcCORE = particle_srcCORE,
     .floor_srcCORE = floor_srcCORE,
-    .num_cell_x     = num_cell_x,
-    .num_cell_y     = num_cell_y,
-    .num_cell_z     = num_cell_z,
-    .num_cell_vpar  = num_cell_vpar,
-    .num_cell_mu    = num_cell_mu,
-    .cells = {num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu},
+    .Nx     = Nx,
+    .Ny     = Ny,
+    .Nz     = Nz,
+    .Nvpar  = Nvpar,
+    .Nmu    = Nmu,
+    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
     .poly_order   = poly_order,
     .vpar_max_elc = vpar_max_elc,  .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
@@ -713,8 +713,8 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, .aux_profile = bc_shift_func_lo, .aux_ctx = &ctx, },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, .aux_profile = bc_shift_func_up, .aux_ctx = &ctx, },
+      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, },
+      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, },
     },
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
