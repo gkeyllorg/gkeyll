@@ -96,12 +96,29 @@ gkyl_gk_block_geom_get_block(const struct gkyl_gk_block_geom *bgeom, int bidx)
   return &bgeom->blocks[bidx];
 }
 
+// ON by default; set GKYL_TOK_SHARED_SEP_THETA=0 to disable.
+//
+// The default is on because the construction only ever engages where two blocks
+// disagree about taking the extended construction across a radial interface,
+// and there it is the difference between a seam that closes and one that does
+// not: measured at x1 against a 0.01 cell tolerance, asdex 0.826 -> 0.000077
+// and tcv 2.044 -> 0.0031. Every other case measured in this campaign --
+// step at x1/x2/x4 uniform and nonuniform, and all 8 blocks of every NSTX-U
+// shot -- has no mixed interface at all, so the construction never engages and
+// those results are untouched. The escape exists so the A/B that establishes
+// this stays runnable, not because any case is expected to want it off.
+static bool
+gk_block_geom_shared_sep_row_enabled(void)
+{
+  const char *off = getenv("GKYL_TOK_SHARED_SEP_THETA");
+  return !(off && off[0] == '0');
+}
+
 enum gkyl_gk_shared_sep_row_status
 gkyl_gk_block_geom_shared_sep_row_status(const struct gkyl_gk_block_geom_info *legacy,
   const struct gkyl_gk_block_geom_info *peer, int src_dir, int tgt_dir)
 {
-  const char *shared_theta = getenv("GKYL_TOK_SHARED_SEP_THETA");
-  if (!(shared_theta && shared_theta[0] && shared_theta[0] != '0'))
+  if (!gk_block_geom_shared_sep_row_enabled())
     return GKYL_GK_SHARED_SEP_ROW_NONE;
 
   if (legacy->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK ||

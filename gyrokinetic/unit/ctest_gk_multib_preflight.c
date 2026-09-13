@@ -96,6 +96,9 @@ static void
 test_mixed_default_and_strict(void)
 {
   unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
+  // The shared-separatrix-row construction is ON by default, so this test --
+  // which is about what a genuinely twice-built row does -- must opt out of it.
+  setenv("GKYL_TOK_SHARED_SEP_THETA", "0", 1);
   struct gkyl_gk_block_geom *bgeom = make_pair(true, false);
   struct gkyl_gyrokinetic_multib inp = { .cdim = 2, .gk_block_geom = bgeom };
   check_preflight_report(&inp, 1,
@@ -110,6 +113,7 @@ test_mixed_default_and_strict(void)
   unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
   TEST_CHECK(gkyl_gk_block_geom_check_consistency(bgeom) == 1);
   gkyl_gk_block_geom_release(bgeom);
+  unsetenv("GKYL_TOK_SHARED_SEP_THETA");
 }
 
 // A mixed declaration is only a defect when the two blocks build their shared
@@ -123,16 +127,23 @@ static void
 test_mixed_shared_row(void)
 {
   setenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION", "1", 1);
-  setenv("GKYL_TOK_SHARED_SEP_THETA", "1", 1);
+  // DEFAULT, not opted in: the construction is on unless disabled, so a mixed
+  // declaration passes strict out of the box.
+  unsetenv("GKYL_TOK_SHARED_SEP_THETA");
   struct gkyl_gk_block_geom *bgeom = make_pair(true, false);
   struct gkyl_gyrokinetic_multib inp = { .cdim = 2, .gk_block_geom = bgeom };
+  check_preflight_report(&inp, 1,
+    "GKYL_GEOMETRY_PREFLIGHT status=PASS scope=declaration num_blocks=2 "
+    "strict=1 interfaces_examined=1 mixed=1 unshared=0");
+  // An explicit "1" must mean the same thing as the default.
+  setenv("GKYL_TOK_SHARED_SEP_THETA", "1", 1);
   check_preflight_report(&inp, 1,
     "GKYL_GEOMETRY_PREFLIGHT status=PASS scope=declaration num_blocks=2 "
     "strict=1 interfaces_examined=1 mixed=1 unshared=0");
   // The same declaration, with only the construction switched off, is fatal:
   // the pass above is a property of how the row is built, not of the guard
   // having been weakened.
-  unsetenv("GKYL_TOK_SHARED_SEP_THETA");
+  setenv("GKYL_TOK_SHARED_SEP_THETA", "0", 1);
   check_preflight_report(&inp, 0,
     "GKYL_GEOMETRY_PREFLIGHT status=FAIL scope=declaration num_blocks=2 "
     "strict=1 interfaces_examined=1 mixed=1 unshared=1");
@@ -140,7 +151,7 @@ test_mixed_shared_row(void)
 
   // A THETA interface joins two different rows, so nothing there can come
   // from one trace builder and the construction cannot excuse it.
-  setenv("GKYL_TOK_SHARED_SEP_THETA", "1", 1);
+  unsetenv("GKYL_TOK_SHARED_SEP_THETA");
   bgeom = make_pair_dir(1, true, false);
   inp = (struct gkyl_gyrokinetic_multib) { .cdim = 2, .gk_block_geom = bgeom };
   check_preflight_report(&inp, 0,
@@ -178,7 +189,6 @@ test_mixed_shared_row(void)
     TEST_MSG("differing %s must not count as a shared row", field[i]);
     gkyl_gk_block_geom_release(bgeom);
   }
-  unsetenv("GKYL_TOK_SHARED_SEP_THETA");
   unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
 }
 

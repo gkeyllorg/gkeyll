@@ -105,8 +105,9 @@ singleb_app_new_geom_from_block(const struct gkyl_gyrokinetic_multib *mbinp,
   }
 
   app_inp->geometry = bgi->geometry;
-  // Measure-only prototype: obtain the radial partner from the declaration,
-  // keeping the legacy block's off-separatrix cuts and radial domain intact.
+  // Obtain the radial partner from the declaration, keeping the legacy block's
+  // off-separatrix cuts and radial domain intact, so the two blocks take the
+  // separatrix row they share from ONE trace builder.
   // Eligibility lives in gkyl_gk_block_geom_shared_sep_row_status(): the
   // seam-participation guard asks the same question about the same interface
   // to decide whether a mixed declaration can still misparameterize the row,
