@@ -405,11 +405,11 @@ gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field
   gkyl_fem_poisson_perp_set_rhs(field->fem_poisson_perp, field->rho_c);
   gkyl_fem_poisson_perp_solve(field->fem_poisson_perp, field->phi_smooth);
 
-  // Smooth the potential along z.
-  field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
-
   // Finish the Poisson solve with FLR effects.
   field->invert_flr(app, field, field->phi_smooth);
+
+  // Smooth the potential along z.
+  field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
 }
 
 static void
