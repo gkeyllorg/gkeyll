@@ -469,7 +469,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
-          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_optimize = false,
           .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rleft = 1.1,
           .rright = 1.7,
@@ -618,7 +618,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
-          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_optimize = false,
           .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rleft = 1.1,
           .rright = 1.7,
@@ -659,7 +659,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
-          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_optimize = false,
           .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rclose = 2.0,
           .rleft = 0.8,
@@ -681,6 +681,27 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       }
     }
   );
+
+  // The wall contract requires a block whose leg terminates on a material
+  // surface to say WHICH wall segments that surface is: without explicit
+  // divertor targets the SOL/PF legs are tested against the whole vessel
+  // outline and the run is refused. These are the ASDEX limiter segments the
+  // validated ASDEX declaration uses -- lower (outer) and upper (inner)
+  // divertor plates -- and they are indices into that machine's outline, so
+  // they belong to the declaration, not to the library.
+  static const int lower_plate_segments[] = { 18, 19, 20 };
+  static const int upper_plate_segments[] = { 24, 25, 26, 27 };
+  for (int bid=0; bid<params->num_blocks; ++bid) {
+    struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bgeom, bid);
+    // Only the blocks that declare plates terminate on one.
+    if (!bi.geometry.tok_grid_info.plate_spec)
+      continue;
+    bi.geometry.tok_grid_info.divertor_wall[0] = (struct gkyl_tok_geo_wall_target) {
+      sizeof(lower_plate_segments)/sizeof(lower_plate_segments[0]), lower_plate_segments };
+    bi.geometry.tok_grid_info.divertor_wall[1] = (struct gkyl_tok_geo_wall_target) {
+      sizeof(upper_plate_segments)/sizeof(upper_plate_segments[0]), upper_plate_segments };
+    gkyl_gk_block_geom_set_block(bgeom, bid, &bi);
+  }
 
   return bgeom;
 }
