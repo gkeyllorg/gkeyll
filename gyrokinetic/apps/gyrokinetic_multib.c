@@ -551,6 +551,11 @@ gyrokinetic_multib_material_preflight(const struct gkyl_gyrokinetic_multib *inp)
 
 struct rho_wall_bound {
   int family, edge, group, steps;
+  // Two-phase search: approach on the coarse lattice, then rewind one coarse
+  // step and polish on the fine one. `polished` makes the rewind happen at
+  // most once per group, so a group cannot oscillate between phases.
+  int coarse, fine;
+  bool polishing, polished;
   double requested, requested_psi, other, axis, sep;
 };
 
@@ -785,6 +790,44 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
         any=true;
       }
     }
+    // A group that just became admissible on the COARSE lattice has only
+    // bracketed the answer, not found it. Rewind one coarse step and re-approach
+    // finely before anything is selected, or the reported boundary would sit up
+    // to one coarse increment inside the true limit -- discarding SOL width
+    // that fits, which is the whole reason the fine step exists.
+    bool owed_polish = false;
+    if (!any) {
+      for (int g=0; g<n; ++g) {
+        if (failed[g] || bounds[g].polished || bounds[g].coarse < 1)
+          continue;
+        bounds[g].coarse -= 1;
+        bounds[g].fine = 1;
+        bounds[g].polishing = true;
+        bounds[g].polished = true;
+        owed_polish = true;
+        fprintf(stderr,"TOK_RHO_WALL_POLISH group=%d bracket_coarse=%d; "
+          "re-approaching at the fine step\n", g, bounds[g].coarse+1);
+      }
+    }
+    if (owed_polish) {
+      for (int b=0; b<n; ++b) {
+        int g=bounds[b].group;
+        if (!bounds[g].polishing) continue;
+        double rho,psi;
+        if (!gkyl_rho_wall_next_phased(bounds[g].requested,bounds[g].other,
+            bounds[g].axis,bounds[g].sep,bounds[g].family,
+            bounds[g].coarse,bounds[g].fine,&rho,&psi)) {
+          fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=no_admissible_increment "
+            "group=%d requested_rho=%.17g coarse=%d fine=%d\n",
+            g,bounds[g].requested,bounds[g].coarse,bounds[g].fine);
+          goto cleanup;
+        }
+        struct gkyl_gk_block_geom_info bi=*gkyl_gk_block_geom_get_block(bg,b);
+        if (bounds[b].edge) bi.upper[0]=psi; else bi.lower[0]=psi;
+        gkyl_gk_block_geom_set_block(bg,b,&bi);
+      }
+      continue;
+    }
     if (!any) {
       for (int b=0; b<n; ++b) if (bounds[b].family) {
         const struct gkyl_gk_block_geom_info *bi=gkyl_gk_block_geom_get_block(bg,b);
@@ -803,22 +846,26 @@ advance_wall_bounds:
     for (int b=0; b<n; ++b) if (bad_block[b]) order[next++]=b;
     for (int b=0; b<n; ++b) if (!bad_block[b] && bounds[b].family) order[next++]=b;
     for (int b=0; b<n; ++b) if (!bounds[b].family) order[next++]=b;
-    for (int g=0; g<n; ++g) if (failed[g]) ++bounds[g].steps;
+    for (int g=0; g<n; ++g) if (failed[g]) {
+      ++bounds[g].steps;
+      if (bounds[g].polishing) ++bounds[g].fine; else ++bounds[g].coarse;
+    }
     for (int b=0; b<n; ++b) {
       int g=bounds[b].group;
       if (!failed[g]) continue;
       double rho,psi;
-      if (!gkyl_rho_wall_next(bounds[g].requested,bounds[g].other,bounds[g].axis,bounds[g].sep,
-          bounds[g].family,bounds[g].steps,&rho,&psi)) {
-        fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=no_admissible_increment group=%d requested_rho=%.17g steps=%d\n",
-          g,bounds[g].requested,bounds[g].steps);
+      if (!gkyl_rho_wall_next_phased(bounds[g].requested,bounds[g].other,bounds[g].axis,bounds[g].sep,
+          bounds[g].family,bounds[g].coarse,bounds[g].fine,&rho,&psi)) {
+        fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=no_admissible_increment group=%d requested_rho=%.17g coarse=%d fine=%d\n",
+          g,bounds[g].requested,bounds[g].coarse,bounds[g].fine);
         goto cleanup;
       }
       struct gkyl_gk_block_geom_info bi=*gkyl_gk_block_geom_get_block(bg,b);
       if (bounds[b].edge) bi.upper[0]=psi; else bi.lower[0]=psi;
       gkyl_gk_block_geom_set_block(bg,b,&bi);
-      fprintf(stderr,"TOK_RHO_WALL_ADJUST_STEP block=%d family=%s step=%d rho=%.17g psi=%.17g\n",
-        b,bounds[b].family==1 ? "SOL" : "PF",bounds[g].steps,rho,psi);
+      fprintf(stderr,"TOK_RHO_WALL_ADJUST_STEP block=%d family=%s step=%d phase=%s coarse=%d fine=%d rho=%.17g psi=%.17g\n",
+        b,bounds[b].family==1 ? "SOL" : "PF",bounds[g].steps,
+        bounds[g].polishing ? "fine" : "coarse",bounds[g].coarse,bounds[g].fine,rho,psi);
     }
   }
 

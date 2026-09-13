@@ -159,7 +159,58 @@ test_invalid_and_nonfinite_inputs(void)
   TEST_CHECK(value == 123.25);
 }
 
+// The two-phase search: a coarse approach that is only ever an accelerator,
+// and a fine polish that must reproduce the single-phase answer exactly.
+static void
+test_phased_steps(void)
+{
+  double rho, psi, rho_ref, psi_ref;
+  const double C = GKYL_RHO_WALL_COARSE_STEP, S = GKYL_RHO_WALL_STEP;
+
+  // The coarse step must be an EXACT multiple of the fine one, or a polished
+  // answer could land between representable fine points and the precision the
+  // fine step buys would be lost to the lattice mismatch.
+  TEST_CHECK(lround(C/S) == 10);
+  TEST_CHECK(fabs(C - 10.0*S) < 1e-18);
+
+  // One coarse step and ten fine steps are the SAME point, reached two ways.
+  TEST_ASSERT(gkyl_rho_wall_next_phased(1.25, 1.0, 0.0, 1.0, 1, 1, 0, &rho, &psi));
+  TEST_ASSERT(gkyl_rho_wall_next_phased(1.25, 1.0, 0.0, 1.0, 1, 0, 10, &rho_ref, &psi_ref));
+  TEST_CHECK(fabs(rho-rho_ref) < 1e-15);
+  TEST_CHECK(fabs(psi-psi_ref) < 1e-15);
+
+  // Composition: the delta is coarse*C + fine*S, on both families.
+  TEST_ASSERT(gkyl_rho_wall_next_phased(1.25, 1.0, 0.0, 1.0, 1, 3, 7, &rho, &psi));
+  TEST_CHECK(fabs(rho - (1.25 - (3*C + 7*S))) < 1e-15);
+  TEST_ASSERT(gkyl_rho_wall_next_phased(0.75, 1.0, 0.0, 1.0, 2, 3, 7, &rho, &psi));
+  TEST_CHECK(fabs(rho - (0.75 + (3*C + 7*S))) < 1e-15);
+
+  // The single-phase wrapper is the zero-coarse case, exactly.
+  TEST_ASSERT(gkyl_rho_wall_next(1.25, 1.0, 0.0, 1.0, 1, 42, &rho_ref, &psi_ref));
+  TEST_ASSERT(gkyl_rho_wall_next_phased(1.25, 1.0, 0.0, 1.0, 1, 0, 42, &rho, &psi));
+  TEST_CHECK(rho == rho_ref && psi == psi_ref);
+
+  // Rewinding a coarse step and polishing must never cross the bracket it came
+  // from: coarse k-1 plus ten fine steps is exactly coarse k.
+  TEST_ASSERT(gkyl_rho_wall_next_phased(1.25, 1.0, 0.0, 1.0, 1, 4, 0, &rho_ref, &psi_ref));
+  TEST_ASSERT(gkyl_rho_wall_next_phased(1.25, 1.0, 0.0, 1.0, 1, 3, 10, &rho, &psi));
+  TEST_CHECK(fabs(rho-rho_ref) < 1e-15);
+
+  // Malformed counts are refused, and the outputs are untouched on refusal.
+  rho = psi = -12345.0;
+  TEST_CHECK(!gkyl_rho_wall_next_phased(1.25, 1.0, 0.0, 1.0, 1, -1, 5, &rho, &psi));
+  TEST_CHECK(!gkyl_rho_wall_next_phased(1.25, 1.0, 0.0, 1.0, 1, 5, -1, &rho, &psi));
+  TEST_CHECK(!gkyl_rho_wall_next_phased(1.25, 1.0, 0.0, 1.0, 1, 0, 0, &rho, &psi));
+  TEST_CHECK(rho == -12345.0 && psi == -12345.0);
+
+  // The total reach is still bounded in FINE units, so a coarse count cannot
+  // smuggle the search past MAX_STEPS.
+  TEST_CHECK(!gkyl_rho_wall_next_phased(2.0, 1.0, 0.0, 1.0, 1,
+    GKYL_RHO_WALL_MAX_STEPS/10 + 1, 0, &rho, &psi));
+}
+
 TEST_LIST = {
+  { "phased_steps", test_phased_steps },
   { "type_ownership", test_type_ownership },
   { "sol_direction_and_flux_sign", test_sol_direction_and_flux_sign },
   { "pf_direction_and_flux_sign", test_pf_direction_and_flux_sign },

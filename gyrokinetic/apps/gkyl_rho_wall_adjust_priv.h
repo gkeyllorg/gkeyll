@@ -6,12 +6,25 @@
 #include <stdint.h>
 #include <string.h>
 
-// Inward rho increment for the wall adjustment. Finer means the selected
-// boundary sits closer to the largest admissible one: with a 1e-3 step the
-// search could overshoot the true limit by up to 1e-3 of rho and discard SOL
-// width that would have fit. MAX_STEPS*STEP bounds the total reach (1.0 of
-// rho here), which is far beyond any physical SOL.
+// Inward rho increments for the wall adjustment, searched in two phases.
+//
+// The search walks inward from the requested boundary and takes the FIRST
+// admissible rho, so the increment sets the PRECISION of the answer, not just
+// the speed: with a 1e-3 step the search can overshoot the true limit by up to
+// 1e-3 of rho and discard SOL width that would have fit.
+//
+// But a single fine step is slow when the request starts far outside. A
+// widened ASDEX declaration beginning 0.02 of rho beyond the admissible
+// boundary needs ~220 fine trials, each of which REBUILDS the geometry, and
+// was killed by a 1800 s per-case timeout mid-convergence.
+//
+// So: approach on the COARSE lattice, then polish on the FINE one. When a
+// coarse step first lands admissible, the answer is bracketed within one
+// coarse increment; rewinding one coarse step and re-approaching finely
+// recovers the full 1e-4 precision for ~10 extra trials instead of ~220. The
+// coarse phase is a search accelerator and never the reported answer.
 #define GKYL_RHO_WALL_STEP 0.0001
+#define GKYL_RHO_WALL_COARSE_STEP 0.001
 #define GKYL_RHO_WALL_MAX_STEPS 10000
 
 // Material-boundary adjustment families. Core, IWL, and the unimplemented
@@ -60,11 +73,13 @@ gkyl_rho_wall_finite(double value)
 // This computes a candidate only; it does not certify wall containment.
 // Both output objects must be distinct, non-NULL, and remain untouched on error.
 static inline bool
-gkyl_rho_wall_next(double requested_rho, double other_rho,
-  double psi_axis, double psi_sep, int family, int step,
+gkyl_rho_wall_next_phased(double requested_rho, double other_rho,
+  double psi_axis, double psi_sep, int family, int coarse_steps, int fine_steps,
   double *rho, double *psi)
 {
-  if (!rho || !psi || rho == psi || step < 1 ||
+  const int step = coarse_steps*10 + fine_steps;   // in units of the FINE step
+  if (!rho || !psi || rho == psi || coarse_steps < 0 || fine_steps < 0 ||
+      step < 1 ||
       step > GKYL_RHO_WALL_MAX_STEPS || (family != 1 && family != 2) ||
       !gkyl_rho_wall_finite(requested_rho) ||
       !gkyl_rho_wall_finite(other_rho) || other_rho < 0.0 ||
@@ -72,7 +87,10 @@ gkyl_rho_wall_next(double requested_rho, double other_rho,
       !gkyl_rho_wall_finite(psi_sep) || psi_axis == psi_sep)
     return false;
 
-  const double delta = GKYL_RHO_WALL_STEP*step;
+  // COARSE_STEP is exactly 10*STEP, so the two phases share one lattice and a
+  // polished answer can never land between representable fine points.
+  const double delta = GKYL_RHO_WALL_COARSE_STEP*coarse_steps
+                     + GKYL_RHO_WALL_STEP*fine_steps;
   double next;
   if (family == 1) {
     if (!(requested_rho > 1.0)) return false;
@@ -96,4 +114,15 @@ gkyl_rho_wall_next(double requested_rho, double other_rho,
   *rho = next;
   *psi = next_psi;
   return true;
+}
+
+// Single-phase form, kept so existing callers and tests read unchanged: a
+// pure fine-step walk is the coarse count set to zero.
+static inline bool
+gkyl_rho_wall_next(double requested_rho, double other_rho,
+  double psi_axis, double psi_sep, int family, int step,
+  double *rho, double *psi)
+{
+  return gkyl_rho_wall_next_phased(requested_rho, other_rho, psi_axis, psi_sep,
+    family, 0, step, rho, psi);
 }
