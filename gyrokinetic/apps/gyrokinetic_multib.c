@@ -856,9 +856,31 @@ advance_wall_bounds:
       double rho,psi;
       if (!gkyl_rho_wall_next_phased(bounds[g].requested,bounds[g].other,bounds[g].axis,bounds[g].sep,
           bounds[g].family,bounds[g].coarse,bounds[g].fine,&rho,&psi)) {
-        fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=no_admissible_increment group=%d requested_rho=%.17g coarse=%d fine=%d\n",
-          g,bounds[g].requested,bounds[g].coarse,bounds[g].fine);
-        goto cleanup;
+        // The COARSE lattice can run out of room before the fine one does.
+        // A request that starts close to its stop bound -- NSTX-U 202800 asks
+        // for SOL rho 1.005, only 0.005 above the separatrix -- gets four
+        // usable coarse steps, and the fifth would cross the bound. Giving up
+        // there discards up to nine admissible FINE points inside a gap no
+        // coarse step can land in, and it turned a passing shot into a failure.
+        // So drop to the fine lattice from the last valid coarse position and
+        // only report exhaustion if that fails too.
+        bool fell_back = false;
+        if (!bounds[g].polishing && bounds[g].coarse > 0) {
+          bounds[g].coarse -= 1;
+          bounds[g].fine = 1;
+          bounds[g].polishing = true;
+          bounds[g].polished = true;
+          fprintf(stderr,"TOK_RHO_WALL_COARSE_EXHAUSTED group=%d at_coarse=%d; "
+            "falling back to the fine step\n", g, bounds[g].coarse+1);
+          fell_back = gkyl_rho_wall_next_phased(bounds[g].requested,bounds[g].other,
+            bounds[g].axis,bounds[g].sep,bounds[g].family,
+            bounds[g].coarse,bounds[g].fine,&rho,&psi);
+        }
+        if (!fell_back) {
+          fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=no_admissible_increment group=%d requested_rho=%.17g coarse=%d fine=%d\n",
+            g,bounds[g].requested,bounds[g].coarse,bounds[g].fine);
+          goto cleanup;
+        }
       }
       struct gkyl_gk_block_geom_info bi=*gkyl_gk_block_geom_get_block(bg,b);
       if (bounds[b].edge) bi.upper[0]=psi; else bi.lower[0]=psi;
