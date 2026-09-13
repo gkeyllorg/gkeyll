@@ -79,6 +79,7 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Modified potential Phi_0 and a buffer, used in the field energy diagnostic.
   f->flr_phi0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->flr_energy_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->flr_energy_red = app->use_gpu? gkyl_cu_malloc(sizeof(double[1])) : gkyl_malloc(sizeof(double[1]));
 }
 
 void
@@ -103,4 +104,8 @@ gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_fem_poisson_perp_release(f->flr_op);
   gkyl_array_release(f->flr_phi0);
   gkyl_array_release(f->flr_energy_buff);
+  if (app->use_gpu)
+    gkyl_cu_free(f->flr_energy_red);
+  else
+    gkyl_free(f->flr_energy_red);
 }
