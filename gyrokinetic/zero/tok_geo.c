@@ -18,6 +18,12 @@ static _Thread_local bool wall_trial_active;
 static _Thread_local long wall_trial_failures;
 static _Thread_local int wall_trial_movable_edge;
 static _Thread_local bool wall_trial_fixed_violation;
+// A node of the NON-movable radial boundary lying outside the vessel is a
+// different thing from a fold, a bulge, or a movable boundary that ran out of
+// room: nothing the adjustment is permitted to move can fix it, because that
+// boundary is the separatrix row the block shares with the core. Tracked
+// separately so callers can classify the case instead of reporting a defect.
+static _Thread_local bool wall_trial_fixed_node_outside;
 static _Thread_local bool wall_trial_capture;
 static _Thread_local int wall_trial_block;
 static _Thread_local double wall_trial_rho;
@@ -29,6 +35,7 @@ void tok_wall_trial_begin(int movable_radial_edge)
   wall_trial_failures = 0;
   wall_trial_movable_edge = movable_radial_edge;
   wall_trial_fixed_violation = false;
+  wall_trial_fixed_node_outside = false;
   wall_trial_capture = false;
 }
 
@@ -49,15 +56,26 @@ long tok_wall_trial_end(void)
 
 bool tok_wall_trial_record(bool fixed_radial_boundary)
 {
+  return tok_wall_trial_record_scope(fixed_radial_boundary, false);
+}
+
+bool tok_wall_trial_record_scope(bool fixed_radial_boundary, bool node_outside)
+{
   if (!wall_trial_active) return false;
   ++wall_trial_failures;
   wall_trial_fixed_violation |= fixed_radial_boundary;
+  wall_trial_fixed_node_outside |= fixed_radial_boundary && node_outside;
   return true;
 }
 
 bool tok_wall_trial_has_fixed_violation(void)
 {
   return wall_trial_fixed_violation;
+}
+
+bool tok_wall_trial_has_fixed_node_outside(void)
+{
+  return wall_trial_fixed_node_outside;
 }
 #include <gkyl_dg_bin_ops.h>
 
@@ -7274,7 +7292,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
           inp->ftype,ip,it,p[0],p[1],fail_scope,fail_q[0],fail_q[1],
           geo->efit->limiter_status,
           far_inside ? "inside" : "node_outside", excursion);
-        if (!tok_wall_trial_record(fixed_failure)) abort();
+        // strcmp, not the boolean above: `fail_scope` is "corner_node" only
+        // when the node itself failed tok_wall_point_inside, as opposed to an
+        // edge between two inside nodes bulging out.
+        if (!tok_wall_trial_record_scope(fixed_failure,
+              strcmp(fail_scope,"corner_node")==0)) abort();
       }
     }
   }

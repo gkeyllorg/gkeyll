@@ -756,9 +756,22 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
       struct gkyl_gyrokinetic_app *app=singleb_app_new_geom_from_block(probe_inp,b,probe,&bi,false);
       long violations=tok_wall_trial_end();
       bool fixed_violation=tok_wall_trial_has_fixed_violation();
+      bool separatrix_outside=tok_wall_trial_has_fixed_node_outside();
       gkyl_gyrokinetic_app_release_geom(app);
       if (violations) {
         fprintf(stderr,"TOK_RHO_WALL_TRIAL_REJECTED iteration=%d block=%d wall_checks_failed=%ld\n",iteration,b,violations);
+        if (separatrix_outside) {
+          // The offending node is on the block's non-movable radial boundary --
+          // the separatrix row it shares with the core -- and the node itself
+          // is outside the vessel, not merely an edge bulging past it. So the
+          // plasma boundary leaves the machine, which makes the configuration
+          // inner-wall-limited rather than diverted. This is a property of the
+          // equilibrium and its own limiter, not a defect and not something a
+          // boundary adjustment can reach: the row is a declared join, and
+          // moving one side of a join would tear the seam.
+          fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=separatrix_outside_vessel block=%d\n",b);
+          goto cleanup;
+        }
         if (fixed_violation) {
           fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=fixed_boundary_wall_violation block=%d\n",b);
           goto cleanup;
