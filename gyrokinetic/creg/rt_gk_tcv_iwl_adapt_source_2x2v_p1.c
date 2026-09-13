@@ -774,6 +774,11 @@ main(int argc, char **argv)
     },
   };
 
+  struct gkyl_poisson_bias_line_list bias_line_list = {
+    .num_bias_line = 2,
+    .bl = target_corner_bcs,
+  };
+
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES,
@@ -782,10 +787,10 @@ main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
+    .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
     .flr = {
-      .type = GKYL_GK_FLR_PADE_CONST,
-      .gyroradius = ctx.rho_i,
+      .type = GKYL_GK_FLR_PADE_CONST, // Uses the main-ion gyroradius.
     },
   };
 

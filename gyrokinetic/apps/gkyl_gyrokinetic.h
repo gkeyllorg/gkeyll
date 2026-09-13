@@ -335,8 +335,10 @@ struct gkyl_gyrokinetic_flr {
   double Tperp; // Perp temperature used to evaluate gyroradius. 
   double bmag; // Magnetic field used to evaluate gyroradius. If not provided
                // it'll use B in the center of the domain.
-  double gyroradius; // Reference (e.g. main ion) gyroradius used in the field-level
-                     // operator retrieving phi from the modified potential.
+  double gyroradius; // Field reference gyroradius in the operator retrieving
+                     // phi from the modified potential. If not set, the gyroradius
+                     // of the FLR species with the largest polarization weight
+                     // (the main ion) is used.
 };
 
 struct gkyl_gyrokinetic_correct_inp {

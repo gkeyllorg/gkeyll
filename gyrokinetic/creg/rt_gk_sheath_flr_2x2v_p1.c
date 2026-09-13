@@ -617,6 +617,9 @@ main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
     },
+    .flr = {
+      .type = GKYL_GK_FLR_PADE_CONST, // Uses the main-ion gyroradius.
+    },
   };
 
   // GK app.

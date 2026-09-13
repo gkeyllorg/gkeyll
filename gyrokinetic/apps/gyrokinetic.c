@@ -2387,7 +2387,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_fdot_multiplier_advance_times_rate(app, gks, &gks->fdot_mult,
-      app->field->phi_smooth, fin[i], fout[i]);
+      gks->gyro_phi, fin[i], fout[i]);
   }
 
   struct timespec wtm = gkyl_wall_clock();
@@ -3312,6 +3312,7 @@ gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fnam
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->phi_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
+    gk_field_gyroaverage_phi(app, app->field);
   }
   
   return rstat;

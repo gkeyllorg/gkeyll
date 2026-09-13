@@ -233,7 +233,7 @@ gk_species_bflux_calc_moms_enabled(gkyl_gyrokinetic_app *app, struct gk_boundary
     if (bflux->a_hamiltonian_mom) {
       // Apply BC to phi so it is defined in the ghost cell.
       // Fill the ghost with the skin evaluated at the boundary.
-      gkyl_bc_basic_gyrokinetic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, app->field->phi_smooth);
+      gkyl_bc_basic_gyrokinetic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, bflux->phi);
     }
 
     for (int m=0; m<bflux->num_calc_moms; m++) {
@@ -753,6 +753,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     bflux->is_hamiltonian_mom = gkyl_malloc(sizeof(bool[bflux->num_calc_moms]));
     bool need_m2perp = false;
     bflux->a_hamiltonian_mom = false;
+    bflux->phi = gkyl_array_acquire(gk_s->gyro_phi);
     for (int m=0; m<bflux->num_calc_moms; m++) {
       gk_species_moment_init(app, gk_s, &bflux->moms_op[m], bflux->calc_mom_names[m], false);
 
@@ -1065,6 +1066,7 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void *spe
 
     gkyl_free(bflux->moms_op);
     gkyl_free(bflux->is_hamiltonian_mom);
+    gkyl_array_release(bflux->phi);
     if (bflux->a_hamiltonian_mom) {
       gkyl_array_release(bflux->bc_buffer);
       for (int b=0; b<bflux->num_boundaries; ++b)

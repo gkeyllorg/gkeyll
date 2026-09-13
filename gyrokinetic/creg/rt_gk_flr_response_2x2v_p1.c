@@ -1,4 +1,4 @@
-// Single-mode validation of the Pade FLR chain (see flr_effects.tex).
+// Single-mode validation of the Pade FLR chain (see DR #797).
 //
 // Straight slab, uniform B, Dirichlet walls in x (the fully periodic
 // perpendicular domain is a known unresolved issue in fem_poisson_perp),
@@ -204,8 +204,7 @@ run_case(struct flr_ctx *ctx, struct gkyl_app_args *app_args, struct gkyl_comm *
   };
 
   if (use_flr) {
-    field.flr.type = GKYL_GK_FLR_PADE_CONST;
-    field.flr.gyroradius = ctx->rho_i;
+    field.flr.type = GKYL_GK_FLR_PADE_CONST; // Uses the ion gyroradius.
   }
 
   struct gkyl_gk gk = {

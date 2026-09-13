@@ -20,20 +20,35 @@ void
 gk_species_gyroaverage_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gkyl_array *field_in, struct gkyl_array *field_gyroavg)
 {
-  struct timespec wst = gkyl_wall_clock();
   // Don't perform gyroaveraging.
-  app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
 gk_species_gyroaverage_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gkyl_array *field_in, struct gkyl_array *field_gyroavg)
 {
-  // Solve the gyroaveraging problem: (1 - rho_s^2 nabla_perp^2) phi_g = phi_in to
-  // get the gyroaveraged potential used in the Hamiltonian.
+  // Solve the gyroaveraging problem J*(1 - (rho_s^2/2) nabla_perp^2) phi_g = J*phi_in
+  // with phi_in as the boundary value, e.g. to get the potential used in the Hamiltonian.
   struct timespec wst = gkyl_wall_clock();
-  // Gyroaverage input field.
-  gkyl_deflated_fem_poisson_advance(species->flr_op, field_in, field_in, field_gyroavg);
+  gkyl_dg_mul_op_range(&app->basis, 0, species->flr_buff, 0, app->gk_geom->geo_int.jacobgeo,
+    0, field_in, &app->local);
+  gkyl_deflated_fem_poisson_advance(species->flr_op, species->flr_buff, field_in, field_gyroavg);
+  app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_species_gyroaverage_density_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gkyl_array *jac_dens_in, struct gkyl_array *jac_dens_gyroavg)
+{
+  // Same as gk_species_gyroaverage_enabled but for a density that already
+  // carries the Jacobian (J*n), returning J*n_g.
+  struct timespec wst = gkyl_wall_clock();
+  // Boundary value n = (J*n)/J.
+  gkyl_dg_mul_op_range(&app->basis, 0, species->flr_buff, 0, app->gk_geom->geo_int.jacobgeo_inv,
+    0, jac_dens_in, &app->local);
+  gkyl_deflated_fem_poisson_advance(species->flr_op, jac_dens_in, species->flr_buff, jac_dens_gyroavg);
+  gkyl_dg_mul_op_range(&app->basis, 0, jac_dens_gyroavg, 0, app->gk_geom->geo_int.jacobgeo,
+    0, jac_dens_gyroavg, &app->local);
   app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -83,9 +98,6 @@ static double
 gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  // Gyroaverage the potential if needed.
-  species->gyroaverage(app, species, app->field->phi_smooth, species->gyro_phi);
-
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
@@ -93,7 +105,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   gk_species_collisionless_rhs(app, species, &species->collisionless, fin, rhs);
 
   // Damping term.
-  gk_species_damping_advance(app, species, &species->damping, app->field->phi_smooth, fin,
+  gk_species_damping_advance(app, species, &species->damping, species->gyro_phi, fin,
     species->lte.f_lte, rhs, species->cflrate);
 
   // LBO Collisions.
@@ -125,7 +137,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   // Multiply CFL rate by the df/dt multiplier.
   gk_species_fdot_multiplier_advance_times_cfl(app, species, &species->fdot_mult,
-    app->field->phi_smooth, fin, species->cflrate);
+    species->gyro_phi, fin, species->cflrate);
 
   // Reduce the CFL frequency and compute stable dt needed by this species.
   app->stat.n_species_omega_cfl +=1;
@@ -212,7 +224,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
 
       switch (species->lower_bc[d].type) {
         case GKYL_BC_GK_SPECIES_SHEATH:
-          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
+          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, species->gyro_phi, 
             app->field->phi_wall_lo, f, &app->local);
           break;
         case GKYL_BC_GK_SPECIES_TWISTSHIFT:
@@ -234,7 +246,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
 
       switch (species->upper_bc[d].type) {
         case GKYL_BC_GK_SPECIES_SHEATH:
-          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
+          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, species->gyro_phi, 
             app->field->phi_wall_up, f, &app->local);
           break;
         case GKYL_BC_GK_SPECIES_TWISTSHIFT:
@@ -1549,6 +1561,11 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Allocate cflrate (scalar array).
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
 
+  // Gyroaveraged potential used in the Hamiltonian.
+  gks->gyro_phi = gks->info.flr.type? 
+    mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume)
+    : gkyl_array_acquire(app->field->phi_smooth);
+
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
 
@@ -1557,9 +1574,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     assert(app->cdim > 1);
     // Pointer to function performing the gyroaverage.
     gks->gyroaverage = gk_species_gyroaverage_enabled;
-    // Gyroaveraged M0 and phi.
+    gks->gyroaverage_density = gk_species_gyroaverage_density_enabled;
     gks->m0_gyroavg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gks->gyro_phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gks->flr_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
 
@@ -1573,7 +1590,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     }
     // Initialize the factor multiplying the field in the FLR operator.
     gks->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_array_shiftc(gks->flr_kSq, -pow(sqrt(2.0),app->cdim), 0); // Sets kSq=-1.
+    gkyl_array_set(gks->flr_kSq, -1.0, app->gk_geom->geo_int.jacobgeo);
 
     // Gyroaverage BCs: the input field is its own boundary value at
     // non-periodic boundaries.
@@ -1590,8 +1607,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   }
   else {
     gks->gyroaverage = gk_species_gyroaverage_disabled;
+    gks->gyroaverage_density = gk_species_gyroaverage_disabled;
     gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
-    gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
   }
 
   // Initialize the collisionless solver.
@@ -2052,6 +2069,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   if (gks->info.flr.type) {
     gkyl_array_release(gks->flr_rhoSqD2);
     gkyl_array_release(gks->flr_kSq);
+    gkyl_array_release(gks->flr_buff);
     gkyl_deflated_fem_poisson_release(gks->flr_op);
   }
 
