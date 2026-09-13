@@ -112,6 +112,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   struct gkyl_array *kSq_ho;
   if (kSq) {
     up->ishelmholtz = true;
+    up->kSq = gkyl_array_acquire(kSq);
     kSq_ho = gkyl_array_new(GKYL_DOUBLE, kSq->ncomp, kSq->size);
     gkyl_array_copy(kSq_ho, kSq);
   } else {
@@ -669,40 +670,49 @@ gkyl_fem_poisson_perp_update_lhs(gkyl_fem_poisson_perp *up, struct gkyl_array *e
 static void
 fem_poisson_perp_lhs_apply_init(gkyl_fem_poisson_perp *up)
 {
-  // Build a mass-matrix (M) solver: same operator with epsilon=0 and a constant
-  // kSq=-1 (so the LHS stencil reduces to the mass matrix).
-  struct gkyl_array *eps_zero, *kSq_mass;
+  // Build a mass-matrix solver: same operator with epsilon=0 and the same kSq,
+  // so the LHS stencil reduces to the mass matrix weighted by -kSq.
+  struct gkyl_array *eps_zero;
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    eps_zero = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
-    kSq_mass = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_basis, up->epsilon->size);
-  } else {
-    eps_zero = gkyl_array_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
-    kSq_mass = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->epsilon->size);
-  }
+  eps_zero = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size)
+                        : gkyl_array_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
 #else
   eps_zero = gkyl_array_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
-  kSq_mass = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->epsilon->size);
 #endif
   gkyl_array_clear(eps_zero, 0.0);
-  gkyl_array_clear(kSq_mass, 0.0);
-  gkyl_array_shiftc(kSq_mass, -pow(sqrt(2.0), up->ndim), 0);
 
   // Bias the mass solver like the LHS so biased values pass through the apply.
   struct gkyl_poisson_bias_line_list *bias_list = up->bias_list_ho.num_bias_line > 0? &up->bias_list_ho : NULL;
   up->mass = gkyl_fem_poisson_perp_new(up->solve_range, &up->grid, up->basis, &up->bcs, bias_list,
-    eps_zero, kSq_mass, up->use_gpu);
+    eps_zero, up->kSq, up->use_gpu);
 
   long numnodes_tot = up->numnodes_global*up->par_range.volume;
-  up->lhs_dual = gkyl_malloc(sizeof(double[numnodes_tot]));
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
     up->lhs_dual_cu = gkyl_cu_malloc(sizeof(double[numnodes_tot]));
+    up->lhs_xin_wt = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_basis, up->kSq->size);
+  }
+  else {
+    up->lhs_dual = gkyl_malloc(sizeof(double[numnodes_tot]));
+    up->lhs_xin_wt = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->kSq->size);
+  }
+#else
+  up->lhs_dual = gkyl_malloc(sizeof(double[numnodes_tot]));
+  up->lhs_xin_wt = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->kSq->size);
 #endif
 
   gkyl_array_release(eps_zero);
-  gkyl_array_release(kSq_mass);
   up->has_lhs_apply = true;
+}
+
+static void
+fem_poisson_perp_lhs_apply_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *xin)
+{
+  // Set the RHS of the weighted mass solve, M*x_nodal = int psi*(-kSq)*xin,
+  // so x_nodal is the (-kSq)-weighted FEM projection of xin.
+  gkyl_dg_mul_op_range(&up->basis, 0, up->lhs_xin_wt, 0, up->kSq, 0, xin, up->solve_range);
+  gkyl_array_scale_range(up->lhs_xin_wt, -1.0, up->solve_range);
+  gkyl_fem_poisson_perp_set_rhs(up->mass, up->lhs_xin_wt);
 }
 
 void
@@ -713,8 +723,8 @@ gkyl_fem_poisson_perp_lhs_apply(gkyl_fem_poisson_perp *up, struct gkyl_array *xi
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    // Recover the global nodal vector x_nodal = M^{-1}*(M_src*xin).
-    gkyl_fem_poisson_perp_set_rhs(up->mass, xin);
+    // Recover the global nodal vector x_nodal, M the -kSq weighted mass matrix.
+    fem_poisson_perp_lhs_apply_set_rhs(up, xin);
     gkyl_culinsolver_solve(up->mass->prob_cu);
     gkyl_culinsolver_sync(up->mass->prob_cu);
     double *x_nodal = gkyl_culinsolver_get_sol_ptr(up->mass->prob_cu, 0);
@@ -729,8 +739,8 @@ gkyl_fem_poisson_perp_lhs_apply(gkyl_fem_poisson_perp *up, struct gkyl_array *xi
   }
 #endif
 
-  // Recover the global nodal vector x_nodal = M^{-1}*(M_src*xin).
-  gkyl_fem_poisson_perp_set_rhs(up->mass, xin);
+  // Recover the global nodal vector x_nodal, M the -kSq weighted mass matrix.
+  fem_poisson_perp_lhs_apply_set_rhs(up, xin);
   gkyl_superlu_solve(up->mass->prob);
   double *x_nodal = gkyl_superlu_get_rhs_ptr(up->mass->prob, 0);
 
@@ -744,12 +754,18 @@ void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
 {
   if (up->has_lhs_apply) {
     gkyl_fem_poisson_perp_release(up->mass);
-    gkyl_free(up->lhs_dual);
+    gkyl_array_release(up->lhs_xin_wt);
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu)
       gkyl_cu_free(up->lhs_dual_cu);
+    else
+      gkyl_free(up->lhs_dual);
+#else
+    gkyl_free(up->lhs_dual);
 #endif
   }
+  if (up->ishelmholtz)
+    gkyl_array_release(up->kSq);
 
   if (up->bias_list_ho.num_bias_line > 0)
     gkyl_free(up->bias_list_ho.bl);

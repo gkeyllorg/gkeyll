@@ -67,10 +67,11 @@ void gkyl_fem_poisson_perp_update_lhs(gkyl_fem_poisson_perp* up, struct gkyl_arr
 
 /**
  * Apply the LHS operator, i.e. compute xout = M^{-1}*(M+K)*xin where M is the
- * mass matrix and M+K is the (perpendicular Helmholtz) LHS matrix. With
- * epsilon=rho^2 and kSq=-1 this returns the weak image of
- * (1 - rho^2*Lap_perp)*xin. Assumes xin is continuous in the perpendicular
- * directions and requires a Helmholtz solver (kSq!=NULL).
+ * mass matrix weighted by -kSq and M+K is the (perpendicular Helmholtz) LHS
+ * matrix. This is the weak image of (1 + nabla.(epsilon*nabla_perp)/kSq)*xin;
+ * with epsilon=rho^2*J*g^{ij} and kSq=-J it returns (1 - rho^2*Lap_perp)*xin.
+ * Assumes xin is continuous in the perpendicular directions and requires a
+ * Helmholtz solver (kSq!=NULL).
  *
  * @param up FEM poisson updater to run.
  * @param xin DG field to apply the operator to.

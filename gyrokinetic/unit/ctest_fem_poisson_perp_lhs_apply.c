@@ -1,5 +1,7 @@
 // Test gkyl_fem_poisson_perp_lhs_apply, which applies the LHS operator
 // M^{-1}*(M+K) = weak (1 - rho^2*Lap_perp) using the assembled FEM matrices.
+// Checks the round trip solve(apply(w)) = w, and the operator itself against
+// analytic results for an eigenmode and for a spatially varying Jacobian.
 //
 #include <acutest.h>
 
@@ -166,6 +168,159 @@ test_perp_lhs_apply(int dim, int cells[], double rho, enum gkyl_poisson_bc_type 
   gkyl_fem_poisson_perp_release(poisson);
 }
 
+// Apply (1 - rho^2 d_xx) to the eigenmode sin(x) (periodic in x) and compare
+// to (1 + rho^2) sin(x).
+static void evalFunc_sinx(double t, const double *xn, double *fout, void *ctx)
+{
+  fout[0] = sin(xn[0]);
+}
+
+static void
+test_perp_lhs_apply_eigenmode(double rho, bool use_gpu)
+{
+  int dim = 2, cells[] = {64, 4};
+  double lower[] = {-M_PI, -1.0}, upper[] = {M_PI, 1.0};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, 1);
+  int nghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+  struct gkyl_poisson_bc bcs = {0};
+  bcs.lo_type[0] = GKYL_POISSON_PERIODIC;
+  bcs.up_type[0] = GKYL_POISSON_PERIODIC;
+
+  double dg0norm = pow(sqrt(2.0), dim);
+  struct gkyl_array *epsilon_ho = mkarr(basis.num_basis, local_ext.volume);
+  gkyl_array_shiftc(epsilon_ho, rho*rho*dg0norm, 0);
+  struct gkyl_array *kSq_ho = mkarr(basis.num_basis, local_ext.volume);
+  gkyl_array_shiftc(kSq_ho, -dg0norm, 0);
+  struct gkyl_array *f_ho = mkarr(basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 3, 1, evalFunc_sinx, NULL);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, f_ho);
+  gkyl_proj_on_basis_release(proj);
+
+  struct gkyl_array *epsilon = mkarr_dev(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *kSq = mkarr_dev(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *f = mkarr_dev(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *g = mkarr_dev(use_gpu, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(epsilon, epsilon_ho);
+  gkyl_array_copy(kSq, kSq_ho);
+  gkyl_array_copy(f, f_ho);
+
+  gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&local, &grid, basis, &bcs, NULL,
+    epsilon, kSq, use_gpu);
+  gkyl_fem_poisson_perp_lhs_apply(poisson, f, g);
+
+  struct gkyl_array *g_ho = mkarr(basis.num_basis, local_ext.volume);
+  gkyl_array_copy(g_ho, g);
+  struct gkyl_array *g_ex = mkarr(basis.num_basis, local_ext.volume);
+  gkyl_array_set(g_ex, 1.0+rho*rho, f_ho);
+
+  double err = calc_l2(grid, local, local_ext, basis, g_ho, g_ex);
+  double norm = calc_l2(grid, local, local_ext, basis, g_ex, NULL);
+  TEST_CHECK(err < 1.0e-3*norm);
+  TEST_MSG("eigenmode L2 error = %g (|g| = %g)", err, norm);
+
+  gkyl_array_release(epsilon_ho);
+  gkyl_array_release(kSq_ho);
+  gkyl_array_release(f_ho);
+  gkyl_array_release(epsilon);
+  gkyl_array_release(kSq);
+  gkyl_array_release(f);
+  gkyl_array_release(g);
+  gkyl_array_release(g_ho);
+  gkyl_array_release(g_ex);
+  gkyl_fem_poisson_perp_release(poisson);
+}
+
+// Mimic a geometry with Jacobian J(x)=x on x in [1,3] (1D perp Laplacian
+// (1/J) d_x (J d_x)), i.e. epsilon = rho^2*J*g^xx = rho^2*J and kSq = -J as
+// built by the gyrokinetic app, and compare apply(f) to f - rho^2*Lap_J f.
+static const double jac_rho = 0.15, jac_kx = M_PI;
+static void evalFunc_jac_f(double t, const double *xn, double *fout, void *ctx)
+{
+  fout[0] = sin(jac_kx*(xn[0]-1.0));
+}
+static void evalFunc_jac(double t, const double *xn, double *fout, void *ctx)
+{
+  fout[0] = xn[0];
+}
+static void evalFunc_jac_Af(double t, const double *xn, double *fout, void *ctx)
+{
+  double x = xn[0];
+  double lap = -pow(jac_kx,2)*sin(jac_kx*(x-1.0)) + jac_kx*cos(jac_kx*(x-1.0))/x;
+  fout[0] = sin(jac_kx*(x-1.0)) - pow(jac_rho,2)*lap;
+}
+
+static void
+test_perp_lhs_apply_jacobian(bool use_gpu)
+{
+  int dim = 2, cells[] = {128, 4};
+  double lower[] = {1.0, -1.0}, upper[] = {3.0, 1.0};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, 1);
+  int nghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+  struct gkyl_poisson_bc bcs = {0};
+  bcs.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bcs.up_type[0] = GKYL_POISSON_DIRICHLET;
+
+  struct gkyl_array *jac_ho = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *f_ho = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *Af_ho = mkarr(basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 3, 1, evalFunc_jac, NULL);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, jac_ho);
+  gkyl_proj_on_basis_release(proj);
+  proj = gkyl_proj_on_basis_new(&grid, &basis, 3, 1, evalFunc_jac_f, NULL);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, f_ho);
+  gkyl_proj_on_basis_release(proj);
+  proj = gkyl_proj_on_basis_new(&grid, &basis, 3, 1, evalFunc_jac_Af, NULL);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, Af_ho);
+  gkyl_proj_on_basis_release(proj);
+  struct gkyl_array *epsilon_ho = mkarr(basis.num_basis, local_ext.volume);
+  gkyl_array_set(epsilon_ho, pow(jac_rho,2), jac_ho);
+  struct gkyl_array *kSq_ho = mkarr(basis.num_basis, local_ext.volume);
+  gkyl_array_set(kSq_ho, -1.0, jac_ho);
+
+  struct gkyl_array *epsilon = mkarr_dev(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *kSq = mkarr_dev(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *f = mkarr_dev(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *g = mkarr_dev(use_gpu, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(epsilon, epsilon_ho);
+  gkyl_array_copy(kSq, kSq_ho);
+  gkyl_array_copy(f, f_ho);
+
+  gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&local, &grid, basis, &bcs, NULL,
+    epsilon, kSq, use_gpu);
+  gkyl_fem_poisson_perp_lhs_apply(poisson, f, g);
+
+  struct gkyl_array *g_ho = mkarr(basis.num_basis, local_ext.volume);
+  gkyl_array_copy(g_ho, g);
+  double err = calc_l2(grid, local, local_ext, basis, g_ho, Af_ho);
+  double norm = calc_l2(grid, local, local_ext, basis, Af_ho, NULL);
+  TEST_CHECK(err < 5.0e-3*norm);
+  TEST_MSG("varying-Jacobian L2 error = %g (|Af| = %g)", err, norm);
+
+  gkyl_array_release(jac_ho);
+  gkyl_array_release(f_ho);
+  gkyl_array_release(Af_ho);
+  gkyl_array_release(epsilon_ho);
+  gkyl_array_release(kSq_ho);
+  gkyl_array_release(epsilon);
+  gkyl_array_release(kSq);
+  gkyl_array_release(f);
+  gkyl_array_release(g);
+  gkyl_array_release(g_ho);
+  gkyl_fem_poisson_perp_release(poisson);
+}
+
 // One line at (x,z)=(0,0) biased to 0.5.
 static struct gkyl_poisson_bias_line bias_line_3x[] = {
   { .perp_dirs = {0, 2}, .perp_coords = {0.0, 0.0}, .val = 0.5 },
@@ -191,6 +346,14 @@ void test_3x_p1_bias(void) {
   test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_DIRICHLET, &bias_list_3x, false);
 }
 
+void test_2x_p1_eigenmode(void) {
+  test_perp_lhs_apply_eigenmode(0.3, false);
+}
+
+void test_2x_p1_jacobian(void) {
+  test_perp_lhs_apply_jacobian(false);
+}
+
 #ifdef GKYL_HAVE_CUDA
 
 void gpu_test_2x_p1(void) {
@@ -210,16 +373,28 @@ void gpu_test_3x_p1_bias(void) {
   test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_DIRICHLET, &bias_list_3x, true);
 }
 
+void gpu_test_2x_p1_eigenmode(void) {
+  test_perp_lhs_apply_eigenmode(0.3, true);
+}
+
+void gpu_test_2x_p1_jacobian(void) {
+  test_perp_lhs_apply_jacobian(true);
+}
+
 #endif
 
 TEST_LIST = {
   { "test_2x_p1", test_2x_p1 },
   { "test_3x_p1", test_3x_p1 },
   { "test_3x_p1_bias", test_3x_p1_bias },
+  { "test_2x_p1_eigenmode", test_2x_p1_eigenmode },
+  { "test_2x_p1_jacobian", test_2x_p1_jacobian },
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_2x_p1", gpu_test_2x_p1 },
   { "gpu_test_3x_p1", gpu_test_3x_p1 },
   { "gpu_test_3x_p1_bias", gpu_test_3x_p1_bias },
+  { "gpu_test_2x_p1_eigenmode", gpu_test_2x_p1_eigenmode },
+  { "gpu_test_2x_p1_jacobian", gpu_test_2x_p1_jacobian },
 #endif
   { NULL, NULL },
 };
