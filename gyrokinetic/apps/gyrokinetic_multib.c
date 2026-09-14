@@ -830,6 +830,114 @@ gyrokinetic_multib_solve_shared_grading(const struct gkyl_gyrokinetic_multib *in
   gkyl_free(kper); gkyl_free(sbuf);
 }
 
+// Candidate 7: prescribe each end slope from POSITION, do not solve for it.
+//
+// Measured on 204051 and 202806: at every junction that is NOT the X point, the
+// blocks meeting there already have the SAME normalised end slope
+// G'_old(end) = e(end)*w/S -- spread 1.0000x. So a value that is a function of
+// the junction, evaluated identically by both sides, reproduces them exactly
+// and the interface matches with no iteration and no cross-block channel.
+//
+// All the difficulty is at the X point, where eight ends meet in four radial
+// pairs whose slopes differ by up to 1.70x. Take the MAXIMUM there, never the
+// mean: then no block's end slope is REDUCED, so no block loses its standoff
+// from the saddle, and conditioning is preserved or improved instead of traded
+// away. Every earlier candidate lost conditioning precisely by shrinking that
+// cell. The cost is interior compression, which lands away from the X point.
+//
+// Radial partners share the whole separatrix segment, hence both endpoints,
+// hence the same lambda at both ends and the same G_old -- so they stay on one
+// parameterisation and the row they share cannot move. That is structural here,
+// not something the solve has to protect.
+//
+// ONE probe pass, no outer loop: this does not inherit the 240-build cost.
+static void
+gyrokinetic_multib_solve_lambda(const struct gkyl_gyrokinetic_multib *inp,
+  struct gkyl_gk_block_geom *bg)
+{
+  const char *e = getenv("GKYL_TOK_SEAM_LAMBDA");
+  if (!(e && e[0] != '\0' && e[0] != '0'))
+    return;
+  const int n = gkyl_gk_block_geom_num_blocks(bg);
+  const int ndim = gkyl_gk_block_geom_ndim(bg);
+  if (n <= 0 || ndim < 2)
+    return;
+
+  double *sbuf = gkyl_malloc(sizeof(double[SEAM_MAX_NODES]));
+  double *gp = gkyl_calloc(2*(size_t) n, sizeof(*gp));   // G'_old per block end
+  double *rz = gkyl_calloc(4*(size_t) n, sizeof(*rz));   // endpoint coordinates
+  bool *have = gkyl_calloc(n, sizeof(*have));
+
+  struct gkyl_gyrokinetic_multib *probe_inp = gkyl_malloc(sizeof(*probe_inp));
+  *probe_inp = *inp;
+  probe_inp->gk_block_geom = bg;
+  probe_inp->use_gpu = false;
+  struct gkyl_gyrokinetic_multib_app *probe = gkyl_calloc(1, sizeof(*probe));
+  probe->gk_block_geom = bg;
+  probe->block_comms = gkyl_calloc(n, sizeof(*probe->block_comms));
+  struct gkyl_comm *serial = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp) {
+    .use_gpu = false,
+  });
+  for (int b=0; b<n; ++b) probe->block_comms[b] = serial;
+
+  gkyl_tok_geo_seam_capture_begin();
+  for (int b=0; b<n; ++b) {
+    struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bg,b);
+    if (bi.geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
+    if (!gkyl_tok_geo_uses_chord_construction(&bi.geometry.tok_grid_info)) continue;
+    for (int d=0; d<ndim; ++d) bi.cuts[d] = 1;
+    struct gkyl_gyrokinetic_app *app =
+      singleb_app_new_geom_from_block(probe_inp,b,probe,&bi,false);
+    if (!app) continue;
+    const int ft = bi.geometry.tok_grid_info.ftype;
+    double w = 0.0, dx = 0.0;
+    const int nc = gkyl_tok_geo_seam_capture_get(ft, sbuf, SEAM_MAX_NODES, &w, &dx);
+    double lo[2], hi[2];
+    const bool ok = nc >= 2 && gkyl_tok_geo_seam_capture_ends(ft, lo, hi);
+    gkyl_gyrokinetic_app_release_geom(app);
+    if (!ok) continue;
+    const double S = sbuf[nc];
+    if (!(S > 0.0)) continue;
+    // element(end)*w/S reduces to (cell arc)*nc/S -- w cancels.
+    gp[2*b+0] = (sbuf[1]-sbuf[0])*nc/S;
+    gp[2*b+1] = (sbuf[nc]-sbuf[nc-1])*nc/S;
+    rz[4*b+0]=lo[0]; rz[4*b+1]=lo[1]; rz[4*b+2]=hi[0]; rz[4*b+3]=hi[1];
+    have[b] = gp[2*b+0] > 0.0 && gp[2*b+1] > 0.0;
+  }
+  gkyl_tok_geo_seam_capture_end();
+
+  // lambda(junction) = max over the ends meeting there. Junctions are matched on
+  // physical position, not on declared topology, so an end that coincides
+  // without being declared adjacent is still treated as one junction.
+  for (int b=0; b<n; ++b) {
+    if (!have[b]) continue;
+    for (int eb=0; eb<2; ++eb) {
+      double lam = gp[2*b+eb];
+      for (int c=0; c<n; ++c) {
+        if (!have[c]) continue;
+        for (int ec=0; ec<2; ++ec) {
+          const double dr = rz[4*b+2*eb+0]-rz[4*c+2*ec+0];
+          const double dz = rz[4*b+2*eb+1]-rz[4*c+2*ec+1];
+          if (hypot(dr,dz) < 1.0e-9 && gp[2*c+ec] > lam) lam = gp[2*c+ec];
+        }
+      }
+      const double f = lam/gp[2*b+eb];
+      struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bg,b);
+      bi.geometry.tok_grid_info.theta_seam_slope[eb] = f;
+      gkyl_gk_block_geom_set_block(bg,b,&bi);
+    }
+    const struct gkyl_gk_block_geom_info *bi = gkyl_gk_block_geom_get_block(bg,b);
+    fprintf(stderr,"TOK_SEAM_LAMBDA block=%d ftype=%d gp=(%.17g,%.17g) f=(%.17g,%.17g)\n",
+      b, bi->geometry.tok_grid_info.ftype, gp[2*b+0], gp[2*b+1],
+      bi->geometry.tok_grid_info.theta_seam_slope[0],
+      bi->geometry.tok_grid_info.theta_seam_slope[1]);
+  }
+
+  gkyl_comm_release(serial);
+  gkyl_free(probe->block_comms); gkyl_free(probe); gkyl_free(probe_inp);
+  gkyl_free(have); gkyl_free(rz); gkyl_free(gp); gkyl_free(sbuf);
+}
+
 // Solve the coupled multipliers over every theta interface and write them into
 // the block declarations. Damped fixed point: each interface pulls both sides
 // toward the geometric mean of their elements, which is the target that needs
@@ -1368,6 +1476,7 @@ gyrokinetic_multib_app_wall_wrapper(const struct gkyl_gyrokinetic_multib *inp, b
   if (!bg) return 0;
   // Solve the coupled theta-seam multipliers on the settled declaration, before
   // the geometry that will actually be kept is built.
+  gyrokinetic_multib_solve_lambda(inp,bg);
   gyrokinetic_multib_solve_shared_grading(inp,bg);
   gyrokinetic_multib_solve_seam_slopes(inp,bg);
   struct gkyl_gyrokinetic_multib *effective=gkyl_malloc(sizeof(*effective));

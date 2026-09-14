@@ -535,6 +535,12 @@ int gkyl_tok_geo_seam_capture_get(int ftype, double *s, int max, double *w,
   double *dist_xpt);
 
 /**
+ * The captured separatrix row's two endpoints, so a caller can group the
+ * block-ends that meet at one physical junction. Each is written as {R, Z}.
+ */
+bool gkyl_tok_geo_seam_capture_ends(int ftype, double *rz_lo, double *rz_hi);
+
+/**
  * Delete updater.
  *
  * @param geo Geometry object to delete

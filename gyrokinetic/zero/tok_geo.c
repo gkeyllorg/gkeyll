@@ -294,6 +294,9 @@ static double tok_seam_cap_w[TOK_SEAM_CAP_FTYPES];
 // tuned threshold -- the rule is simply "no closer than the uncorrected
 // grading already puts it".
 static double tok_seam_cap_dxpt[TOK_SEAM_CAP_FTYPES];
+// The two separatrix-row ENDPOINTS, so the caller can group block-ends that meet
+// at the same physical junction. [ftype][end][r,z], end 0 = lower theta.
+static double tok_seam_cap_end[TOK_SEAM_CAP_FTYPES][2][2];
 static double *tok_seam_cap_s[TOK_SEAM_CAP_FTYPES];
 
 void
@@ -322,6 +325,18 @@ gkyl_tok_geo_seam_capture_get(int ftype, double *s, int max, double *w,
   return n;
 }
 
+bool
+gkyl_tok_geo_seam_capture_ends(int ftype, double *rz_lo, double *rz_hi)
+{
+  if (ftype < 0 || ftype >= TOK_SEAM_CAP_FTYPES || tok_seam_cap_n[ftype] <= 0)
+    return false;
+  rz_lo[0] = tok_seam_cap_end[ftype][0][0];
+  rz_lo[1] = tok_seam_cap_end[ftype][0][1];
+  rz_hi[0] = tok_seam_cap_end[ftype][1][0];
+  rz_hi[1] = tok_seam_cap_end[ftype][1][1];
+  return true;
+}
+
 static void
 tok_seam_capture_row(int ftype, const double *r, const double *z, int nnode,
   double w, double rxpt, double zxpt)
@@ -345,6 +360,10 @@ tok_seam_capture_row(int ftype, const double *r, const double *z, int nnode,
   for (int i=1; i<nnode-1; ++i)
     dmin = fmin(dmin, hypot(r[i]-rxpt, z[i]-zxpt));
   tok_seam_cap_dxpt[ftype] = (dmin < DBL_MAX) ? dmin : 0.0;
+  tok_seam_cap_end[ftype][0][0] = r[0];
+  tok_seam_cap_end[ftype][0][1] = z[0];
+  tok_seam_cap_end[ftype][1][0] = r[nnode-1];
+  tok_seam_cap_end[ftype][1][1] = z[nnode-1];
   tok_seam_cap_n[ftype] = nnode-1;
   tok_seam_cap_w[ftype] = w;
 }
