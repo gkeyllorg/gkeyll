@@ -531,7 +531,8 @@ bool gkyl_tok_geo_uses_chord_construction(const struct gkyl_tok_geo_grid_inp *in
  */
 void gkyl_tok_geo_seam_capture_begin(void);
 void gkyl_tok_geo_seam_capture_end(void);
-int gkyl_tok_geo_seam_capture_get(int ftype, double *s, int max, double *w);
+int gkyl_tok_geo_seam_capture_get(int ftype, double *s, int max, double *w,
+  double *dist_xpt);
 
 /**
  * Delete updater.

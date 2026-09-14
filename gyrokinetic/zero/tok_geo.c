@@ -287,6 +287,13 @@ static double tok_seam_cap_row_r[8193], tok_seam_cap_row_z[8193];
 static int tok_seam_cap_row_n = 0;
 static int tok_seam_cap_n[TOK_SEAM_CAP_FTYPES];
 static double tok_seam_cap_w[TOK_SEAM_CAP_FTYPES];
+// Closest approach of any separatrix-row node to the X point. This is the
+// quantity that actually drives the conditioning failures: cond(g) blew past
+// 1/eps exactly when a correction walked a quadrature point from 23.0 mm to
+// ~9 mm off the saddle. Constraining it needs no metric evaluation and no
+// tuned threshold -- the rule is simply "no closer than the uncorrected
+// grading already puts it".
+static double tok_seam_cap_dxpt[TOK_SEAM_CAP_FTYPES];
 static double *tok_seam_cap_s[TOK_SEAM_CAP_FTYPES];
 
 void
@@ -303,19 +310,21 @@ gkyl_tok_geo_seam_capture_end(void)
 }
 
 int
-gkyl_tok_geo_seam_capture_get(int ftype, double *s, int max, double *w)
+gkyl_tok_geo_seam_capture_get(int ftype, double *s, int max, double *w,
+  double *dist_xpt)
 {
   if (ftype < 0 || ftype >= TOK_SEAM_CAP_FTYPES) return 0;
   const int n = tok_seam_cap_n[ftype];
   if (n <= 0 || n+1 > max || !tok_seam_cap_s[ftype]) return 0;
   for (int i=0; i<=n; ++i) s[i] = tok_seam_cap_s[ftype][i];
   *w = tok_seam_cap_w[ftype];
+  if (dist_xpt) *dist_xpt = tok_seam_cap_dxpt[ftype];
   return n;
 }
 
 static void
 tok_seam_capture_row(int ftype, const double *r, const double *z, int nnode,
-  double w)
+  double w, double rxpt, double zxpt)
 {
   if (!tok_seam_cap_on || ftype < 0 || ftype >= TOK_SEAM_CAP_FTYPES)
     return;
@@ -327,6 +336,10 @@ tok_seam_capture_row(int ftype, const double *r, const double *z, int nnode,
   acc[0] = 0.0;
   for (int i=1; i<nnode; ++i)
     acc[i] = acc[i-1] + hypot(r[i]-r[i-1], z[i]-z[i-1]);
+  double dmin = DBL_MAX;
+  for (int i=0; i<nnode; ++i)
+    dmin = fmin(dmin, hypot(r[i]-rxpt, z[i]-zxpt));
+  tok_seam_cap_dxpt[ftype] = dmin;
   tok_seam_cap_n[ftype] = nnode-1;
   tok_seam_cap_w[ftype] = w;
 }
@@ -7888,7 +7901,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
    // Flush the captured separatrix row for this block before its buffers go.
    if (tok_seam_cap_on && tok_seam_cap_row_n > 1)
      tok_seam_capture_row(inp->ftype, tok_seam_cap_row_r, tok_seam_cap_row_z,
-       tok_seam_cap_row_n, fabs(inp->cgrid.upper[2]-inp->cgrid.lower[2]));
+       tok_seam_cap_row_n, fabs(inp->cgrid.upper[2]-inp->cgrid.lower[2]),
+       geo->efit->Rxpt[0], geo->efit->Zxpt[0]);
    tok_seam_cap_row_n = 0;
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);

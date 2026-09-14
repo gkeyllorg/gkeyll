@@ -634,6 +634,8 @@ struct seam_block {
   double w;                 // theta width of the block
   double *s;                // cumulative arc at each of n+1 nodes, s[0]=0
   double f[2];              // multipliers under solution, [lower, upper]
+  double dxpt;              // closest approach of this row to the X point
+  double dxpt0;             // ... under the UNCORRECTED grading, the floor
 };
 
 static bool
@@ -698,12 +700,14 @@ seam_measure_block(const struct gkyl_gyrokinetic_app *app,
   // (measured: mc2p_nodal all zero; mc2p ncomp=3, also zero).
   (void) app; (void) psisep;
   double w = 0.0;
+  double dx = 0.0;
   const int n = gkyl_tok_geo_seam_capture_get(bi->geometry.tok_grid_info.ftype,
-    sb->s, SEAM_MAX_NODES, &w);
+    sb->s, SEAM_MAX_NODES, &w, &dx);
   if (n < 1 || !(w > 0.0) || !(sb->s[n] > 0.0))
     return false;
   sb->n = n;
   sb->w = w;
+  sb->dxpt = dx;
   sb->f[0] = sb->f[1] = 1.0;
   sb->active = true;
   return true;
@@ -748,6 +752,7 @@ gyrokinetic_multib_solve_shared_grading(const struct gkyl_gyrokinetic_multib *in
   for (int b=0; b<n; ++b) probe->block_comms[b] = serial;
 
   double ksum = 0.0; int kn = 0;
+  double *kper = gkyl_calloc(n, sizeof(*kper));
   gkyl_tok_geo_seam_capture_begin();
   for (int b=0; b<n; ++b) {
     struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bg,b);
@@ -759,7 +764,7 @@ gyrokinetic_multib_solve_shared_grading(const struct gkyl_gyrokinetic_multib *in
     if (!app) continue;
     double w = 0.0;
     const int nc = gkyl_tok_geo_seam_capture_get(
-      bi.geometry.tok_grid_info.ftype, sbuf, SEAM_MAX_NODES, &w);
+      bi.geometry.tok_grid_info.ftype, sbuf, SEAM_MAX_NODES, &w, 0);
     gkyl_gyrokinetic_app_release_geom(app);
     if (nc < 3 || !(w > 0.0)) continue;
     // End-to-middle ratio of the cell-averaged element. The element shares the
@@ -769,32 +774,60 @@ gyrokinetic_multib_solve_shared_grading(const struct gkyl_gyrokinetic_multib *in
     if (!(am > 0.0) || !(a0 > 0.0) || !(a1 > 0.0)) continue;
     const double ratio = 0.5*(a0+a1)/am;
     if (!isfinite(ratio) || ratio <= 0.0) continue;
-    ksum += ratio-1.0; kn++;
+    ksum += ratio-1.0; kn++; kper[b] = ratio-1.0;
   }
   gkyl_tok_geo_seam_capture_end();
 
+  // Per-RADIAL-PAIR k. k only has to be equal WITHIN a pair -- that is what
+  // stops a shared row from moving -- so a single chain mean was needlessly
+  // coarse: it under-serves whichever blocks carry the worst conditioning.
+  // Pairs are read from connections[0]; a block with no radial partner keeps
+  // its own value.
+  {
+    bool *done = gkyl_calloc(n, sizeof(*done));
+    for (int b=0; b<n; ++b) {
+      if (done[b] || kper[b] == 0.0) continue;
+      const struct gkyl_gk_block_geom_info *bi = gkyl_gk_block_geom_get_block(bg,b);
+      int pb = -1;
+      for (int e=0; e<2; ++e) {
+        const struct gkyl_target_edge *te = &bi->connections[0][e];
+        if (te->edge == GKYL_PHYSICAL || te->bid == b) continue;
+        if (te->bid >= 0 && te->bid < n && kper[te->bid] != 0.0) { pb = te->bid; break; }
+      }
+      if (pb >= 0) {
+        const double m = 0.5*(kper[b]+kper[pb]);
+        kper[b] = kper[pb] = m;
+        done[pb] = true;
+      }
+      done[b] = true;
+    }
+    for (int b=0; b<n; ++b) {
+      if (kper[b] == 0.0) continue;
+      double k = kper[b];
+      if (k < -0.9) k = -0.9;
+      if (k > 8.0) k = 8.0;
+      struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bg,b);
+      bi.geometry.tok_grid_info.theta_shared_k = k;
+      gkyl_gk_block_geom_set_block(bg,b,&bi);
+      fprintf(stderr,"TOK_SHARED_GRADING block=%d ftype=%d k=%.17g\n",
+        b, bi.geometry.tok_grid_info.ftype, k);
+    }
+    gkyl_free(done);
+  }
   if (kn > 0) {
     double k = ksum/kn;
     // Monotonicity needs k > -1; keep a margin, and do not let one pathological
     // block drive an extreme shape.
     if (k < -0.9) k = -0.9;
     if (k > 8.0) k = 8.0;
-    if (fabs(k) > 1.0e-6) {
-      for (int b=0; b<n; ++b) {
-        struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bg,b);
-        if (bi.geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
-        if (!gkyl_tok_geo_uses_chord_construction(&bi.geometry.tok_grid_info)) continue;
-        bi.geometry.tok_grid_info.theta_shared_k = k;
-        gkyl_gk_block_geom_set_block(bg,b,&bi);
-      }
-    }
-    fprintf(stderr,"TOK_SHARED_GRADING k=%.17g blocks=%d\n",k,kn);
+    fprintf(stderr,"TOK_SHARED_GRADING chain_mean_k=%.17g blocks=%d"
+      " (per-pair values above are what is used)\n",k,kn);
   }
   else fprintf(stderr,"TOK_SHARED_GRADING no chord blocks measured\n");
 
   gkyl_comm_release(serial);
   gkyl_free(probe->block_comms); gkyl_free(probe); gkyl_free(probe_inp);
-  gkyl_free(sbuf);
+  gkyl_free(kper); gkyl_free(sbuf);
 }
 
 // Solve the coupled multipliers over every theta interface and write them into
@@ -866,8 +899,15 @@ gyrokinetic_multib_solve_seam_slopes(const struct gkyl_gyrokinetic_multib *inp,
       struct gkyl_gyrokinetic_app *app =
         singleb_app_new_geom_from_block(probe_inp,b,probe,&bi,false);
       if (!app) continue;
+      const double keep0 = sb[b].dxpt0;
       sb[b].active = false;
-      if (seam_measure_block(app,&bi,0.0,&sb[b])) { sb[b].f[0]=f[2*b]; sb[b].f[1]=f[2*b+1]; measured++; }
+      if (seam_measure_block(app,&bi,0.0,&sb[b])) {
+        sb[b].f[0]=f[2*b]; sb[b].f[1]=f[2*b+1];
+        // Pass 0 runs with the identity correction, so its standoff IS the
+        // floor every later pass must respect.
+        sb[b].dxpt0 = (outer == 0) ? sb[b].dxpt : keep0;
+        measured++;
+      }
       gkyl_gyrokinetic_app_release_geom(app);
     }
     gkyl_tok_geo_seam_capture_end();
@@ -904,6 +944,19 @@ gyrokinetic_multib_solve_seam_slopes(const struct gkyl_gyrokinetic_multib *inp,
         if (seam_min_slope(e ? other : nf, e ? nf : other) >= SEAM_MIN_SLOPE)
           f[2*b+e] = nf;
       }
+    }
+
+    // Refuse any block whose correction has pulled a node CLOSER to the X point
+    // than the uncorrected grading put it. That standoff is the mechanism behind
+    // every conditioning failure measured so far (cond(g) crossed 1/eps exactly
+    // when it fell 23.0 mm -> ~9 mm), so constraining it directly is cheaper
+    // than evaluating cond and needs no tuned threshold.
+    for (int b=0; b<n; ++b) {
+      if (!sb[b].active || !(sb[b].dxpt0 > 0.0)) continue;
+      if (sb[b].dxpt >= sb[b].dxpt0) continue;
+      fprintf(stderr,"TOK_SEAM_SLOPE_STANDOFF block=%d dxpt=%.17g floor=%.17g"
+        " -- backing off\n", b, sb[b].dxpt, sb[b].dxpt0);
+      for (int e=0; e<2; ++e) f[2*b+e] = 1.0 + 0.5*(f[2*b+e]-1.0);
     }
 
     // Radial partners trace the SAME separatrix segment, so they must carry the
