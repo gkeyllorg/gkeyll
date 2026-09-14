@@ -336,10 +336,15 @@ tok_seam_capture_row(int ftype, const double *r, const double *z, int nnode,
   acc[0] = 0.0;
   for (int i=1; i<nnode; ++i)
     acc[i] = acc[i-1] + hypot(r[i]-r[i-1], z[i]-z[i-1]);
+  // INTERIOR nodes only. The end node of a block that meets the X point is
+  // PINNED to it exactly, so a minimum taken over all nodes is 0 before and
+  // after any correction -- vacuous for precisely the blocks whose conditioning
+  // is at stake. The first interior node is what actually sets the cell extent
+  // at the saddle, and it is free to move.
   double dmin = DBL_MAX;
-  for (int i=0; i<nnode; ++i)
+  for (int i=1; i<nnode-1; ++i)
     dmin = fmin(dmin, hypot(r[i]-rxpt, z[i]-zxpt));
-  tok_seam_cap_dxpt[ftype] = dmin;
+  tok_seam_cap_dxpt[ftype] = (dmin < DBL_MAX) ? dmin : 0.0;
   tok_seam_cap_n[ftype] = nnode-1;
   tok_seam_cap_w[ftype] = w;
 }
