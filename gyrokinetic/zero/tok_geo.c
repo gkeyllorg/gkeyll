@@ -415,8 +415,12 @@ tok_seam_slope_enabled(void)
 static double
 tok_seam_phi(const struct gkyl_tok_geo_grid_inp *inp, double u)
 {
-  if (!tok_seam_slope_enabled())
-    return u;
+  // Apply whenever multipliers are actually SET, rather than gating on the
+  // solver's own flag. Those are different questions: the iterative solve and
+  // the position-prescribed lambda both write theta_seam_slope, and gating on
+  // one solver's flag made the other silently inert -- its grid came out
+  // byte-identical to the shipped one. Unset stays 1.0, so this is still a
+  // no-op for any declaration that never sets it.
   const double a = inp->theta_seam_slope[0] > 0.0 ? inp->theta_seam_slope[0] : 1.0;
   const double b = inp->theta_seam_slope[1] > 0.0 ? inp->theta_seam_slope[1] : 1.0;
   if (a == 1.0 && b == 1.0)
