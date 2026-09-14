@@ -442,10 +442,6 @@ gk_field_ampere_solve_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field,
   gkyl_fem_poisson_perp_set_rhs(field->fem_apar_solver, field->currentDens);
   gkyl_fem_poisson_perp_solve(field->fem_apar_solver, out);
 
-  // Smooth along z.
-  // gk_field_fem_projection_par(app, field, field->apar, field->apar_smooth_aux);
-  // gkyl_array_copy_range(field->apar, field->apar_smooth_aux, &app->local_ext);
-
   field->invert_flr(app, field, out);
 
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
