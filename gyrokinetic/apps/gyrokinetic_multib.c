@@ -98,13 +98,22 @@ singleb_app_new_geom_from_block(const struct gkyl_gyrokinetic_multib *mbinp,
     app_inp->cells[i] = bgi->cells[i];
   }
 
+  struct gkyl_tok_geo_grid_inp tok_grid_info_with_frac;
+  bool have_tok_grid_info = false;
   // Set z dir grid extents based on tokamak global normalization
   if (bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK || bgi->geometry.geometry_id == GKYL_GEOMETRY_FROMFILE) {
-    gkyl_gk_geometry_tok_set_grid_extents(bgi->geometry.efit_info, bgi->geometry.tok_grid_info, &app_inp->lower[cdim-1], &app_inp->upper[cdim-1]);
+    // bgi is const, so take a copy: set_grid_extents now also records the
+    // block's separatrix arc fraction on it, and that has to survive into the
+    // geometry the app actually builds with.
+    tok_grid_info_with_frac = bgi->geometry.tok_grid_info;
+    gkyl_gk_geometry_tok_set_grid_extents(bgi->geometry.efit_info, &tok_grid_info_with_frac, &app_inp->lower[cdim-1], &app_inp->upper[cdim-1]);
     gkyl_gk_block_geom_reset_block_extents(mbapp->gk_block_geom, bid, app_inp->lower, app_inp->upper);
+    have_tok_grid_info = true;
   }
 
   app_inp->geometry = bgi->geometry;
+  if (have_tok_grid_info)
+    app_inp->geometry.tok_grid_info = tok_grid_info_with_frac;
   // Obtain the radial partner from the declaration, keeping the legacy block's
   // off-separatrix cuts and radial domain intact, so the two blocks take the
   // separatrix row they share from ONE trace builder.

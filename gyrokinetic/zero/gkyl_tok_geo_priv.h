@@ -49,6 +49,12 @@ struct arc_length_ctx {
   double zmax_left, zmax_right; // for PF UP region (or upper SN, not yet implemented)
   double zmin_iwl, zmax_iwl; // for IWL
   double zmin_iwl_plate, zmax_iwl_plate; // for IWL
+  // ONE arc interval per block, and the single darc/dtheta that goes with it.
+  // See gate7/continuity/THETA_ARCHITECTURE.md. Set once per psi at the end of
+  // tok_find_endpoints / tok_prepare_ordered_map; left zero they are unused and
+  // the historical expressions apply.
+  double arc_lo, arc_hi, arc_darc_dtheta;
+  bool arc_interval_valid;
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
@@ -698,6 +704,55 @@ struct contour_ctx {
   long ncall;
 };
 
+// Give the block ONE explicit arc interval, so theta stops being its address.
+//
+// The values reproduce the historical map exactly -- arc_lo/arc_hi are just the
+// old (theta+pi)/(2pi)*arcL_tot evaluated at the block's own bounds -- so this
+// is behaviour-preserving on BOTH paths, including the extended one where
+// arcL_tot is the dummy 2*pi and these reduce to lower+pi / upper+pi.
+// Making the interval explicit is what allows the extent to be reallocated
+// later without relocating the block.
+static inline void
+tok_set_arc_interval(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *a)
+{
+  double lo = inp->cgrid.lower[2], up = inp->cgrid.upper[2];
+  double w = up-lo;
+  // A geometry-supplied interval wins: it does not move when the extent does,
+  // which is the entire point of making it explicit.
+  if (inp->arc_frac_valid) {
+    a->arc_lo = inp->arc_frac_lo*a->arcL_tot;
+    a->arc_hi = inp->arc_frac_hi*a->arcL_tot;
+  }
+  else {
+    a->arc_lo = (lo+M_PI)/2/M_PI*a->arcL_tot;
+    a->arc_hi = (up+M_PI)/2/M_PI*a->arcL_tot;
+  }
+  a->arc_darc_dtheta = w > 0.0 ? (a->arc_hi-a->arc_lo)/w : a->arcL_tot/(2.0*M_PI);
+  a->arc_interval_valid = w > 0.0 && isfinite(a->arc_lo) && isfinite(a->arc_hi);
+}
+
+// theta -> arc and arc -> theta, block-relative. Identical in value to the
+// absolute forms while the extent equals the arc fraction; correct for ANY
+// extent, which the absolute forms are not.
+static inline double
+tok_arc_from_theta(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct arc_length_ctx *a, double theta)
+{
+  double lo = inp->cgrid.lower[2], w = inp->cgrid.upper[2]-lo;
+  return a->arc_lo + (theta-lo)/w*(a->arc_hi-a->arc_lo);
+}
+
+static inline double
+tok_theta_from_arc(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct arc_length_ctx *a, double arc)
+{
+  double lo = inp->cgrid.lower[2], w = inp->cgrid.upper[2]-lo;
+  double d = a->arc_hi-a->arc_lo;
+  return d != 0.0 ? lo + (arc-a->arc_lo)/d*w : lo;
+}
+
+
 // Function to pass to numerical quadrature to integrate along a contour
 static inline double
 contour_func(double Z, void *ctx)
@@ -973,6 +1028,8 @@ void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *
 /* Initialize only the state needed by the ordered X-point mapping.  Unlike
  * tok_find_endpoints, this does not integrate and invert the legacy
  * independently normalized contour-arclength map. */
+// See tok_geo.c. Returns S*mtot for the block, on the grading's own trace.
+
 void tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx, double psi_curr);
 

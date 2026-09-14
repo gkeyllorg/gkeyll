@@ -286,6 +286,15 @@ struct gkyl_tok_geo_grid_inp {
     int max_levels; // typically 6-7    
     double eps; // typically 1e-10
   } quad_param;
+
+  // The block's share of its chain's separatrix arc, as a fraction, captured by
+  // tok_geo_set_extent(). Historically this fraction was recoverable ONLY from
+  // the theta bounds -- (theta+pi)/(2pi) -- which is exactly what made the theta
+  // interval the block's geometric address and blocked any reallocation of it.
+  // Storing it here separates "which arc the block owns" from "how much theta it
+  // is allotted". See gate7/continuity/THETA_ARCHITECTURE.md.
+  double arc_frac_lo, arc_frac_hi;
+  bool arc_frac_valid;
 };
 
 // A usable vessel outline: enough finite vertices to bound a region. This is the

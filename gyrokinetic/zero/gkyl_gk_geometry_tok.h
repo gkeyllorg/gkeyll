@@ -18,7 +18,7 @@ struct gk_geometry* gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geomet
  * */
 void
 gkyl_gk_geometry_tok_set_grid_extents(struct gkyl_efit_inp efit_info, 
-  struct gkyl_tok_geo_grid_inp grid_info, double *theta_lo, double *theta_up);
+  struct gkyl_tok_geo_grid_inp *grid_info, double *theta_lo, double *theta_up);
 
 
 

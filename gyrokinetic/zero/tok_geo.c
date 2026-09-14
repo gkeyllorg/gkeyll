@@ -255,12 +255,13 @@ static double
 tok_xpt_theta_to_arc(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx, double theta)
 {
-  if (!arc_ctx->xpt_map_valid)
+  // One block-relative form for both paths. Equal in value to the old absolute
+  // expression while the extent is the arc fraction, and correct for any extent.
+  if (!arc_ctx->arc_interval_valid)
     return (theta+M_PI)*arc_ctx->arcL_tot/(2.0*M_PI);
-  double frac = (theta-inp->cgrid.lower[2])
-    /(inp->cgrid.upper[2]-inp->cgrid.lower[2]);
-  double arc = arc_ctx->xpt_map_arc_lo
-    + frac*(arc_ctx->xpt_map_arc_hi-arc_ctx->xpt_map_arc_lo);
+  double arc = tok_arc_from_theta(inp, arc_ctx, theta);
+  if (!arc_ctx->xpt_map_valid)
+    return arc;
   if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R ||
       inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L) {
     arc = fmod(arc, arc_ctx->arcL_tot);
@@ -4293,7 +4294,7 @@ tok_ext_ladder_seed_by_gradpsi(const struct gkyl_tok_geo *geo, double psi,
   return true;
 }
 
-// March the ladder at a given rung count into `table`, and report the largest
+
 // theta motion between adjacent rungs so the caller can judge whether that
 // count resolved the correspondence.
 static bool
@@ -6519,8 +6520,10 @@ dphidtheta_func(double Z, void *ctx)
   double fx = (psi_fpol-fxc)/(actx->geo->fgrid.dx[0]*0.5);
   double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
   integrand = integrand*fpol;
-  double darc_dtheta = actx->xpt_map_valid
-    ? actx->xpt_map_darc_dtheta : actx->arcL_tot/(2.0*M_PI);
+  double darc_dtheta = actx->arc_interval_valid
+    ? actx->arc_darc_dtheta
+    : (actx->xpt_map_valid ? actx->xpt_map_darc_dtheta
+                           : actx->arcL_tot/(2.0*M_PI));
   integrand = integrand*darc_dtheta;
   return integrand;
 }
@@ -7043,18 +7046,18 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr,
           arc_memo, arc_memo_left, arc_memo_right);
 
-      darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX])
-        * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
+      darcL = (arc_ctx.arc_hi-arc_ctx.arc_lo)
+        /(up->basis.poly_order*inp->cgrid.cells[TH_IDX]);
       // At the beginning of each theta loop we need to reset things.
       cidx[PSI_IDX] = ip;
       arcL_curr = 0.0;
-      arcL_lo = (theta_lo + M_PI)/2/M_PI*arc_ctx.arcL_tot;
+      arcL_lo = tok_arc_from_theta(inp, &arc_ctx, theta_lo);
       double ridders_min, ridders_max;
       // Set node coordinates.
       for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
         int it_delta = 0;
         arcL_curr = arcL_lo + it*darcL;
-        double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
+        double theta_curr = tok_theta_from_arc(inp, &arc_ctx, arcL_curr); 
 
         // Calculate derivatives using finite difference for ddtheta,
         // as well as transform the computational coordiante to the non-uniform field-aligned value
@@ -7639,17 +7642,17 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
         // The legacy half-domain block types return zero from qprofile_func;
         // the full-domain branch above evaluates the unchanged legacy path.
 
-        darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX])
-          * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
+        darcL = (arc_ctx.arc_hi-arc_ctx.arc_lo)
+          /(up->basis.poly_order*inp->cgrid.cells[TH_IDX]);
         // at the beginning of each theta loop we need to reset things
         cidx[PSI_IDX] = ip;
         arcL_curr = 0.0;
-        arcL_lo = (theta_lo + M_PI)/2/M_PI*arc_ctx.arcL_tot;
+        arcL_lo = tok_arc_from_theta(inp, &arc_ctx, theta_lo);
         double ridders_min, ridders_max;
 
         for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
           arcL_curr = calc_running_coord(arcL_lo, it-nrange->lower[TH_IDX], darcL);
-          double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
+          double theta_curr = tok_theta_from_arc(inp, &arc_ctx, arcL_curr); 
 
           // Calculate derivatives using finite difference for ddtheta,
           // as well as transform the computational coordiante to the non-uniform field-aligned value
@@ -7779,8 +7782,10 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
               ddtheta_n[2] = ordered.dphi_dtheta*dTheta_dtheta;
             }
             else {
-              double darc_dtheta = arc_ctx.xpt_map_valid
-                ? arc_ctx.xpt_map_darc_dtheta : arc_ctx.arcL_tot/(2.0*M_PI);
+              double darc_dtheta = arc_ctx.arc_interval_valid
+                ? arc_ctx.arc_darc_dtheta
+                : (arc_ctx.xpt_map_valid ? arc_ctx.xpt_map_darc_dtheta
+                                         : arc_ctx.arcL_tot/(2.0*M_PI));
               ddtheta_n[0] = sin(atan2(dr_curr, dz_curr))*darc_dtheta*dTheta_dtheta;
               ddtheta_n[1] = cos(atan2(dr_curr, dz_curr))*darc_dtheta*dTheta_dtheta;
               ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx)*dTheta_dtheta;
@@ -8025,16 +8030,16 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr,
             arc_memo, arc_memo_left, arc_memo_right);
 
-        darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
+        darcL = (arc_ctx.arc_hi-arc_ctx.arc_lo)/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]);
         // at the beginning of each theta loop we need to reset things
         cidx[PSI_IDX] = ip;
         arcL_curr = 0.0;
-        arcL_lo = (theta_lo + M_PI)/2/M_PI*arc_ctx.arcL_tot;
+        arcL_lo = tok_arc_from_theta(inp, &arc_ctx, theta_lo);
         double ridders_min, ridders_max;
 
         for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
           arcL_curr = dir==2 ? arcL_lo + it*darcL: calc_running_coord(arcL_lo, it-nrange->lower[TH_IDX], darcL);
-          double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
+          double theta_curr = tok_theta_from_arc(inp, &arc_ctx, arcL_curr); 
 
           // Calculate derivatives using finite difference for ddtheta,
           // as well as transform the computational coordiante to the non-uniform field-aligned value
@@ -8184,8 +8189,10 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
               ddtheta_n[2] = ordered.dphi_dtheta*dTheta_dtheta;
             }
             else {
-              double darc_dtheta = arc_ctx.xpt_map_valid
-                ? arc_ctx.xpt_map_darc_dtheta : arc_ctx.arcL_tot/(2.0*M_PI);
+              double darc_dtheta = arc_ctx.arc_interval_valid
+                ? arc_ctx.arc_darc_dtheta
+                : (arc_ctx.xpt_map_valid ? arc_ctx.xpt_map_darc_dtheta
+                                         : arc_ctx.arcL_tot/(2.0*M_PI));
               ddtheta_n[0] = sin(atan2(dr_curr,dz_curr))*darc_dtheta*dTheta_dtheta;
               ddtheta_n[1] = cos(atan2(dr_curr,dz_curr))*darc_dtheta*dTheta_dtheta;
               ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx)*dTheta_dtheta;

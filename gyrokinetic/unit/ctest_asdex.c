@@ -317,7 +317,7 @@ test_lower()
     .zmin_left = -1.2,
     .zmin_right = -1.0,
   }; 
-  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, &ginp, &clower[2], &cupper[2]);
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -390,7 +390,7 @@ test_middle()
     .zmin_left = -1.2,
     .zmin_right = -1.0,
   }; 
-  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, &ginp, &clower[2], &cupper[2]);
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -463,7 +463,7 @@ test_upper()
     .zmin_left = -1.2,
     .zmin_right = -1.0,
   }; 
-  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, &ginp, &clower[2], &cupper[2]);
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);

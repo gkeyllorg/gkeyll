@@ -1455,8 +1455,10 @@ tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
   // traces built lazily in tok_geo.c.  They can have two distinct X-point
   // rays (or a closed core seam), so the scalar lower-X-point anchor used by
   // the original half-domain path is intentionally bypassed here.
-  if (tok_ext_construction(inp))
+  if (tok_ext_construction(inp)) {
+    tok_set_arc_interval(inp, arc_ctx);
     return;
+  }
   if (!tok_xpt_ray_enabled(inp) ||
       !tok_xpt_ray_anchor(inp, arc_ctx, psi_curr)) {
     fprintf(stderr,
@@ -1464,6 +1466,7 @@ tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
       inp->ftype, psi_curr, arc_ctx->xpt_ray_psi0);
     abort();
   }
+  tok_set_arc_interval(inp, arc_ctx);
 }
 
 
@@ -1978,7 +1981,6 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
   };
 
   double del = 1.0e-14;
-
   if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP) {
     // Immediately set rclose
     arc_ctx.rclose = inp->rright;
@@ -2351,11 +2353,33 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
 
   }
 
+  // Record the block's arc share SEPARATELY from its theta bounds. Today the
+  // two are the same number because the split is arc-proportional; recording it
+  // here is what lets the split change later without moving the block.
+  inp->arc_frac_lo = (*theta_lo+M_PI)/(2.0*M_PI);
+  inp->arc_frac_hi = (*theta_up+M_PI)/(2.0*M_PI);
+  inp->arc_frac_valid = isfinite(inp->arc_frac_lo) && isfinite(inp->arc_frac_hi)
+    && inp->arc_frac_hi > inp->arc_frac_lo;
+
+  // DECOUPLING PROBE. Shift the block's theta interval AFTER its arc fraction
+  // has been captured. If the interval is still the block's geometric address
+  // the grid moves; if the redesign works the grid is bit-identical, because
+  // every consumer is now block-relative and the arc share is stored separately.
+  // Diagnostic only -- never set in production.
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);
 
 }
+
+
+// NOTE: a per-psi "geometric" interval was tried here and is WRONG. The theta
+// split is computed ONCE at the separatrix and then applied as a fixed FRACTION
+// of each psi surface's own arcL_tot; the geometric pieces at psi != psisep are
+// a different quantity. Measured 2026-09-13 on ASDEX: the arc origin agreed to
+// 1.6e-15 but the far end disagreed by 5.5e-2, growing with psi, and both
+// devices aborted. The fraction is captured at the separatrix instead --
+// see inp->arc_frac_lo/hi in tok_geo_set_extent().
 
 void
 tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* arc_memo, double* arc_memo_left, double* arc_memo_right){
@@ -2729,6 +2753,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
   }
 
   tok_configure_xpt_map(inp, arc_ctx);
+  tok_set_arc_interval(inp, arc_ctx);
 }
 
 
