@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2GHVW784MAE09W1BPM4VDAR",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-jenkins-stellar_intel",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "ci/jenkins/Jenkinsfile",
+    "ci/jenkins/README.md",
+    "ci/jenkins/expected_regression_diffs.txt"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 60033,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 852480,
+    "output_tokens": 7184,
+    "api_call_count": 22
+  }
+}

@@ -1,0 +1,21 @@
+In this branch we've added
+
+---
+
+In this branch we've added A Jenkins setup to perform CI on the stellar cluster. Unlike the previous Jenkinsfile that ran the --moat tests with runregression, it runs all regression tests (except for those in ignore files). Can you change the previous jenkinsfile to also run all the tests and not the --moat suite?
+
+---
+
+check out the agent_tools-jenkins branch and make these changes there
+
+---
+
+Sorry, I changed my mind, implement these changes in the current branch (agent_tools-jenkins-stellar_intel)
+
+---
+
+Implement the plan.
+
+---
+
+Change "--timeout 300" to "--timeout 900" as that is what we set in Stellar too
