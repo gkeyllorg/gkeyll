@@ -1159,6 +1159,7 @@ struct gk_species {
   struct gkyl_array *flr_rhoSqD2; // Laplacian weight (rho^2/2 times J*g^ij) in FLR operator.
   struct gkyl_array *flr_kSq; // -J weight of the identity term in FLR operator.
   struct gkyl_array *flr_buff; // Buffer for the gyroaverage RHS/BC fields.
+  struct gkyl_array *flr_buff_dens; // z-smoothed density to gyroaverage.
   struct gkyl_deflated_fem_poisson *flr_op; // Screened Poisson solver used to gyroaverage fields.
   // Pointers to functions that gyroaverage a field, and a J-weighted density.
   void (*gyroaverage)(gkyl_gyrokinetic_app *app, struct gk_species *species,
@@ -1369,11 +1370,12 @@ struct gk_field {
   // Objects needed for FLR effects.
   bool use_flr; // Whether to apply FLR effects.
   void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi); // Function retrieving phi from the modified potential Phi_0 by inverting the FLR operator, i.e. applying A = 1 - rho^2*nabla_perp^2.
+  double flr_local_fac; // rho_i^2/eps_pol in the local term phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J.
   struct gkyl_array *flr_rhoSq; // rho^2 weight (times J*g^ij) in the perpendicular Laplacian of A.
   struct gkyl_array *flr_kSq; // -J weight of the identity term in the FLR operator.
   struct gkyl_fem_poisson_perp *flr_op; // Apply the operator 1 - rho_i^2*nabla_perp^2 to invert the FLR operator.
   struct gkyl_array *flr_phi0; // Modified potential Phi_0 (before applying A), used in the field energy.
-  struct gkyl_array *flr_energy_buff; // Buffer for the FLR field energy.
+  struct gkyl_array *flr_buff; // Buffer for the local term and the FLR field energy.
   double *flr_energy_red; // Scratch reduction for the FLR field energy.
 
   struct gkyl_array_integrate *calc_em_energy; // Operator computing EM energy.

@@ -43,16 +43,31 @@ gk_species_gyroaverage_density_enabled(gkyl_gyrokinetic_app *app, struct gk_spec
   // Same as gk_species_gyroaverage_enabled but for a density that already
   // carries the Jacobian (J*n), returning J*n_g.
   struct timespec wst = gkyl_wall_clock();
+  // Smooth the density along z to get a consistent field for the deflated solve.
+  app->field->fem_projection_par_rho_func(app, app->field, jac_dens_in, species->flr_buff_dens);
   // Boundary value n = (J*n)/J.
   gkyl_dg_mul_op_range(&app->basis, 0, species->flr_buff, 0, app->gk_geom->geo_int.jacobgeo_inv,
-    0, jac_dens_in, &app->local);
-  gkyl_deflated_fem_poisson_advance(species->flr_op, jac_dens_in, species->flr_buff, jac_dens_gyroavg);
+    0, species->flr_buff_dens, &app->local);
+  gkyl_deflated_fem_poisson_advance(species->flr_op, species->flr_buff_dens, species->flr_buff, jac_dens_gyroavg);
   gkyl_dg_mul_op_range(&app->basis, 0, jac_dens_gyroavg, 0, app->gk_geom->geo_int.jacobgeo,
     0, jac_dens_gyroavg, &app->local);
   app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Begin static function definitions.
+static void
+gk_species_flr_smooth_coeff(gkyl_gyrokinetic_app *app, struct gkyl_array *coeff, struct gkyl_array *tmp)
+{
+  // Smooth each component of an FLR operator coefficient along z, so the
+  // z-nodal deflated solver samples it consistently with the smoothed density.
+  int ncomp = coeff->ncomp/app->basis.num_basis;
+  for (int c=0; c<ncomp; c++) {
+    gkyl_array_set_offset(tmp, 1.0, coeff, c*app->basis.num_basis);
+    app->field->fem_projection_par_rho_func(app, app->field, tmp, tmp);
+    gkyl_array_set_offset(coeff, 1.0, tmp, c*app->basis.num_basis);
+  }
+}
+
 static double
 gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
 {
@@ -1577,6 +1592,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->gyroaverage_density = gk_species_gyroaverage_density_enabled;
     gks->m0_gyroavg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gks->flr_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gks->flr_buff_dens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
 
@@ -1591,6 +1607,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     // Initialize the factor multiplying the field in the FLR operator.
     gks->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_array_set(gks->flr_kSq, -1.0, app->gk_geom->geo_int.jacobgeo);
+    gk_species_flr_smooth_coeff(app, gks->flr_rhoSqD2, gks->flr_buff_dens);
+    gk_species_flr_smooth_coeff(app, gks->flr_kSq, gks->flr_buff_dens);
 
     // Gyroaverage BCs: the input field is its own boundary value at
     // non-periodic boundaries.
@@ -2070,6 +2088,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
     gkyl_array_release(gks->flr_rhoSqD2);
     gkyl_array_release(gks->flr_kSq);
     gkyl_array_release(gks->flr_buff);
+    gkyl_array_release(gks->flr_buff_dens);
     gkyl_deflated_fem_poisson_release(gks->flr_op);
   }
 

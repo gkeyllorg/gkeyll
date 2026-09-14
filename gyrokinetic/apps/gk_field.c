@@ -125,14 +125,14 @@ gk_field_es_energy_integrate(gkyl_gyrokinetic_app *app, const struct gk_field *f
   if (field->use_flr) {
     // With FLR effects the energy is (1/2) int eps grad_perp(phi).grad_perp(Phi_0),
     // computed with the polarization identity <a,b> = (<a+b,a+b> - <a-b,a-b>)/4.
-    gkyl_array_set(field->flr_energy_buff, 0.5, field->phi_smooth);
-    gkyl_array_accumulate(field->flr_energy_buff, 0.5, field->flr_phi0);
-    gkyl_array_integrate_advance(field->calc_em_energy, field->flr_energy_buff,
+    gkyl_array_set(field->flr_buff, 0.5, field->phi_smooth);
+    gkyl_array_accumulate(field->flr_buff, 0.5, field->flr_phi0);
+    gkyl_array_integrate_advance(field->calc_em_energy, field->flr_buff,
       factor, field->es_energy_fac, &app->local, &app->local, out);
       
-    gkyl_array_set(field->flr_energy_buff, 0.5, field->phi_smooth);
-    gkyl_array_accumulate(field->flr_energy_buff, -0.5, field->flr_phi0);
-    gkyl_array_integrate_advance(field->calc_em_energy, field->flr_energy_buff,
+    gkyl_array_set(field->flr_buff, 0.5, field->phi_smooth);
+    gkyl_array_accumulate(field->flr_buff, -0.5, field->flr_phi0);
+    gkyl_array_integrate_advance(field->calc_em_energy, field->flr_buff,
       factor, field->es_energy_fac, &app->local, &app->local, field->flr_energy_red);
     if (app->use_gpu) {
       double e[2];

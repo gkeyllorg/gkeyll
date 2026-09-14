@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_gk_field_priv.h>
 
@@ -12,14 +13,14 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   assert(app->cdim > 1);
   // The field-level FLR model must be chosen explicitly when species use FLR.
   assert(f->info.flr.type != GKYL_GK_FLR_NONE);
-  f->invert_flr = gk_field_invert_flr;
+  f->invert_flr = f->info.flr.type == GKYL_GK_FLR_PADE_CONST_OP? gk_field_invert_flr_op : gk_field_invert_flr_const;
 
   // Reference (squared) gyroradius in the operator A = 1 - rho^2*nabla_perp^2
   // used to retrieve phi from the modified potential Phi_0 (step 4 of the
   // algorithm in DR #797).
   double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
   double rhoSq_ref = 0.0;
-  if (f->info.flr.type == GKYL_GK_FLR_PADE_CONST) {
+  if (f->info.flr.type != GKYL_GK_FLR_PADE_CONST_SUM) {
     if (f->info.flr.gyroradius > 0.0) {
       // User-provided reference gyroradius.
       rhoSq_ref = pow(f->info.flr.gyroradius, 2.0);
@@ -56,8 +57,24 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     assert(eps_sum > 0.0);
     rhoSq_ref /= eps_sum;
   }
-  // The apply passes boundary values through Dirichlet rows, so spatially
-  // varying Dirichlet BCs are not supported with FLR effects.
+  // Modified potential Phi_0 and a buffer, used in the local term and the
+  // field energy diagnostic.
+  f->flr_phi0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->flr_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->flr_energy_red = app->use_gpu? gkyl_cu_malloc(sizeof(double[1])) : gkyl_malloc(sizeof(double[1]));
+
+  if (f->info.flr.type != GKYL_GK_FLR_PADE_CONST_OP) {
+    // Use the simplification phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J
+    double polarization_weight = 0.0;
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *s = &app->species[i];
+      polarization_weight += s->info.polarization_density*s->info.mass/pow(polarization_bmag,2);
+    }
+    f->flr_local_fac = rhoSq_ref/polarization_weight;
+    return;
+  }
+
+  // Spatially varying Dirichlet BCs are not supported with the FEM operator.
   for (int d = 0; d < app->cdim - 1; d++) {
     assert(f->poisson_bcs.lo_type[d] != GKYL_POISSON_DIRICHLET_VARYING);
     assert(f->poisson_bcs.up_type[d] != GKYL_POISSON_DIRICHLET_VARYING);
@@ -75,18 +92,23 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_set(f->flr_kSq, -1.0, app->gk_geom->geo_int.jacobgeo);
 
   f->flr_op = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis, &f->poisson_bcs, f->info.bias_line_list, f->flr_rhoSq, f->flr_kSq, app->use_gpu);
-
-  // Modified potential Phi_0 and a buffer, used in the field energy diagnostic.
-  f->flr_phi0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->flr_energy_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->flr_energy_red = app->use_gpu? gkyl_cu_malloc(sizeof(double[1])) : gkyl_malloc(sizeof(double[1]));
 }
 
 void
-gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
+gk_field_invert_flr_const(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
 {
-  // Retrieve phi from the potential obtained from the FLR charge.
-  // phi = (1 - rho^2*nabla_perp^2) Phi_0
+  // phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J, rho_c the (J-weighted) charge
+  // density used in the Poisson solve.
+  gkyl_array_copy(field->flr_phi0, phi);
+  gkyl_dg_mul_op_range(&app->basis, 0, field->flr_buff, 0, app->gk_geom->geo_int.jacobgeo_inv,
+    0, field->rho_c, &app->local);
+  gkyl_array_accumulate_range(phi, field->flr_local_fac, field->flr_buff, &app->local);
+}
+
+void
+gk_field_invert_flr_op(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
+{
+  // phi = (1 - rho^2*nabla_perp^2) Phi_0 with the FEM perpendicular operator.
   gkyl_array_copy(field->flr_phi0, phi);
   gkyl_fem_poisson_perp_lhs_apply(field->flr_op, phi, phi);
 }
@@ -99,11 +121,13 @@ gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field, stru
 void
 gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
-  gkyl_array_release(f->flr_rhoSq);
-  gkyl_array_release(f->flr_kSq);
-  gkyl_fem_poisson_perp_release(f->flr_op);
+  if (f->info.flr.type == GKYL_GK_FLR_PADE_CONST_OP) {
+    gkyl_array_release(f->flr_rhoSq);
+    gkyl_array_release(f->flr_kSq);
+    gkyl_fem_poisson_perp_release(f->flr_op);
+  }
   gkyl_array_release(f->flr_phi0);
-  gkyl_array_release(f->flr_energy_buff);
+  gkyl_array_release(f->flr_buff);
   if (app->use_gpu)
     gkyl_cu_free(f->flr_energy_red);
   else
