@@ -152,6 +152,12 @@ enum gkyl_geometry_id {
   GKYL_GEOMETRY_FROMFILE, // Geometry from file.
 };
 
+// Type of BC used in closed flux surface regions.
+enum gkyl_closed_flux_bc_type {
+  GKYL_CLOSED_FLUX_TSBC = 0, // Twist-shift BC with anti-aliasing filter (default).
+  GKYL_CLOSED_FLUX_TSBC_NOFILTER, // Twist-shift BC without filter.
+};
+
 // type of quadrature to use
 enum gkyl_quad_type {
   GKYL_GAUSS_QUAD = 0, // Gauss-Legendre quadrature
