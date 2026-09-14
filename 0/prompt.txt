@@ -1,0 +1,17 @@
+I force build/test this branch (agent_tools-jenkins-stellar_intel) using my personal computer controller (Jenkinsfile) on my laptop which has 12 cores, and I noticed that the regression tests were batched in groups of 12. Why?
+
+---
+
+Maybe the default should be half if the physical CPU cores
+
+---
+
+is there a way to detect the number of physical CPUs, and use half of that, instead of hardcoding --jobs 6?
+
+---
+
+The plan says this will be done before the candidate C-regression check, but I think it should take place before the C-regression create (when accepted values are created), so that both the create and check stages use the correct number of jobs
+
+---
+
+Implement the plan.
