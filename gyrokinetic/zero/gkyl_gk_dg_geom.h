@@ -24,6 +24,11 @@ struct gkyl_gk_dg_vol_geom {
   double bmag; // |B|
   double B3; // n^3 \cdot \vec{B}
   struct gkyl_vec3 dualcurlbhat; // duals dotted with curl(bhat)
+  double g_13; // metric tensor component g_{13} = e_1 . e_3
+  double g_23; // metric tensor component g_{23} = e_2 . e_3
+  double g_33; // metric tensor component g_{33} = e_3 . e_3
+  double mag_e_3; // magnitude of e_3
+  struct gkyl_vec3 bioverJB; // b_i/J_c/B
 };
 
 

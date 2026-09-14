@@ -27,8 +27,19 @@ gk_species_collisionless_flux_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
   // where they are not defined.
   gkyl_gk_collisionless_flux_surf(gkcls->surf_flux_op, 
     &app->local, &species->local, &app->local_ext, &species->local_ext, 
-    species->gyro_phi, fin, gkcls->flux_surf, species->cflrate);
+    species->gyro_phi, species->gyro_apar, species->gyro_apardot, fin, gkcls->flux_surf, species->cflrate);
 }
+
+static void
+gk_species_collisionless_flux_em_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin)
+{
+  // Compute the surface expansion of the phase space flux for ES + Apar contributions.
+  gkyl_gk_collisionless_flux_surf(gkcls->surf_flux_em_complete_op, 
+    &app->local, &species->local, &app->local_ext, &species->local_ext, 
+    species->gyro_phi, species->gyro_apar, species->gyro_apardot, fin, gkcls->flux_surf, species->cflrate);
+}
+
 
 static void
 gk_species_collisionless_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
@@ -47,6 +58,23 @@ gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_specie
   gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
+  gkcls->fdot_scaling(app, species, gkcls, rhs, species->cflrate, &species->local);
+
+  app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
+gk_species_collisionless_rhs_em_complete_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  gkcls->flux_func_em_complete(app, species, gkcls, fin);
+
+  gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr_em_complete, &species->local,
+    fin, species->cflrate, rhs);
+
+  // AH Note: I'm not sure we need this here.
   gkcls->fdot_scaling(app, species, gkcls, rhs, species->cflrate, &species->local);
 
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
@@ -201,11 +229,13 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
   struct gk_collisionless *gkcls)
 {
   gkcls->collisionless_id = gks->info.collisionless.type;
+  gkcls->no_by = gks->info.collisionless.no_by;
   gkcls->write_diagnostics = gks->info.collisionless.write_diagnostics;
 
   gkcls->write_diags_func = gk_species_collisionless_write_diags_disabled;
   gkcls->flux_func = gk_species_collisionless_flux_disabled;
   gkcls->rhs_func = gk_species_collisionless_rhs_disabled;
+  gkcls->rhs_em_complete_func = gk_species_collisionless_rhs_disabled;
 
   if (gkcls->collisionless_id) {
 
@@ -252,31 +282,38 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gkcls->flux_surf = mkarr(app->use_gpu,
         cdim*surf_basis.num_basis + surf_vpar_basis.num_basis, gks->local_ext.volume);
 
-      if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP) {
-        // Parallel component of magnetic vector potential.
-        gkcls->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-        gkcls->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      }
-      else {
-        gkcls->apar    = gkyl_array_acquire(app->field->phi_smooth); // Not used.
-        gkcls->apardot = gkyl_array_acquire(app->field->phi_smooth); // Not used.
-      }
-
+      bool complete_em = false;
       gkcls->surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis,
         gks->info.charge, gks->info.mass,
-        gkcls->collisionless_id, app->gk_geom,
+        gkcls->collisionless_id, gkcls->no_by, complete_em, app->gk_geom,
         app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
       struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf,
-        .phi = gks->gyro_phi, .apar = gkcls->apar, .apardot = gkcls->apardot };
+        .phi = gks->gyro_phi, .apar = gks->gyro_apar, .apardot = gks->gyro_apardot };
       // Create solver.
       gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis,
         &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-        gkcls->collisionless_id, app->gk_geom, gks->vel_map,
+        gkcls->collisionless_id, gkcls->no_by, complete_em, app->gk_geom, gks->vel_map,
         &aux_inp, app->use_gpu);
 
       gkcls->flux_func = gk_species_collisionless_flux_enabled;
       gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
+
+      // Electromagnetic set up.
+      if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM) {
+        // Set up ES + Apar contributions to flux and solver.
+        complete_em = true;
+        gkcls->surf_flux_em_complete_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis,
+          gks->info.charge, gks->info.mass, gkcls->collisionless_id, gkcls->no_by, complete_em, app->gk_geom,
+          app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
+        gkcls->slvr_em_complete = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis,
+          &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
+          gkcls->collisionless_id, gkcls->no_by, complete_em, app->gk_geom, gks->vel_map,
+          &aux_inp, app->use_gpu);
+        // Methods chosen at runtime.
+        gkcls->flux_func_em_complete = gk_species_collisionless_flux_em_enabled;
+        gkcls->rhs_em_complete_func = gk_species_collisionless_rhs_em_complete_enabled;
+      }
     }
 
     gkcls->scale_fac = 1.0; // Not used if scale_factor in input file is not given.
@@ -304,7 +341,15 @@ void
 gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  // gkyl_array_clear(gkcls->flux_surf, 0.0);
   gkcls->rhs_func(app, species, gkcls, fin, rhs);
+}
+
+void
+gk_species_collisionless_rhs_em_complete(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  gkcls->rhs_em_complete_func(app, species, gkcls, fin, rhs);
 }
 
 void
@@ -327,10 +372,13 @@ gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const s
       gkyl_gk_collisionless_passive_flux_release(gkcls->passive_surf_flux_op);
       gkyl_dg_updater_gyrokinetic_passive_release(gkcls->passive_slvr);
     } else {
-      gkyl_array_release(gkcls->apar);
-      gkyl_array_release(gkcls->apardot);
       gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op);
       gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);
+    }
+
+    if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM) {
+      gkyl_gk_collisionless_flux_release(gkcls->surf_flux_em_complete_op);
+      gkyl_dg_updater_gyrokinetic_release(gkcls->slvr_em_complete);
     }
 
     if (gkcls->write_diagnostics) {

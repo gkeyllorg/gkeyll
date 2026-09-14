@@ -317,7 +317,7 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
 
   double r = r_x(x, a_mid, x_inner);
 
-  fout[0] = Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) );
+  fout[0] = Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) )/2; // Half the shift for stability.
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
@@ -333,7 +333,7 @@ void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, vo
 
   double r = r_x(x, a_mid, x_inner);
 
-  fout[0] = -Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) );
+  fout[0] = -Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) )/2; // Half the shift for stability.
 }
 
 struct gk_app_ctx create_ctx(void)
@@ -808,7 +808,6 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ES,
     .polarization_bmag = ctx.Bref,
     .poisson_bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },

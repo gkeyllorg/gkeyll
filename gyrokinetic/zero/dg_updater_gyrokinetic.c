@@ -15,12 +15,14 @@ gkyl_dg_updater_gyrokinetic_acquire_eqn(const gkyl_dg_updater_gyrokinetic* gyrok
   return gkyl_dg_eqn_acquire(gyrokinetic->eqn_gyrokinetic);
 }
 
+// TODO: remove add_em flag and replace by the collisionless enum type.
+
 struct gkyl_dg_updater_gyrokinetic*
 gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const bool *is_zero_flux_bc, double charge, double mass, 
-  enum gkyl_gk_collisionless_type collless_type, const struct gk_geometry *gk_geom, 
+  enum gkyl_gk_collisionless_type collless_type, const bool no_by, const bool complete_em, const struct gk_geometry *gk_geom, 
   const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu)
 {
   struct gkyl_dg_updater_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_gyrokinetic));
@@ -28,16 +30,31 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   up->use_gpu = use_gpu;
 
   up->eqn_gyrokinetic = gkyl_dg_gyrokinetic_new(cbasis, pbasis, conf_range, phase_range, 
-    charge, mass, collless_type, gk_geom, vel_map, up->use_gpu);
+    charge, mass, collless_type, no_by, complete_em, gk_geom, vel_map, up->use_gpu);
 
   struct gkyl_dg_gyrokinetic_auxfields *gk_inp = aux_inp;
   gkyl_gyrokinetic_set_auxfields(up->eqn_gyrokinetic, *gk_inp);
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
+
   int up_dirs[GKYL_MAX_DIM] = {0};
-  int num_up_dirs = cdim+1;
-  for (int d=0; d<num_up_dirs; ++d) up_dirs[d] = d;
+  int num_up_dirs;
+  if (collless_type == GKYL_GK_COLLISIONLESS_ES) {
+    // For ES, we always update all surface fluxes.
+    num_up_dirs = cdim+1;
+    for (int d=0; d<num_up_dirs; ++d) up_dirs[d] = d;
+  } else {
+    // For EM, we split the conf. space and vpar surface fluxes for the partial RHS computation.
+    if (complete_em) {
+      num_up_dirs = 1;
+      up_dirs[0] = cdim; // Only surface flux in vpar direction.
+
+    } else {
+      num_up_dirs = cdim; // Only surface fluxes in configuration space.
+      for (int d=0; d<num_up_dirs; ++d) up_dirs[d] = d;
+    }
+  }
 
   int zero_flux_flags[2*GKYL_MAX_DIM] = {0};
   for (int d=0; d<cdim; ++d) {

@@ -1420,6 +1420,8 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
                     -gFld_n[1]*( gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] )
                     +gFld_n[2]*( gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
         double J = sqrt(Jsq);
+         double *jFld_n= gkyl_array_fetch(gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+         jFld_n[0] = J;
         double e_1[3], e_2[3], e_3[3];
         e_1[0] = dxdz[0][0]; e_1[1] = dxdz[1][0]; e_1[2] = dxdz[2][0];
         e_2[0] = dxdz[0][1]; e_2[1] = dxdz[1][1]; e_2[2] = dxdz[2][1];

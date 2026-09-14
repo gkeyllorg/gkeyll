@@ -22,13 +22,13 @@ GKYL_CU_DH double dg_gyrokinetic_no_by_vol_2x2v_ser_p1(const double *w, const do
   double rdvpar2Sq = rdvpar2*rdvpar2;
   double dvparSq = dxv[2]*dxv[2];
 
-  const double *bioverJB_x = &bioverJB[0]; 
-  const double *bioverJB_y = &bioverJB[4]; 
-  const double *bioverJB_z = &bioverJB[8]; 
+  const double *bioverJB_1 = &bioverJB[0]; 
+  const double *bioverJB_2 = &bioverJB[4]; 
+  const double *bioverJB_3 = &bioverJB[8]; 
 
-  const double *dualcurlbhatoverB_x = &dualcurlbhatoverB[0]; 
-  const double *dualcurlbhatoverB_y = &dualcurlbhatoverB[4]; 
-  const double *dualcurlbhatoverB_z = &dualcurlbhatoverB[8]; 
+  const double *dualcurlbhatoverB_1 = &dualcurlbhatoverB[0]; 
+  const double *dualcurlbhatoverB_2 = &dualcurlbhatoverB[4]; 
+  const double *dualcurlbhatoverB_3 = &dualcurlbhatoverB[8]; 
 
   double hamil[24] = {0.}; 
   hamil[0] = 2.0*phi[0]*q_+1.4142135623730951*(vmapSq[0]*m_+bmag[0]*vmap[2]); 

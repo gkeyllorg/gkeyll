@@ -154,4 +154,4 @@ $(BINS): %: %.c
 	${CC} ${CFLAGS} ${INCLUDES} $< -o $@ -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LIB_DIRS} ${EXT_LIBS}
 
 clean:
-	rm -rf $(BINS) *.d wk
+	rm -rf $(BINS) *.d

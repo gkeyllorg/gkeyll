@@ -98,6 +98,7 @@ struct gkyl_phase_diagnostics_inp {
 // Parameters for collisionless terms.
 struct gkyl_gyrokinetic_collisionless {
   enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
+  bool no_by; // Whether to neglect the toroidal field (b_y=0)
   bool write_diagnostics; // Whether to output diagnostics.
   double scale_factor; // Factor multiplying collisionless terms (should be > 0).
   // Passive advection speeds in x, y, z (for GKYL_GK_COLLISIONLESS_PASSIVE).
@@ -553,6 +554,7 @@ struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   bool is_static; // =true field does not change in time.
   bool zero_init_field; // =true doesn't compute the initial field.
+  bool calc_init_apar; // Whether to calculate the initial Apar from the initial condition of the distribution function.
 
   double polarization_bmag; // B factor in the polarization density.
   double kperpSq; // kperp^2 parameter for 1D field equations
@@ -561,6 +563,12 @@ struct gkyl_gyrokinetic_field {
   double electron_mass, electron_charge, electron_density, electron_temp;
 
   struct gkyl_gyrokinetic_bc poisson_bcs[2*GKYL_MAX_CDIM];
+
+  // parameters for EMGK
+  struct gkyl_gyrokinetic_bc ampere_bcs[2*GKYL_MAX_CDIM];
+  double mu0; // Magnetic permeability of free space.
+  bool remove_em_zonal; // Whether to remove zonal component.
+  bool is_apar_static; // =true Apar at initial time is used for all time steps.
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 
@@ -694,7 +702,9 @@ struct gkyl_gyrokinetic_stat {
 
   double field_tm; // Time to compute fields.
   double field_phi_rhs_tm; // Time spent on poisson eqn RHS.
-  double field_phi_solve_tm;   // Time spent to solve poisson eqn.
+  double field_phi_solve_tm; // Time spent to solve poisson eqn.
+  double field_apar_rhs_tm; // Time spent on parallel Ampere eqn RHS.
+  double field_apar_solve_tm; // Time spent to solve parallel Ampere eqn.
 
   double bc_tm; // Time to compute BCs.
   double species_bc_tm; // Time to compute species BCs.

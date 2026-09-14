@@ -228,5 +228,37 @@ GKYL_CU_DH double dg_gyrokinetic_boundary_surfvpar_3x2v_ser_p1(const double *w, 
               const double *flux_surf_edge, const double *flux_surf_skin, 
               const int edge, double* GKYL_RESTRICT out); 
 
+GKYL_CU_DH double dg_gyrokinetic_add_apar_vol_1x1v_ser_p1(const double *w, const double *dxv, 
+            const double *vmap, const double *vmapSq, const double q_, const double m_, 
+            const double *bmag, const double *jacobtot_inv, const double *dualcurlbhatoverB, const double *bioverJB,
+            const double *b_i, const double *phi, const double *apar,
+            const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double dg_gyrokinetic_add_apardot_vol_1x1v_ser_p1(const double *vmap, const double q_, const double m_,
+            const double *apardot, const double *fin, double* GKYL_RESTRICT out); 
+
+GKYL_CU_DH double dg_gyrokinetic_add_apar_vol_1x2v_ser_p1(const double *w, const double *dxv, 
+            const double *vmap, const double *vmapSq, const double q_, const double m_, 
+            const double *bmag, const double *jacobtot_inv, const double *dualcurlbhatoverB, const double *bioverJB,
+            const double *b_i, const double *phi, const double *apar,
+            const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double dg_gyrokinetic_add_apardot_vol_1x2v_ser_p1(const double *vmap, const double q_, const double m_,
+            const double *apardot, const double *fin, double* GKYL_RESTRICT out); 
+
+GKYL_CU_DH double dg_gyrokinetic_add_apar_vol_2x2v_ser_p1(const double *w, const double *dxv, 
+            const double *vmap, const double *vmapSq, const double q_, const double m_, 
+            const double *bmag, const double *jacobtot_inv, const double *dualcurlbhatoverB, const double *bioverJB,
+            const double *b_i, const double *phi, const double *apar,
+            const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double dg_gyrokinetic_add_apardot_vol_2x2v_ser_p1(const double *vmap, const double q_, const double m_,
+            const double *apardot, const double *fin, double* GKYL_RESTRICT out); 
+
+GKYL_CU_DH double dg_gyrokinetic_add_apar_vol_3x2v_ser_p1(const double *w, const double *dxv, 
+            const double *vmap, const double *vmapSq, const double q_, const double m_, 
+            const double *bmag, const double *jacobtot_inv, const double *dualcurlbhatoverB, const double *bioverJB,
+            const double *b_i, const double *phi, const double *apar,
+            const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double dg_gyrokinetic_add_apardot_vol_3x2v_ser_p1(const double *vmap, const double q_, const double m_,
+            const double *apardot, const double *fin, double* GKYL_RESTRICT out); 
+
 
 EXTERN_C_END
