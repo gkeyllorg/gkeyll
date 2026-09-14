@@ -231,6 +231,7 @@ struct gkyl_gyrokinetic_closed_flux_bcs {
   void (*parallel_upper_bc_shift_func)(double t, const double *xn, double *fout, void *ctx); // Upper twist-shift function.
   void *parallel_lower_bc_shift_ctx; // Context for lower twist-shift function.
   void *parallel_upper_bc_shift_ctx; // Context for upper twist-shift function.
+  enum gkyl_closed_flux_bc_type type; // BC type.
   int ts_upsample_factor; // Twist-shift supersampling factor (default 4).
   int ts_filter_half_width; // Twist-shift filter stencil half-width in cells of the simulation grid (default 1).
   double ts_filter_cutoff_wavelength; // Twist-shift filter cutoff wavelength (default 2*dx, the coarse mesh Nyquist).

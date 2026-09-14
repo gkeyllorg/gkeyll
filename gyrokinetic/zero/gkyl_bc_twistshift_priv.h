@@ -19,7 +19,7 @@ struct gkyl_bc_twistshift {
   void (*advance_func)(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
   int filter_half_width; // Filter stencil half-width M in cells of the field's
-                         // own grid (0 = no filter).
+                         // own grid (0 if unfiltered).
   int half_width_fine; // The same stencil measured in supersampled cells.
   double filter_cutoff_wavelength; // Filter cutoff wavelength.
   int upsample_factor; // Supersampling factor along shear_dir.

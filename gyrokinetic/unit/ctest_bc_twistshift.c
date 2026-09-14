@@ -142,6 +142,7 @@ ts_run(const struct ts_setup *s, enum gkyl_edge_loc edge, int upsample, int half
     .basis = &s->basis,
     .grid = &s->grid,
     .use_gpu = false,
+    .type = half_width == 0? GKYL_CLOSED_FLUX_TSBC_NOFILTER : GKYL_CLOSED_FLUX_TSBC,
     .upsample_factor = upsample,
     .filter_half_width = half_width,
     .filter_cutoff_wavelength = cutoff,

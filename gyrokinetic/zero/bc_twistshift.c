@@ -95,9 +95,19 @@ gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
   struct gkyl_bc_twistshift *up = gkyl_malloc(sizeof(*up));
 
   up->use_gpu = inp->use_gpu;
-  up->filter_half_width = inp->filter_half_width;
-  up->filter_cutoff_wavelength = inp->filter_cutoff_wavelength;
-  up->upsample_factor = inp->upsample_factor > 1 ? inp->upsample_factor : 1;
+  if (inp->type == GKYL_CLOSED_FLUX_TSBC_NOFILTER) {
+    up->filter_half_width = 0;
+    up->filter_cutoff_wavelength = 0.0;
+    up->upsample_factor = 1;
+  }
+  else {
+    // Default filter: supersample by 4, stencil one coarse cell wide on each
+    // side, cutoff at the coarse mesh Nyquist wavelength along shear_dir.
+    up->filter_half_width = inp->filter_half_width > 0 ? inp->filter_half_width : 1;
+    up->filter_cutoff_wavelength = inp->filter_cutoff_wavelength > 0.0 ?
+      inp->filter_cutoff_wavelength : 2.0*inp->grid->dx[inp->shear_dir];
+    up->upsample_factor = inp->upsample_factor > 0 ? inp->upsample_factor : 4;
+  }
 
   up->filter = NULL;
   up->filt_buff = NULL;
@@ -113,11 +123,8 @@ gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
 
   // A stencil one fine cell wide is the identity kernel.
   assert(up->half_width_fine != 1);
-  // Supersampling is only useful if there is filtering.
-  if (up->upsample_factor > 1)
-    assert(up->filter_half_width > 0 && up->filter_cutoff_wavelength > 0.0);
 
-  if (up->filter_half_width == 0) {
+  if (inp->type == GKYL_CLOSED_FLUX_TSBC_NOFILTER) {
     // Plain twist-shift.
     struct gkyl_twistshift_dg_inp tsinp = {
       .bc_dir = inp->bc_dir,
@@ -226,27 +233,28 @@ struct gkyl_bc_twistshift*
 gkyl_bc_twistshift_new(int bc_dir, int shift_dir, int shear_dir,
   enum gkyl_edge_loc edge, int cdim, const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost,
   const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, evalf_t shift_func, void *shift_func_ctx,
-  struct gkyl_array *shift_dg, int shift_poly_order, int filter_half_width,
-  double filter_cutoff_wavelength, int upsample_factor, bool use_gpu)
+  struct gkyl_array *shift_dg, int shift_poly_order, enum gkyl_closed_flux_bc_type type,
+  int filter_half_width, double filter_cutoff_wavelength, int upsample_factor, bool use_gpu)
 {
   struct gkyl_bc_twistshift_inp inp = {
-    .bc_dir                   = bc_dir                  ,
-    .shift_dir                = shift_dir               ,
-    .shear_dir                = shear_dir               ,
-    .edge                     = edge                    ,
-    .cdim                     = cdim                    ,
-    .bcdir_ext_update_r       = bcdir_ext_update_r      ,
-    .num_ghost                = num_ghost               ,
-    .basis                    = basis                   ,
-    .grid                     = grid                    ,
-    .shift_func               = shift_func              ,
-    .shift_func_ctx           = shift_func_ctx          ,
-    .shift_dg                 = shift_dg                ,
-    .use_gpu                  = use_gpu                 ,
-    .shift_poly_order         = shift_poly_order        ,
-    .filter_half_width        = filter_half_width       ,
+    .bc_dir = bc_dir,
+    .shift_dir = shift_dir,
+    .shear_dir = shear_dir,
+    .edge = edge,
+    .cdim = cdim,
+    .bcdir_ext_update_r = bcdir_ext_update_r,
+    .num_ghost = num_ghost,
+    .basis = basis,
+    .grid = grid,
+    .shift_func = shift_func,
+    .shift_func_ctx = shift_func_ctx,
+    .shift_dg = shift_dg,
+    .use_gpu = use_gpu,
+    .shift_poly_order = shift_poly_order,
+    .type = type,
+    .filter_half_width = filter_half_width,
     .filter_cutoff_wavelength = filter_cutoff_wavelength,
-    .upsample_factor          = upsample_factor         ,
+    .upsample_factor = upsample_factor,
   };
   return gkyl_bc_twistshift_inew(&inp);
 }

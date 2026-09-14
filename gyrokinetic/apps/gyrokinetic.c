@@ -173,15 +173,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   int cdim = app->cdim = gk->cdim;
   int poly_order = app->poly_order = gk->poly_order;
 
-  // Setup the filter for twist-shift BCs.
-  app->ts_upsample_factor = gk->geometry.closed_flux_bcs.ts_upsample_factor == 0? 4 : gk->geometry.closed_flux_bcs.ts_upsample_factor;
-  app->ts_filter_half_width = gk->geometry.closed_flux_bcs.ts_filter_half_width == 0? 1 : gk->geometry.closed_flux_bcs.ts_filter_half_width;
-  app->ts_filter_cutoff_wavelength = gk->geometry.closed_flux_bcs.ts_filter_cutoff_wavelength;
-  if (app->ts_filter_cutoff_wavelength == 0.0 && cdim == 3) {
-    // Set by default the cutoff wavelength to be the mesh Nyquist wavelength in the shear direction.
-    double dx = (gk->upper[0] - gk->lower[0]) / gk->cells[0];
-    app->ts_filter_cutoff_wavelength = 2.0 * dx;
-  }
+  // Closed flux surface BCs (filter defaults are set in bc_twistshift).
+  app->closed_flux_bcs = gk->geometry.closed_flux_bcs;
 
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;

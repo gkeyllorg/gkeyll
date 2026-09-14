@@ -267,9 +267,10 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       .basis = &app->basis,
       .grid = &app->grid,
       .use_gpu = app->use_gpu,
-      .upsample_factor = app->ts_upsample_factor,
-      .filter_half_width = app->ts_filter_half_width,
-      .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
+      .type = app->closed_flux_bcs.type,
+      .upsample_factor = app->closed_flux_bcs.ts_upsample_factor,
+      .filter_half_width = app->closed_flux_bcs.ts_filter_half_width,
+      .filter_cutoff_wavelength = app->closed_flux_bcs.ts_filter_cutoff_wavelength,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_LU_lo.shift_dg = app->delta_ts_x_lo;
@@ -291,9 +292,10 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       .basis = &app->basis,
       .grid = &app->grid,
       .use_gpu = app->use_gpu,
-      .upsample_factor = app->ts_upsample_factor,
-      .filter_half_width = app->ts_filter_half_width,
-      .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
+      .type = app->closed_flux_bcs.type,
+      .upsample_factor = app->closed_flux_bcs.ts_upsample_factor,
+      .filter_half_width = app->closed_flux_bcs.ts_filter_half_width,
+      .filter_cutoff_wavelength = app->closed_flux_bcs.ts_filter_cutoff_wavelength,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_UL_up.shift_dg = app->delta_ts_x_up;
@@ -370,9 +372,10 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
       .basis = &app->basis,
       .grid = &app->grid,
       .use_gpu = app->use_gpu,
-      .upsample_factor = app->ts_upsample_factor,
-      .filter_half_width = app->ts_filter_half_width,
-      .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
+      .type = app->closed_flux_bcs.type,
+      .upsample_factor = app->closed_flux_bcs.ts_upsample_factor,
+      .filter_half_width = app->closed_flux_bcs.ts_filter_half_width,
+      .filter_cutoff_wavelength = app->closed_flux_bcs.ts_filter_cutoff_wavelength,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_LU_lo.shift_dg = app->delta_ts_x_lo;

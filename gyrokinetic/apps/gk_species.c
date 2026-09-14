@@ -904,9 +904,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .basis = &gks->basis,
         .grid = &gks->grid,
         .use_gpu = app->use_gpu,
-        .upsample_factor = app->ts_upsample_factor,
-        .filter_half_width = app->ts_filter_half_width,
-        .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
+        .type = app->closed_flux_bcs.type,
+        .upsample_factor = app->closed_flux_bcs.ts_upsample_factor,
+        .filter_half_width = app->closed_flux_bcs.ts_filter_half_width,
+        .filter_cutoff_wavelength = app->closed_flux_bcs.ts_filter_cutoff_wavelength,
       };
       if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
         tsinp.shift_dg = app->delta_ts_x_lo;
@@ -967,9 +968,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .basis = &gks->basis,
         .grid = &gks->grid,
         .use_gpu = app->use_gpu,
-        .upsample_factor = app->ts_upsample_factor,
-        .filter_half_width = app->ts_filter_half_width,
-        .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
+        .type = app->closed_flux_bcs.type,
+        .upsample_factor = app->closed_flux_bcs.ts_upsample_factor,
+        .filter_half_width = app->closed_flux_bcs.ts_filter_half_width,
+        .filter_cutoff_wavelength = app->closed_flux_bcs.ts_filter_cutoff_wavelength,
       };
       if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
         tsinp.shift_dg = app->delta_ts_x_up;
@@ -1023,9 +1025,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       .basis = &gks->basis,
       .grid = &gks->grid,
       .use_gpu = app->use_gpu,
-      .upsample_factor = app->ts_upsample_factor,
-      .filter_half_width = app->ts_filter_half_width,
-      .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
+      .type = app->closed_flux_bcs.type,
+      .upsample_factor = app->closed_flux_bcs.ts_upsample_factor,
+      .filter_half_width = app->closed_flux_bcs.ts_filter_half_width,
+      .filter_cutoff_wavelength = app->closed_flux_bcs.ts_filter_cutoff_wavelength,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       tsinp_lo.shift_dg = app->delta_ts_x_lo;
@@ -1046,9 +1049,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       .basis = &gks->basis,
       .grid = &gks->grid,
       .use_gpu = app->use_gpu,
-      .upsample_factor = app->ts_upsample_factor,
-      .filter_half_width = app->ts_filter_half_width,
-      .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
+      .type = app->closed_flux_bcs.type,
+      .upsample_factor = app->closed_flux_bcs.ts_upsample_factor,
+      .filter_half_width = app->closed_flux_bcs.ts_filter_half_width,
+      .filter_cutoff_wavelength = app->closed_flux_bcs.ts_filter_cutoff_wavelength,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       tsinp_up.shift_dg = app->delta_ts_x_up;

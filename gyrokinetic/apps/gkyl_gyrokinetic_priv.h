@@ -1443,9 +1443,7 @@ struct gkyl_gyrokinetic_app {
   
   int cdim; // Configuration space dimensions.
   int poly_order; // Polynomial order.
-  int ts_upsample_factor; // Twist-shift supersampling factor (0/1 = none).
-  int ts_filter_half_width; // Twist-shift filter half-width (0 = off).
-  double ts_filter_cutoff_wavelength; // Twist-shift filter cutoff wavelength.
+  struct gkyl_gyrokinetic_closed_flux_bcs closed_flux_bcs; // BCs in closed flux surface region.
   double tcurr; // Current time.
   double cfl; // CFL number.
   double cfl_omegaH; // CFL number used for omega_H.
