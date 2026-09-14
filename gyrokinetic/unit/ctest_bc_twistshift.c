@@ -349,6 +349,8 @@ void
 test_dealiasing_smooths_shear_direction(void)
 {
   // Check that the anti-aliasing filter actually smooths the field along the shear direction.
+  // We test that the total variation along the x-direction of the cell averages, 
+  // summed over the ghost plane, is smaller for the filtered result than for the plain twist-shift.
   struct ts_ctx tctx = { .offset = 0.75, .shear = 2.9 };
   double dx = (ts_upper[0]-ts_lower[0])/ts_cells[0];
 
@@ -358,7 +360,6 @@ test_dealiasing_smooths_shear_direction(void)
   struct gkyl_array *f_plain = ts_run(&s, GKYL_LOWER_EDGE, 1, 0, 0.0, NULL, &tctx);
   struct gkyl_array *f_deal = ts_run(&s, GKYL_LOWER_EDGE, 4, 4, 2.0*dx, NULL, &tctx);
 
-  // Total variation along x of the cell averages, summed over the ghost plane.
   double tv[2] = {0.0, 0.0};
   struct gkyl_array *fs[] = {f_plain, f_deal};
   for (int q=0; q<2; q++) {
