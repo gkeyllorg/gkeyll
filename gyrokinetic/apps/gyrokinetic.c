@@ -174,9 +174,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   int poly_order = app->poly_order = gk->poly_order;
 
   // Setup the filter for twist-shift BCs.
-  app->ts_upsample_factor = gk->geometry.ts_upsample_factor == 0? 4 : gk->geometry.ts_upsample_factor;
-  app->ts_filter_half_width = gk->geometry.ts_filter_half_width == 0? 1 : gk->geometry.ts_filter_half_width;
-  app->ts_filter_cutoff_wavelength = gk->geometry.ts_filter_cutoff_wavelength;
+  app->ts_upsample_factor = gk->geometry.closed_flux_bcs.ts_upsample_factor == 0? 4 : gk->geometry.closed_flux_bcs.ts_upsample_factor;
+  app->ts_filter_half_width = gk->geometry.closed_flux_bcs.ts_filter_half_width == 0? 1 : gk->geometry.closed_flux_bcs.ts_filter_half_width;
+  app->ts_filter_cutoff_wavelength = gk->geometry.closed_flux_bcs.ts_filter_cutoff_wavelength;
   if (app->ts_filter_cutoff_wavelength == 0.0 && cdim == 3) {
     // Set by default the cutoff wavelength to be the mesh Nyquist wavelength in the shear direction.
     double dx = (gk->upper[0] - gk->lower[0]) / gk->cells[0];
@@ -343,10 +343,10 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .comm = app->comm,
     .has_LCFS = gk->geometry.has_LCFS,
     .x_LCFS = gk->geometry.x_LCFS,
-    .parallel_lower_bc_shift_func = gk->geometry.parallel_lower_bc_shift_func,
-    .parallel_upper_bc_shift_func = gk->geometry.parallel_upper_bc_shift_func,
-    .parallel_lower_bc_shift_ctx  = gk->geometry.parallel_lower_bc_shift_ctx ,
-    .parallel_upper_bc_shift_ctx  = gk->geometry.parallel_upper_bc_shift_ctx ,
+    .parallel_lower_bc_shift_func = gk->geometry.closed_flux_bcs.parallel_lower_bc_shift_func,
+    .parallel_upper_bc_shift_func = gk->geometry.closed_flux_bcs.parallel_upper_bc_shift_func,
+    .parallel_lower_bc_shift_ctx  = gk->geometry.closed_flux_bcs.parallel_lower_bc_shift_ctx ,
+    .parallel_upper_bc_shift_ctx  = gk->geometry.closed_flux_bcs.parallel_upper_bc_shift_ctx ,
   };
   strcpy(geometry_inp.geometry_path, gk->geometry.geometry_path);
   for(int i = 0; i<3; i++)

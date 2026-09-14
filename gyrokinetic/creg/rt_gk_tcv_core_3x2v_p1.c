@@ -756,10 +756,12 @@ main(int argc, char **argv)
       .c2p_ctx = &ctx,
       .bfield_func = bfield_func, // Magnetic field.
       .bfield_ctx = &ctx,
-      .parallel_lower_bc_shift_func = bc_shift_func_lo,
-      .parallel_upper_bc_shift_func = bc_shift_func_up,
-      .parallel_lower_bc_shift_ctx = &ctx,
-      .parallel_upper_bc_shift_ctx = &ctx,
+      .closed_flux_bcs = {
+        .parallel_lower_bc_shift_func = bc_shift_func_lo,
+        .parallel_upper_bc_shift_func = bc_shift_func_up,
+        .parallel_lower_bc_shift_ctx = &ctx,
+        .parallel_upper_bc_shift_ctx = &ctx,
+      },
     },
 
     .num_periodic_dir = 1,
