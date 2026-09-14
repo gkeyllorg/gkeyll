@@ -1,0 +1,27 @@
+I'm currently running the stellar build and it'll take a couple of hours to complete.
+
+What would be potential next steps for our Gkeyll CI development?
+
+---
+
+Regarding this item in number 4: "Consider separate Slurm jobs per physics layer later, which reduces restart cost after an individual failure." Can you explain further? what do you mean by reducing restart cost after an individual failure? because i would think that if there's an individual failure the whole build/test run must be declared as failed and there wouldn't be anything to restart.
+
+---
+
+I'd like to proceed with items 2 and 3 of the list above, and only the first sub-item from item 4 ("Measure login-node compile duration and Slurm execution duration"). Please create a plan for it
+
+---
+
+I have several questions:
+1. If triggered with CANDIDATE_REF, where is the CI status published to? I'm familiar with how it is published in a PR, but I don't know how it'll be published for a commit which doesn't have an open PR yet.
+2. If we are going to introduce CANDIDATE_REF, I think there should also be a BASELINE_REF, so that the user can chose which branch or commit to use as baseline.
+
+---
+
+One more thing: If the user provides PR_NUMBER, the baseline should be whatever branch the PR is trying to merge into.
+
+Lastly, please rename PR_NUMBER to CANDIDATE_PR, to mirror CANDIDATE_REF
+
+---
+
+Implement the plan.
