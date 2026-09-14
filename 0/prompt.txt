@@ -1,0 +1,71 @@
+The Jenkins build and unit test run succeeded and I can see in my Jenkins that it is reported as such. What next steps should we consider now?
+
+---
+
+I performed to manual checks: if there's an error in the build or if one of the unit tests fails, Jenkins reports it.
+
+I have a question: The plan says to "Replace synchronous sbatch --wait" and "monitors terminal state". How do you plan to monitor the running SLURM job?
+
+---
+
+Rather than querying slurm for the job state, would it be better or worse to have the job write a file at the end of the job, and Jenkins checks that file instead? I'm not advocating for this, just wondering if this is better or worse.
+
+---
+
+ok, never mind. Let's proceed with your original plan.
+
+---
+
+Implement the plan.
+
+---
+
+Regarding step 3, the Jenkins artifacts for the aborted job do not include slurm-job-status.txt.
+
+---
+
+Ok, i performed the checks you mentioned and everything seems to be in order. What are the next steps?
+
+---
+
+I'll create a new token. Can i delete the one we were using?
+
+---
+
+I changed the token, and the build proceeded. What's the next step to add status reporting?
+
+---
+
+Implement the plan.
+
+---
+
+The build failed after these changes. See /Users/mfrancis/Downloads/run_22.txt
+
+---
+
+That worked. Status is successfully reported to GitHub
+
+---
+
+Now I'd like to expand the testing. Currently it only runs the unit tests, but i'd like to it also run the regression tests (via runregression). Specifically, unlike the personal computer Jenkinsfile, this time i'd like it to run all the C regression tests (with runregression run -c).
+
+---
+
+Note that we may need to increase the duration of the SLURM job, maybe to as much as 4 hours.
+
+---
+
+I'd like to change one thing: the plan uses main as the baseline, but main doesn't have the latest version of the regression tests. For testing, use agent_tools-jenkins as the baseline.
+
+---
+
+Implement the plan.
+
+---
+
+I made the suggested changes. All the unit tests passed in the unit SLURM job. But the regression tests didn't, see /Users/mfrancis/Downloads/slurm-regression-2931350.out. I think the issue may be that "runregression run -c" compiles the tests before running them. If so, I think we may need to separate compiling and running tests from "runregression run". Maybe we need a "runregression run compile" that compiles tests, and a "-e, --execute-only" flag to "runregression run" that avoids the compilation step.
+
+---
+
+Implement the plan.
