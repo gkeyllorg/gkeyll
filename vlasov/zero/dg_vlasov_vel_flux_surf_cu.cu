@@ -589,7 +589,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   // tensor p=1 hybrid is anisotropic (2 conf nodes, 3/4 vel nodes by use_lo).
   int nq_conf = poly_order + 1, nq_vel = poly_order + 1;
   if ((poly_order > 1) && !inp->use_lo) { nq_conf = poly_order + 2; nq_vel = poly_order + 2; }
-  if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
+  if (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis) == GKYL_BASIS_MODAL_TENSOR) {
     if (poly_order == 1) {
       nq_conf = 2;
       nq_vel = inp->use_lo ? 3 : 4;
@@ -610,7 +610,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   struct gkyl_dg_vlasov_vel_flux_surf *up_cu = (struct gkyl_dg_vlasov_vel_flux_surf*) gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_vlasov_vel_flux_surf), GKYL_CU_MEMCPY_H2D);
 
-  gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, inp->conf_basis->b_type,
+  gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis),
     cdim, vdim, poly_order, inp->model_id, inp->hamil_id, inp->has_E, inp->has_phi, inp->has_B, inp->has_rad, inp->use_lo);
 
   // set parent on_dev pointer

@@ -40,9 +40,67 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_free(vlasov);
 }
 
+// Host-side check that every volume kernel the requested combination of basis,
+// model and Hamiltonian representation needs actually exists in the tables
+// (some rows are NULL, e.g. the 3x3v phase-space B kernels). Runs before the
+// device constructor too, so an unsupported combination fails with an assert
+// instead of a NULL device function pointer.
+static void
+dg_vlasov_check_vol_kernels(const struct gkyl_dg_vlasov_inp *inp)
+{
+  int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim, vdim = pdim-cdim;
+  int po = inp->conf_basis->poly_order;
+  int ki = cv_index[cdim].vdim[vdim];
+  assert(ki != -1);
+  bool ten = (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis) == GKYL_BASIS_MODAL_TENSOR);
+  bool sparse = (inp->hamil_id == GKYL_HAMIL_VEL_SPARSE);
+  bool phase = (inp->hamil_id == GKYL_HAMIL_PHASE);
+  bool triad = (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR);
+
+  const gkyl_dg_vlasov_hamil_vol_kern_list *hl;
+  if (triad) {
+    hl = phase ? (ten ? tensor_nc_hamil_phase_vol_kernels : ser_nc_hamil_phase_vol_kernels)
+      : sparse ? (ten ? tensor_nc_hamil_vel_sparse_vol_kernels : ser_nc_hamil_vel_sparse_vol_kernels)
+      : (ten ? tensor_nc_hamil_vel_dense_vol_kernels : ser_nc_hamil_vel_dense_vol_kernels);
+  }
+  else {
+    hl = phase ? (ten ? tensor_hamil_phase_vol_kernels : ser_hamil_phase_vol_kernels)
+      : sparse ? (ten ? tensor_hamil_vel_sparse_vol_kernels : ser_hamil_vel_sparse_vol_kernels)
+      : (ten ? tensor_hamil_vel_dense_vol_kernels : ser_hamil_vel_dense_vol_kernels);
+  }
+  assert(hl[ki].kernels[po]);
+
+  if (inp->has_B) {
+    const gkyl_dg_vlasov_B_vol_kern_list *bx, *by, *bz;
+    if (phase) {
+      bx = ten ? tensor_Bx_hamil_phase_vol_kernels : ser_Bx_hamil_phase_vol_kernels;
+      by = ten ? tensor_By_hamil_phase_vol_kernels : ser_By_hamil_phase_vol_kernels;
+      bz = ten ? tensor_Bz_hamil_phase_vol_kernels : ser_Bz_hamil_phase_vol_kernels;
+    }
+    else if (sparse) {
+      bx = ten ? tensor_Bx_hamil_vel_sparse_vol_kernels : ser_Bx_hamil_vel_sparse_vol_kernels;
+      by = ten ? tensor_By_hamil_vel_sparse_vol_kernels : ser_By_hamil_vel_sparse_vol_kernels;
+      bz = ten ? tensor_Bz_hamil_vel_sparse_vol_kernels : ser_Bz_hamil_vel_sparse_vol_kernels;
+    }
+    else {
+      bx = ten ? tensor_Bx_hamil_vel_dense_vol_kernels : ser_Bx_hamil_vel_dense_vol_kernels;
+      by = ten ? tensor_By_hamil_vel_dense_vol_kernels : ser_By_hamil_vel_dense_vol_kernels;
+      bz = ten ? tensor_Bz_hamil_vel_dense_vol_kernels : ser_Bz_hamil_vel_dense_vol_kernels;
+    }
+    assert(bx[ki].kernels[po]);
+    assert(by[ki].kernels[po]);
+    assert(bz[ki].kernels[po]);
+  }
+  if (inp->has_E) assert((ten ? tensor_E_vol_kernels : ser_E_vol_kernels)[ki].kernels[po]);
+  if (inp->has_phi) assert((ten ? tensor_phi_vol_kernels : ser_phi_vol_kernels)[ki].kernels[po]);
+  if (inp->has_rad) assert((ten ? tensor_rad_vol_kernels : ser_rad_vol_kernels)[ki].kernels[po]);
+}
+
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
 {
+  dg_vlasov_check_vol_kernels(inp);
+
 #ifdef GKYL_HAVE_CUDA
   if(inp->use_gpu) {
     return gkyl_dg_vlasov_cu_dev_inew(inp);
@@ -148,7 +206,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
     *accel_boundary_surf_vz_kernels;
   
   int kernel_index = cv_index[cdim].vdim[vdim]; 
-  switch (inp->conf_basis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       // Set function pointers for individual pieces of the volume update.
       if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR) {
@@ -246,7 +304,10 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
       }
       if (inp->has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
       if (inp->has_B) {
-        if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
+        // Phase-space Hamiltonians (triad-GR and canonical-PB models) use the
+        // phase-B kernels, matching the velocity-flux updater which also keys on
+        // hamil_id; velocity-space Hamiltonians use the sparse/dense families.
+        if (inp->hamil_id == GKYL_HAMIL_PHASE) {
           vlasov->Bx_vol = ser_Bx_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->By_vol = ser_By_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->Bz_vol = ser_Bz_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
@@ -382,7 +443,10 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
       }
       if (inp->has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
       if (inp->has_B) {
-        if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
+        // Phase-space Hamiltonians (triad-GR and canonical-PB models) use the
+        // phase-B kernels, matching the velocity-flux updater which also keys on
+        // hamil_id; velocity-space Hamiltonians use the sparse/dense families.
+        if (inp->hamil_id == GKYL_HAMIL_PHASE) {
           vlasov->Bx_vol = tensor_Bx_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->By_vol = tensor_By_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->Bz_vol = tensor_Bz_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
@@ -455,6 +519,9 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->accel_boundary_surf[2] = accel_boundary_surf_vz_kernels[kernel_index].kernels[poly_order]; 
 
   // ensure non-NULL pointers
+  assert(vlasov->hamil_vol);
+  assert(vlasov->E_vol && vlasov->phi_vol && vlasov->rad_vol);
+  assert(vlasov->Bx_vol && vlasov->By_vol && vlasov->Bz_vol);
   for (int i=0; i<cdim; ++i) {
     if (inp->model_id == GKYL_MODEL_TRIAD || inp->hamil_id == GKYL_HAMIL_PHASE) {
       assert(vlasov->stream_surf_from_flux[i]);

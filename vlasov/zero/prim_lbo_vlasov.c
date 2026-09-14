@@ -31,7 +31,7 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
     // with an assert here rather than a NULL device function pointer.
     int cdim_h = cbasis->ndim, vdim_h = pbasis->ndim-cdim_h, po_h = cbasis->poly_order;
     assert(cv_index[cdim_h].vdim[vdim_h] != -1);
-    bool is_ten_h = (cbasis->b_type == GKYL_BASIS_MODAL_TENSOR);
+    bool is_ten_h = (gkyl_basis_phase_kernel_type(cbasis, pbasis) == GKYL_BASIS_MODAL_TENSOR);
     assert(NULL != (is_ten_h ? ten_self_prim_kernels : ser_self_prim_kernels)[cv_index[cdim_h].vdim[vdim_h]].kernels[po_h]);
     assert(NULL != (is_ten_h ? ten_cross_prim_kernels : ser_cross_prim_kernels)[cv_index[cdim_h].vdim[vdim_h]].kernels[po_h]);
     return gkyl_prim_lbo_vlasov_cu_dev_new(cbasis, pbasis);
@@ -53,7 +53,7 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
   const gkyl_prim_lbo_vlasov_self_kern_list *self_prim_kernels;
   const gkyl_prim_lbo_vlasov_cross_kern_list *cross_prim_kernels;
 
-  switch (cbasis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(cbasis, pbasis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       self_prim_kernels = ser_self_prim_kernels;
       cross_prim_kernels = ser_cross_prim_kernels;

@@ -150,7 +150,9 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       }
       if (has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
       if (has_B) {
-        if (model_id == GKYL_MODEL_TRIAD_GR) {
+        // Phase-space Hamiltonians use the phase-B kernels (keyed on hamil_id,
+        // consistent with the velocity-flux updater).
+        if (hamil_id == GKYL_HAMIL_PHASE) {
           vlasov->Bx_vol = ser_Bx_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->By_vol = ser_By_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->Bz_vol = ser_Bz_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
@@ -286,7 +288,9 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       }
       if (has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
       if (has_B) {
-        if (model_id == GKYL_MODEL_TRIAD_GR) {
+        // Phase-space Hamiltonians use the phase-B kernels (keyed on hamil_id,
+        // consistent with the velocity-flux updater).
+        if (hamil_id == GKYL_HAMIL_PHASE) {
           vlasov->Bx_vol = tensor_Bx_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->By_vol = tensor_By_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
           vlasov->Bz_vol = tensor_Bz_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
@@ -447,7 +451,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   struct dg_vlasov *vlasov_cu = (struct dg_vlasov*) gkyl_cu_malloc(sizeof(struct dg_vlasov));
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov), GKYL_CU_MEMCPY_H2D);
 
-  dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, inp->conf_basis->b_type, 
+  dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis), 
     cdim, vdim, poly_order, inp->model_id, inp->hamil_id,
     inp->has_E, inp->has_phi, inp->has_B, inp->has_rad, inp->use_lo);
 

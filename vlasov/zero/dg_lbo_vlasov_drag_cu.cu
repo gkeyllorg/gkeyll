@@ -126,7 +126,7 @@ gkyl_dg_lbo_vlasov_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct
     sizeof(struct dg_lbo_vlasov_drag), GKYL_CU_MEMCPY_H2D);
 
   dg_lbo_vlasov_drag_set_cu_dev_ptrs<<<1,1>>>(lbo_vlasov_drag_cu,
-    cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
+    gkyl_basis_phase_kernel_type(cbasis, pbasis), cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
 
   lbo_vlasov_drag->eqn.on_dev = &lbo_vlasov_drag_cu->eqn;  
   

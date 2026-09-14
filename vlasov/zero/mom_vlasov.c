@@ -88,7 +88,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     *m2_hamil_vel_kernels, *m2_hamil_phase_kernels, *m3i_hamil_vel_kernels,
     *m2ij_kernels, *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_phase_kernels;
 
-  switch (inp->conf_basis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       m0_kernels = ser_m0_kernels;
       m2ij_kernels = ser_m2ij_kernels;
@@ -204,7 +204,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     if (vdim != 1) {
       gkyl_exit("mom_vlasov: M0 upper only defined for vdim = 1!");
     }
-    mom_vlasov->momt.kernel = (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) ?
+    mom_vlasov->momt.kernel = (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis) == GKYL_BASIS_MODAL_TENSOR) ?
       tensor_m0_upper_kernels[cdim-1].kernels[poly_order] :
       ser_m0_upper_kernels[cdim-1].kernels[poly_order];
     mom_vlasov->momt.num_mom = 1;
@@ -213,7 +213,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     if (vdim != 1) {
       gkyl_exit("mom_vlasov: M0 lower only defined for vdim = 1!");
     }
-    mom_vlasov->momt.kernel = (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) ?
+    mom_vlasov->momt.kernel = (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis) == GKYL_BASIS_MODAL_TENSOR) ?
       tensor_m0_lower_kernels[cdim-1].kernels[poly_order] :
       ser_m0_lower_kernels[cdim-1].kernels[poly_order];
     mom_vlasov->momt.num_mom = 1;
@@ -286,7 +286,7 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   // Choose kernel tables based on basis-function type.
   const gkyl_vlasov_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_phase_kernels;
 
-  switch (inp->conf_basis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       int_five_moments_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_int_five_moments_kernels : ser_hamil_vel_dense_int_five_moments_kernels;
       int_five_moments_hamil_phase_kernels = ser_hamil_phase_int_five_moments_kernels;

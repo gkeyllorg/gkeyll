@@ -77,7 +77,7 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
   } 
 
   int kernel_index = cv_index[cdim].vdim[vdim];   
-  switch (inp->conf_basis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if ( inp->use_lo ) {
         up->lax_flux_nodal[0] = ser_lax_flux_nodal_vx_kernels[kernel_index].kernels[poly_order];
@@ -551,7 +551,7 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
   // configuration direction, 3 (lo) or 4 (ho) per velocity direction.
   int nq_conf = poly_order + 1, nq_vel = poly_order + 1;
   if ((poly_order > 1) && !inp->use_lo) { nq_conf = poly_order + 2; nq_vel = poly_order + 2; }
-  if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
+  if (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis) == GKYL_BASIS_MODAL_TENSOR) {
     if (poly_order == 1) {
       nq_conf = 2;
       nq_vel = inp->use_lo ? 3 : 4;

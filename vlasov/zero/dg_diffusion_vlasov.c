@@ -65,7 +65,7 @@ gkyl_dg_diffusion_vlasov_new(const struct gkyl_basis *basis, const struct gkyl_b
   const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list *boundary_surfy_kernels;
   const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list *boundary_surfz_kernels; 
 
-  switch (cbasis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(cbasis, basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels            = diffusion->const_coeff? ser_vol_kernels_constcoeff                   : ser_vol_kernels_varcoeff                  ;
       surfx_kernels          = diffusion->const_coeff? ser_vlasov_surfx_kernels_constcoeff          : ser_vlasov_surfx_kernels_varcoeff         ;

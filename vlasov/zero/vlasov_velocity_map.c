@@ -497,7 +497,7 @@ gkyl_vlasov_velocity_map_divide_jacobvel(const struct gkyl_vlasov_velocity_map *
   int vdim = pdim - cdim;
   int poly_order = phase_basis->poly_order;
   divide_Jv_t divide_Jv;
-  switch (conf_basis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(conf_basis, phase_basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       divide_Jv = choose_ser_divide_Jv_kern(cdim, vdim, poly_order);
       break;
@@ -550,7 +550,7 @@ gkyl_vlasov_velocity_map_rescale_jacobvel(const struct gkyl_vlasov_velocity_map 
   int vdim = pdim - cdim;
   int poly_order = phase_basis->poly_order;
   rescale_Jv_t rescale_Jv;
-  switch (conf_basis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(conf_basis, phase_basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       rescale_Jv = choose_ser_rescale_Jv_kern(cdim, vdim, poly_order);
       break;

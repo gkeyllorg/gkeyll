@@ -30,7 +30,7 @@ gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
     // with an assert here rather than a NULL device function pointer.
     int cdim_h = cbasis->ndim, vdim_h = pbasis->ndim-cdim_h, po_h = cbasis->poly_order;
     assert(cv_index[cdim_h].vdim[vdim_h] != -1);
-    assert(NULL != ((cbasis->b_type == GKYL_BASIS_MODAL_TENSOR) ?
+    assert(NULL != ((gkyl_basis_phase_kernel_type(cbasis, pbasis) == GKYL_BASIS_MODAL_TENSOR) ?
       ten_mom_bcorr_lbo_vlasov_kernels : ser_mom_bcorr_lbo_vlasov_kernels)[cv_index[cdim_h].vdim[vdim_h]].kernels[po_h]);
     return gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(cbasis, pbasis, vBoundary);
   } 
@@ -53,7 +53,7 @@ gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
   // choose kernel tables based on basis-function type
   const gkyl_mom_bcorr_lbo_vlasov_kern_list *mom_bcorr_lbo_vlasov_kernels;
 
-  switch (cbasis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(cbasis, pbasis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_bcorr_lbo_vlasov_kernels = ser_mom_bcorr_lbo_vlasov_kernels;
       break;

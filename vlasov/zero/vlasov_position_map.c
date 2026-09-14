@@ -455,23 +455,19 @@ gkyl_vlasov_position_map_divide_jacobpos_conf(const struct gkyl_vlasov_position_
   // J is constant in the cell and the division is exact. Only the first
   // num_coeff_divide coefficients are scaled (the J-carrying components); the
   // rest are copied through (intensive/ratio components, e.g. LTE V_drift, T/m).
-  // Uses the host Jacobian since moment I/O is host-side. Device arrays are
-  // staged through host copies (this is an I/O / initialization path).
+  // Uses the host Jacobian for host arrays; device arrays go through the
+  // device kernel. Only cells in conf_range are written in either case.
   int ncomp = Jmom->ncomp;
 
-  const struct gkyl_array *Jmom_h = Jmom;
-  struct gkyl_array *mom_no_J_h = mom_no_J;
-  struct gkyl_array *Jmom_tmp = 0, *mom_no_J_tmp = 0;
-  if (gkyl_array_is_cu_dev(Jmom)) {
-    Jmom_tmp = gkyl_array_new(Jmom->type, Jmom->ncomp, Jmom->size);
-    gkyl_array_copy(Jmom_tmp, Jmom);
-    Jmom_h = Jmom_tmp;
-  }
+#ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(mom_no_J)) {
-    mom_no_J_tmp = (Jmom == mom_no_J) ? gkyl_array_acquire(Jmom_tmp)
-      : gkyl_array_new(mom_no_J->type, mom_no_J->ncomp, mom_no_J->size);
-    mom_no_J_h = mom_no_J_tmp;
+    assert(gkyl_array_is_cu_dev(Jmom));
+    gkyl_vlasov_position_map_divide_jacobpos_conf_cu(&vpm->local_pos, conf_range,
+      num_coeff_divide, vpm->jacob_pos_gauss, Jmom, mom_no_J);
+    return;
   }
+#endif
+  assert(!gkyl_array_is_cu_dev(Jmom));
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
@@ -482,19 +478,13 @@ gkyl_vlasov_position_map_divide_jacobpos_conf(const struct gkyl_vlasov_position_
 
     const double *jacob_pos_gauss_d = gkyl_array_cfetch(vpm->jacob_pos_gauss_host, cidx_jac);
     double jacob_inv = 1.0/jacob_pos_gauss_d[0];
-    const double *Jmom_d = gkyl_array_cfetch(Jmom_h, cidx_mom);
-    double *mom_no_J_d = gkyl_array_fetch(mom_no_J_h, cidx_mom);
+    const double *Jmom_d = gkyl_array_cfetch(Jmom, cidx_mom);
+    double *mom_no_J_d = gkyl_array_fetch(mom_no_J, cidx_mom);
     for (int k=0; k<num_coeff_divide; ++k)
       mom_no_J_d[k] = jacob_inv*Jmom_d[k];
     for (int k=num_coeff_divide; k<ncomp; ++k)
       mom_no_J_d[k] = Jmom_d[k];
   }
-
-  if (mom_no_J_tmp) {
-    gkyl_array_copy(mom_no_J, mom_no_J_tmp);
-    gkyl_array_release(mom_no_J_tmp);
-  }
-  if (Jmom_tmp) gkyl_array_release(Jmom_tmp);
 }
 
 void
@@ -506,22 +496,18 @@ gkyl_vlasov_position_map_rescale_jacobpos_conf(const struct gkyl_vlasov_position
   // gkyl_vlasov_position_map_divide_jacobpos_conf with the full component count;
   // converts a physical conf field to the J-weighted form used for evolution
   // (e.g. E -> J*E at initialization/restart). Exact (J constant in cell).
-  // Device arrays are staged through host copies (initialization/restart path).
+  // Device arrays go through the device kernel; only conf_range is written.
   int ncomp = a_no_J->ncomp;
 
-  const struct gkyl_array *a_no_J_h = a_no_J;
-  struct gkyl_array *Ja_h = Ja;
-  struct gkyl_array *a_no_J_tmp = 0, *Ja_tmp = 0;
-  if (gkyl_array_is_cu_dev(a_no_J)) {
-    a_no_J_tmp = gkyl_array_new(a_no_J->type, a_no_J->ncomp, a_no_J->size);
-    gkyl_array_copy(a_no_J_tmp, a_no_J);
-    a_no_J_h = a_no_J_tmp;
-  }
+#ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(Ja)) {
-    Ja_tmp = (a_no_J == Ja) ? gkyl_array_acquire(a_no_J_tmp)
-      : gkyl_array_new(Ja->type, Ja->ncomp, Ja->size);
-    Ja_h = Ja_tmp;
+    assert(gkyl_array_is_cu_dev(a_no_J));
+    gkyl_vlasov_position_map_rescale_jacobpos_conf_cu(&vpm->local_pos, conf_range,
+      vpm->jacob_pos_gauss, a_no_J, Ja);
+    return;
   }
+#endif
+  assert(!gkyl_array_is_cu_dev(a_no_J));
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
@@ -532,17 +518,11 @@ gkyl_vlasov_position_map_rescale_jacobpos_conf(const struct gkyl_vlasov_position
 
     const double *jacob_pos_gauss_d = gkyl_array_cfetch(vpm->jacob_pos_gauss_host, cidx_jac);
     double jacob = jacob_pos_gauss_d[0];
-    const double *a_no_J_d = gkyl_array_cfetch(a_no_J_h, cidx_a);
-    double *Ja_d = gkyl_array_fetch(Ja_h, cidx_a);
+    const double *a_no_J_d = gkyl_array_cfetch(a_no_J, cidx_a);
+    double *Ja_d = gkyl_array_fetch(Ja, cidx_a);
     for (int k=0; k<ncomp; ++k)
       Ja_d[k] = jacob*a_no_J_d[k];
   }
-
-  if (Ja_tmp) {
-    gkyl_array_copy(Ja, Ja_tmp);
-    gkyl_array_release(Ja_tmp);
-  }
-  if (a_no_J_tmp) gkyl_array_release(a_no_J_tmp);
 }
 
 struct gkyl_vlasov_position_map*

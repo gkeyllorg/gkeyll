@@ -25,7 +25,7 @@ gkyl_vlasov_cross_prim_moms_bgk_new(const struct gkyl_basis *pbasis,
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_cross_prim_moms_bgk_kern_list *cross_prim_moms_bgk_kernels;
 
-  switch (cbasis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(cbasis, pbasis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       cross_prim_moms_bgk_kernels = ser_vlasov_cross_prim_moms_bgk_kernels;
       break;

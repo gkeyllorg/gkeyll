@@ -69,7 +69,7 @@ gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   assert(cv_index[cdim].vdim[vdim] != -1);
   
   gkyl_prim_lbo_vlasov_set_cu_dev_ptrs<<<1,1>>>(prim_vlasov_cu, cdim, vdim, poly_order,
-    cbasis->b_type, cv_index[cdim].vdim[vdim]);
+    gkyl_basis_phase_kernel_type(cbasis, pbasis), cv_index[cdim].vdim[vdim]);
 
   prim_vlasov->prim.on_dev = &prim_vlasov_cu->prim;
     
