@@ -1,0 +1,66 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2FGVP4M2D6TK6AKPGEPDQCP",
+  "session_id": "01a08982-381f-7f42-9fee-bc4411103962",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-14T08:34:44.851232Z",
+  "branch": "agent_tools-jenkins-stellar_intel",
+  "checkpoints_count": 4,
+  "save_step_count": 2,
+  "files_touched": [
+    "ci/jenkins/Jenkinsfile.stellar-intel",
+    "ci/jenkins/README.stellar-intel.md",
+    "ci/jenkins/check_regression_results.lua",
+    "ci/jenkins/slurm-regression-tests.stellar-intel.sh"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "e2b3b3846f03",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 1007916,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 24676352,
+    "output_tokens": 119807,
+    "api_call_count": 250
+  },
+  "session_metrics": {
+    "turn_count": 14
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-14T08:34:44.602449Z",
+    "agent_lines": 281,
+    "agent_removed": 54,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 281,
+    "total_lines_changed": 335,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 55441,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "jenkins_setup-stellar_intel.txt": 9,
+        "log.txt": 2319,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "tmp.sh": 43,
+        "tmp.txt": 23
+      }
+    }
+  ]
+}
