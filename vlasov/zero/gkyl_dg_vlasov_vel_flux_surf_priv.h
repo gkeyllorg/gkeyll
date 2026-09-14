@@ -13,6 +13,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <assert.h>
+#include <gkyl_vlasov_hyb_build.h>
 
 typedef double (*hamil_alpha_quad_t)(int i, int j, const double *w, const double *dxv,
   const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
@@ -359,9 +360,9 @@ static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_vx_kernels[] = 
   // 2x kernels
   { NULL, lax_flux_nodal_vx_2x1v_tensor_p1_node, lax_flux_nodal_vx_2x1v_tensor_p2_node, lax_flux_nodal_vx_2x1v_tensor_p3_node }, // 3
   { NULL, lax_flux_nodal_vx_2x2v_tensor_p1_node, lax_flux_nodal_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, lax_flux_nodal_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(lax_flux_nodal_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(lax_flux_nodal_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -377,9 +378,9 @@ static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_vx_kernels[]
   // 2x kernels
   { NULL, ho_lax_flux_nodal_vx_2x1v_tensor_p1_node, lax_flux_nodal_vx_2x1v_tensor_p2_node, lax_flux_nodal_vx_2x1v_tensor_p3_node }, // 3
   { NULL, ho_lax_flux_nodal_vx_2x2v_tensor_p1_node, lax_flux_nodal_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, ho_lax_flux_nodal_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, ho_lax_flux_nodal_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -391,9 +392,9 @@ static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_vx_cfl_kernels[] = {
   // 2x kernels
   { NULL, lax_flux_nodal_vx_2x1v_tensor_p1_cfl, lax_flux_nodal_vx_2x1v_tensor_p2_cfl, lax_flux_nodal_vx_2x1v_tensor_p3_cfl }, // 3
   { NULL, lax_flux_nodal_vx_2x2v_tensor_p1_cfl, lax_flux_nodal_vx_2x2v_tensor_p2_cfl, NULL }, // 4
-  { NULL, lax_flux_nodal_vx_2x3v_tensor_p1_cfl, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(lax_flux_nodal_vx_2x3v_tensor_p1_cfl), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_vx_3x3v_tensor_p1_cfl, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(lax_flux_nodal_vx_3x3v_tensor_p1_cfl), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -409,9 +410,9 @@ static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_vx_cfl_kernels[] = 
   // 2x kernels
   { NULL, ho_lax_flux_nodal_vx_2x1v_tensor_p1_cfl, lax_flux_nodal_vx_2x1v_tensor_p2_cfl, lax_flux_nodal_vx_2x1v_tensor_p3_cfl }, // 3
   { NULL, ho_lax_flux_nodal_vx_2x2v_tensor_p1_cfl, lax_flux_nodal_vx_2x2v_tensor_p2_cfl, NULL }, // 4
-  { NULL, ho_lax_flux_nodal_vx_2x3v_tensor_p1_cfl, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_vx_2x3v_tensor_p1_cfl), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, ho_lax_flux_nodal_vx_3x3v_tensor_p1_cfl, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_vx_3x3v_tensor_p1_cfl), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -423,9 +424,9 @@ static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_vy_kernels[] = 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, lax_flux_nodal_vy_2x2v_tensor_p1_node, lax_flux_nodal_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, lax_flux_nodal_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(lax_flux_nodal_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(lax_flux_nodal_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -441,9 +442,9 @@ static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_vy_kernels[]
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, ho_lax_flux_nodal_vy_2x2v_tensor_p1_node, lax_flux_nodal_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, ho_lax_flux_nodal_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, ho_lax_flux_nodal_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -455,9 +456,9 @@ static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_vy_cfl_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, lax_flux_nodal_vy_2x2v_tensor_p1_cfl, lax_flux_nodal_vy_2x2v_tensor_p2_cfl, NULL }, // 4
-  { NULL, lax_flux_nodal_vy_2x3v_tensor_p1_cfl, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(lax_flux_nodal_vy_2x3v_tensor_p1_cfl), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_vy_3x3v_tensor_p1_cfl, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(lax_flux_nodal_vy_3x3v_tensor_p1_cfl), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -473,9 +474,9 @@ static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_vy_cfl_kernels[] = 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, ho_lax_flux_nodal_vy_2x2v_tensor_p1_cfl, lax_flux_nodal_vy_2x2v_tensor_p2_cfl, NULL }, // 4
-  { NULL, ho_lax_flux_nodal_vy_2x3v_tensor_p1_cfl, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_vy_2x3v_tensor_p1_cfl), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, ho_lax_flux_nodal_vy_3x3v_tensor_p1_cfl, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_vy_3x3v_tensor_p1_cfl), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -487,9 +488,9 @@ static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_vz_kernels[] = 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, lax_flux_nodal_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(lax_flux_nodal_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(lax_flux_nodal_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -505,9 +506,9 @@ static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_vz_kernels[]
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, ho_lax_flux_nodal_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, ho_lax_flux_nodal_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -519,9 +520,9 @@ static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_vz_cfl_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, lax_flux_nodal_vz_2x3v_tensor_p1_cfl, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(lax_flux_nodal_vz_2x3v_tensor_p1_cfl), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_vz_3x3v_tensor_p1_cfl, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(lax_flux_nodal_vz_3x3v_tensor_p1_cfl), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -537,9 +538,9 @@ static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_vz_cfl_kernels[] = 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, ho_lax_flux_nodal_vz_2x3v_tensor_p1_cfl, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_vz_2x3v_tensor_p1_cfl), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, ho_lax_flux_nodal_vz_3x3v_tensor_p1_cfl, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_vz_3x3v_tensor_p1_cfl), NULL, NULL }, // 6
 };
 
 // Nodal Lax-Friedrichs to modal velocity-space flux conversion (Serendipity basis). 
@@ -989,9 +990,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_alpha_quad_vx_ke
   // 2x kernels
   { NULL, hamil_phase_alpha_quad_vx_2x1v_tensor_p1_node, NULL, NULL }, // 3
   { NULL, hamil_phase_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, hamil_phase_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(hamil_phase_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1003,9 +1004,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_alpha_quad_vy_ke
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, hamil_phase_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, hamil_phase_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(hamil_phase_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1019,7 +1020,7 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_alpha_quad_vz_ke
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, no_hamil_alpha_quad, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1031,9 +1032,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_ho_alpha_quad_vx
   // 2x kernels
   { NULL, hamil_phase_ho_alpha_quad_vx_2x1v_tensor_p1_node, NULL, NULL }, // 3
   { NULL, hamil_phase_ho_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, hamil_phase_ho_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(hamil_phase_ho_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_ho_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_ho_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1045,9 +1046,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_ho_alpha_quad_vy
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, hamil_phase_ho_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, hamil_phase_ho_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(hamil_phase_ho_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_ho_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_ho_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1061,7 +1062,7 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_ho_alpha_quad_vz
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, no_hamil_alpha_quad, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_ho_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_ho_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1073,9 +1074,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_phase_alpha_quad_vx_kern
   // 2x kernels
   { NULL, no_B_alpha_quad, NULL, NULL }, // 3
   { NULL, B_hamil_phase_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, B_hamil_phase_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_phase_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1087,9 +1088,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_phase_alpha_quad_vy_kern
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_hamil_phase_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, B_hamil_phase_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_phase_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_phase_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_hamil_phase_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1101,9 +1102,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_phase_alpha_quad_vz_kern
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_hamil_phase_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_phase_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_phase_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_hamil_phase_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1115,9 +1116,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_phase_alpha_quad_vx_k
   // 2x kernels
   { NULL, no_B_alpha_quad, NULL, NULL }, // 3
   { NULL, B_ho_hamil_phase_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, B_ho_hamil_phase_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_phase_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_ho_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1129,9 +1130,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_phase_alpha_quad_vy_k
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_ho_hamil_phase_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, B_ho_hamil_phase_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_phase_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_phase_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_ho_hamil_phase_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1143,9 +1144,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_phase_alpha_quad_vz_k
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_ho_hamil_phase_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_phase_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_phase_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_ho_hamil_phase_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1243,9 +1244,9 @@ static const gkyl_E_alpha_quad_kern_list tensor_E_alpha_quad_vx_kernels[] = {
   // 2x kernels
   { NULL, E_alpha_quad_vx_2x1v_tensor_p1_node, E_alpha_quad_vx_2x1v_tensor_p2_node, E_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
   { NULL, E_alpha_quad_vx_2x2v_tensor_p1_node, E_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, E_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1261,9 +1262,9 @@ static const gkyl_E_alpha_quad_kern_list tensor_E_ho_alpha_quad_vx_kernels[] = {
   // 2x kernels
   { NULL, E_ho_alpha_quad_vx_2x1v_tensor_p1_node, E_alpha_quad_vx_2x1v_tensor_p2_node, E_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
   { NULL, E_ho_alpha_quad_vx_2x2v_tensor_p1_node, E_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, E_ho_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_ho_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_ho_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_ho_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1275,9 +1276,9 @@ static const gkyl_E_alpha_quad_kern_list tensor_E_alpha_quad_vy_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, E_alpha_quad_vy_2x2v_tensor_p1_node, E_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, E_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1293,9 +1294,9 @@ static const gkyl_E_alpha_quad_kern_list tensor_E_ho_alpha_quad_vy_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, E_ho_alpha_quad_vy_2x2v_tensor_p1_node, E_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, E_ho_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_ho_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_ho_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_ho_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1307,9 +1308,9 @@ static const gkyl_E_alpha_quad_kern_list tensor_E_alpha_quad_vz_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, E_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1325,9 +1326,9 @@ static const gkyl_E_alpha_quad_kern_list tensor_E_ho_alpha_quad_vz_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, E_ho_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_ho_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_ho_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_ho_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // alpha_v evaluated at quadrature points for scalar potential forces (Serendipity basis). 
@@ -1426,9 +1427,9 @@ static const gkyl_phi_alpha_quad_kern_list tensor_phi_alpha_quad_vx_kernels[] = 
   // 2x kernels
   { NULL, phi_alpha_quad_vx_2x1v_tensor_p1_node, phi_alpha_quad_vx_2x1v_tensor_p2_node, phi_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
   { NULL, phi_alpha_quad_vx_2x2v_tensor_p1_node, phi_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, phi_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(phi_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, phi_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1444,9 +1445,9 @@ static const gkyl_phi_alpha_quad_kern_list tensor_phi_ho_alpha_quad_vx_kernels[]
   // 2x kernels
   { NULL, phi_ho_alpha_quad_vx_2x1v_tensor_p1_node, phi_alpha_quad_vx_2x1v_tensor_p2_node, phi_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
   { NULL, phi_ho_alpha_quad_vx_2x2v_tensor_p1_node, phi_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, phi_ho_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(phi_ho_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, phi_ho_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_ho_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1458,9 +1459,9 @@ static const gkyl_phi_alpha_quad_kern_list tensor_phi_alpha_quad_vy_kernels[] = 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, phi_alpha_quad_vy_2x2v_tensor_p1_node, phi_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, phi_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(phi_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, phi_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1476,9 +1477,9 @@ static const gkyl_phi_alpha_quad_kern_list tensor_phi_ho_alpha_quad_vy_kernels[]
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, phi_ho_alpha_quad_vy_2x2v_tensor_p1_node, phi_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, phi_ho_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(phi_ho_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, phi_ho_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_ho_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1492,7 +1493,7 @@ static const gkyl_phi_alpha_quad_kern_list tensor_phi_alpha_quad_vz_kernels[] = 
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, no_phi_alpha_quad, no_phi_alpha_quad, NULL }, // 5
   // 3x kernels
-  { NULL, phi_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1510,7 +1511,7 @@ static const gkyl_phi_alpha_quad_kern_list tensor_phi_ho_alpha_quad_vz_kernels[]
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, no_phi_alpha_quad, no_phi_alpha_quad, NULL }, // 5
   // 3x kernels
-  { NULL, phi_ho_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_ho_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // alpha_v evaluated at quadrature points for the magnetic field Lorentz force (Serendipity basis). 
@@ -1780,9 +1781,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_dense_alpha_quad_vx_
   // 2x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
   { NULL, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, B_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1798,9 +1799,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_dense_alpha_quad_
   // 2x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
   { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant.
 GKYL_CU_D
@@ -1812,9 +1813,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_sparse_alpha_quad_vx
   // 2x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
   { NULL, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, B_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1830,9 +1831,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_sparse_alpha_quad
   // 2x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
   { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1844,9 +1845,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_dense_alpha_quad_vy_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, B_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1862,9 +1863,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_dense_alpha_quad_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant.
 GKYL_CU_D
@@ -1876,9 +1877,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_sparse_alpha_quad_vy
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, B_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1894,9 +1895,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_sparse_alpha_quad
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -1908,9 +1909,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_dense_alpha_quad_vz_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1926,9 +1927,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_dense_alpha_quad_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant.
 GKYL_CU_D
@@ -1940,9 +1941,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_sparse_alpha_quad_vz
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -1958,9 +1959,9 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_sparse_alpha_quad
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 
@@ -2060,9 +2061,9 @@ static const gkyl_rad_alpha_quad_kern_list tensor_rad_alpha_quad_vx_kernels[] = 
   // 2x kernels
   { NULL, rad_alpha_quad_vx_2x1v_tensor_p1_node, rad_alpha_quad_vx_2x1v_tensor_p2_node, rad_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
   { NULL, rad_alpha_quad_vx_2x2v_tensor_p1_node, rad_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, rad_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -2078,9 +2079,9 @@ static const gkyl_rad_alpha_quad_kern_list tensor_rad_ho_alpha_quad_vx_kernels[]
   // 2x kernels
   { NULL, rad_ho_alpha_quad_vx_2x1v_tensor_p1_node, rad_alpha_quad_vx_2x1v_tensor_p2_node, rad_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
   { NULL, rad_ho_alpha_quad_vx_2x2v_tensor_p1_node, rad_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, rad_ho_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_ho_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_ho_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_ho_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2092,9 +2093,9 @@ static const gkyl_rad_alpha_quad_kern_list tensor_rad_alpha_quad_vy_kernels[] = 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, rad_alpha_quad_vy_2x2v_tensor_p1_node, rad_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, rad_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -2110,9 +2111,9 @@ static const gkyl_rad_alpha_quad_kern_list tensor_rad_ho_alpha_quad_vy_kernels[]
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, rad_ho_alpha_quad_vy_2x2v_tensor_p1_node, rad_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
-  { NULL, rad_ho_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_ho_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_ho_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_ho_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2124,9 +2125,9 @@ static const gkyl_rad_alpha_quad_kern_list tensor_rad_alpha_quad_vz_kernels[] = 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, rad_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -2142,9 +2143,9 @@ static const gkyl_rad_alpha_quad_kern_list tensor_rad_ho_alpha_quad_vz_kernels[]
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, rad_ho_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_ho_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_ho_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_ho_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 // Whole-surface (array-ABI) wrapper tables for the CPU dispatch: same
@@ -2201,9 +2202,9 @@ static const gkyl_lax_flux_arr_kern_list tensor_lax_flux_nodal_vx_arr_kernels[] 
   // 2x kernels
   { NULL, lax_flux_nodal_vx_2x1v_tensor_p1, lax_flux_nodal_vx_2x1v_tensor_p2, lax_flux_nodal_vx_2x1v_tensor_p3 }, // 3
   { NULL, lax_flux_nodal_vx_2x2v_tensor_p1, lax_flux_nodal_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(lax_flux_nodal_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(lax_flux_nodal_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -2219,9 +2220,9 @@ static const gkyl_lax_flux_arr_kern_list tensor_ho_lax_flux_nodal_vx_arr_kernels
   // 2x kernels
   { NULL, ho_lax_flux_nodal_vx_2x1v_tensor_p1, lax_flux_nodal_vx_2x1v_tensor_p2, lax_flux_nodal_vx_2x1v_tensor_p3 }, // 3
   { NULL, ho_lax_flux_nodal_vx_2x2v_tensor_p1, lax_flux_nodal_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, ho_lax_flux_nodal_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, ho_lax_flux_nodal_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2233,9 +2234,9 @@ static const gkyl_lax_flux_arr_kern_list tensor_lax_flux_nodal_vy_arr_kernels[] 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, lax_flux_nodal_vy_2x2v_tensor_p1, lax_flux_nodal_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(lax_flux_nodal_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(lax_flux_nodal_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -2251,9 +2252,9 @@ static const gkyl_lax_flux_arr_kern_list tensor_ho_lax_flux_nodal_vy_arr_kernels
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, ho_lax_flux_nodal_vy_2x2v_tensor_p1, lax_flux_nodal_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, ho_lax_flux_nodal_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, ho_lax_flux_nodal_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2265,9 +2266,9 @@ static const gkyl_lax_flux_arr_kern_list tensor_lax_flux_nodal_vz_arr_kernels[] 
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, lax_flux_nodal_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(lax_flux_nodal_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(lax_flux_nodal_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -2283,9 +2284,9 @@ static const gkyl_lax_flux_arr_kern_list tensor_ho_lax_flux_nodal_vz_arr_kernels
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, ho_lax_flux_nodal_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, ho_lax_flux_nodal_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2339,9 +2340,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_alpha_quad_v
   // 2x kernels
   { NULL, hamil_phase_alpha_quad_vx_2x1v_tensor_p1, NULL, NULL }, // 3
   { NULL, hamil_phase_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, hamil_phase_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(hamil_phase_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2353,9 +2354,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_alpha_quad_v
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, hamil_phase_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, hamil_phase_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(hamil_phase_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2369,7 +2370,7 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_alpha_quad_v
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, no_hamil_alpha_quad_arr, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2381,9 +2382,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_ho_alpha_qua
   // 2x kernels
   { NULL, hamil_phase_ho_alpha_quad_vx_2x1v_tensor_p1, NULL, NULL }, // 3
   { NULL, hamil_phase_ho_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, hamil_phase_ho_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(hamil_phase_ho_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_ho_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_ho_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2395,9 +2396,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_ho_alpha_qua
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, hamil_phase_ho_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, hamil_phase_ho_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(hamil_phase_ho_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_ho_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_ho_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2411,7 +2412,7 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_ho_alpha_qua
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, no_hamil_alpha_quad_arr, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_ho_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_ho_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2423,9 +2424,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_sparse_alpha_qu
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2437,9 +2438,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_sparse_alpha_qu
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2451,9 +2452,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_sparse_alpha_qu
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2465,9 +2466,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_sparse_alph
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2479,9 +2480,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_sparse_alph
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2493,9 +2494,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_sparse_alph
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2507,9 +2508,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_sparse_ho_alpha
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_ho_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_ho_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2521,9 +2522,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_sparse_ho_alpha
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_ho_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_ho_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2535,9 +2536,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_sparse_ho_alpha
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_ho_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_ho_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2549,9 +2550,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_sparse_ho_a
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_ho_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_ho_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2563,9 +2564,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_sparse_ho_a
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_ho_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_ho_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2577,9 +2578,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_sparse_ho_a
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_sparse_ho_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_sparse_ho_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_sparse_ho_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // Tensor p=1 hybrid triad velocity-direction producers: dense velocity-space
@@ -2593,9 +2594,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_dense_alpha_qua
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2607,9 +2608,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_dense_alpha
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2621,9 +2622,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_dense_alpha_qua
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2635,9 +2636,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_dense_alpha
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2649,9 +2650,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_dense_alpha_qua
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2663,9 +2664,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_dense_alpha
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2677,9 +2678,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_dense_ho_alpha_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_dense_ho_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_ho_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_ho_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2691,9 +2692,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_dense_ho_al
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_dense_ho_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_ho_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_ho_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2705,9 +2706,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_dense_ho_alpha_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_dense_ho_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_ho_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_ho_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2719,9 +2720,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_dense_ho_al
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_vel_dense_ho_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_ho_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_ho_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2733,9 +2734,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_vel_dense_ho_alpha_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_ho_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_ho_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2747,9 +2748,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_vel_dense_ho_al
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_vel_dense_ho_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_ho_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(nc_hamil_vel_dense_ho_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2761,9 +2762,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_phase_alpha_quad_vx
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_phase_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2775,9 +2776,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_phase_alpha_qua
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_phase_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2789,9 +2790,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_phase_alpha_quad_vy
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_phase_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2803,9 +2804,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_phase_alpha_qua
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_phase_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2817,9 +2818,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_phase_alpha_quad_vz
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2831,9 +2832,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_phase_alpha_qua
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2845,9 +2846,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_phase_ho_alpha_quad
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_phase_ho_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_ho_alpha_quad_vx_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_ho_alpha_quad_vx_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_ho_alpha_quad_vx_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_ho_alpha_quad_vx_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2859,9 +2860,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_phase_ho_alpha_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_phase_ho_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_ho_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_ho_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_ho_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_ho_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2873,9 +2874,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_phase_ho_alpha_quad
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_phase_ho_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_ho_alpha_quad_vy_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_ho_alpha_quad_vy_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_ho_alpha_quad_vy_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_ho_alpha_quad_vy_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2887,9 +2888,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_phase_ho_alpha_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, nc_hamil_phase_ho_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_ho_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_ho_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_ho_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_ho_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2901,9 +2902,9 @@ static const gkyl_hamil_alpha_quad_kern_list tensor_nc_hamil_phase_ho_alpha_quad
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_ho_alpha_quad_vz_2x3v_tensor_p1_node, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_ho_alpha_quad_vz_2x3v_tensor_p1_node), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_ho_alpha_quad_vz_3x3v_tensor_p1_node, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_ho_alpha_quad_vz_3x3v_tensor_p1_node), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2915,9 +2916,9 @@ static const gkyl_hamil_alpha_quad_arr_kern_list tensor_nc_hamil_phase_ho_alpha_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_phase_ho_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(nc_hamil_phase_ho_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_phase_ho_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(nc_hamil_phase_ho_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 
@@ -2930,9 +2931,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_phase_alpha_quad_vx_
   // 2x kernels
   { NULL, no_B_alpha_quad_arr, NULL, NULL }, // 3
   { NULL, B_hamil_phase_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, B_hamil_phase_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_phase_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_phase_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_hamil_phase_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2944,9 +2945,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_phase_alpha_quad_vy_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_hamil_phase_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, B_hamil_phase_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_phase_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_phase_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_hamil_phase_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2958,9 +2959,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_phase_alpha_quad_vz_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_hamil_phase_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_phase_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_phase_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_hamil_phase_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2972,9 +2973,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_phase_alpha_quad_
   // 2x kernels
   { NULL, no_B_alpha_quad_arr, NULL, NULL }, // 3
   { NULL, B_ho_hamil_phase_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, B_ho_hamil_phase_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_phase_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_phase_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_ho_hamil_phase_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -2986,9 +2987,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_phase_alpha_quad_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_ho_hamil_phase_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, B_ho_hamil_phase_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_phase_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_phase_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_ho_hamil_phase_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -3000,9 +3001,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_phase_alpha_quad_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_ho_hamil_phase_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_phase_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_phase_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(B_ho_hamil_phase_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -3434,9 +3435,9 @@ static const gkyl_E_alpha_quad_arr_kern_list tensor_E_alpha_quad_vx_arr_kernels[
   // 2x kernels
   { NULL, E_alpha_quad_vx_2x1v_tensor_p1, E_alpha_quad_vx_2x1v_tensor_p2, E_alpha_quad_vx_2x1v_tensor_p3 }, // 3
   { NULL, E_alpha_quad_vx_2x2v_tensor_p1, E_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, E_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -3452,9 +3453,9 @@ static const gkyl_E_alpha_quad_arr_kern_list tensor_E_ho_alpha_quad_vx_arr_kerne
   // 2x kernels
   { NULL, E_ho_alpha_quad_vx_2x1v_tensor_p1, E_alpha_quad_vx_2x1v_tensor_p2, E_alpha_quad_vx_2x1v_tensor_p3 }, // 3
   { NULL, E_ho_alpha_quad_vx_2x2v_tensor_p1, E_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, E_ho_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_ho_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_ho_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_ho_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -3466,9 +3467,9 @@ static const gkyl_E_alpha_quad_arr_kern_list tensor_E_alpha_quad_vy_arr_kernels[
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, E_alpha_quad_vy_2x2v_tensor_p1, E_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, E_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -3484,9 +3485,9 @@ static const gkyl_E_alpha_quad_arr_kern_list tensor_E_ho_alpha_quad_vy_arr_kerne
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, E_ho_alpha_quad_vy_2x2v_tensor_p1, E_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, E_ho_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_ho_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_ho_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_ho_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -3498,9 +3499,9 @@ static const gkyl_E_alpha_quad_arr_kern_list tensor_E_alpha_quad_vz_arr_kernels[
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, E_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -3516,9 +3517,9 @@ static const gkyl_E_alpha_quad_arr_kern_list tensor_E_ho_alpha_quad_vz_arr_kerne
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, E_ho_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(E_ho_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, E_ho_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(E_ho_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -3614,9 +3615,9 @@ static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_alpha_quad_vx_arr_kern
   // 2x kernels
   { NULL, phi_alpha_quad_vx_2x1v_tensor_p1, phi_alpha_quad_vx_2x1v_tensor_p2, phi_alpha_quad_vx_2x1v_tensor_p3 }, // 3
   { NULL, phi_alpha_quad_vx_2x2v_tensor_p1, phi_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, phi_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(phi_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, phi_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -3632,9 +3633,9 @@ static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_ho_alpha_quad_vx_arr_k
   // 2x kernels
   { NULL, phi_ho_alpha_quad_vx_2x1v_tensor_p1, phi_alpha_quad_vx_2x1v_tensor_p2, phi_alpha_quad_vx_2x1v_tensor_p3 }, // 3
   { NULL, phi_ho_alpha_quad_vx_2x2v_tensor_p1, phi_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, phi_ho_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(phi_ho_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, phi_ho_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_ho_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -3646,9 +3647,9 @@ static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_alpha_quad_vy_arr_kern
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, phi_alpha_quad_vy_2x2v_tensor_p1, phi_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, phi_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(phi_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, phi_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -3664,9 +3665,9 @@ static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_ho_alpha_quad_vy_arr_k
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, phi_ho_alpha_quad_vy_2x2v_tensor_p1, phi_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, phi_ho_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(phi_ho_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, phi_ho_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_ho_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -3680,7 +3681,7 @@ static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_alpha_quad_vz_arr_kern
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, no_phi_alpha_quad_arr, no_phi_alpha_quad_arr, NULL }, // 5
   // 3x kernels
-  { NULL, phi_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -3698,7 +3699,7 @@ static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_ho_alpha_quad_vz_arr_k
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, no_phi_alpha_quad_arr, no_phi_alpha_quad_arr, NULL }, // 5
   // 3x kernels
-  { NULL, phi_ho_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(phi_ho_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -3964,9 +3965,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_dense_alpha_quad
   // 2x kernels
   { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 3
   { NULL, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, B_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -3982,9 +3983,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_dense_alpha_q
   // 2x kernels
   { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 3
   { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_dense_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -3996,9 +3997,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_sparse_alpha_qua
   // 2x kernels
   { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 3
   { NULL, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, B_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -4014,9 +4015,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_sparse_alpha_
   // 2x kernels
   { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 3
   { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_sparse_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -4028,9 +4029,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_dense_alpha_quad
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, B_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -4046,9 +4047,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_dense_alpha_q
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_dense_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -4060,9 +4061,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_sparse_alpha_qua
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, B_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -4078,9 +4079,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_sparse_alpha_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_sparse_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -4092,9 +4093,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_dense_alpha_quad
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -4110,9 +4111,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_dense_alpha_q
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_dense_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -4124,9 +4125,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_sparse_alpha_qua
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -4142,9 +4143,9 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_sparse_alpha_
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(B_ho_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(B_ho_hamil_vel_sparse_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -4240,9 +4241,9 @@ static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_alpha_quad_vx_arr_kern
   // 2x kernels
   { NULL, rad_alpha_quad_vx_2x1v_tensor_p1, rad_alpha_quad_vx_2x1v_tensor_p2, rad_alpha_quad_vx_2x1v_tensor_p3 }, // 3
   { NULL, rad_alpha_quad_vx_2x2v_tensor_p1, rad_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, rad_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -4258,9 +4259,9 @@ static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_ho_alpha_quad_vx_arr_k
   // 2x kernels
   { NULL, rad_ho_alpha_quad_vx_2x1v_tensor_p1, rad_alpha_quad_vx_2x1v_tensor_p2, rad_alpha_quad_vx_2x1v_tensor_p3 }, // 3
   { NULL, rad_ho_alpha_quad_vx_2x2v_tensor_p1, rad_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
-  { NULL, rad_ho_alpha_quad_vx_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_ho_alpha_quad_vx_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_ho_alpha_quad_vx_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_ho_alpha_quad_vx_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -4272,9 +4273,9 @@ static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_alpha_quad_vy_arr_kern
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, rad_alpha_quad_vy_2x2v_tensor_p1, rad_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, rad_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -4290,9 +4291,9 @@ static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_ho_alpha_quad_vy_arr_k
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, rad_ho_alpha_quad_vy_2x2v_tensor_p1, rad_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
-  { NULL, rad_ho_alpha_quad_vy_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_ho_alpha_quad_vy_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_ho_alpha_quad_vy_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_ho_alpha_quad_vy_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -4304,9 +4305,9 @@ static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_alpha_quad_vz_arr_kern
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, rad_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // High-order variant: at p=1 (the tensor hybrid, the only tensor basis
@@ -4322,7 +4323,7 @@ static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_ho_alpha_quad_vz_arr_k
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, rad_ho_alpha_quad_vz_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(rad_ho_alpha_quad_vz_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, rad_ho_alpha_quad_vz_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(rad_ho_alpha_quad_vz_3x3v_tensor_p1), NULL, NULL }, // 6
 };

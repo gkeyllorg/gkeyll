@@ -7,6 +7,7 @@
 #include <gkyl_ref_count.h>
 #include <gkyl_mom_vlasov_kernels.h>
 #include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_hyb_build.h>
 
 struct mom_type_vlasov {
   struct gkyl_mom_type momt;
@@ -269,6 +270,7 @@ kernel_mom_vlasov_M0_2x2v_tensor_p1(const struct gkyl_mom_type *momt, const doub
   return mom_vlasov_M0_2x2v_tensor_p1(xc, dx, idx, f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_M0_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -276,7 +278,9 @@ kernel_mom_vlasov_M0_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const doub
 {
   return mom_vlasov_M0_2x3v_tensor_p1(xc, dx, idx, f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_M0_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -284,6 +288,7 @@ kernel_mom_vlasov_M0_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const doub
 {
   return mom_vlasov_M0_3x3v_tensor_p1(xc, dx, idx, f, out);  
 }
+#endif
 
 // M0 kernel list (Tensor basis)
 GKYL_CU_D
@@ -295,9 +300,9 @@ static const gkyl_vlasov_mom_kern_list tensor_m0_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_M0_2x1v_tensor_p1, kernel_mom_vlasov_M0_2x1v_tensor_p2, kernel_mom_vlasov_M0_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_M0_2x2v_tensor_p1, kernel_mom_vlasov_M0_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_M0_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_M0_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_M0_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_M0_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_DH
@@ -855,6 +860,7 @@ kernel_mom_vlasov_M2ij_2x2v_tensor_p1(const struct gkyl_mom_type *momt, const do
     f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_M2ij_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -874,7 +880,9 @@ kernel_mom_vlasov_M2ij_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const do
     mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
     f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_M2ij_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -894,6 +902,7 @@ kernel_mom_vlasov_M2ij_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const do
     mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
     f, out);  
 }
+#endif
 
 // M2ij kernel list (Tensor basis)
 GKYL_CU_D
@@ -905,9 +914,9 @@ static const gkyl_vlasov_mom_kern_list tensor_m2ij_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_M2ij_2x1v_tensor_p1, kernel_mom_vlasov_M2ij_2x1v_tensor_p2, kernel_mom_vlasov_M2ij_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_M2ij_2x2v_tensor_p1, kernel_mom_vlasov_M2ij_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_M2ij_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_M2ij_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_M2ij_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_M2ij_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_DH
@@ -1465,6 +1474,7 @@ kernel_mom_vlasov_M3ijk_2x2v_tensor_p1(const struct gkyl_mom_type *momt, const d
     f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_M3ijk_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -1484,7 +1494,9 @@ kernel_mom_vlasov_M3ijk_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const d
     mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
     f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_M3ijk_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -1504,6 +1516,7 @@ kernel_mom_vlasov_M3ijk_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const d
     mom_vlasov->vmap ? (const double*) gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
     f, out);  
 }
+#endif
 
 // M3ijk kernel list (Tensor basis)
 GKYL_CU_D
@@ -1515,9 +1528,9 @@ static const gkyl_vlasov_mom_kern_list tensor_m3ijk_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_M3ijk_2x1v_tensor_p1, kernel_mom_vlasov_M3ijk_2x1v_tensor_p2, kernel_mom_vlasov_M3ijk_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_M3ijk_2x2v_tensor_p1, kernel_mom_vlasov_M3ijk_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_M3ijk_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_M3ijk_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_M3ijk_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_M3ijk_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_DH
@@ -2590,6 +2603,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_tensor_p1(const struct gkyl_mom_type 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -2615,7 +2629,9 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p1(const struct gkyl_mom_type 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -2641,6 +2657,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_tensor_p1(const struct gkyl_mom_type 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 GKYL_CU_DH
 static void
@@ -2694,6 +2711,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_tensor_p1(const struct gkyl_mom_type
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -2719,7 +2737,9 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p1(const struct gkyl_mom_type
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -2745,6 +2765,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_3x3v_tensor_p1(const struct gkyl_mom_type
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 // M1i (dH/dv moment, velocity-space Hamiltonian) kernel list (Tensor basis)
 GKYL_CU_D
@@ -2756,9 +2777,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_m1i_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -2771,9 +2792,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_m1i_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_tensor_p1, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_M1i_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_sparse_M1i_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_DH
@@ -3244,6 +3265,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x3v_ser_p1(const struct gkyl_mom_type *momt, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_phase_M1i_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -3269,6 +3291,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x3v_tensor_p1(const struct gkyl_mom_type *mom
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 GKYL_CU_DH
 static void
@@ -3296,6 +3319,7 @@ kernel_mom_vlasov_hamil_phase_M1i_3x3v_ser_p1(const struct gkyl_mom_type *momt, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V_PHASE
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_phase_M1i_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -3321,6 +3345,7 @@ kernel_mom_vlasov_hamil_phase_M1i_3x3v_tensor_p1(const struct gkyl_mom_type *mom
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 // M1i (dH/dv moment, phase-space Hamiltonian) kernel list (Serendipity basis)
 GKYL_CU_D
@@ -4047,6 +4072,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_tensor_p1(const struct gkyl_mom_type *
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -4063,7 +4089,9 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p1(const struct gkyl_mom_type *
   return mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p1(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -4080,6 +4108,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_tensor_p1(const struct gkyl_mom_type *
   return mom_vlasov_hamil_vel_dense_M2_3x3v_tensor_p1(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 GKYL_CU_DH
 static void
@@ -4115,6 +4144,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_tensor_p1(const struct gkyl_mom_type 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -4131,7 +4161,9 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p1(const struct gkyl_mom_type 
   return mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p1(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -4148,6 +4180,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_3x3v_tensor_p1(const struct gkyl_mom_type 
   return mom_vlasov_hamil_vel_sparse_M2_3x3v_tensor_p1(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 // M2 (H moment, velocity-space Hamiltonian) kernel list (Tensor basis)
 GKYL_CU_D
@@ -4159,9 +4192,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_m2_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -4174,9 +4207,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_m2_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_tensor_p1, kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_M2_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_sparse_M2_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_DH
@@ -4485,6 +4518,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x3v_ser_p1(const struct gkyl_mom_type *momt, c
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_phase_M2_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -4501,6 +4535,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x3v_tensor_p1(const struct gkyl_mom_type *momt
   return mom_vlasov_hamil_phase_M2_2x3v_tensor_p1(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 GKYL_CU_DH
 static void
@@ -4519,6 +4554,7 @@ kernel_mom_vlasov_hamil_phase_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt, c
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V_PHASE
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_phase_M2_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -4535,6 +4571,7 @@ kernel_mom_vlasov_hamil_phase_M2_3x3v_tensor_p1(const struct gkyl_mom_type *momt
   return mom_vlasov_hamil_phase_M2_3x3v_tensor_p1(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 // M2 (H moment, phase-space Hamiltonian) kernel list (Serendipity basis)
 GKYL_CU_D
@@ -6307,6 +6344,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_tensor_p1(const struct gkyl_
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -6332,7 +6370,9 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p1(const struct gkyl_
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -6358,6 +6398,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_tensor_p1(const struct gkyl_
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 GKYL_CU_DH
 static void
@@ -6411,6 +6452,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_tensor_p1(const struct gkyl
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -6436,7 +6478,9 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p1(const struct gkyl
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -6462,6 +6506,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_3x3v_tensor_p1(const struct gkyl
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 // Five moments (Zeroth, First, and Second moment together) kernel list (Tensor basis)
 // {1, dH/dv, H} moments for velocity-space Hamiltonian. 
@@ -6474,9 +6519,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_five_moments_kerne
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -6489,9 +6534,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_five_moments_kern
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_tensor_p1, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_five_moments_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_sparse_five_moments_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_DH
@@ -6962,6 +7007,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x3v_ser_p1(const struct gkyl_mom_typ
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_phase_five_moments_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -6987,6 +7033,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x3v_tensor_p1(const struct gkyl_mom_
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 GKYL_CU_DH
 static void
@@ -7014,6 +7061,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_3x3v_ser_p1(const struct gkyl_mom_typ
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V_PHASE
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_phase_five_moments_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -7039,6 +7087,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_3x3v_tensor_p1(const struct gkyl_mom_
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 // Five moments (Zeroth, First, and Second moment together) kernel list (Serendipity basis)
 // {1, dH/dv, H} moments for phase-space Hamiltonian. 
@@ -8127,6 +8176,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_tensor_p1(const struct g
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -8152,7 +8202,9 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p1(const struct g
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -8178,6 +8230,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_tensor_p1(const struct g
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 GKYL_CU_DH
 static void
@@ -8231,6 +8284,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_tensor_p1(const struct 
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -8256,7 +8310,9 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p1(const struct 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -8282,6 +8338,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_3x3v_tensor_p1(const struct 
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 // Integrated five moments (Zeroth, First, and Second moment together) kernel list (Tensor basis)
 // {1, dH/dv, H} moments for velocity-space Hamiltonian. 
@@ -8294,9 +8351,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_int_five_moments_k
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -8309,9 +8366,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_int_five_moments_
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p1, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_tensor_p1, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_tensor_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_DH
@@ -8782,6 +8839,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x3v_ser_p1(const struct gkyl_mom
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -8807,6 +8865,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x3v_tensor_p1(const struct gkyl_
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 GKYL_CU_DH
 static void
@@ -8834,6 +8893,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_3x3v_ser_p1(const struct gkyl_mom
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
 
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V_PHASE
 GKYL_CU_DH
 static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -8859,6 +8919,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_3x3v_tensor_p1(const struct gkyl_
     mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
 }
+#endif
 
 // Integrated five moments (Zeroth, First, and Second moment together) kernel list (Serendipity basis)
 // {1, dH/dv, H} moments for phase-space Hamiltonian. 
@@ -8887,9 +8948,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_phase_m1i_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_phase_M1i_2x1v_tensor_p1, NULL, NULL }, // 3
   { NULL, kernel_mom_vlasov_hamil_phase_M1i_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_phase_M1i_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_phase_M1i_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_phase_M1i_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(kernel_mom_vlasov_hamil_phase_M1i_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -8901,9 +8962,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_phase_m2_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_phase_M2_2x1v_tensor_p1, NULL, NULL }, // 3
   { NULL, kernel_mom_vlasov_hamil_phase_M2_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_phase_M2_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_phase_M2_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_phase_M2_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(kernel_mom_vlasov_hamil_phase_M2_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -8915,9 +8976,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_phase_five_moments_kernels[]
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_phase_five_moments_2x1v_tensor_p1, NULL, NULL }, // 3
   { NULL, kernel_mom_vlasov_hamil_phase_five_moments_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_phase_five_moments_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_phase_five_moments_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_phase_five_moments_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(kernel_mom_vlasov_hamil_phase_five_moments_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -8929,9 +8990,9 @@ static const gkyl_vlasov_mom_kern_list tensor_hamil_phase_int_five_moments_kerne
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_phase_int_five_moments_2x1v_tensor_p1, NULL, NULL }, // 3
   { NULL, kernel_mom_vlasov_hamil_phase_int_five_moments_2x2v_tensor_p1, NULL, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_phase_int_five_moments_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(kernel_mom_vlasov_hamil_phase_int_five_moments_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, kernel_mom_vlasov_hamil_phase_int_five_moments_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V_PHASE(kernel_mom_vlasov_hamil_phase_int_five_moments_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // Special moment kernels for integrating the density over a subset of the domain. 

@@ -104,6 +104,25 @@ in the configure command:
 ./configure --app=vlasov
 ```
 
+### Optional heavy kernel sets (Vlasov tensor p=1 hybrid basis)
+
+The Vlasov kernels for the tensor p=1 hybrid basis (p=1 in configuration space,
+p=2 in velocity space) in 2x3v and 3x3v are large: a full set adds tens of MB of
+generated code and, with `nvcc`, tens of minutes of compile time (a single 3x3v
+phase-space Hamiltonian kernel takes ~20 minutes). They are therefore not built
+unless requested at configure time:
+
+```
+./configure --build-vlasov-hyb-2x3v=yes        # 2x3v tensor p=1 hybrid, all Hamiltonians
+./configure --build-vlasov-hyb-3x3v=yes        # 3x3v tensor p=1 hybrid, velocity-space Hamiltonians
+                                               # (needed by gyrokinetic kinetic neutrals)
+./configure --build-vlasov-hyb-3x3v-phase=yes  # 3x3v phase-space Hamiltonian kernels; requires the previous flag
+```
+
+A simulation that needs a set which was not built stops immediately with a
+message naming the flag to reconfigure with. Changing these flags and re-running
+`make` rebuilds what depends on them.
+
 ## On a new computer (no machine files available)
 
 When installing on a new operating system or cluster that we don't yet have machine files

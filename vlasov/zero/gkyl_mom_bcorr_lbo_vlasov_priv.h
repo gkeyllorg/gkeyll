@@ -7,6 +7,7 @@
 #include <gkyl_range.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_mom_bcorr_lbo_vlasov_kernels.h>
+#include <gkyl_vlasov_hyb_build.h>
 
 typedef void (*lbo_vlasov_momf_t)(const int *idx, enum gkyl_vel_edge edge, const double *vBoundary,
   const double *dxv, const double *fIn, double* GKYL_RESTRICT out);
@@ -56,9 +57,9 @@ static const gkyl_mom_bcorr_lbo_vlasov_kern_list ten_mom_bcorr_lbo_vlasov_kernel
   // 2x kernels
   { NULL, mom_bcorr_lbo_vlasov_2x1v_tensor_p1, mom_bcorr_lbo_vlasov_2x1v_tensor_p2, mom_bcorr_lbo_vlasov_2x1v_tensor_p3 }, // 3
   { NULL, mom_bcorr_lbo_vlasov_2x2v_tensor_p1, mom_bcorr_lbo_vlasov_2x2v_tensor_p2, NULL }, // 4
-  { NULL, mom_bcorr_lbo_vlasov_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(mom_bcorr_lbo_vlasov_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, mom_bcorr_lbo_vlasov_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(mom_bcorr_lbo_vlasov_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 struct mom_type_bcorr_lbo_vlasov {

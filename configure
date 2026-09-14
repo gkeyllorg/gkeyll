@@ -27,6 +27,11 @@ USE_LUA=
 USE_MPI=
 USE_NCCL=
 
+# Optional heavy kernel sets (see --build-vlasov-hyb-* below)
+BUILD_VLASOV_HYB_2X3V=
+BUILD_VLASOV_HYB_3X3V=
+BUILD_VLASOV_HYB_3X3V_PHASE=
+
 CONF_LUA_LIB=luajit-5.1
 
 # Location of CUDA math libraries
@@ -62,6 +67,18 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 --use-nccl                 [no] Build NCCL-dependent code
 --use-cudss                [no] Build CUDSS-dependent code
 --use-lua                  [no] Build Lua dependent code
+--build-vlasov-hyb-2x3v    [no] Build the 2x3v tensor p=1 hybrid Vlasov kernels
+                           (all Hamiltonian representations). Adds ~20 MB of
+                           kernels, several minutes of nvcc time.
+--build-vlasov-hyb-3x3v    [no] Build the 3x3v tensor p=1 hybrid Vlasov kernels
+                           (velocity-space Hamiltonians: moments, velocity-map
+                           Jacobians, sparse/dense H, triads, LBO). Required by
+                           gyrokinetic kinetic neutrals. Adds ~40 MB of kernels.
+--build-vlasov-hyb-3x3v-phase
+                           [no] Build the 3x3v tensor p=1 hybrid phase-space
+                           Hamiltonian kernels (canonical-PB / GR triads).
+                           Requires --build-vlasov-hyb-3x3v. One kernel alone
+                           takes ~20 min under nvcc.
 --app                      [all] What app to build? One of
 			   core, moments, vlasov, gyrokinetic, pkpm, all
 
@@ -220,6 +237,18 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       USE_LUA="$value"
       ;;       
+   --build-vlasov-hyb-2x3v)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_VLASOV_HYB_2X3V="$value"
+      ;;
+   --build-vlasov-hyb-3x3v)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_VLASOV_HYB_3X3V="$value"
+      ;;
+   --build-vlasov-hyb-3x3v-phase)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_VLASOV_HYB_3X3V_PHASE="$value"
+      ;;
    --lua-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
       CONF_LUA_INC_DIR="$value"
@@ -265,6 +294,20 @@ then
     USE_LUA=1
 else
     USE_LUA=
+fi
+
+for knob in BUILD_VLASOV_HYB_2X3V BUILD_VLASOV_HYB_3X3V BUILD_VLASOV_HYB_3X3V_PHASE
+do
+    if [ "$(eval echo \$$knob)" = "yes" ]
+    then
+        eval $knob=1
+    else
+        eval $knob=
+    fi
+done
+if [ "$BUILD_VLASOV_HYB_3X3V_PHASE" = "1" ] && [ "$BUILD_VLASOV_HYB_3X3V" != "1" ]
+then
+    die "--build-vlasov-hyb-3x3v-phase=yes requires --build-vlasov-hyb-3x3v=yes"
 fi
 
 echo "Building APP " $APP
@@ -374,6 +417,11 @@ CONF_CUDSS_INC_DIR=$CONF_CUDSS_INC_DIR
 CONF_CUDSS_LIB_DIR=$CONF_CUDSS_LIB_DIR
 
 USE_LUA=$USE_LUA
+
+# Optional heavy kernel sets
+BUILD_VLASOV_HYB_2X3V=$BUILD_VLASOV_HYB_2X3V
+BUILD_VLASOV_HYB_3X3V=$BUILD_VLASOV_HYB_3X3V
+BUILD_VLASOV_HYB_3X3V_PHASE=$BUILD_VLASOV_HYB_3X3V_PHASE
 CONF_LUA_INC_DIR=$CONF_LUA_INC_DIR
 CONF_LUA_LIB_DIR=$CONF_LUA_LIB_DIR
 CONF_LUA_LIB=$CONF_LUA_LIB

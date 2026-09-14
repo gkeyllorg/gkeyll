@@ -10,6 +10,7 @@
 #include <gkyl_util.h>
 #include <gkyl_vlasov_kernels.h>
 #include <assert.h>
+#include <gkyl_vlasov_hyb_build.h>
 
 static void 
 kernel_vmap_1v_p2(const double *dv, const double *v_cubic_dir[GKYL_MAX_VDIM], 
@@ -639,9 +640,9 @@ static const gkyl_dg_divide_Jv_kern_list tensor_divide_Jv_kernels[] = {
   // 2x kernels
   { NULL, vlasov_divide_Jv_2x1v_tensor_p1, vlasov_divide_Jv_2x1v_tensor_p2, vlasov_divide_Jv_2x1v_tensor_p3 }, // 3
   { NULL, vlasov_divide_Jv_2x2v_tensor_p1, vlasov_divide_Jv_2x2v_tensor_p2, NULL }, // 4
-  { NULL, vlasov_divide_Jv_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(vlasov_divide_Jv_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_divide_Jv_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(vlasov_divide_Jv_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 // Velocity-space Jacobian rescale kernels (Serendipity basis).
@@ -670,9 +671,9 @@ static const gkyl_dg_rescale_Jv_kern_list tensor_rescale_Jv_kernels[] = {
   // 2x kernels
   { NULL, vlasov_rescale_Jv_2x1v_tensor_p1, vlasov_rescale_Jv_2x1v_tensor_p2, vlasov_rescale_Jv_2x1v_tensor_p3 }, // 3
   { NULL, vlasov_rescale_Jv_2x2v_tensor_p1, vlasov_rescale_Jv_2x2v_tensor_p2, NULL }, // 4
-  { NULL, vlasov_rescale_Jv_2x3v_tensor_p1, NULL, NULL }, // 5
+  { NULL, GKYL_HYB_2X3V(vlasov_rescale_Jv_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_rescale_Jv_3x3v_tensor_p1, NULL, NULL }, // 6
+  { NULL, GKYL_HYB_3X3V(vlasov_rescale_Jv_3x3v_tensor_p1), NULL, NULL }, // 6
 };
 
 GKYL_CU_D

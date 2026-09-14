@@ -15,7 +15,27 @@ CORELLIB := ../$(BUILD_DIR)/core/libg0core.so
 CORESLLIB := 
 LLIB := ../$(BUILD_DIR)/vlasov/libg0vlasov.so
 SLLIB := 
-SRCS := $(shell find $(SRC_DIRS) -name *.c)
+# Optional heavy kernel sets: exclude the generated kernels of a set from the
+# build unless its knob is set (see the top-level Makefile). The name patterns
+# select exactly the tensor p=1 hybrid kernels of the given dimensionality; the
+# 3x3v phase-space Hamiltonian kernels are a subset of the 3x3v set.
+# KER_PRUNE lists the same sets as object-file patterns: the library link
+# globs every object under the build directory, so objects of a set that was
+# built earlier and is now switched off are deleted before linking.
+KER_EXCLUDE :=
+KER_PRUNE :=
+ifneq ($(BUILD_VLASOV_HYB_2X3V),1)
+KER_EXCLUDE += -not -name '*2x3v_tensor_p1*'
+KER_PRUNE += -o -name '*2x3v_tensor_p1*.o'
+endif
+ifneq ($(BUILD_VLASOV_HYB_3X3V),1)
+KER_EXCLUDE += -not -name '*3x3v_tensor_p1*'
+KER_PRUNE += -o -name '*3x3v_tensor_p1*.o'
+else ifneq ($(BUILD_VLASOV_HYB_3X3V_PHASE),1)
+KER_EXCLUDE += -not -name '*hamil_phase*3x3v_tensor_p1*'
+KER_PRUNE += -o -name '*hamil_phase*3x3v_tensor_p1*.o'
+endif
+SRCS := $(shell find $(SRC_DIRS) -name '*.c' $(KER_EXCLUDE))
 ifdef USING_NVCC
 	SRCS += $(shell find $(SRC_DIRS) -name *.cu)
 	SRCS += $(shell find $(UNIT_DIRS) -name *.cu)
@@ -23,6 +43,13 @@ endif
 OBJS := $(SRCS:%=../$(BUILD_DIR)/vlasov/%.o)
 
 DEPS := $(OBJS:.o=.d)
+
+# Compile flags come from config.mak (feature and kernel-set knobs), so a
+# configuration change rebuilds the code that was compiled with the old flags:
+# the zero/apps layers, unit tests and regression binaries. Generated kernels
+# do not depend on those flags and are left alone (a full kernel rebuild is
+# tens of minutes under nvcc).
+$(filter-out ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/%,$(OBJS)) $(UNITS) $(REGS): $(wildcard ../config.mak)
 
 UNITS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard unit/ctest_*.c))
 MPI_UNITS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard unit/mctest_*.c))
@@ -159,6 +186,9 @@ endif
 # build lib
 $(LLIB): $(OBJS) ../$(BUILD_DIR)/moments/libg0moments.so
 	$(MKDIR_P) $(dir $@)
+ifneq ($(strip $(KER_PRUNE)),)
+	find ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR) \( -false $(KER_PRUNE) \) -delete
+endif
 ifeq ($(UNAME),Linux)
 ifdef USING_NVCC
 	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${VLASOV_CU_LINK_OBJS}  -Xlinker=-soname -Xlinker=libg0vlasov.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"

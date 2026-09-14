@@ -639,6 +639,11 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   // energy diagnostics are wrong at the O(1) level.
   assert(app->poly_order == 1); // Neutral species are p=1 only.
   gkyl_cart_modal_hybrid(&s->basis, cdim, vdim);
+#ifndef GKYL_BUILD_VLASOV_HYB_3X3V
+  // The 3x3v tensor p=1 hybrid Vlasov kernels are an optional build set; kinetic
+  // neutrals (3x3v phase space) cannot run without them.
+  gkyl_exit("gk_neut_species: kinetic neutrals need the 3x3v tensor p=1 hybrid Vlasov kernels, which were not built. Reconfigure with --build-vlasov-hyb-3x3v=yes.");
+#endif
 
   if (app->use_gpu) {
     // Allocate device basis if we are using GPUs.
