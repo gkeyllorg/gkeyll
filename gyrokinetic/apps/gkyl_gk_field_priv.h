@@ -10,7 +10,7 @@
  * This header contains forward declarations for internal field-related
  * functions used by the gyrokinetic application. These functions handle
  * FEM projections, field solves, boundary conditions, energy diagnostics,
- * FLR corrections, polarization potentials, and biased wall configurations.
+ * FLR corrections and polarization potentials.
  */
 
 /** FEM Initialization Functions **/
@@ -147,35 +147,3 @@ gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field,
 void
 gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
   struct gkyl_array *phi);
-
-/** Biased Wall Functions **/
-
-/**
- * Initialize biased wall boundary condition objects.
- * Sets up machinery for applying time-dependent wall potentials.
- *
- * @param app Gyrokinetic application object.
- * @param f Field object to initialize biased wall for.
- */
-void
-gk_field_biased_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
-
-/**
- * Release biased wall resources.
- *
- * @param app Gyrokinetic application object.
- * @param f Field object whose biased wall resources are to be released.
- */
-void
-gk_field_biased_wall_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
-
-/**
- * Calculate and apply the wall potential at the current simulation time.
- * Updates phi at the wall boundaries based on the biased wall configuration.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object containing the potential.
- * @param tm Current simulation time.
- */
-void
-gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm);

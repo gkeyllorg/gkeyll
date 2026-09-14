@@ -193,10 +193,8 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     species_inp.polarization_density = sp_pb->polarization_density;  
 
     // By default, skip BCs altogether.
-    for (int i=0; i<2*GKYL_MAX_CDIM; i++) {
+    for (int i=0; i<2*GKYL_MAX_CDIM; i++)
       species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
-      species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
-    }
 
     int pardir = cdim-1;
     int num_below = gkyl_multib_conn_get_num_connected(mbapp->block_topo,
@@ -285,10 +283,8 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     neut_species_inp.source = nsp_pb->source;
 
     // By default, skip BCs altogether.
-    for (int i=0; i<2*GKYL_MAX_CDIM; i++) {
+    for (int i=0; i<2*GKYL_MAX_CDIM; i++)
       neut_species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
-      neut_species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
-    }
 
     // Set species physical BCs.
     int bc_count_nsp[num_blocks];
@@ -339,7 +335,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
         field_inp.poisson_bcs[i].value[k] = -1.0e3;
     }
   }
-  
+
   for (int i=0; i<fld->num_physical_bcs; i++) { 
     if (bid == fld->bcs[i].bidx) {
       struct gkyl_gyrokinetic_bc *bc_curr = gk_fetch_bc_with_dir_edge(field_inp.poisson_bcs, 2*cdim, fld->bcs[i].dir, fld->bcs[i].edge);
@@ -361,7 +357,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
       }
     }
   }
-  
+
   if (!fld->duplicate_across_blocks) {
     for (int i=0; i<num_blocks; ++i) {
       if (bid == fld->blocks[i].block_id) {
@@ -374,15 +370,6 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   field_inp.polarization_bmag = fld_pb->polarization_bmag ? fld_pb->polarization_bmag : mbapp->bmag_ref;
   field_inp.kperpSq = fld_pb->kperpSq;
   field_inp.time_rate_diagnostics = fld_pb->time_rate_diagnostics; 
-  
-  field_inp.phi_wall_lo_ctx = fld_pb->phi_wall_lo_ctx; 
-  field_inp.phi_wall_lo = fld_pb->phi_wall_lo; 
-  field_inp.phi_wall_lo_evolve = fld_pb->phi_wall_lo_evolve; 
-  
-  field_inp.phi_wall_up_ctx = fld_pb->phi_wall_up_ctx; 
-  field_inp.phi_wall_up = fld_pb->phi_wall_up; 
-  field_inp.phi_wall_up_evolve = fld_pb->phi_wall_up_evolve;   
-  
 
   // Copy field input into app input.
   memcpy(&app_inp.field, &field_inp, sizeof(struct gkyl_gyrokinetic_field));  
@@ -932,7 +919,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
     int li_charged = b * app->num_species;
     int li_neut = b * app->num_neut_species;
     for (int i=0; i<app->num_species; ++i) {
-      gk_species_apply_bc(sbapp, &sbapp->species[i], distf[li_charged+i]);
+      gk_species_apply_bc(sbapp, &sbapp->species[i], tcurr, distf[li_charged+i]);
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       gk_neut_species_apply_bc(sbapp, &sbapp->neut_species[i], distf_neut[li_neut+i]);

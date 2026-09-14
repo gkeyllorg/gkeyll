@@ -691,12 +691,6 @@ gyrokinetic_calc_field_enabled(gkyl_gyrokinetic_app* app, double tcurr,
   // Compute electrostatic potential from gyrokinetic Poisson's equation.
   gk_field_accumulate_rho_c(app, app->field, fin, bflux);
 
-  // Compute biased wall potential if present and time-dependent.
-  // Note: biased wall potential use eval_on_nodes. 
-  // so does copy to GPU every call if app->use_gpu = true.
-  if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
-    gk_field_calc_phi_wall(app, app->field, tcurr);
-
   // Solve the field equation.
   gk_field_rhs(app, app->field);
   app->stat.field_tm += gkyl_time_diff_now_sec(wtm);
@@ -1000,7 +994,7 @@ gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
   // Apply boundary conditions.
   struct timespec wst = gkyl_wall_clock();
   for (int i=0; i<app->num_species; ++i) {
-    gk_species_apply_bc(app, &app->species[i], distf[i]);
+    gk_species_apply_bc(app, &app->species[i], tcurr, distf[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
@@ -1116,7 +1110,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
-    gk_species_apply_bc(app, &app->species[i], distf[i]);
+    gk_species_apply_bc(app, &app->species[i], t0, distf[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     if (!app->neut_species[i].info.is_static) {
@@ -3507,7 +3501,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
     // Apply boundary conditions.
     for (int i=0; i<app->num_species; ++i) {
-      gk_species_apply_bc(app, &app->species[i], distf[i]);
+      gk_species_apply_bc(app, &app->species[i], rstat.stime, distf[i]);
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);

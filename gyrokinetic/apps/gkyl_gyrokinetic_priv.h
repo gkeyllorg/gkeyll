@@ -852,11 +852,6 @@ struct gk_damping {
   bool evolve; // Whether the source is time dependent.
   struct gkyl_array *rate; // Damping rate.
   struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
-  struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
-  double *bmag_max; // Maximum magnetic field amplitude.
-  double *bmag_max_coord; // Location of bmag_max.
-  double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
-  struct gkyl_array *scale_prof; // Conf-space scaling factor profile.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
 };
@@ -867,10 +862,13 @@ struct gk_fdot_multiplier_comp {
   struct gkyl_array *buffer; // Per-component working storage.
   struct gkyl_array *buffer_ho; // Host copy for use in IO and projecting.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+
+  // Loss cone mask objects
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
-  double *bmag_max; // Maximum magnetic field amplitude.
-  double *bmag_max_coord; // Location of bmag_max.
-  double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
+  struct gkyl_array *bmag_global; // Global bmag field used by the loss-cone updater.
+  struct gkyl_array *phi_global; // Global phi field used by the loss-cone updater.
+  struct gkyl_array *phi_wall_lo_global; // Global lower-wall potential used by the loss-cone updater.
+  struct gkyl_array *phi_wall_up_global; // Global upper-wall potential used by the loss-cone updater.
 
   // Time dilation parameters (from input).
   double cfl_dt_min_value; // User-specified minimum dt value.
@@ -1009,6 +1007,15 @@ struct gk_positivity {
     struct gk_positivity *pos);
 };
 
+// Projected material-wall potential associated with a species sheath BC.
+struct gk_species_wall_potential {
+  struct gkyl_array *phi;
+  struct gkyl_array *phi_host;
+  gkyl_eval_on_nodes *projector;
+  void (*advance_func)(gkyl_gyrokinetic_app *app,
+    const struct gk_species_wall_potential *wall, double tm);
+};
+
 // Species data.
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
@@ -1071,6 +1078,8 @@ struct gk_species {
 
   // Boundary conditions on lower/upper edges in each direction.
   struct gkyl_gyrokinetic_bc lower_bc[GKYL_MAX_CDIM], upper_bc[GKYL_MAX_CDIM];
+  // Wall potentials supplied by the parallel sheath BCs.
+  struct gk_species_wall_potential phi_wall_lo, phi_wall_up;
   // gyrokinetic sheath boundary conditions
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_lo;
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_up;
@@ -1136,7 +1145,7 @@ struct gk_species {
   double (*rhs_implicit_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt);
   void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-    struct gkyl_array *f);
+    double tm, struct gkyl_array *f);
   void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
   void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
   void (*combine_func)(struct gkyl_array *out, double c1,
@@ -1376,18 +1385,6 @@ struct gk_field {
   double *em_energy_red_old, *em_energy_red_new; // memory for use in GPU reduction of old EM energy.
   gkyl_dynvec integ_energy_dot; // d/dt of integrated energy components.
   bool is_first_energy_dot_write_call; // flag for d(energy)/dt dynvec written first time
-
-  bool has_phi_wall_lo; // flag to indicate there is biased wall potential on lower wall
-  bool phi_wall_lo_evolve; // flag to indicate biased wall potential on lower wall is time dependent
-  struct gkyl_array *phi_wall_lo; // biased wall potential on lower wall
-  struct gkyl_array *phi_wall_lo_host; // host copy for use in IO and projecting
-  gkyl_eval_on_nodes *phi_wall_lo_proj; // projector for biased wall potential on lower wall 
-
-  bool has_phi_wall_up; // flag to indicate there is biased wall potential on upper wall
-  bool phi_wall_up_evolve; // flag to indicate biased wall potential on upper wall is time dependent
-  struct gkyl_array *phi_wall_up; // biased wall potential on upper wall
-  struct gkyl_array *phi_wall_up_host; // host copy for use in IO and projecting
-  gkyl_eval_on_nodes *phi_wall_up_proj; // projector for biased wall potential on upper wall 
 
   // Pointer to function that computes the time rate of change of the energy.
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
@@ -3253,9 +3250,11 @@ void gk_species_apply_pos_shift(gkyl_gyrokinetic_app* app, struct gk_species *gk
  *
  * @param app gyrokinetic app object.
  * @param species Pointer to species.
+ * @param tm Time at which to apply the BCs.
  * @param f Field to apply BCs.
  */
-void gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
+void gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  double tm, struct gkyl_array *f);
 
 /**
  * Fill stat object in app with collision timers.
@@ -3348,6 +3347,35 @@ gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks, do
  * @param species Species object to delete.
  */
 void gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
+
+/**
+ * Initialize a wall potential owned by a species sheath BC.
+ *
+ * @param app Gyrokinetic app object.
+ * @param bc Species sheath BC input.
+ * @param wall Wall-potential object.
+ */
+void gk_species_phi_wall_init(gkyl_gyrokinetic_app *app,
+  const struct gkyl_gyrokinetic_bc *bc, struct gk_species_wall_potential *wall);
+
+/**
+ * Evaluate a species sheath wall-potential profile at the requested time.
+ *
+ * @param app Gyrokinetic app object.
+ * @param wall Wall-potential object.
+ * @param tm Time at which to evaluate the profiles.
+ */
+void gk_species_phi_wall_advance(gkyl_gyrokinetic_app *app,
+  const struct gk_species_wall_potential *wall, double tm);
+
+/**
+ * Release a species sheath wall-potential resource.
+ *
+ * @param app Gyrokinetic app object.
+ * @param wall Wall-potential object.
+ */
+void gk_species_phi_wall_release(const gkyl_gyrokinetic_app *app,
+  const struct gk_species_wall_potential *wall);
 
 /** gk_neut_species_moment API */
 
@@ -4143,15 +4171,6 @@ void gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_ne
  * @return Newly created field.
  */
 struct gk_field* gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app);
-
-/**
- * Compute biased wall potentials.
- *
- * @param app gyrokinetic app object.
- * @param field Pointer to field.
- * @param tm Time to compute biased wall potentials at.
- */
-void gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm);
 
 /**
  * Accumulate charge density for Poisson solve.

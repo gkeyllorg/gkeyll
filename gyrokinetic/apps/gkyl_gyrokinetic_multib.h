@@ -110,15 +110,6 @@ struct gkyl_gyrokinetic_multib_field_pb {
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 
-  void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
-  // pointer to biased wall potential on lower wall function
-  void (*phi_wall_lo)(double t, const double *xn, double *phi_wall_lo_out, void *ctx);
-  bool phi_wall_lo_evolve; // set to true if biased wall potential on lower wall function is time dependent  
-
-  void *phi_wall_up_ctx; // context for biased wall potential on upper wall
-  // pointer to biased wall potential on upper wall function
-  void (*phi_wall_up)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
-  bool phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent  
 };
 
 // Field input 
