@@ -208,6 +208,21 @@ tok_xpt_seam_trial_reject(const struct gkyl_tok_geo_grid_inp *inp,
   }
 }
 
+// Experiment gate ONLY, default on: forces every block onto the arc-march
+// placement so the two node-placement rules can be compared on one build.
+// Measured 2026-09-14: blocks that reach their nodes through the arc march have
+// a uniform poloidal element (1.0000-1.0722) and every seam between two such
+// blocks closes (<=1.011), while no seam between two ordered-map blocks does.
+// This says nothing about whether the arc march is SAFE here -- the ordered map
+// exists to keep the X-point cut straight -- which is exactly what the gate is
+// for.
+static bool
+tok_xpt_ordered_map_enabled(void)
+{
+  const char *e = getenv("GKYL_TOK_XPT_ORDERED_MAP");
+  return !(e && e[0] != '\0' && e[0] == '0');
+}
+
 static bool
 tok_xpt_mapping_requested(const struct gkyl_tok_geo_grid_inp *inp)
 {
@@ -216,6 +231,172 @@ tok_xpt_mapping_requested(const struct gkyl_tok_geo_grid_inp *inp)
   return inp->straight_core_xpt_ray &&
     (inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R ||
      inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L);
+}
+
+// Does this block PLACE ITS NODES through the ordered map?  Separate from
+// tok_xpt_mapping_requested because the X-point ray target is ALSO needed by
+// tok_configure_xpt_map, which is gated on tok_xpt_ray_enabled instead -- so
+// gating the shared predicate left xpt_ray_psi0 uninitialised and aborted
+// NSTX-U with "TOK_XPT_RAY failed ... target_psi=0", a failure of the gate and
+// not of the arc march.
+static bool
+tok_xpt_ordered_placement(const struct gkyl_tok_geo_grid_inp *inp)
+{
+  return tok_xpt_mapping_requested(inp) && tok_xpt_ordered_map_enabled();
+}
+
+// Does this block reach its nodes through the CHORD construction -- the else
+// branch of tok_ordered_map_lookup, tok_ordered_chord_point?  That is ordered
+// placement WITHOUT the extended build; naming the construction rather than a
+// domain label keeps this device-agnostic.
+//
+// Why it matters: on that path the theta grading is
+// tok_ext_gradpsi_map, which normalises the |grad psi| measure over THIS
+// BLOCK'S OWN separatrix segment, so two blocks meeting at a theta seam
+// disagree on node density.  Grading uniformly in arc instead makes the
+// poloidal element constant inside the block, which is what makes the seam
+// elements agree -- and because both radial partners still sample the SAME
+// separatrix trace at the same normalised u, the shared row is untouched.
+// Measured on nstxu_shot204051_ms450: within-block element 1.75-9.77 -> 1.00-2.79,
+// three of four theta seams 1.62/1.40/1.03 -> <=1.002, radial seams stay exact
+// (7.8e-16 m).
+static bool
+tok_chord_construction(const struct gkyl_tok_geo_grid_inp *inp)
+{
+  return tok_xpt_ordered_placement(inp) && !tok_ext_construction(inp);
+}
+
+static bool
+tok_chord_uniform_arc_enabled(void)
+{
+  const char *e = getenv("GKYL_TOK_CHORD_UNIFORM_ARC");
+  return e && e[0] != '\0' && e[0] != '0';
+}
+
+// Separatrix-row capture, for the seam-slope solve.
+//
+// The solve needs each block's node arc positions along its separatrix row.
+// They are recorded HERE, where the nodes are actually placed, rather than read
+// back from the app's geometry: that object is deflated to 2-D and its
+// geo_corn arrays do not carry the corner map (measured: mc2p_nodal zero,
+// mc2p ncomp=3 and zero). Same probe-capture idiom as tok_wall_trial_begin/end.
+#define TOK_SEAM_CAP_FTYPES 32
+#define TOK_SEAM_CAP_NODES  8193
+static bool tok_seam_cap_on = false;
+static double tok_seam_cap_row_r[8193], tok_seam_cap_row_z[8193];
+static int tok_seam_cap_row_n = 0;
+static int tok_seam_cap_n[TOK_SEAM_CAP_FTYPES];
+static double tok_seam_cap_w[TOK_SEAM_CAP_FTYPES];
+static double *tok_seam_cap_s[TOK_SEAM_CAP_FTYPES];
+
+void
+gkyl_tok_geo_seam_capture_begin(void)
+{
+  tok_seam_cap_on = true;
+  for (int i=0; i<TOK_SEAM_CAP_FTYPES; ++i) tok_seam_cap_n[i] = 0;
+}
+
+void
+gkyl_tok_geo_seam_capture_end(void)
+{
+  tok_seam_cap_on = false;
+}
+
+int
+gkyl_tok_geo_seam_capture_get(int ftype, double *s, int max, double *w)
+{
+  if (ftype < 0 || ftype >= TOK_SEAM_CAP_FTYPES) return 0;
+  const int n = tok_seam_cap_n[ftype];
+  if (n <= 0 || n+1 > max || !tok_seam_cap_s[ftype]) return 0;
+  for (int i=0; i<=n; ++i) s[i] = tok_seam_cap_s[ftype][i];
+  *w = tok_seam_cap_w[ftype];
+  return n;
+}
+
+static void
+tok_seam_capture_row(int ftype, const double *r, const double *z, int nnode,
+  double w)
+{
+  if (!tok_seam_cap_on || ftype < 0 || ftype >= TOK_SEAM_CAP_FTYPES)
+    return;
+  if (nnode < 2 || nnode > TOK_SEAM_CAP_NODES || !(w > 0.0))
+    return;
+  if (!tok_seam_cap_s[ftype])
+    tok_seam_cap_s[ftype] = gkyl_malloc(sizeof(double[TOK_SEAM_CAP_NODES]));
+  double *acc = tok_seam_cap_s[ftype];
+  acc[0] = 0.0;
+  for (int i=1; i<nnode; ++i)
+    acc[i] = acc[i-1] + hypot(r[i]-r[i-1], z[i]-z[i-1]);
+  tok_seam_cap_n[ftype] = nnode-1;
+  tok_seam_cap_w[ftype] = w;
+}
+
+static bool
+tok_shared_grading_enabled(void)
+{
+  const char *e = getenv("GKYL_TOK_SHARED_GRADING");
+  return e && e[0] != '\0' && e[0] != '0';
+}
+
+// The shared theta grading. See theta_shared_k in gkyl_tok_geo.h.
+//
+//   G'(u) = c (1 + k (1-2u)^2),  c = 3/(3+k)
+//   G(u)  = c ( u + k/6 - k(1-2u)^3/6 )
+//
+// G(0)=0, G(1)=1 and G'(0)=G'(1)=c(1+k) by construction. Monotone for k > -1;
+// k is derived from the geometry and is positive in practice.
+static double
+tok_shared_grading(const struct gkyl_tok_geo_grid_inp *inp, double u)
+{
+  const double k = inp->theta_shared_k;
+  if (!(k > -1.0) || k == 0.0 || !isfinite(k))
+    return u;
+  if (u <= 0.0) return 0.0;
+  if (u >= 1.0) return 1.0;
+  const double c = 3.0/(3.0+k);
+  const double t = 1.0-2.0*u;
+  return c*(u + k/6.0 - k*t*t*t/6.0);
+}
+
+static bool
+tok_seam_slope_enabled(void)
+{
+  const char *e = getenv("GKYL_TOK_SEAM_SLOPE");
+  return e && e[0] != '\0' && e[0] != '0';
+}
+
+// Monotone cubic with phi(0)=0, phi(1)=1, phi'(0)=a, phi'(1)=b.
+//
+// Composed BEFORE the grading (G_new = G_old o phi), so the block's clustering
+// survives and only the endpoint rate changes; phi(1)=1 is what keeps the
+// block's arc and its node count untouched, which is also why the multipliers
+// could be solved without a normalisation constraint.
+//
+// The caller is responsible for supplying slopes that keep phi' > 0; the
+// multib solve checks that, and this guards the shipped path anyway by
+// falling back to the identity when the pair is not monotone.
+static double
+tok_seam_phi(const struct gkyl_tok_geo_grid_inp *inp, double u)
+{
+  if (!tok_seam_slope_enabled())
+    return u;
+  const double a = inp->theta_seam_slope[0] > 0.0 ? inp->theta_seam_slope[0] : 1.0;
+  const double b = inp->theta_seam_slope[1] > 0.0 ? inp->theta_seam_slope[1] : 1.0;
+  if (a == 1.0 && b == 1.0)
+    return u;
+  // phi'(u) = a + 2(3-2a-b)u + 3(a+b-2)u^2 -- a quadratic; check its minimum
+  // on [0,1] rather than trusting the endpoints, which is where a cubic of this
+  // family dips negative.
+  const double c2 = 3.0*(a+b-2.0), c1 = 2.0*(3.0-2.0*a-b), c0 = a;
+  double lo = fmin(c0, c0+c1+c2);
+  if (fabs(c2) > 0.0) {
+    const double ustar = -c1/(2.0*c2);
+    if (ustar > 0.0 && ustar < 1.0)
+      lo = fmin(lo, c0 + c1*ustar + c2*ustar*ustar);
+  }
+  if (!(lo > 0.0))
+    return u;
+  return a*u + (3.0-2.0*a-b)*u*u + (a+b-2.0)*u*u*u;
 }
 
 static void
@@ -4294,13 +4475,121 @@ tok_ext_ladder_seed_by_gradpsi(const struct gkyl_tok_geo *geo, double psi,
   return true;
 }
 
+// X = S*mtot for a block: the integral of |grad psi| along the GRADING'S OWN
+// trace, sampled exactly as tok_ext_ladder_seed_by_gradpsi samples it.
+//
+// This is the quantity the theta split must be proportional to for the poloidal
+// element to be continuous across a theta seam: element = X/(|grad psi|*T), and
+// |grad psi| is common to both sides of a shared face, so equal X/T means equal
+// element. Computing it over the raw psi contour between zmin and the X point
+// instead gets the divertor legs wrong by 4-7x, because the legs are clipped by
+// the wall/plates and the trace is not that curve.
+//
+// Lives here because tok_ext_build_domain_trace is static to this file;
+// tok_geo_set_extent() in tok_geo_utils.c is the caller.
+bool
+tok_ext_block_measure(const struct gkyl_tok_geo_grid_inp *inp,
+  struct gkyl_tok_geo *geo, double psi, double *out)
+{
+  enum { CAP = 4096, NS = 257 };
+  double *buf = gkyl_malloc(sizeof(double[3*CAP]));
+  double *tr = buf, *tz = buf+CAP, *ts = buf+2*CAP;
+  struct arc_length_ctx ctx = { .geo = geo, .sep_trace_capacity = CAP };
+  int pn = 0;
+  bool param_is_r = false, closed = false;
+  bool ok = tok_ext_build_domain_trace(inp, &ctx, psi, true,
+    tr, tz, ts, &pn, &param_is_r, &closed);
+  if (!ok || pn < 2 || !(ts[pn-1] > 0.0)) {
+    gkyl_free(buf);
+    return false;
+  }
+  double S = ts[pn-1], mu = 0.0, gprev = 0.0;
+  for (int j=0; j<NS && ok; ++j) {
+    double u = j/(double) (NS-1), R = 0.0, Z = 0.0, dR = 0.0, dZ = 0.0;
+    if (!tok_trace_sample(geo, psi, tr, tz, ts, pn, param_is_r, u, &R, &Z)
+      || !tok_eval_psi_grad_rz_local(geo, R, Z, &dR, &dZ)) {
+      ok = false;
+      break;
+    }
+    double g = sqrt(dR*dR+dZ*dZ);
+    if (j > 0)
+      mu += 0.5*(g+gprev)/(double) (NS-1);
+    gprev = g;
+  }
+  gkyl_free(buf);
+  if (!ok || !(mu > 0.0) || !isfinite(mu))
+    return false;
+  *out = S*mu;
+  return true;
+}
 
+// Face weights Y = S*(dw/du) at each end of the block, where w(u) is the
+// grading map tok_ext_ladder_seed_by_gradpsi builds.
+//
+// The poloidal element at a face is Y/(|grad psi|*T). |grad psi| is common to
+// both sides of a SHARED face, so a theta seam closes exactly when
+// Y_A(up)/T_A == Y_B(lo)/T_B. That is a per-FACE quantity, not a per-block one:
+// measured on TCV, Y at a block's two ends differs by 15-34x, which is why no
+// per-block closed form exists and the allocation has to be solved as a chain.
+bool
+tok_ext_block_face_weights(const struct gkyl_tok_geo_grid_inp *inp,
+  struct gkyl_tok_geo *geo, double psi, double *y_lo, double *y_hi)
+{
+  // NS and the one-sided FIRST-order difference are deliberate, not sloppy.
+  // dw/du is SINGULAR at an X point (|grad psi| -> 0 there, so dw/du -> inf),
+  // and the endpoint slope therefore does NOT converge as the map is refined:
+  // measured 2026-09-14, going to second order at NS=1025 moved the recovered
+  // widths from 1.7e-5 to 8.6e-3 relative error -- three orders WORSE. What the
+  // seam actually sees is the map slope at the resolution the GRID samples, so
+  // the estimate must stay coarse and matched, not converged.
+  enum { CAP = 4096, NS = 257 };
+  double *buf = gkyl_malloc(sizeof(double[4*CAP]));
+  double *tr = buf, *tz = buf+CAP, *ts = buf+2*CAP, *w = buf+3*CAP;
+  struct arc_length_ctx ctx = { .geo = geo, .sep_trace_capacity = CAP };
+  int pn = 0;
+  bool param_is_r = false, closed = false;
+  bool ok = tok_ext_build_domain_trace(inp, &ctx, psi, true,
+    tr, tz, ts, &pn, &param_is_r, &closed);
+  ok = ok && pn >= 2 && ts[pn-1] > 0.0;
+  ok = ok && tok_ext_ladder_seed_by_gradpsi(geo, psi, tr, tz, ts, pn,
+    param_is_r, NS, w, NS, inp->ftype);
+  if (!ok) {
+    gkyl_free(buf);
+    return false;
+  }
+  // Sample the map over the interval the GRID uses, not the map's own spacing.
+  //
+  // dw/du is singular at an X point and w[] has its endpoints PINNED (w[0]=0,
+  // w[NS-1]=1), so the slope in the first map interval is an artefact of that
+  // pinning rather than a derivative that converges. Refining it makes matters
+  // worse, measured: second order at NS=1025 moved the recovered widths from
+  // 1.7e-5 to 8.6e-3 relative error. What the seam actually sees is the slope
+  // across the block's own first/last theta cell, so that is what is returned.
+  double S = ts[pn-1];
+  int nth = inp->cgrid.cells[2] > 0 ? inp->cgrid.cells[2] : NS-1;
+  double u1 = 1.0/(double) nth;
+  // linear lookup into w[] at u1 and at 1-u1
+  double x = u1*(NS-1);
+  int i0 = (int) floor(x);
+  i0 = i0 < 0 ? 0 : (i0 > NS-2 ? NS-2 : i0);
+  double w_lo = w[i0] + (x-i0)*(w[i0+1]-w[i0]);
+  double xh = (1.0-u1)*(NS-1);
+  int i1 = (int) floor(xh);
+  i1 = i1 < 0 ? 0 : (i1 > NS-2 ? NS-2 : i1);
+  double w_hi = w[i1] + (xh-i1)*(w[i1+1]-w[i1]);
+  *y_lo = S*(w_lo-0.0)/u1;
+  *y_hi = S*(1.0-w_hi)/u1;
+  gkyl_free(buf);
+  return isfinite(*y_lo) && isfinite(*y_hi) && *y_lo > 0.0 && *y_hi > 0.0;
+}
+
+// March the ladder at a given rung count into `table`, and report the largest
 // theta motion between adjacent rungs so the caller can judge whether that
 // count resolved the correspondence.
 static bool
 tok_ext_march_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx, int m, int n, const double *rung_rf,
-  double *table, double *dmax_out)
+  double *table, double *dmax_out, double *arc_out)
 {
   const int cap = arc_ctx->sep_trace_capacity;
   const double psisep = arc_ctx->geo->psisep;
@@ -4358,6 +4647,8 @@ tok_ext_march_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
     for (int i=0; i<n; ++i) wprev[i] = i/(double) (n-1);
   for (int i=0; i<n; ++i)
     table[(size_t) k_seed*n+i] = wprev[i];
+  if (arc_out)
+    arc_out[k_seed] = ps[pn-1];
 
   bool ok = true;
   double dmax = 0.0;
@@ -4404,6 +4695,8 @@ tok_ext_march_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
     for (int i=0; i<n; ++i)
       dmax = fmax(dmax, fabs(wcur[i]-wprev[i]));
     // This rung becomes the next one's reference.
+    if (arc_out)
+      arc_out[k] = cs[cn-1];
     for (int i=0; i<cn; ++i) { pr[i] = cr[i]; pz[i] = cz[i]; ps[i] = cs[i]; }
     pn = cn; pparam = cparam; ppsi = psi_k;
     for (int i=0; i<n; ++i) wprev[i] = wcur[i];
@@ -4498,6 +4791,60 @@ tok_ext_ladder_row_rung_offset(const struct gkyl_tok_geo_grid_inp *inp,
 // cost time, and the min_gap floor already converts such a jump into a stretched
 // row rather than a crossed one.  Rungs are also capped by the trace capacity,
 // beyond which the rungs would be finer than the traces they are built from.
+// OPTION 1, default OFF (GKYL_TOK_SEAM_DRIFT_FIX=1).
+//
+// The theta split is fixed at the separatrix, but S_A(psi)/S_B(psi) DRIFTS off
+// it -- 11-19% on NSTX-U -- and the seam element ratio tracks that drift at
+// corr 0.996-0.9997. So the drift IS the discontinuity. Rescale each row's
+// grading so the element at the block's faces follows a COMMON function of psi
+//
+//     element_i(psi, face) = element_i(psi_sep, face) * Schain(psi)/Schain(sep)
+//
+// Any two blocks of a chain then keep their separatrix-row ratio at every row.
+// Schain is the contour over [zmin, zmax], which chain siblings DECLARE
+// identically, so each block computes the same number with no neighbour lookup.
+//
+// Aiming at the chain-AVERAGE element instead was measured and rejected: it
+// needs slope factors of 0.18-0.34 and would flatten the X-point clustering.
+// This rule needs 0.97-1.15, and is pinned to exactly 1 on the separatrix row.
+static bool
+tok_seam_drift_fix_enabled(void)
+{
+  const char *on = getenv("GKYL_TOK_SEAM_DRIFT_FIX");
+  return on && on[0] == '1';
+}
+
+// Monotone cubic with phi(0)=0, phi(1)=1, phi'(0)=phi'(1)=f. |f-1| stays under
+// ~0.15 in practice, so phi' cannot change sign and the row stays ordered.
+static double
+tok_seam_drift_phi(double u, double f)
+{
+  return u + (f-1.0)*u*(1.0-u)*(1.0-2.0*u);
+}
+
+static void
+tok_seam_drift_rescale_row(double *w, int n, double f)
+{
+  if (!(f > 0.0) || !isfinite(f) || fabs(f-1.0) < 1e-14)
+    return;
+  double *src = gkyl_malloc(sizeof(double[n]));
+  for (int i=0; i<n; ++i)
+    src[i] = w[i];
+  for (int i=1; i<n-1; ++i) {
+    double u = i/(double) (n-1);
+    double x = tok_seam_drift_phi(u, f)*(n-1);
+    x = fmin((double) (n-1), fmax(0.0, x));
+    int j = (int) floor(x);
+    j = j > n-2 ? n-2 : j;
+    w[i] = src[j] + (x-j)*(src[j+1]-src[j]);
+  }
+  // Keep strict monotonicity even if the interpolation grazed a flat spot.
+  for (int i=1; i<n; ++i)
+    if (!(w[i] > w[i-1]))
+      w[i] = nextafter(w[i-1], HUGE_VAL);
+  gkyl_free(src);
+}
+
 static bool
 tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx)
@@ -4553,12 +4900,40 @@ tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
       break;
     }
     double *cand = gkyl_malloc(sizeof(double)*(size_t) (m+1)*n);
+    double *cand_arc = gkyl_malloc(sizeof(double)*(size_t) (m+1));
     double dmax = HUGE_VAL;
-    if (!tok_ext_march_theta_ladder(inp, arc_ctx, m, n, cand_rf, cand, &dmax)) {
+    if (!tok_ext_march_theta_ladder(inp, arc_ctx, m, n, cand_rf, cand, &dmax,
+        cand_arc)) {
+      gkyl_free(cand_arc);
       gkyl_free(cand);
       gkyl_free(cand_rf);
       break;
     }
+    if (tok_seam_drift_fix_enabled()) {
+      // Schain(psi) over the block's declared [zmin, zmax] -- identical for
+      // chain siblings, so this needs no cross-block lookup.
+      const double psisep_l = arc_ctx->geo->psisep;
+      const double span_l = arc_ctx->xpt_ray_psi0-psisep_l;
+      double *memo_l = gkyl_malloc(sizeof(double[arc_ctx->geo->use_cubics
+        ? arc_ctx->geo->rzgrid_cubic.cells[1] : arc_ctx->geo->rzgrid.cells[1]]));
+      double chain0 = -1.0, own0 = -1.0;
+      for (int k=0; k<=m; ++k) {
+        double psi_k = psisep_l+span_l*cand_rf[k];
+        double sc = integrate_psi_contour_memo(arc_ctx->geo, psi_k,
+          arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, false, false, memo_l);
+        if (cand_rf[k] == 0.0 || chain0 < 0.0) { chain0 = sc; own0 = cand_arc[k]; }
+        if (!(sc > 0.0) || !(cand_arc[k] > 0.0) || !(chain0 > 0.0) || !(own0 > 0.0))
+          continue;
+        double f = (sc/chain0)/(cand_arc[k]/own0);
+        if (isfinite(f) && f > 0.5 && f < 2.0)
+          tok_seam_drift_rescale_row(cand+(size_t) k*n, n, f);
+        else if (tok_ordered_map_diag_enabled())
+          fprintf(stderr, "TOK_SEAM_DRIFT ftype=%d rung=%d f=%.6g REJECTED\n",
+            inp->ftype, k, f);
+      }
+      gkyl_free(memo_l);
+    }
+    gkyl_free(cand_arc);
     gkyl_free(table);
     gkyl_free(rungs);
     table = cand;
@@ -4893,6 +5268,10 @@ tok_ext_gradpsi_map(const struct gkyl_tok_geo_grid_inp *inp,
 {
   if (!tok_ext_ladder_gradpsi_theta_enabled(inp) || arc_ctx->gradpsi_map_failed)
     return u;
+  // Chord-construction blocks grade uniformly in arc instead; see
+  // tok_chord_construction.  Default off until the 450 has judged it.
+  if (tok_chord_uniform_arc_enabled() && tok_chord_construction(inp))
+    return u;
   if (!arc_ctx->gradpsi_map_ready) {
     // "Not built yet" is NOT "cannot be built".  Latching the failure on the
     // first call would disable the map for the whole block whenever that call
@@ -5031,7 +5410,17 @@ tok_ordered_chord_point(const struct gkyl_tok_geo_grid_inp *inp,
   // separatrix row on a different map from the laddered blocks it meets.  Both
   // paths must apply the map or neither: with it only in the other one, asdex
   // and tcv went from 0 failed interfaces to 3.
-  u = tok_ext_gradpsi_map(inp, arc_ctx, u);
+  // One shared grading for every block, or the per-block |grad psi| map.
+  // Never both: they are alternative answers to the same question, and the
+  // shared one exists precisely because the per-block one cannot keep radial
+  // partners on the same parameterisation.
+  if (tok_shared_grading_enabled() && inp->theta_shared_k != 0.0)
+    // G = H_k o phi. The shared shape H_k is identical for every block, so it
+    // cannot move a shared row; phi carries the per-RADIAL-PAIR endpoint
+    // correction, and is held equal within a pair for the same reason.
+    u = tok_shared_grading(inp, tok_seam_phi(inp, u));
+  else
+    u = tok_ext_gradpsi_map(inp, arc_ctx, tok_seam_phi(inp, u));
   double v = tok_trace_correspondence(arc_ctx, u);
   double ra = 0.0, za = 0.0, rb = 0.0, zb = 0.0;
   if (!tok_trace_sample(arc_ctx->geo, arc_ctx->geo->psisep,
@@ -6141,7 +6530,7 @@ tok_ordered_map_lookup(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx, double theta, double alpha,
   struct tok_ordered_point *out)
 {
-  if (!tok_xpt_mapping_requested(inp))
+  if (!tok_xpt_ordered_placement(inp))
     return false;
   const struct gkyl_tok_geo_grid_inp *effective_inp = inp;
   struct gkyl_tok_geo_grid_inp straight_inp;
@@ -7040,7 +7429,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
       // also set phi_right and arcL_right
       // For a single null case:
       // also set zmin_left and zmin_right 
-      if (tok_xpt_mapping_requested(inp))
+      if (tok_xpt_ordered_placement(inp))
         tok_prepare_ordered_map(inp, &arc_ctx, psi_curr);
       else
         tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr,
@@ -7073,12 +7462,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         struct tok_ordered_point ordered = { 0.0 };
         bool ordered_mapping = tok_ordered_map_lookup(inp, &arc_ctx,
           theta_curr, alpha_curr, &ordered);
-        if (tok_xpt_mapping_requested(inp) && !ordered_mapping) {
+        if (tok_xpt_ordered_placement(inp) && !ordered_mapping) {
           fprintf(stderr,
             "TOK_ORDERED_MAP lookup failed ftype=%d psi=%.17g theta=%.17g\n",
             inp->ftype, psi_curr, theta_curr);
           abort();
         }
+        double march_arc_req = arcL_curr;
         double r_curr = 0.0, z_curr = 0.0, phi_curr = 0.0;
         if (ordered_mapping) {
           r_curr = ordered.r; z_curr = ordered.z; phi_curr = ordered.phi;
@@ -7184,11 +7574,34 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
 
           phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
         }
+        if (getenv("GKYL_TOK_MARCH_DIAG"))
+          fprintf(stderr,
+            "TOK_MARCH ftype=%d ip=%d it=%d ordered=%d req=%.17g tgt=%.17g theta=%.17g "
+            "r=%.17g z=%.17g arcLtot=%.17g arclo=%.17g archi=%.17g ivalid=%d xptmap=%d "
+            "ext=%d req_map=%d psi=%.17g\n",
+            inp->ftype, ip, it, (int)ordered_mapping, march_arc_req, arcL_curr,
+            theta_curr, r_curr, z_curr, arc_ctx.arcL_tot, arc_ctx.arc_lo,
+            arc_ctx.arc_hi, (int)arc_ctx.arc_interval_valid,
+            (int)arc_ctx.xpt_map_valid,
+            (int)tok_ext_construction(inp),
+            (int)tok_xpt_mapping_requested(inp), psi_curr);
         cidx[TH_IDX] = it;
         double *mc2p_n = gkyl_array_fetch(up->geo_corn.mc2p_nodal, gkyl_range_idx(nrange, cidx));
         double *mc2nu_n = gkyl_array_fetch(up->geo_corn.mc2nu_pos_nodal, gkyl_range_idx(nrange, cidx));
         double *bmag_n = gkyl_array_fetch(up->geo_corn.bmag_nodal, gkyl_range_idx(nrange, cidx));
 
+        // Which radial index carries the separatrix differs by ftype -- for
+        // half-domain SOL/PF pairs it is the UPPER one -- so match on the flux
+        // itself and never on the index.
+        if (tok_seam_cap_on && ia == nrange->lower[AL_IDX] &&
+            tok_geo_same_flux(psi_curr, geo->psisep)) {
+          const int k = it-nrange->lower[TH_IDX];
+          if (k >= 0 && k < TOK_SEAM_CAP_NODES) {
+            tok_seam_cap_row_r[k] = r_curr;
+            tok_seam_cap_row_z[k] = z_curr;
+            tok_seam_cap_row_n = k+1;
+          }
+        }
         mc2p_n[X_IDX] = r_curr;
         mc2p_n[Y_IDX] = z_curr;
         mc2p_n[Z_IDX] = phi_curr;
@@ -7472,6 +7885,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   // Need 1/B for LBO collisions, computed weakly.
   gkyl_dg_inv_op_range(&inp->cbasis, 0, up->geo_corn.bmag_inv, 0, up->geo_corn.bmag, &up->local);
 
+   // Flush the captured separatrix row for this block before its buffers go.
+   if (tok_seam_cap_on && tok_seam_cap_row_n > 1)
+     tok_seam_capture_row(inp->ftype, tok_seam_cap_row_r, tok_seam_cap_row_z,
+       tok_seam_cap_row_n, fabs(inp->cgrid.upper[2]-inp->cgrid.lower[2]));
+   tok_seam_cap_row_n = 0;
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);
@@ -7612,7 +8030,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
         // For a single null case:
         // also set zmin_left and zmin_right 
         double qprofile = 0.0;
-        if (tok_xpt_mapping_requested(inp)) {
+        if (tok_xpt_ordered_placement(inp)) {
           if (!inp->half_domain) {
             // The ordered map changes only the coordinate construction.  Use
             // the established contour setup, with the feature flags disabled
@@ -7671,7 +8089,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           struct tok_ordered_point ordered = { 0.0 };
           bool ordered_mapping = tok_ordered_map_lookup(inp, &arc_ctx,
             theta_curr, alpha_curr, &ordered);
-          if (tok_xpt_mapping_requested(inp) && !ordered_mapping) {
+          if (tok_xpt_ordered_placement(inp) && !ordered_mapping) {
             fprintf(stderr,
               "TOK_ORDERED_MAP lookup failed ftype=%d psi=%.17g theta=%.17g\n",
               inp->ftype, psi_curr, theta_curr);
@@ -8024,7 +8442,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
         // also set phi_right and arcL_right
         // For a single null case:
         // also set zmin_left and zmin_right 
-        if (tok_xpt_mapping_requested(inp))
+        if (tok_xpt_ordered_placement(inp))
           tok_prepare_ordered_map(inp, &arc_ctx, psi_curr);
         else
           tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr,
@@ -8058,7 +8476,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           struct tok_ordered_point ordered = { 0.0 };
           bool ordered_mapping = tok_ordered_map_lookup(inp, &arc_ctx,
             theta_curr, alpha_curr, &ordered);
-          if (tok_xpt_mapping_requested(inp) && !ordered_mapping) {
+          if (tok_xpt_ordered_placement(inp) && !ordered_mapping) {
             fprintf(stderr,
               "TOK_ORDERED_MAP lookup failed ftype=%d psi=%.17g theta=%.17g\n",
               inp->ftype, psi_curr, theta_curr);
@@ -8301,6 +8719,12 @@ bool
 gkyl_tok_geo_uses_extended_construction(const struct gkyl_tok_geo_grid_inp *inp)
 {
   return tok_ext_construction(inp);
+}
+
+bool
+gkyl_tok_geo_uses_chord_construction(const struct gkyl_tok_geo_grid_inp *inp)
+{
+  return tok_chord_construction(inp);
 }
 
 void

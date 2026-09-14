@@ -131,6 +131,13 @@ singleb_app_new_geom_from_block(const struct gkyl_gyrokinetic_multib *mbinp,
       gkyl_gk_block_geom_shared_sep_row_status(bgi, peer, 0, edge->dir);
     if (st == GKYL_GK_SHARED_SEP_ROW_NONE)
       continue;
+    // With both blocks extended either could adopt, which would be a cycle.
+    // Break it deterministically: the higher block index adopts from the lower.
+    if (gkyl_gk_block_geom_shared_row_extended() &&
+        gkyl_tok_geo_uses_extended_construction(&bgi->geometry.tok_grid_info) &&
+        gkyl_tok_geo_uses_extended_construction(&peer->geometry.tok_grid_info) &&
+        bid < edge->bid)
+      continue;
     // A block can take its row from at most one peer, so a second eligible
     // radial edge is as unsupported as an incompatible descriptor.
     if (st == GKYL_GK_SHARED_SEP_ROW_UNSUPPORTED ||
@@ -590,6 +597,387 @@ rho_wall_group(struct rho_wall_bound *bounds, int b)
   return b;
 }
 
+
+// ---------------------------------------------------------------------------
+// Seam-slope solve.
+//
+// Two blocks meeting at a theta interface disagree on the poloidal element
+// d(arc)/d(theta) there, because each normalises its |grad psi| theta grading
+// over its OWN separatrix segment. The cure is to compose the grading with a
+// monotone cubic whose endpoint slopes are corrected (tok_seam_phi); what
+// cannot be done per block is CHOOSING those slopes, because a block's element
+// depends on the multipliers at both of its ends, so the whole chain is one
+// coupled system. It is therefore solved here, once, over every block.
+//
+// Cost is two geometry builds, not two per iteration: a block's node arc
+// positions s_i along the separatrix row are measured once under the identity
+// correction, and a trial correction is then evaluated by resampling s(phi(u)),
+// which is exactly what applying phi to the grading does.
+//
+// MATCH THE CELL AVERAGE, NOT THE POINTWISE DERIVATIVE. Setting phi'(end) to
+// the required element ratio matches the derivative and leaves the interface
+// at 1.02-1.53, because the element that a seam check -- and the continuity
+// criterion -- actually sees is the FIRST CELL'S AVERAGE, which differs from
+// the endpoint derivative at finite cell width. Solving for the cell average
+// closes the interfaces instead.
+// ---------------------------------------------------------------------------
+
+#define SEAM_MAX_NODES 8193
+#define SEAM_ITERS     60
+#define SEAM_OUTER     30
+#define SEAM_MIN_SLOPE 0.20
+#define SEAM_DAMPING   0.6
+
+struct seam_block {
+  bool active;              // measured, on the chord construction
+  int n;                    // theta cells on the separatrix row
+  double w;                 // theta width of the block
+  double *s;                // cumulative arc at each of n+1 nodes, s[0]=0
+  double f[2];              // multipliers under solution, [lower, upper]
+};
+
+static bool
+seam_solve_enabled(void)
+{
+  const char *e = getenv("GKYL_TOK_SEAM_SLOPE");
+  return e && e[0] != '\0' && e[0] != '0';
+}
+
+static double
+seam_phi_eval(double u, double a, double b)
+{
+  return a*u + (3.0-2.0*a-b)*u*u + (a+b-2.0)*u*u*u;
+}
+
+// Minimum of phi' on [0,1]; phi' is a quadratic, so check its vertex too and
+// not merely the endpoints, which is where this family dips negative.
+static double
+seam_min_slope(double a, double b)
+{
+  const double c2 = 3.0*(a+b-2.0), c1 = 2.0*(3.0-2.0*a-b), c0 = a;
+  double lo = fmin(c0, c0+c1+c2);
+  if (fabs(c2) > 0.0) {
+    const double us = -c1/(2.0*c2);
+    if (us > 0.0 && us < 1.0)
+      lo = fmin(lo, c0 + c1*us + c2*us*us);
+  }
+  return lo;
+}
+
+// s at an arbitrary u, by linear interpolation on the uniform node grid. The
+// nodes are equally spaced in u by construction, so no search is needed.
+static double
+seam_arc_at(const struct seam_block *sb, double u)
+{
+  if (u <= 0.0) return sb->s[0];
+  if (u >= 1.0) return sb->s[sb->n];
+  const double x = u*sb->n;
+  int i = (int) floor(x);
+  if (i > sb->n-1) i = sb->n-1;
+  const double t = x - i;
+  return sb->s[i] + t*(sb->s[i+1]-sb->s[i]);
+}
+
+// Cell-averaged element of the first (end=0) or last (end=1) theta cell.
+// The captured arcs already carry whatever correction was applied on the build
+// that produced them, so this is the REAL element, not a model of it.
+static double
+seam_element(const struct seam_block *sb, int end)
+{
+  const double d = end ? sb->s[sb->n]-sb->s[sb->n-1] : sb->s[1]-sb->s[0];
+  return d/(sb->w/sb->n);
+}
+
+static bool
+seam_measure_block(const struct gkyl_gyrokinetic_app *app,
+  const struct gkyl_gk_block_geom_info *bi, double psisep, struct seam_block *sb)
+{
+  // The arcs come from gkyl_tok_geo's own capture, recorded where the nodes are
+  // placed. Reading them back from the app's geometry does not work: that
+  // object is deflated to 2-D and its geo_corn corner arrays are empty
+  // (measured: mc2p_nodal all zero; mc2p ncomp=3, also zero).
+  (void) app; (void) psisep;
+  double w = 0.0;
+  const int n = gkyl_tok_geo_seam_capture_get(bi->geometry.tok_grid_info.ftype,
+    sb->s, SEAM_MAX_NODES, &w);
+  if (n < 1 || !(w > 0.0) || !(sb->s[n] > 0.0))
+    return false;
+  sb->n = n;
+  sb->w = w;
+  sb->f[0] = sb->f[1] = 1.0;
+  sb->active = true;
+  return true;
+}
+
+// Derive k for the SHARED theta grading, and give every chord block the same
+// value.
+//
+// No iteration and no coupled solve: with one grading function and equal end
+// slopes, a theta interface closes as soon as the declarations satisfy
+// S_A/w_A = S_B/w_B, which they already do on 11 of 12 measured NSTX-U pairs
+// (ratios 1.0001-1.0008). That is why this replaces the per-block endpoint
+// correction rather than refining it.
+//
+// k is measured, never declared: build once with the existing |grad psi| map,
+// and ask what end-to-middle element ratio it produces. The shared grading has
+// end slope c(1+k) and middle slope c, so that ratio IS 1+k. Averaging over the
+// chain keeps it a property of the equilibrium.
+static void
+gyrokinetic_multib_solve_shared_grading(const struct gkyl_gyrokinetic_multib *inp,
+  struct gkyl_gk_block_geom *bg)
+{
+  const char *e = getenv("GKYL_TOK_SHARED_GRADING");
+  if (!(e && e[0] != '\0' && e[0] != '0'))
+    return;
+  const int n = gkyl_gk_block_geom_num_blocks(bg);
+  const int ndim = gkyl_gk_block_geom_ndim(bg);
+  if (n <= 0 || ndim < 2)
+    return;
+
+  double *sbuf = gkyl_malloc(sizeof(double[SEAM_MAX_NODES]));
+  struct gkyl_gyrokinetic_multib *probe_inp = gkyl_malloc(sizeof(*probe_inp));
+  *probe_inp = *inp;
+  probe_inp->gk_block_geom = bg;
+  probe_inp->use_gpu = false;
+  struct gkyl_gyrokinetic_multib_app *probe = gkyl_calloc(1, sizeof(*probe));
+  probe->gk_block_geom = bg;
+  probe->block_comms = gkyl_calloc(n, sizeof(*probe->block_comms));
+  struct gkyl_comm *serial = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp) {
+    .use_gpu = false,
+  });
+  for (int b=0; b<n; ++b) probe->block_comms[b] = serial;
+
+  double ksum = 0.0; int kn = 0;
+  gkyl_tok_geo_seam_capture_begin();
+  for (int b=0; b<n; ++b) {
+    struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bg,b);
+    if (bi.geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
+    if (!gkyl_tok_geo_uses_chord_construction(&bi.geometry.tok_grid_info)) continue;
+    for (int d=0; d<ndim; ++d) bi.cuts[d] = 1;
+    struct gkyl_gyrokinetic_app *app =
+      singleb_app_new_geom_from_block(probe_inp,b,probe,&bi,false);
+    if (!app) continue;
+    double w = 0.0;
+    const int nc = gkyl_tok_geo_seam_capture_get(
+      bi.geometry.tok_grid_info.ftype, sbuf, SEAM_MAX_NODES, &w);
+    gkyl_gyrokinetic_app_release_geom(app);
+    if (nc < 3 || !(w > 0.0)) continue;
+    // End-to-middle ratio of the cell-averaged element. The element shares the
+    // factor (w/nc), so it cancels and this is a ratio of cell arcs.
+    const double a0 = sbuf[1]-sbuf[0], a1 = sbuf[nc]-sbuf[nc-1];
+    const double am = sbuf[nc/2+1]-sbuf[nc/2];
+    if (!(am > 0.0) || !(a0 > 0.0) || !(a1 > 0.0)) continue;
+    const double ratio = 0.5*(a0+a1)/am;
+    if (!isfinite(ratio) || ratio <= 0.0) continue;
+    ksum += ratio-1.0; kn++;
+  }
+  gkyl_tok_geo_seam_capture_end();
+
+  if (kn > 0) {
+    double k = ksum/kn;
+    // Monotonicity needs k > -1; keep a margin, and do not let one pathological
+    // block drive an extreme shape.
+    if (k < -0.9) k = -0.9;
+    if (k > 8.0) k = 8.0;
+    if (fabs(k) > 1.0e-6) {
+      for (int b=0; b<n; ++b) {
+        struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bg,b);
+        if (bi.geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
+        if (!gkyl_tok_geo_uses_chord_construction(&bi.geometry.tok_grid_info)) continue;
+        bi.geometry.tok_grid_info.theta_shared_k = k;
+        gkyl_gk_block_geom_set_block(bg,b,&bi);
+      }
+    }
+    fprintf(stderr,"TOK_SHARED_GRADING k=%.17g blocks=%d\n",k,kn);
+  }
+  else fprintf(stderr,"TOK_SHARED_GRADING no chord blocks measured\n");
+
+  gkyl_comm_release(serial);
+  gkyl_free(probe->block_comms); gkyl_free(probe); gkyl_free(probe_inp);
+  gkyl_free(sbuf);
+}
+
+// Solve the coupled multipliers over every theta interface and write them into
+// the block declarations. Damped fixed point: each interface pulls both sides
+// toward the geometric mean of their elements, which is the target that needs
+// the smallest correction and so keeps phi monotone.
+static void
+gyrokinetic_multib_solve_seam_slopes(const struct gkyl_gyrokinetic_multib *inp,
+  struct gkyl_gk_block_geom *bg)
+{
+  if (!seam_solve_enabled())
+    return;
+  const int n = gkyl_gk_block_geom_num_blocks(bg);
+  const int ndim = gkyl_gk_block_geom_ndim(bg);
+  if (n <= 0 || ndim < 2)
+    return;
+  const int TH_DIR = ndim-1;  // theta is the LAST direction, as above
+
+  fprintf(stderr,"TOK_SEAM_SLOPE_DIAG enter blocks=%d ndim=%d\n",n,ndim);
+  struct seam_block *sb = gkyl_calloc(n, sizeof(*sb));
+  double *sbuf = gkyl_malloc(sizeof(double)*(size_t) n*SEAM_MAX_NODES);
+  for (int b=0; b<n; ++b) sb[b].s = sbuf + (size_t) b*SEAM_MAX_NODES;
+
+  struct gkyl_gyrokinetic_multib *probe_inp = gkyl_malloc(sizeof(*probe_inp));
+  *probe_inp = *inp;
+  probe_inp->gk_block_geom = bg;
+  probe_inp->use_gpu = false;
+  struct gkyl_gyrokinetic_multib_app *probe = gkyl_calloc(1, sizeof(*probe));
+  probe->gk_block_geom = bg;
+  probe->block_comms = gkyl_calloc(n, sizeof(*probe->block_comms));
+  struct gkyl_comm *serial = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp) {
+    .use_gpu = false,
+  });
+  for (int b=0; b<n; ++b) probe->block_comms[b] = serial;
+
+  // Outer iteration in the REAL system. An earlier version solved against a
+  // model of the reparameterisation -- linear interpolation of the measured
+  // node arcs -- and the multipliers it produced left the interfaces at
+  // 1.01-1.23 instead of closing, because the actual map runs phi through the
+  // |grad psi| grading and the chord bisection, which is not that model.
+  // Rebuilding and re-measuring costs a few probe builds and targets the
+  // quantity that is actually checked.
+  // With the shared shape H_k in play, the endpoint correction must be held
+  // equal within each radial pair; without it, per-block is the older behaviour.
+  const char *sg = getenv("GKYL_TOK_SHARED_GRADING");
+  const bool seam_pair_shared = sg && sg[0] != '\0' && sg[0] != '0';
+  double *f = gkyl_calloc(2*(size_t) n, sizeof(*f));
+  double *fbest = gkyl_calloc(2*(size_t) n, sizeof(*fbest));
+  for (int i=0; i<2*n; ++i) f[i] = fbest[i] = 1.0;
+  double best_worst = DBL_MAX;
+  int measured = 0;
+
+  for (int outer=0; outer<SEAM_OUTER; ++outer) {
+    for (int b=0; b<n; ++b) {
+      struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bg,b);
+      if (bi.geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
+      if (!gkyl_tok_geo_uses_chord_construction(&bi.geometry.tok_grid_info)) continue;
+      bi.geometry.tok_grid_info.theta_seam_slope[0] = f[2*b+0];
+      bi.geometry.tok_grid_info.theta_seam_slope[1] = f[2*b+1];
+      gkyl_gk_block_geom_set_block(bg,b,&bi);
+    }
+    measured = 0;
+    gkyl_tok_geo_seam_capture_begin();
+    for (int b=0; b<n; ++b) {
+      struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bg,b);
+      if (bi.geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
+      if (!gkyl_tok_geo_uses_chord_construction(&bi.geometry.tok_grid_info)) continue;
+      for (int d=0; d<ndim; ++d) bi.cuts[d] = 1;
+      struct gkyl_gyrokinetic_app *app =
+        singleb_app_new_geom_from_block(probe_inp,b,probe,&bi,false);
+      if (!app) continue;
+      sb[b].active = false;
+      if (seam_measure_block(app,&bi,0.0,&sb[b])) { sb[b].f[0]=f[2*b]; sb[b].f[1]=f[2*b+1]; measured++; }
+      gkyl_gyrokinetic_app_release_geom(app);
+    }
+    gkyl_tok_geo_seam_capture_end();
+    if (measured == 0) break;
+
+    double worst = 1.0;
+    for (int b=0; b<n; ++b) {
+      if (!sb[b].active) continue;
+      const struct gkyl_gk_block_geom_info *bi = gkyl_gk_block_geom_get_block(bg,b);
+      for (int e=0; e<2; ++e) {
+        const struct gkyl_target_edge *te = &bi->connections[TH_DIR][e];
+        if (te->edge == GKYL_PHYSICAL || te->bid == b) continue;
+        const int pb = te->bid;
+        if (pb < 0 || pb >= n || !sb[pb].active) continue;
+        const int pe = (te->edge == GKYL_UPPER_POSITIVE ||
+                        te->edge == GKYL_UPPER_NEGATIVE) ? 1 : 0;
+        const double eA = seam_element(&sb[b],e), eB = seam_element(&sb[pb],pe);
+        if (!(eA > 0.0) || !(eB > 0.0)) continue;
+        const double r = eA > eB ? eA/eB : eB/eA;
+        if (r > worst) worst = r;
+        const double t = sqrt(eA*eB)/eA;
+        double nf = f[2*b+e]*pow(t, SEAM_DAMPING);
+        if (!isfinite(nf) || !(nf > 0.0)) continue;
+        // Clamp back toward 1 until the PAIR stays monotone with margin.
+        // Without this the iteration walks a block past the monotone limit,
+        // tok_seam_phi silently reverts that block to the identity, its element
+        // jumps, and the neighbour's seam diverges -- observed as the worst
+        // seam falling 3.04 -> 1.22 over nine passes and then rebounding.
+        const double other = f[2*b+(1-e)];
+        for (int k=0; k<40; ++k) {
+          if (seam_min_slope(e ? other : nf, e ? nf : other) >= SEAM_MIN_SLOPE) break;
+          nf = 1.0 + 0.7*(nf-1.0);
+        }
+        if (seam_min_slope(e ? other : nf, e ? nf : other) >= SEAM_MIN_SLOPE)
+          f[2*b+e] = nf;
+      }
+    }
+
+    // Radial partners trace the SAME separatrix segment, so they must carry the
+    // SAME correction or the row they share moves -- that is what disqualified
+    // the per-block version (radial gaps 5e-16 m -> 7e-2 m). Average the pair's
+    // two demands instead, mapping ends through the connection's orientation:
+    // a NEGATIVE radial edge means the partner runs u backwards, so its end 0
+    // is our end 1.
+    if (seam_pair_shared) {
+      bool *done = gkyl_calloc(n, sizeof(*done));
+      for (int b=0; b<n; ++b) {
+        if (done[b] || !sb[b].active) continue;
+        const struct gkyl_gk_block_geom_info *bi = gkyl_gk_block_geom_get_block(bg,b);
+        int pb = -1; bool rev = false;
+        for (int e=0; e<2; ++e) {
+          const struct gkyl_target_edge *te = &bi->connections[0][e];
+          if (te->edge == GKYL_PHYSICAL || te->bid == b) continue;
+          if (te->bid >= 0 && te->bid < n && sb[te->bid].active) {
+            pb = te->bid;
+            rev = (te->edge == GKYL_LOWER_NEGATIVE || te->edge == GKYL_UPPER_NEGATIVE);
+            break;
+          }
+        }
+        if (pb < 0) { done[b] = true; continue; }
+        for (int e=0; e<2; ++e) {
+          const int pe = rev ? 1-e : e;
+          const double m = sqrt(f[2*b+e]*f[2*pb+pe]);
+          if (isfinite(m) && m > 0.0) { f[2*b+e] = m; f[2*pb+pe] = m; }
+        }
+        done[b] = done[pb] = true;
+      }
+      gkyl_free(done);
+    }
+
+    // The iteration oscillates once the worst interface is held by the
+    // monotonicity clamp, so keep the BEST state visited rather than the last.
+    if (worst < best_worst) {
+      best_worst = worst;
+      for (int i=0; i<2*n; ++i) fbest[i] = f[i];
+    }
+    fprintf(stderr,"TOK_SEAM_SLOPE_ITER outer=%d measured=%d worst_seam=%.6f best=%.6f\n",
+      outer,measured,worst,best_worst);
+    if (worst < 1.0005) break;
+  }
+  for (int b=0; b<n; ++b) { sb[b].f[0]=fbest[2*b]; sb[b].f[1]=fbest[2*b+1]; }
+  fprintf(stderr,"TOK_SEAM_SLOPE_BEST worst_seam=%.6f\n",best_worst);
+  gkyl_free(f); gkyl_free(fbest);
+  if (measured == 0) goto done;
+
+  for (int b=0; b<n; ++b) {
+    if (!sb[b].active) continue;
+    const double a = sb[b].f[0], bb = sb[b].f[1];
+    const double ms = seam_min_slope(a,bb);
+    if (!(ms > 0.0) || !isfinite(a) || !isfinite(bb)) {
+      // A non-monotone pair would fold the grading. Refuse that block's
+      // correction rather than the run: it simply keeps the shipped grading.
+      fprintf(stderr,"TOK_SEAM_SLOPE refused block=%d lo=%.17g hi=%.17g min_slope=%.17g\n",
+        b,a,bb,ms);
+      continue;
+    }
+    struct gkyl_gk_block_geom_info bi = *gkyl_gk_block_geom_get_block(bg,b);
+    bi.geometry.tok_grid_info.theta_seam_slope[0] = a;
+    bi.geometry.tok_grid_info.theta_seam_slope[1] = bb;
+    gkyl_gk_block_geom_set_block(bg,b,&bi);
+    fprintf(stderr,"TOK_SEAM_SLOPE block=%d ftype=%d lo=%.17g hi=%.17g min_slope=%.17g\n",
+      b,bi.geometry.tok_grid_info.ftype,a,bb,ms);
+  }
+
+done:
+  gkyl_comm_release(serial);
+  gkyl_free(probe->block_comms); gkyl_free(probe); gkyl_free(probe_inp);
+  gkyl_free(sbuf); gkyl_free(sb);
+}
+
 // Return an owned effective declaration. Every trial uses the actual mapper,
 // fresh compression/map state and the requested cell counts. Trials have no
 // output and are always released. Only the subsequent ordinary constructor
@@ -925,6 +1313,10 @@ gyrokinetic_multib_app_wall_wrapper(const struct gkyl_gyrokinetic_multib *inp, b
   if (!gkyl_gyrokinetic_multib_app_geometry_preflight(inp)) return 0;
   struct gkyl_gk_block_geom *bg=gyrokinetic_multib_adjust_wall(inp);
   if (!bg) return 0;
+  // Solve the coupled theta-seam multipliers on the settled declaration, before
+  // the geometry that will actually be kept is built.
+  gyrokinetic_multib_solve_shared_grading(inp,bg);
+  gyrokinetic_multib_solve_seam_slopes(inp,bg);
   struct gkyl_gyrokinetic_multib *effective=gkyl_malloc(sizeof(*effective));
   *effective=*inp; effective->gk_block_geom=bg;
   gkyl_gyrokinetic_multib_app *app=geometry_only ?
