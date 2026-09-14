@@ -140,6 +140,12 @@ enum gkyl_gk_shared_sep_row_status {
  * @param tgt_dir Direction of @a peer's edge at this interface
  * @return Whether the row is shared, unsupported, or the construction is off
  */
+// True when an EXTENDED block is allowed to adopt a radial peer's row
+// (GKYL_TOK_SHARED_ROW_EXTENDED=1). Callers need it to pick a deterministic
+// adoption direction: with both blocks extended, either could adopt, so the
+// higher block index adopts from the lower.
+bool gkyl_gk_block_geom_shared_row_extended(void);
+
 enum gkyl_gk_shared_sep_row_status
 gkyl_gk_block_geom_shared_sep_row_status(const struct gkyl_gk_block_geom_info *legacy,
   const struct gkyl_gk_block_geom_info *peer, int src_dir, int tgt_dir);

@@ -752,6 +752,90 @@ tok_theta_from_arc(const struct gkyl_tok_geo_grid_inp *inp,
   return d != 0.0 ? lo + (arc-a->arc_lo)/d*w : lo;
 }
 
+// |grad psi| dl/dZ -- integrand of the THETA MEASURE.
+//
+// The node grading distributes theta uniformly in |grad psi| along the block's
+// trace (tok_ext_ladder_seed_by_gradpsi), so the poloidal element works out to
+// S*mtot/(|grad psi|*T) and a seam closes exactly when S*mtot/T matches on both
+// sides. S*mtot is this integral. Allocating theta in proportion to it is what
+// makes the arc-length/Jacobian jump vanish.
+//
+// NOTE: an earlier attempt applied this BEFORE the block's arc share was stored
+// separately, which relocated blocks and made every seam worse. It is only
+// correct after tok_geo_set_extent() has captured inp->arc_frac_*.
+static inline double
+measure_contour_func(double Z, void *ctx)
+{
+  struct contour_ctx *c = ctx;
+  c->ncall += 1;
+  double R[4] = { 0 }, dRdZ[4] = { 0 }, dR[4] = { 0 }, dZ[4] = { 0 };
+  int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
+  if (nr <= 0)
+    return 0.0;
+  double drdz = nr == 1 ? dRdZ[0] : choose_closest(c->last_R, R, dRdZ, nr);
+  double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
+  double g;
+  if (c->geo->use_cubics) {
+    double xn[2] = {r_curr, Z}, fout[3];
+    c->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, c->geo->efit->evf->ctx);
+    g = sqrt(fout[1]*fout[1] + fout[2]*fout[2]);
+  }
+  else {
+    int rzidx[2];
+    int it = c->geo->rzlocal.lower[0]
+      + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]);
+    rzidx[0] = GKYL_MAX2(c->geo->rzlocal.lower[0], GKYL_MIN2(it, c->geo->rzlocal.upper[0]));
+    it = c->geo->rzlocal.lower[1]
+      + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]);
+    rzidx[1] = GKYL_MAX2(c->geo->rzlocal.lower[1], GKYL_MIN2(it, c->geo->rzlocal.upper[1]));
+    long loc = gkyl_range_idx((&c->geo->rzlocal), rzidx);
+    const double *psih = gkyl_array_cfetch(c->geo->psiRZ, loc);
+    double xc[2];
+    gkyl_rect_grid_cell_center((&c->geo->rzgrid), rzidx, xc);
+    double eta[2] = { (r_curr-xc[0])/(c->geo->rzgrid.dx[0]*0.5),
+                      (Z-xc[1])/(c->geo->rzgrid.dx[1]*0.5) };
+    g = c->geo->calc_grad_psi(psih, eta, c->geo->rzgrid.dx);
+  }
+  return g*sqrt(1+drdz*drdz);
+}
+
+// Contour integral of |grad psi| over a z-span. Same cell-by-cell scheme as
+// integrate_psi_contour_memo; deliberately no memo, which is keyed to the arc
+// integrand and must not be shared with this one.
+static double
+integrate_psi_measure(const struct gkyl_tok_geo *geo, double psi,
+  double zmin, double zmax, double rclose)
+{
+  struct contour_ctx ctx = { .geo = geo, .psi = psi, .ncall = 0, .last_R = rclose };
+  int nlevels = geo->quad_param.max_level;
+  double eps = geo->quad_param.eps;
+  struct gkyl_rect_grid rzgrid;
+  struct gkyl_range rzlocal;
+  if (geo->use_cubics) { rzgrid = geo->rzgrid_cubic; rzlocal = geo->rzlocal_cubic; }
+  else                 { rzgrid = geo->rzgrid;       rzlocal = geo->rzlocal; }
+  double dz = rzgrid.dx[1], zlo = rzgrid.lower[1];
+  int izlo = rzlocal.lower[1];
+  int ilo = get_idx(1, zmin, &rzgrid, &rzlocal);
+  int iup = get_idx(1, zmax, &rzgrid, &rzlocal);
+  double res = 0.0;
+  for (int i=ilo; i<=iup; ++i) {
+    double z1 = gkyl_median(zmin, zlo+(i-izlo)*dz, zlo+(i-izlo+1)*dz);
+    double z2 = gkyl_median(zmax, zlo+(i-izlo)*dz, zlo+(i-izlo+1)*dz);
+    if (z1 < z2) {
+      struct gkyl_qr_res r = gkyl_dbl_exp(measure_contour_func, &ctx, z1, z2, nlevels, eps);
+      res += r.res;
+    }
+  }
+  ((struct gkyl_tok_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
+  return res;
+}
+
+static inline bool
+tok_theta_by_measure_enabled(void)
+{
+  const char *on = getenv("GKYL_TOK_THETA_BY_MEASURE");
+  return on && on[0] == '1';
+}
 
 // Function to pass to numerical quadrature to integrate along a contour
 static inline double
@@ -1029,6 +1113,12 @@ void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *
  * tok_find_endpoints, this does not integrate and invert the legacy
  * independently normalized contour-arclength map. */
 // See tok_geo.c. Returns S*mtot for the block, on the grading's own trace.
+// See tok_geo.c. Y = S*(dw/du) at the block's two theta faces.
+bool tok_ext_block_face_weights(const struct gkyl_tok_geo_grid_inp *inp,
+  struct gkyl_tok_geo *geo, double psi, double *y_lo, double *y_hi);
+
+bool tok_ext_block_measure(const struct gkyl_tok_geo_grid_inp *inp,
+  struct gkyl_tok_geo *geo, double psi, double *out);
 
 void tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx, double psi_curr);

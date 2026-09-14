@@ -114,6 +114,33 @@ gk_block_geom_shared_sep_row_enabled(void)
   return !(off && off[0] == '0');
 }
 
+// EXPERIMENTAL, default OFF. Let an EXTENDED block adopt a radial peer's
+// separatrix row too, not just a legacy one.
+//
+// Why it might matter: two blocks that do not share a parameterization measure
+// theta against their OWN contours, and the ratio of their arc lengths drifts
+// off the separatrix -- 0.08% on a TCV seam that shares, 21.30% on the TCV PF
+// seam that does not, and 11-19% on NSTX-U where NOTHING shares because every
+// block is extended. The theta split is fixed at the separatrix, so that drift
+// is exactly the seam discontinuity.
+//
+// Off by default because this predicate also feeds the seam-participation guard
+// and the `unshared` count that gates strict mode: changing eligibility changes
+// what tier-0 certifies, which is a PR-scope question and not only a geometry
+// one.
+static bool
+gk_block_geom_shared_row_extended_enabled(void)
+{
+  const char *on = getenv("GKYL_TOK_SHARED_ROW_EXTENDED");
+  return on && on[0] == '1';
+}
+
+bool
+gkyl_gk_block_geom_shared_row_extended(void)
+{
+  return gk_block_geom_shared_row_extended_enabled();
+}
+
 enum gkyl_gk_shared_sep_row_status
 gkyl_gk_block_geom_shared_sep_row_status(const struct gkyl_gk_block_geom_info *legacy,
   const struct gkyl_gk_block_geom_info *peer, int src_dir, int tgt_dir)
@@ -128,8 +155,11 @@ gkyl_gk_block_geom_shared_sep_row_status(const struct gkyl_gk_block_geom_info *l
   // Only a block that does NOT take the extended construction can adopt a
   // peer's row, and only from one that does.  Anything else -- both extended,
   // both legacy, or the pair the wrong way round -- is a different question.
-  if (gkyl_tok_geo_uses_extended_construction(&legacy->geometry.tok_grid_info) ||
-      !gkyl_tok_geo_uses_extended_construction(&peer->geometry.tok_grid_info))
+  bool legacy_ext = gkyl_tok_geo_uses_extended_construction(&legacy->geometry.tok_grid_info);
+  bool peer_ext = gkyl_tok_geo_uses_extended_construction(&peer->geometry.tok_grid_info);
+  if (!peer_ext)
+    return GKYL_GK_SHARED_SEP_ROW_NONE;
+  if (legacy_ext && !gk_block_geom_shared_row_extended_enabled())
     return GKYL_GK_SHARED_SEP_ROW_NONE;
 
   // The shared row is the separatrix row, which two blocks share only across a
@@ -174,6 +204,14 @@ gk_block_geom_seam_row_is_shared(const struct gkyl_gk_block_geom *bgeom,
     enum gkyl_gk_shared_sep_row_status st =
       gkyl_gk_block_geom_shared_sep_row_status(legacy,
         &bgeom->blocks[te->bid], 0, te->dir);
+    // Same direction rule as the app: only the higher index adopts, or the
+    // guard would count a pair as shared in both directions.
+    if (st != GKYL_GK_SHARED_SEP_ROW_NONE &&
+        gkyl_gk_block_geom_shared_row_extended() &&
+        gkyl_tok_geo_uses_extended_construction(&legacy->geometry.tok_grid_info) &&
+        gkyl_tok_geo_uses_extended_construction(&bgeom->blocks[te->bid].geometry.tok_grid_info) &&
+        legacy_bid < te->bid)
+      st = GKYL_GK_SHARED_SEP_ROW_NONE;
     if (st == GKYL_GK_SHARED_SEP_ROW_NONE)
       continue;
     nedge += 1;

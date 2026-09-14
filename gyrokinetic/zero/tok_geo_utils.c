@@ -1949,6 +1949,61 @@ void set_lower_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ct
       geo->rmin = rzplate[0];
 }
 
+
+// Solve a theta chain so the poloidal element matches across every seam in it.
+//
+// A seam closes when Y_A(up)/T_A == Y_B(lo)/T_B, so along a path chain
+// T_i/T_{i+1} = Y_i(up)/Y_{i+1}(lo); the tiling constraint sum T_i = span closes
+// the system. n blocks and n-1 seams is exactly determined -- one step, no
+// iteration. Only valid for a PATH: a cyclic chain (self-periodic) is
+// over-determined and is deliberately not attempted.
+//
+// `span_lo/span_hi` is the theta the chain tiles, which is NOT always
+// [-pi, pi]: a half-domain double null gives its outboard chain [-pi, 0] and its
+// inboard chain [0, pi].
+static bool
+tok_theta_chain_solve(const struct gkyl_tok_geo_grid_inp *inp,
+  struct gkyl_tok_geo *geo, const enum gkyl_tok_geo_type *chain, int n,
+  double span_lo, double span_hi, double *out_lo, double *out_hi)
+{
+  enum { MAXC = 8 };
+  if (n < 2 || n > MAXC || !(span_hi > span_lo))
+    return false;
+  double ylo[MAXC], yhi[MAXC], c[MAXC];
+  for (int i=0; i<n; ++i) {
+    struct gkyl_tok_geo_grid_inp si = *inp;
+    si.ftype = chain[i];
+    if (!tok_ext_block_face_weights(&si, geo, geo->psisep, &ylo[i], &yhi[i]))
+      return false;
+  }
+  c[0] = 1.0;
+  for (int i=1; i<n; ++i) {
+    if (!(yhi[i-1] > 0.0))
+      return false;
+    c[i] = c[i-1]*ylo[i]/yhi[i-1];
+  }
+  double tot = 0.0;
+  for (int i=0; i<n; ++i)
+    tot += c[i];
+  if (!(tot > 0.0) || !isfinite(tot))
+    return false;
+  double w = span_hi-span_lo, edge = span_lo;
+  for (int i=0; i<n; ++i) {
+    double t = c[i]/tot*w;
+    if (chain[i] == inp->ftype) {
+      *out_lo = edge;
+      *out_hi = edge+t;
+      if (tok_extent_diag_enabled())
+        fprintf(stderr, "TOK_THETA_CHAIN_SOLVE ftype=%d n=%d span=[%.17g,%.17g] "
+          "theta=[%.17g,%.17g]\n", inp->ftype, n, span_lo, span_hi,
+          *out_lo, *out_hi);
+      return true;
+    }
+    edge += t;
+  }
+  return false;
+}
+
 void 
 tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up)
 {
@@ -1981,6 +2036,25 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
   };
 
   double del = 1.0e-14;
+  // Measure-based theta fractions for this block, filled in per ftype below.
+  // Negative means "not computed"; the arc-proportional split then stands.
+  // NOTE: the chain solve is wired for LSN_SOL only. It was wired for
+  // DN_SOL_OUT/IN too and MEASURED WORSE on NSTX-U 202806 -- b3|b4 went
+  // 8.665e-02 -> 2.503e-01 and b1|b2 1.490e-01 -> 1.876e-01 -- so it was
+  // removed. The face weight is a finite-difference estimate of a derivative
+  // that is SINGULAR at an X point, and NSTX-U's cond(g) reaches 2.2e15 against
+  // ASDEX's 7.2e12, so the estimate degrades exactly where it is needed most.
+  // A resolution-matched face weight was then tried -- sampling the map over the
+  // block's own theta cell (7-13 cells) instead of the map's 1/256 spacing -- and
+  // it changed NOTHING: the recovered widths were bit-identical, because the map
+  // is near-linear over both intervals. So the face-weight ESTIMATE is not the
+  // cause; the chain premise T_i/T_{i+1} = Y_i(up)/Y_{i+1}(lo) itself does not
+  // hold for DN_SOL, and why is not yet known. Do not re-wire DN_SOL until it is.
+  double mfr_lo = -1.0, mfr_hi = -1.0;
+  double mth_lo = 0.0, mth_hi = 0.0;
+  bool mth_valid = false;
+  const bool by_measure = tok_theta_by_measure_enabled();
+
   if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP) {
     // Immediately set rclose
     arc_ctx.rclose = inp->rright;
@@ -2179,6 +2253,14 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       false, false, arc_memo_left);
     double arcL_tot = arcL_lo + arcL_mid_l + arcL_mid_r + arcL_up;
 
+    if (by_measure && inp->ftype != GKYL_GEOMETRY_TOKAMAK_LSN_SOL) {
+      static const enum gkyl_tok_geo_type ch[3] = {
+        GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
+        GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
+        GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP };
+      mth_valid = tok_theta_chain_solve(inp, geo, ch, 3, -M_PI+del, M_PI-del,
+        &mth_lo, &mth_hi);
+    }
     if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL) {
       *theta_lo = -M_PI+del;
       *theta_up = M_PI-del;
@@ -2267,6 +2349,10 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       false, false, arc_memo_left);
     double arcL_tot = arcL_l + arcL_r;
 
+    // PF is deliberately NOT reallocated. Its seam ratio VARIES radially (Class 2),
+    // so no scalar width can close it, and the z-span |grad psi| measure tried
+    // here made ASDEX worse (7.5e-02 -> 1.95e-01). PF keeps the arc split until
+    // the Class 2 cause is addressed.
     if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R) {
       *theta_lo = -M_PI+del;
       *theta_up = -M_PI+del + arcL_r/arcL_tot*2.0*M_PI;
@@ -2366,6 +2452,53 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
   // the grid moves; if the redesign works the grid is bit-identical, because
   // every consumer is now block-relative and the arc share is stored separately.
   // Diagnostic only -- never set in production.
+  // Reallocate theta in proportion to the grading's own measure. Applied HERE,
+  // after arc_frac is recorded, so the grid does not move -- only the metric.
+  if (by_measure && mth_valid && mth_hi > mth_lo) {
+    *theta_lo = mth_lo;
+    *theta_up = mth_hi;
+  }
+  else if (by_measure && mfr_lo >= 0.0 && mfr_hi > mfr_lo) {
+    *theta_lo = -M_PI + mfr_lo*2.0*M_PI;
+    *theta_up = -M_PI + mfr_hi*2.0*M_PI;
+    fprintf(stderr, "TOK_THETA_BY_MEASURE ftype=%d theta=[%.17g,%.17g] "
+      "arc_frac=[%.17g,%.17g]\n", inp->ftype, *theta_lo, *theta_up,
+      inp->arc_frac_lo, inp->arc_frac_hi);
+  }
+
+  const char *shift = getenv("GKYL_TOK_THETA_SHIFT");
+  if (shift && inp->arc_frac_valid) {
+    double d = atof(shift);
+    *theta_lo += d;
+    *theta_up += d;
+  }
+
+  // REALLOCATION. "<ftype>=<lo>,<hi>;..." sets a block's theta interval outright,
+  // again AFTER the arc fraction is captured, so the grid does not move: the
+  // element scales exactly as 1/T while every node stays put. Equalising T
+  // across a seam is therefore a pure relabelling, and it is what closes the
+  // arc-length/Jacobian jump. Blocks not named keep the arc-proportional split.
+  const char *set = getenv("GKYL_TOK_THETA_SET");
+  if (set && inp->arc_frac_valid) {
+    const char *p = set;
+    while (*p) {
+      int ft = -1; double lo = 0.0, hi = 0.0; int adv = 0;
+      if (sscanf(p, "%d=%lf,%lf%n", &ft, &lo, &hi, &adv) == 3 && adv > 0) {
+        if (ft == (int) inp->ftype && hi > lo) {
+          *theta_lo = lo;
+          *theta_up = hi;
+          fprintf(stderr, "TOK_THETA_SET ftype=%d theta=[%.17g,%.17g] "
+            "arc_frac=[%.17g,%.17g]\n", ft, lo, hi,
+            inp->arc_frac_lo, inp->arc_frac_hi);
+        }
+        p += adv;
+      }
+      else
+        ++p;
+      while (*p == ';' || *p == ' ') ++p;
+    }
+  }
+
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);
