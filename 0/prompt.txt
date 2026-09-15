@@ -1,0 +1,31 @@
+Reorder the commands in the -h output so they appear in this order: start, run, active, recent, status, follow, abort, scan.
+
+Also I think the description for scan should be "Fetch candidate branches", because some users may not understand what "multibranch indexing" means. Make these changes in both the gkeyll-ci.sh and the individual CLI scripts.
+
+---
+
+What exactly does "scan" do? does it print out a list of possible branches to test?
+
+---
+
+Do build/test jobs start immediately after "scan", or does one still need to do "run"?
+
+---
+
+Could we have scan also print out which branches/PRs it found and is scheduling to run? i.e. print something like what is printed by "run":
+
+Found PR <pr_number> for branch <branch_name>
+Queued gkeyll-ci-stellar_cpu as queue item 56
+Queue URL: http://127.0.0.1:8080/queue/item/56/
+
+---
+
+Implement the plan.
+
+---
+
+In -h for CLI scripts, please list "scan" before "start"
+
+---
+
+make sure that the order of the commands in the -h for each machine matches the order in gkeyll-ci.sh -h
