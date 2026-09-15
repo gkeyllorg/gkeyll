@@ -1,0 +1,5 @@
+Using Ctrl+c resulted in
+
+^C./jenkins-stellar-intel.sh: interrupt trap: line 1: unexpected EOF while looking for matching `"'
+
+is this what you intended?
