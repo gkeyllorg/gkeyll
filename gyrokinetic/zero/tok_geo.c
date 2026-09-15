@@ -10,6 +10,7 @@
 #include <gkyl_position_map.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_priv.h>
+#include <gkyl_gk_geometry_node_coords_priv.h>
 #include <gkyl_tok_geo_priv.h>
 #include <gkyl_dg_bin_ops.h>
 
@@ -539,22 +540,22 @@ curlbhat_func(double psi, double r_curr, double Z, double phi, double *curlbhat,
   Bz = -1.0/r_curr*dpsidR;
   bmag = sqrt(Br*Br+Bz*Bz+Bphi*Bphi);
 
-  dBrdR  = 1.0/r_curr*d2psidRdZ;
+  dBrdR  = d2psidRdZ/r_curr - Br/r_curr;
   dBrdZ  = 1.0/r_curr*d2psidZ2;
-  dBzdR  = -1.0/r_curr*d2psidR2;
+  dBzdR  = -d2psidR2/r_curr - Bz/r_curr;
   dBzdZ  = -1.0/r_curr*d2psidRdZ;
 
 
   double dFdR = fpolprime*dpsidR;
   double dFdZ = fpolprime*dpsidZ;
   dBdR = 1/bmag*(Br*dBrdR + Bz*dBzdR + fpol/r_curr*(dFdR/r_curr - fpol/r_curr/r_curr));
-  dBdZ = 1/bmag*(Br*dBrdZ + Bz*dBzdZ + fpol/r_curr*dFdZ);
+  dBdZ = 1/bmag*(Br*dBrdZ + Bz*dBzdZ + fpol/r_curr*dFdZ/r_curr);
 
   // Get the polar components (contravariant, upperscript components on tangent basis)
   double polar_comp[3] = {0.0};
-  polar_comp[0] = 1.0/bmag*-1.0/r_curr*dFdZ - 1.0/bmag*1.0/bmag*dBdZ*fpol/r_curr; // R component ^1
-  polar_comp[1] = 1.0/bmag*1.0/r_curr*(dBrdZ - dBzdR) + (-dBdR*Bz/r_curr + dBdZ*Br/r_curr); // Phi component ^2
-  polar_comp[2] = 1.0/bmag*1.0/r_curr*dFdR + 1.0/bmag*1.0/bmag*dBdR*fpol/r_curr;
+  polar_comp[0] = -dFdZ/(bmag*r_curr) + dBdZ*fpol/(bmag*bmag*r_curr); // R component ^1
+  polar_comp[1] = (dBrdZ-dBzdR)/(bmag*r_curr) + (dBdR*Bz-dBdZ*Br)/(bmag*bmag*r_curr); // Phi component ^2
+  polar_comp[2] = dFdR/(bmag*r_curr) - dBdR*fpol/(bmag*bmag*r_curr);
 
   // Convert to cartesian
   curlbhat[0] = polar_comp[0] * cos(phi) - polar_comp[1] * sin(phi) * r_curr;
@@ -669,17 +670,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   
-  double dtheta = inp->cgrid.dx[TH_IDX],
-    dpsi = inp->cgrid.dx[PSI_IDX],
-    dalpha = inp->cgrid.dx[AL_IDX];
-  
-  double theta_lo = up->grid.lower[TH_IDX] + (up->local.lower[TH_IDX] - up->global.lower[TH_IDX])*up->grid.dx[TH_IDX],
-    psi_lo = up->grid.lower[PSI_IDX] + (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX])*up->grid.dx[PSI_IDX],
-    alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
-    
-  double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
-  dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
-
   double rclose = inp->rclose;
   double rright = inp->rright;
   double rleft = inp->rleft;
@@ -706,17 +696,19 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   };
 
   int cidx[3] = { 0 };
-  for (int ia=nrange->lower[AL_IDX]; ia<=nrange->lower[AL_IDX]+1; ++ia){
+  for (int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
-    double alpha_curr = alpha_lo + ia*dalpha;
+    double alpha_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order, false);
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
-      double psi_curr = psi_lo + ip*dpsi;
+      double psi_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order, false);
 
       // Non-uniform psi. Finite differences are calculated in calc_metric.c
-      position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
+      double psi_curr_mapped;
+      position_map->maps[0](0.0, &psi_curr, &psi_curr_mapped, position_map->ctxs[0]);
+      psi_curr = psi_curr_mapped;
 
-      double darcL, arcL_curr, arcL_lo;
+      double arcL_curr;
 
       // For double null blocks this should set arc_ctx :
       // zmin, zmax, rclose, arcL_tot for all blocks. No left and right
@@ -726,18 +718,16 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
       // also set zmin_left and zmin_right 
       tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, arc_memo, arc_memo_left, arc_memo_right);
 
-      darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX])
-        * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
       // At the beginning of each theta loop we need to reset things.
       cidx[PSI_IDX] = ip;
       arcL_curr = 0.0;
-      arcL_lo = (theta_lo + M_PI)/2/M_PI*arc_ctx.arcL_tot;
+
       double ridders_min, ridders_max;
       // Set node coordinates.
       for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
         int it_delta = 0;
-        arcL_curr = arcL_lo + it*darcL;
-        double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
+
+        double theta_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 2, it, up->basis.poly_order, false);
 
         // Calculate derivatives using finite difference for ddtheta,
         // as well as transform the computational coordiante to the non-uniform field-aligned value
@@ -851,8 +841,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   // Populate other alpha indices by using axisymmetry
   for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
-    double alpha_curr = alpha_lo + ia*dalpha;
-    double alpha_donor = alpha_lo + nrange->lower[AL_IDX]*dalpha;
+    double alpha_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order, false);
+    double alpha_donor = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX], up->basis.poly_order, false);
     double alpha_diff = alpha_curr -  alpha_donor;
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       cidx[PSI_IDX] = ip;
@@ -915,18 +905,6 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   double dtheta = inp->cgrid.dx[TH_IDX],
     dpsi = inp->cgrid.dx[PSI_IDX],
     dalpha = inp->cgrid.dx[AL_IDX];
-  
-  double theta_lo = up->grid.lower[TH_IDX] + (up->local.lower[TH_IDX] - up->global.lower[TH_IDX])*up->grid.dx[TH_IDX],
-    psi_lo = up->grid.lower[PSI_IDX] + (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX])*up->grid.dx[PSI_IDX],
-    alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
-
-  double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
-  theta_lo = theta_lo + dels[1]*dtheta/2.0;
-  psi_lo = psi_lo + dels[1]*dpsi/2.0;
-  alpha_lo = alpha_lo + dels[1]*dalpha/2.0;
-    
-  double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
-  dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
   double delta_alpha = dalpha*1e-2;
@@ -968,21 +946,21 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
-    double alpha_curr = calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
+    double alpha_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order+1, true);
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       int ip_delta_max = 3;
       for (int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++) {
 
-        double psi_curr = calc_running_coord(psi_lo, ip-nrange->lower[PSI_IDX], dpsi) + modifiers[ip_delta]*delta_psi;
+        double psi_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order+1, true) + modifiers[ip_delta]*delta_psi;
 
         // Non-uniform psi. Finite differences are calculated in calc_metric.c
         double Psi_curr;
         position_map->maps[0](0.0, &psi_curr,  &Psi_curr,  position_map->ctxs[0]);
-        double dPsi_dpsi = gkyl_position_map_slope(position_map, 0, psi_curr, delta_psi, ip, nrange);
+        double dPsi_dpsi = gkyl_position_map_slope(position_map, 0, psi_curr, delta_psi, up->grid.lower[0], up->grid.upper[0]);
         psi_curr = Psi_curr;
         
-        double darcL, arcL_curr, arcL_lo;
+        double arcL_curr;
 
         // For double null blocks this should set arc_ctx :
         // zmin, zmax, rclose, arcL_tot for all blocks. No left and right
@@ -996,20 +974,18 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
         // qhat = - F(psi) * s(psi) / (R * grad(psi))
         // q = integral_0^2pi qhat dtheta
         //   = F(psi)*s(psi) * integral 1/(R*grad(psi)) dl
-        //   = 1/s(psi) * integral (dphidtheta) ; dphidtheta = F(psi)/(R*grad(psi))
+        //   = 1/s(psi) * integral (dphidtheta); dphidtheta = F(psi)/(R*grad(psi))
         double qprofile = qprofile_func(&arc_ctx);
 
-        darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX])
-          * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
         // at the beginning of each theta loop we need to reset things
         cidx[PSI_IDX] = ip;
         arcL_curr = 0.0;
-        arcL_lo = (theta_lo + M_PI)/2/M_PI*arc_ctx.arcL_tot;
+
         double ridders_min, ridders_max;
 
         for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
-          arcL_curr = calc_running_coord(arcL_lo, it-nrange->lower[TH_IDX], darcL);
-          double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
+
+          double theta_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 2, it, up->basis.poly_order+1, true);
 
           // Calculate derivatives using finite difference for ddtheta,
           // as well as transform the computational coordiante to the non-uniform field-aligned value
@@ -1019,7 +995,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           double Theta_curr;
           position_map->maps[2](0.0, &theta_curr,  &Theta_curr,  position_map->ctxs[2]);
           double dTheta_dtheta = gkyl_position_map_slope(position_map, 2, theta_curr,\
-            delta_theta, it, nrange);
+            delta_theta, up->grid.lower[2], up->grid.upper[2]);
           theta_curr = Theta_curr;
           arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 
@@ -1094,14 +1070,16 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   // Populate other alpha indices by using axisymmetry
   for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
-    double alpha_curr = calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
-    double alpha_donor = calc_running_coord(alpha_lo, 0, dalpha);
+    double alpha_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order+1, true);
+    double alpha_donor = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX], up->basis.poly_order+1, true);
     double alpha_diff = alpha_curr -  alpha_donor;
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       cidx[PSI_IDX] = ip;
       int ip_delta_max = 3;
       for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
-        double psi_curr = calc_running_coord(psi_lo, ip-nrange->lower[PSI_IDX], dpsi) + modifiers[ip_delta]*delta_psi;
+        double psi_comp = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order+1, true) + modifiers[ip_delta]*delta_psi;
+        double psi_curr;
+        position_map->maps[0](0.0, &psi_comp, &psi_curr, position_map->ctxs[0]);
         for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
           cidx[TH_IDX] = it;
             int lidx = 0;
@@ -1139,6 +1117,9 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
             mc2p_n[lidx+Y_IDX] = donor_mc2p_n[lidx+Y_IDX];
             mc2p_n[lidx+Z_IDX] = donor_mc2p_n[lidx+Z_IDX] + alpha_diff;
             bmag_n[0] = donor_bmag_n[0];
+            double *qprofile_n = gkyl_array_fetch(qprofile_nodal, gkyl_range_idx(nrange, cidx));
+            const double *donor_qprofile_n = gkyl_array_cfetch(qprofile_nodal, gkyl_range_idx(nrange, donor_cidx));
+            qprofile_n[0] = donor_qprofile_n[0];
             curlbhat_func(psi_curr, mc2p_n[lidx+X_IDX], mc2p_n[lidx+Y_IDX], mc2p_n[lidx+Z_IDX], curlbhat_n, &arc_ctx);
           }
         }
@@ -1176,19 +1157,6 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   double dtheta = inp->cgrid.dx[TH_IDX],
     dpsi = inp->cgrid.dx[PSI_IDX],
     dalpha = inp->cgrid.dx[AL_IDX];
-  
-  double theta_lo = up->grid.lower[TH_IDX] + (up->local.lower[TH_IDX] - up->global.lower[TH_IDX])*up->grid.dx[TH_IDX],
-    psi_lo = up->grid.lower[PSI_IDX] + (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX])*up->grid.dx[PSI_IDX],
-    alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
-
-  double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
-  theta_lo += dir == 2 ? 0.0 : dels[1]*dtheta/2.0;
-  psi_lo += dir == 0 ? 0.0 : dels[1]*dpsi/2.0;
-  alpha_lo += dir == 1 ? 0. : dels[1]*dalpha/2.0;
-
-    
-  double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
-  dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // Used for finite differences.
   double delta_alpha = dalpha*1e-2;
@@ -1202,7 +1170,6 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   double rclose = inp->rclose;
   double rright = inp->rright;
   double rleft = inp->rleft;
-
 
   int nzcells;
   if (geo->use_cubics)
@@ -1228,7 +1195,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
-    double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
+    double alpha_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 1, ia, dir==1 ? 1 : up->basis.poly_order+1, dir!=1);
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       int ip_delta_max = 5;
@@ -1246,15 +1213,15 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             continue;
         }
 
-        double psi_curr = dir == 0 ? psi_lo + ip*dpsi : calc_running_coord(psi_lo, ip-nrange->lower[PSI_IDX], dpsi) ;
+        double psi_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 0, ip, dir==0 ? 1 : up->basis.poly_order+1, dir!=0);
         psi_curr += modifiers[ip_delta]*delta_psi;
         // Non-uniform psi. Finite differences are calculated in calc_metric.c
         double Psi_curr;
         position_map->maps[0](0.0, &psi_curr,  &Psi_curr,  position_map->ctxs[0]);
-        double dPsi_dpsi = gkyl_position_map_slope(position_map, 0, psi_curr, delta_psi, ip, nrange);
+        double dPsi_dpsi = gkyl_position_map_slope(position_map, 0, psi_curr, delta_psi, up->grid.lower[0], up->grid.upper[0]);
         psi_curr = Psi_curr;
         
-        double darcL, arcL_curr, arcL_lo;
+        double arcL_curr;
 
         // For double null blocks this should set arc_ctx :
         // zmin, zmax, rclose, arcL_tot for all blocks. No left and right
@@ -1264,16 +1231,15 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
         // also set zmin_left and zmin_right 
         tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, arc_memo, arc_memo_left, arc_memo_right);
 
-        darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
         // at the beginning of each theta loop we need to reset things
         cidx[PSI_IDX] = ip;
         arcL_curr = 0.0;
-        arcL_lo = (theta_lo + M_PI)/2/M_PI*arc_ctx.arcL_tot;
+
         double ridders_min, ridders_max;
 
         for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
-          arcL_curr = dir==2 ? arcL_lo + it*darcL: calc_running_coord(arcL_lo, it-nrange->lower[TH_IDX], darcL);
-          double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
+
+          double theta_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 2, it, dir==2 ? 1 : up->basis.poly_order+1, dir!=2);
 
           // Calculate derivatives using finite difference for ddtheta,
           // as well as transform the computational coordiante to the non-uniform field-aligned value
@@ -1283,7 +1249,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           double Theta_curr;
           position_map->maps[2](0.0, &theta_curr,  &Theta_curr,  position_map->ctxs[2]);
           double dTheta_dtheta = gkyl_position_map_slope(position_map, 2, theta_curr,\
-            delta_theta, it, nrange);
+            delta_theta, up->grid.lower[2], up->grid.upper[2]);
           theta_curr = Theta_curr;
           arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 
@@ -1364,8 +1330,8 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   // Populate other alpha indices by using axisymmetry
   for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
-    double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
-    double alpha_donor= dir==1 ? alpha_lo + nrange->lower[AL_IDX]*dalpha : calc_running_coord(alpha_lo, 0, dalpha);
+    double alpha_curr = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 1, ia, dir==1 ? 1 : up->basis.poly_order+1, dir!=1);
+    double alpha_donor= gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX], dir==1 ? 1 : up->basis.poly_order+1, dir!=1);
     double alpha_diff = alpha_curr -  alpha_donor;
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
@@ -1384,9 +1350,11 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           if( ip_delta == 3 || ip_delta == 4)
             continue;
         }
-        double psi_curr = dir == 0 ? psi_lo + ip*dpsi : calc_running_coord(psi_lo, ip-nrange->lower[PSI_IDX], dpsi) ;
-        psi_curr += modifiers[ip_delta]*delta_psi;
+        double psi_comp = gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, 0, ip, dir==0 ? 1 : up->basis.poly_order+1, dir!=0);
+        psi_comp += modifiers[ip_delta]*delta_psi;
 
+        double psi_curr;
+        position_map->maps[0](0.0, &psi_comp, &psi_curr, position_map->ctxs[0]);
         for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
           cidx[TH_IDX] = it;
             int lidx = 0;
@@ -1431,7 +1399,6 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);
 }
-
 
 void
 gkyl_tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up)

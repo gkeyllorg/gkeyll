@@ -748,7 +748,15 @@ int main(int argc, char **argv)
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
       .bfield_func = bfield_func, // magnetic field
-      .bfield_ctx = &ctx
+      .bfield_ctx = &ctx,
+      .position_map_info = {
+        .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+        .map_strength = 0.5,
+        .maximum_slope_at_min_B = 2,
+        .maximum_slope_at_max_B = 2,
+        .gaussian_std = 0.5,
+        .gaussian_max_integration_width = 1.0,
+      },
     },
 
     .num_periodic_dir = 0,

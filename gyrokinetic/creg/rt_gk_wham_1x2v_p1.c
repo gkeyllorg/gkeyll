@@ -753,6 +753,14 @@ int main(int argc, char **argv)
       .geometry_id = GKYL_GEOMETRY_MIRROR,
       .world = {ctx.psi_eval, 0.0},
       .mirror_grid_info = grid_inp,
+      .position_map_info = {
+        .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+        .map_strength = 1.0,
+        .maximum_slope_at_min_B = 2,
+        .maximum_slope_at_max_B = 2,
+        .gaussian_std = 0.5,
+        .gaussian_max_integration_width = 1.0,
+      },
     },
 
     .num_periodic_dir = 0,

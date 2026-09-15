@@ -391,9 +391,9 @@ test_position_map_slope_ho()
         test_nonuniform_position_map_slope(0.0, &x[1], &x_analytic[1], 0);
         test_nonuniform_position_map_slope(0.0, &x[2], &x_analytic[2], 0);
         double slope[3], finite_diff_slope;
-        slope[0] = gkyl_position_map_slope(pos_map, 0, x[0], 1e-6, i, &localRange);
-        slope[1] = gkyl_position_map_slope(pos_map, 1, x[1], 1e-6, j, &localRange);
-        slope[2] = gkyl_position_map_slope(pos_map, 2, x[2], 1e-6, k, &localRange);
+        slope[0] = gkyl_position_map_slope(pos_map, 0, x[0], 1e-6, grid.lower[0], grid.upper[0]);
+        slope[1] = gkyl_position_map_slope(pos_map, 1, x[1], 1e-6, grid.lower[1], grid.upper[1]);
+        slope[2] = gkyl_position_map_slope(pos_map, 2, x[2], 1e-6, grid.lower[2], grid.upper[2]);
         for (int d=0; d<3; ++d)
           TEST_CHECK( gkyl_compare(slope[d], x_analytic[d], 1e-6) );
       }
@@ -695,7 +695,186 @@ test_set_compression()
   gkyl_position_map_release(pmap);
 }
 
+struct bounded_map_ctx { int calls, outside; bool cubic; };
+
+static void
+bounded_map(double t, const double *xn, double *out, void *ctx)
+{
+  struct bounded_map_ctx *map = ctx;
+  map->calls++;
+  if (xn[0]<0.0 || xn[0]>1.0) map->outside++;
+  out[0] = 0.1 + 0.7*xn[0] + 0.2*xn[0]*xn[0]*(map->cubic ? xn[0] : 1.0);
+}
+
+static void
+bounded_map_derivative(double t, const double *xn, double *out, void *ctx)
+{
+  struct bounded_map_ctx *map = ctx;
+  out[0] = 0.7 + (map->cubic ? 0.6*xn[0]*xn[0] : 0.4*xn[0]);
+}
+
+static void
+test_slope_global_bounds(void)
+{
+  // The map index remains three-dimensional on 1D and 2D simulation grids.
+  for (int cdim=1; cdim<=3; ++cdim) {
+    struct gkyl_rect_grid grid;
+    gkyl_rect_grid_init(&grid, cdim, (double[]) {0,0,0}, (double[]) {1,1,1}, (int[]) {8,8,8});
+    struct gkyl_range local, ext;
+    gkyl_create_grid_ranges(&grid, (int[]) {1,1,1}, &ext, &local);
+    struct gkyl_basis basis;
+    gkyl_cart_modal_serendip(&basis, cdim, 1);
+    struct bounded_map_ctx map = {0};
+    struct gkyl_position_map *pmap = gkyl_position_map_new((struct gkyl_position_map_inp) {
+      .maps = {bounded_map, bounded_map, bounded_map}, .ctxs = {&map,&map,&map},
+    }, grid, local, ext, local, ext, basis);
+    double points[] = {0.0, 1e-14, 0.025, 0.37, 0.975, 1.0-1e-14, 1.0};
+    for (int dim=0; dim<3; ++dim) {
+      for (int point=0; point<sizeof(points)/sizeof(points[0]); ++point) {
+        for (int big_step=0; big_step<2; ++big_step) {
+          double actual = gkyl_position_map_slope(pmap, dim, points[point], big_step ? 2.0 : 0.1, 0.0, 1.0);
+          TEST_CHECK(gkyl_compare(actual, 0.7+0.4*points[point], 2e-13));
+        }
+      }
+    }
+    TEST_CHECK(map.outside==0);
+    // Second-order convergence for a cubic, including one-sided endpoints.
+    map.cubic = true;
+    for (int point=0; point<3; ++point) {
+      double x = point==0 ? 0.0 : point==1 ? 0.37 : 1.0;
+      double exact;
+      bounded_map_derivative(0, &x, &exact, &map);
+      double previous = 0.0;
+      for (int level=0; level<5; ++level) {
+        double actual = gkyl_position_map_slope(pmap, 2, x, 0.1/pow(2,level), 0.0, 1.0);
+        double error = fabs(actual-exact);
+        if (level) TEST_CHECK(gkyl_compare(previous/error, 4.0, 1e-8));
+        previous = error;
+      }
+    }
+    // Analytic derivatives must bypass the mapping entirely.
+    pmap->use_map_derivs = true;
+    pmap->map_derivs[2] = bounded_map_derivative;
+    map.calls = 0;
+    double x = 0.37, exact;
+    bounded_map_derivative(0, &x, &exact, &map);
+    TEST_CHECK(gkyl_position_map_slope(pmap, 2, x, 0.1, 0, 1)==exact);
+    TEST_CHECK(map.calls==0);
+    gkyl_position_map_release(pmap);
+  }
+}
+
+static void
+test_compression_parameters(void)
+{
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+  pmap->xpt_ctx->compression_factor = 0.6;
+  pmap->xpt_ctx->radial_compression_factor = 0.25;
+  gkyl_position_map_set_compression(pmap, 1.0, 0.0, 0.5, 0.5);
+  TEST_CHECK(gkyl_compare(gkyl_position_map_slope(pmap, 0, 0.5, 0.01, 0, 1), 0.25, 1e-14));
+  TEST_CHECK(gkyl_compare(gkyl_position_map_slope(pmap, 2, 1.0, 0.01, -1, 1), 0.6, 1e-14));
+  double point = 0.75, mapped;
+  pmap->maps[0](0, &point, &mapped, pmap->ctxs[0]);
+  TEST_CHECK(gkyl_compare(mapped, point-0.75*0.5/M_PI, 1e-14));
+  pmap->xpt_ctx->compression_factor = pmap->xpt_ctx->radial_compression_factor = 1.0;
+  gkyl_position_map_set_compression(pmap, 1.0, 0.0, 0.5, 0.5);
+  for (int dim=0; dim<3; ++dim) {
+    pmap->maps[dim](0, &point, &mapped, pmap->ctxs[dim]);
+    TEST_CHECK(gkyl_compare(mapped, point, 1e-14));
+    TEST_CHECK(gkyl_compare(gkyl_position_map_slope(pmap, dim, point, 0.01, 0, 1), 1.0, 1e-14));
+  }
+  // Disabling compression restores the original map and its derivative.
+  struct bounded_map_ctx map = {0};
+  pmap->xpt_ctx->compression_factor = pmap->xpt_ctx->radial_compression_factor = 0.0;
+  pmap->xpt_ctx->maps_backup[0] = bounded_map;
+  pmap->xpt_ctx->map_derivs_backup[0] = 0; // exercise numerical fallback
+  pmap->xpt_ctx->ctxs_backup[0] = &map;
+  gkyl_position_map_set_compression(pmap, 1.0, 0.0, 0.5, 0.5);
+  TEST_CHECK(gkyl_compare(gkyl_position_map_slope(pmap, 0, point, 0.01, 0, 1), 0.7+0.4*point, 1e-13));
+  gkyl_position_map_release(pmap);
+}
+
+static void
+asymmetric_bmag(double t, const double *xn, double *out, void *ctx)
+{
+  bool flat = *(bool *)ctx;
+  out[0] = flat ? 2.0 : xn[0]<0.25 ? 2.0-xn[0] : 1.75+2.0*(xn[0]-0.25);
+}
+
+static void
+test_numeric_degenerate_and_strength(void)
+{
+  for (int flat=0; flat<2; ++flat) {
+    struct gkyl_rect_grid grid, grid3;
+    gkyl_rect_grid_init(&grid, 1, (double[]) {-1}, (double[]) {1}, (int[]) {16});
+    gkyl_rect_grid_init(&grid3, 3, (double[]) {-2,-1,-1}, (double[]) {-1,1,1}, (int[]) {1,1,16});
+    struct gkyl_range local, ext, global3, ext3;
+    gkyl_create_grid_ranges(&grid, (int[]) {1}, &ext, &local);
+    gkyl_create_grid_ranges(&grid3, (int[]) {1,1,1}, &ext3, &global3);
+    struct gkyl_basis basis;
+    gkyl_cart_modal_serendip(&basis, 1, 1);
+    struct gkyl_position_map *pmap = gkyl_position_map_new((struct gkyl_position_map_inp) {
+      .id = GKYL_PMAP_CONSTANT_DB_NUMERIC, .map_strength = 1.0,
+    }, grid, local, ext, local, ext, basis);
+    struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, ext.volume);
+    bool uniform = flat;
+    struct gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, asymmetric_bmag, &uniform);
+    gkyl_proj_on_basis_advance(proj, 0.0, &local, bmag);
+    gkyl_proj_on_basis_release(proj);
+    gkyl_position_map_optimize(pmap, grid3, global3);
+    gkyl_position_map_set_bmag(pmap, NULL, bmag);
+    gkyl_position_map_optimize(pmap, grid3, global3);
+    TEST_CHECK(gkyl_compare(pmap->constB_ctx->psi, -1.5, 1e-14));
+    for (int strength=0; strength<3; ++strength) {
+      pmap->constB_ctx->map_strength = 0.5*strength;
+      for (int point=0; point<=32; ++point) {
+        // Include the exact computational location of the asymmetric minimum.
+        double x = point==16 ? -1.0+2.0*1.25/2.75 : -1.0+point/16.0;
+        double full, actual;
+        pmap->constB_ctx->map_strength = 1.0;
+        pmap->maps[2](0, &x, &full, pmap->ctxs[2]);
+        pmap->constB_ctx->map_strength = 0.5*strength;
+        pmap->maps[2](0, &x, &actual, pmap->ctxs[2]);
+        double expected = uniform ? x : (1.0-0.5*strength)*x+0.5*strength*full;
+        TEST_CHECK(gkyl_compare(actual, expected, 2e-12));
+        TEST_MSG("flat %d strength %g x %g actual %g expected %g", flat, 0.5*strength, x, actual, expected);
+      }
+    }
+    if (!uniform) {
+      pmap->constB_ctx->enable_maximum_slope_limits_at_min_B = true;
+      pmap->constB_ctx->enable_maximum_slope_limits_at_max_B = true;
+      pmap->constB_ctx->maximum_slope_at_min_B = 2.0;
+      pmap->constB_ctx->maximum_slope_at_max_B = 2.0;
+      double x_min = -1.0+2.0*1.25/2.75;
+      for (int strength=1; strength<=2; ++strength) {
+        pmap->constB_ctx->map_strength = strength*0.5;
+        double left = x_min-1e-8, right = x_min+1e-8, mapped_left, mapped_right;
+        pmap->maps[2](0, &left, &mapped_left, pmap->ctxs[2]);
+        pmap->maps[2](0, &right, &mapped_right, pmap->ctxs[2]);
+        TEST_CHECK(mapped_right>=mapped_left);
+        TEST_CHECK(mapped_right-mapped_left < 4e-8);
+        double previous = -1.0;
+        for (int i=1; i<=256; ++i) {
+          double x = -1.0+i/128.0, mapped;
+          pmap->maps[2](0, &x, &mapped, pmap->ctxs[2]);
+          TEST_CHECK(mapped>previous);
+          TEST_CHECK(mapped-previous <= 2.0/128.0+1e-12);
+          previous = mapped;
+        }
+      }
+    }
+    // Replacing B must release the previous optimization storage.
+    gkyl_position_map_set_bmag(pmap, NULL, bmag);
+    gkyl_position_map_optimize(pmap, grid3, global3);
+    gkyl_array_release(bmag);
+    gkyl_position_map_release(pmap);
+  }
+}
+
 TEST_LIST = {
+  {"numeric_degenerate_and_strength", test_numeric_degenerate_and_strength},
+  {"slope_global_bounds", test_slope_global_bounds},
+  {"compression_parameters", test_compression_parameters},
   { "test_position_map_init_1x_ho", test_position_map_init_1x_ho },
   { "test_position_map_init_1x_null_ho", test_position_map_init_1x_null_ho },
   { "test_position_map_init_2x_ho", test_position_map_init_2x_ho },

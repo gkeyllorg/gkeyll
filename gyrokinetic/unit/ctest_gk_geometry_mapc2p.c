@@ -324,7 +324,8 @@ mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double Lz = 1.8049e+01;
   double a = -Lz/2;
-  fout[0] = -1/(2*a) * pow(a - xn[0], 2) + a;
+  // Blend with identity so the lower-endpoint Jacobian stays positive.
+  fout[0] = 0.5*(-1/(2*a) * pow(a - xn[0], 2) + a) + 0.5*xn[0];
 }
 
 void
@@ -332,7 +333,7 @@ dmapz_dz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double Lz = 1.8049e+01;
   double a = -Lz/2;
-  fout[0] = 1 - xn[0]/a;
+  fout[0] = 1 - 0.5*xn[0]/a;
 }
 
 void
