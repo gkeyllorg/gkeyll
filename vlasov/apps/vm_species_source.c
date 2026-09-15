@@ -35,6 +35,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       .hamil_range = &vms->mom_hamil_range,
       .hamil = vms->mom_hamil,
       .model_id = vms->model_id,
+      .hamil_id = vms->mom_hamil_id,
       .use_gpu = app->use_gpu,
     };
     src->num_cross_source = vms->info.source.num_cross_source; 

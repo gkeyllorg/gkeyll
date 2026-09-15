@@ -448,6 +448,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .hamil_range = inp->hamil_range,
     .hamil = inp->hamil,
     .model_id = inp->model_id,
+    .hamil_id = inp->hamil_id,
     .gamma_inv = inp->gamma_inv,
     .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,

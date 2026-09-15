@@ -3,8 +3,8 @@ GKYL_CU_DH void vlasov_Bz_hamil_phase_vol_1x2v_ser_p2(const double *w, const dou
   const double *jacob_vel, const double *hamil,
   const double *qmem, const double *f, double* GKYL_RESTRICT out) 
 { 
-  double dv10 = 2.0/dxv[1];
-  double dv11 = 2.0/dxv[2];
+  double dv10 = 2.0/dxv[1]; 
+  double dv11 = 2.0/dxv[2]; 
   const double *Bz = &qmem[15]; 
   out[2] += dv10*dv11*Bz[1]*(1.5*f[17]*hamil[19]+1.6770509831248424*f[6]*hamil[19]+0.75*f[8]*hamil[18]+0.6708203932499369*f[4]*hamil[17]+1.6770509831248421*f[10]*hamil[16]+1.5*f[13]*hamil[15]+1.6770509831248421*f[3]*hamil[15]+0.75*f[12]*hamil[14]+0.6708203932499369*f[1]*hamil[13]+0.6708203932499369*hamil[10]*f[11]+0.75*f[2]*hamil[10]+1.6770509831248424*f[5]*hamil[9]+0.6708203932499369*hamil[5]*f[7]+0.75*f[4]*hamil[6]+0.75*f[0]*hamil[5]+0.75*f[1]*hamil[3]);
   out[2] += dv10*dv11*Bz[0]*(1.6770509831248424*f[10]*hamil[19]+0.75*f[12]*hamil[18]+0.75*f[11]*hamil[17]+1.6770509831248421*f[6]*hamil[16]+1.6770509831248421*f[5]*hamil[15]+0.75*f[8]*hamil[14]+0.75*f[7]*hamil[13]+0.75*f[4]*hamil[10]+1.6770509831248424*f[3]*hamil[9]+0.75*f[2]*hamil[6]+0.75*f[1]*hamil[5]+0.75*f[0]*hamil[3]);

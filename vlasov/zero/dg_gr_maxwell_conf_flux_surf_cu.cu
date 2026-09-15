@@ -4,6 +4,7 @@
 #include <time.h>
 
 extern "C" {
+#include <assert.h>
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
@@ -19,6 +20,7 @@ extern "C" {
 __global__ void
 gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   const struct gkyl_range conf_range, const struct gkyl_range conf_range_ext, 
+  const struct gkyl_array *jacob_pos, 
   const struct gkyl_surf_and_vol_node_arrays *lapse, const struct gkyl_surf_and_vol_node_arrays *shift, 
   const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *h_ij_inv, const struct gkyl_surf_and_vol_node_arrays *det_h, 
   const struct gkyl_array *field_con, const struct gkyl_array *field_no_J_con, 
@@ -86,6 +88,8 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_gr_maxwell_co
       long cidx_l = gkyl_range_idx(&conf_range, idx_l); 
       const double *field_no_J_con_l = (const double*) gkyl_array_cfetch(field_no_J_con, cidx_l);
       const double *field_con_l = (const double*) gkyl_array_cfetch(field_con, cidx_l);
+      const double *jacob_pos_l = (const double*) gkyl_array_cfetch(jacob_pos, cidx_l);
+      const double *jacob_pos_c = (const double*) gkyl_array_cfetch(jacob_pos, cidx);
 
       // For Points not along the domain-edge in theta, compute the left hand surface 
       // conf-flux.
@@ -97,6 +101,7 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_gr_maxwell_co
       }
 
       cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->conf_grid.dx, theta_pole,
+        jacob_pos_l, jacob_pos_c,
         lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_l, field_con_c,
          field_no_J_con_l, field_no_J_con_c, flux);     
 
@@ -140,7 +145,9 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_gr_maxwell_co
         }
 
         gkyl_rect_grid_cell_center(&up->conf_grid, idx_r, xcR);
+        const double *jacob_pos_r = (const double*) gkyl_array_cfetch(jacob_pos, cidx_r);
         cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->conf_grid.dx, theta_pole,
+        jacob_pos_c, jacob_pos_r,
         lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_c, field_con_r,
         field_no_J_con_c, field_no_J_con_r, flux_r);
       }
@@ -159,7 +166,7 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu(struct gkyl_dg_gr_maxwell_conf_flux
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
   gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, *conf_range_ext, lapse->on_dev, shift->on_dev, h_ij->on_dev, h_ij_inv->on_dev, det_h->on_dev, 
+    *conf_range, *conf_range_ext, up->jacob_pos->on_dev, lapse->on_dev, shift->on_dev, h_ij->on_dev, h_ij_inv->on_dev, det_h->on_dev, 
     field_con->on_dev, field_no_J_con->on_dev, cflrate->on_dev, conf_flux_surf->on_dev);  
 }
 
@@ -217,6 +224,11 @@ gkyl_dg_gr_maxwell_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_gr_maxwell_co
 
   up->conf_grid = *inp->conf_grid;
   up->cdim = cdim;
+  // Position map: acquired for lifetime safety; device pointer unpacked at
+  // launch from the borrowed host-side array object.
+  assert(inp->pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
   up->gr_maxwell_data.chi = inp->chi;
   up->gr_maxwell_data.gamma = inp->gamma;
   up->gr_maxwell_data.K_phi = 0.0;

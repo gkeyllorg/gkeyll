@@ -11,6 +11,7 @@ struct gkyl_mom_vlasov_inp {
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
   const struct gkyl_basis *phase_basis; // Phase-space basis functions.
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
+  enum gkyl_hamil_id hamil_id; // enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
   const struct gkyl_range *vel_range; // Range for indexing velocity-space Jacobian and velocity map.
   const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object. NULL => uniform velocity grid.
   const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).

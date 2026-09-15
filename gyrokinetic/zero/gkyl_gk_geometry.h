@@ -19,7 +19,7 @@ struct gk_geom_surf {
   struct gkyl_array *jacobgeo; // 1 component. Configuration space jacobian J.
   struct gkyl_array *jacobgeo_ratio; // 1 component. Ratio of jacobgeo from neigboring blocks (valid only at the boundary, stored in ghost cell).
   struct gkyl_array *bmag; // 1 component. B Magnitude of magnetic field.
-  struct gkyl_array *b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+  struct gkyl_array *b_i; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array *cmag; // 1 component. C = JB/sqrt(g_33).
   struct gkyl_array *jacobtot_inv; // 1 component. 1/(JB).
   struct gkyl_array *B3; // 1 component n^3 \dot \vec{B} = 1/g_33.
@@ -36,7 +36,7 @@ struct gk_geom_surf {
   struct gkyl_array *curlbhat_nodal; // Cartesian components of curl(bhat).
   struct gkyl_array *normcurlbhat_nodal; // 1 component, n^m \dot curl(bhat).
   struct gkyl_array *jacobgeo_nodal; // 1 component. Configuration space jacobian J.
-  struct gkyl_array *b_i_nodal; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+  struct gkyl_array *b_i_nodal; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array *b_i_nodal_fd; // 3 components. b_i at surf quad nodes and nodes epsilon away.
   struct gkyl_array *cmag_nodal; // 1 component. C = JB/sqrt(g_33).
   struct gkyl_array *jacobtot_inv_nodal; // 1 component. 1/(JB).

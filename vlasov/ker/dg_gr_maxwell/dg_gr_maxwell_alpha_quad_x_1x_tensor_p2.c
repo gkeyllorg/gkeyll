@@ -1,11 +1,14 @@
 #include <gkyl_dg_gr_maxwell_kernels.h> 
 GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p2(const gkyl_dg_gr_maxwell_inp *meq, const double *w, const double *dxv, 
-      const int theta_pole, const double *lapse_nodal, const double *shift_nodal, const double *h_ij_nodal, 
+      const int theta_pole, const double *jacob_pos_l, const double *jacob_pos_r,
+      const double *lapse_nodal, const double *shift_nodal, const double *h_ij_nodal, 
       const double *h_ij_inv_nodal, const double *J_c, const double *field_con_l, const double *field_con_r, 
       const double *field_no_J_con_l, const double *field_no_J_con_r, 
       double* GKYL_RESTRICT flux_l, double* GKYL_RESTRICT flux_r, double* GKYL_RESTRICT max_alpha_quad) 
 { 
   const double chi = meq->chi, gamma = meq->gamma; 
+  const double jacob_pos_l_inv = 1.0/jacob_pos_l[0]; 
+  const double jacob_pos_r_inv = 1.0/jacob_pos_r[0]; 
   const double *h_xx_nodal = &h_ij_nodal[0]; 
   const double *h_xy_nodal = &h_ij_nodal[1]; 
   const double *h_xz_nodal = &h_ij_nodal[2]; 
@@ -296,36 +299,36 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p2(const gkyl_dg_gr_maxwell
   double *flux_r_quad; 
   flux_l_quad = &flux_l[0]; 
   flux_r_quad = &flux_r[0]; 
-  flux_l_quad[0] = FD11_l_n[0]; 
-  flux_r_quad[0] = FD11_r_n[0]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FD11_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FD11_r_n[0]); 
   flux_l_quad = &flux_l[1]; 
   flux_r_quad = &flux_r[1]; 
-  flux_l_quad[0] = Hz_l_n[0]+FD12_l_n[0]; 
-  flux_r_quad[0] = Hz_r_n[0]+FD12_r_n[0]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(Hz_l_n[0]+FD12_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(Hz_r_n[0]+FD12_r_n[0]); 
   flux_l_quad = &flux_l[2]; 
   flux_r_quad = &flux_r[2]; 
-  flux_l_quad[0] = FD13_l_n[0]-1.0*Hy_l_n[0]; 
-  flux_r_quad[0] = FD13_r_n[0]-1.0*Hy_r_n[0]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FD13_l_n[0]-1.0*Hy_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FD13_r_n[0]-1.0*Hy_r_n[0]); 
   flux_l_quad = &flux_l[3]; 
   flux_r_quad = &flux_r[3]; 
-  flux_l_quad[0] = FB11_l_n[0]; 
-  flux_r_quad[0] = FB11_r_n[0]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FB11_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FB11_r_n[0]); 
   flux_l_quad = &flux_l[4]; 
   flux_r_quad = &flux_r[4]; 
-  flux_l_quad[0] = FB12_l_n[0]-1.0*Ez_l_n[0]; 
-  flux_r_quad[0] = FB12_r_n[0]-1.0*Ez_r_n[0]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FB12_l_n[0]-1.0*Ez_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FB12_r_n[0]-1.0*Ez_r_n[0]); 
   flux_l_quad = &flux_l[5]; 
   flux_r_quad = &flux_r[5]; 
-  flux_l_quad[0] = FB13_l_n[0]+Ey_l_n[0]; 
-  flux_r_quad[0] = FB13_r_n[0]+Ey_r_n[0]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FB13_l_n[0]+Ey_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FB13_r_n[0]+Ey_r_n[0]); 
   flux_l_quad = &flux_l[6]; 
   flux_r_quad = &flux_r[6]; 
-  flux_l_quad[0] = FPhi1_l_n[0]; 
-  flux_r_quad[0] = FPhi1_r_n[0]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FPhi1_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FPhi1_r_n[0]); 
   flux_l_quad = &flux_l[7]; 
   flux_r_quad = &flux_r[7]; 
-  flux_l_quad[0] = FPsi1_l_n[0]; 
-  flux_r_quad[0] = FPsi1_r_n[0]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FPsi1_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FPsi1_r_n[0]); 
   
   double lambda_1[1] = {0.0};
   double lambda_2[1] = {0.0};

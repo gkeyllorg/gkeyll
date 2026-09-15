@@ -1,28 +1,27 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_nod2mod_tables_1x3v_ser_p1.h> 
 GKYL_CU_DH double vlasov_surfvz_1x3v_ser_p1(const double *w, const double *dxv,
   const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
 { 
   double dv12 = 2.0/dxv[3]; 
-
-  const double *Fhat_l_nodal_c = &Fhat_l_nodal[16]; 
-  const double *Fhat_r_nodal_c = &Fhat_r_nodal[16]; 
-  out[0] += ((-0.25*Fhat_r_nodal_c[7])+0.25*Fhat_l_nodal_c[7]-0.25*Fhat_r_nodal_c[6]+0.25*Fhat_l_nodal_c[6]-0.25*Fhat_r_nodal_c[5]+0.25*Fhat_l_nodal_c[5]-0.25*Fhat_r_nodal_c[4]+0.25*Fhat_l_nodal_c[4]-0.25*Fhat_r_nodal_c[3]+0.25*Fhat_l_nodal_c[3]-0.25*Fhat_r_nodal_c[2]+0.25*Fhat_l_nodal_c[2]-0.25*Fhat_r_nodal_c[1]+0.25*Fhat_l_nodal_c[1]-0.25*Fhat_r_nodal_c[0]+0.25*Fhat_l_nodal_c[0])*dv12; 
-  out[1] += ((-0.25*Fhat_r_nodal_c[7])+0.25*Fhat_l_nodal_c[7]-0.25*Fhat_r_nodal_c[6]+0.25*Fhat_l_nodal_c[6]-0.25*Fhat_r_nodal_c[5]+0.25*Fhat_l_nodal_c[5]-0.25*Fhat_r_nodal_c[4]+0.25*(Fhat_l_nodal_c[4]+Fhat_r_nodal_c[3])-0.25*Fhat_l_nodal_c[3]+0.25*Fhat_r_nodal_c[2]-0.25*Fhat_l_nodal_c[2]+0.25*Fhat_r_nodal_c[1]-0.25*Fhat_l_nodal_c[1]+0.25*Fhat_r_nodal_c[0]-0.25*Fhat_l_nodal_c[0])*dv12; 
-  out[2] += ((-0.25*Fhat_r_nodal_c[7])+0.25*Fhat_l_nodal_c[7]-0.25*Fhat_r_nodal_c[6]+0.25*(Fhat_l_nodal_c[6]+Fhat_r_nodal_c[5])-0.25*Fhat_l_nodal_c[5]+0.25*Fhat_r_nodal_c[4]-0.25*(Fhat_l_nodal_c[4]+Fhat_r_nodal_c[3])+0.25*Fhat_l_nodal_c[3]-0.25*Fhat_r_nodal_c[2]+0.25*(Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1])-0.25*Fhat_l_nodal_c[1]+0.25*Fhat_r_nodal_c[0]-0.25*Fhat_l_nodal_c[0])*dv12; 
-  out[3] += ((-0.25*Fhat_r_nodal_c[7])+0.25*(Fhat_l_nodal_c[7]+Fhat_r_nodal_c[6])-0.25*(Fhat_l_nodal_c[6]+Fhat_r_nodal_c[5])+0.25*(Fhat_l_nodal_c[5]+Fhat_r_nodal_c[4])-0.25*(Fhat_l_nodal_c[4]+Fhat_r_nodal_c[3])+0.25*(Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2])-0.25*(Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1])+0.25*(Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0])-0.25*Fhat_l_nodal_c[0])*dv12; 
-  out[4] += -0.4330127018922193*(Fhat_r_nodal_c[7]+Fhat_l_nodal_c[7]+Fhat_r_nodal_c[6]+Fhat_l_nodal_c[6]+Fhat_r_nodal_c[5]+Fhat_l_nodal_c[5]+Fhat_r_nodal_c[4]+Fhat_l_nodal_c[4]+Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0])*dv12; 
-  out[5] += ((-0.25*Fhat_r_nodal_c[7])+0.25*Fhat_l_nodal_c[7]-0.25*Fhat_r_nodal_c[6]+0.25*(Fhat_l_nodal_c[6]+Fhat_r_nodal_c[5])-0.25*Fhat_l_nodal_c[5]+0.25*Fhat_r_nodal_c[4]-0.25*Fhat_l_nodal_c[4]+0.25*Fhat_r_nodal_c[3]-0.25*Fhat_l_nodal_c[3]+0.25*Fhat_r_nodal_c[2]-0.25*(Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1])+0.25*Fhat_l_nodal_c[1]-0.25*Fhat_r_nodal_c[0]+0.25*Fhat_l_nodal_c[0])*dv12; 
-  out[6] += ((-0.25*Fhat_r_nodal_c[7])+0.25*(Fhat_l_nodal_c[7]+Fhat_r_nodal_c[6])-0.25*(Fhat_l_nodal_c[6]+Fhat_r_nodal_c[5])+0.25*(Fhat_l_nodal_c[5]+Fhat_r_nodal_c[4])-0.25*Fhat_l_nodal_c[4]+0.25*Fhat_r_nodal_c[3]-0.25*(Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2])+0.25*(Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1])-0.25*(Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0])+0.25*Fhat_l_nodal_c[0])*dv12; 
-  out[7] += ((-0.25*Fhat_r_nodal_c[7])+0.25*(Fhat_l_nodal_c[7]+Fhat_r_nodal_c[6])-0.25*Fhat_l_nodal_c[6]+0.25*Fhat_r_nodal_c[5]-0.25*(Fhat_l_nodal_c[5]+Fhat_r_nodal_c[4])+0.25*Fhat_l_nodal_c[4]-0.25*Fhat_r_nodal_c[3]+0.25*(Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2])-0.25*Fhat_l_nodal_c[2]+0.25*Fhat_r_nodal_c[1]-0.25*(Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0])+0.25*Fhat_l_nodal_c[0])*dv12; 
-  out[8] += (0.4330127018922193*(Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0])-0.4330127018922193*(Fhat_r_nodal_c[7]+Fhat_l_nodal_c[7]+Fhat_r_nodal_c[6]+Fhat_l_nodal_c[6]+Fhat_r_nodal_c[5]+Fhat_l_nodal_c[5]+Fhat_r_nodal_c[4]+Fhat_l_nodal_c[4]))*dv12; 
-  out[9] += ((-0.4330127018922193*(Fhat_r_nodal_c[7]+Fhat_l_nodal_c[7]+Fhat_r_nodal_c[6]+Fhat_l_nodal_c[6]))+0.4330127018922193*(Fhat_r_nodal_c[5]+Fhat_l_nodal_c[5]+Fhat_r_nodal_c[4]+Fhat_l_nodal_c[4])-0.4330127018922193*(Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2])+0.4330127018922193*(Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0]))*dv12; 
-  out[10] += ((-0.4330127018922193*(Fhat_r_nodal_c[7]+Fhat_l_nodal_c[7]))+0.4330127018922193*(Fhat_r_nodal_c[6]+Fhat_l_nodal_c[6])-0.4330127018922193*(Fhat_r_nodal_c[5]+Fhat_l_nodal_c[5])+0.4330127018922193*(Fhat_r_nodal_c[4]+Fhat_l_nodal_c[4])-0.4330127018922193*(Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3])+0.4330127018922193*(Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2])-0.4330127018922193*(Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1])+0.4330127018922193*(Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0]))*dv12; 
-  out[11] += ((-0.25*Fhat_r_nodal_c[7])+0.25*(Fhat_l_nodal_c[7]+Fhat_r_nodal_c[6])-0.25*Fhat_l_nodal_c[6]+0.25*Fhat_r_nodal_c[5]-0.25*(Fhat_l_nodal_c[5]+Fhat_r_nodal_c[4])+0.25*(Fhat_l_nodal_c[4]+Fhat_r_nodal_c[3])-0.25*(Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2])+0.25*Fhat_l_nodal_c[2]-0.25*Fhat_r_nodal_c[1]+0.25*(Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0])-0.25*Fhat_l_nodal_c[0])*dv12; 
-  out[12] += ((-0.4330127018922193*(Fhat_r_nodal_c[7]+Fhat_l_nodal_c[7]+Fhat_r_nodal_c[6]+Fhat_l_nodal_c[6]))+0.4330127018922193*(Fhat_r_nodal_c[5]+Fhat_l_nodal_c[5]+Fhat_r_nodal_c[4]+Fhat_l_nodal_c[4]+Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2])-0.4330127018922193*(Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0]))*dv12; 
-  out[13] += ((-0.4330127018922193*(Fhat_r_nodal_c[7]+Fhat_l_nodal_c[7]))+0.4330127018922193*(Fhat_r_nodal_c[6]+Fhat_l_nodal_c[6])-0.4330127018922193*(Fhat_r_nodal_c[5]+Fhat_l_nodal_c[5])+0.4330127018922193*(Fhat_r_nodal_c[4]+Fhat_l_nodal_c[4]+Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3])-0.4330127018922193*(Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2])+0.4330127018922193*(Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1])-0.4330127018922193*(Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0]))*dv12; 
-  out[14] += ((-0.4330127018922193*(Fhat_r_nodal_c[7]+Fhat_l_nodal_c[7]))+0.4330127018922193*(Fhat_r_nodal_c[6]+Fhat_l_nodal_c[6]+Fhat_r_nodal_c[5]+Fhat_l_nodal_c[5])-0.4330127018922193*(Fhat_r_nodal_c[4]+Fhat_l_nodal_c[4]+Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3])+0.4330127018922193*(Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1])-0.4330127018922193*(Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0]))*dv12; 
-  out[15] += ((-0.4330127018922193*(Fhat_r_nodal_c[7]+Fhat_l_nodal_c[7]))+0.4330127018922193*(Fhat_r_nodal_c[6]+Fhat_l_nodal_c[6]+Fhat_r_nodal_c[5]+Fhat_l_nodal_c[5])-0.4330127018922193*(Fhat_r_nodal_c[4]+Fhat_l_nodal_c[4])+0.4330127018922193*(Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3])-0.4330127018922193*(Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1])+0.4330127018922193*(Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0]))*dv12; 
-
+  for (int k = 0; k < 8; ++k) { 
+  const int a = vst_1x3v_ser_p1_prj_v2_kamap[k]; 
+  const int b = vst_1x3v_ser_p1_prj_v2_kbmap[k]; 
+  double g_l = 0.0; 
+  double g_r = 0.0; 
+  for (int i = 0; i < 2; ++i) { 
+    double t_l = 0.0; 
+    double t_r = 0.0; 
+    for (int j = 0; j < 4; ++j) { 
+      t_l += vst_1x3v_ser_p1_prj_v2_Vw[j*4 + b]*Fhat_l_nodal[16 + i*4 + j]; 
+      t_r += vst_1x3v_ser_p1_prj_v2_Vw[j*4 + b]*Fhat_r_nodal[16 + i*4 + j]; 
+    } 
+    g_l += vst_1x3v_ser_p1_prj_v2_Cw[i*2 + a]*t_l; 
+    g_r += vst_1x3v_ser_p1_prj_v2_Cw[i*2 + a]*t_r; 
+  } 
+  for (int q = vst_1x3v_ser_p1_prj_v2_out_off[k]; q < vst_1x3v_ser_p1_prj_v2_out_off[k+1]; ++q) { 
+    out[vst_1x3v_ser_p1_prj_v2_out_mode[q]] += dv12*(vst_1x3v_ser_p1_prj_v2_out_cl[q]*g_l + vst_1x3v_ser_p1_prj_v2_out_cr[q]*g_r); 
+  } 
+  } 
   return 0.0;
-
 } 

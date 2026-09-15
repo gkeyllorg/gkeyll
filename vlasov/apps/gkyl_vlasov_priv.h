@@ -24,14 +24,13 @@
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_calc_canonical_pb_vars.h>
 #include <gkyl_dg_calc_canonical_pb_fluid_vars.h>
+#include <gkyl_dg_calc_canonical_pb_vars.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_fluid_em_coupling.h>
 #include <gkyl_dg_calc_sr_vars.h>
-#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
 #include <gkyl_dg_gr_maxwell_current_deposition.h>
@@ -47,8 +46,6 @@
 #include <gkyl_dg_updater_diffusion_fluid.h>
 #include <gkyl_dg_updater_diffusion_gen.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
-#include <gkyl_dg_updater_moment.h>
-#include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_calc_radiation.h>
@@ -118,7 +115,7 @@ struct vm_species_moment {
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
   // Options for moment calculation: 
-  // 1. Compute the moment directly with dg_updater_moment
+  // 1. Compute the moment directly with gkyl_mom_calc
   // 2. Compute the moments of the equivalent LTE (local thermodynamic equilibrium)
   //    distribution (n, V_drift, T/m) with specialized updater
   //    Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
@@ -512,7 +509,13 @@ struct vm_species {
   bool write_cell_avg; // Boolean for only writing cell average of f.
 
   enum gkyl_field_id field_id; // Type of field equation.
-  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).  
+  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).
+  enum gkyl_hamil_id hamil_id; // Representation of the equation-object Hamiltonian (hamil):
+                               // sparse/dense velocity-space expansion or phase-space expansion.
+  enum gkyl_hamil_id mom_hamil_id; // Representation of the moment Hamiltonian (mom_hamil).
+                                   // Differs from hamil_id for triad-GR: the equation Hamiltonian
+                                   // is a phase-space expansion while moments use the dense
+                                   // velocity-space (SR) Hamiltonian.
   enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
 
   struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (owns all velocity map arrays).

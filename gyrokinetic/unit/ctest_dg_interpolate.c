@@ -8,7 +8,10 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_position_map.h>
 #include <gkyl_dg_interpolate.h>
-#include <gkyl_dg_updater_moment.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
+#include <gkyl_mom_calc.h>
+#include <gkyl_mom_vlasov.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_array_integrate.h>
 #include <gkyl_util.h>
@@ -323,14 +326,63 @@ void eval_distf_1x1v_vlasov(double t, const double *xn, double* restrict fout, v
   fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vx-ux,2))/(2.0*vtsq));
 }
 
-static void calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_basis *confBasis,
-  struct gkyl_basis *basis, struct gkyl_range *confLocal, struct gkyl_range *local,
+static void calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_rect_grid *velGrid,
+  struct gkyl_basis *confBasis, struct gkyl_basis *basis,
+  struct gkyl_range *confLocal, struct gkyl_range *local, struct gkyl_range *velLocal,
   bool use_gpu, struct gkyl_array *distf, struct gkyl_array *moms)
 {
-  struct gkyl_dg_updater_moment* mom_op = gkyl_dg_updater_moment_new(grid, confBasis,
-    basis, confLocal, 0, local, 0, 0, GKYL_F_MOMENT_M0M1M2, false, use_gpu);
-  gkyl_dg_updater_moment_advance(mom_op, local, confLocal, distf, moms);
-  gkyl_dg_updater_moment_release(mom_op);
+  int cdim = confBasis->ndim, pdim = basis->ndim, vdim = pdim - cdim;
+  int poly_order = confBasis->poly_order;
+  bool is_hybrid = basis->b_type == GKYL_BASIS_MODAL_HYBRID;
+
+  // The p=1 hybrid pairs a p=1 tensor configuration-space basis with a p=2
+  // tensor velocity-space basis; kernel selection keys on the conf basis type.
+  struct gkyl_basis vbasis, momConfBasis;
+  if (is_hybrid) {
+    gkyl_cart_modal_tensor(&vbasis, vdim, 2);
+    gkyl_cart_modal_tensor(&momConfBasis, cdim, poly_order);
+  }
+  else {
+    gkyl_cart_modal_serendip(&vbasis, vdim, poly_order);
+    momConfBasis = *confBasis;
+  }
+
+  // Identity velocity map and velocity-space Hamiltonian H = v^2/2.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(velGrid,
+    velLocal, &vbasis, inp_vmap, false, use_gpu);
+  struct gkyl_array *hamil = mkarr(use_gpu, vbasis.num_basis, velLocal->volume);
+  struct gkyl_array *gamma_inv = mkarr(use_gpu, vbasis.num_basis, velLocal->volume);
+  gkyl_dg_vlasov_calc_hamil(velGrid, &vbasis, velLocal,
+    GKYL_MODEL_DEFAULT, vvm, hamil, gamma_inv, use_gpu);
+
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &momConfBasis,
+    .phase_basis = basis,
+    .vel_range = velLocal,
+    .hamil_range = velLocal,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
+    .mom_type = GKYL_F_MOMENT_M0M1M2,
+    .use_gpu = use_gpu,
+    .vel_map = vvm,
+  };
+  struct gkyl_mom_type *mtype = gkyl_mom_vlasov_inew(&inp_mom);
+  gkyl_mom_calc *mcalc = gkyl_mom_calc_new(grid, mtype, use_gpu);
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    gkyl_mom_calc_advance_cu(mcalc, local, confLocal, distf, moms);
+  else
+    gkyl_mom_calc_advance(mcalc, local, confLocal, distf, moms);
+#else
+  gkyl_mom_calc_advance(mcalc, local, confLocal, distf, moms);
+#endif
+  gkyl_mom_calc_release(mcalc);
+  gkyl_mom_type_release(mtype);
+  gkyl_vlasov_velocity_map_release(vvm);
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
 }
 
 void
@@ -417,7 +469,7 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   struct gkyl_array *moms = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_ho = use_gpu? mkarr(false, moms->ncomp, moms->size)
                                       : gkyl_array_acquire(moms);
-  calc_moms_vlasov(&grid, &confBasis, &basis, &confLocal, &local, use_gpu, distf, moms);
+  calc_moms_vlasov(&grid, &velGrid, &confBasis, &basis, &confLocal, &local, &velLocal, use_gpu, distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
   // Calculate the integrated moments.
@@ -476,7 +528,7 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   struct gkyl_array *moms_tar = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_tar_ext.volume);
   struct gkyl_array *moms_tar_ho = use_gpu? mkarr(false, moms_tar->ncomp, moms_tar->size)
                                           : gkyl_array_acquire(moms_tar);
-  calc_moms_vlasov(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, use_gpu, distf_tar, moms_tar);
+  calc_moms_vlasov(&grid_tar, &velGrid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, &velLocal_tar, use_gpu, distf_tar, moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.
@@ -656,7 +708,7 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   struct gkyl_array *moms = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_ho = use_gpu? mkarr(false, moms->ncomp, moms->size)
                                       : gkyl_array_acquire(moms);
-  calc_moms_vlasov(&grid, &confBasis, &basis, &confLocal, &local, use_gpu, distf, moms);
+  calc_moms_vlasov(&grid, &velGrid, &confBasis, &basis, &confLocal, &local, &velLocal, use_gpu, distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
   // Calculate the integrated moments.
@@ -715,7 +767,7 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   struct gkyl_array *moms_tar = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_tar_ext.volume);
   struct gkyl_array *moms_tar_ho = use_gpu? mkarr(false, moms_tar->ncomp, moms_tar->size)
                                           : gkyl_array_acquire(moms_tar);
-  calc_moms_vlasov(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, use_gpu, distf_tar, moms_tar);
+  calc_moms_vlasov(&grid_tar, &velGrid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, &velLocal_tar, use_gpu, distf_tar, moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.

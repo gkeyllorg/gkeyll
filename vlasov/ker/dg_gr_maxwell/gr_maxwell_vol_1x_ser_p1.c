@@ -1,5 +1,5 @@
 #include <gkyl_dg_gr_maxwell_kernels.h> 
-GKYL_CU_DH void gr_maxwell_vol_1x_ser_p1(const gkyl_dg_gr_maxwell_inp *meq, const double *w, const double *dx, const double *lapse_nodal, const double *shift_nodal,
+GKYL_CU_DH void gr_maxwell_vol_1x_ser_p1(const gkyl_dg_gr_maxwell_inp *meq, const double *w, const double *dx, const double *jacob_pos, const double *lapse_nodal, const double *shift_nodal,
   const double *h_ij_nodal, const double *h_ij_inv_nodal, const double *J_c, const double *fields, double* GKYL_RESTRICT out) 
 { 
   const double chi = meq->chi, gamma = meq->gamma; 
@@ -129,20 +129,21 @@ GKYL_CU_DH void gr_maxwell_vol_1x_ser_p1(const gkyl_dg_gr_maxwell_inp *meq, cons
     FPsi3_n[i] = gamma*JBz_con_n[i]; 
   }
   
-  outJDx[1] += 1.224744871391589*FD11_n[1]*dx0+1.224744871391589*FD11_n[0]*dx0; 
+  const double jacob_pos_x_inv = 1.0/jacob_pos[0]; 
+  outJDx[1] += 1.224744871391589*FD11_n[1]*dx0*jacob_pos_x_inv+1.224744871391589*FD11_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJDy[1] += 1.224744871391589*Hz_n[1]*dx0+1.224744871391589*FD12_n[1]*dx0+1.224744871391589*Hz_n[0]*dx0+1.224744871391589*FD12_n[0]*dx0; 
+  outJDy[1] += 1.224744871391589*Hz_n[1]*dx0*jacob_pos_x_inv+1.224744871391589*FD12_n[1]*dx0*jacob_pos_x_inv+1.224744871391589*Hz_n[0]*dx0*jacob_pos_x_inv+1.224744871391589*FD12_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJDz[1] += -(1.224744871391589*Hy_n[1]*dx0)+1.224744871391589*FD13_n[1]*dx0-1.224744871391589*Hy_n[0]*dx0+1.224744871391589*FD13_n[0]*dx0; 
+  outJDz[1] += -(1.224744871391589*Hy_n[1]*dx0*jacob_pos_x_inv)+1.224744871391589*FD13_n[1]*dx0*jacob_pos_x_inv-1.224744871391589*Hy_n[0]*dx0*jacob_pos_x_inv+1.224744871391589*FD13_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJBx[1] += 1.224744871391589*FB11_n[1]*dx0+1.224744871391589*FB11_n[0]*dx0; 
+  outJBx[1] += 1.224744871391589*FB11_n[1]*dx0*jacob_pos_x_inv+1.224744871391589*FB11_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJBy[1] += 1.224744871391589*FB12_n[1]*dx0-1.224744871391589*Ez_n[1]*dx0+1.224744871391589*FB12_n[0]*dx0-1.224744871391589*Ez_n[0]*dx0; 
+  outJBy[1] += 1.224744871391589*FB12_n[1]*dx0*jacob_pos_x_inv-1.224744871391589*Ez_n[1]*dx0*jacob_pos_x_inv+1.224744871391589*FB12_n[0]*dx0*jacob_pos_x_inv-1.224744871391589*Ez_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJBz[1] += 1.224744871391589*FB13_n[1]*dx0+1.224744871391589*Ey_n[1]*dx0+1.224744871391589*FB13_n[0]*dx0+1.224744871391589*Ey_n[0]*dx0; 
+  outJBz[1] += 1.224744871391589*FB13_n[1]*dx0*jacob_pos_x_inv+1.224744871391589*Ey_n[1]*dx0*jacob_pos_x_inv+1.224744871391589*FB13_n[0]*dx0*jacob_pos_x_inv+1.224744871391589*Ey_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJphi[1] += 1.224744871391589*FPhi1_n[1]*dx0+1.224744871391589*FPhi1_n[0]*dx0; 
+  outJphi[1] += 1.224744871391589*FPhi1_n[1]*dx0*jacob_pos_x_inv+1.224744871391589*FPhi1_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJpsi[1] += 1.224744871391589*FPsi1_n[1]*dx0+1.224744871391589*FPsi1_n[0]*dx0; 
+  outJpsi[1] += 1.224744871391589*FPsi1_n[1]*dx0*jacob_pos_x_inv+1.224744871391589*FPsi1_n[0]*dx0*jacob_pos_x_inv; 
 
 } 

@@ -398,7 +398,13 @@ test_moments(int cdim, int vdim, int poly_order, bool use_tensor,
   gkyl_rect_grid_init(&vel_grid, vdim, &lower[cdim], &upper[cdim], &cells[cdim]);
 
   struct gkyl_basis pbasis, cbasis, vbasis;
-  if (use_tensor) {
+  if (use_tensor && poly_order == 1) {
+    // Tensor p=1 IS the hybrid: p=1 tensor conf x p=2 tensor velocity basis.
+    gkyl_cart_modal_hybrid(&pbasis, cdim, vdim);
+    gkyl_cart_modal_tensor(&cbasis, cdim, poly_order);
+    gkyl_cart_modal_tensor(&vbasis, vdim, 2);
+  }
+  else if (use_tensor) {
     gkyl_cart_modal_tensor(&pbasis, pdim, poly_order);
     gkyl_cart_modal_tensor(&cbasis, cdim, poly_order);
     gkyl_cart_modal_tensor(&vbasis, vdim, poly_order);
@@ -408,6 +414,9 @@ test_moments(int cdim, int vdim, int poly_order, bool use_tensor,
     gkyl_cart_modal_serendip(&cbasis, cdim, poly_order);
     gkyl_cart_modal_serendip(&vbasis, vdim, poly_order);
   }
+  // Velocity-space polynomial order: drives the quadrature counts and the
+  // nodal-Jacobian layout in the reference construction (p=2 for the hybrid).
+  int vel_poly = vbasis.poly_order;
 
   int conf_ghost[GKYL_MAX_DIM] = { 1, 1, 1 };
   struct gkyl_range conf_local, conf_local_ext;
@@ -427,7 +436,7 @@ test_moments(int cdim, int vdim, int poly_order, bool use_tensor,
   if (use_nonuniform)
     for (int d=0; d<vdim; ++d) inp_vmap[d].eval_vmap = eval_quad_vmap;
   struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &vel_local, &vbasis, inp_vmap, use_gpu);
+    &vel_local, &vbasis, inp_vmap, false, use_gpu);
 
   // Hamiltonian (H = v^2/2) on the mapped grid; device-resident when use_gpu
   // (this host/device mismatch was the pre-existing GPU crash in the old test).
@@ -446,7 +455,7 @@ test_moments(int cdim, int vdim, int poly_order, bool use_tensor,
 
   // Project Jf on the host; copy to device if needed.
   struct gkyl_array *Jf_ho = gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
-  project_Jf(&grid, &pbasis, &b1, cdim, vdim, poly_order, &phase_local, &vel_local, vvm, Jf_ho);
+  project_Jf(&grid, &pbasis, &b1, cdim, vdim, vel_poly, &phase_local, &vel_local, vvm, Jf_ho);
   struct gkyl_array *Jf = use_gpu ? mkarr(use_gpu, Jf_ho->ncomp, Jf_ho->size) : gkyl_array_acquire(Jf_ho);
   gkyl_array_copy(Jf, Jf_ho);
 
@@ -457,6 +466,7 @@ test_moments(int cdim, int vdim, int poly_order, bool use_tensor,
     .hamil_range = &vel_local,
     .hamil = hamil,
     .model_id = GKYL_MODEL_DEFAULT,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
     .mom_type = GKYL_F_MOMENT_M0,
     .use_gpu = use_gpu,
     .vel_map = vvm,
@@ -486,7 +496,7 @@ test_moments(int cdim, int vdim, int poly_order, bool use_tensor,
 #endif
     gkyl_array_copy(mout_ho, mout);
 
-    ref_moment(mt, &grid, &pbasis, &cbasis, &vbasis, &b1, cdim, vdim, poly_order,
+    ref_moment(mt, &grid, &pbasis, &cbasis, &vbasis, &b1, cdim, vdim, vel_poly,
       &phase_local, &conf_local, &vel_local, vvm, Jf_ho, hamil_ho, ref_ho);
 
     struct gkyl_range_iter citer;
@@ -599,7 +609,7 @@ test_moments(int cdim, int vdim, int poly_order, bool use_tensor,
 
 // Full scan: {1x1v,1x2v,1x3v,2x2v} x {ser p1, ser p2, tensor p2} x {uniform,
 // nonuniform} x {CPU, GPU}, plus ser p3 (1x1v) and a 3x3v ser p1 smoke case.
-// Tensor p1 is identical to ser p1.
+// Tensor p1 is the HYBRID (p=1 tensor conf x p=2 tensor velocity).
 static void t_1x1v_ser_p1_uni(void) { test_moments(1, 1, 1, false, false, false); }
 static void t_1x1v_ser_p1_non(void) { test_moments(1, 1, 1, false, true, false); }
 static void t_1x1v_ser_p2_uni(void) { test_moments(1, 1, 2, false, false, false); }
@@ -622,6 +632,12 @@ static void t_2x2v_ser_p2_uni(void) { test_moments(2, 2, 2, false, false, false)
 static void t_2x2v_ser_p2_non(void) { test_moments(2, 2, 2, false, true, false); }
 static void t_2x2v_ten_p2_uni(void) { test_moments(2, 2, 2, true, false, false); }
 static void t_2x2v_ten_p2_non(void) { test_moments(2, 2, 2, true, true, false); }
+static void t_1x2v_ten_p1_uni(void) { test_moments(1, 2, 1, true, false, false); }
+static void t_1x2v_ten_p1_non(void) { test_moments(1, 2, 1, true, true, false); }
+static void t_2x2v_ten_p1_uni(void) { test_moments(2, 2, 1, true, false, false); }
+static void t_2x2v_ten_p1_non(void) { test_moments(2, 2, 1, true, true, false); }
+static void t_2x3v_ten_p1_uni(void) { test_moments(2, 3, 1, true, false, false); }
+static void t_2x3v_ten_p1_non(void) { test_moments(2, 3, 1, true, true, false); }
 static void t_1x1v_ser_p3_non(void) { test_moments(1, 1, 3, false, true, false); }
 static void t_3x3v_ser_p1_uni(void) { test_moments(3, 3, 1, false, false, false); }
 #ifdef GKYL_HAVE_CUDA
@@ -674,6 +690,14 @@ TEST_LIST = {
   { "mom_2x2v_ser_p2_nonuniform", t_2x2v_ser_p2_non },
   { "mom_2x2v_tensor_p2_uniform", t_2x2v_ten_p2_uni },
   { "mom_2x2v_tensor_p2_nonuniform", t_2x2v_ten_p2_non },
+  { "mom_1x2v_tensor_p1_uniform", t_1x2v_ten_p1_uni },
+  { "mom_1x2v_tensor_p1_nonuniform", t_1x2v_ten_p1_non },
+  { "mom_2x2v_tensor_p1_uniform", t_2x2v_ten_p1_uni },
+  { "mom_2x2v_tensor_p1_nonuniform", t_2x2v_ten_p1_non },
+#ifdef GKYL_BUILD_VLASOV_HYB_2X3V // optional kernel set, see ./configure --help
+  { "mom_2x3v_tensor_p1_uniform", t_2x3v_ten_p1_uni },
+  { "mom_2x3v_tensor_p1_nonuniform", t_2x3v_ten_p1_non },
+#endif
 #ifdef GKYL_HAVE_CUDA
   { "mom_1x1v_ser_p1_uniform_gpu", t_1x1v_ser_p1_uni_gpu },
   { "mom_1x1v_ser_p1_nonuniform_gpu", t_1x1v_ser_p1_non_gpu },

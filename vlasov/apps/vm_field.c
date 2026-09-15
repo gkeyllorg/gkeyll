@@ -218,6 +218,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     struct gkyl_dg_gr_maxwell_conf_flux_surf_inp inp_conf_flux = {
       .conf_basis = &app->basis,
       .conf_grid = &app->grid,
+      .pos_map = app->pos_map,
       .field_id = f->field_id,
       .theta_pole_lo = app->vm_geom->theta_pole_lo,
       .theta_pole_up = app->vm_geom->theta_pole_up,
@@ -443,6 +444,15 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
     gkyl_array_copy(field->em_no_J, field->em_host);
     gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
       field->em_no_J, field->em, app->use_gpu);
+    // On a mapped conf mesh the evolved fields also carry the (cell-constant)
+    // position-map Jacobian: J_pos*J_c*(D,B). em_no_J stays J_pos-weighted
+    // (the surface kernels un-weight the normal direction per side).
+    if (!app->pos_map->is_identity) {
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local_ext,
+        field->em, field->em);
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local_ext,
+        field->em_no_J, field->em_no_J);
+    }
   }
   else if (field->weight_by_pos_jacob) {
     // Physical E, B were projected into em_host/em_no_J; store the J-weighted
@@ -779,6 +789,11 @@ vm_field_write(gkyl_vlasov_app* app, double tm, int frame)
     if (app->use_gpu) {
       gkyl_array_copy(app->field->em_no_J_host, app->field->em_no_J);
     }
+    // On a mapped mesh em_no_J still carries the position-map Jacobian.
+    if (!app->pos_map->is_identity) {
+      gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local,
+        app->field->em_no_J_host->ncomp, app->field->em_no_J_host, app->field->em_no_J_host);
+    }
     field_to_write = app->field->em_no_J_host;
   }
   else if (app->field->weight_by_pos_jacob) {
@@ -847,7 +862,8 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
   // cellVolume under-counts the physical volume by J; the net is one extra factor
   // of J. Divide it out so the energy is the physical int J E^2, int J B^2
   // (= int E^2, B^2 dx_phys). Identity map => J=1 => unchanged.
-  if (field->weight_by_pos_jacob) {
+  if (field->weight_by_pos_jacob ||
+      (field->field_id == GKYL_FIELD_GR_D_B && !app->pos_map->is_identity)) {
     gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local,
       field->em_energy->ncomp, field->em_energy, field->em_energy);
   }

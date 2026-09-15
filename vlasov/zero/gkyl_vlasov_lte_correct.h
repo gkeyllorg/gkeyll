@@ -25,6 +25,7 @@ struct gkyl_vlasov_lte_correct_inp {
   const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_array *hamil; // (Can-pb quantitiy) Hamiltonian
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
+  enum gkyl_hamil_id hamil_id; // Enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
   const struct gkyl_array *h_ij; // (Can-pb quantitiy) metric tensor (covariant components)
   const struct gkyl_array *h_ij_inv; // (Can-pb quantitiy) inverse metric tensor (contravariant components) 

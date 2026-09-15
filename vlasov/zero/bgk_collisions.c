@@ -19,7 +19,7 @@ gkyl_bgk_collisions_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   up->poly_order = cbasis->poly_order;
   up->use_gpu = use_gpu;
   assert(up->pnum_basis > up->cnum_basis);
-  assert(up->pnum_basis <= 160); // MF 2022/11/18: hardcode to 3x3v p=1 hybrid.
+  assert(up->pnum_basis <= 216); // Sized to the largest supported phase basis (3x3v p=1 tensor hybrid).
 
   int poly_order = cbasis->poly_order;
   up->pb_type = pbasis->b_type;
@@ -100,7 +100,7 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
       array_acc1(up->pnum_basis, out_d, 1./(1.0 + nu_d[0]*cellav_fac_dt), gkyl_array_cfetch(nufM, ploc));
 
       // Calculate and add -nu*f.
-      double incr[160]; // mul_op assigns, but need increment, so use a buffer.
+      double incr[216]; // mul_op assigns, but need increment, so use a buffer.
       up->mul_op(nu_d, gkyl_array_cfetch(fin, ploc), incr);
       array_acc1(up->pnum_basis, out_d, -1.0/(1.0 + nu_d[0]*cellav_fac_dt), incr);
 
@@ -121,7 +121,7 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
       array_acc1(up->pnum_basis, out_d, 1., gkyl_array_cfetch(nufM, ploc));
   
       // Calculate and add -nu*f.
-      double incr[160]; // mul_op assigns, but need increment, so use a buffer.
+      double incr[216]; // mul_op assigns, but need increment, so use a buffer.
       up->mul_op(nu_d, gkyl_array_cfetch(fin, ploc), incr);
       array_acc1(up->pnum_basis, out_d, -1., incr);
   

@@ -12,22 +12,58 @@
 #include <assert.h>
 #include <time.h>
 
+// Configuration-space c2p: sample geometry/metric functions at physical conf
+// coordinates on non-uniform meshes via the position map (identity map =>
+// identity c2p, so uniform grids are unaffected).
+static void
+vm_species_c2p_conf(const double *xcomp, double *xphys, void *ctx)
+{
+  struct vm_proj_c2p_ctx *c = (struct vm_proj_c2p_ctx *) ctx;
+  gkyl_vlasov_position_map_eval_mc2p(c->pos_map, xcomp, xphys);
+}
+
+// Phase-space c2p: conf coords via the position map, velocity coords via the
+// velocity map. Used for the phase-space Hamiltonian nodal projection so H is
+// sampled at the physical coordinates the mapped mesh represents (nodes shared
+// between cells map to the same physical point, preserving C^0 continuity).
+static void
+vm_species_c2p_phase(const double *xcomp, double *xphys, void *ctx)
+{
+  struct vm_proj_c2p_ctx *c = (struct vm_proj_c2p_ctx *) ctx;
+  gkyl_vlasov_position_map_eval_mc2p(c->pos_map, xcomp, xphys);
+  gkyl_vlasov_velocity_map_eval_c2p(c->vel_map, &xcomp[c->cdim], &xphys[c->cdim]);
+}
+
 static void
 vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
   int vdim = app->vdim;  
 
   // Allocate arrays for configuration space Poisson tensor (unused)
-  int num_pt_indices[3] = { 1 , 6, 18 }; 
+  int num_pt_indices[3] = { 1 , 6, 18 };
   vms->conf_poisson_tensor = mkarr(app->use_gpu, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
   vms->conf_poisson_tensor_host = vms->conf_poisson_tensor;
   if (app->use_gpu){
     vms->conf_poisson_tensor_host = mkarr(false, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
   }
 
+  // Coordinate-map context for sampling geometry/Hamiltonians at physical
+  // coordinates on non-uniform meshes. All uses complete within this function,
+  // so a stack-local context is safe.
+  struct vm_proj_c2p_ctx c2p_ctx = {
+    .cdim = app->cdim,
+    .pos_map = vms->pos_map,
+    .vel_map = vms->vel_map,
+  };
+
   if (vms->model_id == GKYL_MODEL_DEFAULT || vms->model_id == GKYL_MODEL_SR) {
-    // Hamiltonain for computing the moments is only a function of velocity space. 
-    vms->mom_hamil_range = vms->local_vel; 
+    // H = v^2/2 is separable (sparse velocity-space expansion); the relativistic
+    // H = sqrt(1 + p^2) is a dense velocity-space expansion.
+    vms->hamil_id = gkyl_hamil_id_from_model_id(vms->model_id);
+    vms->mom_hamil_id = vms->hamil_id;
+
+    // Hamiltonain for computing the moments is only a function of velocity space.
+    vms->mom_hamil_range = vms->local_vel;
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
@@ -48,8 +84,12 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
   else if (vms->model_id == GKYL_MODEL_TRIAD) {
 
     int cdim = app->cdim;
-    int vdim = app->vdim;  
-  
+    int vdim = app->vdim;
+
+    // Triad bracket with the separable H = v^2/2 (sparse velocity-space expansion).
+    vms->hamil_id = GKYL_HAMIL_VEL_SPARSE;
+    vms->mom_hamil_id = GKYL_HAMIL_VEL_SPARSE;
+
     // Hamiltonain is only a function of velocity space, non-relativistic only using the
     // same infrastructure as GKYL_MODEL_DEFAULT
     vms->mom_hamil_range = vms->local_vel; 
@@ -95,8 +135,12 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       assert(false);
     }
 
+    // Sample the triad geometry at physical conf coordinates on non-uniform meshes.
+    inp_triad_geom.c2p_func = vm_species_c2p_conf;
+    inp_triad_geom.c2p_func_ctx = &c2p_ctx;
+
     // The geometry comes from the tangents and triads
-    gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis, 
+    gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis,
       &vms->grid, &vms->local, vms->basis, inp_triad_geom, vms->conf_poisson_tensor_host);
 
     // Copy Pi_conf onto the device.
@@ -116,10 +160,15 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     // 1. (mom_hamil)  H(\hat{p}_i) = \gamma
     // 2. (hamil)      H(x^i,\hat{p}_i) = \alpha \gamma - \hat{p}_a e_i^a \beta^i 
     
+    // The characteristics Hamiltonian is a phase-space expansion; the moment
+    // Hamiltonian is the dense velocity-space (SR) expansion.
+    vms->hamil_id = GKYL_HAMIL_PHASE;
+    vms->mom_hamil_id = GKYL_HAMIL_VEL_DENSE;
+
     // 1. Build a velocity space only hamiltonian for moments.
     // Hamiltonain is only a function of velocity space, non-relativistic only using the
     // same infrastructure as GKYL_MODEL_DEFAULT
-    vms->mom_hamil_range = vms->local_vel; 
+    vms->mom_hamil_range = vms->local_vel;
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
@@ -139,8 +188,17 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       .spin_bh = vms->geom->spin_bh,
     };
 
-    // Evaluate specified hamiltonian function at nodes to ensure continuity of hamiltonian
-    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, gkyl_vlasov_triad_preset_hamil(cdim, vdim, vms->geom->triad_preset_geom_type), &preset_geom_ctx);
+    // Evaluate specified hamiltonian function at nodes to ensure continuity of
+    // hamiltonian. On non-uniform meshes H(x,p) is sampled at the physical
+    // phase-space coordinates via the position/velocity maps (nodes shared by
+    // adjacent cells map to the same physical point, so continuity holds).
+    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_inew( &(struct gkyl_eval_on_nodes_inp) {
+        .grid = &vms->grid, .basis = &vms->basis, .num_ret_vals = 1,
+        .eval = gkyl_vlasov_triad_preset_hamil(cdim, vdim, vms->geom->triad_preset_geom_type),
+        .ctx = &preset_geom_ctx,
+        .c2p_func = vm_species_c2p_phase, .c2p_func_ctx = &c2p_ctx,
+      }
+    );
     gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &vms->local_ext, vms->hamil_host);
     if (app->use_gpu){
       gkyl_array_copy(vms->hamil, vms->hamil_host);
@@ -160,8 +218,12 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       assert(false);
     }
 
+    // Sample the triad geometry at physical conf coordinates on non-uniform meshes.
+    inp_triad_geom.c2p_func = vm_species_c2p_conf;
+    inp_triad_geom.c2p_func_ctx = &c2p_ctx;
+
     // The geometry comes from the tangents and triads
-    gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis, 
+    gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis,
       &vms->grid, &vms->local, vms->basis, inp_triad_geom, vms->conf_poisson_tensor_host);
 
     // Copy Pi_conf onto the device.
@@ -171,8 +233,22 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
 
   }
   else {
-    // Hamiltonian is a full phase-space array. 
-    vms->hamil_range = vms->local; 
+    // Canonical-PB models carry a general phase-space Hamiltonian.
+    vms->hamil_id = GKYL_HAMIL_PHASE;
+    vms->mom_hamil_id = GKYL_HAMIL_PHASE;
+
+    // Canonical bracket = identity Poisson tensor: streaming through the
+    // configuration-space flux machinery uses alpha_dir = P . grad_v H, which
+    // reduces to dH/dv_dir with P[dir][j] = delta_dir,j. Set the cell-constant
+    // coefficient of each diagonal block to the modal representation of 1.
+    gkyl_array_clear(vms->conf_poisson_tensor, 0.0);
+    for (int d = 0; d < app->cdim; ++d) {
+      gkyl_array_shiftc(vms->conf_poisson_tensor, pow(sqrt(2.0), app->cdim),
+        app->basis.num_basis*(d*vdim + d));
+    }
+
+    // Hamiltonian is a full phase-space array.
+    vms->hamil_range = vms->local;
     vms->hamil = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume);
     vms->hamil_host = vms->hamil;
     if (app->use_gpu){
@@ -217,8 +293,14 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       }
     }
 
-    // Evaluate specified hamiltonian function at nodes to ensure continuity of hamiltoniam
-    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, vms->info.hamil, vms->info.hamil_ctx);
+    // Evaluate specified hamiltonian function at nodes to ensure continuity of
+    // hamiltonian, sampling at physical phase-space coordinates on mapped meshes.
+    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_inew( &(struct gkyl_eval_on_nodes_inp) {
+        .grid = &vms->grid, .basis = &vms->basis, .num_ret_vals = 1,
+        .eval = vms->info.hamil, .ctx = vms->info.hamil_ctx,
+        .c2p_func = vm_species_c2p_phase, .c2p_func_ctx = &c2p_ctx,
+      }
+    );
     gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &vms->local_ext, vms->hamil_host);
     if (app->use_gpu){
       gkyl_array_copy(vms->hamil, vms->hamil_host);
@@ -226,15 +308,25 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     gkyl_eval_on_nodes_release(hamil_proj);
 
     // Evaluate specified metric function at nodes to ensure continuity
-    struct gkyl_eval_on_nodes* h_ij_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim*(vdim+1)/2, vms->info.h_ij, vms->info.h_ij_ctx);
+    struct gkyl_eval_on_nodes* h_ij_proj = gkyl_eval_on_nodes_inew( &(struct gkyl_eval_on_nodes_inp) {
+        .grid = &app->grid, .basis = &app->basis, .num_ret_vals = vdim*(vdim+1)/2,
+        .eval = vms->info.h_ij, .ctx = vms->info.h_ij_ctx,
+        .c2p_func = vm_species_c2p_conf, .c2p_func_ctx = &c2p_ctx,
+      }
+    );
     gkyl_eval_on_nodes_advance(h_ij_proj, 0.0, &app->local, vms->h_ij_host);
     if (app->use_gpu){
       gkyl_array_copy(vms->h_ij, vms->h_ij_host);
     }
     gkyl_eval_on_nodes_release(h_ij_proj);
 
-    // Evaluate specified inverse metric function at nodes to ensure continuity of the inverse 
-    struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim*(vdim+1)/2, vms->info.h_ij_inv, vms->info.h_ij_inv_ctx);
+    // Evaluate specified inverse metric function at nodes to ensure continuity of the inverse
+    struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_inew( &(struct gkyl_eval_on_nodes_inp) {
+        .grid = &app->grid, .basis = &app->basis, .num_ret_vals = vdim*(vdim+1)/2,
+        .eval = vms->info.h_ij_inv, .ctx = vms->info.h_ij_inv_ctx,
+        .c2p_func = vm_species_c2p_conf, .c2p_func_ctx = &c2p_ctx,
+      }
+    );
     gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &app->local, vms->h_ij_inv_host);
     if (app->use_gpu){
       gkyl_array_copy(vms->h_ij_inv, vms->h_ij_inv_host);
@@ -242,7 +334,12 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     gkyl_eval_on_nodes_release(h_ij_inv_proj);
 
     // Evaluate specified determinant metric function at nodes to ensure continuity of the determinant
-    struct gkyl_eval_on_nodes* det_h_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, vms->info.det_h, vms->info.det_h_ctx);
+    struct gkyl_eval_on_nodes* det_h_proj = gkyl_eval_on_nodes_inew( &(struct gkyl_eval_on_nodes_inp) {
+        .grid = &app->grid, .basis = &app->basis, .num_ret_vals = 1,
+        .eval = vms->info.det_h, .ctx = vms->info.det_h_ctx,
+        .c2p_func = vm_species_c2p_conf, .c2p_func_ctx = &c2p_ctx,
+      }
+    );
     gkyl_eval_on_nodes_advance(det_h_proj, 0.0, &app->local, vms->det_h_host);
     if (app->use_gpu){
       gkyl_array_copy(vms->det_h, vms->det_h_host);
@@ -255,7 +352,12 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
 
     // Evaluate specified determinant metric function at nodes to ensure continuity of the background flows
     if (vms->info.use_extended_hamil_def) {
-      struct gkyl_eval_on_nodes* background_flows_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim, vms->info.background_flows, vms->info.background_flows_ctx);
+      struct gkyl_eval_on_nodes* background_flows_proj = gkyl_eval_on_nodes_inew( &(struct gkyl_eval_on_nodes_inp) {
+          .grid = &app->grid, .basis = &app->basis, .num_ret_vals = vdim,
+          .eval = vms->info.background_flows, .ctx = vms->info.background_flows_ctx,
+          .c2p_func = vm_species_c2p_conf, .c2p_func_ctx = &c2p_ctx,
+        }
+      );
       gkyl_eval_on_nodes_advance(background_flows_proj, 0.0, &app->local, vms->background_flows_host);
       if (app->use_gpu){
         gkyl_array_copy(vms->background_flows, vms->background_flows_host);
@@ -263,7 +365,12 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       gkyl_eval_on_nodes_release(background_flows_proj);    
 
       // Evaluate specified determinant metric function at nodes to ensure continuity of the effective potential
-      struct gkyl_eval_on_nodes* effective_potential_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, vms->info.effective_potential, vms->info.effective_potential_ctx);
+      struct gkyl_eval_on_nodes* effective_potential_proj = gkyl_eval_on_nodes_inew( &(struct gkyl_eval_on_nodes_inp) {
+          .grid = &app->grid, .basis = &app->basis, .num_ret_vals = 1,
+          .eval = vms->info.effective_potential, .ctx = vms->info.effective_potential_ctx,
+          .c2p_func = vm_species_c2p_conf, .c2p_func_ctx = &c2p_ctx,
+        }
+      );
       gkyl_eval_on_nodes_advance(effective_potential_proj, 0.0, &app->local, vms->effective_potential_host);
       if (app->use_gpu){
         gkyl_array_copy(vms->effective_potential, vms->effective_potential_host);
@@ -1139,6 +1246,29 @@ vm_species_new_static(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, s
 // End static function definitions.
 
 // Initialize species object.
+// The 2x3v and 3x3v tensor p=1 hybrid kernels are optional build sets (see
+// ./configure --help and the top-level Makefile). Refuse a configuration whose
+// kernels were not built with an actionable message instead of a NULL kernel
+// pointer assert deep in a constructor.
+static void
+vm_species_check_hyb_build(struct gkyl_vlasov_app *app, struct vm_species *vms)
+{
+  if (vms->basis.b_type != GKYL_BASIS_MODAL_HYBRID) return;
+  int cdim = app->cdim, vdim = vms->basis.ndim - cdim;
+#ifndef GKYL_BUILD_VLASOV_HYB_2X3V
+  if (cdim == 2 && vdim == 3)
+    gkyl_exit("vm_species: the 2x3v tensor p=1 hybrid kernels were not built. Reconfigure with --build-vlasov-hyb-2x3v=yes.");
+#endif
+#ifndef GKYL_BUILD_VLASOV_HYB_3X3V
+  if (cdim == 3 && vdim == 3)
+    gkyl_exit("vm_species: the 3x3v tensor p=1 hybrid kernels were not built. Reconfigure with --build-vlasov-hyb-3x3v=yes.");
+#endif
+#ifndef GKYL_BUILD_VLASOV_HYB_3X3V_PHASE
+  if (cdim == 3 && vdim == 3 && vms->hamil_id == GKYL_HAMIL_PHASE)
+    gkyl_exit("vm_species: the 3x3v tensor p=1 hybrid phase-space Hamiltonian kernels were not built. Reconfigure with --build-vlasov-hyb-3x3v-phase=yes (and --build-vlasov-hyb-3x3v=yes).");
+#endif
+}
+
 void
 vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
@@ -1191,13 +1321,28 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
       }
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      gkyl_cart_modal_tensor(&vms->basis, pdim, app->poly_order); 
-      gkyl_cart_modal_tensor(&vms->basis_surf, pdim-1, app->poly_order); 
-      gkyl_cart_modal_tensor(&vms->basis_vel, vdim, app->poly_order); 
-      if (app->use_gpu) {
-        gkyl_cart_modal_tensor_cu_dev(vms->basis_on_dev, pdim, app->poly_order);
+      if (app->poly_order == 1) {
+        // Tensor p=1 is the tensor hybrid basis: p=1 in configuration space
+        // tensored with p=2 in velocity space (the pure p=1 tensor phase
+        // basis has no kernels). The velocity basis is the p=2 tensor basis,
+        // which also selects the C^1 cubic velocity map and the p=2 velocity
+        // representation of the Hamiltonian.
+        gkyl_cart_modal_hybrid(&vms->basis, cdim, vdim);
+        gkyl_cart_modal_tensor(&vms->basis_surf, pdim-1, app->poly_order);
+        gkyl_cart_modal_tensor(&vms->basis_vel, vdim, 2);
+        if (app->use_gpu) {
+          gkyl_cart_modal_hybrid_cu_dev(vms->basis_on_dev, cdim, vdim);
+        }
       }
-      break;    
+      else {
+        gkyl_cart_modal_tensor(&vms->basis, pdim, app->poly_order);
+        gkyl_cart_modal_tensor(&vms->basis_surf, pdim-1, app->poly_order);
+        gkyl_cart_modal_tensor(&vms->basis_vel, vdim, app->poly_order);
+        if (app->use_gpu) {
+          gkyl_cart_modal_tensor_cu_dev(vms->basis_on_dev, pdim, app->poly_order);
+        }
+      }
+      break;
     default:
       assert(false);
       break;
@@ -1269,7 +1414,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     }
   }
   vms->vel_map = gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel,
-    &vms->basis_vel, inp_vmap, app->use_gpu);
+    &vms->basis_vel, inp_vmap, vms->info.use_lo, app->use_gpu);
 
   // The velocity map is static in time, so write it (uniform grids included)
   // only with the first frame. Both the p=3 map and its p=0 cell average are
@@ -1293,6 +1438,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   // Construct Hamiltonian. 
   vm_species_new_hamil(vm_app_inp, app, vms); 
+  vm_species_check_hyb_build(app, vms);
 
   // Determine whether we have radiation. 
   vm_species_new_radiation(vm_app_inp, app, vms); 

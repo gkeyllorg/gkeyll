@@ -4,6 +4,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -13,6 +14,7 @@ typedef struct gkyl_dg_gr_maxwell_lorentz_conf gkyl_dg_gr_maxwell_lorentz_conf;
 
 // Input packaged as a struct.
 struct gkyl_dg_gr_maxwell_lorentz_conf_inp {
+  const struct gkyl_vlasov_position_map *pos_map; // REQUIRED: provides the cell-constant jacob_pos.
   const struct gkyl_rect_grid *conf_grid; // Configuration-space grid.
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
   int vdim; // Velocity-space dimensions.

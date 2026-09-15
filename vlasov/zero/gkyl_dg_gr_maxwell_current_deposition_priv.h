@@ -15,7 +15,7 @@ typedef void (*gr_maxwell_current_deposition_t)(const double q_over_eps0,
   double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the kernel tables below.
-GKYL_CU_D
+GKYL_CU_TABLE
 static const struct { int vdim[4]; } current_dep_cv_index[] = {
   {-1, -1, -1, -1}, // 0x makes no sense.
   {-1,  0,  1,  2}, // 1x kernel indices.

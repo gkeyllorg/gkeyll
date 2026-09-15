@@ -18,6 +18,7 @@
 #include <gkyl_dg_gr_maxwell_kernels.h>
 #include <gkyl_dg_gr_maxwell_divide_Jc.h>
 #include <gkyl_dg_gr_maxwell_divide_Jc_priv.h>
+#include <gkyl_vlasov_position_map.h>
 
 // allocate array (filled with zeros)
 static struct gkyl_array*
@@ -188,6 +189,11 @@ test_ks_r_theta_2x_geom_p1()
   int confGhost[] = { 1, 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+
+  // Uniform grid: default (identity) position map, so J_pos = 1 in every cell.
+  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_position_map *pos_map = gkyl_vlasov_position_map_new(&confGrid,
+    &confLocal, &confLocal_ext, &confBasis, inp_pmap, false);
 
   // Create the fields (JD^i, JB^i) by setting the bare minimum required fields
   // in gkyl_vlasov_app, gkyl_vm input. 
@@ -946,7 +952,9 @@ test_ks_r_theta_2x_geom_p1()
       // Create an index for the left cell (which may be a ghost cell) 
       gkyl_copy_int_arr(cdim, iter.idx, idx_l);
       idx_l[dir] = idx_l[dir]-1;
-      long cidx_l = gkyl_range_idx(&confLocal_ext, idx_l); 
+      long cidx_l = gkyl_range_idx(&confLocal_ext, idx_l);
+      const double *jacob_pos_l = gkyl_array_cfetch(pos_map->jacob_pos, cidx_l);
+      const double *jacob_pos_c = gkyl_array_cfetch(pos_map->jacob_pos, cidx);
       const double *field_no_J_con_l = gkyl_array_cfetch(field_no_J_fixed, cidx_l);
       const double *field_no_J_con_copy_l = gkyl_array_cfetch(field_no_J_fixed_copy, cidx_l);
       const double *field_con_l = gkyl_array_cfetch(field_with_J_con, cidx_l); 
@@ -975,18 +983,18 @@ test_ks_r_theta_2x_geom_p1()
       meq_struct.gamma = 1.0;
 
       // Compute the fluxes in the first two directions
-      if (dir == 0) { 
-        dg_gr_maxwell_alpha_quad_x_2x_ser_p1(meq, xcC, confGrid.dx, theta_pole,
+      if (dir == 0) {
+        dg_gr_maxwell_alpha_quad_x_2x_ser_p1(meq, xcC, confGrid.dx, theta_pole, jacob_pos_l, jacob_pos_c,
           lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, flux_l_x, flux_r_x, alpha_quad_x);
-          
-        double cflrate = lax_flux_x_2x_ser_p1(confGrid.dx, theta_pole, det_h_d, flux_l_x, flux_r_x, alpha_quad_x,
+
+        double cflrate = lax_flux_x_2x_ser_p1(confGrid.dx, theta_pole, jacob_pos_l, jacob_pos_c, det_h_d, flux_l_x, flux_r_x, alpha_quad_x,
           field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, flux);
       }
-      else if (dir == 1) { 
-        dg_gr_maxwell_alpha_quad_y_2x_ser_p1(meq, xcC, confGrid.dx, theta_pole,
+      else if (dir == 1) {
+        dg_gr_maxwell_alpha_quad_y_2x_ser_p1(meq, xcC, confGrid.dx, theta_pole, jacob_pos_l, jacob_pos_c,
           lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, flux_l_y, flux_r_y, alpha_quad_y);
-          
-        double cflrate = lax_flux_y_2x_ser_p1(confGrid.dx, theta_pole, det_h_d, flux_l_y, flux_r_y, alpha_quad_y,
+
+        double cflrate = lax_flux_y_2x_ser_p1(confGrid.dx, theta_pole, jacob_pos_l, jacob_pos_c, det_h_d, flux_l_y, flux_r_y, alpha_quad_y,
           field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, flux);
       }
 
@@ -1502,6 +1510,7 @@ test_ks_r_theta_2x_geom_p1()
   }
 
   // Release vmg data
+  gkyl_vlasov_position_map_release(pos_map);
   gkyl_surf_and_vol_node_arrays_release(lapse);
   gkyl_surf_and_vol_node_arrays_release(shift);
   gkyl_surf_and_vol_node_arrays_release(h_ij);

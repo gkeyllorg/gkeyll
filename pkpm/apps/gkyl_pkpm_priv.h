@@ -49,6 +49,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
@@ -261,7 +262,11 @@ struct pkpm_field {
   // Needed because of implicit source split which modifies solution and 
   // is always successful, so if a time step fails due to the SSP RK3 
   // we must restore the old solution before restarting the time step
-  struct gkyl_array *em_dup;  
+  struct gkyl_array *em_dup;
+
+  // Identity position map (PKPM runs on uniform grids); the Maxwell curl
+  // kernels index its configuration-space Jacobian per conf cell.
+  struct gkyl_vlasov_position_map *pos_map;
 
   bool has_ext_em; // flag to indicate there is external electromagnetic field
   bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent

@@ -12,7 +12,8 @@
 struct gkyl_dg_maxwell_inp {
   const struct gkyl_basis *cbasis; // Configuration-space basis functions.
   const struct gkyl_range *crange; // Configuration-space range for use in indexing forces (EM fields, potentials, etc.).
-  const struct gkyl_array *jacob_pos; // Configuration-space (position-map) Jacobian, per conf cell. NULL => identity (uniform grid).
+  const struct gkyl_array *jacob_pos; // Configuration-space (position-map) Jacobian, per conf cell (required).
+                                      // Callers without a nonuniform map pass an identity position map's Jacobian.
   enum gkyl_field_id field_id; // enum to determine what type of maxwell model (e.g., non-relativistic vs. relativistic).
   double lightSpeed; // Speed of light
   double elcErrorSpeedFactor; // Factor multiplying lightSpeed for div E correction

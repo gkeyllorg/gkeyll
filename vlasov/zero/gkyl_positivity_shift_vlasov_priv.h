@@ -9,6 +9,7 @@
 #include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_util.h>
 #include <assert.h>
+#include <gkyl_vlasov_hyb_build.h>
 
 enum gkyl_positivity_shift_type {
   GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY = 0,
@@ -39,8 +40,8 @@ static const pos_shift_vlasov_kern_list_shift pos_shift_vlasov_kern_list_shift_t
   { positivity_shift_vlasov_shift_only_1x2v_tensor_p1, NULL, NULL },
   { positivity_shift_vlasov_shift_only_1x3v_tensor_p1, NULL, NULL },
   { positivity_shift_vlasov_shift_only_2x2v_tensor_p1, NULL, NULL },
-  { positivity_shift_vlasov_shift_only_2x3v_tensor_p1, NULL, NULL },
-  { positivity_shift_vlasov_shift_only_3x3v_tensor_p1, NULL, NULL },
+  { GKYL_HYB_2X3V(positivity_shift_vlasov_shift_only_2x3v_tensor_p1), NULL, NULL },
+  { GKYL_HYB_3X3V(positivity_shift_vlasov_shift_only_3x3v_tensor_p1), NULL, NULL },
 };
 
 GKYL_CU_D
@@ -49,8 +50,8 @@ static const pos_shift_vlasov_kern_list_shift pos_shift_vlasov_kern_list_MRSlimi
   { positivity_shift_vlasov_MRS_limiter_1x2v_tensor_p1, NULL, NULL },
   { positivity_shift_vlasov_MRS_limiter_1x3v_tensor_p1, NULL, NULL },
   { positivity_shift_vlasov_MRS_limiter_2x2v_tensor_p1, NULL, NULL },
-  { positivity_shift_vlasov_MRS_limiter_2x3v_tensor_p1, NULL, NULL },
-  { positivity_shift_vlasov_MRS_limiter_3x3v_tensor_p1, NULL, NULL },
+  { GKYL_HYB_2X3V(positivity_shift_vlasov_MRS_limiter_2x3v_tensor_p1), NULL, NULL },
+  { GKYL_HYB_3X3V(positivity_shift_vlasov_MRS_limiter_3x3v_tensor_p1), NULL, NULL },
 };
 
 GKYL_CU_D

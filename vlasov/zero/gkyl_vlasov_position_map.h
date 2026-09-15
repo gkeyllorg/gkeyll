@@ -223,3 +223,17 @@ void gkyl_vlasov_position_map_divide_jacobpos_conf(const struct gkyl_vlasov_posi
  */
 void gkyl_vlasov_position_map_rescale_jacobpos_conf(const struct gkyl_vlasov_position_map *vpm,
   const struct gkyl_range *conf_range, const struct gkyl_array *a_no_J, struct gkyl_array *Ja);
+
+/**
+ * Device versions of the configuration-space divide/rescale by the per-cell
+ * position-map Jacobian. jac_range is the range the Jacobian array is indexed
+ * with (the map's local_pos); only cells in conf_range are written.
+ */
+void gkyl_vlasov_position_map_divide_jacobpos_conf_cu(const struct gkyl_range *jac_range,
+  const struct gkyl_range *conf_range, int num_coeff_divide,
+  const struct gkyl_array *jacob_pos_gauss, const struct gkyl_array *Jmom, struct gkyl_array *mom_no_J);
+
+void gkyl_vlasov_position_map_rescale_jacobpos_conf_cu(const struct gkyl_range *jac_range,
+  const struct gkyl_range *conf_range,
+  const struct gkyl_array *jacob_pos_gauss, const struct gkyl_array *a_no_J, struct gkyl_array *Ja);
+

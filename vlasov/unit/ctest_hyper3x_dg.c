@@ -88,7 +88,7 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   struct gkyl_array *gamma_inv = mkarr1(use_gpu, velBasis.num_basis, velRange.volume);
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velRange, &velBasis, inp_vmap, use_gpu);
+    &velRange, &velBasis, inp_vmap, false, use_gpu);
   struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_position_map *pos_map = gkyl_vlasov_position_map_new(&confGrid,
     &confRange, &confRange_ext, &confBasis, inp_pmap, use_gpu);
@@ -121,6 +121,7 @@ test_vlasov_3x3v_p1_(bool use_gpu)
     .hamil_range = &velRange,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
+    .hamil_id = gkyl_hamil_id_from_model_id(model_id),
     .has_E = false, 
     .has_phi = false, 
     .has_B = false, 
@@ -140,6 +141,7 @@ test_vlasov_3x3v_p1_(bool use_gpu)
     .pos_map = pos_map,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
+    .hamil_id = gkyl_hamil_id_from_model_id(model_id),
     .has_E = false, 
     .has_phi = false, 
     .has_B = false, 

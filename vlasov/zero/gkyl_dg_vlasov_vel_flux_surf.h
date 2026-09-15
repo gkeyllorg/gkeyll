@@ -23,6 +23,7 @@ struct gkyl_dg_vlasov_vel_flux_surf_inp {
                                                   // (per-conf-cell constant) Jacobian for the -grad(phi) force.
   double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped.
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic). 
+  enum gkyl_hamil_id hamil_id; // enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
   bool has_E; // bool to determine whether we have electric fields (used for external forces too).
   bool has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
   bool has_B; // bool to determine whether we have magnetic fields.

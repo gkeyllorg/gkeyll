@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include <acutest.h>
+#include <gkyl_alloc.h>
 #include <gkyl_basis.h>
 #include <gkyl_util.h>
 #include <gkyl_basis_gkhyb_1x2v_p1_surfx1_eval_quad.h>
@@ -286,7 +287,7 @@ test_hyb_members(struct gkyl_basis basis)
   TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
   TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
   TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[4], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[5], 1e-15) );
 
   double fin[basis.num_basis], fout[basis.num_basis];
   for (int i=0; i<basis.num_basis; ++i) {
@@ -297,11 +298,130 @@ test_hyb_members(struct gkyl_basis basis)
   basis.flip_odd_sign(0, fin, fout);
   TEST_CHECK( fin[0] == fout[0] );
   TEST_CHECK( -fin[1] == fout[1] );
-  TEST_CHECK( fin[2] == fout[2] );  
+  TEST_CHECK( fin[2] == fout[2] );
   TEST_CHECK( -fin[3] == fout[3] );
   TEST_CHECK( fin[4] == fout[4] );
   TEST_CHECK( -fin[5] == fout[5] );
 
+}
+
+// Deterministic pseudo-random number in [-1,1] (LCG).
+static double
+hyb_rand(unsigned *state)
+{
+  *state = *state*1664525u + 1013904223u;
+  return 2.0*((*state>>8)/(double)(1u<<24)) - 1.0;
+}
+
+// Exhaustive checks of the tensor hybrid basis (p=1 tensor in configuration
+// space x p=2 tensor in velocity space) at one cdim/vdim combination. The
+// eval/flip kernels are GiNaC-generated while the node/transform kernels are
+// Maxima-generated, so the round trips below also cross-check the two
+// generators against each other.
+static void
+test_hyb_combo(int cdim, int vdim)
+{
+  int ndim = cdim+vdim;
+  struct gkyl_basis basis;
+  gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+
+  int nb_expect = 1;
+  for (int d=0; d<cdim; ++d) nb_expect *= 2;
+  for (int d=0; d<vdim; ++d) nb_expect *= 3;
+
+  TEST_CHECK( basis.ndim == ndim );
+  TEST_CHECK( basis.poly_order == 1 );
+  TEST_CHECK( basis.num_basis == nb_expect );
+  TEST_CHECK( basis.num_quad == nb_expect );
+  TEST_CHECK( strcmp(basis.id, "hybrid") == 0 );
+  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_HYBRID );
+
+  int nb = basis.num_basis;
+
+  // Tensor Gauss-Legendre quadrature with 2 points per configuration
+  // direction and 3 per velocity direction: exact for products of two basis
+  // functions (degree up to 2 per conf, 4 per velocity direction).
+  double ord1[2][3] = { { -1.0/sqrt(3.0), 1.0/sqrt(3.0), 0.0 },
+                        { -sqrt(3.0/5.0), 0.0, sqrt(3.0/5.0) } };
+  double wgt1[2][3] = { { 1.0, 1.0, 0.0 },
+                        { 5.0/9.0, 8.0/9.0, 5.0/9.0 } };
+  int nq1[GKYL_MAX_DIM], idx[GKYL_MAX_DIM];
+  int nquad = 1;
+  for (int d=0; d<ndim; ++d) { nq1[d] = d<cdim ? 2 : 3; nquad *= nq1[d]; }
+
+  // Orthonormality: int b_i b_j dz = delta_ij.
+  double *gram = gkyl_malloc(sizeof(double[nb*nb]));
+  for (int i=0; i<nb*nb; ++i) gram[i] = 0.0;
+  double b[nb], z[GKYL_MAX_DIM];
+  for (int n=0; n<nquad; ++n) {
+    int rem = n;
+    double w = 1.0;
+    for (int d=0; d<ndim; ++d) { idx[d] = rem % nq1[d]; rem /= nq1[d]; }
+    for (int d=0; d<ndim; ++d) {
+      int t = d<cdim ? 0 : 1;
+      z[d] = ord1[t][idx[d]];
+      w *= wgt1[t][idx[d]];
+    }
+    basis.eval(z, b);
+    for (int i=0; i<nb; ++i)
+      for (int j=0; j<nb; ++j)
+        gram[i*nb+j] += w*b[i]*b[j];
+  }
+  for (int i=0; i<nb; ++i)
+    for (int j=0; j<nb; ++j)
+      TEST_CHECK( gkyl_compare(i==j ? 1.0 : 0.0, gram[i*nb+j], 1e-12) );
+  gkyl_free(gram);
+
+  // Random modal vector.
+  unsigned seed = 12345u + 100u*cdim + vdim;
+  double f[nb];
+  for (int i=0; i<nb; ++i) f[i] = hyb_rand(&seed);
+
+  // eval_expand consistent with eval.
+  double zp[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; ++d) zp[d] = 0.9*hyb_rand(&seed);
+  basis.eval(zp, b);
+  double fval = 0.0;
+  for (int i=0; i<nb; ++i) fval += f[i]*b[i];
+  TEST_CHECK( gkyl_compare(fval, basis.eval_expand(zp, f), 1e-12) );
+
+  // eval_grad_expand vs central finite difference of eval_expand.
+  for (int dir=0; dir<ndim; ++dir) {
+    double zh[GKYL_MAX_DIM], zl[GKYL_MAX_DIM], h = 1e-6;
+    for (int d=0; d<ndim; ++d) { zh[d] = zp[d]; zl[d] = zp[d]; }
+    zh[dir] += h; zl[dir] -= h;
+    double fd = (basis.eval_expand(zh, f) - basis.eval_expand(zl, f))/(2.0*h);
+    TEST_CHECK( gkyl_compare(fd, basis.eval_grad_expand(dir, zp, f), 1e-6) );
+  }
+
+  // node_list + eval_expand + nodal_to_modal round trip: sampling the
+  // expansion at the nodes and transforming back must recover the modal
+  // coefficients (one-to-one nodal set: num nodes == num_basis).
+  double *nodes = gkyl_malloc(sizeof(double[nb*ndim]));
+  basis.node_list(nodes);
+  double fnodal[nb], fmodal[nb];
+  for (int n=0; n<nb; ++n) fnodal[n] = basis.eval_expand(&nodes[n*ndim], f);
+  basis.nodal_to_modal(fnodal, fmodal);
+  for (int i=0; i<nb; ++i) TEST_CHECK( gkyl_compare(f[i], fmodal[i], 1e-11) );
+  gkyl_free(nodes);
+
+  // modal_to_quad_nodal / quad_nodal_to_modal round trip at the
+  // Gauss-Legendre quadrature nodal basis.
+  double fquad[nb], f2[nb];
+  for (int n=0; n<nb; ++n) basis.modal_to_quad_nodal(f, fquad, n);
+  for (int i=0; i<nb; ++i) basis.quad_nodal_to_modal(fquad, f2, i);
+  for (int i=0; i<nb; ++i) TEST_CHECK( gkyl_compare(f[i], f2[i], 1e-11) );
+
+  // flip_odd/even_sign are involutions in every direction.
+  double fo[nb], fo2[nb];
+  for (int dir=0; dir<ndim; ++dir) {
+    basis.flip_odd_sign(dir, f, fo);
+    basis.flip_odd_sign(dir, fo, fo2);
+    for (int i=0; i<nb; ++i) TEST_CHECK( f[i] == fo2[i] );
+    basis.flip_even_sign(dir, f, fo);
+    basis.flip_even_sign(dir, fo, fo2);
+    for (int i=0; i<nb; ++i) TEST_CHECK( f[i] == fo2[i] );
+  }
 }
 
 void
@@ -314,6 +434,10 @@ test_hyb()
   struct gkyl_basis *basis2 = gkyl_cart_modal_hybrid_new(1, 1);
   test_hyb_members(*basis2);
   gkyl_cart_modal_basis_release(basis2);
+
+  for (int cdim=1; cdim<4; ++cdim)
+    for (int vdim=1; vdim<4; ++vdim)
+      test_hyb_combo(cdim, vdim);
 }
 
 void

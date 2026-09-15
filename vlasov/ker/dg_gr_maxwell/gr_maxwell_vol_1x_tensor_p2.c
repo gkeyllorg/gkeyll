@@ -1,5 +1,5 @@
 #include <gkyl_dg_gr_maxwell_kernels.h> 
-GKYL_CU_DH void gr_maxwell_vol_1x_tensor_p2(const gkyl_dg_gr_maxwell_inp *meq, const double *w, const double *dx, const double *lapse_nodal, const double *shift_nodal,
+GKYL_CU_DH void gr_maxwell_vol_1x_tensor_p2(const gkyl_dg_gr_maxwell_inp *meq, const double *w, const double *dx, const double *jacob_pos, const double *lapse_nodal, const double *shift_nodal,
   const double *h_ij_nodal, const double *h_ij_inv_nodal, const double *J_c, const double *fields, double* GKYL_RESTRICT out) 
 { 
   const double chi = meq->chi, gamma = meq->gamma; 
@@ -138,28 +138,29 @@ GKYL_CU_DH void gr_maxwell_vol_1x_tensor_p2(const gkyl_dg_gr_maxwell_inp *meq, c
     FPsi3_n[i] = gamma*JBz_con_n[i]; 
   }
   
-  outJDx[1] += 0.6804138174397718*FD11_n[2]*dx0+1.0886621079036354*FD11_n[1]*dx0+0.6804138174397718*FD11_n[0]*dx0; 
-  outJDx[2] += 2.041241452319315*FD11_n[2]*dx0-2.041241452319315*FD11_n[0]*dx0; 
+  const double jacob_pos_x_inv = 1.0/jacob_pos[0]; 
+  outJDx[1] += 0.6804138174397718*FD11_n[2]*dx0*jacob_pos_x_inv+1.0886621079036354*FD11_n[1]*dx0*jacob_pos_x_inv+0.6804138174397718*FD11_n[0]*dx0*jacob_pos_x_inv; 
+  outJDx[2] += 2.041241452319315*FD11_n[2]*dx0*jacob_pos_x_inv-2.041241452319315*FD11_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJDy[1] += 0.6804138174397718*Hz_n[2]*dx0+0.6804138174397718*FD12_n[2]*dx0+1.0886621079036354*Hz_n[1]*dx0+1.0886621079036354*FD12_n[1]*dx0+0.6804138174397718*Hz_n[0]*dx0+0.6804138174397718*FD12_n[0]*dx0; 
-  outJDy[2] += 2.041241452319315*Hz_n[2]*dx0+2.041241452319315*FD12_n[2]*dx0-2.041241452319315*Hz_n[0]*dx0-2.041241452319315*FD12_n[0]*dx0; 
+  outJDy[1] += 0.6804138174397718*Hz_n[2]*dx0*jacob_pos_x_inv+0.6804138174397718*FD12_n[2]*dx0*jacob_pos_x_inv+1.0886621079036354*Hz_n[1]*dx0*jacob_pos_x_inv+1.0886621079036354*FD12_n[1]*dx0*jacob_pos_x_inv+0.6804138174397718*Hz_n[0]*dx0*jacob_pos_x_inv+0.6804138174397718*FD12_n[0]*dx0*jacob_pos_x_inv; 
+  outJDy[2] += 2.041241452319315*Hz_n[2]*dx0*jacob_pos_x_inv+2.041241452319315*FD12_n[2]*dx0*jacob_pos_x_inv-2.041241452319315*Hz_n[0]*dx0*jacob_pos_x_inv-2.041241452319315*FD12_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJDz[1] += -(0.6804138174397718*Hy_n[2]*dx0)+0.6804138174397718*FD13_n[2]*dx0-1.0886621079036354*Hy_n[1]*dx0+1.0886621079036354*FD13_n[1]*dx0-0.6804138174397718*Hy_n[0]*dx0+0.6804138174397718*FD13_n[0]*dx0; 
-  outJDz[2] += -(2.041241452319315*Hy_n[2]*dx0)+2.041241452319315*FD13_n[2]*dx0+2.041241452319315*Hy_n[0]*dx0-2.041241452319315*FD13_n[0]*dx0; 
+  outJDz[1] += -(0.6804138174397718*Hy_n[2]*dx0*jacob_pos_x_inv)+0.6804138174397718*FD13_n[2]*dx0*jacob_pos_x_inv-1.0886621079036354*Hy_n[1]*dx0*jacob_pos_x_inv+1.0886621079036354*FD13_n[1]*dx0*jacob_pos_x_inv-0.6804138174397718*Hy_n[0]*dx0*jacob_pos_x_inv+0.6804138174397718*FD13_n[0]*dx0*jacob_pos_x_inv; 
+  outJDz[2] += -(2.041241452319315*Hy_n[2]*dx0*jacob_pos_x_inv)+2.041241452319315*FD13_n[2]*dx0*jacob_pos_x_inv+2.041241452319315*Hy_n[0]*dx0*jacob_pos_x_inv-2.041241452319315*FD13_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJBx[1] += 0.6804138174397718*FB11_n[2]*dx0+1.0886621079036354*FB11_n[1]*dx0+0.6804138174397718*FB11_n[0]*dx0; 
-  outJBx[2] += 2.041241452319315*FB11_n[2]*dx0-2.041241452319315*FB11_n[0]*dx0; 
+  outJBx[1] += 0.6804138174397718*FB11_n[2]*dx0*jacob_pos_x_inv+1.0886621079036354*FB11_n[1]*dx0*jacob_pos_x_inv+0.6804138174397718*FB11_n[0]*dx0*jacob_pos_x_inv; 
+  outJBx[2] += 2.041241452319315*FB11_n[2]*dx0*jacob_pos_x_inv-2.041241452319315*FB11_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJBy[1] += 0.6804138174397718*FB12_n[2]*dx0-0.6804138174397718*Ez_n[2]*dx0+1.0886621079036354*FB12_n[1]*dx0-1.0886621079036354*Ez_n[1]*dx0+0.6804138174397718*FB12_n[0]*dx0-0.6804138174397718*Ez_n[0]*dx0; 
-  outJBy[2] += 2.041241452319315*FB12_n[2]*dx0-2.041241452319315*Ez_n[2]*dx0-2.041241452319315*FB12_n[0]*dx0+2.041241452319315*Ez_n[0]*dx0; 
+  outJBy[1] += 0.6804138174397718*FB12_n[2]*dx0*jacob_pos_x_inv-0.6804138174397718*Ez_n[2]*dx0*jacob_pos_x_inv+1.0886621079036354*FB12_n[1]*dx0*jacob_pos_x_inv-1.0886621079036354*Ez_n[1]*dx0*jacob_pos_x_inv+0.6804138174397718*FB12_n[0]*dx0*jacob_pos_x_inv-0.6804138174397718*Ez_n[0]*dx0*jacob_pos_x_inv; 
+  outJBy[2] += 2.041241452319315*FB12_n[2]*dx0*jacob_pos_x_inv-2.041241452319315*Ez_n[2]*dx0*jacob_pos_x_inv-2.041241452319315*FB12_n[0]*dx0*jacob_pos_x_inv+2.041241452319315*Ez_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJBz[1] += 0.6804138174397718*FB13_n[2]*dx0+0.6804138174397718*Ey_n[2]*dx0+1.0886621079036354*FB13_n[1]*dx0+1.0886621079036354*Ey_n[1]*dx0+0.6804138174397718*FB13_n[0]*dx0+0.6804138174397718*Ey_n[0]*dx0; 
-  outJBz[2] += 2.041241452319315*FB13_n[2]*dx0+2.041241452319315*Ey_n[2]*dx0-2.041241452319315*FB13_n[0]*dx0-2.041241452319315*Ey_n[0]*dx0; 
+  outJBz[1] += 0.6804138174397718*FB13_n[2]*dx0*jacob_pos_x_inv+0.6804138174397718*Ey_n[2]*dx0*jacob_pos_x_inv+1.0886621079036354*FB13_n[1]*dx0*jacob_pos_x_inv+1.0886621079036354*Ey_n[1]*dx0*jacob_pos_x_inv+0.6804138174397718*FB13_n[0]*dx0*jacob_pos_x_inv+0.6804138174397718*Ey_n[0]*dx0*jacob_pos_x_inv; 
+  outJBz[2] += 2.041241452319315*FB13_n[2]*dx0*jacob_pos_x_inv+2.041241452319315*Ey_n[2]*dx0*jacob_pos_x_inv-2.041241452319315*FB13_n[0]*dx0*jacob_pos_x_inv-2.041241452319315*Ey_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJphi[1] += 0.6804138174397718*FPhi1_n[2]*dx0+1.0886621079036354*FPhi1_n[1]*dx0+0.6804138174397718*FPhi1_n[0]*dx0; 
-  outJphi[2] += 2.041241452319315*FPhi1_n[2]*dx0-2.041241452319315*FPhi1_n[0]*dx0; 
+  outJphi[1] += 0.6804138174397718*FPhi1_n[2]*dx0*jacob_pos_x_inv+1.0886621079036354*FPhi1_n[1]*dx0*jacob_pos_x_inv+0.6804138174397718*FPhi1_n[0]*dx0*jacob_pos_x_inv; 
+  outJphi[2] += 2.041241452319315*FPhi1_n[2]*dx0*jacob_pos_x_inv-2.041241452319315*FPhi1_n[0]*dx0*jacob_pos_x_inv; 
 
-  outJpsi[1] += 0.6804138174397718*FPsi1_n[2]*dx0+1.0886621079036354*FPsi1_n[1]*dx0+0.6804138174397718*FPsi1_n[0]*dx0; 
-  outJpsi[2] += 2.041241452319315*FPsi1_n[2]*dx0-2.041241452319315*FPsi1_n[0]*dx0; 
+  outJpsi[1] += 0.6804138174397718*FPsi1_n[2]*dx0*jacob_pos_x_inv+1.0886621079036354*FPsi1_n[1]*dx0*jacob_pos_x_inv+0.6804138174397718*FPsi1_n[0]*dx0*jacob_pos_x_inv; 
+  outJpsi[2] += 2.041241452319315*FPsi1_n[2]*dx0*jacob_pos_x_inv-2.041241452319315*FPsi1_n[0]*dx0*jacob_pos_x_inv; 
 
 } 

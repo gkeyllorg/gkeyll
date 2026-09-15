@@ -94,7 +94,7 @@ test_vmap(int vdim, int poly_order, bool use_gpu)
     inp_vmap[d].eval_vmap = test_eval_maps[d];
 
   struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(&vgrid,
-    &local_vel, &basis_vel, inp_vmap, use_gpu);
+    &local_vel, &basis_vel, inp_vmap, false, use_gpu);
 
   TEST_CHECK( !vvm->is_identity );
   TEST_CHECK( vvm->is_mapped );
@@ -270,7 +270,7 @@ test_vmap_ser(int vdim, int poly_order, bool use_gpu)
     inp_vmap[d].eval_vmap = test_eval_maps[d];
 
   struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(&vgrid,
-    &local_vel, &basis_vel, inp_vmap, use_gpu);
+    &local_vel, &basis_vel, inp_vmap, false, use_gpu);
 
   TEST_CHECK( !vvm->is_identity );
   TEST_CHECK( vvm->is_mapped );
@@ -387,7 +387,7 @@ test_vmap_identity(int vdim, int poly_order, bool use_gpu, bool ser_basis)
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
 
   struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(&vgrid,
-    &local_vel, &basis_vel, inp_vmap, use_gpu);
+    &local_vel, &basis_vel, inp_vmap, false, use_gpu);
 
   TEST_CHECK( vvm->is_identity );
   TEST_CHECK( vvm->is_mapped ); // always true: single code path.
@@ -475,9 +475,9 @@ test_vmap_gpu(int vdim, int poly_order, bool identity, bool ser_basis)
       inp_vmap[d].eval_vmap = test_eval_maps[d];
 
   struct gkyl_vlasov_velocity_map *vvm_ho = gkyl_vlasov_velocity_map_new(&vgrid,
-    &local_vel, &basis_vel, inp_vmap, false);
+    &local_vel, &basis_vel, inp_vmap, false, false);
   struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(&vgrid,
-    &local_vel, &basis_vel, inp_vmap, true);
+    &local_vel, &basis_vel, inp_vmap, false, true);
 
   TEST_CHECK( gkyl_vlasov_velocity_map_is_cu_dev(vvm) );
   TEST_CHECK( vvm->is_identity == identity );

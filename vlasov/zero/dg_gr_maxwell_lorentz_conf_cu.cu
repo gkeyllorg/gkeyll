@@ -16,6 +16,7 @@ __global__ void
 gkyl_dg_gr_maxwell_lorentz_conf_advance_cu_kernel(
   struct gkyl_dg_gr_maxwell_lorentz_conf *up,
   const struct gkyl_range conf_range,
+  const struct gkyl_array *jacob_pos,
   const struct gkyl_surf_and_vol_node_arrays *lapse,
   const struct gkyl_surf_and_vol_node_arrays *shift,
   const struct gkyl_surf_and_vol_node_arrays *h_ij,
@@ -41,6 +42,7 @@ gkyl_dg_gr_maxwell_lorentz_conf_advance_cu_kernel(
     for (int k=0; k<3*num_basis; ++k) B_conf_for_force[k] = 0.0;
 
     up->lorentz_conf(&up->gr_maxwell_data, up->conf_grid.dx,
+      (const double*) gkyl_array_cfetch(jacob_pos, cidx),
       (const double*) gkyl_array_cfetch(lapse->nodal_arr_vol, cidx),
       (const double*) gkyl_array_cfetch(shift->nodal_arr_vol, cidx),
       (const double*) gkyl_array_cfetch(h_ij->nodal_arr_vol, cidx),
@@ -76,7 +78,7 @@ gkyl_dg_gr_maxwell_lorentz_conf_advance_cu(struct gkyl_dg_gr_maxwell_lorentz_con
   int nthreads = conf_range->nthreads;
 
   gkyl_dg_gr_maxwell_lorentz_conf_advance_cu_kernel<<<nblocks, nthreads>>>(
-    up->on_dev, *conf_range, lapse->on_dev, shift->on_dev, h_ij->on_dev,
+    up->on_dev, *conf_range, up->jacob_pos->on_dev, lapse->on_dev, shift->on_dev, h_ij->on_dev,
     h_ij_inv->on_dev, det_h->on_dev, vierb_cov->on_dev, vierb_con->on_dev,
     field_con->on_dev, qmem->on_dev);
 }
@@ -119,6 +121,9 @@ gkyl_dg_gr_maxwell_lorentz_conf_cu_dev_inew(
   assert(kernel_index != -1);
 
   up->conf_grid = *inp->conf_grid;
+  assert(inp->pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
   up->gr_maxwell_data.chi = inp->chi;
   up->gr_maxwell_data.gamma = inp->gamma;
   up->gr_maxwell_data.K_phi = inp->K_phi;
