@@ -348,14 +348,20 @@ gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
     double energy_src_new = adapt_src->adapt_energy?
       energy_input + energy_compensation : energy_input;
 
-    // Avoid negative particle source.
-    // This is important to avoid division by zero in the temperature calculation.
-    particle_src_new = fmax(particle_input, particle_src_new);
-    
     // Compute the target temperature of the source following the rule:
     // T = 2/3 * Q/G (T: src temperature, Q: src energy rate, G: total particle rate)
     const double vdim_phys = s->info.vdim == 1? 1.0 : 3.0;
-    double temperature_new = (2./vdim_phys) * energy_src_new/particle_src_new;
+
+    // Avoid negative particle source (e.g. if the particle loss is negative).
+    // Floor the particle rate to the minimum rate needed to inject the source
+    // power at the maximum source temperature, G_min = 2/3 * Q/T_max, so the
+    // source cannot collapse to zero and never recover.
+    // This is also important to avoid division by zero in the temperature calculation.
+    double particle_src_min = (2./vdim_phys) * fmax(energy_src_new, 0.0) / s->info.source.projection[k].temp_max;
+    particle_src_new = fmax(particle_src_new, fmax(particle_input, particle_src_min));
+
+    double temperature_new = particle_src_new > 0.0? (2./vdim_phys) * energy_src_new/particle_src_new
+                                                    : s->info.source.projection[k].temp_min;
 
     // Impose the temperature to be within the limits.  
     temperature_new = fmin(temperature_new, s->info.source.projection[k].temp_max);
