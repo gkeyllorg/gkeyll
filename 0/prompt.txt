@@ -1,0 +1,37 @@
+In this branch we've added Jenkins CI so it can run on the Stellar cluster. The instructions in ci/jenkins/README.stellar-intel.md require two separate ssh sessions, one for the tmux session where the jenkins.war is run, and another to create a tunnel to allow us to use the Jenkins UI to launch the build/test. Is there a way to simplify this so that we can us a single ssh session and trigger the build/test with a command line command or script instead of the UI?
+
+---
+
+Add an example of how the Jenkins CLI would be used in the plan.
+
+---
+
+In the example, is it really necessary to export GKEYLL_CI_ROOT, or could jenkins-stellar-intel.sh do that?
+
+---
+
+What will happen after the user launches "ci/jenkins/jenkins-stellar-intel.sh run --pr 1104" ? will it return so the user can work on other things, or will it wait until the tests complete? if it waits, will it break if the terminal suddently disconnects?
+
+---
+
+so is everything inside "jenkins-stellar-intel.sh" done within a tmux session? so that there's really no conflict with the execution of "jenkins-stellar-intel.sh" being terminated due to a terminal disconnect?
+
+---
+
+You asked "Should the launcher instead return immediately by default, with an explicit --follow option for streaming/waiting?". What are the pro and cons of returning immediately and having the "--follow" option?
+
+---
+
+and please answer: what exactly will the --follow option provide?
+
+---
+
+More specifically, I'd like to see an example of what "jenkins-stellar-intel.sh follow --queue 42" may output.
+
+---
+
+I have one final question: will the changes to enable this CLI command interfere with the use of the UI as I was doing before? specifically, I'd like to preserve the option to trigger builds/tests using the UI too
+
+---
+
+Implement the plan.
