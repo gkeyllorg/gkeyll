@@ -1,0 +1,89 @@
+There seem to be some differences between the Stellar and the Perlmutter README files that don't need to occur. For example, shouldn't the Perlmutter README have a "Install and run Jenkins privately" section like the Stellar one?
+
+---
+
+I think each of the 4 READMEs should be rewritten assuming that they will be read by a person who didn't participate in developing this Jenkins CI and simply wants to it setup and run it. For example, I'd give it the following sections:
+
+# Gkeyll Jenkins CI on Princeton Stellar CPU:
+
+summary
+
+# Installation
+
+## Install Jenkins
+
+description of how to install Jenkins
+
+## Setup jenkins
+
+### Creating a Jenkins API token for the launcher
+
+### Create the GitHub credential
+
+### Configure the Jenkins node and global environment
+
+### Create the one parameterized Pipeline job
+
+---
+
+I think each of the 4 READMEs should be rewritten assuming that they will be read by a person who didn't participate in developing this Jenkins CI and simply wants to it setup and run it. For example, I'd give it the following sections:
+
+# Gkeyll Jenkins CI on Princeton Stellar CPU:
+
+summary
+
+# Installation
+
+## Install Jenkins
+
+description of how to install Jenkins
+
+## Open Jenkins browser
+
+description of how to launch the browser interface
+
+## Setup jenkins
+
+### Create a Jenkins API token for the launcher
+
+### Create the GitHub credential
+
+### Configure the Jenkins node and global environment
+
+### Create the one parameterized Pipeline job
+
+include here the step where "build now" is launched once at first so the system recognizes the parameters (CANDIDATE_PR, etc)
+
+# Launching CI jobs
+
+# CLI launch
+
+# Browser launch
+
+Maybe make these changes to the stellar README first, so I can evaluate them. When we are happy with them we'll make the other README's consistent.
+
+---
+
+Implement the plan.
+
+---
+
+1. I would delete this
+
+Determine the Slurm values authorized for your group:
+
+```sh
+qos
+sshare
+```
+
+because most people either know it or don't need it.
+
+2. Where it says "start the controller" I would write "start the controller (see `./ci/jenkins/gkeyll-ci.sh -h`)".
+
+3. I think you can delete section "For CI developers". That will not be needed once we merge everything into main. For the same reason, where you say "`*/agent_tools-jenkins-stellar_cpu` during bring-up" I think you should just assume we are about to merge everything into main and have the README use "`*/main`" as the Branch specifier.
+4. I think the original README had a "## Validate manually" section (or maybe see the README.perlmutter_gpu.md). That should go as a subsection under Troubleshooting. Likewise, subdivide the current contents of Troubleshooting into separate subsections if they are meant to address different things that could go wrong.
+
+---
+
+Ok, I like this structure. Please replicate it in the other 3 README files for perlmutter/personal/team machines, allowing for differences given their different names/paths/files/modes of operation.
