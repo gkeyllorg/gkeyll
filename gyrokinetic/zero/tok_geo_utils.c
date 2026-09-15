@@ -1785,43 +1785,36 @@ tok_plate_root_s(const struct gkyl_qr_res *res, bool lower, double psi)
   // does not.
   if (res->res >= 0.0 && res->res <= 1.0)
     return res->res;
-  // The plate does not span this surface.  CLAMP to the nearest plate end
-  // rather than abort: the meaningful answer is the furthest the plate
-  // actually reaches, and the caller consumes that endpoint's R or Z.
+  // No usable root.  ABORT by default rather than substitute a plate end.
   //
-  // DO NOT go back to aborting here.  Measured 2026-08-26 on the 450-shot
-  // NSTX-U suite: aborting failed 12 shots at every resolution
-  // (203963_ms457, 204046_ms433, 204051_ms450, 204076_ms193, 204077_ms187,
-  // 204080_ms193, 204112_ms907, 204118_ms553, 204170_ms580, 205017_ms205,
-  // 205050_ms219, 205088_ms195), all with plate=upper, status=2,
-  // res=DBL_MAX at psisep from the PF_LO extent setup.  Every one of those
-  // shots builds a CLEAN 8-block grid when the root is clamped, and did so
-  // historically too.  What the abort caught was a value the half-domain
-  // path does not depend on.  The clamp still removes the DBL_MAX that
-  // poisoned TCV: it never reaches the plate parameterization.
+  // This was a CLAMP until 2026-09-14, added 2026-08-26 because 12 NSTX-U shots
+  // aborted here (203963_ms457, 204046_ms433, 204051_ms450, 204076_ms193,
+  // 204077_ms187, 204080_ms193, 204112_ms907, 204118_ms553, 204170_ms580,
+  // 205017_ms205, 205050_ms219, 205088_ms195), all with plate=upper at psisep
+  // from the PF_LO extent setup.  Every one of those was a plate the surface
+  // crosses an EVEN number of times, which gkyl_ridders rightly refuses; they
+  // are now resolved by tok_plate_extent_root_s and none of them reaches here.
+  // Re-measured with the abort restored: 0 aborts and 0 clamps on all 12, plus
+  // 20 extent plate solves on TCV and 116 on STEP with no unusable root.
   //
-  // GKYL_TOK_PLATE_ROOT_STRICT=1 restores the hard abort for diagnosis.
-  double clamped = res->res > 1.0 || !(res->res == res->res) ? 1.0
-    : (res->res < 0.0 ? 0.0 : res->res);
-  static int nwarn = 0;
-  const char *strict = getenv("GKYL_TOK_PLATE_ROOT_STRICT");
-  if (strict && strict[0] != '\0' && strict[0] != '0') {
-    fprintf(stderr,
-      "TOK_GEO_PLATE_ROOT_FAILED plate=%s psi=%.17g status=%d res=%.17g\n"
-      "  psi(plate(s)) does not reach this surface for any s in [0,1].\n",
-      lower ? "lower" : "upper", psi, res->status, res->res);
-    abort();
-  }
-  if (nwarn < 8) {
-    ++nwarn;
-    fprintf(stderr,
-      "TOK_GEO_PLATE_ROOT_CLAMPED plate=%s psi=%.17g status=%d res=%.17g -> s=%g\n"
-      "  the divertor plate does not span this flux surface; using the\n"
-      "  nearest plate end.%s\n",
-      lower ? "lower" : "upper", psi, res->status, res->res, clamped,
-      nwarn == 8 ? "  (further occurrences suppressed)" : "");
-  }
-  return clamped;
+  // The clamp's own premise was false -- it read a refused bracket as "the
+  // plate does not span this surface", conflating zero crossings with an even
+  // number of them -- and it was not even consistent: on 204051 it substituted
+  // the WRONG crossing and inverted the private-flux theta split, while on
+  // 203963 it happened to substitute the right one.  A silently wrong grid is
+  // worse than a stopped run, so what is left here is a stop with a diagnosis.
+  //
+  fprintf(stderr,
+    "TOK_GEO_PLATE_ROOT_FAILED plate=%s psi=%.17g status=%d res=%.17g\n"
+    "  psi(plate(s)) has no usable crossing with this surface for s in [0,1],\n"
+    "  and no crossing beyond the X point was found either.  Either the plate\n"
+    "  does not reach this flux surface, or it is crossed in a way this\n"
+    "  selection does not cover.  Set GKYL_TOK_EXTENT_DIAG=1 to list every\n"
+    "  crossing considered (TOK_PLATE_ROOT_CAND, with its beyond= flag).\n"
+    "  There is deliberately no override: the behaviour this replaced\n"
+    "  substituted a plate end and could build a WRONG grid without saying so.\n",
+    lower ? "lower" : "upper", psi, res->status, res->res);
+  abort();
 }
 
 static void
@@ -1941,6 +1934,13 @@ static double
 tok_plate_extent_root_s(struct gkyl_tok_geo *geo, struct plate_ctx *pctx,
   const struct gkyl_qr_res *res, bool lower, double psi, double hint_r)
 {
+  if (tok_extent_diag_enabled()) {
+    fprintf(stderr,
+      "TOK_EXTENT_ROOT plate=%s psi=%.17g hint_r=%.17g status=%d res=%.17g "
+      "usable=%d\n",
+      lower ? "lower" : "upper", psi, hint_r, res->status, res->res,
+      res->res >= 0.0 && res->res <= 1.0);
+  }
   if (res->res >= 0.0 && res->res <= 1.0)
     return res->res;
   double s_hint;
