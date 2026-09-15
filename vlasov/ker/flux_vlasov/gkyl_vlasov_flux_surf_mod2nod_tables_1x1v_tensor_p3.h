@@ -6,7 +6,7 @@
 // are elided per TU. 
 #include <gkyl_util.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_meta.h> 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_conf_ev[20] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_conf_ev[20] = { 
   0.7071067811865475, 
   -1.1098391188717989, 
   1.1569870650434417, 
@@ -28,7 +28,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_conf_ev
   1.1569870650434417, 
   0.9373434910716291, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_conf_dx0[20] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_conf_dx0[20] = { 
   0.0, 
   1.224744871391589, 
   -4.298388424359992, 
@@ -50,19 +50,19 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_conf_dx
   4.298388424359992, 
   8.715656478198236, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_vel_ev_v0[4] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_vel_ev_v0[4] = { 
   0.7071067811865475, 
   -1.224744871391589, 
   1.5811388300841895, 
   -1.8708286933869707, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_vel_sparse_idx[4] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p3_vel_sparse_idx[4] = { 
   0, 
   1, 
   2, 
   3, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_Cm[20] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_Cm[20] = { 
   1.0, 
   -2.26544961484666, 
   -2.814395652992812, 
@@ -84,7 +84,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_C
   -2.814395652992812, 
   -1.138707206919686, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_CmD[20] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_CmD[20] = { 
   0.0, 
   2.5, 
   10.455921299292276, 
@@ -106,7 +106,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_C
   -10.455921299292276, 
   -10.587987156569671, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_CmDx0[20] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_CmDx0[20] = { 
   0.0, 
   2.5, 
   10.455921299292276, 
@@ -128,13 +128,13 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_C
   -10.455921299292276, 
   -10.587987156569671, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_V[4] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_V[4] = { 
   1.0, 
   2.5, 
   -3.8461538461538463, 
   -2.272727272727273, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_coefl[16] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_coefl[16] = { 
   0.5, 
   0.34641016151377546, 
   0.34641016151377546, 
@@ -152,7 +152,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_c
   0.33839976359329804, 
   0.6776, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_coefr[16] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_coefr[16] = { 
   0.5, 
   0.34641016151377546, 
   -0.34641016151377546, 
@@ -170,7 +170,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_c
   -0.33839976359329804, 
   -0.6776, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_cmap[16] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_cmap[16] = { 
   0, 
   1, 
   0, 
@@ -188,7 +188,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_cmap
   2, 
   3, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vlmap[16] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vlmap[16] = { 
   0, 
   0, 
   1, 
@@ -206,7 +206,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vlma
   3, 
   3, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vrmap[16] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vrmap[16] = { 
   0, 
   0, 
   1, 
@@ -224,13 +224,13 @@ GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vrma
   3, 
   3, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_Vd0[4] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_Vd0[4] = { 
   0.0, 
   2.5, 
   -11.538461538461538, 
   -13.636363636363637, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vld0map[16] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vld0map[16] = { 
   0, 
   0, 
   1, 
@@ -248,7 +248,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vld0
   3, 
   3, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vrd0map[16] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vrd0map[16] = { 
   0, 
   0, 
   1, 
@@ -266,7 +266,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_tensor_p3_ph_v0_vrd0
   3, 
   3, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_dcoefl0[16] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_dcoefl0[16] = { 
   0.5, 
   0.34641016151377546, 
   0.34641016151377546, 
@@ -284,7 +284,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_d
   0.33839976359329804, 
   0.6776, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_dcoefr0[16] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_dcoefr0[16] = { 
   0.5, 
   0.34641016151377546, 
   0.34641016151377546, 
@@ -302,4 +302,4 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_tensor_p3_ph_v0_d
   0.33839976359329804, 
   0.6776, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x1v_tensor_p3_ph_v0_meta = { .nb = 16, .na = 4, .nmv = 4, .no = 5, .ni = 1, .ns = 4, .fhat_off = 0 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x1v_tensor_p3_ph_v0_meta = { .nb = 16, .na = 4, .nmv = 4, .no = 5, .ni = 1, .ns = 4, .fhat_off = 0 }; 

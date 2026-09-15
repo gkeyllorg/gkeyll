@@ -6,7 +6,7 @@
 // are elided per TU. 
 #include <gkyl_util.h> 
 #include <gkyl_vlasov_surf_nod2mod_meta.h> 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_Cw[144] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_Cw[144] = { 
   0.12100299328560196, 
   -0.26050017832450795, 
   -0.26050017832450795, 
@@ -152,7 +152,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_
   -0.6135116053512175, 
   0.6711593250054786, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_Vw[12] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_Vw[12] = { 
   0.3478548451374539, 
   -0.7488760957794683, 
   -0.8192431415675561, 
@@ -166,7 +166,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_
   0.7488760957794683, 
   -0.8192431415675561, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_kamap[27] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_kamap[27] = { 
   0, 
   1, 
   2, 
@@ -195,7 +195,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_kam
   7, 
   8, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_kbmap[27] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_kbmap[27] = { 
   0, 
   0, 
   0, 
@@ -224,7 +224,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_kbm
   2, 
   2, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_out_off[28] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_out_off[28] = { 
   0, 
   3, 
   6, 
@@ -254,7 +254,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_out
   78, 
   81, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_out_mode[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_out_mode[81] = { 
   0, 
   3, 
   13, 
@@ -337,7 +337,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_out
   77, 
   80, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_out_cl[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_out_cl[81] = { 
   0.25, 
   -0.4330127018922193, 
   0.5590169943749475, 
@@ -420,7 +420,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_
   0.08508944411617692, 
   -0.10985, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_out_cr[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_out_cr[81] = { 
   -0.25, 
   -0.4330127018922193, 
   -0.5590169943749475, 
@@ -503,7 +503,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_
   0.08508944411617692, 
   0.10985, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_pm_a[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_pm_a[81] = { 
   0, 
   1, 
   2, 
@@ -586,7 +586,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_pm_
   7, 
   8, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_pm_b[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_pm_b[81] = { 
   0, 
   0, 
   0, 
@@ -669,7 +669,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v0_pm_
   2, 
   2, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_pm_cl[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_pm_cl[81] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -752,7 +752,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_
   0.13090683710181064, 
   -0.10985, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_pm_cr[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_pm_cr[81] = { 
   -0.25, 
   -0.17320508075688773, 
   -0.17320508075688773, 
@@ -835,8 +835,8 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v0_
   -0.13090683710181064, 
   0.10985, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_2x2v_tensor_p2_prj_v0_meta = { .nk = 27, .np = 81, .na = 9, .nmv = 3, .no = 16, .ni = 4, .fhat_off = 0 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_Cw[144] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_2x2v_tensor_p2_prj_v0_meta = { .nk = 27, .np = 81, .na = 9, .nmv = 3, .no = 16, .ni = 4, .fhat_off = 0 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_Cw[144] = { 
   0.12100299328560196, 
   -0.26050017832450795, 
   -0.26050017832450795, 
@@ -982,7 +982,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_
   -0.6135116053512175, 
   0.6711593250054786, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_Vw[12] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_Vw[12] = { 
   0.3478548451374539, 
   -0.7488760957794683, 
   -0.8192431415675561, 
@@ -996,7 +996,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_
   0.7488760957794683, 
   -0.8192431415675561, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_kamap[27] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_kamap[27] = { 
   0, 
   1, 
   2, 
@@ -1025,7 +1025,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_kam
   7, 
   8, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_kbmap[27] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_kbmap[27] = { 
   0, 
   0, 
   0, 
@@ -1054,7 +1054,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_kbm
   2, 
   2, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_out_off[28] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_out_off[28] = { 
   0, 
   3, 
   6, 
@@ -1084,7 +1084,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_out
   78, 
   81, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_out_mode[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_out_mode[81] = { 
   0, 
   4, 
   14, 
@@ -1167,7 +1167,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_out
   76, 
   80, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_out_cl[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_out_cl[81] = { 
   0.25, 
   -0.4330127018922193, 
   0.5590169943749475, 
@@ -1250,7 +1250,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_
   0.08508944411617692, 
   -0.10985, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_out_cr[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_out_cr[81] = { 
   -0.25, 
   -0.4330127018922193, 
   -0.5590169943749475, 
@@ -1333,7 +1333,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_
   0.08508944411617692, 
   0.10985, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_pm_a[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_pm_a[81] = { 
   0, 
   1, 
   2, 
@@ -1416,7 +1416,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_pm_
   7, 
   8, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_pm_b[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_pm_b[81] = { 
   0, 
   0, 
   0, 
@@ -1499,7 +1499,7 @@ GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_tensor_p2_prj_v1_pm_
   2, 
   2, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_pm_cl[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_pm_cl[81] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -1582,7 +1582,7 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_
   0.13090683710181064, 
   -0.10985, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_pm_cr[81] = { 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_pm_cr[81] = { 
   -0.25, 
   -0.17320508075688773, 
   -0.17320508075688773, 
@@ -1665,4 +1665,4 @@ GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_tensor_p2_prj_v1_
   -0.13090683710181064, 
   0.10985, 
 }; 
-GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_2x2v_tensor_p2_prj_v1_meta = { .nk = 27, .np = 81, .na = 9, .nmv = 3, .no = 16, .ni = 4, .fhat_off = 64 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_2x2v_tensor_p2_prj_v1_meta = { .nk = 27, .np = 81, .na = 9, .nmv = 3, .no = 16, .ni = 4, .fhat_off = 64 }; 

@@ -20,7 +20,7 @@ typedef void (*dg_gr_maxwell_lorentz_conf_t)(const gkyl_dg_gr_maxwell_inp *meq, 
   double* GKYL_RESTRICT E_conf_for_force, double* GKYL_RESTRICT B_conf_for_force);
 
 // The cv_index[cd].vdim[vd] is used to index the kernel tables below.
-GKYL_CU_D
+GKYL_CU_TABLE
 static const struct { int vdim[4]; } lorentz_cv_index[] = {
   {-1, -1, -1, -1}, // 0x makes no sense.
   {-1,  0,  1,  2}, // 1x kernel indices.
