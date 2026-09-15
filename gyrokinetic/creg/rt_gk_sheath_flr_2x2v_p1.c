@@ -490,7 +490,6 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .flr = {
-      .type = GKYL_GK_FLR_PADE_CONST,
       .Tperp = ctx.Te,
     },
 
@@ -556,7 +555,6 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0, 
 
     .flr = {
-      .type = GKYL_GK_FLR_PADE_CONST,
       .Tperp = ctx.Ti,
     },
 
@@ -618,7 +616,7 @@ main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
     },
     .flr = {
-      .type = GKYL_GK_FLR_PADE_CONST, // Uses the main-ion gyroradius.
+      .type = GKYL_GK_FLR_PADE,
     },
   };
 

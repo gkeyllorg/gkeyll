@@ -1577,14 +1577,25 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
 
   // Gyroaveraged potential used in the Hamiltonian.
-  gks->gyro_phi = gks->info.flr.type? 
+  // Gyroaveraged if the field enables FLR effects and the species provides a
+  // reference gyroradius, rho_s = sqrt(Tperp*m_s)/(|q_s|*bmag) unless given directly.
+  gks->use_flr = app->field->info.flr.type != GKYL_GK_FLR_NONE &&
+    (gks->info.flr.gyroradius > 0.0 || gks->info.flr.Tperp > 0.0);
+  gks->flr_rhoSq_ref = 0.0;
+  if (gks->use_flr) {
+    double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
+    gks->flr_rhoSq_ref = gks->info.flr.gyroradius > 0.0? pow(gks->info.flr.gyroradius, 2.0)
+      : gks->info.flr.Tperp*gks->info.mass/pow(gks->info.charge*gyroradius_bmag, 2.0);
+  }
+
+  gks->gyro_phi = gks->use_flr? 
     mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume)
     : gkyl_array_acquire(app->field->phi_smooth);
 
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
 
-  if (gks->info.flr.type) {
+  if (gks->use_flr) {
     // Create operator needed for FLR effects.
     assert(app->cdim > 1);
     // Pointer to function performing the gyroaverage.
@@ -1594,9 +1605,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->flr_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gks->flr_buff_dens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-    double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
-
-    double flr_weight = gks->info.flr.Tperp*gks->info.mass/(pow(gks->info.charge*gyroradius_bmag,2.0));
+    double flr_weight = gks->flr_rhoSq_ref;
     // Initialize the weight in the Laplacian operator.
     gks->flr_rhoSqD2 = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->basis.num_basis, app->local_ext.volume);
     gkyl_array_set_offset(gks->flr_rhoSqD2, 0.5*flr_weight, app->gk_geom->geo_int.gxxj, 0*app->basis.num_basis);
@@ -2084,7 +2093,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
 
   gkyl_array_release(gks->m0_gyroavg);
   gkyl_array_release(gks->gyro_phi);
-  if (gks->info.flr.type) {
+  if (gks->use_flr) {
     gkyl_array_release(gks->flr_rhoSqD2);
     gkyl_array_release(gks->flr_kSq);
     gkyl_array_release(gks->flr_buff);

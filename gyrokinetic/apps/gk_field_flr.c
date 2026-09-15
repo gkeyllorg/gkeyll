@@ -11,59 +11,50 @@ void
 gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   assert(app->cdim > 1);
-  // The field-level FLR model must be chosen explicitly when species use FLR.
-  assert(f->info.flr.type != GKYL_GK_FLR_NONE);
-  f->invert_flr = f->info.flr.type == GKYL_GK_FLR_PADE_CONST_OP? gk_field_invert_flr_op : gk_field_invert_flr_const;
+  f->invert_flr = f->info.flr.use_fem_operator? gk_field_invert_flr_op : gk_field_invert_flr_const;
 
   // Reference (squared) gyroradius in the operator A = 1 - rho^2*nabla_perp^2
   // used to retrieve phi from the modified potential Phi_0 (step 4 of the
   // algorithm in DR #797).
   double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
   double rhoSq_ref = 0.0;
-  if (f->info.flr.type != GKYL_GK_FLR_PADE_CONST_SUM) {
-    if (f->info.flr.gyroradius > 0.0) {
-      // User-provided reference gyroradius.
-      rhoSq_ref = pow(f->info.flr.gyroradius, 2.0);
-    }
-    else {
-      // Gyroradius of the FLR species with the largest polarization weight
-      // (the main ion), computed as in gk_species_init so steps 2-5 use the same rho.
-      double eps_max = -1.0;
-      for (int i = 0; i < app->num_species; ++i) {
-        struct gk_species *s = &app->species[i];
-        if (s->info.flr.type == GKYL_GK_FLR_NONE) continue;
-        double eps_s0 = s->info.polarization_density * s->info.mass / pow(polarization_bmag, 2.0);
-        if (eps_s0 > eps_max) {
-          double gyroradius_bmag = s->info.flr.bmag ? s->info.flr.bmag : app->bmag_ref;
-          rhoSq_ref = s->info.flr.Tperp * s->info.mass / pow(s->info.charge * gyroradius_bmag, 2.0);
-          eps_max = eps_s0;
-        }
-      }
-      assert(eps_max > 0.0);
-    }
-  }
-  else {
+  if (f->info.flr.avg_gyroradius) {
     // Polarization-weighted average of the species gyroradii,
     //   rho^2 = sum_s eps_s0*rho_s0^2 / sum_s eps_s0,  eps_s0 = n_s0*m_s/B^2,
     double eps_sum = 0.0;
     for (int i = 0; i < app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
-      double gyroradius_bmag = s->info.flr.bmag ? s->info.flr.bmag : app->bmag_ref;
-      double rhoSq_s = s->info.flr.Tperp * s->info.mass / pow(s->info.charge * gyroradius_bmag, 2.0);
       double eps_s0 = s->info.polarization_density * s->info.mass / pow(polarization_bmag, 2.0);
-      rhoSq_ref += eps_s0 * rhoSq_s;
+      rhoSq_ref += eps_s0 * s->flr_rhoSq_ref;
       eps_sum += eps_s0;
     }
     assert(eps_sum > 0.0);
     rhoSq_ref /= eps_sum;
   }
+  else {
+    // Gyroradius of the gyroaveraged species with the largest polarization
+    // weight (the main ion), so steps 2-5 of DR #797 use the same rho.
+    double eps_max = -1.0;
+    for (int i = 0; i < app->num_species; ++i) {
+      struct gk_species *s = &app->species[i];
+      if (!s->use_flr) continue;
+      double eps_s0 = s->info.polarization_density * s->info.mass / pow(polarization_bmag, 2.0);
+      if (eps_s0 > eps_max) {
+        rhoSq_ref = s->flr_rhoSq_ref;
+        eps_max = eps_s0;
+      }
+    }
+  }
+  // At least one species must provide a reference gyroradius.
+  assert(rhoSq_ref > 0.0);
+
   // Modified potential Phi_0 and a buffer, used in the local term and the
   // field energy diagnostic.
   f->flr_phi0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->flr_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->flr_energy_red = app->use_gpu? gkyl_cu_malloc(sizeof(double[1])) : gkyl_malloc(sizeof(double[1]));
 
-  if (f->info.flr.type != GKYL_GK_FLR_PADE_CONST_OP) {
+  if (!f->info.flr.use_fem_operator) {
     // Use the simplification phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J
     double polarization_weight = 0.0;
     for (int i=0; i<app->num_species; ++i) {
@@ -121,7 +112,7 @@ gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field, stru
 void
 gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
-  if (f->info.flr.type == GKYL_GK_FLR_PADE_CONST_OP) {
+  if (f->info.flr.use_fem_operator) {
     gkyl_array_release(f->flr_rhoSq);
     gkyl_array_release(f->flr_kSq);
     gkyl_fem_poisson_perp_release(f->flr_op);

@@ -628,7 +628,6 @@ main(int argc, char **argv)
     },
 
     .flr = {
-      .type = GKYL_GK_FLR_PADE_CONST,
       .Tperp = ctx.Te0,
     },
 
@@ -714,7 +713,6 @@ main(int argc, char **argv)
     },
 
     .flr = {
-      .type = GKYL_GK_FLR_PADE_CONST,
       .Tperp = ctx.Ti0,
     },
 
@@ -790,7 +788,7 @@ main(int argc, char **argv)
     .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
     .flr = {
-      .type = GKYL_GK_FLR_PADE_CONST, // Uses the main-ion gyroradius.
+      .type = GKYL_GK_FLR_PADE,
     },
   };
 

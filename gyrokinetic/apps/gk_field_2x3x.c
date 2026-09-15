@@ -612,18 +612,10 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
     1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
 
-  // Create operator needed for FLR effects.
-  f->use_flr = false;
+  // FLR effects (operators created in gk_field_flr_new once the species,
+  // which provide the reference gyroradii, are initialized).
+  f->use_flr = f->info.flr.type != GKYL_GK_FLR_NONE;
   f->invert_flr = gk_field_invert_flr_none;
-  for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    if (s->info.flr.type) {
-      f->use_flr = f->use_flr || s->info.flr.type;
-    }
-  }
-  if (f->use_flr) {
-    gk_field_flr_new(app, f);
-  }
 
   f->bc_par_phi = 0;
   // Deterime if we need IWL or TWISTSHIFT BCs on phi fro the species BCs.

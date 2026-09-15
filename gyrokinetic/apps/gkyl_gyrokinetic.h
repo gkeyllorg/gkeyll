@@ -334,15 +334,18 @@ struct gkyl_gyrokinetic_scaling_inp {
 };
 
 // Parameters in FLR effects.
-struct gkyl_gyrokinetic_flr {
-  enum gkyl_gk_flr_type type; 
-  double Tperp; // Perp temperature used to evaluate gyroradius. 
-  double bmag; // Magnetic field used to evaluate gyroradius. If not provided
-               // it'll use B in the center of the domain.
-  double gyroradius; // Field reference gyroradius in the operator retrieving
-                     // phi from the modified potential. If not set, the gyroradius
-                     // of the FLR species with the largest polarization weight
-                     // (the main ion) is used.
+// Species FLR parameters.
+struct gkyl_gyrokinetic_species_flr {
+  double Tperp; // Perp temperature used to evaluate the gyroradius.
+  double bmag; // Magnetic field used to evaluate the gyroradius.
+  double gyroradius; // Reference gyroradius.
+};
+
+// Field FLR parameters.
+struct gkyl_gyrokinetic_field_flr {
+  enum gkyl_gk_flr_type type; // FLR model (GKYL_GK_FLR_NONE disables FLR effects).
+  bool avg_gyroradius; // Use the polarization-weighted average of the species gyroradii instead of the main-ion gyroradius (default).
+  bool use_fem_operator; // Apply A = 1 - rho_i^2*nabla_perp^2 with the FEM perpendicular operator instead of the local term.
 };
 
 struct gkyl_gyrokinetic_correct_inp {
@@ -463,7 +466,7 @@ struct gkyl_gyrokinetic_species {
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
 
-  struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
+  struct gkyl_gyrokinetic_species_flr flr; // Options for FLR effects.
 
   // Diagnostics of the fluxes of f at position-space boundaries.
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
@@ -592,7 +595,7 @@ struct gkyl_gyrokinetic_field {
 
   struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 
-  struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
+  struct gkyl_gyrokinetic_field_flr flr; // Options for FLR effects.
 };
 
 struct gkyl_gyrokinetic_eirene {

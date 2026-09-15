@@ -1156,6 +1156,8 @@ struct gk_species {
 
   // Quantities used for FLR model:
   struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density (times J).
+  bool use_flr; // Whether this species is gyroaveraged.
+  double flr_rhoSq_ref; // Squared reference gyroradius of this species.
   struct gkyl_array *flr_rhoSqD2; // Laplacian weight (rho^2/2 times J*g^ij) in FLR operator.
   struct gkyl_array *flr_kSq; // -J weight of the identity term in FLR operator.
   struct gkyl_array *flr_buff; // Buffer for the gyroaverage RHS/BC fields.

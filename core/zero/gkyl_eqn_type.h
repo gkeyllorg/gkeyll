@@ -168,12 +168,7 @@ enum gkyl_vel_edge {
 // Identifiers for FLR models (in gyrokinetics).
 enum gkyl_gk_flr_type {
   GKYL_GK_FLR_NONE = 0, // No FLR effects.
-  GKYL_GK_FLR_PADE_CONST, // Pade-based approx. w/ const. rho_ts. At the field level phi is retrieved
-                          // from Phi_0 with the local term phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J
-                          // (exact for constant rho_i and eps_pol), rho_i a single reference gyroradius.
-  GKYL_GK_FLR_PADE_CONST_SUM, // Same, with the polarization-weighted average of the species gyroradii.
-  GKYL_GK_FLR_PADE_CONST_OP, // Same as PADE_CONST, but applying A = 1 - rho_i^2*nabla_perp^2 to Phi_0
-                             // with the FEM perpendicular operator (for verification, more expensive).
+  GKYL_GK_FLR_PADE, // Pade approximants of the FLR operators w/ const. gyroradii (DR #797).
 };
 
 // Gyrokinetic anomaous diffusion models.
