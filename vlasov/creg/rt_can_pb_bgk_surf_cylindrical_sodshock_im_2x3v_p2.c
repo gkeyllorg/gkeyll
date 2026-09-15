@@ -94,7 +94,7 @@ create_ctx(void)
   double nu = 15000.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nr = 32; // Cell count (configuration space: radial direction).
+  int Nr = 4; // Cell count (configuration space: radial direction).
   int Ntheta = 1; // Cell count (configuration space: angular direction).
   int Nvr = 4; // Cell count (velocity space: radial direction).
   int Nvtheta = 4; // Cell count (velocity space: angular direction).

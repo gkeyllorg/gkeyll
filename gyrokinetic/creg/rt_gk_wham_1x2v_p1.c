@@ -582,16 +582,6 @@ int main(int argc, char **argv)
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
-    
-    .time_rate_multiplier = {
-      .num_multipliers = 1,
-      .multiplier[0] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,
-        .f_threshold = 1e-30,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-      },
-    },
 
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN,
@@ -670,16 +660,6 @@ int main(int argc, char **argv)
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
-    },
-
-    .time_rate_multiplier = {
-      .num_multipliers = 1,
-      .multiplier[0] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,
-        .f_threshold = 1e-4,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-      },
     },
 
     .projection = {

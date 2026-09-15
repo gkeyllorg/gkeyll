@@ -410,32 +410,32 @@ test_3x2v(int poly_order, bool use_gpu)
   gkyl_array_release(distf_low_ho);
 }
 
-void test_2x2v_ho()
+void test_translate_dim_2x2v_ho()
 {
   test_2x2v(1, false);
 }
 
-void test_2x2v_dev()
+void test_translate_dim_2x2v_dev()
 {
   test_2x2v(1, true);
 }
 
-void test_3x2v_ho()
+void test_translate_dim_3x2v_ho()
 {
   test_3x2v(1, false);
 }
 
-void test_3x2v_dev()
+void test_translate_dim_3x2v_dev()
 {
   test_3x2v(1, true);
 }
 
 TEST_LIST = {
-  { "test_2x2v_ho", test_2x2v_ho },
-  { "test_3x2v_ho", test_3x2v_ho },
+  { "test_translate_dim_2x2v_ho", test_translate_dim_2x2v_ho },
+  { "test_translate_dim_3x2v_ho", test_translate_dim_3x2v_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_2x2v_dev", test_2x2v_dev },
-  { "test_3x2v_dev", test_3x2v_dev },
+  { "test_translate_dim_2x2v_dev", test_translate_dim_2x2v_dev },
+  { "test_translate_dim_3x2v_dev", test_translate_dim_3x2v_dev },
 #endif
   { NULL, NULL },
 };

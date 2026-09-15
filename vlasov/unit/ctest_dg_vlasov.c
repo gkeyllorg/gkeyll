@@ -6,7 +6,7 @@
 #include <gkyl_dg_vlasov_priv.h>
 
 void
-test_dg_vlasov()
+test_dg_vlasov_ho()
 {
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 1);
@@ -41,7 +41,7 @@ test_dg_vlasov()
 int cu_vlasov_test(const struct gkyl_dg_eqn *eqn);
 
 void
-test_cu_dg_vlasov()
+test_dg_vlasov_dev()
 {
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 1);
@@ -76,9 +76,9 @@ test_cu_dg_vlasov()
 #endif
 
 TEST_LIST = {
-  { "dg_vlasov", test_dg_vlasov },
+  { "dg_vlasov_ho", test_dg_vlasov_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "cu_dg_vlasov", test_cu_dg_vlasov },
+  { "dg_vlasov_dev", test_dg_vlasov_dev },
 #endif  
   { NULL, NULL },
 };

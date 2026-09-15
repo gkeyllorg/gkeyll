@@ -94,7 +94,7 @@ struct gkyl_rect_grid cgrid;
 struct gkyl_range clocal, clocal_ext;
 
 void
-test_ltx_miller()
+test_ltx_miller_ho()
 {
   clock_t start, end;
   double cpu_time_used;
@@ -141,7 +141,7 @@ test_ltx_miller()
   };
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
-  write_geometry(up, cgrid, cbasis, clocal, "ltx_miller");
+  // write_geometry(up, cgrid, cbasis, clocal, "ltx_miller");
   gkyl_gk_geometry_release(up);
   gkyl_position_map_release(pmap);
 
@@ -154,6 +154,6 @@ test_ltx_miller()
 
 
 TEST_LIST = {
-  { "test_ltx_miller", test_ltx_miller},
+  { "test_ltx_miller_ho", test_ltx_miller_ho},
   { NULL, NULL },
 };

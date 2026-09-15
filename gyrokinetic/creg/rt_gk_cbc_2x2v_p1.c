@@ -192,8 +192,7 @@ double integrant_dpsi(double r, void *int_ctx)
   struct gk_app_ctx *app = inctx->app_ctx;
   double q = qprofile(r, app->a_mid, app->qaxis, app->qlcfs);
   double dpsi = -r/q; // This is valid in the circular limit. The minus sign comes dBtheta/r < 0
-  return dpsi; // I am not sure about this sign, I think it must be from dx/dr = -1.
-  // return -dPsidr(r, inctx->theta, app); // Seems to be the exact way but it makes the profile super flat (and -1 factor looks important here).
+  return dpsi;
 }
 
 double intPsi(double r0, double r, double theta, void *ctx)
@@ -583,7 +582,7 @@ struct gk_app_ctx create_ctx(void)
   double mu_max_elc = 7*Te0/B0;
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = 7*Ti0/B0;
-  double t_end = 0.01*t_itg;
+  double t_end = 0.001*t_itg;
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;

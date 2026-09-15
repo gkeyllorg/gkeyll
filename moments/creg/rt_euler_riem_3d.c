@@ -67,7 +67,7 @@ create_ctx(void)
   double pr = 1.0; // Right/outer fluid pressure.
 
   // Simulation parameters.
-  int Nx = 37; // Cell count (x-direction).
+  int Nx = 18; // Cell count (x-direction).
   int Ny = 37; // Cell count (y-direction).
   int Nz = 25; // Cell count (z-direction).
   double Lx = 1.5; // Domain size (x-direction).

@@ -5,7 +5,7 @@
 #include <gkyl_wv_euler_mixture_priv.h>
 
 void
-test_euler_mixture_twocomponent_basic()
+test_euler_mixture_twocomponent_basic_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -107,7 +107,7 @@ test_euler_mixture_twocomponent_basic()
 }
 
 void
-test_euler_mixture_threecomponent_basic()
+test_euler_mixture_threecomponent_basic_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -217,7 +217,7 @@ test_euler_mixture_threecomponent_basic()
 }
 
 void
-test_euler_mixture_twocomponent_waves()
+test_euler_mixture_twocomponent_waves_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -306,7 +306,7 @@ test_euler_mixture_twocomponent_waves()
 }
 
 void
-test_euler_mixture_twocomponent_waves_2()
+test_euler_mixture_twocomponent_waves_2_ho()
 {
   double gas_gamma1 = 1.2;
   double gas_gamma2 = 1.7;
@@ -395,7 +395,7 @@ test_euler_mixture_twocomponent_waves_2()
 }
 
 void
-test_euler_mixture_threecomponent_waves()
+test_euler_mixture_threecomponent_waves_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -488,7 +488,7 @@ test_euler_mixture_threecomponent_waves()
 }
 
 void
-test_euler_mixture_threecomponent_waves_2()
+test_euler_mixture_threecomponent_waves_2_ho()
 {
   double gas_gamma1 = 1.1;
   double gas_gamma2 = 1.5;
@@ -581,11 +581,11 @@ test_euler_mixture_threecomponent_waves_2()
 }
 
 TEST_LIST = {
-  { "euler_mixture_twocomponent_basic", test_euler_mixture_twocomponent_basic },
-  { "euler_mixture_threecomponent_basic", test_euler_mixture_threecomponent_basic },
-  { "euler_mixture_twocomponent_waves", test_euler_mixture_twocomponent_waves },
-  { "euler_mixture_twocomponent_waves_2", test_euler_mixture_twocomponent_waves_2 },
-  { "euler_mixture_threecomponent_waves", test_euler_mixture_threecomponent_waves },
-  { "euler_mixture_threecomponent_waves_2", test_euler_mixture_threecomponent_waves_2 },
+  { "euler_mixture_twocomponent_basic_ho", test_euler_mixture_twocomponent_basic_ho },
+  { "euler_mixture_threecomponent_basic_ho", test_euler_mixture_threecomponent_basic_ho },
+  { "euler_mixture_twocomponent_waves_ho", test_euler_mixture_twocomponent_waves_ho },
+  { "euler_mixture_twocomponent_waves_2_ho", test_euler_mixture_twocomponent_waves_2_ho },
+  { "euler_mixture_threecomponent_waves_ho", test_euler_mixture_threecomponent_waves_ho },
+  { "euler_mixture_threecomponent_waves_2_ho", test_euler_mixture_threecomponent_waves_2_ho },
   { NULL, NULL },
 };

@@ -255,20 +255,20 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_positivity_shift_vlasov_release(pos_shift);
 }
 
-void test_1x2v_ho()
+void test_positivity_shift_vlasov_1x2v_ho()
 {
   test_1x2v(1, false);
 }
 
-void test_1x2v_dev()
+void test_positivity_shift_vlasov_1x2v_dev()
 {
   test_1x2v(1, true);
 }
 
 TEST_LIST = {
-  { "test_1x2v_ho", test_1x2v_ho },
+  { "test_positivity_shift_vlasov_1x2v_ho", test_positivity_shift_vlasov_1x2v_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x2v_dev", test_1x2v_dev },
+  { "test_positivity_shift_vlasov_1x2v_dev", test_positivity_shift_vlasov_1x2v_dev },
 #endif
   { NULL, NULL },
 };

@@ -89,7 +89,7 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
         long loc_conf_ext = gkyl_range_idx(&conf_ext_range, idx_edge);
         long loc_phase_ext = gkyl_range_idx(&phase_ext_range, idx_edge);
 
-        double *cflrate_ext_d = (double*) gkyl_array_fetch(cflrate, loc_phase_ext);
+        double *cflrate_ext_d = (double*) gkyl_array_fetch(cflrate, loc_phase);
         const double *fL = (const double*)  gkyl_array_cfetch(fin, loc_phase);
         const double *fR = (const double*)  gkyl_array_cfetch(fin, loc_phase_ext);
         const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx_edge);
@@ -100,8 +100,11 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
         double* flux_surf_ext_d = (double*) gkyl_array_fetch(flux_surf, loc_phase_ext);
 
-        cflrate_ext_d[0] = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d);
+        // Write into the skin cell's own cflrate (not the ghost cell's, which is excluded
+        // from the CFL reduction range). Use a max instead of accumulating since cflrate_d
+        // already holds this cell's lower-surface contribution from earlier in this dir loop.
+        cflrate_ext_d[0] = GKYL_MAX2(cflrate_ext_d[0], up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d));
       }  
     }
   }

@@ -80,7 +80,7 @@ create_ctx(void)
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
 
   // Simulation parameters.
-  int Nx = 256; // Cell count (x-direction).
+  int Nx = 128; // Cell count (x-direction).
   int Ny = 256; // Cell count (y-direction).
   double Lx = 10.0; // Domain size (x-direction).
   double Ly = 10.0; // Domain size (y-direction).

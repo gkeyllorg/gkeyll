@@ -9,11 +9,11 @@
 #include <gkyl_util.h>
 #include <time.h>
 
-void test_dummy()
+void test_array_reduce_dummy_ho()
 {
 }
 
-void test_reduce()
+void test_reduce_ho()
 {
   int ncomp = 3, ncells = 200;
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
@@ -36,7 +36,7 @@ void test_reduce()
   gkyl_array_release(arr);
 }
 
-void test_reduce_range()
+void test_reduce_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -74,7 +74,7 @@ void test_reduce_range()
   gkyl_array_release(arr);
 }
 
-void test_sum_reduce_range()
+void test_sum_reduce_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -105,7 +105,7 @@ void test_sum_reduce_range()
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_cu_array_reduce_max()
+void test_array_reduce_max_dev()
 {
 
   unsigned long numComp = 3, numCells = 10;
@@ -139,7 +139,7 @@ void test_cu_array_reduce_max()
 
 }
 
-void test_cu_array_reduce_max_big()
+void test_array_reduce_max_big_dev()
 {
 
   unsigned long numComp = 12, numCells = 1000;
@@ -176,7 +176,7 @@ void test_cu_array_reduce_max_big()
 
 }
 
-void test_cu_array_reduce_range_1d_max()
+void test_array_reduce_range_1d_max_dev()
 {
   unsigned long numComp = 1, numCells = 10;
   // create host array and device copy
@@ -223,7 +223,7 @@ void test_cu_array_reduce_range_1d_max()
   gkyl_array_release(a1_cu);
 }
 
-void test_cu_array_reduce_range_2d_max()
+void test_array_reduce_range_2d_max_dev()
 {
   int cells[] = {8, 10};
   int ghost[] = {1, 0};
@@ -356,13 +356,13 @@ test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
 }
 
 void
-test_cu_array_reduce_range_max_timer_32x32x40x40()
+test_array_reduce_range_max_timer_32x32x40x40_dev()
 {
   test_cu_array_reduce_range_max_timer(32, 32, 40, 40);
 }
 
 void
-test_cu_array_reduce_range_max_timer_32x32x32x32()
+test_array_reduce_range_max_timer_32x32x32x32_dev()
 {
   test_cu_array_reduce_range_max_timer(32, 32, 32, 32);
 }
@@ -370,17 +370,17 @@ test_cu_array_reduce_range_max_timer_32x32x32x32()
 #endif
 
 TEST_LIST = {
-  { "dummy", test_dummy },
-  { "array_reduce", test_reduce },
-  { "array_reduce_range", test_reduce_range },
-  { "array_reduce_sum_range", test_sum_reduce_range },
+  { "array_reduce_dummy_ho", test_array_reduce_dummy_ho },
+  { "array_reduce_ho", test_reduce_ho },
+  { "array_reduce_range_ho", test_reduce_range_ho },
+  { "array_reduce_sum_range_ho", test_sum_reduce_range_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "cu_array_reduce_max", test_cu_array_reduce_max },
-  { "cu_array_reduce_max_big", test_cu_array_reduce_max_big },
-  { "cu_array_reduce_range_1d_max", test_cu_array_reduce_range_1d_max },
-  { "cu_array_reduce_range_2d_max", test_cu_array_reduce_range_2d_max },
-  { "cu_array_reduce_range_max_timer_32x32x40x40", test_cu_array_reduce_range_max_timer_32x32x40x40  },
-  { "cu_array_reduce_range_max_timer_32x32x32x32", test_cu_array_reduce_range_max_timer_32x32x32x32  },  
+  { "array_reduce_max_dev", test_array_reduce_max_dev },
+  { "array_reduce_max_big_dev", test_array_reduce_max_big_dev },
+  { "array_reduce_range_1d_max_dev", test_array_reduce_range_1d_max_dev },
+  { "array_reduce_range_2d_max_dev", test_array_reduce_range_2d_max_dev },
+  { "array_reduce_range_max_timer_32x32x40x40_dev", test_array_reduce_range_max_timer_32x32x40x40_dev  },
+  { "array_reduce_range_max_timer_32x32x32x32_dev", test_array_reduce_range_max_timer_32x32x32x32_dev  },  
 #endif
   { NULL, NULL },
 };

@@ -61,9 +61,9 @@ create_ctx(void)
   double diffusion_coeff = 1.0; // Diffusion coefficient.
 
   // Simulation parameters.
-  int Nx = 16; // Cell count (configuration space: x-direction).
-  int Ny = 16; // Cell count (configuration space: y-direction).
-  int Nz = 16; // Cell count (configuration space: z-direction).
+  int Nx = 8; // Cell count (configuration space: x-direction).
+  int Ny = 8; // Cell count (configuration space: y-direction).
+  int Nz = 8; // Cell count (configuration space: z-direction).
   double Lx = 4.0; // Domain size (configuration space: x-direction).
   double Ly = 4.0; // Domain size (configuration space: y-direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).

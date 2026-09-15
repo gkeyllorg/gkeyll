@@ -3,7 +3,7 @@
 #include <gkyl_util.h>
 
 void
-test_map_1(void)
+test_mpack_map_1_ho(void)
 {
   char *data;
   mpack_writer_t writer;
@@ -77,7 +77,7 @@ test_map_1(void)
 }
 
 void
-test_msgpack_1(void)
+test_msgpack_1_ho(void)
 {
   struct gkyl_msgpack_map_elem elist[] = {
     GKYL_MSGPACK_MAP_ELEM("bool", true), // 0
@@ -108,7 +108,7 @@ test_msgpack_1(void)
 }
 
 TEST_LIST = {
-  { "map_1", test_map_1 },
-  { "msgpack_1", test_msgpack_1 },  
+  { "mpack_map_1_ho", test_mpack_map_1_ho },
+  { "msgpack_1_ho", test_msgpack_1_ho },  
   { 0, 0 },
 };

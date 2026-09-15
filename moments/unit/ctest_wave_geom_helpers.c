@@ -3,7 +3,7 @@
 #include <../zero/wave_geom.c>
 
 static void
-test_tri()
+test_geom_helpers_tri_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(1, 1, 2);
   struct gkyl_vec3 p2 = gkyl_vec3_new(-2, 4, 3);
@@ -15,7 +15,7 @@ test_tri()
 }
 
 static void
-test_planar_quad_1()
+test_geom_helpers_planar_quad_1_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(0, 0, 0);
   struct gkyl_vec3 p2 = gkyl_vec3_new(1, 2, 3);
@@ -42,7 +42,7 @@ test_planar_quad_1()
 }
 
 static void
-test_quad_1()
+test_geom_helpers_quad_1_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(0, 0, 0);
   struct gkyl_vec3 p2 = gkyl_vec3_new(1, 2, 3);
@@ -79,7 +79,7 @@ test_quad_1()
 }
 
 static void
-test_quad_2()
+test_geom_helpers_quad_2_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(9., 3., 4.);
   struct gkyl_vec3 p2 = gkyl_vec3_new(9., 8., 7.);
@@ -111,7 +111,7 @@ test_quad_2()
 }
 
 static void
-test_vol_tetra_1()
+test_geom_helpers_vol_tetra_1_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(0, 0, 0);
   struct gkyl_vec3 p2 = gkyl_vec3_new(1, 0, 0);
@@ -122,7 +122,7 @@ test_vol_tetra_1()
 }
 
 static void
-test_vol_tetra_2()
+test_geom_helpers_vol_tetra_2_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(0.37, 0.07, 0.29);
   struct gkyl_vec3 p2 = gkyl_vec3_new(1.03, 0.08, 0.05);
@@ -133,7 +133,7 @@ test_vol_tetra_2()
 }
 
 static void
-test_vol_hexa_1()
+test_geom_helpers_vol_hexa_1_ho()
 {
   struct gkyl_vec3 verts[8] = {
     {0, 0, 0},
@@ -151,7 +151,7 @@ test_vol_hexa_1()
 }
 
 static void
-test_vol_hexa_2()
+test_geom_helpers_vol_hexa_2_ho()
 {
   struct gkyl_vec3 verts[8] = {
     {0.37, 0.07, 0.21},
@@ -169,13 +169,13 @@ test_vol_hexa_2()
 }
 
 TEST_LIST = {
-  { "triangle", test_tri },
-  { "parallelogram_as_planar_quad", test_planar_quad_1 },
-  { "parallelogram_as_quad", test_quad_1 },
-  { "quad", test_quad_2 },
-  { "vol_tetra_1", test_vol_tetra_1 },
-  { "vol_tetra_2", test_vol_tetra_2 },
-  { "vol_hexa_1", test_vol_hexa_1 },
-  { "vol_hexa_2", test_vol_hexa_2 },
+  { "geom_helpers_triangle_ho", test_geom_helpers_tri_ho },
+  { "geom_helpers_parallelogram_as_planar_quad_ho", test_geom_helpers_planar_quad_1_ho },
+  { "geom_helpers_parallelogram_as_quad_ho", test_geom_helpers_quad_1_ho },
+  { "geom_helpers_quad_ho", test_geom_helpers_quad_2_ho },
+  { "geom_helpers_vol_tetra_1_ho", test_geom_helpers_vol_tetra_1_ho },
+  { "geom_helpers_vol_tetra_2_ho", test_geom_helpers_vol_tetra_2_ho },
+  { "geom_helpers_vol_hexa_1_ho", test_geom_helpers_vol_hexa_1_ho },
+  { "geom_helpers_vol_hexa_2_ho", test_geom_helpers_vol_hexa_2_ho },
   { NULL, NULL },
 };

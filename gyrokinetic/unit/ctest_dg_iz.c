@@ -163,8 +163,8 @@ test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
   gkyl_dg_iz_release(coll_iz_up);
 }
 
-void coll_iz_h() { test_coll_iz(false, GKYL_ION_H); }
-void coll_iz_li() { test_coll_iz(false, GKYL_ION_LI); }
+void coll_iz_h_ho() { test_coll_iz(false, GKYL_ION_H); }
+void coll_iz_li_ho() { test_coll_iz(false, GKYL_ION_LI); }
 void coll_iz_ar() { test_coll_iz(false, GKYL_ION_AR); }
 void coll_iz_he() { test_coll_iz(false, GKYL_ION_HE); }
 void coll_iz_be() { test_coll_iz(false, GKYL_ION_BE); }
@@ -174,8 +174,8 @@ void coll_iz_n() { test_coll_iz(false, GKYL_ION_N); }
 void coll_iz_o() { test_coll_iz(false, GKYL_ION_O); }
 
 #ifdef GKYL_HAVE_CUDA
-void coll_iz_h_gpu() { test_coll_iz(true, GKYL_ION_H); }
-void coll_iz_li_gpu() { test_coll_iz(true, GKYL_ION_LI); }
+void coll_iz_h_dev() { test_coll_iz(true, GKYL_ION_H); }
+void coll_iz_li_dev() { test_coll_iz(true, GKYL_ION_LI); }
 void coll_iz_ar_gpu() { test_coll_iz(true, GKYL_ION_AR); }
 void coll_iz_he_gpu() { test_coll_iz(true, GKYL_ION_HE); }
 void coll_iz_be_gpu() { test_coll_iz(true, GKYL_ION_BE); }
@@ -186,11 +186,11 @@ void coll_iz_o_gpu() { test_coll_iz(true, GKYL_ION_O); }
 #endif
 
 TEST_LIST = {
-  { "coll_iz_h", coll_iz_h },
-  { "coll_iz_li", coll_iz_li },
+  { "coll_iz_h_ho", coll_iz_h_ho },
+  { "coll_iz_li_ho", coll_iz_li_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "coll_iz_h_gpu", coll_iz_h_gpu },
-  { "coll_iz_li_gpu", coll_iz_li_gpu },
+  { "coll_iz_h_dev", coll_iz_h_dev },
+  { "coll_iz_li_dev", coll_iz_li_dev },
 #endif
   { NULL, NULL },
 };

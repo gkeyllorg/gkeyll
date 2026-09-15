@@ -16,7 +16,7 @@ my_nomapc2p(double t, const double *xc, double *xp, void *ctx)
 }
 
 void
-test_wv_geom_1d_1()
+test_wv_geom_1d_1_ho()
 {
   int ndim = 1;
   double lower[] = {0.0}, upper[] = {1.0};
@@ -57,7 +57,7 @@ mapc2p(double t, const double *xc, double *xp, void *ctx)
 }
 
 void
-test_wv_geom_1d_2()
+test_wv_geom_1d_2_ho()
 {
   int ndim = 1;
   double lower[] = {0.0}, upper[] = {1.0};
@@ -99,7 +99,7 @@ test_wv_geom_1d_2()
 }
 
 void
-test_wv_geom_2d_1()
+test_wv_geom_2d_1_ho()
 {
   int ndim = 2;
   double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
@@ -168,7 +168,7 @@ mapc2p_2d(double t, const double *xc, double *xp, void *ctx)
 }
 
 void
-test_wv_geom_2d_2()
+test_wv_geom_2d_2_ho()
 {
   int ndim = 2;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -236,7 +236,7 @@ mapc2p_polar(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 }
 
 void
-test_wv_geom_2d_3()
+test_wv_geom_2d_3_ho()
 {
   int ndim = 2;
   double r_inn = 0.25, r_out = 1.25;
@@ -302,7 +302,7 @@ test_wv_geom_2d_3()
 }
 
 void
-test_wv_geom_3d_1()
+test_wv_geom_3d_1_ho()
 {
   int ndim = 3;
   double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
@@ -386,7 +386,7 @@ mapc2p_cylind(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 }
 
 void
-test_wv_geom_3d_2()
+test_wv_geom_3d_2_ho()
 {
   int ndim = 3;
   double z_min = 0, z_max = 1;
@@ -458,7 +458,7 @@ test_wv_geom_3d_2()
 int cu_wave_geom_test(const struct gkyl_wave_geom *wg);
 
 void
-test_wv_geom_3d_cu()
+test_wv_geom_3d_dev()
 {
   int ndim = 3;
   double z_min = 0, z_max = 1;
@@ -487,15 +487,15 @@ test_wv_geom_3d_cu()
 #endif
 
 TEST_LIST = {
-  { "wv_geom_1d_1", test_wv_geom_1d_1 },
-  { "wv_geom_1d_2", test_wv_geom_1d_2 },
-  { "wv_geom_2d_1", test_wv_geom_2d_1 },
-  { "wv_geom_2d_2", test_wv_geom_2d_2 },
-  { "wv_geom_2d_3", test_wv_geom_2d_3 },
-  { "wv_geom_3d_1", test_wv_geom_3d_1 },
-  { "wv_geom_3d_2", test_wv_geom_3d_2 },
+  { "wv_geom_1d_1_ho", test_wv_geom_1d_1_ho },
+  { "wv_geom_1d_2_ho", test_wv_geom_1d_2_ho },
+  { "wv_geom_2d_1_ho", test_wv_geom_2d_1_ho },
+  { "wv_geom_2d_2_ho", test_wv_geom_2d_2_ho },
+  { "wv_geom_2d_3_ho", test_wv_geom_2d_3_ho },
+  { "wv_geom_3d_1_ho", test_wv_geom_3d_1_ho },
+  { "wv_geom_3d_2_ho", test_wv_geom_3d_2_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "wv_geom_3d_cu", test_wv_geom_3d_cu },
+  { "wv_geom_3d_dev", test_wv_geom_3d_dev },
 #endif
   { NULL, NULL },
 };

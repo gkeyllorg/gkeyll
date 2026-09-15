@@ -114,10 +114,10 @@ create_ctx(void)
   double uz_elc2_sr = gamma_elc2 * uz_elc2; // Second electron relativistic velocity (z-direction).
 
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
-  int Nvx = 16; // Cell count (velocity space: vx-direction).
-  int Nvy = 16; // Cell count (velocity space: vy-direction).
-  int Nvz = 16; // Cell count (velocity space: vz-direction).
+  int Nx = 8; // Cell count (configuration space: x-direction).
+  int Nvx = 8; // Cell count (velocity space: vx-direction).
+  int Nvy = 8; // Cell count (velocity space: vy-direction).
+  int Nvz = 8; // Cell count (velocity space: vz-direction).
   double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
   double vx_max = 8.0; // Domain boundary (velocity space: vx-direction).
   double vy_max = 8.0; // Domain boundary (velocity space: vy-direction).

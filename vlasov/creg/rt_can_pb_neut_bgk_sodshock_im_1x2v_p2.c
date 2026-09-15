@@ -79,8 +79,8 @@ create_ctx(void)
   double nu = 15000.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (configuration space: x-direction).
-  int Nvx = 16; // Cell count (velocity space: vx-direction).
+  int Nx = 8; // Cell count (configuration space: x-direction).
+  int Nvx = 8; // Cell count (velocity space: vx-direction).
   int Nvy = 16; // Cell count (velocity space: vy-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
   double vx_max = 6.0 * vt; // Domain boundary (velocity space: vx-direction).

@@ -198,13 +198,13 @@ test_bop(bool use_gpu)
 
 }
 
-void test_bop_ho(void) { test_bop(false); }
-void test_bop_dev(void) { test_bop(true); }
+void test_deflated_bop_ho(void) { test_bop(false); }
+void test_deflated_bop_dev(void) { test_bop(true); }
 
 TEST_LIST = {
-  { "test_bop_ho", test_bop_ho},
+  { "test_deflated_bop_ho", test_deflated_bop_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_bop_dev", test_bop_dev},
+  { "test_deflated_bop_dev", test_deflated_bop_dev},
 #endif
   { NULL, NULL },
 };

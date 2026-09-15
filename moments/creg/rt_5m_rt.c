@@ -98,7 +98,7 @@ create_ctx(void)
   double grav = g_hat * omega_ci * vAi; // Gravitational acceleration.
 
   // Simulation parameters.
-  int Nx = 64; // Cell count (x-direction).
+  int Nx = 32; // Cell count (x-direction).
   int Ny = 64; // Cell count (y-direction).
   double Lx = 3.0; // Domain size (x-direction).
   double Ly = 3.75; // Domain size (y-direction).

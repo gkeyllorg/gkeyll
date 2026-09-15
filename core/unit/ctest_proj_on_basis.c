@@ -13,7 +13,7 @@ void evalFunc(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 void
-test_1()
+test_proj_on_basis_1_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0}, upper[] = {2.0};
@@ -55,7 +55,7 @@ test_1()
 }
 
 void
-test_2()
+test_proj_on_basis_2_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0}, upper[] = {2.0};
@@ -103,7 +103,7 @@ test_2()
 }
 
 void
-test_2_2d()
+test_proj_on_basis_2_2d_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0,-2.0}, upper[] = {2.0,2.0};
@@ -191,7 +191,7 @@ test_2_2d()
 }
 
 void
-test_2_3d()
+test_proj_on_basis_2_3d_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0,-2.0,-2.0}, upper[] = {2.0,2.0,2.0};
@@ -289,7 +289,7 @@ void evalFuncP(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 void
-test_3_3d()
+test_proj_on_basis_3_3d_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0,-2.0,-2.0}, upper[] = {2.0,2.0,2.0};
@@ -381,10 +381,10 @@ test_3_3d()
 }
 
 TEST_LIST = {
-  { "test_1", test_1 },
-  { "test_2", test_2 },  
-  { "test_2_2d", test_2_2d },  
-  { "test_2_3d", test_2_3d },  
-  { "test_3_3d", test_3_3d },  
+  { "test_proj_on_basis_1_ho", test_proj_on_basis_1_ho },
+  { "test_proj_on_basis_2_ho", test_proj_on_basis_2_ho },  
+  { "test_proj_on_basis_2_2d_ho", test_proj_on_basis_2_2d_ho },  
+  { "test_proj_on_basis_2_3d_ho", test_proj_on_basis_2_3d_ho },  
+  { "test_proj_on_basis_3_3d_ho", test_proj_on_basis_3_3d_ho },  
   { NULL, NULL },
 };

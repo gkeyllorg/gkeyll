@@ -263,7 +263,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   else {
     sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_1x2v_p%d_cpu.gkyl", poly_order);
   }   
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   gkyl_array_release(den); 
   gkyl_array_release(udrift); 
@@ -551,7 +551,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   else {
     sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_3x2v_p%d_cpu.gkyl", poly_order);
   }   
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // Calculate the moments and copy from device to host.
   struct gkyl_gk_maxwellian_moments_inp inp_calc = {
@@ -589,7 +589,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   else {
     sprintf(fname_moms, "ctest_proj_gkmaxwellian_on_basis_prim_mom_3x2v_p%d_moms_cpu.gkyl", poly_order);
   }   
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms, fname_moms);
+  // gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms, fname_moms);
 
   gkyl_array_release(den); 
   gkyl_array_release(udrift); 
@@ -623,21 +623,21 @@ test_3x2v_gk(int poly_order, bool use_gpu)
 #endif  
 }
 
-void test_1x2v_p1_gk() { test_1x2v_gk(1, false); }
-void test_3x2v_p1_gk() { test_3x2v_gk(1, false); }
+void test_proj_maxwellian_1x2v_p1_gk_ho() { test_1x2v_gk(1, false); }
+void test_proj_maxwellian_3x2v_p1_gk_ho() { test_3x2v_gk(1, false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_1x2v_p1_gk_gpu() { test_1x2v_gk(1, true); }
-void test_3x2v_p1_gk_gpu() { test_3x2v_gk(1, true); }
+void test_proj_maxwellian_1x2v_p1_gk_dev() { test_1x2v_gk(1, true); }
+void test_proj_maxwellian_3x2v_p1_gk_dev() { test_3x2v_gk(1, true); }
 #endif
 
 TEST_LIST = {
-  { "test_1x2v_p1_gk", test_1x2v_p1_gk },
-  { "test_3x2v_p1_gk", test_3x2v_p1_gk },
+  { "test_proj_maxwellian_1x2v_p1_gk_ho", test_proj_maxwellian_1x2v_p1_gk_ho },
+  { "test_proj_maxwellian_3x2v_p1_gk_ho", test_proj_maxwellian_3x2v_p1_gk_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x2v_p1_gk_gpu", test_1x2v_p1_gk_gpu },
-  { "test_3x2v_p1_gk_gpu", test_3x2v_p1_gk_gpu },
+  { "test_proj_maxwellian_1x2v_p1_gk_dev", test_proj_maxwellian_1x2v_p1_gk_dev },
+  { "test_proj_maxwellian_3x2v_p1_gk_dev", test_proj_maxwellian_3x2v_p1_gk_dev },
 #endif
   { NULL, NULL },
 };

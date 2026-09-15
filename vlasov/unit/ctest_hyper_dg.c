@@ -537,25 +537,25 @@ test_vlasov_2x3v_p1_(bool use_gpu)
 
 
 void
-test_vlasov_1x2v_p2()
+test_hyper_dg_vlasov_1x2v_p2_ho()
 {
   test_vlasov_1x2v_p2_(false);
 }
 
 void
-test_vlasov_1x2v_p2_cu()
+test_hyper_dg_vlasov_1x2v_p2_dev()
 {
   test_vlasov_1x2v_p2_(true);
 }
 
 void
-test_vlasov_2x3v_p1()
+test_hyper_dg_vlasov_2x3v_p1_ho()
 {
   test_vlasov_2x3v_p1_(false);
 }
 
 void
-test_vlasov_2x3v_p1_cu()
+test_hyper_dg_vlasov_2x3v_p1_dev()
 {
   test_vlasov_2x3v_p1_(true);
 }
@@ -567,11 +567,11 @@ int hyper_dg_kernel_test(const gkyl_hyper_dg *slvr) {
 #endif
 
 TEST_LIST = {
-  { "test_vlasov_1x2v_p2", test_vlasov_1x2v_p2 },
-  { "test_vlasov_2x3v_p1", test_vlasov_2x3v_p1 },
+  { "test_hyper_dg_vlasov_1x2v_p2_ho", test_hyper_dg_vlasov_1x2v_p2_ho },
+  { "test_hyper_dg_vlasov_2x3v_p1_ho", test_hyper_dg_vlasov_2x3v_p1_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_vlasov_1x2v_p2_cu", test_vlasov_1x2v_p2_cu },
-  { "test_vlasov_2x3v_p1_cu", test_vlasov_2x3v_p1_cu },
+  { "test_hyper_dg_vlasov_1x2v_p2_dev", test_hyper_dg_vlasov_1x2v_p2_dev },
+  { "test_hyper_dg_vlasov_2x3v_p1_dev", test_hyper_dg_vlasov_2x3v_p1_dev },
 #endif
   { NULL, NULL },
 };

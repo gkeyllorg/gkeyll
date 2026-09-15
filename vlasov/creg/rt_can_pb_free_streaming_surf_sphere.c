@@ -76,8 +76,8 @@ create_ctx(void)
   double vt = 1.0; // Thermal velocity.
 
   // Simulation parameters.
-  int Ntheta = 8; // Cell count (configuration space: polar angular direction).
-  int Nphi = 32; // Cell count (configuration space: azimuthal angular direction).
+  int Ntheta = 4; // Cell count (configuration space: polar angular direction).
+  int Nphi = 4; // Cell count (configuration space: azimuthal angular direction).
   int Nvtheta = 8; // Cell count (velocity space: polar angular direction).
   int Nvphi = 8; // Cell count (velocity space: azimuthal angular direction).
   double Ltheta = pi / 2.0; // Domain size (configuration space: polar angular direction).

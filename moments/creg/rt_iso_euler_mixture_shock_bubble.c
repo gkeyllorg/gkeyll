@@ -75,7 +75,7 @@ create_ctx(void)
   double alpha1_bub = 0.00001; // Bubble volume fraction (first species).
 
   // Simulation parameters.
-  int Nx = 325; // Cell count (x-direction).
+  int Nx = 162; // Cell count (x-direction).
   int Ny = 89; // Cell count (y-direction).
   double Lx = 0.325; // Domain size (x-direction).
   double Ly = 0.089; // Domain size (y-direction).

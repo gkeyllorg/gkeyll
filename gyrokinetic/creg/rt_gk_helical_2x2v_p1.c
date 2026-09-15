@@ -38,13 +38,10 @@ struct gk_app_ctx {
 
   // Grid parameters.
   double Lx; // Domain size in radial direction.
-  double Ly; // Domain size in binormal direction.
   double Lz; // Domain size along magnetic field.
   double x_min; double x_max;
-  double y_min; double y_max;
   double z_min; double z_max;
   int Nx;
-  int Ny;
   int Nz;
   int Nvpar;
   int Nmu;
@@ -64,7 +61,7 @@ struct gk_app_ctx {
 // Common source density profiles.
 double sourceDensity(double t, const double * GKYL_RESTRICT xn, void *ctx)
 {
-  double x = xn[0], z = xn[2];
+  double x = xn[0], z = xn[1];
   double sourceFloor = 0.1;
 
   struct gk_app_ctx *app = ctx;
@@ -86,7 +83,7 @@ double sourceDensity(double t, const double * GKYL_RESTRICT xn, void *ctx)
 // Common source temperature profile.
 double sourceTemperature(double t, const double * GKYL_RESTRICT xn, void *ctx)
 {
-  double x = xn[0], z = xn[2];
+  double x = xn[0], z = xn[1];
   struct gk_app_ctx *app = ctx;
   double xSource = app->xSource;
   double lambdaSource = app->lambdaSource;
@@ -100,10 +97,10 @@ double sourceTemperature(double t, const double * GKYL_RESTRICT xn, void *ctx)
 // Initial density.
 double densityInit(double t, const double * GKYL_RESTRICT xn, void *ctx)
 {
-  double x = xn[0], y = xn[1], z = xn[2];
+  double x = xn[0], z = xn[1];
   struct gk_app_ctx *app = ctx;
   double Ls = app->Lz/4;
-  double xSource[3] = {x, y, 0};
+  double xSource[2] = {x, 0};
   double effectiveSource = sourceDensity(t, xSource, ctx);
   double c_ss = sqrt(5/3*sourceTemperature(t, xSource, ctx)/app->mi);
   double nPeak = 4*sqrt(5)/3/c_ss*Ls*effectiveSource/2;
@@ -119,7 +116,7 @@ double densityInit(double t, const double * GKYL_RESTRICT xn, void *ctx)
 // Initial temperature.
 double temperatureInit(double t, const double * GKYL_RESTRICT xn, void *ctx)
 {
-  double x = xn[0], y = xn[1], z = xn[2];
+  double x = xn[0], z = xn[1];
   struct gk_app_ctx *app = ctx;
   double xSource = app->xSource;
   double lambdaSource = app->lambdaSource;
@@ -132,7 +129,7 @@ double temperatureInit(double t, const double * GKYL_RESTRICT xn, void *ctx)
 
 // Initial ion drift speed.
 double driftSpeed(const double * GKYL_RESTRICT xn, void *ctx){
-  double x = xn[0], y = xn[1], z = xn[2];
+  double x = xn[0], z = xn[1];
   struct gk_app_ctx *app = ctx;
   double xSource = app->xSource;
   double lambdaSource = app->lambdaSource;
@@ -150,6 +147,14 @@ double driftSpeed(const double * GKYL_RESTRICT xn, void *ctx){
   } else {
     return (z > 0 ? 1.0 : -1.0)*sqrt(Te/mi);
   }
+}
+
+void
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  fout[0] = 0.5; // Diffusivity [m^2/s].
 }
 
 // Radial coordinate mapping.
@@ -205,17 +210,8 @@ double phix(const double *xc, void *ctx)
   double Rc = app->Rc;
   double Bt = Bphi(xc, ctx);
   double Bv = Bvert(xc, ctx);
-
-  // Original Shi mapping. This mapping does not pass the right hand check.
-  // double theta = asin(Lp/Lt);
-  // return (y/sin(theta) + z*cos(theta))/Rc; // O
-
-  // This mapping passes right hand check but does not conserve particle!
-  // double theta = thetax(xc, ctx);
-  // return (y/sin(theta) + z*cos(theta))/x;
-
-  // Helical sheared mapping. Passes right hand check and conserves particle.
   double theta = thetax(xc, ctx);
+
   return y/Rc + (Bt * z*sin(theta))/(Bv * x); 
 }
 
@@ -262,7 +258,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 struct gk_app_ctx
 create_ctx(void)
 {
-  int cdim = 3, vdim = 2; // Dimensionality.
+  int cdim = 2, vdim = 2; // Dimensionality.
 
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0, eV = GKYL_ELEMENTARY_CHARGE;
@@ -308,22 +304,18 @@ create_ctx(void)
 
   // Box size.
   double Lx = 50*rho_s;
-  double Ly = 100*rho_s;
   double Lz = Lt; // [m]
 
   double x_min = Rc - Lx/2;
   double x_max = Rc + Lx/2;
-  double y_min = -Ly/2;
-  double y_max = Ly/2;
   double z_min = -Lz/2;
   double z_max = Lz/2;
 
   // Grid parameters
-  int Nx = 8;
-  int Ny = 4;
-  int Nz = 4;
-  int Nvpar = 4;
-  int Nmu = 2;
+  int Nx = 8; // (16)
+  int Nz = 6; // (12)
+  int Nvpar = 5; // (10)
+  int Nmu = 4; // (5)
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
@@ -346,10 +338,8 @@ create_ctx(void)
     .Rc = Rc,
     .Bv0 = Bv0,
     .Lx = Lx,
-    .Ly = Ly,
     .Lz = Lz,
     .x_min = x_min, .x_max = x_max,
-    .y_min = y_min, .y_max = y_max,
     .z_min = z_min, .z_max = z_max,
 
     .me = me, .qe = qe,
@@ -364,11 +354,10 @@ create_ctx(void)
     .lambdaSource = lambdaSource,
   
     .Nx = Nx,
-    .Ny = Ny,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .vpar_max_elc = vpar_max_elc, .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion, .mu_max_ion = mu_max_ion,
@@ -432,6 +421,13 @@ main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+      .write_diagnostics = true,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .num_cross_collisions = 1,
@@ -462,8 +458,8 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
     },
 
     .num_diag_moments = 9,
@@ -508,6 +504,13 @@ main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+      .write_diagnostics = true,
+    },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .num_cross_collisions = 1,
@@ -538,8 +541,8 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
     },
 
     .num_diag_moments = 9,
@@ -573,12 +576,12 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
 
     .cfl_frac_omegaH = 1.0,
-    .cfl_frac = 0.9,
+    .cfl_frac = 1.0,
 
     .cdim = ctx.cdim,
-    .lower = { ctx.x_min, ctx.y_min, ctx.z_min },
-    .upper = { ctx.x_max, ctx.y_max, ctx.z_max },
-    .cells = { cells_x[0], cells_x[1], cells_x[2] },
+    .lower = { ctx.x_min, ctx.z_min },
+    .upper = { ctx.x_max, ctx.z_max },
+    .cells = { cells_x[0], cells_x[1] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
@@ -590,9 +593,6 @@ main(int argc, char **argv)
       .bfield_ctx = &ctx,
     },
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
-
     .num_species = 2,
     .species = { elc, ion },
     .field = field,
@@ -600,7 +600,7 @@ main(int argc, char **argv)
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .comm = comm,
-      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
     }
   };
 

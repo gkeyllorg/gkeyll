@@ -149,8 +149,8 @@ create_ctx(void)
   int Nx = 4; // Cell count (configuration space: x-direction).
   int Ny = 1; // Cell count (configuration space: y-direction).
   int Nz = 4; // Cell count (configuration space: z-direction).
-  int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
+  int Nvpar = 8; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
   double Lx = 1.0;
   double Ly = 1.0;
   double Lz = 4.0; // Domain size (configuration space: z-direction).
@@ -707,6 +707,9 @@ main(int argc, char **argv)
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
     },
+    .print_verbosity = {
+      .enabled = true,
+    }
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

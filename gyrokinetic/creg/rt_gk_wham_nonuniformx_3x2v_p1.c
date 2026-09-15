@@ -524,9 +524,9 @@ create_ctx(void)
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int Nx = 2;
   int Ny = 2;
-  int Nz = 32;
-  int Nvpar = 10; // Number of cells in the paralell velocity direction 96
-  int Nmu = 10;  // Number of cells in the mu direction 192
+  int Nz = 4;
+  int Nvpar = 5; // Number of cells in the paralell velocity direction 96
+  int Nmu = 5;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
   double t_end = 1e-9;

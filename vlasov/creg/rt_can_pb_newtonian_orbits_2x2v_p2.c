@@ -81,10 +81,10 @@ create_ctx(void)
   double vt = 1.0; // Thermal velocity.
 
   // Simulation parameters.
-  int Nr = 16; // Cell count (configuration space: radial direction).
-  int Ntheta = 32; // Cell count (configuration space: azimuthal angular direction).
+  int Nr = 8; // Cell count (configuration space: radial direction).
+  int Ntheta = 8; // Cell count (configuration space: azimuthal angular direction).
   int Nvr = 8; // Cell count (velocity space: radial direction).
-  int Nvtheta = 32; // Cell count (velocity space: azimuthal angular direction).
+  int Nvtheta = 16; // Cell count (velocity space: azimuthal angular direction).
   double Lr_min = 0.5; // Domain size radius min (configuration space: radial direction).
   double Lr_max = 2.0; // Domain size radius max (configuration space: radial direction).
   double Ltheta_min = 0.0; // Domain size minimum (configuration space: azimuthal angular direction).
@@ -94,7 +94,7 @@ create_ctx(void)
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.001; // Final simulation time.
+  double t_end = 0.01; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

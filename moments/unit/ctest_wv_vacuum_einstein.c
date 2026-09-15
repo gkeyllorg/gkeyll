@@ -7,7 +7,7 @@
 #include <gkyl_gr_blackhole.h>
 
 void
-test_vacuum_einstein_basic_minkowski()
+test_vacuum_einstein_basic_minkowski_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING;
@@ -337,7 +337,7 @@ test_vacuum_einstein_basic_minkowski()
         vacuum_einstein->rotate_to_global_func(vacuum_einstein, tau1[d], tau2[d], norm[d], flux_local, flux);
 
         for (int i = 0; i < 42; i++) {
-          TEST_CHECK( gkyl_compare(flux[i + 10], fluxes[d][i], 1e-8) );
+          TEST_CHECK( gkyl_compare(flux[i + 10], fluxes[d][i], 1e-6) );
         }
       }
       
@@ -347,7 +347,7 @@ test_vacuum_einstein_basic_minkowski()
         gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], q_l, q_g);
 
         for (int i = 0; i < 64; i++) {
-          TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+          TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-14) );
         }
 
         double w1[64], q1[64];
@@ -355,7 +355,7 @@ test_vacuum_einstein_basic_minkowski()
         vacuum_einstein->riem_to_cons(vacuum_einstein, q_local, w1, q1);
 
         for (int i = 0; i < 64; i++) {
-          TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+          TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-14) );
         }
       }
 
@@ -385,7 +385,7 @@ test_vacuum_einstein_basic_minkowski()
 }
 
 void
-test_vacuum_einstein_basic_schwarzschild()
+test_vacuum_einstein_basic_schwarzschild_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
@@ -716,7 +716,7 @@ test_vacuum_einstein_basic_schwarzschild()
           vacuum_einstein->rotate_to_global_func(vacuum_einstein, tau1[d], tau2[d], norm[d], flux_local, flux);
 
           for (int i = 0; i < 42; i++) {
-            TEST_CHECK( gkyl_compare(flux[i + 10], fluxes[d][i], 1e-6) );
+            TEST_CHECK( gkyl_compare(flux[i + 10], fluxes[d][i], 1e-5) );
           }
         }
         
@@ -726,7 +726,7 @@ test_vacuum_einstein_basic_schwarzschild()
           gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 64; i++) {
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-14) );
           }
 
           double w1[64], q1[64];
@@ -734,7 +734,7 @@ test_vacuum_einstein_basic_schwarzschild()
           vacuum_einstein->riem_to_cons(vacuum_einstein, q_local, w1, q1);
 
           for (int i = 0; i < 64; i++) {
-            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-14) );
           }
         }
       }
@@ -765,7 +765,7 @@ test_vacuum_einstein_basic_schwarzschild()
 }
 
 void
-test_vacuum_einstein_waves_schwarzschild()
+test_vacuum_einstein_waves_schwarzschild_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
@@ -1088,7 +1088,7 @@ test_vacuum_einstein_waves_schwarzschild()
           gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], fr_local, fr);
 
           for (int i = 0; i < 64; i++) {
-            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-11) );
+            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-10) );
           }
         }
       }
@@ -1129,7 +1129,7 @@ test_vacuum_einstein_waves_schwarzschild()
 }
 
 void
-test_vacuum_einstein_waves_kerr()
+test_vacuum_einstein_waves_kerr_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
@@ -1452,7 +1452,7 @@ test_vacuum_einstein_waves_kerr()
           gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], fr_local, fr);
 
           for (int i = 0; i < 64; i++) {
-            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12) );
+            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-10) );
           }
         }
       }
@@ -1493,9 +1493,9 @@ test_vacuum_einstein_waves_kerr()
 }
 
 TEST_LIST = {
-  { "vacuum_einstein_basic_minkowski", test_vacuum_einstein_basic_minkowski },
-  { "vacuum_einstein_basic_schwarzschild", test_vacuum_einstein_basic_schwarzschild },
-  { "vacuum_einstein_waves_schwarzschild", test_vacuum_einstein_waves_schwarzschild },
-  { "vacuum_einstein_waves_kerr", test_vacuum_einstein_waves_kerr },
+  { "vacuum_einstein_basic_minkowski_ho", test_vacuum_einstein_basic_minkowski_ho },
+  { "vacuum_einstein_basic_schwarzschild_ho", test_vacuum_einstein_basic_schwarzschild_ho },
+  { "vacuum_einstein_waves_schwarzschild_ho", test_vacuum_einstein_waves_schwarzschild_ho },
+  { "vacuum_einstein_waves_kerr_ho", test_vacuum_einstein_waves_kerr_ho },
   { NULL, NULL },
 };

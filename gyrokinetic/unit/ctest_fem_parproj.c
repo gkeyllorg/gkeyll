@@ -1841,162 +1841,162 @@ test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
 
 }
 
-void test_1x_p1_bcnone_ho() {test_1x(1, GKYL_FEM_PARPROJ_NONE, false);}
-void test_1x_p1_bcdirichlet_ho() {
+void test_fem_parproj_1x_p1_bcnone_ho() {test_1x(1, GKYL_FEM_PARPROJ_NONE, false);}
+void test_fem_parproj_1x_p1_bcdirichlet_ho() {
   test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_1x_p1_bcperiodic_ho() {test_1x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
+void test_fem_parproj_1x_p1_bcperiodic_ho() {test_1x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
 
-void test_1x_p2_bcnone_ho() {test_1x(2, GKYL_FEM_PARPROJ_NONE, false);}
-void test_1x_p2_bcdirichlet_ho() {
+void test_fem_parproj_1x_p2_bcnone_ho() {test_1x(2, GKYL_FEM_PARPROJ_NONE, false);}
+void test_fem_parproj_1x_p2_bcdirichlet_ho() {
   test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_1x_p2_bcperiodic_ho() {test_1x(2, GKYL_FEM_PARPROJ_PERIODIC, false);}
+void test_fem_parproj_1x_p2_bcperiodic_ho() {test_1x(2, GKYL_FEM_PARPROJ_PERIODIC, false);}
 
-void test_2x_p1_bcnone_ho() {test_2x(1, GKYL_FEM_PARPROJ_NONE, false);}
-void test_2x_p1_bcdirichlet_ho() {
+void test_fem_parproj_2x_p1_bcnone_ho() {test_2x(1, GKYL_FEM_PARPROJ_NONE, false);}
+void test_fem_parproj_2x_p1_bcdirichlet_ho() {
   test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_2x_p1_bcperiodic_ho() {test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
-void test_2x_p1_weighted_ho() {
+void test_fem_parproj_2x_p1_bcperiodic_ho() {test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
+void test_fem_parproj_2x_p1_weighted_ho() {
   test_2x_weighted(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_2x_weighted(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_2x_p1_selfadjoint_ho() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, false);}
-void test_2x_p1_bcdirichlet_bias_ho() {
+void test_fem_parproj_2x_p1_selfadjoint_ho() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, false);}
+void test_fem_parproj_2x_p1_bcdirichlet_bias_ho() {
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
 
-void test_2x_p2_bcnone_ho() {test_2x(2, GKYL_FEM_PARPROJ_NONE, false);}
-void test_2x_p2_bcdirichlet_ho() {
+void test_fem_parproj_2x_p2_bcnone_ho() {test_2x(2, GKYL_FEM_PARPROJ_NONE, false);}
+void test_fem_parproj_2x_p2_bcdirichlet_ho() {
   test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_2x_p2_bcperiodic_ho() {test_2x(2, GKYL_FEM_PARPROJ_PERIODIC, false);}
+void test_fem_parproj_2x_p2_bcperiodic_ho() {test_2x(2, GKYL_FEM_PARPROJ_PERIODIC, false);}
 
-void test_3x_p1_bcnone_ho() {test_3x(1, GKYL_FEM_PARPROJ_NONE, false);}
-void test_3x_p1_bcdirichlet_ho() {
+void test_fem_parproj_3x_p1_bcnone_ho() {test_3x(1, GKYL_FEM_PARPROJ_NONE, false);}
+void test_fem_parproj_3x_p1_bcdirichlet_ho() {
   test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_3x_p1_bcperiodic_ho() {test_3x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
-void test_3x_p1_bcdirichlet_bias_ho() {
+void test_fem_parproj_3x_p1_bcperiodic_ho() {test_3x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
+void test_fem_parproj_3x_p1_bcdirichlet_bias_ho() {
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
 
-void test_3x_p2_bcnone_ho() {test_3x(2, GKYL_FEM_PARPROJ_NONE, false);}
-void test_3x_p2_bcdirichlet_ho() {
+void test_fem_parproj_3x_p2_bcnone_ho() {test_3x(2, GKYL_FEM_PARPROJ_NONE, false);}
+void test_fem_parproj_3x_p2_bcdirichlet_ho() {
   test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_3x_p2_bcperiodic_ho() {test_3x(2, GKYL_FEM_PARPROJ_PERIODIC, false);}
+void test_fem_parproj_3x_p2_bcperiodic_ho() {test_3x(2, GKYL_FEM_PARPROJ_PERIODIC, false);}
 
 #ifdef GKYL_HAVE_CUDA
 // ......... GPU tests ............ //
-void test_1x_p1_bcnone_dev() {test_1x(1, GKYL_FEM_PARPROJ_NONE, true);}
-void test_1x_p1_bcdirichlet_dev() {
+void test_fem_parproj_1x_p1_bcnone_dev() {test_1x(1, GKYL_FEM_PARPROJ_NONE, true);}
+void test_fem_parproj_1x_p1_bcdirichlet_dev() {
   test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_1x_p1_bcperiodic_dev() {test_1x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
+void test_fem_parproj_1x_p1_bcperiodic_dev() {test_1x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
 
-void test_1x_p2_bcnone_dev() {test_1x(2, GKYL_FEM_PARPROJ_NONE, true);}
-void test_1x_p2_bcdirichlet_dev() {
+void test_fem_parproj_1x_p2_bcnone_dev() {test_1x(2, GKYL_FEM_PARPROJ_NONE, true);}
+void test_fem_parproj_1x_p2_bcdirichlet_dev() {
   test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_1x_p2_bcperiodic_dev() {test_1x(2, GKYL_FEM_PARPROJ_PERIODIC, true);}
+void test_fem_parproj_1x_p2_bcperiodic_dev() {test_1x(2, GKYL_FEM_PARPROJ_PERIODIC, true);}
 
-void test_2x_p1_bcnone_dev() {test_2x(1, GKYL_FEM_PARPROJ_NONE, true);}
-void test_2x_p1_bcdirichlet_dev() {
+void test_fem_parproj_2x_p1_bcnone_dev() {test_2x(1, GKYL_FEM_PARPROJ_NONE, true);}
+void test_fem_parproj_2x_p1_bcdirichlet_dev() {
   test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_2x_p1_bcperiodic_dev() {test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
-void test_2x_p1_weighted_dev() {test_2x_weighted(1, GKYL_FEM_PARPROJ_NONE, true);}
-void test_2x_p1_selfadjoint_dev() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, true);}
-void test_2x_p1_bcdirichlet_bias_dev() {
+void test_fem_parproj_2x_p1_bcperiodic_dev() {test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
+void test_fem_parproj_2x_p1_weighted_dev() {test_2x_weighted(1, GKYL_FEM_PARPROJ_NONE, true);}
+void test_fem_parproj_2x_p1_selfadjoint_dev() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, true);}
+void test_fem_parproj_2x_p1_bcdirichlet_bias_dev() {
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
 
-void test_2x_p2_bcnone_dev() {test_2x(2, GKYL_FEM_PARPROJ_NONE, true);}
-void test_2x_p2_bcdirichlet_dev() {
+void test_fem_parproj_2x_p2_bcnone_dev() {test_2x(2, GKYL_FEM_PARPROJ_NONE, true);}
+void test_fem_parproj_2x_p2_bcdirichlet_dev() {
   test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_2x_p2_bcperiodic_dev() {test_2x(2, GKYL_FEM_PARPROJ_PERIODIC, true);}
+void test_fem_parproj_2x_p2_bcperiodic_dev() {test_2x(2, GKYL_FEM_PARPROJ_PERIODIC, true);}
 
-void test_3x_p1_bcnone_dev() {test_3x(1, GKYL_FEM_PARPROJ_NONE, true);}
-void test_3x_p1_bcdirichlet_dev() {
+void test_fem_parproj_3x_p1_bcnone_dev() {test_3x(1, GKYL_FEM_PARPROJ_NONE, true);}
+void test_fem_parproj_3x_p1_bcdirichlet_dev() {
   test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_3x_p1_bcperiodic_dev() {test_3x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
-void test_3x_p1_bcdirichlet_bias_dev() {
+void test_fem_parproj_3x_p1_bcperiodic_dev() {test_3x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
+void test_fem_parproj_3x_p1_bcdirichlet_bias_dev() {
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
 
-void test_3x_p2_bcnone_dev() {test_3x(2, GKYL_FEM_PARPROJ_NONE, true);}
-void test_3x_p2_bcdirichlet_dev() {
+void test_fem_parproj_3x_p2_bcnone_dev() {test_3x(2, GKYL_FEM_PARPROJ_NONE, true);}
+void test_fem_parproj_3x_p2_bcdirichlet_dev() {
   test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_3x_p2_bcperiodic_dev() {test_3x(2, GKYL_FEM_PARPROJ_PERIODIC, true);}
+void test_fem_parproj_3x_p2_bcperiodic_dev() {test_3x(2, GKYL_FEM_PARPROJ_PERIODIC, true);}
 #endif
 
 TEST_LIST = {
-  { "test_1x_p1_bcnone_ho", test_1x_p1_bcnone_ho },
-  { "test_1x_p1_bcdirichlet_ho", test_1x_p1_bcdirichlet_ho },
-  { "test_1x_p1_bcperiodic_ho", test_1x_p1_bcperiodic_ho },
-  { "test_1x_p2_bcnone_ho", test_1x_p2_bcnone_ho },
-  // { "test_1x_p2_bcdirichlet_ho", test_1x_p2_bcdirichlet_ho },
-  { "test_1x_p2_bcperiodic_ho", test_1x_p2_bcperiodic_ho },
-  { "test_2x_p1_bcnone_ho", test_2x_p1_bcnone_ho },
-  { "test_2x_p1_bcdirichlet_ho", test_2x_p1_bcdirichlet_ho },
-  { "test_2x_p1_bcperiodic_ho", test_2x_p1_bcperiodic_ho },
-  { "test_2x_p2_bcnone_ho", test_2x_p2_bcnone_ho },
-  // { "test_2x_p2_bcdirichlet_ho", test_2x_p2_bcdirichlet_ho },
-  { "test_2x_p2_bcperiodic_ho", test_2x_p2_bcperiodic_ho },
-  { "test_2x_p1_weighted_ho", test_2x_p1_weighted_ho},
-  { "test_2x_p1_selfadjoint_ho", test_2x_p1_selfadjoint_ho},
-  { "test_2x_p1_bcdirichlet_bias_ho", test_2x_p1_bcdirichlet_bias_ho },
-  { "test_3x_p1_bcnone_ho", test_3x_p1_bcnone_ho },
-  { "test_3x_p1_bcdirichlet_ho", test_3x_p1_bcdirichlet_ho },
-  { "test_3x_p1_bcperiodic_ho", test_3x_p1_bcperiodic_ho },
-  { "test_3x_p1_bcdirichlet_bias_ho", test_3x_p1_bcdirichlet_bias_ho },
-  { "test_3x_p2_bcnone_ho", test_3x_p2_bcnone_ho },
-  // { "test_3x_p2_bcdirichlet_ho", test_3x_p2_bcdirichlet_ho },
-  { "test_3x_p2_bcperiodic_ho", test_3x_p2_bcperiodic_ho },
+  { "test_fem_parproj_1x_p1_bcnone_ho", test_fem_parproj_1x_p1_bcnone_ho },
+  { "test_fem_parproj_1x_p1_bcdirichlet_ho", test_fem_parproj_1x_p1_bcdirichlet_ho },
+  { "test_fem_parproj_1x_p1_bcperiodic_ho", test_fem_parproj_1x_p1_bcperiodic_ho },
+  { "test_fem_parproj_1x_p2_bcnone_ho", test_fem_parproj_1x_p2_bcnone_ho },
+  // { "test_fem_parproj_1x_p2_bcdirichlet_ho", test_fem_parproj_1x_p2_bcdirichlet_ho },
+  { "test_fem_parproj_1x_p2_bcperiodic_ho", test_fem_parproj_1x_p2_bcperiodic_ho },
+  { "test_fem_parproj_2x_p1_bcnone_ho", test_fem_parproj_2x_p1_bcnone_ho },
+  { "test_fem_parproj_2x_p1_bcdirichlet_ho", test_fem_parproj_2x_p1_bcdirichlet_ho },
+  { "test_fem_parproj_2x_p1_bcperiodic_ho", test_fem_parproj_2x_p1_bcperiodic_ho },
+  { "test_fem_parproj_2x_p2_bcnone_ho", test_fem_parproj_2x_p2_bcnone_ho },
+  // { "test_fem_parproj_2x_p2_bcdirichlet_ho", test_fem_parproj_2x_p2_bcdirichlet_ho },
+  { "test_fem_parproj_2x_p2_bcperiodic_ho", test_fem_parproj_2x_p2_bcperiodic_ho },
+  { "test_fem_parproj_2x_p1_weighted_ho", test_fem_parproj_2x_p1_weighted_ho},
+  { "test_fem_parproj_2x_p1_selfadjoint_ho", test_fem_parproj_2x_p1_selfadjoint_ho},
+  { "test_fem_parproj_2x_p1_bcdirichlet_bias_ho", test_fem_parproj_2x_p1_bcdirichlet_bias_ho },
+  { "test_fem_parproj_3x_p1_bcnone_ho", test_fem_parproj_3x_p1_bcnone_ho },
+  { "test_fem_parproj_3x_p1_bcdirichlet_ho", test_fem_parproj_3x_p1_bcdirichlet_ho },
+  { "test_fem_parproj_3x_p1_bcperiodic_ho", test_fem_parproj_3x_p1_bcperiodic_ho },
+  { "test_fem_parproj_3x_p1_bcdirichlet_bias_ho", test_fem_parproj_3x_p1_bcdirichlet_bias_ho },
+  { "test_fem_parproj_3x_p2_bcnone_ho", test_fem_parproj_3x_p2_bcnone_ho },
+  // { "test_fem_parproj_3x_p2_bcdirichlet_ho", test_fem_parproj_3x_p2_bcdirichlet_ho },
+  { "test_fem_parproj_3x_p2_bcperiodic_ho", test_fem_parproj_3x_p2_bcperiodic_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x_p1_bcnone_dev", test_1x_p1_bcnone_dev },
-  { "test_1x_p1_bcdirichlet_dev", test_1x_p1_bcdirichlet_dev },
-  { "test_1x_p1_bcperiodic_dev", test_1x_p1_bcperiodic_dev },
-  { "test_1x_p2_bcnone_dev", test_1x_p2_bcnone_dev },
-  // { "test_1x_p2_bcdirichlet_dev", test_1x_p2_bcdirichlet_dev },
-  { "test_1x_p2_bcperiodic_dev", test_1x_p2_bcperiodic_dev },
-  { "test_2x_p1_bcnone_dev", test_2x_p1_bcnone_dev },
-  { "test_2x_p1_bcdirichlet_dev", test_2x_p1_bcdirichlet_dev },
-  { "test_2x_p1_bcperiodic_dev", test_2x_p1_bcperiodic_dev },
-  { "test_2x_p2_bcnone_dev", test_2x_p2_bcnone_dev },
-  // { "test_2x_p2_bcdirichlet_dev", test_2x_p2_bcdirichlet_dev },
-  { "test_2x_p2_bcperiodic_dev", test_2x_p2_bcperiodic_dev },
-  { "test_2x_p1_weighted_dev_dev", test_2x_p1_weighted_dev},
-  { "test_2x_p1_selfadjoint_dev", test_2x_p1_selfadjoint_dev},
-  { "test_2x_p1_bcdirichlet_bias_dev", test_2x_p1_bcdirichlet_bias_dev },
-  { "test_3x_p1_bcnone_dev", test_3x_p1_bcnone_dev },
-  { "test_3x_p1_bcdirichlet_dev", test_3x_p1_bcdirichlet_dev },
-  { "test_3x_p1_bcperiodic_dev", test_3x_p1_bcperiodic_dev },
-  { "test_3x_p1_bcdirichlet_bias_dev", test_3x_p1_bcdirichlet_bias_dev },
-  { "test_3x_p2_bcnone_dev", test_3x_p2_bcnone_dev },
-  // { "test_3x_p2_bcdirichlet_dev", test_3x_p2_bcdirichlet_dev },
-  { "test_3x_p2_bcperiodic_dev", test_3x_p2_bcperiodic_dev },
+  { "test_fem_parproj_1x_p1_bcnone_dev", test_fem_parproj_1x_p1_bcnone_dev },
+  { "test_fem_parproj_1x_p1_bcdirichlet_dev", test_fem_parproj_1x_p1_bcdirichlet_dev },
+  { "test_fem_parproj_1x_p1_bcperiodic_dev", test_fem_parproj_1x_p1_bcperiodic_dev },
+  { "test_fem_parproj_1x_p2_bcnone_dev", test_fem_parproj_1x_p2_bcnone_dev },
+  // { "test_fem_parproj_1x_p2_bcdirichlet_dev", test_fem_parproj_1x_p2_bcdirichlet_dev },
+  { "test_fem_parproj_1x_p2_bcperiodic_dev", test_fem_parproj_1x_p2_bcperiodic_dev },
+  { "test_fem_parproj_2x_p1_bcnone_dev", test_fem_parproj_2x_p1_bcnone_dev },
+  { "test_fem_parproj_2x_p1_bcdirichlet_dev", test_fem_parproj_2x_p1_bcdirichlet_dev },
+  { "test_fem_parproj_2x_p1_bcperiodic_dev", test_fem_parproj_2x_p1_bcperiodic_dev },
+  { "test_fem_parproj_2x_p2_bcnone_dev", test_fem_parproj_2x_p2_bcnone_dev },
+  // { "test_fem_parproj_2x_p2_bcdirichlet_dev", test_fem_parproj_2x_p2_bcdirichlet_dev },
+  { "test_fem_parproj_2x_p2_bcperiodic_dev", test_fem_parproj_2x_p2_bcperiodic_dev },
+  { "test_fem_parproj_2x_p1_weighted_dev", test_fem_parproj_2x_p1_weighted_dev},
+  { "test_fem_parproj_2x_p1_selfadjoint_dev", test_fem_parproj_2x_p1_selfadjoint_dev},
+  { "test_fem_parproj_2x_p1_bcdirichlet_bias_dev", test_fem_parproj_2x_p1_bcdirichlet_bias_dev },
+  { "test_fem_parproj_3x_p1_bcnone_dev", test_fem_parproj_3x_p1_bcnone_dev },
+  { "test_fem_parproj_3x_p1_bcdirichlet_dev", test_fem_parproj_3x_p1_bcdirichlet_dev },
+  { "test_fem_parproj_3x_p1_bcperiodic_dev", test_fem_parproj_3x_p1_bcperiodic_dev },
+  { "test_fem_parproj_3x_p1_bcdirichlet_bias_dev", test_fem_parproj_3x_p1_bcdirichlet_bias_dev },
+  { "test_fem_parproj_3x_p2_bcnone_dev", test_fem_parproj_3x_p2_bcnone_dev },
+  // { "test_fem_parproj_3x_p2_bcdirichlet_dev", test_fem_parproj_3x_p2_bcdirichlet_dev },
+  { "test_fem_parproj_3x_p2_bcperiodic_dev", test_fem_parproj_3x_p2_bcperiodic_dev },
 #endif
   { NULL, NULL },
 };

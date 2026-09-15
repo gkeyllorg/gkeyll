@@ -110,8 +110,8 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 256; // Cell count (x-direction).
-  int Ny = 256; // Cell count (y-direction).
+  int Nx = 16; // Cell count (x-direction).
+  int Ny = 16; // Cell count (y-direction).
   double Lx = 10.0; // Domain size (x-direction).
   double Ly = 10.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.

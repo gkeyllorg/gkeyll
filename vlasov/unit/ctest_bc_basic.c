@@ -300,81 +300,81 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
   gkyl_array_release(distf_flip);
 }
 
-void test_bc_reflect_1x1v_p1() { test_bc(1, 1, 1, "reflect", false); }
-void test_bc_reflect_1x2v_p1() { test_bc(1, 2, 1, "reflect", false); }
-void test_bc_reflect_2x2v_p1() { test_bc(2, 2, 1, "reflect", false); }
-void test_bc_reflect_3x2v_p1() { test_bc(3, 2, 1, "reflect", false); }
-void test_bc_reflect_1x1v_p2() { test_bc(1, 1, 2, "reflect", false); }
-void test_bc_reflect_1x2v_p2() { test_bc(1, 2, 2, "reflect", false); }
-void test_bc_reflect_2x2v_p2() { test_bc(2, 2, 2, "reflect", false); }
-void test_bc_reflect_3x2v_p2() { test_bc(3, 2, 2, "reflect", false); }
+void test_bc_reflect_1x1v_p1_ho() { test_bc(1, 1, 1, "reflect", false); }
+void test_bc_reflect_1x2v_p1_ho() { test_bc(1, 2, 1, "reflect", false); }
+void test_bc_reflect_2x2v_p1_ho() { test_bc(2, 2, 1, "reflect", false); }
+void test_bc_reflect_3x2v_p1_ho() { test_bc(3, 2, 1, "reflect", false); }
+void test_bc_reflect_1x1v_p2_ho() { test_bc(1, 1, 2, "reflect", false); }
+void test_bc_reflect_1x2v_p2_ho() { test_bc(1, 2, 2, "reflect", false); }
+void test_bc_reflect_2x2v_p2_ho() { test_bc(2, 2, 2, "reflect", false); }
+void test_bc_reflect_3x2v_p2_ho() { test_bc(3, 2, 2, "reflect", false); }
 
-void test_bc_absorb_1x1v_p1()  { test_bc(1, 1, 1, "absorb",  false); }
-void test_bc_absorb_1x2v_p1()  { test_bc(1, 2, 1, "absorb",  false); }
-void test_bc_absorb_2x2v_p1()  { test_bc(2, 2, 1, "absorb",  false); }
-void test_bc_absorb_3x2v_p1()  { test_bc(3, 2, 1, "absorb",  false); }
-void test_bc_absorb_1x1v_p2()  { test_bc(1, 1, 2, "absorb",  false); }
-void test_bc_absorb_1x2v_p2()  { test_bc(1, 2, 2, "absorb",  false); }
-void test_bc_absorb_2x2v_p2()  { test_bc(2, 2, 2, "absorb",  false); }
-void test_bc_absorb_3x2v_p2()  { test_bc(3, 2, 2, "absorb",  false); }
+void test_bc_absorb_1x1v_p1_ho()  { test_bc(1, 1, 1, "absorb",  false); }
+void test_bc_absorb_1x2v_p1_ho()  { test_bc(1, 2, 1, "absorb",  false); }
+void test_bc_absorb_2x2v_p1_ho()  { test_bc(2, 2, 1, "absorb",  false); }
+void test_bc_absorb_3x2v_p1_ho()  { test_bc(3, 2, 1, "absorb",  false); }
+void test_bc_absorb_1x1v_p2_ho()  { test_bc(1, 1, 2, "absorb",  false); }
+void test_bc_absorb_1x2v_p2_ho()  { test_bc(1, 2, 2, "absorb",  false); }
+void test_bc_absorb_2x2v_p2_ho()  { test_bc(2, 2, 2, "absorb",  false); }
+void test_bc_absorb_3x2v_p2_ho()  { test_bc(3, 2, 2, "absorb",  false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_bc_reflect_1x1v_p1_gpu() { test_bc(1, 1, 1, "reflect", true); }
-void test_bc_reflect_1x2v_p1_gpu() { test_bc(1, 2, 1, "reflect", true); }
-void test_bc_reflect_2x2v_p1_gpu() { test_bc(2, 2, 1, "reflect", true); }
-void test_bc_reflect_3x2v_p1_gpu() { test_bc(3, 2, 1, "reflect", true); }
-void test_bc_reflect_1x1v_p2_gpu() { test_bc(1, 1, 2, "reflect", true); }
-void test_bc_reflect_1x2v_p2_gpu() { test_bc(1, 2, 2, "reflect", true); }
-void test_bc_reflect_2x2v_p2_gpu() { test_bc(2, 2, 2, "reflect", true); }
-void test_bc_reflect_3x2v_p2_gpu() { test_bc(3, 2, 2, "reflect", true); }
+void test_bc_reflect_1x1v_p1_dev() { test_bc(1, 1, 1, "reflect", true); }
+void test_bc_reflect_1x2v_p1_dev() { test_bc(1, 2, 1, "reflect", true); }
+void test_bc_reflect_2x2v_p1_dev() { test_bc(2, 2, 1, "reflect", true); }
+void test_bc_reflect_3x2v_p1_dev() { test_bc(3, 2, 1, "reflect", true); }
+void test_bc_reflect_1x1v_p2_dev() { test_bc(1, 1, 2, "reflect", true); }
+void test_bc_reflect_1x2v_p2_dev() { test_bc(1, 2, 2, "reflect", true); }
+void test_bc_reflect_2x2v_p2_dev() { test_bc(2, 2, 2, "reflect", true); }
+void test_bc_reflect_3x2v_p2_dev() { test_bc(3, 2, 2, "reflect", true); }
 
 
-void test_bc_absorb_1x1v_p1_gpu()  { test_bc(1, 1, 1, "absorb",  true); }
-void test_bc_absorb_1x2v_p1_gpu()  { test_bc(1, 2, 1, "absorb",  true); }
-void test_bc_absorb_2x2v_p1_gpu()  { test_bc(2, 2, 1, "absorb",  true); }
-void test_bc_absorb_3x2v_p1_gpu()  { test_bc(3, 2, 1, "absorb",  true); }
-void test_bc_absorb_1x1v_p2_gpu()  { test_bc(1, 1, 2, "absorb",  true); }
-void test_bc_absorb_1x2v_p2_gpu()  { test_bc(1, 2, 2, "absorb",  true); }
-void test_bc_absorb_2x2v_p2_gpu()  { test_bc(2, 2, 2, "absorb",  true); }
-void test_bc_absorb_3x2v_p2_gpu()  { test_bc(3, 2, 2, "absorb",  true); }
+void test_bc_absorb_1x1v_p1_dev()  { test_bc(1, 1, 1, "absorb",  true); }
+void test_bc_absorb_1x2v_p1_dev()  { test_bc(1, 2, 1, "absorb",  true); }
+void test_bc_absorb_2x2v_p1_dev()  { test_bc(2, 2, 1, "absorb",  true); }
+void test_bc_absorb_3x2v_p1_dev()  { test_bc(3, 2, 1, "absorb",  true); }
+void test_bc_absorb_1x1v_p2_dev()  { test_bc(1, 1, 2, "absorb",  true); }
+void test_bc_absorb_1x2v_p2_dev()  { test_bc(1, 2, 2, "absorb",  true); }
+void test_bc_absorb_2x2v_p2_dev()  { test_bc(2, 2, 2, "absorb",  true); }
+void test_bc_absorb_3x2v_p2_dev()  { test_bc(3, 2, 2, "absorb",  true); }
 
 #endif
 
 TEST_LIST = {
-  {"test_bc_reflect_1x1v_p1", test_bc_reflect_1x1v_p1},
-  {"test_bc_reflect_1x2v_p1", test_bc_reflect_1x2v_p1},
-  {"test_bc_reflect_2x2v_p1", test_bc_reflect_2x2v_p1},
-  {"test_bc_reflect_3x2v_p1", test_bc_reflect_3x2v_p1},
-  {"test_bc_reflect_1x1v_p2", test_bc_reflect_1x1v_p2},
-  {"test_bc_reflect_1x2v_p2", test_bc_reflect_1x2v_p2},
-  {"test_bc_reflect_2x2v_p2", test_bc_reflect_2x2v_p2},
-  {"test_bc_reflect_3x2v_p2", test_bc_reflect_3x2v_p2},
-  {"test_bc_absorb_1x1v_p1", test_bc_absorb_1x1v_p1},
-  {"test_bc_absorb_1x2v_p1", test_bc_absorb_1x2v_p1},
-  {"test_bc_absorb_2x2v_p1", test_bc_absorb_2x2v_p1},
-  {"test_bc_absorb_3x2v_p1", test_bc_absorb_3x2v_p1},
-  {"test_bc_absorb_1x1v_p2", test_bc_absorb_1x1v_p2},
-  {"test_bc_absorb_1x2v_p2", test_bc_absorb_1x2v_p2},
-  {"test_bc_absorb_2x2v_p2", test_bc_absorb_2x2v_p2},
-  {"test_bc_absorb_3x2v_p2", test_bc_absorb_3x2v_p2},
+  {"test_bc_reflect_1x1v_p1_ho", test_bc_reflect_1x1v_p1_ho},
+  {"test_bc_reflect_1x2v_p1_ho", test_bc_reflect_1x2v_p1_ho},
+  {"test_bc_reflect_2x2v_p1_ho", test_bc_reflect_2x2v_p1_ho},
+  {"test_bc_reflect_3x2v_p1_ho", test_bc_reflect_3x2v_p1_ho},
+  {"test_bc_reflect_1x1v_p2_ho", test_bc_reflect_1x1v_p2_ho},
+  {"test_bc_reflect_1x2v_p2_ho", test_bc_reflect_1x2v_p2_ho},
+  {"test_bc_reflect_2x2v_p2_ho", test_bc_reflect_2x2v_p2_ho},
+  {"test_bc_reflect_3x2v_p2_ho", test_bc_reflect_3x2v_p2_ho},
+  {"test_bc_absorb_1x1v_p1_ho", test_bc_absorb_1x1v_p1_ho},
+  {"test_bc_absorb_1x2v_p1_ho", test_bc_absorb_1x2v_p1_ho},
+  {"test_bc_absorb_2x2v_p1_ho", test_bc_absorb_2x2v_p1_ho},
+  {"test_bc_absorb_3x2v_p1_ho", test_bc_absorb_3x2v_p1_ho},
+  {"test_bc_absorb_1x1v_p2_ho", test_bc_absorb_1x1v_p2_ho},
+  {"test_bc_absorb_1x2v_p2_ho", test_bc_absorb_1x2v_p2_ho},
+  {"test_bc_absorb_2x2v_p2_ho", test_bc_absorb_2x2v_p2_ho},
+  {"test_bc_absorb_3x2v_p2_ho", test_bc_absorb_3x2v_p2_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_bc_reflect_1x1v_p1_gpu", test_bc_reflect_1x1v_p1_gpu},
-  {"test_bc_reflect_1x2v_p1_gpu", test_bc_reflect_1x2v_p1_gpu},
-  {"test_bc_reflect_2x2v_p1_gpu", test_bc_reflect_2x2v_p1_gpu},
-  {"test_bc_reflect_3x2v_p1_gpu", test_bc_reflect_3x2v_p1_gpu},
-  {"test_bc_reflect_1x1v_p2_gpu", test_bc_reflect_1x1v_p2_gpu},
-  {"test_bc_reflect_1x2v_p2_gpu", test_bc_reflect_1x2v_p2_gpu},
-  {"test_bc_reflect_2x2v_p2_gpu", test_bc_reflect_2x2v_p2_gpu},
-  {"test_bc_reflect_3x2v_p2_gpu", test_bc_reflect_3x2v_p2_gpu},
+  {"test_bc_reflect_1x1v_p1_dev", test_bc_reflect_1x1v_p1_dev},
+  {"test_bc_reflect_1x2v_p1_dev", test_bc_reflect_1x2v_p1_dev},
+  {"test_bc_reflect_2x2v_p1_dev", test_bc_reflect_2x2v_p1_dev},
+  {"test_bc_reflect_3x2v_p1_dev", test_bc_reflect_3x2v_p1_dev},
+  {"test_bc_reflect_1x1v_p2_dev", test_bc_reflect_1x1v_p2_dev},
+  {"test_bc_reflect_1x2v_p2_dev", test_bc_reflect_1x2v_p2_dev},
+  {"test_bc_reflect_2x2v_p2_dev", test_bc_reflect_2x2v_p2_dev},
+  {"test_bc_reflect_3x2v_p2_dev", test_bc_reflect_3x2v_p2_dev},
 
-  {"test_bc_absorb_1x1v_p1_gpu", test_bc_absorb_1x1v_p1_gpu},
-  {"test_bc_absorb_1x2v_p1_gpu", test_bc_absorb_1x2v_p1_gpu},
-  {"test_bc_absorb_2x2v_p1_gpu", test_bc_absorb_2x2v_p1_gpu},
-  {"test_bc_absorb_3x2v_p1_gpu", test_bc_absorb_3x2v_p1_gpu},
-  {"test_bc_absorb_1x1v_p2_gpu", test_bc_absorb_1x1v_p2_gpu},
-  {"test_bc_absorb_1x2v_p2_gpu", test_bc_absorb_1x2v_p2_gpu},
-  {"test_bc_absorb_2x2v_p2_gpu", test_bc_absorb_2x2v_p2_gpu},
-  {"test_bc_absorb_3x2v_p2_gpu", test_bc_absorb_3x2v_p2_gpu},
+  {"test_bc_absorb_1x1v_p1_dev", test_bc_absorb_1x1v_p1_dev},
+  {"test_bc_absorb_1x2v_p1_dev", test_bc_absorb_1x2v_p1_dev},
+  {"test_bc_absorb_2x2v_p1_dev", test_bc_absorb_2x2v_p1_dev},
+  {"test_bc_absorb_3x2v_p1_dev", test_bc_absorb_3x2v_p1_dev},
+  {"test_bc_absorb_1x1v_p2_dev", test_bc_absorb_1x1v_p2_dev},
+  {"test_bc_absorb_1x2v_p2_dev", test_bc_absorb_1x2v_p2_dev},
+  {"test_bc_absorb_2x2v_p2_dev", test_bc_absorb_2x2v_p2_dev},
+  {"test_bc_absorb_3x2v_p2_dev", test_bc_absorb_3x2v_p2_dev},
 #endif
   {NULL, NULL},
 };

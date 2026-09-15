@@ -11,7 +11,7 @@ calcq(const double pv[4], double q[4])
 }
 
 void
-test_iso_euler_basic()
+test_iso_euler_basic_ho()
 {
   double vt = 1.0;
   struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);
@@ -96,7 +96,7 @@ test_iso_euler_basic()
 }
 
 void
-test_iso_euler_waves()
+test_iso_euler_waves_ho()
 {
   double vt = 1.0;
   struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);
@@ -161,7 +161,7 @@ test_iso_euler_waves()
 }
 
 void
-test_iso_euler_waves_2()
+test_iso_euler_waves_2_ho()
 {
   double vt = 10.0;
   struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);
@@ -226,8 +226,8 @@ test_iso_euler_waves_2()
 }
 
 TEST_LIST = {
-  { "iso_euler_basic", test_iso_euler_basic },
-  { "iso_euler_waves", test_iso_euler_waves },
-  { "iso_euler_waves_2", test_iso_euler_waves_2 },
+  { "iso_euler_basic_ho", test_iso_euler_basic_ho },
+  { "iso_euler_waves_ho", test_iso_euler_waves_ho },
+  { "iso_euler_waves_2_ho", test_iso_euler_waves_2_ho },
   { NULL, NULL },
 };

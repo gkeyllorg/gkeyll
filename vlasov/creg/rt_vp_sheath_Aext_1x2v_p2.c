@@ -98,7 +98,7 @@ create_ctx(void)
   double omega_pe = sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
 
   // Simulation parameters.
-  int Nx = 64; // Cell count (configuration space: x-direction).
+  int Nx = 16; // Cell count (configuration space: x-direction).
   int Nvx = 16; // Cell count (velocity space: vx-direction).
   int Nvy = 16; // Cell count (velocity space: vy-direction).
   double Lx = 128.0 * lambda_D; // Domain size (configuration space: x-direction).

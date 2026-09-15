@@ -376,10 +376,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_dev.gkyl", poly_order);
   else
     sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_ho.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, mask_ho, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, mask_ho, fname);
 
   sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_ref.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, mask_ref_ho, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, mask_ref_ho, fname);
 
   if (use_gpu) {
     gkyl_cu_free(bmag_max);
@@ -409,17 +409,17 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 #endif  
 }
 
-void test_1x2v_p1_gk_ho() { test_1x2v_gk(1, false); }
+void test_loss_cone_mask_1x2v_p1_gk_ho() { test_1x2v_gk(1, false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_1x2v_p1_gk_dev() { test_1x2v_gk(1, true); }
+void test_loss_cone_mask_1x2v_p1_gk_dev() { test_1x2v_gk(1, true); }
 #endif
 
 TEST_LIST = {
-  { "test_1x2v_p1_gk_ho", test_1x2v_p1_gk_ho },
+  { "test_loss_cone_mask_1x2v_p1_gk_ho", test_loss_cone_mask_1x2v_p1_gk_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x2v_p1_gk_dev", test_1x2v_p1_gk_dev },
+  { "test_loss_cone_mask_1x2v_p1_gk_dev", test_loss_cone_mask_1x2v_p1_gk_dev },
 #endif
   { NULL, NULL },
 };

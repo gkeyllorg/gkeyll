@@ -153,25 +153,25 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
 }
 
 static void
-test_wham_no_axis_psi(void)
+test_mirror_grid_gen_wham_no_axis_psi_ho(void)
 {
   test_wham(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
 static void
-test_wham_with_axis_psi(void)
+test_mirror_grid_gen_wham_with_axis_psi_ho(void)
 {
   test_wham(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
 static void
-test_wham_no_axis_sqrt_psi(void)
+test_mirror_grid_gen_wham_no_axis_sqrt_psi_ho(void)
 {
   test_wham(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
 static void
-test_wham_with_axis_sqrt_psi(void)
+test_mirror_grid_gen_wham_with_axis_sqrt_psi_ho(void)
 {
   test_wham(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
@@ -355,40 +355,40 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
 }
 
 static void
-test_quad_geom_no_axis_psi(void)
+test_mirror_grid_gen_quad_geom_no_axis_psi_ho(void)
 {
   test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
 static void
-test_quad_geom_with_axis_psi(void)
+test_mirror_grid_gen_quad_geom_with_axis_psi_ho(void)
 {
   test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
 static void
-test_quad_geom_no_axis_sqrt_psi(void)
+test_mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho(void)
 {
   test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
 static void
-test_quad_geom_with_axis_sqrt_psi(void)
+test_mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho(void)
 {
   test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
 TEST_LIST = {
-  { "wham_no_axis_psi", test_wham_no_axis_psi },
-  { "wham_with_axis_psi", test_wham_with_axis_psi },
-  
-  { "wham_no_axis_sqrt_psi", test_wham_no_axis_sqrt_psi },
-  { "wham_with_axis_sqrt_psi", test_wham_with_axis_sqrt_psi },
-  
-  { "quad_geom_no_axis_psi", test_quad_geom_no_axis_psi},
-  { "quad_geom_with_axis_psi", test_quad_geom_with_axis_psi},
-  
-  { "quad_geom_no_axis_sqrt_psi", test_quad_geom_no_axis_sqrt_psi },
-  { "quad_geom_with_axis_sqrt_psi", test_quad_geom_with_axis_sqrt_psi },  
+  { "mirror_grid_gen_wham_no_axis_psi_ho", test_mirror_grid_gen_wham_no_axis_psi_ho },
+  { "mirror_grid_gen_wham_with_axis_psi_ho", test_mirror_grid_gen_wham_with_axis_psi_ho },
+
+  { "mirror_grid_gen_wham_no_axis_sqrt_psi_ho", test_mirror_grid_gen_wham_no_axis_sqrt_psi_ho },
+  { "mirror_grid_gen_wham_with_axis_sqrt_psi_ho", test_mirror_grid_gen_wham_with_axis_sqrt_psi_ho },
+
+  { "mirror_grid_gen_quad_geom_no_axis_psi_ho", test_mirror_grid_gen_quad_geom_no_axis_psi_ho},
+  { "mirror_grid_gen_quad_geom_with_axis_psi_ho", test_mirror_grid_gen_quad_geom_with_axis_psi_ho},
+
+  { "mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho", test_mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho },
+  { "mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho", test_mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho },
   { NULL, NULL },
 };

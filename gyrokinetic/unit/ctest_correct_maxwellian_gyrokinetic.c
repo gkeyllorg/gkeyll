@@ -869,24 +869,24 @@ void test_2x2v(int poly_order, bool use_gpu)
 }
 
 // Run the test
-void test_1x1v_p1() {test_1x1v(1, false);}
-void test_1x2v_p1() {test_1x2v(1, false);}
-void test_2x2v_p1() {test_2x2v(1, false);}
+void test_correct_maxwellian_1x1v_p1_ho() {test_1x1v(1, false);}
+void test_correct_maxwellian_1x2v_p1_ho() {test_1x2v(1, false);}
+void test_correct_maxwellian_2x2v_p1_ho() {test_2x2v(1, false);}
 
 #ifdef GKYL_HAVE_CUDA
-void test_1x1v_p1_gpu() {test_1x1v(1, true);}
-void test_1x2v_p1_gpu() {test_1x2v(1, true);}
-void test_2x2v_p1_gpu() {test_2x2v(1, true);}
+void test_correct_maxwellian_1x1v_p1_dev() {test_1x1v(1, true);}
+void test_correct_maxwellian_1x2v_p1_dev() {test_1x2v(1, true);}
+void test_correct_maxwellian_2x2v_p1_dev() {test_2x2v(1, true);}
 #endif
 
 TEST_LIST = {
-  {"test_1x1v_p1", test_1x1v_p1},
-  {"test_1x2v_p1", test_1x2v_p1},
-  {"test_2x2v_p1", test_2x2v_p1},
+  {"test_correct_maxwellian_1x1v_p1_ho", test_correct_maxwellian_1x1v_p1_ho},
+  {"test_correct_maxwellian_1x2v_p1_ho", test_correct_maxwellian_1x2v_p1_ho},
+  {"test_correct_maxwellian_2x2v_p1_ho", test_correct_maxwellian_2x2v_p1_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_1x1v_p1_gpu", test_1x1v_p1_gpu},
-  {"test_1x2v_p1_gpu", test_1x2v_p1_gpu},
-  {"test_2x2v_p1_gpu", test_2x2v_p1_gpu},
+  {"test_correct_maxwellian_1x1v_p1_dev", test_correct_maxwellian_1x1v_p1_dev},
+  {"test_correct_maxwellian_1x2v_p1_dev", test_correct_maxwellian_1x2v_p1_dev},
+  {"test_correct_maxwellian_2x2v_p1_dev", test_correct_maxwellian_2x2v_p1_dev},
 #endif
   {NULL, NULL},
 };
