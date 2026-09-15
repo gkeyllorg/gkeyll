@@ -1,0 +1,5 @@
+In this branch we've added a Jenkins setup to run on the Stellar intel cluster. I'd like to learn from that and now create a Jenkins setup for the Perlmutter GPU nodes (see https://docs.nersc.gov/systems/perlmutter/running-jobs/). It'll use the perlmutter-gpu machine files (in machines/) to build, run the unit tests, which automatically runs the GPU unit, and runregression should run tests on a gpu.
+
+---
+
+Implement the plan.

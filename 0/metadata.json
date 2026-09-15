@@ -1,0 +1,71 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2JPR50Q81VQA11DB9AXRCHJ",
+  "session_id": "01a0a350-0f35-7160-8095-c62e79b4ca13",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-15T14:15:23.443404Z",
+  "branch": "agent_tools-jenkins-perlmutter_gpu",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "ci/jenkins/Jenkinsfile.perlmutter-gpu",
+    "ci/jenkins/README.md",
+    "ci/jenkins/README.perlmutter-gpu.md",
+    "ci/jenkins/jenkins-perlmutter-gpu.sh",
+    "ci/jenkins/slurm-regression-tests.perlmutter-gpu.sh",
+    "ci/jenkins/slurm-unit-tests.perlmutter-gpu.sh",
+    "machines/configure.perlmutter.gpu.sh",
+    "machines/mkdeps.perlmutter.gpu.sh",
+    "machines/module_load.perlmutter-gpu.sh"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "1f131b9fa2c7",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 218006,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2996480,
+    "output_tokens": 18541,
+    "api_call_count": 35
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-15T14:15:23.387702Z",
+    "agent_lines": 1424,
+    "agent_removed": 16,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1424,
+    "total_lines_changed": 1440,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 850083,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "jenkins_setup-stellar_intel.txt": 9,
+        "log.txt": 796961,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "tmp.sh": 43,
+        "tmp.txt": 23
+      }
+    }
+  ]
+}
