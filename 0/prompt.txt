@@ -1,0 +1,31 @@
+In PR 1125 we added a Jenkins setup for the Stellar cluster. That setup requires specifying a specific PR or commit to test. Based on those lessons I'd like to refactor the origina Jenkinsfile (ci/jenkins/Jenkins file) the following way:
+1) My memory is that the Jenkinsfile currently supports two modes of operation, one for a personal computer that periodically checks for PRs written by a single author, and another for a team workstation that will test every PR into main. I'd like to instead have two Jenkinsfiles, one for a personal computer (call it jenkinsfile.personal) which requires specifying a PR or commit just like Jenkinsfile.stellar-intel, and a second workstation Jenkinsfile (call it jenkinsfile.team_workstation) which periodically checks for PRs into main from any user and performs builds/checks accordingly.
+2) I'd like both of these options to have a CLI interface like jenkins-stellar-intel.sh.
+
+---
+
+1. Let's keep it for now in case the new file has issues. We'll remove it when this work is done.
+2. Yes, require --candidate-ref plus --baseline-ref exactly like Stellar.
+3. No need to use tmux for the local/personal computer.
+
+---
+
+Change the plan by removing the legagy fallback from the documentation.
+
+Also, you mentioned implementing "a shared internal Bash client for authenticated Jenkins HTTP/CLI operations". Do you mean a single CLI that will work with all the machines (perlmutter, stellar, personal, team workstation), or each will have its own CLI?
+
+---
+
+Additionally, just like perlmutter and stellar have their own README, please create a separate README documenting the personal and team workstation Jenkins installation/setup/use. Finally, create a single, shallow README.md which has a basic summary of the Jenkins CI and points to the other README files for each machine.
+
+---
+
+Implement the plan.
+
+---
+
+The personal computer README says it needs cmake. Why?
+
+---
+
+Can you add more specific instructions on how to generate the jenkins-cli.auth file around line 41 of README.personal?
