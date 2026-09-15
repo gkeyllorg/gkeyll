@@ -1,0 +1,3 @@
+if i do
+./jenkins-stellar-intel.sh follow --queue 52
+while this build is active, is there a way to detach or unfollow, so I can work on something else while this build continues?
