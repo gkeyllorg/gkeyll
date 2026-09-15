@@ -1,0 +1,57 @@
+Does jenkins-stellar-intel.sh have a -h or --help option? if not, can you implement it?
+
+---
+
+I Tried running 
+
+./jenkins-stellar-intel.sh run --pr 1125
+
+on stellar and got
+
+Started Jenkins in tmux session: gkeyll_ci
+curl: (7) Failed to connect to 127.0.0.1 port 8080: Connection refused
+curl: (22) The requested URL returned error: 503 Service Unavailable
+Jenkins is ready at http://127.0.0.1:8080
+ERROR: Jenkins API credential file is missing: /scratch/gpfs/manaurer/gkeyll_ci/jenkins_home/jenkins-cli.auth
+
+---
+
+I generated the Jenkins API token and non
+
+./jenkins-stellar-intel.sh run --pr 1125
+
+produces
+
+Started Jenkins in tmux session: gkeyll_ci
+curl: (7) Failed to connect to 127.0.0.1 port 8080: Connection refused
+curl: (22) The requested URL returned error: 503 Service Unavailable
+Jenkins is ready at http://127.0.0.1:8080
+Queued gkeyll-ci-stellar-intel as queue item 49
+Queue URL: http://127.0.0.1:8080/queue/item/49/
+Monitor it with: /scratch/gpfs/manaurer/gkeyll_ci/gkeyll/ci/jenkins/jenkins-stellar-intel.sh follow --queue 49
+
+Should I be worried about the "Failed to connect" and "requested URL returned error" ?
+
+---
+
+ok, I did
+
+jenkins-stellar-intel.sh follow --queue 49
+
+but now got
+
+Jenkins tmux session already exists: gkeyll_ci
+Jenkins is ready at http://127.0.0.1:8080
+curl: (22) The requested URL returned error: 404 Not Found
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+  File "/usr/lib64/python3.6/json/__init__.py", line 299, in load
+    parse_constant=parse_constant, object_pairs_hook=object_pairs_hook, **kw)
+  File "/usr/lib64/python3.6/json/__init__.py", line 354, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib64/python3.6/json/decoder.py", line 339, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib64/python3.6/json/decoder.py", line 357, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+ERROR: Queue item 49 is unavailable. Jenkins may have discarded it; use follow --build BUILD_NUMBER instead.
