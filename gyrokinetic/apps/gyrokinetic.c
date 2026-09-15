@@ -3570,8 +3570,11 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
     gk_s->positivity.is_first_integ_write_call = false;
   if (gk_s->rad.radiation_id == GKYL_GK_RADIATION)
     gk_s->rad.is_first_integ_write_call = false;
-  if (gk_s->src.source_id)
+  if (gk_s->src.source_id) {
     gk_s->src.is_first_integ_write_call = false;
+    if (gk_s->src.num_adapt_sources > 0)
+      gk_s->src.is_first_integ_write_call_adapt = false;
+  }
   if (gk_s->lte.correct_all_moms)
     gk_s->lte.is_first_corr_status_write_call = false;
 
