@@ -559,11 +559,11 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bx_hamil_phase_vol_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, no_B_vol, NULL, NULL }, // 1
   { NULL, vlasov_Bx_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, no_B_vol, NULL, NULL }, // 4
   { NULL, GKYL_HYB_2X3V(vlasov_Bx_hamil_phase_vol_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -649,11 +649,11 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_B_vol_kern_list tensor_By_hamil_phase_vol_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, no_B_vol, NULL, NULL }, // 1
   { NULL, vlasov_By_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, no_B_vol, NULL, NULL }, // 4
   { NULL, GKYL_HYB_2X3V(vlasov_By_hamil_phase_vol_2x3v_tensor_p1), NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
