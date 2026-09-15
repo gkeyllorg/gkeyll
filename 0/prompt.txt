@@ -1,0 +1,47 @@
+I think it failed. I did 
+
+./ci/jenkins/jenkins-personal.sh run --pr 1128
+
+and got
+
+Queued gkeyll-ci-personal as queue item 418
+
+Then later did
+
+./ci/jenkins/jenkins-personal.sh recent
+
+and got
+
+#3 FAILURE
+#2 FAILURE
+#1 FAILURE
+
+How can i see the console output from the most recent build attempt?
+
+---
+
+Can you change the personal and team workstation CLI so it streams the console like the Stellar one?
+
+---
+
+I just tried
+
+./ci/jenkins/jenkins-personal.sh follow --build 3
+
+and got
+
+Following gkeyll-ci-personal #3
+Build URL: http://127.0.0.1:8080/job/gkeyll-ci-personal/3/
+The operation couldn’t be completed. Unable to locate a Java Runtime.
+Please visit http://www.java.com for information on installing Java.
+
+Console follower ended before Jenkins reported a terminal result; checking build status.
+Build #3: FAILURE
+
+---
+
+Ok, now you can read the console output in run_3.txt to see why the CI failed
+
+---
+
+But jenkinsfile.personal shouldn't have anything pertaining the team workstation. That's what jenkinsfile.team_workstation is for
