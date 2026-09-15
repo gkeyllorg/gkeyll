@@ -227,8 +227,8 @@ test_shaped_plate()
       .flux_poly_order = 1,
     };
 
-  double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
+  double clower[] = { 0.1500, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.1540, 0.01, M_PI-1e-14 };
 
   int ccells[] = { 2, 1, 2 };
 
@@ -254,7 +254,7 @@ test_shaped_plate()
     .rleft = 0.7,
     .zmin = -1.3,
     .zmax = 1.0,
-    .zmin_left = -1.2,
+    .zmin_left = -0.98,
     .zmin_right = -1.0,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -301,8 +301,8 @@ test_lower()
       .flux_poly_order = 1,
     };
 
-  double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
+  double clower[] = { 0.1500, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.1540, 0.01, M_PI-1e-14 };
   int ccells[] = { 2, 1, 2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
@@ -314,7 +314,7 @@ test_lower()
     .rleft = 0.7,
     .zmin = -1.3,
     .zmax = 1.0,
-    .zmin_left = -1.2,
+    .zmin_left = -0.98,
     .zmin_right = -1.0,
   }; 
   gkyl_gk_geometry_tok_set_grid_extents(efit_inp, &ginp, &clower[2], &cupper[2]);
@@ -374,8 +374,8 @@ test_middle()
       .flux_poly_order = 1,
     };
 
-  double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
+  double clower[] = { 0.1500, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.1540, 0.01, M_PI-1e-14 };
   int ccells[] = { 2, 1, 2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
@@ -387,7 +387,7 @@ test_middle()
     .rleft = 0.7,
     .zmin = -1.3,
     .zmax = 1.0,
-    .zmin_left = -1.2,
+    .zmin_left = -0.98,
     .zmin_right = -1.0,
   }; 
   gkyl_gk_geometry_tok_set_grid_extents(efit_inp, &ginp, &clower[2], &cupper[2]);
@@ -447,8 +447,8 @@ test_upper()
       .flux_poly_order = 1,
     };
 
-  double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
+  double clower[] = { 0.1500, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.1540, 0.01, M_PI-1e-14 };
   int ccells[] = { 2, 1, 2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
@@ -460,7 +460,7 @@ test_upper()
     .rleft = 0.7,
     .zmin = -1.3,
     .zmax = 1.0,
-    .zmin_left = -1.2,
+    .zmin_left = -0.98,
     .zmin_right = -1.0,
   }; 
   gkyl_gk_geometry_tok_set_grid_extents(efit_inp, &ginp, &clower[2], &cupper[2]);
