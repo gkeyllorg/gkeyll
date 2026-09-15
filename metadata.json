@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2KR2AGBS9MF8KVJ56Z0NZ6N",
+  "strategy": "manual-commit",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "gyrokinetic/apps/gk_species_bflux.c",
+    "gyrokinetic/apps/gyrokinetic.c",
+    "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_wham_1x2v_p1.c",
+    "gyrokinetic/unit/ctest_geometry_nonuniform.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mapc2p.c",
+    "gyrokinetic/unit/ctest_position_map.c",
+    "gyrokinetic/zero/calc_metric.c",
+    "gyrokinetic/zero/efit.c",
+    "gyrokinetic/zero/gk_geometry_mapc2p.c",
+    "gyrokinetic/zero/gkyl_gk_geometry_node_coords_priv.h",
+    "gyrokinetic/zero/gkyl_position_map.h",
+    "gyrokinetic/zero/gkyl_position_map_priv.h",
+    "gyrokinetic/zero/mirror_grid_gen.c",
+    "gyrokinetic/zero/position_map.c",
+    "gyrokinetic/zero/tok_geo.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 485867,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 15168256,
+    "output_tokens": 86482,
+    "api_call_count": 110
+  }
+}

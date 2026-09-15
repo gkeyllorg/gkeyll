@@ -1,0 +1,21 @@
+We have recieved a BUG_REPORT.md regarding the non-uniform grid. First, reproduce this with rt_gk_wham_1x2v. I've already made progress towards this. Implement the fixes and verify that the bugs have been fixed. You may run with   mpirun -n 6 ./build/gyrokinetic/creg/rt_gk_wham_1x2v_p1 -M -c 6 -s1 . Check other modules, mapc2p and tokamaks, for other bugs with the non-uniform grids. There must be ZERO bugs in the non-uniform grids and its implementation
+
+---
+
+We have recieved a BUG_REPORT.md regarding the non-uniform grid. First, reproduce this with rt_gk_wham_1x2v. I've already made progress towards this. Implement the fixes and verify that the bugs have been fixed. You may run with   mpirun -n 6 ./build/gyrokinetic/creg/rt_gk_wham_1x2v_p1 -M -c 6 -s1 . Check other modules, mapc2p and tokamaks, for other bugs with the non-uniform grids. There must be ZERO bugs in the non-uniform grids and its implementation
+
+---
+
+Construct a mardown CHANGES.md to explain every one of the changes
+
+---
+
+Construct a mardown CHANGES.md to explain every one of the changes
+
+---
+
+Construct a CHANGES.md to explain every one of the changes
+
+---
+
+Construct a CHANGES.md to explain every one of the changes
