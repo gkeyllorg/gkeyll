@@ -1,5 +1,5 @@
 #!/bin/bash -l
-# Unit-test payload for ci/jenkins/Jenkinsfile.perlmutter-gpu.
+# Unit-test payload for ci/jenkins/Jenkinsfile.stellar_cpu.
 #
 # This script deliberately has no #SBATCH directives. The trusted Jenkins
 # pipeline owns the resource request, while this script owns only the runtime
@@ -13,7 +13,6 @@ cd "$CI_WORKSPACE"
 # A batch shell does not inherit a user's interactive module selection in a
 # reliable or reproducible way. Source the same environment used to configure
 # and build this checkout.
-. machines/module_load.perlmutter-gpu.sh
+. machines/module_load.stellar-intel.sh
 
-export SLURM_CPU_BIND=cores
-srun --ntasks=1 --cpus-per-task=32 --gpus-per-task=1 --cpu-bind=cores make unit-run
+make unit-run

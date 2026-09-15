@@ -8,8 +8,13 @@ if (!explicitSelector && env.BRANCH_NAME != 'main' && !env.CHANGE_ID) {
 }
 
 def forwarded = [
-    'CI_CONFIG_PREFIX=TEAM_WORKSTATION',
-    'CI_STATUS_CONTEXT=continuous-integration/jenkins/team-workstation'
+    'CI_STATUS_CONTEXT=continuous-integration/jenkins/team-workstation',
+    "PERSONAL_NODE_LABEL=${env.TEAM_WORKSTATION_NODE_LABEL ?: ''}",
+    "PERSONAL_MKDEPS_SCRIPT=${env.TEAM_WORKSTATION_MKDEPS_SCRIPT ?: ''}",
+    "PERSONAL_CONFIGURE_SCRIPT=${env.TEAM_WORKSTATION_CONFIGURE_SCRIPT ?: ''}",
+    "PERSONAL_GITHUB_CREDENTIAL_ID=${env.TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID ?: ''}",
+    "PERSONAL_BUILD_JOBS=${env.TEAM_WORKSTATION_BUILD_JOBS ?: '3'}",
+    "PERSONAL_REGRESSION_JOBS=${env.TEAM_WORKSTATION_REGRESSION_JOBS ?: '1'}"
 ]
 if (!explicitSelector && env.CHANGE_ID) {
     if (env.CHANGE_TARGET != 'main') {

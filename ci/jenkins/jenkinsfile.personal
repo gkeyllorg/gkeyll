@@ -121,20 +121,18 @@ if (candidatePr && !(candidatePr ==~ /[1-9][0-9]*/)) error("CANDIDATE_PR must be
 if (candidatePr && requestedBaseline) error('BASELINE_REF must be empty with CANDIDATE_PR.')
 if (candidateRef) { candidateRef = validateRef('CANDIDATE_REF', candidateRef); requestedBaseline = validateRef('BASELINE_REF', requestedBaseline) }
 
-def prefix = env.CI_CONFIG_PREFIX ?: 'PERSONAL'
-def config = { String key, String defaultValue = '' -> env["${prefix}_${key}"] ?: defaultValue }
-def label = requireValue("${prefix}_NODE_LABEL", config('NODE_LABEL'))
-def mkdeps = validateBranchName("${prefix}_MKDEPS_SCRIPT", requireValue("${prefix}_MKDEPS_SCRIPT", config('MKDEPS_SCRIPT')))
-def configure = validateBranchName("${prefix}_CONFIGURE_SCRIPT", requireValue("${prefix}_CONFIGURE_SCRIPT", config('CONFIGURE_SCRIPT')))
-def credentialsId = requireValue("${prefix}_GITHUB_CREDENTIAL_ID", config('GITHUB_CREDENTIAL_ID'))
-def jobs = config('BUILD_JOBS', '3').trim()
-def regressionJobs = config('REGRESSION_JOBS', '1').trim()
-if (!(jobs ==~ /[1-9][0-9]*/) || !(regressionJobs ==~ /[1-9][0-9]*/)) error("${prefix}_BUILD_JOBS and ${prefix}_REGRESSION_JOBS must be positive integers.")
+def label = requireValue('PERSONAL_NODE_LABEL', env.PERSONAL_NODE_LABEL)
+def mkdeps = validateBranchName('PERSONAL_MKDEPS_SCRIPT', requireValue('PERSONAL_MKDEPS_SCRIPT', env.PERSONAL_MKDEPS_SCRIPT))
+def configure = validateBranchName('PERSONAL_CONFIGURE_SCRIPT', requireValue('PERSONAL_CONFIGURE_SCRIPT', env.PERSONAL_CONFIGURE_SCRIPT))
+def credentialsId = requireValue('PERSONAL_GITHUB_CREDENTIAL_ID', env.PERSONAL_GITHUB_CREDENTIAL_ID)
+def jobs = (env.PERSONAL_BUILD_JOBS ?: '3').trim()
+def regressionJobs = (env.PERSONAL_REGRESSION_JOBS ?: '1').trim()
+if (!(jobs ==~ /[1-9][0-9]*/) || !(regressionJobs ==~ /[1-9][0-9]*/)) error('PERSONAL_BUILD_JOBS and PERSONAL_REGRESSION_JOBS must be positive integers.')
 
 node(label) {
     def commit = ''
     def status = 'failure'
-    def description = "${prefix} CI failed."
+    def description = 'Personal CI failed.'
     try {
         stage('Resolve candidate and baseline') {
             if (candidatePr) { candidateRef = "PR #${candidatePr}"; requestedBaseline = pullRequestBase(credentialsId, candidatePr) }
@@ -149,9 +147,9 @@ node(label) {
         stage('Report pending') { publishStatus(credentialsId, env.CI_STATUS_CONTEXT ?: 'continuous-integration/jenkins/personal', commit, 'pending', 'Gkeyll CI is running.') }
         stage('Build candidate') { buildTree("${env.WORKSPACE}/gkylsoft", mkdeps, configure, jobs) }
         stage('Build baseline') { createBaseline(credentialsId, requestedBaseline, mkdeps, configure, jobs, regressionJobs) }
-        stage('C regressions') { runCandidateRegressions(regressionJobs); status = 'success'; description = "${prefix} CI passed." }
+        stage('C regressions') { runCandidateRegressions(regressionJobs); status = 'success'; description = 'Personal CI passed.' }
     } catch (err) {
-        if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) { status = 'error'; description = "${prefix} CI was aborted." }
+        if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) { status = 'error'; description = 'Personal CI was aborted.' }
         throw err
     } finally {
         archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-regression-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'

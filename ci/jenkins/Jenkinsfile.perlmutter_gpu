@@ -1,4 +1,4 @@
-// Manual, CPU-only Level-1 CI for Princeton's Stellar Intel cluster.
+// Manual Level-1 CUDA CI for NERSC's Perlmutter GPU cluster.
 //
 // Configure the Jenkins job to load *this file* from a reviewed, trusted CI
 // branch while Level 1 is being brought up. The PR checkout below is
@@ -37,14 +37,14 @@ properties([
 def requireValue(String name, String value) {
     value = value?.trim()
     if (!value) {
-        error("${name} is not configured. See ci/jenkins/README.stellar-intel.md.")
+        error("${name} is not configured. See ci/jenkins/README.perlmutter_gpu.md.")
     }
     return value
 }
 
 def buildJobs() {
-    def value = (env.STELLAR_BUILD_JOBS ?: '3').trim()
-    return positiveInteger('STELLAR_BUILD_JOBS', value)
+    def value = (env.PERLMUTTER_GPU_BUILD_JOBS ?: '3').trim()
+    return positiveInteger('PERLMUTTER_GPU_BUILD_JOBS', value)
 }
 
 def positiveInteger(String name, String value) {
@@ -56,15 +56,15 @@ def positiveInteger(String name, String value) {
 
 def regressionJobs() {
     return positiveInteger(
-        'STELLAR_REGRESSION_JOBS',
-        (env.STELLAR_REGRESSION_JOBS ?: '4').trim()
+        'PERLMUTTER_GPU_REGRESSION_JOBS',
+        (env.PERLMUTTER_GPU_REGRESSION_JOBS ?: '4').trim()
     )
 }
 
 def regressionTestTimeout() {
     return positiveInteger(
-        'STELLAR_REGRESSION_TEST_TIMEOUT',
-        (env.STELLAR_REGRESSION_TEST_TIMEOUT ?: '900').trim()
+        'PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT',
+        (env.PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT ?: '900').trim()
     )
 }
 
@@ -178,7 +178,7 @@ def publishGitHubCommitStatus(String credentialsId, String commit, String state,
             sh '''#!/bin/bash
                 set -euo pipefail
 
-                payload="$(printf '{"state":"%s","context":"continuous-integration/jenkins/stellar-intel","description":"%s"}' "${GITHUB_STATUS_STATE}" "${GITHUB_STATUS_DESCRIPTION}")"
+                payload="$(printf '{"state":"%s","context":"continuous-integration/jenkins/perlmutter_gpu","description":"%s"}' "${GITHUB_STATUS_STATE}" "${GITHUB_STATUS_DESCRIPTION}")"
                 curl --fail --silent --show-error \
                     --retry 2 --connect-timeout 15 --max-time 45 \
                     --request POST \
@@ -187,16 +187,16 @@ def publishGitHubCommitStatus(String credentialsId, String commit, String state,
                     --header "Authorization: Bearer ${GITHUB_STATUS_TOKEN}" \
                     --header 'Content-Type: application/json' \
                     --data "$payload" \
-                    --output /dev/null --write-out 'GitHub Stellar status: %{http_code}\\n' \
+                    --output /dev/null --write-out 'GitHub Perlmutter status: %{http_code}\\n' \
                     "https://api.github.com/repos/gkeyllorg/gkeyll/statuses/${GITHUB_STATUS_COMMIT}"
             '''
         }
     }
 }
 
-def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, List<String> extraExports = []) {
-    def qos = requireValue('STELLAR_SLURM_QOS', env.STELLAR_SLURM_QOS)
-    def account = env.STELLAR_SLURM_ACCOUNT?.trim()
+def submitSlurmJob(String kind, String payload, String timeLimit, List<String> extraExports = []) {
+    def qos = (env.PERLMUTTER_GPU_SLURM_QOS ?: 'shared').trim()
+    def account = requireValue('PERLMUTTER_GPU_SLURM_ACCOUNT', env.PERLMUTTER_GPU_SLURM_ACCOUNT)
     def idFile = "slurm-${kind}-job-id.txt"
     def statusFile = "slurm-${kind}-job-status.txt"
     def outputFile = "slurm-${kind}-%j.out"
@@ -212,10 +212,9 @@ def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, L
         "CI_SLURM_JOB_KIND=${kind}",
         "CI_SLURM_JOB_ID_FILE=${idFile}",
         "CI_SLURM_JOB_STATUS_FILE=${statusFile}",
-        "CI_STELLAR_QOS=${qos}",
-        "CI_STELLAR_TIME=${timeLimit}",
-        "CI_STELLAR_ACCOUNT=${account ?: ''}",
-        "CI_STELLAR_CPUS=${cpus}",
+        "CI_PERLMUTTER_GPU_QOS=${qos}",
+        "CI_PERLMUTTER_GPU_TIME=${timeLimit}",
+        "CI_PERLMUTTER_GPU_ACCOUNT=${account}",
         "CI_SLURM_PAYLOAD=${payload}",
         "CI_SLURM_EXPORTS=${exports.join(',')}",
         "CI_SLURM_OUTPUT=${outputFile}"
@@ -257,16 +256,16 @@ def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, L
                 "--job-name=gkyl-ci-${CI_SLURM_JOB_KIND}-${BUILD_NUMBER}"
                 --nodes=1
                 --ntasks=1
-                "--cpus-per-task=${CI_STELLAR_CPUS}"
-                "--qos=${CI_STELLAR_QOS}"
-                "--time=${CI_STELLAR_TIME}"
+                --constraint=gpu
+                --cpus-per-task=32
+                --gpus-per-task=1
+                "--qos=${CI_PERLMUTTER_GPU_QOS}"
+                "--time=${CI_PERLMUTTER_GPU_TIME}"
                 "--output=${CI_WORKSPACE}/${CI_SLURM_OUTPUT}"
                 "--chdir=${CI_WORKSPACE}"
                 "--export=ALL,${CI_SLURM_EXPORTS}"
             )
-            if [[ -n "${CI_STELLAR_ACCOUNT:-}" ]]; then
-                sbatch_args+=("--account=${CI_STELLAR_ACCOUNT}")
-            fi
+            sbatch_args+=("--account=${CI_PERLMUTTER_GPU_ACCOUNT}")
 
             submission="$(sbatch "${sbatch_args[@]}" "$CI_SLURM_PAYLOAD")"
             job_id="${submission%%;*}"
@@ -322,9 +321,8 @@ def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, L
 def submitUnitTests() {
     submitSlurmJob(
         'unit',
-        'ci/jenkins/slurm-unit-tests.stellar-intel.sh',
-        '4',
-        (env.STELLAR_SLURM_TIME ?: '00:30:00').trim()
+        'ci/jenkins/slurm-unit-tests.perlmutter_gpu.sh',
+        (env.PERLMUTTER_GPU_UNIT_TIME ?: '00:30:00').trim()
     )
 }
 
@@ -333,9 +331,8 @@ def submitRegressionTests() {
     def timeout = regressionTestTimeout()
     submitSlurmJob(
         'regression',
-        'ci/jenkins/slurm-regression-tests.stellar-intel.sh',
-        '8',
-        (env.STELLAR_REGRESSION_TIME ?: '04:00:00').trim(),
+        'ci/jenkins/slurm-regression-tests.perlmutter_gpu.sh',
+        (env.PERLMUTTER_GPU_REGRESSION_TIME ?: '04:00:00').trim(),
         [
             "CI_BASELINE_DIR=${env.WORKSPACE}/_baseline",
             "CI_BASELINE_PREFIX=${env.WORKSPACE}/_baseline/gkylsoft",
@@ -470,7 +467,7 @@ def timingStatusDescription(String status) {
     def unitElapsed = timingMetric('unit_slurm_elapsed_seconds')
     def regressionElapsed = timingMetric('regression_slurm_elapsed_seconds')
     def outcome = status == 'success' ? 'passed' : (status == 'error' ? 'errored' : 'failed')
-    def description = "Stellar CI ${outcome}: C ${passed}/${acknowledged}/${unacknowledged}; comp C/B ${candidateCompile}/${baselineCompile}s; Slurm U/R ${unitElapsed}/${regressionElapsed}s"
+    def description = "Perlmutter CI ${outcome}: C ${passed}/${acknowledged}/${unacknowledged}; comp C/B ${candidateCompile}/${baselineCompile}s; Slurm U/R ${unitElapsed}/${regressionElapsed}s"
     return description.take(140)
 }
 
@@ -491,18 +488,18 @@ if (candidateRef) {
     requestedBaselineRef = validateRefSelector('BASELINE_REF', requestedBaselineRef)
 }
 
-def nodeLabel = (env.STELLAR_INTEL_NODE_LABEL ?: 'stellar-intel').trim()
+def nodeLabel = (env.PERLMUTTER_GPU_NODE_LABEL ?: 'perlmutter_gpu').trim()
 def gkeyllCiRoot = requireValue('GKEYLL_CI_ROOT', env.GKEYLL_CI_ROOT)
 def workspaceRoot = "${gkeyllCiRoot}/workspaces"
-def credentialsId = requireValue('STELLAR_GITHUB_CREDENTIAL_ID', env.STELLAR_GITHUB_CREDENTIAL_ID)
+def credentialsId = requireValue('PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID', env.PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID)
 def candidateSelector = ''
 def baselineSelector = ''
 def candidateCommit = ''
 def terminalStatus = 'failure'
-def terminalDescription = 'Stellar Intel CPU CI failed.'
+def terminalDescription = 'Perlmutter GPU CI failed.'
 
 node(nodeLabel) {
-    // Stellar compute nodes must see this path. Configure the root on a shared
+    // Perlmutter compute nodes must see this path. Configure the root on a shared
     // filesystem such as the project's /scratch/gpfs location, never /tmp.
     ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
         try {
@@ -534,14 +531,14 @@ node(nodeLabel) {
                     credentialsId,
                     candidateCommit,
                     'pending',
-                    'Stellar Intel candidate CI is running.'
+                    'Perlmutter GPU candidate CI is running.'
                 )
             }
             stage('Build dependencies') {
                 withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
                     sh '''#!/bin/bash -l
                         set -euo pipefail
-                        ./machines/mkdeps.stellar-intel.sh
+                        ./machines/mkdeps.perlmutter.gpu.sh
                     '''
                 }
             }
@@ -549,7 +546,7 @@ node(nodeLabel) {
                 withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
                     sh '''#!/bin/bash -l
                         set -euo pipefail
-                        ./machines/configure.stellar-intel.sh
+                        ./machines/configure.perlmutter.gpu.sh
                     '''
                 }
             }
@@ -558,8 +555,8 @@ node(nodeLabel) {
                 sh """#!/bin/bash -l
                     set -euo pipefail
                     # Each Jenkins sh step is a new process, so source the
-                    # same environment used by the Stellar machine scripts.
-                    . machines/module_load.stellar-intel.sh
+                    # same environment used by the Perlmutter machine scripts.
+                    . machines/module_load.perlmutter-gpu.sh
                     module list
                     make -j${jobs} unit
                 """
@@ -571,7 +568,7 @@ node(nodeLabel) {
                 def jobs = buildJobs()
                 sh """#!/bin/bash -l
                     set -euo pipefail
-                    . machines/module_load.stellar-intel.sh
+                    . machines/module_load.perlmutter-gpu.sh
                     make -j${jobs} install
                 """
             }
@@ -581,56 +578,56 @@ node(nodeLabel) {
                     "${env.WORKSPACE}/gkylsoft/gkeyll/bin/gkeyll",
                     env.WORKSPACE,
                     "${env.WORKSPACE}/gkylsoft",
-                    'machines/module_load.stellar-intel.sh'
+                    'machines/module_load.perlmutter-gpu.sh'
                 )
             }
-            stage('Checkout Stellar Intel baseline') {
+            stage('Checkout Perlmutter GPU baseline') {
                 dir('_baseline') {
                     deleteDir()
                     checkoutRef(credentialsId, baselineSelector, 'baseline')
                     sh 'git rev-parse HEAD | tee ../ci-baseline-commit.txt'
                 }
             }
-            stage('Build Stellar Intel baseline') {
+            stage('Build Perlmutter GPU baseline') {
                 withEnv(["PREFIX=${env.WORKSPACE}/_baseline/gkylsoft"]) {
                     dir('_baseline') {
                         sh '''#!/bin/bash -l
                             set -euo pipefail
-                            . ../machines/module_load.stellar-intel.sh
-                            ./machines/mkdeps.stellar-intel.sh
-                            ./machines/configure.stellar-intel.sh
+                            . ../machines/module_load.perlmutter-gpu.sh
+                            ./machines/mkdeps.perlmutter.gpu.sh
+                            ./machines/configure.perlmutter.gpu.sh
                         '''
                     }
                 }
             }
-            stage('Install Stellar Intel baseline') {
+            stage('Install Perlmutter GPU baseline') {
                 def jobs = buildJobs()
                 dir('_baseline') {
                     sh """#!/bin/bash -l
                         set -euo pipefail
-                        . ../machines/module_load.stellar-intel.sh
+                        . ../machines/module_load.perlmutter-gpu.sh
                         make -j${jobs} install
                     """
                 }
             }
-            stage('Compile Stellar Intel baseline C regressions') {
+            stage('Compile Perlmutter GPU baseline C regressions') {
                 configureAndCompileCRegressions(
                     'baseline',
                     "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll",
                     "${env.WORKSPACE}/_baseline",
                     "${env.WORKSPACE}/_baseline/gkylsoft",
-                    'machines/module_load.stellar-intel.sh'
+                    'machines/module_load.perlmutter-gpu.sh'
                 )
             }
             stage('Run C regressions (SLURM)') {
                 submitRegressionTests()
             }
             terminalStatus = 'success'
-            terminalDescription = 'Stellar Intel CPU unit and C regression tests passed.'
+            terminalDescription = 'Perlmutter GPU unit and C regression tests passed.'
         } catch (err) {
             if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) {
                 terminalStatus = 'error'
-                terminalDescription = 'Stellar Intel CPU CI was aborted.'
+                terminalDescription = 'Perlmutter GPU CI was aborted.'
             }
             throw err
         } finally {
@@ -638,7 +635,7 @@ node(nodeLabel) {
                 finalizeUnfinishedSlurmJob()
             } catch (err) {
                 terminalStatus = 'error'
-                terminalDescription = 'Stellar Intel CPU CI cleanup failed.'
+                terminalDescription = 'Perlmutter GPU CI cleanup failed.'
                 throw err
             } finally {
                 try {
@@ -646,7 +643,7 @@ node(nodeLabel) {
                     terminalDescription = timingStatusDescription(terminalStatus)
                 } catch (err) {
                     terminalStatus = 'error'
-                    terminalDescription = 'Stellar Intel CPU CI timing summary failed.'
+                    terminalDescription = 'Perlmutter GPU CI timing summary failed.'
                     throw err
                 }
                 try {
@@ -654,7 +651,7 @@ node(nodeLabel) {
                         artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt'
                 } catch (err) {
                     terminalStatus = 'error'
-                    terminalDescription = 'Stellar Intel CPU CI artifact archival failed.'
+                    terminalDescription = 'Perlmutter GPU CI artifact archival failed.'
                     throw err
                 } finally {
                     try {
