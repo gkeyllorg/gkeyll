@@ -1,0 +1,22 @@
+Now
+
+.//jenkins-stellar-intel.sh follow --queue 49
+
+produced 
+
+Jenkins tmux session already exists: gkeyll_ci
+Jenkins is ready at http://127.0.0.1:8080
+curl: (22) The requested URL returned error: 404 Not Found
+Following gkeyll-ci-stellar-intel #27
+Build URL: http://127.0.0.1:8080/job/gkeyll-ci-stellar-intel/27/
+CLI handshake failed with status code 403
+Content-Length: 0
+Content-Security-Policy-Report-Only: base-uri 'none'; default-src 'self'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; script-src 'report-sample' 'self' usage.jenkins.io; style-src 'report-sample' 'self' 'unsafe-inline'; report-to content-security-policy; report-uri http://localhost:8081/content-security-policy-reporting-endpoint/REDACTED:YWRtaW4=::L2NsaS93cw==
+Date: Tue, 15 Sep 2026 03:14:49 GMT
+Reporting-Endpoints: content-security-policy: http://localhost:8081/content-security-policy-reporting-endpoint/REDACTED:YWRtaW4=::L2NsaS93cw==
+Server: Jetty(12.1.12)
+Vary: Accept-Encoding
+X-CLI-Error: Unexpected request origin (check your reverse proxy settings)
+X-Content-Type-Options: nosniff
+Console follower ended before Jenkins reported a terminal result; checking build status.
+Build #27 result: FAILURE
