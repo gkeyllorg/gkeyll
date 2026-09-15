@@ -86,7 +86,7 @@ gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct gk_species 
   copy_lower_z_ghost_to_all_z_conf(app, sca->sheath_val, app->field->sheath_vals[off], 1*app->basis.num_basis, sca->buffer_conf);
 
   // Compute ( phi-phi_sheath)/(T/m) ).
-  gkyl_array_copy_range(sca->buffer_conf, app->field->phi_smooth, &app->local);
+  gkyl_array_copy_range(sca->buffer_conf, gks->gyro_phi, &app->local);
   gkyl_array_accumulate_range(sca->buffer_conf, -1.0, sca->sheath_val, &app->local);
   gkyl_dg_div_op_range(gks->lte.moms.mem_geo, &app->basis, 0, sca->buffer_conf,
     0, sca->buffer_conf, 2, gks->lte.moms.marr, &app->local);

@@ -185,12 +185,12 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 
       // Compute the initial damping rate (assuming phi=0 because phi hasn't been computed).
       // Find the potential at the mirror throat.
-      gkyl_dg_basis_ops_eval_array_at_coord_comp(app->field->phi_smooth, damp->bmag_max_coord,
+      gkyl_dg_basis_ops_eval_array_at_coord_comp(gks->gyro_phi, damp->bmag_max_coord,
         app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
       gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
       // Project the loss cone mask.
       gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-        app->field->phi_smooth, damp->phi_m_global, damp->rate);
+        gks->gyro_phi, damp->phi_m_global, damp->rate);
       // Multiply by the user's scaling profile.
       gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
     }

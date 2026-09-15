@@ -54,6 +54,10 @@ struct gkyl_culinsolver_prob {
   // for cusolverRfBatch:
   double **rhspointers_cu; // array of pointers to rhs vectors.
   double **csrvalApointers_cu; // array of pointers to LHS A matrices.
+
+  // cuSPARSE buffer for matrix-vector products (allocated on first use).
+  void *spmv_buf;
+  size_t spmv_buf_sz;
 };
 
 gkyl_culinsolver_prob*
@@ -67,6 +71,8 @@ gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
   prob->mrow = mrow;
   prob->ncol = ncol;
   prob->nrhs = GKYL_MAX2(nprob,nrhs);
+  prob->spmv_buf = NULL;
+  prob->spmv_buf_sz = 0;
 
   prob->rhs = (double*) gkyl_malloc(mrow*prob->nrhs*sizeof(double));
   prob->rhs_cu = (double*) gkyl_cu_malloc(mrow*prob->nrhs*sizeof(double));
@@ -426,6 +432,43 @@ gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
 }
 
 void
+gkyl_culinsolver_sync(struct gkyl_culinsolver_prob *prob)
+{
+  cudaStreamSynchronize(prob->stream);
+}
+
+void
+gkyl_culinsolver_mat_vec(struct gkyl_culinsolver_prob *prob, const double *x, double *y)
+{
+  double alpha = 1.0, beta = 0.0;
+  for (int k=0; k<prob->nprob; k++) {
+    cusparseSpMatDescr_t matA;
+    cusparseCreateCsr(&matA, prob->mrow, prob->ncol, prob->nnz,
+      prob->csrrowptrA_cu, prob->csrcolindA_cu, prob->csrvalA_cu+k*prob->nnz,
+      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
+
+    cusparseDnVecDescr_t vecX, vecY;
+    cusparseCreateDnVec(&vecX, prob->ncol, (void*) &x[k*prob->ncol], CUDA_R_64F);
+    cusparseCreateDnVec(&vecY, prob->mrow, &y[k*prob->mrow], CUDA_R_64F);
+
+    if (prob->spmv_buf == NULL) {
+      // All problems have the same sparsity pattern, so one buffer suffices.
+      cusparseSpMV_bufferSize(prob->cusparseH, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY,
+        CUDA_R_64F, CUSPARSE_SPMV_ALG_DEFAULT, &prob->spmv_buf_sz);
+      prob->spmv_buf = gkyl_cu_malloc(GKYL_MAX2(prob->spmv_buf_sz, 1));
+    }
+
+    cusparseSpMV(prob->cusparseH, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY,
+      CUDA_R_64F, CUSPARSE_SPMV_ALG_DEFAULT, prob->spmv_buf);
+
+    cusparseDestroyDnVec(vecX);
+    cusparseDestroyDnVec(vecY);
+    cusparseDestroySpMat(matA);
+  }
+  cudaStreamSynchronize(prob->stream);
+}
+
+void
 gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
@@ -478,6 +521,7 @@ gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
   gkyl_cu_free(prob->d_P);
   gkyl_cu_free(prob->d_Q);
   gkyl_cu_free(prob->d_T);
+  if (prob->spmv_buf) gkyl_cu_free(prob->spmv_buf);
   cusolverRfDestroy(prob->cusolverRfH);
   cusparseDestroy(prob->cusparseH);
   cusolverSpDestroyCsrluInfoHost(prob->infolu);

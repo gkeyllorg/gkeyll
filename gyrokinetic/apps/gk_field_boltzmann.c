@@ -155,15 +155,10 @@ gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
   }
 
-  // Create operator needed for FLR effects.
-  f->use_flr = false;
+  // FLR effects are not implemented for this field type.
+  f->use_flr = f->info.flr.type != GKYL_GK_FLR_NONE;
   f->invert_flr = gk_field_invert_flr_none;
-  for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    if (s->info.flr.type) {
-      f->use_flr = f->use_flr || s->info.flr.type;
-    }
-  }
+  assert(!f->use_flr);
 
   f->release_func = gk_field_fem_release_boltzmann;
 }

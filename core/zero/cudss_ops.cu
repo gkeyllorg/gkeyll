@@ -1,6 +1,7 @@
 #ifdef GKYL_HAVE_CUDSS
 
 #include <cudss.h>
+#include <cusparse.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -17,6 +18,15 @@ do { \
     status = call; \
     if (status != CUDSS_STATUS_SUCCESS) { \
         fprintf(stderr, "Example FAILED: CUDSS call ended unsuccessfully with status = %d, details: " #msg "\n", status); \
+        exit(EXIT_FAILURE); \
+    } \
+} while(0);
+
+#define checkCUSPARSE(call, msg) \
+do { \
+    cusparseStatus_t st = call; \
+    if (st != CUSPARSE_STATUS_SUCCESS) { \
+        fprintf(stderr, "cuSPARSE call ended unsuccessfully with status = %d, details: " #msg "\n", st); \
         exit(EXIT_FAILURE); \
     } \
 } while(0);
@@ -41,6 +51,11 @@ struct gkyl_culinsolver_prob {
   double *csr_val_ho;
   double *csr_val_cu;
   int *csr_rowptr_cu, *csr_colind_cu;
+
+  // cuSPARSE objects for matrix-vector products (created on first use).
+  cusparseHandle_t cusparse_handle;
+  void *spmv_buf;
+  size_t spmv_buf_sz;
 };
 
 gkyl_culinsolver_prob*
@@ -63,6 +78,10 @@ gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
   /* Create a CUDA stream */
   prob->stream = NULL;
   checkCuda(cudaStreamCreate(&prob->stream));
+
+  prob->cusparse_handle = NULL;
+  prob->spmv_buf = NULL;
+  prob->spmv_buf_sz = 0;
 
   /* Creating the cuDSS library handle */
   checkCUDSS(cudssCreate(&prob->handle), status, "cudssCreate");
@@ -264,6 +283,42 @@ gkyl_culinsolver_sync(struct gkyl_culinsolver_prob *prob)
 }
 
 void
+gkyl_culinsolver_mat_vec(struct gkyl_culinsolver_prob *prob, const double *x, double *y)
+{
+  if (prob->cusparse_handle == NULL) {
+    checkCUSPARSE(cusparseCreate(&prob->cusparse_handle), "cusparseCreate");
+    checkCUSPARSE(cusparseSetStream(prob->cusparse_handle, prob->stream), "cusparseSetStream");
+  }
+
+  double alpha = 1.0, beta = 0.0;
+  for (int k=0; k<prob->nprob; k++) {
+    cusparseSpMatDescr_t matA;
+    checkCUSPARSE(cusparseCreateCsr(&matA, prob->mrow, prob->ncol, prob->nnz,
+      prob->csr_rowptr_cu, prob->csr_colind_cu, prob->csr_val_cu+k*prob->nnz,
+      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F), "cusparseCreateCsr");
+
+    cusparseDnVecDescr_t vecX, vecY;
+    checkCUSPARSE(cusparseCreateDnVec(&vecX, prob->ncol, (void*) &x[k*prob->ncol], CUDA_R_64F), "cusparseCreateDnVec");
+    checkCUSPARSE(cusparseCreateDnVec(&vecY, prob->mrow, &y[k*prob->mrow], CUDA_R_64F), "cusparseCreateDnVec");
+
+    if (prob->spmv_buf == NULL) {
+      // All problems have the same sparsity pattern, so one buffer suffices.
+      checkCUSPARSE(cusparseSpMV_bufferSize(prob->cusparse_handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY,
+        CUDA_R_64F, CUSPARSE_SPMV_ALG_DEFAULT, &prob->spmv_buf_sz), "cusparseSpMV_bufferSize");
+      prob->spmv_buf = gkyl_cu_malloc(GKYL_MAX2(prob->spmv_buf_sz, 1));
+    }
+
+    checkCUSPARSE(cusparseSpMV(prob->cusparse_handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY,
+      CUDA_R_64F, CUSPARSE_SPMV_ALG_DEFAULT, prob->spmv_buf), "cusparseSpMV");
+
+    checkCUSPARSE(cusparseDestroyDnVec(vecX), "cusparseDestroyDnVec");
+    checkCUSPARSE(cusparseDestroyDnVec(vecY), "cusparseDestroyDnVec");
+    checkCUSPARSE(cusparseDestroySpMat(matA), "cusparseDestroySpMat");
+  }
+  checkCuda(cudaStreamSynchronize(prob->stream));
+}
+
+void
 gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
@@ -329,6 +384,9 @@ gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
   gkyl_cu_free(prob->csr_rowptr_cu);
   gkyl_cu_free(prob->csr_val_cu);
   gkyl_free(prob->csr_val_ho);
+
+  if (prob->spmv_buf) gkyl_cu_free(prob->spmv_buf);
+  if (prob->cusparse_handle) cusparseDestroy(prob->cusparse_handle);
 
   checkCuda(cudaStreamSynchronize(prob->stream));
   cudaStreamDestroy(prob->stream);
