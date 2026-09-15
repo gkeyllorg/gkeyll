@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2KDQV27HCJEHAXCPM47JP4A",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-jenkins-perlmutter_gpu-personal_refact",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "ci/jenkins/Jenkinsfile.perlmutter-gpu",
+    "ci/jenkins/Jenkinsfile.perlmutter_gpu",
+    "ci/jenkins/Jenkinsfile.stellar-intel",
+    "ci/jenkins/Jenkinsfile.stellar_cpu",
+    "ci/jenkins/README.md",
+    "ci/jenkins/README.perlmutter-gpu.md",
+    "ci/jenkins/README.perlmutter_gpu.md",
+    "ci/jenkins/README.stellar-intel.md",
+    "ci/jenkins/README.stellar_cpu.md",
+    "ci/jenkins/gkeyll-ci.sh",
+    "ci/jenkins/jenkins-perlmutter-gpu.sh",
+    "ci/jenkins/jenkins-perlmutter_gpu.sh",
+    "ci/jenkins/jenkins-stellar-intel.sh",
+    "ci/jenkins/jenkins-stellar_cpu.sh",
+    "ci/jenkins/slurm-regression-tests.perlmutter-gpu.sh",
+    "ci/jenkins/slurm-regression-tests.perlmutter_gpu.sh",
+    "ci/jenkins/slurm-regression-tests.stellar-intel.sh",
+    "ci/jenkins/slurm-regression-tests.stellar_cpu.sh",
+    "ci/jenkins/slurm-unit-tests.perlmutter-gpu.sh",
+    "ci/jenkins/slurm-unit-tests.perlmutter_gpu.sh",
+    "ci/jenkins/slurm-unit-tests.stellar-intel.sh",
+    "ci/jenkins/slurm-unit-tests.stellar_cpu.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 84917,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2381312,
+    "output_tokens": 16482,
+    "api_call_count": 29
+  }
+}
