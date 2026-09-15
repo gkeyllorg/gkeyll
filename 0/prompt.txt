@@ -1,0 +1,47 @@
+We recently improved the CLI for our Jenkins CI (in ci/jenkins). However I just logged on to stellar and tried
+
+/ci/jenkins/gkeyll-ci.sh stellar_cpu start
+
+but got
+
+Started Jenkins in tmux session: gkeyll_ci
+curl: (7) Failed to connect to 127.0.0.1 port 8080: Connection refused
+curl: (22) The requested URL returned error: 503 Service Unavailable
+Jenkins is ready at http://127.0.0.1:8080
+
+What am I doing wrong?
+
+---
+
+./ci/jenkins/gkeyll-ci.sh stellar_cpu recent
+
+Produces
+
+Jenkins tmux session already exists: gkeyll_ci
+Jenkins is ready at http://127.0.0.1:8080
+curl: (22) The requested URL returned error: 404 Not Found
+
+So I think there's still something wrong
+
+---
+
+ok, now 
+
+./ci/jenkins/gkeyll-ci.sh stellar_cpu recent
+
+behaves as expected.
+
+But when I did
+
+./ci/jenkins/gkeyll-ci.sh stellar_cpu start
+
+I still got the curl errors
+
+curl: (7) Failed to connect to 127.0.0.1 port 8080: Connection refused
+curl: (22) The requested URL returned error: 503 Service Unavailable
+
+Why? is there something we can change so these don't appear?
+
+---
+
+Is this change needed in personal/team scripts?
