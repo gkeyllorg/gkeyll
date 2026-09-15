@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2HJF6097SGY065BJ4WCYJQQ",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-jenkins-stellar_intel",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "ci/jenkins/README.stellar-intel.md",
+    "ci/jenkins/jenkins-stellar-intel.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 17849,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1032704,
+    "output_tokens": 7010,
+    "api_call_count": 10
+  }
+}
