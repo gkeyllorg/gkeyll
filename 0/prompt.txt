@@ -1,0 +1,22 @@
+Can you reformat the -h,--help output so that instead it looks something like
+
+Usage:
+  jenkins-stellar-intel.sh <command> [flags]
+
+Commands:
+  start <brief description>
+  run --pr NUMBER [--follow]
+  fun --candidate-ref REF --baseline-ref REF [--follow] <brief description>
+  follow --queue ID <brief description>
+  follow --build NUMBER <brief description>
+  status --queue ID <brief description>
+  status --build NUMBER <brief description>
+  active <brief description>
+  recent [--limit NUMBER] <brief description>
+...
+
+And place a very brief description for each option in  <brief description>.
+
+---
+
+Does the README describe how to populate the $JENKINS_HOME/jenkins-cli.auth file?
