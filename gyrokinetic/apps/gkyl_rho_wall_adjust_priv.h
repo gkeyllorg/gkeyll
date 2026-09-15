@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <float.h>
+#include <math.h>
 
 // Inward rho increments for the wall adjustment, searched in two phases.
 //
@@ -110,6 +112,21 @@ gkyl_rho_wall_next_phased(double requested_rho, double other_rho,
   if (!gkyl_rho_wall_finite(flux_span) || flux_span == 0.0) return false;
   const double next_psi = psi_axis+next*next*flux_span;
   if (!gkyl_rho_wall_finite(next_psi)) return false;
+  // The contract above says the separatrix is never crossed OR REACHED, but a
+  // rho test alone cannot enforce that.  Under this project's -ffast-math
+  // builds the compiler contracts requested_rho+COARSE_STEP*coarse into an FMA,
+  // so ten 1e-3 coarse steps from 0.99 land ONE ULP BELOW 1.0 instead of on it.
+  // `next < stop` then passes, and the block is handed a flux interval whose
+  // ends are numerically the same number.  That aborts far downstream in
+  // TOK_ORDERED_MAP with "cannot identify far radial boundary", which names
+  // neither the adjustment nor the separatrix -- NSTX-U 204180_ms316.
+  //
+  // So require the candidate to stay a meaningful distance from the separatrix
+  // in PSI.  The threshold is derived from the flux span and machine epsilon,
+  // not tuned: it is the point at which the interval stops being representable,
+  // and it scales with the equilibrium rather than assuming one.
+  if (!(fabs(psi_sep-next_psi) > 8.0*DBL_EPSILON*fabs(flux_span)))
+    return false;
 
   *rho = next;
   *psi = next_psi;
