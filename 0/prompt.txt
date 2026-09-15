@@ -1,0 +1,102 @@
+I ran
+
+./ci/jenkins/jenkins-personal.sh run --pr 1128
+./ci/jenkins/jenkins-personal.sh follow --build 4 &> run_4.txt
+
+and got the console output in run_4.txt.
+
+If this is the same error, is it because it's using the jenkinsfile from the baseline branch? This is the PR i'm trying to test: https://github.com/gkeyllorg/gkeyll/pull/1128
+
+---
+
+The Stellar CLI seems to have a richer output, for example
+
+./ci/jenkins/jenkins-stellar-intel.sh recent
+
+produces something like
+
+Jenkins tmux session already exists: gkeyll_ci
+Jenkins is ready at http://127.0.0.1:8080
+BUILD #31 SUCCESS queue=54 2026-09-15T03:58:56Z pr=1125 candidate=- baseline=- url=http://localhost:8081/job/gkeyll-ci-stellar-intel/31/
+
+i.e. the build number, status, queue number, date/time stamp, and what the pr/candidate/baseline and URL were.
+
+While the personal one is not as descriptive:
+
+./ci/jenkins/jenkins-personal.sh recent
+#5 BUILDING
+
+Can you make the CLI equally descriptive as the Stellar one for all machines (personal/team workstation/perlmutter)?
+
+---
+
+Ok, thanks.
+
+Now my latest attempt to build produced
+
+./ci/jenkins/jenkins-personal.sh follow --build 5
+Following gkeyll-ci-personal #5
+Build URL: http://127.0.0.1:8080/job/gkeyll-ci-personal/5/
+Started by user admin
+Obtained ci/jenkins/jenkinsfile.personal from git https://github.com/gkeyllorg/gkeyll
+[Pipeline] Start of Pipeline
+[Pipeline] properties
+[Pipeline] node
+Still waiting to schedule task
+‘Jenkins’ doesn’t have label ‘mac_lt1’
+
+Maybe I did something wrong with the keys in the Jenkins UI. I also see something requiring permission in my UI, see [Image #1]
+
+---
+
+should I place any environment variables for this node? see [Image #1]
+
+---
+
+Can I clear the current PATH box? i'd prefer that as it simplifies the UI setup. Or does my setup need it (e.g. to find cmake)?
+
+---
+
+Would it be possible to add an "abort" command to the CLI so that one can terminate a build from the terminal too?
+
+---
+
+please add it
+
+---
+
+./ci/jenkins/jenkins-personal.sh -h
+doesn't have descriptions for each command the way 
+./ci/jenkins/jenkins-stellar-intel.sh -h
+does. Can you make it so that all CLI scripts have an -h output with command descriptions?
+
+---
+
+Do single letter flags work in the Jenkins CLI? e.g. instead of "abort --queue" do "abort -q"
+
+---
+
+Do you think it's worth it to implement single letter options, or does it add too much complexity to the script?
+
+---
+
+Ok.
+
+Why do follow and status only have a --build option and not a --queue option?
+
+---
+
+Please add it to personal/team so it's consistent with Stellar/Perlmutter
+
+---
+
+Implement the plan.
+
+---
+
+are there any other inconsistencies between the personal/stellar/perlmutter/team CLIs?
+
+---
+
+1) Improve status --queue for stellar/perlmutter so they behave like the personal/team clients.
+2) One should be able to call -h even if GKEYLL_CI_ROOT is not set, so please fix this in the Perlmutter CLI so it's consistent with the other ones.

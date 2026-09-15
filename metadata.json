@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2KAAZD93ESH7AHM9VRVXE5P",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-jenkins-perlmutter_gpu-personal_refact",
+  "checkpoints_count": 15,
+  "files_touched": [
+    "ci/jenkins/README.perlmutter-gpu.md",
+    "ci/jenkins/README.personal.md",
+    "ci/jenkins/README.stellar-intel.md",
+    "ci/jenkins/README.team_workstation.md",
+    "ci/jenkins/jenkins-perlmutter-gpu.sh",
+    "ci/jenkins/jenkins-personal.sh",
+    "ci/jenkins/jenkins-stellar-intel.sh",
+    "ci/jenkins/jenkins-team-workstation.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 126043,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 7171072,
+    "output_tokens": 27521,
+    "api_call_count": 54
+  }
+}

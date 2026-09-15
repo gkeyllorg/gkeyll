@@ -1,0 +1,152 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2KAAZD93ESH7AHM9VRVXE5P",
+  "session_id": "01a0a570-936e-7fc0-bb41-82e77c7e510e",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-15T19:57:41.923605Z",
+  "branch": "agent_tools-jenkins-perlmutter_gpu-personal_refact",
+  "checkpoints_count": 15,
+  "save_step_count": 14,
+  "files_touched": [
+    "ci/jenkins/README.perlmutter-gpu.md",
+    "ci/jenkins/README.personal.md",
+    "ci/jenkins/README.stellar-intel.md",
+    "ci/jenkins/README.team_workstation.md",
+    "ci/jenkins/jenkins-perlmutter-gpu.sh",
+    "ci/jenkins/jenkins-personal.sh",
+    "ci/jenkins/jenkins-stellar-intel.sh",
+    "ci/jenkins/jenkins-team-workstation.sh"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "87fecbfed104",
+  "checkpoint_transcript_start": 642,
+  "transcript_lines_at_start": 642,
+  "compact_transcript_start": 86,
+  "token_usage": {
+    "input_tokens": 126043,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 7171072,
+    "output_tokens": 27521,
+    "api_call_count": 54
+  },
+  "session_metrics": {
+    "turn_count": 34
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 850208,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "log.txt": 796961,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "run_3.txt": 67,
+        "run_4.txt": 67,
+        "tmp.sh": 43,
+        "tmp.txt": 23
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850309,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850309,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850309,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850309,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850309,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850396,
+      "agent_lines_removed": 6
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850419,
+      "agent_lines_removed": 19
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850419,
+      "agent_lines_removed": 19
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850419,
+      "agent_lines_removed": 19
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850419,
+      "agent_lines_removed": 19
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850419,
+      "agent_lines_removed": 19
+    },
+    {
+      "checkpoint_number": 13,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850534,
+      "agent_lines_removed": 28
+    },
+    {
+      "checkpoint_number": 14,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 850534,
+      "agent_lines_removed": 28
+    }
+  ]
+}
