@@ -1855,6 +1855,108 @@ tok_legacy_plate_point(struct gkyl_tok_geo *geo, bool lower, enum gkyl_tok_geo_t
   *s=tok_plate_root_s(res,lower,psi);plate(*s,rz);
 }
 
+// gkyl_ridders requires a sign-changing bracket and reports status=2 with
+// nevals=0 when it is not handed one.  A plate that the requested surface
+// crosses an EVEN number of times produces exactly that, and it is NOT the
+// "plate does not span this surface" case tok_plate_root_s clamps for.  On
+// NSTX-U the inner plate runs down the inboard wall and then turns outboard
+// along the floor, so psisep crosses it twice: once at the leg strike and once
+// further out on the floor.  f(0) and f(1) are then both positive with two
+// interior sign changes between them.
+//
+// Enumerate every crossing and take the one whose R lies nearest the end of the
+// block this plate is setting.  That is the rule the ordered-map node placement
+// already applies (tok_plate_flux_intersection), and the two are computing the
+// same strike point, so they are expected to agree.  Returns false only when
+// there is no crossing at all, which is the case the clamp exists for.
+static bool
+tok_plate_root_s_hinted(struct gkyl_tok_geo *geo, struct plate_ctx *pctx,
+  double hint_r, double *s_out)
+{
+  // Two filters, and BOTH are needed.  Restricting to crossings beyond the
+  // X-point in |Z| is what makes a crossing a leg strike at all: a plate that
+  // runs up the inboard wall is also cut by the same surface ABOVE the X point,
+  // and that crossing is the main-SOL boundary, not a strike point.  Taking it
+  // as an extent endpoint puts the end of a private-flux block on the wrong
+  // side of the saddle.  On 203963_ms457 the two differ by 0.9 mm -- the
+  // above-X-point crossing sits at Z=-1.37065 against Zxpt=-1.37158 -- and
+  // selecting it builds a grid that dies downstream with no diagnostic.
+  //
+  // Among the crossings that survive that filter, the R hint picks which half
+  // of a shared private-flux plate this block owns.
+  double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+  double zxpt_up = (geo->efit->num_xpts > 1
+    ? (geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1])
+    : (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0]));
+  enum { NSAMP = 801 };
+  double rzplate[2];
+  double s_prev = 0.0, f_prev = tok_plate_psi_func(0.0, pctx);
+  double best_s = 0.0, best_dr = 0.0;
+  int nroots = 0, nbeyond = 0;
+  for (int i=1; i<NSAMP; ++i) {
+    double s = (double) i/(NSAMP-1);
+    double f = tok_plate_psi_func(s, pctx);
+    if (f_prev == 0.0 || (f_prev < 0.0) != (f < 0.0)) {
+      double a = s_prev, b = s, fa = f_prev;
+      for (int it=0; it<60; ++it) {
+        double m = 0.5*(a+b), fm = tok_plate_psi_func(m, pctx);
+        if ((fa < 0.0) != (fm < 0.0)) { b = m; } else { a = m; fa = fm; }
+      }
+      double sroot = 0.5*(a+b);
+      if (pctx->lower) geo->plate_func_lower(sroot, rzplate);
+      else geo->plate_func_upper(sroot, rzplate);
+      nroots++;
+      // Compare against the X point on this root's OWN side of the machine:
+      // PF_LO_L legitimately passes the lower inner plate as plate_func_upper.
+      double zxpt = rzplate[1] < 0.0 ? zxpt_lo : zxpt_up;
+      if (fabs(rzplate[1]) > fabs(zxpt)) {
+        double dr = fabs(rzplate[0] - hint_r);
+        if (nbeyond == 0 || dr < best_dr) { best_dr = dr; best_s = sroot; }
+        nbeyond++;
+      }
+      if (tok_extent_diag_enabled()) {
+        fprintf(stderr,
+          "TOK_PLATE_ROOT_CAND plate=%s idx=%d s=%.17g rz=(%.17g,%.17g) "
+          "zxpt=%.17g beyond=%d\n",
+          pctx->lower ? "lower" : "upper", nroots-1, sroot, rzplate[0],
+          rzplate[1], zxpt, fabs(rzplate[1]) > fabs(zxpt));
+      }
+    }
+    s_prev = s; f_prev = f;
+  }
+  // No crossing beyond the X point means no leg strike on this plate for this
+  // surface.  That is the case the clamp exists for, so leave it to the caller.
+  if (nbeyond == 0)
+    return false;
+  *s_out = best_s;
+  return true;
+}
+
+// Resolve the plate parameter for one end of a block's extent.  gkyl_ridders'
+// answer is preferred wherever it produced one, so every plate crossed exactly
+// once is bit-for-bit unchanged; the hinted enumeration is tried only where the
+// clamp would otherwise have fired, so it can only replace a substituted plate
+// end with an actual crossing.
+static double
+tok_plate_extent_root_s(struct gkyl_tok_geo *geo, struct plate_ctx *pctx,
+  const struct gkyl_qr_res *res, bool lower, double psi, double hint_r)
+{
+  if (res->res >= 0.0 && res->res <= 1.0)
+    return res->res;
+  double s_hint;
+  if (tok_plate_root_s_hinted(geo, pctx, hint_r, &s_hint)) {
+    double rz[2];
+    if (lower) geo->plate_func_lower(s_hint, rz);
+    else geo->plate_func_upper(s_hint, rz);
+    fprintf(stderr,
+      "TOK_GEO_PLATE_ROOT_MULTI plate=%s psi=%.17g hint_r=%.17g s=%.17g "
+      "rz=(%.17g,%.17g)\n",
+      lower ? "lower" : "upper", psi, hint_r, s_hint, rz[0], rz[1]);
+    return s_hint;
+  }
+  return tok_plate_root_s(res, lower, psi);
+}
+
 void set_upper_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr)
 {
       double rzplate[2];
@@ -2202,6 +2304,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double rzplate[2];
       pctx.psi_curr = geo->psisep;
       pctx.lower=false;
+
       double a = 0;
       double b = 1;
       double fa = tok_plate_psi_func(a, &pctx);
@@ -2212,7 +2315,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       if (geo->extend_to_limiter && geo->divertor_wall[1].num_segments)
         tok_legacy_plate_point(geo,false,inp->ftype,geo->psisep,&res,&smax,rzplate);
       else {
-        smax=tok_plate_root_s(&res,false,geo->psisep);
+        smax=tok_plate_extent_root_s(geo,&pctx,&res,false,geo->psisep,inp->rleft);
         geo->plate_func_upper(smax,rzplate);
       }
       arc_ctx.zmin_left = rzplate[1];
@@ -2228,7 +2331,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       if (geo->extend_to_limiter && geo->divertor_wall[0].num_segments)
         tok_legacy_plate_point(geo,true,inp->ftype,geo->psisep,&res,&smin,rzplate);
       else {
-        smin=tok_plate_root_s(&res,true,geo->psisep);
+        smin=tok_plate_extent_root_s(geo,&pctx,&res,true,geo->psisep,inp->rright);
         geo->plate_func_lower(smin,rzplate);
       }
       arc_ctx.zmin_right = rzplate[1];
@@ -2299,6 +2402,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double rzplate[2];
       pctx.psi_curr = geo->psisep;
       pctx.lower=false;
+
       double a = 0;
       double b = 1;
       double fa = tok_plate_psi_func(a, &pctx);
@@ -2309,7 +2413,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       if (geo->extend_to_limiter && geo->divertor_wall[1].num_segments)
         tok_legacy_plate_point(geo,false,inp->ftype,geo->psisep,&res,&smax,rzplate);
       else {
-        smax=tok_plate_root_s(&res,false,geo->psisep);
+        smax=tok_plate_extent_root_s(geo,&pctx,&res,false,geo->psisep,inp->rleft);
         geo->plate_func_upper(smax,rzplate);
       }
       arc_ctx.zmin_left = rzplate[1];
@@ -2326,7 +2430,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       if (geo->extend_to_limiter && geo->divertor_wall[0].num_segments)
         tok_legacy_plate_point(geo,true,inp->ftype,geo->psisep,&res,&smin,rzplate);
       else {
-        smin=tok_plate_root_s(&res,true,geo->psisep);
+        smin=tok_plate_extent_root_s(geo,&pctx,&res,true,geo->psisep,inp->rright);
         geo->plate_func_lower(smin,rzplate);
       }
       arc_ctx.zmin_right = rzplate[1];
@@ -2379,6 +2483,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double rzplate[2];
       pctx.psi_curr = geo->psisep;
       pctx.lower=false;
+
       double a = 0;
       double b = 1;
       double fa = tok_plate_psi_func(a, &pctx);
@@ -2389,7 +2494,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       if (geo->extend_to_limiter && geo->divertor_wall[1].num_segments)
         tok_legacy_plate_point(geo,false,inp->ftype,geo->psisep,&res,&smax,rzplate);
       else {
-        smax=tok_plate_root_s(&res,false,geo->psisep);
+        smax=tok_plate_extent_root_s(geo,&pctx,&res,false,geo->psisep,inp->rleft);
         geo->plate_func_upper(smax,rzplate);
       }
       arc_ctx.zmax_right= rzplate[1];
@@ -2405,7 +2510,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       if (geo->extend_to_limiter && geo->divertor_wall[0].num_segments)
         tok_legacy_plate_point(geo,true,inp->ftype,geo->psisep,&res,&smin,rzplate);
       else {
-        smin=tok_plate_root_s(&res,true,geo->psisep);
+        smin=tok_plate_extent_root_s(geo,&pctx,&res,true,geo->psisep,inp->rright);
         geo->plate_func_lower(smin,rzplate);
       }
       arc_ctx.zmax_left= rzplate[1];
