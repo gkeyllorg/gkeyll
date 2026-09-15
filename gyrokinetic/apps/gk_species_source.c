@@ -357,7 +357,7 @@ gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
     // power at the maximum source temperature, G_min = 2/3 * Q/T_max, so the
     // source cannot collapse to zero and never recover.
     // This is also important to avoid division by zero in the temperature calculation.
-    double particle_src_min = (2./vdim_phys) * fmax(energy_src_new, 0.0) / (s->info.source.projection[k].temp_max/2.0);
+    double particle_src_min = (2./vdim_phys) * fmax(energy_src_new, 0.0) / s->info.source.projection[k].temp_max;
     particle_src_new = fmax(particle_src_new, fmax(particle_input, particle_src_min));
 
     double temperature_new = particle_src_new > 0.0? (2./vdim_phys) * energy_src_new/particle_src_new
