@@ -1,0 +1,5 @@
+The Stellar/Perlmutter setup use an <machine>_SLURM_TIME environment variable. Is this solely used for the unit tests? If so, we should rename that <machine>_UNIT_TIME to match the format of <machine>_regression_time (and list it after <machine>_BUILD_JOBS
+
+---
+
+Implement the plan.
