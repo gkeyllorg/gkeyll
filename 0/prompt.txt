@@ -1,0 +1,65 @@
+./jenkins-stellar-intel.sh recent
+
+returned
+
+Jenkins tmux session already exists: gkeyll_ci
+Jenkins is ready at http://127.0.0.1:8080
+BUILD #27 FAILURE queue=49 2026-09-15T02:45:41Z pr=- candidate=- baseline=- url=http://localhost:8081/job/gkeyll-ci-stellar-intel/27/
+
+and 
+
+./jenkins-stellar-intel.sh active
+
+returned 
+
+Jenkins tmux session already exists: gkeyll_ci
+Jenkins is ready at http://127.0.0.1:8080
+No queued or running builds for gkeyll-ci-stellar-intel
+
+what should I do launch a new build/test?
+
+---
+
+./jenkins-stellar-intel.sh follow --build 28
+
+returned 
+
+Jenkins tmux session already exists: gkeyll_ci
+Jenkins is ready at http://127.0.0.1:8080
+Following gkeyll-ci-stellar-intel #28
+Build URL: http://127.0.0.1:8080/job/gkeyll-ci-stellar-intel/28/
+Started by user admin
+Obtained ci/jenkins/Jenkinsfile.stellar-intel from git https://github.com/gkeyllorg/gkeyll.git
+org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:
+WorkflowScript: 451: illegal string body character after dollar sign;
+   solution: either escape a literal dollar sign "\$5" or bracket the value expression "${5}" @ line 451, column 65.
+   g-summary.txt') =~ "(?m)^${key}=([^\\r\\
+                                 ^
+
+1 error
+
+	at org.codehaus.groovy.control.ErrorCollector.failIfErrors(ErrorCollector.java:309)
+	at org.codehaus.groovy.control.ErrorCollector.addFatalError(ErrorCollector.java:149)
+	at org.codehaus.groovy.control.ErrorCollector.addError(ErrorCollector.java:119)
+	at org.codehaus.groovy.control.ErrorCollector.addError(ErrorCollector.java:131)
+	at org.codehaus.groovy.control.SourceUnit.addError(SourceUnit.java:349)
+	at org.codehaus.groovy.antlr.AntlrParserPlugin.transformCSTIntoAST(AntlrParserPlugin.java:220)
+	at org.codehaus.groovy.antlr.AntlrParserPlugin.parseCST(AntlrParserPlugin.java:191)
+	at org.codehaus.groovy.control.SourceUnit.parse(SourceUnit.java:233)
+	at org.codehaus.groovy.control.CompilationUnit$1.call(CompilationUnit.java:189)
+	at org.codehaus.groovy.control.CompilationUnit.applyToSourceUnits(CompilationUnit.java:966)
+	at org.codehaus.groovy.control.CompilationUnit.doPhaseOperation(CompilationUnit.java:626)
+	at org.codehaus.groovy.control.CompilationUnit.processPhaseOperations(CompilationUnit.java:602)
+	at org.codehaus.groovy.control.CompilationUnit.compile(CompilationUnit.java:579)
+	at groovy.lang.GroovyClassLoader.doParseClass(GroovyClassLoader.java:323)
+	at groovy.lang.GroovyClassLoader.parseClass(GroovyClassLoader.java:293)
+	at PluginClassLoader for script-security//org.jenkinsci.plugins.scriptsecurity.sandbox.groovy.GroovySandbox$Scope.parse(GroovySandbox.java:162)
+	at PluginClassLoader for workflow-cps//org.jenkinsci.plugins.workflow.cps.CpsGroovyShell.doParse(CpsGroovyShell.java:202)
+	at PluginClassLoader for workflow-cps//org.jenkinsci.plugins.workflow.cps.CpsGroovyShell.reparse(CpsGroovyShell.java:186)
+	at PluginClassLoader for workflow-cps//org.jenkinsci.plugins.workflow.cps.CpsFlowExecution.parseScript(CpsFlowExecution.java:670)
+	at PluginClassLoader for workflow-cps//org.jenkinsci.plugins.workflow.cps.CpsFlowExecution.start(CpsFlowExecution.java:616)
+	at PluginClassLoader for workflow-job//org.jenkinsci.plugins.workflow.job.WorkflowRun.run(WorkflowRun.java:368)
+	at hudson.model.ResourceController.execute(ResourceController.java:97)
+	at hudson.model.Executor.run(Executor.java:456)
+Finished: FAILURE
+Build #28 result: FAILURE
