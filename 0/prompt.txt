@@ -1,0 +1,21 @@
+Actually, across all Jenkins setups: I want to use the Jenkins script in the corresponding branch being used (i.e. the Jenkins config and scripts in the baseline branch to produce baseline results, and the config and scripts in the candidate branch to produce candidate results). I know this is a security risk, but I'm ok with that for now while we build this whole infrastructure across multiple machines. It'll simplify the instructions for the Jenkins UI too. Please create a plan for this, modifying all necessary files in ci/jenkins/.
+
+---
+
+Repeat the question please
+
+---
+
+Specifically, what I don't like is that for the personal compute it assumes the initial Jenkinsfile is from main, but currently main doesn't have a Jenkinsfile. So should it be more like the Stellar/Perlmutter setup, or is there a better option?
+
+---
+
+Ok, let's just do the personal CI like the Stellar/Perlmutter CI. Does anything need to change in the scripts or README?
+
+---
+
+please make the changes in the README.personal.md
+
+---
+
+Implement the plan.
