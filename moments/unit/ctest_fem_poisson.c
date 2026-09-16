@@ -15,6 +15,7 @@
 void evalFunc1x_periodicx(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
+  double tmp;
   fout[0] = sin((2. * M_PI / (2. * M_PI)) * x);
 }
 void evalFunc1x_dirichletx(double t, const double *xn, double *restrict fout, void *ctx)
