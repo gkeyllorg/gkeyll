@@ -1,0 +1,19 @@
+I'm trying to merge the agent_tools-jenkins into agent_tools-clang_format in this current, temporary branch named agent_tools-clang_format-jenkins. The agent_tools-jenkins branch implemented Jenkins CI, and the agent_tools-clang_format branch implemented clang-format to format the C/C++/CUDA files in our codebase. I'm merging these branches because I'd like to check if the formatting cause any tests in our CI to fail.
+
+Some conflicts arose during the merge. Can you resolve the ones that are purely due to formatting, and tell me which ones are less clear and need my attention?
+
+---
+
+Ok, I deleted those two. However, I tried to commit and got the following output
+
+git commit -m "Merge agent_tools-jenkins into agent_tools-clang_format."
+
+[INFO] Checking merge-conflict files only.
+Strip trailing commas before closing braces..............................Failed
+- hook id: strip-trailing-commas
+- files were modified by this hook
+clang-format.............................................................Failed
+- hook id: clang-format
+- files were modified by this hook
+
+Why?
