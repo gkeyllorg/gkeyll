@@ -373,7 +373,7 @@ test_hyb_combo(int cdim, int vdim)
   gkyl_free(gram);
 
   // Random modal vector.
-  unsigned seed = 12345u + 100u*cdim + vdim;
+  unsigned seed = 12345u;
   double f[nb];
   for (int i=0; i<nb; ++i) f[i] = hyb_rand(&seed);
 
