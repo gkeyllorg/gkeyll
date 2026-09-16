@@ -1,0 +1,1 @@
+Resolve the merge conflicts. The branch which is being merged into this one applied an auto-formatter to everything, which caused all these merge problems
