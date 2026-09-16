@@ -1,0 +1,33 @@
+This branch made significant changes to mirror_grid_gen.c. I want to be 100% confident that this did not introduce any bugs and reproduces the same version on main. Scritinize this work and be very careful. Add unit tests and meticulously examine this work
+
+---
+
+This branch made significant changes to mirror_grid_gen.c. I want to be 100% confident that this did not introduce any bugs and reproduces the same version on main. Scritinize this work and be very careful. Add unit tests and meticulously examine this work
+
+---
+
+Merge ctest_mirror_grid_gen_exact.c into ctest_mirror_grid_gen.c
+
+---
+
+You say that the curl correction and the sqrt-psi sampling correction change the remaining outputs. Please explain why these changes were made. Point exactly to the references. Cite your sources. In particular, I'm skeptical of this change in the curl. I think you flipped it incorrectly, and it should be Br = dpsidz/R and Bz = -dpsidR/R
+
+---
+
+You say that the curl correction and the sqrt-psi sampling correction change the remaining outputs. Please explain why these changes were made. Point exactly to the references. Cite your sources. In particular, I'm skeptical of this change in the curl. I think you flipped it incorrectly, and it should be Br = dpsidz/R and Bz = -dpsidR/R
+
+---
+
+Change to using the convention that B_R = dpsidz/R and B_Z = -dpsidR/R. Maintain internal consistency. This should be the same convention which is used in the tokamak geometry modules
+
+---
+
+Change to using the convention that B_R = dpsidz/R and B_Z = -dpsidR/R. Maintain internal consistency. This should be the same convention which is used in the tokamak geometry modules
+
+---
+
+Cylindrical coordinates are (R,Z,phi)
+
+---
+
+Cylindrical coordinates are (R,Z,phi)
