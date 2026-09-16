@@ -250,8 +250,8 @@ gkyl_gyrokinetic_app *gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     int cuts[3] = {1, 1, 1};
     app->decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
 
-    app->comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp
-    ){.decomp = app->decomp, .use_gpu = app->use_gpu});
+    app->comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.decomp = app->decomp,
+                                                                 .use_gpu = app->use_gpu});
 
     // Global and local ranges are same, and so just copy them.
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
@@ -1059,8 +1059,9 @@ void gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *a
   gkyl_gyrokinetic_app_omegaH_init(app);
 
   // Initialize stat object.
-  app->stat = (struct gkyl_gyrokinetic_stat
-  ){.use_gpu = app->use_gpu, .stage_2_dt_diff = {DBL_MAX, 0.0}, .stage_3_dt_diff = {DBL_MAX, 0.0}};
+  app->stat = (struct gkyl_gyrokinetic_stat){.use_gpu = app->use_gpu,
+                                             .stage_2_dt_diff = {DBL_MAX, 0.0},
+                                             .stage_3_dt_diff = {DBL_MAX, 0.0}};
 
   app->dts = gkyl_dynvec_new(GKYL_DOUBLE, 1); // Dynvector to store time steps.
   app->is_first_dt_write_call = true;
