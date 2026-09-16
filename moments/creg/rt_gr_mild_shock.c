@@ -24,8 +24,7 @@
 
 #include <rt_arg_parse.h>
 
-struct mild_shock_ctx
-{
+struct mild_shock_ctx {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
@@ -56,8 +55,7 @@ struct mild_shock_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct mild_shock_ctx
-create_ctx(void)
+struct mild_shock_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
@@ -107,14 +105,13 @@ create_ctx(void)
     .field_energy_calcs = field_energy_calcs,
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
+    .num_failures_max = num_failures_max
   };
 
   return ctx;
 }
 
-void
-evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct mild_shock_ctx *app = ctx;
@@ -139,8 +136,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
     p = pl; // Fluid pressure (left).
-  }
-  else {
+  } else {
     rho = rhor; // Fluid mass density (right).
     u = ur; // Fluid velocity (right).
     p = pr; // Fluid pressure (right).
@@ -150,25 +146,25 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
 
-  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
     spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+  double **extrinsic_curvature = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
     extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   double *lapse_der = gkyl_malloc(sizeof(double[3]));
-  double **shift_der = gkyl_malloc(sizeof(double*[3]));
+  double **shift_der = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
     shift_der[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+  double ***spatial_metric_der = gkyl_malloc(sizeof(double **[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+    spatial_metric_der[i] = gkyl_malloc(sizeof(double *[3]));
 
     for (int j = 0; j < 3; j++) {
       spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
@@ -179,17 +175,28 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &lapse);
   spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &shift);
   spacetime->excision_region_func(spacetime, 0.0, x, 0.0, 0.0, &in_excision_region);
-  
-  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
-  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &extrinsic_curvature);
 
-  spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-  spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
+  spacetime->extrinsic_curvature_tensor_func(
+    spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &extrinsic_curvature
+  );
+
+  spacetime->lapse_function_der_func(
+    spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der
+  );
+  spacetime->shift_vector_der_func(
+    spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der
+  );
+  spacetime->spatial_metric_tensor_der_func(
+    spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0),
+    &spatial_metric_der
+  );
 
   double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
-  vel[0] = u; vel[1] = 0.0; vel[2] = 0.0;
+  vel[0] = u;
+  vel[1] = 0.0;
+  vel[2] = 0.0;
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -208,63 +215,107 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double mom_x = sqrt(spatial_det) * rho * h * (W * W) * u; // Fluid momentum density (x-direction).
   double mom_y = 0.0; // Fluid momentum density (y-direction).
   double mom_z = 0.0; // Fluid momentum density (z-direction).
-  double Etot = sqrt(spatial_det) * ((rho * h * (W * W)) - p - (rho * W)); // Fluid total energy density.
+  double Etot =
+    sqrt(spatial_det) * ((rho * h * (W * W)) - p - (rho * W)); // Fluid total energy density.
 
   // Set fluid relativistic mass density.
   fout[0] = rho_rel;
   // Set fluid momentum density.
-  fout[1] = mom_x; fout[2] = mom_y; fout[3] = mom_z;
+  fout[1] = mom_x;
+  fout[2] = mom_y;
+  fout[3] = mom_z;
   // Set fluid total energy density.
   fout[4] = Etot;
 
   // Set lapse gauge variable.
   fout[5] = lapse;
   // Set shift gauge variables.
-  fout[6] = shift[0]; fout[7] = shift[1]; fout[8] = shift[2];
+  fout[6] = shift[0];
+  fout[7] = shift[1];
+  fout[8] = shift[2];
 
   // Set spatial metric tensor.
-  fout[9] = spatial_metric[0][0]; fout[10] = spatial_metric[0][1]; fout[11] = spatial_metric[0][2];
-  fout[12] = spatial_metric[1][0]; fout[13] = spatial_metric[1][1]; fout[14] = spatial_metric[1][2];
-  fout[15] = spatial_metric[2][0]; fout[16] = spatial_metric[2][1]; fout[17] = spatial_metric[2][2];
+  fout[9] = spatial_metric[0][0];
+  fout[10] = spatial_metric[0][1];
+  fout[11] = spatial_metric[0][2];
+  fout[12] = spatial_metric[1][0];
+  fout[13] = spatial_metric[1][1];
+  fout[14] = spatial_metric[1][2];
+  fout[15] = spatial_metric[2][0];
+  fout[16] = spatial_metric[2][1];
+  fout[17] = spatial_metric[2][2];
 
   // Set extrinsic curvature tensor.
-  fout[18] = extrinsic_curvature[0][0]; fout[19] = extrinsic_curvature[0][1]; fout[20] = extrinsic_curvature[0][2];
-  fout[21] = extrinsic_curvature[1][0]; fout[22] = extrinsic_curvature[1][1]; fout[23] = extrinsic_curvature[1][2];
-  fout[24] = extrinsic_curvature[2][0]; fout[25] = extrinsic_curvature[2][1]; fout[26] = extrinsic_curvature[2][2];
+  fout[18] = extrinsic_curvature[0][0];
+  fout[19] = extrinsic_curvature[0][1];
+  fout[20] = extrinsic_curvature[0][2];
+  fout[21] = extrinsic_curvature[1][0];
+  fout[22] = extrinsic_curvature[1][1];
+  fout[23] = extrinsic_curvature[1][2];
+  fout[24] = extrinsic_curvature[2][0];
+  fout[25] = extrinsic_curvature[2][1];
+  fout[26] = extrinsic_curvature[2][2];
 
   // Set excision boundary conditions.
   if (in_excision_region) {
     fout[27] = -1.0;
-  }
-  else {
+  } else {
     fout[27] = 1.0;
   }
 
   // Set lapse function derivatives.
-  fout[28] = lapse_der[0]; fout[29] = lapse_der[1]; fout[30] = lapse_der[2];
+  fout[28] = lapse_der[0];
+  fout[29] = lapse_der[1];
+  fout[30] = lapse_der[2];
   // Set shift vector derivatives.
-  fout[31] = shift_der[0][0]; fout[32] = shift_der[0][1]; fout[33] = shift_der[0][2];
-  fout[34] = shift_der[1][0]; fout[35] = shift_der[1][1]; fout[36] = shift_der[1][2];
-  fout[37] = shift_der[2][0]; fout[38] = shift_der[2][1]; fout[39] = shift_der[2][2];
+  fout[31] = shift_der[0][0];
+  fout[32] = shift_der[0][1];
+  fout[33] = shift_der[0][2];
+  fout[34] = shift_der[1][0];
+  fout[35] = shift_der[1][1];
+  fout[36] = shift_der[1][2];
+  fout[37] = shift_der[2][0];
+  fout[38] = shift_der[2][1];
+  fout[39] = shift_der[2][2];
 
   // Set spatial metric tensor derivatives.
-  fout[40] = spatial_metric_der[0][0][0]; fout[41] = spatial_metric_der[0][0][1]; fout[42] = spatial_metric_der[0][0][2];
-  fout[43] = spatial_metric_der[0][1][0]; fout[44] = spatial_metric_der[0][1][1]; fout[45] = spatial_metric_der[0][1][2];
-  fout[46] = spatial_metric_der[0][2][0]; fout[47] = spatial_metric_der[0][2][1]; fout[48] = spatial_metric_der[0][2][2];
+  fout[40] = spatial_metric_der[0][0][0];
+  fout[41] = spatial_metric_der[0][0][1];
+  fout[42] = spatial_metric_der[0][0][2];
+  fout[43] = spatial_metric_der[0][1][0];
+  fout[44] = spatial_metric_der[0][1][1];
+  fout[45] = spatial_metric_der[0][1][2];
+  fout[46] = spatial_metric_der[0][2][0];
+  fout[47] = spatial_metric_der[0][2][1];
+  fout[48] = spatial_metric_der[0][2][2];
 
-  fout[49] = spatial_metric_der[1][0][0]; fout[50] = spatial_metric_der[1][0][1]; fout[51] = spatial_metric_der[1][0][2];
-  fout[52] = spatial_metric_der[1][1][0]; fout[53] = spatial_metric_der[1][1][1]; fout[54] = spatial_metric_der[1][1][2];
-  fout[55] = spatial_metric_der[1][2][0]; fout[56] = spatial_metric_der[1][2][1]; fout[57] = spatial_metric_der[1][2][2];
+  fout[49] = spatial_metric_der[1][0][0];
+  fout[50] = spatial_metric_der[1][0][1];
+  fout[51] = spatial_metric_der[1][0][2];
+  fout[52] = spatial_metric_der[1][1][0];
+  fout[53] = spatial_metric_der[1][1][1];
+  fout[54] = spatial_metric_der[1][1][2];
+  fout[55] = spatial_metric_der[1][2][0];
+  fout[56] = spatial_metric_der[1][2][1];
+  fout[57] = spatial_metric_der[1][2][2];
 
-  fout[58] = spatial_metric_der[2][0][0]; fout[59] = spatial_metric_der[2][0][1]; fout[60] = spatial_metric_der[2][0][2];
-  fout[61] = spatial_metric_der[2][1][0]; fout[62] = spatial_metric_der[2][1][1]; fout[63] = spatial_metric_der[2][1][2];
-  fout[64] = spatial_metric_der[2][2][0]; fout[65] = spatial_metric_der[2][2][1]; fout[66] = spatial_metric_der[2][2][2];
+  fout[58] = spatial_metric_der[2][0][0];
+  fout[59] = spatial_metric_der[2][0][1];
+  fout[60] = spatial_metric_der[2][0][2];
+  fout[61] = spatial_metric_der[2][1][0];
+  fout[62] = spatial_metric_der[2][1][1];
+  fout[63] = spatial_metric_der[2][1][2];
+  fout[64] = spatial_metric_der[2][2][0];
+  fout[65] = spatial_metric_der[2][2][1];
+  fout[66] = spatial_metric_der[2][2][2];
 
   // Set evolution parameter.
   fout[67] = 0.0;
 
   // Set spatial coordinates.
-  fout[68] = x; fout[69] = 0.0; fout[70] = 0.0;
+  fout[68] = x;
+  fout[69] = 0.0;
+  fout[70] = 0.0;
 
   if (in_excision_region) {
     for (int i = 0; i < 67; i++) {
@@ -293,8 +344,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   gkyl_free(spatial_metric_der);
 }
 
-void
-write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
+void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -308,24 +358,25 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, boo
   }
 }
 
-void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr, bool force_calc)
+void calc_field_energy(
+  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
   }
 }
 
-void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr, bool force_calc)
+void calc_integrated_mom(
+  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
   }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -345,12 +396,14 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(ctx.gas_gamma, ctx.spacetime_gauge, ctx.reinit_freq, ctx.spacetime, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(
+    ctx.gas_gamma, ctx.spacetime_gauge, ctx.reinit_freq, ctx.spacetime, app_args.use_gpu
+  );
 
   struct gkyl_moment_species fluid = {
     .name = "gr_euler",
     .equation = gr_euler,
-    
+
     .init = evalGREulerInit,
     .force_low_order_flux = false, // Use HLL fluxes.
     .limiter = GKYL_MIN_MOD,
@@ -359,7 +412,7 @@ main(int argc, char **argv)
     .has_gr_euler = true,
     .gr_euler_gas_gamma = ctx.gas_gamma,
 
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY}
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -370,7 +423,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX };
+  int cells[] = {NX};
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -378,8 +431,7 @@ main(int argc, char **argv)
   for (int d = 0; d < dim; d++) {
     if (app_args.use_mpi) {
       cuts[d] = app_args.cuts[d];
-    }
-    else {
+    } else {
       cuts[d] = 1;
     }
   }
@@ -393,22 +445,12 @@ main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-      }
-    );
-  }
-  else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .use_gpu = app_args.use_gpu
-      }
-    );
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
+  } else {
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .use_gpu = app_args.use_gpu
-    }
-  );
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -432,20 +474,16 @@ main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
-    .cells = { NX },
+    .lower = {0.0},
+    .upper = {ctx.Lx},
+    .cells = {NX},
 
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
-    .species = { fluid },
+    .species = {fluid},
 
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
-      .comm = comm,
-    },
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // Create app object.
@@ -459,10 +497,14 @@ main(int argc, char **argv)
   // Initialize simulation.
   int frame_curr = 0;
   if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_moment_app_read_from_frame(app, app_args.restart_frame);
+    struct gkyl_app_restart_status status =
+      gkyl_moment_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      gkyl_moment_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -471,26 +513,31 @@ main(int argc, char **argv)
 
     gkyl_moment_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
     gkyl_moment_app_cout(app, stdout, " at time = %g\n", t_curr);
-  }
-  else {
+  } else {
     gkyl_moment_app_apply_ic(app, t_curr);
   }
 
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = {
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = {
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = {
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 
@@ -506,7 +553,7 @@ main(int argc, char **argv)
     gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-    
+
     if (!status.success) {
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
@@ -521,8 +568,7 @@ main(int argc, char **argv)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    }
-    else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_moment_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
@@ -530,7 +576,9 @@ main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_moment_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);
@@ -538,8 +586,7 @@ main(int argc, char **argv)
 
         break;
       }
-    }
-    else {
+    } else {
       num_failures = 0;
     }
 
@@ -566,14 +613,14 @@ freeresources:
   gkyl_wv_eqn_release(gr_euler);
   gkyl_gr_spacetime_release(ctx.spacetime);
   gkyl_comm_release(comm);
-  gkyl_moment_app_release(app);  
-  
+  gkyl_moment_app_release(app);
+
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Finalize();
   }
 #endif
-  
+
   return 0;
 }
