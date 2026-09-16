@@ -3,7 +3,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_math.h>
-#include <gkyl_gk_geometry_node_coords_priv.h>
+#include <gkyl_gk_geometry_priv.h>
 #include <gkyl_mirror_grid_gen.h>
 #include <gkyl_rect_decomp.h>
 

@@ -380,7 +380,8 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   else if (bmag_extrema[0] < bmag_extrema[1])
   {    gpm->constB_ctx->min_or_max[0] = 0;  } // Minimum
   else
-  {    gpm->constB_ctx->min_or_max[0] = false;  }
+  {    gpm->constB_ctx->min_or_max[0] = false;
+        printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
 
   // Middle points
   for (int i = 1; i < extrema - 1; i++)
@@ -390,7 +391,8 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     else if (bmag_extrema[i] < bmag_extrema[i-1] && bmag_extrema[i] < bmag_extrema[i+1])
     {      gpm->constB_ctx->min_or_max[i] = 0;    } // Minimum
     else
-    {      gpm->constB_ctx->min_or_max[i] = false;  }
+    {      gpm->constB_ctx->min_or_max[i] = false; 
+    printf("Error: Extrema is not an extrema. Position_map optimization failed\n"); }
   }
 
   // Right edge
@@ -399,7 +401,8 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   else if (bmag_extrema[extrema-1] < bmag_extrema[extrema-2])
   {    gpm->constB_ctx->min_or_max[extrema-1] = 0; } // Minimum
   else  
-  {    gpm->constB_ctx->min_or_max[extrema-1] = false;  }
+  {    gpm->constB_ctx->min_or_max[extrema-1] = false;
+  printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
 
   // Free mallocs
   gkyl_free(bmag_vals);

@@ -10,7 +10,6 @@
 #include <gkyl_position_map.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_priv.h>
-#include <gkyl_gk_geometry_node_coords_priv.h>
 #include <gkyl_tok_geo_priv.h>
 #include <gkyl_dg_bin_ops.h>
 

@@ -11,7 +11,6 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_priv.h>
-#include <gkyl_gk_geometry_node_coords_priv.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_math.h>
 #include <gkyl_nodal_ops.h>
