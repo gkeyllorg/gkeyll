@@ -6,79 +6,75 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef double (*dg_cx_react_ratef_t)(const double a, const double b, double vt_sq_ion_min, double vt_sq_neut_min, 
+typedef double (*dg_cx_react_ratef_t)(
+  const double a, const double b, double vt_sq_ion_min, double vt_sq_neut_min,
   const double *maxwellian_moms_ion, const double *maxwellian_moms_neut, const double *u_ion,
-  double* GKYL_RESTRICT v_sigma_cx) ;
+  double *GKYL_RESTRICT v_sigma_cx
+);
 
 // for use in kernel tables
-typedef struct { dg_cx_react_ratef_t kernels[3]; } gkyl_cx_react_rate_kern_list;
+typedef struct {
+  dg_cx_react_ratef_t kernels[3];
+} gkyl_cx_react_rate_kern_list;
 
 // CX reaction rate kernel list
 
 //
 // Serendipity basis kernels
-// 
-GKYL_CU_D
-static const gkyl_cx_react_rate_kern_list ser_cx_react_rate_kernels[] = {
-  { sigma_cx_1x_ser_p1, sigma_cx_1x_ser_p2 }, // 0
-  { sigma_cx_2x_ser_p1, sigma_cx_2x_ser_p2 }, // 4
-  { sigma_cx_3x_ser_p1, NULL }, // 5
+//
+GKYL_CU_D static const gkyl_cx_react_rate_kern_list ser_cx_react_rate_kernels[] = {
+  {sigma_cx_1x_ser_p1, sigma_cx_1x_ser_p2}, // 0
+  {sigma_cx_2x_ser_p1, sigma_cx_2x_ser_p2}, // 4
+  {sigma_cx_3x_ser_p1, NULL} // 5
 };
 
 struct gkyl_dg_cx {
   struct gkyl_basis *cbasis;
   const struct gkyl_range *conf_rng;
-  
+
   double a; // Fitting function coefficient.
   double b; // Fitting function coefficient.
   double vt_sq_ion_min;
-  double vt_sq_neut_min; 
-  
+  double vt_sq_neut_min;
+
   enum gkyl_ion_type type_ion;
 
   uint32_t flags;
   dg_cx_react_ratef_t react_rate; // pointer to reaction rate kernel
 
   struct gkyl_dg_cx *on_dev; // pointer to itself or device data
-
 };
 
-GKYL_CU_D
-static dg_cx_react_ratef_t
-choose_kern(struct gkyl_basis cbasis)
+GKYL_CU_D static dg_cx_react_ratef_t choose_kern(struct gkyl_basis cbasis)
 {
   int cdim = cbasis.ndim;
   int poly_order = cbasis.poly_order;
   enum gkyl_basis_type b_type = cbasis.b_type;
 
   switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_cx_react_rate_kernels[cdim-1].kernels[poly_order-1];
-      break;
-    default:
-      assert(false);
-      break; 
+  case GKYL_BASIS_MODAL_SERENDIPITY:
+    return ser_cx_react_rate_kernels[cdim - 1].kernels[poly_order - 1];
+    break;
+  default:
+    assert(false);
+    break;
   }
   return 0;
 }
 
-static void
-fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
+static void fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
 {
   // These values are from E. Meier's PhD Thesis
   if (type_ion == GKYL_ION_H) {
     a[0] = 1.12e-18;
     b[0] = 7.15e-20;
-  }
-  else if (type_ion == GKYL_ION_D) {
+  } else if (type_ion == GKYL_ION_D) {
     a[0] = 1.09e-18;
     b[0] = 7.15e-20;
-  }
-  else if (type_ion == GKYL_ION_HE) {
+  } else if (type_ion == GKYL_ION_HE) {
     a[0] = 6.484e-19;
     b[0] = 4.350e-20;
-  } 
-  else if (type_ion == GKYL_ION_NE) {
+  } else if (type_ion == GKYL_ION_NE) {
     a[0] = 7.95e-19;
     b[0] = 5.65e-20;
   }
@@ -89,7 +85,7 @@ fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
  * Create new charge exchange updater type object on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_dg_cx* gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
+struct gkyl_dg_cx *gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
 
 /**
  * Compute CX reaction rate coefficient for use in neutral reactions
@@ -105,7 +101,9 @@ struct gkyl_dg_cx* gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
  * @param coef_cx Output reaction rate coefficient
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
  */
-void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, 
-  struct gkyl_array *maxwellian_moms_ion, struct gkyl_array *maxwellian_moms_neut,
-  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
+void gkyl_dg_cx_coll_cu(
+  const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
+  struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
+  struct gkyl_array *cflrate
+);
 #endif

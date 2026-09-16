@@ -32,13 +32,13 @@ typedef struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_tm;
  * 
  * @return New moment updater object
  */
-struct gkyl_dg_updater_moment*
-gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  const struct gkyl_range *phase_range,
-  enum gkyl_model_id model_id, void *aux_inp, 
-  enum gkyl_distribution_moments mom_type, bool is_integrated, bool use_gpu);
+struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
+  enum gkyl_model_id model_id, void *aux_inp, enum gkyl_distribution_moments mom_type,
+  bool is_integrated, bool use_gpu
+);
 
 /**
  * Acquire moment object
@@ -47,8 +47,8 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
  * 
  * @return moment type object
  */
-struct gkyl_mom_type* 
-gkyl_dg_updater_moment_acquire_type(const struct gkyl_dg_updater_moment* moment);
+struct gkyl_mom_type *
+gkyl_dg_updater_moment_acquire_type(const struct gkyl_dg_updater_moment *moment);
 
 /**
  * Acquire number of moments
@@ -57,8 +57,7 @@ gkyl_dg_updater_moment_acquire_type(const struct gkyl_dg_updater_moment* moment)
  * 
  * @return number of moments
  */
-int 
-gkyl_dg_updater_moment_num_mom(const struct gkyl_dg_updater_moment* moment);
+int gkyl_dg_updater_moment_num_mom(const struct gkyl_dg_updater_moment *moment);
 
 /**
  * Compute moment. The update_phase_rng and update_conf_rng MUST be a sub-range of the
@@ -72,10 +71,11 @@ gkyl_dg_updater_moment_num_mom(const struct gkyl_dg_updater_moment* moment);
  * @param fIn Input to updater
  * @param mout Output moment
  */
-void
-gkyl_dg_updater_moment_advance(struct gkyl_dg_updater_moment *moment,
-  const struct gkyl_range *update_phase_rng, const struct gkyl_range *update_conf_rng,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT mout);
+void gkyl_dg_updater_moment_advance(
+  struct gkyl_dg_updater_moment *moment, const struct gkyl_range *update_phase_rng,
+  const struct gkyl_range *update_conf_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT mout
+);
 
 /**
  * Return total time spent in computing moments
@@ -83,11 +83,12 @@ gkyl_dg_updater_moment_advance(struct gkyl_dg_updater_moment *moment,
  * @param moment Updater object
  * @return timers
  */
-struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_get_tm(const struct gkyl_dg_updater_moment *moment);
+struct gkyl_dg_updater_moment_tm
+gkyl_dg_updater_moment_get_tm(const struct gkyl_dg_updater_moment *moment);
 
 /**
  * Delete updater.
  *
  * @param moment Updater to delete.
  */
-void gkyl_dg_updater_moment_release(struct gkyl_dg_updater_moment* moment);
+void gkyl_dg_updater_moment_release(struct gkyl_dg_updater_moment *moment);

@@ -21,7 +21,7 @@ struct gkyl_pkpm_collisions {
   // inputs for Spitzer collisionality
   bool normNu; // Set to true if you want to rescale collision frequency
   double nuFrac; // Parameter for rescaling collision frequency from SI values
-  double hbar; // Planck's constant/2 pi 
+  double hbar; // Planck's constant/2 pi
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -31,17 +31,17 @@ struct gkyl_pkpm_collisions {
 struct gkyl_pkpm_fluid_diffusion {
   double D; // constant diffusion coefficient
   int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
-  void* Dij_ctx; // context for applied diffusion function if using general diffusion tensor
-  // pointer to applied diffusion function is using general diffusion tensor 
-  void (*Dij)(double t, const double* xn, double* Dout, void* ctx);
+  void *Dij_ctx; // context for applied diffusion function if using general diffusion tensor
+  // pointer to applied diffusion function is using general diffusion tensor
+  void (*Dij)(double t, const double *xn, double *Dout, void *ctx);
 };
 
 // Parameters for PKPM species
 struct gkyl_pkpm_species {
   char name[128]; // species name
 
-  enum gkyl_model_id model_id; // type of model 
-                               // (e.g., SR, general geometry, PKPM, see gkyl_eqn_type.h)
+  enum gkyl_model_id model_id; // type of model
+    // (e.g., SR, general geometry, PKPM, see gkyl_eqn_type.h)
 
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
@@ -51,7 +51,7 @@ struct gkyl_pkpm_species {
   void *ctx_fluid; // context for initial condition init function
   // pointer to initialization distribution function
   void (*init_dist)(double t, const double *xn, double *fout, void *ctx);
-  // pointer to initialization momentum 
+  // pointer to initialization momentum
   void (*init_fluid)(double t, const double *xn, double *fout, void *ctx);
 
   // collisions to include
@@ -74,8 +74,8 @@ struct gkyl_pkpm_species {
 
 // Parameter for EM field
 struct gkyl_pkpm_field {
-  enum gkyl_field_id field_id; // type of field 
-                               // (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
+  enum gkyl_field_id field_id; // type of field
+    // (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
   bool is_static; // set to true if field does not change in time
 
   double epsilon0, mu0;
@@ -94,10 +94,10 @@ struct gkyl_pkpm_field {
   // pointer to external electromagnetic fields function
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
   bool app_current_evolve; // set to true if applied current function is time dependent
-  
+
   double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
   bool limit_em; // Optional input parameter for applying limiters to EM fields
-  
+
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -125,12 +125,12 @@ struct gkyl_pkpm {
 
   int num_species; // number of species
   struct gkyl_pkpm_species species[GKYL_MAX_SPECIES]; // species objects
-  
+
   struct gkyl_pkpm_field field; // field object
 
-  bool use_explicit_source; // Use fully explicit SSP RK3 scheme 
-                            // Default is a first-order operator split with 
-                            // implicit fluid-EM coupling.
+  bool use_explicit_source; // Use fully explicit SSP RK3 scheme
+    // Default is a first-order operator split with
+    // implicit fluid-EM coupling.
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
@@ -138,16 +138,16 @@ struct gkyl_pkpm {
 // Simulation statistics
 struct gkyl_pkpm_stat {
   bool use_gpu; // did this sim use GPU?
-  
+
   long nup; // calls to update
   long nfeuler; // calls to forward-Euler method
-    
+
   long nstage_2_fail; // number of failed RK stage-2s
   long nstage_3_fail; // number of failed RK stage-3s
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
-    
+
   double total_tm; // time for simulation (not including ICs)
   double rk3_tm; // time for SSP RK3 step
   double pkpm_em_tm; // time for implicit fluid-EM coupling step
@@ -157,22 +157,22 @@ struct gkyl_pkpm_stat {
 
   double species_rhs_tm; // time to compute species collisionless RHS
   double fluid_species_rhs_tm; // time to compute fluid species RHS
-  
+
   double species_coll_mom_tm; // time needed to compute various moments needed in LBO
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
 
   double species_pkpm_vars_tm; // time to compute pkpm vars
-                               // These are the coupling moments [rho, p_par, p_perp], the self-consistent
-                               // pressure force (div(p_par b_hat)), and the primitive variables
-                               // along with the acceleration variables in the kinetic equation 
-                               // and the source distribution functions for Laguerre couplings.
+    // These are the coupling moments [rho, p_par, p_perp], the self-consistent
+    // pressure force (div(p_par b_hat)), and the primitive variables
+    // along with the acceleration variables in the kinetic equation
+    // and the source distribution functions for Laguerre couplings.
 
   double species_bc_tm; // time to compute species BCs
   double fluid_species_bc_tm; // time to compute fluid species BCs
   double field_bc_tm; // time to compute field
-  
+
   double field_rhs_tm; // time to compute field RHS
   double field_em_vars_tm; // time to compute EM auxiliary variables (e.g., bvar and E x B)
   double current_tm; // time to compute currents and accumulation
@@ -203,7 +203,7 @@ typedef struct gkyl_pkpm_app gkyl_pkpm_app;
  *     initialized
  * @return New PKPM app object.
  */
-gkyl_pkpm_app* gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm);
+gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm);
 
 /**
  * Initialize species and field by projecting initial conditions on
@@ -212,7 +212,7 @@ gkyl_pkpm_app* gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm);
  * @param app App object.
  * @param t0 Time for initial conditions.
  */
-void gkyl_pkpm_app_apply_ic(gkyl_pkpm_app* app, double t0);
+void gkyl_pkpm_app_apply_ic(gkyl_pkpm_app *app, double t0);
 
 /**
  * Initialize field by projecting initial conditions on basis
@@ -221,7 +221,7 @@ void gkyl_pkpm_app_apply_ic(gkyl_pkpm_app* app, double t0);
  * @param app App object.
  * @param t0 Time for initial conditions
  */
-void gkyl_pkpm_app_apply_ic_field(gkyl_pkpm_app* app, double t0);
+void gkyl_pkpm_app_apply_ic_field(gkyl_pkpm_app *app, double t0);
 
 /**
  * Initialize species by projecting initial conditions on basis
@@ -232,7 +232,7 @@ void gkyl_pkpm_app_apply_ic_field(gkyl_pkpm_app* app, double t0);
  * @param sidx Index of species to initialize.
  * @param t0 Time for initial conditions
  */
-void gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app* app, int sidx, double t0);
+void gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app *app, int sidx, double t0);
 
 /**
  * Calculate integrated diagnostic moments.
@@ -240,7 +240,7 @@ void gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app* app, int sidx, double t0);
  * @param tm Time at which integrated diagnostic are to be computed
  * @param app App object.
  */
-void gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app* app, double tm);
+void gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm);
 
 /**
  * Calculate integrated L2 norm of the distribution function, f^2.
@@ -248,7 +248,7 @@ void gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app* app, double tm);
  * @param tm Time at which integrated diagnostic are to be computed
  * @param app App object.
  */
-void gkyl_pkpm_app_calc_integrated_L2_f(gkyl_pkpm_app* app, double tm);
+void gkyl_pkpm_app_calc_integrated_L2_f(gkyl_pkpm_app *app, double tm);
 
 /**
  * Calculate integrated field energy
@@ -256,7 +256,7 @@ void gkyl_pkpm_app_calc_integrated_L2_f(gkyl_pkpm_app* app, double tm);
  * @param tm Time at which integrated diagnostic are to be computed
  * @param app App object.
  */
-void gkyl_pkpm_app_calc_field_energy(gkyl_pkpm_app* app, double tm);
+void gkyl_pkpm_app_calc_field_energy(gkyl_pkpm_app *app, double tm);
 
 /**
  * Write field and species data to file.
@@ -265,7 +265,7 @@ void gkyl_pkpm_app_calc_field_energy(gkyl_pkpm_app* app, double tm);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_pkpm_app_write(gkyl_pkpm_app* app, double tm, int frame);
+void gkyl_pkpm_app_write(gkyl_pkpm_app *app, double tm, int frame);
 
 /**
  * Write field data to file.
@@ -274,7 +274,7 @@ void gkyl_pkpm_app_write(gkyl_pkpm_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame);
+void gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame);
 
 /**
  * Write species data to file.
@@ -284,7 +284,7 @@ void gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_pkpm_app_write_species(gkyl_pkpm_app* app, int sidx, double tm, int frame);
+void gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame);
 
 /**
  * Write pkpm auxiliar data to files. Includes:
@@ -301,7 +301,7 @@ void gkyl_pkpm_app_write_species(gkyl_pkpm_app* app, int sidx, double tm, int fr
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_pkpm_app_write_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame);
+void gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame);
 
 /**
  * Write integrated diagnostic moments for species to file. Integrated
@@ -325,14 +325,14 @@ void gkyl_pkpm_app_write_integrated_L2_f(gkyl_pkpm_app *app);
  * 
  * @param app App object.
  */
-void gkyl_pkpm_app_write_field_energy(gkyl_pkpm_app* app);
+void gkyl_pkpm_app_write_field_energy(gkyl_pkpm_app *app);
 
 /**
  * Write stats to file. Data is written in json format.
  *
  * @param app App object.
  */
-void gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app);
+void gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app);
 
 /**
  * Train neural network on PKPM moments data for each fluid species.
@@ -348,11 +348,13 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app);
  * @param input_data Array of input data to train on (across the computational domain).
  * @param output_data Array of output data to train on (across the computational domain).
  */
-void
-gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  struct gkyl_kn_vec* input_data, struct gkyl_kn_vec* output_data);
+void gkyl_pkpm_app_train(
+  gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann, int num_input_moms,
+  int *input_moms, int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data,
+  struct gkyl_kn_vec *output_data
+);
 
- /**
+/**
  * Train neural network on PKPM moments data for a particular fluid species.
  * 
  * @param app App object.
@@ -367,9 +369,11 @@ gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, struct gkyl_kann_n
  * @param input_data Array of input data to train on (across the computational domain).
  * @param output_data Array of output data to train on (across the computational domain).
  */
-void
-gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  struct gkyl_kn_vec* input_data, struct gkyl_kn_vec* output_data);
+void gkyl_pkpm_app_train_mom(
+  gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann,
+  int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
+  struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
+);
 
 /**
  * Write out PKPM moments neural network for each fluid species.
@@ -379,10 +383,9 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, stru
  * @param frame Frame number.
  * @param ann Neural network architecture.
  */
-void
-gkyl_pkpm_app_write_nn(gkyl_pkpm_app* app, double tm, int frame, struct gkyl_kann_net** ann);
+void gkyl_pkpm_app_write_nn(gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann);
 
- /**
+/**
  * Write out PKPM moments neural network for a particular fluid species.
  * 
  * @param app App object.
@@ -391,8 +394,9 @@ gkyl_pkpm_app_write_nn(gkyl_pkpm_app* app, double tm, int frame, struct gkyl_kan
  * @param frame Frame number.
  * @param ann Neural network architecture.
  */
-void
-gkyl_pkpm_app_write_nn_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, struct gkyl_kann_net** ann);
+void gkyl_pkpm_app_write_nn_mom(
+  gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann
+);
 
 /**
  * Test neural network on PKPM moments data for each fluid species, and write moments to a file.
@@ -409,11 +413,13 @@ gkyl_pkpm_app_write_nn_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, s
  * @param output_data_real Array of real output data to validate against (across the computational domain).
  * @param output_data_predicted Array of predicted output data to validate (across the computational domain).
  */
-void
-gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  struct gkyl_kn_vec* input_data_real, struct gkyl_kn_vec* output_data_real, struct gkyl_kn_vec* output_data_predicted);
+void gkyl_pkpm_app_test(
+  gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann, int num_input_moms,
+  int *input_moms, int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data_real,
+  struct gkyl_kn_vec *output_data_real, struct gkyl_kn_vec *output_data_predicted
+);
 
- /**
+/**
  * Test neural network on PKPM moments data for a particular fluid species, and write moments to a file.
  * 
  * @param app App object.
@@ -429,9 +435,12 @@ gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, struct gkyl_kann_ne
  * @param output_data_real Array of real output data to validate against (across the computational domain).
  * @param output_data_predicted Array of predicted output data to validate (across the computational domain).
  */
-void
-gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  struct gkyl_kn_vec* input_data_real, struct gkyl_kn_vec* output_data_real, struct gkyl_kn_vec* output_data_predicted);
+void gkyl_pkpm_app_test_mom(
+  gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann,
+  int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
+  struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
+  struct gkyl_kn_vec *output_data_predicted
+);
 
 /**
  * Initialize field from file
@@ -439,8 +448,7 @@ gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, struc
  * @param app App object
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname);
+struct gkyl_app_restart_status gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname);
 
 /**
  * Initialize pkpm species from file
@@ -449,9 +457,8 @@ gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname);
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status 
-gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx,
-  const char *fname);
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx, const char *fname);
 
 /**
  * Initialize pkpm fluid species from file
@@ -460,9 +467,8 @@ gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx,
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status 
-gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx,
-  const char *fname);
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx, const char *fname);
 
 /**
  * Initialize field from frame
@@ -470,8 +476,7 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx,
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app, int frame);
+struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app, int frame);
 
 /**
  * Initialize pkpm species and fluid species from frame
@@ -489,8 +494,7 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame);
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame);
+struct gkyl_app_restart_status gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the
@@ -502,7 +506,7 @@ gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame);
  * @param fmt Format string for console output
  * @param argp Objects to write
  */
-void gkyl_pkpm_app_cout(const gkyl_pkpm_app* app, FILE *fp, const char *fmt, ...);
+void gkyl_pkpm_app_cout(const gkyl_pkpm_app *app, FILE *fp, const char *fmt, ...);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too
@@ -520,18 +524,18 @@ void gkyl_pkpm_app_cout(const gkyl_pkpm_app* app, FILE *fp, const char *fmt, ...
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_update_status gkyl_pkpm_update(gkyl_pkpm_app* app, double dt);
+struct gkyl_update_status gkyl_pkpm_update(gkyl_pkpm_app *app, double dt);
 
 /**
  * Return simulation statistics.
  * 
  * @return Return statistics object.
  */
-struct gkyl_pkpm_stat gkyl_pkpm_app_stat(gkyl_pkpm_app* app);
+struct gkyl_pkpm_stat gkyl_pkpm_app_stat(gkyl_pkpm_app *app);
 
 /**
  * Free PKPM app.
  *
  * @param app App to release.
  */
-void gkyl_pkpm_app_release(gkyl_pkpm_app* app);
+void gkyl_pkpm_app_release(gkyl_pkpm_app *app);
