@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2NA21CV6TJ9KWRBSCRV3BPB",
+  "session_id": "01a0aa9b-2c8d-7873-b453-a58068feb6b8",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-16T14:31:15.127058961Z",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/zero/gk_geometry_mapc2p.c",
+    "gyrokinetic/zero/gkyl_gk_geometry_node_coords_priv.h",
+    "gyrokinetic/zero/gkyl_gk_geometry_priv.h",
+    "gyrokinetic/zero/gkyl_position_map_priv.h",
+    "gyrokinetic/zero/mirror_grid_gen.c",
+    "gyrokinetic/zero/tok_geo.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "e201c77e28cd",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 55503,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 598784,
+    "output_tokens": 4807,
+    "api_call_count": 14
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-16T14:31:15.096053408Z",
+    "agent_lines": 34,
+    "agent_removed": 33,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 34,
+    "total_lines_changed": 67,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 933,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "BUG_REPORT.md": 195,
+        "CHANGES.md": 469,
+        "gyrokinetic/creg/check_nonuniform_mpi.py": 91,
+        "gyrokinetic/creg/nonuniform_validation.md": 178
+      }
+    }
+  ]
+}

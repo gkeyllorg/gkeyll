@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2NA21CV6TJ9KWRBSCRV3BPB",
+  "strategy": "manual-commit",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "gyrokinetic/zero/gk_geometry_mapc2p.c",
+    "gyrokinetic/zero/gkyl_gk_geometry_node_coords_priv.h",
+    "gyrokinetic/zero/gkyl_gk_geometry_priv.h",
+    "gyrokinetic/zero/gkyl_position_map_priv.h",
+    "gyrokinetic/zero/mirror_grid_gen.c",
+    "gyrokinetic/zero/tok_geo.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 55503,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 598784,
+    "output_tokens": 4807,
+    "api_call_count": 14
+  }
+}
