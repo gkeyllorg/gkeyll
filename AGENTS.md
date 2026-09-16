@@ -33,7 +33,6 @@ working directory. Links inside a skill are relative to that skill's directory.
 
 | Work | Relevant skill |
 | --- | --- |
-| Merge branches with clang-format conflicts | [Merging formatted branches](.agents/skills/merging-formatted-branches/SKILL.md) |
 | Locate code or decide where it belongs | [Directory structure](.agents/skills/directory-structure/SKILL.md) |
 | Create or modify modules in `zero/` or `apps/` | [Software design](.agents/skills/software-design/SKILL.md) |
 | Create, edit, or review C, CUDA, or Lua code | [Naming conventions](.agents/skills/naming-conventions/SKILL.md) |
