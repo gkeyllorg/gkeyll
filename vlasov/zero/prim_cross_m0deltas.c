@@ -5,9 +5,10 @@
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_alloc.h>
 
-gkyl_prim_cross_m0deltas*
-gkyl_prim_cross_m0deltas_new(bool normNu, const struct gkyl_basis *basis,
-  const struct gkyl_range *range, double betap1, bool use_gpu)
+gkyl_prim_cross_m0deltas *gkyl_prim_cross_m0deltas_new(
+  bool normNu, const struct gkyl_basis *basis, const struct gkyl_range *range, double betap1,
+  bool use_gpu
+)
 {
   gkyl_prim_cross_m0deltas *up = gkyl_malloc(sizeof(gkyl_prim_cross_m0deltas));
 
@@ -17,26 +18,28 @@ gkyl_prim_cross_m0deltas_new(bool normNu, const struct gkyl_basis *basis,
   up->normNu = normNu;
   up->basis = basis;
   up->range = range;
-  up->betap1T2 = betap1*2.0;
+  up->betap1T2 = betap1 * 2.0;
   up->use_gpu = use_gpu;
 
   // Preallocate memory for the weak division.
-  up->mem = use_gpu ? gkyl_dg_bin_op_mem_cu_dev_new(range->volume, basis->num_basis)
-	             : gkyl_dg_bin_op_mem_new(range->volume, basis->num_basis);
+  up->mem = use_gpu ? gkyl_dg_bin_op_mem_cu_dev_new(range->volume, basis->num_basis) :
+                      gkyl_dg_bin_op_mem_new(range->volume, basis->num_basis);
 
   return up;
 }
 
-void
-gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up,
-  double massself, const struct gkyl_array* m0self, const struct gkyl_array* nuself,
-  double massother, const struct gkyl_array* m0other, const struct gkyl_array* nuother,
-  struct gkyl_array* out)
+void gkyl_prim_cross_m0deltas_advance(
+  gkyl_prim_cross_m0deltas *up, double massself, const struct gkyl_array *m0self,
+  const struct gkyl_array *nuself, double massother, const struct gkyl_array *m0other,
+  const struct gkyl_array *nuother, struct gkyl_array *out
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
-    return gkyl_prim_cross_m0deltas_advance_cu(up, massself, m0self, nuself,
-      massother, m0other, nuother, out);
+  if (up->use_gpu) {
+    return gkyl_prim_cross_m0deltas_advance_cu(
+      up, massself, m0self, nuself, massother, m0other, nuother, out
+    );
+  }
 #endif
 
   int num_basis = up->basis->num_basis;
@@ -70,25 +73,25 @@ gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up,
       //   nu_sr*n_s*delta_s*(beta+1) = 2*(beta+1) * n_s * nu_sr * m_r * n_r * nu_rs / (m_s * n_s * nu_sr + m_r * n_r * nu_rs)
       mul_op(nuself_d, m0self_d, denom);
       mul_op(nuother_d, m0other_d, numer);
-  
-      for (int k=0; k<num_basis; k++) {
+
+      for (int k = 0; k < num_basis; k++) {
         denom[k] *= massself;
-        numer[k] *= up->betap1T2*massother;
+        numer[k] *= up->betap1T2 * massother;
       }
-  
-      array_acc1(num_basis, denom, 1.0/up->betap1T2, numer);
-  
+
+      array_acc1(num_basis, denom, 1.0 / up->betap1T2, numer);
+
       mul_op(m0self_d, numer, numer);
-      if (up->normNu)
+      if (up->normNu) {
         mul_op(nuself_d, numer, numer);
-    }
-    else {
+      }
+    } else {
       // Both collision frequencies are zero, so set the numerator and
       // denominator to 1. In this case the collision operator will be turned
       // off anyway, so we just want to avoid a division by 0 here.
       denom[0] = 1.0;
       numer[0] = 1.0;
-      for (int k=1; k<num_basis; k++) {
+      for (int k = 1; k < num_basis; k++) {
         denom[k] = 0.0;
         numer[k] = 0.0;
       }
@@ -96,7 +99,8 @@ gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up,
 
     struct gkyl_mat A = gkyl_nmat_get(As, count);
     struct gkyl_mat x = gkyl_nmat_get(xs, count);
-    gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);
+    gkyl_mat_clear(&A, 0.0);
+    gkyl_mat_clear(&x, 0.0);
 
     div_set_op(&A, &x, numer, denom);
 
@@ -119,8 +123,7 @@ gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up,
   }
 }
 
-void
-gkyl_prim_cross_m0deltas_release(gkyl_prim_cross_m0deltas* up)
+void gkyl_prim_cross_m0deltas_release(gkyl_prim_cross_m0deltas *up)
 {
   gkyl_dg_bin_op_mem_release(up->mem);
   gkyl_free(up);

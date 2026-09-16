@@ -1,9 +1,4 @@
-module load PrgEnv-gnu/8.6.0
-module load craype-accel-nvidia80
-module load cray-mpich/9.0.1
-module load cudatoolkit/13.0
-module load nccl/2.29.2-cu13
-module load cray-libsci/25.09.0
+. "$(dirname "$0")/module_load.perlmutter-gpu.sh"
 
 : "${PREFIX:=$HOME/gkylsoft}"
 

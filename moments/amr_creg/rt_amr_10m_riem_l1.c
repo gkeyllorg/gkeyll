@@ -6,8 +6,7 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_10m_riem_ctx
-{
+struct amr_10m_riem_ctx {
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
@@ -48,8 +47,7 @@ struct amr_10m_riem_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_10m_riem_ctx
-create_ctx(void)
+struct amr_10m_riem_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
@@ -119,14 +117,13 @@ create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
+    .num_failures_max = num_failures_max
   };
 
   return ctx;
 }
 
-void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct amr_10m_riem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -144,8 +141,7 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   if (x < 0.5) {
     rho = rhol_elc; // Electron mass density (left).
     p = pl; // Electron pressure (left).
-  }
-  else {
+  } else {
     rho = rhor_elc; // Electron mass density (right).
     p = pr; // Electron pressure (right).
   }
@@ -153,14 +149,19 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   // Set electron mass density.
   fout[0] = rho;
   // Set electron momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
   // Set electron pressure tensor.
-  fout[4] = p; fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = p; fout[8] = 0.0; fout[9] = 0.0;  
+  fout[4] = p;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = p;
+  fout[8] = 0.0;
+  fout[9] = 0.0;
 }
 
-void
-evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct amr_10m_riem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -178,8 +179,7 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   if (x < 0.5) {
     rho = rhol_ion; // Ion mass density (left).
     p = pl; // Ion pressure (left).
-  }
-  else {
+  } else {
     rho = rhor_ion; // Ion mass density (right).
     p = pr; // Ion pressure (right).
   }
@@ -187,14 +187,19 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   // Set ion mass density.
   fout[0] = rho;
   // Set ion momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
   // Set ion pressure tensor.
-  fout[4] = p; fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = p; fout[8] = 0.0; fout[9] = p;
+  fout[4] = p;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = p;
+  fout[8] = 0.0;
+  fout[9] = p;
 }
 
-void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct amr_10m_riem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -208,17 +213,19 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   if (x < 0.5) {
     Bz = Bzl; // Total magnetic field (z-direction, left).
-  }
-  else {
+  } else {
     Bz = Bzr; // Total magnetic field (z-direction, right).
   }
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  fout[0] = 0.0, fout[1] = 0.0;
+  fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = 0.0; fout[5] = Bz;
+  fout[3] = Bx, fout[4] = 0.0;
+  fout[5] = Bz;
   // Set correction potentials.
-  fout[6] = 0.0; fout[7] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 int main(int argc, char **argv)
@@ -260,7 +267,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
+    .num_failures_max = ctx.num_failures_max
   };
 
   ten_moment_1d_run_single(argc, argv, &init);

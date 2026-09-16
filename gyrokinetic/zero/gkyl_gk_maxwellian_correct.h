@@ -16,7 +16,8 @@ struct gkyl_gk_maxwellian_correct_inp {
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions
   const struct gkyl_basis *phase_basis; // Phase-space basis functions
   const struct gkyl_range *conf_range; // Configuration-space range
-  const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
+  const struct gkyl_range
+    *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gkyl_range *vel_range; // velocity space range
   const struct gk_geometry *gk_geom; // Geometry object.
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
@@ -24,7 +25,7 @@ struct gkyl_gk_maxwellian_correct_inp {
   bool bimaxwellian; // Bool for whether we are projecting a bi-Maxwellian instead of a Maxwellian.
   bool divide_jacobgeo; // Bool for whether to divide out the conf-space Jacobian from density.
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-                           // *even if* the scheme fails to converge. 
+  // *even if* the scheme fails to converge.
   bool use_gpu; // Bool for gpu useage.
   double eps; // Tolerance for the iterator.
   int max_iter; // Number of total iterations.
@@ -35,7 +36,7 @@ struct gkyl_gk_maxwellian_correct_status {
   bool iter_converged; // true if iterations converged
   int num_iter; // number of iterations for the correction
   double error[4]; // error in each moment (n, u_par, T/m) or (n, u_par, T_par/m, T_perp/m)
-};  
+};
 
 /**
  * Create new updater to correct the gyrokinetic Maxwellian (or bi-Maxwellian) 
@@ -44,7 +45,7 @@ struct gkyl_gk_maxwellian_correct_status {
  * @param inp Input parameters defined in gkyl_gk_maxwellian_correct_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_gk_maxwellian_correct* 
+struct gkyl_gk_maxwellian_correct *
 gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp);
 
 /**
@@ -61,10 +62,10 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
  * @param conf_local Local configuration space range
  * @return Status of correction
  */
-struct gkyl_gk_maxwellian_correct_status 
-gkyl_gk_maxwellian_correct_all_moments(gkyl_gk_maxwellian_correct *up,
-  struct gkyl_array *f_max, const struct gkyl_array *moms_target, 
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
+struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
+  gkyl_gk_maxwellian_correct *up, struct gkyl_array *f_max, const struct gkyl_array *moms_target,
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local
+);
 
 /**
  * Host-side wrapper for computing the absolute value of the 
@@ -78,10 +79,10 @@ gkyl_gk_maxwellian_correct_all_moments(gkyl_gk_maxwellian_correct *up,
  * @param moms_iter Iterative moments used in fixed-point iteration
  * @param moms_abs_diff Absolute value of the difference between the cell averages of moms_iter and moms_target
  */
-void gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range, 
-  int num_comp, int nc, 
-  const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
-  struct gkyl_array *moms_abs_diff);
+void gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(
+  const struct gkyl_range *conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
+  const struct gkyl_array *moms_iter, struct gkyl_array *moms_abs_diff
+);
 
 /**
  * Delete updater.
