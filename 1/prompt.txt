@@ -1,0 +1,22 @@
+I made some sign changes in mirror_gri_gen.c. Please ensure I made these changes correctly. this is to ensure it conforms to our right handed coordinate system
+
+---
+
+I made some sign changes in mirror_gri_gen.c. Please ensure I made these changes correctly. this is to ensure it conforms to our right handed coordinate system
+
+---
+
+These definitions are correct. The rest of the generator should be updated   Br = dpsidZ / r_curr;
+  Bz = -dpsidR / r_curr;
+
+---
+
+> With your B definitions, the existing (ψ, φ, Z) basis is already right handed, but B points along the negative third coordinate. Should I preserve that mapping, or also reverse the angular and axial coordinates so B aligns with the positive third coordinate?
+
+Keep (ψ, φ, Z) and restore the B signs (Recommended)
+
+---
+
+> With your B definitions, the existing (ψ, φ, Z) basis is already right handed, but B points along the negative third coordinate. Should I preserve that mapping, or also reverse the angular and axial coordinates so B aligns with the positive third coordinate?
+
+Keep (ψ, φ, Z) and restore the B signs (Recommended)

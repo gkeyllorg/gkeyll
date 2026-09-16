@@ -1,0 +1,82 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2NTAEG722RX3WH83TP9ERTQ",
+  "session_id": "01a0ab80-4ea1-7810-a720-7f5a2e31d310",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-16T19:15:29.404577541Z",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 4,
+  "save_step_count": 2,
+  "files_touched": [
+    "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_wham_1x2v_p1.c",
+    "gyrokinetic/unit/ctest_mirror_grid_gen.c",
+    "gyrokinetic/zero/gkyl_mirror_grid_gen.h",
+    "gyrokinetic/zero/mirror_grid_gen.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "88cb517ab57e",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 142129,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2297216,
+    "output_tokens": 16794,
+    "api_call_count": 29
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-16T19:15:29.321387232Z",
+    "agent_lines": 100,
+    "agent_removed": 33,
+    "human_added": 41,
+    "human_modified": 11,
+    "human_removed": 0,
+    "total_committed": 150,
+    "total_lines_changed": 203,
+    "agent_percentage": 65.51724137931035,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1095,
+      "user_lines_removed": 9,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "BUG_REPORT.md": 195,
+        "CHANGES.md": 469,
+        "gyrokinetic/creg/check_nonuniform_mpi.py": 91,
+        "gyrokinetic/creg/nonuniform_validation.md": 178,
+        "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c": 6,
+        "gyrokinetic/creg/rt_gk_wham_1x2v_p1.c": 1,
+        "gyrokinetic/unit/mirror_grid_gen_review.md": 145,
+        "gyrokinetic/zero/mirror_grid_gen.c": 3,
+        "plot.sh": 7
+      },
+      "user_removed_per_file": {
+        "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c": 5,
+        "gyrokinetic/creg/rt_gk_wham_1x2v_p1.c": 1,
+        "gyrokinetic/zero/mirror_grid_gen.c": 3
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1092,
+      "agent_lines_removed": 6
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1103,
+      "agent_lines_removed": 6
+    }
+  ]
+}
