@@ -12,14 +12,15 @@
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 
 // "derived" class constructors
-struct gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  double mass, const struct gkyl_velocity_map *vel_map, bool use_gpu)
+struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, double mass, const struct gkyl_velocity_map *vel_map,
+  bool use_gpu
+)
 {
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
   bcorr_type = gkyl_mom_bcorr_lbo_gyrokinetic_new(cbasis, pbasis, mass, vel_map, use_gpu);
-  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type, use_gpu);
+  struct gkyl_mom_calc_bcorr *calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type, use_gpu);
   // Since calc now has pointer to specific type, decrease reference counter of type
   // so that eventual gkyl_mom_calc_bcorr_release method on calculator deallocates specific type data
   gkyl_mom_type_release(bcorr_type);

@@ -9,10 +9,10 @@
 #include <gkyl_prim_lbo_vlasov.h>
 
 // "derived" class constructors
-struct gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_calc_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_rng, bool use_gpu)
+struct gkyl_prim_lbo_calc *gkyl_prim_lbo_vlasov_calc_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng, bool use_gpu
+)
 {
   struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
   prim = gkyl_prim_lbo_vlasov_new(cbasis, pbasis, use_gpu);

@@ -1,24 +1,22 @@
 #!/usr/bin/env bash
 #
-# Start and use the private, loopback-only Jenkins controller on Stellar Intel.
+# Start and use the private, loopback-only Jenkins controller on Perlmutter GPU.
 # This is intentionally a controller launcher, not a replacement for the
 # Jenkins UI: both clients submit the same parameterized Pipeline job.
 
 set -euo pipefail
 
 readonly SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename -- "${BASH_SOURCE[0]}")"
-readonly DEFAULT_JAVA_HOME=/usr/lib/jvm/java-21-openjdk-21.0.12.1.1-1.1.el8.x86_64
-
-CI_ROOT="${GKEYLL_CI_ROOT:-/scratch/gpfs/${USER:?USER must be set}/gkeyll_ci}"
+CI_ROOT="${GKEYLL_CI_ROOT:-}"
 JENKINS_HOME="${JENKINS_HOME:-$CI_ROOT/jenkins_home}"
 JENKINS_WEBROOT="${JENKINS_WEBROOT:-$CI_ROOT/jenkins_webroot}"
 JENKINS_TMPDIR="${TMPDIR:-$CI_ROOT/tmp}"
 JENKINS_PORT="${JENKINS_PORT:-8080}"
 JENKINS_URL="${JENKINS_URL:-http://127.0.0.1:$JENKINS_PORT}"
-JENKINS_JOB="${JENKINS_JOB:-gkeyll-ci-stellar-intel}"
+JENKINS_JOB="${JENKINS_JOB:-gkeyll-ci-perlmutter_gpu}"
 JENKINS_SESSION="${JENKINS_SESSION:-gkeyll_ci}"
 JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-$JENKINS_HOME/jenkins-cli.auth}"
-JAVA_HOME="${JAVA_HOME:-$DEFAULT_JAVA_HOME}"
+JAVA_HOME="${JAVA_HOME:-}"
 CLI_JAR="$CI_ROOT/jenkins-cli.jar"
 
 CURL_CONFIG=''
@@ -33,31 +31,35 @@ die() {
 usage() {
     cat <<'EOF'
 Usage:
-  jenkins-stellar-intel.sh <command> [flags]
+  jenkins-perlmutter_gpu.sh <command> [flags]
 
 Commands:
   start                                      Start Jenkins in detached tmux.
   run --pr NUMBER [--follow]                 Queue a GitHub pull-request build.
   run --candidate-ref REF --baseline-ref REF [--follow]
                                              Queue a branch or commit comparison.
-  follow --queue ID                          Wait for and stream a queued build.
-  follow --build NUMBER                      Stream a known Jenkins build.
-  status --queue ID                          Show a queued build's current state.
-  status --build NUMBER                      Show a known build's current state.
   active                                     List this job's queued and running work.
   recent [--limit NUMBER]                    List retained builds (default: 10).
+  status --queue ID                          Show a queued build's current state.
+  status --build NUMBER                      Show a known build's current state.
+  follow --queue ID                          Wait for and stream a queued build.
+  follow --build NUMBER                      Stream a known Jenkins build.
+  abort --queue ID                           Cancel a queued Jenkins build.
+  abort --build NUMBER                       Abort a running Jenkins build.
 
 The run command returns after Jenkins accepts the request. --follow streams
 the build console and returns its final Jenkins result. Press Ctrl-C to stop
 following without aborting the Jenkins build.
 
-GKEYLL_CI_ROOT defaults to /scratch/gpfs/$USER/gkeyll_ci. The Jenkins API
-credential file defaults to $JENKINS_HOME/jenkins-cli.auth and must contain
+GKEYLL_CI_ROOT must name shared Perlmutter storage. JAVA_HOME must name a Java
+21 or newer installation. The Jenkins API credential file defaults to
+$JENKINS_HOME/jenkins-cli.auth and must contain
 one line in the form: jenkins-user:api-token
 EOF
 }
 
 prepare_paths() {
+    [[ -n "$CI_ROOT" ]] || die 'Set GKEYLL_CI_ROOT to the shared Perlmutter CI root'
     mkdir -p "$JENKINS_HOME" "$JENKINS_WEBROOT" "$JENKINS_TMPDIR" \
         "$CI_ROOT/logs" "$CI_ROOT/workspaces"
 }
@@ -69,7 +71,10 @@ controller_running() {
 wait_for_controller() {
     local attempt
     for attempt in {1..30}; do
-        if curl --fail --silent --show-error --max-time 5 \
+        # Connection refusals and 503s are expected while Jenkins initializes.
+        # Keep individual retry failures quiet; the final error names the
+        # controller session to inspect if all attempts fail.
+        if curl --fail --silent --max-time 5 \
             --output /dev/null "$JENKINS_URL/login"; then
             return 0
         fi
@@ -80,7 +85,7 @@ wait_for_controller() {
 
 start_controller() {
     prepare_paths
-    [[ -x "$JAVA_HOME/bin/java" ]] || die "Java 21 was not found at $JAVA_HOME/bin/java"
+    [[ -n "$JAVA_HOME" && -x "$JAVA_HOME/bin/java" ]] || die "Set JAVA_HOME to a Java 21 or newer installation"
     [[ -f "$CI_ROOT/jenkins.war" ]] || die "Jenkins WAR is missing: $CI_ROOT/jenkins.war"
 
     if controller_running; then
@@ -95,7 +100,7 @@ start_controller() {
 
 run_controller() {
     prepare_paths
-    [[ -x "$JAVA_HOME/bin/java" ]] || die "Java 21 was not found at $JAVA_HOME/bin/java"
+    [[ -n "$JAVA_HOME" && -x "$JAVA_HOME/bin/java" ]] || die "Set JAVA_HOME to a Java 21 or newer installation"
     [[ -f "$CI_ROOT/jenkins.war" ]] || die "Jenkins WAR is missing: $CI_ROOT/jenkins.war"
 
     export JENKINS_HOME JENKINS_WEBROOT
@@ -441,7 +446,15 @@ status_command() {
         --queue)
             require_positive_integer 'queue ID' "$2"
             local state number cancelled why
-            state="$(queue_state "$2")" || die "Queue item $2 is unavailable"
+            if ! state="$(queue_state "$2")"; then
+                # Jenkins removes a queue item once it assigns a build. Recover
+                # that build from its retained queueId, as follow --queue does.
+                number="$(build_for_queue "$2")" || die "Queue item $2 is unavailable"
+                [[ -n "$number" ]] || die "Queue item $2 is unavailable"
+                echo "Queue item $2 is build #$number"
+                status_command --build "$number"
+                return
+            fi
             IFS=$'\t' read -r number cancelled why <<< "$state"
             if [[ -n "$number" ]]; then
                 echo "Queue item $2 is build #$number"
@@ -465,6 +478,27 @@ status_command() {
             fi
             ;;
         *) die 'usage: status --queue ID | status --build NUMBER' ;;
+    esac
+}
+
+abort_command() {
+    [[ $# -eq 2 ]] || die 'usage: abort --queue ID | abort --build NUMBER'
+    start_controller
+    prepare_auth
+    case "$1" in
+        --queue)
+            require_positive_integer 'queue ID' "$2"
+            curl_auth --output /dev/null --request POST --data-urlencode "id=$2" \
+                "$JENKINS_URL/queue/cancelItem"
+            echo "Requested cancellation of queue item $2"
+            ;;
+        --build)
+            require_positive_integer 'build number' "$2"
+            curl_auth --output /dev/null --request POST \
+                "$JENKINS_URL/job/$JENKINS_JOB/$2/stop"
+            echo "Requested cancellation of $JENKINS_JOB #$2"
+            ;;
+        *) die 'usage: abort --queue ID | abort --build NUMBER' ;;
     esac
 }
 
@@ -510,6 +544,7 @@ main() {
         run) shift; run_command "$@" ;;
         follow) shift; follow_command "$@" ;;
         status) shift; status_command "$@" ;;
+        abort) shift; abort_command "$@" ;;
         active) shift; active_command "$@" ;;
         recent) shift; recent_command "$@" ;;
         -h|--help|help) usage ;;

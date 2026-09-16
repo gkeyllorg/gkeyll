@@ -150,3 +150,7 @@ compute-sanitizer --tool memcheck --leak-check full <executable>
 
 Supply the executable's GPU options where required. Report unavailable tools
 or hardware and distinguish completed checks from checks that could not run.
+
+# Gkeyll CI system
+
+Gkeyll has a CI system based on Jenkins which calls the aforementioned existing functionality to run unit and regression tests. See ci/jenkins/README.md for more details.

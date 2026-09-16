@@ -4,66 +4,76 @@
 #include <gkyl_mat_priv.h>
 #include <gkyl_util.h>
 
-void
-test_mat_base_ho()
+void test_mat_base_ho()
 {
   struct gkyl_mat *m = gkyl_mat_new(10, 20, 0.25);
 
-  TEST_CHECK( 10 == m->nr );
-  TEST_CHECK( 20 == m->nc );
+  TEST_CHECK(10 == m->nr);
+  TEST_CHECK(20 == m->nc);
 
-  for (size_t j=0; j<m->nc; ++j)
-    for (size_t i=0; i<m->nr; ++i)
-      TEST_CHECK ( 0.25 == gkyl_mat_get(m, i, j) );
+  for (size_t j = 0; j < m->nc; ++j) {
+    for (size_t i = 0; i < m->nr; ++i) {
+      TEST_CHECK(0.25 == gkyl_mat_get(m, i, j));
+    }
+  }
 
   gkyl_mat_clear(m, 0.1);
 
-  for (size_t j=0; j<m->nc; ++j)
-    for (size_t i=0; i<m->nr; ++i)
-      TEST_CHECK ( 0.1 == gkyl_mat_get(m, i, j) );
+  for (size_t j = 0; j < m->nc; ++j) {
+    for (size_t i = 0; i < m->nr; ++i) {
+      TEST_CHECK(0.1 == gkyl_mat_get(m, i, j));
+    }
+  }
 
   size_t count = 0;
-  for (size_t j=0; j<m->nc; ++j)
-    for (size_t i=0; i<m->nr; ++i)
+  for (size_t j = 0; j < m->nc; ++j) {
+    for (size_t i = 0; i < m->nr; ++i) {
       gkyl_mat_set(m, i, j, count++);
-
-  count = 0;
-  for (size_t j=0; j<m->nc; ++j) {
-    const double* col = gkyl_mat_get_ccol(m, j);
-    for (size_t i=0; i<m->nr; ++i)
-      TEST_CHECK( col[i] == count++ );
+    }
   }
 
   count = 0;
-  for (size_t i=0; i<m->nr*m->nc; ++i)
-    TEST_CHECK( m->data[i] == i );
+  for (size_t j = 0; j < m->nc; ++j) {
+    const double *col = gkyl_mat_get_ccol(m, j);
+    for (size_t i = 0; i < m->nr; ++i) {
+      TEST_CHECK(col[i] == count++);
+    }
+  }
+
+  count = 0;
+  for (size_t i = 0; i < m->nr * m->nc; ++i) {
+    TEST_CHECK(m->data[i] == i);
+  }
 
   gkyl_mat_diag(m, 1.0);
-  
-  for (size_t j=0; j<m->nc; ++j)
-    for (size_t i=0; i<m->nr; ++i)
-      TEST_CHECK( gkyl_mat_get(m, i, j) == ( i==j ? 1.0 : 0.0 ) );
+
+  for (size_t j = 0; j < m->nc; ++j) {
+    for (size_t i = 0; i < m->nr; ++i) {
+      TEST_CHECK(gkyl_mat_get(m, i, j) == (i == j ? 1.0 : 0.0));
+    }
+  }
 
   struct gkyl_mat *m2 = gkyl_mat_clone(m);
 
-  TEST_CHECK( m2->nr == m->nr );
-  TEST_CHECK( m2->nc == m->nc );
+  TEST_CHECK(m2->nr == m->nr);
+  TEST_CHECK(m2->nc == m->nc);
 
-  for (size_t j=0; j<m->nc; ++j)
-    for (size_t i=0; i<m->nr; ++i)
-      TEST_CHECK( gkyl_mat_get(m, i, j) == gkyl_mat_get(m2, i, j) );
+  for (size_t j = 0; j < m->nc; ++j) {
+    for (size_t i = 0; i < m->nr; ++i) {
+      TEST_CHECK(gkyl_mat_get(m, i, j) == gkyl_mat_get(m2, i, j));
+    }
+  }
 
   double old = gkyl_mat_get(m, 3, 4);
   double inc = -123.0;
   gkyl_mat_inc(m, 3, 4, inc);
-  TEST_CHECK( gkyl_mat_get(m, 3, 4) == old + inc );
+  TEST_CHECK(gkyl_mat_get(m, 3, 4) == old + inc);
 
   gkyl_mat_release(m);
   gkyl_mat_release(m2);
 }
 
-void
-test_mat_mm_op_ho()
+void test_mat_mm_op_ho()
 {
   struct gkyl_mat *A = gkyl_mat_new(2, 3, 0.0);
   struct gkyl_mat *B = gkyl_mat_new(3, 2, 0.0);
@@ -73,52 +83,53 @@ test_mat_mm_op_ho()
   double val = 1.0;
 
   // A : matrix( [1,2,3], [4,5,6] );
-  for (int i=0; i<A->nr; ++i)  
-    for (int j=0; j<A->nc; ++j) {
-      gkyl_mat_set(A,i,j,val);
+  for (int i = 0; i < A->nr; ++i) {
+    for (int j = 0; j < A->nc; ++j) {
+      gkyl_mat_set(A, i, j, val);
       val += 1.0;
     }
+  }
 
   // B : matrix( [7,8], [9,10], [11,12] );
-  for (int i=0; i<B->nr; ++i)  
-    for (int j=0; j<B->nc; ++j) {
-      gkyl_mat_set(B,i,j,val);
+  for (int i = 0; i < B->nr; ++i) {
+    for (int j = 0; j < B->nc; ++j) {
+      gkyl_mat_set(B, i, j, val);
       val += 1.0;
     }
+  }
 
   // C = 0.5*A*B + 0.0*C
   gkyl_mat_mm(0.5, 0.0, GKYL_NO_TRANS, A, GKYL_NO_TRANS, B, C, false);
 
   // C : matrix( [29.0, 32.0], [69.5, 77.0] )
-  TEST_CHECK( gkyl_mat_get(C, 0, 0) == 29.0 );
-  TEST_CHECK( gkyl_mat_get(C, 0, 1) == 32.0 );
-  TEST_CHECK( gkyl_mat_get(C, 1, 0) == 69.5 );
-  TEST_CHECK( gkyl_mat_get(C, 1, 1) == 77.0 );
+  TEST_CHECK(gkyl_mat_get(C, 0, 0) == 29.0);
+  TEST_CHECK(gkyl_mat_get(C, 0, 1) == 32.0);
+  TEST_CHECK(gkyl_mat_get(C, 1, 0) == 69.5);
+  TEST_CHECK(gkyl_mat_get(C, 1, 1) == 77.0);
 
   // D = 0.5*A'*B'
   gkyl_mat_mm(0.5, 0.0, GKYL_TRANS, A, GKYL_TRANS, B, D, false);
 
   // D : matrix( [ 19.5  24.5  29.5 ], [ 27.0  34.0  41.0 ], [ 34.5  43.5  52.5 ] )
-  TEST_CHECK( gkyl_mat_get(D, 0, 0) == 19.5 );
-  TEST_CHECK( gkyl_mat_get(D, 0, 1) == 24.5 );
-  TEST_CHECK( gkyl_mat_get(D, 0, 2) == 29.5 );
+  TEST_CHECK(gkyl_mat_get(D, 0, 0) == 19.5);
+  TEST_CHECK(gkyl_mat_get(D, 0, 1) == 24.5);
+  TEST_CHECK(gkyl_mat_get(D, 0, 2) == 29.5);
 
-  TEST_CHECK( gkyl_mat_get(D, 1, 0) == 27.0 );
-  TEST_CHECK( gkyl_mat_get(D, 1, 1) == 34.0 );
-  TEST_CHECK( gkyl_mat_get(D, 1, 2) == 41.0 );
+  TEST_CHECK(gkyl_mat_get(D, 1, 0) == 27.0);
+  TEST_CHECK(gkyl_mat_get(D, 1, 1) == 34.0);
+  TEST_CHECK(gkyl_mat_get(D, 1, 2) == 41.0);
 
-  TEST_CHECK( gkyl_mat_get(D, 2, 0) == 34.5 );
-  TEST_CHECK( gkyl_mat_get(D, 2, 1) == 43.5 );
-  TEST_CHECK( gkyl_mat_get(D, 2, 2) == 52.5 );
-  
+  TEST_CHECK(gkyl_mat_get(D, 2, 0) == 34.5);
+  TEST_CHECK(gkyl_mat_get(D, 2, 1) == 43.5);
+  TEST_CHECK(gkyl_mat_get(D, 2, 2) == 52.5);
+
   gkyl_mat_release(A);
   gkyl_mat_release(B);
   gkyl_mat_release(C);
   gkyl_mat_release(D);
 }
 
-void
-test_mat_linsolve_ho()
+void test_mat_linsolve_ho()
 {
   struct gkyl_mat *A = gkyl_mat_new(3, 3, 0.0);
   struct gkyl_mat *x = gkyl_mat_new(3, 1, 0.0);
@@ -126,12 +137,13 @@ test_mat_linsolve_ho()
   double val = 1.0;
 
   // A : matrix( [1,2,3], [4,5,6], [7,8,10] );
-  for (int i=0; i<A->nr; ++i)  
-    for (int j=0; j<A->nc; ++j) {
-      gkyl_mat_set(A,i,j,val);
+  for (int i = 0; i < A->nr; ++i) {
+    for (int j = 0; j < A->nc; ++j) {
+      gkyl_mat_set(A, i, j, val);
       val += 1.0;
     }
-  gkyl_mat_set(A,2,2,10.0); // ensures determinant is not zero
+  }
+  gkyl_mat_set(A, 2, 2, 10.0); // ensures determinant is not zero
   struct gkyl_mat *AA = gkyl_mat_clone(A);
 
   //gkyl_mat_show("A", stdout, A);
@@ -145,15 +157,15 @@ test_mat_linsolve_ho()
   // solve linear system: sol : matrix( [-1, 1, 0] )
   bool status = gkyl_mat_linsolve_lu(A, x, gkyl_mem_buff_data(ipiv));
 
-  TEST_CHECK( status );
+  TEST_CHECK(status);
 
   //gkyl_mat_show("A", stdout, A);
   //gkyl_mat_show("x", stdout, x);
 
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(x,0,0), -1.0, 1e-15) );
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(x,1,0), 1.0, 1e-15) );
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(x,2,0), 0.0, 1e-15) );
- 
+  TEST_CHECK(gkyl_compare(gkyl_mat_get(x, 0, 0), -1.0, 1e-15));
+  TEST_CHECK(gkyl_compare(gkyl_mat_get(x, 1, 0), 1.0, 1e-15));
+  TEST_CHECK(gkyl_compare(gkyl_mat_get(x, 2, 0), 0.0, 1e-15));
+
   // trivial extension of the test above; rhs is two column vectors
   struct gkyl_mat *xx = gkyl_mat_new(3, 2, 1.0);
   gkyl_mat_set(xx, 0, 1, 2.0);
@@ -161,12 +173,12 @@ test_mat_linsolve_ho()
   gkyl_mat_set(xx, 2, 1, 2.0);
   status = gkyl_mat_linsolve_lu(AA, xx, gkyl_mem_buff_data(ipiv));
 
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,0,0), -1.0, 1e-15) );
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,1,0), 1.0, 1e-15) );
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,2,0), 0.0, 1e-15) );
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,0,1), -2.0, 1e-15) );
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,1,1), 2.0, 1e-15) );
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,2,1), 0.0, 1e-15) );
+  TEST_CHECK(gkyl_compare(gkyl_mat_get(xx, 0, 0), -1.0, 1e-15));
+  TEST_CHECK(gkyl_compare(gkyl_mat_get(xx, 1, 0), 1.0, 1e-15));
+  TEST_CHECK(gkyl_compare(gkyl_mat_get(xx, 2, 0), 0.0, 1e-15));
+  TEST_CHECK(gkyl_compare(gkyl_mat_get(xx, 0, 1), -2.0, 1e-15));
+  TEST_CHECK(gkyl_compare(gkyl_mat_get(xx, 1, 1), 2.0, 1e-15));
+  TEST_CHECK(gkyl_compare(gkyl_mat_get(xx, 2, 1), 0.0, 1e-15));
 
   gkyl_mat_release(AA);
   gkyl_mat_release(xx);
@@ -175,83 +187,92 @@ test_mat_linsolve_ho()
   gkyl_mem_buff_release(ipiv);
 }
 
-void
-test_nmat_base_ho()
+void test_nmat_base_ho()
 {
   // 5 matrices with shape 10x20
   struct gkyl_nmat *nmat = gkyl_nmat_new(5, 10, 20);
 
-  TEST_CHECK( false == gkyl_nmat_is_cu_dev(nmat) );
+  TEST_CHECK(false == gkyl_nmat_is_cu_dev(nmat));
 
-  TEST_CHECK( 5 == nmat->num );
-  TEST_CHECK( 10 == nmat->nr );
-  TEST_CHECK( 20 == nmat->nc );
+  TEST_CHECK(5 == nmat->num);
+  TEST_CHECK(10 == nmat->nr);
+  TEST_CHECK(20 == nmat->nc);
 
   struct gkyl_mat m = gkyl_nmat_get(nmat, 0);
-  TEST_CHECK( 10 == m.nr );
-  TEST_CHECK( 20 == m.nc );
+  TEST_CHECK(10 == m.nr);
+  TEST_CHECK(20 == m.nc);
 
-  for (size_t n=0; n<nmat->num; ++n) {
+  for (size_t n = 0; n < nmat->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat, n);
-    
-    for (size_t j=0; j<nmat->nc; ++j)
-      for (size_t i=0; i<nmat->nr; ++i)
-        gkyl_mat_set(&m, i, j, n*0.5);
+
+    for (size_t j = 0; j < nmat->nc; ++j) {
+      for (size_t i = 0; i < nmat->nr; ++i) {
+        gkyl_mat_set(&m, i, j, n * 0.5);
+      }
+    }
   }
 
-  for (size_t n=0; n<nmat->num; ++n) {
+  for (size_t n = 0; n < nmat->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat, n);
-    
-    for (size_t j=0; j<nmat->nc; ++j)
-      for (size_t i=0; i<nmat->nr; ++i)
-        TEST_CHECK ( n*0.5 == gkyl_mat_get(&m, i, j) );
-  }  
 
-  for (size_t n=0; n<nmat->num; ++n)
-    for (size_t i=0; i<nmat->nr*nmat->nc; ++i)
-      TEST_CHECK( nmat->mptr[n][i] == n*0.5 );
+    for (size_t j = 0; j < nmat->nc; ++j) {
+      for (size_t i = 0; i < nmat->nr; ++i) {
+        TEST_CHECK(n * 0.5 == gkyl_mat_get(&m, i, j));
+      }
+    }
+  }
+
+  for (size_t n = 0; n < nmat->num; ++n) {
+    for (size_t i = 0; i < nmat->nr * nmat->nc; ++i) {
+      TEST_CHECK(nmat->mptr[n][i] == n * 0.5);
+    }
+  }
 
   // copy matrix
   struct gkyl_nmat *ncpy = gkyl_nmat_new(nmat->num, nmat->nr, nmat->nc);
   gkyl_nmat_copy(ncpy, nmat);
 
-  for (size_t n=0; n<ncpy->num; ++n) {
+  for (size_t n = 0; n < ncpy->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(ncpy, n);
-    
-    for (size_t j=0; j<ncpy->nc; ++j)
-      for (size_t i=0; i<ncpy->nr; ++i)
-        TEST_CHECK ( n*0.5 == gkyl_mat_get(&m, i, j) );
-  }  
 
-  for (size_t n=0; n<ncpy->num; ++n)
-    for (size_t i=0; i<ncpy->nr*ncpy->nc; ++i)
-      TEST_CHECK( ncpy->mptr[n][i] == n*0.5 );  
+    for (size_t j = 0; j < ncpy->nc; ++j) {
+      for (size_t i = 0; i < ncpy->nr; ++i) {
+        TEST_CHECK(n * 0.5 == gkyl_mat_get(&m, i, j));
+      }
+    }
+  }
+
+  for (size_t n = 0; n < ncpy->num; ++n) {
+    for (size_t i = 0; i < ncpy->nr * ncpy->nc; ++i) {
+      TEST_CHECK(ncpy->mptr[n][i] == n * 0.5);
+    }
+  }
 
   gkyl_nmat_release(nmat);
   gkyl_nmat_release(ncpy);
 }
 
-void
-test_nmat_linsolve_(bool pre_alloc)
+void test_nmat_linsolve_(bool pre_alloc)
 {
   struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3);
   struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1);
 
-  for (int n=0; n<As->num; ++n) {
+  for (int n = 0; n < As->num; ++n) {
     struct gkyl_mat A = gkyl_nmat_get(As, n);
-    
+
     double val = 1.0;
     // A : matrix( [1,2,3], [4,5,6], [7,8,10] );
-    for (int i=0; i<A.nr; ++i)  
-      for (int j=0; j<A.nc; ++j) {
-        gkyl_mat_set(&A,i,j,val);
+    for (int i = 0; i < A.nr; ++i) {
+      for (int j = 0; j < A.nc; ++j) {
+        gkyl_mat_set(&A, i, j, val);
         val += 1.0;
       }
-    gkyl_mat_set(&A,2,2,10.0); // ensures determinant is not zero
+    }
+    gkyl_mat_set(&A, 2, 2, 10.0); // ensures determinant is not zero
   }
 
   // x = matrix( [1, 1, 1] );
-  for (size_t n=0; n<As->num; ++n) {
+  for (size_t n = 0; n < As->num; ++n) {
     struct gkyl_mat x = gkyl_nmat_get(xs, n);
     gkyl_mat_clear(&x, 1.0);
   }
@@ -263,53 +284,59 @@ test_nmat_linsolve_(bool pre_alloc)
     gkyl_nmat_mem *mem = gkyl_nmat_linsolve_lu_new(As->num, As->nr);
     status = gkyl_nmat_linsolve_lu_pa(mem, As, xs);
     gkyl_nmat_linsolve_lu_release(mem);
-  }
-  else {
+  } else {
     status = gkyl_nmat_linsolve_lu(As, xs);
   }
 
-  TEST_CHECK( status );
+  TEST_CHECK(status);
 
   //gkyl_mat_show("A", stdout, A);
   //gkyl_mat_show("x", stdout, x);
 
-  for (int n=0; n<xs->num; ++n) {
+  for (int n = 0; n < xs->num; ++n) {
     struct gkyl_mat x = gkyl_nmat_get(xs, n);
 
-    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,0,0), -1.0, 1e-15) );
-    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,1,0), 1.0, 1e-15) );
-    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,2,0), 0.0, 1e-15) );
+    TEST_CHECK(gkyl_compare(gkyl_mat_get(&x, 0, 0), -1.0, 1e-15));
+    TEST_CHECK(gkyl_compare(gkyl_mat_get(&x, 1, 0), 1.0, 1e-15));
+    TEST_CHECK(gkyl_compare(gkyl_mat_get(&x, 2, 0), 0.0, 1e-15));
   }
-  
+
   gkyl_nmat_release(As);
   gkyl_nmat_release(xs);
 }
 
-void test_nmat_linsolve_ho() { test_nmat_linsolve_(false); }
-void test_nmat_linsolve_pa_ho() { test_nmat_linsolve_(true); }
+void test_nmat_linsolve_ho()
+{
+  test_nmat_linsolve_(false);
+}
+void test_nmat_linsolve_pa_ho()
+{
+  test_nmat_linsolve_(true);
+}
 
 #ifdef GKYL_HAVE_CUDA
 
-void
-test_nmat_base_dev()
+void test_nmat_base_dev()
 {
   // 5 matrices with shape 10x20
   struct gkyl_nmat *nmat = gkyl_nmat_cu_dev_new(5, 10, 20);
 
-  TEST_CHECK( 5 == nmat->num );
-  TEST_CHECK( 10 == nmat->nr );
-  TEST_CHECK( 20 == nmat->nc );
+  TEST_CHECK(5 == nmat->num);
+  TEST_CHECK(10 == nmat->nr);
+  TEST_CHECK(20 == nmat->nc);
 
-  TEST_CHECK( gkyl_nmat_is_cu_dev(nmat) == true );
+  TEST_CHECK(gkyl_nmat_is_cu_dev(nmat) == true);
 
   // create host-side matrix
   struct gkyl_nmat *h1 = gkyl_nmat_new(5, 10, 20);
-  for (size_t n=0; n<h1->num; ++n) {
+  for (size_t n = 0; n < h1->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(h1, n);
-    
-    for (size_t j=0; j<h1->nc; ++j)
-      for (size_t i=0; i<h1->nr; ++i)
-        gkyl_mat_set(&m, i, j, n*0.5);
+
+    for (size_t j = 0; j < h1->nc; ++j) {
+      for (size_t i = 0; i < h1->nr; ++i) {
+        gkyl_mat_set(&m, i, j, n * 0.5);
+      }
+    }
   }
 
   // copy to device
@@ -320,13 +347,15 @@ test_nmat_base_dev()
   gkyl_nmat_copy(h2, nmat);
 
   // check
-  for (size_t n=0; n<h1->num; ++n) {
+  for (size_t n = 0; n < h1->num; ++n) {
     struct gkyl_mat m1 = gkyl_nmat_get(h1, n);
     struct gkyl_mat m2 = gkyl_nmat_get(h2, n);
-    
-    for (size_t j=0; j<h1->nc; ++j)
-      for (size_t i=0; i<h1->nr; ++i)
-        TEST_CHECK( gkyl_mat_get(&m1, i, j) == gkyl_mat_get(&m2, i, j) );
+
+    for (size_t j = 0; j < h1->nc; ++j) {
+      for (size_t i = 0; i < h1->nr; ++i) {
+        TEST_CHECK(gkyl_mat_get(&m1, i, j) == gkyl_mat_get(&m2, i, j));
+      }
+    }
   }
 
   gkyl_nmat_release(nmat);
@@ -334,27 +363,27 @@ test_nmat_base_dev()
   gkyl_nmat_release(h2);
 }
 
-void
-test_cu_nmat_linsolve_(bool pre_alloc)
+void test_cu_nmat_linsolve_(bool pre_alloc)
 {
   struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3);
   struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1);
 
-  for (int n=0; n<As->num; ++n) {
+  for (int n = 0; n < As->num; ++n) {
     struct gkyl_mat A = gkyl_nmat_get(As, n);
-    
+
     double val = 1.0;
     // A : matrix( [1,2,3], [4,5,6], [7,8,10] );
-    for (int i=0; i<A.nr; ++i)  
-      for (int j=0; j<A.nc; ++j) {
-        gkyl_mat_set(&A,i,j,val);
+    for (int i = 0; i < A.nr; ++i) {
+      for (int j = 0; j < A.nc; ++j) {
+        gkyl_mat_set(&A, i, j, val);
         val += 1.0;
       }
-    gkyl_mat_set(&A,2,2,10.0); // ensures determinant is not zero
+    }
+    gkyl_mat_set(&A, 2, 2, 10.0); // ensures determinant is not zero
   }
 
   // x = matrix( [1, 1, 1] );
-  for (size_t n=0; n<As->num; ++n) {
+  for (size_t n = 0; n < As->num; ++n) {
     struct gkyl_mat x = gkyl_nmat_get(xs, n);
     gkyl_mat_clear(&x, 1.0);
   }
@@ -373,25 +402,24 @@ test_cu_nmat_linsolve_(bool pre_alloc)
     gkyl_nmat_mem *mem = gkyl_nmat_linsolve_lu_cu_dev_new(As->num, As->nr);
     status = gkyl_nmat_linsolve_lu_pa(mem, As_d, xs_d);
     gkyl_nmat_linsolve_lu_release(mem);
-  }
-  else {
+  } else {
     status = gkyl_nmat_linsolve_lu(As_d, xs_d);
   }
 
-  TEST_CHECK( status );
+  TEST_CHECK(status);
 
   // copy solution back
   gkyl_nmat_copy(As, As_d);
   gkyl_nmat_copy(xs, xs_d);
 
-  for (int n=0; n<xs->num; ++n) {
+  for (int n = 0; n < xs->num; ++n) {
     struct gkyl_mat x = gkyl_nmat_get(xs, n);
 
-    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,0,0), -1.0, 1e-15) );
-    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,1,0), 1.0, 1e-15) );
-    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,2,0), 0.0, 1e-15) );
+    TEST_CHECK(gkyl_compare(gkyl_mat_get(&x, 0, 0), -1.0, 1e-15));
+    TEST_CHECK(gkyl_compare(gkyl_mat_get(&x, 1, 0), 1.0, 1e-15));
+    TEST_CHECK(gkyl_compare(gkyl_mat_get(&x, 2, 0), 0.0, 1e-15));
   }
-  
+
   gkyl_nmat_release(As);
   gkyl_nmat_release(xs);
 
@@ -399,22 +427,29 @@ test_cu_nmat_linsolve_(bool pre_alloc)
   gkyl_nmat_release(xs_d);
 }
 
-void test_nmat_linsolve_dev() { test_cu_nmat_linsolve_(false); }
-void test_nmat_linsolve_pa_dev() { test_cu_nmat_linsolve_(true); }
+void test_nmat_linsolve_dev()
+{
+  test_cu_nmat_linsolve_(false);
+}
+void test_nmat_linsolve_pa_dev()
+{
+  test_cu_nmat_linsolve_(true);
+}
 
 #endif
 
 void test_mat_mv_ho()
 {
-
   struct gkyl_mat *A = gkyl_mat_new(4, 4, 1);
   struct gkyl_mat *x = gkyl_mat_new(4, 1, 2);
   struct gkyl_mat *y = gkyl_mat_new(4, 1, 1);
   // y = 1.0*A*x + 0.0*C
   gkyl_mat_mv(1.0, 0.0, GKYL_NO_TRANS, A, x, y);
-  for (size_t j=0; j<y->nc; ++j)
-    for (size_t i=0; i<y->nr; ++i)
-      TEST_CHECK ( 8 == gkyl_mat_get(y, i, j) );
+  for (size_t j = 0; j < y->nc; ++j) {
+    for (size_t i = 0; i < y->nr; ++i) {
+      TEST_CHECK(8 == gkyl_mat_get(y, i, j));
+    }
+  }
 
   gkyl_mat_release(A);
   gkyl_mat_release(x);
@@ -423,7 +458,6 @@ void test_mat_mv_ho()
 
 void test_nmat_mv_ho()
 {
-
   // n_do matrices with shape 4x4
   int n_do = 3;
   struct gkyl_nmat *nmat_A = gkyl_nmat_new(n_do, 4, 4);
@@ -431,27 +465,33 @@ void test_nmat_mv_ho()
   struct gkyl_nmat *nmat_y = gkyl_nmat_new(n_do, 4, 1);
 
   // fill each A matrix with its number
-  for (size_t n=0; n<nmat_A->num; ++n) {
+  for (size_t n = 0; n < nmat_A->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_A, n);
-    for (size_t j=0; j<nmat_A->nc; ++j)
-      for (size_t i=0; i<nmat_A->nr; ++i)
+    for (size_t j = 0; j < nmat_A->nc; ++j) {
+      for (size_t i = 0; i < nmat_A->nr; ++i) {
         gkyl_mat_set(&m, i, j, n);
+      }
+    }
   }
 
   // fill each x vecotr with ones
-  for (size_t n=0; n<nmat_x->num; ++n) {
+  for (size_t n = 0; n < nmat_x->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_x, n);
-    for (size_t j=0; j<nmat_x->nc; ++j)
-      for (size_t i=0; i<nmat_x->nr; ++i)
+    for (size_t j = 0; j < nmat_x->nc; ++j) {
+      for (size_t i = 0; i < nmat_x->nr; ++i) {
         gkyl_mat_set(&m, i, j, 1);
+      }
+    }
   }
 
   // fill each y matrix with 0
-  for (size_t n=0; n<nmat_y->num; ++n) {
+  for (size_t n = 0; n < nmat_y->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_y, n);
-    for (size_t j=0; j<nmat_y->nc; ++j)
-      for (size_t i=0; i<nmat_y->nr; ++i)
+    for (size_t j = 0; j < nmat_y->nc; ++j) {
+      for (size_t i = 0; i < nmat_y->nr; ++i) {
         gkyl_mat_set(&m, i, j, 0);
+      }
+    }
   }
 
   enum gkyl_mat_trans transa = GKYL_NO_TRANS;
@@ -460,14 +500,15 @@ void test_nmat_mv_ho()
 
   gkyl_nmat_mv(alpha, beta, transa, nmat_A, nmat_x, nmat_y);
 
-
   // check the expected result
-  for (size_t n=0; n<nmat_y->num; ++n) {
-    struct gkyl_mat y = gkyl_nmat_get(nmat_y,n);
-    double expected = 4*n;
-    for (size_t j=0; j<y.nc; ++j)
-      for (size_t i=0; i<y.nr; ++i)
-        TEST_CHECK ( expected == gkyl_mat_get(&y, i, j) );
+  for (size_t n = 0; n < nmat_y->num; ++n) {
+    struct gkyl_mat y = gkyl_nmat_get(nmat_y, n);
+    double expected = 4 * n;
+    for (size_t j = 0; j < y.nc; ++j) {
+      for (size_t i = 0; i < y.nr; ++i) {
+        TEST_CHECK(expected == gkyl_mat_get(&y, i, j));
+      }
+    }
   }
 
   gkyl_nmat_release(nmat_A);
@@ -477,34 +518,39 @@ void test_nmat_mv_ho()
 
 void test_nmat_mm_ho()
 {
-
   int n_do = 3;
   struct gkyl_nmat *nmat_A = gkyl_nmat_new(n_do, 4, 3);
   struct gkyl_nmat *nmat_x = gkyl_nmat_new(n_do, 3, 2);
   struct gkyl_nmat *nmat_y = gkyl_nmat_new(n_do, 4, 2);
 
   // fill each A matrix with its number
-  for (size_t n=0; n<nmat_A->num; ++n) {
+  for (size_t n = 0; n < nmat_A->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_A, n);
-    for (size_t j=0; j<nmat_A->nc; ++j)
-      for (size_t i=0; i<nmat_A->nr; ++i)
+    for (size_t j = 0; j < nmat_A->nc; ++j) {
+      for (size_t i = 0; i < nmat_A->nr; ++i) {
         gkyl_mat_set(&m, i, j, n);
+      }
+    }
   }
 
   // fill each x vector with ones
-  for (size_t n=0; n<nmat_x->num; ++n) {
+  for (size_t n = 0; n < nmat_x->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_x, n);
-    for (size_t j=0; j<nmat_x->nc; ++j)
-      for (size_t i=0; i<nmat_x->nr; ++i)
+    for (size_t j = 0; j < nmat_x->nc; ++j) {
+      for (size_t i = 0; i < nmat_x->nr; ++i) {
         gkyl_mat_set(&m, i, j, 1);
+      }
+    }
   }
 
   // fill each y matrix with 0
-  for (size_t n=0; n<nmat_y->num; ++n) {
+  for (size_t n = 0; n < nmat_y->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_y, n);
-    for (size_t j=0; j<nmat_y->nc; ++j)
-      for (size_t i=0; i<nmat_y->nr; ++i)
+    for (size_t j = 0; j < nmat_y->nc; ++j) {
+      for (size_t i = 0; i < nmat_y->nr; ++i) {
         gkyl_mat_set(&m, i, j, 0);
+      }
+    }
   }
 
   enum gkyl_mat_trans transa = GKYL_NO_TRANS;
@@ -514,36 +560,35 @@ void test_nmat_mm_ho()
 
   gkyl_nmat_mm(alpha, beta, transa, nmat_A, transb, nmat_x, nmat_y);
 
-
   // check the expected result
-  for (size_t n=0; n<nmat_y->num; ++n) {
-    struct gkyl_mat y = gkyl_nmat_get(nmat_y,n);
-    double expected = 3*n;
-    for (size_t j=0; j<y.nc; ++j)
-      for (size_t i=0; i<y.nr; ++i)
-        TEST_CHECK ( expected == gkyl_mat_get(&y, i, j) );
+  for (size_t n = 0; n < nmat_y->num; ++n) {
+    struct gkyl_mat y = gkyl_nmat_get(nmat_y, n);
+    double expected = 3 * n;
+    for (size_t j = 0; j < y.nc; ++j) {
+      for (size_t i = 0; i < y.nr; ++i) {
+        TEST_CHECK(expected == gkyl_mat_get(&y, i, j));
+      }
+    }
   }
 
   gkyl_nmat_release(nmat_A);
   gkyl_nmat_release(nmat_x);
-  gkyl_nmat_release(nmat_y);  
+  gkyl_nmat_release(nmat_y);
 }
-
 
 void test_mat_mm_arrays_ho()
 {
-  struct gkyl_mat_mm_array_mem *ctest_prob_mem; 
-  ctest_prob_mem = gkyl_mat_mm_array_mem_new(4, 3, 1.0, 0.0, 
-    GKYL_NO_TRANS, GKYL_NO_TRANS, false);
+  struct gkyl_mat_mm_array_mem *ctest_prob_mem;
+  ctest_prob_mem = gkyl_mat_mm_array_mem_new(4, 3, 1.0, 0.0, GKYL_NO_TRANS, GKYL_NO_TRANS, false);
 
   struct gkyl_mat *mat_A = ctest_prob_mem->A;
   struct gkyl_array *array_x = gkyl_array_new(GKYL_DOUBLE, 3, 2);
   struct gkyl_array *array_y = gkyl_array_new(GKYL_DOUBLE, 4, 2);
 
   // fill each A matrix with its number
-  for (size_t j=0; j<mat_A->nc; ++j){
-    for (size_t i=0; i<mat_A->nr; ++i){
-      double a_val = i*3 + j;
+  for (size_t j = 0; j < mat_A->nc; ++j) {
+    for (size_t i = 0; i < mat_A->nr; ++i) {
+      double a_val = i * 3 + j;
       gkyl_mat_set(mat_A, i, j, a_val);
       double actual = gkyl_mat_get(mat_A, i, j);
       //printf("A(m=%d,n=%d): %1.2e,\n", i, j, actual);
@@ -551,48 +596,45 @@ void test_mat_mm_arrays_ho()
   }
 
   // fill each x vector with ones
-  for (size_t j=0; j<array_x->size; ++j){
-    double *x = gkyl_array_fetch(array_x,j);
-    for (size_t i=0; i<array_x->ncomp; ++i){
-      x[i] = i*2 + j;
+  for (size_t j = 0; j < array_x->size; ++j) {
+    double *x = gkyl_array_fetch(array_x, j);
+    for (size_t i = 0; i < array_x->ncomp; ++i) {
+      x[i] = i * 2 + j;
       //printf("B(m=%d,n=%d): %1.2e,\n", i, j, x[i]);
     }
-  } 
+  }
 
-  for (size_t j=0; j<array_y->size; ++j){
-    double *y = gkyl_array_fetch(array_y,j);
-    for (size_t i=0; i<array_y->ncomp; ++i){
+  for (size_t j = 0; j < array_y->size; ++j) {
+    double *y = gkyl_array_fetch(array_y, j);
+    for (size_t i = 0; i < array_y->ncomp; ++i) {
       y[i] = 0.0;
       //printf("C(m=%d,n=%d): %1.2e,\n", i, j, 0.0);
     }
-  } 
+  }
 
   // Preform the matrix multiply
   gkyl_mat_mm_array(ctest_prob_mem, array_x, array_y);
 
   // check the expected result
   double expected_array[8] = {10.0, 13.0, 28.0, 40.0, 46.0, 67.0, 64.0, 94.0};
-  for (size_t j=0; j<array_y->size; ++j){
-    double *y = gkyl_array_fetch(array_y,j);
-    for (size_t i=0; i<array_y->ncomp; ++i){
+  for (size_t j = 0; j < array_y->size; ++j) {
+    double *y = gkyl_array_fetch(array_y, j);
+    for (size_t i = 0; i < array_y->ncomp; ++i) {
       double actual = y[i];
-      double expected = expected_array[i*2 + j];
+      double expected = expected_array[i * 2 + j];
       //printf("expected: %1.2e, actual: %1.2e\n", expected, actual);
-      TEST_CHECK ( expected == actual );
+      TEST_CHECK(expected == actual);
     }
   }
 
   gkyl_array_release(array_x);
   gkyl_array_release(array_y);
   gkyl_mat_mm_array_mem_release(ctest_prob_mem);
-
 }
-
 
 #ifdef GKYL_HAVE_CUDA
 void test_nmat_mv_dev()
 {
-
   // n_do matrices with shape 4x4
   int n_do = 3;
   struct gkyl_nmat *nmat_A = gkyl_nmat_new(n_do, 4, 4);
@@ -604,34 +646,39 @@ void test_nmat_mv_dev()
   struct gkyl_nmat *nmat_ycu = gkyl_nmat_cu_dev_new(n_do, 4, 1);
 
   // fill each A matrix with its number
-  for (size_t n=0; n<nmat_A->num; ++n) {
+  for (size_t n = 0; n < nmat_A->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_A, n);
-    for (size_t j=0; j<nmat_A->nc; ++j)
-      for (size_t i=0; i<nmat_A->nr; ++i)
+    for (size_t j = 0; j < nmat_A->nc; ++j) {
+      for (size_t i = 0; i < nmat_A->nr; ++i) {
         gkyl_mat_set(&m, i, j, n);
+      }
+    }
   }
 
   // fill each x vecotr with ones
-  for (size_t n=0; n<nmat_x->num; ++n) {
+  for (size_t n = 0; n < nmat_x->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_x, n);
-    for (size_t j=0; j<nmat_x->nc; ++j)
-      for (size_t i=0; i<nmat_x->nr; ++i)
+    for (size_t j = 0; j < nmat_x->nc; ++j) {
+      for (size_t i = 0; i < nmat_x->nr; ++i) {
         gkyl_mat_set(&m, i, j, 1);
+      }
+    }
   }
 
   // fill each y matrix with 0
-  for (size_t n=0; n<nmat_y->num; ++n) {
+  for (size_t n = 0; n < nmat_y->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_y, n);
-    for (size_t j=0; j<nmat_y->nc; ++j)
-      for (size_t i=0; i<nmat_y->nr; ++i)
+    for (size_t j = 0; j < nmat_y->nc; ++j) {
+      for (size_t i = 0; i < nmat_y->nr; ++i) {
         gkyl_mat_set(&m, i, j, 0);
+      }
+    }
   }
 
   enum gkyl_mat_trans transa = GKYL_NO_TRANS;
   enum gkyl_mat_trans transb = GKYL_NO_TRANS;
   double alpha = 1.0;
   double beta = 0.0;
-
 
   // copy to device
   gkyl_nmat_copy(nmat_Acu, nmat_A);
@@ -645,15 +692,14 @@ void test_nmat_mv_dev()
   gkyl_nmat_copy(nmat_x, nmat_xcu);
   gkyl_nmat_copy(nmat_y, nmat_ycu);
 
-
   // check the expected result
-  for (size_t n=0; n<nmat_y->num; ++n) {
-    struct gkyl_mat y = gkyl_nmat_get(nmat_y,n);
-    double expected = 4*n;
-    for (size_t j=0; j<y.nc; ++j){
-      for (size_t i=0; i<y.nr; ++i){
+  for (size_t n = 0; n < nmat_y->num; ++n) {
+    struct gkyl_mat y = gkyl_nmat_get(nmat_y, n);
+    double expected = 4 * n;
+    for (size_t j = 0; j < y.nc; ++j) {
+      for (size_t i = 0; i < y.nr; ++i) {
         double actual = gkyl_mat_get(&y, i, j);
-        TEST_CHECK ( expected == actual );
+        TEST_CHECK(expected == actual);
       }
     }
   }
@@ -663,14 +709,10 @@ void test_nmat_mv_dev()
   gkyl_nmat_release(nmat_Acu);
   gkyl_nmat_release(nmat_xcu);
   gkyl_nmat_release(nmat_ycu);
-
-
 }
-
 
 void test_mat_mm_dev()
 {
-
   struct gkyl_mat *mat_A = gkyl_mat_new(4, 3, 0);
   struct gkyl_mat *mat_x = gkyl_mat_new(3, 2, 0);
   struct gkyl_mat *mat_y = gkyl_mat_new(4, 2, 0);
@@ -680,26 +722,30 @@ void test_mat_mm_dev()
   struct gkyl_mat *mat_ycu = gkyl_mat_cu_dev_new(4, 2);
 
   // fill each A matrix with its number
-  for (size_t j=0; j<mat_A->nc; ++j)
-    for (size_t i=0; i<mat_A->nr; ++i)
+  for (size_t j = 0; j < mat_A->nc; ++j) {
+    for (size_t i = 0; i < mat_A->nr; ++i) {
       gkyl_mat_set(mat_A, i, j, 1);
+    }
+  }
 
   // fill each x vecotr with ones
-  for (size_t j=0; j<mat_x->nc; ++j)
-    for (size_t i=0; i<mat_x->nr; ++i)
+  for (size_t j = 0; j < mat_x->nc; ++j) {
+    for (size_t i = 0; i < mat_x->nr; ++i) {
       gkyl_mat_set(mat_x, i, j, 1);
-
+    }
+  }
 
   // fill each y matrix with 0
-  for (size_t j=0; j<mat_y->nc; ++j)
-    for (size_t i=0; i<mat_y->nr; ++i)
+  for (size_t j = 0; j < mat_y->nc; ++j) {
+    for (size_t i = 0; i < mat_y->nr; ++i) {
       gkyl_mat_set(mat_y, i, j, 0);
+    }
+  }
 
   enum gkyl_mat_trans transa = GKYL_NO_TRANS;
   enum gkyl_mat_trans transb = GKYL_NO_TRANS;
   double alpha = 1.0;
   double beta = 0.0;
-
 
   // copy to device
   gkyl_mat_copy(mat_Acu, mat_A);
@@ -713,13 +759,12 @@ void test_mat_mm_dev()
   gkyl_mat_copy(mat_x, mat_xcu);
   gkyl_mat_copy(mat_y, mat_ycu);
 
-
   // check the expected result
   double expected = 3;
-  for (size_t j=0; j<mat_y->nc; ++j){
-    for (size_t i=0; i<mat_y->nr; ++i){
+  for (size_t j = 0; j < mat_y->nc; ++j) {
+    for (size_t i = 0; i < mat_y->nr; ++i) {
       double actual = gkyl_mat_get(mat_y, i, j);
-      TEST_CHECK ( expected == actual );
+      TEST_CHECK(expected == actual);
     }
   }
   gkyl_mat_release(mat_A);
@@ -728,13 +773,10 @@ void test_mat_mm_dev()
   gkyl_mat_release(mat_Acu);
   gkyl_mat_release(mat_xcu);
   gkyl_mat_release(mat_ycu);
-
-
 }
 
 void test_nmat_mm_dev()
 {
-
   int n_do = 3;
   struct gkyl_nmat *nmat_A = gkyl_nmat_new(n_do, 4, 3);
   struct gkyl_nmat *nmat_x = gkyl_nmat_new(n_do, 3, 2);
@@ -745,33 +787,38 @@ void test_nmat_mm_dev()
   struct gkyl_nmat *nmat_ycu = gkyl_nmat_cu_dev_new(n_do, 4, 2);
 
   // fill each A matrix with its number
-  for (size_t n=0; n<nmat_A->num; ++n) {
+  for (size_t n = 0; n < nmat_A->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_A, n);
-    for (size_t j=0; j<nmat_A->nc; ++j)
-      for (size_t i=0; i<nmat_A->nr; ++i)
+    for (size_t j = 0; j < nmat_A->nc; ++j) {
+      for (size_t i = 0; i < nmat_A->nr; ++i) {
         gkyl_mat_set(&m, i, j, n);
+      }
+    }
   }
 
   // fill each x vecotr with ones
-  for (size_t n=0; n<nmat_x->num; ++n) {
+  for (size_t n = 0; n < nmat_x->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_x, n);
-    for (size_t j=0; j<nmat_x->nc; ++j)
-      for (size_t i=0; i<nmat_x->nr; ++i)
+    for (size_t j = 0; j < nmat_x->nc; ++j) {
+      for (size_t i = 0; i < nmat_x->nr; ++i) {
         gkyl_mat_set(&m, i, j, 1);
+      }
+    }
   }
 
   // fill each y matrix with 0
-  for (size_t n=0; n<nmat_y->num; ++n) {
+  for (size_t n = 0; n < nmat_y->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(nmat_y, n);
-    for (size_t j=0; j<nmat_y->nc; ++j)
-      for (size_t i=0; i<nmat_y->nr; ++i)
+    for (size_t j = 0; j < nmat_y->nc; ++j) {
+      for (size_t i = 0; i < nmat_y->nr; ++i) {
         gkyl_mat_set(&m, i, j, 0);
+      }
+    }
   }
 
   enum gkyl_mat_trans transa = GKYL_NO_TRANS;
   double alpha = 1.0;
   double beta = 0.0;
-
 
   // copy to device
   gkyl_nmat_copy(nmat_Acu, nmat_A);
@@ -785,15 +832,14 @@ void test_nmat_mm_dev()
   gkyl_nmat_copy(nmat_x, nmat_xcu);
   gkyl_nmat_copy(nmat_y, nmat_ycu);
 
-
   // check the expected result
-  for (size_t n=0; n<nmat_y->num; ++n) {
-    struct gkyl_mat y = gkyl_nmat_get(nmat_y,n);
-    double expected = 3*n;
-    for (size_t j=0; j<y.nc; ++j){
-      for (size_t i=0; i<y.nr; ++i){
+  for (size_t n = 0; n < nmat_y->num; ++n) {
+    struct gkyl_mat y = gkyl_nmat_get(nmat_y, n);
+    double expected = 3 * n;
+    for (size_t j = 0; j < y.nc; ++j) {
+      for (size_t i = 0; i < y.nr; ++i) {
         double actual = gkyl_mat_get(&y, i, j);
-        TEST_CHECK ( expected == actual );
+        TEST_CHECK(expected == actual);
       }
     }
   }
@@ -803,18 +849,14 @@ void test_nmat_mm_dev()
   gkyl_nmat_release(nmat_Acu);
   gkyl_nmat_release(nmat_xcu);
   gkyl_nmat_release(nmat_ycu);
-
-
 }
-
 
 void test_mat_mm_arrays_dev()
 {
-  struct gkyl_mat_mm_array_mem *ctest_prob_mem_ho, *ctest_prob_mem_cu; 
-  ctest_prob_mem_ho = gkyl_mat_mm_array_mem_new(4, 3, 1.0, 0.0, 
-    GKYL_NO_TRANS, GKYL_NO_TRANS, false);
-  ctest_prob_mem_cu = gkyl_mat_mm_array_mem_new(4, 3, 1.0, 0.0, 
-    GKYL_NO_TRANS, GKYL_NO_TRANS, true);
+  struct gkyl_mat_mm_array_mem *ctest_prob_mem_ho, *ctest_prob_mem_cu;
+  ctest_prob_mem_ho =
+    gkyl_mat_mm_array_mem_new(4, 3, 1.0, 0.0, GKYL_NO_TRANS, GKYL_NO_TRANS, false);
+  ctest_prob_mem_cu = gkyl_mat_mm_array_mem_new(4, 3, 1.0, 0.0, GKYL_NO_TRANS, GKYL_NO_TRANS, true);
 
   struct gkyl_mat *mat_A = ctest_prob_mem_ho->A;
   struct gkyl_array *array_x = gkyl_array_new(GKYL_DOUBLE, 3, 2);
@@ -825,9 +867,9 @@ void test_mat_mm_arrays_dev()
   struct gkyl_array *array_ycu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, 2);
 
   // fill each A matrix with its number
-  for (size_t j=0; j<mat_A->nc; ++j){
-    for (size_t i=0; i<mat_A->nr; ++i){
-      double a_val = i*3 + j;
+  for (size_t j = 0; j < mat_A->nc; ++j) {
+    for (size_t i = 0; i < mat_A->nr; ++i) {
+      double a_val = i * 3 + j;
       gkyl_mat_set(mat_A, i, j, a_val);
       double actual = gkyl_mat_get(mat_A, i, j);
       //printf("A(m=%d,n=%d): %1.2e,\n", i, j, actual);
@@ -835,21 +877,21 @@ void test_mat_mm_arrays_dev()
   }
 
   // fill each x vector with ones
-  for (size_t j=0; j<array_x->size; ++j){
-    double *x = gkyl_array_fetch(array_x,j);
-    for (size_t i=0; i<array_x->ncomp; ++i){
-      x[i] = i*2 + j;
+  for (size_t j = 0; j < array_x->size; ++j) {
+    double *x = gkyl_array_fetch(array_x, j);
+    for (size_t i = 0; i < array_x->ncomp; ++i) {
+      x[i] = i * 2 + j;
       //printf("B(m=%d,n=%d): %1.2e,\n", i, j, x[i]);
     }
-  } 
+  }
 
-  for (size_t j=0; j<array_y->size; ++j){
-    double *y = gkyl_array_fetch(array_y,j);
-    for (size_t i=0; i<array_y->ncomp; ++i){
+  for (size_t j = 0; j < array_y->size; ++j) {
+    double *y = gkyl_array_fetch(array_y, j);
+    for (size_t i = 0; i < array_y->ncomp; ++i) {
       y[i] = 0.0;
       //printf("C(m=%d,n=%d): %1.2e,\n", i, j, 0.0);
     }
-  } 
+  }
 
   // copy to device
   gkyl_mat_copy(mat_Acu, mat_A);
@@ -863,16 +905,15 @@ void test_mat_mm_arrays_dev()
   gkyl_array_copy(array_x, array_xcu);
   gkyl_array_copy(array_y, array_ycu);
 
-
   // check the expected result
   double expected_array[8] = {10.0, 13.0, 28.0, 40.0, 46.0, 67.0, 64.0, 94.0};
-  for (size_t j=0; j<array_y->size; ++j){
-    double *y = gkyl_array_fetch(array_y,j);
-    for (size_t i=0; i<array_y->ncomp; ++i){
+  for (size_t j = 0; j < array_y->size; ++j) {
+    double *y = gkyl_array_fetch(array_y, j);
+    for (size_t i = 0; i < array_y->ncomp; ++i) {
       double actual = y[i];
-      double expected = expected_array[i*2 + j];
+      double expected = expected_array[i * 2 + j];
       //printf("expected: %1.2e, actual: %1.2e\n", expected, actual);
-      TEST_CHECK ( expected == actual );
+      TEST_CHECK(expected == actual);
     }
   }
   gkyl_array_release(array_x);
@@ -881,61 +922,64 @@ void test_mat_mm_arrays_dev()
   gkyl_array_release(array_ycu);
   gkyl_mat_mm_array_mem_release(ctest_prob_mem_ho);
   gkyl_mat_mm_array_mem_release(ctest_prob_mem_cu);
-
 }
 
 #endif
 
-void
-test_mat_new_set_get()
+void test_mat_new_set_get()
 {
   struct gkyl_mat *m = gkyl_mat_new(3, 2, 7.0);
-  TEST_CHECK( m->nr == 3 );
-  TEST_CHECK( m->nc == 2 );
+  TEST_CHECK(m->nr == 3);
+  TEST_CHECK(m->nc == 2);
   // initial value
-  for (size_t r=0; r<3; ++r)
-    for (size_t c=0; c<2; ++c)
-      TEST_CHECK( gkyl_mat_get(m, r, c) == 7.0 );
+  for (size_t r = 0; r < 3; ++r) {
+    for (size_t c = 0; c < 2; ++c) {
+      TEST_CHECK(gkyl_mat_get(m, r, c) == 7.0);
+    }
+  }
 
   gkyl_mat_set(m, 0, 0, 1.0);
   gkyl_mat_set(m, 2, 1, -3.5);
-  TEST_CHECK( gkyl_mat_get(m, 0, 0) == 1.0 );
-  TEST_CHECK( gkyl_mat_get(m, 2, 1) == -3.5 );
+  TEST_CHECK(gkyl_mat_get(m, 0, 0) == 1.0);
+  TEST_CHECK(gkyl_mat_get(m, 2, 1) == -3.5);
   // unchanged entry
-  TEST_CHECK( gkyl_mat_get(m, 1, 0) == 7.0 );
+  TEST_CHECK(gkyl_mat_get(m, 1, 0) == 7.0);
 
   gkyl_mat_release(m);
 }
 
-void
-test_mat_clear()
+void test_mat_clear()
 {
   struct gkyl_mat *m = gkyl_mat_new(4, 4, 1.0);
   gkyl_mat_clear(m, 0.0);
-  for (size_t r=0; r<4; ++r)
-    for (size_t c=0; c<4; ++c)
-      TEST_CHECK( gkyl_mat_get(m, r, c) == 0.0 );
+  for (size_t r = 0; r < 4; ++r) {
+    for (size_t c = 0; c < 4; ++c) {
+      TEST_CHECK(gkyl_mat_get(m, r, c) == 0.0);
+    }
+  }
   gkyl_mat_release(m);
 }
 
-void
-test_mat_diag()
+void test_mat_diag()
 {
   struct gkyl_mat *m = gkyl_mat_new(3, 3, 9.0);
   gkyl_mat_diag(m, 2.0);
-  for (size_t r=0; r<3; ++r)
-    for (size_t c=0; c<3; ++c)
-      TEST_CHECK( gkyl_mat_get(m, r, c) == (r==c ? 2.0 : 0.0) );
+  for (size_t r = 0; r < 3; ++r) {
+    for (size_t c = 0; c < 3; ++c) {
+      TEST_CHECK(gkyl_mat_get(m, r, c) == (r == c ? 2.0 : 0.0));
+    }
+  }
   gkyl_mat_release(m);
 }
 
-void
-test_mat_mm_identity()
+void test_mat_mm_identity()
 {
   // A * I == A
   struct gkyl_mat *A = gkyl_mat_new(2, 2, 0.0);
-  gkyl_mat_set(A, 0, 0, 1.0); gkyl_mat_set(A, 0, 1, 2.0);
-  gkyl_mat_set(A, 1, 0, 3.0); gkyl_mat_set(A, 1, 1, 4.0);
+  gkyl_mat_set(A, 0, 0, 1.0);
+  gkyl_mat_set(A, 0, 1, 2.0);
+  gkyl_mat_set(A, 1, 0, 3.0);
+  gkyl_mat_set(A, 1, 1, 4.0);
 
   struct gkyl_mat *I = gkyl_mat_new(2, 2, 0.0);
   gkyl_mat_diag(I, 1.0);
@@ -943,50 +987,60 @@ test_mat_mm_identity()
   struct gkyl_mat *C = gkyl_mat_new(2, 2, 0.0);
   gkyl_mat_mm(1.0, 0.0, GKYL_NO_TRANS, A, GKYL_NO_TRANS, I, C, false);
 
-  for (size_t r=0; r<2; ++r)
-    for (size_t c=0; c<2; ++c)
-      TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C, r, c), gkyl_mat_get(A, r, c), 1e-14) );
+  for (size_t r = 0; r < 2; ++r) {
+    for (size_t c = 0; c < 2; ++c) {
+      TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C, r, c), gkyl_mat_get(A, r, c), 1e-14));
+    }
+  }
 
-  gkyl_mat_release(A); gkyl_mat_release(I); gkyl_mat_release(C);
+  gkyl_mat_release(A);
+  gkyl_mat_release(I);
+  gkyl_mat_release(C);
 }
 
-void
-test_mat_mm_known()
+void test_mat_mm_known()
 {
   // [1 2; 3 4] * [5 6; 7 8] = [19 22; 43 50]
   struct gkyl_mat *A = gkyl_mat_new(2, 2, 0.0);
-  gkyl_mat_set(A, 0, 0, 1.0); gkyl_mat_set(A, 0, 1, 2.0);
-  gkyl_mat_set(A, 1, 0, 3.0); gkyl_mat_set(A, 1, 1, 4.0);
+  gkyl_mat_set(A, 0, 0, 1.0);
+  gkyl_mat_set(A, 0, 1, 2.0);
+  gkyl_mat_set(A, 1, 0, 3.0);
+  gkyl_mat_set(A, 1, 1, 4.0);
 
   struct gkyl_mat *B = gkyl_mat_new(2, 2, 0.0);
-  gkyl_mat_set(B, 0, 0, 5.0); gkyl_mat_set(B, 0, 1, 6.0);
-  gkyl_mat_set(B, 1, 0, 7.0); gkyl_mat_set(B, 1, 1, 8.0);
+  gkyl_mat_set(B, 0, 0, 5.0);
+  gkyl_mat_set(B, 0, 1, 6.0);
+  gkyl_mat_set(B, 1, 0, 7.0);
+  gkyl_mat_set(B, 1, 1, 8.0);
 
   struct gkyl_mat *C = gkyl_mat_new(2, 2, 0.0);
   gkyl_mat_mm(1.0, 0.0, GKYL_NO_TRANS, A, GKYL_NO_TRANS, B, C, false);
 
-  TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C, 0, 0), 19.0, 1e-13) );
-  TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C, 0, 1), 22.0, 1e-13) );
-  TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C, 1, 0), 43.0, 1e-13) );
-  TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C, 1, 1), 50.0, 1e-13) );
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C, 0, 0), 19.0, 1e-13));
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C, 0, 1), 22.0, 1e-13));
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C, 1, 0), 43.0, 1e-13));
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C, 1, 1), 50.0, 1e-13));
 
   // alpha scaling: 2*(A*B)
   struct gkyl_mat *C2 = gkyl_mat_new(2, 2, 0.0);
   gkyl_mat_mm(2.0, 0.0, GKYL_NO_TRANS, A, GKYL_NO_TRANS, B, C2, false);
-  TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C2, 0, 0), 38.0, 1e-13) );
-  TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C2, 1, 1), 100.0, 1e-13) );
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C2, 0, 0), 38.0, 1e-13));
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C2, 1, 1), 100.0, 1e-13));
 
-  gkyl_mat_release(A); gkyl_mat_release(B);
-  gkyl_mat_release(C); gkyl_mat_release(C2);
+  gkyl_mat_release(A);
+  gkyl_mat_release(B);
+  gkyl_mat_release(C);
+  gkyl_mat_release(C2);
 }
 
-void
-test_mat_mm_transpose()
+void test_mat_mm_transpose()
 {
   // A^T with A = [1 2; 3 4] is [1 3; 2 4]; (A^T)*I checks transpose handling
   struct gkyl_mat *A = gkyl_mat_new(2, 2, 0.0);
-  gkyl_mat_set(A, 0, 0, 1.0); gkyl_mat_set(A, 0, 1, 2.0);
-  gkyl_mat_set(A, 1, 0, 3.0); gkyl_mat_set(A, 1, 1, 4.0);
+  gkyl_mat_set(A, 0, 0, 1.0);
+  gkyl_mat_set(A, 0, 1, 2.0);
+  gkyl_mat_set(A, 1, 0, 3.0);
+  gkyl_mat_set(A, 1, 1, 4.0);
 
   struct gkyl_mat *I = gkyl_mat_new(2, 2, 0.0);
   gkyl_mat_diag(I, 1.0);
@@ -994,65 +1048,65 @@ test_mat_mm_transpose()
   struct gkyl_mat *C = gkyl_mat_new(2, 2, 0.0);
   gkyl_mat_mm(1.0, 0.0, GKYL_TRANS, A, GKYL_NO_TRANS, I, C, false);
 
-  TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C, 0, 0), 1.0, 1e-14) );
-  TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C, 0, 1), 3.0, 1e-14) );
-  TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C, 1, 0), 2.0, 1e-14) );
-  TEST_CHECK( gkyl_compare_double(gkyl_mat_get(C, 1, 1), 4.0, 1e-14) );
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C, 0, 0), 1.0, 1e-14));
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C, 0, 1), 3.0, 1e-14));
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C, 1, 0), 2.0, 1e-14));
+  TEST_CHECK(gkyl_compare_double(gkyl_mat_get(C, 1, 1), 4.0, 1e-14));
 
-  gkyl_mat_release(A); gkyl_mat_release(I); gkyl_mat_release(C);
+  gkyl_mat_release(A);
+  gkyl_mat_release(I);
+  gkyl_mat_release(C);
 }
 
-void
-test_nmat_new()
+void test_nmat_new()
 {
   // Batched matrices: 3 matrices each 2x2.
   struct gkyl_nmat *nm = gkyl_nmat_new(3, 2, 2);
-  TEST_CHECK( nm->num == 3 );
-  TEST_CHECK( nm->nr == 2 );
-  TEST_CHECK( nm->nc == 2 );
-  TEST_CHECK( !gkyl_nmat_is_cu_dev(nm) );
+  TEST_CHECK(nm->num == 3);
+  TEST_CHECK(nm->nr == 2);
+  TEST_CHECK(nm->nc == 2);
+  TEST_CHECK(!gkyl_nmat_is_cu_dev(nm));
 
   // Fill each matrix differently and read back.
-  for (size_t k=0; k<3; ++k) {
+  for (size_t k = 0; k < 3; ++k) {
     struct gkyl_mat mk = gkyl_nmat_get(nm, k);
     gkyl_mat_clear(&mk, 0.0);
-    gkyl_mat_set(&mk, 0, 0, (double) k+1);
+    gkyl_mat_set(&mk, 0, 0, (double)k + 1);
   }
-  for (size_t k=0; k<3; ++k) {
+  for (size_t k = 0; k < 3; ++k) {
     struct gkyl_mat mk = gkyl_nmat_get(nm, k);
-    TEST_CHECK( gkyl_mat_get(&mk, 0, 0) == (double) k+1 );
+    TEST_CHECK(gkyl_mat_get(&mk, 0, 0) == (double)k + 1);
   }
 
   gkyl_nmat_release(nm);
 }
 
 TEST_LIST = {
-  { "mat_base_ho", test_mat_base_ho },
-  { "mat_new_set_get", test_mat_new_set_get },
-  { "mat_clear", test_mat_clear },
-  { "mat_diag", test_mat_diag },
-  { "mat_mm_identity", test_mat_mm_identity },
-  { "mat_mm_known", test_mat_mm_known },
-  { "mat_mm_transpose", test_mat_mm_transpose },
-  { "mat_mm_op_ho", test_mat_mm_op_ho },
-  { "mat_mv_ho", test_mat_mv_ho},
-  { "mat_linsolve_ho", test_mat_linsolve_ho },
-  { "nmat_base_ho", test_nmat_base_ho },
-  { "nmat_new", test_nmat_new },
-  { "nmat_linsolve_ho", test_nmat_linsolve_ho },
-  { "nmat_linsolve_pa_ho", test_nmat_linsolve_pa_ho },
-  { "nmat_mv_ho", test_nmat_mv_ho},
-  { "nmat_mm_ho", test_nmat_mm_ho},
-  { "mat_mm_arrays_ho", test_mat_mm_arrays_ho},
+  {"mat_base_ho", test_mat_base_ho},
+  {"mat_new_set_get", test_mat_new_set_get},
+  {"mat_clear", test_mat_clear},
+  {"mat_diag", test_mat_diag},
+  {"mat_mm_identity", test_mat_mm_identity},
+  {"mat_mm_known", test_mat_mm_known},
+  {"mat_mm_transpose", test_mat_mm_transpose},
+  {"mat_mm_op_ho", test_mat_mm_op_ho},
+  {"mat_mv_ho", test_mat_mv_ho},
+  {"mat_linsolve_ho", test_mat_linsolve_ho},
+  {"nmat_base_ho", test_nmat_base_ho},
+  {"nmat_new", test_nmat_new},
+  {"nmat_linsolve_ho", test_nmat_linsolve_ho},
+  {"nmat_linsolve_pa_ho", test_nmat_linsolve_pa_ho},
+  {"nmat_mv_ho", test_nmat_mv_ho},
+  {"nmat_mm_ho", test_nmat_mm_ho},
+  {"mat_mm_arrays_ho", test_mat_mm_arrays_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "nmat_base_dev", test_nmat_base_dev },
-  { "nmat_linsolve_dev", test_nmat_linsolve_dev },
-  { "nmat_linsolve_pa_dev", test_nmat_linsolve_pa_dev },
-  { "nmat_mv_dev", test_nmat_mv_dev},
-  { "mat_mm_dev", test_mat_mm_dev},
-  { "nmat_mm_dev", test_nmat_mm_dev},
-  { "mat_mm_arrays_dev", test_mat_mm_arrays_dev},
+  {"nmat_base_dev", test_nmat_base_dev},
+  {"nmat_linsolve_dev", test_nmat_linsolve_dev},
+  {"nmat_linsolve_pa_dev", test_nmat_linsolve_pa_dev},
+  {"nmat_mv_dev", test_nmat_mv_dev},
+  {"mat_mm_dev", test_mat_mm_dev},
+  {"nmat_mm_dev", test_nmat_mm_dev},
+  {"mat_mm_arrays_dev", test_mat_mm_arrays_dev},
 #endif
-  { NULL, NULL },
+  {NULL, NULL}
 };
-

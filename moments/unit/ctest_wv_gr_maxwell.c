@@ -6,17 +6,17 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
-void
-test_gr_maxwell_basic_minkowski_ho()
+void test_gr_maxwell_basic_minkowski_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell =
+    gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
-  TEST_CHECK( gr_maxwell->num_equations == 26 );
-  TEST_CHECK( gr_maxwell->num_waves == 6 );
+  TEST_CHECK(gr_maxwell->num_equations == 26);
+  TEST_CHECK(gr_maxwell->num_waves == 6);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -30,7 +30,7 @@ test_gr_maxwell_basic_minkowski_ho()
       double lapse;
       double *shift = gkyl_malloc(sizeof(double[3]));
 
-      double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+      double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
       for (int i = 0; i < 3; i++) {
         spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
       }
@@ -41,21 +41,36 @@ test_gr_maxwell_basic_minkowski_ho()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
 
       double q[26];
-      q[0] = Dx; q[1] = Dy; q[2] = Dz;
-      q[3] = Bx; q[4] = By; q[5] = Bz;
-      q[6] = phi; q[7] = psi;
+      q[0] = Dx;
+      q[1] = Dy;
+      q[2] = Dz;
+      q[3] = Bx;
+      q[4] = By;
+      q[5] = Bz;
+      q[6] = phi;
+      q[7] = psi;
 
       q[8] = lapse;
-      q[9] = shift[0]; q[10] = shift[1]; q[11] = shift[2];
+      q[9] = shift[0];
+      q[10] = shift[1];
+      q[11] = shift[2];
 
-      q[12] = spatial_metric[0][0]; q[13] = spatial_metric[0][1]; q[14] = spatial_metric[0][2];
-      q[15] = spatial_metric[1][0]; q[16] = spatial_metric[1][1]; q[17] = spatial_metric[1][2];
-      q[18] = spatial_metric[2][0]; q[19] = spatial_metric[2][1]; q[20] = spatial_metric[2][2];
+      q[12] = spatial_metric[0][0];
+      q[13] = spatial_metric[0][1];
+      q[14] = spatial_metric[0][2];
+      q[15] = spatial_metric[1][0];
+      q[16] = spatial_metric[1][1];
+      q[17] = spatial_metric[1][2];
+      q[18] = spatial_metric[2][0];
+      q[19] = spatial_metric[2][1];
+      q[20] = spatial_metric[2][2];
 
       q[21] = 1.0;
 
       q[22] = 0.0;
-      q[23] = x; q[24] = y; q[25] = 0.0;
+      q[23] = x;
+      q[24] = y;
+      q[25] = 0.0;
 
       double Ex = (lapse * Dx) + ((shift[1] * Bz) - (shift[2] * By));
       double Ey = (lapse * Dy) - ((shift[0] * Bz) - (shift[2] * Bx));
@@ -66,31 +81,22 @@ test_gr_maxwell_basic_minkowski_ho()
       double Hz = (lapse * Bz) - ((shift[0] * Dy) - (shift[1] * Dx));
 
       double fluxes[3][8] = {
-        { e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz, -(light_speed * light_speed) * Hy, b_fact * psi,
-          -Ez, Ey, e_fact * Dx, b_fact * (light_speed * light_speed) * Bx },
-        { -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hx, Ez, b_fact * psi,
-          -Ex, e_fact * Dy, b_fact * (light_speed * light_speed) * By },
-        { (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx, e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi,
-          e_fact * Dz, b_fact * (light_speed * light_speed) * Bz },
+        {e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
+         -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
+         b_fact * (light_speed * light_speed) * Bx},
+        {-(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
+         (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
+         b_fact * (light_speed * light_speed) * By},
+        {(light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
+         e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
+         b_fact * (light_speed * light_speed) * Bz}
       };
 
-      double norm[3][3] = {
-        { 1.0, 0.0, 0.0 },
-        { 0.0, 1.0, 0.0 },
-        { 0.0, 0.0, 1.0 },
-      };
+      double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-      double tau1[3][3] = {
-        { 0.0, 1.0, 0.0 },
-        { 1.0, 0.0, 0.0 },
-        { 1.0, 0.0, 0.0 },
-      };
+      double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-      double tau2[3][3] = {
-        { 0.0, 0.0, 1.0 },
-        { 0.0, 0.0, -1.0 },
-        { 0.0, 1.0, 0.0 },
-      };
+      double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
       double q_local[26], flux_local[26], flux[26];
       for (int d = 0; d < 3; d++) {
@@ -99,7 +105,7 @@ test_gr_maxwell_basic_minkowski_ho()
         gr_maxwell->rotate_to_global_func(gr_maxwell, tau1[d], tau2[d], norm[d], flux_local, flux);
 
         for (int i = 0; i < 8; i++) {
-          TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-13) );
+          TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-13));
         }
       }
 
@@ -109,7 +115,7 @@ test_gr_maxwell_basic_minkowski_ho()
         gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], q_l, q_g);
 
         for (int i = 0; i < 8; i++) {
-          TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
+          TEST_CHECK(gkyl_compare(q[i], q_g[i], 1e-13));
         }
 
         double w1[26], q1[26];
@@ -117,7 +123,7 @@ test_gr_maxwell_basic_minkowski_ho()
         gr_maxwell->riem_to_cons(gr_maxwell, q_local, w1, q1);
 
         for (int i = 0; i < 8; i++) {
-          TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
+          TEST_CHECK(gkyl_compare(q_local[i], q1[i], 1e-13));
         }
       }
 
@@ -133,17 +139,17 @@ test_gr_maxwell_basic_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_maxwell_basic_schwarzschild_ho()
+void test_gr_maxwell_basic_schwarzschild_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell =
+    gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
-  TEST_CHECK( gr_maxwell->num_equations == 26 );
-  TEST_CHECK( gr_maxwell->num_waves == 6 );
+  TEST_CHECK(gr_maxwell->num_equations == 26);
+  TEST_CHECK(gr_maxwell->num_waves == 6);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -158,7 +164,7 @@ test_gr_maxwell_basic_schwarzschild_ho()
       double *shift = gkyl_malloc(sizeof(double[3]));
       bool in_excision_region;
 
-      double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+      double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
       for (int i = 0; i < 3; i++) {
         spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
       }
@@ -171,21 +177,36 @@ test_gr_maxwell_basic_schwarzschild_ho()
 
       if (!in_excision_region) {
         double q[26];
-        q[0] = Dx; q[1] = Dy; q[2] = Dz;
-        q[3] = Bx; q[4] = By; q[5] = Bz;
-        q[6] = phi; q[7] = psi;
+        q[0] = Dx;
+        q[1] = Dy;
+        q[2] = Dz;
+        q[3] = Bx;
+        q[4] = By;
+        q[5] = Bz;
+        q[6] = phi;
+        q[7] = psi;
 
         q[8] = lapse;
-        q[9] = shift[0]; q[10] = shift[1]; q[11] = shift[2];
+        q[9] = shift[0];
+        q[10] = shift[1];
+        q[11] = shift[2];
 
-        q[12] = spatial_metric[0][0]; q[13] = spatial_metric[0][1]; q[14] = spatial_metric[0][2];
-        q[15] = spatial_metric[1][0]; q[16] = spatial_metric[1][1]; q[17] = spatial_metric[1][2];
-        q[18] = spatial_metric[2][0]; q[19] = spatial_metric[2][1]; q[20] = spatial_metric[2][2];
+        q[12] = spatial_metric[0][0];
+        q[13] = spatial_metric[0][1];
+        q[14] = spatial_metric[0][2];
+        q[15] = spatial_metric[1][0];
+        q[16] = spatial_metric[1][1];
+        q[17] = spatial_metric[1][2];
+        q[18] = spatial_metric[2][0];
+        q[19] = spatial_metric[2][1];
+        q[20] = spatial_metric[2][2];
 
         q[21] = 1.0;
 
         q[22] = 0.0;
-        q[23] = x; q[24] = y; q[25] = 0.0;
+        q[23] = x;
+        q[24] = y;
+        q[25] = 0.0;
 
         double Ex = (lapse * Dx) + ((shift[1] * Bz) - (shift[2] * By));
         double Ey = (lapse * Dy) - ((shift[0] * Bz) - (shift[2] * Bx));
@@ -196,31 +217,22 @@ test_gr_maxwell_basic_schwarzschild_ho()
         double Hz = (lapse * Bz) - ((shift[0] * Dy) - (shift[1] * Dx));
 
         double fluxes[3][8] = {
-          { e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz, -(light_speed * light_speed) * Hy, b_fact * psi,
-            -Ez, Ey, e_fact * Dx, b_fact * (light_speed * light_speed) * Bx },
-          { -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hx, Ez, b_fact * psi,
-            -Ex, e_fact * Dy, b_fact * (light_speed * light_speed) * By },
-          { (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx, e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi,
-            e_fact * Dz, b_fact * (light_speed * light_speed) * Bz },
+          {e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
+           -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
+           b_fact * (light_speed * light_speed) * Bx},
+          {-(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
+           (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
+           b_fact * (light_speed * light_speed) * By},
+          {(light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
+           e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
+           b_fact * (light_speed * light_speed) * Bz}
         };
 
-        double norm[3][3] = {
-          { 1.0, 0.0, 0.0 },
-          { 0.0, 1.0, 0.0 },
-          { 0.0, 0.0, 1.0 },
-        };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = {
-          { 0.0, 1.0, 0.0 },
-          { 1.0, 0.0, 0.0 },
-          { 1.0, 0.0, 0.0 },
-        };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = {
-          { 0.0, 0.0, 1.0 },
-          { 0.0, 0.0, -1.0 },
-          { 0.0, 1.0, 0.0 },
-        };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         double q_local[26], flux_local[26], flux[26];
         for (int d = 0; d < 3; d++) {
@@ -229,7 +241,7 @@ test_gr_maxwell_basic_schwarzschild_ho()
           gr_maxwell->rotate_to_global_func(gr_maxwell, tau1[d], tau2[d], norm[d], flux_local, flux);
 
           for (int i = 0; i < 8; i++) {
-            TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-13) );
+            TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-13));
           }
         }
 
@@ -239,7 +251,7 @@ test_gr_maxwell_basic_schwarzschild_ho()
           gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 8; i++) {
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
+            TEST_CHECK(gkyl_compare(q[i], q_g[i], 1e-13));
           }
 
           double w1[26], q1[26];
@@ -247,7 +259,7 @@ test_gr_maxwell_basic_schwarzschild_ho()
           gr_maxwell->riem_to_cons(gr_maxwell, q_local, w1, q1);
 
           for (int i = 0; i < 8; i++) {
-            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
+            TEST_CHECK(gkyl_compare(q_local[i], q1[i], 1e-13));
           }
         }
       }
@@ -264,17 +276,17 @@ test_gr_maxwell_basic_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_maxwell_basic_kerr_ho()
+void test_gr_maxwell_basic_kerr_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell =
+    gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
-  TEST_CHECK( gr_maxwell->num_equations == 26 );
-  TEST_CHECK( gr_maxwell->num_waves == 6 );
+  TEST_CHECK(gr_maxwell->num_equations == 26);
+  TEST_CHECK(gr_maxwell->num_waves == 6);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -289,7 +301,7 @@ test_gr_maxwell_basic_kerr_ho()
       double *shift = gkyl_malloc(sizeof(double[3]));
       bool in_excision_region;
 
-      double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+      double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
       for (int i = 0; i < 3; i++) {
         spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
       }
@@ -302,21 +314,36 @@ test_gr_maxwell_basic_kerr_ho()
 
       if (!in_excision_region) {
         double q[26];
-        q[0] = Dx; q[1] = Dy; q[2] = Dz;
-        q[3] = Bx; q[4] = By; q[5] = Bz;
-        q[6] = phi; q[7] = psi;
+        q[0] = Dx;
+        q[1] = Dy;
+        q[2] = Dz;
+        q[3] = Bx;
+        q[4] = By;
+        q[5] = Bz;
+        q[6] = phi;
+        q[7] = psi;
 
         q[8] = lapse;
-        q[9] = shift[0]; q[10] = shift[1]; q[11] = shift[2];
+        q[9] = shift[0];
+        q[10] = shift[1];
+        q[11] = shift[2];
 
-        q[12] = spatial_metric[0][0]; q[13] = spatial_metric[0][1]; q[14] = spatial_metric[0][2];
-        q[15] = spatial_metric[1][0]; q[16] = spatial_metric[1][1]; q[17] = spatial_metric[1][2];
-        q[18] = spatial_metric[2][0]; q[19] = spatial_metric[2][1]; q[20] = spatial_metric[2][2];
+        q[12] = spatial_metric[0][0];
+        q[13] = spatial_metric[0][1];
+        q[14] = spatial_metric[0][2];
+        q[15] = spatial_metric[1][0];
+        q[16] = spatial_metric[1][1];
+        q[17] = spatial_metric[1][2];
+        q[18] = spatial_metric[2][0];
+        q[19] = spatial_metric[2][1];
+        q[20] = spatial_metric[2][2];
 
         q[21] = 1.0;
 
         q[22] = 0.0;
-        q[23] = x; q[24] = y; q[25] = 0.0;
+        q[23] = x;
+        q[24] = y;
+        q[25] = 0.0;
 
         double Ex = (lapse * Dx) + ((shift[1] * Bz) - (shift[2] * By));
         double Ey = (lapse * Dy) - ((shift[0] * Bz) - (shift[2] * Bx));
@@ -327,31 +354,22 @@ test_gr_maxwell_basic_kerr_ho()
         double Hz = (lapse * Bz) - ((shift[0] * Dy) - (shift[1] * Dx));
 
         double fluxes[3][8] = {
-          { e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz, -(light_speed * light_speed) * Hy, b_fact * psi,
-            -Ez, Ey, e_fact * Dx, b_fact * (light_speed * light_speed) * Bx },
-          { -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hx, Ez, b_fact * psi,
-            -Ex, e_fact * Dy, b_fact * (light_speed * light_speed) * By },
-          { (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx, e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi,
-            e_fact * Dz, b_fact * (light_speed * light_speed) * Bz },
+          {e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
+           -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
+           b_fact * (light_speed * light_speed) * Bx},
+          {-(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
+           (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
+           b_fact * (light_speed * light_speed) * By},
+          {(light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
+           e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
+           b_fact * (light_speed * light_speed) * Bz}
         };
 
-        double norm[3][3] = {
-          { 1.0, 0.0, 0.0 },
-          { 0.0, 1.0, 0.0 },
-          { 0.0, 0.0, 1.0 },
-        };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = {
-          { 0.0, 1.0, 0.0 },
-          { 1.0, 0.0, 0.0 },
-          { 1.0, 0.0, 0.0 },
-        };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = {
-          { 0.0, 0.0, 1.0 },
-          { 0.0, 0.0, -1.0 },
-          { 0.0, 1.0, 0.0 },
-        };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         double q_local[26], flux_local[26], flux[26];
         for (int d = 0; d < 3; d++) {
@@ -360,7 +378,7 @@ test_gr_maxwell_basic_kerr_ho()
           gr_maxwell->rotate_to_global_func(gr_maxwell, tau1[d], tau2[d], norm[d], flux_local, flux);
 
           for (int i = 0; i < 8; i++) {
-            TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-13) );
+            TEST_CHECK(gkyl_compare(flux[i], fluxes[d][i], 1e-13));
           }
         }
 
@@ -370,7 +388,7 @@ test_gr_maxwell_basic_kerr_ho()
           gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 8; i++) {
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
+            TEST_CHECK(gkyl_compare(q[i], q_g[i], 1e-13));
           }
 
           double w1[26], q1[26];
@@ -378,7 +396,7 @@ test_gr_maxwell_basic_kerr_ho()
           gr_maxwell->riem_to_cons(gr_maxwell, q_local, w1, q1);
 
           for (int i = 0; i < 8; i++) {
-            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
+            TEST_CHECK(gkyl_compare(q_local[i], q1[i], 1e-13));
           }
         }
       }
@@ -395,14 +413,14 @@ test_gr_maxwell_basic_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_maxwell_waves_minkowski_ho()
+void test_gr_maxwell_waves_minkowski_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell =
+    gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -421,8 +439,8 @@ test_gr_maxwell_waves_minkowski_ho()
       double *shift_l = gkyl_malloc(sizeof(double[3]));
       double *shift_r = gkyl_malloc(sizeof(double[3]));
 
-      double **spatial_metric_l = gkyl_malloc(sizeof(double*[3]));
-      double **spatial_metric_r = gkyl_malloc(sizeof(double*[3]));
+      double **spatial_metric_l = gkyl_malloc(sizeof(double *[3]));
+      double **spatial_metric_r = gkyl_malloc(sizeof(double *[3]));
       for (int i = 0; i < 3; i++) {
         spatial_metric_l[i] = gkyl_malloc(sizeof(double[3]));
         spatial_metric_r[i] = gkyl_malloc(sizeof(double[3]));
@@ -435,57 +453,75 @@ test_gr_maxwell_waves_minkowski_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
-      
+
       double ql[26], qr[26];
-      ql[0] = Dx_l; ql[1] = Dy_l; ql[2] = Dz_l;
-      ql[3] = Bx_l; ql[4] = By_l; ql[5] = Bz_l;
-      ql[6] = phi_l; ql[7] = psi_l;
+      ql[0] = Dx_l;
+      ql[1] = Dy_l;
+      ql[2] = Dz_l;
+      ql[3] = Bx_l;
+      ql[4] = By_l;
+      ql[5] = Bz_l;
+      ql[6] = phi_l;
+      ql[7] = psi_l;
 
       ql[8] = lapse_l;
-      ql[9] = shift_l[0]; ql[10] = shift_l[1]; ql[11] = shift_l[2];
+      ql[9] = shift_l[0];
+      ql[10] = shift_l[1];
+      ql[11] = shift_l[2];
 
-      ql[12] = spatial_metric_l[0][0]; ql[13] = spatial_metric_l[0][1]; ql[14] = spatial_metric_l[0][2];
-      ql[15] = spatial_metric_l[1][0]; ql[16] = spatial_metric_l[1][1]; ql[17] = spatial_metric_l[1][2];
-      ql[18] = spatial_metric_l[2][0]; ql[19] = spatial_metric_l[2][1]; ql[20] = spatial_metric_l[2][2];
+      ql[12] = spatial_metric_l[0][0];
+      ql[13] = spatial_metric_l[0][1];
+      ql[14] = spatial_metric_l[0][2];
+      ql[15] = spatial_metric_l[1][0];
+      ql[16] = spatial_metric_l[1][1];
+      ql[17] = spatial_metric_l[1][2];
+      ql[18] = spatial_metric_l[2][0];
+      ql[19] = spatial_metric_l[2][1];
+      ql[20] = spatial_metric_l[2][2];
 
       ql[21] = 1.0;
 
       ql[22] = 0.0;
-      ql[23] = x - 0.5; ql[24] = y; ql[25] = 0.0;
+      ql[23] = x - 0.5;
+      ql[24] = y;
+      ql[25] = 0.0;
 
-      qr[0] = Dx_r; qr[1] = Dy_r; qr[2] = Dz_r;
-      qr[3] = Bx_r; qr[4] = By_r; qr[5] = Bz_r;
-      qr[6] = phi_r; qr[7] = psi_r;
+      qr[0] = Dx_r;
+      qr[1] = Dy_r;
+      qr[2] = Dz_r;
+      qr[3] = Bx_r;
+      qr[4] = By_r;
+      qr[5] = Bz_r;
+      qr[6] = phi_r;
+      qr[7] = psi_r;
 
       qr[8] = lapse_r;
-      qr[9] = shift_r[0]; qr[10] = shift_r[1]; qr[11] = shift_r[2];
+      qr[9] = shift_r[0];
+      qr[10] = shift_r[1];
+      qr[11] = shift_r[2];
 
-      qr[12] = spatial_metric_r[0][0]; qr[13] = spatial_metric_r[0][1]; qr[14] = spatial_metric_r[0][2];
-      qr[15] = spatial_metric_r[1][0]; qr[16] = spatial_metric_r[1][1]; qr[17] = spatial_metric_r[1][2];
-      qr[18] = spatial_metric_r[2][0]; qr[19] = spatial_metric_r[2][1]; qr[20] = spatial_metric_r[2][2];
+      qr[12] = spatial_metric_r[0][0];
+      qr[13] = spatial_metric_r[0][1];
+      qr[14] = spatial_metric_r[0][2];
+      qr[15] = spatial_metric_r[1][0];
+      qr[16] = spatial_metric_r[1][1];
+      qr[17] = spatial_metric_r[1][2];
+      qr[18] = spatial_metric_r[2][0];
+      qr[19] = spatial_metric_r[2][1];
+      qr[20] = spatial_metric_r[2][2];
 
       qr[21] = 1.0;
 
       qr[22] = 0.0;
-      qr[23] = x + 0.5; qr[24] = y; qr[25] = 0.0;
+      qr[23] = x + 0.5;
+      qr[24] = y;
+      qr[25] = 0.0;
 
-      double norm[3][3] = {
-        { 1.0, 0.0, 0.0 },
-        { 0.0, 1.0, 0.0 },
-        { 0.0, 0.0, 1.0 },
-      };
+      double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-      double tau1[3][3] = {
-        { 0.0, 1.0, 0.0 },
-        { 1.0, 0.0, 0.0 },
-        { 1.0, 0.0, 0.0 },
-      };
+      double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-      double tau2[3][3] = {
-        { 0.0, 0.0, 1.0 },
-        { 0.0, 0.0, -1.0 },
-        { 0.0, 1.0, 0.0 },
-      };
+      double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
       for (int d = 0; d < 3; d++) {
         double speeds[6], waves[6 * 26], waves_local[6 * 26];
@@ -499,13 +535,21 @@ test_gr_maxwell_waves_minkowski_ho()
           delta[i] = qr_local[i] - ql_local[i];
         }
 
-        gkyl_wv_eqn_waves(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
+        gkyl_wv_eqn_waves(
+          gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local,
+          speeds
+        );
 
         double apdq_local[26], amdq_local[26];
-        gkyl_wv_eqn_qfluct(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+        gkyl_wv_eqn_qfluct(
+          gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds,
+          amdq_local, apdq_local
+        );
 
         for (int i = 0; i < 2; i++) {
-          gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], &waves_local[i * 26], &waves[i * 26]);
+          gkyl_wv_eqn_rotate_to_global(
+            gr_maxwell, tau1[d], tau2[d], norm[d], &waves_local[i * 26], &waves[i * 26]
+          );
         }
 
         double apdq[26], amdq[26];
@@ -521,10 +565,10 @@ test_gr_maxwell_waves_minkowski_ho()
         gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], fr_local, fr);
 
         for (int i = 0; i < 26; i++) {
-          TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13) );
+          TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13));
         }
       }
-      
+
       for (int i = 0; i < 3; i++) {
         gkyl_free(spatial_metric_l[i]);
         gkyl_free(spatial_metric_r[i]);
@@ -535,19 +579,19 @@ test_gr_maxwell_waves_minkowski_ho()
       gkyl_free(shift_r);
     }
   }
-  
+
   gkyl_wv_eqn_release(gr_maxwell);
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_maxwell_waves_schwarzschild_ho()
+void test_gr_maxwell_waves_schwarzschild_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell =
+    gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -567,8 +611,8 @@ test_gr_maxwell_waves_schwarzschild_ho()
       double *shift_r = gkyl_malloc(sizeof(double[3]));
       bool in_excision_region_l, in_excision_region_r;
 
-      double **spatial_metric_l = gkyl_malloc(sizeof(double*[3]));
-      double **spatial_metric_r = gkyl_malloc(sizeof(double*[3]));
+      double **spatial_metric_l = gkyl_malloc(sizeof(double *[3]));
+      double **spatial_metric_r = gkyl_malloc(sizeof(double *[3]));
       for (int i = 0; i < 3; i++) {
         spatial_metric_l[i] = gkyl_malloc(sizeof(double[3]));
         spatial_metric_r[i] = gkyl_malloc(sizeof(double[3]));
@@ -586,55 +630,73 @@ test_gr_maxwell_waves_schwarzschild_ho()
 
       if (!in_excision_region_l && !in_excision_region_r) {
         double ql[26], qr[26];
-        ql[0] = Dx_l; ql[1] = Dy_l; ql[2] = Dz_l;
-        ql[3] = Bx_l; ql[4] = By_l; ql[5] = Bz_l;
-        ql[6] = phi_l; ql[7] = psi_l;
+        ql[0] = Dx_l;
+        ql[1] = Dy_l;
+        ql[2] = Dz_l;
+        ql[3] = Bx_l;
+        ql[4] = By_l;
+        ql[5] = Bz_l;
+        ql[6] = phi_l;
+        ql[7] = psi_l;
 
         ql[8] = lapse_l;
-        ql[9] = shift_l[0]; ql[10] = shift_l[1]; ql[11] = shift_l[2];
+        ql[9] = shift_l[0];
+        ql[10] = shift_l[1];
+        ql[11] = shift_l[2];
 
-        ql[12] = spatial_metric_l[0][0]; ql[13] = spatial_metric_l[0][1]; ql[14] = spatial_metric_l[0][2];
-        ql[15] = spatial_metric_l[1][0]; ql[16] = spatial_metric_l[1][1]; ql[17] = spatial_metric_l[1][2];
-        ql[18] = spatial_metric_l[2][0]; ql[19] = spatial_metric_l[2][1]; ql[20] = spatial_metric_l[2][2];
+        ql[12] = spatial_metric_l[0][0];
+        ql[13] = spatial_metric_l[0][1];
+        ql[14] = spatial_metric_l[0][2];
+        ql[15] = spatial_metric_l[1][0];
+        ql[16] = spatial_metric_l[1][1];
+        ql[17] = spatial_metric_l[1][2];
+        ql[18] = spatial_metric_l[2][0];
+        ql[19] = spatial_metric_l[2][1];
+        ql[20] = spatial_metric_l[2][2];
 
         ql[21] = 1.0;
 
         ql[22] = 0.0;
-        ql[23] = x - 0.5; ql[24] = y; ql[25] = 0.0;
+        ql[23] = x - 0.5;
+        ql[24] = y;
+        ql[25] = 0.0;
 
-        qr[0] = Dx_r; qr[1] = Dy_r; qr[2] = Dz_r;
-        qr[3] = Bx_r; qr[4] = By_r; qr[5] = Bz_r;
-        qr[6] = phi_r; qr[7] = psi_r;
+        qr[0] = Dx_r;
+        qr[1] = Dy_r;
+        qr[2] = Dz_r;
+        qr[3] = Bx_r;
+        qr[4] = By_r;
+        qr[5] = Bz_r;
+        qr[6] = phi_r;
+        qr[7] = psi_r;
 
         qr[8] = lapse_r;
-        qr[9] = shift_r[0]; qr[10] = shift_r[1]; qr[11] = shift_r[2];
+        qr[9] = shift_r[0];
+        qr[10] = shift_r[1];
+        qr[11] = shift_r[2];
 
-        qr[12] = spatial_metric_r[0][0]; qr[13] = spatial_metric_r[0][1]; qr[14] = spatial_metric_r[0][2];
-        qr[15] = spatial_metric_r[1][0]; qr[16] = spatial_metric_r[1][1]; qr[17] = spatial_metric_r[1][2];
-        qr[18] = spatial_metric_r[2][0]; qr[19] = spatial_metric_r[2][1]; qr[20] = spatial_metric_r[2][2];
+        qr[12] = spatial_metric_r[0][0];
+        qr[13] = spatial_metric_r[0][1];
+        qr[14] = spatial_metric_r[0][2];
+        qr[15] = spatial_metric_r[1][0];
+        qr[16] = spatial_metric_r[1][1];
+        qr[17] = spatial_metric_r[1][2];
+        qr[18] = spatial_metric_r[2][0];
+        qr[19] = spatial_metric_r[2][1];
+        qr[20] = spatial_metric_r[2][2];
 
         qr[21] = 1.0;
 
         qr[22] = 0.0;
-        qr[23] = x + 0.5; qr[24] = y; qr[25] = 0.0;
+        qr[23] = x + 0.5;
+        qr[24] = y;
+        qr[25] = 0.0;
 
-        double norm[3][3] = {
-          { 1.0, 0.0, 0.0 },
-          { 0.0, 1.0, 0.0 },
-          { 0.0, 0.0, 1.0 },
-        };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = {
-          { 0.0, 1.0, 0.0 },
-          { 1.0, 0.0, 0.0 },
-          { 1.0, 0.0, 0.0 },
-        };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = {
-          { 0.0, 0.0, 1.0 },
-          { 0.0, 0.0, -1.0 },
-          { 0.0, 1.0, 0.0 },
-        };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         for (int d = 0; d < 3; d++) {
           double speeds[6], waves[6 * 26], waves_local[6 * 26];
@@ -648,13 +710,21 @@ test_gr_maxwell_waves_schwarzschild_ho()
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
+          gkyl_wv_eqn_waves(
+            gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local,
+            speeds
+          );
 
           double apdq_local[26], amdq_local[26];
-          gkyl_wv_eqn_qfluct(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(
+            gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds,
+            amdq_local, apdq_local
+          );
 
           for (int i = 0; i < 2; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], &waves_local[i * 26], &waves[i * 26]);
+            gkyl_wv_eqn_rotate_to_global(
+              gr_maxwell, tau1[d], tau2[d], norm[d], &waves_local[i * 26], &waves[i * 26]
+            );
           }
 
           double apdq[26], amdq[26];
@@ -670,11 +740,11 @@ test_gr_maxwell_waves_schwarzschild_ho()
           gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], fr_local, fr);
 
           for (int i = 0; i < 26; i++) {
-            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13) );
+            TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13));
           }
         }
       }
-      
+
       for (int i = 0; i < 3; i++) {
         gkyl_free(spatial_metric_l[i]);
         gkyl_free(spatial_metric_r[i]);
@@ -685,19 +755,19 @@ test_gr_maxwell_waves_schwarzschild_ho()
       gkyl_free(shift_r);
     }
   }
-  
+
   gkyl_wv_eqn_release(gr_maxwell);
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_maxwell_waves_kerr_ho()
+void test_gr_maxwell_waves_kerr_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell =
+    gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -717,8 +787,8 @@ test_gr_maxwell_waves_kerr_ho()
       double *shift_r = gkyl_malloc(sizeof(double[3]));
       bool in_excision_region_l, in_excision_region_r;
 
-      double **spatial_metric_l = gkyl_malloc(sizeof(double*[3]));
-      double **spatial_metric_r = gkyl_malloc(sizeof(double*[3]));
+      double **spatial_metric_l = gkyl_malloc(sizeof(double *[3]));
+      double **spatial_metric_r = gkyl_malloc(sizeof(double *[3]));
       for (int i = 0; i < 3; i++) {
         spatial_metric_l[i] = gkyl_malloc(sizeof(double[3]));
         spatial_metric_r[i] = gkyl_malloc(sizeof(double[3]));
@@ -736,55 +806,73 @@ test_gr_maxwell_waves_kerr_ho()
 
       if (!in_excision_region_l && !in_excision_region_r) {
         double ql[26], qr[26];
-        ql[0] = Dx_l; ql[1] = Dy_l; ql[2] = Dz_l;
-        ql[3] = Bx_l; ql[4] = By_l; ql[5] = Bz_l;
-        ql[6] = phi_l; ql[7] = psi_l;
+        ql[0] = Dx_l;
+        ql[1] = Dy_l;
+        ql[2] = Dz_l;
+        ql[3] = Bx_l;
+        ql[4] = By_l;
+        ql[5] = Bz_l;
+        ql[6] = phi_l;
+        ql[7] = psi_l;
 
         ql[8] = lapse_l;
-        ql[9] = shift_l[0]; ql[10] = shift_l[1]; ql[11] = shift_l[2];
+        ql[9] = shift_l[0];
+        ql[10] = shift_l[1];
+        ql[11] = shift_l[2];
 
-        ql[12] = spatial_metric_l[0][0]; ql[13] = spatial_metric_l[0][1]; ql[14] = spatial_metric_l[0][2];
-        ql[15] = spatial_metric_l[1][0]; ql[16] = spatial_metric_l[1][1]; ql[17] = spatial_metric_l[1][2];
-        ql[18] = spatial_metric_l[2][0]; ql[19] = spatial_metric_l[2][1]; ql[20] = spatial_metric_l[2][2];
+        ql[12] = spatial_metric_l[0][0];
+        ql[13] = spatial_metric_l[0][1];
+        ql[14] = spatial_metric_l[0][2];
+        ql[15] = spatial_metric_l[1][0];
+        ql[16] = spatial_metric_l[1][1];
+        ql[17] = spatial_metric_l[1][2];
+        ql[18] = spatial_metric_l[2][0];
+        ql[19] = spatial_metric_l[2][1];
+        ql[20] = spatial_metric_l[2][2];
 
         ql[21] = 1.0;
 
         ql[22] = 0.0;
-        ql[23] = x - 0.5; ql[24] = y; ql[25] = 0.0;
+        ql[23] = x - 0.5;
+        ql[24] = y;
+        ql[25] = 0.0;
 
-        qr[0] = Dx_r; qr[1] = Dy_r; qr[2] = Dz_r;
-        qr[3] = Bx_r; qr[4] = By_r; qr[5] = Bz_r;
-        qr[6] = phi_r; qr[7] = psi_r;
+        qr[0] = Dx_r;
+        qr[1] = Dy_r;
+        qr[2] = Dz_r;
+        qr[3] = Bx_r;
+        qr[4] = By_r;
+        qr[5] = Bz_r;
+        qr[6] = phi_r;
+        qr[7] = psi_r;
 
         qr[8] = lapse_r;
-        qr[9] = shift_r[0]; qr[10] = shift_r[1]; qr[11] = shift_r[2];
+        qr[9] = shift_r[0];
+        qr[10] = shift_r[1];
+        qr[11] = shift_r[2];
 
-        qr[12] = spatial_metric_r[0][0]; qr[13] = spatial_metric_r[0][1]; qr[14] = spatial_metric_r[0][2];
-        qr[15] = spatial_metric_r[1][0]; qr[16] = spatial_metric_r[1][1]; qr[17] = spatial_metric_r[1][2];
-        qr[18] = spatial_metric_r[2][0]; qr[19] = spatial_metric_r[2][1]; qr[20] = spatial_metric_r[2][2];
+        qr[12] = spatial_metric_r[0][0];
+        qr[13] = spatial_metric_r[0][1];
+        qr[14] = spatial_metric_r[0][2];
+        qr[15] = spatial_metric_r[1][0];
+        qr[16] = spatial_metric_r[1][1];
+        qr[17] = spatial_metric_r[1][2];
+        qr[18] = spatial_metric_r[2][0];
+        qr[19] = spatial_metric_r[2][1];
+        qr[20] = spatial_metric_r[2][2];
 
         qr[21] = 1.0;
 
         qr[22] = 0.0;
-        qr[23] = x + 0.5; qr[24] = y; qr[25] = 0.0;
+        qr[23] = x + 0.5;
+        qr[24] = y;
+        qr[25] = 0.0;
 
-        double norm[3][3] = {
-          { 1.0, 0.0, 0.0 },
-          { 0.0, 1.0, 0.0 },
-          { 0.0, 0.0, 1.0 },
-        };
+        double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
 
-        double tau1[3][3] = {
-          { 0.0, 1.0, 0.0 },
-          { 1.0, 0.0, 0.0 },
-          { 1.0, 0.0, 0.0 },
-        };
+        double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
 
-        double tau2[3][3] = {
-          { 0.0, 0.0, 1.0 },
-          { 0.0, 0.0, -1.0 },
-          { 0.0, 1.0, 0.0 },
-        };
+        double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
 
         for (int d = 0; d < 3; d++) {
           double speeds[6], waves[6 * 26], waves_local[6 * 26];
@@ -798,13 +886,21 @@ test_gr_maxwell_waves_kerr_ho()
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
+          gkyl_wv_eqn_waves(
+            gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local,
+            speeds
+          );
 
           double apdq_local[26], amdq_local[26];
-          gkyl_wv_eqn_qfluct(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(
+            gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds,
+            amdq_local, apdq_local
+          );
 
           for (int i = 0; i < 2; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], &waves_local[i * 26], &waves[i * 26]);
+            gkyl_wv_eqn_rotate_to_global(
+              gr_maxwell, tau1[d], tau2[d], norm[d], &waves_local[i * 26], &waves[i * 26]
+            );
           }
 
           double apdq[26], amdq[26];
@@ -820,11 +916,11 @@ test_gr_maxwell_waves_kerr_ho()
           gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], fr_local, fr);
 
           for (int i = 0; i < 26; i++) {
-            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13) );
+            TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13));
           }
         }
       }
-      
+
       for (int i = 0; i < 3; i++) {
         gkyl_free(spatial_metric_l[i]);
         gkyl_free(spatial_metric_r[i]);
@@ -835,17 +931,17 @@ test_gr_maxwell_waves_kerr_ho()
       gkyl_free(shift_r);
     }
   }
-  
+
   gkyl_wv_eqn_release(gr_maxwell);
   gkyl_gr_spacetime_release(spacetime);
 }
 
 TEST_LIST = {
-  { "gr_maxwell_basic_minkowski_ho", test_gr_maxwell_basic_minkowski_ho },
-  { "gr_maxwell_basic_schwarzschild_ho", test_gr_maxwell_basic_schwarzschild_ho },
-  { "gr_maxwell_basic_kerr_ho", test_gr_maxwell_basic_kerr_ho },
-  { "gr_maxwell_waves_minkowski_ho", test_gr_maxwell_waves_minkowski_ho },
-  { "gr_maxwell_waves_schwarzschild_ho", test_gr_maxwell_waves_schwarzschild_ho },
-  { "gr_maxwell_waves_kerr_ho", test_gr_maxwell_waves_kerr_ho },
-  { NULL, NULL },
+  {"gr_maxwell_basic_minkowski_ho", test_gr_maxwell_basic_minkowski_ho},
+  {"gr_maxwell_basic_schwarzschild_ho", test_gr_maxwell_basic_schwarzschild_ho},
+  {"gr_maxwell_basic_kerr_ho", test_gr_maxwell_basic_kerr_ho},
+  {"gr_maxwell_waves_minkowski_ho", test_gr_maxwell_waves_minkowski_ho},
+  {"gr_maxwell_waves_schwarzschild_ho", test_gr_maxwell_waves_schwarzschild_ho},
+  {"gr_maxwell_waves_kerr_ho", test_gr_maxwell_waves_kerr_ho},
+  {NULL, NULL}
 };

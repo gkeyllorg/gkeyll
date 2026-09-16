@@ -13,15 +13,15 @@ struct rad_fit_parameters {
   // D = A*(alpha+beta)/C
   // vmag = sqrt(vpar^2 + 2*B*mu/mass)
   // nu(vpar,mu) = D*vmag^(gamma)/(beta*(vmag/V0)^-alpha + alpha*(vmag/V0)^beta)
-  double electron_density;  // Electron density at which this fit is at
+  double electron_density; // Electron density at which this fit is at
   double A;
   double alpha;
   double beta;
   double gamma;
   double V0;
-  int te_intervals;  // Number of temperature intervals for fit emissivity
-  double *te;  // electron temperatures at which the fit emissivity is calculated
-  double *Lz;  // fit emissivity when assuming a maxwellian of corresponding temperature
+  int te_intervals; // Number of temperature intervals for fit emissivity
+  double *te; // electron temperatures at which the fit emissivity is calculated
+  double *Lz; // fit emissivity when assuming a maxwellian of corresponding temperature
 };
 
 // Radiation data for a single charge state (for all electron densities).
@@ -45,7 +45,7 @@ struct all_radiation_states {
  *
  * @return pointer to structure of all_radiation_states
  */
-struct all_radiation_states* gkyl_radiation_read_rad_fit_params();
+struct all_radiation_states *gkyl_radiation_read_rad_fit_params();
 
 /**
  * Get the number of densities used in the fits.
@@ -58,8 +58,10 @@ struct all_radiation_states* gkyl_radiation_read_rad_fit_params();
  * @param num_densities: maximum number of densities to return fit parameters for.
  * @return 1 if fit doesn't exist
  */
-int gkyl_radiation_read_get_num_densities(const struct all_radiation_states rad_data,
-  int atomic_z, int charge_state, double min_ne, double max_ne, int *num_densities);
+int gkyl_radiation_read_get_num_densities(
+  const struct all_radiation_states rad_data, int atomic_z, int charge_state, double min_ne,
+  double max_ne, int *num_densities
+);
 
 /**
  * Function to return the fit information for a specfied atomic number, charge state, and ne.
@@ -75,9 +77,11 @@ int gkyl_radiation_read_get_num_densities(const struct all_radiation_states rad_
  * @param max_ne: Desired maximum density (closest density is used)
  * @return 1 if fit doesn't exist
  */
-int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_data, int atomic_z,
-  int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0,
-  int *num_densities, double *electron_densities, double ref_dens, double min_ne, double max_ne);
+int gkyl_radiation_read_get_fit_params(
+  const struct all_radiation_states rad_data, int atomic_z, int charge_state, double *a,
+  double *alpha, double *beta, double *gamma, double *V0, int *num_densities,
+  double *electron_densities, double ref_dens, double min_ne, double max_ne
+);
 
 /**
  * Function to return the fit emissivity (Lz) and temperature closest to a given input temperature.
@@ -89,8 +93,10 @@ int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_dat
  * @param te: returns closest fit temperature to input te
  * @param Lz: returns Lz for closest temperature to input te 
  */
-int gkyl_radiation_read_get_fit_lz(const struct all_radiation_states rad_data,
-  int atomic_z, int charge_state, double ne, double* te, double* Lz);
+int gkyl_radiation_read_get_fit_lz(
+  const struct all_radiation_states rad_data, int atomic_z, int charge_state, double ne, double *te,
+  double *Lz
+);
 
 /**
  * Free memory of all_radiation_states.
@@ -105,16 +111,15 @@ void gkyl_radiation_read_release_fit_params(struct all_radiation_states *rad_dat
  * @param target The value to find the closest index to
  * @return The index of the array with the value closest to target
  */
-static inline int gkyl_radiation_read_find_nearest_idx(const struct gkyl_array* arr, double target){
+static inline int gkyl_radiation_read_find_nearest_idx(const struct gkyl_array *arr, double target)
+{
   int left = 0;
   int right = arr->size - 1;
-  double *data = (double*)arr->data;
+  double *data = (double *)arr->data;
   while (left < right) {
-    if (fabs(data[left] - target)
-	<= fabs(data[right] - target)) {
+    if (fabs(data[left] - target) <= fabs(data[right] - target)) {
       right--;
-    }
-    else {
+    } else {
       left++;
     }
   }
