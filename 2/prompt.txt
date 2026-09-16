@@ -1,0 +1,13 @@
+Merge branch agent_tools into this branch. agent_tools introduced an auto-formatter with clang-format. This touched lines of code which were modified in this branch. Resolve the merge conflicts and preserve the changes from this branch
+
+---
+
+Merge branch agent_tools into this branch. agent_tools introduced an auto-formatter with clang-format. This touched lines of code which were modified in this branch. Resolve the merge conflicts and preserve the changes from this branch
+
+---
+
+Several other branches need to resolve merge conflicts with this branch. Provide instructions for how to solve this task to the collective to save tokens and reduce the amount of work for future agents.
+
+---
+
+Several other branches need to resolve merge conflicts with this branch. Provide instructions for how to solve this task to the collective to save tokens and reduce the amount of work for future agents.
