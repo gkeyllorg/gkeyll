@@ -6,8 +6,9 @@
 #include <gkyl_wv_reactive_euler.h>
 #include <gkyl_wv_reactive_euler_priv.h>
 
-void
-gkyl_reactive_euler_prim_vars(double gas_gamma, double energy_of_formation, const double q[6], double v[6])
+void gkyl_reactive_euler_prim_vars(
+  double gas_gamma, double energy_of_formation, const double q[6], double v[6]
+)
 {
   double rho = q[0];
   double momx = q[1];
@@ -16,7 +17,8 @@ gkyl_reactive_euler_prim_vars(double gas_gamma, double energy_of_formation, cons
   double Etot = q[4];
   double reaction_density = q[5];
 
-  double specific_internal_energy = (Etot / rho) - (0.5 * ((momx * momx) + (momy * momy) + (momz * momz)) / (rho * rho)) -
+  double specific_internal_energy =
+    (Etot / rho) - (0.5 * ((momx * momx) + (momy * momy) + (momz * momz)) / (rho * rho)) -
     (energy_of_formation * ((reaction_density / rho) - 1.0));
 
   v[0] = rho;
@@ -30,9 +32,9 @@ gkyl_reactive_euler_prim_vars(double gas_gamma, double energy_of_formation, cons
 static inline double
 gkyl_reactive_euler_max_abs_speed(double gas_gamma, double energy_of_formation, const double q[6])
 {
-  double v[6] = { 0.0 };
+  double v[6] = {0.0};
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, q, v);
-  
+
   double rho = v[0];
   double vx = v[1];
   double vy = v[2];
@@ -44,10 +46,11 @@ gkyl_reactive_euler_max_abs_speed(double gas_gamma, double energy_of_formation, 
   return fabs(v_mag) + sqrt(gas_gamma * (p / rho));
 }
 
-void
-gkyl_reactive_euler_flux(double gas_gamma, double energy_of_formation, const double q[6], double flux[6])
+void gkyl_reactive_euler_flux(
+  double gas_gamma, double energy_of_formation, const double q[6], double flux[6]
+)
 {
-  double v[6] = { 0.0 };
+  double v[6] = {0.0};
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, q, v);
 
   double rho = v[0];
@@ -68,7 +71,7 @@ gkyl_reactive_euler_flux(double gas_gamma, double energy_of_formation, const dou
 }
 
 static inline void
-cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout)
+cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 6; i++) {
@@ -77,7 +80,7 @@ cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 }
 
 static inline void
-riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double* qout)
+riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 6; i++) {
@@ -85,8 +88,10 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
   }
 }
 
-static void
-reactive_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+static void reactive_euler_wall(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   for (int i = 0; i < 6; i++) {
     ghost[i] = skin[i];
@@ -95,8 +100,10 @@ reactive_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const doubl
   ghost[1] = -ghost[1];
 }
 
-static void
-reactive_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+static void reactive_euler_no_slip(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   for (int i = 1; i < 4; i++) {
     ghost[i] = -skin[i];
@@ -107,9 +114,10 @@ reactive_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const do
   ghost[5] = skin[5];
 }
 
-static inline void
-rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
-  double* GKYL_RESTRICT qlocal)
+static inline void rot_to_local(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
+)
 {
   qlocal[0] = qglobal[0];
   qlocal[1] = (qglobal[1] * norm[0]) + (qglobal[2] * norm[1]) + (qglobal[3] * norm[2]);
@@ -119,9 +127,10 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   qlocal[5] = qglobal[5];
 }
 
-static inline void
-rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
-  double* GKYL_RESTRICT qglobal)
+static inline void rot_to_global(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
+)
 {
   qglobal[0] = qlocal[0];
   qglobal[1] = (qlocal[1] * norm[0]) + (qlocal[2] * tau1[0]) + (qlocal[3] * tau2[0]);
@@ -131,8 +140,10 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   qglobal[5] = qlocal[5];
 }
 
-static double
-wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+static double wave_lax(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double gas_gamma = reactive_euler->gas_gamma;
@@ -158,8 +169,10 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   return s[1];
 }
 
-static void
-qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+static void qfluct_lax(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[6];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -171,21 +184,27 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
   }
 }
 
-static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+static double wave_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
-  double* amdq, double* apdq)
+static void qfluct_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double
-wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+static double wave_roe(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double gas_gamma = reactive_euler->gas_gamma;
@@ -194,8 +213,8 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double rho_l = ql[0];
   double rho_r = qr[0];
 
-  double vl[6] = { 0.0 };
-  double vr[6] = { 0.0 };
+  double vl[6] = {0.0};
+  double vr[6] = {0.0};
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, ql, vl);
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, qr, vr);
   double p_l = vl[4];
@@ -214,12 +233,14 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double reaction_progress = ((ql[5] * roe_avg_l) + (qr[5] * roe_avg_r)) * roe_avg_sq;
 
   double vel_sq = ((vx * vx) + (vy * vy) + (vz * vz));
-  double a_sq = (gas_gamma - 1.0) * (enth - (0.5 * vel_sq) - (energy_of_formation * (reaction_progress - 1.0)));
+  double a_sq =
+    (gas_gamma - 1.0) * (enth - (0.5 * vel_sq) - (energy_of_formation * (reaction_progress - 1.0)));
   double a = sqrt(a_sq);
   double gamma1_over_a_sq = (gas_gamma - 1.0) / a_sq;
   double internal_enth = enth - vel_sq;
 
-  double a4 = gamma1_over_a_sq * ((internal_enth * delta[0]) + (vx * delta[1]) + (vy * delta[2]) + (vz * delta[3]) - delta[4]);
+  double a4 = gamma1_over_a_sq * ((internal_enth * delta[0]) + (vx * delta[1]) + (vy * delta[2]) +
+                                  (vz * delta[3]) - delta[4]);
   double a2 = delta[2] - (vy * delta[0]);
   double a3 = delta[3] - (vz * delta[0]);
   double a5 = 0.5 * (delta[1] + (((a - vx) * delta[0]) - (a * a4))) / a;
@@ -257,8 +278,10 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   return fabs(vx) + a;
 }
 
-static void
-qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+static void qfluct_roe(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[6], *w2 = &waves[12];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
@@ -270,33 +293,35 @@ qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
   }
 }
 
-static double
-wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+static double wave_roe_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return wave_roe(eqn, delta, ql, qr, waves, s);
-  }
-  else {
+  } else {
     return wave_lax(eqn, delta, ql, qr, waves, s);
   }
 
   return 0.0; // Unreachable code.
 }
 
-static void
-qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
-  double* amdq, double* apdq)
+static void qfluct_roe_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
-  }
-  else {
+  } else {
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
   }
 }
 
 static double
-flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double gas_gamma = reactive_euler->gas_gamma;
@@ -316,26 +341,23 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   return fmax(amaxl, amaxr);
 }
 
-static bool
-check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
+static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double gas_gamma = reactive_euler->gas_gamma;
   double energy_of_formation = reactive_euler->energy_of_formation;
 
-  double v[6] = { 0.0 };
+  double v[6] = {0.0};
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, q, v);
 
   if (v[0] < 0.0 || v[4] < 0.0) {
     return false;
-  }
-  else {
+  } else {
     return true;
   }
 }
 
-static double
-max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
+static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double gas_gamma = reactive_euler->gas_gamma;
@@ -345,7 +367,7 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
 }
 
 static inline void
-reactive_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag)
+reactive_euler_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   for (int i = 0; i < 5; i++) {
     diag[i] = qin[i];
@@ -353,7 +375,7 @@ reactive_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, do
 }
 
 static inline void
-reactive_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+reactive_euler_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double gas_gamma = reactive_euler->gas_gamma;
@@ -362,7 +384,7 @@ reactive_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* 
   double ignition_temperature = reactive_euler->ignition_temperature;
   double reaction_rate = reactive_euler->reaction_rate;
 
-  double v[6] = { 0.0 };
+  double v[6] = {0.0};
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, qin, v);
 
   double rho = v[0];
@@ -372,7 +394,7 @@ reactive_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* 
   double reaction_progress = v[5];
 
   double specific_internal_energy = (qin[4] / rho) - (0.5 * ((vx * vx) + (vy * vy) + (vz * vz))) -
-    (energy_of_formation * (reaction_progress - 1.0));
+                                    (energy_of_formation * (reaction_progress - 1.0));
   double temperature = specific_internal_energy / specific_heat_capacity;
 
   for (int i = 0; i < 5; i++) {
@@ -381,20 +403,19 @@ reactive_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* 
 
   if (temperature > ignition_temperature) {
     sout[5] = -(rho * reaction_progress * reaction_rate);
-  }
-  else {
+  } else {
     sout[5] = 0.0;
   }
 }
 
-void
-gkyl_reactive_euler_free(const struct gkyl_ref_count* ref)
+void gkyl_reactive_euler_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_wv_eqn* base = container_of(ref, struct gkyl_wv_eqn, ref_count);
+  struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
 
   if (gkyl_wv_eqn_is_cu_dev(base)) {
     // Free inner on_dev object.
-    struct wv_reactive_euler *reactive_euler = container_of(base->on_dev, struct wv_reactive_euler, eqn);
+    struct wv_reactive_euler *reactive_euler =
+      container_of(base->on_dev, struct wv_reactive_euler, eqn);
     gkyl_cu_free(reactive_euler);
   }
 
@@ -402,24 +423,22 @@ gkyl_reactive_euler_free(const struct gkyl_ref_count* ref)
   gkyl_free(reactive_euler);
 }
 
-struct gkyl_wv_eqn*
-gkyl_wv_reactive_euler_new(double gas_gamma, double specific_heat_capacity, double energy_of_formation, double ignition_temperature,
-  double reaction_rate, bool use_gpu)
+struct gkyl_wv_eqn *gkyl_wv_reactive_euler_new(
+  double gas_gamma, double specific_heat_capacity, double energy_of_formation,
+  double ignition_temperature, double reaction_rate, bool use_gpu
+)
 {
-  return gkyl_wv_reactive_euler_inew(&(struct gkyl_wv_reactive_euler_inp) {
-      .gas_gamma = gas_gamma,
-      .specific_heat_capacity = specific_heat_capacity,
-      .energy_of_formation = energy_of_formation,
-      .ignition_temperature = ignition_temperature,
-      .reaction_rate = reaction_rate,
-      .rp_type = WV_REACTIVE_EULER_RP_LAX,
-      .use_gpu = use_gpu,
-    }
-  );
+  return gkyl_wv_reactive_euler_inew(&(struct gkyl_wv_reactive_euler_inp
+  ){.gas_gamma = gas_gamma,
+    .specific_heat_capacity = specific_heat_capacity,
+    .energy_of_formation = energy_of_formation,
+    .ignition_temperature = ignition_temperature,
+    .reaction_rate = reaction_rate,
+    .rp_type = WV_REACTIVE_EULER_RP_LAX,
+    .use_gpu = use_gpu});
 }
 
-struct gkyl_wv_eqn*
-gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp* inp)
+struct gkyl_wv_eqn *gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp *inp)
 {
   struct wv_reactive_euler *reactive_euler = gkyl_malloc(sizeof(struct wv_reactive_euler));
 
@@ -437,8 +456,7 @@ gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp* inp)
     reactive_euler->eqn.num_waves = 2;
     reactive_euler->eqn.waves_func = wave_lax_l;
     reactive_euler->eqn.qfluct_func = qfluct_lax_l;
-  }
-  else if (inp->rp_type == WV_REACTIVE_EULER_RP_ROE) {
+  } else if (inp->rp_type == WV_REACTIVE_EULER_RP_ROE) {
     reactive_euler->eqn.num_waves = 3;
     reactive_euler->eqn.waves_func = wave_roe_l;
     reactive_euler->eqn.qfluct_func = qfluct_roe_l;
@@ -463,15 +481,15 @@ gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp* inp)
   reactive_euler->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(reactive_euler->eqn.flags);
   reactive_euler->eqn.ref_count = gkyl_ref_count_init(gkyl_reactive_euler_free);
-  reactive_euler->eqn.on_dev = &reactive_euler->eqn; // On the CPU, the equation object points to itself.
+  reactive_euler->eqn.on_dev =
+    &reactive_euler->eqn; // On the CPU, the equation object points to itself.
 
   reactive_euler->eqn.embed_geo = NULL;
 
   return &reactive_euler->eqn;
 }
 
-double
-gkyl_wv_reactive_euler_gas_gamma(const struct gkyl_wv_eqn* eqn)
+double gkyl_wv_reactive_euler_gas_gamma(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double gas_gamma = reactive_euler->gas_gamma;
@@ -479,8 +497,7 @@ gkyl_wv_reactive_euler_gas_gamma(const struct gkyl_wv_eqn* eqn)
   return gas_gamma;
 }
 
-double
-gkyl_wv_reactive_euler_specific_heat_capacity(const struct gkyl_wv_eqn* eqn)
+double gkyl_wv_reactive_euler_specific_heat_capacity(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double specific_heat_capacity = reactive_euler->specific_heat_capacity;
@@ -488,8 +505,7 @@ gkyl_wv_reactive_euler_specific_heat_capacity(const struct gkyl_wv_eqn* eqn)
   return specific_heat_capacity;
 }
 
-double
-gkyl_wv_reactive_euler_energy_of_formation(const struct gkyl_wv_eqn* eqn)
+double gkyl_wv_reactive_euler_energy_of_formation(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double energy_of_formation = reactive_euler->energy_of_formation;
@@ -497,8 +513,7 @@ gkyl_wv_reactive_euler_energy_of_formation(const struct gkyl_wv_eqn* eqn)
   return energy_of_formation;
 }
 
-double
-gkyl_wv_reactive_euler_ignition_temperature(const struct gkyl_wv_eqn* eqn)
+double gkyl_wv_reactive_euler_ignition_temperature(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double ignition_temperature = reactive_euler->ignition_temperature;
@@ -506,8 +521,7 @@ gkyl_wv_reactive_euler_ignition_temperature(const struct gkyl_wv_eqn* eqn)
   return ignition_temperature;
 }
 
-double
-gkyl_wv_reactive_euler_reaction_rate(const struct gkyl_wv_eqn* eqn)
+double gkyl_wv_reactive_euler_reaction_rate(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
   double reaction_rate = reactive_euler->reaction_rate;

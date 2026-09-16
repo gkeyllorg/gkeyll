@@ -12,7 +12,7 @@ typedef struct gkyl_loss_cone_mask_gyrokinetic gkyl_loss_cone_mask_gyrokinetic;
 enum gkyl_gk_trapped_passing_orbit_type {
   GKYL_GK_TRAP_PASS_ORBIT_PASSING = 0, // The orbit reaches an absorbing plasma edge.
   GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH, // The sheath potential may reflect the particle.
-  GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL, // An impenetrable wall reflects the particle.
+  GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL // An impenetrable wall reflects the particle.
 };
 
 // Inputs packaged as a struct.
@@ -45,7 +45,7 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
  * @param inp Input parameters defined in gkyl_loss_cone_mask_gyrokinetic_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_loss_cone_mask_gyrokinetic*
+struct gkyl_loss_cone_mask_gyrokinetic *
 gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp);
 
 /**
@@ -67,11 +67,12 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
  * @param mask_out Cellwise mask: 1 if every cell corner is trapped, 0 if any
  *                 corner can escape through either boundary.
  */
-void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *bmag, const struct gkyl_array *phi,
+void gkyl_loss_cone_mask_gyrokinetic_advance(
+  gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
-  struct gkyl_array *mask_out);
+  struct gkyl_array *mask_out
+);
 
 /**
  * Delete updater.
