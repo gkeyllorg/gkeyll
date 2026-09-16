@@ -149,6 +149,8 @@ local layerCounts = {}
 for _, L in ipairs(LAYERS) do
    layerCounts[L.name] = {
       total = 0, passed = 0, failed = 0,
+      crashed = 0,    -- CPU leg exited non-zero (counted in failed as well)
+      not_saved = 0,  -- create: baselines refused because the run crashed
       gpu_total = 0, gpu_passed = 0, gpu_failed = 0,
    }
 end
@@ -211,7 +213,7 @@ local runDate = date(false):fmt("${iso}")
 --   guid        links to a RegressionMeta row
 --   name        test name (relative path / binary name)
 --   test_type   'lua' or 'c'  (new in hierarchical design)
---   status      -4=compile_fail  -3=timeout  -2=create  -1=skip  0=fail  1=pass
+--   status      -5=crash  -4=compile_fail  -3=timeout  -2=create  -1=skip  0=fail  1=pass
 --   runtime     wall-clock seconds (CPU variant)
 --   runlog      captured stdout+stderr from the test
 --   gpu_status  GPU variant: 1=pass, 0=fail, -1=skip, -3=timeout, -5=crash
@@ -1088,13 +1090,21 @@ local function executeBatch(items)
       local stripped = raw
          :gsub("\n?__START__:%d+\n?", "\n")
          :gsub("\n?__END__:%d+\n?",   "\n")
-      local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$")) or 0
+      -- A missing __EXIT__ marker means the wrapper script itself was killed
+      -- (OOM killer, SIGKILL, ...): that is a crash, not a clean run.
+      local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$"))
+      if exitCode == nil then exitCode = 137 end
       local runlog   = stripped:gsub("\n?__EXIT__:%d+%s*$", "")
 
       table.insert(results, {
          runtm    = runtm,
          runlog   = runlog,
+         exitCode = exitCode,
          timedOut = (exitCode == 124),
+         -- Any other non-zero exit (segfault 139, abort 134, exit(1), ...) is a
+         -- crash. The files such a run left behind are not a result and must
+         -- never be compared or turned into a baseline.
+         crashed  = (exitCode ~= 0 and exitCode ~= 124),
       })
    end
 
@@ -1108,7 +1118,7 @@ local function runLuaTest(test, timeoutSecs, mode)
    local prep = prepareLuaRun(test, timeoutSecs, mode)
    if prep.mpiSkip then
       log(string.format("**** NOT RUNNING PARALLEL TEST %s\n", test.name))
-      return 0, "", prep.runDir, false
+      return 0, "", prep.runDir, false, false, false, 0
    end
 
    local results = executeBatch({ prep })
@@ -1116,12 +1126,15 @@ local function runLuaTest(test, timeoutSecs, mode)
 
    if r.timedOut then
       log(string.format("... TIMED OUT after %g sec\n", r.runtm))
+   elseif r.crashed then
+      log(string.format("... CRASHED (exit code %d) after %g sec\n", r.exitCode, r.runtm))
    else
       log(string.format("... completed in %g sec\n", r.runtm))
    end
    verboseLog(r.runlog)
 
-   return r.runtm, r.runlog, prep.runDir, r.timedOut
+   -- Same return shape as runCTest (compileFailed is always false for Lua).
+   return r.runtm, r.runlog, prep.runDir, r.timedOut, false, r.crashed, r.exitCode
 end
 
 -- Runs a single C regression test (thin wrapper over prepareCRun + executeBatch).
@@ -1130,7 +1143,8 @@ end
 -- mode: "gpu" = append '-g' to the binary invocation; nil/omitted = CPU.
 -- skipCompile: true = binary already exists (GPU re-run); skip compile phase.
 -- keepBinary: true = do not delete the binary after running (caller handles it).
--- Returns: runtm, runlog, runDir, timedOut (bool), compileFailed (bool).
+-- Returns: runtm, runlog, runDir, timedOut (bool), compileFailed (bool),
+--          crashed (bool: non-zero exit other than timeout), exitCode.
 local function runCTest(test, timeoutSecs, mode, skipCompile, keepBinary)
    -- For GPU re-runs (skipCompile=true), prepareCRun does no logging, so we
    -- announce the test here.  For normal CPU runs, prepareCRun logs
@@ -1143,7 +1157,7 @@ local function runCTest(test, timeoutSecs, mode, skipCompile, keepBinary)
    local prep = prepareCRun(test, timeoutSecs, mode, skipCompile)
    if prep.compileFailed then
       return prep.compileSecs, "COMPILE FAILED:\n" .. prep.compileLog,
-             prep.runDir, false, true
+             prep.runDir, false, true, false, 0
    end
 
    local results = executeBatch({ prep })
@@ -1162,13 +1176,15 @@ local function runCTest(test, timeoutSecs, mode, skipCompile, keepBinary)
 
    if r.timedOut then
       log(string.format("... TIMED OUT after %g sec\n", r.runtm))
+   elseif r.crashed then
+      log(string.format("... CRASHED (exit code %d) after %g sec\n", r.exitCode, r.runtm))
    else
       log(string.format("... completed in %g sec\n", r.runtm))
    end
    verboseLog(r.runlog)
 
    return r.runtm, (prep.compileLog or "") .. "\n" .. r.runlog,
-          runDir, r.timedOut, false
+          runDir, r.timedOut, false, r.crashed, r.exitCode
 end
 
 -- ---- File comparison --------------------------------------------------------
@@ -1328,6 +1344,12 @@ local function create_action(test, runDir, testType)
    local aDir = acceptedDir(test, testType)
    log(string.format("... saving accepted results to %s ...\n", aDir))
    mkdir(aDir)
+   -- Remove the previous baseline first. Files an older version wrote but the
+   -- current one does not (renamed or dropped diagnostics) would otherwise
+   -- linger and later show up as [MISSING] failures for every branch.
+   for fn in lfs.dir(aDir) do
+      if string.sub(fn, -5) == ".gkyl" then os.remove(aDir .. "/" .. fn) end
+   end
    -- Copy all .gkyl output files from the scratch directory to the accepted dir.
    os.execute(string.format("cp -f '%s'/*.gkyl '%s/' 2>/dev/null", runDir, aDir))
    return -2
@@ -1373,6 +1395,23 @@ local function check_action(test, runDir, testType, absTol, relTol)
       end
    end
 
+   -- Files the run produced that the baseline lacks mean the baseline is stale:
+   -- either it was created from a run that died after an early frame, or the
+   -- code now writes diagnostics it did not write at create time. Either way
+   -- the comparison is incomplete, so report them and fail.
+   if lfs.attributes(aDir) then
+      for fn in lfs.dir(runDir) do
+         local isGkyl  = (string.sub(fn, -5) == ".gkyl")
+         local inScope = isGkyl and (
+            testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
+         if inScope and not lfs.attributes(aDir .. "/" .. fn) then
+            verboseLog(string.format("  EXTRA run file not in baseline: %s\n", fn))
+            table.insert(failedFiles, fn .. "  [EXTRA]")
+            passed = false
+         end
+      end
+   end
+
    -- count == 0 means either no accepted files exist (create not yet run) or the
    -- accepted directory itself is absent. Either way the check cannot pass.
    if count == 0 then passed = false end
@@ -1391,7 +1430,7 @@ local function check_action(test, runDir, testType, absTol, relTol)
          for _, ff in ipairs(failedFiles) do
             log(string.format("    %s\n", ff))
          end
-         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run\n")
+         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run  [EXTRA] run file absent from baseline (re-create)\n")
          -- Build checkLog for DB storage so queryrdb --test N surfaces magnitudes.
          checkLog = "--- Comparison failures ---\n"
             .. table.concat(failedFiles, "\n")
@@ -1751,12 +1790,17 @@ local function run_action(args, name)
       os.execute(string.format("rm -f '%s'/*.gkyl 2>/dev/null", runDir))
 
       -- Run the GPU variant.
-      local gpuTm, gpuLog, _, gpuTimedOut = runFn(unpack(runArgs))
+      local gpuTm, gpuLog, _, gpuTimedOut, _, gpuCrashed, gpuExit = runFn(unpack(runArgs))
       local gpuStatus, gpuRuntime, cpuGpuDiff = -1, gpuTm, -1
 
       if gpuTimedOut then
          gpuStatus = -3
          log(string.format("... GPU variant TIMED OUT after %g sec\n", gpuTm))
+      elseif gpuCrashed then
+         -- Non-zero exit: whatever frames were written before the crash are
+         -- not a result, even if they happen to match the baseline.
+         gpuStatus = -5
+         log(string.format("... GPU variant CRASHED (exit code %d)\n", gpuExit))
       elseif not hasGkylOutput(runDir) then
          gpuStatus = -5  -- crash: no output produced
          log(string.format("... GPU variant CRASHED (no .gkyl output)\n"))
@@ -1785,6 +1829,28 @@ local function run_action(args, name)
       -- Clean up temporary CPU output directory.
       os.execute(string.format("rm -rf '%s'", cpuOutputDir))
       return gpuStatus, gpuRuntime, cpuGpuDiff
+   end
+
+   -- Helper: score the CPU leg of a test that neither timed out nor failed to
+   -- compile. A run that exited non-zero is recorded as status -5 (crash)
+   -- without looking at its files: the frames it wrote before dying are not a
+   -- result, and in 'create' mode they must not become a baseline.
+   -- Returns: status, checkLog (same contract as postRun).
+   local function scoreCpu(test, runDir, testType, crashed, exitCode)
+      if not crashed then
+         return postRun(test, runDir, testType)
+      end
+      local cnt = layerCounts[test.layer]
+      cnt.failed  = cnt.failed + 1
+      cnt.crashed = cnt.crashed + 1
+      if args.create then
+         cnt.not_saved = cnt.not_saved + 1
+         log(string.format("... %s CRASHED (exit code %d): baseline NOT SAVED\n",
+            test.name, exitCode))
+      else
+         log(string.format("... %s CRASHED (exit code %d)\n", test.name, exitCode))
+      end
+      return -5, ""
    end
 
    if GPU_BUILD then
@@ -1829,7 +1895,8 @@ local function run_action(args, name)
             -- For 'create', always force CPU to produce deterministic baselines.
             local cpuMode = (GPU_BUILD and GPU_LAYERS[test.layer]) and "cpu" or nil
 
-            local runtm, runlog, runDir, timedOut = runLuaTest(test, timeoutSecs, cpuMode)
+            local runtm, runlog, runDir, timedOut, _, crashed, exitCode =
+               runLuaTest(test, timeoutSecs, cpuMode)
 
             if timedOut then
                table.insert(timedOutByLayer[test.layer].lua, stripext(basename(test.file)))
@@ -1837,7 +1904,7 @@ local function run_action(args, name)
                   test.layer, runID, test.name, "lua", -3, runtm, "TIMED OUT")
                layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
             else
-               local status, checkLog = postRun(test, runDir, "lua")
+               local status, checkLog = scoreCpu(test, runDir, "lua", crashed, exitCode)
                checkLog = checkLog or ""
 
                -- GPU variant: only on check or bare run, not on create.
@@ -1860,6 +1927,7 @@ local function run_action(args, name)
                   end
                end
 
+               if crashed then cpuGpuDiff = -1 end  -- nothing valid to compare against
                insertRegressionData(
                   test.layer, runID, test.name, "lua",
                   status, runtm,
@@ -1877,7 +1945,7 @@ local function run_action(args, name)
 
             -- CPU run: compile + run (no -g flag = CPU mode by default).
             -- When doGpu is true, keep the binary for the subsequent GPU re-run.
-            local runtm, runlog, runDir, timedOut, compileFailed =
+            local runtm, runlog, runDir, timedOut, compileFailed, crashed, exitCode =
                runCTest(test, timeoutSecs, nil, false, doGpu)
 
             if compileFailed then
@@ -1891,7 +1959,7 @@ local function run_action(args, name)
                   test.layer, runID, test.name, "c", -3, runtm, "TIMED OUT")
                layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
             else
-               local status, checkLog = postRun(test, runDir, "c")
+               local status, checkLog = scoreCpu(test, runDir, "c", crashed, exitCode)
                checkLog = checkLog or ""
 
                -- GPU variant: only on check or bare run, not on create.
@@ -1924,6 +1992,7 @@ local function run_action(args, name)
                      runDir, testname))
                end
 
+               if crashed then cpuGpuDiff = -1 end  -- nothing valid to compare against
                insertRegressionData(
                   test.layer, runID, test.name, "c",
                   status, runtm,
@@ -1961,7 +2030,7 @@ local function run_action(args, name)
          else
             log(string.format("\n[Lua] %s completed (%g sec)\n", test.name, r.runtm))
             verboseLog(r.runlog)
-            local status, checkLog = postRun(test, prep.runDir, "lua")
+            local status, checkLog = scoreCpu(test, prep.runDir, "lua", r.crashed, r.exitCode)
             checkLog = checkLog or ""
             local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
             if prep.doGpu and not args.create then
@@ -1979,6 +2048,7 @@ local function run_action(args, name)
                   layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
                end
             end
+            if r.crashed then cpuGpuDiff = -1 end  -- nothing valid to compare against
             insertRegressionData(
                test.layer, runID, test.name, "lua",
                status, r.runtm,
@@ -2001,7 +2071,7 @@ local function run_action(args, name)
          else
             log(string.format("\n[C] %s completed (%g sec)\n", test.name, r.runtm))
             verboseLog(r.runlog)
-            local status, checkLog = postRun(test, runDir, "c")
+            local status, checkLog = scoreCpu(test, runDir, "c", r.crashed, r.exitCode)
             checkLog = checkLog or ""
             local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
             if prep.doGpu and not args.create then
@@ -2021,6 +2091,7 @@ local function run_action(args, name)
             end
             local fullLog = (prep.compileLog or "") .. "\n" .. r.runlog
                .. (checkLog ~= "" and "\n" .. checkLog or "")
+            if r.crashed then cpuGpuDiff = -1 end  -- nothing valid to compare against
             insertRegressionData(
                test.layer, runID, test.name, "c",
                status, r.runtm, fullLog, gpuStatus, gpuRuntime, cpuGpuDiff)
@@ -2128,6 +2199,12 @@ local function run_action(args, name)
          local summary = string.format(
             "  Layer %-12s  total=%d  passed=%d  failed=%d",
             layer.name, cnt.total, cnt.passed, cnt.failed)
+         if cnt.crashed > 0 then
+            summary = summary .. string.format("  crashed=%d", cnt.crashed)
+         end
+         if args.create and cnt.not_saved > 0 then
+            summary = summary .. string.format("  baselines_not_saved=%d", cnt.not_saved)
+         end
          if GPU_BUILD and GPU_LAYERS[layer.name] then
             summary = summary .. string.format(
                "  gpu_total=%d  gpu_pass=%d  gpu_fail=%d",

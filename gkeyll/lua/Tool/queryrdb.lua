@@ -34,6 +34,7 @@
 --   runtime      real,
 --   runlog       text,
 --   gpu_status   integer,  -- 1=pass, 0=fail, -1=skip, -3=timeout, -5=crash
+--   (status uses the same -5=crash for a CPU leg that exited non-zero)
 --   gpu_runtime  real,
 --   cpu_gpu_diff integer   -- 1=match, 0=differ, -1=n/a
 -- );
@@ -47,7 +48,7 @@ local sqlConn = nil
 
 -- Human-readable status strings for the integer status codes stored in the DB.
 local statusToString = {
-   [-5] = "gpu_crash", [-4] = "compile_fail", [-3] = "timeout",
+   [-5] = "crash", [-4] = "compile_fail", [-3] = "timeout",
    [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pass",
 }
 -- Human-readable CPU-vs-GPU diff strings.
@@ -214,7 +215,7 @@ local function query_action(args, name)
    local function shouldShow(d)
       if args.gpu_fail_only then
          -- Show tests where GPU failed but CPU passed (most interesting diagnostic).
-         return d.status == "pass" and (d.gpu_status == "fail" or d.gpu_status == "gpu_crash")
+         return d.status == "pass" and (d.gpu_status == "fail" or d.gpu_status == "crash")
       end
       if args.fail_only then return d.status == "fail" end
       if args.pass_only then return d.status == "pass" end
