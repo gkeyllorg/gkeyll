@@ -1,0 +1,123 @@
+I see some errors in the unit tests. Please diagnose and fix them. Test mirror_all_maps...                         [ OK ]
+Test mirror_nonuniform_axis...                  [ OK ]
+Test mirror_identity...                         [ OK ]
+Test mirror_affine...                           [ OK ]
+Test mirror_nonlinear_numeric...                [ OK ]
+Test mirror_nonlinear_analytic...               [ OK ]
+Test mirror_sqrt_psi...                         [ OK ]
+Test mirror_exact_psi_p1_ho...                  [ OK ]
+Test mirror_exact_sqrt_psi_p1_ho...             [ OK ]
+Test mirror_exact_psi_p2_ho...                  [ OK ]
+Test mirror_exact_sqrt_psi_p2_ho...             [ OK ]
+Test mirror_curl_scaling_ho...                  [ OK ]
+Test mirror_root_bounds_ho...                   gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+[ OK ]
+Test mirror_grid_gen_wham_no_axis_psi_ho...     [ OK ]
+Test mirror_grid_gen_wham_with_axis_psi_ho...   [ OK ]
+Test mirror_grid_gen_wham_no_axis_sqrt_psi_ho... [ OK ]
+Test mirror_grid_gen_wham_with_axis_sqrt_psi_ho... [ OK ]
+Test mirror_grid_gen_quad_geom_no_axis_psi_ho... [ OK ]
+Test mirror_grid_gen_quad_geom_with_axis_psi_ho... [ OK ]
+Test mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho... [ OK ]
+Test mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho... [ OK ]
+SUCCESS: All unit tests have passed.
+Test bcorr_ctor_1x1v_p1...                      [ OK ]
+Test bcorr_ctor_1x2v_p1...                      [ OK ]
+Test bcorr_ctor_2x2v_p1...                      [ OK ]
+Test bcorr_ctor_3x2v_p1...                      [ OK ]
+Test bcorr_ctor_acquire...                      [ OK ]
+SUCCESS: All unit tests have passed.
+Test mom_gyrokinetic_ho...                      [ OK ]
+Test test_mom_gyrokinetic_1x1v_p1_ho...         [ OK ]
+Test test_mom_gyrokinetic_1x2v_p1_ho...         [ OK ]
+Test test_mom_gyrokinetic_2x2v_p1_ho...         [ OK ]
+SUCCESS: All unit tests have passed.
+Test mom_types_1x2v...                          [ OK ]
+Test int_mom_types_1x2v...                      [ OK ]
+Test mom_types_1x1v...                          [ OK ]
+SUCCESS: All unit tests have passed.
+Test test_p1_deflated...                        [ OK ]
+Test test_p1_deflated_3d...                     [ OK ]
+SUCCESS: All unit tests have passed.
+Test numeric_degenerate_and_strength...         Error: Extrema is not an extrema. Position_map optimization failed
+Error: Extrema is not an extrema. Position_map optimization failed
+Error: Extrema is not an extrema. Position_map optimization failed
+Error: Extrema is not an extrema. Position_map optimization failed
+[ OK ]
+
+---
+
+I see some errors in the unit tests. Please diagnose and fix them. Test mirror_all_maps...                         [ OK ]
+Test mirror_nonuniform_axis...                  [ OK ]
+Test mirror_identity...                         [ OK ]
+Test mirror_affine...                           [ OK ]
+Test mirror_nonlinear_numeric...                [ OK ]
+Test mirror_nonlinear_analytic...               [ OK ]
+Test mirror_sqrt_psi...                         [ OK ]
+Test mirror_exact_psi_p1_ho...                  [ OK ]
+Test mirror_exact_sqrt_psi_p1_ho...             [ OK ]
+Test mirror_exact_psi_p2_ho...                  [ OK ]
+Test mirror_exact_sqrt_psi_p2_ho...             [ OK ]
+Test mirror_curl_scaling_ho...                  [ OK ]
+Test mirror_root_bounds_ho...                   gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+gkyl_mirror_grid_gen failed to generate a grid
+[ OK ]
+Test mirror_grid_gen_wham_no_axis_psi_ho...     [ OK ]
+Test mirror_grid_gen_wham_with_axis_psi_ho...   [ OK ]
+Test mirror_grid_gen_wham_no_axis_sqrt_psi_ho... [ OK ]
+Test mirror_grid_gen_wham_with_axis_sqrt_psi_ho... [ OK ]
+Test mirror_grid_gen_quad_geom_no_axis_psi_ho... [ OK ]
+Test mirror_grid_gen_quad_geom_with_axis_psi_ho... [ OK ]
+Test mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho... [ OK ]
+Test mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho... [ OK ]
+SUCCESS: All unit tests have passed.
+Test bcorr_ctor_1x1v_p1...                      [ OK ]
+Test bcorr_ctor_1x2v_p1...                      [ OK ]
+Test bcorr_ctor_2x2v_p1...                      [ OK ]
+Test bcorr_ctor_3x2v_p1...                      [ OK ]
+Test bcorr_ctor_acquire...                      [ OK ]
+SUCCESS: All unit tests have passed.
+Test mom_gyrokinetic_ho...                      [ OK ]
+Test test_mom_gyrokinetic_1x1v_p1_ho...         [ OK ]
+Test test_mom_gyrokinetic_1x2v_p1_ho...         [ OK ]
+Test test_mom_gyrokinetic_2x2v_p1_ho...         [ OK ]
+SUCCESS: All unit tests have passed.
+Test mom_types_1x2v...                          [ OK ]
+Test int_mom_types_1x2v...                      [ OK ]
+Test mom_types_1x1v...                          [ OK ]
+SUCCESS: All unit tests have passed.
+Test test_p1_deflated...                        [ OK ]
+Test test_p1_deflated_3d...                     [ OK ]
+SUCCESS: All unit tests have passed.
+Test numeric_degenerate_and_strength...         Error: Extrema is not an extrema. Position_map optimization failed
+Error: Extrema is not an extrema. Position_map optimization failed
+Error: Extrema is not an extrema. Position_map optimization failed
+Error: Extrema is not an extrema. Position_map optimization failed
+[ OK ]
