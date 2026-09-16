@@ -607,6 +607,9 @@ void
 vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
 {
   int cdim = app->cdim;
+  // The fluid species array is allocated with gkyl_malloc, so flags that are only
+  // set on one initialization path must be given a definite default here.
+  f->has_poisson = false;
   // Setup equation-specific memory and equation type/number of equations based on input table
   f->eqn_type = f->info.equation->type;
   f->num_equations = f->info.equation->num_equations;
