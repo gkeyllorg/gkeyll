@@ -13,6 +13,9 @@ enum { PSI_I, DPSI_R_I, DPSI_Z_I };
 enum { D2PSI_RR_I = 1, D2PSI_ZZ_I, D2PSI_RZ_I };
 
 // Computational coordinates (psi, alpha, z).
+// With alpha mapped to phi in right-handed cylindrical coordinates,
+// B = grad(psi) x grad(phi) follows the third tangent for psi_R > 0
+// and an increasing Z(z) map.
 enum { NPSI, NAL, NZ };
 // Cylindrical vector components (R, phi, Z).
 enum { R_I, PHI_I, Z_I };
@@ -69,20 +72,21 @@ static void curlbhat_func(
   d2psidZ2 = fout[D2PSI_ZZ_I];
   d2psidRdZ = fout[D2PSI_RZ_I];
 
-  // Same poloidal-field convention as tok_geo.c.
-  Br = dpsidZ / r_curr;
-  Bz = -dpsidR / r_curr;
+  // B = grad(psi) x grad(phi) in the right-handed (R, phi, Z) basis.
+  Br = -dpsidZ / r_curr;
+  Bz = dpsidR / r_curr;
   bmag = sqrt(Br * Br + Bz * Bz);
 
-  dBrdR = d2psidRdZ / r_curr - Br / r_curr;
-  dBrdZ = d2psidZ2 / r_curr;
-  dBzdR = -d2psidR2 / r_curr - Bz / r_curr;
-  dBzdZ = -d2psidRdZ / r_curr;
+  dBrdR = -d2psidRdZ / r_curr - Br / r_curr;
+  dBrdZ = -d2psidZ2 / r_curr;
+  dBzdR = d2psidR2 / r_curr - Bz / r_curr;
+  dBzdZ = d2psidRdZ / r_curr;
 
   dBdR = 1 / bmag * (Br * dBrdR + Bz * dBzdR);
   dBdZ = 1 / bmag * (Br * dBrdZ + Bz * dBzdZ);
 
-  // Get the polar components (contravariant, upperscript components on tangent basis)
+  // (curl bhat)^phi = (d_Z bhat_R - d_R bhat_Z)/R. The extra 1/R
+  // converts the physical azimuthal component to a contravariant component.
   curlbhat->x[R_I] = 0.0;
   curlbhat->x[PHI_I] =
     (dBrdZ - dBzdR) / (bmag * r_curr) + (dBdR * Bz - dBdZ * Br) / (bmag * bmag * r_curr);
@@ -222,7 +226,8 @@ static struct gkyl_mirror_grid_gen *mggen_new(const struct gkyl_mirror_grid_gen_
           geom->tang[NAL].x[PHI_I] = dAlpha_dalpha;
           geom->tang[NZ].x[Z_I] = dZ_dz;
           geom->Jc = sqrt_psi ? 0.0 : dPsi_dpsi * dAlpha_dalpha * dZ_dz / fout[D2PSI_RR_I];
-          geom->B.x[Z_I] = -fout[D2PSI_RR_I];
+          // B_Z = psi_R/R tends to psi_RR on the regular axis.
+          geom->B.x[Z_I] = fout[D2PSI_RR_I];
         } else {
           double fout[3];
           evcub->eval_cubic_wgrad(0.0, rz, fout, evcub->ctx);
@@ -238,8 +243,8 @@ static struct gkyl_mirror_grid_gen *mggen_new(const struct gkyl_mirror_grid_gen_
           geom->tang[NZ].x[R_I] = -fout[DPSI_Z_I] / fout[DPSI_R_I] * dZ_dz;
           geom->tang[NZ].x[Z_I] = dZ_dz;
           geom->Jc = radial_scale * radius / fout[DPSI_R_I] * dAlpha_dalpha * dZ_dz;
-          geom->B.x[R_I] = fout[DPSI_Z_I] / radius;
-          geom->B.x[Z_I] = -fout[DPSI_R_I] / radius;
+          geom->B.x[R_I] = -fout[DPSI_Z_I] / radius;
+          geom->B.x[Z_I] = fout[DPSI_R_I] / radius;
           curlbhat_func(radius, zcurr, alpha_curr, evcub, &geom->curlbhat);
         }
       }

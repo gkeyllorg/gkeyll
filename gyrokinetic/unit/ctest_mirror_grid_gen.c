@@ -1,7 +1,9 @@
 #include <acutest.h>
 #include <math.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
@@ -91,6 +93,7 @@ static void test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_co
     );
 
     if (rz[0] > 0) {
+      TEST_CHECK(Jac > 0.0);
       TEST_CHECK(gkyl_compare_double(Jac, g->Jc, 1e-14));
     }
 
@@ -119,6 +122,14 @@ static void test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_co
       gkyl_vec3_polar_con_to_cart(rz[0], 0.0, g->dual[1])
     );
     TEST_CHECK(gkyl_compare_double(B2, 0.0, 1e-14));
+
+    // B = grad(psi) x grad(phi) follows the third coordinate in the
+    // right-handed (psi, phi, Z) basis.
+    double B3 = gkyl_vec3_dot(
+      gkyl_vec3_polar_con_to_cart(rz[0], 0.0, g->B),
+      gkyl_vec3_polar_con_to_cart(rz[0], 0.0, g->dual[2])
+    );
+    TEST_CHECK(B3 > 0.0);
 
     // check relationship between tangents and duals
     for (int i = 0; i < 3; ++i) {
@@ -496,8 +507,8 @@ static void mirror_check_exact(
     mirror_check_close(psi[0], flux, 2e-14, "psi");
 
     struct gkyl_mirror_grid_gen_geom expected = {0};
-    expected.B.x[0] = strength * curvature * radius * height;
-    expected.B.x[2] = -strength * factor;
+    expected.B.x[0] = -strength * curvature * radius * height;
+    expected.B.x[2] = strength * factor;
     expected.tang[1].x[1] = slope[1];
     expected.tang[2].x[2] = slope[2];
     expected.dual[2].x[2] = 1.0 / slope[2];
@@ -517,7 +528,30 @@ static void mirror_check_exact(
       // Closed form of (d_Z b_R - d_R b_Z)/R. Independent of field strength.
       double norm2 = factor * factor + curvature * curvature * radius * radius * height * height;
       expected.curlbhat.x[1] =
-        curvature * factor * (1.0 - 2.0 * curvature * height * height) / pow(norm2, 1.5);
+        -curvature * factor * (1.0 - 2.0 * curvature * height * height) / pow(norm2, 1.5);
+
+      // Check handedness and the Clebsch field directly in Cartesian space,
+      // including the chain-rule factors for mapped psi/sqrt(psi) and phi.
+      struct gkyl_vec3 tangent[3], dual[3];
+      for (int dim = 0; dim < 3; ++dim) {
+        tangent[dim] = gkyl_vec3_polar_con_to_cart(rza[0], rza[2], actual->tang[dim]);
+        dual[dim] = gkyl_vec3_polar_con_to_cart(rza[0], rza[2], actual->dual[dim]);
+      }
+      double jac = gkyl_vec3_triple(tangent[0], tangent[1], tangent[2]);
+      TEST_CHECK(jac > 0.0);
+      mirror_check_close(actual->Jc, jac, 2e-11, "right-handed Jacobian");
+      struct gkyl_vec3 field = gkyl_vec3_polar_con_to_cart(rza[0], rza[2], actual->B);
+      struct gkyl_vec3 clebsch =
+        gkyl_vec3_scale(radial_scale * slope[1], gkyl_vec3_cross(dual[0], dual[1]));
+      for (int dim = 0; dim < 3; ++dim) {
+        // Allow the radial root-finder error in the sqrt(psi) scale factor.
+        mirror_check_close(field.x[dim], clebsch.x[dim], 2e-9, "grad(psi) x grad(phi)");
+      }
+      double B3 = gkyl_vec3_dot(field, dual[2]);
+      TEST_CHECK(B3 > 0.0);
+      mirror_check_close(
+        B3, gkyl_vec3_len(field) / gkyl_vec3_len(tangent[2]), 2e-11, "parallel field"
+      );
     }
     mirror_check_geom(actual, &expected, 2e-9);
   }
@@ -708,6 +742,35 @@ static void test_mirror_curl_scaling_ho(void)
   gkyl_position_map_release(pmap);
 }
 
+// Capture only expected rejection diagnostics; keep production error reporting.
+static struct gkyl_mirror_grid_gen *
+mirror_generate_rejected(const struct gkyl_mirror_grid_gen_inp *inp, int kind)
+{
+  FILE *diagnostics = tmpfile();
+  TEST_ASSERT(diagnostics != NULL);
+  fflush(stderr);
+  int saved_stderr = dup(STDERR_FILENO);
+  if (saved_stderr < 0) {
+    fclose(diagnostics);
+    TEST_ASSERT(saved_stderr >= 0);
+  }
+  int redirected = dup2(fileno(diagnostics), STDERR_FILENO);
+  struct gkyl_mirror_grid_gen *geom = redirected >= 0 ? mirror_generate(inp, kind) : NULL;
+  fflush(stderr);
+  int restored = dup2(saved_stderr, STDERR_FILENO);
+  close(saved_stderr);
+
+  rewind(diagnostics);
+  char message[256];
+  size_t count = fread(message, 1, sizeof(message) - 1, diagnostics);
+  message[count] = '\0';
+  fclose(diagnostics);
+  TEST_ASSERT(redirected >= 0 && restored >= 0);
+  TEST_CHECK(strcmp(message, "gkyl_mirror_grid_gen failed to generate a grid\n") == 0);
+  TEST_MSG("Expected grid rejection diagnostic; got: %s", message);
+  return geom;
+}
+
 static void test_mirror_root_bounds_ho(void)
 {
   struct gkyl_array *psi = mirror_psi(1.0, 0.0);
@@ -739,7 +802,8 @@ static void test_mirror_root_bounds_ho(void)
         .nzcells = 16,
         .psiRZ = psi
       };
-      struct gkyl_mirror_grid_gen *geom = mirror_generate(&inp, kind);
+      struct gkyl_mirror_grid_gen *geom = trial < 3 ? mirror_generate_rejected(&inp, kind) :
+                                                      mirror_generate(&inp, kind);
       TEST_CHECK((geom != NULL) == (trial == 3));
       TEST_MSG("trial=%d kind=%d: out-of-domain flux must fail; R=1 must be accepted", trial, kind);
       if (geom) {
@@ -895,12 +959,12 @@ static void check_mirror_mapping(
                 expected_jac *= ds;
               }
             }
-            // B_R = R Z, B_Z = -(1+Z^2), B_phi = 0.
-            double radius = rz[0], height = rz[1], bz = -(1.0 + height * height),
-                   br = radius * height;
+            // B_R = -R Z, B_Z = 1+Z^2, B_phi = 0.
+            double radius = rz[0], height = rz[1], bz = 1.0 + height * height,
+                   br = -radius * height;
             double bmag = sqrt(br * br + bz * bz), dbdr = radius * height * height / bmag;
-            double dbdz = (radius * radius * height - 2.0 * height * bz) / bmag;
-            double curl_phi = radius / bmag + (dbdr * bz - dbdz * br) / (bmag * bmag);
+            double dbdz = (radius * radius * height + 2.0 * height * bz) / bmag;
+            double curl_phi = -radius / bmag + (dbdr * bz - dbdz * br) / (bmag * bmag);
             curl_error = fmax(curl_error, fabs(radius * geo->curlbhat.x[1] - curl_phi));
             double normal_field = geo->dual[2].x[2] * geo->B.x[2] / fabs(geo->dual[2].x[2]);
             normal_field_error = fmax(normal_field_error, fabs(normal_field - bz));

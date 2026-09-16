@@ -284,11 +284,14 @@ static void find_B_field_extrema(struct gkyl_position_map *gpm)
   int extrema = 1; // Offset by 1 for the first point
   double *theta_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
   double *bmag_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
+  double bmag_min = DBL_MAX, bmag_max = -DBL_MAX;
 
   for (int i = 0; i <= npts; i++) {
     double theta = theta_lo + i * theta_dxi;
     xp[Z_IDX] = theta;
     gkyl_calc_bmag_global(0.0, xp, &bmag_vals[i], bmag_ctx);
+    bmag_min = fmin(bmag_min, bmag_vals[i]);
+    bmag_max = fmax(bmag_max, bmag_vals[i]);
     dbmag_vals[i] = calc_bmag_global_derivative(theta, gpm);
     if (i == 0) {
       continue;
@@ -319,6 +322,19 @@ static void find_B_field_extrema(struct gkyl_position_map *gpm)
         extrema++;
       }
     }
+  }
+
+  // A field constant to roundoff has no isolated extrema. Keep only the
+  // domain endpoints with equal B so refinement gives dB_cell = 0 and the
+  // numeric map uses its identity branch. Use the map's relative tolerance.
+  double bscale = fmax(fabs(bmag_min), fabs(bmag_max));
+  if (bmag_max - bmag_min <= 64.0 * DBL_EPSILON * bscale) {
+    constB_ctx->num_extrema = 2;
+    constB_ctx->theta_extrema[0] = theta_lo;
+    constB_ctx->theta_extrema[1] = theta_hi;
+    constB_ctx->bmag_extrema[0] = constB_ctx->bmag_extrema[1] = bmag_vals[0];
+    constB_ctx->min_or_max[0] = constB_ctx->min_or_max[1] = false;
+    goto cleanup;
   }
 
   // Set final extrema after the loop. MR April 22 2025
@@ -377,7 +393,7 @@ static void find_B_field_extrema(struct gkyl_position_map *gpm)
     printf("Error: Extrema is not an extrema. Position_map optimization failed\n");
   }
 
-  // Free mallocs
+cleanup:
   gkyl_free(bmag_vals);
   gkyl_free(dbmag_vals);
   gkyl_free(theta_extrema);

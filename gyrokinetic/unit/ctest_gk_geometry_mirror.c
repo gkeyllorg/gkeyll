@@ -1714,19 +1714,19 @@ static void check_mirror_field_direction(double curvature)
           double height = mapped_x[2], phi = mapped_x[1];
           double factor = 1.0 + curvature * height * height;
           double radius = sqrt(2.0 * flux / (strength * factor));
-          double br = curvature * radius * height, norm = sqrt(br * br + factor * factor);
+          double br = -curvature * radius * height, norm = sqrt(br * br + factor * factor);
           double radial_scale = slope[0] * (sqrt_psi ? 2.0 * mapped_x[0] : 1.0);
           double jac = radial_scale * slope[1] * slope[2] / (strength * factor);
-          double curl_phi = curvature * radius * factor *
+          double curl_phi = -curvature * radius * factor *
                             (1.0 - 2.0 * curvature * height * height) / (norm * norm * norm);
           double expected[NFIELDS][3] = {0};
           expected[BMAG][0] = strength * norm;
           expected[BCART][0] = br * cos(phi) / norm;
           expected[BCART][1] = br * sin(phi) / norm;
-          expected[BCART][2] = -factor / norm;
-          expected[BI][0] = radial_scale * curvature * height / (strength * factor * norm);
-          expected[BI][2] = -slope[2] * norm / factor;
-          expected[B3][0] = -strength * factor / (surface ? 1.0 : slope[2]);
+          expected[BCART][2] = factor / norm;
+          expected[BI][0] = -radial_scale * curvature * height / (strength * factor * norm);
+          expected[BI][2] = slope[2] * norm / factor;
+          expected[B3][0] = strength * factor / (surface ? 1.0 : slope[2]);
           expected[CURL][0] = -curl_phi * sin(phi);
           expected[CURL][1] = curl_phi * cos(phi);
           if (surface) {
@@ -1734,7 +1734,7 @@ static void check_mirror_field_direction(double curvature)
           } else {
             expected[CURL_PROJ][1] = curl_phi / (radius * slope[1]);
             expected[CURL_OVER_B][1] = expected[CURL_PROJ][1] / expected[BMAG][0];
-            expected[BPAR][0] = -factor / (slope[2] * norm);
+            expected[BPAR][0] = factor / (slope[2] * norm);
             for (int dim = 0; dim < 3; ++dim) {
               expected[BI_OVER_JB][dim] = expected[BI][dim] / (jac * expected[BMAG][0]);
             }

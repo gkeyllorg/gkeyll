@@ -13,6 +13,7 @@
 #include <gkyl_position_map_priv.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_calc_bmag.h>
+#include <float.h>
 #include <math.h>
 
 void test_nonuniform_position_map(
@@ -817,13 +818,18 @@ static void test_compression_parameters(void)
 
 static void asymmetric_bmag(double t, const double *xn, double *out, void *ctx)
 {
-  bool flat = *(bool *)ctx;
-  out[0] = flat ? 2.0 : xn[0] < 0.25 ? 2.0 - xn[0] : 1.75 + 2.0 * (xn[0] - 0.25);
+  int profile = *(int *)ctx;
+  if (profile == 0) {
+    out[0] = xn[0] < 0.25 ? 2.0 - xn[0] : 1.75 + 2.0 * (xn[0] - 0.25);
+  } else {
+    // Include a constant field with roundoff-sized oscillations.
+    out[0] = 2.0 + (profile == 2 ? 8.0 * DBL_EPSILON * (cos(4.0 * M_PI * xn[0]) + xn[0]) : 0.0);
+  }
 }
 
 static void test_numeric_degenerate_and_strength(void)
 {
-  for (int flat = 0; flat < 2; ++flat) {
+  for (int profile = 0; profile < 3; ++profile) {
     struct gkyl_rect_grid grid, grid3;
     gkyl_rect_grid_init(&grid, 1, (double[]){-1}, (double[]){1}, (int[]){16});
     gkyl_rect_grid_init(&grid3, 3, (double[]){-2, -1, -1}, (double[]){-1, 1, 1}, (int[]){1, 1, 16});
@@ -837,29 +843,35 @@ static void test_numeric_degenerate_and_strength(void)
       grid, local, ext, local, ext, basis
     );
     struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, ext.volume);
-    bool uniform = flat;
+    bool uniform = profile != 0;
     struct gkyl_proj_on_basis *proj =
-      gkyl_proj_on_basis_new(&grid, &basis, 2, 1, asymmetric_bmag, &uniform);
+      gkyl_proj_on_basis_new(&grid, &basis, 2, 1, asymmetric_bmag, &profile);
     gkyl_proj_on_basis_advance(proj, 0.0, &local, bmag);
     gkyl_proj_on_basis_release(proj);
     gkyl_position_map_optimize(pmap, grid3, global3);
     gkyl_position_map_set_bmag(pmap, NULL, bmag);
     gkyl_position_map_optimize(pmap, grid3, global3);
     TEST_CHECK(gkyl_compare(pmap->constB_ctx->psi, -1.5, 1e-14));
+    if (uniform) {
+      TEST_CHECK(pmap->constB_ctx->num_extrema == 2);
+      TEST_CHECK(pmap->constB_ctx->theta_extrema[0] == -1.0);
+      TEST_CHECK(pmap->constB_ctx->theta_extrema[1] == 1.0);
+      TEST_CHECK(pmap->constB_ctx->dB_cell == 0.0);
+    }
     for (int strength = 0; strength < 3; ++strength) {
       pmap->constB_ctx->map_strength = 0.5 * strength;
       for (int point = 0; point <= 32; ++point) {
         // Include the exact computational location of the asymmetric minimum.
         double x = point == 16 ? -1.0 + 2.0 * 1.25 / 2.75 : -1.0 + point / 16.0;
-        double full, actual;
-        pmap->constB_ctx->map_strength = 1.0;
-        pmap->maps[2](0, &x, &full, pmap->ctxs[2]);
-        pmap->constB_ctx->map_strength = 0.5 * strength;
+        // Invert the cumulative |dB| of the piecewise-linear field analytically.
+        double change = 2.75 * (x + 1.0) / 2.0;
+        double full = change <= 1.25 ? -1.0 + change : 0.25 + (change - 1.25) / 2.0;
+        double actual;
         pmap->maps[2](0, &x, &actual, pmap->ctxs[2]);
         double expected = uniform ? x : (1.0 - 0.5 * strength) * x + 0.5 * strength * full;
         TEST_CHECK(gkyl_compare(actual, expected, 2e-12));
         TEST_MSG(
-          "flat %d strength %g x %g actual %g expected %g", flat, 0.5 * strength, x, actual,
+          "profile %d strength %g x %g actual %g expected %g", profile, 0.5 * strength, x, actual,
           expected
         );
       }
@@ -890,6 +902,10 @@ static void test_numeric_degenerate_and_strength(void)
     // Replacing B must release the previous optimization storage.
     gkyl_position_map_set_bmag(pmap, NULL, bmag);
     gkyl_position_map_optimize(pmap, grid3, global3);
+    if (uniform) {
+      TEST_CHECK(pmap->constB_ctx->num_extrema == 2);
+      TEST_CHECK(pmap->constB_ctx->dB_cell == 0.0);
+    }
     gkyl_array_release(bmag);
     gkyl_position_map_release(pmap);
   }

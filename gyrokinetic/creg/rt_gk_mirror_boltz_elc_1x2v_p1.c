@@ -641,9 +641,10 @@ int main(int argc, char **argv)
 
     .write_omega_cfl = true,
     .num_diag_moments = 7,
-    .diag_moments =
-      {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP}
+    .diag_moments = {
+      GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
+      GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP
+    }
   };
 
   struct gkyl_gyrokinetic_species elc = {
@@ -710,7 +711,7 @@ int main(int argc, char **argv)
        .bfield_ctx = &ctx,
        .position_map_info =
          {.id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
-          .map_strength = 0.5,
+          .map_strength = 1.0,
           .maximum_slope_at_min_B = 2,
           .maximum_slope_at_max_B = 2,
           .gaussian_std = 0.5,
