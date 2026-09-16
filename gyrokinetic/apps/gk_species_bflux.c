@@ -395,8 +395,7 @@ static void gk_species_bflux_calc_integrated_mom_enabled(
     for (int b = 0; b < bflux->num_boundaries; ++b) {
       // Integrated moment of the boundary flux.
       int dir = bflux->boundaries_dir[b];
-      // In 1D, the plane communicator includes every rank. Exclude internal
-      // MPI boundaries, including their nonzero initial flux diagnostics.
+      
       bool owns_boundary = bflux->boundaries_edge[b] == GKYL_LOWER_EDGE ?
                              app->local.lower[dir] == app->global.lower[dir] :
                              app->local.upper[dir] == app->global.upper[dir];

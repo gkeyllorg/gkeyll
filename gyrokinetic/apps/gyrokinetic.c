@@ -851,9 +851,6 @@ static void gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
     }
     app->omegaH_gf *= 1.0 / pow(sqrt(2.0), app->cdim);
 
-    // The density maximum and geometry maximum can lie on different ranks.
-    // Use the global geometry maximum so splitting the domain cannot weaken
-    // the omega_H timestep constraint.
     double omegaH_gf_local = app->omegaH_gf;
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omegaH_gf_local, &app->omegaH_gf);
 

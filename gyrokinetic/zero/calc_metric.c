@@ -2300,8 +2300,6 @@ void gkyl_calc_metric_advance_bcart(
       }
     }
   }
-  // Both inputs were evaluated at interior Gauss nodes. Interpreting these
-  // as corner nodes samples the wrong cells and depends on the local range.
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, nrange, update_range, 3, bcartFld_nodal, bcartFld, true
   );

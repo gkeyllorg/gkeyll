@@ -143,16 +143,14 @@ static void check_mirror_mapping(
                 expected_jac *= ds;
               }
             }
-            // Analytic curl of B/|B|, with B=(-R Z, 0, 1+Z^2).
-            double radius = rz[0], height = rz[1], bz = 1.0 + height * height,
-                   br = -radius * height;
+            // B_R = R Z, B_Z = -(1+Z^2), B_phi = 0.
+            double radius = rz[0], height = rz[1], bz = -(1.0 + height * height),
+                   br = radius * height;
             double bmag = sqrt(br * br + bz * bz), dbdr = radius * height * height / bmag;
-            double dbdz = (radius * radius * height + 2.0 * height * bz) / bmag;
-            double curl_phi = -radius / bmag + (dbdr * bz - dbdz * br) / (bmag * bmag);
+            double dbdz = (radius * radius * height - 2.0 * height * bz) / bmag;
+            double curl_phi = radius / bmag + (dbdr * bz - dbdz * br) / (bmag * bmag);
             curl_error = fmax(curl_error, fabs(radius * geo->curlbhat.x[1] - curl_phi));
-            double tangent_len =
-              sqrt(geo->tang[2].x[0] * geo->tang[2].x[0] + geo->tang[2].x[2] * geo->tang[2].x[2]);
-            double normal_field = bmag / (tangent_len * fabs(geo->dual[2].x[2]));
+            double normal_field = geo->dual[2].x[2] * geo->B.x[2] / fabs(geo->dual[2].x[2]);
             normal_field_error = fmax(normal_field_error, fabs(normal_field - bz));
             jacobian_error = fmax(jacobian_error, fabs(geo->Jc - expected_jac));
             partition_error = fmax(partition_error, fabs(geo->Jc - ref->Jc));

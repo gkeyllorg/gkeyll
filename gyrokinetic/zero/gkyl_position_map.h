@@ -203,16 +203,15 @@ void gkyl_position_map_eval_mc2nu(
 
 /**
  * Evaluate the slope of the position mapping at a specific computational (position) coordinate.
- * 
- * @param gpm Gkyl position map object.
- * @param ix_map Index of the map to evaluate. Calls gpm->maps[index].
- * @param x Computational position coordinates.
  * Numerical derivatives use a centered second-order difference with step dx.
  * Within dx of a global endpoint, use an inward second-order one-sided
  * difference, reducing the step if needed to keep both samples in bounds.
  * Bounds are explicit in the map's full 3D coordinates, even for reduced
  * dimensional simulations. No rank-local indices enter stencil selection.
- *
+ * 
+ * @param gpm Gkyl position map object.
+ * @param ix_map Index of the map to evaluate. Calls gpm->maps[index].
+ * @param x Computational position coordinates.
  * @param dx Maximum computational increment for finite differences (>0).
  * @param lower Global lower computational bound for this map.
  * @param upper Global upper computational bound for this map.
