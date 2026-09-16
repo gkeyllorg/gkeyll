@@ -30,8 +30,7 @@ struct gkyl_wv_burgers_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the inviscid Burgers' equation object.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_burgers_new(bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_burgers_new(bool use_gpu);
 
 /**
 * Create a new inviscid Burgers' equation object, from an input context struct.
@@ -39,5 +38,4 @@ gkyl_wv_burgers_new(bool use_gpu);
 * @param inp Input context struct.
 * @return Pointer to the inviscid Burgers' equation object.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_burgers_inew(const struct gkyl_wv_burgers_inp* inp);
+struct gkyl_wv_eqn *gkyl_wv_burgers_inew(const struct gkyl_wv_burgers_inp *inp);

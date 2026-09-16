@@ -10,14 +10,13 @@
 #include <gkyl_dg_cx_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_cx*
-gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
+gkyl_dg_cx *gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     return gkyl_dg_cx_cu_dev_new(inp);
-  } 
-#endif  
+  }
+#endif
   gkyl_dg_cx *up = gkyl_malloc(sizeof(struct gkyl_dg_cx));
 
   up->cbasis = inp->cbasis;
@@ -34,21 +33,24 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->on_dev = up;
-  
+
   return up;
 }
 
-void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, 
-  struct gkyl_array *maxwellian_moms_ion, struct gkyl_array *maxwellian_moms_neut,
-  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx, struct gkyl_array *cflrate)
+void gkyl_dg_cx_coll(
+  const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
+  struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
+  struct gkyl_array *cflrate
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(coef_cx)) {
-    return gkyl_dg_cx_coll_cu(up, maxwellian_moms_ion, maxwellian_moms_neut, 
-      upar_b_i, coef_cx, cflrate);
+    return gkyl_dg_cx_coll_cu(
+      up, maxwellian_moms_ion, maxwellian_moms_neut, upar_b_i, coef_cx, cflrate
+    );
   }
 #endif
-  
+
   struct gkyl_range_iter conf_iter;
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
@@ -59,14 +61,15 @@ void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up,
     const double *upar_b_i_d = gkyl_array_cfetch(upar_b_i, linidx);
 
     double *coef_cx_d = gkyl_array_fetch(coef_cx, linidx);
-    
-    double cflr = up->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
-      maxwellian_moms_ion_d, maxwellian_moms_neut_d, upar_b_i_d, coef_cx_d);
+
+    double cflr = up->react_rate(
+      up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min, maxwellian_moms_ion_d,
+      maxwellian_moms_neut_d, upar_b_i_d, coef_cx_d
+    );
   }
 }
 
-void
-gkyl_dg_cx_release(gkyl_dg_cx* cx)
+void gkyl_dg_cx_release(gkyl_dg_cx *cx)
 {
   free(cx);
 }

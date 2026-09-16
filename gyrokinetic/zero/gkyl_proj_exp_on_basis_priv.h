@@ -14,10 +14,10 @@ struct gkyl_proj_exp_on_basis {
   struct gkyl_array *basis_at_ords; // conf-space basis functions at ordinates
 
   struct gkyl_array *fun_at_ords; // function (Maxwellian) evaluated at
-                                  // ordinates in a cell.
+  // ordinates in a cell.
 };
 
-void
-gkyl_proj_exp_on_basis_advance_cu(const gkyl_proj_exp_on_basis *up,
-  const struct gkyl_range *range, double alpha, double beta,
-  const struct gkyl_array *fIn, struct gkyl_array *fOut);
+void gkyl_proj_exp_on_basis_advance_cu(
+  const gkyl_proj_exp_on_basis *up, const struct gkyl_range *range, double alpha, double beta,
+  const struct gkyl_array *fIn, struct gkyl_array *fOut
+);
