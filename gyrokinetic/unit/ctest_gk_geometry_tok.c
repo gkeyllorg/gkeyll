@@ -768,7 +768,7 @@ void test_tok_asdex_qprofile_core_ho()
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_input);
-  write_geometry(gk_geom, cgrid, clocal, "asdex_core");
+  // write_geometry(gk_geom, cgrid, clocal, "asdex_core");
 
   //  // Create Nodal Range and Grid and Write Nodal Coordinates
   //  struct gkyl_range nrange;
