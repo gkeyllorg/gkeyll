@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -581,7 +582,220 @@ void test_mapc2p_3x_p1_pmap_ho()
   gkyl_gk_geometry_release(gk_geom);
 }
 
+struct quadratic_map_ctx {
+  double shift, scale, curvature;
+};
+
+static void quadratic_map(double t, const double *xn, double *out, void *ctx)
+{
+  const struct quadratic_map_ctx *map = ctx;
+  out[0] = map->shift + xn[0] * (map->scale + map->curvature * xn[0]);
+}
+
+static void quadratic_map_deriv(double t, const double *xn, double *out, void *ctx)
+{
+  const struct quadratic_map_ctx *map = ctx;
+  out[0] = map->scale + 2.0 * map->curvature * xn[0];
+}
+
+// Independent global-index construction of P1 corners and Gauss nodes.
+static double node_coordinate(double lower, double dx, int node, bool quadrature)
+{
+  return lower +
+         dx * (quadrature ? node / 2 + 0.5 * (1.0 + (node % 2 ? 1.0 : -1.0) / sqrt(3.0)) : node);
+}
+
+static void curved_cartesian_map(double t, const double *xn, double *out, void *ctx)
+{
+  for (int dim = 0; dim < 3; ++dim) {
+    out[dim] = xn[dim];
+  }
+  out[0] += 0.1 * xn[2] * xn[2];
+}
+
+static void curved_field(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = 0.4 * xn[2];
+  out[1] = 0.0;
+  out[2] = 2.0;
+}
+
+static void compare_nodes(
+  const struct gkyl_array *actual, const struct gkyl_array *expected,
+  const struct gkyl_range *nodes, const struct gkyl_range *full_nodes, int split_dim,
+  int node_offset, double *error, const char *name
+)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, nodes);
+  while (gkyl_range_iter_next(&iter)) {
+    int index[3] = {iter.idx[0], iter.idx[1], iter.idx[2]};
+    index[split_dim] += node_offset;
+    const double *value = gkyl_array_cfetch(actual, gkyl_range_idx(nodes, iter.idx));
+    const double *ref = gkyl_array_cfetch(expected, gkyl_range_idx(full_nodes, index));
+    for (int comp = 0; comp < actual->ncomp; ++comp) {
+      union {
+        double value;
+        uint64_t bits;
+      } actual_bits = {.value = value[comp]}, ref_bits = {.value = ref[comp]};
+      bool finite = (actual_bits.bits & UINT64_C(0x7ff0000000000000)) !=
+                      UINT64_C(0x7ff0000000000000) &&
+                    (ref_bits.bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
+      TEST_CHECK(finite);
+      TEST_MSG(
+        "%s at %d %d %d component %d: actual %g reference %g", name, iter.idx[0], iter.idx[1],
+        iter.idx[2], comp, value[comp], ref[comp]
+      );
+      if (!finite) {
+        return;
+      }
+      *error = fmax(*error, fabs(value[comp] - ref[comp]) / fmax(1.0, fabs(ref[comp])));
+    }
+  }
+}
+
+static void test_mapc2p_partitions(void)
+{
+  struct gkyl_rect_grid grid;
+  double pi = M_PI;
+  gkyl_rect_grid_init(
+    &grid, 3, (double[]){0.1, -0.4, -pi + 1e-14}, (double[]){0.2, 0.4, pi - 1e-14},
+    (int[]){4, 2, 16}
+  );
+  struct gkyl_range global, global_ext;
+  gkyl_create_grid_ranges(&grid, (int[]){1, 1, 1}, &global_ext, &global);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 3, 1);
+  struct quadratic_map_ctx maps[] = {{0.02, 0.8, 0.2}, {0.05, 0.8, 0.2}, {0.0, 0.7, 0.03}};
+  struct gkyl_position_map_inp map_inp = {
+    .id = GKYL_PMAP_USER_INPUT,
+    .maps = {quadratic_map, quadratic_map, quadratic_map},
+    .map_derivs = {quadratic_map_deriv, quadratic_map_deriv, quadratic_map_deriv},
+    .ctxs = {&maps[0], &maps[1], &maps[2]}
+  };
+  struct gkyl_position_map *pmap =
+    gkyl_position_map_new(map_inp, grid, global, global_ext, global, global_ext, basis);
+  struct gkyl_gk_geometry_inp inp = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .mapc2p = curved_cartesian_map,
+    .bfield_func = curved_field,
+    .position_map = pmap,
+    .grid = grid,
+    .basis = basis,
+    .global = global,
+    .global_ext = global_ext,
+    .geo_grid = grid,
+    .geo_basis = basis,
+    .geo_global = global,
+    .geo_global_ext = global_ext,
+    .local = global,
+    .local_ext = global_ext,
+    .geo_local = global,
+    .geo_local_ext = global_ext
+  };
+  struct gk_geometry *full = gkyl_gk_geometry_mapc2p_new(&inp);
+  double error = 0.0, slope_error = 0.0, curl_error = 0.0;
+  for (int split_dim = 0; split_dim < 3; ++split_dim) {
+    for (int cuts = 2; cuts <= grid.cells[split_dim] && cuts <= 8; cuts *= 2) {
+      for (int rank = 0; rank < cuts; ++rank) {
+        int lower[3], upper[3], elo[3], eup[3];
+        for (int dim = 0; dim < 3; ++dim) {
+          lower[dim] = global.lower[dim];
+          upper[dim] = global.upper[dim];
+          if (dim == split_dim) {
+            lower[dim] += rank * grid.cells[dim] / cuts;
+            upper[dim] = lower[dim] + grid.cells[dim] / cuts - 1;
+          }
+          elo[dim] = lower[dim] - 1;
+          eup[dim] = upper[dim] + 1;
+        }
+        struct gkyl_range local, ext;
+        gkyl_range_init(&ext, 3, elo, eup);
+        gkyl_sub_range_init(&local, &ext, lower, upper);
+        inp.local = inp.geo_local = local;
+        inp.local_ext = inp.geo_local_ext = ext;
+        struct gk_geometry *geom = gkyl_gk_geometry_mapc2p_new(&inp);
+        int offset = rank * grid.cells[split_dim] / cuts;
+        compare_nodes(
+          geom->geo_corn.mc2p_nodal, full->geo_corn.mc2p_nodal, &geom->nrange_corn,
+          &full->nrange_corn, split_dim, offset, &error, "corners"
+        );
+        compare_nodes(
+          geom->geo_corn.mc2nu_pos_nodal, full->geo_corn.mc2nu_pos_nodal, &geom->nrange_corn,
+          &full->nrange_corn, split_dim, offset, &error, "corners"
+        );
+#define COMPARE_INT(field)                                                                     \
+  compare_nodes(                                                                               \
+    geom->geo_int.field, full->geo_int.field, &geom->nrange_int, &full->nrange_int, split_dim, \
+    2 * offset, &error, "interior " #field                                                     \
+  )
+        COMPARE_INT(mc2p_nodal);
+        COMPARE_INT(jacobgeo_nodal);
+        COMPARE_INT(g_ij_nodal);
+        COMPARE_INT(dxdz_nodal);
+        COMPARE_INT(dzdx_nodal);
+        COMPARE_INT(bmag_nodal);
+        COMPARE_INT(curlbhat_nodal);
+        COMPARE_INT(B3_nodal);
+#undef COMPARE_INT
+        compare_nodes(
+          geom->geo_int.bcart, full->geo_int.bcart, &geom->local, &full->local, split_dim, 0,
+          &error, "modal Cartesian b"
+        );
+        for (int dir = 0; dir < 3; ++dir) {
+#define COMPARE_SURF(field)                                                          \
+  compare_nodes(                                                                     \
+    geom->geo_surf[dir].field, full->geo_surf[dir].field, &geom->nrange_surf[dir],   \
+    &full->nrange_surf[dir], split_dim, (dir == split_dim ? 1 : 2) * offset, &error, \
+    "surface " #field                                                                \
+  )
+          COMPARE_SURF(jacobgeo_nodal);
+          COMPARE_SURF(g_ij_nodal);
+          COMPARE_SURF(dxdz_nodal);
+          COMPARE_SURF(dzdx_nodal);
+          COMPARE_SURF(bmag_nodal);
+          COMPARE_SURF(curlbhat_nodal);
+          COMPARE_SURF(B3_nodal);
+          COMPARE_SURF(lenr_nodal);
+#undef COMPARE_SURF
+          // Independent axial derivative and curl in a curved Cartesian map.
+          struct gkyl_range_iter iter;
+          gkyl_range_iter_init(&iter, &geom->nrange_surf[dir]);
+          while (gkyl_range_iter_next(&iter)) {
+            int znode = iter.idx[2] + (dir == 2 ? 1 : 2) * (lower[2] - global.lower[2]);
+            double zcomp = node_coordinate(grid.lower[2], grid.dx[2], znode, dir != 2), slope;
+            quadratic_map_deriv(0.0, &zcomp, &slope, &maps[2]);
+            const double *tangent = gkyl_array_cfetch(
+              geom->geo_surf[dir].dxdz_nodal, gkyl_range_idx(&geom->nrange_surf[dir], iter.idx)
+            );
+            slope_error = fmax(slope_error, fabs(tangent[8] - slope));
+            const double *curl = gkyl_array_cfetch(
+              geom->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(&geom->nrange_surf[dir], iter.idx)
+            );
+            double zphys;
+            quadratic_map(0.0, &zcomp, &zphys, &maps[2]);
+            double curl_y = 0.2 / pow(1.0 + 0.04 * zphys * zphys, 1.5);
+            for (int dim = 0; dim < 3; ++dim) {
+              curl_error = fmax(curl_error, fabs(curl[dim] - (dim == 1 ? curl_y : 0.0)));
+            }
+          }
+        }
+        gkyl_gk_geometry_release(geom);
+      }
+    }
+  }
+  TEST_CHECK(curl_error < 2e-6);
+  TEST_MSG("analytic curl error %.17g", curl_error);
+  TEST_CHECK(error < 2e-10);
+  TEST_MSG("partition error %.17g", error);
+  TEST_CHECK(slope_error < 2e-10);
+  TEST_MSG("axial tangent error %.17g", slope_error);
+  gkyl_gk_geometry_release(full);
+  gkyl_position_map_release(pmap);
+}
+
 TEST_LIST = {
+  {"mapc2p_partitions", test_mapc2p_partitions},
   {"test_mapc2p_3x_p1_ho", test_mapc2p_3x_p1_ho},
   {"test_mapc2p_3x_p1_pmap_ho", test_mapc2p_3x_p1_pmap_ho},
   {NULL, NULL}

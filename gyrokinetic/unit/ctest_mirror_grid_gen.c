@@ -1,8 +1,10 @@
 #include <acutest.h>
+#include <math.h>
 #include <stdint.h>
 #include <string.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_array.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_basis_ops.h>
@@ -758,7 +760,247 @@ static void test_mirror_root_bounds_ho(void)
   gkyl_array_release(psi);
 }
 
+struct quadratic_map_ctx {
+  double shift, scale, curvature;
+};
+
+static void quadratic_map(double t, const double *xn, double *out, void *ctx)
+{
+  const struct quadratic_map_ctx *map = ctx;
+  out[0] = map->shift + xn[0] * (map->scale + map->curvature * xn[0]);
+}
+
+static void quadratic_map_deriv(double t, const double *xn, double *out, void *ctx)
+{
+  const struct quadratic_map_ctx *map = ctx;
+  out[0] = map->scale + 2.0 * map->curvature * xn[0];
+}
+
+// Independent global-index construction of P1 corners and Gauss nodes.
+static double node_coordinate(double lower, double dx, int node, bool quadrature)
+{
+  return lower +
+         dx * (quadrature ? node / 2 + 0.5 * (1.0 + (node % 2 ? 1.0 : -1.0) / sqrt(3.0)) : node);
+}
+
+static void check_mirror_mapping(
+  bool analytic, enum gkyl_mirror_grid_gen_field_line_coord coord, struct quadratic_map_ctx map,
+  bool map_all, bool include_axis
+)
+{
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(
+    &grid, 3, (double[]){0.02, -0.4, -0.75}, (double[]){0.2, 0.4, 0.75}, (int[]){8, 2, 16}
+  );
+  struct gkyl_range global, ext;
+  gkyl_create_grid_ranges(&grid, (int[]){1, 1, 1}, &ext, &global);
+
+  // psi = R^2 (1+Z^2)/2 is represented exactly by the bicubic interpolant.
+  struct gkyl_range psi_nodes;
+  gkyl_range_init_from_shape(&psi_nodes, 2, (int[]){9, 17});
+  struct gkyl_array *psi = gkyl_array_new(GKYL_DOUBLE, 1, psi_nodes.volume);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &psi_nodes);
+  while (gkyl_range_iter_next(&iter)) {
+    double radius = iter.idx[0] / 8.0, height = -1.0 + iter.idx[1] / 8.0;
+    double *value = gkyl_array_fetch(psi, gkyl_range_idx(&psi_nodes, iter.idx));
+    value[0] = 0.5 * radius * radius * (1.0 + height * height);
+  }
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+  pmap->maps[2] = quadratic_map;
+  pmap->map_derivs[2] = quadratic_map_deriv;
+  pmap->ctxs[2] = &map;
+  pmap->use_map_derivs = analytic;
+  if (map_all) {
+    for (int dim = 0; dim < 2; ++dim) {
+      pmap->maps[dim] = quadratic_map;
+      pmap->map_derivs[dim] = quadratic_map_deriv;
+      pmap->ctxs[dim] = &map;
+    }
+  }
+
+  double slope_error = 0.0, tangent_error = 0.0, jacobian_error = 0.0, partition_error = 0.0,
+         curl_error = 0.0, normal_field_error = 0.0;
+  for (int kind = -2; kind < 3; ++kind) { // Interior, corners, then each surface orientation.
+    for (int split_dim = 0; split_dim < 3; ++split_dim) {
+      struct gkyl_mirror_grid_gen *full = 0;
+      struct gkyl_range full_nodes;
+      for (int cuts = 1; cuts <= 8 && cuts <= grid.cells[split_dim]; cuts *= 2) {
+        for (int rank = 0; rank < cuts; ++rank) {
+          int lower[3], upper[3], shape[3];
+          bool quad[3];
+          for (int dim = 0; dim < 3; ++dim) {
+            lower[dim] = global.lower[dim];
+            upper[dim] = global.upper[dim];
+            if (dim == split_dim) {
+              lower[dim] += rank * grid.cells[dim] / cuts;
+              upper[dim] = lower[dim] + grid.cells[dim] / cuts - 1;
+            }
+            quad[dim] = kind == -2 || (kind >= 0 && dim != kind);
+            shape[dim] = quad[dim] ? 2 * (upper[dim] - lower[dim] + 1) :
+                                     upper[dim] - lower[dim] + 2;
+          }
+          struct gkyl_range local, nodes;
+          gkyl_range_init(&local, 3, lower, upper);
+          gkyl_range_init_from_shape(&nodes, 3, shape);
+          struct gkyl_mirror_grid_gen_inp inp = {
+            .comp_grid = &grid,
+            .local = local,
+            .global = global,
+            .nrange = nodes,
+            .R = {0.0, 1.0},
+            .Z = {-1.0, 1.0},
+            .nrcells = 8,
+            .nzcells = 16,
+            .psiRZ = psi,
+            .position_map = pmap,
+            .fl_coord = coord,
+            .dir = kind,
+            .include_axis = include_axis
+          };
+          struct gkyl_mirror_grid_gen *geom = kind == -2 ? gkyl_mirror_grid_gen_int_inew(&inp) :
+                                              kind == -1 ? gkyl_mirror_grid_gen_inew(&inp) :
+                                                           gkyl_mirror_grid_gen_surf_inew(&inp);
+          TEST_ASSERT(geom != 0);
+          if (cuts == 1) {
+            full = geom;
+            full_nodes = nodes;
+          }
+          gkyl_range_iter_init(&iter, &nodes);
+          while (gkyl_range_iter_next(&iter)) {
+            int index[3] = {iter.idx[0], iter.idx[1], iter.idx[2]};
+            index[split_dim] += (quad[split_dim] ? 2 : 1) * rank * grid.cells[split_dim] / cuts;
+            long loc = gkyl_range_idx(&nodes, iter.idx),
+                 full_loc = gkyl_range_idx(&full_nodes, index);
+            const struct gkyl_mirror_grid_gen_geom *geo = gkyl_array_cfetch(geom->nodes_geom, loc);
+            const struct gkyl_mirror_grid_gen_geom *ref =
+              gkyl_array_cfetch(full->nodes_geom, full_loc);
+            const double *rz = gkyl_array_cfetch(geom->nodes_rza, loc);
+            double comp = node_coordinate(grid.lower[2], grid.dx[2], index[2], quad[2]), slope;
+            quadratic_map_deriv(0.0, &comp, &slope, &map);
+            slope_error = fmax(slope_error, fabs(geo->tang[2].x[2] - slope));
+            double expected_jac = slope / (1.0 + rz[1] * rz[1]);
+            if (coord == GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
+              expected_jac *= 2.0 * sqrt(0.5 * rz[0] * rz[0] * (1.0 + rz[1] * rz[1]));
+            }
+            if (map_all) {
+              for (int dim = 0; dim < 2; ++dim) {
+                double coord_lo = grid.lower[dim], coord_dx = grid.dx[dim];
+                if (dim == 0 && coord == GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
+                  coord_lo = sqrt(coord_lo);
+                  coord_dx = (sqrt(grid.upper[0]) - coord_lo) / grid.cells[0];
+                }
+                double xc = node_coordinate(coord_lo, coord_dx, index[dim], quad[dim]), ds;
+                quadratic_map_deriv(0.0, &xc, &ds, &map);
+                expected_jac *= ds;
+              }
+            }
+            // B_R = R Z, B_Z = -(1+Z^2), B_phi = 0.
+            double radius = rz[0], height = rz[1], bz = -(1.0 + height * height),
+                   br = radius * height;
+            double bmag = sqrt(br * br + bz * bz), dbdr = radius * height * height / bmag;
+            double dbdz = (radius * radius * height - 2.0 * height * bz) / bmag;
+            double curl_phi = radius / bmag + (dbdr * bz - dbdz * br) / (bmag * bmag);
+            curl_error = fmax(curl_error, fabs(radius * geo->curlbhat.x[1] - curl_phi));
+            double normal_field = geo->dual[2].x[2] * geo->B.x[2] / fabs(geo->dual[2].x[2]);
+            normal_field_error = fmax(normal_field_error, fabs(normal_field - bz));
+            jacobian_error = fmax(jacobian_error, fabs(geo->Jc - expected_jac));
+            partition_error = fmax(partition_error, fabs(geo->Jc - ref->Jc));
+            // Reciprocal bases, including the constant-psi field-line tangent.
+            for (int idir = 0; idir < 3; ++idir) {
+              for (int jdir = 0; jdir < 3; ++jdir) {
+                double dot = geo->tang[idir].x[0] * geo->dual[jdir].x[0] +
+                             rz[0] * rz[0] * geo->tang[idir].x[1] * geo->dual[jdir].x[1] +
+                             geo->tang[idir].x[2] * geo->dual[jdir].x[2];
+                if (radius > 0.0) {
+                  tangent_error = fmax(tangent_error, fabs(dot - (idir == jdir)));
+                }
+              }
+            }
+          }
+          if (cuts != 1) {
+            gkyl_mirror_grid_gen_release(geom);
+          }
+        }
+      }
+      gkyl_mirror_grid_gen_release(full);
+    }
+  }
+  TEST_CHECK(slope_error < 2e-11);
+  TEST_MSG("mapping slope error %.17g", slope_error);
+  TEST_CHECK(tangent_error < 2e-13);
+  TEST_MSG("reciprocal basis error %.17g", tangent_error);
+  TEST_CHECK(jacobian_error < 2e-10);
+  TEST_MSG("Jacobian error %.17g", jacobian_error);
+  TEST_CHECK(curl_error < 2e-10);
+  TEST_MSG("curl error %.17g", curl_error);
+  TEST_CHECK(normal_field_error < 2e-10);
+  TEST_MSG("normal B error %.17g", normal_field_error);
+  TEST_CHECK(partition_error < 2e-12);
+  TEST_MSG("partition error %.17g", partition_error);
+  gkyl_position_map_release(pmap);
+  gkyl_array_release(psi);
+}
+
+static void test_mirror_identity(void)
+{
+  check_mirror_mapping(
+    false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, (struct quadratic_map_ctx){0.0, 1.0, 0.0},
+    false, false
+  );
+}
+static void test_mirror_affine(void)
+{
+  check_mirror_mapping(
+    true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, (struct quadratic_map_ctx){0.05, 0.75, 0.0},
+    false, false
+  );
+}
+static void test_mirror_nonlinear_numeric(void)
+{
+  check_mirror_mapping(
+    false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, (struct quadratic_map_ctx){0.05, 0.75, 0.12},
+    false, false
+  );
+}
+static void test_mirror_nonlinear_analytic(void)
+{
+  check_mirror_mapping(
+    true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, (struct quadratic_map_ctx){0.05, 0.75, 0.12},
+    false, false
+  );
+}
+static void test_mirror_sqrt_psi(void)
+{
+  check_mirror_mapping(
+    false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z,
+    (struct quadratic_map_ctx){0.05, 0.75, 0.12}, false, false
+  );
+}
+
+static void test_mirror_all_maps(void)
+{
+  check_mirror_mapping(
+    false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, (struct quadratic_map_ctx){0.05, 0.75, 0.12},
+    true, false
+  );
+}
+static void test_mirror_nonuniform_axis(void)
+{
+  check_mirror_mapping(
+    false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z,
+    (struct quadratic_map_ctx){0.05, 0.75, 0.12}, false, true
+  );
+}
+
 TEST_LIST = {
+  {"mirror_all_maps", test_mirror_all_maps},
+  {"mirror_nonuniform_axis", test_mirror_nonuniform_axis},
+  {"mirror_identity", test_mirror_identity},
+  {"mirror_affine", test_mirror_affine},
+  {"mirror_nonlinear_numeric", test_mirror_nonlinear_numeric},
+  {"mirror_nonlinear_analytic", test_mirror_nonlinear_analytic},
+  {"mirror_sqrt_psi", test_mirror_sqrt_psi},
   {"mirror_exact_psi_p1_ho", test_mirror_exact_psi_p1_ho},
   {"mirror_exact_sqrt_psi_p1_ho", test_mirror_exact_sqrt_psi_p1_ho},
   {"mirror_exact_psi_p2_ho", test_mirror_exact_psi_p2_ho},
