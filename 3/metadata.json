@@ -1,0 +1,76 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2NTAEG722RX3WH83TP9ERTQ",
+  "session_id": "01a0ab9b-1c58-79b2-bbd9-2bc789cff4cf",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-16T19:15:30.694156328Z",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_wham_1x2v_p1.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mirror.c",
+    "gyrokinetic/unit/ctest_mirror_grid_gen.c",
+    "gyrokinetic/unit/ctest_position_map.c",
+    "gyrokinetic/zero/gkyl_mirror_grid_gen.h",
+    "gyrokinetic/zero/gkyl_position_map_priv.h",
+    "gyrokinetic/zero/mirror_grid_gen.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "afd9c5330f14",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 92775,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1266816,
+    "output_tokens": 10212,
+    "api_call_count": 19
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-16T19:15:30.635086493Z",
+    "agent_lines": 26,
+    "agent_removed": 28,
+    "human_added": 0,
+    "human_modified": 2,
+    "human_removed": 32,
+    "total_committed": 26,
+    "total_lines_changed": 88,
+    "agent_percentage": 61.36363636363637,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1196,
+      "user_lines_removed": 32,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "BUG_REPORT.md": 195,
+        "CHANGES.md": 469,
+        "gyrokinetic/creg/check_nonuniform_mpi.py": 91,
+        "gyrokinetic/creg/nonuniform_validation.md": 178,
+        "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c": 6,
+        "gyrokinetic/creg/rt_gk_wham_1x2v_p1.c": 18,
+        "gyrokinetic/unit/ctest_mirror_grid_gen.c": 42,
+        "gyrokinetic/unit/ctest_position_map.c": 26,
+        "gyrokinetic/unit/mirror_grid_gen_review.md": 145,
+        "gyrokinetic/zero/gkyl_position_map_priv.h": 17,
+        "gyrokinetic/zero/mirror_grid_gen.c": 2,
+        "plot.sh": 7
+      },
+      "user_removed_per_file": {
+        "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c": 5,
+        "gyrokinetic/creg/rt_gk_wham_1x2v_p1.c": 15,
+        "gyrokinetic/unit/ctest_mirror_grid_gen.c": 1,
+        "gyrokinetic/unit/ctest_position_map.c": 10,
+        "gyrokinetic/zero/gkyl_position_map_priv.h": 1
+      }
+    }
+  ]
+}

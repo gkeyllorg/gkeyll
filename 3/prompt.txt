@@ -1,0 +1,9 @@
+Examine the sign conventions in mirror_grid_gen.c Ensure that this convention is consistent and the geometry is correct. In particular, I think there is a negative sign in calculating the magnetic field. Make the appropriate changes
+
+---
+
+The code is in right handed cylindrical coordinates
+
+---
+
+The code is in right handed cylindrical coordinates
