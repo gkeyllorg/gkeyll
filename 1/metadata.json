@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2NNM6FKZS8KXT3EG95D72Q5",
+  "session_id": "01a0ab54-b716-7bc0-858f-75508d841f9b",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-16T17:53:25.807483132Z",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/unit/ctest_geometry_nonuniform.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mapc2p.c",
+    "gyrokinetic/unit/ctest_gk_geometry_tok.c",
+    "gyrokinetic/unit/ctest_mirror_grid_gen.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "7f95ab0e6d70",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 71977,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 740224,
+    "output_tokens": 7502,
+    "api_call_count": 15
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-16T17:53:25.764266718Z",
+    "agent_lines": 689,
+    "agent_removed": 486,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 689,
+    "total_lines_changed": 1175,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1079,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/naming-conventions/SKILL.md": 1,
+        "BUG_REPORT.md": 195,
+        "CHANGES.md": 469,
+        "gyrokinetic/creg/check_nonuniform_mpi.py": 91,
+        "gyrokinetic/creg/nonuniform_validation.md": 178,
+        "gyrokinetic/unit/mirror_grid_gen_review.md": 145
+      }
+    }
+  ]
+}
