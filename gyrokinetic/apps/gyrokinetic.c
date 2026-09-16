@@ -3558,6 +3558,10 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   struct gkyl_app_restart_status rstat = gkyl_gyrokinetic_app_from_file_species(app, sidx, fileNm.str);
   cstr_drop(&fileNm);
 
+  // Restore the state of the adaptive sources from the previous simulation.
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS && gk_s->src.source_id)
+    gk_species_source_read_adapt_state(app, gk_s, &gk_s->src, rstat.stime);
+
   // Append to existing integrated diagnostics.
   app->is_first_dt_write_call = false;
   gk_s->is_first_integ_write_call = false;
@@ -3570,8 +3574,11 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
     gk_s->positivity.is_first_integ_write_call = false;
   if (gk_s->rad.radiation_id == GKYL_GK_RADIATION)
     gk_s->rad.is_first_integ_write_call = false;
-  if (gk_s->src.source_id)
+  if (gk_s->src.source_id) {
     gk_s->src.is_first_integ_write_call = false;
+    if (gk_s->src.num_adapt_sources > 0)
+      gk_s->src.is_first_integ_write_call_adapt = false;
+  }
   if (gk_s->lte.correct_all_moms)
     gk_s->lte.is_first_corr_status_write_call = false;
 

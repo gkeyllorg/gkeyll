@@ -295,6 +295,24 @@ gk_species_source_adapt_disabled(gkyl_gyrokinetic_app *app, struct gk_species *s
 }
 
 static void
+gk_species_source_adapt_set_state(gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_source *src, int k, double particle_src, double energy_src, double temperature)
+{
+  // Update the density and temperature moments of the k-th adaptive source
+  // (the source must be reprojected afterwards with gk_species_source_calc).
+  gkyl_array_clear(src->proj_source[k].prim_moms, 0.0);
+  gkyl_array_set_offset(src->proj_source[k].prim_moms, particle_src, src->proj_source[k].gaussian_profile, 0*app->basis.num_basis);
+  // The parallel velocity is left to be 0
+  double dg_norm = pow(sqrt(2.0), app->cdim);
+  gkyl_array_shiftc(src->proj_source[k].prim_moms, dg_norm * temperature / s->info.mass, 2*app->basis.num_basis);
+
+  // Refresh the current values of particle, energy and temperature (can be used for control).
+  src->adapt[k].particle_src_curr = particle_src;
+  src->adapt[k].energy_src_curr = energy_src;
+  src->adapt[k].temperature_curr = temperature;
+}
+
+static void
 gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_source *src, struct gkyl_array *f_buffer, struct gkyl_array **bflux_moms[], double tm)
 {
@@ -348,30 +366,26 @@ gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
     double energy_src_new = adapt_src->adapt_energy?
       energy_input + energy_compensation : energy_input;
 
-    // Avoid negative particle source.
-    // This is important to avoid division by zero in the temperature calculation.
-    particle_src_new = fmax(particle_input, particle_src_new);
-    
     // Compute the target temperature of the source following the rule:
     // T = 2/3 * Q/G (T: src temperature, Q: src energy rate, G: total particle rate)
     const double vdim_phys = s->info.vdim == 1? 1.0 : 3.0;
-    double temperature_new = (2./vdim_phys) * energy_src_new/particle_src_new;
+
+    // Avoid negative particle source (e.g. if the particle loss is negative).
+    // Floor the particle rate to the minimum rate needed to inject the source
+    // power at the maximum source temperature, G_min = 2/3 * Q/T_max, so the
+    // source cannot collapse to zero and never recover.
+    // This is also important to avoid division by zero in the temperature calculation.
+    double particle_src_min = (2./vdim_phys) * fmax(energy_src_new, 0.0) / s->info.source.projection[k].temp_max;
+    particle_src_new = fmax(particle_src_new, fmax(particle_input, particle_src_min));
+
+    double temperature_new = particle_src_new > 0.0? (2./vdim_phys) * energy_src_new/particle_src_new
+                                                    : s->info.source.projection[k].temp_min;
 
     // Impose the temperature to be within the limits.  
     temperature_new = fmin(temperature_new, s->info.source.projection[k].temp_max);
     temperature_new = fmax(temperature_new, s->info.source.projection[k].temp_min);
 
-    // Update the density and temperature moments of the source
-    gkyl_array_clear(src->proj_source[k].prim_moms, 0.0);
-    gkyl_array_set_offset(src->proj_source[k].prim_moms, particle_src_new, src->proj_source[k].gaussian_profile, 0*app->basis.num_basis);
-    // The parallel velocity is left to be 0
-    double dg_norm = pow(sqrt(2.0), app->cdim);
-    gkyl_array_shiftc(src->proj_source[k].prim_moms, dg_norm * temperature_new / s->info.mass, 2*app->basis.num_basis);
-
-    // Refresh the current values of particle, energy and temperature (can be used for control).
-    adapt_src->particle_src_curr = particle_src_new;
-    adapt_src->energy_src_curr = energy_src_new;
-    adapt_src->temperature_curr = temperature_new;
+    gk_species_source_adapt_set_state(app, s, src, k, particle_src_new, energy_src_new, temperature_new);
   }
 
   // Reproject the source
@@ -385,6 +399,70 @@ gk_species_source_adapt_after_first_step(gkyl_gyrokinetic_app *app, struct gk_sp
   // Re-point to the function that adapts the source, so it doesn't happen the
   // first time we call gk_species_source_adapt.
   src->adapt_func = gk_species_source_adapt_enabled;
+}
+
+void
+gk_species_source_read_adapt_state(gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_source *src, double tm)
+{
+  int num_adapt = src->num_adapt_sources;
+  if (num_adapt == 0)
+    return;
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+
+  // Buffer layout: [status, particle rates (num_adapt), temperatures (num_adapt)].
+  // Only rank 0 reads the files, other ranks contribute zeros to the allreduce.
+  int num_vals = 1 + 2*num_adapt;
+  double state_local[num_vals], state_global[num_vals];
+  for (int i=0; i<num_vals; ++i)
+    state_local[i] = 0.0;
+
+  if (rank == 0) {
+    const char *diag_names[] = {"particle", "temperature"};
+    bool found = true;
+    for (int d=0; d<2 && found; ++d) {
+      const char *fmt = "%s-%s_adapt_sources_%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, diag_names[d]);
+      char fileNm[sz+1]; // Ensures no buffer overflow.
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, diag_names[d]);
+
+      found = gkyl_check_file_exists(fileNm) && gkyl_dynvec_read_ncomp(fileNm).ncomp == num_adapt;
+      if (found) {
+        gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, num_adapt);
+        gkyl_dynvec_read(dv, fileNm);
+        // Use the last entry at or before the restart time, since the previous
+        // simulation may have gone past the restart frame.
+        long idx = -1;
+        for (long i=gkyl_dynvec_size(dv)-1; i>=0; --i) {
+          if (gkyl_dynvec_get_tm(dv, i) <= tm*(1.0+1e-12)) {
+            idx = i;
+            break;
+          }
+        }
+        found = idx >= 0 && gkyl_dynvec_get(dv, idx, &state_local[1+d*num_adapt]);
+        gkyl_dynvec_release(dv);
+      }
+    }
+    state_local[0] = found? 1.0 : 0.0;
+  }
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, num_vals, state_local, state_global);
+
+  if (state_global[0] > 0.5) {
+    const double vdim_phys = s->info.vdim == 1? 1.0 : 3.0;
+    for (int k=0; k<num_adapt; ++k) {
+      double particle_src = state_global[1+k];
+      double temperature = state_global[1+num_adapt+k];
+      double energy_src = 0.5*vdim_phys * particle_src * temperature;
+      gk_species_source_adapt_set_state(app, s, src, k, particle_src, energy_src, temperature);
+    }
+    gk_species_source_calc(app, s, src, s->lte.f_lte, tm);
+  }
+  else {
+    gkyl_gyrokinetic_app_cout(app, stderr, "WARNING: could not restore the adaptive source state of species %s"
+      " from its adapt_sources diagnostics; restarting from the input source.\n", s->info.name);
+  }
 }
 
 void 
