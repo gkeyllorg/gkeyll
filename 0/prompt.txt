@@ -1,0 +1,73 @@
+In this branch we added Jenkins CI. Part of it requires a GitHub fine grained access token. Is that only possible for administrators of Gkeyll, or could other non admin developers use this Jenkins CI?
+
+---
+
+Where in Gkeyll can I allow this?
+
+---
+
+What does a non-admin user have to do next?
+
+---
+
+but gkeyllorg doesn't appear in the list of resource owners in the non-admin user's account
+
+---
+
+right now this user is listed as an outside collaborator in our org. What should I do?
+
+---
+
+I had to make the collaborator a member, but does that give him equal rights as myself (the org admin or owner)?
+
+---
+
+So the only possible way for contributors to the gkeyllorg/gkeyll code to obtain a token with "Commit status: read and write" permission is to make them a member of the gkeyllorg GitHub organization? There's not other possibility or work around?
+
+---
+
+For option 1: I would create a GitHub fine-grained PAT from my account, and share that with other contributors, but it'd be ok because the permissions would only be for reading, and posting comit statuses?
+
+Regarding option 2: what are the pros and cons of a GitHub App? how would that interact with our Jenkins CI system? would maintainability be a problem?
+
+---
+
+Ok, i'm leaning towards option 1 with a dedicated gkeyll-ci member account and its fine-grainted PAT. But when you say the fine-grained is "kept solely in Jenkins", where exactly is it placed? in the Jenkinsfiles in the repo?
+
+---
+
+But when a new contributor to gkeyllorg/gkeyll.git comes along and wants to run CI to check if their contribution is safe, how would they get the gkeyll-ci PAT?
+
+---
+
+I think this doesn't sound quite right because it assumes I can create a Jenkins user for each contributor in my own account, where my controller lives. My intended CI model was for each user to create their own controller/node and be responsible for running CI themselves, without access to my controller. Or am I misunderstanding something?
+
+---
+
+My organization already allows a classic PAT. Can you go through the pros and cons of that?
+
+---
+
+the repo is public and contributors have push permission
+
+---
+
+Can you make a plan for the corresponding changes needed? especially to the various README files to make sure users create the right PAT.
+
+---
+
+Sure, let's go with that.
+
+---
+
+I like this plan but I want to clarify a couple of things first:
+1. Does this change anything for our ability to test specific candidate ref's? i.e. not just test a PR, but test specific commits or branches.
+2. How would I or someone else with push access test a PR opened from a fork (by someone who's not necessarily a core contributor)?
+
+---
+
+Implement the plan.
+
+---
+
+I'd rather you remove "Classic PAT scopes cannot be restricted to one repository, so it can publish statuses for other repositories the owner can access" from the README files.

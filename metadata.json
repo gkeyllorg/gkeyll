@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2P9TE9269QVPPKSAK0H6JQJ",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-new_permits",
+  "checkpoints_count": 18,
+  "files_touched": [
+    "ci/jenkins/Jenkinsfile.perlmutter_gpu",
+    "ci/jenkins/Jenkinsfile.stellar_cpu",
+    "ci/jenkins/README.md",
+    "ci/jenkins/README.perlmutter_gpu.md",
+    "ci/jenkins/README.personal.md",
+    "ci/jenkins/README.stellar_cpu.md",
+    "ci/jenkins/README.team_workstation.md",
+    "ci/jenkins/jenkinsfile.personal"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 187106,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2953216,
+    "output_tokens": 26542,
+    "api_call_count": 44
+  }
+}
