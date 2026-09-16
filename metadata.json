@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2NAG7FR9NX4E6SCXRS991YE",
+  "strategy": "manual-commit",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "gyrokinetic/unit/ctest_geometry_nonuniform.c",
+    "gyrokinetic/zero/gkyl_gk_geometry_priv.h"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 7954,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 319232,
+    "output_tokens": 3247,
+    "api_call_count": 4
+  }
+}
