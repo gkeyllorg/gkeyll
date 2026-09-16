@@ -24,6 +24,11 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
   int poly_order = inp->conf_basis->poly_order;
 
   up->cdim = cdim;
+  // Position map: acquired for lifetime safety; jacob_pos borrowed (extended
+  // conf range; per-cell constant blocks).
+  assert(inp->pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
   up->use_gpu = inp->use_gpu; 
   up->conf_grid = *inp->conf_grid;
   up->gr_maxwell_data.chi = inp->chi;
@@ -155,6 +160,9 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
       long cidx_l = gkyl_range_idx(conf_range, idx_l); 
       const double *field_no_J_con_l = gkyl_array_cfetch(field_no_J_con, cidx_l);
       const double *field_con_l = gkyl_array_cfetch(field_con, cidx_l);
+      // Per-side position-map Jacobians (cell constants; jump at the interface).
+      const double *jacob_pos_l = gkyl_array_cfetch(up->jacob_pos, cidx_l);
+      const double *jacob_pos_c = gkyl_array_cfetch(up->jacob_pos, cidx);
 
       // For Points not along the domain-edge in theta, compute the left hand surface 
       // conf-flux.
@@ -166,6 +174,7 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
       }
 
       cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->conf_grid.dx, theta_pole,
+        jacob_pos_l, jacob_pos_c,
         lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_l, field_con_c,
          field_no_J_con_l, field_no_J_con_c, flux);     
 
@@ -209,7 +218,10 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
         }
 
         gkyl_rect_grid_cell_center(&up->conf_grid, idx_r, xcR);
+        // Ghost-owned flux: the current cell is the l side, the ghost the r side.
+        const double *jacob_pos_r = gkyl_array_cfetch(up->jacob_pos, cidx_r);
         cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->conf_grid.dx, theta_pole,
+        jacob_pos_c, jacob_pos_r,
         lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_c, field_con_r,
         field_no_J_con_c, field_no_J_con_r, flux_r);
       }
@@ -220,6 +232,7 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
 void
 gkyl_dg_gr_maxwell_conf_flux_surf_release(struct gkyl_dg_gr_maxwell_conf_flux_surf* up)
 {
+  gkyl_vlasov_position_map_release(up->pos_map);
   // Release memory associated with this updater.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)

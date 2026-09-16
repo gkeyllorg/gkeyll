@@ -29,6 +29,12 @@
 # define GKYL_RESTRICT restrict
 #endif
 
+// Keep small helpers out of huge generated kernels: inlining them hundreds
+// of times into the comps-split volume wrappers makes the loop vectorizer's
+// compile time explode (minutes to hours at -O3); non-inlined they cost
+// nothing measurable and the file compiles in seconds.
+#define GKYL_NOINLINE __attribute__((noinline))
+
 // Maximum configuration-space dimensions supported
 #ifndef GKYL_MAX_CDIM
 # define GKYL_MAX_CDIM 3
@@ -103,6 +109,18 @@
 
 #define GKYL_CU_DH __device__ __host__
 #define GKYL_CU_D __device__ 
+// Qualifier for static const lookup tables that are read from GKYL_CU_DH
+// (__host__ __device__) kernels. nvcc compiles each translation unit once for
+// the host and once per device architecture; a plain __device__ table would be
+// read across the host/device boundary in the host pass (warning #20091, and
+// formally unsupported). Emitting the table as __device__ only in the device
+// pass and as an ordinary host constant in the host pass gives each pass its
+// own copy of the same constant data.
+#if defined(__CUDA_ARCH__)
+#define GKYL_CU_TABLE __device__
+#else
+#define GKYL_CU_TABLE
+#endif
 
 // for directional copies
 enum gkyl_cu_memcpy_kind {
@@ -132,6 +150,7 @@ inline cudaError_t __checkCudaErrors__(cudaError_t code, const char *func, const
 #undef GKYL_HAVE_CUDA
 #define GKYL_CU_DH
 #define GKYL_CU_D
+#define GKYL_CU_TABLE
 #define checkCuda(val) 
 // for directional copies
 enum gkyl_cu_memcpy_kind {

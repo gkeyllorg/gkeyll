@@ -24,6 +24,13 @@ endif
 OBJS := $(SRCS:%=../$(BUILD_DIR)/gyrokinetic/%.o)
 DEPS := $(OBJS:.o=.d)
 
+# Compile flags come from config.mak (feature and kernel-set knobs), so a
+# configuration change rebuilds the code that was compiled with the old flags:
+# the zero/apps layers, unit tests and regression binaries. Generated kernels
+# do not depend on those flags and are left alone (a full kernel rebuild is
+# tens of minutes under nvcc).
+$(filter-out ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/%,$(OBJS)) $(UNITS) $(REGS): $(wildcard ../config.mak)
+
 UNITS := $(patsubst %.c,../${BUILD_DIR}/gyrokinetic/%,$(wildcard unit/ctest_*.c))
 MPI_UNITS := $(patsubst %.c,../${BUILD_DIR}/gyrokinetic/%,$(wildcard unit/mctest_*.c))
 LUA_UNITS := $(patsubst %.c,../${BUILD_DIR}/gyrokinetic/%,$(wildcard unit/lctest_*.c))

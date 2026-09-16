@@ -26,6 +26,9 @@ gkyl_dg_gr_maxwell_lorentz_conf_inew(const struct gkyl_dg_gr_maxwell_lorentz_con
   assert(kernel_index != -1);
 
   up->conf_grid = *inp->conf_grid;
+  assert(inp->pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
   up->gr_maxwell_data.chi = inp->chi;
   up->gr_maxwell_data.gamma = inp->gamma;
   up->gr_maxwell_data.K_phi = inp->K_phi;
@@ -87,6 +90,7 @@ gkyl_dg_gr_maxwell_lorentz_conf_advance(struct gkyl_dg_gr_maxwell_lorentz_conf *
     for (int k=0; k<3*num_basis; ++k) B_conf_for_force[k] = 0.0;
 
     up->lorentz_conf(&up->gr_maxwell_data, up->conf_grid.dx,
+      gkyl_array_cfetch(up->jacob_pos, cidx),
       gkyl_array_cfetch(lapse->nodal_arr_vol, cidx),
       gkyl_array_cfetch(shift->nodal_arr_vol, cidx),
       gkyl_array_cfetch(h_ij->nodal_arr_vol, cidx),
@@ -114,6 +118,7 @@ gkyl_dg_gr_maxwell_lorentz_conf_advance(struct gkyl_dg_gr_maxwell_lorentz_conf *
 void
 gkyl_dg_gr_maxwell_lorentz_conf_release(struct gkyl_dg_gr_maxwell_lorentz_conf* up)
 {
+  gkyl_vlasov_position_map_release(up->pos_map);
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
 

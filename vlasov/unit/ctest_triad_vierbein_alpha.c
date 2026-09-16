@@ -16,7 +16,8 @@
 #include <gkyl_util.h>
 
 #include <gkyl_vlasov_kernels.h>
-#include <gkyl_nc_hamil_vol_comps_kernels.h>
+#include <gkyl_flux_vlasov_kernels.h>
+#include <gkyl_nc_hamil_gen_vol_comps_kernels.h>
 
 // allocate array (filled with zeros)
 static struct gkyl_array*
@@ -78,7 +79,7 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Construct the input map
-  struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
   inp_triad_geom.use_vierbein = true;
   inp_triad_geom.use_preset_geom = false;
   inp_triad_geom.eval_vierbein = eval_ks_rphi_vierbein_2v; 
@@ -385,10 +386,22 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
       const double *conf_poisson_tensor_d = gkyl_array_cfetch(conf_poisson_tensor, cidx);
 
       gkyl_rect_grid_cell_center(&grid, idx, xcC);
-      hamil_phase_ho_alpha_quad_x_2x2v_ser_p2(xcC, grid.dx, -1, conf_poisson_tensor_d, hamil_d, alpha_quad_r);
-      hamil_phase_ho_alpha_quad_y_2x2v_ser_p2(xcC, grid.dx, -1, conf_poisson_tensor_d, hamil_d, alpha_quad_phi);
-      nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2(xcC, grid.dx, conf_poisson_tensor_d, hamil_d, alpha_quad_vr);
-      nc_hamil_phase_ho_alpha_quad_vy_2x2v_ser_p2(xcC, grid.dx, conf_poisson_tensor_d, hamil_d, alpha_quad_vphi);
+      // Identity mesh maps for the direct kernel calls (2x2v p=2): the maps
+      // are required arguments; identity => Jacobians of 1.0 and the linear
+      // vmap encoding v = w + (dv/2)*xi in slots [0],[1] of each 4-slot block.
+      double vmap_id[8] = {0.0};
+      for (int d=0; d<2; ++d) {
+        vmap_id[4*d+0] = sqrt(2.0)*xcC[2+d];
+        vmap_id[4*d+1] = (grid.dx[2+d]/2.0)/sqrt(1.5);
+      }
+      double jacob_pos_id[6], jacob_vel_id[6], jacob_vel_surf_id[8];
+      for (int k=0; k<6; ++k) { jacob_pos_id[k] = 1.0; jacob_vel_id[k] = 1.0; }
+      for (int k=0; k<8; ++k) jacob_vel_surf_id[k] = 1.0;
+
+      hamil_phase_ho_alpha_quad_x_2x2v_ser_p2(xcC, grid.dx, -1, vmap_id, jacob_pos_id, jacob_vel_surf_id, conf_poisson_tensor_d, hamil_d, alpha_quad_r);
+      hamil_phase_ho_alpha_quad_y_2x2v_ser_p2(xcC, grid.dx, -1, vmap_id, jacob_pos_id, jacob_vel_surf_id, conf_poisson_tensor_d, hamil_d, alpha_quad_phi);
+      nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2(xcC, grid.dx, vmap_id, jacob_pos_id, jacob_vel_surf_id, conf_poisson_tensor_d, hamil_d, alpha_quad_vr);
+      nc_hamil_phase_ho_alpha_quad_vy_2x2v_ser_p2(xcC, grid.dx, vmap_id, jacob_pos_id, jacob_vel_surf_id, conf_poisson_tensor_d, hamil_d, alpha_quad_vphi);
 
       //printf("\n");
       for (int m = 0; m<48; ++m) {
@@ -410,10 +423,10 @@ test_triad_2x2v_rphi_ks_pnt_alpha_p2()
       double alpha_vol_phi[48] = {0.0}; 
       double alpha_vol_vr[48] = {0.0}; 
       double alpha_vol_vphi[48] = {0.0}; 
-      vlasov_nc_hamil_phase_vol_alpha_2x2v_ser_p2(xcC, grid.dx, 0, conf_poisson_tensor_d, hamil_d, alpha_vol_r);
-      vlasov_nc_hamil_phase_vol_alpha_2x2v_ser_p2(xcC, grid.dx, 1, conf_poisson_tensor_d, hamil_d, alpha_vol_phi);
-      vlasov_nc_hamil_phase_vol_alpha_2x2v_ser_p2(xcC, grid.dx, 2, conf_poisson_tensor_d, hamil_d, alpha_vol_vr);
-      vlasov_nc_hamil_phase_vol_alpha_2x2v_ser_p2(xcC, grid.dx, 3, conf_poisson_tensor_d, hamil_d, alpha_vol_vphi);
+      vlasov_nc_hamil_phase_vol_alpha_2x2v_ser_p2(xcC, grid.dx, 0, vmap_id, jacob_pos_id, jacob_vel_id, conf_poisson_tensor_d, hamil_d, alpha_vol_r);
+      vlasov_nc_hamil_phase_vol_alpha_2x2v_ser_p2(xcC, grid.dx, 1, vmap_id, jacob_pos_id, jacob_vel_id, conf_poisson_tensor_d, hamil_d, alpha_vol_phi);
+      vlasov_nc_hamil_phase_vol_alpha_2x2v_ser_p2(xcC, grid.dx, 2, vmap_id, jacob_pos_id, jacob_vel_id, conf_poisson_tensor_d, hamil_d, alpha_vol_vr);
+      vlasov_nc_hamil_phase_vol_alpha_2x2v_ser_p2(xcC, grid.dx, 3, vmap_id, jacob_pos_id, jacob_vel_id, conf_poisson_tensor_d, hamil_d, alpha_vol_vphi);
 
       for (int m = 0; m<48; ++m) {
         //printf("alpha(r): %1.16e, alpha(phi): %1.16e, alpha(vr): %1.16e, alpha(vphi): %1.16e\n", alpha_vol_r[m], alpha_vol_phi[m], alpha_vol_vr[m], alpha_vol_vphi[m]);

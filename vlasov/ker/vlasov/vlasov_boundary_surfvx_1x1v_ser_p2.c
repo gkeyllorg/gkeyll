@@ -1,33 +1,29 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_nod2mod_tables_1x1v_ser_p2.h> 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv,
   const int edge, const double *flux, double* GKYL_RESTRICT out) 
 { 
   double dv10 = 2.0/dxv[1]; 
-
-  const double *Fhat_nodal = &flux[0]; 
+  for (int k = 0; k < 3; ++k) { 
+  const int a = vst_1x1v_ser_p2_prj_v0_kamap[k]; 
+  const int b = vst_1x1v_ser_p2_prj_v0_kbmap[k]; 
+  double g = 0.0; 
+  for (int i = 0; i < 3; ++i) { 
+    double t = 0.0; 
+    for (int j = 0; j < 1; ++j) { 
+      t += vst_1x1v_ser_p2_prj_v0_Vw[j*1 + b]*flux[0 + i*1 + j]; 
+    } 
+    g += vst_1x1v_ser_p2_prj_v0_Cw[i*3 + a]*t; 
+  } 
   if (edge == -1) { 
-
-  out[0] += ((-0.2777777777777778*Fhat_nodal[2])-0.4444444444444444*Fhat_nodal[1]-0.2777777777777778*Fhat_nodal[0])*dv10; 
-  out[1] += (0.3726779962499649*Fhat_nodal[0]-0.3726779962499649*Fhat_nodal[2])*dv10; 
-  out[2] += ((-0.4811252243246882*Fhat_nodal[2])-0.7698003589195012*Fhat_nodal[1]-0.4811252243246882*Fhat_nodal[0])*dv10; 
-  out[3] += (0.6454972243679029*Fhat_nodal[0]-0.6454972243679029*Fhat_nodal[2])*dv10; 
-  out[4] += ((-0.2484519974999766*Fhat_nodal[2])+0.4969039949999532*Fhat_nodal[1]-0.2484519974999766*Fhat_nodal[0])*dv10; 
-  out[5] += ((-0.6211299937499417*Fhat_nodal[2])-0.9938079899999065*Fhat_nodal[1]-0.6211299937499417*Fhat_nodal[0])*dv10; 
-  out[6] += ((-0.4303314829119352*Fhat_nodal[2])+0.8606629658238704*Fhat_nodal[1]-0.4303314829119352*Fhat_nodal[0])*dv10; 
-  out[7] += (0.8333333333333335*Fhat_nodal[0]-0.8333333333333335*Fhat_nodal[2])*dv10; 
-
+    for (int q = vst_1x1v_ser_p2_prj_v0_out_off[k]; q < vst_1x1v_ser_p2_prj_v0_out_off[k+1]; ++q) { 
+      out[vst_1x1v_ser_p2_prj_v0_out_mode[q]] += dv10*vst_1x1v_ser_p2_prj_v0_out_cr[q]*g; 
+    } 
   } else { 
-
-  out[0] += (0.2777777777777778*Fhat_nodal[2]+0.4444444444444444*Fhat_nodal[1]+0.2777777777777778*Fhat_nodal[0])*dv10; 
-  out[1] += (0.3726779962499649*Fhat_nodal[2]-0.3726779962499649*Fhat_nodal[0])*dv10; 
-  out[2] += ((-0.4811252243246882*Fhat_nodal[2])-0.7698003589195012*Fhat_nodal[1]-0.4811252243246882*Fhat_nodal[0])*dv10; 
-  out[3] += (0.6454972243679029*Fhat_nodal[0]-0.6454972243679029*Fhat_nodal[2])*dv10; 
-  out[4] += (0.2484519974999766*Fhat_nodal[2]-0.4969039949999532*Fhat_nodal[1]+0.2484519974999766*Fhat_nodal[0])*dv10; 
-  out[5] += (0.6211299937499417*Fhat_nodal[2]+0.9938079899999065*Fhat_nodal[1]+0.6211299937499417*Fhat_nodal[0])*dv10; 
-  out[6] += ((-0.4303314829119352*Fhat_nodal[2])+0.8606629658238704*Fhat_nodal[1]-0.4303314829119352*Fhat_nodal[0])*dv10; 
-  out[7] += (0.8333333333333335*Fhat_nodal[2]-0.8333333333333335*Fhat_nodal[0])*dv10; 
-
+    for (int q = vst_1x1v_ser_p2_prj_v0_out_off[k]; q < vst_1x1v_ser_p2_prj_v0_out_off[k+1]; ++q) { 
+      out[vst_1x1v_ser_p2_prj_v0_out_mode[q]] += dv10*vst_1x1v_ser_p2_prj_v0_out_cl[q]*g; 
+    } 
+  } 
   } 
   return 0.0;
-
 } 

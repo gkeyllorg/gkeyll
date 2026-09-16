@@ -281,6 +281,15 @@ gkyl_vlasov_position_map_eval_mc2p(const struct gkyl_vlasov_position_map *vpm,
   // 1D p=3 modal basis evaluates each direction's expansion (linear here: only
   // the first two modes are nonzero). Mirrors gkyl_velocity_map_eval_c2p.
   int cdim = vpm->grid_pos.ndim;
+
+  // Identity map: computational coordinates ARE physical coordinates. Return
+  // them exactly (bitwise) instead of reconstructing x through the DG
+  // expansion, so uniform grids are truly unaffected by the map machinery.
+  if (vpm->is_identity) {
+    for (int d=0; d<cdim; ++d) xp[d] = xc[d];
+    return;
+  }
+
   struct gkyl_basis b1;
   gkyl_cart_modal_tensor(&b1, 1, 3);
 
@@ -446,8 +455,19 @@ gkyl_vlasov_position_map_divide_jacobpos_conf(const struct gkyl_vlasov_position_
   // J is constant in the cell and the division is exact. Only the first
   // num_coeff_divide coefficients are scaled (the J-carrying components); the
   // rest are copied through (intensive/ratio components, e.g. LTE V_drift, T/m).
-  // Uses the host Jacobian since moment I/O is host-side.
+  // Uses the host Jacobian for host arrays; device arrays go through the
+  // device kernel. Only cells in conf_range are written in either case.
   int ncomp = Jmom->ncomp;
+
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(mom_no_J)) {
+    assert(gkyl_array_is_cu_dev(Jmom));
+    gkyl_vlasov_position_map_divide_jacobpos_conf_cu(&vpm->local_pos, conf_range,
+      num_coeff_divide, vpm->jacob_pos_gauss, Jmom, mom_no_J);
+    return;
+  }
+#endif
+  assert(!gkyl_array_is_cu_dev(Jmom));
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
@@ -476,7 +496,18 @@ gkyl_vlasov_position_map_rescale_jacobpos_conf(const struct gkyl_vlasov_position
   // gkyl_vlasov_position_map_divide_jacobpos_conf with the full component count;
   // converts a physical conf field to the J-weighted form used for evolution
   // (e.g. E -> J*E at initialization/restart). Exact (J constant in cell).
+  // Device arrays go through the device kernel; only conf_range is written.
   int ncomp = a_no_J->ncomp;
+
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(Ja)) {
+    assert(gkyl_array_is_cu_dev(a_no_J));
+    gkyl_vlasov_position_map_rescale_jacobpos_conf_cu(&vpm->local_pos, conf_range,
+      vpm->jacob_pos_gauss, a_no_J, Ja);
+    return;
+  }
+#endif
+  assert(!gkyl_array_is_cu_dev(a_no_J));
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);

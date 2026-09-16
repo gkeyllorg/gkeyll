@@ -5,7 +5,7 @@ GKYL_CU_DH void hamil_sr_1v_ser_p2(const double *w, const double *dxv, const dou
   // dxv: Cell spacing of velocity grid.
   // vmap: Velocity-space map (C^1 cubic for tensor bases, C^0 linear for Serendipity bases, stored in the same vdim*4 layout).
   // hamil: Particle Hamiltonian.
-  // hamil_inv: Inverse particle Hamiltonian. Utilized by relativistic simulations. 
+  // hamil_inv: Inverse particle Hamiltonian. Only meaningful for relativistic simulations; zeroed for the non-relativistic Hamiltonian (1/H is singular at v = 0 and unused).
  
   const double *vmap_vx = &vmap[0]; 
   double hamil_nodal[3] = {0.0};

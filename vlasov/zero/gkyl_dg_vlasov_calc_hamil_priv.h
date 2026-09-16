@@ -39,18 +39,18 @@ static const gkyl_dg_calc_hamil_kern_list ser_hamil_sr_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_calc_hamil_kern_list tensor_hamil_default_kernels[] = {
   // 1x kernels
-  { NULL, NULL, hamil_default_1v_tensor_p2, hamil_default_1v_tensor_p3 }, // 0
-  { NULL, NULL, hamil_default_2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, hamil_default_3v_tensor_p2, NULL }, // 2
+  { NULL, hamil_default_1v_tensor_p1, hamil_default_1v_tensor_p2, hamil_default_1v_tensor_p3 }, // 0
+  { NULL, hamil_default_2v_tensor_p1, hamil_default_2v_tensor_p2, NULL }, // 1
+  { NULL, hamil_default_3v_tensor_p1, hamil_default_3v_tensor_p2, NULL }, // 2
 };
 
 // Relativistic Hamiltonian = sqrt(1 + u^2) (Tensor kernels).
 GKYL_CU_D
 static const gkyl_dg_calc_hamil_kern_list tensor_hamil_sr_kernels[] = {
   // 1x kernels
-  { NULL, NULL, hamil_sr_1v_tensor_p2, hamil_sr_1v_tensor_p3 }, // 0
-  { NULL, NULL, hamil_sr_2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, hamil_sr_3v_tensor_p2, NULL }, // 2
+  { NULL, hamil_sr_1v_tensor_p1, hamil_sr_1v_tensor_p2, hamil_sr_1v_tensor_p3 }, // 0
+  { NULL, hamil_sr_2v_tensor_p1, hamil_sr_2v_tensor_p2, NULL }, // 1
+  { NULL, hamil_sr_3v_tensor_p1, hamil_sr_3v_tensor_p2, NULL }, // 2
 };
 
 GKYL_CU_D

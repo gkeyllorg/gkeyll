@@ -1,49 +1,29 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_nod2mod_tables_1x1v_tensor_p3.h> 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_tensor_p3(const double *w, const double *dxv,
   const int edge, const double *flux, double* GKYL_RESTRICT out) 
 { 
   double dv10 = 2.0/dxv[1]; 
-
-  const double *Fhat_nodal = &flux[0]; 
+  for (int k = 0; k < 4; ++k) { 
+  const int a = vst_1x1v_tensor_p3_prj_v0_kamap[k]; 
+  const int b = vst_1x1v_tensor_p3_prj_v0_kbmap[k]; 
+  double g = 0.0; 
+  for (int i = 0; i < 5; ++i) { 
+    double t = 0.0; 
+    for (int j = 0; j < 1; ++j) { 
+      t += vst_1x1v_tensor_p3_prj_v0_Vw[j*1 + b]*flux[0 + i*1 + j]; 
+    } 
+    g += vst_1x1v_tensor_p3_prj_v0_Cw[i*4 + a]*t; 
+  } 
   if (edge == -1) { 
-
-  out[0] += ((-0.1184634425280946*Fhat_nodal[4])-0.2393143352496831*Fhat_nodal[3]-0.2844444444444445*Fhat_nodal[2]-0.2393143352496831*Fhat_nodal[1]-0.1184634425280946*Fhat_nodal[0])*dv10; 
-  out[1] += ((-0.1859342410113515*Fhat_nodal[4])-0.2231979993378559*Fhat_nodal[3]+0.2231979993378559*Fhat_nodal[1]+0.1859342410113515*Fhat_nodal[0])*dv10; 
-  out[2] += ((-0.2051847012981755*Fhat_nodal[4])-0.4145045876320226*Fhat_nodal[3]-0.4926722297084807*Fhat_nodal[2]-0.4145045876320226*Fhat_nodal[1]-0.2051847012981755*Fhat_nodal[0])*dv10; 
-  out[3] += ((-0.3220475522984177*Fhat_nodal[4])-0.3865902750008912*Fhat_nodal[3]+0.3865902750008912*Fhat_nodal[1]+0.3220475522984177*Fhat_nodal[0])*dv10; 
-  out[4] += ((-0.1938330593514186*Fhat_nodal[4])+0.03482378095143357*Fhat_nodal[3]+0.3180185567999701*Fhat_nodal[2]+0.03482378095143357*Fhat_nodal[1]-0.1938330593514186*Fhat_nodal[0])*dv10; 
-  out[5] += ((-0.264892310341459*Fhat_nodal[4])-0.5351231216084656*Fhat_nodal[3]-0.6360371135999403*Fhat_nodal[2]-0.5351231216084656*Fhat_nodal[1]-0.264892310341459*Fhat_nodal[0])*dv10; 
-  out[6] += ((-0.3357287069831708*Fhat_nodal[4])+0.06031655791953221*Fhat_nodal[3]+0.5508242981272772*Fhat_nodal[2]+0.06031655791953221*Fhat_nodal[1]-0.3357287069831708*Fhat_nodal[0])*dv10; 
-  out[7] += ((-0.4157616022462114*Fhat_nodal[4])-0.4990858989613992*Fhat_nodal[3]+0.4990858989613992*Fhat_nodal[1]+0.4157616022462114*Fhat_nodal[0])*dv10; 
-  out[8] += ((-0.1570355987780474*Fhat_nodal[4])+0.2642722473443246*Fhat_nodal[3]-0.2642722473443246*Fhat_nodal[1]+0.1570355987780474*Fhat_nodal[0])*dv10; 
-  out[9] += ((-0.3134248083819311*Fhat_nodal[4])-0.6331662162434001*Fhat_nodal[3]-0.752569261813928*Fhat_nodal[2]-0.6331662162434001*Fhat_nodal[1]-0.3134248083819311*Fhat_nodal[0])*dv10; 
-  out[10] += ((-0.4334238969965234*Fhat_nodal[4])+0.07786834144096777*Fhat_nodal[3]+0.7111111111111112*Fhat_nodal[2]+0.07786834144096777*Fhat_nodal[1]-0.4334238969965234*Fhat_nodal[0])*dv10; 
-  out[11] += ((-0.2719936356805793*Fhat_nodal[4])+0.4577329594307796*Fhat_nodal[3]-0.4577329594307796*Fhat_nodal[1]+0.2719936356805793*Fhat_nodal[0])*dv10; 
-  out[12] += ((-0.4919357619275829*Fhat_nodal[4])-0.5905263993751261*Fhat_nodal[3]+0.5905263993751261*Fhat_nodal[1]+0.4919357619275829*Fhat_nodal[0])*dv10; 
-  out[13] += ((-0.351142273755097*Fhat_nodal[4])+0.5909307096285482*Fhat_nodal[3]-0.5909307096285482*Fhat_nodal[1]+0.351142273755097*Fhat_nodal[0])*dv10; 
-  out[14] += ((-0.5128340709066764*Fhat_nodal[4])+0.09213506410848148*Fhat_nodal[3]+0.84139801359639*Fhat_nodal[2]+0.09213506410848148*Fhat_nodal[1]-0.5128340709066764*Fhat_nodal[0])*dv10; 
-  out[15] += ((-0.415477141350832*Fhat_nodal[4])+0.6991986448892327*Fhat_nodal[3]-0.6991986448892327*Fhat_nodal[1]+0.415477141350832*Fhat_nodal[0])*dv10; 
-
+    for (int q = vst_1x1v_tensor_p3_prj_v0_out_off[k]; q < vst_1x1v_tensor_p3_prj_v0_out_off[k+1]; ++q) { 
+      out[vst_1x1v_tensor_p3_prj_v0_out_mode[q]] += dv10*vst_1x1v_tensor_p3_prj_v0_out_cr[q]*g; 
+    } 
   } else { 
-
-  out[0] += (0.1184634425280946*Fhat_nodal[4]+0.2393143352496831*Fhat_nodal[3]+0.2844444444444445*Fhat_nodal[2]+0.2393143352496831*Fhat_nodal[1]+0.1184634425280946*Fhat_nodal[0])*dv10; 
-  out[1] += (0.1859342410113515*Fhat_nodal[4]+0.2231979993378559*Fhat_nodal[3]-0.2231979993378559*Fhat_nodal[1]-0.1859342410113515*Fhat_nodal[0])*dv10; 
-  out[2] += ((-0.2051847012981755*Fhat_nodal[4])-0.4145045876320226*Fhat_nodal[3]-0.4926722297084807*Fhat_nodal[2]-0.4145045876320226*Fhat_nodal[1]-0.2051847012981755*Fhat_nodal[0])*dv10; 
-  out[3] += ((-0.3220475522984177*Fhat_nodal[4])-0.3865902750008912*Fhat_nodal[3]+0.3865902750008912*Fhat_nodal[1]+0.3220475522984177*Fhat_nodal[0])*dv10; 
-  out[4] += (0.1938330593514186*Fhat_nodal[4]-0.03482378095143357*Fhat_nodal[3]-0.3180185567999701*Fhat_nodal[2]-0.03482378095143357*Fhat_nodal[1]+0.1938330593514186*Fhat_nodal[0])*dv10; 
-  out[5] += (0.264892310341459*Fhat_nodal[4]+0.5351231216084656*Fhat_nodal[3]+0.6360371135999403*Fhat_nodal[2]+0.5351231216084656*Fhat_nodal[1]+0.264892310341459*Fhat_nodal[0])*dv10; 
-  out[6] += ((-0.3357287069831708*Fhat_nodal[4])+0.06031655791953221*Fhat_nodal[3]+0.5508242981272772*Fhat_nodal[2]+0.06031655791953221*Fhat_nodal[1]-0.3357287069831708*Fhat_nodal[0])*dv10; 
-  out[7] += (0.4157616022462114*Fhat_nodal[4]+0.4990858989613992*Fhat_nodal[3]-0.4990858989613992*Fhat_nodal[1]-0.4157616022462114*Fhat_nodal[0])*dv10; 
-  out[8] += (0.1570355987780474*Fhat_nodal[4]-0.2642722473443246*Fhat_nodal[3]+0.2642722473443246*Fhat_nodal[1]-0.1570355987780474*Fhat_nodal[0])*dv10; 
-  out[9] += ((-0.3134248083819311*Fhat_nodal[4])-0.6331662162434001*Fhat_nodal[3]-0.752569261813928*Fhat_nodal[2]-0.6331662162434001*Fhat_nodal[1]-0.3134248083819311*Fhat_nodal[0])*dv10; 
-  out[10] += (0.4334238969965234*Fhat_nodal[4]-0.07786834144096777*Fhat_nodal[3]-0.7111111111111112*Fhat_nodal[2]-0.07786834144096777*Fhat_nodal[1]+0.4334238969965234*Fhat_nodal[0])*dv10; 
-  out[11] += ((-0.2719936356805793*Fhat_nodal[4])+0.4577329594307796*Fhat_nodal[3]-0.4577329594307796*Fhat_nodal[1]+0.2719936356805793*Fhat_nodal[0])*dv10; 
-  out[12] += ((-0.4919357619275829*Fhat_nodal[4])-0.5905263993751261*Fhat_nodal[3]+0.5905263993751261*Fhat_nodal[1]+0.4919357619275829*Fhat_nodal[0])*dv10; 
-  out[13] += (0.351142273755097*Fhat_nodal[4]-0.5909307096285482*Fhat_nodal[3]+0.5909307096285482*Fhat_nodal[1]-0.351142273755097*Fhat_nodal[0])*dv10; 
-  out[14] += ((-0.5128340709066764*Fhat_nodal[4])+0.09213506410848148*Fhat_nodal[3]+0.84139801359639*Fhat_nodal[2]+0.09213506410848148*Fhat_nodal[1]-0.5128340709066764*Fhat_nodal[0])*dv10; 
-  out[15] += ((-0.415477141350832*Fhat_nodal[4])+0.6991986448892327*Fhat_nodal[3]-0.6991986448892327*Fhat_nodal[1]+0.415477141350832*Fhat_nodal[0])*dv10; 
-
+    for (int q = vst_1x1v_tensor_p3_prj_v0_out_off[k]; q < vst_1x1v_tensor_p3_prj_v0_out_off[k+1]; ++q) { 
+      out[vst_1x1v_tensor_p3_prj_v0_out_mode[q]] += dv10*vst_1x1v_tensor_p3_prj_v0_out_cl[q]*g; 
+    } 
+  } 
   } 
   return 0.0;
-
 } 

@@ -63,6 +63,38 @@ enum gkyl_model_id {
   GKYL_MODEL_TRIAD_GR = 5,
 };
 
+// Identifiers for the representation of the Hamiltonian in the unified
+// Hamiltonian Vlasov solver. Decoupled from gkyl_model_id, which identifies
+// the bracket/geometry (default vs. triad vs. canonical-PB); the Hamiltonian
+// identifier determines both the storage (velocity-space vs. phase-space
+// basis expansion) and the sparsity of the kernels operating on it.
+enum gkyl_hamil_id {
+  GKYL_HAMIL_VEL_SPARSE = 0, // H = sum_i H_i(v_i) (e.g., H = v^2/2); velocity-space basis
+                             // expansion with cross-variable coefficients identically zero,
+                             // so kernels only reference single-velocity-variable coefficients.
+  GKYL_HAMIL_VEL_DENSE = 1, // General H(v) (e.g., H = sqrt(1 + p^2)); full velocity-space
+                            // basis expansion.
+  GKYL_HAMIL_PHASE = 2, // General H(x,v); full phase-space basis expansion.
+};
+
+// Derive the Hamiltonian representation from the subsidiary model:
+// default and triad models build H = v^2/2 (separable -> sparse), SR builds
+// H = sqrt(1 + p^2) (dense in velocity space), and canonical-PB/GR models
+// carry a general phase-space Hamiltonian.
+static inline enum gkyl_hamil_id
+gkyl_hamil_id_from_model_id(enum gkyl_model_id model_id)
+{
+  switch (model_id) {
+    case GKYL_MODEL_DEFAULT:
+    case GKYL_MODEL_TRIAD:
+      return GKYL_HAMIL_VEL_SPARSE;
+    case GKYL_MODEL_SR:
+      return GKYL_HAMIL_VEL_DENSE;
+    default:
+      return GKYL_HAMIL_PHASE;
+  }
+}
+
 // Identifiers for specific collision object types.
 enum gkyl_collision_id {
   GKYL_NO_COLLISIONS = 0, // No collisions. This is default.

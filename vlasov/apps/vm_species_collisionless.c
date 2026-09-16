@@ -48,7 +48,7 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
     &vms->local, fin, vms->f_no_J);
 
   // Compute the surface expansion of the phase space flux in configuration space. 
-  if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
+  if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
     gkyl_dg_vlasov_conf_flux_surf_advance(cls->calc_conf_flux, &app->local, &vms->local, &vms->local_ext, 
       vms->conf_poisson_tensor, vms->hamil, fin, vms->cflrate, cls->conf_flux_surf);
   }
@@ -140,6 +140,7 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
 
   if (cls->has_gr_em_triad_coupling) {
     struct gkyl_dg_gr_maxwell_lorentz_conf_inp inp_lorentz = {
+      .pos_map = vms->pos_map,
       .conf_grid = &app->grid,
       .conf_basis = &app->basis,
       .vdim = app->vdim,
@@ -185,16 +186,25 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   }
   cls->num_surf_vel_nodes = pow(app->poly_order+1+highorder, pdim - 1);
   if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-    cls->num_surf_vel_nodes = (int) ( pow(app->poly_order+1+highorder,vdim - 1) + pow(app->poly_order + 1,cdim) );
+    // Tensor p=1 hybrid: a velocity-direction surface has 2 nodes per
+    // configuration direction and 3 (lo) or 4 (ho) nodes per remaining
+    // velocity direction. Must match the vel_flux updater's
+    // num_nodes_conf*num_nodes_vel.
+    int nq_vel = cls->use_lo ? 3 : 4;
+    cls->num_surf_vel_nodes = (int) ( pow(2, cdim) * pow(nq_vel, vdim - 1) );
   }
 
   // Allocate nodal surface expansion of velocity space flux array (conf). 
-  if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
+  if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
 
     // Compute the number of configuration space nodes, with case for hybrid-tensor.
     cls->num_surf_conf_nodes = pow(app->poly_order+1+highorder,pdim - 1);
     if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-      cls->num_surf_conf_nodes = (int) ( pow(app->poly_order+1+highorder,vdim) + pow(app->poly_order + 1,cdim- 1) );
+      // Tensor p=1 hybrid: a configuration-direction surface has 2 nodes per
+      // remaining configuration direction and 3 (lo) or 4 (ho) nodes per
+      // velocity direction.
+      int nq_vel = cls->use_lo ? 3 : 4;
+      cls->num_surf_conf_nodes = (int) ( pow(2, cdim - 1) * pow(nq_vel, vdim) );
     }
 
     cls->conf_flux_surf = mkarr(app->use_gpu, cdim*cls->num_surf_conf_nodes, vms->local_ext.volume);
@@ -203,9 +213,12 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
       .conf_basis = &app->basis,
       .phase_basis = &vms->basis,
       .vel_range = &vms->local_vel,
+      .vel_map = vms->vel_map,
+      .pos_map = vms->pos_map,
       .hamil_range = &vms->hamil_range,
       .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
       .model_id = vms->model_id,
+      .hamil_id = vms->hamil_id,
       .use_lo = cls->use_lo,
       .use_gpu = app->use_gpu,
     }; 
@@ -223,6 +236,7 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
     .hamil_range = &vms->hamil_range,
     .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
     .model_id = vms->model_id,
+    .hamil_id = vms->hamil_id,
     .has_E = cls->has_E, 
     .has_phi = cls->has_phi, 
     .has_B = cls->has_B, 
@@ -242,6 +256,7 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
     .pos_map = vms->pos_map,
     .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0,
     .model_id = vms->model_id,
+    .hamil_id = vms->hamil_id,
     .has_E = cls->has_E, 
     .has_phi = cls->has_phi, 
     .has_B = cls->has_B, 
@@ -314,7 +329,7 @@ void
 vm_species_collisionless_release(const struct gkyl_vlasov_app *app, 
   const struct vm_species *vms, const struct vm_collisionless *cls)
 {
-  if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
+  if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
     gkyl_dg_vlasov_conf_flux_surf_release(cls->calc_conf_flux);
     gkyl_array_release(cls->conf_flux_surf);
   }

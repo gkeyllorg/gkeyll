@@ -201,6 +201,13 @@ gk_neut_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
   pos->write_integrated_diags_func_neut = gkns_pos_write_integrated_diags_disabled;
 
   if (pos->type) {
+    // Kinetic neutrals use the tensor p=1 hybrid phase basis (p=2 in velocity
+    // space), but the Vlasov positivity-shift kernels are generated for the
+    // pure p=1 basis only (64 modes at 3x3v vs. 216 for the hybrid), so the
+    // shift is not available for neutrals until hybrid kernels are generated.
+    if (gkns->basis.b_type == GKYL_BASIS_MODAL_HYBRID) {
+      gkyl_exit("gk_neut_species_positivity: positivity shift is not supported for the tensor p=1 hybrid neutral basis.");
+    }
 
     pos->delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 

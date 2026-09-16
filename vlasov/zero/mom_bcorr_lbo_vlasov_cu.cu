@@ -24,9 +24,9 @@ gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs(struct mom_type_bcorr_lbo_vlasov* mom_
     mom_bcorr_lbo_vlasov_kernels = ser_mom_bcorr_lbo_vlasov_kernels;
     break;
 
-  // case GKYL_BASIS_MODAL_TENSOR:
-  //   mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels;
-  //   break;
+  case GKYL_BASIS_MODAL_TENSOR:
+    mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels;
+    break;
 
   default:
     assert(false);
@@ -69,7 +69,7 @@ gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const stru
   assert(cv_index[cdim].vdim[vdim] != -1);
 
 
-  gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs<<<1,1>>>(mom_bcorr_cu, cbasis->b_type,
+  gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs<<<1,1>>>(mom_bcorr_cu, gkyl_basis_phase_kernel_type(cbasis, pbasis),
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_bcorr->momt.on_dev = &mom_bcorr_cu->momt;

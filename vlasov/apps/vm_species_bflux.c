@@ -24,6 +24,7 @@ vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struc
     .hamil_range = &vms->hamil_range,
     .hamil = vms->hamil,
     .model_id = vms->model_id,
+    .hamil_id = vms->hamil_id,
     .mom_type = GKYL_F_MOMENT_M0M1M2, 
     .use_gpu = app->use_gpu,
   };

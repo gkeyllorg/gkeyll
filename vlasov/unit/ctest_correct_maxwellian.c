@@ -155,7 +155,7 @@ test_1x1v(int poly_order, bool use_gpu)
   // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &velLocal, &velBasis, inp_vmap, false);
+    &velLocal, &velBasis, inp_vmap, false, false);
   gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
     GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, false);
 
@@ -173,6 +173,7 @@ test_1x1v(int poly_order, bool use_gpu)
     .hamil = hamil,
     .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
     .use_extended_hamil_def = false,
     .use_gpu = false,
     .vel_map = vel_map,
@@ -194,6 +195,7 @@ test_1x1v(int poly_order, bool use_gpu)
     .hamil = hamil,
     .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
     .use_extended_hamil_def = false,
     .use_gpu = false,
     .vel_map = vel_map,
@@ -214,6 +216,7 @@ test_1x1v(int poly_order, bool use_gpu)
     .hamil = hamil,
     .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
     .use_extended_hamil_def = false,
     .use_gpu = false,
     .max_iter = 100,

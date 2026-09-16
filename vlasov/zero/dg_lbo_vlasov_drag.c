@@ -42,6 +42,14 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
+    // Kernel availability is checked on the host so unsupported bases fail
+    // with an assert here rather than a NULL device function pointer.
+    int cdim_h = cbasis->ndim, vdim_h = pbasis->ndim-cdim_h, po_h = cbasis->poly_order;
+    assert(cv_index[cdim_h].vdim[vdim_h] != -1);
+    assert(NULL != ((gkyl_basis_phase_kernel_type(cbasis, pbasis) == GKYL_BASIS_MODAL_TENSOR) ?
+      ten_vol_kernels : ser_vol_kernels)[cv_index[cdim_h].vdim[vdim_h]].kernels[po_h]);
+    assert(NULL != ((gkyl_basis_phase_kernel_type(cbasis, pbasis) == GKYL_BASIS_MODAL_TENSOR) ?
+      ten_surf_vx_kernels : ser_surf_vx_kernels)[cv_index[cdim_h].vdim[vdim_h]].kernels[po_h]);
     return gkyl_dg_lbo_vlasov_drag_cu_dev_new(cbasis, pbasis, conf_range, pgrid);
   } 
 #endif
@@ -70,7 +78,7 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
   const gkyl_dg_lbo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vx_kernels, *boundary_surf_vy_kernels,
     *boundary_surf_vz_kernels;
   
-  switch (cbasis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(cbasis, pbasis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
       surf_vx_kernels = ser_surf_vx_kernels;
@@ -79,6 +87,18 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
       boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
       boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
       boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      // Tensor p=1 is the tensor p=1 hybrid (p=2 in velocity space), the
+      // basis the LBO needs for energy conservation at p=1.
+      vol_kernels = ten_vol_kernels;
+      surf_vx_kernels = ten_surf_vx_kernels;
+      surf_vy_kernels = ten_surf_vy_kernels;
+      surf_vz_kernels = ten_surf_vz_kernels;
+      boundary_surf_vx_kernels = ten_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernels = ten_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernels = ten_boundary_surf_vz_kernels;
       break;
 
     default:

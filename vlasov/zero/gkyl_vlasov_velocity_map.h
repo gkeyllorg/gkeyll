@@ -17,10 +17,11 @@ struct gkyl_vlasov_velocity_map_inp {
 };
 
 // Representation of the stored velocity map, chosen by the velocity basis:
-// tensor bases (p>1) use the C^1 cubic; Serendipity bases (and p=1, where
-// tensor and Serendipity coincide) use the C^0 piecewise linear, stored as a
-// degenerate cubic in the same vdim*4 layout (quadratic and cubic
-// coefficients zero). The C^0 map's Jacobian is piecewise constant and
+// tensor bases use the C^1 cubic (the tensor p=1 hybrid phase basis hands
+// the map its p=2 tensor velocity basis, so it lands here too); Serendipity
+// bases use the C^0 piecewise linear, stored as a degenerate cubic in the
+// same vdim*4 layout (quadratic and cubic coefficients zero). The C^0 map's
+// Jacobian is piecewise constant and
 // discontinuous at cell interfaces: the Jacobian arrays hold that constant
 // replicated at every quadrature point, and consumers needing the Jacobian
 // at an interface must take the minimum of the two adjacent cells when
@@ -60,8 +61,8 @@ struct gkyl_vlasov_velocity_map {
 
   // Solver arrays; device-resident when created with use_gpu=true.
   struct gkyl_array *vmap; // C^1 cubic representation of mapping in each velocity dimension (vdim*4 components: vx, then vy, then vz).
-  struct gkyl_array *jacob_vel; // Jacobian (derivative of vmap) in each velocity dimension at 1V Gauss-Legendre quadrature points (vdim*(p+1) components).
-  struct gkyl_array *jacob_vel_surf; // Jacobian in each velocity dimension at the (higher order) 1V Gauss-Legendre quadrature points used by surface updates (vdim*(p+2) components).
+  struct gkyl_array *jacob_vel; // Jacobian (derivative of vmap) in each velocity dimension at 1V Gauss-Legendre quadrature points (vdim*(p+1) components, p the velocity basis poly order).
+  struct gkyl_array *jacob_vel_surf; // Jacobian in each velocity dimension at the 1V Gauss-Legendre quadrature points used by surface updates: the count matches the active kernel variant (p+2 nodes, except the tensor p=1 hybrid's low-order variant, which uses p+1 = 3 nodes).
   struct gkyl_array *jacob_vel_gauss; // Total velocity-space Jacobian at the full Gauss-Legendre quadrature points (tensor(vdim,p).num_basis components).
 
   // Host mirrors of the solver arrays (acquired aliases when !use_gpu).
@@ -80,8 +81,10 @@ struct gkyl_vlasov_velocity_map {
 
 /**
  * Create a new velocity map based on the input mapping functions, using a
- * C^1 cubic representation for tensor velocity bases (p>1) and a C^0
- * piecewise linear representation for Serendipity velocity bases (and p=1).
+ * C^1 cubic representation for tensor velocity bases and a C^0 piecewise
+ * linear representation for Serendipity velocity bases. The tensor p=1
+ * hybrid phase basis is p=2 in velocity space, so hybrid species pass their
+ * p=2 tensor velocity basis here and get the cubic representation.
  * Directions with eval_vmap==NULL get the identity map, so this constructor
  * is valid for every species and model. All arrays (including host mirrors
  * and I/O arrays) are allocated and populated here; when use_gpu=true the
@@ -91,6 +94,10 @@ struct gkyl_vlasov_velocity_map {
  * @param vrange Velocity-space range the arrays are defined on.
  * @param vel_basis Velocity-space basis (b_type and poly_order drive kernel dispatch).
  * @param inp_vmap Velocity mapping input (function and context) in each velocity-space dimension.
+ * @param use_lo Whether the run uses the low-order surface kernel variant;
+ *   with a tensor p=2 velocity basis (the tensor p=1 hybrid) this stores
+ *   jacob_vel_surf at 3 surface-quadrature nodes instead of 4. Ignored for
+ *   every other basis (only the hybrid has distinct lo/ho variants).
  * @param use_gpu Whether to place the solver arrays on device.
  * @return New velocity map object.
  */
@@ -98,7 +105,7 @@ struct gkyl_vlasov_velocity_map* gkyl_vlasov_velocity_map_new(
   const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange,
   const struct gkyl_basis *vel_basis,
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM],
-  bool use_gpu);
+  bool use_lo, bool use_gpu);
 
 /**
  * Acquire a pointer to the velocity map object, incrementing its reference

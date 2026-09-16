@@ -91,7 +91,7 @@ test_divide_jacobvel(int vdim, bool use_gpu)
   for (int d=0; d<vdim; ++d)
     inp_vmap[d].eval_vmap = eval_quad_vmap;
   struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &vel_local, &vbasis, inp_vmap, use_gpu);
+    &vel_local, &vbasis, inp_vmap, false, use_gpu);
 
   // Velocity-space Hamiltonian (H = v^2/2 on the mapped grid), needed by the
   // moment computation inside the LTE projection's density rescale.
@@ -357,7 +357,7 @@ test_divide_jacobvel_ser(int vdim, int poly_order, bool use_gpu)
   for (int d=0; d<vdim; ++d)
     inp_vmap[d].eval_vmap = eval_quad_vmap;
   struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &vel_local, &vbasis, inp_vmap, use_gpu);
+    &vel_local, &vbasis, inp_vmap, false, use_gpu);
 
   TEST_CHECK( vvm->rep == GKYL_VLASOV_VMAP_C0_LINEAR );
 
