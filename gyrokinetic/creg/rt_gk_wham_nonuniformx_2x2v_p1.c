@@ -782,7 +782,7 @@ int main(int argc, char **argv)
           .map_strength = 0.5,
           .maximum_slope_at_min_B = 2,
           .gaussian_std = 0.2,
-          .gaussian_max_integration_width = 1.0}},
+          .gaussian_max_integration_width = 0.5}},
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},

@@ -27,7 +27,6 @@ struct gk_poa_phase_params {
   bool is_static_field; // Whether to evolve the field.
   bool is_positivity_enabled; // Whether positivity is enabled.
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type; // Type of df/dt multipler.
-  enum gkyl_gyrokinetic_damping_type damping_type; // Type of damping.
 };
 
 // Define the context of the simulation. This is basically all the globals
@@ -53,7 +52,8 @@ struct gk_mirror_ctx {
   // Axial coordinate Z extents. Endure that Z=0 is not on
   double z_min;
   double z_max;
-  double psi_eval;
+  double psi_max;
+  double psi_min;
   // Physics parameters at mirror throat
   double vpar_max_ion;
   double mu_max_ion;
@@ -237,7 +237,7 @@ void eval_density_ion(
 )
 {
   struct gk_mirror_ctx *app = ctx;
-  double z = xn[0];
+  double z = xn[1];
   fout[0] = 1e17 * exp(-2 * pow(fabs(z), 2));
 }
 
@@ -258,7 +258,7 @@ void eval_density_ion_source(
 )
 {
   struct gk_mirror_ctx *app = ctx;
-  double z = xn[0];
+  double z = xn[1];
   double src_amp = app->ion_source_amplitude;
   double z_src = 0.0;
   double src_sigma = app->ion_source_sigma;
@@ -282,7 +282,7 @@ void eval_temp_ion_source(
 )
 {
   struct gk_mirror_ctx *app = ctx;
-  double z = xn[0];
+  double z = xn[1];
   double TSrc0 = app->ion_source_temp;
   double Tfloor = TSrc0 * 1e-2;
   if (fabs(z) <= 0.98) {
@@ -306,7 +306,7 @@ void mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *
 
 struct gk_mirror_ctx create_ctx(void)
 {
-  int cdim = 1, vdim = 2; // Dimensionality.
+  int cdim = 2, vdim = 2; // Dimensionality.
   int poly_order = 1;
 
   // Universal constant parameters.
@@ -340,6 +340,7 @@ struct gk_mirror_ctx create_ctx(void)
   double vpar_max_ion = 16 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int Nz = 64;
+  int Npsi = 4;
   int Nvpar = 32; // 96 uniform
   int Nmu = 16; // 192 uniform
 
@@ -359,17 +360,15 @@ struct gk_mirror_ctx create_ctx(void)
   // POA parameters
   double alpha_oap = 5e-6; // Factor multiplying collisionless terms.
   double alpha_fdp = 1.0;
-
-  // Duration of each phase.
-  double tau_oap = 2400.0e-9;
-  double tau_fdp = 24.0e-9;
-  double tau_fdp_extra = 2 * tau_fdp;
+  double tau_oap = 0.001; // Duration of each phase.
+  double tau_fdp = 7e-9;
+  double tau_fdp_extra = 2e-9;
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
   int num_frames_oap = 1; // Frames per OAP phase
   int num_frames_fdp = 1; // Frames per FDP phase
-  int num_frames_fdp_extra = 2 * num_frames_fdp; // Frames for the extra FDP phase
+  int num_frames_fdp_extra = 2; // Frames for the extra FDP phase
 
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -377,7 +376,7 @@ struct gk_mirror_ctx create_ctx(void)
 
   // Whether positivity is enabled.
   bool is_positivity_enabled_oap = false;
-  bool is_positivity_enabled_fdp = true;
+  bool is_positivity_enabled_fdp = false;
 
   // Type of df/dt multipler.
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_oap = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE;
@@ -400,7 +399,6 @@ struct gk_mirror_ctx create_ctx(void)
     poa_phases[2 * i].is_static_field = is_static_field_oap;
     poa_phases[2 * i].fdot_mult_type = fdot_mult_type_oap;
     poa_phases[2 * i].is_positivity_enabled = is_positivity_enabled_oap;
-    poa_phases[2 * i].damping_type = GKYL_GK_DAMPING_NONE;
 
     // FDPs.
     poa_phases[2 * i + 1].phase = GK_POA_FDP;
@@ -410,7 +408,6 @@ struct gk_mirror_ctx create_ctx(void)
     poa_phases[2 * i + 1].is_static_field = is_static_field_fdp;
     poa_phases[2 * i + 1].fdot_mult_type = fdot_mult_type_fdp;
     poa_phases[2 * i + 1].is_positivity_enabled = is_positivity_enabled_fdp;
-    poa_phases[2 * i + 1].damping_type = GKYL_GK_DAMPING_LOW_PASS_FILTER;
   }
   // The final stage is an extra, longer FDP.
   poa_phases[num_phases - 1].phase = GK_POA_FDP;
@@ -420,7 +417,6 @@ struct gk_mirror_ctx create_ctx(void)
   poa_phases[num_phases - 1].is_static_field = is_static_field_fdp;
   poa_phases[num_phases - 1].fdot_mult_type = fdot_mult_type_fdp;
   poa_phases[num_phases - 1].is_positivity_enabled = is_positivity_enabled_fdp;
-  poa_phases[num_phases - 1].damping_type = GKYL_GK_DAMPING_LOW_PASS_FILTER;
 
   double write_phase_freq =
     1; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
@@ -449,10 +445,11 @@ struct gk_mirror_ctx create_ctx(void)
     .RatZeq0 = RatZeq0,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
+    .Npsi = Npsi,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nz, Nvpar, Nmu},
+    .cells = {Npsi, Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -475,9 +472,10 @@ struct gk_mirror_ctx create_ctx(void)
   };
 
   // Populate a couple more values in the context.
-  ctx.psi_eval = psi_RZ(ctx.RatZeq0, 0., &ctx);
-  ctx.z_min = z_psiZ(ctx.psi_eval, ctx.Z_min, &ctx);
-  ctx.z_max = z_psiZ(ctx.psi_eval, ctx.Z_max, &ctx);
+  ctx.psi_max = psi_RZ(ctx.RatZeq0, 0., &ctx);
+  ctx.psi_min = psi_RZ(ctx.RatZeq0 / 10, 0., &ctx);
+  ctx.z_min = z_psiZ(ctx.psi_max, ctx.Z_min, &ctx);
+  ctx.z_max = z_psiZ(ctx.psi_max, ctx.Z_max, &ctx);
 
   return ctx;
 }
@@ -600,19 +598,10 @@ void run_phase(
     .type = pparams->is_positivity_enabled ? GKYL_GK_POSITIVITY_SHIFT : GKYL_GK_POSITIVITY_NONE,
     .write_diagnostics = pparams->is_positivity_enabled
   };
-  struct gkyl_gyrokinetic_damping damping_inp = {
-    .type = pparams->damping_type,
-    .cellwise_const = false,
-    .rate_const = 1 / 5e-6,
-    .write_fbar = true,
-    .write_rate = true,
-    .do_not_reset_fbar = true
-  };
 
   gkyl_gyrokinetic_app_reset_species_collisionless(app, t_curr, "ion", collisionless_inp);
   gkyl_gyrokinetic_app_reset_species_fdot_multiplier(app, t_curr, "ion", fdot_mult_inp);
   gkyl_gyrokinetic_app_reset_species_positivity(app, t_curr, "ion", positivity_inp);
-  gkyl_gyrokinetic_app_reset_species_damping(app, t_curr, "ion", damping_inp);
   gkyl_gyrokinetic_app_reset_field(app, t_curr, field_inp);
 
   // Compute initial guess of maximum stable time-step.
@@ -623,19 +612,11 @@ void run_phase(
   int num_failures = 0, num_failures_max = ctx->num_failures_max;
 
   long step = 1;
-
   while ((t_curr < t_end) && (step <= num_steps)) {
-    if (step == 1 || step % 1 == 0) {
-      gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
-    }
-
-    dt = fmin(dt, t_end - t_curr); // Don't step beyond t_end.
+    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    dt = t_end - t_curr; // Ensure we don't step beyond t_end.
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-
-    if (step == 1 || step % 1 == 0) {
-      gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-    }
 
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -734,7 +715,7 @@ int main(int argc, char **argv)
     .time_rate_multiplier =
       {.num_multipliers = 1,
        .multiplier[0] =
-         {.type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
+         {.type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
           .cellwise_const = true,
           .write_diagnostics = true}},
 
@@ -763,8 +744,10 @@ int main(int argc, char **argv)
           .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP}}},
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
     .write_omega_cfl = true,
     .num_diag_moments = 8,
     .diag_moments =
@@ -787,16 +770,17 @@ int main(int argc, char **argv)
 
   struct gkyl_gk app_inp = {
     // GK app
+    .name = "gk_mirror_boltz_elc_poa_2x2v_p1",
     .cdim = ctx.cdim,
-    .lower = {ctx.z_min},
-    .upper = {ctx.z_max},
-    .cells = {cells_x[0]},
+    .upper = {ctx.psi_max, ctx.Z_max},
+    .lower = {ctx.psi_min, ctx.Z_min},
+    .cells = {cells_x[0], cells_x[1]},
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
     .geometry =
       {.geometry_id = GKYL_GEOMETRY_MAPC2P,
-       .world = {ctx.psi_eval, 0.0},
+       .world = {0.0},
        .mapc2p = mapc2p, // Mapping of computational to physical space.
        .c2p_ctx = &ctx,
        .bfield_func = bfield_func, // Magnetic field.
@@ -810,7 +794,8 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism =
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
   };
 
   // Set app output name from the executable name (argv[0]).
@@ -877,8 +862,9 @@ int main(int argc, char **argv)
     write_data(&trig_write_conf, &trig_write_phase, app, tfs.t_curr, true);
   }
 
-  // if (app_args.num_steps != INT_MAX)
-  //   phase_idx_end = 1;
+  if (app_args.num_steps != INT_MAX) {
+    phase_idx_end = 1;
+  }
 
   // Loop over number of number of phases;
   for (int pit = phase_idx_init; pit < phase_idx_end; pit++) {

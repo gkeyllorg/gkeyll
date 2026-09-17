@@ -203,7 +203,7 @@ static double gk_species_rhs_implicit_static(
 }
 
 static void gk_species_apply_bc_dynamic(
-  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, const struct gk_species *species, double tm, struct gkyl_array *f
 )
 {
   struct timespec wst = gkyl_wall_clock();
@@ -217,8 +217,9 @@ static void gk_species_apply_bc_dynamic(
     if (species->bc_is_np[d]) {
       switch (species->lower_bc[d].type) {
       case GKYL_BC_GK_SPECIES_SHEATH:
+        gk_species_phi_wall_advance(app, &species->phi_wall_lo, tm);
         gkyl_bc_sheath_gyrokinetic_advance(
-          species->bc_sheath_lo, app->field->phi_smooth, app->field->phi_wall_lo, f, &app->local
+          species->bc_sheath_lo, app->field->phi_smooth, species->phi_wall_lo.phi, f, &app->local
         );
         break;
       case GKYL_BC_GK_SPECIES_TWISTSHIFT:
@@ -240,8 +241,9 @@ static void gk_species_apply_bc_dynamic(
 
       switch (species->upper_bc[d].type) {
       case GKYL_BC_GK_SPECIES_SHEATH:
+        gk_species_phi_wall_advance(app, &species->phi_wall_up, tm);
         gkyl_bc_sheath_gyrokinetic_advance(
-          species->bc_sheath_up, app->field->phi_smooth, app->field->phi_wall_up, f, &app->local
+          species->bc_sheath_up, app->field->phi_smooth, species->phi_wall_up.phi, f, &app->local
         );
         break;
       case GKYL_BC_GK_SPECIES_TWISTSHIFT:
@@ -275,7 +277,7 @@ static void gk_species_apply_bc_dynamic(
 }
 
 static void gk_species_apply_bc_static(
-  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, const struct gk_species *species, double tm, struct gkyl_array *f
 )
 {
   // do nothing
@@ -712,6 +714,7 @@ static void gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const st
   for (int d = 0; d < app->cdim; ++d) {
     if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
+      gk_species_phi_wall_release(app, &s->phi_wall_lo);
     } else if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       gkyl_bc_twistshift_release(s->bc_ts_lo);
     } else if ((s->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
@@ -723,6 +726,7 @@ static void gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const st
 
     if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
+      gk_species_phi_wall_release(app, &s->phi_wall_up);
     } else if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       gkyl_bc_twistshift_release(s->bc_ts_up);
     } else if ((s->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
@@ -917,6 +921,7 @@ static void gk_species_init_dynamic(
         d, GKYL_LOWER_EDGE, gks->basis_on_dev, sol_skin, sol_ghost, gks->vel_map, cdim,
         2.0 * (gks->info.charge / gks->info.mass), app->use_gpu
       );
+      gk_species_phi_wall_init(app, &gks->lower_bc[d], &gks->phi_wall_lo);
     } else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
       struct gkyl_bc_twistshift_inp tsinp = {
@@ -986,6 +991,7 @@ static void gk_species_init_dynamic(
         d, GKYL_UPPER_EDGE, gks->basis_on_dev, sol_skin, sol_ghost, gks->vel_map, cdim,
         2.0 * (gks->info.charge / gks->info.mass), app->use_gpu
       );
+      gk_species_phi_wall_init(app, &gks->upper_bc[d], &gks->phi_wall_up);
     } else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
       struct gkyl_bc_twistshift_inp tsinp = {
@@ -2086,10 +2092,10 @@ void gk_species_copy_range(
 }
 
 void gk_species_apply_bc(
-  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, const struct gk_species *species, double tm, struct gkyl_array *f
 )
 {
-  species->bc_func(app, species, f);
+  species->bc_func(app, species, tm, f);
 }
 
 void gk_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_species *s, int sidx)

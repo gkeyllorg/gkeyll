@@ -205,7 +205,6 @@ static void singleb_app_new_solver(
     // By default, skip BCs altogether.
     for (int i = 0; i < 2 * GKYL_MAX_CDIM; i++) {
       species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
-      species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
     }
 
     int pardir = cdim - 1;
@@ -298,7 +297,6 @@ static void singleb_app_new_solver(
 
     // By default, skip BCs altogether.
     for (int i = 0; i < 2 * GKYL_MAX_CDIM; i++) {
-      neut_species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
       neut_species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
     }
 
@@ -395,14 +393,6 @@ static void singleb_app_new_solver(
                                                             mbapp->bmag_ref;
   field_inp.kperpSq = fld_pb->kperpSq;
   field_inp.time_rate_diagnostics = fld_pb->time_rate_diagnostics;
-
-  field_inp.phi_wall_lo_ctx = fld_pb->phi_wall_lo_ctx;
-  field_inp.phi_wall_lo = fld_pb->phi_wall_lo;
-  field_inp.phi_wall_lo_evolve = fld_pb->phi_wall_lo_evolve;
-
-  field_inp.phi_wall_up_ctx = fld_pb->phi_wall_up_ctx;
-  field_inp.phi_wall_up = fld_pb->phi_wall_up;
-  field_inp.phi_wall_up_evolve = fld_pb->phi_wall_up_evolve;
 
   // Copy field input into app input.
   memcpy(&app_inp.field, &field_inp, sizeof(struct gkyl_gyrokinetic_field));
@@ -1033,7 +1023,7 @@ static void gyrokinetic_multib_apply_bc(
     int li_charged = b * app->num_species;
     int li_neut = b * app->num_neut_species;
     for (int i = 0; i < app->num_species; ++i) {
-      gk_species_apply_bc(sbapp, &sbapp->species[i], distf[li_charged + i]);
+      gk_species_apply_bc(sbapp, &sbapp->species[i], tcurr, distf[li_charged + i]);
     }
     for (int i = 0; i < app->num_neut_species; ++i) {
       gk_neut_species_apply_bc(sbapp, &sbapp->neut_species[i], distf_neut[li_neut + i]);

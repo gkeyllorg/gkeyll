@@ -3,7 +3,6 @@
 #include <gkyl_alloc.h>
 
 // Damping state synchronization helpers.
-
 static void gk_species_damping_set_fbar_to_f_cellwise_const(
   const struct gk_species *gks, struct gk_damping *damp, const struct gkyl_array *f
 )
@@ -68,7 +67,6 @@ gk_species_damping_read_fbar(gkyl_gyrokinetic_app *app, struct gk_species *gks, 
 }
 
 // Damping diagnostics write helpers.
-
 void gk_species_damping_write_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
@@ -93,6 +91,7 @@ static void gk_species_damping_write_rate_enabled(
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
     {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame}
   };
+
   int mpe_drate_len = sizeof(mpe_drate) / sizeof(mpe_drate[0]);
   // Package metadata.
   int io_meta_len[] = {gks->io_meta_basic_len, mpe_drate_len, app->gk_geom->io_meta_basic_len};
@@ -258,6 +257,45 @@ static void gk_species_damping_project_phase_rate(
 
   if (num_quad == 1) {
     gkyl_array_scale_range(rate, 1.0 / pow(sqrt(2.0), gks->grid.ndim), &gks->local);
+    
+  if (damp->type) {
+    // Allocate rate array.
+    damp->rate =
+      mkarr(app->use_gpu, num_quad == 1 ? 1 : gks->basis.num_basis, gks->local_ext.volume);
+    damp->rate_host = damp->rate;
+    if (app->use_gpu) {
+      damp->rate_host = mkarr(false, damp->rate->ncomp, damp->rate->size);
+    }
+
+    if (damp->type == GKYL_GK_DAMPING_USER_INPUT) {
+      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+      proj_on_basis_c2p_ctx.cdim = app->cdim;
+      proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
+      proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
+      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
+      ){.grid = &gks->grid,
+        .basis = &gks->basis,
+        .num_quad = num_quad,
+        .num_ret_vals = 1,
+        .eval = gks->info.damping.rate_profile,
+        .ctx = gks->info.damping.rate_profile_ctx,
+        .c2p_func = proj_on_basis_c2p_phase_func,
+        .c2p_func_ctx = &proj_on_basis_c2p_ctx});
+      gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, damp->rate_host);
+      gkyl_proj_on_basis_release(projup);
+      gkyl_array_copy(damp->rate, damp->rate_host);
+
+      if (num_quad == 1) {
+        gkyl_array_scale_range(damp->rate, 1.0 / pow(sqrt(2.0), gks->grid.ndim), &gks->local);
+      }
+    }
+
+    // Set function pointers chosen at runtime.
+    if (damp->evolve) {
+      damp->write_func = gk_species_damping_write_enabled;
+    } else {
+      damp->write_func = gk_species_damping_write_init_only;
+    }
   }
 }
 
@@ -571,7 +609,6 @@ void gk_species_damping_release(
   if (damp->fbar_initialized) {
     gkyl_array_release(damp->fbar);
   }
-
   if (!damp->type) {
     return;
   }
