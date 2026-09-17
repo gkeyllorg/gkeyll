@@ -1,0 +1,9 @@
+We've develop the Jenkins-based CI system in the current branch, with separate setups for personal/cluster/team machines. Can you review the implementation as a whole and see if anything needs to be changed/improved before merging into main? are there any inconsistencies between personal/cluster/team machine setups we should address?
+
+---
+
+Can you fix the first, second and fourth bullet, and explain in more detail the 3rd buller please?
+
+---
+
+Implement the plan.
