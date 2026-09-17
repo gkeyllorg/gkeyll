@@ -198,7 +198,7 @@ void gkyl_gk_collisionless_flux_surf_cu(
   const struct gkyl_array *fin, struct gkyl_array *flux_surf, struct gkyl_array *cflrate
 )
 {
-  gkyl_gk_collisionless_flux_surf_conf_cu_kernel<<<phase_range->volume, GKYL_DEFAULT_NUM_THREADS> > >(
+  gkyl_gk_collisionless_flux_surf_conf_cu_kernel<<<phase_range->volume, GKYL_DEFAULT_NUM_THREADS>>>(
     up->on_dev, *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev,
     fin->on_dev, flux_surf->on_dev, cflrate->on_dev
   );
@@ -212,7 +212,7 @@ void gkyl_gk_collisionless_flux_surf_cu(
   }
   sublower[up->cdim] += 1;
   gkyl_sub_range_init(&vpar_range, phase_ext_range, sublower, subupper);
-  gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel<<<vpar_range.volume, GKYL_DEFAULT_NUM_THREADS> > >(
+  gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel<<<vpar_range.volume, GKYL_DEFAULT_NUM_THREADS>>>(
     up->on_dev, *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, vpar_range,
     phi->on_dev, fin->on_dev, flux_surf->on_dev, cflrate->on_dev
   );
@@ -305,7 +305,7 @@ gkyl_gk_collisionless_flux *gkyl_gk_collisionless_flux_cu_dev_new(
     (struct gkyl_gk_collisionless_flux *)gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_gk_collisionless_flux), GKYL_CU_MEMCPY_H2D);
 
-  gk_collisionless_flux_set_cu_dev_ptrs<<<1, 1> > >(
+  gk_collisionless_flux_set_cu_dev_ptrs<<<1, 1>>>(
     up_cu, cdim, vdim, poly_order, type, bctype_conf_dev
   );
 

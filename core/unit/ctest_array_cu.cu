@@ -42,7 +42,7 @@ __global__ void ker_set_array_copy_fn(struct gkyl_array_copy_func *fn)
 int cu_array_test_and_flip_sign(struct gkyl_array *arr)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
-  ker_cu_array_test_and_flip_sign<<<1, 1> > >(arr, nfail_dev);
+  ker_cu_array_test_and_flip_sign<<<1, 1>>>(arr, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);
@@ -53,5 +53,5 @@ int cu_array_test_and_flip_sign(struct gkyl_array *arr)
 
 void set_array_copy_fn(struct gkyl_array_copy_func *fn)
 {
-  ker_set_array_copy_fn<<<1, 1> > >(fn);
+  ker_set_array_copy_fn<<<1, 1>>>(fn);
 }

@@ -168,7 +168,7 @@ __global__ static void gk_geometry_set_surf_cu_kernel(
 // Host-side wrapper for set_corn_cu_kernel
 void gkyl_geometry_set_corn_cu(struct gk_geometry *gk_geom, struct gk_geom_corn *geo_corn)
 {
-  gk_geometry_set_corn_cu_kernel<<<1, 1> > >(
+  gk_geometry_set_corn_cu_kernel<<<1, 1>>>(
     gk_geom, geo_corn->mc2p->on_dev, geo_corn->mc2nu_pos->on_dev, geo_corn->bmag->on_dev,
     geo_corn->bmag_inv->on_dev, geo_corn->mc2p_nodal->on_dev, geo_corn->mc2nu_pos_nodal->on_dev,
     geo_corn->bmag_nodal->on_dev, geo_corn->mc2p_deflated->on_dev,
@@ -179,7 +179,7 @@ void gkyl_geometry_set_corn_cu(struct gk_geometry *gk_geom, struct gk_geom_corn 
 // Host-side wrapper for set_int_cu_kernel
 void gkyl_geometry_set_int_cu(struct gk_geometry *gk_geom, struct gk_geom_int *geo_int)
 {
-  gk_geometry_set_int_cu_kernel<<<1, 1> > >(
+  gk_geometry_set_int_cu_kernel<<<1, 1>>>(
     gk_geom, geo_int->mc2p->on_dev, geo_int->bmag->on_dev, geo_int->g_ij->on_dev,
     geo_int->g_ij_neut->on_dev, geo_int->dxdz->on_dev, geo_int->dzdx->on_dev,
     geo_int->dualmag->on_dev, geo_int->normals->on_dev, geo_int->jacobgeo->on_dev,
@@ -204,7 +204,7 @@ void gkyl_geometry_set_int_cu(struct gk_geometry *gk_geom, struct gk_geom_int *g
 // Host-side wrapper for set_surf_cu_kernel
 void gkyl_geometry_set_surf_cu(struct gk_geometry *gk_geom, struct gk_geom_surf *geo_surf, int dir)
 {
-  gk_geometry_set_surf_cu_kernel<<<1, 1> > >(
+  gk_geometry_set_surf_cu_kernel<<<1, 1>>>(
     gk_geom, dir, geo_surf->bmag->on_dev, geo_surf->jacobgeo->on_dev,
     geo_surf->jacobgeo_ratio->on_dev, geo_surf->b_i->on_dev, geo_surf->cmag->on_dev,
     geo_surf->jacobtot_inv->on_dev, geo_surf->B3->on_dev, geo_surf->normcurlbhat->on_dev,

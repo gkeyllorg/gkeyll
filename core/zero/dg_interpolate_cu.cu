@@ -30,7 +30,7 @@ void dg_interp_choose_kernel_cu(
   double dxRat
 )
 {
-  dg_interp_choose_kernel_ptrs_cu<<<1, 1> > >(kernels, cdim, basis, dir, dxRat);
+  dg_interp_choose_kernel_ptrs_cu<<<1, 1>>>(kernels, cdim, basis, dir, dxRat);
 }
 
 __global__ static void gkyl_dg_interpolate_advance_1x_cu_ker(
@@ -91,7 +91,7 @@ void gkyl_dg_interpolate_advance_1x_cu(
 
   int nblocks = range_do->nblocks, nthreads = range_do->nthreads;
 
-  gkyl_dg_interpolate_advance_1x_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_dg_interpolate_advance_1x_cu_ker<<<nblocks, nthreads>>>(
     up->kernels, up->dir, up->dxRat, up->offset_upper, up->grid_do, up->grid_tar, *range_do,
     *range_tar, fdo->on_dev, ftar->on_dev
   );

@@ -86,14 +86,14 @@ void gkyl_prim_lbo_calc_advance_cu(
     calc->is_first = false;
   }
 
-  gkyl_prim_lbo_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads> > >(
+  gkyl_prim_lbo_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(
     calc->on_dev, calc->As->on_dev, calc->xs->on_dev, *conf_rng, moms->on_dev,
     boundary_corrections->on_dev, nu->on_dev
   );
 
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
 
-  gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads> > >(
+  gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(
     calc->xs->on_dev, *conf_rng, nc, udim, prim_moms_out->on_dev
   );
 }

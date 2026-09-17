@@ -86,7 +86,7 @@ def validateRefSelector(String name, String value) {
     return isCommitSha(value) ? value.toLowerCase() : validateBranchName(name, value)
 }
 
-def checkoutPullRequest(String credentialsId, String prNumber) {
+def checkoutPullRequest(String prNumber) {
     checkout([
         $class: 'GitSCM',
         branches: [[name: "refs/remotes/origin/candidate"]],
@@ -96,14 +96,13 @@ def checkoutPullRequest(String credentialsId, String prNumber) {
             [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
         ],
         userRemoteConfigs: [[
-            credentialsId: credentialsId,
             refspec: "+refs/pull/${prNumber}/head:refs/remotes/origin/candidate",
             url: 'https://github.com/gkeyllorg/gkeyll.git'
         ]]
     ])
 }
 
-def checkoutRef(String credentialsId, String selector, String localRef) {
+def checkoutRef(String selector, String localRef) {
     def refspec = isCommitSha(selector)
         ? "+${selector}:refs/remotes/origin/${localRef}"
         : "+refs/heads/${selector}:refs/remotes/origin/${localRef}"
@@ -116,17 +115,16 @@ def checkoutRef(String credentialsId, String selector, String localRef) {
             [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
         ],
         userRemoteConfigs: [[
-            credentialsId: credentialsId,
             refspec: refspec,
             url: 'https://github.com/gkeyllorg/gkeyll.git'
         ]]
     ])
 }
 
-def resolvePullRequestBase(String credentialsId, String prNumber) {
+def resolvePullRequestBase(String statusCredentialsId, String prNumber) {
     def baseRef = ''
     withCredentials([usernamePassword(
-        credentialsId: credentialsId,
+        credentialsId: statusCredentialsId,
         usernameVariable: 'GITHUB_STATUS_USERNAME',
         passwordVariable: 'GITHUB_STATUS_TOKEN'
     )]) {
@@ -155,7 +153,7 @@ print(base_ref)
     return validateBranchName('GitHub PR base branch', baseRef)
 }
 
-def publishGitHubCommitStatus(String credentialsId, String commit, String state, String description) {
+def publishGitHubCommitStatus(String statusCredentialsId, String commit, String state, String description) {
     if (!(commit ==~ /[0-9a-f]{40}/)) {
         error("Cannot publish a GitHub status for invalid commit SHA '${commit}'.")
     }
@@ -166,7 +164,7 @@ def publishGitHubCommitStatus(String credentialsId, String commit, String state,
     // Bind the token only for this trusted API request, never while a shell
     // command from the PR checkout is running.
     withCredentials([usernamePassword(
-        credentialsId: credentialsId,
+        credentialsId: statusCredentialsId,
         usernameVariable: 'GITHUB_STATUS_USERNAME',
         passwordVariable: 'GITHUB_STATUS_TOKEN'
     )]) {
@@ -494,7 +492,7 @@ if (candidateRef) {
 def nodeLabel = (env.STELLAR_CPU_NODE_LABEL ?: 'stellar_cpu').trim()
 def gkeyllCiRoot = requireValue('GKEYLL_CI_ROOT', env.GKEYLL_CI_ROOT)
 def workspaceRoot = "${gkeyllCiRoot}/workspaces"
-def credentialsId = requireValue('STELLAR_CPU_GITHUB_CREDENTIAL_ID', env.STELLAR_CPU_GITHUB_CREDENTIAL_ID)
+def statusCredentialsId = requireValue('STELLAR_CPU_GITHUB_CREDENTIAL_ID', env.STELLAR_CPU_GITHUB_CREDENTIAL_ID)
 def candidateSelector = ''
 def baselineSelector = ''
 def candidateCommit = ''
@@ -509,7 +507,7 @@ node(nodeLabel) {
             stage('Resolve candidate and baseline') {
                 if (candidatePr) {
                     candidateSelector = "PR #${candidatePr}"
-                    baselineSelector = resolvePullRequestBase(credentialsId, candidatePr)
+                    baselineSelector = resolvePullRequestBase(statusCredentialsId, candidatePr)
                 } else {
                     candidateSelector = candidateRef
                     baselineSelector = requestedBaselineRef
@@ -520,9 +518,9 @@ node(nodeLabel) {
             stage('Checkout candidate') {
                 deleteDir()
                 if (candidatePr) {
-                    checkoutPullRequest(credentialsId, candidatePr)
+                    checkoutPullRequest(candidatePr)
                 } else {
-                    checkoutRef(credentialsId, candidateRef, 'candidate')
+                    checkoutRef(candidateRef, 'candidate')
                 }
                 candidateCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
                 writeFile file: 'ci-candidate-commit.txt', text: "${candidateCommit}\n"
@@ -531,7 +529,7 @@ node(nodeLabel) {
             }
             stage('Report pending to GitHub') {
                 publishGitHubCommitStatus(
-                    credentialsId,
+                    statusCredentialsId,
                     candidateCommit,
                     'pending',
                     'Stellar CPU candidate CI is running.'
@@ -587,7 +585,7 @@ node(nodeLabel) {
             stage('Checkout Stellar CPU baseline') {
                 dir('_baseline') {
                     deleteDir()
-                    checkoutRef(credentialsId, baselineSelector, 'baseline')
+                    checkoutRef(baselineSelector, 'baseline')
                     sh 'git rev-parse HEAD | tee ../ci-baseline-commit.txt'
                 }
             }
@@ -660,7 +658,7 @@ node(nodeLabel) {
                     try {
                         if (candidateCommit) {
                             publishGitHubCommitStatus(
-                                credentialsId,
+                                statusCredentialsId,
                                 candidateCommit,
                                 terminalStatus,
                                 terminalDescription

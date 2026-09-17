@@ -32,9 +32,17 @@ chmod 600 "$HOME/.config/gkeyll/jenkins-cli.auth"
 
 ### Create the GitHub credential
 
-Create a fine-grained `gkeyllorg/gkeyll` token with Contents and Pull requests
-read access plus Commit statuses read/write. Add it as a Jenkins **Username
-with password** credential and record its ID.
+Create a classic GitHub PAT with only the `repo:status` scope and a short
+expiration. Its owner must have push access to `gkeyllorg/gkeyll`, which GitHub
+requires to publish commit statuses. In **Manage Jenkins → Credentials**, add
+it to this controller as a **Username with password** credential: use the
+owner's GitHub username and the PAT as the password, then record its ID.
+Organization membership is not required.
+
+The Pipeline reads public source anonymously; this PAT is used only for
+authenticated GitHub API requests and status publication. Do not share it or
+store it outside this controller. Revoke or replace it when the controller or
+its owner changes.
 
 ### Configure the Jenkins node and global environment
 
@@ -46,7 +54,7 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_NODE_LABEL` | Local Jenkins build-node label |
 | `PERSONAL_MKDEPS_SCRIPT` | `machines/` dependency script |
 | `PERSONAL_CONFIGURE_SCRIPT` | `machines/` configure script |
-| `PERSONAL_GITHUB_CREDENTIAL_ID` | GitHub credential ID |
+| `PERSONAL_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID |
 | `PERSONAL_BUILD_JOBS` | Optional; default `3` |
 | `PERSONAL_REGRESSION_JOBS` | Optional; default `1` |
 
@@ -54,8 +62,10 @@ and Python with NumPy. Set these global environment variables:
 
 Create Pipeline `gkeyll-ci-personal` from SCM repository
 `https://github.com/gkeyllorg/gkeyll.git`, branch `*/main`, and script path
-`ci/jenkins/jenkinsfile.personal`. Do not let a selected PR provide its
-Pipeline. Run it once without selectors to register parameters.
+`ci/jenkins/jenkinsfile.personal`. Leave the SCM **Credentials** field empty:
+Gkeyll is public and the status credential is not a Git checkout credential.
+Do not let a selected PR provide its Pipeline. Run it once without selectors
+to register parameters.
 
 # Launching CI jobs
 

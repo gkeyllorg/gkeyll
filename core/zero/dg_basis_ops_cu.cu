@@ -44,7 +44,7 @@ void gkyl_dg_basis_ops_eval_array_at_coord_comp_cu(
   const struct gkyl_rect_grid *grid, const struct gkyl_range *rng, double *out
 )
 {
-  gkyl_dg_basis_ops_eval_array_at_coord_comp_cu_ker_eval<<<1, 1> > >(
+  gkyl_dg_basis_ops_eval_array_at_coord_comp_cu_ker_eval<<<1, 1>>>(
     arr->on_dev, coord, basis, *grid, *rng, out
   );
 }

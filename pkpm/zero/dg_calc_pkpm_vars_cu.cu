@@ -86,7 +86,7 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_dg_calc_pkpm_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_dg_calc_pkpm_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, vlasov_pkpm_moms->on_dev,
     euler_pkpm->on_dev, p_ij->on_dev, pkpm_div_ppar->on_dev, cell_avg_prim->on_dev
   );
@@ -96,7 +96,7 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(
     assert(status);
   }
 
-  gkyl_dg_calc_pkpm_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_dg_calc_pkpm_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, prim->on_dev, prim_surf->on_dev
   );
 }
@@ -165,7 +165,7 @@ void gkyl_dg_calc_pkpm_vars_u_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_dg_calc_pkpm_vars_u_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_dg_calc_pkpm_vars_u_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As_u->on_dev, up->xs_u->on_dev, conf_range, vlasov_pkpm_moms->on_dev,
     euler_pkpm->on_dev, cell_avg_prim->on_dev
   );
@@ -175,7 +175,7 @@ void gkyl_dg_calc_pkpm_vars_u_cu(
     assert(status);
   }
 
-  gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs_u->on_dev, conf_range, pkpm_u->on_dev
   );
 }
@@ -214,7 +214,7 @@ void gkyl_dg_calc_pkpm_vars_pressure_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_calc_pkpm_vars_pressure_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_calc_pkpm_vars_pressure_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, bvar->on_dev, vlasov_pkpm_moms->on_dev, p_ij->on_dev
   );
 }
@@ -279,7 +279,7 @@ void gkyl_dg_calc_pkpm_vars_accel_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_accel_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_pkpm_vars_accel_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, prim_surf->on_dev, prim->on_dev, bvar->on_dev, div_b->on_dev,
     nu->on_dev, pkpm_accel->on_dev
   );
@@ -375,7 +375,7 @@ void gkyl_dg_calc_pkpm_vars_penalization_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_penalization_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_pkpm_vars_penalization_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, *conf_range_ext, vlasov_pkpm_moms->on_dev, p_ij->on_dev, prim->on_dev,
     euler_pkpm->on_dev, pkpm_lax->on_dev, pkpm_penalization->on_dev
   );
@@ -418,7 +418,7 @@ void gkyl_dg_calc_pkpm_integrated_vars_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_integrated_vars_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_pkpm_integrated_vars_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, prim->on_dev,
     int_pkpm_vars->on_dev
   );
@@ -461,7 +461,7 @@ void gkyl_dg_calc_pkpm_vars_source_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_source_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_pkpm_vars_source_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, qmem->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, rhs->on_dev
   );
 }
@@ -510,7 +510,7 @@ void gkyl_dg_calc_pkpm_vars_io_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_io_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_pkpm_vars_io_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, p_ij->on_dev,
     prim->on_dev, pkpm_accel->on_dev, fluid_io->on_dev, pkpm_vars_io->on_dev
   );
@@ -575,7 +575,7 @@ void gkyl_dg_calc_pkpm_vars_limiter_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_limiter_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_pkpm_vars_limiter_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, prim->on_dev, vlasov_pkpm_moms->on_dev, p_ij->on_dev, fluid->on_dev
   );
 }
@@ -665,7 +665,7 @@ gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_cu_dev_new(
     (struct gkyl_dg_calc_pkpm_vars *)gkyl_cu_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_pkpm_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_pkpm_vars_set_cu_dev_ptrs<<<1, 1> > >(up_cu, b_type, cdim, poly_order);
+  dg_calc_pkpm_vars_set_cu_dev_ptrs<<<1, 1>>>(up_cu, b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

@@ -24,8 +24,16 @@ Create an API token for the CLI user and save a user-owned mode-600
 
 ### Create the GitHub credential
 
-Create a `gkeyllorg/gkeyll` token with repository/PR read and commit-status
-write access. Add it as a Jenkins credential and record its ID.
+Designate a workstation CI maintainer who has push access to
+`gkeyllorg/gkeyll`. That maintainer creates a classic GitHub PAT with only the
+`repo:status` scope and a short expiration. In **Manage Jenkins →
+Credentials**, add it as a **Username with password** credential: use the
+maintainer's GitHub username and the PAT as the password, then record its ID.
+Organization membership is not required.
+
+The Pipeline fetches public source anonymously; this PAT is used only for
+authenticated GitHub API requests and status publication. Do not share it.
+Revoke or replace it when the maintainer or workstation ownership changes.
 
 ### Configure the Jenkins node and global environment
 
@@ -37,7 +45,7 @@ and Python/NumPy, then set:
 | `TEAM_WORKSTATION_NODE_LABEL` | Workstation node label |
 | `TEAM_WORKSTATION_MKDEPS_SCRIPT` | `machines/` dependency script |
 | `TEAM_WORKSTATION_CONFIGURE_SCRIPT` | `machines/` configure script |
-| `TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID` | GitHub credential ID |
+| `TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID |
 | `TEAM_WORKSTATION_BUILD_JOBS` | Optional; default `3` |
 | `TEAM_WORKSTATION_REGRESSION_JOBS` | Optional; default `1` |
 
@@ -47,7 +55,8 @@ Create Multibranch Pipeline `gkeyll-ci-team-workstation` from GitHub source
 `gkeyllorg/gkeyll`. Discover `main` and pull requests, exclude ordinary
 branches that are also PRs, use script path
 `ci/jenkins/jenkinsfile.team_workstation`, and enable two-minute scans. Run an
-initial scan to create the trusted `main` child used by the CLI.
+initial scan to create the trusted `main` child used by the CLI. Configure the
+GitHub source anonymously; do not use the status PAT for source discovery.
 
 # Launching CI jobs
 

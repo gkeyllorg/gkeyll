@@ -1316,6 +1316,9 @@ struct gk_species {
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid
   bool is_first_integ_write_call; // Whether dynvec is being written for the first time.
 
+  gkyl_dynvec omegaH_dt; // omega_H stable time step reduced across MPI ranks.
+  bool is_first_omegaH_dt_write_call; // Whether omega_H dt dynvec is being written for the first time.
+
   struct gkyl_array *fdot_mom_old, *fdot_mom_new; // Moments of f_old and f_new.
   gkyl_dynvec fdot_integ_diag; // Integrated moments of Delta f=f_new - f_old..
   bool is_first_fdot_integ_write_call; // Whether dynvec is being written for the first time.

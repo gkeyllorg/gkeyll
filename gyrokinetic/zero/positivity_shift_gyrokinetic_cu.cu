@@ -50,7 +50,7 @@ void pos_shift_gk_choose_shift_kernel_cu(
   struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype
 )
 {
-  gkyl_pos_shift_gk_set_cu_ker_ptrs<<<1, 1> > >(kernels, cbasis, pbasis, stype);
+  gkyl_pos_shift_gk_set_cu_ker_ptrs<<<1, 1>>>(kernels, cbasis, pbasis, stype);
 }
 
 // Function borrowed from array_reduce_cu.cu.
@@ -273,12 +273,12 @@ void gkyl_positivity_shift_gyrokinetic_advance_cu(
   gkyl_array_clear_range(delta_m0, 0.0, conf_rng);
 
   // Set shiftedf boolean (int) to 0s.
-  gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker<<<nblocks_conf, nthreads_conf> > >(
+  gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker<<<nblocks_conf, nthreads_conf>>>(
     up->shiftedf->on_dev, 0
   );
 
   // Shift f is needed & scale f locally if initial local contribution to M0 was >0.
-  gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase> > >(
+  gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase>>>(
     up->kernels, up->grid, *conf_rng, up->vel_map->local_vel, *phase_rng, up->ffloor,
     up->ffloor_fac, up->cellav_fac, up->mass, up->gk_geom->geo_int.bmag->on_dev,
     up->gk_geom->geo_int.jacobtot->on_dev, up->gk_geom->geo_int.jacobtot_inv->on_dev,
@@ -287,13 +287,13 @@ void gkyl_positivity_shift_gyrokinetic_advance_cu(
   );
 
   // If a shift took place, rescale f so it keeps the same M0.
-  gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker<<<nblocks_phase, nthreads_phase> > >(
+  gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker<<<nblocks_phase, nthreads_phase>>>(
     up->kernels, *conf_rng, *phase_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev,
     distf->on_dev
   );
 
   // Ensure m0 and delta_m0 are correct based on whether a shift took place.
-  gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker<<<nblocks_conf, nthreads_conf> > >(
+  gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker<<<nblocks_conf, nthreads_conf>>>(
     up->kernels, *conf_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev
   );
 }
@@ -367,7 +367,7 @@ void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(
 )
 {
   int nblocks = phase_rng->nblocks, nthreads = phase_rng->nthreads;
-  gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker<<<nblocks, nthreads>>>(
     up->kernels, *conf_rng, *phase_rng, delta_m0s->on_dev, delta_m0s_tot->on_dev,
     delta_m0r_tot->on_dev, m0s->on_dev, fs->on_dev
   );

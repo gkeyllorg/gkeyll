@@ -65,7 +65,7 @@ void gkyl_ghost_surf_calc_advance_cu(
     nblocks = edge_rng.nblocks;
     nthreads = edge_rng.nthreads;
 
-    gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads> > >(
+    gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads>>>(
       gcalc->on_dev, dir, edge, edge_rng, fIn->on_dev, rhs->on_dev
     );
 
@@ -76,7 +76,7 @@ void gkyl_ghost_surf_calc_advance_cu(
     nblocks = edge_rng.nblocks;
     nthreads = edge_rng.nthreads;
 
-    gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads> > >(
+    gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads>>>(
       gcalc->on_dev, dir, edge, edge_rng, fIn->on_dev, rhs->on_dev
     );
 

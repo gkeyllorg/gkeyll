@@ -34,7 +34,7 @@ void gkyl_canonical_pb_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_auxfields auxin
 )
 {
-  gkyl_canonical_pb_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_canonical_pb_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.hamil->on_dev, auxin.alpha_surf->on_dev, auxin.sgn_alpha_surf->on_dev,
     auxin.const_sgn_alpha->on_dev
   );
@@ -187,7 +187,7 @@ struct gkyl_dg_eqn *gkyl_dg_canonical_pb_cu_dev_new(
     (struct dg_canonical_pb *)gkyl_cu_malloc(sizeof(struct dg_canonical_pb));
   gkyl_cu_memcpy(canonical_pb_cu, canonical_pb, sizeof(struct dg_canonical_pb), GKYL_CU_MEMCPY_H2D);
 
-  dg_canonical_pb_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_canonical_pb_set_cu_dev_ptrs<<<1, 1>>>(
     canonical_pb_cu, pbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order
   );
 

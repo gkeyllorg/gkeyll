@@ -55,7 +55,7 @@ void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(
 )
 {
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
-  gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads>>>(
     *conf_range, up->conf_basis_at_ords->on_dev, bmag->on_dev, jacobtot->on_dev,
     up->bmag_quad->on_dev, up->jacobtot_quad->on_dev
   );
@@ -231,7 +231,7 @@ void gkyl_gk_maxwellian_proj_on_basis_advance_cu(
   gkyl_parallelize_components_kernel_launch_dims(
     &dimGrid_conf, &dimBlock_conf, *conf_range, tot_conf_quad
   );
-  gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker<<<dimGrid_conf, dimBlock_conf> > >(
+  gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker<<<dimGrid_conf, dimBlock_conf>>>(
     *conf_range, vdim_phys, up->num_comp, up->bimaxwellian, use_jacobtot,
     up->conf_basis_at_ords->on_dev, moms_maxwellian->on_dev, up->bmag_quad->on_dev,
     up->jacobtot_quad->on_dev, up->moms_maxwellian_quad->on_dev, up->expamp_quad->on_dev
@@ -241,7 +241,7 @@ void gkyl_gk_maxwellian_proj_on_basis_advance_cu(
   dim3 dimGrid, dimBlock;
   int tot_phase_quad = up->basis_at_ords->size;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
-  gkyl_gk_maxwellian_proj_on_basis_f_quad_ker<<<dimGrid, dimBlock> > >(
+  gkyl_gk_maxwellian_proj_on_basis_f_quad_ker<<<dimGrid, dimBlock>>>(
     up->phase_grid, *phase_range, *conf_range, gvm->local_ext_vel, up->bimaxwellian, up->mass,
     up->conf_basis_at_ords->on_dev, up->ordinates->on_dev, up->moms_maxwellian_quad->on_dev,
     up->expamp_quad->on_dev, up->bmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev,

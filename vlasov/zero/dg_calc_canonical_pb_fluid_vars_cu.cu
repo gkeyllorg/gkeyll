@@ -72,7 +72,7 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, *conf_ext_range, phi->on_dev, alpha_surf->on_dev,
     sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev
   );
@@ -159,14 +159,14 @@ void gkyl_canonical_pb_fluid_vars_source_cu(
       // Compute the zonal components of phi and n.
       gkyl_array_average_advance(up->int_y, phi, up->phi_zonal);
       gkyl_array_average_advance(up->int_y, up->n, up->n_zonal);
-      gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel<<<nblocks, nthreads> > >(
+      gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel<<<nblocks, nthreads>>>(
         up->on_dev, *conf_range, up->x_local, up->phi_zonal->on_dev, up->n_zonal->on_dev,
         up->adiabatic_coupling_phi_n->on_dev
       );
     }
   }
 
-  gkyl_canonical_pb_fluid_vars_source_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_canonical_pb_fluid_vars_source_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, phi->on_dev, n0->on_dev,
     up->adiabatic_coupling_phi_n ? up->adiabatic_coupling_phi_n->on_dev : 0, rhs->on_dev
   );
@@ -266,7 +266,7 @@ gkyl_dg_calc_canonical_pb_fluid_vars *gkyl_dg_calc_canonical_pb_fluid_vars_cu_de
     );
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_canonical_pb_fluid_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1, 1>>>(
     up_cu, conf_basis->b_type, cdim, poly_order, wv_eqn->type, up->is_modified
   );
 

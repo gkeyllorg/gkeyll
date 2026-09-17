@@ -73,7 +73,7 @@ struct gkyl_mom_type *gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs<<<1, 1> > >(
+  gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs<<<1, 1>>>(
     mom_bcorr_cu, cbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]
   );
 

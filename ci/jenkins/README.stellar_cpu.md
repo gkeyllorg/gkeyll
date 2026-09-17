@@ -111,15 +111,17 @@ uses it only against loopback Jenkins and does not disable CSRF protection.
 
 ### Create the GitHub credential
 
-Create a fine-grained GitHub token restricted to `gkeyllorg/gkeyll` with
-`Contents: Read`, `Pull requests: Read`, and `Commit statuses: Read and write`.
-In Jenkins, add it as a **Username with password** credential, using the
-GitHub username and token. Give it an ID such as
-`gkeyll-github-stellar-cpu`.
+Create a classic GitHub PAT with only the `repo:status` scope and a short
+expiration. Its owner must have push access to `gkeyllorg/gkeyll`, which GitHub
+requires to publish commit statuses. In Jenkins, add it as a **Username with
+password** credential, using the owner's GitHub username and the PAT. Give it
+an ID such as `gkeyll-github-stellar-cpu`. Organization membership is not
+required.
 
-The Pipeline uses this credential to fetch candidates and publish statuses. Do
-not grant repository-content write access or store Duo secrets, personal SSH
-keys, or unrelated credentials in Jenkins.
+The Pipeline fetches public candidates anonymously; this credential is used
+only for authenticated GitHub API requests and status publication. Do not
+share it or store Duo secrets, personal SSH keys, or unrelated credentials in
+Jenkins. Revoke or replace it when this controller or its owner changes.
 
 ### Configure the Jenkins node and global environment
 
@@ -133,7 +135,7 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | Name | Required value |
 | --- | --- |
 | `GKEYLL_CI_ROOT` | `/scratch/gpfs/<your-user>/gkeyll_ci` |
-| `STELLAR_CPU_GITHUB_CREDENTIAL_ID` | GitHub credential ID, e.g. `gkeyll-github-stellar-cpu` |
+| `STELLAR_CPU_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID, e.g. `gkeyll-github-stellar-cpu` |
 | `STELLAR_CPU_SLURM_QOS` | A valid CPU QoS for your group |
 | `STELLAR_CPU_SLURM_ACCOUNT` | Project account when required; otherwise omit it |
 | `STELLAR_CPU_BUILD_JOBS` | Optional login-node compile parallelism; default `3` |
@@ -154,7 +156,7 @@ Create **New Item → Pipeline** named `gkeyll-ci-stellar_cpu`. Configure
 
 - SCM: Git
 - Repository: `https://github.com/gkeyllorg/gkeyll.git`
-- Credentials: the read-only GitHub credential
+- Credentials: leave empty; the public repository is fetched anonymously
 - Branch specifier: `*/main`
 - Script path: `ci/jenkins/Jenkinsfile.stellar_cpu`
 

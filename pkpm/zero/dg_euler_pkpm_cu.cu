@@ -36,7 +36,7 @@ void gkyl_euler_pkpm_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin
 )
 {
-  gkyl_euler_pkpm_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_euler_pkpm_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.vlasov_pkpm_moms->on_dev, auxin.pkpm_prim->on_dev, auxin.pkpm_prim_surf->on_dev,
     auxin.pkpm_p_ij->on_dev, auxin.pkpm_lax->on_dev, auxin.pkpm_penalization->on_dev
   );
@@ -111,7 +111,7 @@ gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl
   struct dg_euler_pkpm *euler_pkpm_cu =
     (struct dg_euler_pkpm *)gkyl_cu_malloc(sizeof(struct dg_euler_pkpm));
   gkyl_cu_memcpy(euler_pkpm_cu, euler_pkpm, sizeof(struct dg_euler_pkpm), GKYL_CU_MEMCPY_H2D);
-  dg_euler_pkpm_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_euler_pkpm_set_cu_dev_ptrs<<<1, 1>>>(
     euler_pkpm_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order
   );
 

@@ -186,6 +186,7 @@ static void singleb_app_new_solver(
       species_inp.integrated_diag_moments[n] = sp->integrated_diag_moments[n];
     }
     species_inp.time_rate_diagnostics = sp->time_rate_diagnostics;
+    species_inp.omegaH_dt_diagnostic = sp->omegaH_dt_diagnostic;
     species_inp.boundary_flux_diagnostics = sp->boundary_flux_diagnostics;
 
     // Choose proper block-specific species input.

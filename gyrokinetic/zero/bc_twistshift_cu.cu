@@ -87,7 +87,7 @@ void gkyl_bc_twistshift_advance_cu(
   int num_blocks_set =
     (up->fmat->num * up->fmat->nr * up->fmat->nc + GKYL_DEFAULT_NUM_THREADS - 1) /
     GKYL_DEFAULT_NUM_THREADS;
-  gkyl_bc_twistshift_set_distf_mats_cu_ker<<<num_blocks_set, GKYL_DEFAULT_NUM_THREADS> > >(
+  gkyl_bc_twistshift_set_distf_mats_cu_ker<<<num_blocks_set, GKYL_DEFAULT_NUM_THREADS>>>(
     fdo->on_dev, up->num_numcol_fidx_do, up->fmat->on_dev
   );
 
@@ -101,7 +101,7 @@ void gkyl_bc_twistshift_advance_cu(
   int num_cells_skin = (up->shear_r.upper[0] - up->shear_r.lower[0] + 1) * up->fmat->nc;
   int num_blocks_add =
     (ftar->ncomp * num_cells_skin + GKYL_DEFAULT_NUM_THREADS - 1) / GKYL_DEFAULT_NUM_THREADS;
-  gkyl_bc_twistshift_add_contr_cu_ker<<<num_blocks_add, GKYL_DEFAULT_NUM_THREADS> > >(
+  gkyl_bc_twistshift_add_contr_cu_ker<<<num_blocks_add, GKYL_DEFAULT_NUM_THREADS>>>(
     ftar->on_dev, up->num_numcol_fidx_tar, num_cells_skin, up->mm_contr->on_dev, up->num_do_cum,
     up->permutted_ghost_r, up->grid
   );

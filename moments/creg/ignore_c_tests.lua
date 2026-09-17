@@ -59,6 +59,7 @@ return {
       "rt_gr_mhd_bhl_spinning_mhd",
       "rt_euler_rgfm_fedkiw_shock",
       "rt_vacuum_einstein_linearwave",
+      "rt_gr_mild_shock_tetrad",
    },
    gpu = {
    },

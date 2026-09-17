@@ -28,7 +28,7 @@ void gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gyrokinetic_auxfields auxin
 )
 {
-  gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.D->on_dev, auxin.jacobgeo_inv->on_dev
   );
 }
@@ -154,7 +154,7 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gyrokinetic_cu_dev_new(
   gkyl_cu_memcpy(
     diffusion_cu, diffusion, sizeof(struct dg_diffusion_gyrokinetic), GKYL_CU_MEMCPY_H2D
   );
-  dg_diffusion_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_diffusion_gyrokinetic_set_cu_dev_ptrs<<<1, 1>>>(
     diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, diff_order, dirs_linidx
   );
 
