@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2RC4TG38SD9G6GF9N838M85",
+  "session_id": "01a0ad24-832d-7822-84a5-6f3989702300",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-17T19:05:29.341181Z",
+  "branch": "agent_tools-parallel",
+  "checkpoints_count": 3,
+  "save_step_count": 1,
+  "files_touched": [
+    "ci/jenkins/slurm-regression-tests.perlmutter_gpu.sh",
+    "ci/jenkins/slurm-regression-tests.stellar_cpu.sh"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "5f7361c2fb3e",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 481972,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 14370560,
+    "output_tokens": 65625,
+    "api_call_count": 131
+  },
+  "session_metrics": {
+    "turn_count": 21
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-17T19:05:29.187474Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 172,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 172,
+    "total_lines_changed": 180,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
