@@ -6,11 +6,10 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_5m_gem_ctx
-{
+struct amr_5m_gem_ctx {
   // Mathematical constants (dimensionless).
   double pi;
-  
+
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
   double epsilon0; // Permittivity of free space.
@@ -28,7 +27,7 @@ struct amr_5m_gem_ctx
 
   double k0_elc; // Electron closure parameter.
   double k0_ion; // Ion closure parameter.
-  
+
   // Derived physical quantities (using normalized code units).
   double psi0; // Reference magnetic scalar potential.
 
@@ -52,8 +51,7 @@ struct amr_5m_gem_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_5m_gem_ctx
-create_ctx(void)
+struct amr_5m_gem_ctx create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -75,7 +73,7 @@ create_ctx(void)
 
   double k0_elc = 0.0; // Electron closure parameter.
   double k0_ion = 0.0; // Ion closure parameter.
-  
+
   // Derived physical quantities (using normalized code units).
   double psi0 = 0.1 * B0; // Reference magnetic scalar potential.
 
@@ -130,14 +128,13 @@ create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
+    .num_failures_max = num_failures_max
   };
 
   return ctx;
 }
 
-void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -155,25 +152,28 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Te_frac = app->Te_frac;
   double T_tot = app->T_tot;
 
-  double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
+  double sech_sq =
+    (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
 
   double n = n0 * (sech_sq + nb_over_n0); // Total number density.
   double Jz = -(B0 / lambda) * sech_sq; // Total current density (z-direction).
 
   double rhoe = n * mass_elc; // Electron mass density.
   double momze = (mass_elc / charge_elc) * Jz * Te_frac; // Electron momentum density (z-direction).
-  double Ee_tot = n * T_tot * Te_frac / (gas_gamma - 1.0) + 0.5 * momze * momze / rhoe; // Electron total energy density.
+  double Ee_tot = n * T_tot * Te_frac / (gas_gamma - 1.0) +
+                  0.5 * momze * momze / rhoe; // Electron total energy density.
 
   // Set electron mass density.
   fout[0] = rhoe;
   // Set electron momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = momze;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = momze;
   // Set electron total energy density.
   fout[4] = Ee_tot;
 }
 
-void
-evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -191,25 +191,28 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Ti_frac = app->Ti_frac;
   double T_tot = app->T_tot;
 
-  double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
+  double sech_sq =
+    (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
 
   double n = n0 * (sech_sq + nb_over_n0); // Total number density.
   double Jz = -(B0 / lambda) * sech_sq; // Total current density (z-direction).
 
   double rhoi = n * mass_ion; // Ion mass density.
   double momzi = (mass_ion / charge_ion) * Jz * Ti_frac; // Ion momentum density (z-direction).
-  double Ei_tot = n * T_tot * Ti_frac / (gas_gamma - 1.0) + 0.5 * momzi * momzi / rhoi; // Ion total energy density.
+  double Ei_tot = n * T_tot * Ti_frac / (gas_gamma - 1.0) +
+                  0.5 * momzi * momzi / rhoi; // Ion total energy density.
 
   // Set ion mass density.
   fout[0] = rhoi;
   // Set ion momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = momzi;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = momzi;
   // Set ion total energy density.
   fout[4] = Ei_tot;
 }
 
-void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -226,16 +229,23 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Ly = app->Ly;
 
   double Bxb = B0 * tanh(y / lambda); // Total magnetic field strength.
-  double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) * sin(pi * y / Ly); // Total magnetic field (x-direction).
-  double By = psi0 * (2.0 * pi / Lx) * sin(2.0 * pi * x / Lx) * cos(pi * y / Ly); // Total magnetic field (y-direction).
+  double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) *
+                      sin(pi * y / Ly); // Total magnetic field (x-direction).
+  double By = psi0 * (2.0 * pi / Lx) * sin(2.0 * pi * x / Lx) *
+              cos(pi * y / Ly); // Total magnetic field (y-direction).
   double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = 0.0; fout[1] = 0.0; fout[2] = 0.0;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
+  fout[3] = Bx;
+  fout[4] = By;
+  fout[5] = Bz;
   // Set correction potentials.
-  fout[6] = 0.0; fout[7] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 int main(int argc, char **argv)
@@ -289,7 +299,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
+    .num_failures_max = ctx.num_failures_max
   };
 
   five_moment_2d_run_single(argc, argv, &init);

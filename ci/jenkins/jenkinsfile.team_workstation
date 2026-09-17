@@ -1,0 +1,32 @@
+// Team workstation multibranch entry point. Configure Jenkins to discover
+// main and pull requests targeting main; CLI requests are sent to its main
+// child job so this file is loaded from trusted main for explicit selectors.
+def explicitSelector = params.CANDIDATE_PR?.trim() || params.CANDIDATE_REF?.trim() || params.BASELINE_REF?.trim()
+if (!explicitSelector && env.BRANCH_NAME != 'main' && !env.CHANGE_ID) {
+    echo "Skipping non-PR branch '${env.BRANCH_NAME}'."
+    return
+}
+
+def forwarded = [
+    'CI_STATUS_CONTEXT=continuous-integration/jenkins/team-workstation',
+    "PERSONAL_NODE_LABEL=${env.TEAM_WORKSTATION_NODE_LABEL ?: ''}",
+    "PERSONAL_MKDEPS_SCRIPT=${env.TEAM_WORKSTATION_MKDEPS_SCRIPT ?: ''}",
+    "PERSONAL_CONFIGURE_SCRIPT=${env.TEAM_WORKSTATION_CONFIGURE_SCRIPT ?: ''}",
+    "PERSONAL_GITHUB_CREDENTIAL_ID=${env.TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID ?: ''}",
+    "PERSONAL_BUILD_JOBS=${env.TEAM_WORKSTATION_BUILD_JOBS ?: '3'}",
+    "PERSONAL_REGRESSION_JOBS=${env.TEAM_WORKSTATION_REGRESSION_JOBS ?: '1'}"
+]
+if (!explicitSelector && env.CHANGE_ID) {
+    if (env.CHANGE_TARGET != 'main') {
+        echo "Skipping PR #${env.CHANGE_ID}: target '${env.CHANGE_TARGET}' is not main."
+        return
+    }
+    forwarded += ["CI_CANDIDATE_PR=${env.CHANGE_ID}"]
+} else if (!explicitSelector && env.BRANCH_NAME == 'main') {
+    // Keep main visible and testable without accepting an unreviewed branch.
+    forwarded += ['CI_CANDIDATE_REF=main', 'CI_BASELINE_REF=main']
+}
+
+withEnv(forwarded) {
+    load 'ci/jenkins/jenkinsfile.personal'
+}
