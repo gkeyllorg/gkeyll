@@ -17,6 +17,7 @@ void test_compare_double()
   TEST_CHECK(
     gkyl_compare_double(3.0, 3.0 + 1e-13, 1e-9) == gkyl_compare_double(3.0 + 1e-13, 3.0, 1e-9)
   );
+  double tmp = 3.0;
 }
 
 void test_compare_float()
