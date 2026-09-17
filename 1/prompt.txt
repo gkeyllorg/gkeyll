@@ -1,0 +1,31 @@
+I have an idea to consider for our Jenkins-based CI (implemented in ci/jenkins/). I'd like to prevent PRs from changing existing tests or adding new tests in a way that dramatically increases the runtime of the whole build/test. Is there a simple way to do this? maybe by timing the build+test from baseline, and comparing that against the timing of the build+test from candidate, and if it's larger than say 50%, reject the PR. Just an idea. What are the pros and cons I should consider?
+
+---
+
+Ok, I'll step back from making this a requirement. I think I just want to make sure that Jenkins records the time spent on "make install" (compilation) and on "runregression run create" vs "runregression run check", and store that somewhere that's easy to access, maybe as an artifact, or a feature in the existing databases. Similarly for clusters, I want to make sure we record time spent on compilation and actually running the tests (not building dependencies or waiting in the queue). What do you think?
+
+---
+
+I don't understand this gap you are referring to. Can you explain it in more detail?
+
+---
+
+Ok, good, we need these two phases to be individually timed, and included in ci-timing-summary.txt.
+
+Ok, plese proceed with this expansion of ci-timing-summary.txt. I only ask that we also plan to do this for the personal and team machines.
+
+---
+
+One more thing: on the personal machine Jenkins browser's "Pipeline overview" (see screenshot in [Image #1] ):
+1. The "Build candidate" phase appears to include running the unit tests (make -j3 check).
+2. Likewise the "Build baseline" phase also appears to include running the unit tests (make -j3 check) and creating regression results (runregression create).
+
+Will the new expanded ci-timing-summary.txt allow us to see running unit tests, creating baseline results and checking candidate results as separate phases?
+
+---
+
+Implement the plan.
+
+---
+
+So what stages will I see in the Jenkins UI Pipeline Overview now?
