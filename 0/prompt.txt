@@ -1,0 +1,41 @@
+Does runregression (see "../gkylsoft/gkeyll/bin/gkeyll runregression -h"~) have a way to succintly say, after "runregression check" has run, which tests failed? maybe by reading the SQL database that resulted from "runregression check"
+
+---
+
+../gkylsoft/gkeyll/bin/gkeyll queryrdb --db /Users/mfrancis/Downloads/regressiondb_6 summary
+
+says one test failed, but 
+
+../gkylsoft/gkeyll/bin/gkeyll queryrdb --db /Users/mfrancis/Downloads/regressiondb_6 query --fail-only
+
+doesn't list the failing test. Why?
+
+---
+
+can you improve --fail-only so it doesn't omit timeouts (-3) or C compile failures (-4)?
+
+---
+
+This plan improves reporting for CPU tests, but can we have similar behavior for GPU and parallel tests please?
+
+---
+
+This is a good plan, I'd just like to clarify and add something:
+1. Will "crash" include when a simulation exits because the time step size became too small?
+2. I think previously runregression was designed with some support for CPU-vs-GPU comparison, but we are going to remove that for now. We only wish to compare GPU-vs-GPU results. To that end, the description of --gpu-tol in runregression run -h should just be "Tolerance for GPU-vs-accepted (default 1e-7)". I think there separately needs to be other tolerances called --cpu-serial-tol, --cpu-parallel-tol and --gpu-parallel-tol (and rename --gpu-tol to --gpu-serial-tol)
+
+---
+
+Implement the plan.
+
+---
+
+Please change <cpu_serial_tol> to <tol> in 
+
+../gkylsoft/gkeyll/bin/gkeyll runregression run -h
+
+and similarly for the other tolerances.
+
+---
+
+and remove --no-gpu

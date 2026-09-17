@@ -1,0 +1,81 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2R878F51VDPNKD766MCWNJN",
+  "session_id": "01a0b049-6a6d-7392-a2cd-492d85317398",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-17T17:56:54.572493Z",
+  "branch": "agent_tools-parallel-test",
+  "checkpoints_count": 7,
+  "save_step_count": 2,
+  "files_touched": [
+    "ci/jenkins/check_regression_results.lua",
+    "gkeyll/lua/Tool/queryrdb.lua",
+    "gkeyll/lua/Tool/runregression.lua"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "77012d6a3dff",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 205475,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 7298304,
+    "output_tokens": 33858,
+    "api_call_count": 67
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-17T17:56:54.504074Z",
+    "agent_lines": 232,
+    "agent_removed": 187,
+    "human_added": 0,
+    "human_modified": 4,
+    "human_removed": 0,
+    "total_committed": 236,
+    "total_lines_changed": 423,
+    "agent_percentage": 99.05437352245863,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 850764,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "README.stellar_cpu.md_old": 561,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "log.txt": 796961,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "run_3.txt": 67,
+        "run_4.txt": 67,
+        "run_5.txt": 10,
+        "tmp.sh": 43,
+        "tmp.txt": 8
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 4,
+      "user_lines_removed": 4,
+      "agent_lines_added": 851009,
+      "agent_lines_removed": 191,
+      "user_added_per_file": {
+        "gkeyll/lua/Tool/runregression.lua": 4
+      },
+      "user_removed_per_file": {
+        "gkeyll/lua/Tool/runregression.lua": 4
+      }
+    }
+  ]
+}
