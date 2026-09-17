@@ -22,6 +22,9 @@ void gkyl_array_dg_reducec(
     case GKYL_SUM:
       gkyl_array_dg_reducec_sum_cu(out, arr, comp, basis);
       break;
+    default:
+      assert(false);
+      break;
     }
     return;
   }
@@ -67,6 +70,9 @@ void gkyl_array_dg_reducec(
       }
     }
     break;
+  default:
+    assert(false);
+    break;
   }
 }
 
@@ -88,6 +94,9 @@ void gkyl_array_dg_reducec_range(
       break;
     case GKYL_SUM:
       gkyl_array_dg_reducec_range_sum_cu(out, arr, comp, basis, range);
+      break;
+    default:
+      assert(false);
       break;
     }
     return;
@@ -139,6 +148,9 @@ void gkyl_array_dg_reducec_range(
         out[0] += arr_nodal[k];
       }
     }
+    break;
+  default:
+    assert(false);
     break;
   }
 }

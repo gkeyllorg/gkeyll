@@ -586,96 +586,102 @@ int main(int argc, char **argv)
 
   // Electrons.
   struct gkyl_gyrokinetic_species elc =
-    {.name = "elc",
-     .charge = ctx.charge_elc,
-     .mass = ctx.mass_elc,
-     .vdim = ctx.vdim,
-     .lower = {-ctx.vpar_max_elc, 0.0},
-     .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
-     .cells = {cells_v[0], cells_v[1]},
-     .polarization_density = ctx.n0,
+    {
+      .name = "elc",
+      .charge = ctx.charge_elc,
+      .mass = ctx.mass_elc,
+      .vdim = ctx.vdim,
+      .lower = {-ctx.vpar_max_elc, 0.0},
+      .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
+      .cells = {cells_v[0], cells_v[1]},
+      .polarization_density = ctx.n0,
 
-     .projection =
-       {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .density = evalElcDensityInit,
-        .ctx_density = &ctx,
-        .temp = evalElcTempInit,
-        .ctx_temp = &ctx,
-        .upar = evalElcUparInit,
-        .ctx_upar = &ctx},
+      .projection =
+        {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+         .density = evalElcDensityInit,
+         .ctx_density = &ctx,
+         .temp = evalElcTempInit,
+         .ctx_temp = &ctx,
+         .upar = evalElcUparInit,
+         .ctx_upar = &ctx},
 
-     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
+      .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-     .collisions =
-       {.collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNuElc,
-        .self_nu_ctx = &ctx,
-        .num_cross_collisions = 1,
-        .collide_with = {"ion"},
-        .cross_nu = {evalNuElcIon},
-        .cross_nu_ctx = &ctx,
-        .den_ref = ctx.n0,
-        .temp_ref = ctx.Te},
+      .collisions =
+        {.collision_id = GKYL_LBO_COLLISIONS,
+         .self_nu = evalNuElc,
+         .self_nu_ctx = &ctx,
+         .num_cross_collisions = 1,
+         .collide_with = {"ion"},
+         .cross_nu = {evalNuElcIon},
+         .cross_nu_ctx = &ctx,
+         .den_ref = ctx.n0,
+         .temp_ref = ctx.Te},
 
-     .source =
-       {.source_id = GKYL_PROJ_SOURCE,
-        .num_sources = 1,
-        .projection[0] =
-          {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-           .density = evalElcSourceDensityInit,
-           .ctx_density = &ctx,
-           .temp = evalElcSourceTempInit,
-           .ctx_temp = &ctx,
-           .upar = evalElcSourceUparInit,
-           .ctx_upar = &ctx},
-        .diagnostics =
-          {
-            .num_diag_moments = 5,
-            .diag_moments =
-              {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-               GKYL_F_MOMENT_M2PERP},
-            .num_integrated_diag_moments = 1,
-            .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-            //        .time_integrated = true,
-          }},
+      .source =
+        {.source_id = GKYL_PROJ_SOURCE,
+         .num_sources = 1,
+         .projection[0] =
+           {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+            .density = evalElcSourceDensityInit,
+            .ctx_density = &ctx,
+            .temp = evalElcSourceTempInit,
+            .ctx_temp = &ctx,
+            .upar = evalElcSourceUparInit,
+            .ctx_upar = &ctx},
+         .diagnostics =
+           {
+             .num_diag_moments = 5,
+             .diag_moments =
+               {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
+                GKYL_F_MOMENT_M2PERP},
+             .num_integrated_diag_moments = 1,
+             .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+             //        .time_integrated = true,
+           }},
 
-     .react_neut =
-       {.num_react = 2,
-        .react_type =
-          {{.react_id = GKYL_REACT_IZ,
-            .type_self = GKYL_SELF_ELC,
-            .ion_id = GKYL_ION_H,
-            .elc_nm = "elc",
-            .ion_nm = "ion",
-            .donor_nm = "D0",
-            .charge_state = 0,
-            .ion_mass = ctx.mass_ion,
-            .elc_mass = ctx.mass_elc},
-           {.react_id = GKYL_REACT_RECOMB,
-            .type_self = GKYL_SELF_ELC,
-            .ion_id = GKYL_ION_H,
-            .elc_nm = "elc",
-            .ion_nm = "ion",
-            .recvr_nm = "D0",
-            .charge_state = 0,
-            .ion_mass = ctx.mass_ion,
-            .elc_mass = ctx.mass_elc}}},
+      .react_neut =
+        {.num_react = 2,
+         .react_type =
+           {{.react_id = GKYL_REACT_IZ,
+             .type_self = GKYL_SELF_ELC,
+             .ion_id = GKYL_ION_H,
+             .elc_nm = "elc",
+             .ion_nm = "ion",
+             .donor_nm = "D0",
+             .charge_state = 0,
+             .ion_mass = ctx.mass_ion,
+             .elc_mass = ctx.mass_elc},
+            {.react_id = GKYL_REACT_RECOMB,
+             .type_self = GKYL_SELF_ELC,
+             .ion_id = GKYL_ION_H,
+             .elc_nm = "elc",
+             .ion_nm = "ion",
+             .recvr_nm = "D0",
+             .charge_state = 0,
+             .ion_mass = ctx.mass_ion,
+             .elc_mass = ctx.mass_elc}}},
 
-     .bcs =
-       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+      .bcs =
+        {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+         {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
 
-     .num_diag_moments = 6,
-     .diag_moments =
-       {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN},
-     .num_integrated_diag_moments = 1,
-     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-     .time_rate_diagnostics = true,
+      .num_diag_moments = 6,
+      .diag_moments =
+        {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN},
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+      .num_time_rate_diagnostics = 2,
+      .time_rate_diagnostics =
+        {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+         GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
 
-     .boundary_flux_diagnostics = {
-       .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-       //      .time_integrated = true,
-     }};
+      .boundary_flux_diagnostics =
+        {
+          .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+          //      .time_integrated = true,
+        }
+    };
 
   // Ions.
   struct gkyl_gyrokinetic_species ion = {
@@ -771,7 +777,10 @@ int main(int argc, char **argv)
       {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_MAXWELLIAN},
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-    .time_rate_diagnostics = true,
+    .num_time_rate_diagnostics = 2,
+    .time_rate_diagnostics =
+      {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+       GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
 
     .boundary_flux_diagnostics =
       {

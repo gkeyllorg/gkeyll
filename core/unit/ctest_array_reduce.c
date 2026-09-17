@@ -103,8 +103,58 @@ void test_sum_reduce_range_ho()
   gkyl_array_release(arr);
 }
 
+void test_sum_abs_reduce_range_ho()
+{
+  int shape[] = {2, 3};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, range.volume);
+  for (size_t i = 0; i < arr->size; ++i) {
+    double *d = gkyl_array_fetch(arr, i);
+    d[0] = i % 2 == 0 ? 0.5 : -0.5;
+    d[1] = i % 2 == 0 ? -1.5 : 1.5;
+  }
+
+  double asum[2];
+  gkyl_array_reduce_range(asum, arr, GKYL_SUM_ABS, &range);
+
+  TEST_CHECK(asum[0] == 0.5 * range.volume);
+  TEST_CHECK(asum[1] == 1.5 * range.volume);
+
+  gkyl_array_release(arr);
+}
+
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
+
+void test_sum_abs_reduce_range_dev()
+{
+  int shape[] = {2, 3};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, range.volume);
+  struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2, range.volume);
+  for (size_t i = 0; i < arr->size; ++i) {
+    double *d = gkyl_array_fetch(arr, i);
+    d[0] = i % 2 == 0 ? 0.5 : -0.5;
+    d[1] = i % 2 == 0 ? -1.5 : 1.5;
+  }
+  gkyl_array_copy(arr_cu, arr);
+
+  double asum[2];
+  double *asum_cu = gkyl_cu_malloc(2 * sizeof(double));
+  gkyl_array_reduce_range(asum_cu, arr_cu, GKYL_SUM_ABS, &range);
+  gkyl_cu_memcpy(asum, asum_cu, sizeof(asum), GKYL_CU_MEMCPY_D2H);
+
+  TEST_CHECK(asum[0] == 0.5 * range.volume);
+  TEST_CHECK(asum[1] == 1.5 * range.volume);
+
+  gkyl_cu_free(asum_cu);
+  gkyl_array_release(arr_cu);
+  gkyl_array_release(arr);
+}
 
 void test_array_reduce_max_dev()
 {
@@ -374,7 +424,9 @@ TEST_LIST = {
   {"array_reduce_ho", test_reduce_ho},
   {"array_reduce_range_ho", test_reduce_range_ho},
   {"array_reduce_sum_range_ho", test_sum_reduce_range_ho},
+  {"array_reduce_sum_abs_range_ho", test_sum_abs_reduce_range_ho},
 #ifdef GKYL_HAVE_CUDA
+  {"array_reduce_sum_abs_range_dev", test_sum_abs_reduce_range_dev},
   {"array_reduce_max_dev", test_array_reduce_max_dev},
   {"array_reduce_max_big_dev", test_array_reduce_max_big_dev},
   {"array_reduce_range_1d_max_dev", test_array_reduce_range_1d_max_dev},

@@ -96,6 +96,16 @@ struct gkyl_phase_diagnostics_inp {
   bool time_integrated; // Whether to use time integrated diags.
 };
 
+// Time-rate diagnostics for a gyrokinetic distribution function.
+enum gkyl_gyrokinetic_time_rate_diagnostic {
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT = 0, // Phase-space (f_new-f_old)/dt.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS, // Volume-integrated moments of fdot.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS, // Volume integral of the absolute fdot moments.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_MOMENTS, // Configuration-space moments of fdot.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_MOMENTS, // Absolute value of the configuration-space fdot moments.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM // Sentinal value. Not a diagnostic. Index for total number of time-rate diagnostics.
+};
+
 // Parameters for collisionless terms.
 struct gkyl_gyrokinetic_collisionless {
   enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
@@ -471,7 +481,9 @@ struct gkyl_gyrokinetic_species {
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
-  bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
+  int num_time_rate_diagnostics; // Number of time-rate diagnostics.
+  enum gkyl_gyrokinetic_time_rate_diagnostic
+    time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM]; // List of time-rate diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
   bool omegaH_dt_diagnostic; // Whether to output the omega_H stable time step as a dynvector.
 

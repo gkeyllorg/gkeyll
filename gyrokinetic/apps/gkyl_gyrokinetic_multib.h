@@ -33,8 +33,10 @@ struct gkyl_gyrokinetic_multib_species {
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
-  bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   bool omegaH_dt_diagnostic; // Whether to output the omega_H stable time step as a dynvector.
+  int num_time_rate_diagnostics; // Number of time-rate diagnostics.
+  enum gkyl_gyrokinetic_time_rate_diagnostic
+    time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM]; // List of time-rate diagnostics.
 
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 

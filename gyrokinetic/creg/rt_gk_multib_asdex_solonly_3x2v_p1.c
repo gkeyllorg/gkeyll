@@ -729,7 +729,10 @@ int main(int argc, char **argv)
        {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
      .num_integrated_diag_moments = 1,
      .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-     .time_rate_diagnostics = true,
+     .num_time_rate_diagnostics = 2,
+     .time_rate_diagnostics =
+       {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+        GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
      .boundary_flux_diagnostics = {
        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
        //      .time_integrated = true,
@@ -890,7 +893,10 @@ int main(int argc, char **argv)
        {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
      .num_integrated_diag_moments = 1,
      .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-     .time_rate_diagnostics = true,
+     .num_time_rate_diagnostics = 2,
+     .time_rate_diagnostics =
+       {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+        GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
      .boundary_flux_diagnostics = {
        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
        //      .time_integrated = true,
