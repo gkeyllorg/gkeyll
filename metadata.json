@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2R58HASGRBWXVDXTNR4RX2Y",
+  "strategy": "manual-commit",
+  "branch": "maxwells-world",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "gyrokinetic/apps/gk_species_bflux.c",
+    "gyrokinetic/apps/gk_species_lbo.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/apps/gyrokinetic.c",
+    "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_wham_1x2v_p1.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mirror.c",
+    "gyrokinetic/unit/ctest_gk_geometry_tok.c",
+    "gyrokinetic/unit/ctest_mirror_grid_gen.c",
+    "gyrokinetic/unit/ctest_position_map.c",
+    "gyrokinetic/zero/gk_geometry_mirror.c",
+    "gyrokinetic/zero/loss_cone_mask_gyrokinetic_cu.cu"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
