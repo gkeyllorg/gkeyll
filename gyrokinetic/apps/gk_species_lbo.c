@@ -280,8 +280,8 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       lbo->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->basis, app->poly_order+1,
         1.0, 1.0, 1.0, app->use_gpu);
 
-      // We define nu_ss = nu_sr(r=s) = alpha_E/((delta_ss * (1+beta))*n_s), with delta_ss = 2, 
-      // beta = 0. This gives a nu_ss that is arguably 2X smaller than it should be, but it's
+      // We define nu_ss = nu_sr(r=s) = alpha_E/((1+beta)*n_s), with beta = 0.
+      // This gives a nu_ss that is arguably 2X smaller than it should be, but it's
       // cheaper and yields an electron isotropization rate that agrees better with the FPO's.
       lbo->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
         gks->info.collisions.den_ref, gks->info.collisions.den_ref, 
