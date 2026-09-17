@@ -5,7 +5,7 @@ set -euo pipefail
 
 JENKINS_URL="${JENKINS_URL:-http://127.0.0.1:8080}"
 JENKINS_JOB="${JENKINS_JOB:-gkeyll-ci-personal}"
-JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-}"
+JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-$HOME/.config/gkeyll/jenkins/personal.auth}"
 JENKINS_CLI_JAR="${JENKINS_CLI_JAR:-${TMPDIR:-/tmp}/gkeyll-jenkins-cli.jar}"
 CURL_CONFIG=''
 QUEUE_ID=''
@@ -28,9 +28,10 @@ The run command returns after Jenkins accepts the request. --follow streams
 the build console and returns its final Jenkins result. Press Ctrl-C to stop
 following without aborting the Jenkins build.
 
-Jenkins must already be running. Set JENKINS_CLI_AUTH_FILE to a protected file
-containing one line: jenkins-user:api-token. JENKINS_URL and JENKINS_JOB
-override the loopback URL and gkeyll-ci-personal defaults.
+Jenkins must already be running. Credentials default to
+~/.config/gkeyll/jenkins/personal.auth, a protected file containing one line:
+jenkins-user:api-token. JENKINS_CLI_AUTH_FILE, JENKINS_URL, and JENKINS_JOB
+override their defaults.
 EOF
 }
 command_usage() {
@@ -86,7 +87,7 @@ EOF
 }
 job_path() { local p='/job' n; IFS=/ read -ra n <<< "$JENKINS_JOB"; for x in "${n[@]}"; do p+="/$x/job"; done; printf '%s' "${p%/job}"; }
 prepare_auth() {
-    [[ -n "$JENKINS_CLI_AUTH_FILE" ]] || die 'Set JENKINS_CLI_AUTH_FILE to a mode-600 user:api-token file'
+    [[ -f "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is missing: $JENKINS_CLI_AUTH_FILE"
     [[ -O "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is not owned by $USER"
     [[ "$(stat -f '%Lp' "$JENKINS_CLI_AUTH_FILE" 2>/dev/null || stat -c '%a' "$JENKINS_CLI_AUTH_FILE")" == 600 ]] || die 'credential file must have mode 600'
     local credential; credential="$(<"$JENKINS_CLI_AUTH_FILE")"

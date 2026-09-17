@@ -5,7 +5,7 @@ set -euo pipefail
 JENKINS_URL="${JENKINS_URL:-http://127.0.0.1:8080}"
 JENKINS_JOB="${JENKINS_JOB:-gkeyll-ci-team-workstation/main}"
 JENKINS_ROOT_JOB="${JENKINS_ROOT_JOB:-gkeyll-ci-team-workstation}"
-JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-}"
+JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-$HOME/.config/gkeyll/jenkins/team-workstation.auth}"
 JENKINS_CLI_JAR="${JENKINS_CLI_JAR:-${TMPDIR:-/tmp}/gkeyll-jenkins-cli.jar}"
 CURL_CONFIG=''; QUEUE_ID=''; RESOLVED_BUILD_NUMBER=''
 die() { echo "ERROR: $*" >&2; exit 1; }
@@ -25,8 +25,11 @@ The run command returns after Jenkins accepts the request. --follow streams
 the build console and returns its final Jenkins result. Press Ctrl-C to stop
 following without aborting the Jenkins build.
 
-Jenkins must already be running. JENKINS_JOB defaults to the trusted main
-child of gkeyll-ci-team-workstation; JENKINS_ROOT_JOB is used by scan.
+Jenkins must already be running. Credentials default to
+~/.config/gkeyll/jenkins/team-workstation.auth, a protected file containing
+one line: jenkins-user:api-token. JENKINS_CLI_AUTH_FILE overrides this path.
+JENKINS_JOB defaults to the trusted main child of gkeyll-ci-team-workstation;
+JENKINS_ROOT_JOB is used by scan.
 EOF
 }
 command_usage() {
@@ -81,7 +84,7 @@ EOF
  esac
 }
 path_for() { local job="$1" p='/job' x; IFS=/ read -ra part <<< "$job"; for x in "${part[@]}"; do p+="/$x/job"; done; printf '%s' "${p%/job}"; }
-prepare() { [[ -n "$JENKINS_CLI_AUTH_FILE" ]] || die 'Set JENKINS_CLI_AUTH_FILE to a mode-600 user:api-token file'; [[ -O "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is not owned by $USER"; [[ "$(stat -f '%Lp' "$JENKINS_CLI_AUTH_FILE" 2>/dev/null || stat -c '%a' "$JENKINS_CLI_AUTH_FILE")" == 600 ]] || die 'credential file must have mode 600'; local c="$(<"$JENKINS_CLI_AUTH_FILE")"; [[ "$c" =~ ^[^[:space:]:]+:[^[:space:]:]+$ ]] || die 'credential file must contain user:api-token'; CURL_CONFIG="$(mktemp "${TMPDIR:-/tmp}/gkeyll-jenkins.XXXXXX")"; chmod 600 "$CURL_CONFIG"; printf 'user = "%s"\n' "$c" > "$CURL_CONFIG"; trap 'rm -f "$CURL_CONFIG"' EXIT; }
+prepare() { [[ -f "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is missing: $JENKINS_CLI_AUTH_FILE"; [[ -O "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is not owned by $USER"; [[ "$(stat -f '%Lp' "$JENKINS_CLI_AUTH_FILE" 2>/dev/null || stat -c '%a' "$JENKINS_CLI_AUTH_FILE")" == 600 ]] || die 'credential file must have mode 600'; local c="$(<"$JENKINS_CLI_AUTH_FILE")"; [[ "$c" =~ ^[^[:space:]:]+:[^[:space:]:]+$ ]] || die 'credential file must contain user:api-token'; CURL_CONFIG="$(mktemp "${TMPDIR:-/tmp}/gkeyll-jenkins.XXXXXX")"; chmod 600 "$CURL_CONFIG"; printf 'user = "%s"\n' "$c" > "$CURL_CONFIG"; trap 'rm -f "$CURL_CONFIG"' EXIT; }
 curl_auth() { curl --fail --silent --show-error --globoff --config "$CURL_CONFIG" "$@"; }
 curl_auth_quiet() { curl --fail --silent --globoff --config "$CURL_CONFIG" "$@"; }
 positive() { [[ "$2" =~ ^[1-9][0-9]*$ ]] || die "$1 must be a positive integer"; }

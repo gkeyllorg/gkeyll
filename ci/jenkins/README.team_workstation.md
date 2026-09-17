@@ -19,8 +19,14 @@ administrator account.
 
 ### Create a Jenkins API token for the launcher
 
-Create an API token for the CLI user and save a user-owned mode-600
-`jenkins-user:api-token` file, then set `JENKINS_CLI_AUTH_FILE` to it.
+Create an API token for the CLI user and save it in the user-owned mode-600
+default credential file:
+
+```sh
+mkdir -p "$HOME/.config/gkeyll/jenkins"; umask 077
+printf '%s:%s\n' '<jenkins-user>' '<jenkins-api-token>' > "$HOME/.config/gkeyll/jenkins/team-workstation.auth"
+chmod 600 "$HOME/.config/gkeyll/jenkins/team-workstation.auth"
+```
 
 ### Create the GitHub credential
 
@@ -63,12 +69,13 @@ GitHub source anonymously; do not use the status PAT for source discovery.
 ## CLI launch
 
 ```sh
-export JENKINS_CLI_AUTH_FILE="$HOME/.config/gkeyll/jenkins-cli.auth"
 ./ci/jenkins/gkeyll-ci.sh team scan
 ./ci/jenkins/gkeyll-ci.sh team run --pr 1234 --follow
 ./ci/jenkins/gkeyll-ci.sh team active
 ./ci/jenkins/gkeyll-ci.sh team abort --build 42
 ```
+
+Set `JENKINS_CLI_AUTH_FILE` only to use a credential file at a different path.
 
 `scan` discovers `main` and eligible PR jobs, then reports builds Jenkins
 scheduled. The client never starts Jenkins or tmux.

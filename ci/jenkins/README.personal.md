@@ -25,9 +25,9 @@ start setup, and create an administrator account.
 Create an API token for the user who will run the client and save it locally:
 
 ```sh
-mkdir -p "$HOME/.config/gkeyll"; umask 077
-printf '%s:%s\n' '<jenkins-user>' '<jenkins-api-token>' > "$HOME/.config/gkeyll/jenkins-cli.auth"
-chmod 600 "$HOME/.config/gkeyll/jenkins-cli.auth"
+mkdir -p "$HOME/.config/gkeyll/jenkins"; umask 077
+printf '%s:%s\n' '<jenkins-user>' '<jenkins-api-token>' > "$HOME/.config/gkeyll/jenkins/personal.auth"
+chmod 600 "$HOME/.config/gkeyll/jenkins/personal.auth"
 ```
 
 ### Create the GitHub credential
@@ -73,12 +73,13 @@ to register parameters.
 ## CLI launch
 
 ```sh
-export JENKINS_CLI_AUTH_FILE="$HOME/.config/gkeyll/jenkins-cli.auth"
 ./ci/jenkins/gkeyll-ci.sh personal run --pr 1234 --follow
 ./ci/jenkins/gkeyll-ci.sh personal run --candidate-ref feature/new-solver --baseline-ref main
 ./ci/jenkins/gkeyll-ci.sh personal active
 ./ci/jenkins/gkeyll-ci.sh personal abort --build 42
 ```
+
+Set `JENKINS_CLI_AUTH_FILE` only to use a credential file at a different path.
 
 ## Browser launch
 
