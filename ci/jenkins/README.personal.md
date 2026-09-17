@@ -57,6 +57,7 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID |
 | `PERSONAL_BUILD_JOBS` | Optional; default `3` |
 | `PERSONAL_REGRESSION_JOBS` | Optional; default `1` |
+| `PERSONAL_MPIEXEC` | Optional full path to the MPI launcher; defaults to `gkylsoft/openmpi/bin/mpiexec` in the Jenkins workspace |
 
 ### Create the one parameterized Pipeline job
 
