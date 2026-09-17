@@ -1,0 +1,19 @@
+Going back to the operational security gap, can you describe in detail what the "loopback-only binding plus SSH tunneling" option would look like with regards to setup and CI use for each of the personal and team machines?
+
+---
+
+Can you change your explanation above accounting for:
+1) I do not want to make the personal machine accesible remotely.
+2) Both the personal and team machine (maybe the cluster ones too) refer to http://127.0.0.1:8081. I'd prefer if each machine setup (description) uses a different URL in case a user wants to have multiple controller browsers open at the same time.
+
+---
+
+Can you make a plan to enforce these security measures? ensuring that the README files are changed accordingly and consistently.
+
+---
+
+Implement the plan.
+
+---
+
+Actually, this seems to add too much complexity for the personal computer at the moment. I'd like to only apply this new security measure to the team workstation.
