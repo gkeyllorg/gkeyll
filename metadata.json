@@ -1,0 +1,54 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2QZVY8NSN79A4MSF19EW572",
+  "strategy": "manual-commit",
+  "branch": "maxwells-world",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "AGENTS.md",
+    "gyrokinetic/apps/gk_field.c",
+    "gyrokinetic/apps/gk_field_biased_wall.c",
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_damping.c",
+    "gyrokinetic/apps/gk_species_fdot_multiplier.c",
+    "gyrokinetic/apps/gk_species_phi_wall.c",
+    "gyrokinetic/apps/gkyl_gk_field_priv.h",
+    "gyrokinetic/apps/gkyl_gyrokinetic.h",
+    "gyrokinetic/apps/gkyl_gyrokinetic_multib.h",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/apps/gyrokinetic.c",
+    "gyrokinetic/apps/gyrokinetic_multib.c",
+    "gyrokinetic/creg/rt_gk_mirror_boltz_elc_damped_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_2x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_mirror_kinetic_elc_poa_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_mirror_tandem_boltz_elc_poa_1x2v.c",
+    "gyrokinetic/creg/rt_gk_wham_boltz_elc_poa_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_wham_nonuniformx_2x2v_p1.c",
+    "gyrokinetic/unit/ctest_gk_species_wall_potential.c",
+    "gyrokinetic/unit/ctest_loss_cone_mask_gyrokinetic.c",
+    "gyrokinetic/unit/mctest_loss_cone_mask_gyrokinetic.c",
+    "gyrokinetic/zero/gkyl_loss_cone_mask_gyrokinetic.h",
+    "gyrokinetic/zero/gkyl_loss_cone_mask_gyrokinetic_priv.h",
+    "gyrokinetic/zero/gkyl_position_map_priv.h",
+    "gyrokinetic/zero/loss_cone_mask_gyrokinetic.c",
+    "gyrokinetic/zero/loss_cone_mask_gyrokinetic_cu.cu"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 133875,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2757632,
+    "output_tokens": 17134,
+    "api_call_count": 34
+  }
+}
