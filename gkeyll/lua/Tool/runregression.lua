@@ -143,15 +143,16 @@ end
 
 -- ---- Global counters --------------------------------------------------------
 -- Per-layer pass/fail counts, keyed by layer name.
--- GPU counters track the GPU variant independently (only populated for
--- GPU-capable layers on a GPU build).
 local layerCounts = {}
 for _, L in ipairs(LAYERS) do
    layerCounts[L.name] = {
       total = 0, passed = 0, failed = 0,
-      gpu_total = 0, gpu_passed = 0, gpu_failed = 0,
    }
 end
+
+-- Exactly one platform/multiprocessing mode is exercised per invocation.
+local runMode = nil
+local runTolerance = nil
 
 -- ---- Configuration ----------------------------------------------------------
 local isConfiguring = false
@@ -204,20 +205,17 @@ local runDate = date(false):fmt("${iso}")
 --   GKYL_EXEC          path to the gkeyll executable used
 --   GKYL_GIT_CHANGESET git commit hash
 --   GKYL_BUILD_DATE    build date string
---   ntotal / npass / nfail  aggregate counts for this run (CPU)
---   gpu_build          1 if this was a GPU build, 0 otherwise
---   ngpu_pass / ngpu_fail  aggregate GPU-variant counts
+--   run_mode           cpu_serial, cpu_parallel, gpu_serial, or gpu_parallel
+--   ntotal / npass / nfail  aggregate counts for this run
 --
 -- RegressionData stores one row per individual test:
 --   guid        links to a RegressionMeta row
 --   name        test name (relative path / binary name)
 --   test_type   'lua' or 'c'  (new in hierarchical design)
---   status      -4=compile_fail  -3=timeout  -2=create  -1=skip  0=fail  1=pass
---   runtime     wall-clock seconds (CPU variant)
+--   status      -6=crash -5=no_output -4=compile_fail -3=timeout
+--               -2=create -1=skip 0=fail 1=pass
+--   runtime     wall-clock seconds
 --   runlog      captured stdout+stderr from the test
---   gpu_status  GPU variant: 1=pass, 0=fail, -1=skip, -3=timeout, -5=crash
---   gpu_runtime wall-clock seconds (GPU variant; 0 if not run)
---   cpu_gpu_diff  1=match, 0=differ, -1=not-applicable
 
 local SCHEMA_SQL = [[
   drop table if exists RegressionMeta;
@@ -230,9 +228,7 @@ local SCHEMA_SQL = [[
     ntotal             integer,
     npass              integer,
     nfail              integer,
-    gpu_build          integer,
-    ngpu_pass          integer,
-    ngpu_fail          integer
+    run_mode           text
   );
 
   drop table if exists RegressionData;
@@ -242,10 +238,7 @@ local SCHEMA_SQL = [[
     test_type    text,
     status       integer,
     runtime      real,
-    runlog       text,
-    gpu_status   integer,
-    gpu_runtime  real,
-    cpu_gpu_diff integer
+    runlog       text
   );
 ]]
 
@@ -271,6 +264,30 @@ end
 
 local function shellQuote(value)
    return "'" .. tostring(value):gsub("'", "'\\\"'\\\"'") .. "'"
+end
+
+local function hasGkylOutput(dir)
+   for fn in lfs.dir(dir) do
+      if string.sub(fn, -5) == ".gkyl" then return true end
+   end
+   return false
+end
+
+-- Most applications exit cleanly after detecting a numerically fatal small
+-- time step, so exit status alone cannot identify this failure mode.
+local function hasSimulationCrash(runlog)
+   local lowerLog = string.lower(runlog or "")
+   return string.find(lowerLog, "time step crashing", 1, true) ~= nil
+      or string.find(lowerLog, "time-step was below", 1, true) ~= nil
+      or string.find(lowerLog, "update method failed", 1, true) ~= nil
+end
+
+local function classifyExecution(runDir, runlog, timedOut, exitCode)
+   if timedOut then return -3 end
+   if exitCode and exitCode ~= 0 then return -6 end
+   if hasSimulationCrash(runlog) then return -6 end
+   if not hasGkylOutput(runDir) then return -5 end
+   return nil
 end
 
 local function parallelRanks(cuts)
@@ -409,16 +426,15 @@ local function getLayerDB(layerName)
    local dbPath = configVals.results_dir .. "/" .. layerName .. "/regressiondb"
    local conn   = sql.open(dbPath)
 
-   -- insertRegressionData binds: guid, name, test_type, status, runtime, runlog,
-   --                             gpu_status, gpu_runtime, cpu_gpu_diff
+   -- insertRegressionData binds: guid, name, test_type, status, runtime, runlog.
    local insertData = conn:prepare [[
-     insert into RegressionData values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     insert into RegressionData values (?, ?, ?, ?, ?, ?)
    ]]
 
    -- insertRegressionMeta binds: guid, tstamp, exec, changeset, builddate,
-   --                             ntotal, npass, nfail, gpu_build, ngpu_pass, ngpu_fail
+   --                             ntotal, npass, nfail, run_mode
    local insertMeta = conn:prepare [[
-     insert into RegressionMeta values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     insert into RegressionMeta values (?, ?, ?, ?, ?, ?, ?, ?, ?)
    ]]
 
    layerDBs[layerName] = {
@@ -430,35 +446,24 @@ local function getLayerDB(layerName)
 end
 
 -- Insert a single test result row into the appropriate layer's database.
--- gpuStatus / gpuRuntime / cpuGpuDiff default to -1/0/-1 when not provided
--- (non-GPU layers or non-GPU builds).
 local function insertRegressionData(layerName, guid, name, testType,
-      status, runtm, runlog, gpuStatus, gpuRuntime, cpuGpuDiff)
-   gpuStatus  = gpuStatus  or -1
-   gpuRuntime = gpuRuntime or 0
-   cpuGpuDiff = cpuGpuDiff or -1
+      status, runtm, runlog)
    local db = getLayerDB(layerName)
    db.insertData:reset():bind(
-      guid, name, testType, status, runtm, runlog,
-      gpuStatus, gpuRuntime, cpuGpuDiff
+      guid, name, testType, status, runtm, runlog
    ):step()
 end
 
 -- Insert the run-level summary row for a layer.
--- gpuBuild / ngpuPass / ngpuFail default to 0 when not provided.
 local function insertRegressionMeta(layerName, guid, tm,
-      ntotal, npass, nfail, gpuBuild, ngpuPass, ngpuFail)
-   gpuBuild = gpuBuild or 0
-   ngpuPass = ngpuPass or 0
-   ngpuFail = ngpuFail or 0
+      ntotal, npass, nfail, mode)
    local db = getLayerDB(layerName)
    db.insertMeta:reset():bind(
       guid, tm,
       GKYL_EXEC,
       GKYL_GIT_CHANGESET,
       GKYL_BUILD_DATE,
-      ntotal, npass, nfail,
-      gpuBuild, ngpuPass, ngpuFail
+      ntotal, npass, nfail, mode
    ):step()
 end
 
@@ -524,6 +529,18 @@ local function configure(prefix, mpiExec, mpiArgs, sourceDir, args)
          conn:exec(SCHEMA_SQL)
          conn:close()
       else
+         local conn = sql.open(dbPath)
+         local columns, nrow = conn:exec("pragma table_info(RegressionMeta)")
+         local hasRunMode = false
+         for i = 1, nrow do
+            if columns.name[i] == "run_mode" then hasRunMode = true; break end
+         end
+         conn:close()
+         if not hasRunMode then
+            assert(false, string.format(
+               "Regression database '%s' uses the legacy schema. "
+               .. "Re-run configure with --drop-tables to recreate it.", dbPath))
+         end
          log(string.format(
             "DB for layer '%s' already exists at %s (use --drop-tables to reset)\n",
             layer.name, dbPath))
@@ -694,7 +711,8 @@ local function list_tests(activeLayers, args)
             if not isLuaRegressionTest(fn) then return end
             -- Skip tests in ignore list.  The lua table stores basenames
             -- (no path, no extension) so the file works on any machine.
-            local ignLua = ignoreTests[layer.name] and ignoreTests[layer.name].lua or {}
+            local ignKey = (GPU_BUILD and GPU_LAYERS[layer.name]) and "gpu_lua" or "lua"
+            local ignLua = ignoreTests[layer.name] and ignoreTests[layer.name][ignKey] or {}
             if lume.find(ignLua, stripext(basename(fn))) then
                if args.run_only then
                   log(string.format(
@@ -775,7 +793,8 @@ local function list_tests(activeLayers, args)
             if not string.match(fn, "/rt_[^/]+%.c$") then return end
             local testname = stripext(basename(fn))
             -- Skip tests in ignore list (C ignores are stored as basenames without .c).
-            local ignC = ignoreTests[layer.name] and ignoreTests[layer.name].c or {}
+            local ignKey = (GPU_BUILD and GPU_LAYERS[layer.name]) and "gpu_c" or "c"
+            local ignC = ignoreTests[layer.name] and ignoreTests[layer.name][ignKey] or {}
             if not parallelSpec and lume.find(ignC, testname) then
                if args.run_only then
                   log(string.format(
@@ -971,7 +990,7 @@ end
 local function prepareLuaRun(test, timeoutSecs, mode)
    local testBasename = stripext(basename(test.file))
    local runDir = configVals.results_dir .. "/" .. test.layer
-      .. "/luareg-runs/" .. testBasename
+      .. "/luareg-runs/" .. runMode .. "/" .. testBasename
 
    mkdir(runDir)
    os.execute(string.format("cp -f '%s' '%s/'", test.file, runDir))
@@ -994,7 +1013,6 @@ local function prepareLuaRun(test, timeoutSecs, mode)
 
    local gkylExec = GKYL_EXEC_PATH .. "/gkeyll"
    local modeFlag = ""
-   if mode == "cpu" and GPU_BUILD then modeFlag = " -G" end
    local innerCmd = string.format(
       "cd '%s' && '%s' '%s'%s 2>&1", runDir, gkylExec, test.file, modeFlag)
    local cmd = wrapWithTimeout(innerCmd, timeoutSecs or 0, runDir)
@@ -1011,7 +1029,7 @@ end
 local function prepareCRun(test, timeoutSecs, mode, skipCompile)
    local testname = stripext(basename(test.src))
    local runDir   = configVals.results_dir .. "/" .. test.layer
-      .. "/creg-runs/" .. testname
+      .. "/creg-runs/" .. runMode .. "/" .. testname
    local binPath  = runDir .. "/" .. testname
 
    mkdir(runDir)
@@ -1272,7 +1290,7 @@ local function runLuaTest(test, timeoutSecs, mode)
    end
    verboseLog(r.runlog)
 
-   return r.runtm, r.runlog, prep.runDir, r.timedOut
+   return r.runtm, r.runlog, prep.runDir, r.timedOut, r.exitCode
 end
 
 -- Runs a single C regression test (thin wrapper over prepareCRun + executeBatch).
@@ -1319,7 +1337,7 @@ local function runCTest(test, timeoutSecs, mode, skipCompile, keepBinary)
    verboseLog(r.runlog)
 
    return r.runtm, (prep.compileLog or "") .. "\n" .. r.runlog,
-          runDir, r.timedOut, false
+          runDir, r.timedOut, false, r.exitCode
 end
 
 -- ---- File comparison --------------------------------------------------------
@@ -1462,7 +1480,8 @@ local function acceptedDir(test, testType)
    local nm  = (testType == "lua")
       and stripext(basename(test.file))
       or  stripext(basename(test.src))
-   return configVals.results_dir .. "/" .. test.layer .. "/" .. sub .. "/" .. nm
+   return configVals.results_dir .. "/" .. test.layer .. "/" .. sub
+      .. "/" .. runMode .. "/" .. nm
 end
 
 local function create_action(test, runDir, testType)
@@ -1849,16 +1868,10 @@ local function finalizeRegressionRun()
       local cnt = layerCounts[layer.name]
       if cnt.total > 0 then
          insertRegressionMeta(layer.name, runID, runDate,
-            cnt.total, cnt.passed, cnt.failed,
-            GPU_BUILD and 1 or 0, cnt.gpu_passed, cnt.gpu_failed)
+            cnt.total, cnt.passed, cnt.failed, runMode)
          local summary = string.format(
-            "  Layer %-12s  total=%d  passed=%d  failed=%d",
-            layer.name, cnt.total, cnt.passed, cnt.failed)
-         if GPU_BUILD and GPU_LAYERS[layer.name] then
-            summary = summary .. string.format(
-               "  gpu_total=%d  gpu_pass=%d  gpu_fail=%d",
-               cnt.gpu_total, cnt.gpu_passed, cnt.gpu_failed)
-         end
+            "  Layer %-12s  mode=%-12s total=%d  passed=%d  failed=%d",
+            layer.name, runMode, cnt.total, cnt.passed, cnt.failed)
          log(summary .. "\n")
       end
    end
@@ -1872,7 +1885,6 @@ end
 -- accepted baselines are deterministic.
 local function run_action(args, name)
    loadConfigure(args)
-
    if args.parallel and args.no_parallel then
       log("ERROR: --parallel and --no-parallel cannot be combined.\n")
       os.exit(1)
@@ -1885,6 +1897,26 @@ local function run_action(args, name)
       args.c_only = true
    end
 
+   runMode = (GPU_BUILD and "gpu" or "cpu") .. (args.parallel and "_parallel" or "_serial")
+   local toleranceFlags = {
+      cpu_serial = "--cpu-serial-tol", cpu_parallel = "--cpu-parallel-tol",
+      gpu_serial = "--gpu-serial-tol", gpu_parallel = "--gpu-parallel-tol",
+   }
+   for mode, flag in pairs(toleranceFlags) do
+      if mode ~= runMode then
+         for _, token in ipairs(GKYL_COMMANDS_L) do
+            if token == flag or string.find(token, "^" .. flag .. "=") then
+               log(string.format("ERROR: %s applies only to %s runs.\n", flag, mode))
+               os.exit(1)
+            end
+         end
+      end
+   end
+   local toleranceByMode = {
+      cpu_serial = args.cpu_serial_tol, cpu_parallel = args.cpu_parallel_tol,
+      gpu_serial = args.gpu_serial_tol, gpu_parallel = args.gpu_parallel_tol,
+   }
+   runTolerance = toleranceByMode[runMode]
    local luaTests, cTests = list_tests(detectedLayer, args)
    if args.compile then
       if not args.c_only or args.lua_only then
@@ -1894,77 +1926,110 @@ local function run_action(args, name)
       if not compile_c_regressions(cTests) then os.exit(1) end
       return
    end
-   if args.execute_only then
-      if not args.c_only or args.lua_only then
-         log("ERROR: --execute-only requires --c-only.\n")
-         os.exit(1)
-      end
-      if not validate_precompiled_c_regressions(cTests) then os.exit(1) end
+   if args.execute_only and (not args.c_only or args.lua_only) then
+      log("ERROR: --execute-only requires --c-only.\n")
+      os.exit(1)
    end
-   local gpuTol = args.gpu_tol or 1e-7
+   if args.execute_only and not validate_precompiled_c_regressions(cTests) then os.exit(1) end
 
-   -- Per-test timeout in seconds (0 = unlimited).
    local timeoutSecs = args.timeout or 0
-   if timeoutSecs > 0 and not TIMEOUT_CMD then
-      log(string.format(
-         "NOTE: 'timeout'/'gtimeout' not found; using Perl-based timeout.\n"))
+   local postRun = function(test, runDir, testType) return -1, "" end
+   if args.create then postRun = create_action end
+   if args.check then
+      postRun = function(test, runDir, testType)
+         return check_action(test, runDir, testType, runTolerance, runTolerance)
+      end
    end
-
-   -- Determine the post-run action. Without a sub-command the tests are run
-   -- but results are neither saved nor compared (status = -1, "skip").
-   local postRun = function(test, runDir, testType) return -1 end
-   if args.create then
-      postRun = create_action
-   elseif args.check then
-      postRun = check_action
+   local function store(test, testType, status, runtime, runDir, runlog)
+      local compared = false
+      if status == nil then
+         compared = args.check
+         local checkStatus, checkLog = postRun(test, runDir, testType)
+         status = checkStatus
+         if checkLog and checkLog ~= "" then runlog = runlog .. "\n" .. checkLog end
+      end
+      if status ~= 1 and status ~= -1 and status ~= -2 and not compared then
+         layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
+      elseif status == 1 and not compared and status ~= -2 then
+         layerCounts[test.layer].passed = layerCounts[test.layer].passed + 1
+      end
+      insertRegressionData(test.layer, runID, test.name, testType, status, runtime, runlog or "")
+   end
+   local function collect(test, testType, prep, result)
+      local runlog = (prep.compileLog or "") .. "\n" .. result.runlog
+      local status = classifyExecution(prep.runDir, runlog, result.timedOut, result.exitCode)
+      store(test, testType, status, result.runtm, prep.runDir, runlog)
    end
    local tmStart = Time.clock()
 
    if args.parallel then
       log("Running parallel C regression tests serially by MPI collective ...\n\n")
-      local timeoutSecs = args.timeout or 0
       for _, test in ipairs(cTests) do
-         local useGpu = GPU_BUILD and GPU_LAYERS[test.layer] and not args.no_gpu
-         local prep = prepareParallelCRun(test, timeoutSecs, args.execute_only, useGpu)
-         local status, runlog, runtime
          layerCounts[test.layer].total = layerCounts[test.layer].total + 1
+         local useGpu = GPU_BUILD and GPU_LAYERS[test.layer]
+         local prep = prepareParallelCRun(test, timeoutSecs, args.execute_only, useGpu)
          if prep.compileFailed then
-            status, runlog, runtime = -4, "COMPILE FAILED:\n" .. prep.compileLog, prep.compileSecs
-            layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
+            store(test, "c", -4, prep.compileSecs, prep.runDir,
+               "COMPILE FAILED:\n" .. prep.compileLog)
          else
-            log(string.format("[MPI-C] %s (ranks=%d cuts={%s}) ...\n", test.name,
-               prep.parallelRanks, table.concat(test.parallel.cuts, ",")))
-            verboseLog("MPI command: " .. prep.launchCmd .. "\n")
             local result = executeBatch({ prep })[1]
-            runtime, runlog = result.runtm, result.runlog
-            verboseLog(runlog)
-            runlog = (prep.compileLog or "") .. "\n" .. runlog
-            if result.timedOut then
-               status = -3
-               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-            elseif result.exitCode ~= 0 then
-               status = 0
-               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-               runlog = runlog .. string.format("MPI launcher/test exited with status %d.\n",
-                  result.exitCode)
-               log(string.format("... MPI launch FAILED (exit status %d)\n", result.exitCode))
-            else
-               status = postRun(test, prep.runDir, "c")
-            end
-            local testname = stripext(basename(test.src))
-            if not args.execute_only then
-               os.execute(string.format("rm -f '%s/%s' '%s/%s.d' 2>/dev/null",
-                  prep.runDir, testname, prep.runDir, testname))
-               os.execute(string.format("rm -rf '%s/%s.dSYM' 2>/dev/null", prep.runDir, testname))
-            end
+            collect(test, "c", prep, result)
          end
-         insertRegressionData(test.layer, runID, test.name, "c", status, runtime, runlog)
       end
-      log(string.format(
-         "\nAll regression tests completed in %g secs\n", Time.clock() - tmStart))
+      log(string.format("\nAll regression tests completed in %g secs\n", Time.clock() - tmStart))
       finalizeRegressionRun()
       return
    end
+
+   if true then
+   -- C compilation remains serial; independent executions retain --jobs batching.
+   local jobCount = args.jobs or 1
+   if jobCount == 0 then jobCount = physicalCpuCount() end
+   local function executePreps(preps, testType)
+      for first = 1, #preps, jobCount do
+         local batch = {}
+         for i = first, math.min(first + jobCount - 1, #preps) do
+            table.insert(batch, preps[i])
+         end
+         local results = executeBatch(batch)
+         for i, prep in ipairs(batch) do
+            collect(prep.test, testType, prep, results[i])
+         end
+      end
+   end
+   if not args.c_only then
+      local preps = {}
+      for _, test in ipairs(luaTests) do
+         layerCounts[test.layer].total = layerCounts[test.layer].total + 1
+         local prep = prepareLuaRun(test, timeoutSecs, GPU_BUILD and "gpu" or nil)
+         if prep.mpiSkip then
+            store(test, "lua", -1, 0, prep.runDir, "")
+         else
+            table.insert(preps, prep)
+         end
+      end
+      executePreps(preps, "lua")
+   end
+   if not args.lua_only then
+      local preps = {}
+      for _, test in ipairs(cTests) do
+         layerCounts[test.layer].total = layerCounts[test.layer].total + 1
+         local mode = GPU_BUILD and GPU_LAYERS[test.layer] and "gpu" or nil
+         local prep = prepareCRun(test, timeoutSecs, mode, args.execute_only)
+         if prep.compileFailed then
+            store(test, "c", -4, prep.compileSecs, prep.runDir,
+               "COMPILE FAILED:\n" .. prep.compileLog)
+         else
+            table.insert(preps, prep)
+         end
+      end
+      executePreps(preps, "c")
+   end
+   log(string.format("\nAll regression tests completed in %g secs\n", Time.clock() - tmStart))
+   finalizeRegressionRun()
+   end
+
+   if false then -- Legacy dual CPU/GPU path retained below temporarily for reference.
 
    -- Track timed-out tests per layer so we can update ignoretests.lua.
    local timedOutByLayer = {}
@@ -2372,6 +2437,7 @@ local function run_action(args, name)
    end
 
    finalizeRegressionRun()
+   end -- legacy dual CPU/GPU path
 end
 
 -- 'listunit' command.
@@ -2498,13 +2564,14 @@ c_run:option("-t --timeout",
    .. "Timed-out tests are added to ignoretests.lua automatically.")
    :convert(tonumber)
    :default(0)
-c_run:option("--gpu-tol",
-   "Tolerance for GPU-vs-accepted and CPU-vs-GPU comparisons (default 1e-7).\n"
-   .. "Only used on GPU builds (CC=nvcc).")
-   :convert(tonumber)
-   :default(1e-7)
-c_run:flag("--no-gpu",
-   "Skip GPU testing even on a GPU build.")
+c_run:option("--cpu-serial-tol", "Tolerance for CPU-serial-vs-accepted (default 1e-12).")
+   :argname("<tol>"):convert(tonumber):default(1e-12)
+c_run:option("--cpu-parallel-tol", "Tolerance for CPU-parallel-vs-accepted (default 1e-12).")
+   :argname("<tol>"):convert(tonumber):default(1e-12)
+c_run:option("--gpu-serial-tol", "Tolerance for GPU-vs-accepted (default 1e-7).")
+   :argname("<tol>"):convert(tonumber):default(1e-7)
+c_run:option("--gpu-parallel-tol", "Tolerance for GPU-parallel-vs-accepted (default 1e-7).")
+   :argname("<tol>"):convert(tonumber):default(1e-7)
 c_run:option("-j --jobs",
    "Concurrent tests per batch (0 = physical core count, 1 = serial).\n"
    .. "C compilation is always serial; GPU variants always run serially.")
