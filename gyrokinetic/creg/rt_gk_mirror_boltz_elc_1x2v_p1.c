@@ -641,9 +641,10 @@ int main(int argc, char **argv)
 
     .write_omega_cfl = true,
     .num_diag_moments = 7,
-    .diag_moments =
-      {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP}
+    .diag_moments = {
+      GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
+      GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP
+    }
   };
 
   struct gkyl_gyrokinetic_species elc = {
@@ -707,7 +708,14 @@ int main(int argc, char **argv)
        .mapc2p = mapc2p, // mapping of computational to physical space
        .c2p_ctx = &ctx,
        .bfield_func = bfield_func, // magnetic field
-       .bfield_ctx = &ctx},
+       .bfield_ctx = &ctx,
+       .position_map_info =
+         {.id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+          .map_strength = 1.0,
+          .maximum_slope_at_min_B = 2,
+          .maximum_slope_at_max_B = 2,
+          .gaussian_std = 0.5,
+          .gaussian_max_integration_width = 1.0}},
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},

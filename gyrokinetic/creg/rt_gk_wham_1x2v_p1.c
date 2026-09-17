@@ -624,8 +624,9 @@ int main(int argc, char **argv)
       {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
        GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
 
-    .boundary_flux_diagnostics =
-      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}}
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+    }
   };
 
   struct gkyl_gyrokinetic_species ion = {
@@ -697,8 +698,9 @@ int main(int argc, char **argv)
       {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
        GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
 
-    .boundary_flux_diagnostics =
-      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}}
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+    }
   };
 
   struct gkyl_gyrokinetic_field field = {
@@ -726,7 +728,14 @@ int main(int argc, char **argv)
     .geometry =
       {.geometry_id = GKYL_GEOMETRY_MIRROR,
        .world = {ctx.psi_eval, 0.0},
-       .mirror_grid_info = grid_inp},
+       .mirror_grid_info = grid_inp,
+       .position_map_info =
+         {.id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+          .map_strength = 1.0,
+          .maximum_slope_at_min_B = 2,
+          .maximum_slope_at_max_B = 2,
+          .gaussian_std = 0.5,
+          .gaussian_max_integration_width = 1.0}},
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
@@ -743,16 +752,17 @@ int main(int argc, char **argv)
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .time_stepping =
-      {.t_end = ctx.t_end,
-       .num_frames = ctx.num_frames,
-       .write_phase_freq = ctx.write_phase_freq,
-       .int_diag_calc_num = ctx.int_diag_calc_num,
-       .dt_failure_tol = ctx.dt_failure_tol,
-       .num_failures_max = ctx.num_failures_max,
-       .is_restart = app_args.is_restart,
-       .restart_frame = app_args.restart_frame,
-       .num_steps = app_args.num_steps}
+    .time_stepping = {
+      .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps
+    }
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
