@@ -1,0 +1,19 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2R03PA7QT5BQN5H4XSRPMFV",
+  "strategy": "manual-commit",
+  "branch": "maxwells-world",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "gyrokinetic/apps/gk_species_damping.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
