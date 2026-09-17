@@ -12,21 +12,27 @@ extern "C" {
 // "Choose Kernel" based on cdim and polynomial order
 #define CK(lst, cdim, poly_order) lst[cdim-1].kernels[poly_order]
 
-// CUDA kernel to set pointer to g (second Rosenbluth potential).
+// CUDA kernel to set pointer to drag coefficient.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_fpo_vlasov_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *h)
+gkyl_fpo_vlasov_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
+  const struct gkyl_array *drag_coeff, const struct gkyl_array *drag_coeff_surf,
+  const struct gkyl_array *sgn_drag_coeff_surf, const struct gkyl_array *const_sgn_drag_coeff_surf)
 {
   struct dg_fpo_vlasov_drag *fpo_vlasov_drag = container_of(eqn, struct dg_fpo_vlasov_drag, eqn);
-  fpo_vlasov_drag->auxfields.h = h;
+  fpo_vlasov_drag->auxfields.drag_coeff = drag_coeff;
+  fpo_vlasov_drag->auxfields.drag_coeff_surf = drag_coeff_surf;
+  fpo_vlasov_drag->auxfields.sgn_drag_coeff_surf = sgn_drag_coeff_surf;
+  fpo_vlasov_drag->auxfields.const_sgn_drag_coeff_surf = const_sgn_drag_coeff_surf;
 }
 
 //// Host-side wrapper for device kernels setting g (second Rosenbluth potential).
 void
 gkyl_fpo_vlasov_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_drag_auxfields auxin)
 {
-  gkyl_fpo_vlasov_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.h->on_dev);
+  gkyl_fpo_vlasov_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.drag_coeff->on_dev, auxin.drag_coeff_surf->on_dev,
+    auxin.sgn_drag_coeff_surf->on_dev, auxin.const_sgn_drag_coeff_surf->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov fpo kernel function
@@ -34,42 +40,57 @@ gkyl_fpo_vlasov_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl
 __global__ static void
 dg_fpo_vlasov_drag_set_cu_dev_ptrs(struct dg_fpo_vlasov_drag *fpo_vlasov_drag, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  fpo_vlasov_drag->auxfields.h = 0; 
+  fpo_vlasov_drag->auxfields.drag_coeff = 0; 
+  fpo_vlasov_drag->auxfields.drag_coeff_surf = 0;
+  fpo_vlasov_drag->auxfields.sgn_drag_coeff_surf = 0;
+  fpo_vlasov_drag->auxfields.const_sgn_drag_coeff_surf = 0;
 
   fpo_vlasov_drag->eqn.surf_term = surf;
   fpo_vlasov_drag->eqn.boundary_surf_term = boundary_surf;
 
   const gkyl_dg_fpo_vlasov_drag_vol_kern_list *vol_kernels;
-  const gkyl_dg_fpo_vlasov_drag_surf_kern_list *surf_vx_kernels, *surf_vy_kernels, *surf_vz_kernels;
-  const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vx_kernels, *boundary_surf_vy_kernels,
-    *boundary_surf_vz_kernels;
+  const gkyl_dg_fpo_vlasov_drag_surf_kern_list *surf_vx_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_surf_kern_list *surf_vy_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_surf_kern_list *surf_vz_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vx_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vy_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vz_kernel_list;
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      assert(poly_order == 2);
       vol_kernels = ser_vol_kernels;
-      surf_vx_kernels = ser_surf_vx_kernels;
-      surf_vy_kernels = ser_surf_vy_kernels;
-      surf_vz_kernels = ser_surf_vz_kernels;
-      boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
-      boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
-      boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
-      
+      surf_vx_kernel_list = ser_surf_vx_kernels;
+      surf_vy_kernel_list = ser_surf_vy_kernels;
+      surf_vz_kernel_list = ser_surf_vz_kernels;
+      boundary_surf_vx_kernel_list = ser_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernel_list = ser_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernel_list = ser_boundary_surf_vz_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      assert(poly_order == 1);
+      vol_kernels = ser_vol_kernels;
+      surf_vx_kernel_list = ser_surf_vx_kernels;
+      surf_vy_kernel_list = ser_surf_vy_kernels;
+      surf_vz_kernel_list = ser_surf_vz_kernels;
+      boundary_surf_vx_kernel_list = ser_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernel_list = ser_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernel_list = ser_boundary_surf_vz_kernels;
       break;
 
     default:
       assert(false);
-      break;    
-  }  
+      break;
+  }
  
   fpo_vlasov_drag->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
-
-  fpo_vlasov_drag->surf[0] = CK(surf_vx_kernels, cdim, poly_order);
-  fpo_vlasov_drag->surf[1] = CK(surf_vy_kernels, cdim, poly_order);
-  fpo_vlasov_drag->surf[2] = CK(surf_vz_kernels, cdim, poly_order);
-
-  fpo_vlasov_drag->boundary_surf[0] = CK(boundary_surf_vx_kernels, cdim, poly_order);
-  fpo_vlasov_drag->boundary_surf[1] = CK(boundary_surf_vy_kernels, cdim, poly_order);
-  fpo_vlasov_drag->boundary_surf[2] = CK(boundary_surf_vz_kernels, cdim, poly_order);
+  fpo_vlasov_drag->surf[0] = CK(surf_vx_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->surf[1] = CK(surf_vy_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->surf[2] = CK(surf_vz_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->boundary_surf[0] = CK(boundary_surf_vx_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->boundary_surf[1] = CK(boundary_surf_vy_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->boundary_surf[2] = CK(boundary_surf_vz_kernel_list, cdim, poly_order);
 }
 
 struct gkyl_dg_eqn*

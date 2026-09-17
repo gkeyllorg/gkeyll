@@ -42,11 +42,8 @@ typedef struct { vol_termf_t kernels[3]; } gkyl_dg_vlasov_stream_vol_kern_list;
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_vlasov_vol_kern_list;
 
 typedef struct { vlasov_stream_surf_t kernels[3]; } gkyl_dg_vlasov_stream_surf_kern_list;
-
 typedef struct { vlasov_stream_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_stream_boundary_surf_kern_list;
-
 typedef struct { vlasov_accel_surf_t kernels[3]; } gkyl_dg_vlasov_accel_surf_kern_list;
-
 typedef struct { vlasov_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_accel_boundary_surf_kern_list;
 
 struct dg_vlasov {

@@ -225,7 +225,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
     s->const_sgn_alpha = mk_int_arr(app->use_gpu, (cdim + vdim), s->local_ext.volume);
 
-    // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
+    // Pre-compute alpha_surf, sgn_alpha_surf, and const_sgn_alpha since they are time-independent
     struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&s->grid, 
       &app->confBasis, &app->basis, app->use_gpu);
     gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, s->hamil,
@@ -241,7 +241,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   else {
     if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B) {
-      struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, .cot_vec = 0, 
+      struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, 
         .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0 };
       s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
         &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
@@ -327,6 +327,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // initialize empty collision structs so inputs of structs are set to 0
   s->lbo = (struct vm_lbo_collisions) { };
   s->bgk = (struct vm_bgk_collisions) { };
+  s->fpo = (struct vm_fpo_collisions) { };
   if (s->info.output_f_lte){
     // Always have correct moments on for the f_lte output
     struct correct_all_moms_inp corr_inp = { .correct_all_moms = true, 
@@ -339,6 +340,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   else if (s->collision_id == GKYL_BGK_COLLISIONS) {
     vm_species_bgk_init(app, s, &s->bgk);
+  }
+  else if (s->collision_id == GKYL_FPO_COLLISIONS) {
+    vm_species_fpo_init(app, s, &s->fpo);
   }
 
   // determine radiation type to use in vlasov update
@@ -514,6 +518,9 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   else if (species->collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
     species->bgk.implicit_step = false;
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  }
+  else if (species->collision_id == GKYL_FPO_COLLISIONS) {
+    vm_species_fpo_rhs(app, species, &species->fpo, fin, rhs);
   }
 
   if (species->calc_bflux) {
@@ -809,6 +816,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   }
   else if (s->collision_id == GKYL_BGK_COLLISIONS) {
     vm_species_bgk_release(app, &s->bgk);
+  }
+  else if (s->collision_id == GKYL_FPO_COLLISIONS) {
+    vm_species_fpo_release(app, &s->fpo);
   }
 
   if (s->radiation_id == GKYL_VM_COMPTON_RADIATION) {

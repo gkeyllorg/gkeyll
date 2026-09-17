@@ -8,7 +8,7 @@ GKYL_CU_DH void vlasov_int_five_moments_2x2v_ser_p2(const double *w, const doubl
   const double wx2_sq = wx2*wx2, dv2_sq = dv2*dv2; 
  
   out[0] += 4.0*f[0]*volFact; 
-  out[1] += volFact*(4.0*f[0]*wx1+1.1547005383792517*f[3]*dv1); 
-  out[2] += volFact*(4.0*f[0]*wx2+1.1547005383792517*f[4]*dv2); 
-  out[3] += volFact*(4.0*f[0]*wx2_sq+2.3094010767585034*f[4]*dv2*wx2+4.0*f[0]*wx1_sq+2.3094010767585034*f[3]*dv1*wx1+0.2981423969999719*f[14]*dv2_sq+0.3333333333333333*f[0]*dv2_sq+0.2981423969999719*f[13]*dv1_sq+0.3333333333333333*f[0]*dv1_sq); 
+  out[1] += volFact*(4.0*f[0]*wx1+1.154700538379252*f[3]*dv1); 
+  out[2] += volFact*(4.0*f[0]*wx2+1.154700538379252*f[4]*dv2); 
+  out[3] += volFact*(4.0*f[0]*wx2_sq+2.309401076758503*f[4]*dv2*wx2+4.0*f[0]*wx1_sq+2.309401076758503*f[3]*dv1*wx1+0.2981423969999719*f[14]*dv2_sq+0.3333333333333333*f[0]*dv2_sq+0.2981423969999719*f[13]*dv1_sq+0.3333333333333333*f[0]*dv1_sq); 
 } 

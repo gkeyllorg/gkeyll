@@ -9,7 +9,7 @@
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polynomial order
-#define CK(lst, cdim, poly_order) lst[cdim-1].kernels[poly_order]
+#define CK(lst, cdim, poly_order) lst[cdim-1].kernels[poly_order-1]
 
 void
 gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count* ref)
@@ -30,14 +30,15 @@ void
 gkyl_fpo_vlasov_diff_set_auxfields(const struct gkyl_dg_eqn* eqn, struct gkyl_dg_fpo_vlasov_diff_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.g)) {
+  if (gkyl_array_is_cu_dev(auxin.diff_coeff)) {
     gkyl_fpo_vlasov_diff_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
 #endif
   
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
-  fpo_vlasov_diff->auxfields.g = auxin.g;
+  fpo_vlasov_diff->auxfields.diff_coeff = auxin.diff_coeff;
+  fpo_vlasov_diff->auxfields.diff_coeff_surf = auxin.diff_coeff_surf;
 }
 
 struct gkyl_dg_eqn*
@@ -47,102 +48,85 @@ gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   if(use_gpu)
     return gkyl_dg_fpo_vlasov_diff_cu_dev_new(pbasis, phase_range);
 #endif
-  
+
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = gkyl_malloc(sizeof(struct dg_fpo_vlasov_diff));
 
   // Vlasov Fokker-Planck operator only defined in 3 velocity dimensions
   int pdim = pbasis->ndim, vdim = 3, cdim = pdim - vdim;
   int poly_order = pbasis->poly_order;
 
+  // Only support up to 2x3v dimensionality
+  assert(cdim <= 2);
+  
   fpo_vlasov_diff->cdim = cdim;
   fpo_vlasov_diff->pdim = pdim;
 
   fpo_vlasov_diff->eqn.num_equations = 1;
-  fpo_vlasov_diff->eqn.gen_surf_term = surf;
-  fpo_vlasov_diff->eqn.gen_boundary_surf_term = boundary_surf;
+  fpo_vlasov_diff->eqn.gen_surf_term = fpo_diff_gen_surf_term;
 
   const gkyl_dg_fpo_vlasov_diff_vol_kern_list* vol_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_xx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_xy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_xz_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_yx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_yy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_yz_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_zx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_zy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_zz_kernels; 
-
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_xx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_xy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_xz_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_yx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_yy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_yz_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_zx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_zy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_zz_kernels; 
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvz_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvz_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvz_kernel_list;
 
   switch (pbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      assert(poly_order == 2);
       vol_kernels = ser_vol_kernels;
-      surf_xx_kernels = ser_surf_xx_kernels;
-      surf_xy_kernels = ser_surf_xy_kernels;
-      surf_xz_kernels = ser_surf_xz_kernels;
-      surf_yx_kernels = ser_surf_yx_kernels;
-      surf_yy_kernels = ser_surf_yy_kernels;
-      surf_yz_kernels = ser_surf_yz_kernels;
-      surf_zx_kernels = ser_surf_zx_kernels;
-      surf_zy_kernels = ser_surf_zy_kernels;
-      surf_zz_kernels = ser_surf_zz_kernels;
+      surf_vxvx_kernel_list = ser_surf_vxvx_kernels;
+      surf_vxvy_kernel_list = ser_surf_vxvy_kernels;
+      surf_vxvz_kernel_list = ser_surf_vxvz_kernels;
+      surf_vyvx_kernel_list = ser_surf_vyvx_kernels;
+      surf_vyvy_kernel_list = ser_surf_vyvy_kernels;
+      surf_vyvz_kernel_list = ser_surf_vyvz_kernels;
+      surf_vzvx_kernel_list = ser_surf_vzvx_kernels;
+      surf_vzvy_kernel_list = ser_surf_vzvy_kernels;
+      surf_vzvz_kernel_list = ser_surf_vzvz_kernels;
+      break;
 
-      boundary_surf_xx_kernels = ser_boundary_surf_xx_kernels;
-      boundary_surf_xy_kernels = ser_boundary_surf_xy_kernels;
-      boundary_surf_xz_kernels = ser_boundary_surf_xz_kernels;
-      boundary_surf_yx_kernels = ser_boundary_surf_yx_kernels;
-      boundary_surf_yy_kernels = ser_boundary_surf_yy_kernels;
-      boundary_surf_yz_kernels = ser_boundary_surf_yz_kernels;
-      boundary_surf_zx_kernels = ser_boundary_surf_zx_kernels;
-      boundary_surf_zy_kernels = ser_boundary_surf_zy_kernels;
-      boundary_surf_zz_kernels = ser_boundary_surf_zz_kernels;
+    case GKYL_BASIS_MODAL_HYBRID:
+      assert(poly_order == 1);
+      vol_kernels = ser_vol_kernels;
+      surf_vxvx_kernel_list = ser_surf_vxvx_kernels;
+      surf_vxvy_kernel_list = ser_surf_vxvy_kernels;
+      surf_vxvz_kernel_list = ser_surf_vxvz_kernels;
+      surf_vyvx_kernel_list = ser_surf_vyvx_kernels;
+      surf_vyvy_kernel_list = ser_surf_vyvy_kernels;
+      surf_vyvz_kernel_list = ser_surf_vyvz_kernels;
+      surf_vzvx_kernel_list = ser_surf_vzvx_kernels;
+      surf_vzvy_kernel_list = ser_surf_vzvy_kernels;
+      surf_vzvz_kernel_list = ser_surf_vzvz_kernels;
       break;
 
     default:
       assert(false);
-      break;    
+      break;
   } 
-
   fpo_vlasov_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
-  fpo_vlasov_diff->surf[0][0] = CK(surf_xx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[0][1] = CK(surf_xy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[0][2] = CK(surf_xz_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[1][0] = CK(surf_yx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[1][1] = CK(surf_yy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[1][2] = CK(surf_yz_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[2][0] = CK(surf_zx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[2][1] = CK(surf_zy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[2][2] = CK(surf_zz_kernels, cdim, poly_order);
-
-  fpo_vlasov_diff->boundary_surf[0][0] = CK(boundary_surf_xx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[0][1] = CK(boundary_surf_xy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[0][2] = CK(boundary_surf_xz_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[1][0] = CK(boundary_surf_yx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[1][1] = CK(boundary_surf_yy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[1][2] = CK(boundary_surf_yz_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[2][0] = CK(boundary_surf_zx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[2][1] = CK(boundary_surf_zy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[2][2] = CK(boundary_surf_zz_kernels, cdim, poly_order);
+  fpo_vlasov_diff->surf[0][0] = surf_vxvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[0][1] = surf_vxvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[0][2] = surf_vxvz_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][0] = surf_vyvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][1] = surf_vyvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][2] = surf_vyvz_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][0] = surf_vzvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][1] = surf_vzvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][2] = surf_vzvz_kernel_list[cdim-1].list[poly_order-1];
 
   // ensure non-NULL pointers
   for (int i=0; i<vdim; ++i) 
     for (int j=0; j<vdim; ++j) 
-      assert(fpo_vlasov_diff->surf[i][j]);
+        assert(&fpo_vlasov_diff->surf[i][j]);
 
-  for (int i=0; i<vdim; ++i) 
-    for (int j=0; j<vdim; ++j) 
-      assert(fpo_vlasov_diff->boundary_surf[i][j]);
-
-  fpo_vlasov_diff->auxfields.g = 0;
+  fpo_vlasov_diff->auxfields.diff_coeff = 0;
+  fpo_vlasov_diff->auxfields.diff_coeff_surf = 0;
   fpo_vlasov_diff->phase_range = *phase_range;
 
   fpo_vlasov_diff->eqn.flags = 0;

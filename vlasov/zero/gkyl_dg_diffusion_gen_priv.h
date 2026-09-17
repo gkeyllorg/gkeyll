@@ -175,13 +175,15 @@ GKYL_CU_D
 static double
 surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
-  long sz_dim, const int idx[27][GKYL_MAX_DIM], const double* qIn[27],
+  int keri, const int idx[9][GKYL_MAX_DIM], const double* qIn[9],
   double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gen* diffusion_gen = container_of(eqn, struct dg_diffusion_gen, eqn);
   long cidx = gkyl_range_idx(&diffusion_gen->conf_range, idxc);
   
-  return diffusion_gen->surf[dir1][dir2](xc, dxc,
+  diffusion_gen->surf[dir1][dir2](xc, dxc,
     (const double*) gkyl_array_cfetch(diffusion_gen->auxfields.Dij, cidx), 
     qIn, qRhsOut);
+
+  return 0.0;
 }

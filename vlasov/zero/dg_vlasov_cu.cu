@@ -14,12 +14,11 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *field, const struct gkyl_array *cot_vec, 
+  const struct gkyl_array *field, 
   const struct gkyl_array *alpha_surf, const struct gkyl_array *sgn_alpha_surf, const struct gkyl_array *const_sgn_alpha)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->auxfields.field = field; 
-  vlasov->auxfields.cot_vec = cot_vec; 
   vlasov->auxfields.alpha_surf = alpha_surf;
   vlasov->auxfields.sgn_alpha_surf = sgn_alpha_surf;
   vlasov->auxfields.const_sgn_alpha = const_sgn_alpha;
@@ -31,7 +30,6 @@ gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlaso
 {
   gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn,
     auxin.field ? auxin.field->on_dev : 0,
-    auxin.cot_vec ? auxin.cot_vec->on_dev : 0,
     auxin.alpha_surf ? auxin.alpha_surf->on_dev : 0,
     auxin.sgn_alpha_surf ? auxin.sgn_alpha_surf->on_dev : 0,
     auxin.const_sgn_alpha ? auxin.const_sgn_alpha->on_dev : 0);
@@ -45,7 +43,6 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   vlasov->auxfields.field = 0;
-  vlasov->auxfields.cot_vec = 0;
   vlasov->auxfields.alpha_surf = 0;
   vlasov->auxfields.sgn_alpha_surf = 0;
   vlasov->auxfields.const_sgn_alpha = 0;
@@ -60,15 +57,12 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   const gkyl_dg_vlasov_stream_surf_kern_list *stream_surf_x_kernels, 
     *stream_surf_y_kernels, 
     *stream_surf_z_kernels;
-
   const gkyl_dg_vlasov_accel_surf_kern_list *accel_surf_vx_kernels, 
     *accel_surf_vy_kernels, 
     *accel_surf_vz_kernels;
-
   const gkyl_dg_vlasov_stream_boundary_surf_kern_list *stream_boundary_surf_x_kernels, 
     *stream_boundary_surf_y_kernels,
     *stream_boundary_surf_z_kernels;
-  
   const gkyl_dg_vlasov_accel_boundary_surf_kern_list *accel_boundary_surf_vx_kernels, 
     *accel_boundary_surf_vy_kernels,
     *accel_boundary_surf_vz_kernels;
@@ -127,13 +121,13 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   }
   else {
     vlasov->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
-    
+
     vlasov->accel_surf[0] = accel_surf_vx_kernels[cv_index].kernels[poly_order];
     if (vdim>1)
       vlasov->accel_surf[1] = accel_surf_vy_kernels[cv_index].kernels[poly_order];
     if (vdim>2)
       vlasov->accel_surf[2] = accel_surf_vz_kernels[cv_index].kernels[poly_order];
-    
+
     vlasov->accel_boundary_surf[0] = accel_boundary_surf_vx_kernels[cv_index].kernels[poly_order];
     if (vdim>1)
       vlasov->accel_boundary_surf[1] = accel_boundary_surf_vy_kernels[cv_index].kernels[poly_order];
@@ -146,12 +140,12 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
     vlasov->stream_surf[1] = stream_surf_y_kernels[cv_index].kernels[poly_order];
   if (cdim>2)
     vlasov->stream_surf[2] = stream_surf_z_kernels[cv_index].kernels[poly_order];
-  
+
   vlasov->stream_boundary_surf[0] = stream_boundary_surf_x_kernels[cv_index].kernels[poly_order];
   if (cdim>1)
     vlasov->stream_boundary_surf[1] = stream_boundary_surf_y_kernels[cv_index].kernels[poly_order];
   if (cdim>2)
-    vlasov->stream_boundary_surf[2] = stream_boundary_surf_z_kernels[cv_index].kernels[poly_order];   
+    vlasov->stream_boundary_surf[2] = stream_boundary_surf_z_kernels[cv_index].kernels[poly_order];
 }
 
 struct gkyl_dg_eqn*

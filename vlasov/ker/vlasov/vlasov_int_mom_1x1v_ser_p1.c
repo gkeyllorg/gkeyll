@@ -7,5 +7,5 @@ GKYL_CU_DH void vlasov_int_five_moments_1x1v_ser_p1(const double *w, const doubl
  
   out[0] += 2.0*f[0]*volFact; 
   out[1] += volFact*(2.0*f[0]*wx1+0.5773502691896258*f[2]*dv1); 
-  out[2] += volFact*(2.0*f[0]*wx1_sq+1.1547005383792517*f[2]*dv1*wx1+0.16666666666666666*f[0]*dv1_sq); 
+  out[2] += volFact*(2.0*f[0]*wx1_sq+1.154700538379252*f[2]*dv1*wx1+0.149071198499986*f[4]*dv1_sq+0.1666666666666667*f[0]*dv1_sq); 
 } 

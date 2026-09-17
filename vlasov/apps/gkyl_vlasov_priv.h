@@ -34,11 +34,14 @@
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_euler.h>
+#include <gkyl_dg_fpo_vlasov_diff_coeff.h>
+#include <gkyl_dg_fpo_vlasov_drag_coeff.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_diffusion_fluid.h>
 #include <gkyl_dg_updater_diffusion_gen.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
+#include <gkyl_dg_updater_fpo_vlasov.h>
 #include <gkyl_dg_updater_rad_vlasov.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_vlasov.h>
@@ -49,6 +52,9 @@
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_fpo_vlasov_coeff_correct.h>
+#include <gkyl_fpo_vlasov_coeff_recovery.h>
+#include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fem_poisson.h>
 #include <gkyl_ghost_surf_calc.h>
@@ -56,6 +62,7 @@
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
+#include <gkyl_mom_fpo_vlasov.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_null_pool.h>
@@ -203,6 +210,40 @@ struct vm_rad_drag {
   struct gkyl_array *nu; // collision frequency for radiation
   struct gkyl_array *nu_rad_drag; // nu*drag for drag force
   gkyl_dg_updater_rad_vlasov *rad_slvr; // radiation solver
+};
+
+struct vm_fpo_collisions {
+  bool write_diagnostics; // Whether to write diagnostics out.
+  struct gkyl_array *gamma; // FPO Gamma factor
+  struct gkyl_array *h, *g; // Rosenbluth potentials
+  struct gkyl_array *h_host, *g_host;
+
+  // Maxwellian potentials and derivatives on velocity space edges for boundary conditions
+  struct gkyl_array *h_surf, *g_surf;
+  struct gkyl_array *dhdv_surf, *dgdv_surf, *d2gdv2_surf; // dG/dv evaluated at transverse surfaces, dH/dv and d2G/dv2 at same surface
+
+  gkyl_proj_maxwellian_pots_on_basis *pot_slvr; // potential solver for Maxwellian potentials
+
+  struct vm_species_moment lte_moms; // calculator for LTE moments for potential calculation (n u_drift, T/m)
+  struct vm_species_moment moms; // calculator for moments (M0, M1i, M2)
+
+  struct gkyl_array *drag_coeff, *diff_coeff; // Drag and diffusion coefficients
+  struct gkyl_array *drag_coeff_host, *diff_coeff_host; // Drag and diffusion coefficients
+  struct gkyl_array *drag_coeff_surf, *diff_coeff_surf; // Drag and diffusion coefficient surface expansions at lower cell boundary
+  struct gkyl_array *sgn_drag_coeff_surf, *const_sgn_drag_coeff_surf; // Sign of drag coefficient at lower boundary of cell, and boolean for checking if sign(drag_coeff) is constant along boundary
+
+  gkyl_fpo_vlasov_coeff_recovery *coeff_recovery; // Struct for drag and diffusion coeff calculation
+
+  // Momentum and energy conservation corrections
+  struct gkyl_array *fpo_moms, *boundary_corrections; // Primitive moments and boundary corrections
+  struct gkyl_array *drag_diff_coeff_corrs; // Correction quantities added to drag and diffusion coefficients
+
+  struct gkyl_mom_calc *fpo_mom_calc; // FPO volume corrections calculator 
+  struct gkyl_mom_calc_bcorr *bcorr_calc; // FPO boundary corrections calculator
+  gkyl_fpo_coeff_correct *coeff_correct_calc; // FPO drag and diffusion coeff correction calculator
+  
+  gkyl_dg_updater_collisions *coll_slvr; // collision solver
+  long offsets[36]; // Array of relative offsets for 3- and 6-cell stencils. Will probably be moved to hyper_dg
 };
 
 struct vm_boundary_fluxes {
@@ -428,6 +469,9 @@ struct vm_species {
     };
     struct {
       struct vm_bgk_collisions bgk; // BGK collisions object
+    };
+    struct {
+      struct vm_fpo_collisions fpo; // FPO collisions object
     };
   }; 
 
@@ -1090,6 +1134,52 @@ void vm_species_bgk_rhs(gkyl_vlasov_app *app,
  */
 void vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_collisions *bgk);
 
+/** vm_species_fpo API */
+
+/**
+ * Initialize species fpo collisions object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param fpo Species fpo object
+ * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
+ */
+void vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_fpo_collisions *fpo);
+
+/**
+ * Compute drag and diffusion coefficients for update
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fpo Pointer to fpo
+ * @param fin Input distribution function
+ */
+void vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s,
+  struct vm_fpo_collisions *fpo, const struct gkyl_array *fin);
+
+/**
+ * Compute RHS from fpo collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fpo Pointer to fpo
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from fpo
+ * @return Maximum stable time-step
+ */
+void vm_species_fpo_rhs(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_fpo_collisions *fpo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species fpo object.
+ *
+ * @param app Vlasov app object
+ * @param sm Species fpo object to release
+ */
+void vm_species_fpo_release(const struct gkyl_vlasov_app *app, const struct vm_fpo_collisions *fpo);
 /** vm_species_radiation API */
 
 /**

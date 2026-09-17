@@ -10,9 +10,9 @@
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_vlasov_auxfields { 
   const struct gkyl_array *field; // q/m*(E_tot,B_tot) for Maxwell's, q/m*(phi_tot,A_ext) for Poisson's
-  const struct gkyl_array *cot_vec; // cotangent vectors (e^i) used in volume term if general geometry enabled
   const struct gkyl_array *alpha_surf; // Pointer to surface expansion of phase space flux alpha 
                                        // used in general geometry for v^i = v . e^i at the surface.
+  const struct gkyl_array *cot_vec; // cotangent vectors (e^i) used in volume term if general geometry enabled
   const struct gkyl_array *sgn_alpha_surf; // Pointer to sign(alpha_surf) at quadrature points.
   const struct gkyl_array *const_sgn_alpha; // Pointer to integer array for if sign(alpha_surf) is single-signed.
 };

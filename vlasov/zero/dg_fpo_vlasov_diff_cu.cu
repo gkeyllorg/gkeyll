@@ -10,23 +10,24 @@ extern "C" {
 #include <cassert>
 
 // "Choose Kernel" based on cdim and polynomial order
-#define CK(lst, cdim, poly_order) lst[cdim-1].kernels[poly_order]
+#define CK(lst, cdim, poly_order) lst[cdim-1].kernels[poly_order-1]
 
-// CUDA kernel to set pointer to g (second Rosenbluth potential).
+// CUDA kernel to set pointer to diffusion tensor.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *g)
+gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *diff_coeff, const struct gkyl_array *diff_coeff_surf)
 {
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
-  fpo_vlasov_diff->auxfields.g = g;
+  fpo_vlasov_diff->auxfields.diff_coeff = diff_coeff;
+  fpo_vlasov_diff->auxfields.diff_coeff_surf = diff_coeff_surf;
 }
 
 //// Host-side wrapper for device kernels setting g (second Rosenbluth potential).
 void
 gkyl_fpo_vlasov_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_diff_auxfields auxin)
 {
-  gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.g->on_dev);
+  gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.diff_coeff->on_dev, auxin.diff_coeff_surf->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov fpo kernel function
@@ -34,83 +35,66 @@ gkyl_fpo_vlasov_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl
 __global__ static void
 dg_fpo_vlasov_diff_set_cu_dev_ptrs(struct dg_fpo_vlasov_diff *fpo_vlasov_diff, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  fpo_vlasov_diff->auxfields.g = 0; 
+  fpo_vlasov_diff->auxfields.diff_coeff = 0; 
 
-  fpo_vlasov_diff->eqn.gen_surf_term = surf;
-  fpo_vlasov_diff->eqn.gen_boundary_surf_term = boundary_surf;
+  fpo_vlasov_diff->eqn.gen_surf_term = fpo_diff_gen_surf_term;
 
   const gkyl_dg_fpo_vlasov_diff_vol_kern_list* vol_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_xx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_xy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_xz_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_yx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_yy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_yz_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_zx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_zy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_zz_kernels; 
-
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_xx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_xy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_xz_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_yx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_yy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_yz_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_zx_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_zy_kernels;
-  const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list* boundary_surf_zz_kernels; 
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvz_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvz_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvz_kernel_list;
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      assert(poly_order == 2);
       vol_kernels = ser_vol_kernels;
-      surf_xx_kernels = ser_surf_xx_kernels;
-      surf_xy_kernels = ser_surf_xy_kernels;
-      surf_xz_kernels = ser_surf_xz_kernels;
-      surf_yx_kernels = ser_surf_yx_kernels;
-      surf_yy_kernels = ser_surf_yy_kernels;
-      surf_yz_kernels = ser_surf_yz_kernels;
-      surf_zx_kernels = ser_surf_zx_kernels;
-      surf_zy_kernels = ser_surf_zy_kernels;
-      surf_zz_kernels = ser_surf_zz_kernels;
+      surf_vxvx_kernel_list = ser_surf_vxvx_kernels;
+      surf_vxvy_kernel_list = ser_surf_vxvy_kernels;
+      surf_vxvz_kernel_list = ser_surf_vxvz_kernels;
+      surf_vyvx_kernel_list = ser_surf_vyvx_kernels;
+      surf_vyvy_kernel_list = ser_surf_vyvy_kernels;
+      surf_vyvz_kernel_list = ser_surf_vyvz_kernels;
+      surf_vzvx_kernel_list = ser_surf_vzvx_kernels;
+      surf_vzvy_kernel_list = ser_surf_vzvy_kernels;
+      surf_vzvz_kernel_list = ser_surf_vzvz_kernels;
+      break;
 
-      boundary_surf_xx_kernels = ser_boundary_surf_xx_kernels;
-      boundary_surf_xy_kernels = ser_boundary_surf_xy_kernels;
-      boundary_surf_xz_kernels = ser_boundary_surf_xz_kernels;
-      boundary_surf_yx_kernels = ser_boundary_surf_yx_kernels;
-      boundary_surf_yy_kernels = ser_boundary_surf_yy_kernels;
-      boundary_surf_yz_kernels = ser_boundary_surf_yz_kernels;
-      boundary_surf_zx_kernels = ser_boundary_surf_zx_kernels;
-      boundary_surf_zy_kernels = ser_boundary_surf_zy_kernels;
-      boundary_surf_zz_kernels = ser_boundary_surf_zz_kernels;
-      
+    case GKYL_BASIS_MODAL_HYBRID:
+      assert(poly_order == 1);
+      vol_kernels = ser_vol_kernels;
+      surf_vxvx_kernel_list = ser_surf_vxvx_kernels;
+      surf_vxvy_kernel_list = ser_surf_vxvy_kernels;
+      surf_vxvz_kernel_list = ser_surf_vxvz_kernels;
+      surf_vyvx_kernel_list = ser_surf_vyvx_kernels;
+      surf_vyvy_kernel_list = ser_surf_vyvy_kernels;
+      surf_vyvz_kernel_list = ser_surf_vyvz_kernels;
+      surf_vzvx_kernel_list = ser_surf_vzvx_kernels;
+      surf_vzvy_kernel_list = ser_surf_vzvy_kernels;
+      surf_vzvz_kernel_list = ser_surf_vzvz_kernels;
       break;
 
     default:
       assert(false);
-      break;    
+      break;
   }  
  
   fpo_vlasov_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
-  fpo_vlasov_diff->surf[0][0] = CK(surf_xx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[0][1] = CK(surf_xy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[0][2] = CK(surf_xz_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[1][0] = CK(surf_yx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[1][1] = CK(surf_yy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[1][2] = CK(surf_yz_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[2][0] = CK(surf_zx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[2][1] = CK(surf_zy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->surf[2][2] = CK(surf_zz_kernels, cdim, poly_order);
-
-  fpo_vlasov_diff->boundary_surf[0][0] = CK(boundary_surf_xx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[0][1] = CK(boundary_surf_xy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[0][2] = CK(boundary_surf_xz_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[1][0] = CK(boundary_surf_yx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[1][1] = CK(boundary_surf_yy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[1][2] = CK(boundary_surf_yz_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[2][0] = CK(boundary_surf_zx_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[2][1] = CK(boundary_surf_zy_kernels, cdim, poly_order);
-  fpo_vlasov_diff->boundary_surf[2][2] = CK(boundary_surf_zz_kernels, cdim, poly_order);
+  fpo_vlasov_diff->surf[0][0] = surf_vxvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[0][1] = surf_vxvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[0][2] = surf_vxvz_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][0] = surf_vyvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][1] = surf_vyvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][2] = surf_vyvz_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][0] = surf_vzvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][1] = surf_vzvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][2] = surf_vzvz_kernel_list[cdim-1].list[poly_order-1];
 }
 
 struct gkyl_dg_eqn*

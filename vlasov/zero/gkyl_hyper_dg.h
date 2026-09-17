@@ -57,7 +57,7 @@ void gkyl_hyper_dg_advance(gkyl_hyper_dg *up, const struct gkyl_range *update_rn
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg* up, const struct gkyl_range *update_rng,
+void gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg* hdg, long offsets[36], const struct gkyl_range *update_rng,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, 
   struct gkyl_array *rhs);
 

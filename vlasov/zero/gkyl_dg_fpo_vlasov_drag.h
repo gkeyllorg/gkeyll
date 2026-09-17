@@ -7,7 +7,10 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_fpo_vlasov_drag_auxfields {
-  const struct gkyl_array *h;
+  const struct gkyl_array *drag_coeff;
+  const struct gkyl_array *drag_coeff_surf;
+  const struct gkyl_array *sgn_drag_coeff_surf;
+  const struct gkyl_array *const_sgn_drag_coeff_surf;
 };
 
 /**

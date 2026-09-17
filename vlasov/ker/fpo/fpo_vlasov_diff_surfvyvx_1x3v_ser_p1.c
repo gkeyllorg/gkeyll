@@ -1,154 +1,137 @@
-#include <gkyl_fpo_vlasov_kernels.h>
+#include <gkyl_fpo_vlasov_kernels.h> 
 
-GKYL_CU_DH double
-fpo_vlasov_diff_surfvyvx_1x3v_ser_p1(const double* w, const double* dx,
-  const double* g[], const double* f[], double* GKYL_RESTRICT out) 
-{
-  // w[NDIM]: Cell-center coordinates
-  // dxv[NDIM]: Cell spacing
-  // g: 
-  // f: 
-  // out: Incremented output
+GKYL_CU_DH double fpo_vlasov_diff_surfvyvx_1x3v_ser_p1(const double* dxv, const double* diff_coeff_C, 
+  const double* diff_coeff_surf_stencil[9], const double* f_stencil[9], double* GKYL_RESTRICT out) { 
+  // dxv[NDIM]: Cell spacing in each direction. 
+  // diff_coeff_C: Diffusion tensor in center cell. 
+  // diff_coeff_surf_stencil[9]: 9-cell stencil of surface expansion of recovered diffusion tensor. 
+  // f_stencil[9]: 9-cell stencil of distribution function. 
+  // out: Incremented output. 
 
-  const double Jvyvx = 4/dx[2]/dx[1];
+  double dv_inv_sq = 4.0/dxv[2]/dxv[1]; 
 
-  const double* gllc = g[1];
-  const double* glcl = g[3];
-  const double* glcc = g[4];
-  const double* glcu = g[5];
-  const double* gluc = g[7];
-  const double* gcll = g[9];
-  const double* gclc = g[10];
-  const double* gclu = g[11];
-  const double* gccl = g[12];
-  const double* gccc = g[13];
-  const double* gccu = g[14];
-  const double* gcul = g[15];
-  const double* gcuc = g[16];
-  const double* gcuu = g[17];
-  const double* gulc = g[19];
-  const double* gucl = g[21];
-  const double* gucc = g[22];
-  const double* gucu = g[23];
-  const double* guuc = g[25];
+  double f_rec_lo[8] = {0.0}; 
+  double f_rec_up[8] = {0.0}; 
+  double df_rec_lo[8] = {0.0}; 
+  double df_rec_up[8] = {0.0}; 
+  double surft1_lo[8] = {0.0}; 
+  double surft1_up[8] = {0.0}; 
+  double surft2_lo[8] = {0.0}; 
+  double surft2_up[8] = {0.0}; 
+  double vol[16] = {0.0}; 
 
-  const double* fllc = f[1];
-  const double* flcl = f[3];
-  const double* flcc = f[4];
-  const double* flcu = f[5];
-  const double* fluc = f[7];
-  const double* fcll = f[9];
-  const double* fclc = f[10];
-  const double* fclu = f[11];
-  const double* fccl = f[12];
-  const double* fccc = f[13];
-  const double* fccu = f[14];
-  const double* fcul = f[15];
-  const double* fcuc = f[16];
-  const double* fcuu = f[17];
-  const double* fulc = f[19];
-  const double* fucl = f[21];
-  const double* fucc = f[22];
-  const double* fucu = f[23];
-  const double* fuuc = f[25];
+  // Index into D and f stencils. 
+  const double *fBL = f_stencil[0]; 
+  const double *fCL = f_stencil[1]; 
+  const double *fTL = f_stencil[2]; 
+  const double *fBC = f_stencil[3]; 
+  const double *fCC = f_stencil[4]; 
+  const double *fTC = f_stencil[5]; 
+  const double *fBR = f_stencil[6]; 
+  const double *fCR = f_stencil[7]; 
+  const double *fTR = f_stencil[8]; 
 
-  double D_proj1_l[8];
-  D_proj1_l[0] = (-1.325825214724776*gclc[7])-1.325825214724776*gccc[7]-1.377837980315537*gclc[2]+1.377837980315537*gccc[2];
-  D_proj1_l[1] = (-1.325825214724776*gclc[11])-1.325825214724776*gccc[11]-1.377837980315537*gclc[5]+1.377837980315537*gccc[5];
-  D_proj1_l[2] = 0.0;
-  D_proj1_l[3] = (-1.325825214724776*gclc[14])-1.325825214724776*gccc[14]-1.377837980315537*gclc[9]+1.377837980315537*gccc[9];
-  D_proj1_l[4] = 0.0;
-  D_proj1_l[5] = (-1.325825214724776*gclc[15])-1.325825214724776*gccc[15]-1.377837980315537*gclc[12]+1.377837980315537*gccc[12];
-  D_proj1_l[6] = 0.0;
-  D_proj1_l[7] = 0.0;
+  const double *DCC = &diff_coeff_C[48]; 
 
-  double D_proj1_u[8];
-  D_proj1_u[0] = (-1.325825214724776*gcuc[7])-1.325825214724776*gccc[7]+1.377837980315537*gcuc[2]-1.377837980315537*gccc[2];
-  D_proj1_u[1] = (-1.325825214724776*gcuc[11])-1.325825214724776*gccc[11]+1.377837980315537*gcuc[5]-1.377837980315537*gccc[5];
-  D_proj1_u[2] = 0.0;
-  D_proj1_u[3] = (-1.325825214724776*gcuc[14])-1.325825214724776*gccc[14]+1.377837980315537*gcuc[9]-1.377837980315537*gccc[9];
-  D_proj1_u[4] = 0.0;
-  D_proj1_u[5] = (-1.325825214724776*gcuc[15])-1.325825214724776*gccc[15]+1.377837980315537*gcuc[12]-1.377837980315537*gccc[12];
-  D_proj1_u[6] = 0.0;
-  D_proj1_u[7] = 0.0;
+  const double *Dsurf_CC_vy = &diff_coeff_surf_stencil[4][48]; 
+  const double *Dsurf_CC_vx = &diff_coeff_surf_stencil[4][56]; 
+  const double* Dsurf_TC_vy = &diff_coeff_surf_stencil[5][48]; 
+  const double* Dsurf_CR_vx = &diff_coeff_surf_stencil[7][56]; 
+  f_rec_lo[0] = 0.408248290463863*fCL[2]-0.408248290463863*fCC[2]+0.3535533905932737*(fCL[0]+fCC[0]); 
+  f_rec_lo[1] = 0.408248290463863*fCL[5]-0.408248290463863*fCC[5]+0.3535533905932737*(fCL[1]+fCC[1]); 
+  f_rec_lo[2] = 0.408248290463863*fCL[7]-0.408248290463863*fCC[7]+0.3535533905932737*(fCL[3]+fCC[3]); 
+  f_rec_lo[3] = 0.408248290463863*fCL[9]-0.408248290463863*fCC[9]+0.3535533905932737*(fCL[4]+fCC[4]); 
+  f_rec_lo[4] = 0.408248290463863*fCL[11]-0.408248290463863*fCC[11]+0.3535533905932737*(fCL[6]+fCC[6]); 
+  f_rec_lo[5] = 0.408248290463863*fCL[12]-0.408248290463863*fCC[12]+0.3535533905932737*(fCL[8]+fCC[8]); 
+  f_rec_lo[6] = 0.408248290463863*fCL[14]-0.408248290463863*fCC[14]+0.3535533905932737*(fCL[10]+fCC[10]); 
+  f_rec_lo[7] = 0.408248290463863*fCL[15]-0.408248290463863*fCC[15]+0.3535533905932737*(fCL[13]+fCC[13]); 
+  f_rec_up[0] = -(0.408248290463863*fCR[2])+0.408248290463863*fCC[2]+0.3535533905932737*(fCR[0]+fCC[0]); 
+  f_rec_up[1] = -(0.408248290463863*fCR[5])+0.408248290463863*fCC[5]+0.3535533905932737*(fCR[1]+fCC[1]); 
+  f_rec_up[2] = -(0.408248290463863*fCR[7])+0.408248290463863*fCC[7]+0.3535533905932737*(fCR[3]+fCC[3]); 
+  f_rec_up[3] = -(0.408248290463863*fCR[9])+0.408248290463863*fCC[9]+0.3535533905932737*(fCR[4]+fCC[4]); 
+  f_rec_up[4] = -(0.408248290463863*fCR[11])+0.408248290463863*fCC[11]+0.3535533905932737*(fCR[6]+fCC[6]); 
+  f_rec_up[5] = -(0.408248290463863*fCR[12])+0.408248290463863*fCC[12]+0.3535533905932737*(fCR[8]+fCC[8]); 
+  f_rec_up[6] = -(0.408248290463863*fCR[14])+0.408248290463863*fCC[14]+0.3535533905932737*(fCR[10]+fCC[10]); 
+  f_rec_up[7] = -(0.408248290463863*fCR[15])+0.408248290463863*fCC[15]+0.3535533905932737*(fCR[13]+fCC[13]); 
 
-  double df_proj1_l[8];
-  df_proj1_l[0] = (-0.1178511301977579*fulc[7])+0.1178511301977579*fucc[7]-0.1178511301977579*fllc[7]+0.1178511301977579*flcc[7]+0.2357022603955158*fclc[7]-0.2357022603955158*fccc[7]+0.1020620726159657*fulc[3]-0.1020620726159657*fucc[3]-0.1020620726159657*fllc[3]+0.1020620726159657*flcc[3]-0.1020620726159657*fulc[2]-0.1020620726159657*fucc[2]-0.1020620726159657*fllc[2]-0.1020620726159657*flcc[2]+0.2041241452319315*fclc[2]+0.2041241452319315*fccc[2]+0.0883883476483184*fulc[0]+0.0883883476483184*fucc[0]-0.0883883476483184*fllc[0]-0.0883883476483184*flcc[0];
-  df_proj1_l[1] = (-0.1178511301977579*fulc[11])+0.1178511301977579*fucc[11]-0.1178511301977579*fllc[11]+0.1178511301977579*flcc[11]+0.2357022603955158*fclc[11]-0.2357022603955158*fccc[11]+0.1020620726159657*fulc[6]-0.1020620726159657*fucc[6]-0.1020620726159657*fllc[6]+0.1020620726159657*flcc[6]-0.1020620726159657*fulc[5]-0.1020620726159657*fucc[5]-0.1020620726159657*fllc[5]-0.1020620726159657*flcc[5]+0.2041241452319315*fclc[5]+0.2041241452319315*fccc[5]+0.0883883476483184*fulc[1]+0.0883883476483184*fucc[1]-0.0883883476483184*fllc[1]-0.0883883476483184*flcc[1];
-  df_proj1_l[2] = (-0.2041241452319315*fulc[7])+0.2041241452319315*fucc[7]+0.2041241452319315*fllc[7]-0.2041241452319315*flcc[7]+0.1767766952966368*fulc[3]-0.1767766952966368*fucc[3]+0.1767766952966368*fllc[3]-0.1767766952966368*flcc[3]-0.3535533905932737*fclc[3]+0.3535533905932737*fccc[3]-0.1767766952966368*fulc[2]-0.1767766952966368*fucc[2]+0.1767766952966368*fllc[2]+0.1767766952966368*flcc[2]+0.1530931089239486*fulc[0]+0.1530931089239486*fucc[0]+0.1530931089239486*fllc[0]+0.1530931089239486*flcc[0]-0.3061862178478971*fclc[0]-0.3061862178478971*fccc[0];
-  df_proj1_l[3] = (-0.1178511301977579*fulc[14])+0.1178511301977579*fucc[14]-0.1178511301977579*fllc[14]+0.1178511301977579*flcc[14]+0.2357022603955158*fclc[14]-0.2357022603955158*fccc[14]+0.1020620726159657*fulc[10]-0.1020620726159657*fucc[10]-0.1020620726159657*fllc[10]+0.1020620726159657*flcc[10]-0.1020620726159657*fulc[9]-0.1020620726159657*fucc[9]-0.1020620726159657*fllc[9]-0.1020620726159657*flcc[9]+0.2041241452319315*fclc[9]+0.2041241452319315*fccc[9]+0.0883883476483184*fulc[4]+0.0883883476483184*fucc[4]-0.0883883476483184*fllc[4]-0.0883883476483184*flcc[4];
-  df_proj1_l[4] = (-0.2041241452319315*fulc[11])+0.2041241452319315*fucc[11]+0.2041241452319315*fllc[11]-0.2041241452319315*flcc[11]+0.1767766952966368*fulc[6]-0.1767766952966368*fucc[6]+0.1767766952966368*fllc[6]-0.1767766952966368*flcc[6]-0.3535533905932737*fclc[6]+0.3535533905932737*fccc[6]-0.1767766952966368*fulc[5]-0.1767766952966368*fucc[5]+0.1767766952966368*fllc[5]+0.1767766952966368*flcc[5]+0.1530931089239486*fulc[1]+0.1530931089239486*fucc[1]+0.1530931089239486*fllc[1]+0.1530931089239486*flcc[1]-0.3061862178478971*fclc[1]-0.3061862178478971*fccc[1];
-  df_proj1_l[5] = (-0.1178511301977579*fulc[15])+0.1178511301977579*fucc[15]-0.1178511301977579*fllc[15]+0.1178511301977579*flcc[15]+0.2357022603955158*fclc[15]-0.2357022603955158*fccc[15]+0.1020620726159657*fulc[13]-0.1020620726159657*fucc[13]-0.1020620726159657*fllc[13]+0.1020620726159657*flcc[13]-0.1020620726159657*fulc[12]-0.1020620726159657*fucc[12]-0.1020620726159657*fllc[12]-0.1020620726159657*flcc[12]+0.2041241452319315*fclc[12]+0.2041241452319315*fccc[12]+0.0883883476483184*fulc[8]+0.0883883476483184*fucc[8]-0.0883883476483184*fllc[8]-0.0883883476483184*flcc[8];
-  df_proj1_l[6] = (-0.2041241452319315*fulc[14])+0.2041241452319315*fucc[14]+0.2041241452319315*fllc[14]-0.2041241452319315*flcc[14]+0.1767766952966368*fulc[10]-0.1767766952966368*fucc[10]+0.1767766952966368*fllc[10]-0.1767766952966368*flcc[10]-0.3535533905932737*fclc[10]+0.3535533905932737*fccc[10]-0.1767766952966368*fulc[9]-0.1767766952966368*fucc[9]+0.1767766952966368*fllc[9]+0.1767766952966368*flcc[9]+0.1530931089239486*fulc[4]+0.1530931089239486*fucc[4]+0.1530931089239486*fllc[4]+0.1530931089239486*flcc[4]-0.3061862178478971*fclc[4]-0.3061862178478971*fccc[4];
-  df_proj1_l[7] = (-0.2041241452319315*fulc[15])+0.2041241452319315*fucc[15]+0.2041241452319315*fllc[15]-0.2041241452319315*flcc[15]+0.1767766952966368*fulc[13]-0.1767766952966368*fucc[13]+0.1767766952966368*fllc[13]-0.1767766952966368*flcc[13]-0.3535533905932737*fclc[13]+0.3535533905932737*fccc[13]-0.1767766952966368*fulc[12]-0.1767766952966368*fucc[12]+0.1767766952966368*fllc[12]+0.1767766952966368*flcc[12]+0.1530931089239486*fulc[8]+0.1530931089239486*fucc[8]+0.1530931089239486*fllc[8]+0.1530931089239486*flcc[8]-0.3061862178478971*fclc[8]-0.3061862178478971*fccc[8];
+  df_rec_lo[0] = 0.11785113019775789*(fCR[7]+fCL[7])-0.2357022603955158*fCC[7]-0.11785113019775789*(fBR[7]+fBL[7])+0.2357022603955158*fBC[7]-0.10206207261596573*(fCR[3]+fBL[3]+fCR[2]+fCL[2]+fBR[2]+fBL[2])+0.10206207261596573*(fCL[3]+fBR[3])+0.20412414523193148*(fCC[2]+fBC[2])+0.0883883476483184*(fCR[0]+fBR[0])-0.0883883476483184*(fCL[0]+fBL[0]); 
+  df_rec_lo[1] = 0.11785113019775789*(fCR[11]+fCL[11])-0.2357022603955158*fCC[11]-0.11785113019775789*(fBR[11]+fBL[11])+0.2357022603955158*fBC[11]-0.10206207261596573*(fCR[6]+fBL[6]+fCR[5]+fCL[5]+fBR[5]+fBL[5])+0.10206207261596573*(fCL[6]+fBR[6])+0.20412414523193148*(fCC[5]+fBC[5])+0.0883883476483184*(fCR[1]+fBR[1])-0.0883883476483184*(fCL[1]+fBL[1]); 
+  df_rec_lo[2] = 0.20412414523193148*(fCR[7]+fBL[7])-0.20412414523193148*(fCL[7]+fBR[7])-0.1767766952966368*(fCR[3]+fCL[3]+fCR[2]+fBR[2])+0.3535533905932737*fCC[3]+0.1767766952966368*(fBR[3]+fBL[3]+fCL[2]+fBL[2])-0.3535533905932737*fBC[3]+0.15309310892394856*(fCR[0]+fCL[0]+fBR[0]+fBL[0])-0.3061862178478971*(fCC[0]+fBC[0]); 
+  df_rec_lo[3] = 0.11785113019775789*(fCR[14]+fCL[14])-0.2357022603955158*fCC[14]-0.11785113019775789*(fBR[14]+fBL[14])+0.2357022603955158*fBC[14]-0.10206207261596573*(fCR[10]+fBL[10]+fCR[9]+fCL[9]+fBR[9]+fBL[9])+0.10206207261596573*(fCL[10]+fBR[10])+0.20412414523193148*(fCC[9]+fBC[9])+0.0883883476483184*(fCR[4]+fBR[4])-0.0883883476483184*(fCL[4]+fBL[4]); 
+  df_rec_lo[4] = 0.20412414523193148*(fCR[11]+fBL[11])-0.20412414523193148*(fCL[11]+fBR[11])-0.1767766952966368*(fCR[6]+fCL[6]+fCR[5]+fBR[5])+0.3535533905932737*fCC[6]+0.1767766952966368*(fBR[6]+fBL[6]+fCL[5]+fBL[5])-0.3535533905932737*fBC[6]+0.15309310892394856*(fCR[1]+fCL[1]+fBR[1]+fBL[1])-0.3061862178478971*(fCC[1]+fBC[1]); 
+  df_rec_lo[5] = 0.11785113019775789*(fCR[15]+fCL[15])-0.2357022603955158*fCC[15]-0.11785113019775789*(fBR[15]+fBL[15])+0.2357022603955158*fBC[15]-0.10206207261596573*(fCR[13]+fBL[13]+fCR[12]+fCL[12]+fBR[12]+fBL[12])+0.10206207261596573*(fCL[13]+fBR[13])+0.20412414523193148*(fCC[12]+fBC[12])+0.0883883476483184*(fCR[8]+fBR[8])-0.0883883476483184*(fCL[8]+fBL[8]); 
+  df_rec_lo[6] = 0.20412414523193148*(fCR[14]+fBL[14])-0.20412414523193148*(fCL[14]+fBR[14])-0.1767766952966368*(fCR[10]+fCL[10]+fCR[9]+fBR[9])+0.3535533905932737*fCC[10]+0.1767766952966368*(fBR[10]+fBL[10]+fCL[9]+fBL[9])-0.3535533905932737*fBC[10]+0.15309310892394856*(fCR[4]+fCL[4]+fBR[4]+fBL[4])-0.3061862178478971*(fCC[4]+fBC[4]); 
+  df_rec_lo[7] = 0.20412414523193148*(fCR[15]+fBL[15])-0.20412414523193148*(fCL[15]+fBR[15])-0.1767766952966368*(fCR[13]+fCL[13]+fCR[12]+fBR[12])+0.3535533905932737*fCC[13]+0.1767766952966368*(fBR[13]+fBL[13]+fCL[12]+fBL[12])-0.3535533905932737*fBC[13]+0.15309310892394856*(fCR[8]+fCL[8]+fBR[8]+fBL[8])-0.3061862178478971*(fCC[8]+fBC[8]); 
+  df_rec_up[0] = 0.11785113019775789*(fTR[7]+fTL[7])-0.2357022603955158*fTC[7]-0.11785113019775789*(fCR[7]+fCL[7])+0.2357022603955158*fCC[7]-0.10206207261596573*(fTR[3]+fCL[3]+fTR[2]+fTL[2]+fCR[2]+fCL[2])+0.10206207261596573*(fTL[3]+fCR[3])+0.20412414523193148*(fTC[2]+fCC[2])+0.0883883476483184*(fTR[0]+fCR[0])-0.0883883476483184*(fTL[0]+fCL[0]); 
+  df_rec_up[1] = 0.11785113019775789*(fTR[11]+fTL[11])-0.2357022603955158*fTC[11]-0.11785113019775789*(fCR[11]+fCL[11])+0.2357022603955158*fCC[11]-0.10206207261596573*(fTR[6]+fCL[6]+fTR[5]+fTL[5]+fCR[5]+fCL[5])+0.10206207261596573*(fTL[6]+fCR[6])+0.20412414523193148*(fTC[5]+fCC[5])+0.0883883476483184*(fTR[1]+fCR[1])-0.0883883476483184*(fTL[1]+fCL[1]); 
+  df_rec_up[2] = 0.20412414523193148*(fTR[7]+fCL[7])-0.20412414523193148*(fTL[7]+fCR[7])-0.1767766952966368*(fTR[3]+fTL[3]+fTR[2]+fCR[2])+0.3535533905932737*fTC[3]+0.1767766952966368*(fCR[3]+fCL[3]+fTL[2]+fCL[2])-0.3535533905932737*fCC[3]+0.15309310892394856*(fTR[0]+fTL[0]+fCR[0]+fCL[0])-0.3061862178478971*(fTC[0]+fCC[0]); 
+  df_rec_up[3] = 0.11785113019775789*(fTR[14]+fTL[14])-0.2357022603955158*fTC[14]-0.11785113019775789*(fCR[14]+fCL[14])+0.2357022603955158*fCC[14]-0.10206207261596573*(fTR[10]+fCL[10]+fTR[9]+fTL[9]+fCR[9]+fCL[9])+0.10206207261596573*(fTL[10]+fCR[10])+0.20412414523193148*(fTC[9]+fCC[9])+0.0883883476483184*(fTR[4]+fCR[4])-0.0883883476483184*(fTL[4]+fCL[4]); 
+  df_rec_up[4] = 0.20412414523193148*(fTR[11]+fCL[11])-0.20412414523193148*(fTL[11]+fCR[11])-0.1767766952966368*(fTR[6]+fTL[6]+fTR[5]+fCR[5])+0.3535533905932737*fTC[6]+0.1767766952966368*(fCR[6]+fCL[6]+fTL[5]+fCL[5])-0.3535533905932737*fCC[6]+0.15309310892394856*(fTR[1]+fTL[1]+fCR[1]+fCL[1])-0.3061862178478971*(fTC[1]+fCC[1]); 
+  df_rec_up[5] = 0.11785113019775789*(fTR[15]+fTL[15])-0.2357022603955158*fTC[15]-0.11785113019775789*(fCR[15]+fCL[15])+0.2357022603955158*fCC[15]-0.10206207261596573*(fTR[13]+fCL[13]+fTR[12]+fTL[12]+fCR[12]+fCL[12])+0.10206207261596573*(fTL[13]+fCR[13])+0.20412414523193148*(fTC[12]+fCC[12])+0.0883883476483184*(fTR[8]+fCR[8])-0.0883883476483184*(fTL[8]+fCL[8]); 
+  df_rec_up[6] = 0.20412414523193148*(fTR[14]+fCL[14])-0.20412414523193148*(fTL[14]+fCR[14])-0.1767766952966368*(fTR[10]+fTL[10]+fTR[9]+fCR[9])+0.3535533905932737*fTC[10]+0.1767766952966368*(fCR[10]+fCL[10]+fTL[9]+fCL[9])-0.3535533905932737*fCC[10]+0.15309310892394856*(fTR[4]+fTL[4]+fCR[4]+fCL[4])-0.3061862178478971*(fTC[4]+fCC[4]); 
+  df_rec_up[7] = 0.20412414523193148*(fTR[15]+fCL[15])-0.20412414523193148*(fTL[15]+fCR[15])-0.1767766952966368*(fTR[13]+fTL[13]+fTR[12]+fCR[12])+0.3535533905932737*fTC[13]+0.1767766952966368*(fCR[13]+fCL[13]+fTL[12]+fCL[12])-0.3535533905932737*fCC[13]+0.15309310892394856*(fTR[8]+fTL[8]+fCR[8]+fCL[8])-0.3061862178478971*(fTC[8]+fCC[8]); 
 
-  double df_proj1_u[8];
-  df_proj1_u[0] = 0.1178511301977579*fuuc[7]-0.1178511301977579*fucc[7]+0.1178511301977579*fluc[7]-0.1178511301977579*flcc[7]-0.2357022603955158*fcuc[7]+0.2357022603955158*fccc[7]-0.1020620726159657*fuuc[3]+0.1020620726159657*fucc[3]+0.1020620726159657*fluc[3]-0.1020620726159657*flcc[3]-0.1020620726159657*fuuc[2]-0.1020620726159657*fucc[2]-0.1020620726159657*fluc[2]-0.1020620726159657*flcc[2]+0.2041241452319315*fcuc[2]+0.2041241452319315*fccc[2]+0.0883883476483184*fuuc[0]+0.0883883476483184*fucc[0]-0.0883883476483184*fluc[0]-0.0883883476483184*flcc[0];
-  df_proj1_u[1] = 0.1178511301977579*fuuc[11]-0.1178511301977579*fucc[11]+0.1178511301977579*fluc[11]-0.1178511301977579*flcc[11]-0.2357022603955158*fcuc[11]+0.2357022603955158*fccc[11]-0.1020620726159657*fuuc[6]+0.1020620726159657*fucc[6]+0.1020620726159657*fluc[6]-0.1020620726159657*flcc[6]-0.1020620726159657*fuuc[5]-0.1020620726159657*fucc[5]-0.1020620726159657*fluc[5]-0.1020620726159657*flcc[5]+0.2041241452319315*fcuc[5]+0.2041241452319315*fccc[5]+0.0883883476483184*fuuc[1]+0.0883883476483184*fucc[1]-0.0883883476483184*fluc[1]-0.0883883476483184*flcc[1];
-  df_proj1_u[2] = 0.2041241452319315*fuuc[7]-0.2041241452319315*fucc[7]-0.2041241452319315*fluc[7]+0.2041241452319315*flcc[7]-0.1767766952966368*fuuc[3]+0.1767766952966368*fucc[3]-0.1767766952966368*fluc[3]+0.1767766952966368*flcc[3]+0.3535533905932737*fcuc[3]-0.3535533905932737*fccc[3]-0.1767766952966368*fuuc[2]-0.1767766952966368*fucc[2]+0.1767766952966368*fluc[2]+0.1767766952966368*flcc[2]+0.1530931089239486*fuuc[0]+0.1530931089239486*fucc[0]+0.1530931089239486*fluc[0]+0.1530931089239486*flcc[0]-0.3061862178478971*fcuc[0]-0.3061862178478971*fccc[0];
-  df_proj1_u[3] = 0.1178511301977579*fuuc[14]-0.1178511301977579*fucc[14]+0.1178511301977579*fluc[14]-0.1178511301977579*flcc[14]-0.2357022603955158*fcuc[14]+0.2357022603955158*fccc[14]-0.1020620726159657*fuuc[10]+0.1020620726159657*fucc[10]+0.1020620726159657*fluc[10]-0.1020620726159657*flcc[10]-0.1020620726159657*fuuc[9]-0.1020620726159657*fucc[9]-0.1020620726159657*fluc[9]-0.1020620726159657*flcc[9]+0.2041241452319315*fcuc[9]+0.2041241452319315*fccc[9]+0.0883883476483184*fuuc[4]+0.0883883476483184*fucc[4]-0.0883883476483184*fluc[4]-0.0883883476483184*flcc[4];
-  df_proj1_u[4] = 0.2041241452319315*fuuc[11]-0.2041241452319315*fucc[11]-0.2041241452319315*fluc[11]+0.2041241452319315*flcc[11]-0.1767766952966368*fuuc[6]+0.1767766952966368*fucc[6]-0.1767766952966368*fluc[6]+0.1767766952966368*flcc[6]+0.3535533905932737*fcuc[6]-0.3535533905932737*fccc[6]-0.1767766952966368*fuuc[5]-0.1767766952966368*fucc[5]+0.1767766952966368*fluc[5]+0.1767766952966368*flcc[5]+0.1530931089239486*fuuc[1]+0.1530931089239486*fucc[1]+0.1530931089239486*fluc[1]+0.1530931089239486*flcc[1]-0.3061862178478971*fcuc[1]-0.3061862178478971*fccc[1];
-  df_proj1_u[5] = 0.1178511301977579*fuuc[15]-0.1178511301977579*fucc[15]+0.1178511301977579*fluc[15]-0.1178511301977579*flcc[15]-0.2357022603955158*fcuc[15]+0.2357022603955158*fccc[15]-0.1020620726159657*fuuc[13]+0.1020620726159657*fucc[13]+0.1020620726159657*fluc[13]-0.1020620726159657*flcc[13]-0.1020620726159657*fuuc[12]-0.1020620726159657*fucc[12]-0.1020620726159657*fluc[12]-0.1020620726159657*flcc[12]+0.2041241452319315*fcuc[12]+0.2041241452319315*fccc[12]+0.0883883476483184*fuuc[8]+0.0883883476483184*fucc[8]-0.0883883476483184*fluc[8]-0.0883883476483184*flcc[8];
-  df_proj1_u[6] = 0.2041241452319315*fuuc[14]-0.2041241452319315*fucc[14]-0.2041241452319315*fluc[14]+0.2041241452319315*flcc[14]-0.1767766952966368*fuuc[10]+0.1767766952966368*fucc[10]-0.1767766952966368*fluc[10]+0.1767766952966368*flcc[10]+0.3535533905932737*fcuc[10]-0.3535533905932737*fccc[10]-0.1767766952966368*fuuc[9]-0.1767766952966368*fucc[9]+0.1767766952966368*fluc[9]+0.1767766952966368*flcc[9]+0.1530931089239486*fuuc[4]+0.1530931089239486*fucc[4]+0.1530931089239486*fluc[4]+0.1530931089239486*flcc[4]-0.3061862178478971*fcuc[4]-0.3061862178478971*fccc[4];
-  df_proj1_u[7] = 0.2041241452319315*fuuc[15]-0.2041241452319315*fucc[15]-0.2041241452319315*fluc[15]+0.2041241452319315*flcc[15]-0.1767766952966368*fuuc[13]+0.1767766952966368*fucc[13]-0.1767766952966368*fluc[13]+0.1767766952966368*flcc[13]+0.3535533905932737*fcuc[13]-0.3535533905932737*fccc[13]-0.1767766952966368*fuuc[12]-0.1767766952966368*fucc[12]+0.1767766952966368*fluc[12]+0.1767766952966368*flcc[12]+0.1530931089239486*fuuc[8]+0.1530931089239486*fucc[8]+0.1530931089239486*fluc[8]+0.1530931089239486*flcc[8]-0.3061862178478971*fcuc[8]-0.3061862178478971*fccc[8];
+  surft1_lo[0] = 0.3535533905932737*(Dsurf_CC_vy[7]*df_rec_lo[7]+Dsurf_CC_vy[6]*df_rec_lo[6]+Dsurf_CC_vy[5]*df_rec_lo[5]+Dsurf_CC_vy[4]*df_rec_lo[4]+Dsurf_CC_vy[3]*df_rec_lo[3]+Dsurf_CC_vy[2]*df_rec_lo[2]+Dsurf_CC_vy[1]*df_rec_lo[1]+Dsurf_CC_vy[0]*df_rec_lo[0]); 
+  surft1_lo[1] = 0.3535533905932737*(Dsurf_CC_vy[6]*df_rec_lo[7]+df_rec_lo[6]*Dsurf_CC_vy[7]+Dsurf_CC_vy[3]*df_rec_lo[5]+df_rec_lo[3]*Dsurf_CC_vy[5]+Dsurf_CC_vy[2]*df_rec_lo[4]+df_rec_lo[2]*Dsurf_CC_vy[4]+Dsurf_CC_vy[0]*df_rec_lo[1]+df_rec_lo[0]*Dsurf_CC_vy[1]); 
+  surft1_lo[2] = 0.3535533905932737*(Dsurf_CC_vy[5]*df_rec_lo[7]+df_rec_lo[5]*Dsurf_CC_vy[7]+Dsurf_CC_vy[3]*df_rec_lo[6]+df_rec_lo[3]*Dsurf_CC_vy[6]+Dsurf_CC_vy[1]*df_rec_lo[4]+df_rec_lo[1]*Dsurf_CC_vy[4]+Dsurf_CC_vy[0]*df_rec_lo[2]+df_rec_lo[0]*Dsurf_CC_vy[2]); 
+  surft1_lo[3] = 0.3535533905932737*(Dsurf_CC_vy[4]*df_rec_lo[7]+df_rec_lo[4]*Dsurf_CC_vy[7]+Dsurf_CC_vy[2]*df_rec_lo[6]+df_rec_lo[2]*Dsurf_CC_vy[6]+Dsurf_CC_vy[1]*df_rec_lo[5]+df_rec_lo[1]*Dsurf_CC_vy[5]+Dsurf_CC_vy[0]*df_rec_lo[3]+df_rec_lo[0]*Dsurf_CC_vy[3]); 
+  surft1_lo[4] = 0.3535533905932737*(Dsurf_CC_vy[3]*df_rec_lo[7]+df_rec_lo[3]*Dsurf_CC_vy[7]+Dsurf_CC_vy[5]*df_rec_lo[6]+df_rec_lo[5]*Dsurf_CC_vy[6]+Dsurf_CC_vy[0]*df_rec_lo[4]+df_rec_lo[0]*Dsurf_CC_vy[4]+Dsurf_CC_vy[1]*df_rec_lo[2]+df_rec_lo[1]*Dsurf_CC_vy[2]); 
+  surft1_lo[5] = 0.3535533905932737*(Dsurf_CC_vy[2]*df_rec_lo[7]+df_rec_lo[2]*Dsurf_CC_vy[7]+Dsurf_CC_vy[4]*df_rec_lo[6]+df_rec_lo[4]*Dsurf_CC_vy[6]+Dsurf_CC_vy[0]*df_rec_lo[5]+df_rec_lo[0]*Dsurf_CC_vy[5]+Dsurf_CC_vy[1]*df_rec_lo[3]+df_rec_lo[1]*Dsurf_CC_vy[3]); 
+  surft1_lo[6] = 0.3535533905932737*(Dsurf_CC_vy[1]*df_rec_lo[7]+df_rec_lo[1]*Dsurf_CC_vy[7]+Dsurf_CC_vy[0]*df_rec_lo[6]+df_rec_lo[0]*Dsurf_CC_vy[6]+Dsurf_CC_vy[4]*df_rec_lo[5]+df_rec_lo[4]*Dsurf_CC_vy[5]+Dsurf_CC_vy[2]*df_rec_lo[3]+df_rec_lo[2]*Dsurf_CC_vy[3]); 
+  surft1_lo[7] = 0.3535533905932737*(Dsurf_CC_vy[0]*df_rec_lo[7]+df_rec_lo[0]*Dsurf_CC_vy[7]+Dsurf_CC_vy[1]*df_rec_lo[6]+df_rec_lo[1]*Dsurf_CC_vy[6]+Dsurf_CC_vy[2]*df_rec_lo[5]+df_rec_lo[2]*Dsurf_CC_vy[5]+Dsurf_CC_vy[3]*df_rec_lo[4]+df_rec_lo[3]*Dsurf_CC_vy[4]); 
+  surft1_up[0] = 0.3535533905932737*(Dsurf_TC_vy[7]*df_rec_up[7]+Dsurf_TC_vy[6]*df_rec_up[6]+Dsurf_TC_vy[5]*df_rec_up[5]+Dsurf_TC_vy[4]*df_rec_up[4]+Dsurf_TC_vy[3]*df_rec_up[3]+Dsurf_TC_vy[2]*df_rec_up[2]+Dsurf_TC_vy[1]*df_rec_up[1]+Dsurf_TC_vy[0]*df_rec_up[0]); 
+  surft1_up[1] = 0.3535533905932737*(Dsurf_TC_vy[6]*df_rec_up[7]+df_rec_up[6]*Dsurf_TC_vy[7]+Dsurf_TC_vy[3]*df_rec_up[5]+df_rec_up[3]*Dsurf_TC_vy[5]+Dsurf_TC_vy[2]*df_rec_up[4]+df_rec_up[2]*Dsurf_TC_vy[4]+Dsurf_TC_vy[0]*df_rec_up[1]+df_rec_up[0]*Dsurf_TC_vy[1]); 
+  surft1_up[2] = 0.3535533905932737*(Dsurf_TC_vy[5]*df_rec_up[7]+df_rec_up[5]*Dsurf_TC_vy[7]+Dsurf_TC_vy[3]*df_rec_up[6]+df_rec_up[3]*Dsurf_TC_vy[6]+Dsurf_TC_vy[1]*df_rec_up[4]+df_rec_up[1]*Dsurf_TC_vy[4]+Dsurf_TC_vy[0]*df_rec_up[2]+df_rec_up[0]*Dsurf_TC_vy[2]); 
+  surft1_up[3] = 0.3535533905932737*(Dsurf_TC_vy[4]*df_rec_up[7]+df_rec_up[4]*Dsurf_TC_vy[7]+Dsurf_TC_vy[2]*df_rec_up[6]+df_rec_up[2]*Dsurf_TC_vy[6]+Dsurf_TC_vy[1]*df_rec_up[5]+df_rec_up[1]*Dsurf_TC_vy[5]+Dsurf_TC_vy[0]*df_rec_up[3]+df_rec_up[0]*Dsurf_TC_vy[3]); 
+  surft1_up[4] = 0.3535533905932737*(Dsurf_TC_vy[3]*df_rec_up[7]+df_rec_up[3]*Dsurf_TC_vy[7]+Dsurf_TC_vy[5]*df_rec_up[6]+df_rec_up[5]*Dsurf_TC_vy[6]+Dsurf_TC_vy[0]*df_rec_up[4]+df_rec_up[0]*Dsurf_TC_vy[4]+Dsurf_TC_vy[1]*df_rec_up[2]+df_rec_up[1]*Dsurf_TC_vy[2]); 
+  surft1_up[5] = 0.3535533905932737*(Dsurf_TC_vy[2]*df_rec_up[7]+df_rec_up[2]*Dsurf_TC_vy[7]+Dsurf_TC_vy[4]*df_rec_up[6]+df_rec_up[4]*Dsurf_TC_vy[6]+Dsurf_TC_vy[0]*df_rec_up[5]+df_rec_up[0]*Dsurf_TC_vy[5]+Dsurf_TC_vy[1]*df_rec_up[3]+df_rec_up[1]*Dsurf_TC_vy[3]); 
+  surft1_up[6] = 0.3535533905932737*(Dsurf_TC_vy[1]*df_rec_up[7]+df_rec_up[1]*Dsurf_TC_vy[7]+Dsurf_TC_vy[0]*df_rec_up[6]+df_rec_up[0]*Dsurf_TC_vy[6]+Dsurf_TC_vy[4]*df_rec_up[5]+df_rec_up[4]*Dsurf_TC_vy[5]+Dsurf_TC_vy[2]*df_rec_up[3]+df_rec_up[2]*Dsurf_TC_vy[3]); 
+  surft1_up[7] = 0.3535533905932737*(Dsurf_TC_vy[0]*df_rec_up[7]+df_rec_up[0]*Dsurf_TC_vy[7]+Dsurf_TC_vy[1]*df_rec_up[6]+df_rec_up[1]*Dsurf_TC_vy[6]+Dsurf_TC_vy[2]*df_rec_up[5]+df_rec_up[2]*Dsurf_TC_vy[5]+Dsurf_TC_vy[3]*df_rec_up[4]+df_rec_up[3]*Dsurf_TC_vy[4]); 
 
-  double D_proj2_l[8];
-  D_proj2_l[0] = (-1.325825214724776*glcc[7])-1.325825214724776*gccc[7]-1.377837980315537*glcc[3]+1.377837980315537*gccc[3];
-  D_proj2_l[1] = (-1.325825214724776*glcc[11])-1.325825214724776*gccc[11]-1.377837980315537*glcc[6]+1.377837980315537*gccc[6];
-  D_proj2_l[2] = 0.0;
-  D_proj2_l[3] = (-1.325825214724776*glcc[14])-1.325825214724776*gccc[14]-1.377837980315537*glcc[10]+1.377837980315537*gccc[10];
-  D_proj2_l[4] = 0.0;
-  D_proj2_l[5] = (-1.325825214724776*glcc[15])-1.325825214724776*gccc[15]-1.377837980315537*glcc[13]+1.377837980315537*gccc[13];
-  D_proj2_l[6] = 0.0;
-  D_proj2_l[7] = 0.0;
+  surft2_lo[0] = 0.3535533905932737*(Dsurf_CC_vx[7]*f_rec_lo[7]+Dsurf_CC_vx[6]*f_rec_lo[6]+Dsurf_CC_vx[5]*f_rec_lo[5]+Dsurf_CC_vx[4]*f_rec_lo[4]+Dsurf_CC_vx[3]*f_rec_lo[3]+Dsurf_CC_vx[2]*f_rec_lo[2]+Dsurf_CC_vx[1]*f_rec_lo[1]+Dsurf_CC_vx[0]*f_rec_lo[0]); 
+  surft2_lo[1] = 0.3535533905932737*(Dsurf_CC_vx[6]*f_rec_lo[7]+f_rec_lo[6]*Dsurf_CC_vx[7]+Dsurf_CC_vx[3]*f_rec_lo[5]+f_rec_lo[3]*Dsurf_CC_vx[5]+Dsurf_CC_vx[2]*f_rec_lo[4]+f_rec_lo[2]*Dsurf_CC_vx[4]+Dsurf_CC_vx[0]*f_rec_lo[1]+f_rec_lo[0]*Dsurf_CC_vx[1]); 
+  surft2_lo[2] = 0.3535533905932737*(Dsurf_CC_vx[5]*f_rec_lo[7]+f_rec_lo[5]*Dsurf_CC_vx[7]+Dsurf_CC_vx[3]*f_rec_lo[6]+f_rec_lo[3]*Dsurf_CC_vx[6]+Dsurf_CC_vx[1]*f_rec_lo[4]+f_rec_lo[1]*Dsurf_CC_vx[4]+Dsurf_CC_vx[0]*f_rec_lo[2]+f_rec_lo[0]*Dsurf_CC_vx[2]); 
+  surft2_lo[3] = 0.3535533905932737*(Dsurf_CC_vx[4]*f_rec_lo[7]+f_rec_lo[4]*Dsurf_CC_vx[7]+Dsurf_CC_vx[2]*f_rec_lo[6]+f_rec_lo[2]*Dsurf_CC_vx[6]+Dsurf_CC_vx[1]*f_rec_lo[5]+f_rec_lo[1]*Dsurf_CC_vx[5]+Dsurf_CC_vx[0]*f_rec_lo[3]+f_rec_lo[0]*Dsurf_CC_vx[3]); 
+  surft2_lo[4] = 0.3535533905932737*(Dsurf_CC_vx[3]*f_rec_lo[7]+f_rec_lo[3]*Dsurf_CC_vx[7]+Dsurf_CC_vx[5]*f_rec_lo[6]+f_rec_lo[5]*Dsurf_CC_vx[6]+Dsurf_CC_vx[0]*f_rec_lo[4]+f_rec_lo[0]*Dsurf_CC_vx[4]+Dsurf_CC_vx[1]*f_rec_lo[2]+f_rec_lo[1]*Dsurf_CC_vx[2]); 
+  surft2_lo[5] = 0.3535533905932737*(Dsurf_CC_vx[2]*f_rec_lo[7]+f_rec_lo[2]*Dsurf_CC_vx[7]+Dsurf_CC_vx[4]*f_rec_lo[6]+f_rec_lo[4]*Dsurf_CC_vx[6]+Dsurf_CC_vx[0]*f_rec_lo[5]+f_rec_lo[0]*Dsurf_CC_vx[5]+Dsurf_CC_vx[1]*f_rec_lo[3]+f_rec_lo[1]*Dsurf_CC_vx[3]); 
+  surft2_lo[6] = 0.3535533905932737*(Dsurf_CC_vx[1]*f_rec_lo[7]+f_rec_lo[1]*Dsurf_CC_vx[7]+Dsurf_CC_vx[0]*f_rec_lo[6]+f_rec_lo[0]*Dsurf_CC_vx[6]+Dsurf_CC_vx[4]*f_rec_lo[5]+f_rec_lo[4]*Dsurf_CC_vx[5]+Dsurf_CC_vx[2]*f_rec_lo[3]+f_rec_lo[2]*Dsurf_CC_vx[3]); 
+  surft2_lo[7] = 0.3535533905932737*(Dsurf_CC_vx[0]*f_rec_lo[7]+f_rec_lo[0]*Dsurf_CC_vx[7]+Dsurf_CC_vx[1]*f_rec_lo[6]+f_rec_lo[1]*Dsurf_CC_vx[6]+Dsurf_CC_vx[2]*f_rec_lo[5]+f_rec_lo[2]*Dsurf_CC_vx[5]+Dsurf_CC_vx[3]*f_rec_lo[4]+f_rec_lo[3]*Dsurf_CC_vx[4]); 
+  surft2_up[0] = 0.3535533905932737*(Dsurf_CR_vx[7]*f_rec_up[7]+Dsurf_CR_vx[6]*f_rec_up[6]+Dsurf_CR_vx[5]*f_rec_up[5]+Dsurf_CR_vx[4]*f_rec_up[4]+Dsurf_CR_vx[3]*f_rec_up[3]+Dsurf_CR_vx[2]*f_rec_up[2]+Dsurf_CR_vx[1]*f_rec_up[1]+Dsurf_CR_vx[0]*f_rec_up[0]); 
+  surft2_up[1] = 0.3535533905932737*(Dsurf_CR_vx[6]*f_rec_up[7]+f_rec_up[6]*Dsurf_CR_vx[7]+Dsurf_CR_vx[3]*f_rec_up[5]+f_rec_up[3]*Dsurf_CR_vx[5]+Dsurf_CR_vx[2]*f_rec_up[4]+f_rec_up[2]*Dsurf_CR_vx[4]+Dsurf_CR_vx[0]*f_rec_up[1]+f_rec_up[0]*Dsurf_CR_vx[1]); 
+  surft2_up[2] = 0.3535533905932737*(Dsurf_CR_vx[5]*f_rec_up[7]+f_rec_up[5]*Dsurf_CR_vx[7]+Dsurf_CR_vx[3]*f_rec_up[6]+f_rec_up[3]*Dsurf_CR_vx[6]+Dsurf_CR_vx[1]*f_rec_up[4]+f_rec_up[1]*Dsurf_CR_vx[4]+Dsurf_CR_vx[0]*f_rec_up[2]+f_rec_up[0]*Dsurf_CR_vx[2]); 
+  surft2_up[3] = 0.3535533905932737*(Dsurf_CR_vx[4]*f_rec_up[7]+f_rec_up[4]*Dsurf_CR_vx[7]+Dsurf_CR_vx[2]*f_rec_up[6]+f_rec_up[2]*Dsurf_CR_vx[6]+Dsurf_CR_vx[1]*f_rec_up[5]+f_rec_up[1]*Dsurf_CR_vx[5]+Dsurf_CR_vx[0]*f_rec_up[3]+f_rec_up[0]*Dsurf_CR_vx[3]); 
+  surft2_up[4] = 0.3535533905932737*(Dsurf_CR_vx[3]*f_rec_up[7]+f_rec_up[3]*Dsurf_CR_vx[7]+Dsurf_CR_vx[5]*f_rec_up[6]+f_rec_up[5]*Dsurf_CR_vx[6]+Dsurf_CR_vx[0]*f_rec_up[4]+f_rec_up[0]*Dsurf_CR_vx[4]+Dsurf_CR_vx[1]*f_rec_up[2]+f_rec_up[1]*Dsurf_CR_vx[2]); 
+  surft2_up[5] = 0.3535533905932737*(Dsurf_CR_vx[2]*f_rec_up[7]+f_rec_up[2]*Dsurf_CR_vx[7]+Dsurf_CR_vx[4]*f_rec_up[6]+f_rec_up[4]*Dsurf_CR_vx[6]+Dsurf_CR_vx[0]*f_rec_up[5]+f_rec_up[0]*Dsurf_CR_vx[5]+Dsurf_CR_vx[1]*f_rec_up[3]+f_rec_up[1]*Dsurf_CR_vx[3]); 
+  surft2_up[6] = 0.3535533905932737*(Dsurf_CR_vx[1]*f_rec_up[7]+f_rec_up[1]*Dsurf_CR_vx[7]+Dsurf_CR_vx[0]*f_rec_up[6]+f_rec_up[0]*Dsurf_CR_vx[6]+Dsurf_CR_vx[4]*f_rec_up[5]+f_rec_up[4]*Dsurf_CR_vx[5]+Dsurf_CR_vx[2]*f_rec_up[3]+f_rec_up[2]*Dsurf_CR_vx[3]); 
+  surft2_up[7] = 0.3535533905932737*(Dsurf_CR_vx[0]*f_rec_up[7]+f_rec_up[0]*Dsurf_CR_vx[7]+Dsurf_CR_vx[1]*f_rec_up[6]+f_rec_up[1]*Dsurf_CR_vx[6]+Dsurf_CR_vx[2]*f_rec_up[5]+f_rec_up[2]*Dsurf_CR_vx[5]+Dsurf_CR_vx[3]*f_rec_up[4]+f_rec_up[3]*Dsurf_CR_vx[4]); 
 
-  double D_proj2_u[8];
-  D_proj2_u[0] = (-1.325825214724776*gucc[7])-1.325825214724776*gccc[7]+1.377837980315537*gucc[3]-1.377837980315537*gccc[3];
-  D_proj2_u[1] = (-1.325825214724776*gucc[11])-1.325825214724776*gccc[11]+1.377837980315537*gucc[6]-1.377837980315537*gccc[6];
-  D_proj2_u[2] = 0.0;
-  D_proj2_u[3] = (-1.325825214724776*gucc[14])-1.325825214724776*gccc[14]+1.377837980315537*gucc[10]-1.377837980315537*gccc[10];
-  D_proj2_u[4] = 0.0;
-  D_proj2_u[5] = (-1.325825214724776*gucc[15])-1.325825214724776*gccc[15]+1.377837980315537*gucc[13]-1.377837980315537*gccc[13];
-  D_proj2_u[6] = 0.0;
-  D_proj2_u[7] = 0.0;
+  vol[2] = 0.75*(fCC[12]*DCC[15]+fCC[9]*DCC[14]+fCC[8]*DCC[13]+fCC[5]*DCC[11]+fCC[4]*DCC[10]+fCC[2]*DCC[7]+fCC[1]*DCC[6]+fCC[0]*DCC[3]); 
+  vol[5] = 0.75*(fCC[9]*DCC[15]+fCC[12]*DCC[14]+fCC[4]*DCC[13]+fCC[2]*DCC[11]+fCC[8]*DCC[10]+fCC[5]*DCC[7]+fCC[0]*DCC[6]+fCC[1]*DCC[3]); 
+  vol[7] = 1.5*(DCC[15]*fCC[15]+DCC[14]*fCC[14]+DCC[13]*fCC[13]+DCC[11]*fCC[11]+DCC[10]*fCC[10]+DCC[7]*fCC[7]+DCC[6]*fCC[6]+DCC[3]*fCC[3])+0.75*(DCC[12]*fCC[12]+DCC[9]*fCC[9]+DCC[8]*fCC[8]+DCC[5]*fCC[5]+DCC[4]*fCC[4]+DCC[2]*fCC[2]+DCC[1]*fCC[1]+DCC[0]*fCC[0]); 
+  vol[9] = 0.75*(fCC[5]*DCC[15]+fCC[2]*DCC[14]+fCC[1]*DCC[13]+DCC[11]*fCC[12]+fCC[0]*DCC[10]+DCC[7]*fCC[9]+DCC[6]*fCC[8]+DCC[3]*fCC[4]); 
+  vol[11] = 1.5*(DCC[14]*fCC[15]+fCC[14]*DCC[15]+DCC[10]*fCC[13]+fCC[10]*DCC[13]+DCC[7]*fCC[11]+fCC[7]*DCC[11]+DCC[3]*fCC[6]+fCC[3]*DCC[6])+0.75*(DCC[9]*fCC[12]+fCC[9]*DCC[12]+DCC[4]*fCC[8]+fCC[4]*DCC[8]+DCC[2]*fCC[5]+fCC[2]*DCC[5]+DCC[0]*fCC[1]+fCC[0]*DCC[1]); 
+  vol[12] = 0.75*(fCC[2]*DCC[15]+fCC[5]*DCC[14]+fCC[0]*DCC[13]+DCC[7]*fCC[12]+fCC[9]*DCC[11]+fCC[1]*DCC[10]+DCC[3]*fCC[8]+fCC[4]*DCC[6]); 
+  vol[14] = 1.5*(DCC[11]*fCC[15]+fCC[11]*DCC[15]+DCC[7]*fCC[14]+fCC[7]*DCC[14]+DCC[6]*fCC[13]+fCC[6]*DCC[13]+DCC[3]*fCC[10]+fCC[3]*DCC[10])+0.75*(DCC[5]*fCC[12]+fCC[5]*DCC[12]+DCC[2]*fCC[9]+fCC[2]*DCC[9]+DCC[1]*fCC[8]+fCC[1]*DCC[8]+DCC[0]*fCC[4]+fCC[0]*DCC[4]); 
+  vol[15] = 1.5*(DCC[7]*fCC[15]+fCC[7]*DCC[15]+DCC[11]*fCC[14]+fCC[11]*DCC[14]+DCC[3]*fCC[13]+fCC[3]*DCC[13]+DCC[6]*fCC[10]+fCC[6]*DCC[10])+0.75*(DCC[2]*fCC[12]+fCC[2]*DCC[12]+DCC[5]*fCC[9]+fCC[5]*DCC[9]+DCC[0]*fCC[8]+fCC[0]*DCC[8]+DCC[1]*fCC[4]+fCC[1]*DCC[4]); 
 
-  double f_proj2_l[8];
-  f_proj2_l[0] = 0.408248290463863*flcc[2]-0.408248290463863*fccc[2]+0.3535533905932737*flcc[0]+0.3535533905932737*fccc[0];
-  f_proj2_l[1] = 0.408248290463863*flcc[5]-0.408248290463863*fccc[5]+0.3535533905932737*flcc[1]+0.3535533905932737*fccc[1];
-  f_proj2_l[2] = 0.408248290463863*flcc[7]-0.408248290463863*fccc[7]+0.3535533905932737*flcc[3]+0.3535533905932737*fccc[3];
-  f_proj2_l[3] = 0.408248290463863*flcc[9]-0.408248290463863*fccc[9]+0.3535533905932737*flcc[4]+0.3535533905932737*fccc[4];
-  f_proj2_l[4] = 0.408248290463863*flcc[11]-0.408248290463863*fccc[11]+0.3535533905932737*flcc[6]+0.3535533905932737*fccc[6];
-  f_proj2_l[5] = 0.408248290463863*flcc[12]-0.408248290463863*fccc[12]+0.3535533905932737*flcc[8]+0.3535533905932737*fccc[8];
-  f_proj2_l[6] = 0.408248290463863*flcc[14]-0.408248290463863*fccc[14]+0.3535533905932737*flcc[10]+0.3535533905932737*fccc[10];
-  f_proj2_l[7] = 0.408248290463863*flcc[15]-0.408248290463863*fccc[15]+0.3535533905932737*flcc[13]+0.3535533905932737*fccc[13];
+  out[0] += (0.5*vol[0]+0.35355339059327373*surft1_up[0]-0.35355339059327373*surft1_lo[0])*dv_inv_sq; 
+  out[1] += (0.5*vol[1]+0.35355339059327373*surft1_up[1]-0.35355339059327373*surft1_lo[1])*dv_inv_sq; 
+  out[2] += (0.5*vol[2]+0.35355339059327373*surft1_up[2]-0.35355339059327373*surft1_lo[2])*dv_inv_sq; 
+  out[3] += (0.5*vol[3]-0.6123724356957945*surft2_up[0]+0.6123724356957945*(surft2_lo[0]+surft1_up[0]+surft1_lo[0]))*dv_inv_sq; 
+  out[4] += (0.5*vol[4]+0.35355339059327373*surft1_up[3]-0.35355339059327373*surft1_lo[3])*dv_inv_sq; 
+  out[5] += (0.5*vol[5]+0.35355339059327373*surft1_up[4]-0.35355339059327373*surft1_lo[4])*dv_inv_sq; 
+  out[6] += (0.5*vol[6]-0.6123724356957945*surft2_up[1]+0.6123724356957945*(surft2_lo[1]+surft1_up[1]+surft1_lo[1]))*dv_inv_sq; 
+  out[7] += (0.5*vol[7]+0.6123724356957945*(surft1_up[2]+surft1_lo[2])-1.0606601717798212*(surft2_up[0]+surft2_lo[0]))*dv_inv_sq; 
+  out[8] += (0.5*vol[8]+0.35355339059327373*surft1_up[5]-0.35355339059327373*surft1_lo[5])*dv_inv_sq; 
+  out[9] += (0.5*vol[9]+0.35355339059327373*surft1_up[6]-0.35355339059327373*surft1_lo[6])*dv_inv_sq; 
+  out[10] += (0.5*vol[10]-0.6123724356957945*surft2_up[3]+0.6123724356957945*(surft2_lo[3]+surft1_up[3]+surft1_lo[3]))*dv_inv_sq; 
+  out[11] += (0.5*vol[11]+0.6123724356957945*(surft1_up[4]+surft1_lo[4])-1.0606601717798212*(surft2_up[1]+surft2_lo[1]))*dv_inv_sq; 
+  out[12] += (0.5*vol[12]+0.35355339059327373*surft1_up[7]-0.35355339059327373*surft1_lo[7])*dv_inv_sq; 
+  out[13] += (0.5*vol[13]-0.6123724356957945*surft2_up[5]+0.6123724356957945*(surft2_lo[5]+surft1_up[5]+surft1_lo[5]))*dv_inv_sq; 
+  out[14] += (0.5*vol[14]+0.6123724356957945*(surft1_up[6]+surft1_lo[6])-1.0606601717798212*(surft2_up[3]+surft2_lo[3]))*dv_inv_sq; 
+  out[15] += (0.5*vol[15]+0.6123724356957945*(surft1_up[7]+surft1_lo[7])-1.0606601717798212*(surft2_up[5]+surft2_lo[5]))*dv_inv_sq; 
 
-  double f_proj2_u[8];
-  f_proj2_u[0] = (-0.408248290463863*fucc[2])+0.408248290463863*fccc[2]+0.3535533905932737*fucc[0]+0.3535533905932737*fccc[0];
-  f_proj2_u[1] = (-0.408248290463863*fucc[5])+0.408248290463863*fccc[5]+0.3535533905932737*fucc[1]+0.3535533905932737*fccc[1];
-  f_proj2_u[2] = (-0.408248290463863*fucc[7])+0.408248290463863*fccc[7]+0.3535533905932737*fucc[3]+0.3535533905932737*fccc[3];
-  f_proj2_u[3] = (-0.408248290463863*fucc[9])+0.408248290463863*fccc[9]+0.3535533905932737*fucc[4]+0.3535533905932737*fccc[4];
-  f_proj2_u[4] = (-0.408248290463863*fucc[11])+0.408248290463863*fccc[11]+0.3535533905932737*fucc[6]+0.3535533905932737*fccc[6];
-  f_proj2_u[5] = (-0.408248290463863*fucc[12])+0.408248290463863*fccc[12]+0.3535533905932737*fucc[8]+0.3535533905932737*fccc[8];
-  f_proj2_u[6] = (-0.408248290463863*fucc[14])+0.408248290463863*fccc[14]+0.3535533905932737*fucc[10]+0.3535533905932737*fccc[10];
-  f_proj2_u[7] = (-0.408248290463863*fucc[15])+0.408248290463863*fccc[15]+0.3535533905932737*fucc[13]+0.3535533905932737*fccc[13];
+  double cflFreq = fmax(fabs(Dsurf_CC_vy[0]), fabs(Dsurf_TC_vy[0])); 
 
-  out[0] +=  Jvyvx*(0.125*D_proj1_u[7]*df_proj1_u[7]-0.125*D_proj1_l[7]*df_proj1_l[7]+0.125*D_proj1_u[6]*df_proj1_u[6]-0.125*D_proj1_l[6]*df_proj1_l[6]+0.125*D_proj1_u[5]*df_proj1_u[5]-0.125*D_proj1_l[5]*df_proj1_l[5]+0.125*D_proj1_u[4]*df_proj1_u[4]-0.125*D_proj1_l[4]*df_proj1_l[4]+0.125*D_proj1_u[3]*df_proj1_u[3]-0.125*D_proj1_l[3]*df_proj1_l[3]+0.125*D_proj1_u[2]*df_proj1_u[2]-0.125*D_proj1_l[2]*df_proj1_l[2]+0.125*D_proj1_u[1]*df_proj1_u[1]-0.125*D_proj1_l[1]*df_proj1_l[1]+0.125*D_proj1_u[0]*df_proj1_u[0]-0.125*D_proj1_l[0]*df_proj1_l[0]);
-  out[1] +=  Jvyvx*(0.125*D_proj1_u[6]*df_proj1_u[7]-0.125*D_proj1_l[6]*df_proj1_l[7]+0.125*df_proj1_u[6]*D_proj1_u[7]-0.125*df_proj1_l[6]*D_proj1_l[7]+0.125*D_proj1_u[3]*df_proj1_u[5]-0.125*D_proj1_l[3]*df_proj1_l[5]+0.125*df_proj1_u[3]*D_proj1_u[5]-0.125*df_proj1_l[3]*D_proj1_l[5]+0.125*D_proj1_u[2]*df_proj1_u[4]-0.125*D_proj1_l[2]*df_proj1_l[4]+0.125*df_proj1_u[2]*D_proj1_u[4]-0.125*df_proj1_l[2]*D_proj1_l[4]+0.125*D_proj1_u[0]*df_proj1_u[1]-0.125*D_proj1_l[0]*df_proj1_l[1]+0.125*df_proj1_u[0]*D_proj1_u[1]-0.125*df_proj1_l[0]*D_proj1_l[1]);
-  out[2] +=  Jvyvx*(0.125*D_proj1_u[5]*df_proj1_u[7]-0.125*D_proj1_l[5]*df_proj1_l[7]+0.125*df_proj1_u[5]*D_proj1_u[7]-0.125*df_proj1_l[5]*D_proj1_l[7]+0.125*D_proj1_u[3]*df_proj1_u[6]-0.125*D_proj1_l[3]*df_proj1_l[6]+0.125*df_proj1_u[3]*D_proj1_u[6]-0.125*df_proj1_l[3]*D_proj1_l[6]+0.125*D_proj1_u[1]*df_proj1_u[4]-0.125*D_proj1_l[1]*df_proj1_l[4]+0.125*df_proj1_u[1]*D_proj1_u[4]-0.125*df_proj1_l[1]*D_proj1_l[4]+0.125*D_proj1_u[0]*df_proj1_u[2]-0.125*D_proj1_l[0]*df_proj1_l[2]+0.125*df_proj1_u[0]*D_proj1_u[2]-0.125*df_proj1_l[0]*D_proj1_l[2]);
-  out[3] +=  Jvyvx*((-0.2165063509461096*D_proj2_u[7]*f_proj2_u[7])+0.2165063509461096*D_proj2_l[7]*f_proj2_l[7]+0.2165063509461096*D_proj1_u[7]*df_proj1_u[7]+0.2165063509461096*D_proj1_l[7]*df_proj1_l[7]-0.2165063509461096*D_proj2_u[6]*f_proj2_u[6]+0.2165063509461096*D_proj2_l[6]*f_proj2_l[6]+0.2165063509461096*D_proj1_u[6]*df_proj1_u[6]+0.2165063509461096*D_proj1_l[6]*df_proj1_l[6]-0.2165063509461096*D_proj2_u[5]*f_proj2_u[5]+0.2165063509461096*D_proj2_l[5]*f_proj2_l[5]+0.2165063509461096*D_proj1_u[5]*df_proj1_u[5]+0.2165063509461096*D_proj1_l[5]*df_proj1_l[5]-0.2165063509461096*D_proj2_u[4]*f_proj2_u[4]+0.2165063509461096*D_proj2_l[4]*f_proj2_l[4]+0.2165063509461096*D_proj1_u[4]*df_proj1_u[4]+0.2165063509461096*D_proj1_l[4]*df_proj1_l[4]-0.2165063509461096*D_proj2_u[3]*f_proj2_u[3]+0.2165063509461096*D_proj2_l[3]*f_proj2_l[3]+0.2165063509461096*D_proj1_u[3]*df_proj1_u[3]+0.2165063509461096*D_proj1_l[3]*df_proj1_l[3]-0.2165063509461096*D_proj2_u[2]*f_proj2_u[2]+0.2165063509461096*D_proj2_l[2]*f_proj2_l[2]+0.2165063509461096*D_proj1_u[2]*df_proj1_u[2]+0.2165063509461096*D_proj1_l[2]*df_proj1_l[2]-0.2165063509461096*D_proj2_u[1]*f_proj2_u[1]+0.2165063509461096*D_proj2_l[1]*f_proj2_l[1]+0.2165063509461096*D_proj1_u[1]*df_proj1_u[1]+0.2165063509461096*D_proj1_l[1]*df_proj1_l[1]-0.2165063509461096*D_proj2_u[0]*f_proj2_u[0]+0.2165063509461096*D_proj2_l[0]*f_proj2_l[0]+0.2165063509461096*D_proj1_u[0]*df_proj1_u[0]+0.2165063509461096*D_proj1_l[0]*df_proj1_l[0]);
-  out[4] +=  Jvyvx*(0.125*D_proj1_u[4]*df_proj1_u[7]-0.125*D_proj1_l[4]*df_proj1_l[7]+0.125*df_proj1_u[4]*D_proj1_u[7]-0.125*df_proj1_l[4]*D_proj1_l[7]+0.125*D_proj1_u[2]*df_proj1_u[6]-0.125*D_proj1_l[2]*df_proj1_l[6]+0.125*df_proj1_u[2]*D_proj1_u[6]-0.125*df_proj1_l[2]*D_proj1_l[6]+0.125*D_proj1_u[1]*df_proj1_u[5]-0.125*D_proj1_l[1]*df_proj1_l[5]+0.125*df_proj1_u[1]*D_proj1_u[5]-0.125*df_proj1_l[1]*D_proj1_l[5]+0.125*D_proj1_u[0]*df_proj1_u[3]-0.125*D_proj1_l[0]*df_proj1_l[3]+0.125*df_proj1_u[0]*D_proj1_u[3]-0.125*df_proj1_l[0]*D_proj1_l[3]);
-  out[5] +=  Jvyvx*(0.125*D_proj1_u[3]*df_proj1_u[7]-0.125*D_proj1_l[3]*df_proj1_l[7]+0.125*df_proj1_u[3]*D_proj1_u[7]-0.125*df_proj1_l[3]*D_proj1_l[7]+0.125*D_proj1_u[5]*df_proj1_u[6]-0.125*D_proj1_l[5]*df_proj1_l[6]+0.125*df_proj1_u[5]*D_proj1_u[6]-0.125*df_proj1_l[5]*D_proj1_l[6]+0.125*D_proj1_u[0]*df_proj1_u[4]-0.125*D_proj1_l[0]*df_proj1_l[4]+0.125*df_proj1_u[0]*D_proj1_u[4]-0.125*df_proj1_l[0]*D_proj1_l[4]+0.125*D_proj1_u[1]*df_proj1_u[2]-0.125*D_proj1_l[1]*df_proj1_l[2]+0.125*df_proj1_u[1]*D_proj1_u[2]-0.125*df_proj1_l[1]*D_proj1_l[2]);
-  out[6] +=  Jvyvx*((-0.2165063509461096*D_proj2_u[6]*f_proj2_u[7])+0.2165063509461096*D_proj2_l[6]*f_proj2_l[7]+0.2165063509461096*D_proj1_u[6]*df_proj1_u[7]+0.2165063509461096*D_proj1_l[6]*df_proj1_l[7]-0.2165063509461096*f_proj2_u[6]*D_proj2_u[7]+0.2165063509461096*f_proj2_l[6]*D_proj2_l[7]+0.2165063509461096*df_proj1_u[6]*D_proj1_u[7]+0.2165063509461096*df_proj1_l[6]*D_proj1_l[7]-0.2165063509461096*D_proj2_u[3]*f_proj2_u[5]+0.2165063509461096*D_proj2_l[3]*f_proj2_l[5]+0.2165063509461096*D_proj1_u[3]*df_proj1_u[5]+0.2165063509461096*D_proj1_l[3]*df_proj1_l[5]-0.2165063509461096*f_proj2_u[3]*D_proj2_u[5]+0.2165063509461096*f_proj2_l[3]*D_proj2_l[5]+0.2165063509461096*df_proj1_u[3]*D_proj1_u[5]+0.2165063509461096*df_proj1_l[3]*D_proj1_l[5]-0.2165063509461096*D_proj2_u[2]*f_proj2_u[4]+0.2165063509461096*D_proj2_l[2]*f_proj2_l[4]+0.2165063509461096*D_proj1_u[2]*df_proj1_u[4]+0.2165063509461096*D_proj1_l[2]*df_proj1_l[4]-0.2165063509461096*f_proj2_u[2]*D_proj2_u[4]+0.2165063509461096*f_proj2_l[2]*D_proj2_l[4]+0.2165063509461096*df_proj1_u[2]*D_proj1_u[4]+0.2165063509461096*df_proj1_l[2]*D_proj1_l[4]-0.2165063509461096*D_proj2_u[0]*f_proj2_u[1]+0.2165063509461096*D_proj2_l[0]*f_proj2_l[1]+0.2165063509461096*D_proj1_u[0]*df_proj1_u[1]+0.2165063509461096*D_proj1_l[0]*df_proj1_l[1]-0.2165063509461096*f_proj2_u[0]*D_proj2_u[1]+0.2165063509461096*f_proj2_l[0]*D_proj2_l[1]+0.2165063509461096*df_proj1_u[0]*D_proj1_u[1]+0.2165063509461096*df_proj1_l[0]*D_proj1_l[1]);
-  out[7] +=  Jvyvx*((-0.375*D_proj2_u[7]*f_proj2_u[7])-0.375*D_proj2_l[7]*f_proj2_l[7]+0.2165063509461096*D_proj1_u[5]*df_proj1_u[7]+0.2165063509461096*D_proj1_l[5]*df_proj1_l[7]+0.2165063509461096*df_proj1_u[5]*D_proj1_u[7]+0.2165063509461096*df_proj1_l[5]*D_proj1_l[7]-0.375*D_proj2_u[6]*f_proj2_u[6]-0.375*D_proj2_l[6]*f_proj2_l[6]+0.2165063509461096*D_proj1_u[3]*df_proj1_u[6]+0.2165063509461096*D_proj1_l[3]*df_proj1_l[6]+0.2165063509461096*df_proj1_u[3]*D_proj1_u[6]+0.2165063509461096*df_proj1_l[3]*D_proj1_l[6]-0.375*D_proj2_u[5]*f_proj2_u[5]-0.375*D_proj2_l[5]*f_proj2_l[5]-0.375*D_proj2_u[4]*f_proj2_u[4]-0.375*D_proj2_l[4]*f_proj2_l[4]+0.2165063509461096*D_proj1_u[1]*df_proj1_u[4]+0.2165063509461096*D_proj1_l[1]*df_proj1_l[4]+0.2165063509461096*df_proj1_u[1]*D_proj1_u[4]+0.2165063509461096*df_proj1_l[1]*D_proj1_l[4]-0.375*D_proj2_u[3]*f_proj2_u[3]-0.375*D_proj2_l[3]*f_proj2_l[3]-0.375*D_proj2_u[2]*f_proj2_u[2]-0.375*D_proj2_l[2]*f_proj2_l[2]+0.2165063509461096*D_proj1_u[0]*df_proj1_u[2]+0.2165063509461096*D_proj1_l[0]*df_proj1_l[2]+0.2165063509461096*df_proj1_u[0]*D_proj1_u[2]+0.2165063509461096*df_proj1_l[0]*D_proj1_l[2]-0.375*D_proj2_u[1]*f_proj2_u[1]-0.375*D_proj2_l[1]*f_proj2_l[1]-0.375*D_proj2_u[0]*f_proj2_u[0]-0.375*D_proj2_l[0]*f_proj2_l[0]);
-  out[8] +=  Jvyvx*(0.125*D_proj1_u[2]*df_proj1_u[7]-0.125*D_proj1_l[2]*df_proj1_l[7]+0.125*df_proj1_u[2]*D_proj1_u[7]-0.125*df_proj1_l[2]*D_proj1_l[7]+0.125*D_proj1_u[4]*df_proj1_u[6]-0.125*D_proj1_l[4]*df_proj1_l[6]+0.125*df_proj1_u[4]*D_proj1_u[6]-0.125*df_proj1_l[4]*D_proj1_l[6]+0.125*D_proj1_u[0]*df_proj1_u[5]-0.125*D_proj1_l[0]*df_proj1_l[5]+0.125*df_proj1_u[0]*D_proj1_u[5]-0.125*df_proj1_l[0]*D_proj1_l[5]+0.125*D_proj1_u[1]*df_proj1_u[3]-0.125*D_proj1_l[1]*df_proj1_l[3]+0.125*df_proj1_u[1]*D_proj1_u[3]-0.125*df_proj1_l[1]*D_proj1_l[3]);
-  out[9] +=  Jvyvx*(0.125*D_proj1_u[1]*df_proj1_u[7]-0.125*D_proj1_l[1]*df_proj1_l[7]+0.125*df_proj1_u[1]*D_proj1_u[7]-0.125*df_proj1_l[1]*D_proj1_l[7]+0.125*D_proj1_u[0]*df_proj1_u[6]-0.125*D_proj1_l[0]*df_proj1_l[6]+0.125*df_proj1_u[0]*D_proj1_u[6]-0.125*df_proj1_l[0]*D_proj1_l[6]+0.125*D_proj1_u[4]*df_proj1_u[5]-0.125*D_proj1_l[4]*df_proj1_l[5]+0.125*df_proj1_u[4]*D_proj1_u[5]-0.125*df_proj1_l[4]*D_proj1_l[5]+0.125*D_proj1_u[2]*df_proj1_u[3]-0.125*D_proj1_l[2]*df_proj1_l[3]+0.125*df_proj1_u[2]*D_proj1_u[3]-0.125*df_proj1_l[2]*D_proj1_l[3]);
-  out[10] +=  Jvyvx*((-0.2165063509461096*D_proj2_u[4]*f_proj2_u[7])+0.2165063509461096*D_proj2_l[4]*f_proj2_l[7]+0.2165063509461096*D_proj1_u[4]*df_proj1_u[7]+0.2165063509461096*D_proj1_l[4]*df_proj1_l[7]-0.2165063509461096*f_proj2_u[4]*D_proj2_u[7]+0.2165063509461096*f_proj2_l[4]*D_proj2_l[7]+0.2165063509461096*df_proj1_u[4]*D_proj1_u[7]+0.2165063509461096*df_proj1_l[4]*D_proj1_l[7]-0.2165063509461096*D_proj2_u[2]*f_proj2_u[6]+0.2165063509461096*D_proj2_l[2]*f_proj2_l[6]+0.2165063509461096*D_proj1_u[2]*df_proj1_u[6]+0.2165063509461096*D_proj1_l[2]*df_proj1_l[6]-0.2165063509461096*f_proj2_u[2]*D_proj2_u[6]+0.2165063509461096*f_proj2_l[2]*D_proj2_l[6]+0.2165063509461096*df_proj1_u[2]*D_proj1_u[6]+0.2165063509461096*df_proj1_l[2]*D_proj1_l[6]-0.2165063509461096*D_proj2_u[1]*f_proj2_u[5]+0.2165063509461096*D_proj2_l[1]*f_proj2_l[5]+0.2165063509461096*D_proj1_u[1]*df_proj1_u[5]+0.2165063509461096*D_proj1_l[1]*df_proj1_l[5]-0.2165063509461096*f_proj2_u[1]*D_proj2_u[5]+0.2165063509461096*f_proj2_l[1]*D_proj2_l[5]+0.2165063509461096*df_proj1_u[1]*D_proj1_u[5]+0.2165063509461096*df_proj1_l[1]*D_proj1_l[5]-0.2165063509461096*D_proj2_u[0]*f_proj2_u[3]+0.2165063509461096*D_proj2_l[0]*f_proj2_l[3]+0.2165063509461096*D_proj1_u[0]*df_proj1_u[3]+0.2165063509461096*D_proj1_l[0]*df_proj1_l[3]-0.2165063509461096*f_proj2_u[0]*D_proj2_u[3]+0.2165063509461096*f_proj2_l[0]*D_proj2_l[3]+0.2165063509461096*df_proj1_u[0]*D_proj1_u[3]+0.2165063509461096*df_proj1_l[0]*D_proj1_l[3]);
-  out[11] +=  Jvyvx*((-0.375*D_proj2_u[6]*f_proj2_u[7])-0.375*D_proj2_l[6]*f_proj2_l[7]+0.2165063509461096*D_proj1_u[3]*df_proj1_u[7]+0.2165063509461096*D_proj1_l[3]*df_proj1_l[7]-0.375*f_proj2_u[6]*D_proj2_u[7]-0.375*f_proj2_l[6]*D_proj2_l[7]+0.2165063509461096*df_proj1_u[3]*D_proj1_u[7]+0.2165063509461096*df_proj1_l[3]*D_proj1_l[7]+0.2165063509461096*D_proj1_u[5]*df_proj1_u[6]+0.2165063509461096*D_proj1_l[5]*df_proj1_l[6]+0.2165063509461096*df_proj1_u[5]*D_proj1_u[6]+0.2165063509461096*df_proj1_l[5]*D_proj1_l[6]-0.375*D_proj2_u[3]*f_proj2_u[5]-0.375*D_proj2_l[3]*f_proj2_l[5]-0.375*f_proj2_u[3]*D_proj2_u[5]-0.375*f_proj2_l[3]*D_proj2_l[5]-0.375*D_proj2_u[2]*f_proj2_u[4]-0.375*D_proj2_l[2]*f_proj2_l[4]+0.2165063509461096*D_proj1_u[0]*df_proj1_u[4]+0.2165063509461096*D_proj1_l[0]*df_proj1_l[4]-0.375*f_proj2_u[2]*D_proj2_u[4]-0.375*f_proj2_l[2]*D_proj2_l[4]+0.2165063509461096*df_proj1_u[0]*D_proj1_u[4]+0.2165063509461096*df_proj1_l[0]*D_proj1_l[4]+0.2165063509461096*D_proj1_u[1]*df_proj1_u[2]+0.2165063509461096*D_proj1_l[1]*df_proj1_l[2]+0.2165063509461096*df_proj1_u[1]*D_proj1_u[2]+0.2165063509461096*df_proj1_l[1]*D_proj1_l[2]-0.375*D_proj2_u[0]*f_proj2_u[1]-0.375*D_proj2_l[0]*f_proj2_l[1]-0.375*f_proj2_u[0]*D_proj2_u[1]-0.375*f_proj2_l[0]*D_proj2_l[1]);
-  out[12] +=  Jvyvx*(0.125*D_proj1_u[0]*df_proj1_u[7]-0.125*D_proj1_l[0]*df_proj1_l[7]+0.125*df_proj1_u[0]*D_proj1_u[7]-0.125*df_proj1_l[0]*D_proj1_l[7]+0.125*D_proj1_u[1]*df_proj1_u[6]-0.125*D_proj1_l[1]*df_proj1_l[6]+0.125*df_proj1_u[1]*D_proj1_u[6]-0.125*df_proj1_l[1]*D_proj1_l[6]+0.125*D_proj1_u[2]*df_proj1_u[5]-0.125*D_proj1_l[2]*df_proj1_l[5]+0.125*df_proj1_u[2]*D_proj1_u[5]-0.125*df_proj1_l[2]*D_proj1_l[5]+0.125*D_proj1_u[3]*df_proj1_u[4]-0.125*D_proj1_l[3]*df_proj1_l[4]+0.125*df_proj1_u[3]*D_proj1_u[4]-0.125*df_proj1_l[3]*D_proj1_l[4]);
-  out[13] +=  Jvyvx*((-0.2165063509461096*D_proj2_u[2]*f_proj2_u[7])+0.2165063509461096*D_proj2_l[2]*f_proj2_l[7]+0.2165063509461096*D_proj1_u[2]*df_proj1_u[7]+0.2165063509461096*D_proj1_l[2]*df_proj1_l[7]-0.2165063509461096*f_proj2_u[2]*D_proj2_u[7]+0.2165063509461096*f_proj2_l[2]*D_proj2_l[7]+0.2165063509461096*df_proj1_u[2]*D_proj1_u[7]+0.2165063509461096*df_proj1_l[2]*D_proj1_l[7]-0.2165063509461096*D_proj2_u[4]*f_proj2_u[6]+0.2165063509461096*D_proj2_l[4]*f_proj2_l[6]+0.2165063509461096*D_proj1_u[4]*df_proj1_u[6]+0.2165063509461096*D_proj1_l[4]*df_proj1_l[6]-0.2165063509461096*f_proj2_u[4]*D_proj2_u[6]+0.2165063509461096*f_proj2_l[4]*D_proj2_l[6]+0.2165063509461096*df_proj1_u[4]*D_proj1_u[6]+0.2165063509461096*df_proj1_l[4]*D_proj1_l[6]-0.2165063509461096*D_proj2_u[0]*f_proj2_u[5]+0.2165063509461096*D_proj2_l[0]*f_proj2_l[5]+0.2165063509461096*D_proj1_u[0]*df_proj1_u[5]+0.2165063509461096*D_proj1_l[0]*df_proj1_l[5]-0.2165063509461096*f_proj2_u[0]*D_proj2_u[5]+0.2165063509461096*f_proj2_l[0]*D_proj2_l[5]+0.2165063509461096*df_proj1_u[0]*D_proj1_u[5]+0.2165063509461096*df_proj1_l[0]*D_proj1_l[5]-0.2165063509461096*D_proj2_u[1]*f_proj2_u[3]+0.2165063509461096*D_proj2_l[1]*f_proj2_l[3]+0.2165063509461096*D_proj1_u[1]*df_proj1_u[3]+0.2165063509461096*D_proj1_l[1]*df_proj1_l[3]-0.2165063509461096*f_proj2_u[1]*D_proj2_u[3]+0.2165063509461096*f_proj2_l[1]*D_proj2_l[3]+0.2165063509461096*df_proj1_u[1]*D_proj1_u[3]+0.2165063509461096*df_proj1_l[1]*D_proj1_l[3]);
-  out[14] +=  Jvyvx*((-0.375*D_proj2_u[4]*f_proj2_u[7])-0.375*D_proj2_l[4]*f_proj2_l[7]+0.2165063509461096*D_proj1_u[1]*df_proj1_u[7]+0.2165063509461096*D_proj1_l[1]*df_proj1_l[7]-0.375*f_proj2_u[4]*D_proj2_u[7]-0.375*f_proj2_l[4]*D_proj2_l[7]+0.2165063509461096*df_proj1_u[1]*D_proj1_u[7]+0.2165063509461096*df_proj1_l[1]*D_proj1_l[7]-0.375*D_proj2_u[2]*f_proj2_u[6]-0.375*D_proj2_l[2]*f_proj2_l[6]+0.2165063509461096*D_proj1_u[0]*df_proj1_u[6]+0.2165063509461096*D_proj1_l[0]*df_proj1_l[6]-0.375*f_proj2_u[2]*D_proj2_u[6]-0.375*f_proj2_l[2]*D_proj2_l[6]+0.2165063509461096*df_proj1_u[0]*D_proj1_u[6]+0.2165063509461096*df_proj1_l[0]*D_proj1_l[6]-0.375*D_proj2_u[1]*f_proj2_u[5]-0.375*D_proj2_l[1]*f_proj2_l[5]+0.2165063509461096*D_proj1_u[4]*df_proj1_u[5]+0.2165063509461096*D_proj1_l[4]*df_proj1_l[5]-0.375*f_proj2_u[1]*D_proj2_u[5]-0.375*f_proj2_l[1]*D_proj2_l[5]+0.2165063509461096*df_proj1_u[4]*D_proj1_u[5]+0.2165063509461096*df_proj1_l[4]*D_proj1_l[5]-0.375*D_proj2_u[0]*f_proj2_u[3]-0.375*D_proj2_l[0]*f_proj2_l[3]+0.2165063509461096*D_proj1_u[2]*df_proj1_u[3]+0.2165063509461096*D_proj1_l[2]*df_proj1_l[3]-0.375*f_proj2_u[0]*D_proj2_u[3]-0.375*f_proj2_l[0]*D_proj2_l[3]+0.2165063509461096*df_proj1_u[2]*D_proj1_u[3]+0.2165063509461096*df_proj1_l[2]*D_proj1_l[3]);
-  out[15] +=  Jvyvx*((-0.375*D_proj2_u[2]*f_proj2_u[7])-0.375*D_proj2_l[2]*f_proj2_l[7]+0.2165063509461096*D_proj1_u[0]*df_proj1_u[7]+0.2165063509461096*D_proj1_l[0]*df_proj1_l[7]-0.375*f_proj2_u[2]*D_proj2_u[7]-0.375*f_proj2_l[2]*D_proj2_l[7]+0.2165063509461096*df_proj1_u[0]*D_proj1_u[7]+0.2165063509461096*df_proj1_l[0]*D_proj1_l[7]-0.375*D_proj2_u[4]*f_proj2_u[6]-0.375*D_proj2_l[4]*f_proj2_l[6]+0.2165063509461096*D_proj1_u[1]*df_proj1_u[6]+0.2165063509461096*D_proj1_l[1]*df_proj1_l[6]-0.375*f_proj2_u[4]*D_proj2_u[6]-0.375*f_proj2_l[4]*D_proj2_l[6]+0.2165063509461096*df_proj1_u[1]*D_proj1_u[6]+0.2165063509461096*df_proj1_l[1]*D_proj1_l[6]-0.375*D_proj2_u[0]*f_proj2_u[5]-0.375*D_proj2_l[0]*f_proj2_l[5]+0.2165063509461096*D_proj1_u[2]*df_proj1_u[5]+0.2165063509461096*D_proj1_l[2]*df_proj1_l[5]-0.375*f_proj2_u[0]*D_proj2_u[5]-0.375*f_proj2_l[0]*D_proj2_l[5]+0.2165063509461096*df_proj1_u[2]*D_proj1_u[5]+0.2165063509461096*df_proj1_l[2]*D_proj1_l[5]+0.2165063509461096*D_proj1_u[3]*df_proj1_u[4]+0.2165063509461096*D_proj1_l[3]*df_proj1_l[4]+0.2165063509461096*df_proj1_u[3]*D_proj1_u[4]+0.2165063509461096*df_proj1_l[3]*D_proj1_l[4]-0.375*D_proj2_u[1]*f_proj2_u[3]-0.375*D_proj2_l[1]*f_proj2_l[3]-0.375*f_proj2_u[1]*D_proj2_u[3]-0.375*f_proj2_l[1]*D_proj2_l[3]);
-  return 0.;
-
-}
-
+  return 1.4142135623730947*dv_inv_sq*cflFreq; 
+} 

@@ -36,7 +36,6 @@ gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_a
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->auxfields.field = auxin.field; 
-  vlasov->auxfields.cot_vec = auxin.cot_vec; 
   vlasov->auxfields.alpha_surf = auxin.alpha_surf;
   vlasov->auxfields.sgn_alpha_surf = auxin.sgn_alpha_surf;
   vlasov->auxfields.const_sgn_alpha = auxin.const_sgn_alpha;
@@ -72,15 +71,12 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   const gkyl_dg_vlasov_stream_surf_kern_list *stream_surf_x_kernels, 
     *stream_surf_y_kernels, 
     *stream_surf_z_kernels;
-
   const gkyl_dg_vlasov_accel_surf_kern_list *accel_surf_vx_kernels, 
     *accel_surf_vy_kernels, 
     *accel_surf_vz_kernels;
-
   const gkyl_dg_vlasov_stream_boundary_surf_kern_list *stream_boundary_surf_x_kernels, 
     *stream_boundary_surf_y_kernels,
     *stream_boundary_surf_z_kernels;
-
   const gkyl_dg_vlasov_accel_boundary_surf_kern_list *accel_boundary_surf_vx_kernels, 
     *accel_boundary_surf_vy_kernels,
     *accel_boundary_surf_vz_kernels;
@@ -134,6 +130,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
       assert(false);
       break;    
   }
+
   if (field_id == GKYL_FIELD_NULL) {
     vlasov->eqn.vol_term = CK(stream_vol_kernels,cdim,vdim,poly_order);
   }
@@ -162,7 +159,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   if (cdim>1)
     vlasov->stream_boundary_surf[1] = CK(stream_boundary_surf_y_kernels,cdim,vdim,poly_order);
   if (cdim>2)
-    vlasov->stream_boundary_surf[2] = CK(stream_boundary_surf_z_kernels,cdim,vdim,poly_order);    
+    vlasov->stream_boundary_surf[2] = CK(stream_boundary_surf_z_kernels,cdim,vdim,poly_order);   
 
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) assert(vlasov->stream_surf[i]);
@@ -172,7 +169,6 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   }
 
   vlasov->auxfields.field = 0;
-  vlasov->auxfields.cot_vec = 0;
   vlasov->auxfields.alpha_surf = 0;
   vlasov->auxfields.sgn_alpha_surf = 0;
   vlasov->auxfields.const_sgn_alpha = 0;

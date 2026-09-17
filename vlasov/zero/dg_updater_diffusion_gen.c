@@ -56,7 +56,8 @@ gkyl_dg_updater_diffusion_gen_advance(struct gkyl_dg_updater_diffusion_gen *up,
 //      gkyl_hyper_dg_gen_stencil_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
     assert(false);
 #else
-    gkyl_hyper_dg_gen_stencil_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
+    long offsets[36];
+    gkyl_hyper_dg_gen_stencil_advance(up->hyperdg, offsets, update_rng, fIn, cflrate, rhs);
 #endif
   up->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }

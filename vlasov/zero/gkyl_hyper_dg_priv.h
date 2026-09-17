@@ -20,6 +20,21 @@ struct gkyl_hyper_dg {
   bool use_gpu; // Whether to run on the gpu.
 };
 
+GKYL_CU_DH
+static int 
+idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells) {
+  int iout = 0;
+
+  for (int d=0; d<dim; ++d) {
+    if (idx[dirs[d]] == 1) {
+      iout = 2*iout+(int)(pow(3,d)+0.5);
+    } else if (idx[dirs[d]] == num_cells[dirs[d]]) {
+      iout = 2*iout+(int)(pow(3,d)+0.5)+1;
+    }
+  }
+  return iout;
+}
+
 #ifdef GKYL_HAVE_CUDA
 
 /**
@@ -53,6 +68,25 @@ gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
 void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* up, const struct gkyl_range *update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs);
+
+/**
+ * Compute RHS of DG generic stencil update on device.
+ * In this case, generic stencil means all neighbor values are accessed and stored
+ * in memory (i.e., in 2D, 9 cells are stored to update the center cell and in 3D
+ * 27 cells are stored to update the center cell)
+ * The update_rng MUST be a sub-range of the range on which the array is defined. 
+ * That is, it must be either the same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param up Hyper DG generic stencil updater object
+ * @param update_rng Range on which to compute.
+ * @param fIn Input to updater
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param rhs RHS output
+ */
+void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg* hdg, long offsets[36], const struct gkyl_range *update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, 
+  struct gkyl_array *rhs);
 
 /**
  * Set if volume term should be computed or not.

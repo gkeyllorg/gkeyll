@@ -74,7 +74,7 @@ GKYL_CU_D
 static const gkyl_dg_em_calc_BB_kern_list ten_em_calc_BB_kernels[] = {
   { NULL, em_calc_BB_1x_ser_p1, em_calc_BB_1x_ser_p2, em_calc_BB_1x_ser_p3 }, // 0
   { NULL, em_calc_BB_2x_ser_p1, em_calc_BB_2x_tensor_p2, NULL }, // 1
-  { NULL, em_calc_BB_3x_ser_p1, em_calc_BB_3x_tensor_p2, NULL }, // 2
+  { NULL, em_calc_BB_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // Compute (E x B)_i and B_i^2 (numerator and denominator of E x B velocity) (Serendipity basis)
@@ -90,7 +90,7 @@ GKYL_CU_D
 static const gkyl_dg_em_calc_num_ExB_kern_list ten_em_calc_num_ExB_kernels[] = {
   { NULL, em_calc_num_ExB_1x_ser_p1, em_calc_num_ExB_1x_ser_p2, em_calc_num_ExB_1x_ser_p3 }, // 0
   { NULL, em_calc_num_ExB_2x_ser_p1, em_calc_num_ExB_2x_tensor_p2, NULL }, // 1
-  { NULL, em_calc_num_ExB_3x_ser_p1, em_calc_num_ExB_3x_tensor_p2, NULL }, // 2
+  { NULL, em_calc_num_ExB_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // Set matrices for computing bb, p=1 analytically solved (Serendipity basis)
@@ -106,7 +106,7 @@ GKYL_CU_D
 static const gkyl_dg_em_set_bvar_kern_list ten_em_set_bvar_kernels[] = {
   { NULL, em_set_bvar_1x_ser_p1, em_set_bvar_1x_ser_p2, em_set_bvar_1x_ser_p3 }, // 0
   { NULL, em_set_bvar_2x_ser_p1, em_set_bvar_2x_tensor_p2, NULL }, // 1
-  { NULL, em_set_bvar_3x_ser_p1, em_set_bvar_3x_tensor_p2, NULL }, // 2
+  { NULL, em_set_bvar_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // Set matrices for computing ExB, p=1 analytically solved (Serendipity basis)
@@ -122,7 +122,7 @@ GKYL_CU_D
 static const gkyl_dg_em_set_ExB_kern_list ten_em_set_ExB_kernels[] = {
   { NULL, em_set_ExB_1x_ser_p1, em_set_ExB_1x_ser_p2, em_set_ExB_1x_ser_p3 }, // 0
   { NULL, em_set_ExB_2x_ser_p1, em_set_ExB_2x_tensor_p2, NULL }, // 1
-  { NULL, em_set_ExB_3x_ser_p1, em_set_ExB_3x_tensor_p2, NULL }, // 2
+  { NULL, em_set_ExB_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // Magnetic field unit vector and unit tensor kernel list copy solution (Serendipity basis)
@@ -138,7 +138,7 @@ GKYL_CU_D
 static const gkyl_dg_em_copy_bvar_kern_list ten_em_copy_bvar_kernels[] = {
   { NULL, em_copy_bvar_1x_ser_p1, em_copy_bvar_1x_ser_p2, em_copy_bvar_1x_ser_p3 }, // 0
   { NULL, em_copy_bvar_2x_ser_p1, em_copy_bvar_2x_tensor_p2, NULL }, // 1
-  { NULL, em_copy_bvar_3x_ser_p1, em_copy_bvar_3x_tensor_p2, NULL }, // 2
+  { NULL, em_copy_bvar_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // E x B velocity kernel list copy solution (Serendipity basis)
@@ -153,7 +153,7 @@ GKYL_CU_D
 static const gkyl_dg_em_copy_ExB_kern_list ten_em_copy_ExB_kernels[] = {
   { NULL, em_copy_ExB_1x_ser_p1, em_copy_ExB_1x_ser_p2, em_copy_ExB_1x_ser_p3 }, // 0
   { NULL, em_copy_ExB_2x_ser_p1, em_copy_ExB_2x_tensor_p2, NULL }, // 1
-  { NULL, em_copy_ExB_3x_ser_p1, em_copy_ExB_3x_tensor_p2, NULL }, // 2
+  { NULL, em_copy_ExB_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // div(b) and max(|b_i|) penalization (in x) (Serendipity kernels)
@@ -185,7 +185,7 @@ GKYL_CU_D
 static const gkyl_dg_em_div_b_kern_list ten_em_div_b_x_kernels[] = {
   { NULL, em_div_b_x_1x_ser_p1, em_div_b_x_1x_ser_p2, em_div_b_x_1x_ser_p3 }, // 0
   { NULL, em_div_b_x_2x_ser_p1, em_div_b_x_2x_tensor_p2, NULL }, // 1
-  { NULL, em_div_b_x_3x_ser_p1, em_div_b_x_3x_tensor_p2, NULL }, // 2
+  { NULL, em_div_b_x_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // div(b) and max(|b_i|) penalization (in y) (Tensor kernels)
@@ -193,7 +193,7 @@ GKYL_CU_D
 static const gkyl_dg_em_div_b_kern_list ten_em_div_b_y_kernels[] = {
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, em_div_b_y_2x_ser_p1, em_div_b_y_2x_tensor_p2, NULL }, // 1
-  { NULL, em_div_b_y_3x_ser_p1, em_div_b_y_3x_tensor_p2, NULL }, // 2
+  { NULL, em_div_b_y_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // div(b) and max(|b_i|) penalization (in z) (Tensor kernels)
@@ -201,7 +201,7 @@ GKYL_CU_D
 static const gkyl_dg_em_div_b_kern_list ten_em_div_b_z_kernels[] = {
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, em_div_b_z_3x_ser_p1, em_div_b_z_3x_tensor_p2, NULL }, // 2
+  { NULL, em_div_b_z_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // Characteristic limiter in x (Serendipity kernels)

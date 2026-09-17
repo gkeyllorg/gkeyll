@@ -610,6 +610,9 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     if (app->species[i].info.output_f_lte) {
       gkyl_vlasov_app_write_species_lte(app, i, tm, frame);
     }
+    if ((app->species[i].collision_id == GKYL_FPO_COLLISIONS) && (app->species[i].fpo.write_diagnostics)) {
+      gkyl_vlasov_app_write_species_fpo(app, i, tm, frame);
+    }
   }
   for (int i=0; i<app->num_fluid_species; ++i) {
     gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
@@ -779,6 +782,59 @@ gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int
   }
 
   vlasov_array_meta_release(mt); 
+}
+
+void
+gkyl_vlasov_app_write_species_fpo(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->basis.id
+    }
+  );  
+
+  struct vm_species *vm_s = &app->species[sidx];
+
+  const char *fmt_h = "%s-%s_H_%d.gkyl";
+  const char *fmt_g = "%s-%s_G_%d.gkyl";
+  const char *fmt_drag = "%s-%s_drag_coeff_%d.gkyl";
+  const char *fmt_diff = "%s-%s_diff_coeff_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt_drag, app->name,vm_s->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+
+  vm_species_fpo_drag_diff_coeffs(app, vm_s, &vm_s->fpo, vm_s->f);
+
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(vm_s->fpo.h_host, vm_s->fpo.h);
+    gkyl_array_copy(vm_s->fpo.g_host, vm_s->fpo.g);
+    gkyl_array_copy(vm_s->fpo.drag_coeff_host, vm_s->fpo.drag_coeff);
+    gkyl_array_copy(vm_s->fpo.diff_coeff_host, vm_s->fpo.diff_coeff);
+  }
+  
+  // Write H
+  snprintf(fileNm, sizeof fileNm, fmt_h, app->name,vm_s->info.name, frame);
+  gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local, 
+    mt, vm_s->fpo.h_host, fileNm);
+
+  // Write G
+  snprintf(fileNm, sizeof fileNm, fmt_g, app->name,vm_s->info.name, frame);
+  gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local, 
+    mt, vm_s->fpo.g_host, fileNm);
+
+  // Write drag coefficient
+  snprintf(fileNm, sizeof fileNm, fmt_drag, app->name,vm_s->info.name, frame);
+  gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local, 
+    mt, vm_s->fpo.drag_coeff_host, fileNm);
+
+  // Write diffusion tensor
+  snprintf(fileNm, sizeof fileNm, fmt_diff, app->name,vm_s->info.name, frame);
+  gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local, 
+    mt, vm_s->fpo.diff_coeff_host, fileNm);
+
+  vlasov_array_meta_release(mt);     
 }
 
 void

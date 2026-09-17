@@ -1,63 +1,53 @@
-#include <gkyl_lbo_vlasov_kernels.h> 
-GKYL_CU_DH double
-fpo_vlasov_drag_vol_1x3v_ser_p1(const double* w, const double* dxv,
-  const double* h, const double* f, double* GKYL_RESTRICT out) 
-{
-  // w[4]: Cell-center coordinates
-  // dxv[4]: Cell spacing
-  // h: Input Rosenbluth potential
-  // f: Input distribution function
-  // out: Incremented output
-  const double rdvx2 = 2.0/dxv[1]; 
-  const double rdvy2 = 2.0/dxv[2]; 
-  const double rdvz2 = 2.0/dxv[3]; 
+#include <gkyl_fpo_vlasov_kernels.h> 
 
-  double alphaDrag[48]; 
-  // Expand rdv2*(dh/dvx) in phase basis.
-  alphaDrag[0] = 1.732050807568877*h[2]*rdvx2; 
-  alphaDrag[1] = 1.732050807568877*h[5]*rdvx2; 
-  alphaDrag[3] = 1.732050807568877*h[7]*rdvx2; 
-  alphaDrag[4] = 1.732050807568877*h[9]*rdvx2; 
-  alphaDrag[6] = 1.732050807568877*h[11]*rdvx2; 
-  alphaDrag[8] = 1.732050807568877*h[12]*rdvx2; 
-  alphaDrag[10] = 1.732050807568877*h[14]*rdvx2; 
-  alphaDrag[13] = 1.732050807568877*h[15]*rdvx2; 
+GKYL_CU_DH double fpo_vlasov_drag_vol_1x3v_ser_p1(const double* dxv, const double* drag_coeff, const double* f, double* GKYL_RESTRICT out) { 
+  // dxv[NDIM]: Cell spacing in each direction. 
+  // drag_coeff: Drag coefficient. 
+  // f: Distribution function. 
+  // out: Incremented output. 
 
-  // Expand rdv2*(dh/dvy) in phase basis.
-  alphaDrag[16] = 1.732050807568877*h[3]*rdvy2; 
-  alphaDrag[17] = 1.732050807568877*h[6]*rdvy2; 
-  alphaDrag[18] = 1.732050807568877*h[7]*rdvy2; 
-  alphaDrag[20] = 1.732050807568877*h[10]*rdvy2; 
-  alphaDrag[21] = 1.732050807568877*h[11]*rdvy2; 
-  alphaDrag[24] = 1.732050807568877*h[13]*rdvy2; 
-  alphaDrag[25] = 1.732050807568877*h[14]*rdvy2; 
-  alphaDrag[28] = 1.732050807568877*h[15]*rdvy2; 
+  // dv1 for each direction. 
+  double dv1_vx = 2.0/dxv[1]; 
+  double dv1_vy = 2.0/dxv[2]; 
+  double dv1_vz = 2.0/dxv[3]; 
+  
+  // Index into drag coefficient. 
+  const double* a_vx = &drag_coeff[0]; 
+  const double* a_vy = &drag_coeff[16]; 
+  const double* a_vz = &drag_coeff[32]; 
+  
+  // vx contribution 
+  out[2] += 0.21650635094610965*(a_vx[15]*f[15]+a_vx[14]*f[14]+a_vx[13]*f[13]+a_vx[12]*f[12]+a_vx[11]*f[11]+a_vx[10]*f[10]+a_vx[9]*f[9]+a_vx[8]*f[8]+a_vx[7]*f[7]+a_vx[6]*f[6]+a_vx[5]*f[5]+a_vx[4]*f[4]+a_vx[3]*f[3]+a_vx[2]*f[2]+a_vx[1]*f[1]+a_vx[0]*f[0])*dv1_vx; 
+  out[5] += 0.21650635094610965*(a_vx[14]*f[15]+f[14]*a_vx[15]+a_vx[10]*f[13]+f[10]*a_vx[13]+a_vx[9]*f[12]+f[9]*a_vx[12]+a_vx[7]*f[11]+f[7]*a_vx[11]+a_vx[4]*f[8]+f[4]*a_vx[8]+a_vx[3]*f[6]+f[3]*a_vx[6]+a_vx[2]*f[5]+f[2]*a_vx[5]+a_vx[0]*f[1]+f[0]*a_vx[1])*dv1_vx; 
+  out[7] += 0.21650635094610965*(a_vx[12]*f[15]+f[12]*a_vx[15]+a_vx[9]*f[14]+f[9]*a_vx[14]+a_vx[8]*f[13]+f[8]*a_vx[13]+a_vx[5]*f[11]+f[5]*a_vx[11]+a_vx[4]*f[10]+f[4]*a_vx[10]+a_vx[2]*f[7]+f[2]*a_vx[7]+a_vx[1]*f[6]+f[1]*a_vx[6]+a_vx[0]*f[3]+f[0]*a_vx[3])*dv1_vx; 
+  out[9] += 0.21650635094610965*(a_vx[11]*f[15]+f[11]*a_vx[15]+a_vx[7]*f[14]+f[7]*a_vx[14]+a_vx[6]*f[13]+f[6]*a_vx[13]+a_vx[5]*f[12]+f[5]*a_vx[12]+a_vx[3]*f[10]+f[3]*a_vx[10]+a_vx[2]*f[9]+f[2]*a_vx[9]+a_vx[1]*f[8]+f[1]*a_vx[8]+a_vx[0]*f[4]+f[0]*a_vx[4])*dv1_vx; 
+  out[11] += 0.21650635094610965*(a_vx[9]*f[15]+f[9]*a_vx[15]+a_vx[12]*f[14]+f[12]*a_vx[14]+a_vx[4]*f[13]+f[4]*a_vx[13]+a_vx[2]*f[11]+f[2]*a_vx[11]+a_vx[8]*f[10]+f[8]*a_vx[10]+a_vx[5]*f[7]+f[5]*a_vx[7]+a_vx[0]*f[6]+f[0]*a_vx[6]+a_vx[1]*f[3]+f[1]*a_vx[3])*dv1_vx; 
+  out[12] += 0.21650635094610965*(a_vx[7]*f[15]+f[7]*a_vx[15]+a_vx[11]*f[14]+f[11]*a_vx[14]+a_vx[3]*f[13]+f[3]*a_vx[13]+a_vx[2]*f[12]+f[2]*a_vx[12]+a_vx[6]*f[10]+f[6]*a_vx[10]+a_vx[5]*f[9]+f[5]*a_vx[9]+a_vx[0]*f[8]+f[0]*a_vx[8]+a_vx[1]*f[4]+f[1]*a_vx[4])*dv1_vx; 
+  out[14] += 0.21650635094610965*(a_vx[5]*f[15]+f[5]*a_vx[15]+a_vx[2]*f[14]+f[2]*a_vx[14]+a_vx[1]*f[13]+f[1]*a_vx[13]+a_vx[11]*f[12]+f[11]*a_vx[12]+a_vx[0]*f[10]+f[0]*a_vx[10]+a_vx[7]*f[9]+f[7]*a_vx[9]+a_vx[6]*f[8]+f[6]*a_vx[8]+a_vx[3]*f[4]+f[3]*a_vx[4])*dv1_vx; 
+  out[15] += 0.21650635094610965*(a_vx[2]*f[15]+f[2]*a_vx[15]+a_vx[5]*f[14]+f[5]*a_vx[14]+a_vx[0]*f[13]+f[0]*a_vx[13]+a_vx[7]*f[12]+f[7]*a_vx[12]+a_vx[9]*f[11]+f[9]*a_vx[11]+a_vx[1]*f[10]+f[1]*a_vx[10]+a_vx[3]*f[8]+f[3]*a_vx[8]+a_vx[4]*f[6]+f[4]*a_vx[6])*dv1_vx; 
 
-  // Expand rdv2*(dh/dvz) in phase basis.
-  alphaDrag[32] = 1.732050807568877*h[4]*rdvz2; 
-  alphaDrag[33] = 1.732050807568877*h[8]*rdvz2; 
-  alphaDrag[34] = 1.732050807568877*h[9]*rdvz2; 
-  alphaDrag[35] = 1.732050807568877*h[10]*rdvz2; 
-  alphaDrag[37] = 1.732050807568877*h[12]*rdvz2; 
-  alphaDrag[38] = 1.732050807568877*h[13]*rdvz2; 
-  alphaDrag[39] = 1.732050807568877*h[14]*rdvz2; 
-  alphaDrag[43] = 1.732050807568877*h[15]*rdvz2; 
+  // vy contribution 
+  out[3] += 0.21650635094610965*(a_vy[15]*f[15]+a_vy[14]*f[14]+a_vy[13]*f[13]+a_vy[12]*f[12]+a_vy[11]*f[11]+a_vy[10]*f[10]+a_vy[9]*f[9]+a_vy[8]*f[8]+a_vy[7]*f[7]+a_vy[6]*f[6]+a_vy[5]*f[5]+a_vy[4]*f[4]+a_vy[3]*f[3]+a_vy[2]*f[2]+a_vy[1]*f[1]+a_vy[0]*f[0])*dv1_vy; 
+  out[6] += 0.21650635094610965*(a_vy[14]*f[15]+f[14]*a_vy[15]+a_vy[10]*f[13]+f[10]*a_vy[13]+a_vy[9]*f[12]+f[9]*a_vy[12]+a_vy[7]*f[11]+f[7]*a_vy[11]+a_vy[4]*f[8]+f[4]*a_vy[8]+a_vy[3]*f[6]+f[3]*a_vy[6]+a_vy[2]*f[5]+f[2]*a_vy[5]+a_vy[0]*f[1]+f[0]*a_vy[1])*dv1_vy; 
+  out[7] += 0.21650635094610965*(a_vy[13]*f[15]+f[13]*a_vy[15]+a_vy[10]*f[14]+f[10]*a_vy[14]+a_vy[8]*f[12]+f[8]*a_vy[12]+a_vy[6]*f[11]+f[6]*a_vy[11]+a_vy[4]*f[9]+f[4]*a_vy[9]+a_vy[3]*f[7]+f[3]*a_vy[7]+a_vy[1]*f[5]+f[1]*a_vy[5]+a_vy[0]*f[2]+f[0]*a_vy[2])*dv1_vy; 
+  out[10] += 0.21650635094610965*(a_vy[11]*f[15]+f[11]*a_vy[15]+a_vy[7]*f[14]+f[7]*a_vy[14]+a_vy[6]*f[13]+f[6]*a_vy[13]+a_vy[5]*f[12]+f[5]*a_vy[12]+a_vy[3]*f[10]+f[3]*a_vy[10]+a_vy[2]*f[9]+f[2]*a_vy[9]+a_vy[1]*f[8]+f[1]*a_vy[8]+a_vy[0]*f[4]+f[0]*a_vy[4])*dv1_vy; 
+  out[11] += 0.21650635094610965*(a_vy[10]*f[15]+f[10]*a_vy[15]+a_vy[13]*f[14]+f[13]*a_vy[14]+a_vy[4]*f[12]+f[4]*a_vy[12]+a_vy[3]*f[11]+f[3]*a_vy[11]+a_vy[8]*f[9]+f[8]*a_vy[9]+a_vy[6]*f[7]+f[6]*a_vy[7]+a_vy[0]*f[5]+f[0]*a_vy[5]+a_vy[1]*f[2]+f[1]*a_vy[2])*dv1_vy; 
+  out[13] += 0.21650635094610965*(a_vy[7]*f[15]+f[7]*a_vy[15]+a_vy[11]*f[14]+f[11]*a_vy[14]+a_vy[3]*f[13]+f[3]*a_vy[13]+a_vy[2]*f[12]+f[2]*a_vy[12]+a_vy[6]*f[10]+f[6]*a_vy[10]+a_vy[5]*f[9]+f[5]*a_vy[9]+a_vy[0]*f[8]+f[0]*a_vy[8]+a_vy[1]*f[4]+f[1]*a_vy[4])*dv1_vy; 
+  out[14] += 0.21650635094610965*(a_vy[6]*f[15]+f[6]*a_vy[15]+a_vy[3]*f[14]+f[3]*a_vy[14]+a_vy[11]*f[13]+f[11]*a_vy[13]+a_vy[1]*f[12]+f[1]*a_vy[12]+a_vy[7]*f[10]+f[7]*a_vy[10]+a_vy[0]*f[9]+f[0]*a_vy[9]+a_vy[5]*f[8]+f[5]*a_vy[8]+a_vy[2]*f[4]+f[2]*a_vy[4])*dv1_vy; 
+  out[15] += 0.21650635094610965*(a_vy[3]*f[15]+f[3]*a_vy[15]+a_vy[6]*f[14]+f[6]*a_vy[14]+a_vy[7]*f[13]+f[7]*a_vy[13]+a_vy[0]*f[12]+f[0]*a_vy[12]+a_vy[10]*f[11]+f[10]*a_vy[11]+a_vy[1]*f[9]+f[1]*a_vy[9]+a_vy[2]*f[8]+f[2]*a_vy[8]+a_vy[4]*f[5]+f[4]*a_vy[5])*dv1_vy; 
 
-  out[2] += 0.4330127018922193*(alphaDrag[13]*f[13]+alphaDrag[10]*f[10]+alphaDrag[8]*f[8]+alphaDrag[6]*f[6]+alphaDrag[4]*f[4]+alphaDrag[3]*f[3]+alphaDrag[1]*f[1]+alphaDrag[0]*f[0]); 
-  out[3] += 0.4330127018922193*(f[12]*alphaDrag[28]+f[9]*alphaDrag[25]+f[8]*alphaDrag[24]+f[5]*alphaDrag[21]+f[4]*alphaDrag[20]+f[2]*alphaDrag[18]+f[1]*alphaDrag[17]+f[0]*alphaDrag[16]); 
-  out[4] += 0.4330127018922193*(f[11]*alphaDrag[43]+f[7]*alphaDrag[39]+f[6]*alphaDrag[38]+f[5]*alphaDrag[37]+f[3]*alphaDrag[35]+f[2]*alphaDrag[34]+f[1]*alphaDrag[33]+f[0]*alphaDrag[32]); 
-  out[5] += 0.4330127018922193*(alphaDrag[10]*f[13]+f[10]*alphaDrag[13]+alphaDrag[4]*f[8]+f[4]*alphaDrag[8]+alphaDrag[3]*f[6]+f[3]*alphaDrag[6]+alphaDrag[0]*f[1]+f[0]*alphaDrag[1]); 
-  out[6] += 0.4330127018922193*(f[9]*alphaDrag[28]+f[12]*alphaDrag[25]+f[4]*alphaDrag[24]+f[2]*alphaDrag[21]+f[8]*alphaDrag[20]+f[5]*alphaDrag[18]+f[0]*alphaDrag[17]+f[1]*alphaDrag[16]); 
-  out[7] += 0.4330127018922193*(f[8]*alphaDrag[28]+f[4]*alphaDrag[25]+f[12]*alphaDrag[24]+f[1]*alphaDrag[21]+f[9]*alphaDrag[20]+f[0]*alphaDrag[18]+f[5]*alphaDrag[17]+f[2]*alphaDrag[16]+alphaDrag[8]*f[13]+f[8]*alphaDrag[13]+alphaDrag[4]*f[10]+f[4]*alphaDrag[10]+alphaDrag[1]*f[6]+f[1]*alphaDrag[6]+alphaDrag[0]*f[3]+f[0]*alphaDrag[3]); 
-  out[8] += 0.4330127018922193*(f[7]*alphaDrag[43]+f[11]*alphaDrag[39]+f[3]*alphaDrag[38]+f[2]*alphaDrag[37]+f[6]*alphaDrag[35]+f[5]*alphaDrag[34]+f[0]*alphaDrag[33]+f[1]*alphaDrag[32]); 
-  out[9] += 0.4330127018922193*(f[6]*alphaDrag[43]+f[3]*alphaDrag[39]+f[11]*alphaDrag[38]+f[1]*alphaDrag[37]+f[7]*alphaDrag[35]+f[0]*alphaDrag[34]+f[5]*alphaDrag[33]+f[2]*alphaDrag[32]+alphaDrag[6]*f[13]+f[6]*alphaDrag[13]+alphaDrag[3]*f[10]+f[3]*alphaDrag[10]+alphaDrag[1]*f[8]+f[1]*alphaDrag[8]+alphaDrag[0]*f[4]+f[0]*alphaDrag[4]); 
-  out[10] += 0.4330127018922193*(f[5]*alphaDrag[43]+f[2]*alphaDrag[39]+f[1]*alphaDrag[38]+f[11]*alphaDrag[37]+f[0]*alphaDrag[35]+f[7]*alphaDrag[34]+f[6]*alphaDrag[33]+f[3]*alphaDrag[32]+f[5]*alphaDrag[28]+f[2]*alphaDrag[25]+f[1]*alphaDrag[24]+f[12]*alphaDrag[21]+f[0]*alphaDrag[20]+f[9]*alphaDrag[18]+f[8]*alphaDrag[17]+f[4]*alphaDrag[16]); 
-  out[11] += 0.4330127018922193*(f[4]*alphaDrag[28]+f[8]*alphaDrag[25]+f[9]*alphaDrag[24]+f[0]*alphaDrag[21]+f[12]*alphaDrag[20]+f[1]*alphaDrag[18]+f[2]*alphaDrag[17]+f[5]*alphaDrag[16]+alphaDrag[4]*f[13]+f[4]*alphaDrag[13]+alphaDrag[8]*f[10]+f[8]*alphaDrag[10]+alphaDrag[0]*f[6]+f[0]*alphaDrag[6]+alphaDrag[1]*f[3]+f[1]*alphaDrag[3]); 
-  out[12] += 0.4330127018922193*(f[3]*alphaDrag[43]+f[6]*alphaDrag[39]+f[7]*alphaDrag[38]+f[0]*alphaDrag[37]+f[11]*alphaDrag[35]+f[1]*alphaDrag[34]+f[2]*alphaDrag[33]+f[5]*alphaDrag[32]+alphaDrag[3]*f[13]+f[3]*alphaDrag[13]+alphaDrag[6]*f[10]+f[6]*alphaDrag[10]+alphaDrag[0]*f[8]+f[0]*alphaDrag[8]+alphaDrag[1]*f[4]+f[1]*alphaDrag[4]); 
-  out[13] += 0.4330127018922193*(f[2]*alphaDrag[43]+f[5]*alphaDrag[39]+f[0]*alphaDrag[38]+f[7]*alphaDrag[37]+f[1]*alphaDrag[35]+f[11]*alphaDrag[34]+f[3]*alphaDrag[33]+f[6]*alphaDrag[32]+f[2]*alphaDrag[28]+f[5]*alphaDrag[25]+f[0]*alphaDrag[24]+f[9]*alphaDrag[21]+f[1]*alphaDrag[20]+f[12]*alphaDrag[18]+f[4]*alphaDrag[17]+f[8]*alphaDrag[16]); 
-  out[14] += 0.4330127018922193*(f[1]*alphaDrag[43]+f[0]*alphaDrag[39]+f[5]*alphaDrag[38]+f[6]*alphaDrag[37]+f[2]*alphaDrag[35]+f[3]*alphaDrag[34]+f[11]*alphaDrag[33]+f[7]*alphaDrag[32]+f[1]*alphaDrag[28]+f[0]*alphaDrag[25]+f[5]*alphaDrag[24]+f[8]*alphaDrag[21]+f[2]*alphaDrag[20]+f[4]*alphaDrag[18]+f[12]*alphaDrag[17]+f[9]*alphaDrag[16]+alphaDrag[1]*f[13]+f[1]*alphaDrag[13]+alphaDrag[0]*f[10]+f[0]*alphaDrag[10]+alphaDrag[6]*f[8]+f[6]*alphaDrag[8]+alphaDrag[3]*f[4]+f[3]*alphaDrag[4]); 
-  out[15] += 0.4330127018922193*(f[0]*alphaDrag[43]+f[1]*alphaDrag[39]+f[2]*alphaDrag[38]+f[3]*alphaDrag[37]+f[5]*alphaDrag[35]+f[6]*alphaDrag[34]+f[7]*alphaDrag[33]+f[11]*alphaDrag[32]+f[0]*alphaDrag[28]+f[1]*alphaDrag[25]+f[2]*alphaDrag[24]+f[4]*alphaDrag[21]+f[5]*alphaDrag[20]+f[8]*alphaDrag[18]+f[9]*alphaDrag[17]+f[12]*alphaDrag[16]+alphaDrag[0]*f[13]+f[0]*alphaDrag[13]+alphaDrag[1]*f[10]+f[1]*alphaDrag[10]+alphaDrag[3]*f[8]+f[3]*alphaDrag[8]+alphaDrag[4]*f[6]+f[4]*alphaDrag[6]); 
+  // vz contribution 
+  out[4] += 0.21650635094610965*(a_vz[15]*f[15]+a_vz[14]*f[14]+a_vz[13]*f[13]+a_vz[12]*f[12]+a_vz[11]*f[11]+a_vz[10]*f[10]+a_vz[9]*f[9]+a_vz[8]*f[8]+a_vz[7]*f[7]+a_vz[6]*f[6]+a_vz[5]*f[5]+a_vz[4]*f[4]+a_vz[3]*f[3]+a_vz[2]*f[2]+a_vz[1]*f[1]+a_vz[0]*f[0])*dv1_vz; 
+  out[8] += 0.21650635094610965*(a_vz[14]*f[15]+f[14]*a_vz[15]+a_vz[10]*f[13]+f[10]*a_vz[13]+a_vz[9]*f[12]+f[9]*a_vz[12]+a_vz[7]*f[11]+f[7]*a_vz[11]+a_vz[4]*f[8]+f[4]*a_vz[8]+a_vz[3]*f[6]+f[3]*a_vz[6]+a_vz[2]*f[5]+f[2]*a_vz[5]+a_vz[0]*f[1]+f[0]*a_vz[1])*dv1_vz; 
+  out[9] += 0.21650635094610965*(a_vz[13]*f[15]+f[13]*a_vz[15]+a_vz[10]*f[14]+f[10]*a_vz[14]+a_vz[8]*f[12]+f[8]*a_vz[12]+a_vz[6]*f[11]+f[6]*a_vz[11]+a_vz[4]*f[9]+f[4]*a_vz[9]+a_vz[3]*f[7]+f[3]*a_vz[7]+a_vz[1]*f[5]+f[1]*a_vz[5]+a_vz[0]*f[2]+f[0]*a_vz[2])*dv1_vz; 
+  out[10] += 0.21650635094610965*(a_vz[12]*f[15]+f[12]*a_vz[15]+a_vz[9]*f[14]+f[9]*a_vz[14]+a_vz[8]*f[13]+f[8]*a_vz[13]+a_vz[5]*f[11]+f[5]*a_vz[11]+a_vz[4]*f[10]+f[4]*a_vz[10]+a_vz[2]*f[7]+f[2]*a_vz[7]+a_vz[1]*f[6]+f[1]*a_vz[6]+a_vz[0]*f[3]+f[0]*a_vz[3])*dv1_vz; 
+  out[12] += 0.21650635094610965*(a_vz[10]*f[15]+f[10]*a_vz[15]+a_vz[13]*f[14]+f[13]*a_vz[14]+a_vz[4]*f[12]+f[4]*a_vz[12]+a_vz[3]*f[11]+f[3]*a_vz[11]+a_vz[8]*f[9]+f[8]*a_vz[9]+a_vz[6]*f[7]+f[6]*a_vz[7]+a_vz[0]*f[5]+f[0]*a_vz[5]+a_vz[1]*f[2]+f[1]*a_vz[2])*dv1_vz; 
+  out[13] += 0.21650635094610965*(a_vz[9]*f[15]+f[9]*a_vz[15]+a_vz[12]*f[14]+f[12]*a_vz[14]+a_vz[4]*f[13]+f[4]*a_vz[13]+a_vz[2]*f[11]+f[2]*a_vz[11]+a_vz[8]*f[10]+f[8]*a_vz[10]+a_vz[5]*f[7]+f[5]*a_vz[7]+a_vz[0]*f[6]+f[0]*a_vz[6]+a_vz[1]*f[3]+f[1]*a_vz[3])*dv1_vz; 
+  out[14] += 0.21650635094610965*(a_vz[8]*f[15]+f[8]*a_vz[15]+a_vz[4]*f[14]+f[4]*a_vz[14]+a_vz[12]*f[13]+f[12]*a_vz[13]+a_vz[1]*f[11]+f[1]*a_vz[11]+a_vz[9]*f[10]+f[9]*a_vz[10]+a_vz[0]*f[7]+f[0]*a_vz[7]+a_vz[5]*f[6]+f[5]*a_vz[6]+a_vz[2]*f[3]+f[2]*a_vz[3])*dv1_vz; 
+  out[15] += 0.21650635094610965*(a_vz[4]*f[15]+f[4]*a_vz[15]+a_vz[8]*f[14]+f[8]*a_vz[14]+a_vz[9]*f[13]+f[9]*a_vz[13]+a_vz[10]*f[12]+f[10]*a_vz[12]+a_vz[0]*f[11]+f[0]*a_vz[11]+a_vz[1]*f[7]+f[1]*a_vz[7]+a_vz[2]*f[6]+f[2]*a_vz[6]+a_vz[3]*f[5]+f[3]*a_vz[5])*dv1_vz; 
 
-  return fabs(0.125*alphaDrag[0])+fabs(0.125*alphaDrag[16])+fabs(0.125*alphaDrag[32]); 
 
-} 
+
+  return 0.0; 
+
+}

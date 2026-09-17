@@ -35,21 +35,22 @@ gkyl_dg_updater_fpo_vlasov_new(const struct gkyl_rect_grid *grid,
  *
  * @param fpo fpo updater object
  * @param update_rng Range on which to compute.
- * @param h First Rosenbluth potential (a_s = sum_b Lambda_sb m_s/m_b grad(H_b))
- * @param g Second Rosenbluth potential (D_s = sum_b Lambda_sb grad(grad(G_b)))
+ * @param drag_coeff Drag coefficient vector calculated from first Rosenbluth potential
+ * @param diff_coeff Diffusion tensor calculated from second Rosenbluth potential
+ * @param drag_coeff_surf Surface expansion of recovered drag coeff at lower cell boundary
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
 void gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
+  long offsets[36],
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *h, const struct gkyl_array *g, 
-  const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
-
-void gkyl_dg_updater_fpo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *fpo,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *h, const struct gkyl_array *g, 
+  const struct gkyl_array *drag_coeff, 
+  const struct gkyl_array *drag_coeff_surf,
+  const struct gkyl_array *sgn_drag_coeff_surf,
+  const struct gkyl_array *const_sgn_drag_coeff_surf,
+  const struct gkyl_array *diff_coeff,
+  const struct gkyl_array *diff_coeff_surf,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 

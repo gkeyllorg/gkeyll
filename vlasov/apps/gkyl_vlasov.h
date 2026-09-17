@@ -45,6 +45,7 @@ struct gkyl_vlasov_projection {
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
+  bool write_diagnostics; // Whether to write diagnostics out.
 
   void *ctx; // context for collision function
   // function for computing self-collision frequency
@@ -551,6 +552,16 @@ void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, in
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write species data to file for H, G, drag coeff, diff coeff.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species_fpo(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write fluid species data to file. 
