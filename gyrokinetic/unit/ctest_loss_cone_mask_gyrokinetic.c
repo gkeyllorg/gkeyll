@@ -37,23 +37,20 @@ struct loss_cone_mask_test_ctx {
   int Nz, Nvpar, Nmu;
 };
 
-static struct gkyl_array*
-mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
 {
-  return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
-                 : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
+                   gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-void
-mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void
-bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double z = xc[2];
   struct loss_cone_mask_test_ctx *params = ctx;
@@ -63,24 +60,21 @@ bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx
   fout[2] = params->B_m * (1.0 - ((params->R_m - 1.0) / params->R_m) * pow(cos(z), 2.0));
 }
 
-void
-phi_func_1x_zero(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void phi_func_1x_zero(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void
-phi_func_1x_nonzero(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void phi_func_1x_nonzero(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double z = xc[0];
   struct loss_cone_mask_test_ctx *params = ctx;
 
   // fout[0] = params->phi_fac * params->T0 / params->eV * (1.0 - pow(z / params->z_max, 2.0));
-  fout[0] = params->phi_fac * params->T0 / params->eV * (1.0 - pow(cos(4*z), 2.0));
+  fout[0] = params->phi_fac * params->T0 / params->eV * (1.0 - pow(cos(4 * z), 2.0));
 }
 
-static inline void
-corner_coords_range(int ndim, int corner, double *eta)
+static inline void corner_coords_range(int ndim, int corner, double *eta)
 {
   for (int d = 0; d < ndim; ++d) {
     int bit = ndim - 1 - d;
@@ -88,14 +82,13 @@ corner_coords_range(int ndim, int corner, double *eta)
   }
 }
 
-static struct gkyl_array*
-mk_basis_at_corners(const struct gkyl_basis *basis)
+static struct gkyl_array *mk_basis_at_corners(const struct gkyl_basis *basis)
 {
   int ndim = basis->ndim;
   int num_corners = 1 << ndim;
   struct gkyl_array *out = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, num_corners);
 
-  double eta[GKYL_MAX_DIM] = { 0.0 };
+  double eta[GKYL_MAX_DIM] = {0.0};
   for (int corner = 0; corner < num_corners; ++corner) {
     corner_coords_range(ndim, corner, eta);
     basis->eval(eta, gkyl_array_fetch(out, corner));
@@ -104,9 +97,10 @@ mk_basis_at_corners(const struct gkyl_basis *basis)
   return out;
 }
 
-static inline double
-field_corner_val(const struct gkyl_array *arr, const struct gkyl_array *basis_at_corners,
-  int num_basis, long linidx, int corner)
+static inline double field_corner_val(
+  const struct gkyl_array *arr, const struct gkyl_array *basis_at_corners, int num_basis,
+  long linidx, int corner
+)
 {
   const double *arr_d = gkyl_array_cfetch(arr, linidx);
   const double *basis_d = gkyl_array_cfetch(basis_at_corners, corner);
@@ -118,34 +112,32 @@ field_corner_val(const struct gkyl_array *arr, const struct gkyl_array *basis_at
   return val;
 }
 
-static inline double
-vel_corner_val(const struct gkyl_velocity_map *gvm, const int *vel_idx, int vd, int vel_corner,
-  int vdim)
+static inline double vel_corner_val(
+  const struct gkyl_velocity_map *gvm, const int *vel_idx, int vd, int vel_corner, int vdim
+)
 {
   long linidx_vel = gkyl_range_idx(&gvm->local_ext_vel, vel_idx);
   const double *vmap_d = gkyl_array_cfetch(gvm->vmap, linidx_vel);
 
-  double vel_eta[GKYL_MAX_DIM] = { 0.0 };
+  double vel_eta[GKYL_MAX_DIM] = {0.0};
   corner_coords_range(vdim, vel_corner, vel_eta);
-  double xcomp[1] = { vel_eta[vd] };
+  double xcomp[1] = {vel_eta[vd]};
 
   return gvm->vmap_basis->eval_expand(xcomp, vmap_d + vd * gvm->vmap_basis->num_basis);
 }
 
-static inline int
-corner_z_endpoint_side_ref(int cdim, int corner, int zdim)
+static inline int corner_z_endpoint_side_ref(int cdim, int corner, int zdim)
 {
-  double eta[GKYL_MAX_DIM] = { 0.0 };
+  double eta[GKYL_MAX_DIM] = {0.0};
   corner_coords_range(cdim, corner, eta);
   return eta[zdim] > 0.0 ? 1 : 0;
 }
 
-static inline int
-corner_with_z_side_ref(int cdim, int anchor_corner, int zdim, int z_side)
+static inline int corner_with_z_side_ref(int cdim, int anchor_corner, int zdim, int z_side)
 {
   int num_conf_corners = 1 << cdim;
 
-  double eta_anchor[GKYL_MAX_DIM] = { 0.0 };
+  double eta_anchor[GKYL_MAX_DIM] = {0.0};
   corner_coords_range(cdim, anchor_corner, eta_anchor);
 
   for (int cand = 0; cand < num_conf_corners; ++cand) {
@@ -153,7 +145,7 @@ corner_with_z_side_ref(int cdim, int anchor_corner, int zdim, int z_side)
       continue;
     }
 
-    double eta_cand[GKYL_MAX_DIM] = { 0.0 };
+    double eta_cand[GKYL_MAX_DIM] = {0.0};
     corner_coords_range(cdim, cand, eta_cand);
 
     bool same_transverse = true;
@@ -176,12 +168,12 @@ corner_with_z_side_ref(int cdim, int anchor_corner, int zdim, int z_side)
   return anchor_corner;
 }
 
-static void
-escape_barriers_ref(const struct gkyl_array *phi, const struct gkyl_array *bmag,
-  const struct gkyl_range *conf_range, const struct gkyl_array *basis_at_corners_conf,
-  int cdim, int num_basis_conf, const int *base_idx, int target_z_cell,
-  int anchor_corner, int anchor_z_side, double mu, double charge, double *barrier_left,
-  double *barrier_right)
+static void escape_barriers_ref(
+  const struct gkyl_array *phi, const struct gkyl_array *bmag, const struct gkyl_range *conf_range,
+  const struct gkyl_array *basis_at_corners_conf, int cdim, int num_basis_conf, const int *base_idx,
+  int target_z_cell, int anchor_corner, int anchor_z_side, double mu, double charge,
+  double *barrier_left, double *barrier_right
+)
 {
   int zdim = cdim - 1;
   int z_upper_corner = corner_with_z_side_ref(cdim, anchor_corner, zdim, 1);
@@ -199,41 +191,39 @@ escape_barriers_ref(const struct gkyl_array *phi, const struct gkyl_array *bmag,
     scan_idx[zdim] = iz;
     long linidx = gkyl_range_idx(conf_range, scan_idx);
 
-    double phi_lower = field_corner_val(phi, basis_at_corners_conf, num_basis_conf,
-      linidx, z_lower_corner);
-    double phi_upper = field_corner_val(phi, basis_at_corners_conf, num_basis_conf,
-      linidx, z_upper_corner);
-    double bmag_lower = field_corner_val(bmag, basis_at_corners_conf, num_basis_conf,
-      linidx, z_lower_corner);
-    double bmag_upper = field_corner_val(bmag, basis_at_corners_conf, num_basis_conf,
-      linidx, z_upper_corner);
+    double phi_lower =
+      field_corner_val(phi, basis_at_corners_conf, num_basis_conf, linidx, z_lower_corner);
+    double phi_upper =
+      field_corner_val(phi, basis_at_corners_conf, num_basis_conf, linidx, z_upper_corner);
+    double bmag_lower =
+      field_corner_val(bmag, basis_at_corners_conf, num_basis_conf, linidx, z_lower_corner);
+    double bmag_upper =
+      field_corner_val(bmag, basis_at_corners_conf, num_basis_conf, linidx, z_upper_corner);
     double u_lower = mu * bmag_lower + charge * phi_lower;
     double u_upper = mu * bmag_upper + charge * phi_upper;
 
     if (iz < target_z_cell) {
       *barrier_left = GKYL_MAX2(*barrier_left, GKYL_MAX2(u_lower, u_upper));
-    }
-    else if (iz == target_z_cell) {
+    } else if (iz == target_z_cell) {
       *barrier_left = GKYL_MAX2(*barrier_left, u_lower);
       *barrier_right = GKYL_MAX2(*barrier_right, u_upper);
       if (anchor_z_side == 1) {
         *barrier_left = GKYL_MAX2(*barrier_left, u_upper);
-      }
-      else {
+      } else {
         *barrier_right = GKYL_MAX2(*barrier_right, u_lower);
       }
-    }
-    else {
+    } else {
       *barrier_right = GKYL_MAX2(*barrier_right, GKYL_MAX2(u_lower, u_upper));
     }
   }
 }
 
-static void
-build_reference_mask(const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+static void build_reference_mask(
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_basis *conf_basis, const struct gkyl_velocity_map *gvm,
-  const struct gkyl_array *bmag, const struct gkyl_array *phi,
-  double mass, double charge, struct gkyl_array *mask_ref)
+  const struct gkyl_array *bmag, const struct gkyl_array *phi, double mass, double charge,
+  struct gkyl_array *mask_ref
+)
 {
   int cdim = conf_basis->ndim;
   int pdim = phase_range->ndim;
@@ -246,8 +236,8 @@ build_reference_mask(const struct gkyl_range *phase_range, const struct gkyl_ran
   struct gkyl_range_iter phase_iter;
   gkyl_range_iter_init(&phase_iter, phase_range);
   while (gkyl_range_iter_next(&phase_iter)) {
-    int conf_idx[GKYL_MAX_DIM] = { 0 };
-    int vel_idx[GKYL_MAX_DIM] = { 0 };
+    int conf_idx[GKYL_MAX_DIM] = {0};
+    int vel_idx[GKYL_MAX_DIM] = {0};
 
     for (int d = 0; d < cdim; ++d) {
       conf_idx[d] = phase_iter.idx[d];
@@ -265,10 +255,10 @@ build_reference_mask(const struct gkyl_range *phase_range, const struct gkyl_ran
       double mu = vel_corner_val(gvm, vel_idx, 1, vel_corner, vdim);
 
       long linidx_conf = gkyl_range_idx(conf_range, conf_idx);
-      double bmag_curr = field_corner_val(bmag, basis_at_corners_conf, num_basis_conf,
-        linidx_conf, conf_corner);
-      double phi_curr = field_corner_val(phi, basis_at_corners_conf, num_basis_conf,
-        linidx_conf, conf_corner);
+      double bmag_curr =
+        field_corner_val(bmag, basis_at_corners_conf, num_basis_conf, linidx_conf, conf_corner);
+      double phi_curr =
+        field_corner_val(phi, basis_at_corners_conf, num_basis_conf, linidx_conf, conf_corner);
       double h_curr = 0.5 * mass * vpar * vpar + mu * bmag_curr + charge * phi_curr;
 
       int zdim = cdim - 1;
@@ -276,9 +266,10 @@ build_reference_mask(const struct gkyl_range *phase_range, const struct gkyl_ran
       int anchor_z_side = corner_z_endpoint_side_ref(cdim, conf_corner, zdim);
 
       double barrier_left, barrier_right;
-      escape_barriers_ref(phi, bmag, conf_range, basis_at_corners_conf, cdim,
-        num_basis_conf, conf_idx, target_z_cell, conf_corner, anchor_z_side, mu, charge,
-        &barrier_left, &barrier_right);
+      escape_barriers_ref(
+        phi, bmag, conf_range, basis_at_corners_conf, cdim, num_basis_conf, conf_idx, target_z_cell,
+        conf_corner, anchor_z_side, mu, charge, &barrier_left, &barrier_right
+      );
 
       cell_trapped = h_curr < GKYL_MIN2(barrier_left, barrier_right);
     }
@@ -291,8 +282,7 @@ build_reference_mask(const struct gkyl_range *phase_range, const struct gkyl_ran
   gkyl_array_release(basis_at_corners_conf);
 }
 
-static void
-run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
+static void run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
 {
   double eV = GKYL_ELEMENTARY_CHARGE;
   double mass_proton = GKYL_PROTON_MASS;
@@ -308,18 +298,18 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     .n0 = 1e18,
     .T0 = 100 * eV,
     .phi_fac = 5.0,
-    .z_max = M_PI-0.5,
+    .z_max = M_PI - 0.5,
     .Nz = 64,
     .Nvpar = 16,
-    .Nmu = 16,
+    .Nmu = 16
   };
   ctx.B0 = ctx.B_m / 2.0;
   ctx.vpar_max = 6.0 * sqrt(ctx.T0 / ctx.mass);
   ctx.mu_max = 0.5 * ctx.mass * pow(ctx.vpar_max, 2) / ctx.B0;
 
-  double lower[] = { -ctx.z_max, -ctx.vpar_max, 0.0 };
-  double upper[] = { ctx.z_max, ctx.vpar_max, ctx.mu_max };
-  int cells[] = { ctx.Nz, ctx.Nvpar, ctx.Nmu };
+  double lower[] = {-ctx.z_max, -ctx.vpar_max, 0.0};
+  double upper[] = {ctx.z_max, ctx.vpar_max, ctx.mu_max};
+  int cells[] = {ctx.Nz, ctx.Nvpar, ctx.Nmu};
   const int ndim = sizeof(cells) / sizeof(cells[0]);
   const int cdim = ctx.cdim;
   const int vdim = ndim - cdim;
@@ -348,8 +338,7 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
   struct gkyl_basis basis, basis_conf;
   if (poly_order == 1) {
     gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
-  }
-  else {
+  } else {
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   }
   gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
@@ -361,27 +350,25 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     basis_on_dev_conf = gkyl_cu_malloc(sizeof(struct gkyl_basis));
     if (poly_order == 1) {
       gkyl_cart_modal_gkhybrid_cu_dev(basis_on_dev, cdim, vdim);
-    }
-    else {
+    } else {
       gkyl_cart_modal_serendip_cu_dev(basis_on_dev, ndim, poly_order);
     }
     gkyl_cart_modal_serendip_cu_dev(basis_on_dev_conf, cdim, poly_order);
 #endif
-  }
-  else {
+  } else {
     basis_on_dev = &basis;
     basis_on_dev_conf = &basis_conf;
   }
 
-  int ghost_conf[] = { 1, 1, 1 };
+  int ghost_conf[] = {1, 1, 1};
   struct gkyl_range local_conf, local_ext_conf;
   gkyl_create_grid_ranges(&grid_conf, ghost_conf, &local_ext_conf, &local_conf);
 
-  int ghost_vel[] = { 0, 0 };
+  int ghost_vel[] = {0, 0};
   struct gkyl_range local_vel, local_ext_vel;
   gkyl_create_grid_ranges(&grid_vel, ghost_vel, &local_ext_vel, &local_vel);
 
-  int ghost[GKYL_MAX_DIM] = { 0 };
+  int ghost[GKYL_MAX_DIM] = {0};
   for (int d = 0; d < cdim; ++d) {
     ghost[d] = ghost_conf[d];
   }
@@ -392,7 +379,7 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
 
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = { 0.0, 0.0 },
+    .world = {0.0, 0.0},
     .mapc2p = mapc2p_3x,
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x,
@@ -403,11 +390,12 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     .local_ext = local_ext_conf,
     .global = local_conf,
     .global_ext = local_ext_conf,
-    .basis = basis_conf,
+    .basis = basis_conf
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(grid_conf, geometry_input);
-  gkyl_create_grid_ranges(&geometry_input.geo_grid, ghost_conf, &geometry_input.geo_local_ext,
-    &geometry_input.geo_local);
+  gkyl_create_grid_ranges(
+    &geometry_input.geo_grid, ghost_conf, &geometry_input.geo_local_ext, &geometry_input.geo_local
+  );
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
 
   struct gk_geometry *gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
@@ -421,11 +409,13 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     gkyl_gk_geometry_release(gk_geom_dev);
   }
 
-  struct gkyl_mapc2p_inp c2p_in = { };
-  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, grid_vel,
-    local, local_ext, local_vel, local_ext_vel, use_gpu);
-  struct gkyl_velocity_map *gvm_ho = gkyl_velocity_map_new(c2p_in, grid, grid_vel,
-    local, local_ext, local_vel, local_ext_vel, false);
+  struct gkyl_mapc2p_inp c2p_in = {};
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
+    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_ext_vel, use_gpu
+  );
+  struct gkyl_velocity_map *gvm_ho = gkyl_velocity_map_new(
+    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_ext_vel, false
+  );
 
   struct gkyl_array *phi = mkarr(use_gpu, basis_conf.num_basis, local_ext_conf.volume);
   struct gkyl_array *phi_ho = mkarr(false, basis_conf.num_basis, local_ext_conf.volume);
@@ -442,7 +432,7 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     .vel_map = gvm,
     .use_gpu = use_gpu,
     .mass = ctx.mass,
-    .charge = ctx.charge,
+    .charge = ctx.charge
   };
   struct gkyl_loss_cone_mask_gyrokinetic *proj_mask =
     gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
@@ -452,8 +442,9 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
   struct gkyl_array *mask_cpu = mkarr(false, 1, local_ext.volume);
   struct gkyl_array *mask_ref = mkarr(false, 1, local_ext.volume);
 
-  gkyl_loss_cone_mask_gyrokinetic_advance(proj_mask, &local, &local_conf,
-    gk_geom->geo_corn.bmag, phi, 0, 0, mask);
+  gkyl_loss_cone_mask_gyrokinetic_advance(
+    proj_mask, &local, &local_conf, gk_geom->geo_corn.bmag, phi, 0, 0, mask
+  );
   gkyl_array_copy(mask_ho, mask);
 
   struct gkyl_array *bmag_ho = mkarr(false, basis_conf.num_basis, local_ext_conf.volume);
@@ -466,12 +457,9 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     const struct gkyl_range arr_range_conf = local_conf;
     const struct gkyl_range arr_range = local;
 
-    snprintf(f_bmag, sizeof(f_bmag), "ctest_loss_cone_mask_%s_%s_bmag.gkyl", suffix_dev,
-      suffix_phi);
-    snprintf(f_phi, sizeof(f_phi), "ctest_loss_cone_mask_%s_%s_phi.gkyl", suffix_dev,
-      suffix_phi);
-    snprintf(f_mask, sizeof(f_mask), "ctest_loss_cone_mask_%s_%s_mask.gkyl", suffix_dev,
-      suffix_phi);
+    snprintf(f_bmag, sizeof(f_bmag), "ctest_loss_cone_mask_%s_%s_bmag.gkyl", suffix_dev, suffix_phi);
+    snprintf(f_phi, sizeof(f_phi), "ctest_loss_cone_mask_%s_%s_phi.gkyl", suffix_dev, suffix_phi);
+    snprintf(f_mask, sizeof(f_mask), "ctest_loss_cone_mask_%s_%s_mask.gkyl", suffix_dev, suffix_phi);
 
     gkyl_grid_sub_array_write(&grid_conf, &arr_range_conf, 0, bmag_ho, f_bmag);
     gkyl_grid_sub_array_write(&grid_conf, &arr_range_conf, 0, phi_ho, f_phi);
@@ -479,8 +467,9 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
   }
 
   gkyl_array_clear(mask_ref, 0.0);
-  build_reference_mask(&local, &local_conf, &basis_conf, gvm_ho,
-    bmag_ho, phi_ho, ctx.mass, ctx.charge, mask_ref);
+  build_reference_mask(
+    &local, &local_conf, &basis_conf, gvm_ho, bmag_ho, phi_ho, ctx.mass, ctx.charge, mask_ref
+  );
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -490,13 +479,14 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
       .vel_map = gvm_ho,
       .use_gpu = false,
       .mass = ctx.mass,
-      .charge = ctx.charge,
+      .charge = ctx.charge
     };
     struct gkyl_loss_cone_mask_gyrokinetic *proj_mask_cpu =
       gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj_cpu);
 
-    gkyl_loss_cone_mask_gyrokinetic_advance(proj_mask_cpu, &local, &local_conf,
-      bmag_ho, phi_ho, 0, 0, mask_cpu);
+    gkyl_loss_cone_mask_gyrokinetic_advance(
+      proj_mask_cpu, &local, &local_conf, bmag_ho, phi_ho, 0, 0, mask_cpu
+    );
 
     int gpu_cpu_mismatches = 0;
     struct gkyl_range_iter iter_cmp;
@@ -509,8 +499,10 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
       bool same = fabs(mg[0] - mc[0]) < 1e-12;
       TEST_CHECK(same);
       if (!same && gpu_cpu_mismatches < 8) {
-        printf("gpu/cpu mismatch idx=(%d,%d,%d): gpu=%g cpu=%g\n",
-          iter_cmp.idx[0], iter_cmp.idx[1], iter_cmp.idx[2], mg[0], mc[0]);
+        printf(
+          "gpu/cpu mismatch idx=(%d,%d,%d): gpu=%g cpu=%g\n", iter_cmp.idx[0], iter_cmp.idx[1],
+          iter_cmp.idx[2], mg[0], mc[0]
+        );
         gpu_cpu_mismatches++;
       }
     }
@@ -530,8 +522,10 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     bool ok = fabs(m[0] - r[0]) < 1e-12;
     TEST_CHECK(ok);
     if (!ok && mismatches < 8) {
-      printf("mask mismatch idx=(%d,%d,%d): got=%g ref=%g\n",
-        iter.idx[0], iter.idx[1], iter.idx[2], m[0], r[0]);
+      printf(
+        "mask mismatch idx=(%d,%d,%d): got=%g ref=%g\n", iter.idx[0], iter.idx[1], iter.idx[2],
+        m[0], r[0]
+      );
       mismatches++;
     }
   }
@@ -556,8 +550,8 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     gkyl_cu_free(basis_on_dev_conf);
   }
 #else
-  (void) basis_on_dev;
-  (void) basis_on_dev_conf;
+  (void)basis_on_dev;
+  (void)basis_on_dev_conf;
 #endif
 }
 
@@ -572,8 +566,7 @@ struct constant_boundary_case {
 };
 
 static void
-set_constant_1x_p1(struct gkyl_array *field, const struct gkyl_range *range,
-  double value)
+set_constant_1x_p1(struct gkyl_array *field, const struct gkyl_range *range, double value)
 {
   gkyl_array_clear(field, 0.0);
 
@@ -586,9 +579,9 @@ set_constant_1x_p1(struct gkyl_array *field, const struct gkyl_range *range,
   }
 }
 
-static double
-constant_boundary_energy(double charge, double phi_plasma, double phi_wall,
-  enum gkyl_loss_cone_boundary_type boundary)
+static double constant_boundary_energy(
+  double charge, double phi_plasma, double phi_wall, enum gkyl_loss_cone_boundary_type boundary
+)
 {
   if (boundary == GKYL_LOSS_CONE_BC_CLOSED) {
     return DBL_MAX;
@@ -599,110 +592,111 @@ constant_boundary_energy(double charge, double phi_plasma, double phi_wall,
   return GKYL_MAX2(0.0, charge * (phi_wall - phi_plasma));
 }
 
-static void
-run_constant_boundary_cases(bool use_gpu)
+static void run_constant_boundary_cases(bool use_gpu)
 {
   // With constant B and phi, mu*B cancels between H and each wall barrier.
   // These cases therefore have an exact, independent criterion in each
   // v_parallel cell: every velocity endpoint must satisfy K < Delta U at
   // both boundaries.
   const struct constant_boundary_case cases[] = {
-    {
-      .name = "grounded_wall_electron",
-      .charge = -1.0, .phi_plasma = 4.0,
-      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+    {.name = "grounded_wall_electron",
+     .charge = -1.0,
+     .phi_plasma = 4.0,
+     .phi_wall_lo = 0.0,
+     .phi_wall_up = 0.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+     .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH},
+    {.name = "grounded_wall_ion_no_barrier",
+     .charge = 1.0,
+     .phi_plasma = 4.0,
+     .phi_wall_lo = 0.0,
+     .phi_wall_up = 0.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+     .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH},
+    {.name = "grounded_wall_ion_reversed_phi",
+     .charge = 1.0,
+     .phi_plasma = -4.0,
+     .phi_wall_lo = 0.0,
+     .phi_wall_up = 0.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+     .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH},
+    {.name = "asymmetric_biased_wall_electron",
+     .charge = -1.0,
+     .phi_plasma = 4.0,
+     .phi_wall_lo = 0.0,
+     .phi_wall_up = 3.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+     .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH},
+    {.name = "asymmetric_biased_wall_ion",
+     .charge = 1.0,
+     .phi_plasma = 0.0,
+     .phi_wall_lo = 4.0,
+     .phi_wall_up = 1.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+     .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH},
+    {// This is the asymmetric electron case shifted everywhere by +7 V.
+     .name = "gauge_shifted_asymmetric_electron",
+     .charge = -1.0,
+     .phi_plasma = 11.0,
+     .phi_wall_lo = 7.0,
+     .phi_wall_up = 10.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+     .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH
     },
-    {
-      .name = "grounded_wall_ion_no_barrier",
-      .charge = 1.0, .phi_plasma = 4.0,
-      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+    {// Delta U=2 and a v_parallel endpoint is exactly |v|=2. Equality
+     // reaches the wall and must be classified as passing/absorbed.
+     .name = "sheath_cutoff_equality",
+     .charge = -1.0,
+     .phi_plasma = 2.0,
+     .phi_wall_lo = 0.0,
+     .phi_wall_up = 0.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+     .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH
     },
-    {
-      .name = "grounded_wall_ion_reversed_phi",
-      .charge = 1.0, .phi_plasma = -4.0,
-      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-    },
-    {
-      .name = "asymmetric_biased_wall_electron",
-      .charge = -1.0, .phi_plasma = 4.0,
-      .phi_wall_lo = 0.0, .phi_wall_up = 3.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-    },
-    {
-      .name = "asymmetric_biased_wall_ion",
-      .charge = 1.0, .phi_plasma = 0.0,
-      .phi_wall_lo = 4.0, .phi_wall_up = 1.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-    },
-    {
-      // This is the asymmetric electron case shifted everywhere by +7 V.
-      .name = "gauge_shifted_asymmetric_electron",
-      .charge = -1.0, .phi_plasma = 11.0,
-      .phi_wall_lo = 7.0, .phi_wall_up = 10.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-    },
-    {
-      // Delta U=2 and a v_parallel endpoint is exactly |v|=2. Equality
-      // reaches the wall and must be classified as passing/absorbed.
-      .name = "sheath_cutoff_equality",
-      .charge = -1.0, .phi_plasma = 2.0,
-      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-    },
-    {
-      .name = "open_boundaries",
-      .charge = -1.0, .phi_plasma = 4.0,
-      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_OPEN,
-      .upper_boundary = GKYL_LOSS_CONE_BC_OPEN,
-    },
-    {
-      .name = "open_and_closed_boundaries",
-      .charge = -1.0, .phi_plasma = 4.0,
-      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_OPEN,
-      .upper_boundary = GKYL_LOSS_CONE_BC_CLOSED,
-    },
-    {
-      .name = "closed_and_sheath_boundaries",
-      .charge = -1.0, .phi_plasma = 4.0,
-      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_CLOSED,
-      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-    },
-    {
-      .name = "sheath_and_closed_boundaries",
-      .charge = -1.0, .phi_plasma = 4.0,
-      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
-      .upper_boundary = GKYL_LOSS_CONE_BC_CLOSED,
-    },
-    {
-      .name = "closed_boundaries",
-      .charge = -1.0, .phi_plasma = 4.0,
-      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
-      .lower_boundary = GKYL_LOSS_CONE_BC_CLOSED,
-      .upper_boundary = GKYL_LOSS_CONE_BC_CLOSED,
-    },
+    {.name = "open_boundaries",
+     .charge = -1.0,
+     .phi_plasma = 4.0,
+     .phi_wall_lo = 0.0,
+     .phi_wall_up = 0.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_OPEN,
+     .upper_boundary = GKYL_LOSS_CONE_BC_OPEN},
+    {.name = "open_and_closed_boundaries",
+     .charge = -1.0,
+     .phi_plasma = 4.0,
+     .phi_wall_lo = 0.0,
+     .phi_wall_up = 0.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_OPEN,
+     .upper_boundary = GKYL_LOSS_CONE_BC_CLOSED},
+    {.name = "closed_and_sheath_boundaries",
+     .charge = -1.0,
+     .phi_plasma = 4.0,
+     .phi_wall_lo = 0.0,
+     .phi_wall_up = 0.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_CLOSED,
+     .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH},
+    {.name = "sheath_and_closed_boundaries",
+     .charge = -1.0,
+     .phi_plasma = 4.0,
+     .phi_wall_lo = 0.0,
+     .phi_wall_up = 0.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+     .upper_boundary = GKYL_LOSS_CONE_BC_CLOSED},
+    {.name = "closed_boundaries",
+     .charge = -1.0,
+     .phi_plasma = 4.0,
+     .phi_wall_lo = 0.0,
+     .phi_wall_up = 0.0,
+     .lower_boundary = GKYL_LOSS_CONE_BC_CLOSED,
+     .upper_boundary = GKYL_LOSS_CONE_BC_CLOSED}
   };
 
-  double lower[] = { -1.0, -4.0, 0.0 };
-  double upper[] = { 1.0, 4.0, 1.0 };
-  int cells[] = { 2, 8, 1 };
-  double lower_conf[] = { lower[0] }, upper_conf[] = { upper[0] };
-  double lower_vel[] = { lower[1], lower[2] };
-  double upper_vel[] = { upper[1], upper[2] };
-  int cells_conf[] = { cells[0] }, cells_vel[] = { cells[1], cells[2] };
+  double lower[] = {-1.0, -4.0, 0.0};
+  double upper[] = {1.0, 4.0, 1.0};
+  int cells[] = {2, 8, 1};
+  double lower_conf[] = {lower[0]}, upper_conf[] = {upper[0]};
+  double lower_vel[] = {lower[1], lower[2]};
+  double upper_vel[] = {upper[1], upper[2]};
+  int cells_conf[] = {cells[0]}, cells_vel[] = {cells[1], cells[2]};
 
   struct gkyl_rect_grid grid, grid_conf, grid_vel;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
@@ -712,18 +706,19 @@ run_constant_boundary_cases(bool use_gpu)
   struct gkyl_basis basis_conf;
   gkyl_cart_modal_serendip(&basis_conf, 1, 1);
 
-  int ghost_conf[] = { 1 };
-  int ghost_vel[] = { 0, 0 };
-  int ghost[] = { 1, 0, 0 };
+  int ghost_conf[] = {1};
+  int ghost_vel[] = {0, 0};
+  int ghost[] = {1, 0, 0};
   struct gkyl_range local_conf, local_ext_conf, local_vel, local_ext_vel;
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid_conf, ghost_conf, &local_ext_conf, &local_conf);
   gkyl_create_grid_ranges(&grid_vel, ghost_vel, &local_ext_vel, &local_vel);
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  struct gkyl_mapc2p_inp c2p_in = { };
-  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, grid_vel,
-    local, local_ext, local_vel, local_ext_vel, use_gpu);
+  struct gkyl_mapc2p_inp c2p_in = {};
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
+    c2p_in, grid, grid_vel, local, local_ext, local_vel, local_ext_vel, use_gpu
+  );
 
   struct gkyl_array *bmag = mkarr(use_gpu, basis_conf.num_basis, local_ext_conf.volume);
   struct gkyl_array *phi = mkarr(use_gpu, basis_conf.num_basis, local_ext_conf.volume);
@@ -751,28 +746,30 @@ run_constant_boundary_cases(bool use_gpu)
     gkyl_array_copy(phi_wall_up, phi_wall_up_ho);
 
     struct gkyl_loss_cone_mask_gyrokinetic *up =
-      gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp) {
-        .conf_basis = &basis_conf,
+      gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp
+      ){.conf_basis = &basis_conf,
         .vel_map = gvm,
         .use_gpu = use_gpu,
         .mass = 1.0,
         .charge = test->charge,
         .lower_boundary = test->lower_boundary,
-        .upper_boundary = test->upper_boundary,
-      });
+        .upper_boundary = test->upper_boundary});
 
-    const struct gkyl_array *wall_lo = test->lower_boundary == GKYL_LOSS_CONE_BC_SHEATH
-      ? phi_wall_lo : 0;
-    const struct gkyl_array *wall_up = test->upper_boundary == GKYL_LOSS_CONE_BC_SHEATH
-      ? phi_wall_up : 0;
-    gkyl_loss_cone_mask_gyrokinetic_advance(up, &local, &local_conf,
-      bmag, phi, wall_lo, wall_up, mask);
+    const struct gkyl_array *wall_lo =
+      test->lower_boundary == GKYL_LOSS_CONE_BC_SHEATH ? phi_wall_lo : 0;
+    const struct gkyl_array *wall_up =
+      test->upper_boundary == GKYL_LOSS_CONE_BC_SHEATH ? phi_wall_up : 0;
+    gkyl_loss_cone_mask_gyrokinetic_advance(
+      up, &local, &local_conf, bmag, phi, wall_lo, wall_up, mask
+    );
     gkyl_array_copy(mask_ho, mask);
 
-    double barrier_lo = constant_boundary_energy(test->charge, test->phi_plasma,
-      test->phi_wall_lo, test->lower_boundary);
-    double barrier_up = constant_boundary_energy(test->charge, test->phi_plasma,
-      test->phi_wall_up, test->upper_boundary);
+    double barrier_lo = constant_boundary_energy(
+      test->charge, test->phi_plasma, test->phi_wall_lo, test->lower_boundary
+    );
+    double barrier_up = constant_boundary_energy(
+      test->charge, test->phi_plasma, test->phi_wall_up, test->upper_boundary
+    );
 
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &local);
@@ -789,9 +786,10 @@ run_constant_boundary_cases(bool use_gpu)
       bool ok = fabs(actual - expected) < 1e-12;
       TEST_CHECK(ok);
       if (!ok) {
-        TEST_MSG("%s idx=(%d,%d,%d): got=%g expected=%g Kmax=%g barriers=(%g,%g)",
-          test->name, iter.idx[0], iter.idx[1], iter.idx[2], actual, expected,
-          kinetic_max, barrier_lo, barrier_up);
+        TEST_MSG(
+          "%s idx=(%d,%d,%d): got=%g expected=%g Kmax=%g barriers=(%g,%g)", test->name, iter.idx[0],
+          iter.idx[1], iter.idx[2], actual, expected, kinetic_max, barrier_lo, barrier_up
+        );
       }
     }
 
@@ -811,52 +809,46 @@ run_constant_boundary_cases(bool use_gpu)
   gkyl_velocity_map_release(gvm);
 }
 
-void
-test_1x2v_p1_gk_ho(void)
+void test_1x2v_p1_gk_ho(void)
 {
   run_case_1x2v(1, false, false);
 }
 
-void
-test_1x2v_p1_nonzero_phi_gk_ho(void)
+void test_1x2v_p1_nonzero_phi_gk_ho(void)
 {
   run_case_1x2v(1, false, true);
 }
 
-void
-test_1x2v_p1_constant_boundaries_gk_ho(void)
+void test_1x2v_p1_constant_boundaries_gk_ho(void)
 {
   run_constant_boundary_cases(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void
-test_1x2v_p1_gk_dev(void)
+void test_1x2v_p1_gk_dev(void)
 {
   run_case_1x2v(1, true, false);
 }
 
-void
-test_1x2v_p1_nonzero_phi_gk_dev(void)
+void test_1x2v_p1_nonzero_phi_gk_dev(void)
 {
   run_case_1x2v(1, true, true);
 }
 
-void
-test_1x2v_p1_constant_boundaries_gk_dev(void)
+void test_1x2v_p1_constant_boundaries_gk_dev(void)
 {
   run_constant_boundary_cases(true);
 }
 #endif
 
 TEST_LIST = {
-  { "test_1x2v_p1_gk_ho", test_1x2v_p1_gk_ho },
-  { "test_1x2v_p1_nonzero_phi_gk_ho", test_1x2v_p1_nonzero_phi_gk_ho },
-  { "test_1x2v_p1_constant_boundaries_gk_ho", test_1x2v_p1_constant_boundaries_gk_ho },
+  {"test_1x2v_p1_gk_ho", test_1x2v_p1_gk_ho},
+  {"test_1x2v_p1_nonzero_phi_gk_ho", test_1x2v_p1_nonzero_phi_gk_ho},
+  {"test_1x2v_p1_constant_boundaries_gk_ho", test_1x2v_p1_constant_boundaries_gk_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x2v_p1_gk_dev", test_1x2v_p1_gk_dev },
-  { "test_1x2v_p1_nonzero_phi_gk_dev", test_1x2v_p1_nonzero_phi_gk_dev },
-  { "test_1x2v_p1_constant_boundaries_gk_dev", test_1x2v_p1_constant_boundaries_gk_dev },
+  {"test_1x2v_p1_gk_dev", test_1x2v_p1_gk_dev},
+  {"test_1x2v_p1_nonzero_phi_gk_dev", test_1x2v_p1_nonzero_phi_gk_dev},
+  {"test_1x2v_p1_constant_boundaries_gk_dev", test_1x2v_p1_constant_boundaries_gk_dev},
 #endif
-  { NULL, NULL },
+  {NULL, NULL}
 };

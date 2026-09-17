@@ -6,34 +6,65 @@
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_wv_vacuum_einstein_priv.h>
 
-void
-gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution,
-  const double q[64], double flux[64])
+void gkyl_vacuum_einstein_flux(
+  double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing,
+  enum gkyl_spacetime_evolution spacetime_evolution, const double q[64], double flux[64]
+)
 {
   double spatial_metric[3][3];
-  spatial_metric[0][0] = q[0]; spatial_metric[0][1] = q[1]; spatial_metric[0][2] = q[2];
-  spatial_metric[1][0] = q[3]; spatial_metric[1][1] = q[4]; spatial_metric[1][2] = q[5];
-  spatial_metric[2][0] = q[6]; spatial_metric[2][1] = q[7]; spatial_metric[2][2] = q[8];
+  spatial_metric[0][0] = q[0];
+  spatial_metric[0][1] = q[1];
+  spatial_metric[0][2] = q[2];
+  spatial_metric[1][0] = q[3];
+  spatial_metric[1][1] = q[4];
+  spatial_metric[1][2] = q[5];
+  spatial_metric[2][0] = q[6];
+  spatial_metric[2][1] = q[7];
+  spatial_metric[2][2] = q[8];
 
   double lapse = q[9];
 
   double extrinsic_curvature[3][3];
-  extrinsic_curvature[0][0] = q[10]; extrinsic_curvature[0][1] = q[11]; extrinsic_curvature[0][2] = q[12];
-  extrinsic_curvature[1][0] = q[13]; extrinsic_curvature[1][1] = q[14]; extrinsic_curvature[1][2] = q[15];
-  extrinsic_curvature[2][0] = q[16]; extrinsic_curvature[2][1] = q[17]; extrinsic_curvature[2][2] = q[18];
+  extrinsic_curvature[0][0] = q[10];
+  extrinsic_curvature[0][1] = q[11];
+  extrinsic_curvature[0][2] = q[12];
+  extrinsic_curvature[1][0] = q[13];
+  extrinsic_curvature[1][1] = q[14];
+  extrinsic_curvature[1][2] = q[15];
+  extrinsic_curvature[2][0] = q[16];
+  extrinsic_curvature[2][1] = q[17];
+  extrinsic_curvature[2][2] = q[18];
 
   double spatial_metric_der[3][3][3];
-  spatial_metric_der[0][0][0] = q[19]; spatial_metric_der[0][0][1] = q[20]; spatial_metric_der[0][0][2] = q[21];
-  spatial_metric_der[0][1][0] = q[22]; spatial_metric_der[0][1][1] = q[23]; spatial_metric_der[0][1][2] = q[24];
-  spatial_metric_der[0][2][0] = q[25]; spatial_metric_der[0][2][1] = q[26]; spatial_metric_der[0][2][2] = q[27];
+  spatial_metric_der[0][0][0] = q[19];
+  spatial_metric_der[0][0][1] = q[20];
+  spatial_metric_der[0][0][2] = q[21];
+  spatial_metric_der[0][1][0] = q[22];
+  spatial_metric_der[0][1][1] = q[23];
+  spatial_metric_der[0][1][2] = q[24];
+  spatial_metric_der[0][2][0] = q[25];
+  spatial_metric_der[0][2][1] = q[26];
+  spatial_metric_der[0][2][2] = q[27];
 
-  spatial_metric_der[1][0][0] = q[28]; spatial_metric_der[1][0][1] = q[29]; spatial_metric_der[1][0][2] = q[30];
-  spatial_metric_der[1][1][0] = q[31]; spatial_metric_der[1][1][1] = q[32]; spatial_metric_der[1][1][2] = q[33];
-  spatial_metric_der[1][2][0] = q[34]; spatial_metric_der[1][2][1] = q[35]; spatial_metric_der[1][2][2] = q[36];
+  spatial_metric_der[1][0][0] = q[28];
+  spatial_metric_der[1][0][1] = q[29];
+  spatial_metric_der[1][0][2] = q[30];
+  spatial_metric_der[1][1][0] = q[31];
+  spatial_metric_der[1][1][1] = q[32];
+  spatial_metric_der[1][1][2] = q[33];
+  spatial_metric_der[1][2][0] = q[34];
+  spatial_metric_der[1][2][1] = q[35];
+  spatial_metric_der[1][2][2] = q[36];
 
-  spatial_metric_der[2][0][0] = q[37]; spatial_metric_der[2][0][1] = q[38]; spatial_metric_der[2][0][2] = q[39];
-  spatial_metric_der[2][1][0] = q[40]; spatial_metric_der[2][1][1] = q[41]; spatial_metric_der[2][1][2] = q[42];
-  spatial_metric_der[2][2][0] = q[43]; spatial_metric_der[2][2][1] = q[44]; spatial_metric_der[2][2][2] = q[45];
+  spatial_metric_der[2][0][0] = q[37];
+  spatial_metric_der[2][0][1] = q[38];
+  spatial_metric_der[2][0][2] = q[39];
+  spatial_metric_der[2][1][0] = q[40];
+  spatial_metric_der[2][1][1] = q[41];
+  spatial_metric_der[2][1][2] = q[42];
+  spatial_metric_der[2][2][0] = q[43];
+  spatial_metric_der[2][2][1] = q[44];
+  spatial_metric_der[2][2][2] = q[45];
 
   double lapse_der[3];
   lapse_der[0] = q[46];
@@ -51,9 +82,15 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
   shift_vect[2] = q[54];
 
   double shift_vect_der[3][3];
-  shift_vect_der[0][0] = q[55]; shift_vect_der[0][1] = q[56]; shift_vect_der[0][2] = q[57];
-  shift_vect_der[1][0] = q[58]; shift_vect_der[1][1] = q[59]; shift_vect_der[1][2] = q[60];
-  shift_vect_der[2][0] = q[61]; shift_vect_der[2][1] = q[62]; shift_vect_der[2][2] = q[63];
+  shift_vect_der[0][0] = q[55];
+  shift_vect_der[0][1] = q[56];
+  shift_vect_der[0][2] = q[57];
+  shift_vect_der[1][0] = q[58];
+  shift_vect_der[1][1] = q[59];
+  shift_vect_der[1][2] = q[60];
+  shift_vect_der[2][0] = q[61];
+  shift_vect_der[2][1] = q[62];
+  shift_vect_der[2][2] = q[63];
 
   bool in_excision_region = false;
   if (lapse < excision_threshold) {
@@ -61,7 +98,7 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
   }
 
   if (!in_excision_region) {
-    double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+    double **inv_spatial_metric = gkyl_malloc(sizeof(double *[3]));
     for (int i = 0; i < 3; i++) {
       inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
     }
@@ -71,8 +108,7 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
     double evolution_func = 0.0;
     if (spacetime_evolution == GKYL_RICCI_EVOLUTION) {
       evolution_func = 0.0;
-    }
-    else if (spacetime_evolution == GKYL_EINSTEIN_EVOLUTION) {
+    } else if (spacetime_evolution == GKYL_EINSTEIN_EVOLUTION) {
       evolution_func = 1.0;
     }
 
@@ -86,11 +122,9 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
     double slicing_func = 0.0;
     if (spacetime_slicing == GKYL_GEODESIC_SLICING) {
       slicing_func = 0.0;
-    }
-    else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
+    } else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
       slicing_func = extrinsic_curvature_trace;
-    }
-    else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
+    } else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
       slicing_func = 2.0 * extrinsic_curvature_trace / lapse;
     }
 
@@ -99,9 +133,10 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
       for (int j = 0; j < 3; j++) {
         for (int k = 0; k < 3; k++) {
           spatial_metric_der_raised1[k][i][j] = 0.0;
-          
+
           for (int l = 0; l < 3; l++) {
-            spatial_metric_der_raised1[k][i][j] += inv_spatial_metric[k][l] * spatial_metric_der[l][i][j];
+            spatial_metric_der_raised1[k][i][j] +=
+              inv_spatial_metric[k][l] * spatial_metric_der[l][i][j];
           }
         }
       }
@@ -114,7 +149,8 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
           spatial_metric_der_raised3[i][j][k] = 0.0;
 
           for (int l = 0; l < 3; l++) {
-            spatial_metric_der_raised3[i][j][k] += inv_spatial_metric[l][k] * spatial_metric_der[i][j][l];
+            spatial_metric_der_raised3[i][j][k] +=
+              inv_spatial_metric[l][k] * spatial_metric_der[i][j][l];
           }
         }
       }
@@ -123,7 +159,7 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
     double aux_vect_raised[3];
     for (int k = 0; k < 3; k++) {
       aux_vect_raised[k] = 0.0;
-        
+
       for (int l = 0; l < 3; l++) {
         aux_vect_raised[k] += inv_spatial_metric[k][l] * aux_vect[l];
       }
@@ -147,7 +183,8 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
 
         for (int l = 0; l < 3; l++) {
           for (int m = 0; m < 3; m++) {
-            shift_vect_der_switched[i][k] += inv_spatial_metric[i][l] * spatial_metric[m][k] * shift_vect_der[l][m];
+            shift_vect_der_switched[i][k] +=
+              inv_spatial_metric[i][l] * spatial_metric[m][k] * shift_vect_der[l][m];
           }
         }
       }
@@ -156,7 +193,8 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
     double symmetrized_shift[3][3];
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        symmetrized_shift[i][j] = (1.0 / lapse) * (shift_vect_der_lowered[i][j] + shift_vect_der_lowered[j][i]);
+        symmetrized_shift[i][j] =
+          (1.0 / lapse) * (shift_vect_der_lowered[i][j] + shift_vect_der_lowered[j][i]);
       }
     }
 
@@ -165,7 +203,8 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
       for (int j = 0; j < 3; j++) {
         extrinsic_curvature_flux[i][j] = -shift_vect[0] * extrinsic_curvature[i][j];
         extrinsic_curvature_flux[i][j] += lapse * spatial_metric_der_raised1[0][i][j];
-        extrinsic_curvature_flux[i][j] -= lapse * (0.5 * evolution_func) * aux_vect_raised[0] * spatial_metric[i][j];
+        extrinsic_curvature_flux[i][j] -=
+          lapse * (0.5 * evolution_func) * aux_vect_raised[0] * spatial_metric[i][j];
 
         if (i == 0) {
           extrinsic_curvature_flux[i][j] += 0.5 * lapse * lapse_der[j];
@@ -196,7 +235,8 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
           spatial_metric_der_flux[0][i][j] -= shift_vect[r] * spatial_metric_der[r][i][j];
         }
 
-        spatial_metric_der_flux[0][i][j] += lapse * (extrinsic_curvature[i][j] - symmetrized_shift[i][j]);
+        spatial_metric_der_flux[0][i][j] +=
+          lapse * (extrinsic_curvature[i][j] - symmetrized_shift[i][j]);
       }
     }
 
@@ -215,26 +255,50 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
       aux_vect_flux[i] += shift_vect_der_switched[0][i];
       aux_vect_flux[i] -= shift_vect_der[i][0];
     }
-    
+
     for (int i = 0; i < 10; i++) {
       flux[i] = 0.0;
     }
 
-    flux[10] = extrinsic_curvature_flux[0][0]; flux[11] = extrinsic_curvature_flux[0][1]; flux[12] = extrinsic_curvature_flux[0][2];
-    flux[13] = extrinsic_curvature_flux[1][0]; flux[14] = extrinsic_curvature_flux[1][1]; flux[15] = extrinsic_curvature_flux[1][2];
-    flux[16] = extrinsic_curvature_flux[2][0]; flux[17] = extrinsic_curvature_flux[2][1]; flux[18] = extrinsic_curvature_flux[2][2];
+    flux[10] = extrinsic_curvature_flux[0][0];
+    flux[11] = extrinsic_curvature_flux[0][1];
+    flux[12] = extrinsic_curvature_flux[0][2];
+    flux[13] = extrinsic_curvature_flux[1][0];
+    flux[14] = extrinsic_curvature_flux[1][1];
+    flux[15] = extrinsic_curvature_flux[1][2];
+    flux[16] = extrinsic_curvature_flux[2][0];
+    flux[17] = extrinsic_curvature_flux[2][1];
+    flux[18] = extrinsic_curvature_flux[2][2];
 
-    flux[19] = spatial_metric_der_flux[0][0][0]; flux[20] = spatial_metric_der_flux[0][0][1]; flux[21] = spatial_metric_der_flux[0][0][2];
-    flux[22] = spatial_metric_der_flux[0][1][0]; flux[23] = spatial_metric_der_flux[0][1][1]; flux[24] = spatial_metric_der_flux[0][1][2];
-    flux[25] = spatial_metric_der_flux[0][2][0]; flux[26] = spatial_metric_der_flux[0][2][1]; flux[27] = spatial_metric_der_flux[0][2][2];
+    flux[19] = spatial_metric_der_flux[0][0][0];
+    flux[20] = spatial_metric_der_flux[0][0][1];
+    flux[21] = spatial_metric_der_flux[0][0][2];
+    flux[22] = spatial_metric_der_flux[0][1][0];
+    flux[23] = spatial_metric_der_flux[0][1][1];
+    flux[24] = spatial_metric_der_flux[0][1][2];
+    flux[25] = spatial_metric_der_flux[0][2][0];
+    flux[26] = spatial_metric_der_flux[0][2][1];
+    flux[27] = spatial_metric_der_flux[0][2][2];
 
-    flux[28] = spatial_metric_der_flux[1][0][0]; flux[29] = spatial_metric_der_flux[1][0][1]; flux[30] = spatial_metric_der_flux[1][0][2];
-    flux[31] = spatial_metric_der_flux[1][1][0]; flux[32] = spatial_metric_der_flux[1][1][1]; flux[33] = spatial_metric_der_flux[1][1][2];
-    flux[34] = spatial_metric_der_flux[1][2][0]; flux[35] = spatial_metric_der_flux[1][2][1]; flux[36] = spatial_metric_der_flux[1][2][2];
+    flux[28] = spatial_metric_der_flux[1][0][0];
+    flux[29] = spatial_metric_der_flux[1][0][1];
+    flux[30] = spatial_metric_der_flux[1][0][2];
+    flux[31] = spatial_metric_der_flux[1][1][0];
+    flux[32] = spatial_metric_der_flux[1][1][1];
+    flux[33] = spatial_metric_der_flux[1][1][2];
+    flux[34] = spatial_metric_der_flux[1][2][0];
+    flux[35] = spatial_metric_der_flux[1][2][1];
+    flux[36] = spatial_metric_der_flux[1][2][2];
 
-    flux[37] = spatial_metric_der_flux[2][0][0]; flux[38] = spatial_metric_der_flux[2][0][1]; flux[39] = spatial_metric_der_flux[2][0][2];
-    flux[40] = spatial_metric_der_flux[2][1][0]; flux[41] = spatial_metric_der_flux[2][1][1]; flux[42] = spatial_metric_der_flux[2][1][2];
-    flux[43] = spatial_metric_der_flux[2][2][0]; flux[44] = spatial_metric_der_flux[2][2][1]; flux[45] = spatial_metric_der_flux[2][2][2];
+    flux[37] = spatial_metric_der_flux[2][0][0];
+    flux[38] = spatial_metric_der_flux[2][0][1];
+    flux[39] = spatial_metric_der_flux[2][0][2];
+    flux[40] = spatial_metric_der_flux[2][1][0];
+    flux[41] = spatial_metric_der_flux[2][1][1];
+    flux[42] = spatial_metric_der_flux[2][1][2];
+    flux[43] = spatial_metric_der_flux[2][2][0];
+    flux[44] = spatial_metric_der_flux[2][2][1];
+    flux[45] = spatial_metric_der_flux[2][2][2];
 
     flux[46] = lapse_der_flux[0];
     flux[47] = lapse_der_flux[1];
@@ -247,31 +311,38 @@ gkyl_vacuum_einstein_flux(double excision_threshold, enum gkyl_spacetime_slicing
     for (int i = 52; i < 64; i++) {
       flux[i] = 0.0;
     }
-    
+
     for (int i = 0; i < 3; i++) {
       gkyl_free(inv_spatial_metric[i]);
     }
     gkyl_free(inv_spatial_metric);
-  }
-  else {
+  } else {
     for (int i = 0; i < 64; i++) {
       flux[i] = 0.0;
     }
   }
 }
 
-void 
-gkyl_vacuum_einstein_inv_spatial_metric(const double q[64], double ***inv_spatial_metric)
+void gkyl_vacuum_einstein_inv_spatial_metric(const double q[64], double ***inv_spatial_metric)
 {
   double spatial_metric[3][3];
-  spatial_metric[0][0] = q[0]; spatial_metric[0][1] = q[1]; spatial_metric[0][2] = q[2];
-  spatial_metric[1][0] = q[3]; spatial_metric[1][1] = q[4]; spatial_metric[1][2] = q[5];
-  spatial_metric[2][0] = q[6]; spatial_metric[2][1] = q[7]; spatial_metric[2][2] = q[8];
+  spatial_metric[0][0] = q[0];
+  spatial_metric[0][1] = q[1];
+  spatial_metric[0][2] = q[2];
+  spatial_metric[1][0] = q[3];
+  spatial_metric[1][1] = q[4];
+  spatial_metric[1][2] = q[5];
+  spatial_metric[2][0] = q[6];
+  spatial_metric[2][1] = q[7];
+  spatial_metric[2][2] = q[8];
 
-  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
-    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
-    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
-  
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                       (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                       (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
+
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
     trace += spatial_metric[i][i];
@@ -302,8 +373,7 @@ gkyl_vacuum_einstein_inv_spatial_metric(const double q[64], double ***inv_spatia
     for (int j = 0; j < 3; j++) {
       if (i == j) {
         euclidean_metric[i][j] = 1.0;
-      }
-      else {
+      } else {
         euclidean_metric[i][j] = 0.0;
       }
     }
@@ -311,14 +381,16 @@ gkyl_vacuum_einstein_inv_spatial_metric(const double q[64], double ***inv_spatia
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      (*inv_spatial_metric)[i][j] = (1.0 / spatial_det) *
-        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) - (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+      (*inv_spatial_metric)[i][j] =
+        (1.0 / spatial_det) * ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
+                               (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 }
 
-static inline double
-gkyl_vacuum_einstein_max_abs_speed(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, const double q[64])
+static inline double gkyl_vacuum_einstein_max_abs_speed(
+  double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, const double q[64]
+)
 {
   double lapse = q[9];
 
@@ -327,7 +399,7 @@ gkyl_vacuum_einstein_max_abs_speed(double excision_threshold, enum gkyl_spacetim
   shift_vect[1] = q[53];
   shift_vect[2] = q[54];
 
-  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
     inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
@@ -337,11 +409,9 @@ gkyl_vacuum_einstein_max_abs_speed(double excision_threshold, enum gkyl_spacetim
   double slicing_func = 0.0;
   if (spacetime_slicing == GKYL_GEODESIC_SLICING) {
     slicing_func = 0.0;
-  }
-  else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
+  } else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
     slicing_func = 1.0;
-  }
-  else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
+  } else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
     slicing_func = 2.0 / lapse;
   }
 
@@ -357,22 +427,23 @@ gkyl_vacuum_einstein_max_abs_speed(double excision_threshold, enum gkyl_spacetim
       if (fabs(shift_vect[i]) > max_eig) {
         max_eig = fabs(shift_vect[i]);
       }
-      if (fabs(-shift_vect[i] + (lapse * sqrt(slicing_func * inv_spatial_metric[i][i]))) > max_eig) {
+      if (fabs(-shift_vect[i] + (lapse * sqrt(slicing_func * inv_spatial_metric[i][i]))) >
+          max_eig) {
         max_eig = fabs(-shift_vect[i] + (lapse * sqrt(slicing_func * inv_spatial_metric[i][i])));
       }
-      if (fabs(-shift_vect[i] - (lapse * sqrt(slicing_func * inv_spatial_metric[i][i]))) > max_eig) {
+      if (fabs(-shift_vect[i] - (lapse * sqrt(slicing_func * inv_spatial_metric[i][i]))) >
+          max_eig) {
         max_eig = fabs(-shift_vect[i] - (lapse * sqrt(slicing_func * inv_spatial_metric[i][i])));
       }
     }
-    
+
     for (int i = 0; i < 3; i++) {
       gkyl_free(inv_spatial_metric[i]);
     }
     gkyl_free(inv_spatial_metric);
 
     return max_eig;
-  }
-  else {
+  } else {
     for (int i = 0; i < 3; i++) {
       gkyl_free(inv_spatial_metric[i]);
     }
@@ -383,7 +454,7 @@ gkyl_vacuum_einstein_max_abs_speed(double excision_threshold, enum gkyl_spacetim
 }
 
 static inline void
-cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout)
+cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 64; i++) {
@@ -392,7 +463,7 @@ cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 }
 
 static inline void
-riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double* qout)
+riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   // TODO: This should use a proper L matrix.
   for (int i = 0; i < 64; i++) {
@@ -400,53 +471,98 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
   }
 }
 
-static void
-vacuum_einstein_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+static void vacuum_einstein_wall(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   // Set spatial metric tensor.
-  ghost[0] = 1.0; ghost[1] = 0.0; ghost[2] = 0.0;
-  ghost[3] = 0.0; ghost[4] = 1.0; ghost[5] = 0.0;
-  ghost[6] = 0.0; ghost[7] = 0.0; ghost[8] = 1.0;
+  ghost[0] = 1.0;
+  ghost[1] = 0.0;
+  ghost[2] = 0.0;
+  ghost[3] = 0.0;
+  ghost[4] = 1.0;
+  ghost[5] = 0.0;
+  ghost[6] = 0.0;
+  ghost[7] = 0.0;
+  ghost[8] = 1.0;
 
   // Set lapse gauge variable.
   ghost[9] = 1.0;
 
   // Set extrinsic curvature tensor.
-  ghost[10] = 0.0; ghost[11] = 0.0; ghost[12] = 0.0;
-  ghost[13] = 0.0; ghost[14] = 0.0; ghost[15] = 0.0;
-  ghost[16] = 0.0; ghost[17] = 0.0; ghost[18] = 0.0;
+  ghost[10] = 0.0;
+  ghost[11] = 0.0;
+  ghost[12] = 0.0;
+  ghost[13] = 0.0;
+  ghost[14] = 0.0;
+  ghost[15] = 0.0;
+  ghost[16] = 0.0;
+  ghost[17] = 0.0;
+  ghost[18] = 0.0;
 
   // Set spatial metric tensor derivatives.
-  ghost[19] = 0.0; ghost[20] = 0.0; ghost[21] = 0.0;
-  ghost[22] = 0.0; ghost[23] = 0.0; ghost[24] = 0.0;
-  ghost[25] = 0.0; ghost[26] = 0.0; ghost[27] = 0.0;
+  ghost[19] = 0.0;
+  ghost[20] = 0.0;
+  ghost[21] = 0.0;
+  ghost[22] = 0.0;
+  ghost[23] = 0.0;
+  ghost[24] = 0.0;
+  ghost[25] = 0.0;
+  ghost[26] = 0.0;
+  ghost[27] = 0.0;
 
-  ghost[28] = 0.0; ghost[29] = 0.0; ghost[30] = 0.0;
-  ghost[31] = 0.0; ghost[32] = 0.0; ghost[33] = 0.0;
-  ghost[34] = 0.0; ghost[35] = 0.0; ghost[36] = 0.0;
+  ghost[28] = 0.0;
+  ghost[29] = 0.0;
+  ghost[30] = 0.0;
+  ghost[31] = 0.0;
+  ghost[32] = 0.0;
+  ghost[33] = 0.0;
+  ghost[34] = 0.0;
+  ghost[35] = 0.0;
+  ghost[36] = 0.0;
 
-  ghost[37] = 0.0; ghost[38] = 0.0; ghost[39] = 0.0;
-  ghost[40] = 0.0; ghost[41] = 0.0; ghost[42] = 0.0;
-  ghost[43] = 0.0; ghost[44] = 0.0; ghost[45] = 0.0;
+  ghost[37] = 0.0;
+  ghost[38] = 0.0;
+  ghost[39] = 0.0;
+  ghost[40] = 0.0;
+  ghost[41] = 0.0;
+  ghost[42] = 0.0;
+  ghost[43] = 0.0;
+  ghost[44] = 0.0;
+  ghost[45] = 0.0;
 
   // Set lapse function derivatives.
-  ghost[46] = 0.0; ghost[47] = 0.0; ghost[48] = 0.0;
+  ghost[46] = 0.0;
+  ghost[47] = 0.0;
+  ghost[48] = 0.0;
 
   // Set auxiliary vector.
-  ghost[49] = 0.0; ghost[50] = 0.0; ghost[51] = 0.0;
+  ghost[49] = 0.0;
+  ghost[50] = 0.0;
+  ghost[51] = 0.0;
 
   // Set shift gauge variables.
-  ghost[52] = 0.0; ghost[53] = 0.0; ghost[54] = 0.0;
+  ghost[52] = 0.0;
+  ghost[53] = 0.0;
+  ghost[54] = 0.0;
 
   // Set shift vector derivatives.
-  ghost[55] = 0.0; ghost[56] = 0.0; ghost[57] = 0.0;
-  ghost[58] = 0.0; ghost[59] = 0.0; ghost[60] = 0.0;
-  ghost[61] = 0.0; ghost[62] = 0.0; ghost[63] = 0.0;
+  ghost[55] = 0.0;
+  ghost[56] = 0.0;
+  ghost[57] = 0.0;
+  ghost[58] = 0.0;
+  ghost[59] = 0.0;
+  ghost[60] = 0.0;
+  ghost[61] = 0.0;
+  ghost[62] = 0.0;
+  ghost[63] = 0.0;
 }
 
-static inline void
-rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
-  double* GKYL_RESTRICT qlocal)
+static inline void rot_to_local(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
+)
 {
   // Temporary arrays to store rotated column vectors.
   double r1[3], r2[3], r3[3];
@@ -477,9 +593,15 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   v3[2] = (r1[2] * tau2[0]) + (r2[2] * tau2[1]) + (r3[2] * tau2[2]);
 
   // Rotate spatial metric tensor to local coordinate frame.
-  qlocal[0] = v1[0]; qlocal[1] = v1[1]; qlocal[2] = v1[2];
-  qlocal[3] = v2[0]; qlocal[4] = v2[1]; qlocal[5] = v2[2];
-  qlocal[6] = v3[0]; qlocal[7] = v3[1]; qlocal[8] = v3[2];
+  qlocal[0] = v1[0];
+  qlocal[1] = v1[1];
+  qlocal[2] = v1[2];
+  qlocal[3] = v2[0];
+  qlocal[4] = v2[1];
+  qlocal[5] = v2[2];
+  qlocal[6] = v3[0];
+  qlocal[7] = v3[1];
+  qlocal[8] = v3[2];
 
   qlocal[9] = qglobal[9];
 
@@ -512,9 +634,15 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   inv_v3[2] = (extr_r1[2] * tau2[0]) + (extr_r2[2] * tau2[1]) + (extr_r3[2] * tau2[2]);
 
   // Rotate extrinsic curvature tensor to local coordinate frame.
-  qlocal[10] = inv_v1[0]; qlocal[11] = inv_v1[1]; qlocal[12] = inv_v1[2];
-  qlocal[13] = inv_v2[0]; qlocal[14] = inv_v2[1]; qlocal[15] = inv_v2[2];
-  qlocal[16] = inv_v3[0]; qlocal[17] = inv_v3[1]; qlocal[18] = inv_v3[2];
+  qlocal[10] = inv_v1[0];
+  qlocal[11] = inv_v1[1];
+  qlocal[12] = inv_v1[2];
+  qlocal[13] = inv_v2[0];
+  qlocal[14] = inv_v2[1];
+  qlocal[15] = inv_v2[2];
+  qlocal[16] = inv_v3[0];
+  qlocal[17] = inv_v3[1];
+  qlocal[18] = inv_v3[2];
 
   // Temporary arrays to store rotated column vectors.
   double r11[3], r12[3], r13[3];
@@ -597,7 +725,7 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   s33[0] = (r31[0] * tau2[0]) + (r32[0] * tau2[1]) + (r33[0] * tau2[2]);
   s33[1] = (r31[1] * tau2[0]) + (r32[1] * tau2[1]) + (r33[1] * tau2[2]);
   s33[2] = (r31[2] * tau2[0]) + (r32[2] * tau2[1]) + (r33[2] * tau2[2]);
-  
+
   // Rotate spatial metric tensor derivative to local coordinate frame.
   qlocal[19] = (s11[0] * norm[0]) + (s21[0] * norm[1]) + (s31[0] * norm[2]);
   qlocal[20] = (s11[1] * norm[0]) + (s21[1] * norm[1]) + (s31[1] * norm[2]);
@@ -663,27 +791,43 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
 
   // Temporary arrays to store rotated shift derivative row vectors.
   double shiftder_v1[3], shiftder_v2[3], shiftder_v3[3];
-  shiftder_v1[0] = (shiftder_r1[0] * norm[0]) + (shiftder_r2[0] * norm[1]) + (shiftder_r3[0] * norm[2]);
-  shiftder_v1[1] = (shiftder_r1[0] * tau1[0]) + (shiftder_r2[0] * tau1[1]) + (shiftder_r3[0] * tau1[2]);
-  shiftder_v1[2] = (shiftder_r1[0] * tau2[0]) + (shiftder_r2[0] * tau2[1]) + (shiftder_r3[0] * tau2[2]);
+  shiftder_v1[0] =
+    (shiftder_r1[0] * norm[0]) + (shiftder_r2[0] * norm[1]) + (shiftder_r3[0] * norm[2]);
+  shiftder_v1[1] =
+    (shiftder_r1[0] * tau1[0]) + (shiftder_r2[0] * tau1[1]) + (shiftder_r3[0] * tau1[2]);
+  shiftder_v1[2] =
+    (shiftder_r1[0] * tau2[0]) + (shiftder_r2[0] * tau2[1]) + (shiftder_r3[0] * tau2[2]);
 
-  shiftder_v2[0] = (shiftder_r1[1] * norm[0]) + (shiftder_r2[1] * norm[1]) + (shiftder_r3[1] * norm[2]);
-  shiftder_v2[1] = (shiftder_r1[1] * tau1[0]) + (shiftder_r2[1] * tau1[1]) + (shiftder_r3[1] * tau1[2]);
-  shiftder_v2[2] = (shiftder_r1[1] * tau2[0]) + (shiftder_r2[1] * tau2[1]) + (shiftder_r3[1] * tau2[2]);
+  shiftder_v2[0] =
+    (shiftder_r1[1] * norm[0]) + (shiftder_r2[1] * norm[1]) + (shiftder_r3[1] * norm[2]);
+  shiftder_v2[1] =
+    (shiftder_r1[1] * tau1[0]) + (shiftder_r2[1] * tau1[1]) + (shiftder_r3[1] * tau1[2]);
+  shiftder_v2[2] =
+    (shiftder_r1[1] * tau2[0]) + (shiftder_r2[1] * tau2[1]) + (shiftder_r3[1] * tau2[2]);
 
-  shiftder_v3[0] = (shiftder_r1[2] * norm[0]) + (shiftder_r2[2] * norm[1]) + (shiftder_r3[2] * norm[2]);
-  shiftder_v3[1] = (shiftder_r1[2] * tau1[0]) + (shiftder_r2[2] * tau1[1]) + (shiftder_r3[2] * tau1[2]);
-  shiftder_v3[2] = (shiftder_r1[2] * tau2[0]) + (shiftder_r2[2] * tau2[1]) + (shiftder_r3[2] * tau2[2]);
+  shiftder_v3[0] =
+    (shiftder_r1[2] * norm[0]) + (shiftder_r2[2] * norm[1]) + (shiftder_r3[2] * norm[2]);
+  shiftder_v3[1] =
+    (shiftder_r1[2] * tau1[0]) + (shiftder_r2[2] * tau1[1]) + (shiftder_r3[2] * tau1[2]);
+  shiftder_v3[2] =
+    (shiftder_r1[2] * tau2[0]) + (shiftder_r2[2] * tau2[1]) + (shiftder_r3[2] * tau2[2]);
 
   // Rotate shift vector derivative to local coordinate frame.
-  qlocal[55] = shiftder_v1[0]; qlocal[56] = shiftder_v1[1]; qlocal[57] = shiftder_v1[2];
-  qlocal[58] = shiftder_v2[0]; qlocal[59] = shiftder_v2[1]; qlocal[60] = shiftder_v2[2];
-  qlocal[61] = shiftder_v3[0]; qlocal[62] = shiftder_v3[1]; qlocal[63] = shiftder_v3[2];
+  qlocal[55] = shiftder_v1[0];
+  qlocal[56] = shiftder_v1[1];
+  qlocal[57] = shiftder_v1[2];
+  qlocal[58] = shiftder_v2[0];
+  qlocal[59] = shiftder_v2[1];
+  qlocal[60] = shiftder_v2[2];
+  qlocal[61] = shiftder_v3[0];
+  qlocal[62] = shiftder_v3[1];
+  qlocal[63] = shiftder_v3[2];
 }
 
-static inline void
-rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
-  double* GKYL_RESTRICT qglobal)
+static inline void rot_to_global(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
+)
 {
   // Temporary arrays to store rotated column vectors.
   double r1[3], r2[3], r3[3];
@@ -714,9 +858,15 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   v3[2] = (r1[2] * norm[2]) + (r2[2] * tau1[2]) + (r3[2] * tau2[2]);
 
   // Rotate spatial metric tensor back to global coordinate frame.
-  qglobal[0] = v1[0]; qglobal[1] = v1[1]; qglobal[2] = v1[2];
-  qglobal[3] = v2[0]; qglobal[4] = v2[1]; qglobal[5] = v2[2];
-  qglobal[6] = v3[0]; qglobal[7] = v3[1]; qglobal[8] = v3[2];
+  qglobal[0] = v1[0];
+  qglobal[1] = v1[1];
+  qglobal[2] = v1[2];
+  qglobal[3] = v2[0];
+  qglobal[4] = v2[1];
+  qglobal[5] = v2[2];
+  qglobal[6] = v3[0];
+  qglobal[7] = v3[1];
+  qglobal[8] = v3[2];
 
   qglobal[9] = qlocal[9];
 
@@ -749,9 +899,15 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   inv_v3[2] = (extr_r1[2] * norm[2]) + (extr_r2[2] * tau1[2]) + (extr_r3[2] * tau2[2]);
 
   // Rotate extrinsic curvature tensor back to global coordinate frame.
-  qglobal[10] = inv_v1[0]; qglobal[11] = inv_v1[1]; qglobal[12] = inv_v1[2];
-  qglobal[13] = inv_v2[0]; qglobal[14] = inv_v2[1]; qglobal[15] = inv_v2[2];
-  qglobal[16] = inv_v3[0]; qglobal[17] = inv_v3[1]; qglobal[18] = inv_v3[2];
+  qglobal[10] = inv_v1[0];
+  qglobal[11] = inv_v1[1];
+  qglobal[12] = inv_v1[2];
+  qglobal[13] = inv_v2[0];
+  qglobal[14] = inv_v2[1];
+  qglobal[15] = inv_v2[2];
+  qglobal[16] = inv_v3[0];
+  qglobal[17] = inv_v3[1];
+  qglobal[18] = inv_v3[2];
 
   // Temporary arrays to store rotated column vectors.
   double r11[3], r12[3], r13[3];
@@ -900,28 +1056,46 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
 
   // Temporary arrays to store rotated shift derivative row vectors.
   double shiftder_v1[3], shiftder_v2[3], shiftder_v3[3];
-  shiftder_v1[0] = (shiftder_r1[0] * norm[0]) + (shiftder_r2[0] * tau1[0]) + (shiftder_r3[0] * tau2[0]);
-  shiftder_v1[1] = (shiftder_r1[0] * norm[1]) + (shiftder_r2[0] * tau1[1]) + (shiftder_r3[0] * tau2[1]);
-  shiftder_v1[2] = (shiftder_r1[0] * norm[2]) + (shiftder_r2[0] * tau1[2]) + (shiftder_r3[0] * tau2[2]);
+  shiftder_v1[0] =
+    (shiftder_r1[0] * norm[0]) + (shiftder_r2[0] * tau1[0]) + (shiftder_r3[0] * tau2[0]);
+  shiftder_v1[1] =
+    (shiftder_r1[0] * norm[1]) + (shiftder_r2[0] * tau1[1]) + (shiftder_r3[0] * tau2[1]);
+  shiftder_v1[2] =
+    (shiftder_r1[0] * norm[2]) + (shiftder_r2[0] * tau1[2]) + (shiftder_r3[0] * tau2[2]);
 
-  shiftder_v2[0] = (shiftder_r1[1] * norm[0]) + (shiftder_r2[1] * tau1[0]) + (shiftder_r3[1] * tau2[0]);
-  shiftder_v2[1] = (shiftder_r1[1] * norm[1]) + (shiftder_r2[1] * tau1[1]) + (shiftder_r3[1] * tau2[1]);
-  shiftder_v2[2] = (shiftder_r1[1] * norm[2]) + (shiftder_r2[1] * tau1[2]) + (shiftder_r3[1] * tau2[2]);
+  shiftder_v2[0] =
+    (shiftder_r1[1] * norm[0]) + (shiftder_r2[1] * tau1[0]) + (shiftder_r3[1] * tau2[0]);
+  shiftder_v2[1] =
+    (shiftder_r1[1] * norm[1]) + (shiftder_r2[1] * tau1[1]) + (shiftder_r3[1] * tau2[1]);
+  shiftder_v2[2] =
+    (shiftder_r1[1] * norm[2]) + (shiftder_r2[1] * tau1[2]) + (shiftder_r3[1] * tau2[2]);
 
-  shiftder_v3[0] = (shiftder_r1[2] * norm[0]) + (shiftder_r2[2] * tau1[0]) + (shiftder_r3[2] * tau2[0]);
-  shiftder_v3[1] = (shiftder_r1[2] * norm[1]) + (shiftder_r2[2] * tau1[1]) + (shiftder_r3[2] * tau2[1]);
-  shiftder_v3[2] = (shiftder_r1[2] * norm[2]) + (shiftder_r2[2] * tau1[2]) + (shiftder_r3[2] * tau2[2]);
+  shiftder_v3[0] =
+    (shiftder_r1[2] * norm[0]) + (shiftder_r2[2] * tau1[0]) + (shiftder_r3[2] * tau2[0]);
+  shiftder_v3[1] =
+    (shiftder_r1[2] * norm[1]) + (shiftder_r2[2] * tau1[1]) + (shiftder_r3[2] * tau2[1]);
+  shiftder_v3[2] =
+    (shiftder_r1[2] * norm[2]) + (shiftder_r2[2] * tau1[2]) + (shiftder_r3[2] * tau2[2]);
 
   // Rotate shift vector derivative back to global coordinate frame.
-  qglobal[55] = shiftder_v1[0]; qglobal[56] = shiftder_v1[1]; qglobal[57] = shiftder_v1[2];
-  qglobal[58] = shiftder_v2[0]; qglobal[59] = shiftder_v2[1]; qglobal[60] = shiftder_v2[2];
-  qglobal[61] = shiftder_v3[0]; qglobal[62] = shiftder_v3[1]; qglobal[63] = shiftder_v3[2];
+  qglobal[55] = shiftder_v1[0];
+  qglobal[56] = shiftder_v1[1];
+  qglobal[57] = shiftder_v1[2];
+  qglobal[58] = shiftder_v2[0];
+  qglobal[59] = shiftder_v2[1];
+  qglobal[60] = shiftder_v2[2];
+  qglobal[61] = shiftder_v3[0];
+  qglobal[62] = shiftder_v3[1];
+  qglobal[63] = shiftder_v3[2];
 }
 
-static double
-wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+static double wave_lax(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
-  const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  const struct wv_vacuum_einstein *vacuum_einstein =
+    container_of(eqn, struct wv_vacuum_einstein, eqn);
   double excision_threshold = vacuum_einstein->excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
   enum gkyl_spacetime_evolution spacetime_evolution = vacuum_einstein->spacetime_evolution;
@@ -950,8 +1124,7 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
       w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / amax);
       w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / amax);
     }
-  }
-  else {
+  } else {
     for (int i = 0; i < 64; i++) {
       w0[i] = 0.0;
       w1[i] = 0.0;
@@ -964,8 +1137,10 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   return s[1];
 }
 
-static void
-qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+static void qfluct_lax(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[64];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -977,24 +1152,30 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
   }
 }
 
-static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr,  const double phil, const double phir,
-  double* waves, double* s)
+static double wave_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir,
-  const double* waves, const double* s, double* amdq, double* apdq)
+static void qfluct_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double
-wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+static double wave_hll(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
-  const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  const struct wv_vacuum_einstein *vacuum_einstein =
+    container_of(eqn, struct wv_vacuum_einstein, eqn);
   double excision_threshold = vacuum_einstein->excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
   enum gkyl_spacetime_evolution spacetime_evolution = vacuum_einstein->spacetime_evolution;
@@ -1005,15 +1186,13 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double slicing_func_l = 0.0;
   if (spacetime_slicing == GKYL_GEODESIC_SLICING) {
     slicing_func_l = 0.0;
-  }
-  else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
+  } else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
     slicing_func_l = 1.0;
-  }
-  else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
+  } else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
     slicing_func_l = 2.0 / lapse_l;
   }
 
-  double **inv_spatial_metric_l = gkyl_malloc(sizeof(double*[3]));
+  double **inv_spatial_metric_l = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
     inv_spatial_metric_l[i] = gkyl_malloc(sizeof(double[3]));
   }
@@ -1031,15 +1210,13 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double slicing_func_r = 0.0;
   if (spacetime_slicing == GKYL_GEODESIC_SLICING) {
     slicing_func_r = 0.0;
-  }
-  else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
+  } else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
     slicing_func_r = 1.0;
-  }
-  else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
+  } else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
     slicing_func_r = 2.0 / lapse_l;
   }
 
-  double **inv_spatial_metric_r = gkyl_malloc(sizeof(double*[3]));
+  double **inv_spatial_metric_r = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
     inv_spatial_metric_r[i] = gkyl_malloc(sizeof(double[3]));
   }
@@ -1077,8 +1254,7 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
       w0[i] = qm[i] - ql[i];
       w1[i] = qr[i] - qm[i];
     }
-  }
-  else {
+  } else {
     for (int i = 0; i < 64; i++) {
       w0[i] = 0.0;
       w1[i] = 0.0;
@@ -1098,8 +1274,10 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   return fmax(fabs(sl), fabs(sr));
 }
 
-static void
-qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+static void qfluct_hll(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const double *w0 = &waves[0], *w1 = &waves[64];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
@@ -1111,36 +1289,38 @@ qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
   }
 }
 
-static double
-wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir,
-  double* waves, double* s)
+static double wave_hll_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return wave_hll(eqn, delta, ql, qr, waves, s);
-  }
-  else {
+  } else {
     return wave_lax(eqn, delta, ql, qr, waves, s);
   }
 
   return 0.0; // Unreachable code.
 }
 
-static void
-qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir,
-  const double* waves, const double* s, double* amdq, double* apdq)
+static void qfluct_hll_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX) {
     return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
-  }
-  else {
+  } else {
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
   }
 }
 
 static double
-flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
-  const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  const struct wv_vacuum_einstein *vacuum_einstein =
+    container_of(eqn, struct wv_vacuum_einstein, eqn);
   double excision_threshold = vacuum_einstein->excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
   enum gkyl_spacetime_evolution spacetime_evolution = vacuum_einstein->spacetime_evolution;
@@ -1163,8 +1343,7 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
     for (int m = 0; m < 64; m++) {
       flux_jump[m] = fr[m] - fl[m];
     }
-  }
-  else {
+  } else {
     for (int m = 0; m < 64; m++) {
       flux_jump[m] = 0.0;
     }
@@ -1176,21 +1355,19 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   return fmax(amaxl, amaxr);
 }
 
-static bool
-check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
+static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   if (q[9] < 0.0) {
     return false;
-  }
-  else {
+  } else {
     return true;
   }
 }
 
-static double
-max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
+static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
-  const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  const struct wv_vacuum_einstein *vacuum_einstein =
+    container_of(eqn, struct wv_vacuum_einstein, eqn);
   double excision_threshold = vacuum_einstein->excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
 
@@ -1198,43 +1375,74 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
 }
 
 static inline void
-vacuum_einstein_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag)
+vacuum_einstein_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   diag[0] = qin[9];
 }
 
 static inline void
-vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+vacuum_einstein_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
-  const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  const struct wv_vacuum_einstein *vacuum_einstein =
+    container_of(eqn, struct wv_vacuum_einstein, eqn);
   double excision_threshold = vacuum_einstein->excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
   enum gkyl_spacetime_evolution spacetime_evolution = vacuum_einstein->spacetime_evolution;
 
   double spatial_metric[3][3];
-  spatial_metric[0][0] = qin[0]; spatial_metric[0][1] = qin[1]; spatial_metric[0][2] = qin[2];
-  spatial_metric[1][0] = qin[3]; spatial_metric[1][1] = qin[4]; spatial_metric[1][2] = qin[5];
-  spatial_metric[2][0] = qin[6]; spatial_metric[2][1] = qin[7]; spatial_metric[2][2] = qin[8];
+  spatial_metric[0][0] = qin[0];
+  spatial_metric[0][1] = qin[1];
+  spatial_metric[0][2] = qin[2];
+  spatial_metric[1][0] = qin[3];
+  spatial_metric[1][1] = qin[4];
+  spatial_metric[1][2] = qin[5];
+  spatial_metric[2][0] = qin[6];
+  spatial_metric[2][1] = qin[7];
+  spatial_metric[2][2] = qin[8];
 
   double lapse = qin[9];
 
   double extrinsic_curvature[3][3];
-  extrinsic_curvature[0][0] = qin[10]; extrinsic_curvature[0][1] = qin[11]; extrinsic_curvature[0][2] = qin[12];
-  extrinsic_curvature[1][0] = qin[13]; extrinsic_curvature[1][1] = qin[14]; extrinsic_curvature[1][2] = qin[15];
-  extrinsic_curvature[2][0] = qin[16]; extrinsic_curvature[2][1] = qin[17]; extrinsic_curvature[2][2] = qin[18];
+  extrinsic_curvature[0][0] = qin[10];
+  extrinsic_curvature[0][1] = qin[11];
+  extrinsic_curvature[0][2] = qin[12];
+  extrinsic_curvature[1][0] = qin[13];
+  extrinsic_curvature[1][1] = qin[14];
+  extrinsic_curvature[1][2] = qin[15];
+  extrinsic_curvature[2][0] = qin[16];
+  extrinsic_curvature[2][1] = qin[17];
+  extrinsic_curvature[2][2] = qin[18];
 
   double spatial_metric_der[3][3][3];
-  spatial_metric_der[0][0][0] = qin[19]; spatial_metric_der[0][0][1] = qin[20]; spatial_metric_der[0][0][2] = qin[21];
-  spatial_metric_der[0][1][0] = qin[22]; spatial_metric_der[0][1][1] = qin[23]; spatial_metric_der[0][1][2] = qin[24];
-  spatial_metric_der[0][2][0] = qin[25]; spatial_metric_der[0][2][1] = qin[26]; spatial_metric_der[0][2][2] = qin[27];
+  spatial_metric_der[0][0][0] = qin[19];
+  spatial_metric_der[0][0][1] = qin[20];
+  spatial_metric_der[0][0][2] = qin[21];
+  spatial_metric_der[0][1][0] = qin[22];
+  spatial_metric_der[0][1][1] = qin[23];
+  spatial_metric_der[0][1][2] = qin[24];
+  spatial_metric_der[0][2][0] = qin[25];
+  spatial_metric_der[0][2][1] = qin[26];
+  spatial_metric_der[0][2][2] = qin[27];
 
-  spatial_metric_der[1][0][0] = qin[28]; spatial_metric_der[1][0][1] = qin[29]; spatial_metric_der[1][0][2] = qin[30];
-  spatial_metric_der[1][1][0] = qin[31]; spatial_metric_der[1][1][1] = qin[32]; spatial_metric_der[1][1][2] = qin[33];
-  spatial_metric_der[1][2][0] = qin[34]; spatial_metric_der[1][2][1] = qin[35]; spatial_metric_der[1][2][2] = qin[36];
+  spatial_metric_der[1][0][0] = qin[28];
+  spatial_metric_der[1][0][1] = qin[29];
+  spatial_metric_der[1][0][2] = qin[30];
+  spatial_metric_der[1][1][0] = qin[31];
+  spatial_metric_der[1][1][1] = qin[32];
+  spatial_metric_der[1][1][2] = qin[33];
+  spatial_metric_der[1][2][0] = qin[34];
+  spatial_metric_der[1][2][1] = qin[35];
+  spatial_metric_der[1][2][2] = qin[36];
 
-  spatial_metric_der[2][0][0] = qin[37]; spatial_metric_der[2][0][1] = qin[38]; spatial_metric_der[2][0][2] = qin[39];
-  spatial_metric_der[2][1][0] = qin[40]; spatial_metric_der[2][1][1] = qin[41]; spatial_metric_der[2][1][2] = qin[42];
-  spatial_metric_der[2][2][0] = qin[43]; spatial_metric_der[2][2][1] = qin[44]; spatial_metric_der[2][2][2] = qin[45];
+  spatial_metric_der[2][0][0] = qin[37];
+  spatial_metric_der[2][0][1] = qin[38];
+  spatial_metric_der[2][0][2] = qin[39];
+  spatial_metric_der[2][1][0] = qin[40];
+  spatial_metric_der[2][1][1] = qin[41];
+  spatial_metric_der[2][1][2] = qin[42];
+  spatial_metric_der[2][2][0] = qin[43];
+  spatial_metric_der[2][2][1] = qin[44];
+  spatial_metric_der[2][2][2] = qin[45];
 
   double lapse_der[3];
   lapse_der[0] = qin[46];
@@ -1252,9 +1460,15 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
   shift_vect[2] = qin[54];
 
   double shift_vect_der[3][3];
-  shift_vect_der[0][0] = qin[55]; shift_vect_der[0][1] = qin[56]; shift_vect_der[0][2] = qin[57];
-  shift_vect_der[1][0] = qin[58]; shift_vect_der[1][1] = qin[59]; shift_vect_der[1][2] = qin[60];
-  shift_vect_der[2][0] = qin[61]; shift_vect_der[2][1] = qin[62]; shift_vect_der[2][2] = qin[63];
+  shift_vect_der[0][0] = qin[55];
+  shift_vect_der[0][1] = qin[56];
+  shift_vect_der[0][2] = qin[57];
+  shift_vect_der[1][0] = qin[58];
+  shift_vect_der[1][1] = qin[59];
+  shift_vect_der[1][2] = qin[60];
+  shift_vect_der[2][0] = qin[61];
+  shift_vect_der[2][1] = qin[62];
+  shift_vect_der[2][2] = qin[63];
 
   bool in_excision_region = false;
   if (lapse < excision_threshold) {
@@ -1262,7 +1476,7 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
   }
 
   if (!in_excision_region) {
-    double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+    double **inv_spatial_metric = gkyl_malloc(sizeof(double *[3]));
     for (int i = 0; i < 3; i++) {
       inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
     }
@@ -1272,8 +1486,7 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
     double evolution_func = 0.0;
     if (spacetime_evolution == GKYL_RICCI_EVOLUTION) {
       evolution_func = 0.0;
-    }
-    else if (spacetime_evolution == GKYL_EINSTEIN_EVOLUTION) {
+    } else if (spacetime_evolution == GKYL_EINSTEIN_EVOLUTION) {
       evolution_func = 1.0;
     }
 
@@ -1302,7 +1515,8 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
 
         for (int l = 0; l < 3; l++) {
           for (int m = 0; m < 3; m++) {
-            extrinsic_curvature_raised[i][j] += inv_spatial_metric[i][l] * inv_spatial_metric[m][j] * extrinsic_curvature[l][m];
+            extrinsic_curvature_raised[i][j] +=
+              inv_spatial_metric[i][l] * inv_spatial_metric[m][j] * extrinsic_curvature[l][m];
           }
         }
       }
@@ -1326,7 +1540,8 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
 
         for (int l = 0; l < 3; l++) {
           for (int m = 0; m < 3; m++) {
-            shift_vect_der_switched[i][k] += inv_spatial_metric[i][l] * spatial_metric[m][k] * shift_vect_der[l][m];
+            shift_vect_der_switched[i][k] +=
+              inv_spatial_metric[i][l] * spatial_metric[m][k] * shift_vect_der[l][m];
           }
         }
       }
@@ -1340,18 +1555,17 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
     double symmetrized_shift[3][3];
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        symmetrized_shift[i][j] = (1.0 / lapse) * (shift_vect_der_lowered[i][j] + shift_vect_der_lowered[j][i]);
+        symmetrized_shift[i][j] =
+          (1.0 / lapse) * (shift_vect_der_lowered[i][j] + shift_vect_der_lowered[j][i]);
       }
     }
 
     double slicing_func = 0.0;
     if (spacetime_slicing == GKYL_GEODESIC_SLICING) {
       slicing_func = 0.0;
-    }
-    else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
+    } else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
       slicing_func = extrinsic_curvature_trace;
-    }
-    else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
+    } else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
       slicing_func = 2.0 * extrinsic_curvature_trace / lapse;
     }
 
@@ -1360,9 +1574,10 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
       for (int j = 0; j < 3; j++) {
         for (int k = 0; k < 3; k++) {
           spatial_metric_der_raised1[k][i][j] = 0.0;
-          
+
           for (int l = 0; l < 3; l++) {
-            spatial_metric_der_raised1[k][i][j] += inv_spatial_metric[k][l] * spatial_metric_der[l][i][j];
+            spatial_metric_der_raised1[k][i][j] +=
+              inv_spatial_metric[k][l] * spatial_metric_der[l][i][j];
           }
         }
       }
@@ -1375,7 +1590,8 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
           spatial_metric_der_raised3[i][j][k] = 0.0;
 
           for (int l = 0; l < 3; l++) {
-            spatial_metric_der_raised3[i][j][k] += inv_spatial_metric[l][k] * spatial_metric_der[i][j][l];
+            spatial_metric_der_raised3[i][j][k] +=
+              inv_spatial_metric[l][k] * spatial_metric_der[i][j][l];
           }
         }
       }
@@ -1389,7 +1605,8 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
 
           for (int l = 0; l < 3; l++) {
             for (int m = 0; m < 3; m++) {
-              spatial_metric_der_lowered1[i][j][k] += inv_spatial_metric[j][l] * inv_spatial_metric[m][k] * spatial_metric_der[i][l][m];
+              spatial_metric_der_lowered1[i][j][k] +=
+                inv_spatial_metric[j][l] * inv_spatial_metric[m][k] * spatial_metric_der[i][l][m];
             }
           }
         }
@@ -1404,7 +1621,8 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
 
           for (int l = 0; l < 3; l++) {
             for (int m = 0; m < 3; m++) {
-              spatial_metric_der_lowered3[i][j][k] += inv_spatial_metric[i][l] * inv_spatial_metric[m][j] * spatial_metric_der[l][m][k];
+              spatial_metric_der_lowered3[i][j][k] +=
+                inv_spatial_metric[i][l] * inv_spatial_metric[m][j] * spatial_metric_der[l][m][k];
             }
           }
         }
@@ -1414,7 +1632,7 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
     double aux_vect_raised[3];
     for (int k = 0; k < 3; k++) {
       aux_vect_raised[k] = 0.0;
-        
+
       for (int l = 0; l < 3; l++) {
         aux_vect_raised[k] += inv_spatial_metric[k][l] * aux_vect[l];
       }
@@ -1438,7 +1656,8 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
     double spatial_metric_source[3][3];
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        spatial_metric_source[i][j] = -2.0 * lapse * (extrinsic_curvature[i][j] - symmetrized_shift[i][j]);
+        spatial_metric_source[i][j] =
+          -2.0 * lapse * (extrinsic_curvature[i][j] - symmetrized_shift[i][j]);
 
         for (int r = 0; r < 3; r++) {
           spatial_metric_source[i][j] += 2.0 * shift_vect[r] * spatial_metric_der[r][i][j];
@@ -1457,49 +1676,72 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
         extrinsic_curvature_source[i][j] = 0.0;
 
         for (int r = 0; r < 3; r++) {
-          extrinsic_curvature_source[i][j] += 2.0 * extrinsic_curvature[i][r] * shift_vect_der[j][r];
-          extrinsic_curvature_source[i][j] += 2.0 * extrinsic_curvature[j][r] * shift_vect_der[i][r];
-          extrinsic_curvature_source[i][j] -= 2.0 * extrinsic_curvature[i][j] * shift_vect_der[r][r];
+          extrinsic_curvature_source[i][j] +=
+            2.0 * extrinsic_curvature[i][r] * shift_vect_der[j][r];
+          extrinsic_curvature_source[i][j] +=
+            2.0 * extrinsic_curvature[j][r] * shift_vect_der[i][r];
+          extrinsic_curvature_source[i][j] -=
+            2.0 * extrinsic_curvature[i][j] * shift_vect_der[r][r];
         }
 
         for (int k = 0; k < 3; k++) {
-          extrinsic_curvature_source[i][j] -= 2.0 * lapse * extrinsic_curvature_mixed[i][k] * extrinsic_curvature[k][j];
-          extrinsic_curvature_source[i][j] += lapse * extrinsic_curvature_trace * extrinsic_curvature[i][j];
+          extrinsic_curvature_source[i][j] -=
+            2.0 * lapse * extrinsic_curvature_mixed[i][k] * extrinsic_curvature[k][j];
+          extrinsic_curvature_source[i][j] +=
+            lapse * extrinsic_curvature_trace * extrinsic_curvature[i][j];
 
           for (int r = 0; r < 3; r++) {
-            extrinsic_curvature_source[i][j] -= lapse * spatial_christoffel[k][r][i] * spatial_christoffel[r][k][j];
+            extrinsic_curvature_source[i][j] -=
+              lapse * spatial_christoffel[k][r][i] * spatial_christoffel[r][k][j];
 
-            extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[i][k][r] * spatial_metric_der_raised3[r][j][k];
-            extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[j][k][r] * spatial_metric_der_raised3[r][i][k];
-            extrinsic_curvature_source[i][j] += lapse * spatial_christoffel[k][k][r] * spatial_christoffel[r][i][j];
+            extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[i][k][r] *
+                                                spatial_metric_der_raised3[r][j][k];
+            extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[j][k][r] *
+                                                spatial_metric_der_raised3[r][i][k];
+            extrinsic_curvature_source[i][j] +=
+              lapse * spatial_christoffel[k][k][r] * spatial_christoffel[r][i][j];
 
-            extrinsic_curvature_source[i][j] -= lapse * (2.0 * spatial_metric_der_raised3[k][r][k] - lapse_der[r]) * (spatial_metric_der_raised3[i][j][r] + spatial_metric_der_raised3[j][i][r]);
+            extrinsic_curvature_source[i][j] -=
+              lapse * (2.0 * spatial_metric_der_raised3[k][r][k] - lapse_der[r]) *
+              (spatial_metric_der_raised3[i][j][r] + spatial_metric_der_raised3[j][i][r]);
           }
 
-          extrinsic_curvature_source[i][j] += lapse * lapse_der[i] * (aux_vect[j] - (0.5 * spatial_metric_der_raised3[j][k][k]));
-          extrinsic_curvature_source[i][j] += lapse * lapse_der[j] * (aux_vect[i] - (0.5 * spatial_metric_der_raised3[i][k][k]));
+          extrinsic_curvature_source[i][j] +=
+            lapse * lapse_der[i] * (aux_vect[j] - (0.5 * spatial_metric_der_raised3[j][k][k]));
+          extrinsic_curvature_source[i][j] +=
+            lapse * lapse_der[j] * (aux_vect[i] - (0.5 * spatial_metric_der_raised3[i][k][k]));
 
-          extrinsic_curvature_source[i][j] -= lapse * evolution_func * aux_vect_raised[k] * spatial_metric_der[k][i][j];
+          extrinsic_curvature_source[i][j] -=
+            lapse * evolution_func * aux_vect_raised[k] * spatial_metric_der[k][i][j];
         }
 
         for (int k = 0; k < 3; k++) {
           for (int r = 0; r < 3; r++) {
             for (int s = 0; s < 3; s++) {
-              extrinsic_curvature_source[i][j] -= (0.25 * evolution_func * lapse * spatial_metric[i][j]) * spatial_metric_der_lowered1[k][r][s] * spatial_christoffel[k][r][s];
-              extrinsic_curvature_source[i][j] += (0.25 * evolution_func * lapse * spatial_metric[i][j]) * spatial_metric_der_raised3[k][r][r] * spatial_metric_der_lowered3[k][s][s];
+              extrinsic_curvature_source[i][j] -=
+                (0.25 * evolution_func * lapse * spatial_metric[i][j]) *
+                spatial_metric_der_lowered1[k][r][s] * spatial_christoffel[k][r][s];
+              extrinsic_curvature_source[i][j] +=
+                (0.25 * evolution_func * lapse * spatial_metric[i][j]) *
+                spatial_metric_der_raised3[k][r][r] * spatial_metric_der_lowered3[k][s][s];
             }
           }
 
-          extrinsic_curvature_source[i][j] -= (0.5 * evolution_func * lapse * spatial_metric[i][j]) * aux_vect_raised[k] * lapse_der[k];
+          extrinsic_curvature_source[i][j] -=
+            (0.5 * evolution_func * lapse * spatial_metric[i][j]) * aux_vect_raised[k] *
+            lapse_der[k];
         }
 
         for (int r = 0; r < 3; r++) {
           for (int s = 0; s < 3; s++) {
-            extrinsic_curvature_source[i][j] += (0.25 * evolution_func * lapse * spatial_metric[i][j]) * extrinsic_curvature_raised[r][s] * extrinsic_curvature[r][s];
+            extrinsic_curvature_source[i][j] +=
+              (0.25 * evolution_func * lapse * spatial_metric[i][j]) *
+              extrinsic_curvature_raised[r][s] * extrinsic_curvature[r][s];
           }
         }
 
-        extrinsic_curvature_source[i][j] -= (0.25 * evolution_func * lapse * spatial_metric[i][j]) * (extrinsic_curvature_trace * extrinsic_curvature_trace);
+        extrinsic_curvature_source[i][j] -= (0.25 * evolution_func * lapse * spatial_metric[i][j]) *
+                                            (extrinsic_curvature_trace * extrinsic_curvature_trace);
       }
     }
 
@@ -1509,17 +1751,21 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
 
       for (int r = 0; r < 3; r++) {
         aux_vect_source[i] += lapse * lapse_der[r] * extrinsic_curvature_mixed[i][r];
-        
+
         if (i == r) {
           aux_vect_source[i] -= lapse * lapse_der[r] * extrinsic_curvature_trace;
         }
 
         for (int s = 0; s < 3; s++) {
-          aux_vect_source[i] += lapse * extrinsic_curvature_mixed[s][r] * spatial_metric_der_raised3[i][r][s];
-          aux_vect_source[i] -= 2.0 * lapse * extrinsic_curvature_mixed[s][r] * spatial_metric_der_raised3[r][i][s];
+          aux_vect_source[i] +=
+            lapse * extrinsic_curvature_mixed[s][r] * spatial_metric_der_raised3[i][r][s];
+          aux_vect_source[i] -=
+            2.0 * lapse * extrinsic_curvature_mixed[s][r] * spatial_metric_der_raised3[r][i][s];
 
-          aux_vect_source[i] -= lapse * extrinsic_curvature_mixed[i][r] * spatial_metric_der_raised3[r][s][s];
-          aux_vect_source[i] += 2.0 * lapse * extrinsic_curvature_mixed[i][r] * spatial_metric_der_raised3[s][r][s];
+          aux_vect_source[i] -=
+            lapse * extrinsic_curvature_mixed[i][r] * spatial_metric_der_raised3[r][s][s];
+          aux_vect_source[i] +=
+            2.0 * lapse * extrinsic_curvature_mixed[i][r] * spatial_metric_der_raised3[s][r][s];
         }
 
         aux_vect_source[i] += 2.0 * shift_vect_der[i][r] * aux_vect[r];
@@ -1529,26 +1775,40 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
         }
 
         for (int s = 0; s < 3; s++) {
-          aux_vect_source[i] += 2.0 * spatial_metric_der_raised3[r][i][s] * shift_vect_der_switched[r][s];
+          aux_vect_source[i] +=
+            2.0 * spatial_metric_der_raised3[r][i][s] * shift_vect_der_switched[r][s];
 
           if (i == s) {
             for (int j = 0; j < 3; j++) {
-              aux_vect_source[i] -= 2.0 * spatial_metric_der_raised1[j][j][r] * shift_vect_der_switched[r][s];
+              aux_vect_source[i] -=
+                2.0 * spatial_metric_der_raised1[j][j][r] * shift_vect_der_switched[r][s];
             }
           }
         }
       }
     }
 
-    sout[0] = spatial_metric_source[0][0]; sout[1] = spatial_metric_source[0][1]; sout[2] = spatial_metric_source[0][2];
-    sout[3] = spatial_metric_source[1][0]; sout[4] = spatial_metric_source[1][1]; sout[5] = spatial_metric_source[1][2];
-    sout[6] = spatial_metric_source[2][0]; sout[7] = spatial_metric_source[2][1]; sout[8] = spatial_metric_source[2][2];
+    sout[0] = spatial_metric_source[0][0];
+    sout[1] = spatial_metric_source[0][1];
+    sout[2] = spatial_metric_source[0][2];
+    sout[3] = spatial_metric_source[1][0];
+    sout[4] = spatial_metric_source[1][1];
+    sout[5] = spatial_metric_source[1][2];
+    sout[6] = spatial_metric_source[2][0];
+    sout[7] = spatial_metric_source[2][1];
+    sout[8] = spatial_metric_source[2][2];
 
     sout[9] = lapse_source;
 
-    sout[10] = extrinsic_curvature_source[0][0]; sout[11] = extrinsic_curvature_source[0][1]; sout[12] = extrinsic_curvature_source[0][2];
-    sout[13] = extrinsic_curvature_source[1][0]; sout[14] = extrinsic_curvature_source[1][1]; sout[15] = extrinsic_curvature_source[1][2];
-    sout[16] = extrinsic_curvature_source[2][0]; sout[17] = extrinsic_curvature_source[2][1]; sout[18] = extrinsic_curvature_source[2][2];
+    sout[10] = extrinsic_curvature_source[0][0];
+    sout[11] = extrinsic_curvature_source[0][1];
+    sout[12] = extrinsic_curvature_source[0][2];
+    sout[13] = extrinsic_curvature_source[1][0];
+    sout[14] = extrinsic_curvature_source[1][1];
+    sout[15] = extrinsic_curvature_source[1][2];
+    sout[16] = extrinsic_curvature_source[2][0];
+    sout[17] = extrinsic_curvature_source[2][1];
+    sout[18] = extrinsic_curvature_source[2][2];
 
     for (int i = 19; i < 49; i++) {
       sout[i] = 0.0;
@@ -1566,22 +1826,21 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
       gkyl_free(inv_spatial_metric[i]);
     }
     gkyl_free(inv_spatial_metric);
-  }
-  else {
+  } else {
     for (int i = 0; i < 64; i++) {
       sout[i] = 0.0;
     }
   }
 }
 
-void
-gkyl_vacuum_einstein_free(const struct gkyl_ref_count* ref)
+void gkyl_vacuum_einstein_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_wv_eqn* base = container_of(ref, struct gkyl_wv_eqn, ref_count);
+  struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
 
   if (gkyl_wv_eqn_is_cu_dev(base)) {
     // Free inner on_dev object.
-    struct wv_vacuum_einstein *vacuum_einstein = container_of(base->on_dev, struct wv_vacuum_einstein, eqn);
+    struct wv_vacuum_einstein *vacuum_einstein =
+      container_of(base->on_dev, struct wv_vacuum_einstein, eqn);
     gkyl_cu_free(vacuum_einstein);
   }
 
@@ -1589,21 +1848,20 @@ gkyl_vacuum_einstein_free(const struct gkyl_ref_count* ref)
   gkyl_free(vacuum_einstein);
 }
 
-struct gkyl_wv_eqn*
-gkyl_wv_vacuum_einstein_new(double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution, bool use_gpu)
+struct gkyl_wv_eqn *gkyl_wv_vacuum_einstein_new(
+  double excision_threshold, enum gkyl_spacetime_slicing spacetime_slicing,
+  enum gkyl_spacetime_evolution spacetime_evolution, bool use_gpu
+)
 {
-  return gkyl_wv_vacuum_einstein_inew(&(struct gkyl_wv_vacuum_einstein_inp) {
-      .excision_threshold = excision_threshold,
-      .spacetime_slicing = spacetime_slicing,
-      .spacetime_evolution = spacetime_evolution,
-      .rp_type = WV_VACUUM_EINSTEIN_RP_HLL,
-      .use_gpu = use_gpu,
-    }
-  );
+  return gkyl_wv_vacuum_einstein_inew(&(struct gkyl_wv_vacuum_einstein_inp
+  ){.excision_threshold = excision_threshold,
+    .spacetime_slicing = spacetime_slicing,
+    .spacetime_evolution = spacetime_evolution,
+    .rp_type = WV_VACUUM_EINSTEIN_RP_HLL,
+    .use_gpu = use_gpu});
 }
 
-struct gkyl_wv_eqn*
-gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp* inp)
+struct gkyl_wv_eqn *gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp *inp)
 {
   struct wv_vacuum_einstein *vacuum_einstein = gkyl_malloc(sizeof(struct wv_vacuum_einstein));
 
@@ -1619,13 +1877,12 @@ gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp* inp)
     vacuum_einstein->eqn.num_waves = 2;
     vacuum_einstein->eqn.waves_func = wave_lax_l;
     vacuum_einstein->eqn.qfluct_func = qfluct_lax_l;
-  }
-  else if (inp->rp_type == WV_VACUUM_EINSTEIN_RP_HLL) {
+  } else if (inp->rp_type == WV_VACUUM_EINSTEIN_RP_HLL) {
     vacuum_einstein->eqn.num_waves = 2;
     vacuum_einstein->eqn.waves_func = wave_hll_l;
     vacuum_einstein->eqn.qfluct_func = qfluct_hll_l;
   }
-  
+
   vacuum_einstein->eqn.flux_jump = flux_jump;
   vacuum_einstein->eqn.check_inv_func = check_inv;
   vacuum_einstein->eqn.max_speed_func = max_speed;
@@ -1644,33 +1901,35 @@ gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp* inp)
   vacuum_einstein->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vacuum_einstein->eqn.flags);
   vacuum_einstein->eqn.ref_count = gkyl_ref_count_init(gkyl_vacuum_einstein_free);
-  vacuum_einstein->eqn.on_dev = &vacuum_einstein->eqn; // On the CPU, the equation object points to itself.
+  vacuum_einstein->eqn.on_dev =
+    &vacuum_einstein->eqn; // On the CPU, the equation object points to itself.
 
   return &vacuum_einstein->eqn;
 }
 
-double
-gkyl_wv_vacuum_einstein_excision_threshold(const struct gkyl_wv_eqn* eqn)
+double gkyl_wv_vacuum_einstein_excision_threshold(const struct gkyl_wv_eqn *eqn)
 {
-  const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  const struct wv_vacuum_einstein *vacuum_einstein =
+    container_of(eqn, struct wv_vacuum_einstein, eqn);
   double excision_threshold = vacuum_einstein->excision_threshold;
 
   return excision_threshold;
 }
 
-enum gkyl_spacetime_slicing
-gkyl_wv_vacuum_einstein_spacetime_slicing(const struct gkyl_wv_eqn* eqn)
+enum gkyl_spacetime_slicing gkyl_wv_vacuum_einstein_spacetime_slicing(const struct gkyl_wv_eqn *eqn)
 {
-  const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  const struct wv_vacuum_einstein *vacuum_einstein =
+    container_of(eqn, struct wv_vacuum_einstein, eqn);
   enum gkyl_spacetime_slicing spacetime_slicing = vacuum_einstein->spacetime_slicing;
 
   return spacetime_slicing;
 }
 
 enum gkyl_spacetime_evolution
-gkyl_wv_vacuum_einstein_spacetime_evolution(const struct gkyl_wv_eqn* eqn)
+gkyl_wv_vacuum_einstein_spacetime_evolution(const struct gkyl_wv_eqn *eqn)
 {
-  const struct wv_vacuum_einstein *vacuum_einstein = container_of(eqn, struct wv_vacuum_einstein, eqn);
+  const struct wv_vacuum_einstein *vacuum_einstein =
+    container_of(eqn, struct wv_vacuum_einstein, eqn);
   enum gkyl_spacetime_evolution spacetime_evolution = vacuum_einstein->spacetime_evolution;
 
   return spacetime_evolution;

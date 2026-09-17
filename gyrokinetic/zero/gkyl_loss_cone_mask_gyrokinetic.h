@@ -13,15 +13,15 @@ typedef struct gkyl_loss_cone_mask_gyrokinetic gkyl_loss_cone_mask_gyrokinetic;
 /** Boundary behavior used by the orbit classifier. */
 enum gkyl_loss_cone_boundary_type {
   GKYL_LOSS_CONE_BC_OPEN = 0, // A particle that reaches the domain edge is lost.
-  GKYL_LOSS_CONE_BC_SHEATH,  // The material-wall potential may reflect the particle.
-  GKYL_LOSS_CONE_BC_CLOSED,  // No particle can be lost through this edge.
+  GKYL_LOSS_CONE_BC_SHEATH, // The material-wall potential may reflect the particle.
+  GKYL_LOSS_CONE_BC_CLOSED // No particle can be lost through this edge.
 };
 
 // Inputs packaged as a struct.
 struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
   const struct gkyl_range *conf_range; // Configuration-space range.
-  const struct gkyl_velocity_map *vel_map;    // Velocity space mapping object.
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   bool use_gpu; // Flag to indicate if GPU should be used.
   double mass; // Species mass.
   double charge; // Species charge.
@@ -42,7 +42,7 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
  * @param inp Input parameters defined in gkyl_loss_cone_mask_gyrokinetic_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_loss_cone_mask_gyrokinetic*
+struct gkyl_loss_cone_mask_gyrokinetic *
 gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp);
 
 /**
@@ -62,11 +62,12 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
  * @param mask_out Cellwise mask: 1 if every cell corner is trapped, 0 if any
  *                 corner can escape through either boundary.
  */
-void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *bmag, const struct gkyl_array *phi,
+void gkyl_loss_cone_mask_gyrokinetic_advance(
+  gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
-  struct gkyl_array *mask_out);
+  struct gkyl_array *mask_out
+);
 
 /**
  * Delete updater.

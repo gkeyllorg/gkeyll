@@ -18,8 +18,8 @@ struct gkyl_efit_inp {
   bool use_gpu; // whether to use the GPU
 };
 
-struct gkyl_efit{
-  const char* filepath;
+struct gkyl_efit {
+  const char *filepath;
   char name[1024]; // name (filepath stripped of full path and extension)
   int nr, nz;
   double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
@@ -27,8 +27,8 @@ struct gkyl_efit{
 
   double psisep; // Separatrix psi for our DG representation
   double psisep_cubic; // Separatrix psi for our cubic DG representation
-                 // Can differ from sibry, but we need to keep sibry
-                 // because fpol, q, etc. are defined based on it
+    // Can differ from sibry, but we need to keep sibry
+    // because fpol, q, etc. are defined based on it
 
   struct gkyl_basis rzbasis;
   struct gkyl_basis rzbasis_cubic;
@@ -41,15 +41,15 @@ struct gkyl_efit{
   struct gkyl_array *psizr;
   struct gkyl_array *psizr_cubic;
   struct gkyl_array *bmagzr;
-  struct gkyl_basis_ops_evalf *evf ;
+  struct gkyl_basis_ops_evalf *evf;
 
   struct gkyl_basis fluxbasis;
   struct gkyl_rect_grid fluxgrid;
   struct gkyl_range fluxlocal;
   struct gkyl_range fluxlocal_ext;
-  struct gkyl_array* fpolflux;
-  struct gkyl_array* fpolprimeflux;
-  struct gkyl_array* qflux;
+  struct gkyl_array *fpolflux;
+  struct gkyl_array *fpolprimeflux;
+  struct gkyl_array *qflux;
 
   int num_xpts; // Number of X-points
   double *Rxpt; // R coordinates of X points
@@ -75,7 +75,6 @@ struct gkyl_efit{
  * @return New updater pointer.
  */
 
-gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp);
+gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp);
 
-
-void gkyl_efit_release(gkyl_efit* up);
+void gkyl_efit_release(gkyl_efit *up);
