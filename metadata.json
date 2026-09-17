@@ -1,0 +1,56 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2PS411HNAYB7ESKET7DC3CV",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-new_permits",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".clang-format",
+    "core/unit/ctest_alloc_cu.cu",
+    "core/unit/ctest_array_cu.cu",
+    "core/unit/ctest_basis_cu.cu",
+    "core/unit/ctest_gauss_quad_data.c",
+    "core/unit/ctest_range_cu.cu",
+    "core/unit/ctest_rect_grid_cu.cu",
+    "core/unit/ctest_struct_of_arrays_cu.cu",
+    "core/unit/ctest_util.c",
+    "core/unit/ctest_vec3.c",
+    "core/zero/array_average_cu.cu",
+    "core/zero/array_dg_reduce_cu.cu",
+    "core/zero/array_integrate_cu.cu",
+    "core/zero/array_ops_cu.cu",
+    "core/zero/array_reduce_cu.cu",
+    "core/zero/cart_modal_gkhybrid_cu.cu",
+    "core/zero/cart_modal_gkhybrid_vel_cu.cu",
+    "core/zero/cart_modal_hybrid_cu.cu",
+    "core/zero/cart_modal_serendip_cu.cu",
+    "core/zero/cart_modal_tensor_cu.cu",
+    "core/zero/dg_array_mask_cu.cu",
+    "core/zero/dg_basis_ops_cu.cu",
+    "core/zero/dg_bin_ops_cu.cu",
+    "core/zero/dg_differentiate_cu.cu",
+    "core/zero/dg_eval_at_coord_proj_cu.cu",
+    "core/zero/dg_interpolate_cu.cu",
+    "core/zero/kann_net_cu.cu",
+    "core/zero/nodal_ops_cu.cu",
+    "core/zero/proj_powsqrt_on_basis_cu.cu",
+    "core/zero/skin_surf_from_ghost_cu.cu",
+    "core/zero/tensor_field_ops_cu.cu"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 11797,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 89600,
+    "output_tokens": 1550,
+    "api_call_count": 6
+  }
+}

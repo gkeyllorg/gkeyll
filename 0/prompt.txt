@@ -1,0 +1,9 @@
+Our clang-format system has erroneously replaced ">>>" with "> > >" in our CUDA files where we try to launch CUDA kernels. What is the way to prevent clang-format from doing this?
+
+---
+
+is there an alternative approach?
+
+---
+
+Is there another alternative?
