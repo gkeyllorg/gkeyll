@@ -1,0 +1,57 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2PY6NKF6BKX4NKM58T1ZVDY",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-parallel",
+  "checkpoints_count": 13,
+  "files_touched": [
+    "ci/jenkins/Jenkinsfile.perlmutter_gpu",
+    "ci/jenkins/Jenkinsfile.stellar_cpu",
+    "ci/jenkins/README.perlmutter_gpu.md",
+    "ci/jenkins/README.stellar_cpu.md",
+    "ci/jenkins/slurm-parallel-regression-tests.perlmutter_gpu.sh",
+    "ci/jenkins/slurm-parallel-regression-tests.stellar_cpu.sh",
+    "gkeyll/gkeyll.c",
+    "gkeyll/lua/Tool/runregression.lua",
+    "gyrokinetic/creg/c_test_manifest.lua",
+    "gyrokinetic/creg/ignore_c_tests.lua",
+    "gyrokinetic/creg/moat_c.lua",
+    "gyrokinetic/luareg/ignore_lua_tests.lua",
+    "gyrokinetic/luareg/lua_test_manifest.lua",
+    "gyrokinetic/luareg/moat_lua.lua",
+    "moments/creg/c_test_manifest.lua",
+    "moments/creg/ignore_c_tests.lua",
+    "moments/creg/moat_c.lua",
+    "moments/luareg/ignore_lua_tests.lua",
+    "moments/luareg/lua_test_manifest.lua",
+    "moments/luareg/moat_lua.lua",
+    "pkpm/creg/c_test_manifest.lua",
+    "pkpm/creg/ignore_c_tests.lua",
+    "pkpm/creg/moat_c.lua",
+    "pkpm/luareg/ignore_lua_tests.lua",
+    "pkpm/luareg/lua_test_manifest.lua",
+    "pkpm/luareg/moat_lua.lua",
+    "vlasov/creg/c_test_manifest.lua",
+    "vlasov/creg/ignore_c_tests.lua",
+    "vlasov/creg/moat_c.lua",
+    "vlasov/luareg/ignore_lua_tests.lua",
+    "vlasov/luareg/lua_test_manifest.lua",
+    "vlasov/luareg/moat_lua.lua"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 224309,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 11141632,
+    "output_tokens": 45945,
+    "api_call_count": 91
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2PY6NKF6BKX4NKM58T1ZVDY",
+  "session_id": "01a0ad24-832d-7822-84a5-6f3989702300",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-17T05:42:36.355429Z",
+  "branch": "agent_tools-parallel",
+  "checkpoints_count": 13,
+  "save_step_count": 10,
+  "files_touched": [
+    "ci/jenkins/Jenkinsfile.perlmutter_gpu",
+    "ci/jenkins/Jenkinsfile.stellar_cpu",
+    "ci/jenkins/README.perlmutter_gpu.md",
+    "ci/jenkins/README.stellar_cpu.md",
+    "ci/jenkins/slurm-parallel-regression-tests.perlmutter_gpu.sh",
+    "ci/jenkins/slurm-parallel-regression-tests.stellar_cpu.sh",
+    "gkeyll/gkeyll.c",
+    "gkeyll/lua/Tool/runregression.lua",
+    "gyrokinetic/creg/c_test_manifest.lua",
+    "gyrokinetic/creg/ignore_c_tests.lua",
+    "gyrokinetic/creg/moat_c.lua",
+    "gyrokinetic/luareg/ignore_lua_tests.lua",
+    "gyrokinetic/luareg/lua_test_manifest.lua",
+    "gyrokinetic/luareg/moat_lua.lua",
+    "moments/creg/c_test_manifest.lua",
+    "moments/creg/ignore_c_tests.lua",
+    "moments/creg/moat_c.lua",
+    "moments/luareg/ignore_lua_tests.lua",
+    "moments/luareg/lua_test_manifest.lua",
+    "moments/luareg/moat_lua.lua",
+    "pkpm/creg/c_test_manifest.lua",
+    "pkpm/creg/ignore_c_tests.lua",
+    "pkpm/creg/moat_c.lua",
+    "pkpm/luareg/ignore_lua_tests.lua",
+    "pkpm/luareg/lua_test_manifest.lua",
+    "pkpm/luareg/moat_lua.lua",
+    "vlasov/creg/c_test_manifest.lua",
+    "vlasov/creg/ignore_c_tests.lua",
+    "vlasov/creg/moat_c.lua",
+    "vlasov/luareg/ignore_lua_tests.lua",
+    "vlasov/luareg/lua_test_manifest.lua",
+    "vlasov/luareg/moat_lua.lua"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "a6d7fc17f711",
+  "checkpoint_transcript_start": 121,
+  "transcript_lines_at_start": 121,
+  "compact_transcript_start": 13,
+  "token_usage": {
+    "input_tokens": 224309,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 11141632,
+    "output_tokens": 45945,
+    "api_call_count": 91
+  },
+  "session_metrics": {
+    "turn_count": 14
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-17T05:42:36.195223Z",
+    "agent_lines": 292,
+    "agent_removed": 216,
+    "human_added": 0,
+    "human_modified": 212,
+    "human_removed": 0,
+    "total_committed": 504,
+    "total_lines_changed": 720,
+    "agent_percentage": 70.55555555555556,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 850779,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "README.stellar_cpu.md_old": 561,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "log.txt": 796961,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "run_3.txt": 67,
+        "run_4.txt": 67,
+        "run_5.txt": 10,
+        "tmp.sh": 43,
+        "tmp.txt": 23
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 212,
+      "user_lines_removed": 212,
+      "agent_lines_added": 851466,
+      "agent_lines_removed": 410,
+      "user_added_per_file": {
+        "gyrokinetic/creg/c_test_manifest.lua": 12,
+        "gyrokinetic/luareg/lua_test_manifest.lua": 26,
+        "moments/creg/c_test_manifest.lua": 61,
+        "moments/luareg/lua_test_manifest.lua": 35,
+        "pkpm/creg/c_test_manifest.lua": 14,
+        "pkpm/luareg/lua_test_manifest.lua": 13,
+        "vlasov/creg/c_test_manifest.lua": 29,
+        "vlasov/luareg/lua_test_manifest.lua": 22
+      },
+      "user_removed_per_file": {
+        "gyrokinetic/creg/c_test_manifest.lua": 12,
+        "gyrokinetic/luareg/lua_test_manifest.lua": 26,
+        "moments/creg/c_test_manifest.lua": 61,
+        "moments/luareg/lua_test_manifest.lua": 35,
+        "pkpm/creg/c_test_manifest.lua": 14,
+        "pkpm/luareg/lua_test_manifest.lua": 13,
+        "vlasov/creg/c_test_manifest.lua": 29,
+        "vlasov/luareg/lua_test_manifest.lua": 22
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851466,
+      "agent_lines_removed": 410
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851466,
+      "agent_lines_removed": 410
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851457,
+      "agent_lines_removed": 406
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851457,
+      "agent_lines_removed": 406
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851466,
+      "agent_lines_removed": 407
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851474,
+      "agent_lines_removed": 407
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851474,
+      "agent_lines_removed": 407
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851476,
+      "agent_lines_removed": 407
+    }
+  ]
+}

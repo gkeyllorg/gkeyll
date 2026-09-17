@@ -1,0 +1,207 @@
+The plan is overall good. I'd like to make a few suggestions:
+1) that runregression list have a --parallel option that lists the tests in the parallel manifest.
+2) that runregression run have a --parallel option for only running the parallel tests, and a --no-parallel option for skipping the parallel tests.
+3) I'd like the manifest to use the following tests:
+For moments:
+- rt_5m_mom_beach.c (-c 4)
+- rt_10m_gem.c (-c 2 -d 2)
+For Vlasov:
+- rt_vlasov_twostream_p2 (-c 4)
+- vlasov_weibel_2x2v_p2 (-c 2 -d 2)
+For gyrokinetics:
+- rt_gk_ion_sound_1x2v_p1 (-c 4)
+- rt_gk_sheath_2x2v_p1.c (-d 4)
+For pkpm:
+- pkpm_alf_soliton_1x_p2 (-c 4)
+- rt_pkpm_2d_travel_pulse_p1 (-c 2 -p 2)
+
+And one more question, can how and where exactly will the manifest be stored?
+
+---
+
+As to where the manifest is stored about:
+1. Rename the "ignore_lua_tests.lua" and "ignore_c_tests.lua" to something like "lua_test_manifest.lua" and "c_test_manifest.lua", respectively.
+2. Expand the intent of these files so that they list which tests should be ignored (in an "ignore" table), but also which tests are to be run in parallel (in a "parallel" table).
+We can later extend the qualifiers in this file with other instructions for how to run subsets of tests with various configurations.
+
+---
+
+Two more suggestions:
+1. Should the "tests" subtable in the "ignore" table of the "lua_test_manifest.lua" and "c_test_manifest.lua" be renamed "cpu" so it matches the other "gpu" table?
+2. Where are the MOAT tests listed right now? perhaps the moat tests should be listed as a third table in these manifest files.
+
+---
+
+Implement the plan.
+
+---
+
+what do you mean by "Serial Jenkins regression runs now exclude manifest parallel tests." ?
+
+---
+
+Are you saying that --no-parallel causes the tests in the "parallel" table to not run serially either?
+
+---
+
+I'd like to change this behavior, so that --no-parallel doesn't affect the serial run, it simply means don't run the tests in the parallel table in parallel. That is, don't run any parallel tests (but continue to run serial tests as instructed).
+
+---
+
+../gkylsoft/gkeyll/bin/gkeyll runregression list
+
+doesn't appear to have a --parallel option like I asked for, or at least it doesn't show up in the output of
+
+../gkylsoft/gkeyll/bin/gkeyll runregression list --parallel
+
+---
+
+I ran
+
+../gkylsoft/gkeyll/bin/gkeyll runregression configure --source-dir /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/ --mpiexec /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/bin/mpirun
+
+./gkylsoft/gkeyll/bin/gkeyll runregression -v run create --parallel
+
+and but it doesn't appear like the tests ran because I got the output
+
+CPU-only build
+Running parallel C regression tests serially by MPI collective ...
+
+
+[C]   Compiling moments/creg/rt_5m_mom_beach ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_5m_mom_beach.c -o rt_5m_mom_beach -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] moments/creg/rt_5m_mom_beach (ranks=4 cuts={4}) ...
+... saving accepted results to /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll-results/moments/creg-accepted/rt_5m_mom_beach ...
+
+[C]   Compiling moments/creg/rt_10m_gem ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_10m_gem.c -o rt_10m_gem -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] moments/creg/rt_10m_gem (ranks=4 cuts={2,2}) ...
+... saving accepted results to /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll-results/moments/creg-accepted/rt_10m_gem ...
+
+[C]   Compiling vlasov/creg/rt_vlasov_twostream_p2 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_vlasov_twostream_p2.c -o rt_vlasov_twostream_p2 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] vlasov/creg/rt_vlasov_twostream_p2 (ranks=4 cuts={4}) ...
+... saving accepted results to /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll-results/vlasov/creg-accepted/rt_vlasov_twostream_p2 ...
+
+[C]   Compiling vlasov/creg/rt_vlasov_weibel_2x2v_p2 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_vlasov_weibel_2x2v_p2.c -o rt_vlasov_weibel_2x2v_p2 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] vlasov/creg/rt_vlasov_weibel_2x2v_p2 (ranks=4 cuts={2,2}) ...
+... saving accepted results to /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll-results/vlasov/creg-accepted/rt_vlasov_weibel_2x2v_p2 ...
+
+[C]   Compiling gyrokinetic/creg/rt_gk_ion_sound_1x2v_p1 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_gk_ion_sound_1x2v_p1.c -o rt_gk_ion_sound_1x2v_p1 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] gyrokinetic/creg/rt_gk_ion_sound_1x2v_p1 (ranks=4 cuts={4}) ...
+... saving accepted results to /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll-results/gyrokinetic/creg-accepted/rt_gk_ion_sound_1x2v_p1 ...
+
+[C]   Compiling gyrokinetic/creg/rt_gk_sheath_2x2v_p1 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_gk_sheath_2x2v_p1.c -o rt_gk_sheath_2x2v_p1 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] gyrokinetic/creg/rt_gk_sheath_2x2v_p1 (ranks=4 cuts={1,4}) ...
+... saving accepted results to /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll-results/gyrokinetic/creg-accepted/rt_gk_sheath_2x2v_p1 ...
+
+[C]   Compiling pkpm/creg/rt_pkpm_alf_soliton_1x_p2 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_pkpm_alf_soliton_1x_p2.c -o rt_pkpm_alf_soliton_1x_p2 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] pkpm/creg/rt_pkpm_alf_soliton_1x_p2 (ranks=4 cuts={4}) ...
+... saving accepted results to /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll-results/pkpm/creg-accepted/rt_pkpm_alf_soliton_1x_p2 ...
+
+[C]   Compiling pkpm/creg/rt_pkpm_2d_travel_pulse_p1 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_pkpm_2d_travel_pulse_p1.c -o rt_pkpm_2d_travel_pulse_p1 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] pkpm/creg/rt_pkpm_2d_travel_pulse_p1 (ranks=4 cuts={2,2}) ...
+... saving accepted results to /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll-results/pkpm/creg-accepted/rt_pkpm_2d_travel_pulse_p1 ...
+
+Why?
+
+---
+
+I did "make install" and again ran
+
+../gkylsoft/gkeyll/bin/gkeyll runregression configure --source-dir /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll/ --mpiexec /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/bin/mpirun
+
+../gkylsoft/gkeyll/bin/gkeyll runregression -v run create --parallel
+
+and got this output:
+
+CPU-only build
+Running parallel C regression tests serially by MPI collective ...
+
+
+[C]   Compiling moments/creg/rt_5m_mom_beach ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_5m_mom_beach.c -o rt_5m_mom_beach -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] moments/creg/rt_5m_mom_beach (ranks=4 cuts={4}) ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_5m_mom_beach.c -o rt_5m_mom_beach -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'
+... MPI launch FAILED (exit status 1)
+
+[C]   Compiling moments/creg/rt_10m_gem ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_10m_gem.c -o rt_10m_gem -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] moments/creg/rt_10m_gem (ranks=4 cuts={2,2}) ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_10m_gem.c -o rt_10m_gem -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'
+... MPI launch FAILED (exit status 1)
+
+[C]   Compiling vlasov/creg/rt_vlasov_twostream_p2 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_vlasov_twostream_p2.c -o rt_vlasov_twostream_p2 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] vlasov/creg/rt_vlasov_twostream_p2 (ranks=4 cuts={4}) ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_vlasov_twostream_p2.c -o rt_vlasov_twostream_p2 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'
+... MPI launch FAILED (exit status 1)
+
+[C]   Compiling vlasov/creg/rt_vlasov_weibel_2x2v_p2 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_vlasov_weibel_2x2v_p2.c -o rt_vlasov_weibel_2x2v_p2 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] vlasov/creg/rt_vlasov_weibel_2x2v_p2 (ranks=4 cuts={2,2}) ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_vlasov_weibel_2x2v_p2.c -o rt_vlasov_weibel_2x2v_p2 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'
+... MPI launch FAILED (exit status 1)
+
+[C]   Compiling gyrokinetic/creg/rt_gk_ion_sound_1x2v_p1 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_gk_ion_sound_1x2v_p1.c -o rt_gk_ion_sound_1x2v_p1 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] gyrokinetic/creg/rt_gk_ion_sound_1x2v_p1 (ranks=4 cuts={4}) ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_gk_ion_sound_1x2v_p1.c -o rt_gk_ion_sound_1x2v_p1 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'
+... MPI launch FAILED (exit status 1)
+
+[C]   Compiling gyrokinetic/creg/rt_gk_sheath_2x2v_p1 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_gk_sheath_2x2v_p1.c -o rt_gk_sheath_2x2v_p1 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] gyrokinetic/creg/rt_gk_sheath_2x2v_p1 (ranks=4 cuts={1,4}) ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_gk_sheath_2x2v_p1.c -o rt_gk_sheath_2x2v_p1 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'
+... MPI launch FAILED (exit status 1)
+
+[C]   Compiling pkpm/creg/rt_pkpm_alf_soliton_1x_p2 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_pkpm_alf_soliton_1x_p2.c -o rt_pkpm_alf_soliton_1x_p2 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] pkpm/creg/rt_pkpm_alf_soliton_1x_p2 (ranks=4 cuts={4}) ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_pkpm_alf_soliton_1x_p2.c -o rt_pkpm_alf_soliton_1x_p2 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'
+... MPI launch FAILED (exit status 1)
+
+[C]   Compiling pkpm/creg/rt_pkpm_2d_travel_pulse_p1 ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_pkpm_2d_travel_pulse_p1.c -o rt_pkpm_2d_travel_pulse_p1 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'[MPI-C] pkpm/creg/rt_pkpm_2d_travel_pulse_p1 (ranks=4 cuts={2,2}) ...
+cc -O3 -g -ffast-math -I.  -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_MPI -DGKYL_SHARE_DIR="/gkeyll/share" -DGKYL_HAVE_LUA -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/include -Icore  -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/include/ -I/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/include/luajit-2.1/ -Izero  -Izero  rt_pkpm_2d_travel_pulse_p1.c -o rt_pkpm_2d_travel_pulse_p1 -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/gkeyll/lib -lg0pkpm  -lm -lpthread -L. -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/superlu/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -L/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -L. -L. -framework Accelerate -lsuperlu -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/openmpi/lib/ -lmpi -Wl,-rpath,/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkylsoft/luajit/lib/ -lluajit-5.1    -lm -lpthread -ldl
+ld: warning: ignoring duplicate libraries: '-lm', '-lpthread'
+... MPI launch FAILED (exit status 1)
+
+So why is the MPI launch failing?
+
+---
+
+But what if we want to batch serial jobs in runregression run with the --jobs flag? doesn't your change in gkeyll/gkeyll.c:356 interfere with that?
+
+---
+
+Ok, it seems to work now. When I runregression -v however, the mpirun command used to launch the executable doesn't get printed out, and I thought that was something in our plan. Can you add it?
+
+---
+
+Shouldn't 
+
+../gkylsoft/gkeyll/bin/gkeyll runregression -v run check --parallel
+
+and
+
+../gkylsoft/gkeyll/bin/gkeyll runregression run check --parallel
+
+print a little summary of what passed or failed at the end the way
+
+../gkylsoft/gkeyll/bin/gkeyll runregression run check
+
+does?
