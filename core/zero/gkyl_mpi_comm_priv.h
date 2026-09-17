@@ -44,8 +44,6 @@ struct mpi_comm {
   struct comm_buff_stat send[MAX_RECV_NEIGH]; // info for send data
 
   // buffers for for allgather
-  struct comm_buff_stat allgather_buff_local; 
-  struct comm_buff_stat allgather_buff_global; 
+  struct comm_buff_stat allgather_buff_local;
+  struct comm_buff_stat allgather_buff_global;
 };
-
-

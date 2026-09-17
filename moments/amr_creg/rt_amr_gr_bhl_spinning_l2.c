@@ -9,8 +9,7 @@
 #include <gkyl_gr_blackhole.h>
 #include <gkyl_alloc.h>
 
-struct amr_gr_bhl_spinning_ctx
-{
+struct amr_gr_bhl_spinning_ctx {
   // Mathematical constants (dimensionless).
   double pi;
 
@@ -57,8 +56,7 @@ struct amr_gr_bhl_spinning_ctx
   double x_loc; // Shock location (x-direction).
 };
 
-struct amr_gr_bhl_spinning_ctx
-create_ctx(void)
+struct amr_gr_bhl_spinning_ctx create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -83,7 +81,8 @@ create_ctx(void)
   double pos_z = 0.0; // Position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
   int Nx = 8; // Coarse cell count (x-direction).
@@ -135,14 +134,13 @@ create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .x_loc = x_loc,
+    .x_loc = x_loc
   };
 
   return ctx;
 }
 
-void
-evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_gr_bhl_spinning_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -173,23 +171,22 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
     p = pl; // Fluid pressure (left).
-  }
-  else {
+  } else {
     rho = rhor; // Fluid mass density (right).
     u = ur; // Fluid velocity (right).
     p = pr; // Fluid pressure (right).
   }
-  
+
   double spatial_det, lapse;
   double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
 
-  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
     spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
     inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
@@ -198,13 +195,15 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse);
   spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift);
   spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
-  
+
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
   spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
 
   double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
-  vel[0] = u; vel[1] = 0.0; vel[2] = 0.0;
+  vel[0] = u;
+  vel[1] = 0.0;
+  vel[2] = 0.0;
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -218,7 +217,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   }
 
   double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
-  
+
   // Set fluid mass density.
   fout[0] = sqrt(spatial_det) * rho * W;
   // Set fluid momentum density.
@@ -233,17 +232,31 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   // Set lapse gauge variable.
   fout[6] = lapse;
   // Set shift gauge variables.
-  fout[7] = shift[0]; fout[8] = shift[1]; fout[9] = shift[2];
+  fout[7] = shift[0];
+  fout[8] = shift[1];
+  fout[9] = shift[2];
 
   // Set spatial metric tensor.
-  fout[10] = spatial_metric[0][0]; fout[11] = spatial_metric[0][1]; fout[12] = spatial_metric[0][2];
-  fout[13] = spatial_metric[1][0]; fout[14] = spatial_metric[1][1]; fout[15] = spatial_metric[1][2];
-  fout[16] = spatial_metric[2][0]; fout[17] = spatial_metric[2][1]; fout[18] = spatial_metric[2][2];
+  fout[10] = spatial_metric[0][0];
+  fout[11] = spatial_metric[0][1];
+  fout[12] = spatial_metric[0][2];
+  fout[13] = spatial_metric[1][0];
+  fout[14] = spatial_metric[1][1];
+  fout[15] = spatial_metric[1][2];
+  fout[16] = spatial_metric[2][0];
+  fout[17] = spatial_metric[2][1];
+  fout[18] = spatial_metric[2][2];
 
   // Set inverse spatial metric tensor.
-  fout[19] = inv_spatial_metric[0][0]; fout[20] = inv_spatial_metric[0][1]; fout[21] = inv_spatial_metric[0][2];
-  fout[22] = inv_spatial_metric[1][0]; fout[23] = inv_spatial_metric[1][1]; fout[24] = inv_spatial_metric[1][2];
-  fout[25] = inv_spatial_metric[2][0]; fout[26] = inv_spatial_metric[2][1]; fout[27] = inv_spatial_metric[2][2];
+  fout[19] = inv_spatial_metric[0][0];
+  fout[20] = inv_spatial_metric[0][1];
+  fout[21] = inv_spatial_metric[0][2];
+  fout[22] = inv_spatial_metric[1][0];
+  fout[23] = inv_spatial_metric[1][1];
+  fout[24] = inv_spatial_metric[1][2];
+  fout[25] = inv_spatial_metric[2][0];
+  fout[26] = inv_spatial_metric[2][1];
+  fout[27] = inv_spatial_metric[2][2];
 
   // Set excision boundary conditions.
   if (in_excision_region) {
@@ -252,8 +265,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
     }
 
     fout[28] = -1.0;
-  }
-  else {
+  } else {
     fout[28] = 1.0;
   }
 
@@ -311,7 +323,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
+    .num_failures_max = ctx.num_failures_max
   };
 
   gr_euler2d_run_double(argc, argv, &init);
