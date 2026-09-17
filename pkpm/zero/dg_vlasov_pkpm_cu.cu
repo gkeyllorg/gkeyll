@@ -39,7 +39,7 @@ void gkyl_vlasov_pkpm_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin
 )
 {
-  gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.bvar->on_dev, auxin.bvar_surf->on_dev, auxin.pkpm_prim->on_dev,
     auxin.pkpm_prim_surf->on_dev, auxin.max_b->on_dev, auxin.pkpm_lax->on_dev, auxin.div_b->on_dev,
     auxin.pkpm_accel_vars->on_dev, auxin.g_dist_source->on_dev
@@ -139,7 +139,7 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_cu_dev_new(
     (struct dg_vlasov_pkpm *)gkyl_cu_malloc(sizeof(struct dg_vlasov_pkpm));
   gkyl_cu_memcpy(vlasov_pkpm_cu, vlasov_pkpm, sizeof(struct dg_vlasov_pkpm), GKYL_CU_MEMCPY_H2D);
 
-  dg_vlasov_pkpm_set_cu_dev_ptrs<<<1, 1> > >(vlasov_pkpm_cu, cbasis->b_type, cdim, poly_order);
+  dg_vlasov_pkpm_set_cu_dev_ptrs<<<1, 1>>>(vlasov_pkpm_cu, cbasis->b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   vlasov_pkpm->eqn.on_dev = &vlasov_pkpm_cu->eqn;

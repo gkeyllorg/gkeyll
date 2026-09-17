@@ -114,9 +114,7 @@ void ambi_bolt_potential_choose_kernels_cu(
   const struct gkyl_basis *basis, struct gkyl_ambi_bolt_potential_kernels *kers
 )
 {
-  ambi_bolt_potential_set_cu_ker_ptrs<<<1, 1> > >(
-    kers, basis->b_type, basis->ndim, basis->poly_order
-  );
+  ambi_bolt_potential_set_cu_ker_ptrs<<<1, 1>>>(kers, basis->b_type, basis->ndim, basis->poly_order);
 }
 
 void gkyl_ambi_bolt_potential_sheath_calc_cu(
@@ -128,7 +126,7 @@ void gkyl_ambi_bolt_potential_sheath_calc_cu(
 {
   int nblocks = ghost_r->nblocks, nthreads = ghost_r->nthreads;
 
-  gkyl_ambi_bolt_potential_sheath_calc_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_ambi_bolt_potential_sheath_calc_cu_ker<<<nblocks, nthreads>>>(
     up->dz, up->charge_e, up->mass_e, up->temp_e, up->kernels_cu, edge, *skin_r, *ghost_r,
     cmag->on_dev, jacobtot_inv->on_dev, gammai->on_dev, m0i->on_dev, Jm0i->on_dev,
     sheath_vals->on_dev
@@ -143,7 +141,7 @@ void gkyl_ambi_bolt_potential_phi_calc_cu(
 {
   int nblocks = local_r->nblocks, nthreads = local_r->nthreads;
 
-  gkyl_ambi_bolt_potential_phi_calc_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_ambi_bolt_potential_phi_calc_cu_ker<<<nblocks, nthreads>>>(
     up->charge_e, up->temp_e, up->kernels_cu, *local_r, *extlocal_r, m0i->on_dev,
     sheath_vals->on_dev, phi->on_dev
   );

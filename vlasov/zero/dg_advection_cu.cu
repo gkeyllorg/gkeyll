@@ -26,7 +26,7 @@ void gkyl_advection_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin
 )
 {
-  gkyl_advection_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.u_i->on_dev);
+  gkyl_advection_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin.u_i->on_dev);
 }
 
 __global__ void static dg_advection_set_cu_dev_ptrs(
@@ -82,7 +82,7 @@ gkyl_dg_advection_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_
   struct dg_advection *advection_cu =
     (struct dg_advection *)gkyl_cu_malloc(sizeof(struct dg_advection));
   gkyl_cu_memcpy(advection_cu, advection, sizeof(struct dg_advection), GKYL_CU_MEMCPY_H2D);
-  dg_advection_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_advection_set_cu_dev_ptrs<<<1, 1>>>(
     advection_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order
   );
 

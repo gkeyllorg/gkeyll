@@ -198,7 +198,7 @@ advance_cu_less_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array *a
 {
   int nblocks = arr_to_mask->nblocks;
   int nthreads = arr_to_mask->nthreads;
-  gkyl_dg_array_mask_less_than_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_array_mask_less_than_kernel<<<nblocks, nthreads>>>(
     *mask->mask_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, mask->threshold
   );
 }
@@ -208,7 +208,7 @@ advance_cu_greater_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array
 {
   int nblocks = arr_to_mask->nblocks;
   int nthreads = arr_to_mask->nthreads;
-  gkyl_dg_array_mask_greater_than_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_array_mask_greater_than_kernel<<<nblocks, nthreads>>>(
     *mask->mask_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev, mask->threshold
   );
 }
@@ -220,13 +220,13 @@ advance_cu_less_than_frac_conf(struct gkyl_dg_array_mask *mask, const struct gky
   int conf_nblocks = mask->conf_rng->nblocks;
 
   // Phase 1: Find max in velocity space for each configuration cell
-  gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads> > >(
+  gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(
     *mask->conf_rng, *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev,
     mask->local_max_arr->on_dev
   );
 
   // Phase 2: Apply mask based on local thresholds
-  gkyl_dg_array_mask_spatial_frac_less_than_kernel<<<conf_nblocks, nthreads> > >(
+  gkyl_dg_array_mask_spatial_frac_less_than_kernel<<<conf_nblocks, nthreads>>>(
     *mask->conf_rng, *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev,
     mask->local_max_arr->on_dev, mask->threshold
   );
@@ -240,13 +240,13 @@ static void advance_cu_greater_than_frac_conf(
   int conf_nblocks = mask->conf_rng->nblocks;
 
   // Phase 1: Find max in velocity space for each configuration cell
-  gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads> > >(
+  gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(
     *mask->conf_rng, *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev,
     mask->local_max_arr->on_dev
   );
 
   // Phase 2: Apply mask based on local thresholds
-  gkyl_dg_array_mask_spatial_frac_greater_than_kernel<<<conf_nblocks, nthreads> > >(
+  gkyl_dg_array_mask_spatial_frac_greater_than_kernel<<<conf_nblocks, nthreads>>>(
     *mask->conf_rng, *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev,
     mask->local_max_arr->on_dev, mask->threshold
   );
@@ -272,7 +272,7 @@ advance_threshold_frac_kernel(struct gkyl_dg_array_mask *mask, const double glob
 
 static void advance_threshold_frac(struct gkyl_dg_array_mask *mask, const double global_max)
 {
-  advance_threshold_frac_kernel<<<1, 1> > >(mask->on_dev, global_max);
+  advance_threshold_frac_kernel<<<1, 1>>>(mask->on_dev, global_max);
 }
 
 void gkyl_dg_array_mask_advance_threshold_cu(
@@ -300,7 +300,7 @@ void gkyl_dg_array_mask_eval_idx_cu(struct gkyl_dg_array_mask *mask, const int *
     idx_struct.idx[d] = idx[d];
   }
 
-  gkyl_dg_array_mask_eval_idx_kernel<<<1, 1> > >(mask->on_dev, idx_struct, val);
+  gkyl_dg_array_mask_eval_idx_kernel<<<1, 1>>>(mask->on_dev, idx_struct, val);
 }
 
 __global__ static void
@@ -403,7 +403,7 @@ struct gkyl_dg_array_mask *gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_ma
     mask->mask_arr = mask_array;
   }
 
-  gkyl_dg_array_mask_set_dev_func_ptr<<<1, 1> > >(mask->on_dev, mask->type);
+  gkyl_dg_array_mask_set_dev_func_ptr<<<1, 1>>>(mask->on_dev, mask->type);
 
   // For NONE type, don't allocate mask array
   return mask;

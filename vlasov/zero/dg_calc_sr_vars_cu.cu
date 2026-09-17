@@ -46,7 +46,7 @@ void gkyl_calc_sr_vars_init_p_vars_cu(
 {
   int nblocks = up->vel_range.nblocks;
   int nthreads = up->vel_range.nthreads;
-  gkyl_calc_sr_vars_init_p_vars_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_calc_sr_vars_init_p_vars_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, gamma->on_dev, gamma_inv->on_dev
   );
 }
@@ -113,7 +113,7 @@ void gkyl_dg_calc_sr_vars_n_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_dg_calc_sr_vars_n_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_dg_calc_sr_vars_n_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, M0->on_dev, M1i->on_dev
   );
 
@@ -122,7 +122,7 @@ void gkyl_dg_calc_sr_vars_n_cu(
     assert(status);
   }
 
-  gkyl_dg_calc_sr_vars_n_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_dg_calc_sr_vars_n_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, M0->on_dev, n->on_dev
   );
 }
@@ -163,7 +163,7 @@ void gkyl_dg_calc_sr_vars_GammaV_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_sr_vars_GammaV_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_sr_vars_GammaV_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, u_i->on_dev, u_i_sq->on_dev, GammaV->on_dev, GammaV_sq->on_dev
   );
 }
@@ -237,7 +237,7 @@ void gkyl_dg_calc_sr_vars_pressure_cu(
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_array_clear(sr_pressure, 0.0);
-  gkyl_dg_calc_sr_vars_pressure_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_sr_vars_pressure_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, *phase_range, gamma->on_dev, gamma_inv->on_dev, u_i->on_dev,
     u_i_sq->on_dev, GammaV->on_dev, GammaV_sq->on_dev, f->on_dev, sr_pressure->on_dev
   );
@@ -296,7 +296,7 @@ gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_cu_dev_new(
     (struct gkyl_dg_calc_sr_vars *)gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_sr_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_sr_vars_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_calc_sr_vars_set_cu_dev_ptrs<<<1, 1>>>(
     up_cu, b_type, b_type_v, cdim, vdim, poly_order, poly_order_v
   );
 

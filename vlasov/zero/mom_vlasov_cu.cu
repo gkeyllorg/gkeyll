@@ -161,7 +161,7 @@ struct gkyl_mom_type *gkyl_mom_vlasov_cu_dev_new(
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  set_cu_ptrs<<<1, 1> > >(
+  set_cu_ptrs<<<1, 1>>>(
     momt_cu, mom_type, cbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]
   );
 
@@ -237,7 +237,7 @@ struct gkyl_mom_type *gkyl_int_mom_vlasov_cu_dev_new(
     (struct mom_type_vlasov *)gkyl_cu_malloc(sizeof(struct mom_type_vlasov));
   gkyl_cu_memcpy(momt_cu, momt, sizeof(struct mom_type_vlasov), GKYL_CU_MEMCPY_H2D);
 
-  set_int_cu_ptrs<<<1, 1> > >(
+  set_int_cu_ptrs<<<1, 1>>>(
     momt_cu, mom_type, cbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]
   );
 

@@ -29,7 +29,7 @@ void gkyl_lbo_gyrokinetic_drag_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_gyrokinetic_drag_auxfields auxin
 )
 {
-  gkyl_lbo_gyrokinetic_drag_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_lbo_gyrokinetic_drag_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.nuSum->on_dev, auxin.nuPrimMomsSum->on_dev, auxin.m2self->on_dev
   );
 }
@@ -120,7 +120,7 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(
 
   gkyl_cu_memcpy(lbo_cu, lbo, sizeof(struct dg_lbo_gyrokinetic_drag), GKYL_CU_MEMCPY_H2D);
 
-  dg_lbo_gyrokinetic_drag_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_lbo_gyrokinetic_drag_set_cu_dev_ptrs<<<1, 1>>>(
     lbo_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order
   );
 

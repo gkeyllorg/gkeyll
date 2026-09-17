@@ -164,7 +164,7 @@ void gkyl_spitzer_coll_freq_advance_normnu_cu(
 )
 {
   int nblocks = range->nblocks, nthreads = range->nthreads;
-  gkyl_spitzer_coll_freq_advance_normnu_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_spitzer_coll_freq_advance_normnu_cu_ker<<<nblocks, nthreads>>>(
     *range, up->basis_at_ords->on_dev, up->weights->on_dev, momsSelf->on_dev, vtSqMinSelf,
     momsOther->on_dev, vtSqMinOther, normNu, nuOut->on_dev
   );
@@ -177,7 +177,7 @@ void gkyl_spitzer_coll_freq_advance_cu(
 )
 {
   int nblocks = range->nblocks, nthreads = range->nthreads;
-  gkyl_spitzer_coll_freq_advance_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_spitzer_coll_freq_advance_cu_ker<<<nblocks, nthreads>>>(
     *range, up->basis_at_ords->on_dev, up->weights->on_dev, up->nufraceps0_fac, up->cellav_fac,
     up->r4pieps0_fac, up->hbar_fac, up->eps0, bmag->on_dev, qSelf, mSelf, momsSelf->on_dev,
     vtSqMinSelf, qOther, mOther, momsOther->on_dev, vtSqMinOther, nuOut->on_dev

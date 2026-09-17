@@ -55,7 +55,7 @@ void gkyl_mom_calc_advance_cu(
 {
   int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
   gkyl_array_clear_range(mout, 0.0, conf_range);
-  gkyl_mom_calc_advance_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_mom_calc_advance_cu_ker<<<nblocks, nthreads>>>(
     mcalc->on_dev, *phase_range, *conf_range, fin->on_dev, mout->on_dev
   );
 }

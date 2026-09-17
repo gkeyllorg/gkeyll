@@ -13,7 +13,12 @@ credentials, and command-line client.
   pull requests into `main` from every author, with optional selected runs.
 
 The Jenkinsfiles and clients in this directory publish machine-specific GitHub
-commit statuses. Do not place credentials in the repository or in candidate
+commit statuses. Gkeyll is public, so Pipeline source and candidate checkouts
+are anonymous. Each controller stores its own classic GitHub PAT with only the
+`repo:status` scope for authenticated GitHub API requests and status
+publication; an outside collaborator with push access can use this model
+without Gkeyll organization membership. See the platform guide for the
+credential owner. Do not place credentials in the repository or in candidate
 branches.
 
 ## Unified local command

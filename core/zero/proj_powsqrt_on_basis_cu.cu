@@ -61,7 +61,7 @@ void gkyl_proj_powsqrt_on_basis_advance_cu(
 )
 {
   int nblocks = range->nblocks, nthreads = range->nthreads;
-  gkyl_proj_powsqrt_on_basis_advance_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_proj_powsqrt_on_basis_advance_cu_ker<<<nblocks, nthreads>>>(
     up->num_quad, *range, up->basis_at_ords->on_dev, up->weights->on_dev, expIn, fIn->on_dev,
     fOut->on_dev
   );

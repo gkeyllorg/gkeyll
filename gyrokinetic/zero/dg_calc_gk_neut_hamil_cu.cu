@@ -54,7 +54,7 @@ void gkyl_dg_calc_gk_neut_hamil_calc_cu(
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_gk_neut_hamil_calc_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_gk_neut_hamil_calc_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, *phase_range, gij->on_dev, hamil->on_dev
   );
 }
@@ -77,7 +77,7 @@ gkyl_dg_calc_gk_neut_hamil *gkyl_dg_calc_gk_neut_hamil_cu_dev_new(
     (struct gkyl_dg_calc_gk_neut_hamil *)gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_gk_neut_hamil), GKYL_CU_MEMCPY_H2D);
 
-  gkyl_dg_calc_gk_neut_hamil_set_cu_dev_ptrs<<<1, 1> > >(up_cu, b_type, cdim, vdim, poly_order);
+  gkyl_dg_calc_gk_neut_hamil_set_cu_dev_ptrs<<<1, 1>>>(up_cu, b_type, cdim, vdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

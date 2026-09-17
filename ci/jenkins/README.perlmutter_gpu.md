@@ -64,9 +64,17 @@ chmod 600 "$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth"
 
 ### Create the GitHub credential
 
-Create a fine-grained token for `gkeyllorg/gkeyll` with Contents and Pull
-requests read access plus Commit statuses read/write. Add it to Jenkins as a
-**Username with password** credential and record its ID.
+Create a classic GitHub PAT with only the `repo:status` scope and a short
+expiration. Its owner must have push access to `gkeyllorg/gkeyll`, which GitHub
+requires to publish commit statuses. In **Manage Jenkins → Credentials**, add
+it to this controller as a **Username with password** credential: use the
+owner's GitHub username and the PAT as the password, then record its ID.
+Organization membership is not required.
+
+The Pipeline fetches public candidates anonymously; this PAT is used only for
+authenticated GitHub API requests and status publication. Do not share it or
+store it outside this controller. Revoke or replace it when the controller or
+its owner changes.
 
 ### Configure the Jenkins node and global environment
 
@@ -76,7 +84,7 @@ System → Global properties → Environment variables**, set:
 | Name | Value |
 | --- | --- |
 | `GKEYLL_CI_ROOT` | Expanded shared project-scratch root |
-| `PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID` | GitHub credential ID |
+| `PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID |
 | `PERLMUTTER_GPU_SLURM_ACCOUNT` | Required NERSC project/account |
 | `PERLMUTTER_GPU_NODE_LABEL` | Optional; default `perlmutter_gpu` |
 | `PERLMUTTER_GPU_SLURM_QOS` | Optional; default `shared` |
@@ -90,8 +98,9 @@ System → Global properties → Environment variables**, set:
 
 Create **New Item → Pipeline** named `gkeyll-ci-perlmutter_gpu`. Use
 **Pipeline script from SCM** with repository `https://github.com/gkeyllorg/gkeyll.git`,
-your GitHub credential, branch `*/main`, and script path
-`ci/jenkins/Jenkinsfile.perlmutter_gpu`. Use node label `perlmutter_gpu`.
+no SCM credential, branch `*/main`, and script path
+`ci/jenkins/Jenkinsfile.perlmutter_gpu`. The public repository is fetched
+anonymously; use node label `perlmutter_gpu`.
 
 Leave **This project is parameterized** unchecked. Click **Build Now** once to
 register the Pipeline parameters; its expected empty-selector failure submits

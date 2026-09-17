@@ -69,7 +69,7 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance_cu(
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, *phase_range, a, alpha, beta, gamma, v0, vnu_surf->on_dev, vnu->on_dev,
     vsqnu_surf->on_dev, vsqnu->on_dev
   );
@@ -141,7 +141,7 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, *phase_range, vnu_surf->on_dev, vnu->on_dev, vsqnu_surf->on_dev,
     vsqnu->on_dev, n_elc_rad->on_dev, n_elc->on_dev, nI->on_dev, nvnu_surf->on_dev, nvnu->on_dev,
     nvsqnu_surf->on_dev, nvsqnu->on_dev, vtsq_min_normalized->on_dev, vtsq->on_dev
@@ -191,7 +191,7 @@ gkyl_dg_calc_gk_rad_vars *gkyl_dg_calc_gk_rad_vars_cu_dev_new(
     (struct gkyl_dg_calc_gk_rad_vars *)gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_gk_rad_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_gk_rad_vars_set_cu_dev_ptrs<<<1, 1> > >(up_cu, cdim, vdim, poly_order);
+  dg_calc_gk_rad_vars_set_cu_dev_ptrs<<<1, 1>>>(up_cu, cdim, vdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

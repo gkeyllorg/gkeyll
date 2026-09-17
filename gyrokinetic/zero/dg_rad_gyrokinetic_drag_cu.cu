@@ -29,7 +29,7 @@ void gkyl_rad_gyrokinetic_drag_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin
 )
 {
-  gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.nvnu_surf->on_dev, auxin.nvnu->on_dev, auxin.nvsqnu_surf->on_dev,
     auxin.nvsqnu->on_dev
   );
@@ -113,7 +113,7 @@ struct gkyl_dg_eqn *gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(
     (struct dg_rad_gyrokinetic_drag *)gkyl_cu_malloc(sizeof(struct dg_rad_gyrokinetic_drag));
   gkyl_cu_memcpy(grad_cu, grad, sizeof(struct dg_rad_gyrokinetic_drag), GKYL_CU_MEMCPY_H2D);
 
-  dg_rad_gyrokinetic_drag_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_rad_gyrokinetic_drag_set_cu_dev_ptrs<<<1, 1>>>(
     grad_cu, conf_basis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order
   );
 

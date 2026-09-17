@@ -122,7 +122,7 @@ void gkyl_bc_emission_spectrum_set_extern_params_cu(
   const struct gkyl_bc_emission_spectrum *up, int cdim, int vdim, double mass_in, double mass_out
 )
 {
-  gkyl_bc_emission_spectrum_set_exterm_params_cu_ker<<<1, 1> > >(
+  gkyl_bc_emission_spectrum_set_exterm_params_cu_ker<<<1, 1>>>(
     up->spectrum_model->on_dev, up->yield_model->on_dev, cdim, vdim, mass_in, mass_out
   );
 }
@@ -134,7 +134,7 @@ void gkyl_bc_emission_spectrum_sey_calc_cu(
 {
   int nblocks = impact_buff_r->nblocks, nthreads = impact_buff_r->nthreads;
 
-  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads>>>(
     *grid, *impact_buff_r, yield->on_dev, up->yield_model->on_dev
   );
 }
@@ -149,7 +149,7 @@ void gkyl_bc_emission_spectrum_advance_cu(
   int nblocks = impact_buff_r->nblocks, nthreads = impact_buff_r->nthreads;
 
   // Calculate weighted mean numerator and denominator
-  gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads> > >(
+  gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads>>>(
     up->cdim, up->dir, up->edge, bflux->on_dev, weight->on_dev, *up->grid, yield->on_dev,
     *impact_buff_r, *impact_cbuff_r
   );
@@ -158,7 +158,7 @@ void gkyl_bc_emission_spectrum_advance_cu(
   nthreads = emit_buff_r->nthreads;
 
   // Finish weighted mean calculation and accumulate to buffer
-  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads> > >(
+  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(
     spectrum->on_dev, f_emit->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *emit_buff_r,
     *impact_cbuff_r, up->spectrum_model->on_dev
   );

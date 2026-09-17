@@ -53,7 +53,7 @@ void gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(
 )
 {
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
-  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker<<<nblocks, nthreads>>>(
     *conf_range, up->basis_at_ords_conf->on_dev, bmag->on_dev, bmag_max, up->Dbmag_quad->on_dev
   );
 }
@@ -271,7 +271,7 @@ void gkyl_loss_cone_mask_gyrokinetic_advance_cu(
     &dimGrid_conf, &dimBlock_conf, *conf_range, tot_quad_conf
   );
 
-  gkyl_loss_cone_mask_gyrokinetic_qDphiDbmag_quad_ker<<<dimGrid_conf, dimBlock_conf> > >(
+  gkyl_loss_cone_mask_gyrokinetic_qDphiDbmag_quad_ker<<<dimGrid_conf, dimBlock_conf>>>(
     *conf_range, up->basis_at_ords_conf->on_dev, up->charge, phi->on_dev, phi_m,
     up->Dbmag_quad->on_dev, up->qDphiDbmag_quad->on_dev
   );
@@ -281,7 +281,7 @@ void gkyl_loss_cone_mask_gyrokinetic_advance_cu(
   if (up->cellwise_trap_loss) {
     // Don't do quadrature.
     int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
-    gkyl_loss_cone_mask_gyrokinetic_ker<<<nblocks, nthreads> > >(
+    gkyl_loss_cone_mask_gyrokinetic_ker<<<nblocks, nthreads>>>(
       *up->grid_phase, *phase_range, *conf_range, gvm->local_ext_vel, up->mass,
       up->ordinates_phase->on_dev, up->bmag_max_loc, up->qDphiDbmag_quad->on_dev,
       up->Dbmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev, gvm->vmap_basis, mask_out->on_dev
@@ -294,7 +294,7 @@ void gkyl_loss_cone_mask_gyrokinetic_advance_cu(
       &dimGrid, &dimBlock, *phase_range, tot_quad_phase
     );
 
-    gkyl_loss_cone_mask_gyrokinetic_quad_ker<<<dimGrid, dimBlock> > >(
+    gkyl_loss_cone_mask_gyrokinetic_quad_ker<<<dimGrid, dimBlock>>>(
       *up->grid_phase, *phase_range, *conf_range, gvm->local_ext_vel, up->mass, up->norm_fac,
       up->ordinates_phase->on_dev, up->bmag_max_loc, up->qDphiDbmag_quad->on_dev,
       up->Dbmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev, gvm->vmap_basis,
