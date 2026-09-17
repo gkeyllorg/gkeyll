@@ -1,0 +1,5 @@
+Resolve the merge conflict. I think the branch which is being merged into this one (main) introduced a description in the metadata of the saved files
+
+---
+
+Resolve the merge conflict. I think the branch which is being merged into this one (main) introduced a description in the metadata of the saved files
