@@ -1,0 +1,92 @@
+Over a series of conversations with Claude and Codex we built the Jenkins-based CI for Gkeyll and finally opened a PR for it (https://github.com/gkeyllorg/gkeyll/pull/1132). Can you review it, just the Jenkins CI part of it, and see if anything needs to be cleaned up, modified or improved before we merge into main? I vaguely remember something about ensuring that the Jenkinsfiles should come from main and not the candidate branch/commit, and I'm not sure if that's already taken care of. Also please make any other suggestions you see as appropriate.
+
+---
+
+I want to look at the Jenkins CI-related part of PR #1132 (https://github.com/gkeyllorg/gkeyll/pull/1132) for the branch "agent_tools". The Jenkins CI was originally built in "agent_tools-jenkins", but we merged that into "agent_tools" via PR #1107.
+
+---
+
+I removed the legacy ci/jenkins/Jenkinsfile.
+
+Regarding the team workstation, I need to clarify how it works. Is jenkinsfile.team_workstation essentially wrapping jenkinsfile.personal, so that it runs jenkinsfile.team_workstation from main which calls its jenkinsfile.personal, and separately runs jenkinsfile.team_worstation from the candidate PR which then runs its jenkinsfile.personal?
+
+---
+
+Could the team workstation workflow be changed so it only uses the trusted main files? what are the pros/cons of doing that?
+
+---
+
+Automatic CI for every PR into main is a requirement.
+
+---
+
+What if in the future we do want to change the Jenkins CI, e.g. add valgrind checks as part of it? How could a subsequent PR change the Jenkins CI if the proposed workflow is meant to work only with the library stored in main?
+
+---
+
+Ok. Can you create a plan for this modification to the team workstation workflow please? make sure to document some of the same stages presently in the README files (installation, launching CI jobs, troubleshooting) and add a section with instructions for making changes to the CI library.
+
+---
+
+I'm returning to this conversation a day later. Can you give me a very, very
+  brief summary, and describe what seemed like the best option as of yesterday?
+
+---
+
+So how is the best option for the team workstation different from the personal/cluster setup, other than it automatically discovers and tests all PRs into main?
+
+---
+
+Ok, please create a plan for this modification to the team machine setup.
+
+---
+
+Two things:
+1. The plan says "Configure GitHub branch protection for main to require continuous-integration/jenkins/team-workstation". I don't want to do this at the moment because we don't yet have a team workstation; I'm just getting the infrastructure ready.
+2. Could we also add support for specifying baseline_ref and candidate_ref? because the administrators of the team workstation may sometimes want to log on to the workstation and force-test specific branches/commits.
+
+---
+
+Implement the plan.
+
+---
+
+What exactly is the .gkeyll-team-ci file for? are there alternative approaches?
+
+---
+
+But couldn't a PR also delete .gkeyll-team-ci?
+
+---
+
+could this marker file live in ci/jenkins?
+
+---
+
+Ok, please move the location of the marker and update the other files accordingly
+
+---
+
+I'd like to improve something in the personal and team machine README files. As can you can see in the stellar/perlmutter README files, the instruction to install "Pipeline, Git, Credentials Binding, Git client, and
+GitHub plugins" first appears under "Open Jenkins browser", which makes sense as before this the user won't know what a plugin is, but then they open the browser and go through the initial setup Jenkins will ask which plugins to install. I think the personal/team README files should read in the same order. That is, rather than having "Install Pipeline, Git, Credentials Binding, Git client,
+and GitHub Branch Source plugins." under "Install Jenkins", it should go under "Open a Jenkins browser"
+
+---
+
+The team README says "Open the workstation Jenkins URL", but how is the user supposed to know what that URL is ?
+
+---
+
+In the team README, you just say "Install a Jenkins LTS". Please give concrete instructions for how to do this, assuming the workstation runs Linux.
+
+---
+
+Actually, rather than the full explanation of how to do this in our team README, just provide a link to the appropriate place in the online Jenkins documentation.
+
+---
+
+Can you make sure that the team README has the same sections and subsections as the personal README please?
+
+---
+
+Why did you change ci/jenkins/jenkinsfile.personal?
