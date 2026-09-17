@@ -327,7 +327,7 @@ struct gk_app_ctx create_ctx(void)
   double qe = -eV; // electron charge
 
   // Geometry and magnetic field.
-  double a_shift = 0.5; // Parameter in Shafranov shift.
+  double a_shift = 0.6; // Parameter in Shafranov shift.
   double Z_axis = 0.1414361745; // Magnetic axis height [m].
   double R_axis = 0.8867856264; // Magnetic axis major radius [m].
   double B_axis = 1.4; // Magnetic field at the magnetic axis [T].
