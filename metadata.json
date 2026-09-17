@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2RRM2WAGAPJG2C291XZWX8B",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-parallel",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "ci/jenkins/Jenkinsfile.perlmutter_gpu",
+    "ci/jenkins/Jenkinsfile.stellar_cpu",
+    "ci/jenkins/README.md",
+    "ci/jenkins/README.perlmutter_gpu.md",
+    "ci/jenkins/README.personal.md",
+    "ci/jenkins/README.stellar_cpu.md",
+    "ci/jenkins/README.team_workstation.md",
+    "ci/jenkins/gkeyll-ci.sh",
+    "ci/jenkins/jenkins-client-artifacts.sh",
+    "ci/jenkins/jenkins-perlmutter_gpu.sh",
+    "ci/jenkins/jenkins-personal.sh",
+    "ci/jenkins/jenkins-stellar_cpu.sh",
+    "ci/jenkins/jenkins-team-workstation.sh",
+    "ci/jenkins/jenkinsfile.personal",
+    "gkeyll/lua/Tool/jeci.lua"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 167003,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 4688896,
+    "output_tokens": 32555,
+    "api_call_count": 48
+  }
+}

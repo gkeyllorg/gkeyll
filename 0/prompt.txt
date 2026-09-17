@@ -1,0 +1,39 @@
+We implemented Jenkins-based CI for gkeyll in ci/jenkins/. I'd like to explore two possible reporting improvements:
+1. The current model sends a commit status to GitHub indicating if the checks passed or fail. What are the limitations on that status? could it include a list of the failed tests?
+2. I'd like to add a command to CLI (each CLI script for personal/cluster/team, the gkeyll-ci.sh, and the gkeyll jeci wrapper) which provides more information on a specific build, so for example something that allows us to do "info --build 6" and it would display the same information that "recent" provides for a specific build in addition to: the reason it failed (and if it failed during runregression you could use "../gkylsoft/gkeyll/bin/gkeyll querydb" I think) and a list of artifacts available.
+
+---
+
+Ok, please create a plan for this. I would add one thing if possible: It'd be nice to have, if available, the directory to baseline and candidate results, for example something like:
+  Regression failures:
+    gyrokinetic/foo [fail]
+    vlasov/bar [timeout]
+  Baseline results dir: <baseline_results_directory>
+  Candidate results dir: <candidate_results_directory>
+  Artifacts dir: <artifacts_directory>
+  Artifacts:
+    ci-regression-summary.txt
+
+---
+
+I'm in overall agreement with this plan. I just want to understand and possibly refine something. The info command will print
+
+Artifacts URL: <build-url>/artifact/
+
+I be able to see that directory from my terminal, e.g. with "ls <build-url>/artifact/" ? if not, what are some options to be able to see the artifact directory from the terminal (since I'm using CLI after all, I'd rather not be forced to switch to a browser)
+
+---
+
+I like the idea of an "artifact" command, I suggest it has options like
+--list: list available artifacts.
+--fetch: downloads all artifacts to a folder (whose name includes the build number).
+--only: allows us to specify a single artifact to download, or a comma-separated list of artifacts.
+--dir: optional name of folder to download artifacts into
+
+---
+
+Implement the plan.
+
+---
+
+Will all personal/cluster/team machines write out ci-failure-summary.txt ?

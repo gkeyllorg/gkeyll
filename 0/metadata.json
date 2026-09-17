@@ -1,0 +1,93 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2RRM2WAGAPJG2C291XZWX8B",
+  "session_id": "01a0b15f-fec1-7813-9d9f-470541270018",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-17T22:43:31.716326Z",
+  "branch": "agent_tools-parallel",
+  "checkpoints_count": 6,
+  "save_step_count": 2,
+  "files_touched": [
+    "ci/jenkins/Jenkinsfile.perlmutter_gpu",
+    "ci/jenkins/Jenkinsfile.stellar_cpu",
+    "ci/jenkins/README.md",
+    "ci/jenkins/README.perlmutter_gpu.md",
+    "ci/jenkins/README.personal.md",
+    "ci/jenkins/README.stellar_cpu.md",
+    "ci/jenkins/README.team_workstation.md",
+    "ci/jenkins/gkeyll-ci.sh",
+    "ci/jenkins/jenkins-client-artifacts.sh",
+    "ci/jenkins/jenkins-perlmutter_gpu.sh",
+    "ci/jenkins/jenkins-personal.sh",
+    "ci/jenkins/jenkins-stellar_cpu.sh",
+    "ci/jenkins/jenkins-team-workstation.sh",
+    "ci/jenkins/jenkinsfile.personal",
+    "gkeyll/lua/Tool/jeci.lua"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "6e054c2dde80",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 167003,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 4688896,
+    "output_tokens": 32555,
+    "api_call_count": 48
+  },
+  "session_metrics": {
+    "turn_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-17T22:43:31.664321Z",
+    "agent_lines": 466,
+    "agent_removed": 48,
+    "human_added": 0,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 467,
+    "total_lines_changed": 515,
+    "agent_percentage": 99.80582524271846,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 850764,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "README.stellar_cpu.md_old": 561,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "log.txt": 796961,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "run_3.txt": 67,
+        "run_4.txt": 67,
+        "run_5.txt": 10,
+        "tmp.sh": 43,
+        "tmp.txt": 8
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1,
+      "user_lines_removed": 1,
+      "agent_lines_added": 851232,
+      "agent_lines_removed": 49,
+      "user_added_per_file": {
+        "ci/jenkins/README.md": 1
+      },
+      "user_removed_per_file": {
+        "ci/jenkins/README.md": 1
+      }
+    }
+  ]
+}
