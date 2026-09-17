@@ -1,0 +1,21 @@
+# =========================================================================
+# kin-rad-py local gitignore
+# =========================================================================
+
+# ignore all local data folders completely
+raw_data/*.dat
+formatted_data/*.txt
+fits_data/fit-db_test*/
+fits_data/fit-db_prod_rs_server_1/plots/
+fits_data/fit-db_prod_rs_server_1/old_plots/
+
+# ignore python execution artifacts
+__pycache__
+__pycache__/
+*.pyc
+
+# ignore any ad-hoc script experiments
+# update-plots.py
+upt_read_radiation.py
+# get_densities.py # might be useful 
+

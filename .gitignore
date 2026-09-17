@@ -69,3 +69,5 @@ gyrokinetic/data/adas/*.npy
 # Adas data files
 data/adas/*.npy
 install-deps/*.npy
+gyrokinetic/data/adas/__pycache__/
+gyrokinetic/data/adas/upt_read_radiation.py
