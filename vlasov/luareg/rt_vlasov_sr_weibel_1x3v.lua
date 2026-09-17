@@ -35,10 +35,10 @@ uz_elc1_sr = gamma_elc1 * uz_elc1 -- First electron relativistic velocity (z-dir
 uz_elc2_sr = gamma_elc2 * uz_elc2 -- Second electron relativistic velocity (z-direction).
 
 -- Simulation parameters.
-Nx = 24 -- Cell count (configuration space: x-direction).
-Nvx = 12 -- Cell count (velocity space: vx-direction).
-Nvy = 12 -- Cell count (velocity space: vy-direction).
-Nvz = 12 -- Cell count (velocity space: vz-direction).
+Nx = 8 -- Cell count (configuration space: x-direction).
+Nvx = 8 -- Cell count (velocity space: vx-direction).
+Nvy = 8 -- Cell count (velocity space: vy-direction).
+Nvz = 8 -- Cell count (velocity space: vz-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
 vx_max = 8.0 -- Domain boundary (velocity space: vx-direction).
 vy_max = 8.0 -- Domain boundary (velocity space: vy-direction).

@@ -8,26 +8,28 @@
 #include <gkyl_mat.h>
 #include <gkyl_mat_priv.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_grid.h> 
+#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <assert.h>
 
-GKYL_CU_DH
-static inline void
-log_to_comp(int ndim, const double *eta,
-  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
-  double* GKYL_RESTRICT xout)
+GKYL_CU_DH static inline void log_to_comp(
+  int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
+  double *GKYL_RESTRICT xout
+)
 {
-  for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
+  for (int d = 0; d < ndim; ++d) {
+    xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
+  }
 }
 
-static inline void
-copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
+static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 {
-  for (int i=0; i<cdim; ++i)
+  for (int i = 0; i < cdim; ++i) {
     out[i] = cidx[i];
-  for (int i=cdim; i<pdim; ++i)
-    out[i] = vidx[i-cdim];
+  }
+  for (int i = cdim; i < pdim; ++i) {
+    out[i] = vidx[i - cdim];
+  }
 }
 
 struct gkyl_loss_cone_mask_gyrokinetic {
@@ -52,7 +54,7 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   void *c2p_pos_ctx; // Context for the c2p_pos mapping.
 
   bool cellwise_trap_loss; // Whether a whole cell is trapped/lost, or whether
-                           // high-order distinction within a cell is allowed.
+  // high-order distinction within a cell is allowed.
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
   struct gkyl_range phase_qrange; // Range of Phase-space ordinates.
 
@@ -70,15 +72,15 @@ struct gkyl_loss_cone_mask_gyrokinetic {
 
   struct gkyl_array *fun_at_ords; // Mask we are projecting at ordinates in a cell.
 
-  int *p2c_qidx;  // Mapping between configuration-space and phase-space ordinates.
+  int *p2c_qidx; // Mapping between configuration-space and phase-space ordinates.
   struct gkyl_array *mask_out_quad; // Array keeping f_lte at phase-space quadrature nodes.
   struct gkyl_array *qDphiDbmag_quad; // Array keeping q*(phi-phi_m)/(B_max-B)
-                                      // at configuration-space quadrature nodes.
+  // at configuration-space quadrature nodes.
   struct gkyl_array *Dbmag_quad; // B_max-B at configuration-space quadrature nodes.
 
-  struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // Structure of data which converts  
-                                                          // stores the info to convert phase
-                                                          // space nodal to modal gkyl arrays.
+  struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // Structure of data which converts
+  // stores the info to convert phase
+  // space nodal to modal gkyl arrays.
 };
 
 #ifdef GKYL_HAVE_CUDA
@@ -90,9 +92,10 @@ struct gkyl_loss_cone_mask_gyrokinetic {
  * @param bmag Magnetic field magnitude.
  * @param bmag_max Maximum bmag.
  */
-void 
-gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max);
+void gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(
+  gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bmag, const double *bmag_max
+);
 
 /**
  * Compute projection of the loss cone masking function on the phase-space basis
@@ -105,8 +108,9 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *u
  * @param phi_m Electrostatic potential at the mirror throat (on GPU).
  * @param mask_out Output masking function.
  */
-void
-gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out);
+void gkyl_loss_cone_mask_gyrokinetic_advance_cu(
+  gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *phi, const double *phi_m,
+  struct gkyl_array *mask_out
+);
 #endif

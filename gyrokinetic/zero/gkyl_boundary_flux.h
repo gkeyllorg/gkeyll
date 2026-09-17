@@ -23,9 +23,11 @@ typedef struct gkyl_boundary_flux gkyl_boundary_flux;
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_boundary_flux* gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  int num_equations, const struct gkyl_dg_eqn **eqns, bool use_gpu);
+struct gkyl_boundary_flux *gkyl_boundary_flux_new(
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, int num_equations,
+  const struct gkyl_dg_eqn **eqns, bool use_gpu
+);
 
 /**
  * Compute the boundary flux.
@@ -34,12 +36,13 @@ struct gkyl_boundary_flux* gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc ed
  * @param fIn Input distribution function.
  * @param rhs Output flux.
  */
-void gkyl_boundary_flux_advance(gkyl_boundary_flux *up,
-  const struct gkyl_array *fIn, struct gkyl_array *fluxOut);
+void gkyl_boundary_flux_advance(
+  gkyl_boundary_flux *up, const struct gkyl_array *fIn, struct gkyl_array *fluxOut
+);
 
 /**
  * Free memory associated with this updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_boundary_flux_release(gkyl_boundary_flux* up);
+void gkyl_boundary_flux_release(gkyl_boundary_flux *up);

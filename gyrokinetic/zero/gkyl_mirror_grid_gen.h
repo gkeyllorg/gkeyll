@@ -22,17 +22,17 @@ struct gkyl_mirror_grid_gen_geom {
 struct gkyl_mirror_grid_gen {
   struct gkyl_array *nodes_rza; // r,z,phi coordinates of corner nodes of cells
   struct gkyl_array *nodes_psi; // psi values at nodes
-  struct gkyl_array *nodes_geom; // geometric quantities at nodes: 
+  struct gkyl_array *nodes_geom; // geometric quantities at nodes:
   // this is an array of gkyl_mirror_grid_gen_geom objects
 
   struct gkyl_mirror_grid_gen_x *gg_x; // Internal object that contains flags
   // describing the type of geometry being generated
-};  
+};
 
 // flag to indicate what field-line coordinate to use
 enum gkyl_mirror_grid_gen_field_line_coord {
   GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, // use psi and Cartesian Z coordinate
-  GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // use sqrt(psi) and Cartesian Z coordinate
+  GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z // use sqrt(psi) and Cartesian Z coordinate
 };
 
 // input struct to construct the mirror geometry
@@ -45,7 +45,7 @@ struct gkyl_mirror_grid_gen_inp {
   const struct gkyl_position_map *position_map; // position map
   enum gkyl_mirror_grid_gen_field_line_coord fl_coord; // field-line coordinate to use
   bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
-  
+
   double R[2], Z[2]; // extents of R,Z grid on which psi(R,Z) is given
   int nrcells, nzcells; // number of cells in R and Z
   const struct gkyl_array *psiRZ; // nodal values of psi(R,Z)
@@ -63,9 +63,11 @@ struct gkyl_mirror_grid_gen_inp {
  */
 struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp);
 
-struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp);
+struct gkyl_mirror_grid_gen *
+gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp);
 
-struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp);
+struct gkyl_mirror_grid_gen *
+gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp);
 
 /**
  * Does the grid include the axis?
@@ -82,7 +84,7 @@ bool gkyl_mirror_grid_gen_is_include_axis(const struct gkyl_mirror_grid_gen *geo
  * @return field-line coordinate used in grid
  */
 enum gkyl_mirror_grid_gen_field_line_coord
-  gkyl_mirror_grid_gen_fl_coord(const struct gkyl_mirror_grid_gen *geom);
+gkyl_mirror_grid_gen_fl_coord(const struct gkyl_mirror_grid_gen *geom);
 
 /**
  * Release the mirror grid object.

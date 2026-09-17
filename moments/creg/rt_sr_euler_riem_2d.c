@@ -13,21 +13,20 @@ struct sr_euler_ctx {
   double gas_gamma; // gas constant
 };
 
-void
-evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sr_euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
-  
+
   double x = xn[0], y = xn[1];
   // ICs from 2D Riemann test from 34.1.11
   // http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html
   double rho, u, v, p;
-  
+
   double sloc = 0.;
-   
+
   double rho1 = 5.477875e-3, p1 = 2.762987e-3;
-  
+
   double upLeft[] = {0., 1., 0.1, 0.99, 0.0};
   double upRight[] = {0., p1, rho1, 0., 0.0};
   double loLeft[] = {0., 1., 0.5, 0., 0.};
@@ -41,62 +40,56 @@ evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double loLeft[] = {0., pl, rhol, 0., 0.};
   double loRight[] = {0., pr, rhor, 0., 0.};
   */
- 
-  if (y>sloc) {
-    if (x<sloc) {
+
+  if (y > sloc) {
+    if (x < sloc) {
       p = upLeft[1];
       rho = upLeft[2];
       u = upLeft[3];
       v = upLeft[4];
-    }
-    else {
+    } else {
       p = upRight[1];
       rho = upRight[2];
       u = upRight[3];
       v = upRight[4];
     }
-  }
-  else {
-    if (x<sloc) {
+  } else {
+    if (x < sloc) {
       p = loLeft[1];
       rho = loLeft[2];
       u = loLeft[3];
       v = loLeft[4];
-    }
-    else {
+    } else {
       p = loRight[1];
       rho = loRight[2];
       u = loRight[3];
       v = loRight[4];
     }
   }
-  
-  
-  double gamma = 1 / sqrt(1 - u*u - v*v);
-  double rhoh = gas_gamma * p / (gas_gamma - 1)  + rho;
-  
-  fout[0] = gamma*rho;
-  fout[1] = gamma*gamma*rhoh - p;
-  fout[2] = gamma*gamma*rhoh*u;
-  fout[3] = gamma*gamma*rhoh*v;
+
+  double gamma = 1 / sqrt(1 - u * u - v * v);
+  double rhoh = gas_gamma * p / (gas_gamma - 1) + rho;
+
+  fout[0] = gamma * rho;
+  fout[1] = gamma * gamma * rhoh - p;
+  fout[2] = gamma * gamma * rhoh * u;
+  fout[3] = gamma * gamma * rhoh * v;
   fout[4] = 0.;
 }
 
-struct sr_euler_ctx
-sr_euler_ctx(void)
+struct sr_euler_ctx sr_euler_ctx(void)
 {
-  return (struct sr_euler_ctx) { .gas_gamma = 4./3. };
+  return (struct sr_euler_ctx){.gas_gamma = 4. / 3.};
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
+void write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
-    gkyl_moment_app_write(app, tcurr, iot->curr-1);
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    gkyl_moment_app_write(app, tcurr, iot->curr - 1);
+  }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -120,23 +113,23 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalSREulerInit,
 
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-    .limiter = GKYL_MIN_MOD,
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
+    .bcy = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
+    .limiter = GKYL_MIN_MOD
   };
 
   // VM app
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = { -1., -1. },
-    .upper = { 1.0, 1. }, 
-    .cells = { NX, NY },
+    .lower = {-1., -1.},
+    .upper = {1.0, 1.},
+    .cells = {NX, NY},
 
     .cfl_frac = 0.9,
 
     .num_species = 1,
-    .species = { fluid },
+    .species = {fluid}
   };
 
   // create app object
@@ -147,10 +140,10 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.8;
   int nframe = 10;
-  
+
   // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
-  
+  struct gkyl_tm_trigger io_trig = {.dt = tend / nframe};
+
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
@@ -164,7 +157,7 @@ main(int argc, char **argv)
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
-    
+
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
       break;
@@ -173,7 +166,7 @@ main(int argc, char **argv)
     dt = status.dt_suggested;
 
     write_data(&io_trig, app, tcurr);
-    
+
     step += 1;
   }
 
@@ -192,6 +185,6 @@ main(int argc, char **argv)
   printf("Species updates took %g secs\n", stat.species_tm);
   printf("Field updates took %g secs\n", stat.field_tm);
   printf("Total updates took %g secs\n", stat.total_tm);
-  
+
   return 0;
 }
