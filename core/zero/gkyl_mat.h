@@ -348,8 +348,7 @@ gkyl_nmat_mem *gkyl_nmat_linsolve_lu_cu_dev_new(size_t num, size_t nrow);
 void gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem);
 
 /**
- * Allocate memory needed in modal to nodal conversion matrices needed 
- * by cublasDgemm
+ * Allocate memory needed by cublasDgemm
  *
  * @param nr Number of rows in the matrix A
  * @param nc Number of columns in the matrix A

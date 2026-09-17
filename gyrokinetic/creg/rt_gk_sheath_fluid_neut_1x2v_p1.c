@@ -757,6 +757,7 @@ main(int argc, char **argv)
           .partner_mass = ctx.mass_ion,
         },
       },
+      .write_diagnostics = true,
     },
 
     .bcs = {
@@ -819,6 +820,12 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+   { .key = "run_ID", .elem_type = GKYL_MP_STRING, .cval = "gkfn0" },
+   { .key = "k_perp", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.k_perp },
+   { .key = "int_diag_calc_num", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ctx.int_diag_calc_num },
+  };
+
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
 
@@ -856,6 +863,11 @@ main(int argc, char **argv)
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0] },
       .comm = comm,
+    },
+
+    .metadata = {
+      .num_attributes = sizeof(additional_metadata)/sizeof(additional_metadata[0]),
+      .attributes = additional_metadata,
     },
   };
 

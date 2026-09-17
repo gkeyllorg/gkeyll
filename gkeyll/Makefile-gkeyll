@@ -36,7 +36,7 @@ INSTALLED_EXEC_LIBS = -L${PROJ_INSTALL_LIB_DIR} ${FINAL_APP_LIB} ${EXEC_EXT_LIBS
 ALL_INCS := ${CORE_INCS} -Ilua/Comm -Ilua/Tool -I../core/minus/STC/include
 
 LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/core
-LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/pkpm
+LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/${BUILD_APP}
 
 INSTALLED_LDFLAGS += -Wl,-rpath,${PROJ_INSTALL_LIB_DIR}
 

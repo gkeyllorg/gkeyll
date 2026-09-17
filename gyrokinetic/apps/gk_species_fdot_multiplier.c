@@ -19,15 +19,15 @@ gk_species_fdot_multiplier_write_enabled(gkyl_gyrokinetic_app *app, struct gk_sp
   struct gkyl_msgpack_map_elem mpe_mult[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Function multiplying the distribution time derivative." },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame },
   };
   int mpe_mult_len = sizeof(mpe_mult) / sizeof(mpe_mult[0]);
-  // Update app basic metadata with time/frame.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   // Package metadata.
-  int io_meta_len[] = { app->io_meta_basic_len, mpe_mult_len, app->gk_geom->io_meta_len };
-  const struct gkyl_msgpack_map_elem *io_meta[] = { app->io_meta_basic, mpe_mult,
-                                                    app->gk_geom->io_meta };
+  int io_meta_len[] = { gks->io_meta_basic_len, mpe_mult_len, app->gk_geom->io_meta_basic_len };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic, mpe_mult,
+                                                    app->gk_geom->io_meta_basic };
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int),
     io_meta_len, io_meta);
 

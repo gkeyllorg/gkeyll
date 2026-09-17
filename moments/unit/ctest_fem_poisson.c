@@ -242,7 +242,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     // DG field and the 1/N to properly compute the volume averaged RHS.
     double mavgfac = -pow(sqrt(2.),dim)/localRange.volume;
     // Subtract the volume averaged sol from the sol.
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
+    gkyl_dg_calc_average_range(&basis, 0, sol_cellavg, 0, phi_ho, localRange);
     gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &localRange);
     gkyl_array_shiftc(phi_ho, mavgfac*sol_avg[0], 0);
 
@@ -850,7 +850,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     // DG field and the 1/N to properly compute the volume averaged RHS.
     double mavgfac = -pow(sqrt(2.),dim)/localRange.volume;
     // Subtract the volume averaged sol from the sol.
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
+    gkyl_dg_calc_average_range(&basis, 0, sol_cellavg, 0, phi_ho, localRange);
     gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &localRange);
     gkyl_array_shiftc(phi_ho, mavgfac*sol_avg[0], 0);
 

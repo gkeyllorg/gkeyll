@@ -101,6 +101,10 @@ struct gkyl_gyrokinetic_collisionless {
   enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
   bool write_diagnostics; // Whether to output diagnostics.
   double scale_factor; // Factor multiplying collisionless terms (should be > 0).
+  // Passive advection speeds in x, y, z (for GKYL_GK_COLLISIONLESS_PASSIVE).
+  // Assumes no advection/dependence on vpar/mu. Should return cdim values.
+  evalf_t passive_speeds;
+  void *passive_speeds_ctx; // Context for passive_speeds.
 };
 
 // Parameters for species collisions
@@ -601,6 +605,12 @@ struct gkyl_gyrokinetic_eirene {
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
 
+// Additional metadata users can provide.
+struct gkyl_gyrokinetic_metadata_inp {
+  struct gkyl_msgpack_map_elem *attributes; // List of metadata elements to add to output files.
+  int num_attributes; // Number of attributes.
+};
+
 // Top-level app parameters
 struct gkyl_gk {
   char name[128]; // Name of app: used as output prefix. Should not end in _b#.
@@ -630,6 +640,8 @@ struct gkyl_gk {
   struct gkyl_gyrokinetic_eirene eirene; // EIRENE input
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
+
+  struct gkyl_gyrokinetic_metadata_inp metadata; // Optional metadata for output files.
 };
 
 // Simulation statistics

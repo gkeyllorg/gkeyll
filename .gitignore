@@ -2,6 +2,7 @@ cppcheck-err.txt
 install-deps/build-opts.sh
 build-opts.sh
 config.mak
+alltargets.mak
 *.cache
 *.dat
 *~

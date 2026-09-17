@@ -454,12 +454,12 @@ dg_get_op_func(enum gkyl_dg_op op)
   return dg_cell_mean_l2;
 }
 
-void gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop,
+void gkyl_dg_calc_op_range(const struct gkyl_basis *basis, int c_oop,
   struct gkyl_array *out, int c_iop,
   const struct gkyl_array *iop,
   struct gkyl_range range, enum gkyl_dg_op op);
 
-void gkyl_dg_calc_op_range_cu(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+void gkyl_dg_calc_op_range_cu(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
   int c_iop, const struct gkyl_array *iop,
   struct gkyl_range range, enum gkyl_dg_op op);
 

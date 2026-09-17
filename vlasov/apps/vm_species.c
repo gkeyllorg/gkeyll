@@ -646,7 +646,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 void
 vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species)
 {
-  gkyl_dg_calc_l2_range(app->basis, 0, species->L2_f, 0, species->f, species->local);
+  gkyl_dg_calc_l2_range(&app->basis, 0, species->L2_f, 0, species->f, species->local);
   gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
   
   double L2[1] = { 0.0 };

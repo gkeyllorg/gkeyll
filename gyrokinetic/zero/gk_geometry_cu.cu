@@ -711,8 +711,8 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   }
 
   // Copy metadata.
-  up->io_meta = gkyl_msgpack_map_elem_clone(geo_host->io_meta_len, geo_host->io_meta);
-  up->io_meta_len = geo_host->io_meta_len;
+  up->io_meta_basic = gkyl_msgpack_map_elem_clone(geo_host->io_meta_basic_len, geo_host->io_meta_basic);
+  up->io_meta_basic_len = geo_host->io_meta_basic_len;
  
   return up;
 }

@@ -1001,13 +1001,19 @@ local function prepareCRun(test, timeoutSecs, mode, skipCompile)
    end
 
    -- Symlink the layer source dir so tests can find data files by relative path.
+   -- Always recreate the link so it tracks the currently configured source_dir
+   -- (a stale link from a previous configure would point at the old tree).
+   -- Remove the old link first: 'ln -sf' onto a symlink-to-directory would
+   -- otherwise create the new link *inside* the old target.
+   -- Also uses only rm -f to avoid accidentally deleting a real directory
+   -- if for whatever reason a directory of the same name (vlasov or gyrokinetic)
+   -- exists at the location we are trying to make the symlink. 
    if test.layer_src then
       local layerSrcPath = configVals.source_dir .. "/" .. test.layer_src
       local symlinkPath  = runDir .. "/" .. test.layer_src
-      if lfs.attributes(layerSrcPath, "mode") == "directory"
-         and not lfs.attributes(symlinkPath) then
-         os.execute(string.format("ln -sf '%s' '%s' 2>/dev/null",
-            layerSrcPath, symlinkPath))
+      if lfs.attributes(layerSrcPath, "mode") == "directory" then
+         os.execute(string.format("rm -f '%s' && ln -s '%s' '%s' 2>/dev/null",
+            symlinkPath, layerSrcPath, symlinkPath))
       end
    end
 

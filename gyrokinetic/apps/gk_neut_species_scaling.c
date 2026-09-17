@@ -14,7 +14,7 @@ gk_neut_species_scaling_cross_moms_enabled(gkyl_gyrokinetic_app *app, const stru
     gks_elc->local, app->local, fin[sca->elc_idx]);
 
   // Divide the electron density by the Jacobian.
-  gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 0, gks_elc->lte.moms.marr,
+  gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, &app->basis, 0, gks_elc->lte.moms.marr,
     0, gks_elc->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local); 
 
   // Compute ionization reactivity <sigma v>_iz.
@@ -40,9 +40,9 @@ gk_neut_species_scaling_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_sp
   struct gk_species *gks_elc = &app->species[sca->elc_idx];
 
   // Compute (J*n_neut)*n_elc*<sigma v>_iz.
-  gkyl_dg_mul_op_range(app->basis, 0, sca->dndt_react,
+  gkyl_dg_mul_op_range(&app->basis, 0, sca->dndt_react,
     0, sca->Jm0_init, 0, sca->reactivity, &app->local);  
-  gkyl_dg_mul_op_range(app->basis, 0, sca->dndt_react,
+  gkyl_dg_mul_op_range(&app->basis, 0, sca->dndt_react,
     0, gks_elc->lte.moms.marr, 0, sca->dndt_react, &app->local);  
 
   // Volume integrate the reaction contribution.
@@ -100,11 +100,11 @@ gk_neut_species_scaling_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_
     // Divide by the present J*rho, and multiply by neut_scaling_fac*mass*Jm0_init.
     gkyl_array_set_offset_range(sca->dndt_react, 1.0, fin, 0, &app->local);
     for (int i=0; i<ns->num_moments; ++i)
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, i, fin,
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, &app->basis, i, fin,
         i, fin, 0, sca->dndt_react, &app->local); 
   
     for (int i=0; i<ns->num_moments; ++i)
-      gkyl_dg_mul_op_range(app->basis, i, fin,
+      gkyl_dg_mul_op_range(&app->basis, i, fin,
         i, fin, 0, sca->Jm0_init, &app->local);  
 
     gkyl_array_scale(fin, neut_scaling_fac*ns->info.mass);
@@ -258,8 +258,14 @@ gk_neut_species_scaling_apply_ic_cross(struct gkyl_gyrokinetic_app *app, struct 
   struct gk_scaling *sca)
 {
   if (sca->type == GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE) {
-    // Store the initial particle number density.
-    gkyl_array_set_offset(sca->Jm0_init, 1.0/ns->info.mass, ns->f, 0);
+    // Project and store the initial state. Need to re-project so that restarts use this as the state at t=0.
+    if (ns->info.init_from_file.type == 0)
+      gk_neut_species_projection_calc(app, ns, &ns->proj_init, ns->f1, 0.0);
+
+    gkyl_array_set_offset(sca->Jm0_init, 1.0/ns->info.mass, ns->f1, 0);
+
+    if (ns->info.init_from_file.type == 0)
+      gkyl_array_clear(ns->f1, 0.0);
   }
 }
 

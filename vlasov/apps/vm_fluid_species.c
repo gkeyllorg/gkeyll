@@ -200,7 +200,7 @@ vm_fluid_species_advect_calc_integrated(struct gkyl_vlasov_app *app, struct vm_f
 
   // First calculate f
   gkyl_array_clear(f->integ_mom, 0.0); 
-  gkyl_dg_calc_average_range(app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
+  gkyl_dg_calc_average_range(&app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
   gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
   if (app->use_gpu) {
     gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
@@ -214,7 +214,7 @@ vm_fluid_species_advect_calc_integrated(struct gkyl_vlasov_app *app, struct vm_f
 
   // Now calculate f^2
   gkyl_array_clear(f->integ_mom, 0.0); 
-  gkyl_dg_calc_l2_range(app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
+  gkyl_dg_calc_l2_range(&app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
   gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
   if (app->use_gpu) {
     gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
@@ -356,7 +356,7 @@ vm_fluid_species_can_pb_fluid_calc_integrated(struct gkyl_vlasov_app *app, struc
 
   // First calculate f
   gkyl_array_clear(f->integ_mom, 0.0); 
-  gkyl_dg_calc_average_range(app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
+  gkyl_dg_calc_average_range(&app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
   gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
   if (app->use_gpu) {
     gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
@@ -370,7 +370,7 @@ vm_fluid_species_can_pb_fluid_calc_integrated(struct gkyl_vlasov_app *app, struc
 
   // Now calculate f^2
   gkyl_array_clear(f->integ_mom, 0.0); 
-  gkyl_dg_calc_l2_range(app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
+  gkyl_dg_calc_l2_range(&app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
   gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
   if (app->use_gpu) {
     gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);

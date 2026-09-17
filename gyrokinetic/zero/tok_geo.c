@@ -890,7 +890,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   gkyl_nodal_ops_release(n2m);
 
   // Need 1/B for LBO collisions, computed weakly.
-  gkyl_dg_inv_op_range(inp->cbasis, 0, up->geo_corn.bmag_inv, 0, up->geo_corn.bmag, &up->local); 
+  gkyl_dg_inv_op_range(&inp->cbasis, 0, up->geo_corn.bmag_inv, 0, up->geo_corn.bmag, &up->local);
 
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);

@@ -131,7 +131,7 @@ test_bop(bool use_gpu)
 
   // Get C = rho.J
   struct gkyl_array *Cxz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_dg_mul_op(basis, 0, Cxz, 0,rho, 0, jac);
+  gkyl_dg_mul_op(&basis, 0, Cxz, 0,rho, 0, jac);
   //gkyl_grid_sub_array_write(&grid, &local, 0, Cxz, "Cxz.gkyl");
 
   struct gkyl_array *Cxz_dev =  use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume) : gkyl_array_acquire(Cxz);

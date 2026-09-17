@@ -35,7 +35,7 @@ double calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_
     }
   }
   struct gkyl_array *l2_diff = gkyl_array_new(GKYL_DOUBLE, 1, range_ext.volume);
-  gkyl_dg_calc_l2_range(basis, 0, l2_diff, 0, diff, range);
+  gkyl_dg_calc_l2_range(&basis, 0, l2_diff, 0, diff, range);
   gkyl_array_scale_range(l2_diff, grid.cellVolume, &range);
   double l2[1];
   gkyl_array_reduce_range(l2, l2_diff, GKYL_SUM, &range);

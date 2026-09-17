@@ -24,14 +24,14 @@ gk_species_scaling_apply_fixed_fraction(gkyl_gyrokinetic_app *app, struct gk_spe
   // Reciprocal of the density of this species.
   struct gkyl_array *m0_inv = gks->lte.moms.marr;
   gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
-  gkyl_dg_inv_op_range(app->basis, 0, m0_inv, 0, gks->m0.marr, &app->local);
+  gkyl_dg_inv_op_range(&app->basis, 0, m0_inv, 0, gks->m0.marr, &app->local);
 
   // Density of the reference species.
   gk_species_moment_calc(&gks_ref->m0, gks_ref->local, app->local, gks_ref->f);
 
   // Ratio of the densities.
   struct gkyl_array *m0ratio = gks->m0.marr;
-  gkyl_dg_mul_op_range(app->basis, 0, m0ratio, 0, m0_inv, 0, gks_ref->m0.marr, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, m0ratio, 0, m0_inv, 0, gks_ref->m0.marr, &app->local);
 
   // Multiply this species by ratio of densities times fixed_fraction.
   gkyl_array_scale_range(m0ratio, sca->fixed_fraction, &app->local);
@@ -76,7 +76,7 @@ gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct gk_species 
 
   // Compute density and temperature.
   gk_species_moment_calc(&gks->lte.moms, gks->local, app->local, fin);
-  gkyl_dg_div_op_range(gks->lte.moms.mem_geo, app->basis, 0, gks->lte.moms.marr,
+  gkyl_dg_div_op_range(gks->lte.moms.mem_geo, &app->basis, 0, gks->lte.moms.marr,
     0, gks->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
 
   // Boltzmann density = n_sheath * exp(-q * (phi-phi_sheath)/T ).
@@ -88,7 +88,7 @@ gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct gk_species 
   // Compute ( phi-phi_sheath)/(T/m) ).
   gkyl_array_copy_range(sca->buffer_conf, app->field->phi_smooth, &app->local);
   gkyl_array_accumulate_range(sca->buffer_conf, -1.0, sca->sheath_val, &app->local);
-  gkyl_dg_div_op_range(gks->lte.moms.mem_geo, app->basis, 0, sca->buffer_conf,
+  gkyl_dg_div_op_range(gks->lte.moms.mem_geo, &app->basis, 0, sca->buffer_conf,
     0, sca->buffer_conf, 2, gks->lte.moms.marr, &app->local);
 
   // Compute exp(-q * (phi-phi_sheath)/T ).
@@ -100,15 +100,15 @@ gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct gk_species 
   copy_lower_z_ghost_to_all_z_conf(app, sca->sheath_val, app->field->sheath_vals[off], 0*app->basis.num_basis, sca->buffer_conf);
 
   // Compute n_sheath * exp(-q * (phi-phi_sheath)/T ).
-  gkyl_dg_mul_op_range(app->basis, 0, sca->buffer_conf, 0, sca->sheath_val, 0, m0_boltz, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, sca->buffer_conf, 0, sca->sheath_val, 0, m0_boltz, &app->local);
 
   // Reciprocal of the density.
   struct gkyl_array *m0_inv = gks->m0.marr;
-  gkyl_dg_inv_op_range(app->basis, 0, m0_inv, 0, gks->lte.moms.marr, &app->local);
+  gkyl_dg_inv_op_range(&app->basis, 0, m0_inv, 0, gks->lte.moms.marr, &app->local);
 
   // Ratio of the densities.
   struct gkyl_array *m0ratio = gks->m0.marr;
-  gkyl_dg_mul_op_range(app->basis, 0, m0ratio, 0, m0_inv, 0, sca->buffer_conf, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, m0ratio, 0, m0_inv, 0, sca->buffer_conf, &app->local);
 
   // Multiply this species by ratio of densities times fixed_fraction.
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, fin, m0ratio, fin, &app->local, &gks->local);

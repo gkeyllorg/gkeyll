@@ -10,7 +10,8 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-#include <kann.h>
+#include <gkyl_kann_net.h>
+#include <gkyl_knutils.h>
 
 struct wv_ten_moment {
   struct gkyl_wv_eqn eqn; // Base object.
@@ -18,7 +19,7 @@ struct wv_ten_moment {
   bool use_grad_closure; // Should we use gradient-based closure?
   bool use_nn_closure; // Should we use neural network-based closure?
   int poly_order; // Polynomial order of learned DG coefficients.
-  kann_t* ann; // Neural network architecture.
+  struct gkyl_kann_net* ann; // Neural network architecture.
 };
 
 /**

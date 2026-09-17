@@ -28,9 +28,9 @@ gklbo_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 
   // Multiply moments and boundary corrections by self nu.
   for (int d=0; d<3; d++)
-    gkyl_dg_mul_op(app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->self_nu);
+    gkyl_dg_mul_op(&app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->self_nu);
   for (int d=0; d<2; d++)
-    gkyl_dg_mul_op(app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->self_nu);
+    gkyl_dg_mul_op(&app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->self_nu);
 
   // Construct primitive moments.
   gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
@@ -38,7 +38,7 @@ gklbo_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 
   // Scale upar and vtSq by self nu.
   for (int d=0; d<2; d++)
-    gkyl_dg_mul_op(app->basis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
+    gkyl_dg_mul_op(&app->basis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
 
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
@@ -56,7 +56,7 @@ gklbo_self_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 {
   // Calculate nu_ss(x,t).
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr,
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, &app->basis, 0, species->lte.moms.marr,
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
 
   gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, species->lte.moms.marr, lbo->vtsq_min,
@@ -96,7 +96,7 @@ static void
 gklbo_alpha_E_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_lbo_collisions *lbo, int coll_idx)
 {
-  gkyl_dg_mul_op_range(app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
   gkyl_array_scale_range(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], &app->local);
 }
 
@@ -124,9 +124,9 @@ gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks
 
     // Multiply moments and boundary corrections by cross nu.
     for (int d=0; d<3; d++)
-      gkyl_dg_mul_op(app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->cross_nu[i]);
+      gkyl_dg_mul_op(&app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->cross_nu[i]);
     for (int d=0; d<2; d++)
-      gkyl_dg_mul_op(app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->cross_nu[i]);
+      gkyl_dg_mul_op(&app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->cross_nu[i]);
 
     // Compute cross primitive moments.
     // Recycle the boundary_corrections array because we don't need those anymore.
@@ -138,7 +138,7 @@ gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks
 
     // Scale upar_{sr} and vtSq_{sr} by nu_{sr}.
     for (int d=0; d<2; d++)
-      gkyl_dg_mul_op(app->basis, d, cross_prim_moms, d, cross_prim_moms, 0, lbo->cross_nu[i]);
+      gkyl_dg_mul_op(&app->basis, d, cross_prim_moms, d, cross_prim_moms, 0, lbo->cross_nu[i]);
 
     gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, cross_prim_moms);
 
@@ -177,34 +177,46 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
 {
   struct timespec wtm = gkyl_wall_clock();
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
-  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
+  struct gkyl_msgpack_map_elem desc_nu_sum[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies." }
+  };
+  int io_meta_nu_sum_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta_nu_sum[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_nu_sum};
+  struct gkyl_msgpack_data *mt_nu_sum = gkyl_msgpack_create_union(sizeof(io_meta_nu_sum_len)/sizeof(int), io_meta_nu_sum_len, io_meta_nu_sum);
+
+  struct gkyl_msgpack_map_elem desc_nu_prim[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "Drift velocity and thermal speed squared, times collision frequency, summed over colliding species." }
+  };
+  int io_meta_nu_prim_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta_nu_prim[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_nu_prim};
+  struct gkyl_msgpack_data *mt_nu_prim = gkyl_msgpack_create_union(sizeof(io_meta_nu_prim_len)/sizeof(int), io_meta_nu_prim_len, io_meta_nu_prim);
 
   // Write out nu_sum and nu_prim_moms.
   const char *fmt = "%s-%s_lbo_nu_sum_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
-  
+
   const char *fmt_nu_prim = "%s-%s_lbo_nu_prim_moms_%d.gkyl";
   int sz_nu_prim = gkyl_calc_strlen(fmt_nu_prim, app->name, gks->info.name, frame);
   char fileNm_nu_prim[sz_nu_prim+1]; // ensures no buffer overflow
   snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, gks->info.name, frame);
-  
+
   // Copy data from device to host before writing it out.
   if (app->use_gpu) {
     gkyl_array_copy(gks->lbo.nu_sum_host, gks->lbo.nu_sum);
     gkyl_array_copy(gks->lbo.nu_prim_moms_host, gks->lbo.nu_prim_moms);
   }
-  
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_sum_host, fileNm);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_prim_moms_host, fileNm_nu_prim);
+
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt_nu_sum, gks->lbo.nu_sum_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt_nu_prim, gks->lbo.nu_prim_moms_host, fileNm_nu_prim);
   app->stat.n_diag_io += 2;
 
-  gkyl_msgpack_data_release(mt); 
+  gkyl_msgpack_data_release(mt_nu_sum);
+  gkyl_msgpack_data_release(mt_nu_prim);
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 

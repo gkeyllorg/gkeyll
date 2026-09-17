@@ -101,8 +101,8 @@ gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   gk_species_moment_calc(&lte->moms, species->local, app->local, fin);
   
   // Divide out the Jacobian from the density.
-  gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
-    0, lte->moms.marr, 0, lte->moms.marr, 0, 
+  gkyl_dg_div_op_range(lte->moms.mem_geo, &app->basis,
+    0, lte->moms.marr, 0, lte->moms.marr, 0,
     app->gk_geom->geo_int.jacobgeo, &app->local);  
   app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);   
 
@@ -120,14 +120,22 @@ gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_specie
     if (rank == 0) {
       // Write out correction status.
       const char *fmt = "%s-%s_lte_%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "corr-max-stat");
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "corr_max_stat");
       char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "corr-max-stat");
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "corr_max_stat");
 
       if (gks->lte.is_first_corr_status_write_call) {
         // Write to a new file (this ensure previous output is removed).
-        gkyl_dynvec_write(gks->lte.corr_stat, fileNm);
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {
+          { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Statistics on the Maxwellian correction." }
+        };
+        int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+        const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+        struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+        gkyl_dynvec_write_wmeta(gks->lte.corr_stat, fileNm, mt);
         gks->lte.is_first_corr_status_write_call = false;
+        gkyl_msgpack_data_release(mt);
       }
       else {
         // Append to existing file.

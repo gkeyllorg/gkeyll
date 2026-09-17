@@ -192,6 +192,11 @@ enum gkyl_cu_memcpy_kind {
 #define GKYL_MAX2(x,y) ((x)>(y) ? (x) : (y))
 #define GKYL_SGN(b) (((b)>=0.) ? 1.0 : -1.0)
 
+// GKYL_ALIGN_UP finds the integer that is closest to "a" that is
+// multiple of "b"
+#define GKYL_UDIV_UP(a, b) (((a) + (b) - 1) / (b))
+#define GKYL_ALIGN_UP(a, b) (GKYL_UDIV_UP(a, b) * (b))
+
 EXTERN_C_BEG
 
 /**
@@ -479,7 +484,7 @@ enum gkyl_msgpack_elem_type {
 
 // Entry type into msgpack map.
 struct gkyl_msgpack_map_elem {
-  char *key; // name of element
+  const char *key; // name of element
   enum gkyl_msgpack_elem_type elem_type; // type of element
   union {
     // depending on elem_type one of following should be set    
@@ -488,9 +493,75 @@ struct gkyl_msgpack_map_elem {
     int ival;
     float fval;
     double dval;
-    char *cval; // null terminated string managed by caller
+    const char *cval; // null terminated string managed by caller
   };
 };
+
+// The following functions and the macro reduce the errors in
+// constructing gkyl_msgpack_map_elem objects
+static inline struct gkyl_msgpack_map_elem
+gmpe_bval(const char *key, bool val)
+{
+  return (struct gkyl_msgpack_map_elem) {
+    .key = key,
+    .elem_type = GKYL_MP_BOOL,
+    .bval = val
+  };
+}
+static inline struct gkyl_msgpack_map_elem
+gmpe_uval(const char *key, unsigned int val)
+{
+  return (struct gkyl_msgpack_map_elem) {
+    .key = key,
+    .elem_type = GKYL_MP_UNSIGNED_INT,
+    .uval = val
+  };
+}
+static inline struct gkyl_msgpack_map_elem
+gmpe_ival(const char *key, int val)
+{
+  return (struct gkyl_msgpack_map_elem) {
+    .key = key,
+    .elem_type = GKYL_MP_INT,
+    .ival = val
+  };
+}
+static inline struct gkyl_msgpack_map_elem
+gmpe_fval(const char *key, float val)
+{
+  return (struct gkyl_msgpack_map_elem) {
+    .key = key,
+    .elem_type = GKYL_MP_FLOAT,
+    .fval = val
+  };
+}
+static inline struct gkyl_msgpack_map_elem
+gmpe_dval(const char *key, double val)
+{
+  return (struct gkyl_msgpack_map_elem) {
+    .key = key,
+    .elem_type = GKYL_MP_DOUBLE,
+    .dval = val
+  };
+}
+static inline struct gkyl_msgpack_map_elem
+gmpe_cval(const char *key, char *val)
+{
+  return (struct gkyl_msgpack_map_elem) {
+    .key = key,
+    .elem_type = GKYL_MP_STRING,
+    .cval = val
+  };
+}
+#define GKYL_MSGPACK_MAP_ELEM(key, val) _Generic((val), \
+      bool: gmpe_bval,                                  \
+      int: gmpe_ival,                                   \
+      unsigned int: gmpe_uval,                          \
+      float: gmpe_fval,                                 \
+      double: gmpe_dval,                                \
+      char *: gmpe_cval)(key, val)
+
+#undef GMPE_TAG
 
 /**
  * Check if element list contains the element with name "key".

@@ -1168,8 +1168,8 @@ calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_c
 }
 
 static void
-train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  float** input_data, float** output_data)
+train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  struct gkyl_kn_vec* input_data, struct gkyl_kn_vec* output_data)
 {
   if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
     int frame = nn->curr - 1;
@@ -1182,7 +1182,7 @@ train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool fo
 }
 
 static void
-write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool force_write, kann_t** ann)
+write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool force_write, struct gkyl_kann_net** ann)
 {
   if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
     int frame = nnw->curr - 1;
@@ -1195,8 +1195,8 @@ write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool fo
 }
 
 static void
-test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  float** input_data_real, float** output_data_real, float** output_data_predicted)
+test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  struct gkyl_kn_vec* input_data_real, struct gkyl_kn_vec* output_data_real, struct gkyl_kn_vec* output_data_predicted)
 {
   if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
     int frame = nnt->curr - 1;
@@ -1315,7 +1315,7 @@ pkpm_app_run(lua_State *L)
   int integrated_mom_calcs = app_lw->integrated_mom_calcs;
   int integrated_L2_f_calcs = app_lw->integrated_L2_f_calcs;
   // Triggers for IO and logging.
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
   struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
   struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
   struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
@@ -1340,7 +1340,7 @@ pkpm_app_run(lua_State *L)
   struct gkyl_tm_trigger nn_trig = { .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr };
 
   kad_node_t **t = gkyl_malloc(sizeof(kad_node_t*) * app->num_species);
-  kann_t **ann = gkyl_malloc(sizeof(kann_t*) * app->num_species);
+  struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net*) * app->num_species);
   if (app_lw->train_nn) {
     if (app_lw->train_ab_initio) {
       for (int i = 0; i < app->num_species; i++ ) {
@@ -1372,7 +1372,7 @@ pkpm_app_run(lua_State *L)
         else if (app->poly_order == 2) {
           t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 3, KANN_C_MSE);
         }
-        ann[i] = kann_new(t[i], 0);
+        ann[i] = gkyl_kann_net_new(t[i], app->use_gpu);
       }
     }
     else {
@@ -1384,7 +1384,7 @@ pkpm_app_run(lua_State *L)
 
         FILE *file = fopen(fileNm, "r");
         if (file != NULL) {
-          ann[i] = kann_load(fileNm);
+          ann[i] = gkyl_kann_net_load(fileNm, app->use_gpu);
           fclose(file);
         }
         else {
@@ -1404,36 +1404,14 @@ pkpm_app_run(lua_State *L)
     cell_count = app->grid.cells[0] * app->grid.cells[1];
   }
 
-  float **input_data = gkyl_malloc(sizeof(float*[cell_count]));
-  for (int i = 0; i < cell_count; i++) {
-    if (app->poly_order == 1) {
-      if (app->cdim == 1) {
-        input_data[i] = gkyl_malloc(sizeof(float[app_lw->num_input_moms * 2]));
-      }
-      else if (app->cdim == 2) {
-        input_data[i] = gkyl_malloc(sizeof(float[app_lw->num_input_moms * 4]));
-      }
-    }
-    else if (app->poly_order == 2) {
-      input_data[i] = gkyl_malloc(sizeof(float[app_lw->num_input_moms * 3]));
-    }
-  }
+  // Number of DG coefficients per moment carried into/out of the network.
+  int nn_num_coeff = (app->poly_order == 1) ? ((app->cdim == 1) ? 2 : 4) : 3;
+  int nn_input_dim = app_lw->num_input_moms * nn_num_coeff;
+  int nn_output_dim = app_lw->num_output_moms * nn_num_coeff;
 
-  float **output_data = gkyl_malloc(sizeof(float*[cell_count]));
-  for (int i = 0; i < cell_count; i++) {
-    if (app->poly_order == 1) {
-      if (app->cdim == 1) {
-        output_data[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 2]));
-      }
-      else if (app->cdim == 2) {
-        output_data[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 4]));
-      }
-    }
-    else if (app->poly_order == 2) {
-      output_data[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 3]));
-    }
-  }
-  
+  struct gkyl_kn_vec *input_data = gkyl_kn_vec_new(cell_count, nn_input_dim);
+  struct gkyl_kn_vec *output_data = gkyl_kn_vec_new(cell_count, nn_output_dim);
+
   if (app_lw->train_nn) {
     train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms, input_data, output_data);
   }
@@ -1450,7 +1428,7 @@ pkpm_app_run(lua_State *L)
   int num_tests = app_lw->num_tests;
   struct gkyl_tm_trigger nnt_trig = { .dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr };
 
-  kann_t **ann_test = gkyl_malloc(sizeof(kann_t*) * app->num_species);
+  struct gkyl_kann_net **ann_test = gkyl_malloc(sizeof(struct gkyl_kann_net*) * app->num_species);
   if (app_lw->test_nn) {
     for (int i = 0; i < app->num_species; i++) {
       const char *fmt = "%s-%s.dat";
@@ -1460,7 +1438,7 @@ pkpm_app_run(lua_State *L)
 
       FILE *file = fopen(fileNm, "r");
       if (file != NULL) {
-        ann_test[i] = kann_load(fileNm);
+        ann_test[i] = gkyl_kann_net_load(fileNm, app->use_gpu);
         fclose(file);
       }
       else {
@@ -1471,40 +1449,10 @@ pkpm_app_run(lua_State *L)
     }
   }
 
-  float **input_data_real = gkyl_malloc(sizeof(float*[cell_count]));
-  for (int i = 0; i < cell_count; i++) {
-    if (app->poly_order == 1) {
-      if (app->cdim == 1) {
-        input_data_real[i] = gkyl_malloc(sizeof(float[app_lw->num_input_moms * 2]));
-      }
-      else if (app->cdim == 2) {
-        input_data_real[i] = gkyl_malloc(sizeof(float[app_lw->num_input_moms * 4]));
-      }
-    }
-    else if (app->poly_order == 2) {
-      input_data_real[i] = gkyl_malloc(sizeof(float[app_lw->num_input_moms * 3]));
-    }
-  }
+  struct gkyl_kn_vec *input_data_real = gkyl_kn_vec_new(cell_count, nn_input_dim);
+  struct gkyl_kn_vec *output_data_real = gkyl_kn_vec_new(cell_count, nn_output_dim);
+  struct gkyl_kn_vec *output_data_predicted = gkyl_kn_vec_new(cell_count, nn_output_dim);
 
-  float **output_data_real = gkyl_malloc(sizeof(float*[cell_count]));
-  float **output_data_predicted = gkyl_malloc(sizeof(float*[cell_count]));
-  for (int i = 0; i < cell_count; i++) {
-    if (app->poly_order == 1) {
-      if (app->cdim == 1) {
-        output_data_real[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 2]));
-        output_data_predicted[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 2]));
-      }
-      else if (app->cdim == 2) {
-        output_data_real[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 4]));
-        output_data_predicted[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 4]));
-      }
-    }
-    else if (app->poly_order == 2) {
-      output_data_real[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 3]));
-      output_data_predicted[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 3]));
-    }
-  }
-  
   if (app_lw->test_nn) {
     test_mom(&nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms,
       input_data_real, output_data_real, output_data_predicted);
@@ -1601,7 +1549,7 @@ pkpm_app_run(lua_State *L)
     write_nn(&nnw_trig, app, t_curr, false, ann);
 
     for (int i = 0; i < app->num_species; i++) {
-      kann_delete(ann[i]);
+      gkyl_kann_net_release(ann[i]);
     }
   }
   if (app_lw->test_nn) {
@@ -1609,7 +1557,7 @@ pkpm_app_run(lua_State *L)
       input_data_real, output_data_real, output_data_predicted);
 
     for (int i = 0; i < app->num_species; i++) {
-      kann_delete(ann_test[i]);
+      gkyl_kann_net_release(ann_test[i]);
     }
   }
   gkyl_pkpm_app_stat_write(app);
@@ -1646,21 +1594,11 @@ freeresources:
   gkyl_free(ann);
   gkyl_free(ann_test);
 
-  for (int i = 0; i < cell_count; i++) {
-    gkyl_free(input_data[i]);
-    gkyl_free(output_data[i]);
-  }
-  gkyl_free(input_data);
-  gkyl_free(output_data);
-
-  for (int i = 0; i < cell_count; i++) {
-    gkyl_free(input_data_real[i]);
-    gkyl_free(output_data_real[i]);
-    gkyl_free(output_data_predicted[i]);
-  }
-  gkyl_free(input_data_real);
-  gkyl_free(output_data_real);
-  gkyl_free(output_data_predicted);
+  gkyl_kn_vec_release(input_data);
+  gkyl_kn_vec_release(output_data);
+  gkyl_kn_vec_release(input_data_real);
+  gkyl_kn_vec_release(output_data_real);
+  gkyl_kn_vec_release(output_data_predicted);
 
   lua_pushboolean(L, ret_status);
   return 1;

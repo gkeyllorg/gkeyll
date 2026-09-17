@@ -56,6 +56,7 @@ test_ser_1d()
   test_ser_1d_members(basis1);
 
   struct gkyl_basis *basis2 = gkyl_cart_modal_serendip_new(1, 1);
+  TEST_CHECK(basis1.num_basis == gkyl_cart_modal_basis_get_num_basis(basis2));
   test_ser_1d_members(*basis2);
   gkyl_cart_modal_basis_release(basis2);
 }

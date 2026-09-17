@@ -23,7 +23,8 @@
 #endif
 
 #include <rt_arg_parse.h>
-#include <kann.h>
+#include <gkyl_kann_net.h>
+#include <gkyl_knutils.h>
 
 struct em_advect_ctx
 {
@@ -287,8 +288,8 @@ calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_c
 }
 
 void
-train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  float** input_data, float** output_data)
+train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  struct gkyl_kn_vec* input_data, struct gkyl_kn_vec* output_data)
 {
   if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
     int frame = nn->curr - 1;
@@ -301,7 +302,7 @@ train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool fo
 }
 
 void
-write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool force_write, kann_t** ann)
+write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool force_write, struct gkyl_kann_net** ann)
 {
   if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
     int frame = nnw->curr - 1;
@@ -314,8 +315,8 @@ write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool fo
 }
 
 void
-test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  float** input_data_real, float** output_data_real, float** output_data_predicted)
+test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  struct gkyl_kn_vec* input_data_real, struct gkyl_kn_vec* output_data_real, struct gkyl_kn_vec* output_data_predicted)
 {
   if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
     int frame = nnt->curr - 1;
@@ -535,7 +536,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
 
   write_data(&io_trig, app, t_curr, false);
 
@@ -544,7 +545,7 @@ main(int argc, char **argv)
   struct gkyl_tm_trigger nn_trig = { .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr };
 
   kad_node_t **t = gkyl_malloc(sizeof(kad_node_t*) * app_inp.num_species);
-  kann_t **ann = gkyl_malloc(sizeof(kann_t*) * app_inp.num_species);
+  struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net*) * app_inp.num_species);
   if (ctx.train_nn) {
     if (ctx.train_ab_initio) {
       for (int i = 0; i < app_inp.num_species; i++ ) {
@@ -576,7 +577,7 @@ main(int argc, char **argv)
         else if (ctx.poly_order == 2) {
           t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 3, KANN_C_MSE);
         }
-        ann[i] = kann_new(t[i], 0);
+        ann[i] = gkyl_kann_net_new(t[i], app_args.use_gpu);
       }
     }
     else {
@@ -588,7 +589,7 @@ main(int argc, char **argv)
 
         FILE *file = fopen(fileNm, "r");
         if (file != NULL) {
-          ann[i] = kann_load(fileNm);
+          ann[i] = gkyl_kann_net_load(fileNm, app_args.use_gpu);
           fclose(file);
         }
         else {
@@ -608,35 +609,13 @@ main(int argc, char **argv)
     cell_count = app_inp.cells[0] * app_inp.cells[1];
   }
 
-  float **input_data = gkyl_malloc(sizeof(float*[cell_count]));
-  for (int i = 0; i < cell_count; i++) {
-    if (app_inp.poly_order == 1) {
-      if (app_inp.cdim == 1) {
-        input_data[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 2]));
-      }
-      else if (app_inp.cdim == 2) {
-        input_data[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 4]));
-      }
-    }
-    else if (app_inp.poly_order == 2) {
-      input_data[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 3]));
-    }
-  }
+  // Number of DG coefficients per moment carried into/out of the network.
+  int nn_num_coeff = (app_inp.poly_order == 1) ? ((app_inp.cdim == 1) ? 2 : 4) : 3;
+  int nn_input_dim = ctx.num_input_moms * nn_num_coeff;
+  int nn_output_dim = ctx.num_output_moms * nn_num_coeff;
 
-  float **output_data = gkyl_malloc(sizeof(float*[cell_count]));
-  for (int i = 0; i < cell_count; i++) {
-    if (app_inp.poly_order == 1) {
-      if (app_inp.cdim == 1) {
-        output_data[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 2]));
-      }
-      else if (app_inp.cdim == 2) {
-        output_data[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 4]));
-      }
-    }
-    else if (app_inp.poly_order == 2) {
-      output_data[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 3]));
-    }
-  }
+  struct gkyl_kn_vec *input_data = gkyl_kn_vec_new(cell_count, nn_input_dim);
+  struct gkyl_kn_vec *output_data = gkyl_kn_vec_new(cell_count, nn_output_dim);
 
   if (ctx.train_nn) {
     train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms, input_data, output_data);
@@ -654,7 +633,7 @@ main(int argc, char **argv)
   int num_tests = ctx.num_tests;
   struct gkyl_tm_trigger nnt_trig = { .dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr };
 
-  kann_t **ann_test = gkyl_malloc(sizeof(kann_t*) * app_inp.num_species);
+  struct gkyl_kann_net **ann_test = gkyl_malloc(sizeof(struct gkyl_kann_net*) * app_inp.num_species);
   if (ctx.test_nn) {
     for (int i = 0; i < app_inp.num_species; i++) {
       const char *fmt = "%s-%s.dat";
@@ -664,7 +643,7 @@ main(int argc, char **argv)
 
       FILE *file = fopen(fileNm, "r");
       if (file != NULL) {
-        ann_test[i] = kann_load(fileNm);
+        ann_test[i] = gkyl_kann_net_load(fileNm, app_args.use_gpu);
         fclose(file);
       }
       else {
@@ -675,39 +654,9 @@ main(int argc, char **argv)
     }
   }
 
-  float **input_data_real = gkyl_malloc(sizeof(float*[cell_count]));
-  for (int i = 0; i < cell_count; i++) {
-    if (app_inp.poly_order == 1) {
-      if (app_inp.cdim == 1) {
-        input_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 2]));
-      }
-      else if (app_inp.cdim == 2) {
-        input_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 4]));
-      }
-    }
-    else if (app_inp.poly_order == 2) {
-      input_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 3]));
-    }
-  }
-
-  float **output_data_real = gkyl_malloc(sizeof(float*[cell_count]));
-  float **output_data_predicted = gkyl_malloc(sizeof(float*[cell_count]));
-  for (int i = 0; i < cell_count; i++) {
-    if (app_inp.poly_order == 1) {
-      if (app_inp.cdim == 1) {
-        output_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 2]));
-        output_data_predicted[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 2]));
-      }
-      else if (app_inp.cdim == 2) {
-        output_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 4]));
-        output_data_predicted[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 4]));
-      }
-    }
-    else if (app_inp.poly_order == 2) {
-      output_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 3]));
-      output_data_predicted[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 3]));
-    }
-  }
+  struct gkyl_kn_vec *input_data_real = gkyl_kn_vec_new(cell_count, nn_input_dim);
+  struct gkyl_kn_vec *output_data_real = gkyl_kn_vec_new(cell_count, nn_output_dim);
+  struct gkyl_kn_vec *output_data_predicted = gkyl_kn_vec_new(cell_count, nn_output_dim);
 
   if (ctx.test_nn) {
     test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms,
@@ -793,7 +742,7 @@ main(int argc, char **argv)
     write_nn(&nnw_trig, app, t_curr, false, ann);
 
     for (int i = 0; i < app_inp.num_species; i++) {
-      kann_delete(ann[i]);
+      gkyl_kann_net_release(ann[i]);
     }
   }
   if (ctx.test_nn) {
@@ -801,7 +750,7 @@ main(int argc, char **argv)
       input_data_real, output_data_real, output_data_predicted);
 
     for (int i = 0; i < app_inp.num_species; i++) {
-      kann_delete(ann_test[i]);
+      gkyl_kann_net_release(ann_test[i]);
     }
   }
   gkyl_pkpm_app_stat_write(app);
@@ -840,21 +789,11 @@ freeresources:
   gkyl_free(ann);
   gkyl_free(ann_test);
 
-  for (int i = 0; i < cell_count; i++) {
-    gkyl_free(input_data[i]);
-    gkyl_free(output_data[i]);
-  }
-  gkyl_free(input_data);
-  gkyl_free(output_data);
-
-  for (int i = 0; i < cell_count; i++) {
-    gkyl_free(input_data_real[i]);
-    gkyl_free(output_data_real[i]);
-    gkyl_free(output_data_predicted[i]);
-  }
-  gkyl_free(input_data_real);
-  gkyl_free(output_data_real);
-  gkyl_free(output_data_predicted);
+  gkyl_kn_vec_release(input_data);
+  gkyl_kn_vec_release(output_data);
+  gkyl_kn_vec_release(input_data_real);
+  gkyl_kn_vec_release(output_data_real);
+  gkyl_kn_vec_release(output_data_predicted);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI

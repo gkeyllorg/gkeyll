@@ -178,7 +178,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
           }
         }
 
-        bool pick_lower = true; // If at a cell boundary, pick the cell lower than the biased line.
+        bool pick_lower[3] = {true, true, true}; // If at a cell boundary, pick the cell lower than the biased line.
         int line_idx[GKYL_MAX_CDIM];
         gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){-1,-1,-1}, line_idx);
         bl_in_solve_range[i] = gkyl_range_contains_idx(solve_range, line_idx);
@@ -195,7 +195,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
             }
           }
           if (on_upper_cell_boundary) {
-            pick_lower = false; // If at a cell boundary, pick the cell upper than the biased line.
+            pick_lower[0] = pick_lower[1] = pick_lower[2] = false; // If at a cell boundary, pick the cell upper than the biased line.
             gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){-1,-1,-1}, line_idx);
             bl_in_solve_range[i] = gkyl_range_contains_idx(solve_range, line_idx);
           }

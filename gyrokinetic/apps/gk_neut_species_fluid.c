@@ -94,7 +94,8 @@ static void
 gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for fluid neutral species.
-  gkyl_msgpack_map_elem_release(ns->io_meta_len, ns->io_meta);
+  gkyl_msgpack_map_elem_release(ns->io_meta_basic_len, ns->io_meta_basic);
+  gkyl_msgpack_map_elem_release(ns->io_meta_conf_len , ns->io_meta_conf );
 
   gkyl_array_release(ns->f);
   gkyl_array_release(ns->f1);
@@ -252,13 +253,36 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
       ns->upper_bc[d].type = GKYL_BC_GK_SKIP;
   }
 
-  // Metadata for gk_neut_species app.
-  struct gkyl_msgpack_map_elem io_meta[] = {
-    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->basis.poly_order },
-    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = ns->basis.id }
+  // Species properties metadata.
+  struct gkyl_msgpack_map_elem io_meta_sprop[] = {
+    { .key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = ns->info.mass },
+    { .key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "gas_gamma", .elem_type = GKYL_MP_DOUBLE, .dval = ns->info.gas_gamma },
+    { .key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->info.vdim },
   };
-  ns->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-  ns->io_meta = gkyl_msgpack_map_elem_clone(ns->io_meta_len, io_meta);
+
+  // Metadata for integrated quantities.
+  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {app->io_meta_basic, io_meta_sprop};
+  int io_meta_basic_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_sprop)/sizeof(io_meta_sprop[0])};
+  ns->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union)/sizeof(io_meta_basic_union[0]),
+    io_meta_basic_union_len, io_meta_basic_union, &ns->io_meta_basic_len);
+
+  // Metadata for conf-space quantities.
+  struct gkyl_msgpack_map_elem io_meta_conf[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+  };
+  const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {app->io_meta_basic, io_meta_sprop, io_meta_conf};
+  int io_meta_conf_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_sprop)/sizeof(io_meta_sprop[0]),
+    sizeof(io_meta_conf)/sizeof(io_meta_conf[0])};
+  ns->io_meta_conf = gkyl_msgpack_map_elem_union(sizeof(io_meta_conf_union)/sizeof(io_meta_conf_union[0]),
+    io_meta_conf_union_len, io_meta_conf_union, &ns->io_meta_conf_len);
+
+  // Metadata for phase-space quantities.
+  ns->io_meta_phase = ns->io_meta_conf;
+  ns->io_meta_phase_len = ns->io_meta_conf_len;
 
   // Allocate distribution function array for initialization and I/O.
   ns->f = mkarr(app->use_gpu, ns->num_moments*ns->basis.num_basis, ns->local_ext.volume);
@@ -284,7 +308,9 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   }
 
   // Initialize projection routine for initial conditions.
-  gk_neut_species_projection_init(app, ns, ns->info.projection, &ns->proj_init);
+  if (ns->info.init_from_file.type == 0) {
+    gk_neut_species_projection_init(app, ns, ns->info.projection, &ns->proj_init);
+  }
 
   // Allocate objects for computing diagnostic moments.
   int ndm = ns->info.num_diag_moments;

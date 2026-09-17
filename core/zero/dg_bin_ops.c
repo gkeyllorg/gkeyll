@@ -54,7 +54,7 @@ gkyl_dg_bin_op_mem_release(gkyl_dg_bin_op_mem *mem)
 
 // multiplication
 void
-gkyl_dg_mul_op(struct gkyl_basis basis,
+gkyl_dg_mul_op(const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
@@ -65,11 +65,11 @@ gkyl_dg_mul_op(struct gkyl_basis basis,
   }
 #endif
 
-  int num_basis = basis.num_basis;
-  int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
+  int num_basis = basis->num_basis;
+  int ndim = basis->ndim;
+  int poly_order = basis->poly_order;
   mul_op_t mul_op;
-  switch (basis.b_type) {
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mul_op = choose_ser_mul_kern(ndim, poly_order);
       break;
@@ -93,7 +93,7 @@ gkyl_dg_mul_op(struct gkyl_basis basis,
   }
 }
 
-void gkyl_dg_mul_op_range(struct gkyl_basis basis,
+void gkyl_dg_mul_op_range(const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range)
@@ -104,11 +104,11 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   }
 #endif
 
-  int num_basis = basis.num_basis;
-  int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
+  int num_basis = basis->num_basis;
+  int ndim = basis->ndim;
+  int poly_order = basis->poly_order;
   mul_op_t mul_op;
-  switch (basis.b_type) {
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mul_op = choose_ser_mul_kern(ndim, poly_order);
       break;
@@ -137,7 +137,7 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
 
 // Dot product.
 void
-gkyl_dg_dot_product_op(struct gkyl_basis basis,
+gkyl_dg_dot_product_op(const struct gkyl_basis *basis,
   struct gkyl_array* out,
   const struct gkyl_array* lop,
   const struct gkyl_array* rop)
@@ -148,10 +148,10 @@ gkyl_dg_dot_product_op(struct gkyl_basis basis,
   }
 #endif
 
-  int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
+  int ndim = basis->ndim;
+  int poly_order = basis->poly_order;
   mul_op_t mul_op;
-  switch (basis.b_type) {
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mul_op = choose_ser_mul_kern(ndim, poly_order);
 
@@ -167,7 +167,7 @@ gkyl_dg_dot_product_op(struct gkyl_basis basis,
       break;    
   }
 
-  int num_basis = basis.num_basis;
+  int num_basis = basis->num_basis;
   int vcomp = lop->ncomp/out->ncomp;
 
   for (size_t i=0; i<out->size; ++i) {
@@ -185,7 +185,7 @@ gkyl_dg_dot_product_op(struct gkyl_basis basis,
   }
 }
 
-void gkyl_dg_dot_product_op_range(struct gkyl_basis basis,
+void gkyl_dg_dot_product_op_range(const struct gkyl_basis *basis,
   struct gkyl_array* out,
   const struct gkyl_array* lop,
   const struct gkyl_array* rop, const struct gkyl_range *range)
@@ -196,10 +196,10 @@ void gkyl_dg_dot_product_op_range(struct gkyl_basis basis,
   }
 #endif
 
-  int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
+  int ndim = basis->ndim;
+  int poly_order = basis->poly_order;
   mul_op_t mul_op;
-  switch (basis.b_type) {
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mul_op = choose_ser_mul_kern(ndim, poly_order);
 
@@ -215,7 +215,7 @@ void gkyl_dg_dot_product_op_range(struct gkyl_basis basis,
       break;    
   }
 
-  int num_basis = basis.num_basis;
+  int num_basis = basis->num_basis;
   int vcomp = lop->ncomp/out->ncomp;
 
   struct gkyl_range_iter iter;
@@ -315,7 +315,7 @@ void gkyl_dg_mul_conf_phase_op_accumulate_range(const struct gkyl_basis *cbasis,
 
 // division
 void
-gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
+gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
@@ -326,11 +326,11 @@ gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   }
 #endif
 
-  int num_basis = basis.num_basis;
-  int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
+  int num_basis = basis->num_basis;
+  int ndim = basis->ndim;
+  int poly_order = basis->poly_order;
   div_set_op_t div_set_op;
-  switch (basis.b_type) {
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       div_set_op = choose_ser_div_set_kern(ndim, poly_order);
 
@@ -370,7 +370,7 @@ gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   }
 }
 
-void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
+void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range)
@@ -381,11 +381,11 @@ void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   }
 #endif
 
-  int num_basis = basis.num_basis;
-  int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
+  int num_basis = basis->num_basis;
+  int ndim = basis->ndim;
+  int poly_order = basis->poly_order;
   div_set_op_t div_set_op;
-  switch (basis.b_type) {
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       div_set_op = choose_ser_div_set_kern(ndim, poly_order);
 
@@ -439,7 +439,7 @@ void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   }
 }
 
-void gkyl_dg_inv_op(struct gkyl_basis basis,
+void gkyl_dg_inv_op(const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out, int c_iop, const struct gkyl_array* iop)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -448,11 +448,11 @@ void gkyl_dg_inv_op(struct gkyl_basis basis,
   }
 #endif
 
-  int num_basis = basis.num_basis;
-  int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
+  int num_basis = basis->num_basis;
+  int ndim = basis->ndim;
+  int poly_order = basis->poly_order;
   inv_op_t inv_op;
-  switch (basis.b_type) {
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       inv_op = choose_ser_inv_kern(ndim, poly_order);
       break;
@@ -471,7 +471,7 @@ void gkyl_dg_inv_op(struct gkyl_basis basis,
   }
 }
 
-void gkyl_dg_inv_op_range(struct gkyl_basis basis,
+void gkyl_dg_inv_op_range(const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out, int c_iop, const struct gkyl_array* iop,
   const struct gkyl_range *range)
 {
@@ -481,11 +481,11 @@ void gkyl_dg_inv_op_range(struct gkyl_basis basis,
   }
 #endif
 
-  int num_basis = basis.num_basis;
-  int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
+  int num_basis = basis->num_basis;
+  int ndim = basis->ndim;
+  int poly_order = basis->poly_order;
   inv_op_t inv_op;
-  switch (basis.b_type) {
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       inv_op = choose_ser_inv_kern(ndim, poly_order);
       break;
@@ -510,7 +510,7 @@ void gkyl_dg_inv_op_range(struct gkyl_basis basis,
 }
 
 void
-gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+gkyl_dg_calc_op_range(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
   int c_iop, const struct gkyl_array *iop,
   struct gkyl_range range, enum gkyl_dg_op op)
 {
@@ -520,9 +520,9 @@ gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop, struct gkyl_array *out
   }
 #endif
   
-  int num_basis = basis.num_basis;
-  int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
+  int num_basis = basis->num_basis;
+  int ndim = basis->ndim;
+  int poly_order = basis->poly_order;
 
   dp_op_t op_func = dg_get_op_func(op);
   double fact = // factor for rescaling return value of op_func
@@ -543,7 +543,7 @@ gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop, struct gkyl_array *out
 }
 
 void
-gkyl_dg_calc_average_range(struct gkyl_basis basis,
+gkyl_dg_calc_average_range(const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_iop, const struct gkyl_array* iop, struct gkyl_range range)
 {
@@ -551,7 +551,7 @@ gkyl_dg_calc_average_range(struct gkyl_basis basis,
 }
 
 void
-gkyl_dg_calc_l2_range(struct gkyl_basis basis,
+gkyl_dg_calc_l2_range(const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_iop, const struct gkyl_array* iop, struct gkyl_range range)
 {

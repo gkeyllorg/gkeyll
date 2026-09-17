@@ -13,7 +13,7 @@ gk_species_moment_diag_jacobgeo_div_enabled_1st_comp(const struct gkyl_gyrokinet
   struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out)
 {
   // Only divide the first component.
-  gkyl_dg_div_op_range(sm->mem_geo, app->basis, 0, mom_out, 0, Jmom_in, 0, 
+  gkyl_dg_div_op_range(sm->mem_geo, &app->basis, 0, mom_out, 0, Jmom_in, 0, 
     app->gk_geom->geo_int.jacobgeo, &app->local);  
 }
 
@@ -23,7 +23,7 @@ gk_species_moment_diag_jacobgeo_div_enabled_all_comp(const struct gkyl_gyrokinet
 {
   // Divide all components.
   for (int k=0; k<sm->num_mom; k++)
-    gkyl_dg_div_op_range(sm->mem_geo, app->basis, k, mom_out, k, Jmom_in, 0, 
+    gkyl_dg_div_op_range(sm->mem_geo, &app->basis, k, mom_out, k, Jmom_in, 0,
       app->gk_geom->geo_int.jacobgeo, &app->local);  
 }
 

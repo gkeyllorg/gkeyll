@@ -132,10 +132,10 @@ deflated_dg_bin_ops_advance(enum deflated_dg_bin_ops_type op_type, struct gkyl_d
 
     // Divide or Multiply
     if (op_type == GKYL_DEFLATED_DIV)
-      gkyl_dg_div_op_range(up->mem, up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out,
+      gkyl_dg_div_op_range(up->mem, &up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out,
         c_lop, up->d_bop_data[ctr].deflated_lop, c_rop, up->d_bop_data[ctr].deflated_rop, &up->deflated_local);
     else if (op_type == GKYL_DEFLATED_MUL)
-      gkyl_dg_mul_op_range(up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out, c_lop,
+      gkyl_dg_mul_op_range(&up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out, c_lop,
         up->d_bop_data[ctr].deflated_lop, c_rop, up->d_bop_data[ctr].deflated_rop, &up->deflated_local);
 
     // Modal to Nodal in 1d -> Store the result in the 2d nodal field
@@ -153,10 +153,10 @@ deflated_dg_bin_ops_advance(enum deflated_dg_bin_ops_type op_type, struct gkyl_d
 
       // Divide or Multiply
       if (op_type == GKYL_DEFLATED_DIV)
-        gkyl_dg_div_op_range(up->mem, up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out, 
+        gkyl_dg_div_op_range(up->mem, &up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out,
           c_lop, up->d_bop_data[ctr].deflated_lop, c_rop, up->d_bop_data[ctr].deflated_rop, &up->deflated_local);
       else if (op_type == GKYL_DEFLATED_MUL)
-        gkyl_dg_mul_op_range(up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out, 
+        gkyl_dg_mul_op_range(&up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out,
           c_lop, up->d_bop_data[ctr].deflated_lop, c_rop, up->d_bop_data[ctr].deflated_rop, &up->deflated_local);
 
       // Modal to Nodal in 1d -> Store the result in the 2d nodal field

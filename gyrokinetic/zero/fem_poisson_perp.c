@@ -267,7 +267,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
           }
         }
 
-        bool pick_lower = true; // If at a cell boundary, pick the cell lower than the biased line.
+        bool pick_lower[3] = {true, true, true}; // If at a cell boundary, pick the cell lower than the biased line.
         int line_idx[GKYL_MAX_CDIM];
         gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){-1,-1,-1}, line_idx);
 
@@ -490,7 +490,7 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
     // Subtract the volume averaged RHS from the RHS.
     gkyl_array_clear(up->rhs_cellavg, 0.0);
 
-    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
+    gkyl_dg_calc_average_range(&up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
 
     gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
     while (gkyl_range_iter_next(&up->par_iter1d)) {

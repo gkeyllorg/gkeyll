@@ -38,7 +38,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   FILE *ptr = fopen(up->filepath,"r"); 
 
   // Read the last two ints in the first line, assuming they are N_R and N_Z.
-  const int MAX_LINE_LENGTH = 256;
+  int MAX_LINE_LENGTH = 256;
   char first_line[MAX_LINE_LENGTH];
   char *token;
   if (fgets(first_line, sizeof(first_line), ptr) != NULL) {

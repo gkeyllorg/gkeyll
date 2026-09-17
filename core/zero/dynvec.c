@@ -202,6 +202,40 @@ gkyl_dynvec_write_mode(const gkyl_dynvec vec,
   return errno;
 }
 
+static int
+gkyl_dynvec_write_mode_wmeta(const gkyl_dynvec vec, const char *fname,
+  const struct gkyl_msgpack_data *meta, const char *mode)
+{
+  const char g0[5] = "gkyl0";
+
+  FILE *fp = 0;
+  with_file (fp, fname, mode) {
+    fseek(fp, 0, SEEK_END);
+    
+    // Version 1 header
+    fwrite(g0, sizeof(char[5]), 1, fp);
+    uint64_t version = 1;
+    fwrite(&version, sizeof(uint64_t), 1, fp);
+    fwrite(&gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE], sizeof(uint64_t), 1, fp);
+    uint64_t meta_size = meta->meta_sz;
+    fwrite(&meta_size, sizeof(uint64_t), 1, fp);
+    if (meta_size > 0)
+      fwrite(meta->meta, meta_size, 1, fp);
+    
+    uint64_t real_type = gkyl_array_data_type[vec->type];
+    fwrite(&real_type, sizeof(uint64_t), 1, fp);
+
+    uint64_t esznc = vec->esznc, size = gkyl_dynvec_size(vec);
+    fwrite(&esznc, sizeof(uint64_t), 1, fp);
+    fwrite(&size, sizeof(uint64_t), 1, fp); 
+
+    fwrite(vec->tm_mesh, sizeof(double)*size, 1, fp);
+    fwrite(vec->data, esznc*size, 1, fp);
+  }
+
+  return errno;
+}
+
 int
 gkyl_dynvec_write(const gkyl_dynvec vec, const char *fname)
 {
@@ -212,6 +246,12 @@ int
 gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname)
 {
   return gkyl_dynvec_write_mode(vec, fname, "a");
+}
+
+int
+gkyl_dynvec_write_wmeta(const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta)
+{
+  return gkyl_dynvec_write_mode_wmeta(vec, fname, meta, "w");
 }
 
 // ncomp returned in 'ncomp'

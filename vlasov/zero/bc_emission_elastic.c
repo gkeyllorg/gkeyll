@@ -98,7 +98,7 @@ gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
   gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_skin, up->dir+up->cdim, emit_skin_r,
     up->reflect_func->on_dev);
   // Basis is passed directly instead of by pointer for bin op, so advance uses host copy.
-  gkyl_dg_mul_op(*basis, 0, f_emit, 0, buff_arr, 0, elastic_yield);
+  gkyl_dg_mul_op(basis, 0, f_emit, 0, buff_arr, 0, elastic_yield);
 }
 
 void gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up)

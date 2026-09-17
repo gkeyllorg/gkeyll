@@ -50,7 +50,8 @@
 #include <string.h>
 
 #include <stc/coption.h>
-#include <kann.h>
+#include <gkyl_kann_net.h>
+#include <gkyl_knutils.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
@@ -350,7 +351,7 @@ struct wv_eqn_lw {
   int magic; // This must be the first element in the struct.
   struct gkyl_wv_eqn *eqn; // Equation object.
   bool has_nn; // Does this equation object have a neural network attached?
-  kann_t *ann; // Neural network.
+  struct gkyl_kann_net *ann; // Neural network.
   bool has_spacetime; // Does this equation object have a spacetime object attached?
   struct gkyl_gr_spacetime *spacetime; // Spacetime.
 };
@@ -364,7 +365,7 @@ wv_eqn_lw_gc(lua_State *L)
 
   gkyl_wv_eqn_release(wv_lw->eqn);
   if (wv_lw->has_nn) {
-    kann_delete(wv_lw->ann);
+    gkyl_kann_net_release(wv_lw->ann);
   }
   if (wv_lw->has_spacetime) {
     gkyl_gr_spacetime_release(wv_lw->spacetime);
@@ -553,7 +554,7 @@ eqn_tenmoment_lw_new(lua_State *L)
   const char* nn_species_name = glua_tbl_get_string(L, "NNSpeciesName", "");
   const char* nn_closure_file = glua_tbl_get_string(L, "NNClosureFile", "");
   
-  kann_t *ann = 0;
+  struct gkyl_kann_net *ann = 0;
   if (has_nn_closure) {
     const char *fmt = "%s-%s.dat";
     int sz = gkyl_calc_strlen(fmt, nn_closure_file, nn_species_name);
@@ -561,7 +562,7 @@ eqn_tenmoment_lw_new(lua_State *L)
     snprintf(fileNm, sizeof fileNm, fmt, nn_closure_file, nn_species_name);
     FILE *file = fopen(fileNm, "r");
     if (file != NULL) {
-      ann = kann_load(fileNm);
+      ann = gkyl_kann_net_load(fileNm, false);
       fclose(file);
     }
     else {
@@ -6049,7 +6050,7 @@ mom_app_run(lua_State *L)
   int field_energy_calcs = app_lw->field_energy_calcs;
   int integrated_mom_calcs = app_lw->integrated_mom_calcs;
   // Triggers for IO and logging.
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
   struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
   struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
 

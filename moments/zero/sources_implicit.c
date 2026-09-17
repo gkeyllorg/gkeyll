@@ -228,9 +228,9 @@ implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, 
 }
 
 void
-implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
+implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt,
   double fluid_rhs_s[GKYL_MAX_SPECIES][4], double* fluid_s[GKYL_MAX_SPECIES],
-  const double* app_accel_s[GKYL_MAX_SPECIES])
+  const double* app_accel_s[GKYL_MAX_SPECIES], const double* p_rhs_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -243,6 +243,54 @@ implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr
     f[1] += dt * rho * app_accel[0];
     f[2] += dt * rho * app_accel[1];
     f[3] += dt * rho * app_accel[2];
+
+    // Pressure-tensor source for neutral ten-moment fluids. The charged path
+    // folds both the heat-flux closure increment and the k0 integrating-factor
+    // relaxation into pressure_tensor_rotate, which vanishes at q/m = 0; here we
+    // apply them explicitly: a forward-Euler increment by the closure rhs,
+    // followed by relaxation toward the scalar pressure at rate nu = v_th * k0.
+    // With no closure p_rhs is zero and (typically) k0 = 0, so this is a no-op.
+    if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT) {
+      const double *p_rhs = p_rhs_s[i];
+      double k0 = mom_em->param[i].k0;
+
+      double rho_f = f[0];
+      double mom_x = f[1], mom_y = f[2], mom_z = f[3];
+
+      // Thermal pressure tensor (subtract the bulk-flow contribution).
+      double p_tensor[6];
+      p_tensor[0] = f[4] - ((mom_x * mom_x) / rho_f);
+      p_tensor[1] = f[5] - ((mom_x * mom_y) / rho_f);
+      p_tensor[2] = f[6] - ((mom_x * mom_z) / rho_f);
+      p_tensor[3] = f[7] - ((mom_y * mom_y) / rho_f);
+      p_tensor[4] = f[8] - ((mom_y * mom_z) / rho_f);
+      p_tensor[5] = f[9] - ((mom_z * mom_z) / rho_f);
+
+      double p_scalar = (1.0 / 3.0) * (p_tensor[0] + p_tensor[3] + p_tensor[5]);
+      double v_th = sqrt(p_scalar / rho_f);
+      double exp_nu = exp(v_th * k0 * dt);
+
+      // Forward-Euler increment from the closure heat-flux divergence.
+      for (int n = 0; n < 6; n++) {
+        p_tensor[n] += dt * p_rhs[4 + n];
+      }
+
+      // Integrating-factor relaxation toward isotropy (toward p_scalar).
+      p_tensor[0] = ((p_tensor[0] - p_scalar) / exp_nu) + p_scalar;
+      p_tensor[1] = p_tensor[1] / exp_nu;
+      p_tensor[2] = p_tensor[2] / exp_nu;
+      p_tensor[3] = ((p_tensor[3] - p_scalar) / exp_nu) + p_scalar;
+      p_tensor[4] = p_tensor[4] / exp_nu;
+      p_tensor[5] = ((p_tensor[5] - p_scalar) / exp_nu) + p_scalar;
+
+      // Write back the conserved pressure-tensor components.
+      f[4] = p_tensor[0] + ((mom_x * mom_x) / rho_f);
+      f[5] = p_tensor[1] + ((mom_x * mom_y) / rho_f);
+      f[6] = p_tensor[2] + ((mom_x * mom_z) / rho_f);
+      f[7] = p_tensor[3] + ((mom_y * mom_y) / rho_f);
+      f[8] = p_tensor[4] + ((mom_y * mom_z) / rho_f);
+      f[9] = p_tensor[5] + ((mom_z * mom_z) / rho_f);
+    }
   }
 }
 
@@ -658,7 +706,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     implicit_em_source_update(mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s, em, app_current, ext_em);
   }
   else {
-    implicit_neut_source_update(mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s);
+    implicit_neut_source_update(mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s, p_rhs_s);
   }
 
   for (int i = 0; i < nfluids; i++) {

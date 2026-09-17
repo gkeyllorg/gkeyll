@@ -144,7 +144,7 @@ pkpm_species_lbo_moms(gkyl_pkpm_app *app, const struct pkpm_species *species,
       gkyl_array_set_range(lbo->maxwellian_moms, 1.0/species->info.mass, species->pkpm_moms.marr, &app->local);
       gkyl_array_set_offset_range(lbo->maxwellian_moms, 1.0, lbo->prim_moms, app->confBasis.num_basis, &app->local);
       gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0., 1.0, lbo->norm_nu);
-      gkyl_dg_mul_op(app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
+      gkyl_dg_mul_op(&app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
     }
   } 
   else {
@@ -157,12 +157,12 @@ pkpm_species_lbo_moms(gkyl_pkpm_app *app, const struct pkpm_species *species,
       gkyl_array_set_range(lbo->maxwellian_moms, 1.0/species->info.mass, species->pkpm_moms.marr, &app->local);
       gkyl_array_set_offset_range(lbo->maxwellian_moms, 1.0, lbo->prim_moms, app->confBasis.num_basis, &app->local);
       gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0.0, 1.0, lbo->norm_nu);
-      gkyl_dg_mul_op(app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
+      gkyl_dg_mul_op(&app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
     }
   }
   for (int d=0; d<app->vdim; d++)
-    gkyl_dg_mul_op(app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
-  gkyl_dg_mul_op(app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu);
+    gkyl_dg_mul_op(&app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
+  gkyl_dg_mul_op(&app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu);
   
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
@@ -176,18 +176,18 @@ pkpm_species_lbo_cross_moms(gkyl_pkpm_app *app, const struct pkpm_species *speci
   
   wst = gkyl_wall_clock();  
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
-    gkyl_dg_mul_op_range(app->confBasis, 0, lbo->self_mnu_m0[i], 0,
+    gkyl_dg_mul_op_range(&app->confBasis, 0, lbo->self_mnu_m0[i], 0,
       lbo->self_mnu[i], 0, lbo->m0, &app->local);
-    gkyl_dg_mul_op_range(app->confBasis, 0, lbo->other_mnu_m0[i], 0,
+    gkyl_dg_mul_op_range(&app->confBasis, 0, lbo->other_mnu_m0[i], 0,
       lbo->other_mnu[i], 0, lbo->collide_with[i]->lbo.m0, &app->local);
 
-    gkyl_dg_mul_op_range(app->confBasis, 0, lbo->greene_num[i], 0,
+    gkyl_dg_mul_op_range(&app->confBasis, 0, lbo->greene_num[i], 0,
       lbo->other_mnu_m0[i], 0, lbo->m0, &app->local);
 
     gkyl_array_set(lbo->greene_den[i], 1.0, lbo->self_mnu_m0[i]);
     gkyl_array_accumulate(lbo->greene_den[i], 1.0, lbo->other_mnu_m0[i]);
 
-    gkyl_dg_div_op_range(lbo->greene_factor_mem, app->confBasis, 0, lbo->greene_factor[i], 0,
+    gkyl_dg_div_op_range(lbo->greene_factor_mem, &app->confBasis, 0, lbo->greene_factor[i], 0,
       lbo->greene_num[i], 0, lbo->greene_den[i], &app->local);
     gkyl_array_scale(lbo->greene_factor[i], 2*lbo->betaGreenep1);
 
@@ -201,8 +201,8 @@ pkpm_species_lbo_cross_moms(gkyl_pkpm_app *app, const struct pkpm_species *speci
 
 
     for (int d=0; d<app->vdim; d++)
-      gkyl_dg_mul_op(app->confBasis, d, lbo->cross_nu_prim_moms, d, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
-    gkyl_dg_mul_op(app->confBasis, app->vdim, lbo->cross_nu_prim_moms, app->vdim, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
+      gkyl_dg_mul_op(&app->confBasis, d, lbo->cross_nu_prim_moms, d, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
+    gkyl_dg_mul_op(&app->confBasis, app->vdim, lbo->cross_nu_prim_moms, app->vdim, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
 
     gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, lbo->cross_nu_prim_moms);
   }

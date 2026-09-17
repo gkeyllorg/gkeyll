@@ -84,7 +84,7 @@ struct gkyl_range_skip_iter {
 };
 
 /**
- * Initialize new range object.
+ * Initialize a range object.
  *
  * @param rng Range object to initialize
  * @param ndim Dimension of range to create.
@@ -93,6 +93,16 @@ struct gkyl_range_skip_iter {
  */
 void gkyl_range_init(struct gkyl_range *rng, int ndim,
   const int *lower, const int *upper);
+
+/**
+ * Create and initialize a new range object. Free with gkyl_range_release.
+ *
+ * @param ndim Dimension of range to create.
+ * @param lower Lower indices of range
+ * @param upper Upper indices of range
+ * @return Pointer to new range object.
+ */
+struct gkyl_range* gkyl_range_new(int ndim, const int *lower, const int *upper);
 
 /**
  * Create new range object from specified shape. This sets the lower
@@ -624,3 +634,42 @@ void gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp);
  * @return true if ranges are same, false otherwise
  */
 bool gkyl_range_compare(const struct gkyl_range* r1, const struct gkyl_range* r2);
+
+/**
+ * Get the number of dimensions from range (for opaque pointer).
+ *
+ * @return Number of dimensions.
+ */
+int gkyl_range_get_ndim(const struct gkyl_range* range);
+
+/**
+ * Get the lower extents of a range (for opaque pointer).
+ *
+ * @param range Range object.
+ * @param lower Lower extents of the range (pre-allocated).
+ */
+void gkyl_range_get_lower(const struct gkyl_range* range, int *lower);
+
+/**
+ * Get the upper extents of a range (for opaque pointer).
+ *
+ * @param range Range object.
+ * @param upper Upper extents of the range (pre-allocated).
+ */
+void gkyl_range_get_upper(const struct gkyl_range* range, int *upper);
+
+/**
+ * Get the volume of a range (for opaque pointer).
+ *
+ * @param range Range object.
+ * @return Volume of the range.
+ */
+long gkyl_range_get_volume(const struct gkyl_range* range);
+
+/**
+ * Free dynamically allocated range object (with gkyl_range_new).
+ *
+ * @param range Range object.
+ */
+void gkyl_range_release(struct gkyl_range* range);
+

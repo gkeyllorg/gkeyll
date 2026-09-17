@@ -1,6 +1,20 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_nodal_ops.h>
 
+static inline void
+get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
+{
+  // Remove path from 'filepath' and output only the file name (including its extension)
+  // to the buffer 'out_buffer' of size 'out_size'.
+  const char *last_slash = strrchr(filepath, '/');
+  const char *filename_start = (last_slash) ? last_slash + 1 : filepath;
+
+  if (out_size > 0) {
+    strncpy(out_buffer, filename_start, out_size - 1);
+    out_buffer[out_size - 1] = '\0';
+  }
+}
+
 static double calc_running_coord(double coord_lo, int i, double dx) {
   double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
   double coord = coord_lo;

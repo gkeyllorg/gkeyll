@@ -6,8 +6,27 @@
 
 #include <assert.h>
 
+struct gkyl_array_average* gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+  const struct gkyl_basis *basis_avg, const struct gkyl_range *local, const struct gkyl_range *local_avg,
+  const struct gkyl_range *local_avg_ext, const struct gkyl_array *weight, const int *avg_dim, bool use_gpu)
+{
+  return gkyl_array_average_inew(
+    &(struct gkyl_array_average_inp) {
+      .grid = grid,
+      .basis = *basis,
+      .basis_avg = *basis_avg,
+      .local = local,
+      .local_avg = local_avg,
+      .local_avg_ext = local_avg_ext,
+      .weight = weight,
+      .avg_dim = avg_dim,
+      .use_gpu = use_gpu
+    }
+  );
+}
+
 struct gkyl_array_average*
-gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
+gkyl_array_average_inew(const struct gkyl_array_average_inp *inp)
 {
   // works for p <=2 only due to the gkyl_dg_div_op_range call in advance
   assert(inp->basis.poly_order <= 2); 
@@ -76,7 +95,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
       .avg_dim = inp->avg_dim,
       .use_gpu = inp->use_gpu
     };
-    struct gkyl_array_average *int_w = gkyl_array_average_new(&inp_integral);
+    struct gkyl_array_average *int_w = gkyl_array_average_inew(&inp_integral);
     // run the updater to integrate the weight
     gkyl_array_average_advance(int_w, inp->weight, up->weight_avg);
     gkyl_array_average_release(int_w);
@@ -157,7 +176,7 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
 
   // if we provided some weight, we now divide by the integrated weight
   if (up->isweighted)
-    gkyl_dg_div_op_range(up->div_mem, up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg);
+    gkyl_dg_div_op_range(up->div_mem, &up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg);
 
 }
 

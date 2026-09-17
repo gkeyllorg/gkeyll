@@ -38,12 +38,12 @@ gkyl_dg_mul_op_cu_kernel(struct gkyl_basis basis,
 
 // Host-side wrapper for dg multiplication operation
 void
-gkyl_dg_mul_op_cu(struct gkyl_basis basis,
+gkyl_dg_mul_op_cu(const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
 {
-  gkyl_dg_mul_op_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, c_oop, out->on_dev,
+  gkyl_dg_mul_op_cu_kernel<<<out->nblocks, out->nthreads>>>(*basis, c_oop, out->on_dev,
     c_lop, lop->on_dev, c_rop, rop->on_dev);
 }
 
@@ -83,14 +83,14 @@ gkyl_dg_mul_op_range_cu_kernel(struct gkyl_basis basis,
 
 // Host-side wrapper for range-based dg multiplication operation
 void
-gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
+gkyl_dg_mul_op_range_cu(const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_dg_mul_op_range_cu_kernel<<<nblocks, nthreads>>>(basis, c_oop, out->on_dev,
+  gkyl_dg_mul_op_range_cu_kernel<<<nblocks, nthreads>>>(*basis, c_oop, out->on_dev,
     c_lop, lop->on_dev, c_rop, rop->on_dev, *range);
 }
 
@@ -239,12 +239,12 @@ gkyl_dg_dot_product_op_cu_kernel(struct gkyl_basis basis,
 
 // Host-side wrapper for dg dot product operation.
 void
-gkyl_dg_dot_product_op_cu(struct gkyl_basis basis,
+gkyl_dg_dot_product_op_cu(const struct gkyl_basis *basis,
   struct gkyl_array* out, const struct gkyl_array* lop,
   const struct gkyl_array* rop)
 {
-  assert(basis.num_basis <= 20); // MF 2022/09/08: see hardcode in kernel above.
-  gkyl_dg_dot_product_op_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, out->on_dev,
+  assert(basis->num_basis <= 20); // MF 2022/09/08: see hardcode in kernel above.
+  gkyl_dg_dot_product_op_cu_kernel<<<out->nblocks, out->nthreads>>>(*basis, out->on_dev,
     lop->on_dev, rop->on_dev);
 }
 
@@ -290,14 +290,14 @@ gkyl_dg_dot_product_op_range_cu_kernel(struct gkyl_basis basis,
 
 // Host-side wrapper for range-based dg dot product operation.
 void
-gkyl_dg_dot_product_op_range_cu(struct gkyl_basis basis,
+gkyl_dg_dot_product_op_range_cu(const struct gkyl_basis *basis,
   struct gkyl_array* out, const struct gkyl_array* lop,
   const struct gkyl_array* rop, const struct gkyl_range *range)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  assert(basis.num_basis <= 20); // MF 2022/09/08: see hardcode in kernel above.
-  gkyl_dg_dot_product_op_range_cu_kernel<<<nblocks, nthreads>>>(basis, out->on_dev,
+  assert(basis->num_basis <= 20); // MF 2022/09/08: see hardcode in kernel above.
+  gkyl_dg_dot_product_op_range_cu_kernel<<<nblocks, nthreads>>>(*basis, out->on_dev,
     lop->on_dev, rop->on_dev, *range);
 }
 
@@ -339,7 +339,7 @@ gkyl_dg_div_copy_sol_op_cu_kernel(struct gkyl_nmat *xs,
 
 // Host-side wrapper for dg division operation
 void
-gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
+gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
@@ -350,12 +350,12 @@ gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
 
   // construct matrices using CUDA kernel
   gkyl_dg_div_set_op_cu_kernel<<<out->nblocks, out->nthreads>>>(A_d->on_dev, x_d->on_dev,
-    basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev);
+    *basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev);
   // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
   assert(status);
   // copy solution into array (also lives on the device)
-  gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(x_d->on_dev, basis, c_oop, out->on_dev);
+  gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(x_d->on_dev, *basis, c_oop, out->on_dev);
 
 }
 
@@ -428,7 +428,7 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
 
 // Host-side wrapper for range-based dg division operation
 void
-gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
+gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range)
@@ -441,13 +441,13 @@ gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
 
   // construct matrices using CUDA kernel  
   gkyl_dg_div_set_op_range_cu_kernel<<<nblocks, nthreads>>>(A_d->on_dev,
-    x_d->on_dev, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, *range);
+    x_d->on_dev, *basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, *range);
   // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
   assert(status);
   // copy solution into array (also lives on the device)
   gkyl_dg_div_copy_sol_op_range_cu_kernel<<<nblocks, nthreads>>>(x_d->on_dev,
-    basis, c_oop, out->on_dev, *range);
+    *basis, c_oop, out->on_dev, *range);
 }
 
 __global__ void
@@ -471,11 +471,11 @@ gkyl_dg_inv_op_cu_kernel(struct gkyl_basis basis,
 
 // Host-side wrapper for dg inversion operation.
 void
-gkyl_dg_inv_op_cu(struct gkyl_basis basis,
+gkyl_dg_inv_op_cu(const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_iop, const struct gkyl_array* iop)
 {
-  gkyl_dg_inv_op_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, c_oop, out->on_dev,
+  gkyl_dg_inv_op_cu_kernel<<<out->nblocks, out->nthreads>>>(*basis, c_oop, out->on_dev,
     c_iop, iop->on_dev);
 }
 
@@ -514,13 +514,13 @@ gkyl_dg_inv_op_range_cu_kernel(struct gkyl_basis basis,
 
 // Host-side wrapper for range-based dg invtiplication operation
 void
-gkyl_dg_inv_op_range_cu(struct gkyl_basis basis,
+gkyl_dg_inv_op_range_cu(const struct gkyl_basis *basis,
   int c_oop, struct gkyl_array* out,
   int c_iop, const struct gkyl_array* iop, const struct gkyl_range *range)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_dg_inv_op_range_cu_kernel<<<nblocks, nthreads>>>(basis, c_oop, out->on_dev,
+  gkyl_dg_inv_op_range_cu_kernel<<<nblocks, nthreads>>>(*basis, c_oop, out->on_dev,
     c_iop, iop->on_dev, *range);
 }
 
@@ -560,10 +560,10 @@ gkyl_dg_calc_op_range_cu_kernel(struct gkyl_basis basis, int c_oop, struct gkyl_
 }
 
 void
-gkyl_dg_calc_op_range_cu(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+gkyl_dg_calc_op_range_cu(const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
   int c_iop, const struct gkyl_array *iop,
   struct gkyl_range range, enum gkyl_dg_op op)
 {
-  gkyl_dg_calc_op_range_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, c_oop, out->on_dev,
+  gkyl_dg_calc_op_range_cu_kernel<<<out->nblocks, out->nthreads>>>(*basis, c_oop, out->on_dev,
     c_iop, iop->on_dev, range, op);
 }

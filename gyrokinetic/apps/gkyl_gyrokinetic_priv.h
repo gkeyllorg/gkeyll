@@ -35,14 +35,17 @@
 #include <gkyl_dg_calc_gk_neut_hamil.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_gk_collisionless_flux.h>
+#include <gkyl_gk_collisionless_passive_flux.h>
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
+#include <gkyl_dg_gyrokinetic_passive.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_updater_gk_anomalous_diffusion.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
+#include <gkyl_dg_updater_gyrokinetic_passive.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_dg_updater_moment.h>
@@ -287,9 +290,15 @@ struct gk_collisionless {
       struct gkyl_array *apar; // A_parallel.
       struct gkyl_array *apardot; // d/dt A_parallel.
 
-      struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
-      gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
- 
+      struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes (GK/EM cases).
+      gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver (GK/EM cases).
+
+      // Passive advection (only for GKYL_GK_COLLISIONLESS_PASSIVE).
+      struct gkyl_array *passive_speeds;    // Conf-space passive speeds.
+      struct gkyl_array *passive_speeds_ho; // Host copy of passive_speeds.
+      struct gkyl_gk_collisionless_passive_flux *passive_surf_flux_op; // Passive flux updater.
+      gkyl_dg_updater_gyrokinetic_passive *passive_slvr; // Passive collisionless solver.
+
       // Methods chosen at runtime.
       void (*flux_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
         struct gk_collisionless *gkcls, const struct gkyl_array *fin);
@@ -824,8 +833,9 @@ struct gk_source {
   struct gk_species_moment integ_moms; // Integrated moments.
   double *red_integ_diag, *red_integ_diag_global; // For reduction of integrated moments.
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid.
-  gkyl_dynvec temp_diag, part_diag; // Src temperature and particle count diags.
   bool is_first_integ_write_call; // Flag for integrated moments dynvec written first time.
+  gkyl_dynvec temp_diag, part_diag; // Src temperature and particle count diags.
+  bool is_first_integ_write_call_adapt; // Flag for integrated moments dynvec written first time.
   struct gk_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptation source.
   int num_adapt_sources; // Number of adaptive sources.
   // Functions chosen at runtime.
@@ -1021,8 +1031,12 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
-  int io_meta_len; // Number of elements in io_meta.
+  struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O (e.g. int diags).
+  struct gkyl_msgpack_map_elem* io_meta_phase; // Metadata for I/O of phase grid quantities.
+  struct gkyl_msgpack_map_elem* io_meta_conf; // Metadata for I/O of conf grid quantities.
+  int io_meta_basic_len; // Number of elements in io_meta_basic.
+  int io_meta_phase_len; // Number of elements in io_meta_phase.
+  int io_meta_conf_len; // Number of elements in io_meta_conf.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
@@ -1173,8 +1187,12 @@ struct gk_neut_species {
   struct gkyl_comm *comm;   // Communicator object for this species.
   int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction
 
-  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
-  int io_meta_len; // Number of elements in io_meta.
+  struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O (e.g. int diags).
+  struct gkyl_msgpack_map_elem* io_meta_phase; // Metadata for I/O of phase grid quantities.
+  struct gkyl_msgpack_map_elem* io_meta_conf; // Metadata for I/O of conf grid quantities.
+  int io_meta_basic_len; // Number of elements in io_meta_basic.
+  int io_meta_phase_len; // Number of elements in io_meta_phase.
+  int io_meta_conf_len; // Number of elements in io_meta_conf.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *f_host; // Host array for initialization and I/O.
@@ -1500,11 +1518,13 @@ struct gkyl_gyrokinetic_app {
 
   struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O.
   int io_meta_basic_len; // Number of elements in io_meta_basic.
-  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
-  int io_meta_len; // Number of elements in io_meta.
+  struct gkyl_msgpack_map_elem* io_meta_dg; // Metadata for I/O of grid quantities.
+  int io_meta_dg_len; // Number of elements in io_meta_grid.
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.
+  
+  bool is_multib; // Is this a block in a multiblock sim?
 };
 
 /** gkyl_gyrokinetic_app private API */

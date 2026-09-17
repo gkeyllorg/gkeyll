@@ -258,7 +258,7 @@ gkyl_gk_maxwellian_proj_on_basis_advance_cu(gkyl_gk_maxwellian_proj_on_basis *up
 
   // compute number density ratio: num_ratio = n/n0
   // 0th component of moms_target is the target density
-  gkyl_dg_div_op_range(up->mem, up->conf_basis, 0, up->num_ratio,
+  gkyl_dg_div_op_range(up->mem, &up->conf_basis, 0, up->num_ratio,
     0, moms_maxwellian, 0, up->num_ratio, conf_range);
 
   // rescale distribution function

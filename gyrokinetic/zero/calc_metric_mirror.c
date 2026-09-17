@@ -90,7 +90,7 @@ void gkyl_calc_metric_mirror_advance(
     gk_geom->geo_corn.bmag_nodal, gk_geom->geo_corn.bmag, false);
 
   // Need 1/B for LBO collisions, computed weakly.
-  gkyl_dg_inv_op_range(*up->cbasis, 0, gk_geom->geo_corn.bmag_inv, 0, gk_geom->geo_corn.bmag, &gk_geom->local); 
+  gkyl_dg_inv_op_range(up->cbasis, 0, gk_geom->geo_corn.bmag_inv, 0, gk_geom->geo_corn.bmag, &gk_geom->local);
 
 }
 

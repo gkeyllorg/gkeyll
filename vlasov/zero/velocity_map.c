@@ -127,7 +127,7 @@ gkyl_velocity_map_new(struct gkyl_mapc2p_inp mapc2p_in,
 
     // Compute the square mapping via weak multiplication.
     gkyl_array_set_offset(vmap1d_p2, 1., vmap1d, 0);
-    gkyl_dg_mul_op(vmap_sq_basis, d, gvm->vmap_sq, 0, vmap1d_p2, 0, vmap1d_p2);
+    gkyl_dg_mul_op(&vmap_sq_basis, d, gvm->vmap_sq, 0, vmap1d_p2, 0, vmap1d_p2);
 
     // Compute the derivative of the mapping.
     gkyl_array_set_offset(vmap_prime1d, sqrt(6.)/gvm->grid_vel.dx[d], vmap1d, 1);

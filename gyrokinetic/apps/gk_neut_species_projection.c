@@ -30,7 +30,7 @@ gk_neut_species_projection_kinetic_calc(gkyl_gyrokinetic_app *app, struct gk_neu
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
 
     // Multiply density by the conf-space jacobian.
-    gkyl_dg_mul_op_range(app->basis, 0, proj->prim_moms, 
+    gkyl_dg_mul_op_range(&app->basis, 0, proj->prim_moms, 
       0, app->gk_geom->geo_int.jacobgeo, 0, proj->prim_moms, &app->local);
 
     // Project the Maxwellian distribution function.
@@ -176,31 +176,31 @@ gk_neut_species_projection_fluid_calc(gkyl_gyrokinetic_app *app, struct gk_neut_
     gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local, proj->vtsq);
 
     // f[0] = mass*dens
-    gkyl_array_set_offset_range(s->f_host, s->info.mass, proj->dens, 0, &app->local);
+    gkyl_array_set_offset_range(proj->proj_host, s->info.mass, proj->dens, 0, &app->local);
 
     // f[1] = f[0]*udrift[0]
     // f[2] = f[0]*udrift[1]
     // f[3] = f[0]*udrift[2]
     for (int d=0; d<3; d++) {
-      gkyl_dg_mul_op_range(app->basis, d+1, s->f_host, 0, s->f_host, d, proj->udrift, &app->local);
+      gkyl_dg_mul_op_range(&app->basis, d+1, proj->proj_host, 0, proj->proj_host, d, proj->udrift, &app->local);
     }
 
     // f[4] = 0.5*rho*u^2 + p/(gas_gamma-1)
     //      = 0.5*(rho*ux^2+rho*uy^2+rho*uz^2) + dens*temp/(gas_gamma-1)
     //      = 0.5*(f[1].udrift[0]+f[2].udrift[1]+f[3].udrift[2]) + dens*temp/(gas_gamma-1)
-    gkyl_dg_mul_op_range(app->basis, 0, proj->vtsq, 0, proj->dens, 0, proj->vtsq, &app->local);
-    gkyl_array_set_offset_range(s->f_host, 1.0/(s->info.gas_gamma-1.0), proj->vtsq, 4*app->basis.num_basis, &app->local);
+    gkyl_dg_mul_op_range(&app->basis, 0, proj->vtsq, 0, proj->dens, 0, proj->vtsq, &app->local);
+    gkyl_array_set_offset_range(proj->proj_host, 1.0/(s->info.gas_gamma-1.0), proj->vtsq, 4*app->basis.num_basis, &app->local);
     for (int d=0; d<3; d++) {
-      gkyl_dg_mul_op_range(app->basis, 0, proj->dens, d+1, s->f_host, d, proj->udrift, &app->local);
-      gkyl_array_accumulate_offset_range(s->f_host, 0.5, proj->dens, 4*app->basis.num_basis, &app->local);
+      gkyl_dg_mul_op_range(&app->basis, 0, proj->dens, d+1, proj->proj_host, d, proj->udrift, &app->local);
+      gkyl_array_accumulate_offset_range(proj->proj_host, 0.5, proj->dens, 4*app->basis.num_basis, &app->local);
     }
 
     // Copy the contents into the array we will use (potentially on GPUs).
-    gkyl_array_copy(f, s->f_host);
+    gkyl_array_copy(f, proj->proj_host);
 
     // Multiply moments by the conf-space Jacobian.
     for (int d=0; d<s->num_moments; d++) {
-      gkyl_dg_mul_op_range(app->basis, d, f, 0, app->gk_geom->geo_int.jacobgeo, d, f, &app->local);
+      gkyl_dg_mul_op_range(&app->basis, d, f, 0, app->gk_geom->geo_int.jacobgeo, d, f, &app->local);
     }
 
   }
@@ -219,6 +219,7 @@ gk_neut_species_projection_fluid_release(const struct gkyl_gyrokinetic_app *app,
     gkyl_array_release(proj->dens);
     gkyl_array_release(proj->udrift); 
     gkyl_array_release(proj->vtsq);
+    gkyl_array_release(proj->proj_host);
 
     gkyl_proj_on_basis_release(proj->proj_dens);
     gkyl_proj_on_basis_release(proj->proj_udrift);
@@ -227,37 +228,38 @@ gk_neut_species_projection_fluid_release(const struct gkyl_gyrokinetic_app *app,
 }
 
 static void 
-gk_neut_species_projection_fluid_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
+gk_neut_species_projection_fluid_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, 
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
   proj->proj_id = inp.proj_id;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &s->grid,
-        .basis = &s->basis,
+        .grid = &ns->grid,
+        .basis = &ns->basis,
         .qtype = GKYL_GAUSS_QUAD,
-        .num_quad = s->basis.poly_order+1,
-        .num_ret_vals = s->num_moments,
+        .num_quad = ns->basis.poly_order+1,
+        .num_ret_vals = ns->num_moments,
         .eval = inp.func,
         .ctx = inp.ctx_func,
       }
     );
     if (app->use_gpu) {
-      proj->proj_host = mkarr(false, s->num_moments*s->basis.num_basis, s->local_ext.volume);
+      proj->proj_host = mkarr(false, ns->num_moments*ns->basis.num_basis, ns->local_ext.volume);
     }
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-    int udim = s->num_moments-2;
+    int udim = ns->num_moments-2;
     proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     proj->udrift = mkarr(false, udim*app->basis.num_basis, app->local_ext.volume);
     proj->vtsq = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    proj->proj_host = mkarr(false, ns->f->ncomp, ns->f->size);
 
     proj->proj_dens = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-      s->basis.poly_order+1, 1, inp.density, inp.ctx_density);
+      ns->basis.poly_order+1, 1, inp.density, inp.ctx_density);
     proj->proj_udrift = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-      s->basis.poly_order+1, udim, inp.udrift, inp.ctx_udrift);
+      ns->basis.poly_order+1, udim, inp.udrift, inp.ctx_udrift);
     proj->proj_temp = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-      s->basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
+      ns->basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
   }
 
   proj->neut_calc_func = gk_neut_species_projection_fluid_calc;

@@ -1,7 +1,8 @@
 #pragma once
 
 #include <gkyl_wv_eqn.h>
-#include <kann.h>
+#include <gkyl_kann_net.h>
+#include <gkyl_knutils.h>
 
 // Input packaged as a struct.
 struct gkyl_wv_ten_moment_inp {
@@ -9,7 +10,7 @@ struct gkyl_wv_ten_moment_inp {
   bool use_grad_closure; // Should we use gradient-based closure?
   bool use_nn_closure; // Should we use neural network-based closure?
   int poly_order; // Polynomial order of learned DG coefficients.
-  kann_t* ann; // Neural network architecture.
+  struct gkyl_kann_net* ann; // Neural network architecture.
   struct gkyl_wv_embed_geo *embed_geo; // embedded geometry
   bool use_gpu; // Boolean to determine whether wave equation object is on host or device.
 };
@@ -26,7 +27,7 @@ struct gkyl_wv_ten_moment_inp {
  * @return Pointer to 10-moment equation object.
  */
 struct gkyl_wv_eqn*
-gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, kann_t* ann, bool use_gpu);
+gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, struct gkyl_kann_net* ann, bool use_gpu);
 
 /**
  * Create a new 10-moment equation object.
@@ -49,7 +50,7 @@ gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp *inp);
  * @return Pointer to 10-moment equation object on device.
  */
 struct gkyl_wv_eqn*
-gkyl_wv_ten_moment_cu_dev_new(double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, kann_t* ann, bool use_gpu);
+gkyl_wv_ten_moment_cu_dev_new(double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, struct gkyl_kann_net* ann, bool use_gpu);
 
 /**
  * Create a new 10-moment equation object that lives on NV-GPU.
@@ -102,5 +103,5 @@ gkyl_wv_ten_moment_use_nn_closure(const struct gkyl_wv_eqn* wv);
  * @param wv 10-moment equation object
  * @return Neural network architecture.
  */
-kann_t*
+struct gkyl_kann_net*
 gkyl_wv_ten_moment_ann(const struct gkyl_wv_eqn* wv);

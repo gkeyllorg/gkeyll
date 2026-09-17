@@ -181,6 +181,8 @@ struct gkyl_gyrokinetic_multib {
 
   // Communicator to use.  
   struct gkyl_comm *comm;  
+
+  struct gkyl_gyrokinetic_metadata_inp metadata; // Optional metadata for output files.
 };
 
 /**
@@ -821,16 +823,6 @@ struct gkyl_update_status gkyl_gyrokinetic_multib_update(gkyl_gyrokinetic_multib
  * @return Return statistics object.
  */
 struct gkyl_gyrokinetic_stat gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app);
-
-/**
- * Run the RHS for the species update. This is used to compute kernel
- * timers and is not otherwise a useful function for a full
- * simulation.
- *
- * @param app App object.
- * @param update_vol_term Set to 1 to update vol term also, 0 otherwise
- */
-void gkyl_gyrokinetic_multib_app_species_ktm_rhs(gkyl_gyrokinetic_multib_app* app, int update_vol_term);
 
 /**
  * Free gk app.

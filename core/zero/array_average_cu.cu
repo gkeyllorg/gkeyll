@@ -101,6 +101,6 @@ void gkyl_array_average_advance_cu(const struct gkyl_array_average *up,
   gkyl_array_average_advance_cu_ker<<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, avgout->on_dev);
   
   if (up->isweighted)
-    gkyl_dg_div_op_range(up->div_mem, up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg);
+    gkyl_dg_div_op_range(up->div_mem, &up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg);
 
 }

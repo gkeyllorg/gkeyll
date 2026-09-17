@@ -15,6 +15,8 @@ FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/pkpm"
 FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0pkpm.so
 FIN_APP_LIB="-lg0pkpm"
 
+HAVE_APP_FLAGS=""
+
 # default build options
 CC=cc
 ARCH_FLAGS=-march=native
@@ -271,33 +273,37 @@ if [ "$APP" = "core" ]
 then
     ALLTARGETS="core core-unit core-regression"
     INSTALLTARGET="core-install"
-    FIN_APP_LIB_DIR=""
-    FIN_APP_LIB=""
+    FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/core"
+    FIN_APP_LIB="-lg0core"
 elif [ "$APP" = "moments" ]
 then
     ALLTARGETS="moments moments-unit moments-regression"
     INSTALLTARGET="moments-install"
-    FIN_APP_LIB_DIR="-L../${BUILD_DIR}/moments"
+    FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/moments"
     FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0moments.so
     FIN_APP_LIB="-lg0moments"
+    HAVE_APP_FLAGS="-DGKYL_HAVE_MOMENTS"
 elif [ "$APP" = "vlasov" ]
 then
     ALLTARGETS="vlasov vlasov-unit vlasov-regression"
     INSTALLTARGET="vlasov-install"
-    FIN_APP_LIB_DIR="-L../${BUILD_DIR}/vlasov"
+    FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/vlasov"
     FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0vlasov.so
     FIN_APP_LIB="-lg0vlasov"
+    HAVE_APP_FLAGS="-DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS"
 elif [ "$APP" = "gyrokinetic" ]
 then
     ALLTARGETS="gyrokinetic gyrokinetic-unit gyrokinetic-regression"
     INSTALLTARGET="gyrokinetic-install"
-    FIN_APP_LIB_DIR="-L../${BUILD_DIR}/gyrokinetic"
+    FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/gyrokinetic"
     FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0gyrokinetic.so
     FIN_APP_LIB="-lg0gyrokinetic"
+    HAVE_APP_FLAGS="-DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS"
 elif [ "$APP" = "pkpm" ]
 then
     ALLTARGETS="pkpm pkpm-unit pkpm-regression"
     INSTALLTARGET="pkpm-install"
+    HAVE_APP_FLAGS="-DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS"
 else
     APP=all
     ALLTARGETS=gkeyll
@@ -333,6 +339,7 @@ fi
 
 # Write out config.mak
 cat <<EOF1 > config.mak
+# -*- makefile-gmake -*-
 # Generated automatically! Do not edit
 
 # Installation directory
@@ -376,6 +383,15 @@ CUDAMATH_LIB_DIR=$CUDAMATH_LIB_DIR
 FIN_APP_LIB_DIR=$FIN_APP_LIB_DIR
 FIN_APP_LIB=$FIN_APP_LIB
 
+HAVE_APP_FLAGS=$HAVE_APP_FLAGS
+
+EOF1
+
+# Write out config.mak
+cat <<EOF1 > alltargets.mak
+# -*- makefile-gmake -*-
+# Generated automatically! Do not edit
+
 .PHONY:
 all: $ALLTARGETS ## Build only specified Apps ($APP)
 
@@ -387,3 +403,6 @@ EOF1
 
 echo "# Wrote config.mak with contents:"
 cat config.mak
+
+echo "# Wrote alltargets.mak with contents:"
+cat alltargets.mak

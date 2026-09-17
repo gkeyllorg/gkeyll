@@ -7,7 +7,8 @@
 #include <gkyl_util.h>
 
 #include <stdbool.h>
-#include <kann.h>
+#include <gkyl_kann_net.h>
+#include <gkyl_knutils.h>
 
 // Parameters for species collisions
 struct gkyl_pkpm_collisions {
@@ -348,8 +349,8 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app);
  * @param output_data Array of output data to train on (across the computational domain).
  */
 void
-gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  float** input_data, float** output_data);
+gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  struct gkyl_kn_vec* input_data, struct gkyl_kn_vec* output_data);
 
  /**
  * Train neural network on PKPM moments data for a particular fluid species.
@@ -367,8 +368,8 @@ gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int 
  * @param output_data Array of output data to train on (across the computational domain).
  */
 void
-gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  float** input_data, float** output_data);
+gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  struct gkyl_kn_vec* input_data, struct gkyl_kn_vec* output_data);
 
 /**
  * Write out PKPM moments neural network for each fluid species.
@@ -379,7 +380,7 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann
  * @param ann Neural network architecture.
  */
 void
-gkyl_pkpm_app_write_nn(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann);
+gkyl_pkpm_app_write_nn(gkyl_pkpm_app* app, double tm, int frame, struct gkyl_kann_net** ann);
 
  /**
  * Write out PKPM moments neural network for a particular fluid species.
@@ -391,7 +392,7 @@ gkyl_pkpm_app_write_nn(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann);
  * @param ann Neural network architecture.
  */
 void
-gkyl_pkpm_app_write_nn_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann);
+gkyl_pkpm_app_write_nn_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, struct gkyl_kann_net** ann);
 
 /**
  * Test neural network on PKPM moments data for each fluid species, and write moments to a file.
@@ -409,8 +410,8 @@ gkyl_pkpm_app_write_nn_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, k
  * @param output_data_predicted Array of predicted output data to validate (across the computational domain).
  */
 void
-gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  float** input_data_real, float** output_data_real, float** output_data_predicted);
+gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  struct gkyl_kn_vec* input_data_real, struct gkyl_kn_vec* output_data_real, struct gkyl_kn_vec* output_data_predicted);
 
  /**
  * Test neural network on PKPM moments data for a particular fluid species, and write moments to a file.
@@ -429,8 +430,8 @@ gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int n
  * @param output_data_predicted Array of predicted output data to validate (across the computational domain).
  */
 void
-gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  float** input_data_real, float** output_data_real, float** output_data_predicted);
+gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  struct gkyl_kn_vec* input_data_real, struct gkyl_kn_vec* output_data_real, struct gkyl_kn_vec* output_data_predicted);
 
 /**
  * Initialize field from file

@@ -1,5 +1,6 @@
 #include <acutest.h>
 #include <mpack.h>
+#include <gkyl_util.h>
 
 void
 test_map_1(void)
@@ -75,7 +76,39 @@ test_map_1(void)
   free(data);
 }
 
+void
+test_msgpack_1(void)
+{
+  struct gkyl_msgpack_map_elem elist[] = {
+    GKYL_MSGPACK_MAP_ELEM("bool", true), // 0
+    GKYL_MSGPACK_MAP_ELEM("int", -10), // 1
+    GKYL_MSGPACK_MAP_ELEM("unsigned", 10u), // 2
+    GKYL_MSGPACK_MAP_ELEM("float", 1.0f), // 3
+    GKYL_MSGPACK_MAP_ELEM("double", 1.0), // 4
+    GKYL_MSGPACK_MAP_ELEM("string", "Hello, World!") // 5
+  };
+
+  TEST_CHECK( elist[0].elem_type == GKYL_MP_INT ); // bools are int?
+  TEST_CHECK( elist[0].bval == true );  
+  
+  TEST_CHECK( elist[1].elem_type == GKYL_MP_INT );
+  TEST_CHECK( elist[1].ival == -10 );    
+
+  TEST_CHECK( elist[2].elem_type == GKYL_MP_UNSIGNED_INT );
+  TEST_CHECK( elist[2].uval == 10u );  
+
+  TEST_CHECK( elist[3].elem_type == GKYL_MP_FLOAT );
+  TEST_CHECK( elist[3].fval == 1.0f );  
+
+  TEST_CHECK( elist[4].elem_type == GKYL_MP_DOUBLE );
+  TEST_CHECK( elist[4].dval == 1.0 );  
+
+  TEST_CHECK( elist[5].elem_type == GKYL_MP_STRING );
+  TEST_CHECK( strcmp(elist[5].cval, "Hello, World!") == 0 );
+}
+
 TEST_LIST = {
   { "map_1", test_map_1 },
+  { "msgpack_1", test_msgpack_1 },  
   { 0, 0 },
 };

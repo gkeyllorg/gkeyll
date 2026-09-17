@@ -6,11 +6,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-// GKYL_ALIGN_UP finds the integer that is closest to "a" that is
-// multiple of "b"
-#define GKYL_UDIV_UP(a, b) (((a) + (b) - 1) / (b))
-#define GKYL_ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
-
 /**
  * Set the global flag to turn on memory allocation/deallocation
  * tracing.

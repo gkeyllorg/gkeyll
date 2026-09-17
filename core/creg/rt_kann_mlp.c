@@ -1,7 +1,8 @@
 // Construct a MLP with KANN and fit a simple 1D function
-#include <kann.h>
-#include <knutils.h>
+#include <gkyl_knutils.h>
+#include <gkyl_util.h>
 
+#include <kann.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -47,8 +48,8 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
 
   // allocate memory for input/output vectors
   int N = nn_inp->ntrain; // training samples
-  struct kn_vec *inp = kn_vec_new(N, 1);
-  struct kn_vec *out = kn_vec_new(N, 1);
+  struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 1);
+  struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
   struct xrange xr = {
     .xleft = -1.0,
@@ -73,14 +74,14 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals, out->vals);
   kann_save(nn_name, ann); // save to file
   
-  kn_vec_release(inp);
-  kn_vec_release(out);
+  gkyl_kn_vec_release(inp);
+  gkyl_kn_vec_release(out);
   kann_delete(ann);  
 }
 
 // run inference on N input values
 void
-infer_ann(const char *nn_name, const struct kn_vec *inp, struct kn_vec *out)
+infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   kann_t *ann = kann_load(nn_name);
   const float *ov;
@@ -92,22 +93,27 @@ infer_ann(const char *nn_name, const struct kn_vec *inp, struct kn_vec *out)
 }
 
 void
-write_to_gplot(const struct kn_vec *inp, const struct kn_vec *out)
+write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
 {
-  FILE *fp = fopen("gplot.gp", "w");
-  fprintf(fp, "set macros\n");
-  fprintf(fp, "set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 5   # blue\n");
-  fprintf(fp, "set style line 2 lc rgb '#dd181f' lt 1 lw 2 pt 7   # red\n");
-  fprintf(fp, "BLUE = \"1\"\n");
-  fprintf(fp, "RED = \"2\"\n");
-  fprintf(fp, "set grid\n");
-  fprintf(fp, "plot \"data.txt\" using 1:2 with points pt 9 ps 3 title \"NN\", [-1:1] 1/(1+100*x**2) with lines ls @BLUE title \"Exact\"");
-  fclose(fp);  
-  
-  fp = fopen("data.txt", "w");
-  for (int i=0; i<inp->nvec; ++i)
-    fprintf(fp, "%.5g %.5g\n", inp->vals[i][0], out->vals[i][0]);
-  fclose(fp);  
+  const char *gpcode =
+    "set macros\n"
+    "set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 5   # blue\n"
+    "set style line 2 lc rgb '#dd181f' lt 1 lw 2 pt 7   # red\n"
+    "BLUE = \"1\"\n"
+    "RED = \"2\"\n"
+    "set grid\n"
+    "plot \"rt_kann_mlp_data.txt\" using 1:2 with points pt 9 ps 3 title \"NN\", [-1:1] 1/(1+100*x**2) with lines ls @BLUE title \"Exact\"";
+
+  FILE *fp = 0;
+  with_file(fp, "rt_kann_mlp.gp", "w") {
+    fprintf(fp, "%s", gpcode);
+  }
+
+  fp = 0;
+  with_file(fp, "rt_kann_mlp_data.txt", "w") {
+    for (int i=0; i<inp->nvec; ++i)
+      fprintf(fp, "%.5g %.5g\n", inp->vals[i][0], out->vals[i][0]);
+  }
 }
 
 int
@@ -152,7 +158,7 @@ main(int argc, char *argv[])
         .nwidth = 256,
         .learning_rate = 1e-3f
       },
-      "example1.kann"
+      "rt_kann_mlp.kann"
     );
   }
 
@@ -160,19 +166,18 @@ main(int argc, char *argv[])
     fprintf(stdout, "*** Inference\n");
     // run inference
     int nvec = 11;
-    struct kn_vec *inp = kn_vec_new(nvec, 1);
-    struct kn_vec *out = kn_vec_new(nvec, 1);
+    struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 1);
+    struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
     struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = inp->nvec };
     for (int i=0; i<inp->nvec; ++i)
       inp->vals[i][0] = xrange_n(xr, i);
   
-    infer_ann("example1.kann", inp, out);
+    infer_ann("rt_kann_mlp.kann", inp, out);
     write_to_gplot(inp, out);
     
-    kn_vec_release(inp);
-    kn_vec_release(out);
-
+    gkyl_kn_vec_release(inp);
+    gkyl_kn_vec_release(out);
   }
   
   return 0;

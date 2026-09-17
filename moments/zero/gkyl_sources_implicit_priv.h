@@ -47,11 +47,13 @@ implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, 
 * @param fluid_rhs_s Array of input (rhs) fluid variables (array size = nfluids x 4).  
 * @param fluid_s Array of output fluid variables (array size = nfluids).
 * @param app_accel_s Array of acceleration terms to be applied to the fluid equations (for external forces).
+* @param p_rhs_s Array of right-hand-side source terms; for neutral ten-moment fluids the pressure-tensor
+*   components (indices 4-9) are applied as a direct forward-Euler increment (e.g. a heat-flux closure).
 */
 void
-implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
+implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt,
   double fluid_rhs_s[GKYL_MAX_SPECIES][4], double* fluid_s[GKYL_MAX_SPECIES],
-  const double* app_accel_s[GKYL_MAX_SPECIES]);
+  const double* app_accel_s[GKYL_MAX_SPECIES], const double* p_rhs_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the collisional source terms of a multi-fluid equation system within a single cell, using an implicit forcing solver (specifically the

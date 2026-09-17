@@ -24,6 +24,14 @@ gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
   }
 }
 
+struct gkyl_rect_grid*
+gkyl_rect_grid_new(int ndim, const double *lower, const double *upper, const int *cells)
+{
+  struct gkyl_rect_grid* out = gkyl_calloc(1, sizeof(*out));
+  gkyl_rect_grid_init(out, ndim, lower, upper, cells);
+  return out;
+}
+
 bool
 gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_grid *grid2)
 {
@@ -44,7 +52,7 @@ gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_grid *gr
 GKYL_CU_DH
 void
 gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
-  bool pick_lower, const int *known_index, int *cell_index){
+  const bool *pick_lower, const int *known_index, int *cell_index){
 
   int nDim = grid->ndim;
   int search_num = 0;
@@ -95,20 +103,17 @@ gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
       }
       for (int i=0; i<search_num; i++){	
 	for (int j=0; j<2; j++){
-	  new_index[i] = GKYL_MAX2(GKYL_MIN2(mid_index[i] + plusminus[j],cells[i]),0);
+	  new_index[i] = GKYL_MAX2(GKYL_MIN2(mid_index[i] + plusminus[j],cells[search_dim[i]]),1);
 	  if (is_in_cell(grid, point, new_index, dim_trans, known_index))
 	    low_high_index[j*nDim+search_dim[i]] = new_index[i];	    	  
 	}
 	new_index[i] = mid_index[i];
       }
-      if (pick_lower) {
-	for (int d=0; d<search_num; d++) {
+      for (int d=0; d<search_num; d++) {
+	if (pick_lower[search_dim[d]])
 	  cell_index[search_dim[d]] = low_high_index[search_dim[d]];
-	}
-      } else {
-	for (int d=0; d<search_num; d++) {
+	else
 	  cell_index[search_dim[d]] = low_high_index[nDim+search_dim[d]];
-	}
       }
       break;
     } else {
@@ -200,4 +205,10 @@ gkyl_rect_grid_read(struct gkyl_rect_grid *grid, FILE *fp)
   gkyl_rect_grid_init(grid, ndim, lower, upper, cells);
 
   return true;
+}
+
+void
+gkyl_rect_grid_release(struct gkyl_rect_grid *grid)
+{
+  gkyl_free(grid);
 }

@@ -23,8 +23,9 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
-      // If gradient-based or neural network-based closure is present, k0=0.0 in source solve to avoid applying local closure.
-      .k0 = (app->species[i].has_grad_closure || app->species[i].has_nn_closure) ? 0.0 : app->species[i].k0,
+      // The gradient-based closure defines its heat flux through k0, so k0=0.0 in the source solve to avoid double-applying it.
+      // The neural-network closure supplies the heat flux directly, so k0 is retained here as the integrating-factor relaxation rate.
+      .k0 = (app->species[i].has_grad_closure) ? 0.0 : app->species[i].k0,
     };
 
   src_inp.has_collision = app->has_collision;

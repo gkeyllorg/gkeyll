@@ -715,7 +715,7 @@ pkpm_fluid_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *speci
 void
 pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_species *species)
 {
-  gkyl_dg_calc_l2_range(app->basis, 0, species->L2_f, 0, species->f, species->local);
+  gkyl_dg_calc_l2_range(&app->basis, 0, species->L2_f, 0, species->f, species->local);
   gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
   
   double L2[1] = { 0.0 };

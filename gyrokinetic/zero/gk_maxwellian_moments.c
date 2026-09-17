@@ -93,7 +93,7 @@ gkyl_gk_maxwellian_density_moment_advance(struct gkyl_gk_maxwellian_moments *up,
     fin, up->M0);
   if (up->divide_jacobgeo) {
     // Rescale moment by the inverse of the Jacobian
-    gkyl_dg_div_op_range(up->mem, up->conf_basis, 
+    gkyl_dg_div_op_range(up->mem, &up->conf_basis,
       0, density_out, 0, up->M0, 0, up->gk_geom->geo_int.jacobgeo, conf_range);  
   }
   else {
@@ -113,11 +113,11 @@ gkyl_gk_maxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up,
     fin, up->M1);
 
   // Isolate u_par by dividing J*M1 by J*M0
-  gkyl_dg_div_op_range(up->mem, up->conf_basis, 
+  gkyl_dg_div_op_range(up->mem, &up->conf_basis,
     0, up->u_par, 0, up->M1, 0, up->M0, conf_range);
 
   // Compute J*M1*upar (needed to compute T/m).
-  gkyl_dg_mul_op_range(up->conf_basis, 
+  gkyl_dg_mul_op_range(&up->conf_basis,
     0, up->u_par_dot_M1, 0, up->u_par, 0, up->M1, conf_range); 
 
   // Compute J*M2 = vdim_phys*J*n*T/m + J*M1*upar.
@@ -129,12 +129,12 @@ gkyl_gk_maxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up,
 
   // Rescale J*n*T by 1.0/vdim_phys and divide out J*M0 to get T/m, T/m = J*P/(m J*M0). 
   gkyl_array_scale(up->pressure, 1.0/up->vdim_phys);
-  gkyl_dg_div_op_range(up->mem, up->conf_basis, 
+  gkyl_dg_div_op_range(up->mem, &up->conf_basis,
     0, up->temperature, 0, up->pressure, 0, up->M0, conf_range);
 
   if (up->divide_jacobgeo) {
     // Rescale moment by the inverse of the Jacobian and store in moms_out
-    gkyl_dg_div_op_range(up->mem, up->conf_basis, 
+    gkyl_dg_div_op_range(up->mem, &up->conf_basis,
       0, moms_out, 0, up->M0, 0, up->gk_geom->geo_int.jacobgeo, conf_range);  
   }
   else {
@@ -158,11 +158,11 @@ gkyl_gk_bimaxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up,
     fin, up->M1);
 
   // Isolate u_par by dividing J*M1 by J*M0
-  gkyl_dg_div_op_range(up->mem, up->conf_basis, 
+  gkyl_dg_div_op_range(up->mem, &up->conf_basis,
     0, up->u_par, 0, up->M1, 0, up->M0, conf_range);
 
   // Compute J*M1*upar (needed to compute T_par/m).
-  gkyl_dg_mul_op_range(up->conf_basis, 
+  gkyl_dg_mul_op_range(&up->conf_basis,
     0, up->u_par_dot_M1, 0, up->u_par, 0, up->M1, conf_range); 
 
   // Compute J*M2_par = J*n*T_par/m + J*M1*upar.
@@ -179,14 +179,14 @@ gkyl_gk_bimaxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up,
   // Rescale J*n*T_perp by 1/2 and divide out J*M0 to get T_par/m, T_perp/m
   // from n*T_par/m, n*T_perp/m.
   gkyl_array_scale(up->p_perp, 0.5);
-  gkyl_dg_div_op_range(up->mem, up->conf_basis, 
+  gkyl_dg_div_op_range(up->mem, &up->conf_basis,
     0, up->t_par, 0, up->p_par, 0, up->M0, conf_range);
-  gkyl_dg_div_op_range(up->mem, up->conf_basis, 
+  gkyl_dg_div_op_range(up->mem, &up->conf_basis,
     0, up->t_perp, 0, up->p_perp, 0, up->M0, conf_range);
 
   if (up->divide_jacobgeo) {
     // Rescale moment by the inverse of the Jacobian and store in moms_out
-    gkyl_dg_div_op_range(up->mem, up->conf_basis, 
+    gkyl_dg_div_op_range(up->mem, &up->conf_basis,
       0, moms_out, 0, up->M0, 0, up->gk_geom->geo_int.jacobgeo, conf_range);  
   }
   else {

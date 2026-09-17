@@ -19,7 +19,7 @@ static void gk_field_accumulate_rho_c_boltzmann(gkyl_gyrokinetic_app *app, struc
     // For Boltzmann electrons, we only need ion density (and the ion density
     // times the conf-space Jacobian), not charge density.
     // Rescale moment by inverse of Jacobian.
-    gkyl_dg_div_op_range(s->m0.mem_geo, app->basis, 0, field->rho_c, 0, s->m0.marr, 0,
+    gkyl_dg_div_op_range(s->m0.mem_geo, &app->basis, 0, field->rho_c, 0, s->m0.marr, 0,
                          app->gk_geom->geo_int.jacobgeo, &app->local);
 
     // We also need the M0 flux of the boundary flux through the z

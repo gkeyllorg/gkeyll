@@ -59,13 +59,15 @@ gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
       .key = region_keys[2*r+1], .elem_type = GKYL_MP_DOUBLE, .dval = shift_regions->upper[r] };
   }
 
-  // Package metadata. Use app->io_meta (the conf-space basis these moments are
-  // written on) rather than gks->io_meta (the phase-space basis), so the file
-  // records the correct poly_order and basis_type for the moment data.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-  int io_meta_len[] = {app->io_meta_basic_len, mpe_pos_len, app->io_meta_len, app->gk_geom->io_meta_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, mpe_pos, app->io_meta, app->gk_geom->io_meta};
+  // Package metadata using the configuration-space basis for these moments.
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
+  struct gkyl_msgpack_map_elem desc[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "M0M1M2PARM2PERP moments of the change in the distribution by the positivity shift." }
+  };
+  int io_meta_len[] = {gks->io_meta_conf_len, mpe_pos_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_conf, mpe_pos, app->gk_geom->io_meta_basic, desc};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   struct timespec wst = gkyl_wall_clock();
@@ -170,9 +172,17 @@ gks_pos_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
     if (pos->is_first_integ_write_call) {
-      gkyl_dynvec_write(pos->integ_diag, fileNm);
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments of change in distribution due to positivity shift." }
+      };
+      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+      struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+      gkyl_dynvec_write_wmeta(pos->integ_diag, fileNm, mt);
       pos->is_first_integ_write_call = false;
       pos->integ_diag_file_exists = true;
+      gkyl_msgpack_data_release(mt);
     }
     else {
       gkyl_dynvec_awrite(pos->integ_diag, fileNm);

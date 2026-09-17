@@ -52,6 +52,9 @@ struct gkyl_gyrokinetic_multib_app {
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
+  
+  struct gkyl_msgpack_map_elem* io_meta_basic; // Metadata for I/O.
+  int io_meta_basic_len; // Number of elements in io_meta.
 };
 
 // Meta-data for IO

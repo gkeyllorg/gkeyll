@@ -160,6 +160,16 @@ gkyl_dynvec gkyl_dynvec_acquire(const gkyl_dynvec vec);
 int gkyl_dynvec_write(const gkyl_dynvec vec, const char *fname);
 
 /**
+ * Write out dynvec to file with metadata. File is overwritten
+ * with new data, and existing contents will lost.
+ *
+ * @param vec Vector to write
+ * @param fname Name of output file.
+ * @return 0 if succeeded.
+ */
+int gkyl_dynvec_write_wmeta(const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta);
+
+/**
  * Write out dynvec to file. The dynvec is appened to the end of the
  * file if it already exists.
  *

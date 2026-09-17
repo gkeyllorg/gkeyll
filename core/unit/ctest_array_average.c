@@ -32,7 +32,7 @@ double solution_array_integrate(struct gkyl_rect_grid grid, struct gkyl_basis ba
   double *avgf_ref = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
 
   if(win)
-    gkyl_dg_mul_op_range(basis, 0, fin, 0, win, 0, fin, &local_ext);
+    gkyl_dg_mul_op_range(&basis, 0, fin, 0, win, 0, fin, &local_ext);
 
   struct gkyl_array_integrate* arr_integ = gkyl_array_integrate_new(&grid, &basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
 
@@ -131,7 +131,7 @@ void test_1x(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *avg_full = gkyl_array_average_new(&inp_avg_full);
+  struct gkyl_array_average *avg_full = gkyl_array_average_inew(&inp_avg_full);
 
   struct gkyl_array *avgf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(avg_full, fx_c, avgf_c);
@@ -241,7 +241,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_xy,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *avg_xy = gkyl_array_average_new(&inp_avg_xy);
+  struct gkyl_array_average *avg_xy = gkyl_array_average_inew(&inp_avg_xy);
 
   struct gkyl_array *avgf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(avg_xy, fxy_c, avgf_c);
@@ -332,7 +332,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
     .avg_dim = int_dim_x,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_x = gkyl_array_average_new(&inp_int_x);
+  struct gkyl_array_average *int_x = gkyl_array_average_inew(&inp_int_x);
 
   struct gkyl_array *wy_c = mkarr(basis_y.num_basis, local_y_ext.volume, use_gpu);
   gkyl_array_average_advance(int_x, wxy_c, wy_c);
@@ -352,7 +352,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
     .avg_dim = int_dim_y,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
+  struct gkyl_array_average *int_y = gkyl_array_average_inew(&inp_int_y);
 
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_y, wy_c, intw_c);
@@ -460,7 +460,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   };
   struct gkyl_array *fy_c = mkarr(basis_y.num_basis, local_y_ext.volume, use_gpu);
 
-  struct gkyl_array_average *avg_x = gkyl_array_average_new(&inp_avg_x);
+  struct gkyl_array_average *avg_x = gkyl_array_average_inew(&inp_avg_x);
   gkyl_array_average_advance(avg_x, fxy_c, fy_c); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx / int[w(x,y)]dx
   
   gkyl_array_average_release(avg_x);
@@ -477,7 +477,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_x = gkyl_array_average_new(&inp_int_x);
+  struct gkyl_array_average *int_x = gkyl_array_average_inew(&inp_int_x);
 
   struct gkyl_array *wy_c = mkarr(basis_y.num_basis, local_y_ext.volume, use_gpu);
   gkyl_array_average_advance(int_x, wxy_c, wy_c); // wy_c is DG coeff of int[w(x,y)]dx
@@ -485,7 +485,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_x);
 
   // we now remove manually the denominator
-  gkyl_dg_mul_op_range(basis_y, 0, fy_c, 0, fy_c, 0, wy_c, &local_y); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx
+  gkyl_dg_mul_op_range(&basis_y, 0, fy_c, 0, fy_c, 0, wy_c, &local_y); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx
 
   // average over y now
   int avg_dim_y[] = {1,0,0};
@@ -500,7 +500,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
+  struct gkyl_array_average *int_y = gkyl_array_average_inew(&inp_int_y);
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_y, fy_c, intf_c); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dx]dy
@@ -621,7 +621,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *avg_x = gkyl_array_average_new(&inp_avg_x);
+  struct gkyl_array_average *avg_x = gkyl_array_average_inew(&inp_avg_x);
 
   struct gkyl_array *fx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
 
@@ -641,7 +641,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_x = gkyl_array_average_new(&inp_int_x);
+  struct gkyl_array_average *int_x = gkyl_array_average_inew(&inp_int_x);
 
   struct gkyl_array *wx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
   gkyl_array_average_advance(int_x, wxy_c, wx_c); // wx_c is DG coeff of int[w(x,y)]dx
@@ -649,7 +649,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_x);
 
   // we now remove manually the denominator
-  gkyl_dg_mul_op_range(basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx
+  gkyl_dg_mul_op_range(&basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx
 
   // create and run the array average updater to integrate on y
   int avg_dim_x[] = {1,0,0};
@@ -664,7 +664,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
+  struct gkyl_array_average *int_y = gkyl_array_average_inew(&inp_int_y);
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_y, fx_c, intf_c); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dx]dy
@@ -811,7 +811,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *avg_xyz_to_yz = gkyl_array_average_new(&inp_avg_xyz_to_yz);
+  struct gkyl_array_average *avg_xyz_to_yz = gkyl_array_average_inew(&inp_avg_xyz_to_yz);
 
   struct gkyl_array *fyz_c = mkarr(basis_yz.num_basis, local_yz_ext.volume, use_gpu);
   gkyl_array_average_advance(avg_xyz_to_yz, fxyz_c, fyz_c); // fy_c is DG coeff of int[w(x,y,z) f(x,y,z)]dx / int[w(x,y,z)]dx
@@ -829,14 +829,14 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_xyz_to_yz = gkyl_array_average_new(&inp_int_xyz_to_yz);
+  struct gkyl_array_average *int_xyz_to_yz = gkyl_array_average_inew(&inp_int_xyz_to_yz);
 
   struct gkyl_array *wyz_c = mkarr(basis_yz.num_basis, local_yz_ext.volume, use_gpu);
   gkyl_array_average_advance(int_xyz_to_yz, wxyz_c, wyz_c); // wy_c is DG coeff of int[w(x,y)]dy
   gkyl_array_average_release(int_xyz_to_yz);
 
   // we now remove manually the denominator
-  gkyl_dg_mul_op_range(basis_yz, 0, fyz_c, 0, fyz_c, 0, wyz_c, &local_yz); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
+  gkyl_dg_mul_op_range(&basis_yz, 0, fyz_c, 0, fyz_c, 0, wyz_c, &local_yz); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
   // create and run the array average updater to average on y and z (first second dim)
   int avg_dim_yz[] = {1,1,0};
@@ -851,7 +851,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_yz,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_yz = gkyl_array_average_new(&inp_int_yz);
+  struct gkyl_array_average *int_yz = gkyl_array_average_inew(&inp_int_yz);
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_yz, fyz_c, intf_c); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dy]dx
@@ -974,7 +974,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_yz,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *avg_xyz_to_x = gkyl_array_average_new(&inp_avg_xyz_to_x);
+  struct gkyl_array_average *avg_xyz_to_x = gkyl_array_average_inew(&inp_avg_xyz_to_x);
 
   struct gkyl_array *fx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
   gkyl_array_average_advance(avg_xyz_to_x, fxyz_c, fx_c); // 
@@ -993,7 +993,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_yz,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_xyz_to_x = gkyl_array_average_new(&inp_int_xyz_to_x);
+  struct gkyl_array_average *int_xyz_to_x = gkyl_array_average_inew(&inp_int_xyz_to_x);
 
   struct gkyl_array *wx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
   gkyl_array_average_advance(int_xyz_to_x, wxyz_c, wx_c); // wy_c is DG coeff of int[w(x,y)]dydz
@@ -1001,7 +1001,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_xyz_to_x);
 
   // remove manually the denominator
-  gkyl_dg_mul_op_range(basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
+  gkyl_dg_mul_op_range(&basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
   // create and run the array average updater to average on x
   int avg_dim_x[] = {1,0,0};
@@ -1016,7 +1016,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_x = gkyl_array_average_new(&inp_int_x);
+  struct gkyl_array_average *int_x = gkyl_array_average_inew(&inp_int_x);
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_x, fx_c, intf_c); // intf_c is DG coeff of int[int[int[w(x,y) f(x,y)]dy]dz]dx

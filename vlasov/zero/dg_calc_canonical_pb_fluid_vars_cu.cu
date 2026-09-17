@@ -245,7 +245,7 @@ gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(const struct gkyl_rect_grid *con
         .avg_dim = int_dim_y,
         .use_gpu = true, // We will perform the average on GPUs
       };
-      up->int_y = gkyl_array_average_new(&inp_int_y);
+      up->int_y = gkyl_array_average_inew(&inp_int_y);
       up->phi_zonal = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
       up->n_zonal = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
     }    

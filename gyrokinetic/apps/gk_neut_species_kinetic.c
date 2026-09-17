@@ -188,7 +188,9 @@ static void
 gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for kinetic neutral species.
-  gkyl_msgpack_map_elem_release(ns->io_meta_len, ns->io_meta);
+  gkyl_msgpack_map_elem_release(ns->io_meta_basic_len, ns->io_meta_basic);
+  gkyl_msgpack_map_elem_release(ns->io_meta_conf_len , ns->io_meta_conf );
+  gkyl_msgpack_map_elem_release(ns->io_meta_phase_len, ns->io_meta_phase);
 
   gkyl_array_release(ns->f);
   if (ns->info.init_from_file.type == 0) {
@@ -705,13 +707,44 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     }
   }
 
-  // Metadata for gk_neut_species app.
-  struct gkyl_msgpack_map_elem io_meta[] = {
-    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->basis.poly_order },
-    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = s->basis.id }
+  // Species properties metadata.
+  struct gkyl_msgpack_map_elem io_meta_sprop[] = {
+    { .key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = s->info.mass },
+    { .key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->info.vdim },
   };
-  s->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-  s->io_meta = gkyl_msgpack_map_elem_clone(s->io_meta_len, io_meta);
+
+  // Metadata for integrated quantities.
+  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {app->io_meta_basic, io_meta_sprop};
+  int io_meta_basic_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_sprop)/sizeof(io_meta_sprop[0])};
+  s->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union)/sizeof(io_meta_basic_union[0]),
+    io_meta_basic_union_len, io_meta_basic_union, &s->io_meta_basic_len);
+
+  // Metadata for conf-space quantities.
+  struct gkyl_msgpack_map_elem io_meta_conf[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+  };
+  const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {app->io_meta_basic, io_meta_sprop, io_meta_conf};
+  int io_meta_conf_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_sprop)/sizeof(io_meta_sprop[0]),
+    sizeof(io_meta_conf)/sizeof(io_meta_conf[0])};
+  s->io_meta_conf = gkyl_msgpack_map_elem_union(sizeof(io_meta_conf_union)/sizeof(io_meta_conf_union[0]),
+    io_meta_conf_union_len, io_meta_conf_union, &s->io_meta_conf_len);
+
+  // Metadata for phase-space quantities.
+  struct gkyl_msgpack_map_elem io_meta_phase[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = s->basis.id },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+  };
+  const struct gkyl_msgpack_map_elem *io_meta_phase_union[] = {app->io_meta_basic, io_meta_sprop, io_meta_phase};
+  int io_meta_phase_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_sprop)/sizeof(io_meta_sprop[0]),
+    sizeof(io_meta_phase)/sizeof(io_meta_phase[0])};
+  s->io_meta_phase = gkyl_msgpack_map_elem_union(sizeof(io_meta_phase_union)/sizeof(io_meta_phase_union[0]),
+    io_meta_phase_union_len, io_meta_phase_union, &s->io_meta_phase_len);
 
   // Allocate distribution function array for initialization and I/O.
   s->f = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);

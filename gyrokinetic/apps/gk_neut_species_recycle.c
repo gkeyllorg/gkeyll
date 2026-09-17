@@ -9,11 +9,9 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   // Output boundary flux from ions and neutral ghost cells
 
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
-  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  gkyl_msgpack_map_elem_set_double(s->io_meta_conf_len, s->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(s->io_meta_conf_len, s->io_meta_conf, "frame", frame);
+  int io_meta_len[] = {s->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
 
   const char *vars[] = {"x","y","z"};
   const char *edge[] = {"lower","upper"};
@@ -41,13 +39,21 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
     if (app->use_gpu)
       gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
 
+    struct gkyl_msgpack_map_elem desc0[] = {
+      { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Impacting boundary particle flux." }
+    };
+    const struct gkyl_msgpack_map_elem* io_meta[] = {s->io_meta_conf, app->gk_geom->io_meta_basic, desc0};
+    struct gkyl_msgpack_data *mt0 = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
     const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[dir], edge[edi], gks->info.name, frame);
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], gks->info.name, frame);
     
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, recyc->diag_out_ho, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt0, recyc->diag_out_ho, fileNm);
     app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
+
+    gkyl_msgpack_data_release(mt0); 
   }
 
   struct timespec wst = gkyl_wall_clock();
@@ -67,16 +73,22 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   if (app->use_gpu)
     gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
   
+  struct gkyl_msgpack_map_elem desc1[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Emitted boundary particle flux." }
+  };
+  const struct gkyl_msgpack_map_elem* io_meta[] = {s->io_meta_conf, app->gk_geom->io_meta_basic, desc1};
+  struct gkyl_msgpack_data *mt1 = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
   const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
   
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, recyc->diag_out_ho, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt1, recyc->diag_out_ho, fileNm);
   app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
 
-  gkyl_msgpack_data_release(mt); 
+  gkyl_msgpack_data_release(mt1); 
 }
 
 static void
@@ -317,7 +329,7 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
       &recyc->impact_cbuff_r[i], recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]);
 
     // Calculate scaling factor from ratio of ion flux to unit-density flux.
-    gkyl_dg_div_op_range(recyc->mem_geo, app->basis, 0, recyc->m0_flux_gk[i], 0, recyc->m0_flux_gk[i],
+    gkyl_dg_div_op_range(recyc->mem_geo, &app->basis, 0, recyc->m0_flux_gk[i], 0, recyc->m0_flux_gk[i],
       0, recyc->unit_m0_flux_neut, &recyc->emit_cbuff_r);
 
     gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, recyc->f_emit, 1.0,

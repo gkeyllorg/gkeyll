@@ -45,13 +45,13 @@ btopo_create_mpack(const struct gkyl_block_topo *btopo)
   mpack_write_cstr(&writer, "num_blocks");
   mpack_write_i64(&writer, btopo->num_blocks);
 
-  // 3 values written for each of the 2 edges:
+  // 3 values written (block ID, direction, edge) for each of the 2 edges:
   size_t num_arr_elems = btopo->num_blocks*btopo->ndim*3*2;
   // write each block connectivity into an array
   mpack_write_cstr(&writer, "connections");
   mpack_start_array(&writer, num_arr_elems);
 
-  // store connectivity data as a flat array
+  // Store connectivity data as a flat array
   for (int i=0; i<btopo->num_blocks; ++i) {
     for (int d=0; d<btopo->ndim; ++d) {
       for (int e=0; e<2; ++e) {

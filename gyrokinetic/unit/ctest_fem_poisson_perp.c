@@ -30,7 +30,7 @@ static double error_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
   gkyl_array_accumulate(diff, -1.0, field2);
 
   struct gkyl_array *l2_cell = gkyl_array_new(GKYL_DOUBLE, 1, field1->size);
-  gkyl_dg_calc_l2_range(basis, 0, l2_cell, 0, diff, range);
+  gkyl_dg_calc_l2_range(&basis, 0, l2_cell, 0, diff, range);
   gkyl_array_scale_range(l2_cell, grid.cellVolume, &range);
 
   double l2[1];
@@ -392,7 +392,7 @@ test_fem_poisson_perp_consteps_2x_objs(int poly_order, const int *cells, struct 
     double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
     // Subtract the volume averaged sol from the sol.
     gkyl_array_clear(sol_cellavg, 0.0);
-    gkyl_dg_calc_average_range(objs->basis, 0, sol_cellavg, 0, objs->phi_ho, objs->localRange);
+    gkyl_dg_calc_average_range(&objs->basis, 0, sol_cellavg, 0, objs->phi_ho, objs->localRange);
     for (int kIdx=0; kIdx<cells[1]; kIdx++) {
       struct gkyl_range perp_range;
       gkyl_range_deflate(&perp_range, &objs->localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
@@ -401,7 +401,7 @@ test_fem_poisson_perp_consteps_2x_objs(int poly_order, const int *cells, struct 
     }
     // Now do the same to the analytic solution.
     gkyl_array_clear(sol_cellavg, 0.0);
-    gkyl_dg_calc_average_range(objs->basis, 0, sol_cellavg, 0, objs->phisol_ho, objs->localRange);
+    gkyl_dg_calc_average_range(&objs->basis, 0, sol_cellavg, 0, objs->phisol_ho, objs->localRange);
     for (int kIdx=0; kIdx<cells[1]; kIdx++) {
       struct gkyl_range perp_range;
       gkyl_range_deflate(&perp_range, &objs->localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
@@ -1015,7 +1015,7 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
       double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
       // Subtract the volume averaged sol from the sol.
       gkyl_array_clear(sol_cellavg, 0.0);
-      gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
+      gkyl_dg_calc_average_range(&basis, 0, sol_cellavg, 0, phi_ho, localRange);
       for (int kIdx=0; kIdx<cells[2]; kIdx++) {
         struct gkyl_range perp_range;
         gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
@@ -1024,7 +1024,7 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
       }
       // Now do the same to the analytic solution.
       gkyl_array_clear(sol_cellavg, 0.0);
-      gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phisol_ho, localRange);
+      gkyl_dg_calc_average_range(&basis, 0, sol_cellavg, 0, phisol_ho, localRange);
       for (int kIdx=0; kIdx<cells[2]; kIdx++) {
         struct gkyl_range perp_range;
         gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});

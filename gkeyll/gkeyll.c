@@ -159,18 +159,25 @@ show_banner(FILE *fp)
     fprintf(fp, "Built without MPI\n");
 #endif
 
+    int num_apps = 0;
 #ifdef GKYL_HAVE_MOMENTS
     fprintf(fp, "Moments App enabled\n");
+    num_apps += 1;
 #endif
 #ifdef GKYL_HAVE_VLASOV
     fprintf(fp, "Vlasov App enabled\n");
+    num_apps += 1;
 #endif
 #ifdef GKYL_HAVE_GYROKINETIC
     fprintf(fp, "Gyrokinetic App enabled\n");
+    num_apps += 1;
 #endif
 #ifdef GKYL_HAVE_PKPM
     fprintf(fp, "PKPM App enabled\n");
+    num_apps += 1;
 #endif
+    if (0 == num_apps)
+      fprintf(fp, "Built without any Apps! Core library only.\n");
     fprintf(fp, "\n");
   }
 }
@@ -623,7 +630,7 @@ main(int argc, char **argv)
 int
 main(int argc, char **argv)
 {
-  fprintf(stderr, "GkeyllZero built without Lua support!\n");
+  fprintf(stderr, "Gkeyll built without Lua support!\n");
   return 0;
 }
 

@@ -7,15 +7,31 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 
-void test_range_0()
+void test_range_0(struct gkyl_range *range)
+{
+  TEST_CHECK( range->ndim == 0 );
+  TEST_CHECK( range->volume == 1 );
+
+  TEST_CHECK( gkyl_range_is_sub_range(range) == 0 );
+}
+
+void test_range_0_stack()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 0, NULL, NULL);
 
-  TEST_CHECK( range.ndim == 0 );
-  TEST_CHECK( range.volume == 1 );
+  test_range_0(&range);
+}
 
-  TEST_CHECK( gkyl_range_is_sub_range(&range) == 0 );
+void test_range_0_heap()
+{
+  struct gkyl_range *range = gkyl_range_new(0, NULL, NULL);
+  test_range_0(range);
+
+  TEST_CHECK( range->ndim == gkyl_range_get_ndim(range));
+  TEST_CHECK( range->volume == gkyl_range_get_volume(range));
+
+  gkyl_range_release(range);
 }
 
 void test_range_1()
@@ -585,20 +601,43 @@ void test_range_iter_3d()
       }
 }
 
-void test_range_inv_idx()
+void test_range_inv_idx(struct gkyl_range *range)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+
+  int idx[3], linIdx = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_range_inv_idx(range, linIdx++, idx);
+    for (int d=0; d<range->ndim; ++d)
+      TEST_CHECK( iter.idx[d] == idx[d] );
+  }
+}
+
+void test_range_inv_idx_stack()
 {
   int lower[] = {1, 1, 1}, upper[] = {5, 5, 4};
   struct gkyl_range range;
   gkyl_range_init(&range, 3, lower, upper);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
+  test_range_inv_idx(&range);
+}
 
-  int idx[3], linIdx = 0;
-  while (gkyl_range_iter_next(&iter)) {
-    gkyl_range_inv_idx(&range, linIdx++, idx);
-    for (int d=0; d<range.ndim; ++d)
-      TEST_CHECK( iter.idx[d] == idx[d] );
+void test_range_inv_idx_heap()
+{
+  int lower[] = {1, 1, 1}, upper[] = {5, 5, 4};
+  struct gkyl_range *range = gkyl_range_new(3, lower, upper);
+  test_range_inv_idx(range);
+
+  TEST_CHECK( range->ndim == gkyl_range_get_ndim(range));
+  TEST_CHECK( range->volume == gkyl_range_get_volume(range));
+  gkyl_range_get_lower(range, lower);
+  gkyl_range_get_upper(range, upper);
+  for (int d=0; d<range->ndim; d++) {
+    TEST_CHECK( range->lower[d] == lower[d]);
+    TEST_CHECK( range->upper[d] == upper[d]);
   }
+
+  gkyl_range_release(range);
 }
 
 void test_huge_range()
@@ -1318,7 +1357,8 @@ void test_cu_range()
 #endif
 
 TEST_LIST = {
-  { "range_0", test_range_0 },
+  { "range_0_stack", test_range_0_stack },
+  { "range_0_heap", test_range_0_heap  },
   { "range_1", test_range_1 },
   { "range_shift", test_range_shift },
   { "range_reset", test_range_reset },
@@ -1339,7 +1379,8 @@ TEST_LIST = {
   { "range_index_6d", test_range_index_6d },
   { "range_index_idx", test_range_idx },
   { "range_offset", test_range_offset },
-  { "range_inv_idx", test_range_inv_idx },
+  { "range_inv_idx_stack", test_range_inv_idx_stack },
+  { "range_inv_idx_heap", test_range_inv_idx_heap  },
   { "huge_range", test_huge_range },
   { "range_deflate", test_range_deflate },
   { "range_skip_iter", test_range_skip_iter },

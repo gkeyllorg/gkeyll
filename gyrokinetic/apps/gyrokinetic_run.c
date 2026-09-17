@@ -180,13 +180,18 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     gkyl_gyrokinetic_app_apply_ic(app, t_curr);
   }
 
-  // Create triggers for IO.
+  // Create triggers for IO. On restart, resume each frame writer on its nominal
+  // grid (tcurr = frame_curr*dt_conf) rather than offset by the restart stime,
+  // which would drift the cadence and drop the final frame. The restart frame
+  // holds the distribution function, so it is written by BOTH the conf and the
+  // phase trigger -- i.e. frame_curr*(t_end/num_frames) lands on both grids -- so
+  // the same nominal time works for trig_write_conf and trig_write_phase.
   int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
-  struct gkyl_tm_trigger trig_write_conf = 
-    { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger trig_write_phase = 
-    { .dt = t_end/(time_stepping.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
-  struct gkyl_tm_trigger trig_calc_intdiag = 
+  struct gkyl_tm_trigger trig_write_conf =
+    { .dt = t_end/num_frames, .tcurr = frame_curr * (t_end/num_frames), .curr = frame_curr };
+  struct gkyl_tm_trigger trig_write_phase =
+    { .dt = t_end/(time_stepping.write_phase_freq*num_frames), .tcurr = frame_curr * (t_end/num_frames), .curr = frame_curr};
+  struct gkyl_tm_trigger trig_calc_intdiag =
     { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).
@@ -450,13 +455,18 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     gkyl_gyrokinetic_multib_app_apply_ic(app, t_curr);
   }
 
-  // Create triggers for IO.
+  // Create triggers for IO. On restart, resume each frame writer on its nominal
+  // grid (tcurr = frame_curr*dt_conf) rather than offset by the restart stime,
+  // which would drift the cadence and drop the final frame. The restart frame
+  // holds the distribution function, so it is written by BOTH the conf and the
+  // phase trigger -- i.e. frame_curr*(t_end/num_frames) lands on both grids -- so
+  // the same nominal time works for trig_write_conf and trig_write_phase.
   int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
-  struct gkyl_tm_trigger trig_write_conf = 
-    { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger trig_write_phase = 
-    { .dt = t_end/(time_stepping.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr};
-  struct gkyl_tm_trigger trig_calc_intdiag = 
+  struct gkyl_tm_trigger trig_write_conf =
+    { .dt = t_end/num_frames, .tcurr = frame_curr * (t_end/num_frames), .curr = frame_curr };
+  struct gkyl_tm_trigger trig_write_phase =
+    { .dt = t_end/(time_stepping.write_phase_freq*num_frames), .tcurr = frame_curr * (t_end/num_frames), .curr = frame_curr};
+  struct gkyl_tm_trigger trig_calc_intdiag =
     { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).

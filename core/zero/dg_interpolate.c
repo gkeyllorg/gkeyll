@@ -24,7 +24,7 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
     assert(fabs(grid_do->upper[d] - grid_tar->upper[d]) < 1e-14);
 
     // Only (2^a)*(3^b)*(5^c) grids have been tested.
-    const int num_prime_facs_max = 32;
+    int num_prime_facs_max = 32;
     int prime_factors[num_prime_facs_max];
     int num_prime_facs_do = dg_interp_prime_factors(grid_do->cells[d], prime_factors, num_prime_facs_max);
     for (int k=0; k<num_prime_facs_do; k++)

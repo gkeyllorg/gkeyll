@@ -6,6 +6,7 @@ enum gkyl_basis_type {
   GKYL_BASIS_MODAL_TENSOR,
   GKYL_BASIS_MODAL_HYBRID,
   GKYL_BASIS_MODAL_GKHYBRID,
+  GKYL_BASIS_MODAL_GKHYBRID_VEL,
 };
 
 typedef void (*nodal_to_modal_quad_surf_t)(const double *fnodal, double *fmodal);
@@ -16,7 +17,7 @@ typedef void (*node_quad_surf_list_t)(double *node_coords);
  */
 struct gkyl_basis {
   unsigned ndim, poly_order, num_basis, num_quad;
-  char id[64]; // "serendipity", "tensor", "hybrid, "gkhybrid"
+  char id[64]; // "serendipity", "tensor", "hybrid, "gkhybrid", "gkhybrid_vel"
   enum gkyl_basis_type b_type; // identifier for basis function
     
 /**
@@ -223,6 +224,63 @@ void gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdi
  */
 struct gkyl_basis * gkyl_cart_modal_gkhybrid_new(int cdim, int vdim);
 struct gkyl_basis * gkyl_cart_modal_gkhybrid_cu_dev_new(int cdim, int vdim);
+
+/**
+ * Assign object members in hybrid basis for use in gyrokinetics p=1
+ * velocity space. These basis have the v_par^2 monomial and its tensor
+ * product with mu monomials (for vdim=2). 
+ *
+ * @param basis Basis object to initialize
+ * @param cdim dimension of configuration space.
+ * @param vdim dimension of velocity space.
+ */
+void gkyl_cart_modal_gkhybrid_vel(struct gkyl_basis *basis, int vdim);
+void gkyl_cart_modal_gkhybrid_vel_cu_dev(struct gkyl_basis *basis, int vdim);
+
+/**
+ * Create new hybrid basis for use in gyrokinetics p=1 velocity space.
+ * These basis have the v_par^2 monomial and its tensor
+ * product with mu monomials (for vdim=2). 
+ * This basis needs to be deallocated with free/release methods.
+ *
+ * @param cdim dimension of configuration space.
+ * @param vdim dimension of velocity space.
+ * @return new basis struct.
+ */
+struct gkyl_basis * gkyl_cart_modal_gkhybrid_vel_new(int vdim);
+struct gkyl_basis * gkyl_cart_modal_gkhybrid_vel_cu_dev_new(int vdim);
+
+/**
+ * Get the dimensionality of a basis (for opaque pointers).
+ *
+ * @param basis Basis object. 
+ * @return Dimensionality of the basis.
+ */
+unsigned gkyl_cart_modal_basis_get_ndim(const struct gkyl_basis *basis);
+
+/**
+ * Get the polynomial order of a basis (for opaque pointers).
+ *
+ * @param basis Basis object. 
+ * @return Polynomial order of the basis.
+ */
+unsigned gkyl_cart_modal_basis_get_poly_order(const struct gkyl_basis *basis);
+
+/**
+ * Get the num_basis of a basis (for opaque pointers).
+ *
+ * @param basis Basis object. 
+ * @return Number of basis monomials.
+ */
+unsigned gkyl_cart_modal_basis_get_num_basis(const struct gkyl_basis *basis);
+
+/**
+ * Get the type of a basis (for opaque pointers).
+ *
+ * @param basis Basis object. 
+ * @return Type of the basis.
+ */
+enum gkyl_basis_type gkyl_cart_modal_basis_get_type(const struct gkyl_basis *basis);
 
 /**
  * Free the memory associated with basis objects

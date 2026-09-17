@@ -12,7 +12,7 @@ void gkyl_calc_prim_vars_u_from_statevec(gkyl_dg_bin_op_mem *mem, struct gkyl_ba
   // Find number of components of flow vector
   int num_comp = u_i->ncomp/basis.num_basis;
   for (int i = 0; i<num_comp; ++i)
-    gkyl_dg_div_op_range(mem, basis, 
+    gkyl_dg_div_op_range(mem, &basis, 
       i, u_i, i+1, statevec, 0, statevec, range);  
 }
 
@@ -22,6 +22,6 @@ void gkyl_calc_prim_vars_u_from_rhou(gkyl_dg_bin_op_mem *mem, struct gkyl_basis 
   // Find number of components of flow vector
   int num_comp = u_i->ncomp/basis.num_basis;
   for (int i = 0; i<num_comp; ++i)
-    gkyl_dg_div_op_range(mem, basis, 
+    gkyl_dg_div_op_range(mem, &basis, 
       i, u_i, i, rhou, 0, rho, range);  
 }

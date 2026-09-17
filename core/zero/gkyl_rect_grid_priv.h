@@ -47,9 +47,9 @@ bool is_in_cell(const struct gkyl_rect_grid *grid, const double *point,
   }
   in_dir(grid, cell_in, dim_trans, known_index, lower_boundaries, upper_boundaries);
   bool in_cell = true;
-  double eps = 1.0e-14;
+  double eps = 1.0e-6;
   for (int d=0; d<ndim; d++) {
-    if (lower_boundaries[d]-eps>point[d] || upper_boundaries[d]+eps<point[d]) {
+    if (lower_boundaries[d]-eps*grid->dx[d]>point[d] || upper_boundaries[d]+eps*grid->dx[d]<point[d]) {
       in_cell = false;
       break;
     }

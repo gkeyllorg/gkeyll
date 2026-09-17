@@ -72,7 +72,7 @@ struct moment_species {
   double k0; // Closure parameter (default is 0.0, used by 10 moment).
   bool has_grad_closure; // Has gradient-based closure (only for 10 moment).
   bool has_nn_closure; // Has neural network-based closure (only for 10 moment).
-  kann_t* ann; // Neural network architecture.
+  struct gkyl_kann_net* ann; // Neural network architecture.
   int poly_order; // Polynomial order of learned DG coefficients.
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
 
