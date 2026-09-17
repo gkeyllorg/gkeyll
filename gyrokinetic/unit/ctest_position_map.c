@@ -640,8 +640,8 @@ void test_inew_constructor()
 
   struct gkyl_position_map_inew_inp inp = {
     .pmap_info =
-      {.maps = {nonuniform_map_1d, nonuniform_map_1d, nonuniform_map_1d},
-       .ctxs = {NULL, NULL, NULL}},
+      {.maps = {nonuniform_map_1d, nonuniform_map_1d, nonuniform_map_1d}, .ctxs = {NULL, NULL, NULL}
+      },
     .grid = grid,
     .local = local,
     .local_ext = local_ext,
@@ -742,8 +742,8 @@ static void test_slope_global_bounds(void)
     gkyl_cart_modal_serendip(&basis, cdim, 1);
     struct bounded_map_ctx map = {0};
     struct gkyl_position_map *pmap = gkyl_position_map_new(
-      (struct gkyl_position_map_inp){.maps = {bounded_map, bounded_map, bounded_map},
-                                     .ctxs = {&map, &map, &map}},
+      (struct gkyl_position_map_inp
+      ){.maps = {bounded_map, bounded_map, bounded_map}, .ctxs = {&map, &map, &map}},
       grid, local, ext, local, ext, basis
     );
     double points[] = {0.0, 1e-14, 0.025, 0.37, 0.975, 1.0 - 1e-14, 1.0};

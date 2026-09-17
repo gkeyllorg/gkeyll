@@ -403,7 +403,8 @@ struct gk_lbo_collisions {
   struct gkyl_array
     *cross_nu_prim_moms; // Weak multiplication of collision frequency and primitive moments.
   struct gkyl_array *alpha_E; // Morse's alpha_E factor.
-  struct gkyl_array *cross_vtsq; // Scratch space holding the vtSq component of the cross-prim moments.
+  struct gkyl_array
+    *cross_vtsq; // Scratch space holding the vtSq component of the cross-prim moments.
   struct gkyl_array *cross_vtsq_floor; // Zeroed array used to floor cross vtSq cell-average to >= 0.
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
 
@@ -1319,7 +1320,8 @@ struct gk_species {
   bool is_first_integ_write_call; // Whether dynvec is being written for the first time.
 
   gkyl_dynvec omegaH_dt; // omega_H stable time step reduced across MPI ranks.
-  bool is_first_omegaH_dt_write_call; // Whether omega_H dt dynvec is being written for the first time.
+  bool
+    is_first_omegaH_dt_write_call; // Whether omega_H dt dynvec is being written for the first time.
 
   struct gkyl_array *fdot_mom_old, *fdot_mom_new; // Moments of f_old and f_new.
   gkyl_dynvec fdot_integ_diag; // Integrated moments of (f_new-f_old)/dt.

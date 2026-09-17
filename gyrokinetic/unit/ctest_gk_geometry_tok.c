@@ -103,12 +103,11 @@ void test_tok_elliptical_ho()
   double cpu_time_used;
   start = clock();
 
-  struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
-    .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
-    .reflect = true
+  struct gkyl_efit_inp efit_inp = {// psiRZ and related inputs
+                                   .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
+                                   .rz_poly_order = 2,
+                                   .flux_poly_order = 1,
+                                   .reflect = true
   };
 
   double psisep = -4.0;
@@ -258,12 +257,11 @@ void test_tok_3x_p1_straight_cylinder_ho()
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
-  struct gkyl_efit_inp inp = {
-    // psiRZ and related inputs
-    .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
-    .reflect = true
+  struct gkyl_efit_inp inp = {// psiRZ and related inputs
+                              .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
+                              .rz_poly_order = 2,
+                              .flux_poly_order = 1,
+                              .reflect = true
   };
   struct gkyl_tok_geo_grid_inp ginp = {
     .rclose = 0.5, .zmin = -1., .zmax = 1., .rleft = 0.001, .rmax = 1.0, .rright = 1.0
@@ -727,11 +725,10 @@ void test_tok_asdex_qprofile_core_ho()
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
-    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1
+  struct gkyl_efit_inp efit_inp = {// psiRZ and related inputs
+                                   .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+                                   .rz_poly_order = 2,
+                                   .flux_poly_order = 1
   };
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
@@ -802,11 +799,10 @@ void test_tok_asdex_qprofile_sol_ho()
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
-    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1
+  struct gkyl_efit_inp efit_inp = {// psiRZ and related inputs
+                                   .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+                                   .rz_poly_order = 2,
+                                   .flux_poly_order = 1
   };
 
   struct gkyl_tok_geo_grid_inp ginp = {

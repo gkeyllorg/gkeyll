@@ -51,26 +51,25 @@ static void test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_co
   struct gkyl_position_map *gpm = gkyl_position_map_null_new();
 
   // create mirror geometry
-  struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(
-    &(struct gkyl_mirror_grid_gen_inp){.comp_grid = &comp_grid,
-                                       .nrange = node_range,
-                                       .local = range,
-                                       .global = range,
+  struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp
+  ){.comp_grid = &comp_grid,
+    .nrange = node_range,
+    .local = range,
+    .global = range,
 
-                                       .R = {psi_grid.lower[0], psi_grid.upper[0]},
-                                       .Z = {psi_grid.lower[1], psi_grid.upper[1]},
+    .R = {psi_grid.lower[0], psi_grid.upper[0]},
+    .Z = {psi_grid.lower[1], psi_grid.upper[1]},
 
-                                       // psi(R,Z) grid size
-                                       .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
-                                       .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
+    // psi(R,Z) grid size
+    .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
+    .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
 
-                                       .psiRZ = psi,
-                                       .fl_coord = fl_coord,
-                                       .include_axis = include_axis,
-                                       .write_psi_cubic = false,
+    .psiRZ = psi,
+    .fl_coord = fl_coord,
+    .include_axis = include_axis,
+    .write_psi_cubic = false,
 
-                                       .position_map = gpm}
-  );
+    .position_map = gpm});
 
   TEST_ASSERT(geom != NULL);
   TEST_CHECK(include_axis == gkyl_mirror_grid_gen_is_include_axis(geom));
@@ -222,27 +221,26 @@ static void test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_li
   struct gkyl_position_map *gpm = gkyl_position_map_null_new();
 
   // create mirror geometry
-  struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(
-    &(struct gkyl_mirror_grid_gen_inp){.comp_grid = &comp_grid,
-                                       .nrange = node_range,
-                                       .local = range,
-                                       .global = range,
+  struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp
+  ){.comp_grid = &comp_grid,
+    .nrange = node_range,
+    .local = range,
+    .global = range,
 
-                                       .R = {psi_grid.lower[0], psi_grid.upper[0]},
-                                       .Z = {psi_grid.lower[1], psi_grid.upper[1]},
+    .R = {psi_grid.lower[0], psi_grid.upper[0]},
+    .Z = {psi_grid.lower[1], psi_grid.upper[1]},
 
-                                       // psi(R,Z) grid size
-                                       .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
-                                       .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
+    // psi(R,Z) grid size
+    .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
+    .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
 
-                                       .psiRZ = psi,
-                                       .fl_coord = fl_coord,
-                                       .include_axis = include_axis,
-                                       .write_psi_cubic = false,
-                                       .psi_cubic_fname = "ctest_mirror_grid_gen_quad.gkyl",
+    .psiRZ = psi,
+    .fl_coord = fl_coord,
+    .include_axis = include_axis,
+    .write_psi_cubic = false,
+    .psi_cubic_fname = "ctest_mirror_grid_gen_quad.gkyl",
 
-                                       .position_map = gpm}
-  );
+    .position_map = gpm});
 
   TEST_ASSERT(geom != NULL);
   TEST_CHECK(include_axis == gkyl_mirror_grid_gen_is_include_axis(geom));
@@ -810,9 +808,8 @@ static void test_mirror_root_bounds_ho(void)
         if (trial == 3) {
           struct mirror_map_ctx maps[3];
           for (int dim = 0; dim < 3; ++dim) {
-            maps[dim] = (struct mirror_map_ctx){.lower = grid.lower[dim],
-                                                .upper = grid.upper[dim],
-                                                .scale = 1.0};
+            maps[dim] = (struct mirror_map_ctx
+            ){.lower = grid.lower[dim], .upper = grid.upper[dim], .scale = 1.0};
           }
           mirror_check_exact(&inp, geom, kind, 1, maps, 1.0, 0.0);
         }
