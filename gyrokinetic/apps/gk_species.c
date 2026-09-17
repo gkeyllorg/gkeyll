@@ -1470,11 +1470,12 @@ static void gk_species_init_static(
   gks->write_fdot_mom_ready_func = gk_species_write_fdot_mom_disabled;
 }
 
-void gk_species_file_import_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp
+void gk_species_read_distf_from_file(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp,
+  struct gkyl_array *fout
 )
 {
-  // Import initial condition from a file. Intended options include importing:
+  // Read a distribution function from a file onto fout. Intended options include importing:
   //   1) ICs with same grid.
   //   2) ICs one dimensionality lower (e.g. 2x2v for 3x2v sim).
   //   3) ICs with same grid extents but different resolution (NYI).
@@ -1668,23 +1669,23 @@ void gk_species_file_import_init(
   if (pdim_do == pdim - 1) {
     struct gkyl_translate_dim *transdim =
       gkyl_translate_dim_new(cdim_do, basis_do, cdim, gks->basis, -1, GKYL_NO_EDGE, app->use_gpu);
-    gkyl_translate_dim_advance(transdim, &local_do, &gks->local, fdo, 1, gks->f);
+    gkyl_translate_dim_advance(transdim, &local_do, &gks->local, fdo, 1, fout);
     gkyl_translate_dim_release(transdim);
   } else {
     if (same_res) {
-      gkyl_array_copy(gks->f, fdo);
+      gkyl_array_copy(fout, fdo);
     } else {
       // Interpolate the donor distribution to the target grid.
       struct gkyl_dg_interpolate *interp = gkyl_dg_interpolate_new(
         app->cdim, &gks->basis, &grid_do, &grid, &local_do, &gks->local, ghost_do, app->use_gpu
       );
-      gkyl_dg_interpolate_advance(interp, fdo, gks->f);
+      gkyl_dg_interpolate_advance(interp, fdo, fout);
       gkyl_dg_interpolate_release(interp);
     }
   }
 
   if (inp.type == GKYL_IC_IMPORT_AF) {
-    // Scale f by a conf-space factor.
+    // Scale fout by a conf-space factor.
     gkyl_proj_on_basis *proj_conf_scale = gkyl_proj_on_basis_new(
       &app->grid, &app->basis, poly_order + 1, 1, inp.conf_scale, inp.conf_scale_ctx
     );
@@ -1695,25 +1696,36 @@ void gk_species_file_import_init(
     gkyl_proj_on_basis_advance(proj_conf_scale, 0.0, &app->local, xfac_ho);
     gkyl_array_copy(xfac, xfac_ho);
     gkyl_dg_mul_conf_phase_op_range(
-      &app->basis, &gks->basis, gks->f, xfac, gks->f, &app->local, &gks->local
+      &app->basis, &gks->basis, fout, xfac, fout, &app->local, &gks->local
     );
     gkyl_proj_on_basis_release(proj_conf_scale);
     gkyl_array_release(xfac_ho);
     gkyl_array_release(xfac);
   }
 
-  // Multiply f by the Jacobian.
+  // Multiply fout by the Jacobian.
   if (scale_by_jacobtot) {
     gkyl_dg_mul_conf_phase_op_range(
-      &app->basis, &gks->basis, gks->f, app->gk_geom->geo_int.jacobtot, gks->f, &app->local,
-      &gks->local
+      &app->basis, &gks->basis, fout, app->gk_geom->geo_int.jacobtot, fout, &app->local, &gks->local
     );
   }
 
-  // Multiply f by the velocity space Jacobian.
+  // Multiply fout by the velocity space Jacobian.
   if (scale_by_jacobvel) {
-    gkyl_array_scale_by_cell(gks->f, gks->vel_map->jacobvel);
+    gkyl_array_scale_by_cell(fout, gks->vel_map->jacobvel);
   }
+
+  gkyl_rect_decomp_release(decomp_do);
+  gkyl_comm_release(comm_do);
+  gkyl_array_release(fdo);
+  gkyl_array_release(fdo_host);
+}
+
+void gk_species_file_import_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp
+)
+{
+  gk_species_read_distf_from_file(app, gks, inp, gks->f);
 
   if (inp.enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).
@@ -1728,11 +1740,6 @@ void gk_species_file_import_init(
 
     gkyl_positivity_shift_gyrokinetic_release(pos_shift_op);
   }
-
-  gkyl_rect_decomp_release(decomp_do);
-  gkyl_comm_release(comm_do);
-  gkyl_array_release(fdo);
-  gkyl_array_release(fdo_host);
 }
 
 static bool gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)

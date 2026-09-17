@@ -74,7 +74,8 @@ enum gkyl_source_id {
   GKYL_NO_SOURCE = 0, // No source. This is default.
   GKYL_FUNC_SOURCE, // Function source.
   GKYL_PROJ_SOURCE, // Source given by projection object determined by gkyl_projection_id.
-  GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes.
+  GKYL_BFLUX_SOURCE, // Source which scales to boundary fluxes.
+  GKYL_SOURCE_FROMFILE // Source shape imported directly from a file.
 };
 
 // Identifiers for specific bgk source object types.

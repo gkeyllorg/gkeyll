@@ -181,6 +181,9 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_gyrokinetic_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptive source parameters
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
+  // Sources whose shape is imported directly from a file (used only when
+  // source_id == GKYL_SOURCE_FROMFILE).
+  struct gkyl_gyrokinetic_ic_import source_import[GKYL_MAX_SOURCES];
 
   struct gkyl_phase_diagnostics_inp diagnostics;
 };

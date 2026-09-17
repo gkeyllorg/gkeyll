@@ -3277,6 +3277,21 @@ void gk_species_projection_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj
 );
 
+/**
+ * Read a distribution function from a file (optionally rescaling by
+ * 1/Jacobian and the velocity-space Jacobian, and translating/interpolating
+ * to the target grid) into aout.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object (defines the target grid/basis/geometry).
+ * @param inp Input struct describing the file(s) to import.
+ * @param aout Output array to write the imported distribution into.
+ */
+void gk_species_read_distf_from_file(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp,
+  struct gkyl_array *aout
+);
+
 /** gk_species_source API */
 
 /**
@@ -4625,6 +4640,20 @@ void gk_neut_species_projection_calc(
  */
 void gk_neut_species_projection_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj
+);
+
+/**
+ * Read a distribution function from a file (optionally rescaling by
+ * 1/Jacobian and translating/interpolating to the target grid) into aout.
+ *
+ * @param app Gyrokinetic app object.
+ * @param s Neutral species object (defines the target grid/basis/geometry).
+ * @param inp Input struct describing the file(s) to import.
+ * @param aout Output array to write the imported distribution into.
+ */
+void gk_neut_species_kinetic_read_distf_from_file(
+  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gkyl_gyrokinetic_ic_import inp, struct gkyl_array *aout
 );
 
 /** gk_neut_species_source API */
