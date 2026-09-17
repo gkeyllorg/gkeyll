@@ -50,8 +50,8 @@ gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
 }
 
 __global__ void
-gkyl_array_average_advance_cu_ker(const struct gkyl_array_average *up, 
-  const struct gkyl_array *fin, struct gkyl_array *avgout)
+gkyl_array_average_local_integral_cu_ker(const struct gkyl_array_average *up, 
+  const struct gkyl_array *fin, struct gkyl_array *out, struct gkyl_range out_range)
 {
   int idx[GKYL_MAX_DIM] = {0}; 
   int idx_avg[GKYL_MAX_DIM] = {0};
@@ -77,30 +77,23 @@ gkyl_array_average_advance_cu_ker(const struct gkyl_array_average *up,
       idx_avg[0] = up->local_avg.lower[0];
     }
 
-    long lidx_avg = gkyl_range_idx(&up->local_avg, idx_avg);
+    long lidx_avg = gkyl_range_idx(&out_range, idx_avg);
 
     // fetch the addresses where the weight and function are
     const double *fin_i = (const double*) gkyl_array_cfetch(fin, lidx);
     const double *win_i = up->isweighted? (const double*) gkyl_array_cfetch(up->weight, lidx) : 
         (const double*) gkyl_array_cfetch(up->weight, 0);
     // fetch the address where the avg is returned
-    double *avg_i = (double*) gkyl_array_fetch(avgout, lidx_avg);
+    double *avg_i = (double*) gkyl_array_fetch(out, lidx_avg);
     
     up->kernel(up->subvol, win_i, fin_i, avg_i);
   }
 }
 
-void gkyl_array_average_advance_cu(const struct gkyl_array_average *up, 
-  const struct gkyl_array *fin, struct gkyl_array *avgout)
+void gkyl_array_average_local_integral_cu(const struct gkyl_array_average *up, 
+  const struct gkyl_array *fin, struct gkyl_array *out, const struct gkyl_range *out_range)
 {
-
   int nblocks = up->local.nblocks, nthreads = up->local.nthreads;
 
-  gkyl_array_clear_range(avgout, 0.0, &up->local_avg);
-
-  gkyl_array_average_advance_cu_ker<<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, avgout->on_dev);
-  
-  if (up->isweighted)
-    gkyl_dg_div_op_range(up->div_mem, &up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg);
-
+  gkyl_array_average_local_integral_cu_ker<<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, out->on_dev, *out_range);
 }

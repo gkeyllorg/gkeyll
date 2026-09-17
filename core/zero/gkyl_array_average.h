@@ -2,6 +2,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_comm.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -22,6 +23,10 @@ typedef struct gkyl_array_average_inp gkyl_array_average_inp;
  * @param weight Pointer to the array containing weight for the averaging process. (set it to NULL for integral)
  * @param avg_dim Flag array to set which dimension is averaged
  * @param use_gpu Boolean flag indicating whether the computation should be performed on a GPU.
+ * @param comm Optional communicator. Required when any averaged dimension is decomposed with MPI. 
+ *   If NULL, the average is computed over the local range only.
+ * @param global_avg Global range of the output array (non-averaged dimensions), with the same
+ *   index convention as local_avg. Required if comm is not NULL.
  */
 struct gkyl_array_average_inp {
   const struct gkyl_rect_grid *grid;
@@ -33,6 +38,8 @@ struct gkyl_array_average_inp {
   const struct gkyl_array *weight;
   const int *avg_dim;
   bool use_gpu;
+  struct gkyl_comm *comm;
+  const struct gkyl_range *global_avg;
 };
 
 /**

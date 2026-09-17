@@ -41,6 +41,20 @@ gkyl_array_average_inew(const struct gkyl_array_average_inp *inp)
   up->local = *inp->local;
   up->local_avg = *inp->local_avg;
 
+  // with a communicator, integrals are summed over all ranks on the global output range
+  up->comm = NULL;
+  up->integral_glob_loc = NULL;
+  up->integral_glob = NULL;
+  if (inp->comm) {
+    assert(inp->global_avg);
+    up->comm = gkyl_comm_acquire(inp->comm);
+    up->global_avg = *inp->global_avg;
+    up->integral_glob_loc = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis_avg.num_basis, up->global_avg.volume)
+      : gkyl_array_new(GKYL_DOUBLE, up->basis_avg.num_basis, up->global_avg.volume);
+    up->integral_glob = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis_avg.num_basis, up->global_avg.volume)
+      : gkyl_array_new(GKYL_DOUBLE, up->basis_avg.num_basis, up->global_avg.volume);
+  }
+
   // set up the array of all dimensions that are conserved after the average (=0 for removed)
   // according to the operation input variable
   up->num_avg_dim = 0;
@@ -93,7 +107,9 @@ gkyl_array_average_inew(const struct gkyl_array_average_inp *inp)
       .local_avg = inp->local_avg,
       .weight = NULL, // Recursive call without weights
       .avg_dim = inp->avg_dim,
-      .use_gpu = inp->use_gpu
+      .use_gpu = inp->use_gpu,
+      .comm = inp->comm, // the weight is integrated over the global domain
+      .global_avg = inp->global_avg,
     };
     struct gkyl_array_average *int_w = gkyl_array_average_inew(&inp_integral);
     // run the updater to integrate the weight
@@ -127,19 +143,18 @@ gkyl_array_average_inew(const struct gkyl_array_average_inp *inp)
   return up;
 }
 
-void gkyl_array_average_advance(const struct gkyl_array_average *up, 
-  const struct gkyl_array * fin, struct gkyl_array *avgout)
+// Integrate fin (times the weight) over the averaged dimensions of the local range and
+// accumulate the result in out, indexed with out_range (local_avg or global_avg).
+static void
+array_average_local_integral(const struct gkyl_array_average *up,
+  const struct gkyl_array *fin, struct gkyl_array *out, const struct gkyl_range *out_range)
 {
-
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_array_average_advance_cu(up, fin, avgout);
+    gkyl_array_average_local_integral_cu(up, fin, out, out_range);
     return;
   }
 #endif
-
-  // clear the array that will contain the result
-  gkyl_array_clear_range(avgout, 0.0, &up->local_avg);
 
   struct gkyl_range_iter iter_cmp, iter_avg;
   struct gkyl_range rng_cmp; // this is the complementary range, sub + cmp = full
@@ -147,8 +162,8 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
   // we now loop on the range of the averaged array
   gkyl_range_iter_init(&iter_avg, &up->local_avg);
   while (gkyl_range_iter_next(&iter_avg)) {
-    long lidx_avg = gkyl_range_idx(&up->local_avg, iter_avg.idx);
-    double *avg_i = gkyl_array_fetch(avgout, lidx_avg);
+    long lidx_avg = gkyl_range_idx(out_range, iter_avg.idx);
+    double *avg_i = gkyl_array_fetch(out, lidx_avg);
 
     // we need to pass the moving index to the deflate operation as a sub dimensional iterator
     int parent_idx[GKYL_MAX_CDIM] = {0};
@@ -173,6 +188,29 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
       up->kernel(up->subvol, win_i, fin_i, avg_i);
     }
   }
+}
+
+void gkyl_array_average_advance(const struct gkyl_array_average *up, 
+  const struct gkyl_array * fin, struct gkyl_array *avgout)
+{
+  if (up->comm) {
+    // integrate on this rank into the global buffer (zero outside this rank's cells),
+    // sum over all ranks, and copy back the part of the output owned by this rank.
+    gkyl_array_clear(up->integral_glob_loc, 0.0);
+    array_average_local_integral(up, fin, up->integral_glob_loc, &up->global_avg);
+    gkyl_comm_allreduce(up->comm, GKYL_DOUBLE, GKYL_SUM,
+      up->integral_glob->size*up->integral_glob->ncomp,
+      up->integral_glob_loc->data, up->integral_glob->data);
+
+    struct gkyl_range local_in_global;
+    gkyl_sub_range_intersect(&local_in_global, &up->global_avg, &up->local_avg);
+    gkyl_array_copy_range_to_range(avgout, up->integral_glob, &up->local_avg, &local_in_global);
+  }
+  else {
+    // clear the array that will contain the result
+    gkyl_array_clear_range(avgout, 0.0, &up->local_avg);
+    array_average_local_integral(up, fin, avgout, &up->local_avg);
+  }
 
   // if we provided some weight, we now divide by the integrated weight
   if (up->isweighted)
@@ -192,6 +230,11 @@ void gkyl_array_average_release(struct gkyl_array_average *up)
   if (up->isweighted) {
     gkyl_array_release(up->weight_avg);
     gkyl_dg_bin_op_mem_release(up->div_mem);
+  }
+  if (up->comm) {
+    gkyl_array_release(up->integral_glob_loc);
+    gkyl_array_release(up->integral_glob);
+    gkyl_comm_release(up->comm);
   }
 
   gkyl_free(up);
