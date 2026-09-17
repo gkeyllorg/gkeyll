@@ -1,0 +1,19 @@
+I noticed in my latest Jenkins CI run (/Users/mfrancis/Downloads/run_15.txt) that lots of "... saving accepted results to" messages are printed together, separate from the compilation message for the corresponding test. Is that because in our previous work where we improved the granularity of timers we also changed the workflow so that all tests are compiled first, and they all run separately?
+
+Likewise, near the end there are many "... passed." messages printed one after the other. Is the reason the same?
+
+---
+
+Why is compilation serial if my personal set up uses PERSONAL_BUILD_JOBS=3, and the personal readme says the default PERSONAL_BUILD_JOBS is 3 ?
+
+---
+
+Ok, I'd like to make a modification to runregression: where it currently prints "... passed." I'd like it to instead say "... passed <test>.". For example: "... passed gyrokinetic/creg/rt_gk_sheath_2x2v" or something like that
+
+---
+
+Ok, I'd like to make a modification to runregression: where it currently prints "... passed." repeatedly at the very end (from running the regression tests during the check stage) I'd like it to instead say "... passed <test>.", so that I can read which test passed. For example: "... passed gyrokinetic/creg/rt_gk_sheath_2x2v" or something like that.
+
+---
+
+Implement the plan.
