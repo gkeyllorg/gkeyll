@@ -66,6 +66,13 @@ tmux ls
 tmux kill-session -t gkeyll_ci
 ```
 
+Verify the private listener after startup:
+
+```sh
+curl --fail --output /dev/null http://127.0.0.1:8080/login
+ss -ltn | grep '127.0.0.1:8080'
+```
+
 The controller and its Jenkins agent must run as the same Unix account that
 submits Slurm allocations.
 
@@ -76,11 +83,13 @@ setup and remains useful for inspection. From your laptop, after SSH/Duo
 authentication, create a tunnel:
 
 ```sh
-ssh -N -L 8081:127.0.0.1:8080 <NetID>@stellar.princeton.edu
+ssh -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:8083:127.0.0.1:8080 <NetID>@stellar.princeton.edu
 ```
 
-Open `http://localhost:8081`. Choose another first port if 8081 is occupied;
-the final `8080` is the remote Jenkins port and normally remains unchanged.
+Open `http://127.0.0.1:8083`. The first `8083` is the local browser port; the
+final `8080` is the remote Jenkins port and normally remains unchanged. Choose
+another unused local port if necessary.
 
 On Jenkins' first start, obtain the unlock password on Stellar:
 

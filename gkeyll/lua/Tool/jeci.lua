@@ -24,4 +24,10 @@ if is_help then
    command = command .. " | sed 's/gkeyll-ci\\.sh/gkeyll jeci/g'"
 end
 
-os.execute(command)
+local result, _, status = os.execute(command)
+if type(result) == "number" then
+   -- LuaJIT follows Lua 5.1 and returns the raw POSIX wait status.
+   if result ~= 0 then os.exit(math.floor(result / 256)) end
+elseif result ~= true then
+   os.exit(status or 1)
+end

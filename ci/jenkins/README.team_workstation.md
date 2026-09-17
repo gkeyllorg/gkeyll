@@ -19,16 +19,53 @@ Install Jenkins LTS and a supported Java runtime as a local `systemd` service.
 Follow Jenkins's [official Linux installation guide](https://www.jenkins.io/doc/book/installing/linux/)
 for the workstation distribution.
 
+Configure the service to listen only on loopback port 8082. Inspect existing
+settings first, then create a persistent systemd drop-in:
+
+```sh
+sudo systemctl cat jenkins
+sudo systemctl edit jenkins
+```
+
+If `systemctl cat` shows no existing `JENKINS_OPTS`, add the following under
+`[Service]`:
+
+```ini
+Environment="JENKINS_OPTS=--httpListenAddress=127.0.0.1 --httpPort=8082"
+```
+
+If it already sets `JENKINS_OPTS`, copy that existing value and append the two
+listener arguments instead of replacing its other options.
+
+Restart Jenkins and verify its listener:
+
+```sh
+sudo systemctl restart jenkins
+curl --fail --output /dev/null http://127.0.0.1:8082/login
+sudo ss -ltnp | grep ':8082'
+```
+
+The listener must be `127.0.0.1:8082`; do not permit inbound firewall traffic
+to port 8082. If this port is already in use, choose another unused port and
+update the systemd setting, SSH tunnel, and local `JENKINS_URL` override
+together.
+
 ## Open Jenkins browser
 
-Open `http://localhost:8080` on the workstation, unless its Jenkins service was
-configured with a different host or port. Complete first-start setup and create
-an administrator account. During initial setup, install Pipeline, Git,
-Credentials Binding, Git client, GitHub Branch Source, and **Multibranch
-Pipeline Inline Definition**. The inline-definition plugin must support the
-installed Jenkins version. Restrict job configuration and credential-management
-permissions to CI administrators. The initial unlock password is available on
-the workstation with:
+From an administrator's computer, forward a local port through SSH:
+
+```sh
+ssh -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:8082:127.0.0.1:8082 <ci-user>@<team-workstation>
+```
+
+Open `http://127.0.0.1:8082`. Complete first-start setup and create an
+administrator account. During initial setup, install Pipeline, Git, Credentials
+Binding, Git client, GitHub Branch Source, and **Multibranch Pipeline Inline
+Definition**. The inline-definition plugin must support the installed Jenkins
+version. Restrict job configuration and credential-management permissions to CI
+administrators. The initial unlock password is available on the workstation
+with:
 
 ```sh
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
@@ -66,7 +103,7 @@ toolchain, `cmake`, and Python/NumPy. Set these global environment variables:
 | `TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID |
 | `TEAM_WORKSTATION_BUILD_JOBS` | Optional; default `3` |
 | `TEAM_WORKSTATION_REGRESSION_JOBS` | Optional; default `1` |
-| `TEAM_WORKSTATION_MPIEXEC` | Optional parallel-test launcher |
+| `TEAM_WORKSTATION_MPIEXEC` | Optional parallel-test launcher; defaults to `gkylsoft/openmpi/bin/mpiexec` in the Jenkins workspace |
 | `TEAM_WORKSTATION_STATUS_CONTEXT` | Optional status context; default team-workstation |
 | `TEAM_WORKSTATION_TRUSTED_CI_REF` | Trusted workflow branch/SHA; production value `main` |
 
@@ -74,7 +111,10 @@ toolchain, `cmake`, and Python/NumPy. Set these global environment variables:
 
 Create Multibranch Pipeline `gkeyll-ci-team-workstation` from GitHub source
 `gkeyllorg/gkeyll`. Discover `main` and pull requests, exclude ordinary
-branches that are also PRs, and enable periodic scans or GitHub webhooks.
+branches that are also PRs, and enable periodic scans. Do not configure GitHub
+webhooks: the loopback-only controller intentionally accepts no inbound GitHub
+connections. Anonymous GitHub discovery/checkouts and authenticated commit
+status publication remain outbound operations and continue to work.
 Configure the GitHub source anonymously. Do not configure an SCM Jenkinsfile
 path: choose **Common pipeline definition for markerfile**, set the marker to
 `ci/jenkins/.team-workstation-marker`, and paste this controller-owned
@@ -154,6 +194,11 @@ trusted `main` child:
 full 40-character commit SHA. Supply both together; do not combine either with
 `--pr`. The browser offers the same parameters on the `main` child. Set
 `JENKINS_CLI_AUTH_FILE` only when using a non-default CLI credential path.
+
+The CLI defaults to the private `http://127.0.0.1:8082` controller URL when
+run on the team workstation. An administrator using the SSH tunnel above may
+run it locally with `JENKINS_URL=http://127.0.0.1:8082` and a local API-token
+file instead.
 
 ## Browser launch
 

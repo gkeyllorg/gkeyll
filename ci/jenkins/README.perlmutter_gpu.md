@@ -3,7 +3,8 @@
 This private, manually triggered CUDA CI builds candidate and baseline CUDA/NCCL
 installations on the login node, then submits unit and C-regression work to GPU
 nodes. The trusted Pipeline never comes from the candidate PR. CUDA unit tests
-run automatically; GPU-capable C regressions are compared with a CPU baseline.
+run automatically; GPU-capable C regressions are compared with the CUDA/NCCL
+baseline built by the Pipeline.
 A separate manifest-selected C MPI lane uses four GPU ranks for Vlasov,
 gyrokinetic, and PKPM, plus a moments CPU MPI test.
 
@@ -37,16 +38,26 @@ It creates detached tmux session `gkeyll_ci` and binds only to loopback. Use
 `tmux attach -t gkeyll_ci` to inspect it or `tmux kill-session -t gkeyll_ci`
 to stop it.
 
+Verify the private listener after startup:
+
+```sh
+curl --fail --output /dev/null http://127.0.0.1:8080/login
+ss -ltn | grep '127.0.0.1:8080'
+```
+
 ## Open Jenkins browser
 
 From your laptop, tunnel a local port to the controller and open the resulting
 local URL:
 
 ```sh
-ssh -N -L 8081:127.0.0.1:8080 <username>@perlmutter.nersc.gov
+ssh -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:8084:127.0.0.1:8080 <username>@perlmutter.nersc.gov
 ```
 
-Open `http://localhost:8081`. On first start, read
+Open `http://127.0.0.1:8084`. The first `8084` is the local browser port; the
+final `8080` is the remote Jenkins port and normally remains unchanged. Choose
+another unused local port if necessary. On first start, read
 `$GKEYLL_CI_ROOT/jenkins_home/secrets/initialAdminPassword`, create an admin
 account, and install Pipeline, Git, Credentials Binding, Git client, and
 GitHub plugins.

@@ -3,7 +3,7 @@
 # must already be running; this script never starts a controller or tmux.
 set -euo pipefail
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-JENKINS_URL="${JENKINS_URL:-http://127.0.0.1:8080}"
+JENKINS_URL="${JENKINS_URL:-http://127.0.0.1:8082}"
 JENKINS_JOB="${JENKINS_JOB:-gkeyll-ci-team-workstation/main}"
 JENKINS_ROOT_JOB="${JENKINS_ROOT_JOB:-gkeyll-ci-team-workstation}"
 JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-$HOME/.config/gkeyll/jenkins/team-workstation.auth}"
