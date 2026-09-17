@@ -8,7 +8,8 @@
 
 struct gkyl_array_average* gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const struct gkyl_basis *basis_avg, const struct gkyl_range *local, const struct gkyl_range *local_avg,
-  const struct gkyl_range *local_avg_ext, const struct gkyl_array *weight, const int *avg_dim, bool use_gpu)
+  const struct gkyl_range *local_avg_ext, const struct gkyl_array *weight, const int *avg_dim, bool use_gpu,
+  struct gkyl_comm *comm, const struct gkyl_range *global_avg)
 {
   return gkyl_array_average_inew(
     &(struct gkyl_array_average_inp) {
@@ -20,7 +21,9 @@ struct gkyl_array_average* gkyl_array_average_new(const struct gkyl_rect_grid *g
       .local_avg_ext = local_avg_ext,
       .weight = weight,
       .avg_dim = avg_dim,
-      .use_gpu = use_gpu
+      .use_gpu = use_gpu,
+      .comm = comm,
+      .global_avg = global_avg
     }
   );
 }
