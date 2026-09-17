@@ -61,6 +61,7 @@ return {
          "rt_euler_rgfm_fedkiw_shock",
          "rt_vacuum_einstein_linearwave",
          "rt_gr_mild_shock_tetrad",
+         "rt_gr_ultra_rel_shock_tetrad",
       },
       gpu = {
       },

@@ -72,16 +72,29 @@ def publishStatus(String statusCredentialsId, String context, String commit, Str
     }
 }
 
-def buildTree(String prefix, String mkdeps, String configure, String jobs) {
+def timeCommand(String metricFile, String command) {
+    sh """#!/bin/bash
+        set -euo pipefail
+        started=\$(date +%s)
+        ${command}
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > '${metricFile}'
+        echo "${metricFile}: \$elapsed seconds"
+    """
+}
+
+def buildTree(String label, String prefix, String mkdeps, String configure, String jobs) {
+    def metricDirectory = label == 'baseline' ? '../' : ''
     withEnv(["PREFIX=${prefix}"]) {
         sh """#!/bin/bash
             set -euo pipefail
             ./machines/${mkdeps}
             ./machines/${configure}
-            make -j${jobs} check
-            make -j${jobs} regression
-            make -j${jobs} install
         """
+        timeCommand("${metricDirectory}${label}-unit-build-seconds.txt", "make -j${jobs} unit")
+        timeCommand("${metricDirectory}${label}-unit-test-seconds.txt", 'make unit-run')
+        timeCommand("${metricDirectory}${label}-regression-build-seconds.txt", "make -j${jobs} regression")
+        timeCommand("${metricDirectory}${label}-install-seconds.txt", "make -j${jobs} install")
     }
 }
 
@@ -90,9 +103,9 @@ def createBaseline(String baseline, String mkdeps, String configure, String jobs
         deleteDir()
         checkoutRef(baseline, 'baseline')
         sh 'git rev-parse HEAD | tee ../ci-baseline-commit.txt'
-        buildTree("${env.WORKSPACE}/_baseline/gkylsoft", mkdeps, configure, jobs)
+        buildTree('baseline', "${env.WORKSPACE}/_baseline/gkylsoft", mkdeps, configure, jobs)
         sh "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression configure --source-dir \"${env.WORKSPACE}/_baseline\" --prefix \"${env.WORKSPACE}/_baseline/gkylsoft\""
-        sh "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only create --timeout 900 --jobs ${regressionJobs}"
+        timeCommand('../baseline-c-regression-create-seconds.txt', "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only create --timeout 900 --jobs ${regressionJobs}")
     }
 }
 
@@ -108,7 +121,11 @@ def runCandidateRegressions(String regressionJobs) {
                 mv \"${baseline}/\$layer/creg-accepted\" \"${results}/\$layer/creg-accepted\"
             fi
         done
+        started=\$(date +%s)
         \"${gkeyll}\" runregression run --c-only check --timeout 900 --jobs ${regressionJobs}
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > candidate-c-regression-check-seconds.txt
+        echo "Candidate C-regression check runtime: \$elapsed seconds"
         \"${gkeyll}\" ci/jenkins/check_regression_results.lua \"${results}\" ci/jenkins/expected_regression_diffs.txt ci-regression-summary.txt
     """
 }
@@ -123,11 +140,21 @@ def runParallelRegressions(String mpiExec) {
         test -x "${mpiExec}"
 
         "${baselineGkeyll}" runregression configure --source-dir "${env.WORKSPACE}/_baseline" --prefix "${env.WORKSPACE}/_baseline/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${mpiExec}"
+        started=\$(date +%s)
         "${baselineGkeyll}" runregression run --c-only --parallel compile
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > baseline-parallel-c-compile-seconds.txt
+
+        started=\$(date +%s)
         "${baselineGkeyll}" runregression run --c-only --parallel --execute-only create
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > baseline-parallel-c-regression-create-seconds.txt
 
         "${gkeyll}" runregression configure --source-dir "${env.WORKSPACE}" --prefix "${env.WORKSPACE}/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${mpiExec}"
+        started=\$(date +%s)
         "${gkeyll}" runregression run --c-only --parallel compile
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > candidate-parallel-c-compile-seconds.txt
 
         for layer in moments vlasov gyrokinetic pkpm; do
             if [ -d "${baselineResults}/\$layer/creg-accepted" ]; then
@@ -135,9 +162,64 @@ def runParallelRegressions(String mpiExec) {
                 mv "${baselineResults}/\$layer/creg-accepted" "${results}/\$layer/creg-accepted"
             fi
         done
+        started=\$(date +%s)
         "${gkeyll}" runregression run --c-only --parallel --execute-only check
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > candidate-parallel-c-regression-check-seconds.txt
         "${gkeyll}" ci/jenkins/check_regression_results.lua "${results}" ci/jenkins/expected_regression_diffs.txt ci-parallel-regression-summary.txt
     """
+}
+
+def writeCiTimingSummary() {
+    sh '''#!/bin/bash
+        set -euo pipefail
+
+        metric() {
+            local file="$1"
+            if [[ -f "$file" ]]; then
+                local value
+                value="$(tr -d '[:space:]' < "$file")"
+                if [[ -n "$value" ]]; then
+                    printf '%s' "$value"
+                    return
+                fi
+            fi
+            printf 'not-recorded'
+        }
+
+        candidate_unit_build="$(metric candidate-unit-build-seconds.txt)"
+        baseline_unit_build="$(metric baseline-unit-build-seconds.txt)"
+        candidate_unit_test="$(metric candidate-unit-test-seconds.txt)"
+        baseline_unit_test="$(metric baseline-unit-test-seconds.txt)"
+        candidate_regression_build="$(metric candidate-regression-build-seconds.txt)"
+        baseline_regression_build="$(metric baseline-regression-build-seconds.txt)"
+        candidate_install="$(metric candidate-install-seconds.txt)"
+        baseline_install="$(metric baseline-install-seconds.txt)"
+        candidate_parallel_compile="$(metric candidate-parallel-c-compile-seconds.txt)"
+        baseline_parallel_compile="$(metric baseline-parallel-c-compile-seconds.txt)"
+        regression_create="$(metric baseline-c-regression-create-seconds.txt)"
+        regression_check="$(metric candidate-c-regression-check-seconds.txt)"
+        parallel_regression_create="$(metric baseline-parallel-c-regression-create-seconds.txt)"
+        parallel_regression_check="$(metric candidate-parallel-c-regression-check-seconds.txt)"
+
+        {
+            printf 'candidate_unit_build_seconds=%s\n' "$candidate_unit_build"
+            printf 'baseline_unit_build_seconds=%s\n' "$baseline_unit_build"
+            printf 'candidate_unit_test_seconds=%s\n' "$candidate_unit_test"
+            printf 'baseline_unit_test_seconds=%s\n' "$baseline_unit_test"
+            printf 'candidate_regression_build_seconds=%s\n' "$candidate_regression_build"
+            printf 'baseline_regression_build_seconds=%s\n' "$baseline_regression_build"
+            printf 'candidate_install_seconds=%s\n' "$candidate_install"
+            printf 'baseline_install_seconds=%s\n' "$baseline_install"
+            printf 'candidate_parallel_c_compile_seconds=%s\n' "$candidate_parallel_compile"
+            printf 'baseline_parallel_c_compile_seconds=%s\n' "$baseline_parallel_compile"
+            printf 'baseline_c_regression_create_seconds=%s\n' "$regression_create"
+            printf 'candidate_c_regression_check_seconds=%s\n' "$regression_check"
+            printf 'baseline_parallel_c_regression_create_seconds=%s\n' "$parallel_regression_create"
+            printf 'candidate_parallel_c_regression_check_seconds=%s\n' "$parallel_regression_check"
+        } > ci-timing-summary.txt
+        cat ci-timing-summary.txt
+    '''
 }
 
 def candidatePr = params.CANDIDATE_PR?.trim() ?: env.CI_CANDIDATE_PR?.trim()
@@ -173,7 +255,7 @@ node(label) {
             writeFile file: 'ci-candidate-commit.txt', text: "${commit}\n"
         }
         stage('Report pending') { publishStatus(statusCredentialsId, env.CI_STATUS_CONTEXT ?: 'continuous-integration/jenkins/personal', commit, 'pending', 'Gkeyll CI is running.') }
-        stage('Build candidate') { buildTree("${env.WORKSPACE}/gkylsoft", mkdeps, configure, jobs) }
+        stage('Build candidate') { buildTree('candidate', "${env.WORKSPACE}/gkylsoft", mkdeps, configure, jobs) }
         stage('Build baseline') { createBaseline(requestedBaseline, mkdeps, configure, jobs, regressionJobs) }
         stage('C regressions') { runCandidateRegressions(regressionJobs) }
         stage('Parallel C regressions') { runParallelRegressions(mpiExec); status = 'success'; description = 'Personal CI passed.' }
@@ -181,7 +263,11 @@ node(label) {
         if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) { status = 'error'; description = 'Personal CI was aborted.' }
         throw err
     } finally {
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+        try {
+            writeCiTimingSummary()
+        } finally {
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+        }
         if (commit) publishStatus(statusCredentialsId, env.CI_STATUS_CONTEXT ?: 'continuous-integration/jenkins/personal', commit, status, description)
         deleteDir()
     }

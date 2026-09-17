@@ -443,8 +443,21 @@ def writeCiTimingSummary() {
 
         candidate_compile="$(metric candidate-c-compile-seconds.txt __file__)"
         baseline_compile="$(metric baseline-c-compile-seconds.txt __file__)"
+        candidate_parallel_compile="$(metric candidate-parallel-c-compile-seconds.txt __file__)"
+        baseline_parallel_compile="$(metric baseline-parallel-c-compile-seconds.txt __file__)"
+        candidate_install="$(metric candidate-install-seconds.txt __file__)"
+        baseline_install="$(metric baseline-install-seconds.txt __file__)"
+        candidate_unit_build="$(metric candidate-unit-build-seconds.txt __file__)"
+        baseline_unit_build="$(metric baseline-unit-build-seconds.txt __file__)"
+        candidate_unit_test="$(metric unit-test-seconds.txt __file__)"
+        baseline_unit_test='not-recorded'
+        regression_create="$(metric baseline-c-regression-create-seconds.txt __file__)"
+        regression_check="$(metric candidate-c-regression-check-seconds.txt __file__)"
+        parallel_regression_create="$(metric baseline-parallel-c-regression-create-seconds.txt __file__)"
+        parallel_regression_check="$(metric candidate-parallel-c-regression-check-seconds.txt __file__)"
         unit_elapsed="$(metric slurm-unit-job-status.txt elapsed_seconds)"
         regression_elapsed="$(metric slurm-regression-job-status.txt elapsed_seconds)"
+        parallel_regression_elapsed="$(metric slurm-parallel-regression-job-status.txt elapsed_seconds)"
         c_passed="$(metric ci-regression-summary.txt c_regression_passed)"
         c_acknowledged="$(metric ci-regression-summary.txt c_regression_acknowledged)"
         c_unacknowledged="$(metric ci-regression-summary.txt c_regression_unacknowledged)"
@@ -457,9 +470,22 @@ def writeCiTimingSummary() {
         {
             printf 'candidate_c_compile_seconds=%s\n' "$candidate_compile"
             printf 'baseline_c_compile_seconds=%s\n' "$baseline_compile"
+            printf 'candidate_parallel_c_compile_seconds=%s\n' "$candidate_parallel_compile"
+            printf 'baseline_parallel_c_compile_seconds=%s\n' "$baseline_parallel_compile"
             printf 'login_c_compile_seconds=%s\n' "$compile_total"
+            printf 'candidate_install_seconds=%s\n' "$candidate_install"
+            printf 'baseline_install_seconds=%s\n' "$baseline_install"
+            printf 'candidate_unit_build_seconds=%s\n' "$candidate_unit_build"
+            printf 'baseline_unit_build_seconds=%s\n' "$baseline_unit_build"
+            printf 'candidate_unit_test_seconds=%s\n' "$candidate_unit_test"
+            printf 'baseline_unit_test_seconds=%s\n' "$baseline_unit_test"
+            printf 'baseline_c_regression_create_seconds=%s\n' "$regression_create"
+            printf 'candidate_c_regression_check_seconds=%s\n' "$regression_check"
+            printf 'baseline_parallel_c_regression_create_seconds=%s\n' "$parallel_regression_create"
+            printf 'candidate_parallel_c_regression_check_seconds=%s\n' "$parallel_regression_check"
             printf 'unit_slurm_elapsed_seconds=%s\n' "$unit_elapsed"
             printf 'regression_slurm_elapsed_seconds=%s\n' "$regression_elapsed"
+            printf 'parallel_regression_slurm_elapsed_seconds=%s\n' "$parallel_regression_elapsed"
             printf 'c_regression_passed=%s\n' "$c_passed"
             printf 'c_regression_acknowledged=%s\n' "$c_acknowledged"
             printf 'c_regression_unacknowledged=%s\n' "$c_unacknowledged"
@@ -577,7 +603,11 @@ node(nodeLabel) {
                     # same environment used by the Stellar machine scripts.
                     . machines/module_load.stellar-intel.sh
                     module list
+                    started=\$(date +%s)
                     make -j${jobs} unit
+                    elapsed=\$(( \$(date +%s) - started ))
+                    printf '%s\\n' "\$elapsed" > candidate-unit-build-seconds.txt
+                    echo "Candidate unit-test build time: \$elapsed seconds"
                 """
             }
             stage('Run unit tests (SLURM)') {
@@ -588,7 +618,11 @@ node(nodeLabel) {
                 sh """#!/bin/bash -l
                     set -euo pipefail
                     . machines/module_load.stellar-intel.sh
+                    started=\$(date +%s)
                     make -j${jobs} install
+                    elapsed=\$(( \$(date +%s) - started ))
+                    printf '%s\\n' "\$elapsed" > candidate-install-seconds.txt
+                    echo "Candidate install time: \$elapsed seconds"
                 """
             }
             stage('Compile candidate C regressions') {
@@ -625,7 +659,11 @@ node(nodeLabel) {
                     sh """#!/bin/bash -l
                         set -euo pipefail
                         . ../machines/module_load.stellar-intel.sh
+                        started=\$(date +%s)
                         make -j${jobs} install
+                        elapsed=\$(( \$(date +%s) - started ))
+                        printf '%s\\n' "\$elapsed" > ../baseline-install-seconds.txt
+                        echo "Baseline install time: \$elapsed seconds"
                     """
                 }
             }
