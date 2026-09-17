@@ -258,8 +258,9 @@ void test_1x2v(int poly_order, bool use_gpu)
   deltaf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   gkyl_array_set(deltaf, -1.0, distf);
 
+  struct gkyl_positivity_shift_gyrokinetic_regions shift_everywhere = {.num_regions = 0};
   struct gkyl_positivity_shift_gyrokinetic *pos_shift = gkyl_positivity_shift_gyrokinetic_new(
-    confBasis, basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal_ext, use_gpu
+    confBasis, basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal_ext, shift_everywhere, use_gpu
   );
   gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &confLocal, &local, distf, m0, ps_delta_m0);
 
@@ -340,6 +341,211 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_position_map_release(pmap);
 }
 
+// Check that restricting the shift to a subset of z-cells only modifies f
+// there: within the region f matches the everywhere-shifted result, and outside
+// the region f is left untouched. Comparing against a reference run (rather than
+// golden numbers) keeps this robust to changes in the shift kernels.
+void test_1x2v_regions(int poly_order, bool use_gpu)
+{
+  int cdim = 1;
+  double vpar_max = 6.0;
+  double mu_max = 36.0;
+  double lower[] = {0.1, -vpar_max, 0.0}, upper[] = {1.0, vpar_max, mu_max};
+  int cells[] = {2, 12, 8};
+
+  int ndim = sizeof(cells) / sizeof(cells[0]);
+  int vdim = ndim - cdim;
+
+  struct test_ctx proj_ctx = {
+    .n0 = 1.0,
+    .upar = 0,
+    .temp = 2.75,
+    .mass = 1.0,
+    .B0 = 1.0,
+    .vdim = vdim,
+    .vpar_max = vpar_max,
+    .mu_max = mu_max
+  };
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d = 0; d < cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double velLower[vdim], velUpper[vdim];
+  int velCells[vdim];
+  for (int d = 0; d < vdim; d++) {
+    velLower[d] = lower[cdim + d];
+    velUpper[d] = upper[cdim + d];
+    velCells[d] = cells[cdim + d];
+  }
+
+  // Grids.
+  struct gkyl_rect_grid grid, confGrid, velGrid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
+
+  // Basis functions.
+  struct gkyl_basis basis, confBasis;
+  gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+
+  // Ranges.
+  int confGhost[GKYL_MAX_CDIM] = {1};
+  struct gkyl_range confLocal, confLocal_ext;
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+
+  int velGhost[3] = {0};
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
+  int ghost[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < cdim; d++) {
+    ghost[d] = confGhost[d];
+  }
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // Magnetic field magnitude.
+  struct gkyl_array *bmag_ho, *bmag;
+  bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  bmag_ho = use_gpu ? mkarr(false, bmag->ncomp, bmag->size) : bmag;
+  gkyl_proj_on_basis *proj_bmag =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_bmag_1x, &proj_ctx);
+  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
+  gkyl_array_copy(bmag, bmag_ho);
+
+  // Initial distribution function (has negative regions) and two working copies.
+  struct gkyl_array *distf_orig = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_orig_ho = use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) :
+                                               distf_orig;
+  gkyl_proj_on_basis *proj_distf =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_distf_1x2v, &proj_ctx);
+  gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_orig_ho);
+  gkyl_array_copy(distf_orig, distf_orig_ho);
+
+  struct gkyl_array *distf_all =
+    mkarr(use_gpu, basis.num_basis, local_ext.volume); // Shifted everywhere.
+  struct gkyl_array *distf_reg =
+    mkarr(use_gpu, basis.num_basis, local_ext.volume); // Shifted in region only.
+  gkyl_array_copy(distf_all, distf_orig);
+  gkyl_array_copy(distf_reg, distf_orig);
+
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
+  // Initialize geometry.
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = {0.0},
+    .mapc2p = mapc2p,
+    .c2p_ctx = 0,
+    .bfield_func = eval_bfield_1x,
+    .bfield_ctx = &proj_ctx,
+    .basis = confBasis,
+    .grid = confGrid,
+    .local = confLocal,
+    .local_ext = confLocal_ext,
+    .global = confLocal,
+    .global_ext = confLocal_ext,
+    .position_map = pmap
+  };
+  int geo_ghost[3] = {1, 1, 1};
+  geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
+  gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
+  gkyl_create_grid_ranges(
+    &geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext, &geometry_input.geo_global
+  );
+  memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
+  memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
+  struct gk_geometry *gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
+  gkyl_gk_geometry_release(gk_geom_3d);
+  if (use_gpu) {
+    struct gk_geometry *gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
+  // Velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = {};
+  struct gkyl_velocity_map *gvm =
+    gkyl_velocity_map_new(c2p_in, grid, velGrid, local, local_ext, velLocal, velLocal_ext, use_gpu);
+
+  struct gkyl_array *m0 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *delta_m0 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+
+  // Reference: shift everywhere.
+  struct gkyl_positivity_shift_gyrokinetic_regions everywhere = {.num_regions = 0};
+  struct gkyl_positivity_shift_gyrokinetic *pos_all = gkyl_positivity_shift_gyrokinetic_new(
+    confBasis, basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal_ext, everywhere, use_gpu
+  );
+  gkyl_positivity_shift_gyrokinetic_advance(pos_all, &confLocal, &local, distf_all, m0, delta_m0);
+
+  // Restrict the shift to the upper z-cell only. The z-grid [0.1,1.0] has two
+  // cells split at 0.55, so [0.6,1.0] selects only the second cell (index 2).
+  struct gkyl_positivity_shift_gyrokinetic_regions region = {
+    .num_regions = 1, .lower = {0.6}, .upper = {1.0}
+  };
+  struct gkyl_positivity_shift_gyrokinetic *pos_reg = gkyl_positivity_shift_gyrokinetic_new(
+    confBasis, basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal_ext, region, use_gpu
+  );
+  gkyl_positivity_shift_gyrokinetic_advance(pos_reg, &confLocal, &local, distf_reg, m0, delta_m0);
+
+  // Copy results to host for comparison.
+  struct gkyl_array *distf_all_ho = use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) :
+                                              distf_all;
+  struct gkyl_array *distf_reg_ho = use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) :
+                                              distf_reg;
+  if (use_gpu) {
+    gkyl_array_copy(distf_all_ho, distf_all);
+    gkyl_array_copy(distf_reg_ho, distf_reg);
+  }
+
+  // In the restriction region (z-cell index 2) the region run must match the
+  // everywhere run; outside it must match the (unshifted) original.
+  int restricted_z_idx = 2;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&local, iter.idx);
+    const double *freg = gkyl_array_cfetch(distf_reg_ho, linidx);
+    const double *fref = iter.idx[cdim - 1] == restricted_z_idx ?
+                           gkyl_array_cfetch(distf_all_ho, linidx) :
+                           gkyl_array_cfetch(distf_orig_ho, linidx);
+    for (int k = 0; k < basis.num_basis; k++) {
+      TEST_CHECK(gkyl_compare(freg[k], fref[k], 1e-14));
+      TEST_MSG(
+        "z-cell %d, comp %d: produced: %.14e | expected: %.14e", iter.idx[cdim - 1], k, freg[k],
+        fref[k]
+      );
+    }
+  }
+
+  gkyl_array_release(bmag);
+  gkyl_array_release(distf_orig);
+  gkyl_array_release(distf_all);
+  gkyl_array_release(distf_reg);
+  gkyl_array_release(m0);
+  gkyl_array_release(delta_m0);
+  if (use_gpu) {
+    gkyl_array_release(bmag_ho);
+    gkyl_array_release(distf_orig_ho);
+    gkyl_array_release(distf_all_ho);
+    gkyl_array_release(distf_reg_ho);
+  }
+  gkyl_proj_on_basis_release(proj_bmag);
+  gkyl_proj_on_basis_release(proj_distf);
+  gkyl_positivity_shift_gyrokinetic_release(pos_all);
+  gkyl_positivity_shift_gyrokinetic_release(pos_reg);
+  gkyl_gk_geometry_release(gk_geom);
+  gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
+}
+
 void test_positivity_shift_1x2v_ho()
 {
   test_1x2v(1, false);
@@ -350,10 +556,22 @@ void test_positivity_shift_1x2v_dev()
   test_1x2v(1, true);
 }
 
+void test_1x2v_regions_ho()
+{
+  test_1x2v_regions(1, false);
+}
+
+void test_1x2v_regions_dev()
+{
+  test_1x2v_regions(1, true);
+}
+
 TEST_LIST = {
   {"test_positivity_shift_1x2v_ho", test_positivity_shift_1x2v_ho},
+  {"test_1x2v_regions_ho", test_1x2v_regions_ho},
 #ifdef GKYL_HAVE_CUDA
   {"test_positivity_shift_1x2v_dev", test_positivity_shift_1x2v_dev},
+  {"test_1x2v_regions_dev", test_1x2v_regions_dev},
 #endif
   {NULL, NULL}
 };

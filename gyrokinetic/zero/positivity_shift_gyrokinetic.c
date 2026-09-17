@@ -4,10 +4,42 @@
 #include <gkyl_array_ops.h>
 #include <float.h>
 
+// Convert the user-specified z-coordinate regions into inclusive cell-index
+// intervals along the field-line direction (z = last conf-space direction).
+static struct gkyl_positivity_shift_gyrokinetic_shift_region_idx pos_shift_gk_regions_coords_to_idx(
+  struct gkyl_rect_grid grid, int cdim,
+  struct gkyl_positivity_shift_gyrokinetic_regions coord_regions
+)
+{
+  int z_dir = cdim - 1;
+  assert(coord_regions.num_regions <= GKYL_MAX_POSITIVITY_SHIFT_REGIONS);
+
+  struct gkyl_positivity_shift_gyrokinetic_shift_region_idx idx_regions = {
+    .z_dir = z_dir, .num_regions = coord_regions.num_regions
+  };
+
+  double zlower = grid.lower[z_dir], dz = grid.dx[z_dir];
+  int num_z_cells = grid.cells[z_dir];
+  for (int r = 0; r < coord_regions.num_regions; r++) {
+    assert(coord_regions.lower[r] <= coord_regions.upper[r]);
+
+    // Cell index (1-based) of the cell containing each coordinate, clamped to
+    // the grid. A region that does not intersect the domain yields idx_lo >
+    // idx_hi, so pos_shift_gk_apply_in_cell never matches it.
+    int idx_lo = 1 + (int)floor((coord_regions.lower[r] - zlower) / dz);
+    int idx_hi = 1 + (int)floor((coord_regions.upper[r] - zlower) / dz);
+    idx_regions.idx_lo[r] = GKYL_MAX2(idx_lo, 1);
+    idx_regions.idx_hi[r] = GKYL_MIN2(idx_hi, num_z_cells);
+  }
+
+  return idx_regions;
+}
+
 struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
   struct gkyl_basis cbasis, struct gkyl_basis pbasis, struct gkyl_rect_grid grid, double mass,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
-  const struct gkyl_range *conf_rng_ext, bool use_gpu
+  const struct gkyl_range *conf_rng_ext,
+  struct gkyl_positivity_shift_gyrokinetic_regions shift_regions, bool use_gpu
 )
 {
   // Allocate space for new updater.
@@ -20,6 +52,9 @@ struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
   up->grid = grid;
   up->num_cbasis = cbasis.num_basis;
   up->mass = mass;
+
+  // Restrict the shift to the requested z-regions (everywhere if none given).
+  up->shift_regions = pos_shift_gk_regions_coords_to_idx(grid, cbasis.ndim, shift_regions);
 
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
@@ -96,6 +131,9 @@ void gkyl_positivity_shift_gyrokinetic_advance(
 
     bool shiftedf = false;
 
+    // Only shift f where this conf-cell lies within a restriction region.
+    bool shift_this_cell = pos_shift_gk_apply_in_cell(&up->shift_regions, conf_iter.idx);
+
     gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
 
@@ -122,17 +160,19 @@ void gkyl_positivity_shift_gyrokinetic_advance(
       // Shift f if needed.
       bool shifted_node = false;
 
-      // Divide by jacobtot and jacobvel so that we are shifting just f.
-      up->kernels->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
-      for (int k = 0; k < distf->ncomp; k++) {
-        distf_c[k] /= jacobvel_c[0];
-      }
-      // Shift f to enforce positivity if needed.
-      shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
-      // Multiply by jacobtot and jacobvel to compute M0.
-      up->kernels->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
-      for (int k = 0; k < distf->ncomp; k++) {
-        distf_c[k] *= jacobvel_c[0];
+      if (shift_this_cell) {
+        // Divide by jacobtot and jacobvel so that we are shifting just f.
+        up->kernels->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
+        for (int k = 0; k < distf->ncomp; k++) {
+          distf_c[k] /= jacobvel_c[0];
+        }
+        // Shift f to enforce positivity if needed.
+        shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
+        // Multiply by jacobtot and jacobvel to compute M0.
+        up->kernels->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
+        for (int k = 0; k < distf->ncomp; k++) {
+          distf_c[k] *= jacobvel_c[0];
+        }
       }
 
       if (shifted_node) {

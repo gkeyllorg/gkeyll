@@ -612,6 +612,11 @@ int main(int argc, char **argv)
           .write_diagnostics = true,
           .cfl_factor_times_omega_max = 0.1}},
 
+    .positivity =
+      {.type = GKYL_GK_POSITIVITY_SHIFT,
+       .write_diagnostics = true,
+       .shift_regions = {.num_regions = 2, .lower = {-1.2, 0.8}, .upper = {-0.8, 1.2}}},
+
     .collisions =
       {.collision_id = GKYL_LBO_COLLISIONS,
        .self_nu = evalNuIon,
