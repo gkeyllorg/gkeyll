@@ -239,36 +239,69 @@ def regressionJobs = (env.PERSONAL_REGRESSION_JOBS ?: '1').trim()
 def mpiExec = (env.PERSONAL_MPIEXEC ?: "${env.WORKSPACE}/gkylsoft/openmpi/bin/mpiexec").trim()
 if (!(jobs ==~ /[1-9][0-9]*/) || !(regressionJobs ==~ /[1-9][0-9]*/)) error('PERSONAL_BUILD_JOBS and PERSONAL_REGRESSION_JOBS must be positive integers.')
 
-node(label) {
+def ciStage(String stageName, Closure body) {
+    env.CI_FAILURE_STAGE = stageName
+    stage(stageName) { body.call() }
+}
+
+def writeCiFailureSummary(String result, String stageName, String message) {
+    def compactMessage = (message ?: 'unknown failure').replaceAll('[\\r\\n]+', ' ').trim().take(500)
+    writeFile file: 'ci-failure-summary.txt', text: "result=${result}\nstage=${stageName ?: 'unknown'}\nmessage=${compactMessage}\n"
+}
+
+def runCi = {
     def commit = ''
     def status = 'failure'
     def description = 'Personal CI failed.'
+    def failureMessage = ''
     try {
-        stage('Resolve candidate and baseline') {
+        ciStage('Resolve candidate and baseline') {
             if (candidatePr) { candidateRef = "PR #${candidatePr}"; requestedBaseline = pullRequestBase(statusCredentialsId, candidatePr) }
             writeFile file: 'ci-selection.txt', text: "candidate_selector=${candidateRef}\nbaseline_selector=${requestedBaseline}\n"
         }
-        stage('Checkout candidate') {
+        ciStage('Checkout candidate') {
             deleteDir()
             if (candidatePr) checkoutPullRequest(candidatePr); else checkoutRef(candidateRef, 'candidate')
             commit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
             writeFile file: 'ci-candidate-commit.txt', text: "${commit}\n"
+            if (env.CI_TRUSTED_CI_COMMIT?.trim()) {
+                writeFile file: 'ci-trusted-ci-commit.txt', text: "${env.CI_TRUSTED_CI_COMMIT.trim()}\n"
+            }
         }
-        stage('Report pending') { publishStatus(statusCredentialsId, env.CI_STATUS_CONTEXT ?: 'continuous-integration/jenkins/personal', commit, 'pending', 'Gkeyll CI is running.') }
-        stage('Build candidate') { buildTree('candidate', "${env.WORKSPACE}/gkylsoft", mkdeps, configure, jobs) }
-        stage('Build baseline') { createBaseline(requestedBaseline, mkdeps, configure, jobs, regressionJobs) }
-        stage('C regressions') { runCandidateRegressions(regressionJobs) }
-        stage('Parallel C regressions') { runParallelRegressions(mpiExec); status = 'success'; description = 'Personal CI passed.' }
+        ciStage('Report pending') { publishStatus(statusCredentialsId, env.CI_STATUS_CONTEXT ?: 'continuous-integration/jenkins/personal', commit, 'pending', 'Gkeyll CI is running.') }
+        ciStage('Build candidate') { buildTree('candidate', "${env.WORKSPACE}/gkylsoft", mkdeps, configure, jobs) }
+        ciStage('Build baseline') { createBaseline(requestedBaseline, mkdeps, configure, jobs, regressionJobs) }
+        ciStage('C regressions') { runCandidateRegressions(regressionJobs) }
+        ciStage('Parallel C regressions') { runParallelRegressions(mpiExec); status = 'success'; description = 'Personal CI passed.' }
     } catch (err) {
+        failureMessage = err.toString()
         if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) { status = 'error'; description = 'Personal CI was aborted.' }
         throw err
     } finally {
         try {
             writeCiTimingSummary()
+        } catch (err) {
+            status = 'error'
+            description = 'Personal CI timing summary failed.'
+            failureMessage = err.toString()
+            env.CI_FAILURE_STAGE = 'Write CI timing summary'
+            throw err
         } finally {
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+            if (status != 'success') writeCiFailureSummary(status, env.CI_FAILURE_STAGE, failureMessage ?: description)
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
         }
         if (commit) publishStatus(statusCredentialsId, env.CI_STATUS_CONTEXT ?: 'continuous-integration/jenkins/personal', commit, status, description)
         deleteDir()
+    }
+}
+
+// The team-workstation inline bootstrap already owns the agent while it
+// checks out this trusted workflow from main. Reusing that allocation avoids
+// a nested node() request, which can deadlock a one-executor workstation.
+if (env.CI_NODE_ALREADY_ALLOCATED == 'true') {
+    runCi()
+} else {
+    node(label) {
+        runCi()
     }
 }

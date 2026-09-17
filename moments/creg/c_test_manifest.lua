@@ -62,6 +62,13 @@ return {
          "rt_vacuum_einstein_linearwave",
          "rt_gr_mild_shock_tetrad",
          "rt_gr_ultra_rel_shock_tetrad",
+         "rt_5m_friction",
+         "rt_coldfluid_em_coupling",
+         "rt_5m_elc_heat_flux",
+         "rt_coldfluid_beach",
+         "rt_5m_ion_heat_flux",
+         "rt_5m_hartmann",
+         "rt_iso_euler_hartmann",
       },
       gpu = {
       },

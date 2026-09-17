@@ -1544,7 +1544,7 @@ local function check_action(test, runDir, testType, absTol, relTol)
    local checkLog = ""
    if passed then
       layerCounts[test.layer].passed = layerCounts[test.layer].passed + 1
-      log("... passed.\n")
+      log(string.format("... passed %s.\n", test.name))
    else
       layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
       log(string.format("... %s FAILED!\n", test.name))

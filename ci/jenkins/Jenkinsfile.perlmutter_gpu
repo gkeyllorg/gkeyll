@@ -540,13 +540,24 @@ def baselineSelector = ''
 def candidateCommit = ''
 def terminalStatus = 'failure'
 def terminalDescription = 'Perlmutter GPU CI failed.'
+def failureMessage = ''
+
+def ciStage(String stageName, Closure body) {
+    env.CI_FAILURE_STAGE = stageName
+    stage(stageName) { body.call() }
+}
+
+def writeCiFailureSummary(String result, String stageName, String message) {
+    def compactMessage = (message ?: 'unknown failure').replaceAll('[\\r\\n]+', ' ').trim().take(500)
+    writeFile file: 'ci-failure-summary.txt', text: "result=${result}\nstage=${stageName ?: 'unknown'}\nmessage=${compactMessage}\n"
+}
 
 node(nodeLabel) {
     // Perlmutter compute nodes must see this path. Configure the root on a shared
     // filesystem such as the project's /scratch/gpfs location, never /tmp.
     ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
         try {
-            stage('Resolve candidate and baseline') {
+            ciStage('Resolve candidate and baseline') {
                 if (candidatePr) {
                     candidateSelector = "PR #${candidatePr}"
                     baselineSelector = resolvePullRequestBase(statusCredentialsId, candidatePr)
@@ -557,7 +568,7 @@ node(nodeLabel) {
                 echo "Candidate selector: ${candidateSelector}"
                 echo "Baseline selector: ${baselineSelector}"
             }
-            stage('Checkout candidate') {
+            ciStage('Checkout candidate') {
                 deleteDir()
                 if (candidatePr) {
                     checkoutPullRequest(candidatePr)
@@ -569,7 +580,7 @@ node(nodeLabel) {
                 writeFile file: 'ci-selection.txt', text: "candidate_selector=${candidateSelector}\nbaseline_selector=${baselineSelector}\n"
                 sh 'git status --short'
             }
-            stage('Report pending to GitHub') {
+            ciStage('Report pending to GitHub') {
                 publishGitHubCommitStatus(
                     statusCredentialsId,
                     candidateCommit,
@@ -577,7 +588,7 @@ node(nodeLabel) {
                     'Perlmutter GPU candidate CI is running.'
                 )
             }
-            stage('Build dependencies') {
+            ciStage('Build dependencies') {
                 withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
                     sh '''#!/bin/bash -l
                         set -euo pipefail
@@ -585,7 +596,7 @@ node(nodeLabel) {
                     '''
                 }
             }
-            stage('Configure') {
+            ciStage('Configure') {
                 withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
                     sh '''#!/bin/bash -l
                         set -euo pipefail
@@ -593,7 +604,7 @@ node(nodeLabel) {
                     '''
                 }
             }
-            stage('Build unit tests') {
+            ciStage('Build unit tests') {
                 def jobs = buildJobs()
                 sh """#!/bin/bash -l
                     set -euo pipefail
@@ -608,10 +619,10 @@ node(nodeLabel) {
                     echo "Candidate unit-test build time: \$elapsed seconds"
                 """
             }
-            stage('Run unit tests (SLURM)') {
+            ciStage('Run unit tests (SLURM)') {
                 submitUnitTests()
             }
-            stage('Install candidate for C regression') {
+            ciStage('Install candidate for C regression') {
                 def jobs = buildJobs()
                 sh """#!/bin/bash -l
                     set -euo pipefail
@@ -623,7 +634,7 @@ node(nodeLabel) {
                     echo "Candidate install time: \$elapsed seconds"
                 """
             }
-            stage('Compile candidate C regressions') {
+            ciStage('Compile candidate C regressions') {
                 configureAndCompileCRegressions(
                     'candidate',
                     "${env.WORKSPACE}/gkylsoft/gkeyll/bin/gkeyll",
@@ -632,14 +643,14 @@ node(nodeLabel) {
                     'machines/module_load.perlmutter-gpu.sh'
                 )
             }
-            stage('Checkout Perlmutter GPU baseline') {
+            ciStage('Checkout Perlmutter GPU baseline') {
                 dir('_baseline') {
                     deleteDir()
                     checkoutRef(baselineSelector, 'baseline')
                     sh 'git rev-parse HEAD | tee ../ci-baseline-commit.txt'
                 }
             }
-            stage('Build Perlmutter GPU baseline') {
+            ciStage('Build Perlmutter GPU baseline') {
                 withEnv(["PREFIX=${env.WORKSPACE}/_baseline/gkylsoft"]) {
                     dir('_baseline') {
                         sh '''#!/bin/bash -l
@@ -651,7 +662,7 @@ node(nodeLabel) {
                     }
                 }
             }
-            stage('Install Perlmutter GPU baseline') {
+            ciStage('Install Perlmutter GPU baseline') {
                 def jobs = buildJobs()
                 dir('_baseline') {
                     sh """#!/bin/bash -l
@@ -665,7 +676,7 @@ node(nodeLabel) {
                     """
                 }
             }
-            stage('Compile Perlmutter GPU baseline C regressions') {
+            ciStage('Compile Perlmutter GPU baseline C regressions') {
                 configureAndCompileCRegressions(
                     'baseline',
                     "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll",
@@ -674,10 +685,10 @@ node(nodeLabel) {
                     'machines/module_load.perlmutter-gpu.sh'
                 )
             }
-            stage('Run C regressions (SLURM)') {
+            ciStage('Run C regressions (SLURM)') {
                 submitRegressionTests()
             }
-            stage('Compile parallel C regressions') {
+            ciStage('Compile parallel C regressions') {
                 configureAndCompileCRegressions(
                     'candidate-parallel',
                     "${env.WORKSPACE}/gkylsoft/gkeyll/bin/gkeyll",
@@ -695,12 +706,13 @@ node(nodeLabel) {
                     '--parallel', '--results-subdir parallel-c-4 --mpiexec srun'
                 )
             }
-            stage('Run parallel C regressions (SLURM)') {
+            ciStage('Run parallel C regressions (SLURM)') {
                 submitParallelRegressionTests()
             }
             terminalStatus = 'success'
             terminalDescription = 'Perlmutter GPU unit and C regression tests passed.'
         } catch (err) {
+            failureMessage = err.toString()
             if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) {
                 terminalStatus = 'error'
                 terminalDescription = 'Perlmutter GPU CI was aborted.'
@@ -712,6 +724,8 @@ node(nodeLabel) {
             } catch (err) {
                 terminalStatus = 'error'
                 terminalDescription = 'Perlmutter GPU CI cleanup failed.'
+                failureMessage = err.toString()
+                env.CI_FAILURE_STAGE = 'Finalize SLURM job'
                 throw err
             } finally {
                 try {
@@ -720,11 +734,14 @@ node(nodeLabel) {
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Perlmutter GPU CI timing summary failed.'
+                    failureMessage = err.toString()
+                    env.CI_FAILURE_STAGE = 'Write CI timing summary'
                     throw err
                 }
                 try {
+                    if (terminalStatus != 'success') writeCiFailureSummary(terminalStatus, env.CI_FAILURE_STAGE, failureMessage ?: terminalDescription)
                     archiveArtifacts allowEmptyArchive: true,
-                        artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt'
+                        artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt'
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Perlmutter GPU CI artifact archival failed.'

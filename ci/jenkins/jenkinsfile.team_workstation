@@ -1,6 +1,12 @@
-// Team workstation multibranch entry point. Configure Jenkins to discover
-// main and pull requests targeting main; CLI requests are sent to its main
-// child job so this file is loaded from trusted main for explicit selectors.
+// Trusted team-workstation workflow. Production Jenkins must load this file
+// only through the inline bootstrap documented in README.team_workstation.md:
+// that bootstrap checks out main into _trusted_ci before loading this script.
+// Do not configure this path as a normal multibranch Jenkinsfile: in that
+// mode a PR would be able to replace the Pipeline that controls CI.
+if (env.CI_TEAM_WORKSTATION_BOOTSTRAPPED != 'true') {
+    error('This workflow must be loaded by the trusted team-workstation inline bootstrap; see ci/jenkins/README.team_workstation.md.')
+}
+
 def explicitSelector = params.CANDIDATE_PR?.trim() || params.CANDIDATE_REF?.trim() || params.BASELINE_REF?.trim()
 if (!explicitSelector && env.BRANCH_NAME != 'main' && !env.CHANGE_ID) {
     echo "Skipping non-PR branch '${env.BRANCH_NAME}'."
@@ -8,7 +14,8 @@ if (!explicitSelector && env.BRANCH_NAME != 'main' && !env.CHANGE_ID) {
 }
 
 def forwarded = [
-    'CI_STATUS_CONTEXT=continuous-integration/jenkins/team-workstation',
+    "CI_STATUS_CONTEXT=${env.TEAM_WORKSTATION_STATUS_CONTEXT ?: 'continuous-integration/jenkins/team-workstation'}",
+    'CI_NODE_ALREADY_ALLOCATED=true',
     "PERSONAL_NODE_LABEL=${env.TEAM_WORKSTATION_NODE_LABEL ?: ''}",
     "PERSONAL_MKDEPS_SCRIPT=${env.TEAM_WORKSTATION_MKDEPS_SCRIPT ?: ''}",
     "PERSONAL_CONFIGURE_SCRIPT=${env.TEAM_WORKSTATION_CONFIGURE_SCRIPT ?: ''}",
@@ -28,5 +35,7 @@ if (!explicitSelector && env.CHANGE_ID) {
 }
 
 withEnv(forwarded) {
-    load 'ci/jenkins/jenkinsfile.personal'
+    // This absolute path remains valid after entering the candidate workspace.
+    // It is deliberately the bootstrap's main checkout, never the PR checkout.
+    load "${env.TRUSTED_CI_DIR}/ci/jenkins/jenkinsfile.personal"
 }

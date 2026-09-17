@@ -2,12 +2,14 @@
 # Submit, rescan, and inspect the local team-workstation Jenkins job. Jenkins
 # must already be running; this script never starts a controller or tmux.
 set -euo pipefail
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 JENKINS_URL="${JENKINS_URL:-http://127.0.0.1:8080}"
 JENKINS_JOB="${JENKINS_JOB:-gkeyll-ci-team-workstation/main}"
 JENKINS_ROOT_JOB="${JENKINS_ROOT_JOB:-gkeyll-ci-team-workstation}"
 JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-$HOME/.config/gkeyll/jenkins/team-workstation.auth}"
 JENKINS_CLI_JAR="${JENKINS_CLI_JAR:-${TMPDIR:-/tmp}/gkeyll-jenkins-cli.jar}"
 CURL_CONFIG=''; QUEUE_ID=''; RESOLVED_BUILD_NUMBER=''
+source "$SCRIPT_DIR/jenkins-client-artifacts.sh"
 die() { echo "ERROR: $*" >&2; exit 1; }
 usage() { cat <<'EOF'
 Usage: jenkins-team-workstation.sh <command> [flags]
@@ -17,6 +19,8 @@ Commands:
   run      Queue a pull-request or comparison build.
   active   List this job's queued and running work.
   recent   List retained builds.
+  info     Show detailed information for a retained build.
+  artifact List or download retained build artifacts.
   status   Show a queued or known build's state.
   follow   Wait for and stream a queued or known build.
   abort    Cancel a queued or running build.
@@ -65,6 +69,24 @@ Flags:
   --build NUMBER        Inspect a known Jenkins build.
 EOF
   ;;
+  info) cat <<'EOF'
+Usage: jenkins-team-workstation.sh info --build NUMBER
+
+Flags:
+  --build NUMBER        Show detailed information for a retained Jenkins build.
+EOF
+  ;;
+  artifact) cat <<'EOF'
+Usage: jenkins-team-workstation.sh artifact --build NUMBER [--list | --fetch [--only PATH[,PATH...]] [--output-dir DIR]]
+
+Flags:
+  --build NUMBER        Select a retained Jenkins build.
+  --list                List artifacts (the default).
+  --fetch               Download artifacts.
+  --only PATHS          Comma-separated artifact-relative paths to download.
+  --output-dir DIR      New directory for downloaded artifacts.
+EOF
+  ;;
   follow) cat <<'EOF'
 Usage: jenkins-team-workstation.sh follow (--queue ID | --build NUMBER)
 
@@ -84,6 +106,7 @@ EOF
  esac
 }
 path_for() { local job="$1" p='/job' x; IFS=/ read -ra part <<< "$job"; for x in "${part[@]}"; do p+="/$x/job"; done; printf '%s' "${p%/job}"; }
+ci_build_url() { printf '%s%s/%s' "$JENKINS_URL" "$(path_for "$JENKINS_JOB")" "$1"; }
 prepare() { [[ -f "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is missing: $JENKINS_CLI_AUTH_FILE"; [[ -O "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is not owned by $USER"; [[ "$(stat -f '%Lp' "$JENKINS_CLI_AUTH_FILE" 2>/dev/null || stat -c '%a' "$JENKINS_CLI_AUTH_FILE")" == 600 ]] || die 'credential file must have mode 600'; local c="$(<"$JENKINS_CLI_AUTH_FILE")"; [[ "$c" =~ ^[^[:space:]:]+:[^[:space:]:]+$ ]] || die 'credential file must contain user:api-token'; CURL_CONFIG="$(mktemp "${TMPDIR:-/tmp}/gkeyll-jenkins.XXXXXX")"; chmod 600 "$CURL_CONFIG"; printf 'user = "%s"\n' "$c" > "$CURL_CONFIG"; trap 'rm -f "$CURL_CONFIG"' EXIT; }
 curl_auth() { curl --fail --silent --show-error --globoff --config "$CURL_CONFIG" "$@"; }
 curl_auth_quiet() { curl --fail --silent --globoff --config "$CURL_CONFIG" "$@"; }
@@ -268,5 +291,5 @@ scan() {
  report_scan "$before_builds" "$after_jobs" "$after_builds"
  rm -rf "$temporary"
 }
-main() { (($#))||{ usage;exit 2;};case "$1" in -h|--help|help)usage;return;;esac;if (($# == 2)) && [[ "$2" == -h || "$2" == --help ]]; then case "$1" in scan|run|active|recent|status|follow|abort) command_usage "$1"; return;; esac; fi;prepare;case "$1" in scan)shift;[[ $# == 0 ]]||die 'usage: scan';scan;;run)shift;run "$@";;follow)shift;follow_command "$@";;status)shift;status_command "$@";;abort)shift;abort "$@";;active)shift;[[ $# == 0 ]]||die 'usage: active';active;;recent)shift;[[ $# == 0 || ( $# == 2 && $1 == --limit ) ]]||die 'usage: recent [--limit NUMBER]';recent "${2:-10}";;*)usage >&2;die "unknown command: $1";;esac; }
+main() { (($#))||{ usage;exit 2;};case "$1" in -h|--help|help)usage;return;;esac;if (($# == 2)) && [[ "$2" == -h || "$2" == --help ]]; then case "$1" in scan|run|active|recent|info|artifact|status|follow|abort) command_usage "$1"; return;; esac; fi;prepare;case "$1" in scan)shift;[[ $# == 0 ]]||die 'usage: scan';scan;;run)shift;run "$@";;follow)shift;follow_command "$@";;status)shift;status_command "$@";;abort)shift;abort "$@";;active)shift;[[ $# == 0 ]]||die 'usage: active';active;;recent)shift;[[ $# == 0 || ( $# == 2 && $1 == --limit ) ]]||die 'usage: recent [--limit NUMBER]';recent "${2:-10}";;info)shift;ci_info_command "$@";;artifact)shift;ci_artifact_command "$@";;*)usage >&2;die "unknown command: $1";;esac; }
 main "$@"

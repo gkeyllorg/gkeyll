@@ -117,6 +117,8 @@ no Slurm job. Do not let a PR supply this Pipeline.
 ./ci/jenkins/gkeyll-ci.sh perlmutter_gpu run --candidate-ref feature --baseline-ref main --follow
 ./ci/jenkins/gkeyll-ci.sh perlmutter_gpu follow --queue 42
 ./ci/jenkins/gkeyll-ci.sh perlmutter_gpu active
+./ci/jenkins/gkeyll-ci.sh perlmutter_gpu info --build 42
+./ci/jenkins/gkeyll-ci.sh perlmutter_gpu artifact --build 42 --fetch --only ci-regression-summary.txt
 ./ci/jenkins/gkeyll-ci.sh perlmutter_gpu abort --build 42
 ```
 

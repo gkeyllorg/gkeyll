@@ -3,6 +3,7 @@
 # already be running (for example as a Homebrew or systemd service).
 set -euo pipefail
 
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 JENKINS_URL="${JENKINS_URL:-http://127.0.0.1:8080}"
 JENKINS_JOB="${JENKINS_JOB:-gkeyll-ci-personal}"
 JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-$HOME/.config/gkeyll/jenkins/personal.auth}"
@@ -10,6 +11,8 @@ JENKINS_CLI_JAR="${JENKINS_CLI_JAR:-${TMPDIR:-/tmp}/gkeyll-jenkins-cli.jar}"
 CURL_CONFIG=''
 QUEUE_ID=''
 RESOLVED_BUILD_NUMBER=''
+
+source "$SCRIPT_DIR/jenkins-client-artifacts.sh"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 usage() {
@@ -20,6 +23,8 @@ Commands:
   run      Queue a pull-request or comparison build.
   active   List this job's queued and running work.
   recent   List retained builds.
+  info     Show detailed information for a retained build.
+  artifact List or download retained build artifacts.
   status   Show a queued or known build's state.
   follow   Wait for and stream a queued or known build.
   abort    Cancel a queued or running build.
@@ -67,6 +72,24 @@ Flags:
   --build NUMBER        Inspect a known Jenkins build.
 EOF
         ;;
+        info) cat <<'EOF'
+Usage: jenkins-personal.sh info --build NUMBER
+
+Flags:
+  --build NUMBER        Show detailed information for a retained Jenkins build.
+EOF
+        ;;
+        artifact) cat <<'EOF'
+Usage: jenkins-personal.sh artifact --build NUMBER [--list | --fetch [--only PATH[,PATH...]] [--output-dir DIR]]
+
+Flags:
+  --build NUMBER        Select a retained Jenkins build.
+  --list                List artifacts (the default).
+  --fetch               Download artifacts.
+  --only PATHS          Comma-separated artifact-relative paths to download.
+  --output-dir DIR      New directory for downloaded artifacts.
+EOF
+        ;;
         follow) cat <<'EOF'
 Usage: jenkins-personal.sh follow (--queue ID | --build NUMBER)
 
@@ -86,6 +109,7 @@ EOF
     esac
 }
 job_path() { local p='/job' n; IFS=/ read -ra n <<< "$JENKINS_JOB"; for x in "${n[@]}"; do p+="/$x/job"; done; printf '%s' "${p%/job}"; }
+ci_build_url() { printf '%s%s/%s' "$JENKINS_URL" "$(job_path)" "$1"; }
 prepare_auth() {
     [[ -f "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is missing: $JENKINS_CLI_AUTH_FILE"
     [[ -O "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is not owned by $USER"
@@ -332,9 +356,9 @@ main() {
     (($#)) || { usage; exit 2; }
     case "$1" in -h|--help|help) usage; return;; esac
     if (($# == 2)) && [[ "$2" == -h || "$2" == --help ]]; then
-        case "$1" in run|active|recent|status|follow|abort) command_usage "$1"; return;; esac
+        case "$1" in run|active|recent|info|artifact|status|follow|abort) command_usage "$1"; return;; esac
     fi
     prepare_auth
-    case "$1" in run) shift; run "$@";; follow) shift; follow_command "$@";; status) shift; status_command "$@";; abort) shift; abort "$@";; active) shift; [[ $# == 0 ]] || die 'usage: active'; active;; recent) shift; [[ $# == 0 || ( $# == 2 && $1 == --limit ) ]] || die 'usage: recent [--limit NUMBER]'; recent "${2:-10}";; -h|--help|help) usage;; *) usage >&2; die "unknown command: $1";; esac
+    case "$1" in run) shift; run "$@";; follow) shift; follow_command "$@";; status) shift; status_command "$@";; abort) shift; abort "$@";; active) shift; [[ $# == 0 ]] || die 'usage: active'; active;; recent) shift; [[ $# == 0 || ( $# == 2 && $1 == --limit ) ]] || die 'usage: recent [--limit NUMBER]'; recent "${2:-10}";; info) shift; ci_info_command "$@";; artifact) shift; ci_artifact_command "$@";; -h|--help|help) usage;; *) usage >&2; die "unknown command: $1";; esac
 }
 main "$@"

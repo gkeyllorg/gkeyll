@@ -23,6 +23,8 @@ Commands:
   run            Queue a pull-request or candidate/baseline comparison build.
   active         List queued and running work.
   recent         List retained builds.
+  info           Show detailed information for a retained build.
+  artifact       List or download retained build artifacts.
   status         Show the state of a queued or known build.
   follow         Wait for and stream a queued or known build.
   abort          Cancel a queued or running build.
@@ -31,6 +33,8 @@ Examples:
   gkeyll-ci.sh personal run --pr 1128 --follow
   gkeyll-ci.sh stellar_cpu recent
   gkeyll-ci.sh perlmutter_gpu status --queue 42
+  gkeyll-ci.sh stellar_cpu info --build 6
+  gkeyll-ci.sh personal artifact --build 6 --fetch --only ci-regression-summary.txt
   gkeyll-ci.sh team scan
 
 Use `gkeyll-ci.sh <command> -h` for flags shared by CI platforms, or
@@ -77,6 +81,28 @@ Flags:
   --build NUMBER        Inspect a known Jenkins build.
 
 Specify a platform to inspect the build: gkeyll-ci.sh <platform> status ...
+EOF
+        ;;
+        info) cat <<'EOF'
+Usage: gkeyll-ci.sh info --build NUMBER
+
+Flags:
+  --build NUMBER        Show detailed information for a retained Jenkins build.
+
+Specify a platform: gkeyll-ci.sh <platform> info --build NUMBER
+EOF
+        ;;
+        artifact) cat <<'EOF'
+Usage: gkeyll-ci.sh artifact --build NUMBER [--list | --fetch [--only PATH[,PATH...]] [--output-dir DIR]]
+
+Flags:
+  --build NUMBER        Select a retained Jenkins build.
+  --list                List artifacts (the default).
+  --fetch               Download artifacts.
+  --only PATHS          Comma-separated artifact-relative paths to download.
+  --output-dir DIR      New directory for downloaded artifacts.
+
+Specify a platform: gkeyll-ci.sh <platform> artifact ...
 EOF
         ;;
         follow) cat <<'EOF'
@@ -126,7 +152,7 @@ main() {
 
     local platform="$1"
     case "$platform" in
-        scan|start|run|active|recent|status|follow|abort)
+        scan|start|run|active|recent|info|artifact|status|follow|abort)
             if (($# == 2)) && [[ "$2" == -h || "$2" == --help ]]; then
                 command_usage "$platform"
                 return

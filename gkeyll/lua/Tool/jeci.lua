@@ -6,7 +6,7 @@ end
 
 local commands = {
    scan = true, start = true, run = true, active = true,
-   recent = true, status = true, follow = true, abort = true,
+   recent = true, info = true, artifact = true, status = true, follow = true, abort = true,
 }
 
 local is_help =

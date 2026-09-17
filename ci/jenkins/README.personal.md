@@ -10,13 +10,14 @@ contributor code.
 
 Install Jenkins LTS and Java 21 or newer with the normal local service
 mechanism (for example `brew install jenkins-lts` and `brew services start
-jenkins-lts` on macOS). Install Pipeline, Git, Credentials Binding, Git client,
-and GitHub Branch Source plugins.
+jenkins-lts` on macOS).
 
 ## Open Jenkins browser
 
 Open the local Jenkins URL, normally `http://127.0.0.1:8080`, complete first
-start setup, and create an administrator account.
+start setup, and create an administrator account. During initial setup, install
+the Pipeline, Git, Credentials Binding, Git client, and GitHub Branch Source
+plugins.
 
 ## Set up Jenkins
 
@@ -76,6 +77,8 @@ to register parameters.
 ./ci/jenkins/gkeyll-ci.sh personal run --pr 1234 --follow
 ./ci/jenkins/gkeyll-ci.sh personal run --candidate-ref feature/new-solver --baseline-ref main
 ./ci/jenkins/gkeyll-ci.sh personal active
+./ci/jenkins/gkeyll-ci.sh personal info --build 42
+./ci/jenkins/gkeyll-ci.sh personal artifact --build 42 --fetch --only ci-regression-summary.txt
 ./ci/jenkins/gkeyll-ci.sh personal abort --build 42
 ```
 

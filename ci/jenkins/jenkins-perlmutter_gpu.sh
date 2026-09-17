@@ -7,6 +7,7 @@
 set -euo pipefail
 
 readonly SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename -- "${BASH_SOURCE[0]}")"
+readonly SCRIPT_DIR="${SCRIPT_PATH%/*}"
 CI_ROOT="${GKEYLL_CI_ROOT:-}"
 JENKINS_HOME="${JENKINS_HOME:-$CI_ROOT/jenkins_home}"
 JENKINS_WEBROOT="${JENKINS_WEBROOT:-$CI_ROOT/jenkins_webroot}"
@@ -23,6 +24,8 @@ CURL_CONFIG=''
 SUBMITTED_QUEUE_ID=''
 RESOLVED_BUILD_NUMBER=''
 
+source "$SCRIPT_DIR/jenkins-client-artifacts.sh"
+
 die() {
     echo "ERROR: $*" >&2
     exit 1
@@ -38,6 +41,8 @@ Commands:
   run      Queue a pull-request or comparison build.
   active   List this job's queued and running work.
   recent   List retained builds.
+  info     Show detailed information for a retained build.
+  artifact List or download retained build artifacts.
   status   Show a queued or known build's state.
   follow   Wait for and stream a queued or known build.
   abort    Cancel a queued or running build.
@@ -91,6 +96,24 @@ Usage: $script status (--queue ID | --build NUMBER)
 Flags:
   --queue ID            Inspect a Jenkins queue item.
   --build NUMBER        Inspect a known Jenkins build.
+EOF
+        ;;
+        info) cat <<EOF
+Usage: $script info --build NUMBER
+
+Flags:
+  --build NUMBER        Show detailed information for a retained Jenkins build.
+EOF
+        ;;
+        artifact) cat <<EOF
+Usage: $script artifact --build NUMBER [--list | --fetch [--only PATH[,PATH...]] [--output-dir DIR]]
+
+Flags:
+  --build NUMBER        Select a retained Jenkins build.
+  --list                List artifacts (the default).
+  --fetch               Download artifacts.
+  --only PATHS          Comma-separated artifact-relative paths to download.
+  --output-dir DIR      New directory for downloaded artifacts.
 EOF
         ;;
         follow) cat <<EOF
@@ -244,6 +267,10 @@ for build in json.load(sys.stdin).get("builds", []):
         print(build["number"])
         break
 ' "$queue_id" <<< "$payload"
+}
+
+ci_build_url() {
+    printf '%s/job/%s/%s' "$JENKINS_URL" "$JENKINS_JOB" "$1"
 }
 
 build_state() {
@@ -593,7 +620,7 @@ recent_command() {
 main() {
     (($# >= 1)) || { usage; exit 2; }
     if (($# == 2)) && [[ "$2" == -h || "$2" == --help ]]; then
-        case "$1" in start|run|active|recent|status|follow|abort) command_usage "$1"; return;; esac
+        case "$1" in start|run|active|recent|info|artifact|status|follow|abort) command_usage "$1"; return;; esac
     fi
     case "$1" in
         __controller) shift; (($# == 0)) || die '__controller takes no arguments'; run_controller ;;
@@ -604,6 +631,8 @@ main() {
         abort) shift; abort_command "$@" ;;
         active) shift; active_command "$@" ;;
         recent) shift; recent_command "$@" ;;
+        info) shift; start_controller; prepare_auth; ci_info_command "$@" ;;
+        artifact) shift; start_controller; prepare_auth; ci_artifact_command "$@" ;;
         -h|--help|help) usage ;;
         *) usage >&2; die "unknown command: $1" ;;
     esac

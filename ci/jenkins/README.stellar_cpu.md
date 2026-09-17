@@ -196,6 +196,8 @@ stop work after reconnecting:
 ./ci/jenkins/gkeyll-ci.sh stellar_cpu status --build 187
 ./ci/jenkins/gkeyll-ci.sh stellar_cpu active
 ./ci/jenkins/gkeyll-ci.sh stellar_cpu recent --limit 5
+./ci/jenkins/gkeyll-ci.sh stellar_cpu info --build 187
+./ci/jenkins/gkeyll-ci.sh stellar_cpu artifact --build 187 --fetch --only ci-regression-summary.txt
 ./ci/jenkins/gkeyll-ci.sh stellar_cpu abort --queue 42
 ```
 
