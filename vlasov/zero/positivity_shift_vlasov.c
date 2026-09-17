@@ -4,34 +4,35 @@
 #include <gkyl_array_ops.h>
 #include <float.h>
 
-struct gkyl_positivity_shift_vlasov*
-gkyl_positivity_shift_vlasov_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-  struct gkyl_rect_grid grid, const struct gkyl_range *conf_rng_ext, bool use_gpu)
+struct gkyl_positivity_shift_vlasov *gkyl_positivity_shift_vlasov_new(
+  struct gkyl_basis cbasis, struct gkyl_basis pbasis, struct gkyl_rect_grid grid,
+  const struct gkyl_range *conf_rng_ext, bool use_gpu
+)
 {
   // Allocate space for new updater.
   struct gkyl_positivity_shift_vlasov *up = gkyl_malloc(sizeof(*up));
 
   assert(pbasis.poly_order == 1); // Because of the way a rescale/division is
-                                  // done in advance.
+    // done in advance.
 
   up->ffloor_fac = 0.0; // ffloor will be set to max(f)*ffloor_fac.
   up->grid = grid;
   up->num_cbasis = cbasis.num_basis;
   up->use_gpu = use_gpu;
-  up->cellav_fac = 1./pow(sqrt(2.),pbasis.ndim);
+  up->cellav_fac = 1. / pow(sqrt(2.), pbasis.ndim);
 
   if (!use_gpu) {
     up->kernels = gkyl_malloc(sizeof(struct gkyl_positivity_shift_vlasov_kernels));
 
     up->ffloor = gkyl_malloc(sizeof(double[1]));
-    up->ffloor[0] = 0.0;  // Gets updated after 1st call to _advance.
+    up->ffloor[0] = 0.0; // Gets updated after 1st call to _advance.
   }
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_positivity_shift_vlasov_kernels));
 
     up->ffloor = gkyl_cu_malloc(sizeof(double[1]));
-    double ffloor_zero[] = {0.};  // Gets updated after 1st call to _advance.
+    double ffloor_zero[] = {0.}; // Gets updated after 1st call to _advance.
     gkyl_cu_memcpy(up->ffloor, ffloor_zero, sizeof(double[1]), GKYL_CU_MEMCPY_H2D);
 
     up->shiftedf = gkyl_array_cu_dev_new(GKYL_INT, 1, conf_rng_ext->volume);
@@ -39,23 +40,22 @@ gkyl_positivity_shift_vlasov_new(struct gkyl_basis cbasis, struct gkyl_basis pba
 #endif
 
   // Choose kernels that shift f and compute int moms of Deltaf.
-  
+
   enum gkyl_positivity_shift_type shift_type = GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY;
   pos_shift_vlasov_choose_shift_kernel(up->kernels, cbasis, pbasis, shift_type, use_gpu);
 
   return up;
 }
 
-void
-gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
-  struct gkyl_array *GKYL_RESTRICT delta_m0)
+void gkyl_positivity_shift_vlasov_advance(
+  gkyl_positivity_shift_vlasov *up, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *phase_rng, struct gkyl_array *GKYL_RESTRICT distf,
+  struct gkyl_array *GKYL_RESTRICT m0, struct gkyl_array *GKYL_RESTRICT delta_m0
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_positivity_shift_vlasov_advance_cu(up, conf_rng, phase_rng,
-      distf, m0, delta_m0);
+    gkyl_positivity_shift_vlasov_advance_cu(up, conf_rng, phase_rng, distf, m0, delta_m0);
     return;
   }
 #endif
@@ -68,7 +68,9 @@ gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
   struct gkyl_range_iter conf_iter, vel_iter;
 
   int rem_dir[GKYL_MAX_DIM] = {0};
-  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
+  for (int d = 0; d < conf_rng->ndim; ++d) {
+    rem_dir[d] = 1;
+  }
 
   gkyl_range_iter_init(&conf_iter, conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
@@ -77,7 +79,7 @@ gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
     double *m0_c = gkyl_array_fetch(m0, clinidx);
     double *delta_m0_c = gkyl_array_fetch(delta_m0, clinidx);
     double m0in_c[num_cbasis];
-    for (int k=0; k<num_cbasis; k++) {
+    for (int k = 0; k < num_cbasis; k++) {
       m0_c[k] = 0.0;
       delta_m0_c[k] = 0.0;
       m0in_c[k] = 0.0;
@@ -97,13 +99,15 @@ gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
 
       // Contribution to the old number density from this v-space cell.
       double m0phase_in_c[num_cbasis];
-      for (int k=0; k<num_cbasis; k++)
+      for (int k = 0; k < num_cbasis; k++) {
         m0phase_in_c[k] = 0.0;
+      }
       up->kernels->m0(xc, up->grid.dx, vel_iter.idx, distf_c, m0phase_in_c);
 
       // Add to the old number density.
-      for (int k=0; k<num_cbasis; k++)
+      for (int k = 0; k < num_cbasis; k++) {
         m0in_c[k] += m0phase_in_c[k];
+      }
 
       // Shift f if needed.
       bool shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
@@ -111,8 +115,9 @@ gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
       if (shifted_node) {
         // Compute the new number density in this phase-space cell.
         double m0phase_out_c[num_cbasis];
-        for (int k=0; k<num_cbasis; k++)
+        for (int k = 0; k < num_cbasis; k++) {
           m0phase_out_c[k] = 0.0;
+        }
         up->kernels->m0(xc, up->grid.dx, vel_iter.idx, distf_c, m0phase_out_c);
 
         if (up->kernels->is_m0_positive(m0phase_in_c)) {
@@ -124,21 +129,22 @@ gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
           up->kernels->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
 
           // Add contribution from this phase-space cell to the new number density.
-          for (int k=0; k<num_cbasis; k++)
+          for (int k = 0; k < num_cbasis; k++) {
             m0_c[k] += m0phase_in_c[k];
-        }
-        else {
+          }
+        } else {
           // Add contribution from this phase-space cell to the new number density.
-          for (int k=0; k<num_cbasis; k++)
+          for (int k = 0; k < num_cbasis; k++) {
             m0_c[k] += m0phase_out_c[k];
+          }
 
           shiftedf = true;
         }
-      }
-      else {
+      } else {
         // Add contribution from this phase-space cell to the new number density.
-        for (int k=0; k<num_cbasis; k++)
+        for (int k = 0; k < num_cbasis; k++) {
           m0_c[k] += m0phase_in_c[k];
+        }
       }
 
       distf_max = GKYL_MAX2(distf_max, distf_c[0]);
@@ -158,12 +164,13 @@ gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
           up->kernels->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
         }
 
-        for (int k=0; k<num_cbasis; k++)
+        for (int k = 0; k < num_cbasis; k++) {
           m0_c[k] = m0in_c[k];
-      }
-      else {
-        for (int k=0; k<num_cbasis; k++)
+        }
+      } else {
+        for (int k = 0; k < num_cbasis; k++) {
           delta_m0_c[k] = m0_c[k] - m0in_c[k];
+        }
       }
     }
   }
@@ -171,8 +178,7 @@ gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
   up->ffloor[0] = up->ffloor_fac * distf_max * up->cellav_fac;
 }
 
-void
-gkyl_positivity_shift_vlasov_release(gkyl_positivity_shift_vlasov* up)
+void gkyl_positivity_shift_vlasov_release(gkyl_positivity_shift_vlasov *up)
 {
   // Release memory associated with this updater.
   if (!up->use_gpu) {
