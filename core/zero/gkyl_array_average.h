@@ -2,7 +2,6 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_comm.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -23,10 +22,6 @@ typedef struct gkyl_array_average_inp gkyl_array_average_inp;
  * @param weight Pointer to the array containing weight for the averaging process. (set it to NULL for integral)
  * @param avg_dim Flag array to set which dimension is averaged
  * @param use_gpu Boolean flag indicating whether the computation should be performed on a GPU.
- * @param comm Optional communicator. Required when any averaged dimension is decomposed with MPI. 
- *   If NULL, the average is computed over the local range only.
- * @param global_avg Global range of the output array (non-averaged dimensions), with the same
- *   index convention as local_avg. Required if comm is not NULL.
  */
 struct gkyl_array_average_inp {
   const struct gkyl_rect_grid *grid;
@@ -38,8 +33,6 @@ struct gkyl_array_average_inp {
   const struct gkyl_array *weight;
   const int *avg_dim;
   bool use_gpu;
-  struct gkyl_comm *comm;
-  const struct gkyl_range *global_avg;
 };
 
 /**
@@ -71,6 +64,11 @@ struct gkyl_array_average_inp {
  *    A_f / A_w = \int f(x_i) w(x_i) dx^i / \int w(x_i) dx^i
  *    ```
  * 
+ * This updater only operates on the local range it is given, it does not communicate.
+ * If one of the averaged dimensions is decomposed, the integrals must be summed across
+ * the ranks that share it, which the caller does (see gkyl_array_average_advance_range
+ * and gkyl_array_average_normalize).
+ * 
  * @param inp see gkyl_array_average_inp structure
  */
 struct gkyl_array_average*
@@ -88,19 +86,17 @@ gkyl_array_average_inew(const struct gkyl_array_average_inp *inp);
  * @param weight Pointer to the array containing weight for the averaging process. (set it to NULL for integral)
  * @param avg_dim Flag array to set which dimension is averaged
  * @param use_gpu Boolean flag indicating whether the computation should be performed on a GPU.
- * @param comm Optional communicator. Required when any averaged dimension is decomposed with MPI. 
- *   If NULL, the average is computed over the local range only.
- * @param global_avg Global range of the output array (non-averaged dimensions), with the same
- *   index convention as local_avg. Required if comm is not NULL.
  */
 struct gkyl_array_average*
 gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const struct gkyl_basis *basis_avg, const struct gkyl_range *local, const struct gkyl_range *local_avg,
-  const struct gkyl_range *local_avg_ext, const struct gkyl_array *weight, const int *avg_dim, bool use_gpu,
-  struct gkyl_comm *comm, const struct gkyl_range *global_avg);
+  const struct gkyl_range *local_avg_ext, const struct gkyl_array *weight, const int *avg_dim, bool use_gpu);
 
 /**
- * Compute the array average. Note: the weight is linked to the updater.
+ * Compute the array average over the local range. Note: the weight is linked to the updater.
+ * This is only the complete average if no averaged dimension is decomposed, since the
+ * division by the integrated weight cannot be undone by a later reduction. On a decomposed
+ * domain use gkyl_array_average_advance_range and gkyl_array_average_normalize instead.
  *
  * @param up array_average updater.
  * @param fin input gkyl_array
@@ -108,6 +104,46 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
  */
 void gkyl_array_average_advance(const struct gkyl_array_average *up, 
   const struct gkyl_array *fin, struct gkyl_array *avgout);
+
+/**
+ * Accumulate the integral of the input (times the weight, if any) over the averaged
+ * dimensions of the local range, divided by the volume of the averaging space, i.e.:
+ * ```math
+ *  \int f(x_k) w(x_i) dx^i / \int dx^i
+ * ```
+ * The division by the integrated weight is *not* performed, so the result is linear in
+ * the input and can be summed across ranks.
+ * 
+ * The result is written at the indices of out_range, which may be larger than the range
+ * of this rank (e.g. the output range of the whole domain), so that the contributions of
+ * all ranks can be summed with a single gkyl_comm_allreduce. Cells outside of the range of
+ * this rank are left untouched, hence out must be zeroed by the caller beforehand.
+ *
+ * On a decomposed domain, a weighted average is obtained by
+ *  1. calling this routine with the weighted updater to get the numerator,
+ *  2. calling this routine with an unweighted updater applied to the weight to get the
+ *     denominator (both carry the same volume normalization, which cancels),
+ *  3. summing both across the ranks that share the averaged dimensions,
+ *  4. calling gkyl_array_average_normalize to perform the division.
+ *
+ * @param up array_average updater.
+ * @param fin input gkyl_array
+ * @param out_range Range used to index out (local_avg or a range containing it).
+ * @param out Output gkyl_array, accumulated into.
+ */
+void gkyl_array_average_advance_range(const struct gkyl_array_average *up,
+  const struct gkyl_array *fin, const struct gkyl_range *out_range, struct gkyl_array *out);
+
+/**
+ * Divide a (possibly reduced) integral by a (possibly reduced) integrated weight, on the
+ * local_avg range of the updater. The updater must have been created with a weight.
+ *
+ * @param up array_average updater.
+ * @param wint Integrated weight, as produced by an unweighted updater applied to the weight.
+ * @param avgout Array holding the integral on entry and the average on exit.
+ */
+void gkyl_array_average_normalize(const struct gkyl_array_average *up,
+  const struct gkyl_array *wint, struct gkyl_array *avgout);
 
 /**
  * Release memory associated with this updater.

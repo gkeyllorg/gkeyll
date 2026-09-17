@@ -105,13 +105,6 @@ struct gkyl_array_average {
   // memory for the weak division at the end of averaging
   gkyl_dg_bin_op_mem *div_mem;
 
-  // communicator and global output range (for decomposed domains)
-  struct gkyl_comm *comm;
-  struct gkyl_range global_avg;
-  // buffers holding the integral over the global output range
-  struct gkyl_array *integral_glob_loc; // local contributions
-  struct gkyl_array *integral_glob; // sum over all ranks
-
 };
 
 GKYL_CU_D static
@@ -133,8 +126,7 @@ void gkyl_array_average_choose_kernel(struct gkyl_array_average *up)
 // Device new functions
 struct gkyl_array_average*
 gkyl_array_average_cu_dev_new(struct gkyl_array_average *up);
-// Device advance functions
-// Device local integral, written into out over out_range.
-void gkyl_array_average_local_integral_cu(const struct gkyl_array_average *up,
-  const struct gkyl_array *fin, struct gkyl_array *out, const struct gkyl_range *out_range);
+// Device integral over the local range, accumulated into out over out_range.
+void gkyl_array_average_advance_range_cu(const struct gkyl_array_average *up,
+  const struct gkyl_array *fin, const struct gkyl_range *out_range, struct gkyl_array *out);
 #endif

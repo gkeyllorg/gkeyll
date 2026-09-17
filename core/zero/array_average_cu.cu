@@ -50,7 +50,7 @@ gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
 }
 
 __global__ void
-gkyl_array_average_local_integral_cu_ker(const struct gkyl_array_average *up, 
+gkyl_array_average_advance_range_cu_ker(const struct gkyl_array_average *up, 
   const struct gkyl_array *fin, struct gkyl_array *out, struct gkyl_range out_range)
 {
   int idx[GKYL_MAX_DIM] = {0}; 
@@ -90,10 +90,10 @@ gkyl_array_average_local_integral_cu_ker(const struct gkyl_array_average *up,
   }
 }
 
-void gkyl_array_average_local_integral_cu(const struct gkyl_array_average *up, 
-  const struct gkyl_array *fin, struct gkyl_array *out, const struct gkyl_range *out_range)
+void gkyl_array_average_advance_range_cu(const struct gkyl_array_average *up, 
+  const struct gkyl_array *fin, const struct gkyl_range *out_range, struct gkyl_array *out)
 {
   int nblocks = up->local.nblocks, nthreads = up->local.nthreads;
 
-  gkyl_array_average_local_integral_cu_ker<<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, out->on_dev, *out_range);
+  gkyl_array_average_advance_range_cu_ker<<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, out->on_dev, *out_range);
 }
