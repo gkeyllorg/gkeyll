@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gkyl_array.h>
-#include <gkyl_array_ops.h> 
+#include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_dg_eqn.h>
@@ -32,11 +32,12 @@ struct gkyl_dg_gyrokinetic_auxfields {
  * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
  * @return Pointer to Gyrokinetic equation object
  */
-struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, 
-  enum gkyl_gk_collisionless_type collless_type, const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map, bool use_gpu);
+struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const double charge,
+  const double mass, enum gkyl_gk_collisionless_type collless_type,
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu
+);
 
 /**
  * Set the auxiliary fields (e.g. EM fields) needed in computing
@@ -45,6 +46,6 @@ struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, con
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
-
-
+void gkyl_gyrokinetic_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin
+);

@@ -9,15 +9,12 @@
 #include <stdlib.h>
 #include <math.h>
 
-static inline float
-ufunc(float x)
+static inline float ufunc(float x)
 {
-  return 1.0f/(1.0f+100.0f*x*x);
+  return 1.0f / (1.0f + 100.0f * x * x);
 }
 
-static void
-train_and_save(int ntrain, int nwidth, int ndepth, bool use_gpu,
-  const char *filename)
+static void train_and_save(int ntrain, int nwidth, int ndepth, bool use_gpu, const char *filename)
 {
   kad_node_t *t_net = kann_layer_input(1);
   for (int i = 0; i < ndepth; ++i) {
@@ -49,11 +46,7 @@ train_and_save(int ntrain, int nwidth, int ndepth, bool use_gpu,
   }
 
   struct gkyl_kann_train_params params = {
-    .learning_rate = 1e-3f,
-    .mini_size = 64,
-    .max_epoch = 50,
-    .max_drop_streak = 10,
-    .frac_val = 0.1f,
+    .learning_rate = 1e-3f, .mini_size = 64, .max_epoch = 50, .max_drop_streak = 10, .frac_val = 0.1f
   };
 
   gkyl_kann_net_train_fnn1(net, &params, inp_t, out_t);
@@ -70,8 +63,7 @@ train_and_save(int ntrain, int nwidth, int ndepth, bool use_gpu,
 
 // Run inference and return outputs in out (always host kn_vec)
 static void
-infer(const char *filename, bool use_gpu,
-  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+infer(const char *filename, bool use_gpu, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   struct gkyl_kann_net *net = gkyl_kann_net_load(filename, use_gpu);
 
@@ -91,14 +83,13 @@ infer(const char *filename, bool use_gpu,
   gkyl_kann_net_release(net);
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int ntrain = 1001;
   int ninfer = 21;
 
-  int widths[] = { 64, 128, 256, 512 };
-  int depths[] = { 2, 4 };
+  int widths[] = {64, 128, 256, 512};
+  int depths[] = {2, 4};
   int nw = sizeof(widths) / sizeof(widths[0]);
   int nd = sizeof(depths) / sizeof(depths[0]);
 
@@ -107,8 +98,9 @@ main(int argc, char *argv[])
   struct gkyl_kn_vec *out_gpu = gkyl_kn_vec_new(ninfer, 1);
 
   float dx = 2.0f / (ninfer - 1);
-  for (int i = 0; i < ninfer; ++i)
+  for (int i = 0; i < ninfer; ++i) {
     inp->vals[i][0] = -1.0f + dx * i;
+  }
 
   fprintf(stdout, "=== Test 1: Train on CPU, compare CPU vs GPU inference ===\n");
   fprintf(stdout, "  (Same model, same weights — should match to float precision)\n\n");
@@ -125,12 +117,13 @@ main(int argc, char *argv[])
       float max_diff = 0;
       for (int i = 0; i < ninfer; ++i) {
         float diff = fabsf(out_cpu->vals[i][0] - out_gpu->vals[i][0]);
-        if (diff > max_diff) max_diff = diff;
+        if (diff > max_diff) {
+          max_diff = diff;
+        }
       }
 
       const char *status = max_diff < 1e-4f ? "PASS" : "FAIL";
-      fprintf(stdout, "  width=%3d depth=%d: max|cpu-gpu|=%.3e  [%s]\n",
-        w, d, max_diff, status);
+      fprintf(stdout, "  width=%3d depth=%d: max|cpu-gpu|=%.3e  [%s]\n", w, d, max_diff, status);
     }
   }
 
@@ -153,12 +146,13 @@ main(int argc, char *argv[])
       }
       mse /= ninfer;
 
-      float val_at_0 = out_cpu->vals[ninfer/2][0];
+      float val_at_0 = out_cpu->vals[ninfer / 2][0];
 
-      const char *status = (mse < 0.05f && fabsf(val_at_0 - 1.0f) < 0.2f)
-        ? "PASS" : "FAIL";
-      fprintf(stdout, "  width=%3d depth=%d: mse=%.3e  f(0)=%.4f (exact=1.0)  [%s]\n",
-        w, d, mse, val_at_0, status);
+      const char *status = (mse < 0.05f && fabsf(val_at_0 - 1.0f) < 0.2f) ? "PASS" : "FAIL";
+      fprintf(
+        stdout, "  width=%3d depth=%d: mse=%.3e  f(0)=%.4f (exact=1.0)  [%s]\n", w, d, mse,
+        val_at_0, status
+      );
     }
   }
 
