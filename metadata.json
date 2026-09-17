@@ -1,0 +1,20 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2R1JHYRE0AQ6Q4XTPX9C6R9",
+  "strategy": "manual-commit",
+  "branch": "maxwells-world",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "gyrokinetic/apps/gk_species_lbo.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
