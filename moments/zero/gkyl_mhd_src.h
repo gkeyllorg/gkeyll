@@ -36,17 +36,16 @@ typedef struct gkyl_mhd_src gkyl_mhd_src;
  *
  * @param inp Input parameters to updater
  */
-gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp,
-  const struct gkyl_range *local_ext);
+gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp, const struct gkyl_range *local_ext);
 
 /**
  * @param mes
  * @param dt
  */
-void gkyl_mhd_src_advance(const gkyl_mhd_src *mes, double dt,
-  const struct gkyl_range *update_rng,
-  struct gkyl_array *q,
-  const struct gkyl_array *app_accel);
+void gkyl_mhd_src_advance(
+  const gkyl_mhd_src *mes, double dt, const struct gkyl_range *update_rng, struct gkyl_array *q,
+  const struct gkyl_array *app_accel
+);
 
 /**
  * Delete updater.
@@ -61,7 +60,7 @@ void gkyl_mhd_src_release(gkyl_mhd_src *mes);
  * @param up MHD source updater
  * @param ch number
  */
-void gkyl_mhd_src_set_glm_ch(struct gkyl_mhd_src* up, double glm_ch);
+void gkyl_mhd_src_set_glm_ch(struct gkyl_mhd_src *up, double glm_ch);
 
 /**
  * Get average |div(B)| for diagnostic usage.
@@ -70,6 +69,6 @@ void gkyl_mhd_src_set_glm_ch(struct gkyl_mhd_src* up, double glm_ch);
  * @param update_range
  * @param q_array input field
  */
-double gkyl_mhd_src_calc_divB(const gkyl_mhd_src *up,
-  const struct gkyl_range *update_range,
-  struct gkyl_array *q_array);
+double gkyl_mhd_src_calc_divB(
+  const gkyl_mhd_src *up, const struct gkyl_range *update_range, struct gkyl_array *q_array
+);
