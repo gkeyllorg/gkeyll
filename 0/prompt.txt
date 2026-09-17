@@ -1,0 +1,27 @@
+./ci/jenkins/gkeyll-ci.sh personal recent
+
+returns
+
+ERROR: Set JENKINS_CLI_AUTH_FILE to a mode-600 user:api-token file
+
+What broke?
+
+---
+
+Will I have to do this every time I start a new shell or restart my computer?
+
+---
+
+What alternatives do we have to make this persistent? can we store it in a file or something else?
+
+---
+
+let's do the second. Is something like this needed for stellar/perlmutter/team machines too?
+
+---
+
+Regarding your third bullet "Support the existing documented legacy file, ~/.config/gkeyll/jenkins-cli.auth", don't worry about supporting the legacy file. I'll fix my current setup.
+
+---
+
+Implement the plan.
