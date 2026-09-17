@@ -9,6 +9,7 @@ usage() {
     cat <<'EOF'
 Usage:
   gkeyll-ci.sh <platform> <command> [flags]
+  gkeyll-ci.sh <command> -h
 
 Platforms:
   personal       Local personal-computer Jenkins CI.
@@ -32,10 +33,87 @@ Examples:
   gkeyll-ci.sh perlmutter_gpu status --queue 42
   gkeyll-ci.sh team scan
 
-This wrapper runs the selected platform client on the current machine. It
-forwards all remaining arguments and environment variables unchanged; use the
-selected client's --help for its complete command reference and setup needs.
+Use `gkeyll-ci.sh <command> -h` for flags shared by CI platforms, or
+`gkeyll-ci.sh <platform> <command> -h` for platform-specific command help.
+This wrapper forwards platform-qualified commands and environment variables
+unchanged to the selected client.
 EOF
+}
+
+command_usage() {
+    case "$1" in
+        run) cat <<'EOF'
+Usage: gkeyll-ci.sh run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--follow]
+
+Flags:
+  --pr NUMBER           Build GitHub pull request NUMBER.
+  --candidate-ref REF   Candidate branch or commit; requires --baseline-ref.
+  --baseline-ref REF    Baseline branch or commit; requires --candidate-ref.
+  --follow              Stream the build console after Jenkins queues it.
+
+Specify a platform to run the build: gkeyll-ci.sh <platform> run ...
+EOF
+        ;;
+        active) cat <<'EOF'
+Usage: gkeyll-ci.sh active
+
+This command takes no flags. Specify a platform: gkeyll-ci.sh <platform> active
+EOF
+        ;;
+        recent) cat <<'EOF'
+Usage: gkeyll-ci.sh recent [--limit NUMBER]
+
+Flags:
+  --limit NUMBER        Number of retained builds to list (default: 10).
+
+Specify a platform to list builds: gkeyll-ci.sh <platform> recent ...
+EOF
+        ;;
+        status) cat <<'EOF'
+Usage: gkeyll-ci.sh status (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Inspect a Jenkins queue item.
+  --build NUMBER        Inspect a known Jenkins build.
+
+Specify a platform to inspect the build: gkeyll-ci.sh <platform> status ...
+EOF
+        ;;
+        follow) cat <<'EOF'
+Usage: gkeyll-ci.sh follow (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Wait for this queue item, then stream its build.
+  --build NUMBER        Stream this known Jenkins build.
+
+Specify a platform to follow the build: gkeyll-ci.sh <platform> follow ...
+EOF
+        ;;
+        abort) cat <<'EOF'
+Usage: gkeyll-ci.sh abort (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Cancel this Jenkins queue item.
+  --build NUMBER        Abort this running Jenkins build.
+
+Specify a platform to cancel the build: gkeyll-ci.sh <platform> abort ...
+EOF
+        ;;
+        start) cat <<'EOF'
+Usage: gkeyll-ci.sh start
+
+This command takes no flags and is available on stellar_cpu and perlmutter_gpu.
+Specify a platform: gkeyll-ci.sh <platform> start
+EOF
+        ;;
+        scan) cat <<'EOF'
+Usage: gkeyll-ci.sh scan
+
+This command takes no flags and is available on team.
+Specify a platform: gkeyll-ci.sh team scan
+EOF
+        ;;
+    esac
 }
 
 die() {
@@ -48,6 +126,14 @@ main() {
 
     local platform="$1"
     case "$platform" in
+        scan|start|run|active|recent|status|follow|abort)
+            if (($# == 2)) && [[ "$2" == -h || "$2" == --help ]]; then
+                command_usage "$platform"
+                return
+            fi
+            usage >&2
+            die "specify a platform before the $platform command"
+            ;;
         -h|--help|help)
             (($# == 1)) || die 'usage: gkeyll-ci.sh <platform> <command> [flags]'
             usage

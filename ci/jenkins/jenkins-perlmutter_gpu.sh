@@ -34,18 +34,13 @@ Usage:
   jenkins-perlmutter_gpu.sh <command> [flags]
 
 Commands:
-  start                                      Start Jenkins in detached tmux.
-  run --pr NUMBER [--follow]                 Queue a GitHub pull-request build.
-  run --candidate-ref REF --baseline-ref REF [--follow]
-                                             Queue a branch or commit comparison.
-  active                                     List this job's queued and running work.
-  recent [--limit NUMBER]                    List retained builds (default: 10).
-  status --queue ID                          Show a queued build's current state.
-  status --build NUMBER                      Show a known build's current state.
-  follow --queue ID                          Wait for and stream a queued build.
-  follow --build NUMBER                      Stream a known Jenkins build.
-  abort --queue ID                           Cancel a queued Jenkins build.
-  abort --build NUMBER                       Abort a running Jenkins build.
+  start    Start Jenkins in detached tmux.
+  run      Queue a pull-request or comparison build.
+  active   List this job's queued and running work.
+  recent   List retained builds.
+  status   Show a queued or known build's state.
+  follow   Wait for and stream a queued or known build.
+  abort    Cancel a queued or running build.
 
 The run command returns after Jenkins accepts the request. --follow streams
 the build console and returns its final Jenkins result. Press Ctrl-C to stop
@@ -56,6 +51,65 @@ GKEYLL_CI_ROOT must name shared Perlmutter storage. JAVA_HOME must name a Java
 $JENKINS_HOME/jenkins-cli.auth and must contain
 one line in the form: jenkins-user:api-token
 EOF
+}
+
+command_usage() {
+    local script='jenkins-perlmutter_gpu.sh'
+    case "$1" in
+        start) cat <<EOF
+Usage: $script start
+
+This command takes no options.
+EOF
+        ;;
+        run) cat <<EOF
+Usage: $script run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--follow]
+
+Flags:
+  --pr NUMBER           Build GitHub pull request NUMBER.
+  --candidate-ref REF   Candidate branch or commit; requires --baseline-ref.
+  --baseline-ref REF    Baseline branch or commit; requires --candidate-ref.
+  --follow              Stream the build console after Jenkins queues it.
+EOF
+        ;;
+        active) cat <<EOF
+Usage: $script active
+
+This command takes no options.
+EOF
+        ;;
+        recent) cat <<EOF
+Usage: $script recent [--limit NUMBER]
+
+Flags:
+  --limit NUMBER        Number of retained builds to list (default: 10).
+EOF
+        ;;
+        status) cat <<EOF
+Usage: $script status (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Inspect a Jenkins queue item.
+  --build NUMBER        Inspect a known Jenkins build.
+EOF
+        ;;
+        follow) cat <<EOF
+Usage: $script follow (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Wait for this queue item, then stream its build.
+  --build NUMBER        Stream this known Jenkins build.
+EOF
+        ;;
+        abort) cat <<EOF
+Usage: $script abort (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Cancel this Jenkins queue item.
+  --build NUMBER        Abort this running Jenkins build.
+EOF
+        ;;
+    esac
 }
 
 prepare_paths() {
@@ -538,6 +592,9 @@ recent_command() {
 
 main() {
     (($# >= 1)) || { usage; exit 2; }
+    if (($# == 2)) && [[ "$2" == -h || "$2" == --help ]]; then
+        case "$1" in start|run|active|recent|status|follow|abort) command_usage "$1"; return;; esac
+    fi
     case "$1" in
         __controller) shift; (($# == 0)) || die '__controller takes no arguments'; run_controller ;;
         start) shift; (($# == 0)) || die 'start takes no arguments'; start_controller ;;

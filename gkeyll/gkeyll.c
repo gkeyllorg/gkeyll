@@ -72,6 +72,7 @@ static struct tool_description tool_list[] = {
   {"multimomlinear", "multimomlinear.lua",
    "Linear dispersion solver for multi-moment, multifluid equations"},
   {"eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files"},
+  {"jeci", "jeci.lua", "Jenkins continuous integration system"},
   {0, 0}
 };
 
