@@ -1,0 +1,132 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2R306QEHJ6TGE9ERD33JY6K",
+  "session_id": "01a0b014-81e8-7212-80a6-2570fdfbc95a",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-17T16:25:41.177131Z",
+  "branch": "agent_tools-parallel-test",
+  "checkpoints_count": 8,
+  "save_step_count": 7,
+  "files_touched": [
+    "ci/jenkins/gkeyll-ci.sh",
+    "ci/jenkins/jenkins-perlmutter_gpu.sh",
+    "ci/jenkins/jenkins-personal.sh",
+    "ci/jenkins/jenkins-stellar_cpu.sh",
+    "ci/jenkins/jenkins-team-workstation.sh",
+    "gkeyll/gkeyll.c",
+    "gkeyll/lua/Tool/jeci.lua"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "d5ff5ac3df62",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 153340,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 4146432,
+    "output_tokens": 24941,
+    "api_call_count": 51
+  },
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-17T16:25:41.122897Z",
+    "agent_lines": 347,
+    "agent_removed": 48,
+    "human_added": 21,
+    "human_modified": 4,
+    "human_removed": 0,
+    "total_committed": 371,
+    "total_lines_changed": 420,
+    "agent_percentage": 94.04761904761905,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 850779,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "README.stellar_cpu.md_old": 561,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "log.txt": 796961,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "run_3.txt": 67,
+        "run_4.txt": 67,
+        "run_5.txt": 10,
+        "tmp.sh": 43,
+        "tmp.txt": 23
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851029,
+      "agent_lines_removed": 41
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851036,
+      "agent_lines_removed": 48
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 851125,
+      "agent_lines_removed": 51
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 1,
+      "user_lines_removed": 1,
+      "agent_lines_added": 851138,
+      "agent_lines_removed": 51,
+      "user_added_per_file": {
+        "gkeyll/lua/Tool/jeci.lua": 1
+      },
+      "user_removed_per_file": {
+        "gkeyll/lua/Tool/jeci.lua": 1
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 1,
+      "user_lines_removed": 1,
+      "agent_lines_added": 851138,
+      "agent_lines_removed": 51,
+      "user_added_per_file": {
+        "gkeyll/lua/Tool/jeci.lua": 1
+      },
+      "user_removed_per_file": {
+        "gkeyll/lua/Tool/jeci.lua": 1
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 7,
+      "user_lines_removed": 1,
+      "agent_lines_added": 851138,
+      "agent_lines_removed": 51,
+      "user_added_per_file": {
+        "gkeyll/lua/Tool/jeci.lua": 7
+      },
+      "user_removed_per_file": {
+        "gkeyll/lua/Tool/jeci.lua": 1
+      }
+    }
+  ]
+}

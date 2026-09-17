@@ -1,0 +1,76 @@
+Gkeyll now has a Jenkins-based CI system in ci/jenkins. The CLI for it uses ci/jenkins/gkeyll-ci.sh, see
+
+ci/jenkins/gkeyll-ci.sh -h
+
+This is fine, but the help menu doesn't describe the possible flags for each command. It'd be good if one could do
+
+ci/jenkins/gkeyll-ci.sh run -h
+
+and see the flags available for use with the run command. To do this, I think we should change the underlying scripts (for personal, stellar, perlmutter, team machines) so that:
+1) ./ci/jenkins/jenkins-personal.sh -h provides a list of commands without flags
+2) ./ci/jenkins/jenkins-personal.sh run -h provides a sub-menu with options for the run command.
+
+This way gkeyll-ci.sh remains a thin wrapper for the other scripts.
+
+---
+
+Implement the plan.
+
+---
+
+./ci/jenkins/jenkins-personal.sh -h
+
+seems to have an excessive amount of white spacce between the command name and its description:
+
+  run                                        Queue a pull-request or comparison build.
+  active                                     List this job's queued and running work.
+  recent                                     List retained builds.
+  status                                     Show a queued or known build's state.
+  follow                                     Wait for and stream a queued or known build.
+  abort                                      Cancel a queued or running build.
+
+Can you reduce that to a more moderate amount of white space?
+
+Also, in in the sub-menus, please replace "Comands:" with "Flags:"
+
+---
+
+Now, I'd like gkeyll-ci.sh to also access these sub-menus. For example, 
+
+./ci/jenkins/gkeyll-ci.sh run -h
+
+should show a menu that describes the possible flags for the run command.
+
+---
+
+Finally, the gkeyll executable
+
+../gkylsoft/gkeyll/bin/gkeyll
+
+has a set of tools, see
+
+./gkylsoft/gkeyll/bin/gkeyll -t
+
+I'd like to create a new Lua tool (in gkeyll/lua/Tool) that is a very, very thin wrapper to ci/jenkins/gkeyll-ci.sh which simply forwards all CLI commands and flags to gkeyll-ci.sh. Call it jeci and the description (in gkeyll -t) is "Jenkins continuous integration system".
+
+---
+
+Good. Now, when one does
+
+../gkylsoft/gkeyll/bin/gkeyll jeci -h
+
+the output refers to "gkeyll-ci.sh", e.g. "gkeyll-ci.sh <platform> <command> [flags]".
+
+Is it possible to alter the output for "gkeyll jeci -h" alone (not the scripts in ci/jenkins) so that instead of "gkeyll-ci.sh" it reads "gkeyll jeci", for example
+
+gkeyll jeci  <platform> <command> [flags]
+
+---
+
+Implement the plan.
+
+---
+
+It works for the top-level menu, but not the sub-menus, see
+
+./gkylsoft/gkeyll/bin/gkeyll jeci run -h
