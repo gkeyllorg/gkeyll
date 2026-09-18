@@ -1,0 +1,5 @@
+My Jenkins CI on Stellar (see ci/jenkins/README.stellar_cpu.md) is failing, see /Users/mfrancis/Downloads/run_34.txt. Why?
+
+---
+
+Ok, please fix
