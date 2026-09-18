@@ -1,0 +1,108 @@
+I'm trying to setup the Jenkins CI on perlmutter_gpu (see ci/jenkins/README.perlmutter_gpu.md). But when I do 
+
+ssh -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:8084:127.0.0.1:8080 <username>@perlmutter.nersc.gov
+
+and I put in my authentication codes, i'm unable to access the browser Jenkins and the terminal just prints 
+
+channel 1: open failed: connect failed: Connection refused
+channel 2: open failed: connect failed: Connection refused
+
+why?
+
+---
+
+The first 4 commands you suggested give this
+
+mana@login20:p/s/m/m/g/g/ hostname -f
+login20.chn.perlmutter.nersc.gov
+mana@login20:p/s/m/m/g/g/ tmux ls
+gkeyll_ci: 1 windows (created Thu Sep 17 21:40:51 2026)
+mana@login20:p/s/m/m/g/g/ curl -v http://127.0.0.1:8080/login
+*   Trying 127.0.0.1:8080...
+* Connected to 127.0.0.1 (127.0.0.1) port 8080
+* using HTTP/1.x
+> GET /login HTTP/1.1
+> Host: 127.0.0.1:8080
+> User-Agent: curl/8.14.1
+> Accept: */*
+>
+* Request completely sent off
+< HTTP/1.1 200 OK
+< Server: Jetty(12.1.12)
+< Date: Fri, 18 Sep 2026 04:50:25 GMT
+< Vary: Accept-Encoding
+< X-Content-Type-Options: nosniff
+< Content-Security-Policy-Report-Only: base-uri 'none'; default-src 'self'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; script-src 'report-sample' 'self' usage.jenkins.io; style-src 'report-sample' 'self' 'unsafe-inline'; report-to content-security-policy; report-uri http://127.0.0.1:8080/content-security-policy-reporting-endpoint/REDACTED:YW5vbnltb3Vz:aHVkc29uLm1vZGVsLkh1ZHNvbg==:bG9naW4=
+< Content-Type: text/html;charset=utf-8
+< Expires: 0
+< Cache-Control: no-cache,no-store,must-revalidate
+< X-Hudson: 1.395
+< X-Jenkins: 2.568.3
+< X-Jenkins-Session: 0e8765bc
+< X-Frame-Options: sameorigin
+< Reporting-Endpoints: content-security-policy: http://127.0.0.1:8080/content-security-policy-reporting-endpoint/REDACTED:YW5vbnltb3Vz:aHVkc29uLm1vZGVsLkh1ZHNvbg==:bG9naW4=
+< Set-Cookie: JSESSIONID.86b445bd=node0xyx6j53onddxmpkew5djywxa5.node0; Path=/; HttpOnly; SameSite=Lax
+< X-Hudson-Theme: default
+< Referrer-Policy: same-origin
+< Cross-Origin-Opener-Policy: same-origin
+< X-Frame-Options: sameorigin
+< Transfer-Encoding: chunked
+<
+
+
+
+
+
+    <!DOCTYPE html><html lang="en-US"><head resURL="/static/0e8765bc" data-rooturl="" data-resurl="/static/0e8765bc" data-imagesurl="/static/0e8765bc/images"><title>Sign in - Jenkins</title><meta name="ROBOTS" content="NOFOLLOW"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/static/0e8765bc/favicon.svg" type="image/svg+xml"><link sizes="any" rel="alternate icon" href="/static/0e8765bc/favicon.ico"><link rel="stylesheet" href="/static/0e8765bc/jsbundles/simple-page.css" type="text/css"></head><body class="app-sign-in-register">
+
+  <!DOCTYPE html><html data-disable-sticky="false"><head resURL="/static/0e8765bc" data-rooturl="" data-resurl="/static/0e8765bc" data-extensions-available="true" data-unit-test="false" data-imagesurl="/static/0e8765bc/images" data-crumb-header="Jenkins-Crumb" data-crumb-value="c0c50b61e45a33888eadbe4752a026eb1b04db5d0075129b77ecf65516d3a8f9">
+
+
+
+    <title>Jenkins - Jenkins</title><link rel="stylesheet" href="/static/0e8765bc/jsbundles/styles.css" type="text/css"><link rel="stylesheet" href="/static/0e8765bc/css/responsive-grid.css" type="text/css"><link rel="icon" href="/static/0e8765bc/favicon.svg" type="image/svg+xml"><link sizes="any" rel="alternate icon" href="/static/0e8765bc/favicon.ico"><link sizes="180x180" rel="apple-touch-icon" href="/static/0e8765bc/apple-touch-icon.png"><link color="#191717" rel="mask-icon" href="/static/0e8765bc/mask-icon.svg"><script src="/static/0e8765bc/scripts/behavior.js" type="text/javascript"></script><script src='/adjuncts/0e8765bc/org/kohsuke/stapler/bind.js' type='text/javascript'></script><script src="/static/0e8765bc/scripts/hudson-behavior.js" type="text/javascript"></script><script src="/static/0e8765bc/scripts/sortable.js" type="text/javascript"></script><meta name="ROBOTS" content="INDEX,NOFOLLOW"><meta name="viewport" content="width=device-width, initial-scale=1"><script src="/static/0e8765bc/jsbundles/vendors.js" type="text/javascript"></script><script src="/static/0e8765bc/jsbundles/sortable-drag-drop.js" type="text/javascript"></script><script defer="true" src="/static/0e8765bc/jsbundles/app.js" type="text/javascript"></script></head><body data-model-type="jenkins.install.SetupWizard" id="jenkins" data-search-url="/search/suggest" data-search-help-url="https://www.jenkins.io/redirect/search-box" class="full-screen jenkins-2.568.3" data-version="2.568.3"><div data-help="Help" data-no-results-for="No results for" id="command-palette-i18n" class="i18n" data-get-help="Get help using Jenkins search"></div><dialog id="command-palette" class="jenkins-command-palette__dialog"><div class="jenkins-command-palette__wrapper"><div class="jenkins-command-palette"><div class="jenkins-search-container"><div class="jenkins-search  jenkins-command-palette__search"><div class="jenkins-search__icon"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 512 512"><title/><path d="M221.09 64a157.09 157.09 0 10157.09 157.09A157.1 157.1 0 00221.09 64z" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32"/><path d="M338.29 338.29L448 448" fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32"/></svg></div><input autocorrect="off" autocomplete="off" spellcheck="false" id="command-bar" placeholder="Search" type="search" class="jenkins-input jenkins-search__input" autocapitalize="off"></div></div><div id="search-results-container" class="jenkins-command-palette__results-container"><div id="search-results" class="jenkins-command-palette__results"></div></div></div></div></dialog><div id="page-body" class="app-page-body app-page-body--full-screen clear"><div id="main-panel"><a id="skip2content"></a><!--
+start of main content ⇒
+--><script src="/static/0e8765bc/jsbundles/pluginSetupWizard.js" type="text/javascript"></script><link rel="stylesheet" href="/static/0e8765bc/jsbundles/pluginSetupWizard.css" type="text/css"><form method="POST" action="j_spring_security_check"><input name="from" type="hidden"><input name="Jenkins-Crumb" type="hidden" value="c0c50b61e45a33888eadbe4752a026eb1b04db5d0075129b77ecf65516d3a8f9"><div class="plugin-setup-wizard bootstrap-3"><div class="modal fade in" style="display: block;"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h4 class="modal-title">Getting Started</h4></div><div class="modal-body setup-wizard-heading"><div class="jumbotron welcome-panel offline"><h1>Unlock Jenkins</h1><p>To ensure Jenkins is securely set up by the administrator, a password has been written to the log (<small><a href="https://www.jenkins.io/redirect/find-jenkins-logs" rel="noopener noreferrer" target="_blank">not sure where to find it?</a></small>) and this file on the server: <p><small><code>/pscratch/sd/m/mana/gkeyll_ci/jenkins_home/secrets/initialAdminPassword</code></small></p><p>Please copy the password from either location and paste it below.<div class="form-group "><label class="control-label" for="security-token">Administrator password</label><input name="j_username" type="hidden" value="admin"><input name="j_password" id="security-token" type="password" class="jenkins-input "></div></div></div><div class="modal-footer"><input type="submit" class="btn btn-primary set-security-key" value="Continue"></div></div></div></div></div></form><!--
+⇐ end of main content
+* Connection #0 to host 127.0.0.1 left intact
+--></div></div></body></html></body></html>mana@login20:p/s/m/m/g/g/
+mana@login20:p/s/m/m/g/g/ ss -ltn | grep '127.0.0.1:8080'
+mana@login20:p/s/m/m/g/g/
+
+---
+
+That ssh command hangs, and the browser Jenkins doesn't work.
+
+---
+
+On my laptop
+
+  curl -v http://127.0.0.1:8084/login
+
+gives
+
+*   Trying 127.0.0.1:8084...
+* connect to 127.0.0.1 port 8084 from 127.0.0.1 port 53820 failed: Connection refused
+* Failed to connect to 127.0.0.1 port 8084 after 0 ms: Couldn't connect to server
+* Closing connection
+curl: (7) Failed to connect to 127.0.0.1 port 8084 after 0 ms: Couldn't connect to server
+
+---
+
+Ok, that last ssh + curl combination worked. Do we need to update the perlmutter_gpu README? also, note that to make java 21 available I did
+
+module load spack
+spack info openjdk
+spack install openjdk@21
+spack load openjdk@21
+export JAVA_HOME=$(spack location --install-dir openjdk@21)
+
+and I think later at login i'll have to do
+
+module load spack
+spack load openjdk@21
+export JAVA_HOME=$(spack location --install-dir openjdk@21)
+
+---
+
+Implement the plan.
