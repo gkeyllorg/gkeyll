@@ -514,8 +514,6 @@ void gk_field_calc_apar_ic(gkyl_gyrokinetic_app *app, struct gk_field *field, st
 {
   struct timespec wst = gkyl_wall_clock();
   field->ampere_solve(app, field, out);
-  // Smooth Apar after solving Ampere's law.
-  gk_field_fem_projection_par(app, field, out, out);
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
