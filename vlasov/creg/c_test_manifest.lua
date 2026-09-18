@@ -29,6 +29,7 @@ return {
          "rt_dg_euler_kh_2d",
          "rt_can_pb_bgk_surf_annulus_sodshock_im_1x2v_p2",
          "rt_vp_sheath_Bext_1x2v_p2",
+         "rt_diffusion_1x",
       },
       gpu = {
       },
