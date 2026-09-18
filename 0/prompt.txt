@@ -1,0 +1,30 @@
+My stellar_cpu Jenkins CI browser (see ci/jenkins/README.stellar_cpu.md) has a warning about my "Jenkins URL" setup, see [Image #1] . Why?
+
+---
+
+where <stellar-login-hostname> is my netID or stellar username?
+
+---
+
+it prints 
+stellar-intel
+
+---
+
+Also, when I click on "Manage Jenkins" I see a warning about my proxy setup bring broken, see [Image #1] , and the "More info" button leads me to https://www.jenkins.io/doc/book/system-administration/reverse-proxy-configuration-troubleshooting/
+
+---
+
+The Stellar Jenkins run ran into some trouble, see /Users/mfrancis/Downloads/run_33.txt. Why?
+
+---
+
+What is this variable meant for? it is not mentioned in the stellar_cpu README
+
+---
+
+Create a plan to fix it.
+
+---
+
+Implement the plan.
