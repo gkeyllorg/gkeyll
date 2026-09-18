@@ -375,7 +375,7 @@ def configureAndCompileCRegressions(String label, String driver, String sourceDi
             . "$CI_REGRESSION_MODULE_FILE"
             "$CI_REGRESSION_DRIVER" runregression configure \
                 --source-dir "$CI_REGRESSION_SOURCE_DIR" \
-                --prefix "$CI_REGRESSION_PREFIX" $CI_REGRESSION_CONFIGURE_OPTIONS
+                --prefix "$CI_REGRESSION_PREFIX" ${CI_REGRESSION_CONFIGURE_OPTIONS:-}
             started="$(date +%s)"
             "$CI_REGRESSION_DRIVER" runregression run -c $CI_REGRESSION_RUN_OPTIONS compile
             elapsed="$(( $(date +%s) - started ))"
