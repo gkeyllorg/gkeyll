@@ -1178,7 +1178,7 @@ local function validate_precompiled_c_regressions(cTests)
    for _, test in ipairs(cTests) do
       local testname = stripext(basename(test.src))
       local binPath = configVals.results_dir .. "/" .. test.layer
-         .. "/creg-runs/" .. testname .. "/" .. testname
+         .. "/creg-runs/" .. runMode .. "/" .. testname .. "/" .. testname
       local attr = lfs.attributes(binPath)
       if not (attr and attr.mode == "file"
          and string.sub(attr.permissions, 3, 3) == "x") then
