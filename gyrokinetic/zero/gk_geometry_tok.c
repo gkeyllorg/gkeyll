@@ -30,6 +30,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global = geometry_inp->geo_global;
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
+  for (int d=0; d<3; d++) up->is_periodic[d] = geometry_inp->geo_is_periodic[d];
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geometry_inp->x_LCFS;

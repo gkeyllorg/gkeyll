@@ -36,6 +36,7 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->grid = geometry_inp->grid;
   gk_geometry_set_nodal_ranges(up) ;
 
+  for (int d=0; d<3; d++) up->is_periodic[d] = geometry_inp->geo_is_periodic[d];
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geometry_inp->x_LCFS;
@@ -465,6 +466,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   }
   up->geqdsk_sign_convention = up_3d->geqdsk_sign_convention;
   up->half_domain = up_3d->half_domain;
+  for (int d=0; d<3; d++) up->is_periodic[d] = up_3d->is_periodic[d];
   up->has_LCFS = up_3d->has_LCFS;
   up->x_LCFS = up_3d->x_LCFS;
   up->idx_LCFS_lo = up_3d->idx_LCFS_lo;

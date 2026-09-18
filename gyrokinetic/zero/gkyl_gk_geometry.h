@@ -178,6 +178,7 @@ struct gk_geometry {
 
   int half_domain; // For double null geometry. 0 for full domain 1 for lower half domain.
 
+  bool is_periodic[3]; // Whether each direction of the 3D geometry grid is periodic.
   bool has_LCFS; // Whether the geometry has an LCFS.
   double x_LCFS; // For mapc2p IWL geometry, the user has to provide the
                  // location of the LCFS. For numerical IWL, it may be stored
@@ -238,6 +239,8 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_comm *comm; // Communicator object.
 
   double world[3]; // Extra computational coordinates for cases with reduced dimensionality.
+
+  bool geo_is_periodic[3]; // Whether each direction of the 3D geometry grid (geo_grid) is periodic.
 
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x location of the LCFS.
