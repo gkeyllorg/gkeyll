@@ -1,0 +1,9 @@
+The stellar CI failed again, see: /Users/mfrancis/Downloads/run_35.txt
+
+---
+
+You can find it here: /Users/mfrancis/Downloads/slurm-regression-2935830.out
+
+---
+
+please fix it
