@@ -55,6 +55,10 @@ struct arc_length_ctx {
   // the historical expressions apply.
   double arc_lo, arc_hi, arc_darc_dtheta;
   bool arc_interval_valid;
+  // One-row cache for the experimental C1 arc/end-cell map.
+  bool row_arc_fit_ready;
+  double row_arc_fit_psi, row_arc_fit_length, row_arc_fit_sigma[2];
+  double row_arc_fit_y[4], row_arc_fit_m[4];
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length

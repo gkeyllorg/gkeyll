@@ -3,6 +3,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_tok_geo.h>
 
+#include <assert.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +15,8 @@ struct gkyl_gk_block_geom {
   int num_blocks; // total number of blocks
   struct gkyl_gk_block_geom_info *blocks; // info for each block
   struct gkyl_block_topo *btopo; // topology of blocks
+  void *row_arc_owner;
+  void (*row_arc_owner_release)(void *);
   
   struct gkyl_ref_count ref_count;
 };
@@ -21,6 +25,8 @@ static void
 gk_block_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_gk_block_geom *bgeom = container_of(ref, struct gkyl_gk_block_geom, ref_count);
+  if (bgeom->row_arc_owner_release)
+    bgeom->row_arc_owner_release(bgeom->row_arc_owner);
   gkyl_free(bgeom->blocks);
   gkyl_block_topo_release(bgeom->btopo);
   gkyl_free(bgeom);
@@ -32,6 +38,8 @@ gkyl_gk_block_geom_new(int ndim, int nblocks)
   struct gkyl_gk_block_geom *bgeom = gkyl_malloc(sizeof(struct gkyl_gk_block_geom));
   bgeom->ndim = ndim;
   bgeom->num_blocks = nblocks;
+  bgeom->row_arc_owner = 0;
+  bgeom->row_arc_owner_release = 0;
   bgeom->blocks = gkyl_calloc(sizeof(struct gkyl_gk_block_geom_info), nblocks);
 
   bgeom->btopo = gkyl_block_topo_new(ndim, nblocks);
@@ -39,6 +47,15 @@ gkyl_gk_block_geom_new(int ndim, int nblocks)
   bgeom->ref_count = gkyl_ref_count_init(gk_block_geom_free);
 
   return bgeom;
+}
+
+void
+gkyl_gk_block_geom_set_row_arc_owner(struct gkyl_gk_block_geom *bgeom,
+  void *owner, void (*release)(void *))
+{
+  assert(!bgeom->row_arc_owner && !bgeom->row_arc_owner_release);
+  bgeom->row_arc_owner = owner;
+  bgeom->row_arc_owner_release = release;
 }
 
 int

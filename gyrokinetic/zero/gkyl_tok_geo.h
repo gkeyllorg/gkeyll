@@ -263,6 +263,14 @@ struct gkyl_tok_geo_grid_inp {
   // never mentions this field is unaffected.
   double theta_seam_slope[2];
 
+  // Optional multiblock row-arclength probe and immutable endpoint-rate plan.
+  // Context is owned by the effective block geometry, never by this view.
+  // Capture takes physical psi, row length, theta width, and theta cell count.
+  // Rates returns physical ds/dtheta at both block ends on the requested row.
+  void *row_arc_ctx;
+  void (*row_arc_capture)(void *, double, double, double, int);
+  bool (*row_arc_rates)(void *, double, double *, double *);
+
   // Shape parameter for the SHARED theta grading. One grading function, used
   // identically by every block, with EQUAL END SLOPES:
   //

@@ -29,6 +29,12 @@ typedef struct gkyl_gk_block_geom gkyl_gk_block_geom;
  */
 struct gkyl_gk_block_geom *gkyl_gk_block_geom_new(int ndim, int nblocks);
 
+// Transfer ownership of an internal row-arclength plan to this block geometry.
+// Its callback contexts remain valid until the final geometry reference dies.
+// The caller must attach at most one owner to a newly cloned declaration.
+void gkyl_gk_block_geom_set_row_arc_owner(struct gkyl_gk_block_geom *bgeom,
+  void *owner, void (*release)(void *));
+
 /**
  * Return geometry dimension
  *

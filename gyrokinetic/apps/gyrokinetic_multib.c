@@ -1461,6 +1461,8 @@ cleanup:
 static gkyl_gyrokinetic_multib_app *gyrokinetic_multib_app_new_geom_impl(const struct gkyl_gyrokinetic_multib *);
 static gkyl_gyrokinetic_multib_app *gyrokinetic_multib_app_new_impl(const struct gkyl_gyrokinetic_multib *);
 
+#include "gkyl_row_arc_rates_priv.h"
+
 static gkyl_gyrokinetic_multib_app *
 gyrokinetic_multib_app_wall_wrapper(const struct gkyl_gyrokinetic_multib *inp, bool geometry_only)
 {
@@ -1469,16 +1471,33 @@ gyrokinetic_multib_app_wall_wrapper(const struct gkyl_gyrokinetic_multib *inp, b
     fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED ADJUST_IF_EXCEEDING_WALL must be 0 or 1\n");
     return 0;
   }
-  if (!adjust || !strcmp(adjust,"0"))
+  const bool adjust_wall=adjust && !strcmp(adjust,"1");
+  const bool row_arc=row_arc_plan_enabled();
+  if (!adjust_wall && !row_arc)
     return geometry_only ? gyrokinetic_multib_app_new_geom_impl(inp) : gyrokinetic_multib_app_new_impl(inp);
   if (!gkyl_gyrokinetic_multib_app_geometry_preflight(inp)) return 0;
-  struct gkyl_gk_block_geom *bg=gyrokinetic_multib_adjust_wall(inp);
+  struct gkyl_gk_block_geom *bg=0;
+  if (adjust_wall) bg=gyrokinetic_multib_adjust_wall(inp);
+  else {
+    int n=gkyl_gk_block_geom_num_blocks(inp->gk_block_geom);
+    bg=gkyl_gk_block_geom_new(gkyl_gk_block_geom_ndim(inp->gk_block_geom),n);
+    for (int b=0; b<n; ++b)
+      gkyl_gk_block_geom_set_block(bg,b,gkyl_gk_block_geom_get_block(inp->gk_block_geom,b));
+  }
   if (!bg) return 0;
   // Solve the coupled theta-seam multipliers on the settled declaration, before
   // the geometry that will actually be kept is built.
-  gyrokinetic_multib_solve_lambda(inp,bg);
-  gyrokinetic_multib_solve_shared_grading(inp,bg);
-  gyrokinetic_multib_solve_seam_slopes(inp,bg);
+  if (row_arc) {
+    if (!gyrokinetic_multib_prepare_row_arc(inp,bg)) {
+      gkyl_gk_block_geom_release(bg);
+      return 0;
+    }
+  }
+  else {
+    gyrokinetic_multib_solve_lambda(inp,bg);
+    gyrokinetic_multib_solve_shared_grading(inp,bg);
+    gyrokinetic_multib_solve_seam_slopes(inp,bg);
+  }
   struct gkyl_gyrokinetic_multib *effective=gkyl_malloc(sizeof(*effective));
   *effective=*inp; effective->gk_block_geom=bg;
   gkyl_gyrokinetic_multib_app *app=geometry_only ?
