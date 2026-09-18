@@ -209,11 +209,11 @@ create_ctx(void)
   double Ti_src = 40*eV;
 
   // Grid parameters
-  int Nx = 4;
-  int Nz = 32;
+  int Nx = 20;
+  int Nz = 8;
   int Ny = 2;
-  int Nvpar = 6;
-  int Nmu = 4;
+  int Nvpar = 4;
+  int Nmu = 2;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
@@ -221,9 +221,9 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(1.5*4*vti,2)/(2*B0);
 
-  double t_end = 6.0e-8;
+  double t_end = 1.0e-7;
   int num_frames = 1;
-  double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+  double write_phase_freq = 1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -341,6 +341,10 @@ int main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = temp_elc_src,  
       }, 
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      },
     },
 
     .bcs = {
@@ -352,6 +356,15 @@ int main(int argc, char **argv)
 
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    },
   };
 
   // ions
@@ -403,6 +416,10 @@ int main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = temp_ion_src,  
       }, 
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      },
     },
 
     .bcs = {
@@ -414,6 +431,15 @@ int main(int argc, char **argv)
     
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    },
   };
 
   // field

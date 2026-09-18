@@ -567,6 +567,8 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2 },
     },
+
+    .time_rate_diagnostics = true,
   };
 
   // field
