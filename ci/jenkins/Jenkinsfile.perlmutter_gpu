@@ -375,7 +375,7 @@ def configureAndCompileCRegressions(String label, String driver, String sourceDi
                 --source-dir "$CI_REGRESSION_SOURCE_DIR" \
                 --prefix "$CI_REGRESSION_PREFIX" ${CI_REGRESSION_CONFIGURE_OPTIONS:-}
             started="$(date +%s)"
-            "$CI_REGRESSION_DRIVER" runregression run -c $CI_REGRESSION_RUN_OPTIONS compile
+            "$CI_REGRESSION_DRIVER" runregression run -c ${CI_REGRESSION_RUN_OPTIONS:-} compile
             elapsed="$(( $(date +%s) - started ))"
             printf '%s\n' "$elapsed" > "$CI_REGRESSION_LABEL-c-compile-seconds.txt"
             echo "$CI_REGRESSION_LABEL C-regression compile time: $elapsed seconds"

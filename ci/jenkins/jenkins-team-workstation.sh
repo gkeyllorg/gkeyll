@@ -22,7 +22,7 @@ Commands:
   info     Show detailed information for a retained build.
   artifact List or download retained build artifacts.
   status   Show a queued or known build's state.
-  follow   Wait for and stream a queued or known build.
+  follow   Wait for and stream the console of a queued or known build.
   abort    Cancel a queued or running build.
 
 The run command returns after Jenkins accepts the request. --follow streams
