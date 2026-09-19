@@ -6118,10 +6118,29 @@ tok_shared_theta(const struct gkyl_tok_geo_grid_inp *inp,
   const struct gkyl_tok_geo_grid_inp *peer = inp->shared_theta_peer;
   if (!peer)
     return tok_row_arc_legacy_theta(inp,ctx,theta,slope);
-  if (tok_xpt_mapping_requested(inp) ||
-      (!tok_ext_ladder_gradpsi_theta_enabled(peer) && !tok_row_arc_enabled())) {
+  if (tok_xpt_mapping_requested(inp)) {
     fprintf(stderr, "TOK_SHARED_THETA unsupported mapping policy ftype=%d\n", inp->ftype);
     abort();
+  }
+  // The composition exists to re-agree a legacy block with a peer that measures
+  // theta DIFFERENTLY than this block would natively. When neither the |grad psi|
+  // measure nor the row-arc reparameterization is active, both sides are on plain
+  // arc length over their own [arc_lo,arc_hi], so the composition is the identity
+  // and there is nothing to compose -- take the legacy path, exactly as an
+  // undeclared peer does above. Aborting here instead made the shipped flag
+  // configuration unbuildable for every block that DECLARES a peer; it was
+  // reachable only because the wall contract was failing first and masking it.
+  if (!tok_ext_ladder_gradpsi_theta_enabled(peer) && !tok_row_arc_enabled()) {
+    // The policy is a property of the run, not of the node, and this function is
+    // called once per node -- announce it once rather than per evaluation.
+    static bool announced = false;
+    if (!announced) {
+      announced = true;
+      fprintf(stderr, "TOK_SHARED_THETA inert policy=identity "
+        "reason=peer_on_same_measure ftype=%d peer_ftype=%d\n",
+        inp->ftype, peer->ftype);
+    }
+    return tok_row_arc_legacy_theta(inp,ctx,theta,slope);
   }
   if (!ctx->gradpsi_map_ready) {
     double edge = inp->shared_theta_radial_edge ? inp->cgrid.upper[0] : inp->cgrid.lower[0];
