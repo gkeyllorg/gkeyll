@@ -5390,8 +5390,32 @@ tok_ext_march_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
   // March from the far boundary instead and relabel afterwards, which puts the
   // measure exactly where it is wanted -- on the shared separatrix row -- and
   // leaves the far boundary on its own arc length.
-  if (want_sep_map)
-    tok_ext_ladder_sep_identity(table, m, n, sep_map);
+  //
+  // Relabel WHATEVER measure the separatrix row is supposed to carry, not only
+  // the |grad psi| one. The seam constrains the shared row's LABELLING, and
+  // that constraint exists whether or not the measure is enabled: with it OFF
+  // the row the neighbour across a PF<->SOL interface parameterizes is pure arc
+  // length, which is the identity, and this function already takes target=NULL
+  // to mean exactly that. Gating the relabel on want_sep_map left the SHIPPED
+  // configuration (GRADPSI_THETA=0) with no relabel at all, so the only way to
+  // get a conformal separatrix row was to SEED there -- and seeding there is
+  // what folds the first radial cell, because it carries the X-point corner's
+  // arc-length concentration outward.
+  //
+  // Measured 2026-09-19 on the 53-cell res family, which is why this exists:
+  //   FROM_SEP=0   46 failing interfaces over 11 cases, grid_gate 15/16 clean
+  //   FROM_SEP=1    0 failing interfaces, and 89 radial reversals at ip=0 in
+  //                 STEP's two OUTBOARD PF blocks (b0 PF_LO_R, b4 PF_UP_R),
+  //                 worst_cos -0.95, worsening with psi refinement and with
+  //                 XPT_COMPRESSION -- i.e. as the first cell gets thinner.
+  // Marching from the far boundary and relabelling afterwards gives both, and
+  // the relabel is a pure reparameterization: it composes every rung with ONE
+  // shared increasing map of the node index, so the radial pairing and the cell
+  // shapes are untouched.
+  //
+  // Under FROM_SEP=1 row 0 was seeded to the identity, phi is the identity and
+  // this is a bit-for-bit no-op, so it cannot change that configuration.
+  tok_ext_ladder_sep_identity(table, m, n, want_sep_map ? sep_map : NULL);
   gkyl_free(sep_map);
   *dmax_out = dmax;
   return true;
