@@ -1,0 +1,8 @@
+# Jenkins 2.568.3 LTS, Java 21. Update the digest deliberately when upgrading.
+FROM docker.io/jenkins/jenkins:lts-jdk21@sha256:68964c38dbb70c0bf6adff480d6dda2e1191d2d07e076c9fd2996345303eb999
+RUN jenkins-plugin-cli --plugins workflow-aggregator git credentials-binding github-branch-source
+RUN jenkins-plugin-cli --plugins pipeline-multibranch-defaults config-file-provider matrix-auth
+COPY --chown=jenkins:jenkins bootstrap.groovy /usr/share/jenkins/ref/init.groovy.d/gkeyll.groovy
+COPY jenkinsfile.personal /usr/local/share/gkeyll/jenkinsfile.personal
+COPY jenkinsfile.team_workstation /usr/local/share/gkeyll/jenkinsfile.team_workstation
+COPY check_regression_results.lua /usr/local/share/gkeyll/check_regression_results.lua

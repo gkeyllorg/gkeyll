@@ -1,0 +1,27 @@
+[Unit]
+Description=Gkeyll Jenkins RTX 3090 agent
+Wants=gkeyll-jenkins.service
+After=gkeyll-jenkins.service
+
+[Container]
+Image=localhost/gkeyll-gpu-agent:local
+ContainerName=gkeyll-gpu-agent
+Network=gkeyll-jenkins.network
+UserNS=keep-id:uid=1000,gid=1000
+AddDevice=nvidia.com/gpu=0
+SecurityLabelDisable=true
+Volume=%h/.local/share/gkeyll-jenkins/agent:/home/jenkins/agent
+Volume=%h/.local/share/gkeyll-jenkins/agent-credentials:/run/agent-credentials:ro
+Environment=JENKINS_URL=http://gkeyll-jenkins:8080/
+Environment=JENKINS_AGENT_NAME=bazzite-rtx3090
+
+[Service]
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+CPUWeight=50
+MemoryHigh=24G
+MemoryMax=26G
+
+[Install]
+WantedBy=default.target

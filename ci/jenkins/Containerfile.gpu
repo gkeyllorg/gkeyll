@@ -1,0 +1,33 @@
+# CUDA 12 retains cuSolver APIs used by this repository; RTX 3090 is sm_86.
+FROM docker.io/nvidia/cuda:12.6.3-devel-ubuntu24.04@sha256:392c0df7b577ecae17a17f6ba7f2009c217bb4422f8431c053ae9af61a8c148a
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates curl git make gcc g++ gfortran cmake pkg-config rsync \
+      bzip2 xz-utils perl patch libopenblas-dev liblapacke-dev libluajit-5.1-dev \
+      openjdk-21-jre-headless python3 python3-numpy \
+    && rm -rf /var/lib/apt/lists/*
+# Match the repository's SuperLU version, independently of Ubuntu's version.
+RUN curl -fL --retry 3 https://github.com/xiaoyeli/superlu/archive/refs/tags/v7.0.1.tar.gz -o /tmp/superlu.tar.gz \
+    && echo '86dcca1e086f8b8079990d07f00eb707fc9ef412cf3b2ce808b37956f0de2cb8  /tmp/superlu.tar.gz' | sha256sum -c - \
+    && tar -xzf /tmp/superlu.tar.gz -C /tmp \
+    && cmake -S /tmp/superlu-7.0.1 -B /tmp/superlu-build \
+         -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/superlu \
+         -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+         -Denable_tests=OFF -Denable_examples=OFF -Denable_internal_blaslib=OFF \
+         -DXSDK_ENABLE_Fortran=OFF \
+    && cmake --build /tmp/superlu-build --parallel 8 \
+    && cmake --install /tmp/superlu-build \
+    && rm -rf /tmp/superlu.tar.gz /tmp/superlu-7.0.1 /tmp/superlu-build
+# Keep the memory checkers available to every Jenkins build.
+RUN apt-get update && apt-get install -y --no-install-recommends valgrind cuda-sanitizer-12-6 \
+    && rm -rf /var/lib/apt/lists/* \
+    && valgrind --version && compute-sanitizer --version
+COPY agent-entrypoint.sh /usr/local/bin/gkeyll-agent
+RUN chmod 755 /usr/local/bin/gkeyll-agent \
+    && mkdir -p /home/jenkins/agent && chown -R 1000:1000 /home/jenkins
+ENV OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 \
+    LD_LIBRARY_PATH=/opt/superlu/lib:/usr/local/cuda/lib64 \
+    NVIDIA_VISIBLE_DEVICES=void
+USER 1000:1000
+WORKDIR /home/jenkins/agent
+ENTRYPOINT ["/usr/local/bin/gkeyll-agent"]

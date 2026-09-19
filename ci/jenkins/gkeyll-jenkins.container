@@ -1,0 +1,23 @@
+[Unit]
+Description=Gkeyll Jenkins controller
+
+[Container]
+Image=localhost/gkeyll-jenkins:local
+ContainerName=gkeyll-jenkins
+Network=gkeyll-jenkins.network
+NetworkAlias=gkeyll-jenkins
+PublishPort=127.0.0.1:8080:8080
+UserNS=keep-id:uid=1000,gid=1000
+Volume=%h/.local/share/gkeyll-jenkins/controller:/var/jenkins_home:Z
+Volume=%h/.local/share/gkeyll-jenkins/admin-password:/run/secrets/admin-password:ro,Z
+Volume=%h/.local/share/gkeyll-jenkins/agent-credentials:/run/agent-credentials:z
+Volume=%h/.config/gkeyll:/run/cli-credentials:Z
+Environment="JAVA_OPTS=-Djenkins.install.runSetupWizard=false -Xms256m -Xmx2g"
+
+[Service]
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target
