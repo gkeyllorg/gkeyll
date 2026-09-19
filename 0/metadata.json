@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2WRGX6YKG322QVWTGSG1BZD",
+  "session_id": "01a0b18a-1cdb-7cf1-b9da-685b02a3d049",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-19T11:58:46.565334Z",
+  "branch": "agent_tools",
+  "checkpoints_count": 5,
+  "save_step_count": 1,
+  "files_touched": [
+    "ci/jenkins/README.md",
+    "ci/jenkins/README.personal.md",
+    "ci/jenkins/jenkins-personal.sh"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "8ba5547b7921",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 201359,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6056960,
+    "output_tokens": 34168,
+    "api_call_count": 48
+  },
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-19T11:58:46.493714Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 74,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 74,
+    "total_lines_changed": 106,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
