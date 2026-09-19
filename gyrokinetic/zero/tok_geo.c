@@ -8739,6 +8739,15 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
     }
   }
 
+  // The library builds geometry three ways and only one of them ships. The
+  // row-arc PROBE measures each row's arc length with the grading switched off
+  // (capture hook set, rates hook null) and releases the grid -- the plan cannot
+  // be applied to the pass that measures it. The rho-wall TRIAL probes a
+  // candidate outer boundary and rejects it. Neither is written, so a fold there
+  // is the defect being corrected, not a defect in what ships. The tell is
+  // structural, never a device or block label.
+  const bool measurement_only = inp->row_arc_capture && !inp->row_arc_rates;
+
   // A folded cell is a grid that is wrong, not merely poor: the map from
   // computational to physical coordinates has reversed orientation there, so
   // the Jacobian changes sign inside the block. Such a block used to be written
@@ -8794,10 +8803,23 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
     if (nfold > 0) {
       fprintf(stderr,
         "TOK_GEO_FOLDED_CELLS ftype=%d nfold=%d of %d quads "
-        "worst_area=%.17g at (ip=%d,it=%d) node=(%.17g,%.17g)\n",
-        inp->ftype, nfold, nquad, worst, worst_ip, worst_it, worst_r, worst_z);
+        "worst_area=%.17g at (ip=%d,it=%d) node=(%.17g,%.17g) probe=%d\n",
+        inp->ftype, nfold, nquad, worst, worst_ip, worst_it, worst_r, worst_z,
+        (int) measurement_only);
+      // DIAGNOSTIC, not the verdict. This area is a shoelace over the four
+      // CORNER nodes, but a cell edge is a curve: corner -> 2 Gauss surface
+      // nodes -> corner. At the aspect ratios psi refinement produces at the
+      // separatrix row the chord quadrilateral inverts while the cell does not
+      // -- measured on five cells (STEP psi x8/x16, ASDEX psi x2/x4/x8, all
+      // theta x1) whose Jacobian is sign-definite. Orientation is decided by the
+      // signed-Jacobian guard in calc_metric.c, on by default, which evaluates J
+      // at the quadrature points. GKYL_TOK_FOLDED_CELLS_FATAL=1 restores abort.
+      const char *fatal = getenv("GKYL_TOK_FOLDED_CELLS_FATAL");
       const char *allow = getenv("GKYL_TOK_ALLOW_FOLDED_CELLS");
-      if (!(allow && allow[0] != '\0' && allow[0] != '0')) {
+      if (fatal && fatal[0] != '\0' && fatal[0] != '0' &&
+          !measurement_only &&
+          !(allow && allow[0] != '\0' && allow[0] != '0') &&
+          !tok_wall_trial_record(false)) {
         fprintf(stderr,
           "TOK_GEO_FOLDED_CELLS ftype=%d aborting: the coordinate map reverses "
           "orientation inside this block, so its Jacobian changes sign. Set "
@@ -8858,11 +8880,19 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
     if (nrev > 0) {
       fprintf(stderr,
         "TOK_GEO_SURFACE_CROSS ftype=%d nrev=%d of %d radial step pairs "
-        "worst_cos=%.17g at (ip=%d,it=%d) node=(%.17g,%.17g)\n",
+        "worst_cos=%.17g at (ip=%d,it=%d) node=(%.17g,%.17g) probe=%d\n",
         inp->ftype, nrev, npair, worst_cos, worst_ip, worst_it,
-        worst_r, worst_z);
+        worst_r, worst_z, (int) measurement_only);
+      // A violation inside a rho-wall TRIAL is a REJECTION, not a fatal error:
+      // the adjuster answers a bad candidate boundary by stepping it inward and
+      // retrying. The wall guard already routes its own violations that way;
+      // this one did not, so a crossing in a DISCARDED trial killed the process
+      // before the adjuster could move anything. `false`: the boundary is
+      // movable, and moving it is the remedy.
       const char *allow = getenv("GKYL_TOK_ALLOW_SURFACE_CROSS");
-      if (!(allow && allow[0] != '\0' && allow[0] != '0')) {
+      if (!measurement_only &&
+          !(allow && allow[0] != '\0' && allow[0] != '0') &&
+          !tok_wall_trial_record(false)) {
         fprintf(stderr,
           "TOK_GEO_SURFACE_CROSS ftype=%d aborting: consecutive flux surfaces "
           "cross inside this block, so its radial ordering reverses. Set "

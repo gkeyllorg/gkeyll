@@ -108,8 +108,17 @@ signed_jacobian_guard_enabled(void)
 {
   static int enabled = -1;
   if (enabled < 0) {
+    // ON by default. This is the criterion that matters: J is what enters the
+    // equations, and it is evaluated here at the quadrature points from the
+    // map's own derivatives. The corner-node shoelace in tok_geo.c cannot
+    // decide this -- it joins the corners with CHORDS, and where a radial band
+    // is ~1e-4 m against a ~1 m poloidal cell the chord quadrilateral inverts
+    // while the curved cell does not. Measured on STEP psi x8/x16 and ASDEX
+    // psi x2/x4/x8 theta x1: the shoelace reports a fold, this guard reports
+    // none, and jacobgeo is +1.64 or better at every corner of every cell.
+    // Set GKYL_MAP_JACOBIAN_SIGN_GUARD=0 to disable.
     const char *value = getenv("GKYL_MAP_JACOBIAN_SIGN_GUARD");
-    enabled = value && value[0] != '\0' && value[0] != '0';
+    enabled = !(value && value[0] != '\0' && value[0] == '0');
     if (enabled) {
       fprintf(stderr, "GKYL_SIGNED_JACOBIAN_GUARD enabled version=1\n");
       fflush(stderr);
