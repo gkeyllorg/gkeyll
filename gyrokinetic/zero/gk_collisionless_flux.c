@@ -185,8 +185,9 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 
         double* flux_surf_ext_d = gkyl_array_fetch(flux_surf, loc_phase_ext);
 
-        cflrate_ext_d[0] = GKYL_MAX2(cflrate_ext_d[0], up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_ext_d));
+        double cflrate_edge = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_ext_d);
+        cflrate_ext_d[0] = GKYL_MAX2(cflrate_ext_d[0], cflrate_edge);
       }  
 
     }
