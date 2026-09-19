@@ -22,10 +22,11 @@ gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
                        field->epsilon, &app->local);
 
   // Apply periodic BCs to phi.
-  if (app->num_periodic_dir > 0) {
+  for (int d=0; d<app->num_periodic_dir; ++d) {
     if (app->periodic_dirs[d] == app->cdim-1) {
       gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
         app->num_periodic_dir, app->periodic_dirs, field->phi_smooth);
+      break;
     }
   }
 }
