@@ -16,6 +16,7 @@ description: Apply Gkeyll naming conventions when creating, editing, or reviewin
 - CUDA files have names ending in _cu.cu. 
 - luareg/ folders have Lua input files whose names end with .lua. The Lua
   wrappers are in the apps/ folders and have names ending in _lw.c
+- Unit tests bear the IDENTICAL name to the file they test, with `ctest_` in front.
 
 ### Functions
 
