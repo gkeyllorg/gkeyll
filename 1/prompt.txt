@@ -1,0 +1,7 @@
+My most recent Jenkins CI run on perlmutter_gpu (see ci/jenkins/README.perlmutter_gpu.md) failed. See the console output here: /Users/mfrancis/Downloads/run_4.txt
+
+Why did it fail and how can we fix it?
+
+---
+
+Implement the plan.
