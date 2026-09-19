@@ -44,6 +44,56 @@ tok_wall_tolerance(const struct gkyl_efit *e)
   return 1e-8*fmax(1.0,fmax(e->rdim,e->zdim));
 }
 
+// Sagitta of the circle through vertices a,b,c, over a chord of length `len`:
+// how far a smooth curve carrying all three can bow away from that chord.
+// Degenerate (collinear or coincident) triples carry no curvature and answer 0.
+static double
+tok_wall_arc_sagitta(double ax, double ay, double bx, double by,
+  double cx, double cy, double len)
+{
+  const double A=hypot(bx-ax,by-ay), B=hypot(cx-bx,cy-by), C=hypot(cx-ax,cy-ay);
+  const double area2=fabs((bx-ax)*(cy-ay)-(cx-ax)*(by-ay));
+  if (!(area2>0.0) || !(A>0.0) || !(B>0.0) || !(C>0.0)) return 0.0;
+  const double radius=A*B*C/(2.0*area2);
+  if (!(2.0*radius>len)) return 0.0;
+  const double s=radius-sqrt(radius*radius-0.25*len*len);
+  return isfinite(s) && s>0.0 ? s : 0.0;
+}
+
+// How precisely can THIS outline locate the wall along the edge j->i?
+//
+// The outline is a CHORD approximation to the vessel, and judging a point
+// against it to machine roundoff asks a precision the data does not carry.
+// ASDEX ships 31 vertices with 189 mm chords while `tok_wall_tolerance` is
+// 1e-8*max(rdim,zdim) = 24 nm -- nearly eight orders of magnitude finer than
+// the outline can say where the wall is. A divertor leg terminates ON the
+// plate, so its nodes land a fraction of a millimetre either side of a chord
+// and were being reported as the plasma boundary leaving the machine
+// (measured: 0.07, 0.52 and 0.94 mm outside, against chords of 158-221 mm).
+//
+// So derive the tolerance from the outline's OWN discretization: the sagitta of
+// the circle through each neighbouring vertex triple bounds how far the true
+// wall can sit from this chord. Nothing is tuned, and it scales the right way --
+// a finely resolved outline collapses it back to roundoff (TCV, 512 vertices:
+// median 0.00 mm, max 3.7 mm, so the guard stays strict), and it opens only
+// where the description is coarse (the ASDEX divertor corner, 65-100 mm), which
+// is exactly where we do not know where the wall is. Supplying a better outline
+// tightens the guard; no code change can.
+static double
+tok_wall_edge_tolerance(const struct gkyl_efit *e, int j, int i)
+{
+  const int n=e->limiter_n;
+  const double tol=tok_wall_tolerance(e);
+  if (n<3) return tol;
+  const double *R=e->limiter_R, *Z=e->limiter_Z;
+  const int jm=(j-1+n)%n, ip=(i+1)%n;
+  const double len=hypot(R[i]-R[j],Z[i]-Z[j]);
+  if (!(len>0.0)) return tol;
+  const double s=fmax(tok_wall_arc_sagitta(R[jm],Z[jm],R[j],Z[j],R[i],Z[i],len),
+                      tok_wall_arc_sagitta(R[j],Z[j],R[i],Z[i],R[ip],Z[ip],len));
+  return fmax(tol,s);
+}
+
 bool
 tok_wall_point_inside(const struct gkyl_efit *e, const double p[2])
 {
@@ -55,7 +105,6 @@ tok_wall_point_inside(const struct gkyl_efit *e, const double p[2])
   for (int i=0; i<e->limiter_n; ++i)
     if (!tok_geo_finite(e->limiter_R[i]) || !tok_geo_finite(e->limiter_Z[i])) return false;
   bool inside=false;
-  double tol=tok_wall_tolerance(e);
   // EQDSK supplies an ordered vessel outline. Its last-to-first edge closes
   // the polygon; a repeated first vertex is optional.
   for (int i=0,j=e->limiter_n-1; i<e->limiter_n; j=i++) {
@@ -64,6 +113,8 @@ tok_wall_point_inside(const struct gkyl_efit *e, const double p[2])
     if (!tok_geo_finite(ax) || !tok_geo_finite(ay) || !tok_geo_finite(bx) || !tok_geo_finite(by)) return false;
     double dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;
     if (l2>0.0) {
+      // Per EDGE, not per outline: how well the wall is located varies along it.
+      double tol=tok_wall_edge_tolerance(e,j,i);
       double t=fmax(0.0,fmin(1.0,((p[0]-ax)*dx+(p[1]-ay)*dy)/l2));
       if (hypot(p[0]-ax-t*dx,p[1]-ay-t*dy)<=tol) return true;
     }
