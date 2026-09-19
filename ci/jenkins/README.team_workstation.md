@@ -103,9 +103,16 @@ toolchain, `cmake`, and Python/NumPy. Set these global environment variables:
 | `TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID |
 | `TEAM_WORKSTATION_BUILD_JOBS` | Optional; default `3` |
 | `TEAM_WORKSTATION_REGRESSION_JOBS` | Optional; default `1` |
-| `TEAM_WORKSTATION_MPIEXEC` | Optional parallel-test launcher; defaults to `gkylsoft/openmpi/bin/mpiexec` in the Jenkins workspace |
+| `TEAM_WORKSTATION_MPIEXEC` | Optional launcher override for both trees; otherwise each tree uses its own `gkylsoft/openmpi/bin/mpiexec` |
 | `TEAM_WORKSTATION_STATUS_CONTEXT` | Optional status context; default team-workstation |
 | `TEAM_WORKSTATION_TRUSTED_CI_REF` | Trusted workflow branch/SHA; production value `main` |
+
+The workflow builds dependencies separately for the candidate and baseline in
+their workspace-local `gkylsoft` directories. Unless explicitly set in the agent
+environment, `MPI_HOME` is scoped to the current tree's `gkylsoft/openmpi` while
+building that tree. With no MPI launcher override, each tree also uses its own
+OpenMPI launcher for parallel regressions. Clear shared dependency include/library
+overrides when validating these per-run dependency builds.
 
 ### Create the one centralized multibranch Pipeline job
 

@@ -85,7 +85,8 @@ def timeCommand(String metricFile, String command) {
 
 def buildTree(String label, String prefix, String mkdeps, String configure, String jobs) {
     def metricDirectory = label == 'baseline' ? '../' : ''
-    withEnv(["PREFIX=${prefix}"]) {
+    def mpiHome = env.MPI_HOME?.trim() ?: "${prefix}/openmpi"
+    withEnv(["PREFIX=${prefix}", "MPI_HOME=${mpiHome}"]) {
         sh """#!/bin/bash
             set -euo pipefail
             ./machines/${mkdeps}
@@ -131,15 +132,18 @@ def runCandidateRegressions(String regressionJobs) {
 }
 
 def runParallelRegressions(String mpiExec) {
+    def candidateMpiExec = mpiExec ?: "${env.WORKSPACE}/gkylsoft/openmpi/bin/mpiexec"
+    def baselineMpiExec = mpiExec ?: "${env.WORKSPACE}/_baseline/gkylsoft/openmpi/bin/mpiexec"
     def gkeyll = "${env.WORKSPACE}/gkylsoft/gkeyll/bin/gkeyll"
     def baselineGkeyll = "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll"
     def results = "${env.WORKSPACE}/gkylsoft/gkeyll-results/parallel-c-4"
     def baselineResults = "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll-results/parallel-c-4"
     sh """#!/bin/bash
         set -euo pipefail
-        test -x "${mpiExec}"
+        test -x "${candidateMpiExec}"
+        test -x "${baselineMpiExec}"
 
-        "${baselineGkeyll}" runregression configure --source-dir "${env.WORKSPACE}/_baseline" --prefix "${env.WORKSPACE}/_baseline/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${mpiExec}"
+        "${baselineGkeyll}" runregression configure --source-dir "${env.WORKSPACE}/_baseline" --prefix "${env.WORKSPACE}/_baseline/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${baselineMpiExec}"
         started=\$(date +%s)
         "${baselineGkeyll}" runregression run --c-only --parallel compile
         elapsed=\$(( \$(date +%s) - started ))
@@ -150,7 +154,7 @@ def runParallelRegressions(String mpiExec) {
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > baseline-parallel-c-regression-create-seconds.txt
 
-        "${gkeyll}" runregression configure --source-dir "${env.WORKSPACE}" --prefix "${env.WORKSPACE}/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${mpiExec}"
+        "${gkeyll}" runregression configure --source-dir "${env.WORKSPACE}" --prefix "${env.WORKSPACE}/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${candidateMpiExec}"
         started=\$(date +%s)
         "${gkeyll}" runregression run --c-only --parallel compile
         elapsed=\$(( \$(date +%s) - started ))
@@ -236,7 +240,7 @@ def configure = validateBranchName('PERSONAL_CONFIGURE_SCRIPT', requireValue('PE
 def statusCredentialsId = requireValue('PERSONAL_GITHUB_CREDENTIAL_ID', env.PERSONAL_GITHUB_CREDENTIAL_ID)
 def jobs = (env.PERSONAL_BUILD_JOBS ?: '3').trim()
 def regressionJobs = (env.PERSONAL_REGRESSION_JOBS ?: '1').trim()
-def mpiExec = (env.PERSONAL_MPIEXEC ?: "${env.WORKSPACE}/gkylsoft/openmpi/bin/mpiexec").trim()
+def mpiExec = (env.PERSONAL_MPIEXEC ?: '').trim()
 if (!(jobs ==~ /[1-9][0-9]*/) || !(regressionJobs ==~ /[1-9][0-9]*/)) error('PERSONAL_BUILD_JOBS and PERSONAL_REGRESSION_JOBS must be positive integers.')
 
 def ciStage(String stageName, Closure body) {
