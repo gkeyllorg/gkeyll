@@ -1,0 +1,766 @@
+// Manual Level-1 CUDA CI for NERSC's Perlmutter GPU cluster.
+//
+// Configure the Jenkins job to load *this file* from a reviewed, trusted CI
+// branch while Level 1 is being brought up. The PR checkout below is
+// intentionally separate: a pull request must not be able to replace the
+// pipeline that decides what SLURM work to submit. Once validated, the job can
+// move to main without changing this file.
+
+properties([
+    buildDiscarder(logRotator(
+        numToKeepStr: '20',
+        artifactNumToKeepStr: '20'
+    )),
+    disableConcurrentBuilds(),
+    parameters([
+        string(
+            name: 'CANDIDATE_PR',
+            defaultValue: '',
+            trim: true,
+            description: 'GitHub pull-request number. Set exactly one of CANDIDATE_PR or CANDIDATE_REF.'
+        ),
+        string(
+            name: 'CANDIDATE_REF',
+            defaultValue: '',
+            trim: true,
+            description: 'Candidate branch name or full 40-character commit SHA. Requires BASELINE_REF.'
+        ),
+        string(
+            name: 'BASELINE_REF',
+            defaultValue: '',
+            trim: true,
+            description: 'Baseline branch name or full 40-character commit SHA for CANDIDATE_REF runs.'
+        )
+    ])
+])
+
+def requireValue(String name, String value) {
+    value = value?.trim()
+    if (!value) {
+        error("${name} is not configured. See ci/jenkins/README.perlmutter_gpu.md.")
+    }
+    return value
+}
+
+def buildJobs() {
+    def value = (env.PERLMUTTER_GPU_BUILD_JOBS ?: '3').trim()
+    return positiveInteger('PERLMUTTER_GPU_BUILD_JOBS', value)
+}
+
+def positiveInteger(String name, String value) {
+    if (!(value ==~ /[1-9][0-9]*/)) {
+        error("${name} must be a positive integer, got '${value}'.")
+    }
+    return value
+}
+
+def regressionJobs() {
+    return positiveInteger(
+        'PERLMUTTER_GPU_REGRESSION_JOBS',
+        (env.PERLMUTTER_GPU_REGRESSION_JOBS ?: '4').trim()
+    )
+}
+
+def regressionTestTimeout() {
+    return positiveInteger(
+        'PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT',
+        (env.PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT ?: '900').trim()
+    )
+}
+
+def isCommitSha(String value) {
+    return value ==~ /[0-9a-fA-F]{40}/
+}
+
+def validateBranchName(String name, String value) {
+    if (!(value ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/)
+        || value.contains('..') || value.contains('//')
+        || value.endsWith('/') || value.endsWith('.') || value.endsWith('.lock')) {
+        error("${name} must be a safe branch name or a full 40-character commit SHA, got '${value}'.")
+    }
+    return value
+}
+
+def validateRefSelector(String name, String value) {
+    value = requireValue(name, value)
+    return isCommitSha(value) ? value.toLowerCase() : validateBranchName(name, value)
+}
+
+def checkoutPullRequest(String prNumber) {
+    checkout([
+        $class: 'GitSCM',
+        branches: [[name: "refs/remotes/origin/candidate"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
+        ],
+        userRemoteConfigs: [[
+            refspec: "+refs/pull/${prNumber}/head:refs/remotes/origin/candidate",
+            url: 'https://github.com/gkeyllorg/gkeyll.git'
+        ]]
+    ])
+}
+
+def checkoutRef(String selector, String localRef) {
+    def refspec = isCommitSha(selector)
+        ? "+${selector}:refs/remotes/origin/${localRef}"
+        : "+refs/heads/${selector}:refs/remotes/origin/${localRef}"
+    checkout([
+        $class: 'GitSCM',
+        branches: [[name: "refs/remotes/origin/${localRef}"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
+        ],
+        userRemoteConfigs: [[
+            refspec: refspec,
+            url: 'https://github.com/gkeyllorg/gkeyll.git'
+        ]]
+    ])
+}
+
+def resolvePullRequestBase(String statusCredentialsId, String prNumber) {
+    def baseRef = ''
+    withCredentials([usernamePassword(
+        credentialsId: statusCredentialsId,
+        usernameVariable: 'GITHUB_STATUS_USERNAME',
+        passwordVariable: 'GITHUB_STATUS_TOKEN'
+    )]) {
+        withEnv(["GITHUB_PR_NUMBER=${prNumber}"]) {
+            baseRef = sh(returnStdout: true, script: '''#!/bin/bash
+                set -euo pipefail
+                curl --fail --silent --show-error \
+                    --retry 2 --connect-timeout 15 --max-time 45 \
+                    --header 'Accept: application/vnd.github+json' \
+                    --header 'X-GitHub-Api-Version: 2022-11-28' \
+                    --header "Authorization: Bearer ${GITHUB_STATUS_TOKEN}" \
+                    "https://api.github.com/repos/gkeyllorg/gkeyll/pulls/${GITHUB_PR_NUMBER}" \
+                    | python3 -c '
+import json
+import sys
+
+pull = json.load(sys.stdin)
+base_ref = (pull.get("base") or {}).get("ref") or ""
+if not isinstance(base_ref, str):
+    raise SystemExit("GitHub pull-request base ref is not a string")
+print(base_ref)
+'
+            ''').trim()
+        }
+    }
+    return validateBranchName('GitHub PR base branch', baseRef)
+}
+
+def publishGitHubCommitStatus(String statusCredentialsId, String commit, String state, String description) {
+    if (!(commit ==~ /[0-9a-f]{40}/)) {
+        error("Cannot publish a GitHub status for invalid commit SHA '${commit}'.")
+    }
+    if (!['pending', 'success', 'failure', 'error'].contains(state)) {
+        error("Invalid GitHub commit-status state '${state}'.")
+    }
+
+    // Bind the token only for this trusted API request, never while a shell
+    // command from the PR checkout is running.
+    withCredentials([usernamePassword(
+        credentialsId: statusCredentialsId,
+        usernameVariable: 'GITHUB_STATUS_USERNAME',
+        passwordVariable: 'GITHUB_STATUS_TOKEN'
+    )]) {
+        withEnv([
+            "GITHUB_STATUS_COMMIT=${commit}",
+            "GITHUB_STATUS_STATE=${state}",
+            "GITHUB_STATUS_DESCRIPTION=${description}"
+        ]) {
+            sh '''#!/bin/bash
+                set -euo pipefail
+
+                payload="$(printf '{"state":"%s","context":"continuous-integration/jenkins/perlmutter_gpu","description":"%s"}' "${GITHUB_STATUS_STATE}" "${GITHUB_STATUS_DESCRIPTION}")"
+                curl --fail --silent --show-error \
+                    --retry 2 --connect-timeout 15 --max-time 45 \
+                    --request POST \
+                    --header 'Accept: application/vnd.github+json' \
+                    --header 'X-GitHub-Api-Version: 2022-11-28' \
+                    --header "Authorization: Bearer ${GITHUB_STATUS_TOKEN}" \
+                    --header 'Content-Type: application/json' \
+                    --data "$payload" \
+                    --output /dev/null --write-out 'GitHub Perlmutter status: %{http_code}\\n' \
+                    "https://api.github.com/repos/gkeyllorg/gkeyll/statuses/${GITHUB_STATUS_COMMIT}"
+            '''
+        }
+    }
+}
+
+def submitSlurmJob(String kind, String payload, String timeLimit, List<String> extraExports = [], String tasks = '1', String cpus = '32', String gpus = '1') {
+    def qos = (env.PERLMUTTER_GPU_SLURM_QOS ?: 'shared').trim()
+    def account = requireValue('PERLMUTTER_GPU_SLURM_ACCOUNT', env.PERLMUTTER_GPU_SLURM_ACCOUNT)
+    def idFile = "slurm-${kind}-job-id.txt"
+    def statusFile = "slurm-${kind}-job-status.txt"
+    def outputFile = "slurm-${kind}-%j.out"
+    def exports = [
+        "CI_WORKSPACE=${env.WORKSPACE}",
+        "CI_SLURM_JOB_KIND=${kind}",
+        "CI_SLURM_JOB_ID_FILE=${idFile}",
+        "CI_SLURM_JOB_STATUS_FILE=${statusFile}"
+    ] + extraExports
+
+    withEnv([
+        "CI_WORKSPACE=${env.WORKSPACE}",
+        "CI_SLURM_JOB_KIND=${kind}",
+        "CI_SLURM_JOB_ID_FILE=${idFile}",
+        "CI_SLURM_JOB_STATUS_FILE=${statusFile}",
+        "CI_PERLMUTTER_GPU_QOS=${qos}",
+        "CI_PERLMUTTER_GPU_TIME=${timeLimit}",
+        "CI_PERLMUTTER_GPU_ACCOUNT=${account}",
+        "CI_SLURM_TASKS=${tasks}",
+        "CI_SLURM_CPUS_PER_TASK=${cpus}",
+        "CI_SLURM_GPUS_PER_TASK=${gpus}",
+        "CI_SLURM_PAYLOAD=${payload}",
+        "CI_SLURM_EXPORTS=${exports.join(',')}",
+        "CI_SLURM_OUTPUT=${outputFile}"
+    ]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+
+            job_id=''
+
+            write_status() {
+                printf 'job_id=%s\nstate=%s\nexit_code=%s\nelapsed_seconds=%s\n' \
+                    "$job_id" "$1" "${2:-}" "${3:-}" > "$CI_SLURM_JOB_STATUS_FILE"
+            }
+
+            cancel_submitted_job() {
+                trap - INT TERM
+                if [[ -z "$job_id" ]]; then
+                    exit 143
+                fi
+
+                echo "Jenkins interrupted; cancelling Slurm job $job_id"
+                scancel "$job_id" || true
+                while :; do
+                    state="$(squeue --noheader --jobs="$job_id" --format='%T' | head -n 1 || true)"
+                    if [[ -z "$state" ]]; then
+                        break
+                    fi
+                    echo "Waiting for Slurm job $job_id to stop (state: $state)"
+                    sleep 5
+                done
+                write_status 'CANCELLED_BY_JENKINS'
+                exit 143
+            }
+
+            trap cancel_submitted_job INT TERM
+
+            sbatch_args=(
+                --parsable
+                "--job-name=gkyl-ci-${CI_SLURM_JOB_KIND}-${BUILD_NUMBER}"
+                --nodes=1
+                "--ntasks=${CI_SLURM_TASKS}"
+                --constraint=gpu
+                "--cpus-per-task=${CI_SLURM_CPUS_PER_TASK}"
+                "--gpus-per-task=${CI_SLURM_GPUS_PER_TASK}"
+                "--qos=${CI_PERLMUTTER_GPU_QOS}"
+                "--time=${CI_PERLMUTTER_GPU_TIME}"
+                "--output=${CI_WORKSPACE}/${CI_SLURM_OUTPUT}"
+                "--chdir=${CI_WORKSPACE}"
+                "--export=ALL,${CI_SLURM_EXPORTS}"
+            )
+            sbatch_args+=("--account=${CI_PERLMUTTER_GPU_ACCOUNT}")
+
+            submission="$(sbatch "${sbatch_args[@]}" "$CI_SLURM_PAYLOAD")"
+            job_id="${submission%%;*}"
+            if [[ ! "$job_id" =~ ^[0-9]+(_[0-9]+)?$ ]]; then
+                echo "ERROR: Could not parse Slurm job ID from: $submission" >&2
+                exit 1
+            fi
+            printf '%s\n' "$job_id" > "$CI_SLURM_JOB_ID_FILE"
+            echo "Submitted ${CI_SLURM_JOB_KIND} Slurm job $job_id"
+
+            previous_state=''
+            while :; do
+                state="$(squeue --noheader --jobs="$job_id" --format='%T' | head -n 1 || true)"
+                if [[ -z "$state" ]]; then
+                    break
+                fi
+                if [[ "$state" != "$previous_state" ]]; then
+                    echo "${CI_SLURM_JOB_KIND} Slurm job $job_id state: $state"
+                    previous_state="$state"
+                fi
+                sleep 5
+            done
+
+            # Slurm accounting can lag briefly after a job disappears from
+            # squeue. Query the allocation record only (-X) until it appears.
+            record=''
+            for attempt in {1..6}; do
+                record="$(sacct --noheader --parsable2 --allocations --jobs="$job_id" \
+                    --format=State,ExitCode,ElapsedRaw | head -n 1 || true)"
+                if [[ -n "$record" ]]; then
+                    break
+                fi
+                echo "Waiting for Slurm accounting record for job $job_id ($attempt/6)"
+                sleep 5
+            done
+            if [[ -z "$record" ]]; then
+                write_status 'UNKNOWN'
+                echo "ERROR: No Slurm accounting record found for job $job_id" >&2
+                exit 1
+            fi
+
+            IFS='|' read -r final_state exit_code elapsed_seconds <<< "$record"
+            write_status "$final_state" "$exit_code" "$elapsed_seconds"
+            echo "${CI_SLURM_JOB_KIND} Slurm job $job_id finished: state=$final_state exit_code=$exit_code elapsed_seconds=$elapsed_seconds"
+            if [[ "$final_state" == COMPLETED* && "$exit_code" == '0:0' ]]; then
+                exit 0
+            fi
+            exit 1
+        '''
+    }
+}
+
+def submitUnitTests() {
+    submitSlurmJob(
+        'unit',
+        'ci/jenkins/slurm-unit-tests.perlmutter_gpu.sh',
+        (env.PERLMUTTER_GPU_UNIT_TIME ?: '00:30:00').trim()
+    )
+}
+
+def submitRegressionTests() {
+    def jobs = regressionJobs()
+    def timeout = regressionTestTimeout()
+    submitSlurmJob(
+        'regression',
+        'ci/jenkins/slurm-regression-tests.perlmutter_gpu.sh',
+        (env.PERLMUTTER_GPU_REGRESSION_TIME ?: '04:00:00').trim(),
+        [
+            "CI_BASELINE_DIR=${env.WORKSPACE}/_baseline",
+            "CI_BASELINE_PREFIX=${env.WORKSPACE}/_baseline/gkylsoft",
+            "CI_CANDIDATE_PREFIX=${env.WORKSPACE}/gkylsoft",
+            "CI_REGRESSION_JOBS=${jobs}",
+            "CI_REGRESSION_TEST_TIMEOUT=${timeout}"
+        ]
+    )
+}
+
+def submitParallelRegressionTests() {
+    submitSlurmJob(
+        'parallel-regression',
+        'ci/jenkins/slurm-parallel-regression-tests.perlmutter_gpu.sh',
+        (env.PERLMUTTER_GPU_REGRESSION_TIME ?: '04:00:00').trim(),
+        [
+            "CI_BASELINE_DIR=${env.WORKSPACE}/_baseline",
+            "CI_BASELINE_PREFIX=${env.WORKSPACE}/_baseline/gkylsoft",
+            "CI_CANDIDATE_PREFIX=${env.WORKSPACE}/gkylsoft"
+        ],
+        '4', '8', '1'
+    )
+}
+
+def configureAndCompileCRegressions(String label, String driver, String sourceDir, String prefix, String moduleFile, String runOptions = '', String configureOptions = '') {
+    withEnv([
+        "CI_REGRESSION_LABEL=${label}",
+        "CI_REGRESSION_DRIVER=${driver}",
+        "CI_REGRESSION_SOURCE_DIR=${sourceDir}",
+        "CI_REGRESSION_PREFIX=${prefix}",
+        "CI_REGRESSION_MODULE_FILE=${moduleFile}",
+        "CI_REGRESSION_RUN_OPTIONS=${runOptions}",
+        "CI_REGRESSION_CONFIGURE_OPTIONS=${configureOptions}"
+    ]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+            . "$CI_REGRESSION_MODULE_FILE"
+            "$CI_REGRESSION_DRIVER" runregression configure \
+                --source-dir "$CI_REGRESSION_SOURCE_DIR" \
+                --prefix "$CI_REGRESSION_PREFIX" ${CI_REGRESSION_CONFIGURE_OPTIONS:-}
+            started="$(date +%s)"
+            "$CI_REGRESSION_DRIVER" runregression run -c ${CI_REGRESSION_RUN_OPTIONS:-} compile
+            elapsed="$(( $(date +%s) - started ))"
+            printf '%s\n' "$elapsed" > "$CI_REGRESSION_LABEL-c-compile-seconds.txt"
+            echo "$CI_REGRESSION_LABEL C-regression compile time: $elapsed seconds"
+        '''
+    }
+}
+
+def finalizeUnfinishedSlurmJob() {
+    // Jenkins may terminate a durable-task process tree before its shell trap
+    // completes. Run this from the Pipeline finally block as a second chance
+    // to cancel a submitted job and preserve an abort-status artifact.
+    sh '''#!/bin/bash -l
+        set -euo pipefail
+
+        for id_file in slurm-*-job-id.txt; do
+            [[ -e "$id_file" ]] || continue
+            status_file="${id_file%-id.txt}-status.txt"
+            [[ -e "$status_file" ]] && continue
+
+            job_id="$(<"$id_file")"
+            if [[ ! "$job_id" =~ ^[0-9]+(_[0-9]+)?$ ]]; then
+                printf 'job_id=%s\nstate=UNKNOWN\nexit_code=\n' "$job_id" > "$status_file"
+                echo "WARNING: Cannot cancel malformed Slurm job ID '$job_id'" >&2
+                continue
+            fi
+
+            echo "Pipeline finalizer: cancelling unfinished Slurm job $job_id"
+            scancel "$job_id" || true
+            while :; do
+                state="$(squeue --noheader --jobs="$job_id" --format='%T' | head -n 1 || true)"
+                if [[ -z "$state" ]]; then
+                    break
+                fi
+                echo "Pipeline finalizer: waiting for job $job_id to stop (state: $state)"
+                sleep 5
+            done
+            printf 'job_id=%s\nstate=CANCELLED_BY_JENKINS\nexit_code=\n' "$job_id" > "$status_file"
+        done
+    '''
+}
+
+def writeCiTimingSummary() {
+    sh '''#!/bin/bash -l
+        set -euo pipefail
+
+        metric() {
+            local file="$1"
+            local key="$2"
+            if [[ -f "$file" ]]; then
+                local value
+                if [[ "$key" == '__file__' ]]; then
+                    value="$(tr -d '[:space:]' < "$file")"
+                else
+                    value="$(sed -n -E "s/^${key}=//p" "$file" | tail -n 1)"
+                fi
+                if [[ -n "$value" ]]; then
+                    printf '%s' "$value"
+                    return
+                fi
+            fi
+            printf 'not-recorded'
+        }
+
+        candidate_compile="$(metric candidate-c-compile-seconds.txt __file__)"
+        baseline_compile="$(metric baseline-c-compile-seconds.txt __file__)"
+        candidate_parallel_compile="$(metric candidate-parallel-c-compile-seconds.txt __file__)"
+        baseline_parallel_compile="$(metric baseline-parallel-c-compile-seconds.txt __file__)"
+        candidate_install="$(metric candidate-install-seconds.txt __file__)"
+        baseline_install="$(metric baseline-install-seconds.txt __file__)"
+        candidate_unit_build="$(metric candidate-unit-build-seconds.txt __file__)"
+        baseline_unit_build="$(metric baseline-unit-build-seconds.txt __file__)"
+        candidate_unit_test="$(metric unit-test-seconds.txt __file__)"
+        baseline_unit_test='not-recorded'
+        regression_create="$(metric baseline-c-regression-create-seconds.txt __file__)"
+        regression_check="$(metric candidate-c-regression-check-seconds.txt __file__)"
+        parallel_regression_create="$(metric baseline-parallel-c-regression-create-seconds.txt __file__)"
+        parallel_regression_check="$(metric candidate-parallel-c-regression-check-seconds.txt __file__)"
+        unit_elapsed="$(metric slurm-unit-job-status.txt elapsed_seconds)"
+        regression_elapsed="$(metric slurm-regression-job-status.txt elapsed_seconds)"
+        parallel_regression_elapsed="$(metric slurm-parallel-regression-job-status.txt elapsed_seconds)"
+        c_passed="$(metric ci-regression-summary.txt c_regression_passed)"
+        c_acknowledged="$(metric ci-regression-summary.txt c_regression_acknowledged)"
+        c_unacknowledged="$(metric ci-regression-summary.txt c_regression_unacknowledged)"
+
+        compile_total='not-recorded'
+        if [[ "$candidate_compile" =~ ^[0-9]+$ && "$baseline_compile" =~ ^[0-9]+$ ]]; then
+            compile_total="$((candidate_compile + baseline_compile))"
+        fi
+
+        {
+            printf 'candidate_c_compile_seconds=%s\n' "$candidate_compile"
+            printf 'baseline_c_compile_seconds=%s\n' "$baseline_compile"
+            printf 'candidate_parallel_c_compile_seconds=%s\n' "$candidate_parallel_compile"
+            printf 'baseline_parallel_c_compile_seconds=%s\n' "$baseline_parallel_compile"
+            printf 'login_c_compile_seconds=%s\n' "$compile_total"
+            printf 'candidate_install_seconds=%s\n' "$candidate_install"
+            printf 'baseline_install_seconds=%s\n' "$baseline_install"
+            printf 'candidate_unit_build_seconds=%s\n' "$candidate_unit_build"
+            printf 'baseline_unit_build_seconds=%s\n' "$baseline_unit_build"
+            printf 'candidate_unit_test_seconds=%s\n' "$candidate_unit_test"
+            printf 'baseline_unit_test_seconds=%s\n' "$baseline_unit_test"
+            printf 'baseline_c_regression_create_seconds=%s\n' "$regression_create"
+            printf 'candidate_c_regression_check_seconds=%s\n' "$regression_check"
+            printf 'baseline_parallel_c_regression_create_seconds=%s\n' "$parallel_regression_create"
+            printf 'candidate_parallel_c_regression_check_seconds=%s\n' "$parallel_regression_check"
+            printf 'unit_slurm_elapsed_seconds=%s\n' "$unit_elapsed"
+            printf 'regression_slurm_elapsed_seconds=%s\n' "$regression_elapsed"
+            printf 'parallel_regression_slurm_elapsed_seconds=%s\n' "$parallel_regression_elapsed"
+            printf 'c_regression_passed=%s\n' "$c_passed"
+            printf 'c_regression_acknowledged=%s\n' "$c_acknowledged"
+            printf 'c_regression_unacknowledged=%s\n' "$c_unacknowledged"
+        } > ci-timing-summary.txt
+        cat ci-timing-summary.txt
+    '''
+}
+
+def timingMetric(String key) {
+    if (!fileExists('ci-timing-summary.txt')) {
+        return 'n/a'
+    }
+    def expression = '(?m)^' + java.util.regex.Pattern.quote(key) + '=([^\\r\\n]+)$'
+    def match = readFile('ci-timing-summary.txt') =~ expression
+    return match.find() ? match.group(1) : 'n/a'
+}
+
+def timingStatusDescription(String status) {
+    def passed = timingMetric('c_regression_passed')
+    def acknowledged = timingMetric('c_regression_acknowledged')
+    def unacknowledged = timingMetric('c_regression_unacknowledged')
+    def candidateCompile = timingMetric('candidate_c_compile_seconds')
+    def baselineCompile = timingMetric('baseline_c_compile_seconds')
+    def unitElapsed = timingMetric('unit_slurm_elapsed_seconds')
+    def regressionElapsed = timingMetric('regression_slurm_elapsed_seconds')
+    def outcome = status == 'success' ? 'passed' : (status == 'error' ? 'errored' : 'failed')
+    def description = "Perlmutter CI ${outcome}: C ${passed}/${acknowledged}/${unacknowledged}; comp C/B ${candidateCompile}/${baselineCompile}s; Slurm U/R ${unitElapsed}/${regressionElapsed}s"
+    return description.take(140)
+}
+
+def candidatePr = params.CANDIDATE_PR?.trim()
+def candidateRef = params.CANDIDATE_REF?.trim()
+def requestedBaselineRef = params.BASELINE_REF?.trim()
+if (!!candidatePr == !!candidateRef) {
+    error('Set exactly one of CANDIDATE_PR or CANDIDATE_REF.')
+}
+if (candidatePr && !(candidatePr ==~ /[1-9][0-9]*/)) {
+    error("CANDIDATE_PR must be a positive integer, got '${candidatePr}'.")
+}
+if (candidatePr && requestedBaselineRef) {
+    error('BASELINE_REF must be empty with CANDIDATE_PR; the GitHub PR base branch is used automatically.')
+}
+if (candidateRef) {
+    candidateRef = validateRefSelector('CANDIDATE_REF', candidateRef)
+    requestedBaselineRef = validateRefSelector('BASELINE_REF', requestedBaselineRef)
+}
+
+def nodeLabel = (env.PERLMUTTER_GPU_NODE_LABEL ?: 'perlmutter_gpu').trim()
+def gkeyllCiRoot = requireValue('GKEYLL_CI_ROOT', env.GKEYLL_CI_ROOT)
+def workspaceRoot = "${gkeyllCiRoot}/workspaces"
+def statusCredentialsId = requireValue('PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID', env.PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID)
+def candidateSelector = ''
+def baselineSelector = ''
+def candidateCommit = ''
+def terminalStatus = 'failure'
+def terminalDescription = 'Perlmutter GPU CI failed.'
+def failureMessage = ''
+
+def ciStage(String stageName, Closure body) {
+    env.CI_FAILURE_STAGE = stageName
+    stage(stageName) { body.call() }
+}
+
+def writeCiFailureSummary(String result, String stageName, String message) {
+    def compactMessage = (message ?: 'unknown failure').replaceAll('[\\r\\n]+', ' ').trim().take(500)
+    writeFile file: 'ci-failure-summary.txt', text: "result=${result}\nstage=${stageName ?: 'unknown'}\nmessage=${compactMessage}\n"
+}
+
+node(nodeLabel) {
+    // Perlmutter compute nodes must see this path. Configure the root on a shared
+    // filesystem such as the project's /scratch/gpfs location, never /tmp.
+    ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
+        try {
+            ciStage('Resolve candidate and baseline') {
+                if (candidatePr) {
+                    candidateSelector = "PR #${candidatePr}"
+                    baselineSelector = resolvePullRequestBase(statusCredentialsId, candidatePr)
+                } else {
+                    candidateSelector = candidateRef
+                    baselineSelector = requestedBaselineRef
+                }
+                echo "Candidate selector: ${candidateSelector}"
+                echo "Baseline selector: ${baselineSelector}"
+            }
+            ciStage('Checkout candidate') {
+                deleteDir()
+                if (candidatePr) {
+                    checkoutPullRequest(candidatePr)
+                } else {
+                    checkoutRef(candidateRef, 'candidate')
+                }
+                candidateCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                writeFile file: 'ci-candidate-commit.txt', text: "${candidateCommit}\n"
+                writeFile file: 'ci-selection.txt', text: "candidate_selector=${candidateSelector}\nbaseline_selector=${baselineSelector}\n"
+                sh 'git status --short'
+            }
+            ciStage('Report pending to GitHub') {
+                publishGitHubCommitStatus(
+                    statusCredentialsId,
+                    candidateCommit,
+                    'pending',
+                    'Perlmutter GPU candidate CI is running.'
+                )
+            }
+            ciStage('Build dependencies') {
+                withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
+                    sh '''#!/bin/bash -l
+                        set -euo pipefail
+                        ./machines/mkdeps.perlmutter.gpu.sh
+                    '''
+                }
+            }
+            ciStage('Configure') {
+                withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
+                    sh '''#!/bin/bash -l
+                        set -euo pipefail
+                        ./machines/configure.perlmutter.gpu.sh
+                    '''
+                }
+            }
+            ciStage('Build unit tests') {
+                def jobs = buildJobs()
+                sh """#!/bin/bash -l
+                    set -euo pipefail
+                    # Each Jenkins sh step is a new process, so source the
+                    # same environment used by the Perlmutter machine scripts.
+                    . machines/module_load.perlmutter-gpu.sh
+                    module list
+                    started=\$(date +%s)
+                    make -j${jobs} unit
+                    elapsed=\$(( \$(date +%s) - started ))
+                    printf '%s\\n' "\$elapsed" > candidate-unit-build-seconds.txt
+                    echo "Candidate unit-test build time: \$elapsed seconds"
+                """
+            }
+            ciStage('Run unit tests (SLURM)') {
+                submitUnitTests()
+            }
+            ciStage('Install candidate for C regression') {
+                def jobs = buildJobs()
+                sh """#!/bin/bash -l
+                    set -euo pipefail
+                    . machines/module_load.perlmutter-gpu.sh
+                    started=\$(date +%s)
+                    make -j${jobs} install
+                    elapsed=\$(( \$(date +%s) - started ))
+                    printf '%s\\n' "\$elapsed" > candidate-install-seconds.txt
+                    echo "Candidate install time: \$elapsed seconds"
+                """
+            }
+            ciStage('Compile candidate C regressions') {
+                configureAndCompileCRegressions(
+                    'candidate',
+                    "${env.WORKSPACE}/gkylsoft/gkeyll/bin/gkeyll",
+                    env.WORKSPACE,
+                    "${env.WORKSPACE}/gkylsoft",
+                    'machines/module_load.perlmutter-gpu.sh'
+                )
+            }
+            ciStage('Checkout Perlmutter GPU baseline') {
+                dir('_baseline') {
+                    deleteDir()
+                    checkoutRef(baselineSelector, 'baseline')
+                    sh 'git rev-parse HEAD | tee ../ci-baseline-commit.txt'
+                }
+            }
+            ciStage('Build Perlmutter GPU baseline') {
+                withEnv(["PREFIX=${env.WORKSPACE}/_baseline/gkylsoft"]) {
+                    dir('_baseline') {
+                        sh '''#!/bin/bash -l
+                            set -euo pipefail
+                            . ../machines/module_load.perlmutter-gpu.sh
+                            ./machines/mkdeps.perlmutter.gpu.sh
+                            ./machines/configure.perlmutter.gpu.sh
+                        '''
+                    }
+                }
+            }
+            ciStage('Install Perlmutter GPU baseline') {
+                def jobs = buildJobs()
+                dir('_baseline') {
+                    sh """#!/bin/bash -l
+                        set -euo pipefail
+                        . ../machines/module_load.perlmutter-gpu.sh
+                        started=\$(date +%s)
+                        make -j${jobs} install
+                        elapsed=\$(( \$(date +%s) - started ))
+                        printf '%s\\n' "\$elapsed" > ../baseline-install-seconds.txt
+                        echo "Baseline install time: \$elapsed seconds"
+                    """
+                }
+            }
+            ciStage('Compile Perlmutter GPU baseline C regressions') {
+                configureAndCompileCRegressions(
+                    'baseline',
+                    "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll",
+                    "${env.WORKSPACE}/_baseline",
+                    "${env.WORKSPACE}/_baseline/gkylsoft",
+                    'machines/module_load.perlmutter-gpu.sh'
+                )
+            }
+            ciStage('Run C regressions (SLURM)') {
+                submitRegressionTests()
+            }
+            ciStage('Compile parallel C regressions') {
+                configureAndCompileCRegressions(
+                    'candidate-parallel',
+                    "${env.WORKSPACE}/gkylsoft/gkeyll/bin/gkeyll",
+                    env.WORKSPACE,
+                    "${env.WORKSPACE}/gkylsoft",
+                    'machines/module_load.perlmutter-gpu.sh',
+                    '--parallel', '--results-subdir parallel-c-4 --mpiexec srun'
+                )
+                configureAndCompileCRegressions(
+                    'baseline-parallel',
+                    "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll",
+                    "${env.WORKSPACE}/_baseline",
+                    "${env.WORKSPACE}/_baseline/gkylsoft",
+                    'machines/module_load.perlmutter-gpu.sh',
+                    '--parallel', '--results-subdir parallel-c-4 --mpiexec srun'
+                )
+            }
+            ciStage('Run parallel C regressions (SLURM)') {
+                submitParallelRegressionTests()
+            }
+            terminalStatus = 'success'
+            terminalDescription = 'Perlmutter GPU unit and C regression tests passed.'
+        } catch (err) {
+            failureMessage = err.toString()
+            if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) {
+                terminalStatus = 'error'
+                terminalDescription = 'Perlmutter GPU CI was aborted.'
+            }
+            throw err
+        } finally {
+            try {
+                finalizeUnfinishedSlurmJob()
+            } catch (err) {
+                terminalStatus = 'error'
+                terminalDescription = 'Perlmutter GPU CI cleanup failed.'
+                failureMessage = err.toString()
+                env.CI_FAILURE_STAGE = 'Finalize SLURM job'
+                throw err
+            } finally {
+                try {
+                    writeCiTimingSummary()
+                    terminalDescription = timingStatusDescription(terminalStatus)
+                } catch (err) {
+                    terminalStatus = 'error'
+                    terminalDescription = 'Perlmutter GPU CI timing summary failed.'
+                    failureMessage = err.toString()
+                    env.CI_FAILURE_STAGE = 'Write CI timing summary'
+                    throw err
+                }
+                try {
+                    if (terminalStatus != 'success') writeCiFailureSummary(terminalStatus, env.CI_FAILURE_STAGE, failureMessage ?: terminalDescription)
+                    archiveArtifacts allowEmptyArchive: true,
+                        artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt'
+                } catch (err) {
+                    terminalStatus = 'error'
+                    terminalDescription = 'Perlmutter GPU CI artifact archival failed.'
+                    throw err
+                } finally {
+                    try {
+                        if (candidateCommit) {
+                            publishGitHubCommitStatus(
+                                statusCredentialsId,
+                                candidateCommit,
+                                terminalStatus,
+                                terminalDescription
+                            )
+                        }
+                    } finally {
+                        deleteDir()
+                    }
+                }
+            }
+        }
+    }
+}

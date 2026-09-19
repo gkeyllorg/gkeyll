@@ -13,32 +13,33 @@
 #include <string.h>
 
 // Get basis type from string
-static enum gkyl_basis_type
-get_basis_type(const char *bnm)
+static enum gkyl_basis_type get_basis_type(const char *bnm)
 {
-  if (strcmp(bnm, "serendipity") == 0)
+  if (strcmp(bnm, "serendipity") == 0) {
     return GKYL_BASIS_MODAL_SERENDIPITY;
-  if (strcmp(bnm, "tensor") == 0)
+  }
+  if (strcmp(bnm, "tensor") == 0) {
     return GKYL_BASIS_MODAL_TENSOR;
-  if (strcmp(bnm, "hybrid") == 0)
+  }
+  if (strcmp(bnm, "hybrid") == 0) {
     return GKYL_BASIS_MODAL_HYBRID;
+  }
 
   return GKYL_BASIS_MODAL_SERENDIPITY;
 }
 
-static void
-register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char *nm)
+static void register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char *nm)
 {
   lua_getglobal(L, "G0"); // push in a table inside global G0 table
   lua_pushstring(L, nm);
-  
+
   lua_newtable(L);
-  for (int i=0; types[i].str != 0; ++i) {
+  for (int i = 0; types[i].str != 0; ++i) {
     lua_pushstring(L, types[i].str);
     lua_pushinteger(L, types[i].val);
     lua_rawset(L, -3);
   }
-  
+
   lua_rawset(L, -3);
 }
 
@@ -54,29 +55,27 @@ struct lua_func_ctx {
  *
  * @param L Lua state to use.
  */
-void
-gkyl_register_distribution_moment_types(lua_State *L);
+void gkyl_register_distribution_moment_types(lua_State *L);
 
 /**
  * Add boundary condition flags for species into Lua interpreter.
  *
  * @param L Lua state to use.
  */
-void
-gkyl_register_species_bc_types(lua_State *L);
+void gkyl_register_species_bc_types(lua_State *L);
 
 /**
  * Add boundary condition flags for field into Lua interpreter.
  *
  * @param L Lua state to use.
  */
-void
-gkyl_register_field_bc_types(lua_State *L);
+void gkyl_register_field_bc_types(lua_State *L);
 
 /**
  * Wrapper around Lua function for use in eval callbacks.
  */
-void
-gkyl_lw_eval_cb(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx);
+void gkyl_lw_eval_cb(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+);
 
 #endif

@@ -21,8 +21,7 @@
 #include <gkyl_kann_net.h>
 #include <gkyl_knutils.h>
 
-struct travel_pulse_ctx
-{
+struct travel_pulse_ctx {
   // Mathematical constants (dimensionless).
   double pi;
 
@@ -63,20 +62,19 @@ struct travel_pulse_ctx
   bool train_ab_initio; // Train neural network ab initio?
   int nn_width; // Number of neurons to use per layer.
   int nn_depth; // Number of layers to use.
-  const char* train_nn_file; // File path of neural network to train.
+  const char *train_nn_file; // File path of neural network to train.
   int num_trains; // Number of times to train neural network.
   int num_nn_writes; // Number of times to write out neural network.
   int num_input_moms; // Number of "input" moments to train on.
-  int* input_moms; // Array of "input" moments to train on.
+  int *input_moms; // Array of "input" moments to train on.
   int num_output_moms; // Number of "output" moments to train on.
-  int* output_moms; // Array of "output" moments to train on.
+  int *output_moms; // Array of "output" moments to train on.
   bool test_nn; // Test neural network on simulation data?
-  const char* test_nn_file; // File path of neural network to test.
+  const char *test_nn_file; // File path of neural network to test.
   int num_tests; // Number of times to test neural network.
 };
 
-struct travel_pulse_ctx
-create_ctx(void)
+struct travel_pulse_ctx create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -109,7 +107,8 @@ create_ctx(void)
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
-  int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
+  int integrated_L2_f_calcs =
+    INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -118,17 +117,22 @@ create_ctx(void)
   bool train_ab_initio = true; // Train neural network ab initio?
   int nn_width = 256; // Number of neurons to use per layer.
   int nn_depth = 5; // Number of layers to use.
-  const char* train_nn_file = "pkpm_travel_pulse_p2_moms_nn_1"; // File path of neural network to train.
+  const char *train_nn_file =
+    "pkpm_travel_pulse_p2_moms_nn_1"; // File path of neural network to train.
   int num_trains = INT_MAX; // Number of times to train neural network.
   int num_nn_writes = 1; // Number of times to write out neural network.
   int num_input_moms = 3; // Number of "input" moments to train on.
-  int* input_moms = gkyl_malloc(sizeof(int[3]));
-  input_moms[0] = 0; input_moms[1] = 2; input_moms[2] = 3; // Array of "input" moments to train on.
+  int *input_moms = gkyl_malloc(sizeof(int[3]));
+  input_moms[0] = 0;
+  input_moms[1] = 2;
+  input_moms[2] = 3; // Array of "input" moments to train on.
   int num_output_moms = 2; // Number of "output" moments to train on.
-  int* output_moms = gkyl_malloc(sizeof(int[2]));
-  output_moms[0] = 4; output_moms[1] = 5; // Array of "output" moments to train on.
+  int *output_moms = gkyl_malloc(sizeof(int[2]));
+  output_moms[0] = 4;
+  output_moms[1] = 5; // Array of "output" moments to train on.
   bool test_nn = false; // Test neural network on simulation data?
-  const char* test_nn_file = "pkpm_travel_pulse_p2_moms_nn_1"; // File path of neural network to test.
+  const char *test_nn_file =
+    "pkpm_travel_pulse_p2_moms_nn_1"; // File path of neural network to test.
   int num_tests = 1; // Number of times to test neural network.
 
   struct travel_pulse_ctx ctx = {
@@ -170,14 +174,13 @@ create_ctx(void)
     .output_moms = output_moms,
     .test_nn = test_nn,
     .test_nn_file = test_nn_file,
-    .num_tests = num_tests,
+    .num_tests = num_tests
   };
 
   return ctx;
 }
 
-void
-evalDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct travel_pulse_ctx *app = ctx;
   double x = xn[0], vx = xn[1];
@@ -191,15 +194,16 @@ evalDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double n_perturb = n0 + (alpha * sin(pi * x));
   double T0 = sqrt(pr0 / n_perturb);
 
-  double F0 = (n_perturb / sqrt(2.0 * pi * T0 * T0)) * (exp(-(vx * vx) / (2.0 * T0 * T0))); // Distribution function (F0).
+  double F0 = (n_perturb / sqrt(2.0 * pi * T0 * T0)) *
+              (exp(-(vx * vx) / (2.0 * T0 * T0))); // Distribution function (F0).
   double G = (T0 * T0) * F0; // Distribution function (G).
 
   // Set distribution function.
-  fout[0] = F0; fout[1] = G;
+  fout[0] = F0;
+  fout[1] = G;
 }
 
-void
-evalFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct travel_pulse_ctx *app = ctx;
   double x = xn[0];
@@ -217,14 +221,15 @@ evalFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double mom_z = 0.0; // Total momentum density (z-direction).
 
   // Set total momentum density.
-  fout[0] = mom_x; fout[1] = mom_y; fout[2] = mom_z;
+  fout[0] = mom_x;
+  fout[1] = mom_y;
+  fout[2] = mom_z;
 }
 
-void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct travel_pulse_ctx *app = ctx;
-  
+
   double B0 = app->B0;
 
   double Ex = 0.0; // Total electric field (x-direction).
@@ -234,17 +239,20 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Bx = B0; // Total magnetic field (x-direction).
   double By = 0.0; // Total magnetic field (y-direction).
   double Bz = 0.0; // Total magnetic field (z-direction).
-  
+
   // Set electric field.
-  fout[0] = Ex; fout[1] = Ey, fout[2] = Ez;
+  fout[0] = Ex;
+  fout[1] = Ey, fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
+  fout[3] = Bx;
+  fout[4] = By;
+  fout[5] = Bz;
   // Set correction potentials.
-  fout[6] = 0.0; fout[7] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
-void
-evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct travel_pulse_ctx *app = ctx;
 
@@ -254,8 +262,7 @@ evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, voi
   fout[0] = nu;
 }
 
-void
-write_data(struct gkyl_tm_trigger* iot, gkyl_pkpm_app* app, double t_curr, bool force_write)
+void write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -270,33 +277,38 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_pkpm_app* app, double t_curr, bool 
   }
 }
 
-void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_pkpm_app* app, double t_curr, bool force_calc)
+void calc_field_energy(
+  struct gkyl_tm_trigger *fet, gkyl_pkpm_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_field_energy(app, t_curr);
   }
 }
 
-void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_pkpm_app* app, double t_curr, bool force_calc)
+void calc_integrated_mom(
+  struct gkyl_tm_trigger *imt, gkyl_pkpm_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
   }
 }
 
-void
-calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_curr, bool force_calc)
+void calc_integrated_L2_f(
+  struct gkyl_tm_trigger *l2t, gkyl_pkpm_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
   }
 }
 
-void
-train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  struct gkyl_kn_vec* input_data, struct gkyl_kn_vec* output_data)
+void train_mom(
+  struct gkyl_tm_trigger *nn, gkyl_pkpm_app *app, double t_curr, bool force_train,
+  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
+  int *output_moms, struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
+)
 {
   if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
     int frame = nn->curr - 1;
@@ -304,12 +316,17 @@ train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool fo
       frame = nn->curr;
     }
 
-    gkyl_pkpm_app_train(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data, output_data);
+    gkyl_pkpm_app_train(
+      app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data,
+      output_data
+    );
   }
 }
 
-void
-write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool force_write, struct gkyl_kann_net** ann)
+void write_nn(
+  struct gkyl_tm_trigger *nnw, gkyl_pkpm_app *app, double t_curr, bool force_write,
+  struct gkyl_kann_net **ann
+)
 {
   if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
     int frame = nnw->curr - 1;
@@ -321,9 +338,12 @@ write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool fo
   }
 }
 
-void
-test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, struct gkyl_kann_net** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
-  struct gkyl_kn_vec* input_data_real, struct gkyl_kn_vec* output_data_real, struct gkyl_kn_vec* output_data_predicted)
+void test_mom(
+  struct gkyl_tm_trigger *nnt, gkyl_pkpm_app *app, double t_curr, bool force_test,
+  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
+  int *output_moms, struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
+  struct gkyl_kn_vec *output_data_predicted
+)
 {
   if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
     int frame = nnt->curr - 1;
@@ -331,12 +351,14 @@ test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool fo
       frame = nnt->curr;
     }
 
-    gkyl_pkpm_app_test(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data_real, output_data_real, output_data_predicted);
+    gkyl_pkpm_app_test(
+      app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms,
+      input_data_real, output_data_real, output_data_predicted
+    );
   }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -361,18 +383,17 @@ main(int argc, char **argv)
   if (app_args.use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
   }
-#endif  
+#endif
 
-  int ccells[] = { NX };
+  int ccells[] = {NX};
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
-#ifdef GKYL_HAVE_MPI  
+#ifdef GKYL_HAVE_MPI
   for (int d = 0; d < cdim; d++) {
     if (app_args.use_mpi) {
       cuts[d] = app_args.cuts[d];
-    }
-    else {
+    } else {
       cuts[d] = 1;
     }
   }
@@ -380,39 +401,25 @@ main(int argc, char **argv)
   for (int d = 0; d < cdim; d++) {
     cuts[d] = 1;
   }
-#endif  
-    
+#endif
+
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-      }
-    );
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){.mpi_comm = MPI_COMM_WORLD});
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
-  }
-  else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-      }
-    );
-  }
-  else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .use_gpu = app_args.use_gpu
-      }
-    );
+  } else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
+  } else {
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .use_gpu = app_args.use_gpu
-    }
-  );
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -435,62 +442,57 @@ main(int argc, char **argv)
   // Neutral species.
   struct gkyl_pkpm_species neut = {
     .name = "neut",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vx_max },
-    .upper = { ctx.vx_max }, 
-    .cells = { NVX },
+    .charge = ctx.charge,
+    .mass = ctx.mass,
+    .lower = {-ctx.vx_max},
+    .upper = {ctx.vx_max},
+    .cells = {NVX},
 
     .init_dist = evalDistInit,
     .ctx_dist = &ctx,
     .init_fluid = evalFluidInit,
     .ctx_fluid = &ctx,
 
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNu,
-      .ctx = &ctx,
-    },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .ctx = &ctx}
   };
 
   // Field.
   struct gkyl_pkpm_field field = {
-    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .epsilon0 = ctx.epsilon0,
+    .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
 
     .init = evalFieldInit,
     .ctx = &ctx,
 
-    .is_static = true,
+    .is_static = true
   };
 
   // PKPM app.
   struct gkyl_pkpm app_inp = {
 
-    .cdim = 1, .vdim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
-    .cells = { NX },
+    .cdim = 1,
+    .vdim = 1,
+    .lower = {0.0},
+    .upper = {ctx.Lx},
+    .cells = {NX},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .use_explicit_source = true, 
+    .use_explicit_source = true,
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = { neut },
+    .species = {neut},
 
     .field = field,
 
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
-      .comm = comm,
-    },
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
   };
 
   // Create app object.
@@ -504,10 +506,14 @@ main(int argc, char **argv)
   // Initialize simulation.
   int frame_curr = 0;
   if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_pkpm_app_read_from_frame(app, app_args.restart_frame);
+    struct gkyl_app_restart_status status =
+      gkyl_pkpm_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_pkpm_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      gkyl_pkpm_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -516,53 +522,58 @@ main(int argc, char **argv)
 
     gkyl_pkpm_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
     gkyl_pkpm_app_cout(app, stdout, " at time = %g\n", t_curr);
-  }
-  else {
+  } else {
     gkyl_pkpm_app_apply_ic(app, t_curr);
   }
 
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = {
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = {
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
-  struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger l2f_trig = {
+    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = {
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 
   // Create trigger for neural network training.
   int num_trains = ctx.num_trains;
-  struct gkyl_tm_trigger nn_trig = { .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger nn_trig = {.dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr};
 
-  kad_node_t **t = gkyl_malloc(sizeof(kad_node_t*) * app_inp.num_species);
-  struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net*) * app_inp.num_species);
+  kad_node_t **t = gkyl_malloc(sizeof(kad_node_t *) * app_inp.num_species);
+  struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app_inp.num_species);
   if (ctx.train_nn) {
     if (ctx.train_ab_initio) {
-      for (int i = 0; i < app_inp.num_species; i++ ) {
+      for (int i = 0; i < app_inp.num_species; i++) {
         if (ctx.poly_order == 1) {
           if (cdim == 1) {
             t[i] = kann_layer_input(ctx.num_input_moms * 2);
-          }
-          else if (cdim == 2) {
+          } else if (cdim == 2) {
             t[i] = kann_layer_input(ctx.num_input_moms * 4);
           }
-        }
-        else if (ctx.poly_order == 2) {
+        } else if (ctx.poly_order == 2) {
           t[i] = kann_layer_input(ctx.num_input_moms * 3);
         }
 
@@ -570,22 +581,19 @@ main(int argc, char **argv)
           t[i] = kann_layer_dense(t[i], ctx.nn_width);
           t[i] = kad_tanh(t[i]);
         }
-        
+
         if (ctx.poly_order == 1) {
           if (cdim == 1) {
             t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 2, KANN_C_MSE);
-          }
-          else if (cdim == 2) {
+          } else if (cdim == 2) {
             t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 4, KANN_C_MSE);
           }
-        }
-        else if (ctx.poly_order == 2) {
+        } else if (ctx.poly_order == 2) {
           t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 3, KANN_C_MSE);
         }
         ann[i] = gkyl_kann_net_new(t[i], app_args.use_gpu);
       }
-    }
-    else {
+    } else {
       for (int i = 0; i < app_inp.num_species; i++) {
         const char *fmt = "%s-%s.dat";
         int sz = gkyl_calc_strlen(fmt, ctx.train_nn_file, app_inp.species[i].name);
@@ -596,11 +604,13 @@ main(int argc, char **argv)
         if (file != NULL) {
           ann[i] = gkyl_kann_net_load(fileNm, app_args.use_gpu);
           fclose(file);
-        }
-        else {
+        } else {
           ann[i] = 0;
           ctx.train_nn = false;
-          fprintf(stderr, "Neural network for species %s not found! Disabling NN training.\n", app_inp.species[i].name);
+          fprintf(
+            stderr, "Neural network for species %s not found! Disabling NN training.\n",
+            app_inp.species[i].name
+          );
         }
       }
     }
@@ -609,8 +619,7 @@ main(int argc, char **argv)
   int cell_count = 0;
   if (app_inp.cdim == 1) {
     cell_count = app_inp.cells[0];
-  }
-  else if (app_inp.cdim == 2) {
+  } else if (app_inp.cdim == 2) {
     cell_count = app_inp.cells[0] * app_inp.cells[1];
   }
 
@@ -623,12 +632,17 @@ main(int argc, char **argv)
   struct gkyl_kn_vec *output_data = gkyl_kn_vec_new(cell_count, nn_output_dim);
 
   if (ctx.train_nn) {
-    train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms, input_data, output_data);
+    train_mom(
+      &nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms,
+      ctx.output_moms, input_data, output_data
+    );
   }
 
   // Create trigger for neural network writing.
   int num_nn_writes = ctx.num_nn_writes;
-  struct gkyl_tm_trigger nnw_trig = { .dt = t_end / num_nn_writes, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger nnw_trig = {
+    .dt = t_end / num_nn_writes, .tcurr = t_curr, .curr = frame_curr
+  };
 
   if (ctx.train_nn) {
     write_nn(&nnw_trig, app, t_curr, false, ann);
@@ -636,9 +650,10 @@ main(int argc, char **argv)
 
   // Create trigger for neural network testing.
   int num_tests = ctx.num_tests;
-  struct gkyl_tm_trigger nnt_trig = { .dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger nnt_trig = {.dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr};
 
-  struct gkyl_kann_net **ann_test = gkyl_malloc(sizeof(struct gkyl_kann_net*) * app_inp.num_species);
+  struct gkyl_kann_net **ann_test =
+    gkyl_malloc(sizeof(struct gkyl_kann_net *) * app_inp.num_species);
   if (ctx.test_nn) {
     for (int i = 0; i < app_inp.num_species; i++) {
       const char *fmt = "%s-%s.dat";
@@ -650,11 +665,13 @@ main(int argc, char **argv)
       if (file != NULL) {
         ann_test[i] = gkyl_kann_net_load(fileNm, app_args.use_gpu);
         fclose(file);
-      }
-      else {
+      } else {
         ann_test[i] = 0;
         ctx.test_nn = false;
-        fprintf(stderr, "Neural network for species %s not found! Disabling NN testing.\n", app_inp.species[i].name);
+        fprintf(
+          stderr, "Neural network for species %s not found! Disabling NN testing.\n",
+          app_inp.species[i].name
+        );
       }
     }
   }
@@ -664,8 +681,10 @@ main(int argc, char **argv)
   struct gkyl_kn_vec *output_data_predicted = gkyl_kn_vec_new(cell_count, nn_output_dim);
 
   if (ctx.test_nn) {
-    test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms,
-      input_data_real, output_data_real, output_data_predicted);
+    test_mom(
+      &nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
+      ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real, output_data_predicted
+    );
   }
 
   // Compute initial guess of maximum stable time-step.
@@ -680,7 +699,7 @@ main(int argc, char **argv)
     gkyl_pkpm_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_pkpm_update(app, dt);
     gkyl_pkpm_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-    
+
     if (!status.success) {
       gkyl_pkpm_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
@@ -694,18 +713,23 @@ main(int argc, char **argv)
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
     if (ctx.train_nn) {
-      train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms, input_data, output_data);
+      train_mom(
+        &nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms,
+        ctx.output_moms, input_data, output_data
+      );
       write_nn(&nnw_trig, app, t_curr, false, ann);
     }
     if (ctx.test_nn) {
-      test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms,
-        input_data_real, output_data_real, output_data_predicted);
+      test_mom(
+        &nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
+        ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
+        output_data_predicted
+      );
     }
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    }
-    else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_pkpm_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
@@ -713,25 +737,32 @@ main(int argc, char **argv)
       gkyl_pkpm_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_pkpm_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_pkpm_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_pkpm_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
         if (ctx.train_nn) {
-          train_mom(&nn_trig, app, t_curr, true, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms, input_data, output_data);
+          train_mom(
+            &nn_trig, app, t_curr, true, ann, ctx.num_input_moms, ctx.input_moms,
+            ctx.num_output_moms, ctx.output_moms, input_data, output_data
+          );
           write_nn(&nnw_trig, app, t_curr, true, ann);
         }
         if (ctx.test_nn) {
-          test_mom(&nnt_trig, app, t_curr, true, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms,
-            input_data_real, output_data_real, output_data_predicted);
+          test_mom(
+            &nnt_trig, app, t_curr, true, ann_test, ctx.num_input_moms, ctx.input_moms,
+            ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
+            output_data_predicted
+          );
         }
 
         break;
       }
-    }
-    else {
+    } else {
       num_failures = 0;
     }
 
@@ -743,7 +774,10 @@ main(int argc, char **argv)
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   if (ctx.train_nn) {
-    train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms, input_data, output_data);
+    train_mom(
+      &nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms,
+      ctx.output_moms, input_data, output_data
+    );
     write_nn(&nnw_trig, app, t_curr, false, ann);
 
     for (int i = 0; i < app_inp.num_species; i++) {
@@ -751,8 +785,10 @@ main(int argc, char **argv)
     }
   }
   if (ctx.test_nn) {
-    test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms,
-      input_data_real, output_data_real, output_data_predicted);
+    test_mom(
+      &nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
+      ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real, output_data_predicted
+    );
 
     for (int i = 0; i < app_inp.num_species; i++) {
       gkyl_kann_net_release(ann_test[i]);
@@ -767,18 +803,30 @@ main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_pkpm_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_pkpm_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
+    gkyl_pkpm_app_cout(
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]
+    );
+    gkyl_pkpm_app_cout(
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]
+    );
+  }
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_pkpm_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Fluid species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
+  gkyl_pkpm_app_cout(
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
+  );
+  gkyl_pkpm_app_cout(
+    app, stdout, "Fluid species RHS calc took %g secs\n", stat.fluid_species_rhs_tm
+  );
   gkyl_pkpm_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_pkpm_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_pkpm_app_cout(
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
+  );
   gkyl_pkpm_app_cout(app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+  gkyl_pkpm_app_cout(
+    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm
+  );
   gkyl_pkpm_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);

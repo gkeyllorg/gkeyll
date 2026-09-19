@@ -9,7 +9,7 @@ struct gkyl_gk_block_geom_info {
   // lower and upper extents of blocks
   double lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM];
   int cells[GKYL_MAX_CDIM]; // cells extents in each direction
-  int cuts[GKYL_MAX_CDIM];  // domain split to use
+  int cuts[GKYL_MAX_CDIM]; // domain split to use
 
   struct gkyl_gyrokinetic_geometry geometry; // GK geometry
 
@@ -52,7 +52,7 @@ int gkyl_gk_block_geom_num_blocks(const struct gkyl_gk_block_geom *bgeom);
  * @param bgeom Block geometry to which reference is required
  * @return Pointer to acquired block-topo
  */
-struct gkyl_gk_block_geom* gkyl_gk_block_geom_acquire(const struct gkyl_gk_block_geom *bgeom);
+struct gkyl_gk_block_geom *gkyl_gk_block_geom_acquire(const struct gkyl_gk_block_geom *bgeom);
 
 /**
  * Acquire a pointer to the block topology. The caller must release
@@ -61,7 +61,7 @@ struct gkyl_gk_block_geom* gkyl_gk_block_geom_acquire(const struct gkyl_gk_block
  * @param bgeom Geometry object from which to fetch topology
  * @return topology object
  */
-struct gkyl_block_topo* gkyl_gk_block_geom_topo(const struct gkyl_gk_block_geom *bgeom);
+struct gkyl_block_topo *gkyl_gk_block_geom_topo(const struct gkyl_gk_block_geom *bgeom);
 
 /**
  * Set geometry and connectivity information about a block.
@@ -71,9 +71,9 @@ struct gkyl_block_topo* gkyl_gk_block_geom_topo(const struct gkyl_gk_block_geom 
  * @param info Geometry info for block @a bidx
  *
  */
-void gkyl_gk_block_geom_set_block(struct gkyl_gk_block_geom *bgeom, int bidx,
-  const struct gkyl_gk_block_geom_info *info);
-
+void gkyl_gk_block_geom_set_block(
+  struct gkyl_gk_block_geom *bgeom, int bidx, const struct gkyl_gk_block_geom_info *info
+);
 
 /**
  * Reset grid extents for block geometry info
@@ -83,9 +83,9 @@ void gkyl_gk_block_geom_set_block(struct gkyl_gk_block_geom *bgeom, int bidx,
  * @param lower Lower extents
  * @param upper Upper extents
  */
-void
-gkyl_gk_block_geom_reset_block_extents(struct gkyl_gk_block_geom *bgeom, int bidx,
-  double *lower, double *upper);
+void gkyl_gk_block_geom_reset_block_extents(
+  struct gkyl_gk_block_geom *bgeom, int bidx, double *lower, double *upper
+);
 
 /**
  * Get geometry and connectivity information about a block.
@@ -95,9 +95,9 @@ gkyl_gk_block_geom_reset_block_extents(struct gkyl_gk_block_geom *bgeom, int bid
  * @return Geometry info for block @a bidx
  *
  */
-const struct gkyl_gk_block_geom_info *gkyl_gk_block_geom_get_block(
-  const struct gkyl_gk_block_geom *bgeom, int bidx);
-    
+const struct gkyl_gk_block_geom_info *
+gkyl_gk_block_geom_get_block(const struct gkyl_gk_block_geom *bgeom, int bidx);
+
 /**
  * Check consistency of block geometry: the geometry typically has
  * redundant data in it. This method ensures the redundant data is
@@ -114,4 +114,4 @@ int gkyl_gk_block_geom_check_consistency(const struct gkyl_gk_block_geom *bgeom)
  *
  * @return Block geometry to free
  */
-void gkyl_gk_block_geom_release(struct gkyl_gk_block_geom* bgeom);
+void gkyl_gk_block_geom_release(struct gkyl_gk_block_geom *bgeom);

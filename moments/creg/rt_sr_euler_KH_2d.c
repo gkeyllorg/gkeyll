@@ -11,51 +11,48 @@ struct sr_euler_ctx {
   double gas_gamma; // gas constant
 };
 
-void
-evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sr_euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
-  
+
   double x = xn[0], y = xn[1];
   //ICs from KH test from sec 4.3.2 Stone Athena++ 2020
-  
+
   double rho, rhou = 1.5, rhol = 0.5, p = 20.;
   double pi = 3.141592653589793238462643383279502884;
-  
-  double u = 0.25*tanh(100*y);
-  double v = sin(2*pi*x)*exp(-100*y*y)/400;
-  
+
+  double u = 0.25 * tanh(100 * y);
+  double v = sin(2 * pi * x) * exp(-100 * y * y) / 400;
+
   rho = rhol;
   if (y > 0.) {
     rho = rhou;
   }
-  
-  double gamma = 1 / sqrt(1 - u*u - v*v);
-  double rhoh = gas_gamma * p / (gas_gamma - 1)  + rho;
-  
-  fout[0] = gamma*rho;
-  fout[1] = gamma*gamma*rhoh - p;
-  fout[2] = gamma*gamma*rhoh*u;
-  fout[3] = gamma*gamma*rhoh*v;
+
+  double gamma = 1 / sqrt(1 - u * u - v * v);
+  double rhoh = gas_gamma * p / (gas_gamma - 1) + rho;
+
+  fout[0] = gamma * rho;
+  fout[1] = gamma * gamma * rhoh - p;
+  fout[2] = gamma * gamma * rhoh * u;
+  fout[3] = gamma * gamma * rhoh * v;
   fout[4] = 0.;
 }
 
-struct sr_euler_ctx
-sr_euler_ctx(void)
+struct sr_euler_ctx sr_euler_ctx(void)
 {
-  return (struct sr_euler_ctx) { .gas_gamma = 4./3. };
+  return (struct sr_euler_ctx){.gas_gamma = 4. / 3.};
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
+void write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
-    gkyl_moment_app_write(app, tcurr, iot->curr-1);
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    gkyl_moment_app_write(app, tcurr, iot->curr - 1);
+  }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -77,23 +74,23 @@ main(int argc, char **argv)
     .equation = sr_euler,
 
     .ctx = &ctx,
-    .init = evalSREulerInit,
+    .init = evalSREulerInit
   };
 
   // VM app
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = { 0.0, -0.25 },
-    .upper = { 1.0, 0.25 }, 
-    .cells = { NX, NY },
+    .lower = {0.0, -0.25},
+    .upper = {1.0, 0.25},
+    .cells = {NX, NY},
 
     .cfl_frac = 0.9,
 
     .num_species = 1,
-    .species = { fluid },
+    .species = {fluid},
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = {0}
   };
 
   // create app object
@@ -104,10 +101,10 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = 5.;
   int nframe = 1;
-  
+
   // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
-  
+  struct gkyl_tm_trigger io_trig = {.dt = tend / nframe};
+
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
@@ -121,7 +118,7 @@ main(int argc, char **argv)
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
-    
+
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
       break;
@@ -130,7 +127,7 @@ main(int argc, char **argv)
     dt = status.dt_suggested;
 
     write_data(&io_trig, app, tcurr);
-    
+
     step += 1;
   }
 
@@ -149,6 +146,6 @@ main(int argc, char **argv)
   printf("Species updates took %g secs\n", stat.species_tm);
   printf("Field updates took %g secs\n", stat.field_tm);
   printf("Total updates took %g secs\n", stat.total_tm);
-  
+
   return 0;
 }
