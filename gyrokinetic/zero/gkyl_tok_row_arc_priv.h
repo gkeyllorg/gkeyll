@@ -316,20 +316,57 @@ tok_row_arc_plan_dump(void)
   return e && e[0] != '\0' && e[0] != '0';
 }
 
+// Freeze the grading SHAPE across a block's rows.
+//
+// The cubic is built from each row's own (length, sigma, s0, s1), and dL/dpsi is
+// SINGULAR at the separatrix: the X-point corner makes row lengths run 12.3959,
+// 12.4293, 12.5226 for uniform dpsi on STEP's inboard SOL. A map normalized by a
+// quantity whose derivative blows up inherits a kink there that refinement
+// cannot remove -- measured, the separatrix row lands 12.17 mm of arc from where
+// its neighbours extrapolate, against a 4.59 mm radial step, and the radial
+// march reverses (cos -0.573, tripping the surface-cross guard).
+//
+// v(u) is a monotone map [0,1] -> [0,1] with v(0)=0 and v(1)=1. Building it ONCE
+// per block and applying it to every row therefore preserves both theta
+// endpoints exactly on every row, and puts every row's nodes at the same arc
+// FRACTION -- which is what keeps the radial march straight. The endpoint RATES
+// are then honoured on the row the fit was taken from rather than on each row
+// separately; the seam needs the two sides of an interface to AGREE, and both
+// sides freeze the same way, so agreement survives.
+//
+// `arc_length_ctx` is a per-block local, so the cache scopes to one block.
+// Set GKYL_TOK_ROW_ARC_LINEAR_MIDDLE=1 to grade the cubic's interior linearly in
+// u, decoupling it from the endpoint rates. See the use site.
+static bool
+tok_row_arc_linear_middle(void)
+{
+  const char *e = getenv("GKYL_TOK_ROW_ARC_LINEAR_MIDDLE");
+  return e && e[0] != '\0' && e[0] != '0';
+}
+
+static bool
+tok_row_arc_freeze(void)
+{
+  const char *e = getenv("GKYL_TOK_ROW_ARC_FREEZE");
+  return e && e[0] != '\0' && e[0] != '0';
+}
+
 static bool
 tok_row_arc_c1_fraction(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *ctx, double length, const double sigma[2],
   double u, double *v, double *derivative)
 {
+  const bool freeze = tok_row_arc_freeze();
   int nc=inp->cgrid.cells[2];
   if (nc < 3) {
     fprintf(stderr,"TOK_ROW_ARC_FAILED reason=c1_prototype_needs_three_cells cells=%d\n",nc);
     return false;
   }
   double width=inp->cgrid.upper[2]-inp->cgrid.lower[2];
-  if (!ctx->row_arc_fit_ready || ctx->row_arc_fit_psi != ctx->psi ||
-      ctx->row_arc_fit_length != length || ctx->row_arc_fit_sigma[0] != sigma[0] ||
-      ctx->row_arc_fit_sigma[1] != sigma[1]) {
+  if (!ctx->row_arc_fit_ready ||
+      (!freeze && (ctx->row_arc_fit_psi != ctx->psi ||
+       ctx->row_arc_fit_length != length || ctx->row_arc_fit_sigma[0] != sigma[0] ||
+       ctx->row_arc_fit_sigma[1] != sigma[1]))) {
     const double blend=tok_row_arc_blend_fraction(nc);
     double s0,s1;
     // The chord asked of each end is the endpoint slope carried across the
@@ -351,6 +388,23 @@ tok_row_arc_c1_fraction(const struct gkyl_tok_geo_grid_inp *inp,
       double w1=2.0*h[i]+h[i-1], w2=h[i]+2.0*h[i-1];
       m[i]=(w1+w2)/(w1/d[i-1]+w2/d[i]);
     }
+    // Keep the END rates out of the INTERIOR.
+    //
+    // The monotone formula above builds the two interior slopes from the end
+    // secants d[0] and d[2], which carry sigma -- and sigma is SINGULAR at the
+    // separatrix, because it is the arc-per-theta rate at an endpoint that is
+    // the X point.  So every interior node inherits a term whose dpsi
+    // derivative blows up, and the radial march kinks at the separatrix row
+    // (measured: cos -0.573, tripping the surface-cross guard).
+    //
+    // Setting both interior slopes to the MIDDLE secant makes the middle
+    // segment exactly linear in u.  Its slope in v is then
+    //   d[1]/length = (1 - (s0+s1)/length)/(1-2*blend),
+    // and s0/length is about blend*width/ctx_arc -- theta-extent properties of
+    // the block, not psi -- so the interior grading is regular through the
+    // separatrix.  The end cells still carry the per-row rate the seam needs,
+    // because y[1]=s0 and y[2]=length-s1 are untouched.
+    if (tok_row_arc_linear_middle()) { m[1]=d[1]; m[2]=d[1]; }
     for (int i=0; i<3; ++i) {
       double b=2.0*(3.0*d[i]-2.0*m[i]-m[i+1]);
       double a=3.0*(m[i]+m[i+1]-2.0*d[i]);
@@ -401,16 +455,20 @@ tok_row_arc_c1_fraction(const struct gkyl_tok_geo_grid_inp *inp,
         ctx->map_trace_r[ctx->map_trace_n-1], ctx->map_trace_z[ctx->map_trace_n-1],
         ctx->map_trace_s[ctx->map_trace_n-1]);
   }
-  if (u <= 0.0) { *v=0.0; *derivative=sigma[0]*width/length; return true; }
-  if (u >= 1.0) { *v=1.0; *derivative=sigma[1]*width/length; return true; }
+  // The knots y[] are arc lengths on the row the fit was taken from, so they
+  // must be normalized by THAT row's length; with freeze off the two are equal.
+  const double fitlen = ctx->row_arc_fit_length;
+  const double fsig0 = ctx->row_arc_fit_sigma[0], fsig1 = ctx->row_arc_fit_sigma[1];
+  if (u <= 0.0) { *v=0.0; *derivative=fsig0*width/fitlen; return true; }
+  if (u >= 1.0) { *v=1.0; *derivative=fsig1*width/fitlen; return true; }
   const double bl=tok_row_arc_blend_fraction(nc);
   const double x[4]={0.0,bl,1.0-bl,1.0};
   int i=u < x[1] ? 0 : (u < x[2] ? 1:2);
   double h=x[i+1]-x[i], t=(u-x[i])/h;
   const double *y=ctx->row_arc_fit_y, *m=ctx->row_arc_fit_m;
   double d=(y[i+1]-y[i])/h, c=3.0*d-2.0*m[i]-m[i+1], b=m[i]+m[i+1]-2.0*d;
-  *v=(y[i]+h*t*(m[i]+t*(c+t*b)))/length;
-  *derivative=(m[i]+t*(2.0*c+3.0*t*b))/length;
+  *v=(y[i]+h*t*(m[i]+t*(c+t*b)))/fitlen;
+  *derivative=(m[i]+t*(2.0*c+3.0*t*b))/fitlen;
   if (!isfinite(*v) || !isfinite(*derivative) || !(*derivative > 0.0)) {
     fprintf(stderr,"TOK_ROW_ARC_FAILED reason=nonpositive_derivative ftype=%d psi=%.17g u=%.17g segment=%d v=%.17g derivative=%.17g\n",
       inp->ftype,ctx->psi,u,i,*v,*derivative);
