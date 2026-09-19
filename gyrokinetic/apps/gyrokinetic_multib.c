@@ -1190,10 +1190,6 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
     bounds[b].group = b;
     probe->block_comms[b] = serial;
     if (bi->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
-    if (bi->geometry.tok_grid_info.relaxed_xpt_seam_optimize) {
-      fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=unsupported_seam_optimizer block=%d\n",b);
-      goto cleanup;
-    }
     const struct gkyl_position_map_inp *pm = &bi->geometry.position_map_info;
     if ((pm->id != GKYL_PMAP_USER_INPUT && pm->id != GKYL_PMAP_XPT_COMPRESSION) ||
         pm->maps[0] || pm->maps[1] || pm->maps[2]) {
@@ -1312,6 +1308,16 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
       struct gkyl_gk_block_geom_info bi=*gkyl_gk_block_geom_get_block(bg,b);
       if (bi.geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
       for (int d=0; d<ndim; ++d) bi.cuts[d]=1;
+      // A trial asks ONE question: does this candidate radial boundary keep the
+      // block inside the vessel? That does not depend on the X-point seam
+      // refinement, and running the optimizer here would nest its trial
+      // machinery inside ours -- both drive relaxed_xpt_seam_trial_status, so
+      // the inner search would scribble on the outer one -- and pay a candidate
+      // search per step for an answer it cannot change. Build the trials plain.
+      // The settled boundary is then built normally, optimizer and all, by the
+      // ordinary path below.
+      bi.geometry.tok_grid_info.relaxed_xpt_seam_optimize = false;
+      bi.geometry.tok_grid_info.relaxed_xpt_seam_trial_status = 0;
       fprintf(stderr,"TOK_RHO_WALL_TRIAL iteration=%d block=%d\n",iteration,b);
       tok_wall_trial_begin(bounds[b].family ? bounds[b].edge : -1);
       if (iteration==0 && bounds[b].family)
@@ -1471,7 +1477,11 @@ gyrokinetic_multib_app_wall_wrapper(const struct gkyl_gyrokinetic_multib *inp, b
     fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED ADJUST_IF_EXCEEDING_WALL must be 0 or 1\n");
     return 0;
   }
-  const bool adjust_wall=adjust && !strcmp(adjust,"1");
+  // ON by default. A requested rho that leaves the machine is not a valid
+  // domain, and the library's answer is to step the outer boundary inward until
+  // it fits -- so that has to happen whether or not the caller thought to ask.
+  // ADJUST_IF_EXCEEDING_WALL=0 restores the old opt-in behaviour.
+  const bool adjust_wall=!(adjust && !strcmp(adjust,"0"));
   const bool row_arc=row_arc_plan_enabled();
   if (!adjust_wall && !row_arc)
     return geometry_only ? gyrokinetic_multib_app_new_geom_impl(inp) : gyrokinetic_multib_app_new_impl(inp);
