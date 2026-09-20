@@ -28,6 +28,7 @@ typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
  * @param gk_dg_geom DG geometry object.
  * @param vel_map Velocity space mapping object.
  * @param bctype_conf Type of conf-space BCs.
+ * @param is_mpi_edge Whether each local conf-space edge is an internal MPI interface.
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
@@ -38,7 +39,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
-  const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool use_gpu);
+  const enum gkyl_gyrokinetic_bc_type *bctype_conf, const bool *is_mpi_edge, bool use_gpu);
 
 /**
  * Compute surface expansion of phase space flux alpha

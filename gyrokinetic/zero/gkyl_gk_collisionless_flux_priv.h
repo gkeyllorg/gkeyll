@@ -47,6 +47,8 @@ struct gkyl_gk_collisionless_flux {
   gk_collisionless_flux_surf_t flux_surf_edge_lo[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
   gk_collisionless_flux_surf_t flux_surf_edge_up[GKYL_MAX_CDIM]; // kernel for computing surface expansion of phase space flux.
                                                         // at upper configuration space edge
+  bool is_mpi_edge_lo[GKYL_MAX_CDIM]; // Lower local edge is an internal MPI interface.
+  bool is_mpi_edge_up[GKYL_MAX_CDIM]; // Upper local edge is an internal MPI interface.
   gk_collisionless_flux_surfvpar_t flux_surfvpar[1]; // kernel for computing surface expansion of phase space flux alpha
   double charge, mass;
   const struct gk_geometry *gk_geom; // Pointer to geometry struct.
@@ -560,7 +562,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   enum gkyl_gk_collisionless_type collless_type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
-  const enum gkyl_gyrokinetic_bc_type *bctype_conf);
+  const enum gkyl_gyrokinetic_bc_type *bctype_conf, const bool *is_mpi_edge);
 
 /**
  * Host-side wrappers for gyrokinetic vars operations on device

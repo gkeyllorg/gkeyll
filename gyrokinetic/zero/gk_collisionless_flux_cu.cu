@@ -74,7 +74,9 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
       if (idx[dir] == phase_range.lower[dir]) {
         // Lower domain/block boundary.
-        cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+        gk_collisionless_flux_surf_t edge_kern = up->is_mpi_edge_lo[dir]
+          ? up->flux_surf[dir] : up->flux_surf_edge_lo[dir];
+        cflrate_d[0] += edge_kern(xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d,
           fL, fR, yfieldL_d, yfieldR_d, flux_surf_d);
       } else {
@@ -88,7 +90,8 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
       // we are at the configuration space upper edge and we also need to evaluate 
       // alpha = +1 to avoid evaluating the geometry information in the ghost cells 
       // where it is not defined when computing the final surface alpha we need
-      // (since the surface alpha array stores only the *lower* surface expansion)
+      // (since the surface alpha array stores only the *lower* surface expansion).
+      // Internal MPI edges use the ordinary interior kernel below.
       if (idx[dir] == phase_range.upper[dir]) {
         gkyl_copy_int_arr(pdim, idx, idx_edge);
         idx_edge[dir] = idx_edge[dir]+1;
@@ -110,8 +113,15 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(struct gkyl_gk_collisionless_flux
 
         double* flux_surf_ext_d = (double*) gkyl_array_fetch(flux_surf, loc_phase_ext);
 
-        double cflrate_edge = up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d,
+        const double *bmag_edge_d = bmag_d;
+        gk_collisionless_flux_surf_t edge_kern = up->flux_surf_edge_up[dir];
+        if (up->is_mpi_edge_up[dir]) {
+          bmag_edge_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf_ext);
+          edge_kern = up->flux_surf[dir];
+        }
+
+        double cflrate_edge = edge_kern(xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
+          dgs, gkdgs, bmag_edge_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d,
           fL, fR, yfieldL_d, yfieldR_d, flux_surf_ext_d);
         cflrate_ext_d[0] = GKYL_MAX2(cflrate_ext_d[0], cflrate_edge); 
       }  
@@ -250,7 +260,7 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   enum gkyl_gk_collisionless_type type,
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map,
-  const enum gkyl_gyrokinetic_bc_type *bctype_conf)
+  const enum gkyl_gyrokinetic_bc_type *bctype_conf, const bool *is_mpi_edge)
 {
   struct gkyl_gk_collisionless_flux *up = (struct gkyl_gk_collisionless_flux*) gkyl_malloc(sizeof(*up));
 
@@ -264,6 +274,11 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
 
   up->charge = charge;
   up->mass = mass;
+
+  for (int d=0; d<cdim; ++d) {
+    up->is_mpi_edge_lo[d] = is_mpi_edge[d];
+    up->is_mpi_edge_up[d] = is_mpi_edge[GKYL_MAX_CDIM+d];
+  }
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);

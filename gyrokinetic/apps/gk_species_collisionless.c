@@ -156,15 +156,23 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     }
 
     enum gkyl_gyrokinetic_bc_type bctype_conf[2*GKYL_MAX_CDIM];
+    bool is_mpi_edge[2*GKYL_MAX_CDIM] = { false };
     for (int d=0; d<app->cdim; d++) {
-      bctype_conf[d] = gks->lower_bc[d].type;
-      bctype_conf[GKYL_MAX_CDIM+d] = gks->upper_bc[d].type;
+      // Only global domain edges use the configured physical boundary
+      // stencil. Mark local edges inside the domain as MPI interfaces so the
+      // surface-flux updater uses the ordinary two-sided interior stencil.
+      is_mpi_edge[d] = app->local.lower[d] != app->global.lower[d];
+      is_mpi_edge[GKYL_MAX_CDIM+d] = app->local.upper[d] != app->global.upper[d];
+      bctype_conf[d] = !is_mpi_edge[d]
+        ? gks->lower_bc[d].type : GKYL_BC_GK_SPECIES_PERIODIC;
+      bctype_conf[GKYL_MAX_CDIM+d] = !is_mpi_edge[GKYL_MAX_CDIM+d]
+        ? gks->upper_bc[d].type : GKYL_BC_GK_SPECIES_PERIODIC;
     }
 
     gkcls->surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
       gks->info.charge, gks->info.mass,
       gkcls->collisionless_id, app->gk_geom, 
-      app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
+      app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, is_mpi_edge, app->use_gpu);
 
     struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf, 
       .phi = gks->gyro_phi, .apar = gkcls->apar, .apardot = gkcls->apardot,

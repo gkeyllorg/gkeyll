@@ -404,6 +404,12 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   gkyl_gk_geometry_release(gk_geom_3d); // Release temporary 3d geometry.
 
+  // The collisionless surface-flux updater uses the right cell's magnetic
+  // field at an internal MPI interface, just as it does at an ordinary
+  // interior face. Populate that neighboring cell in the geometry halo.
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext,
+    app->gk_geom->geo_corn.bmag);
+
   double bmag_min_local, bmag_min_global;
   bmag_min_local = gkyl_gk_geometry_reduce_bmag(app->gk_geom, GKYL_MIN);
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &bmag_min_local, &bmag_min_global);
