@@ -1,0 +1,60 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M2ZC463NCTY5YKPNWS3CR5A0",
+  "session_id": "01a0b6cf-7404-7880-8ddd-a359958a6045",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-20T12:19:49.714192Z",
+  "branch": "gk_dgH",
+  "checkpoints_count": 5,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/apps/gk_species_collisionless.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "4a0528bc8adf",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 609249,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 14276352,
+    "output_tokens": 53801,
+    "api_call_count": 131
+  },
+  "session_metrics": {
+    "turn_count": 5
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-20T12:19:49.553314Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 10,
+    "human_modified": 56,
+    "human_removed": 0,
+    "total_committed": 10,
+    "total_lines_changed": 80,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 53168,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/apps/gk_species_collisionless.c": 53,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/std_out.txt": 80,
+        "std_out.txt": 1
+      }
+    }
+  ]
+}

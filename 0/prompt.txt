@@ -1,0 +1,23 @@
+In this branch we are trying to add a new scheme where the electrostatic potential is allowed to be discontinuous in the last configuration-space dimension (along the magnetic field). At the moment we are just trying it in 1D.
+
+Previously, in commit 1801f4e2b97f296e292f69ea5fa5bdda02902c48 we got it to work with periodic boundary conditions, and the ion sound wave damping test (rt_gk_ion_sound_adiabatic_elc_1x2v_p1) behaved as I expected. I stored the results from that here: rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/
+
+In the current version of the code i've tried to extend this algorithm so it works with non-periodic boundaries. However, the periodic ion sound case is no longer working. The initial time step is much smaller, causing the simulation to take longer, and eventually the time step crashes, causing the simulation to exit.
+
+What went wrong? I know one of the things i've done is change the gyrokinetic collisionless flux kernels (gk_collisionless_flux/ker), so if needed you can examine the Maxima code in out gkylcas repository (/Users/mfrancis/Documents/gkeyll/code/gkylcas/maxima/g0/), specifically those in gk_collisionless/.
+
+---
+
+Sorry, I should've added that the version of the test I care about is that in the current revision (d06ba6594bdb5c92c5ac7efb763bef04e3bddc38), and the data in rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/ used the source code from 1801f4e2b97f296e292f69ea5fa5bdda02902c48 but the regression test from d06ba6594bdb5c92c5ac7efb763bef04e3bddc38.
+
+---
+
+I don't think this is the problem. Even if I comment that line out the result is similar (100x smaller time step, and eventual crash).
+
+---
+
+Can you do that comparison please?
+
+---
+
+The reason can't be the sign of the bmag[1] in those kernels, because this simulation has constant magnetic field and bmag[1]=0.
