@@ -136,15 +136,11 @@ struct gkyl_vlasov_app {
   // geometry data
   struct vm_geom *vm_geom;
 
-  // Species data: one backing array of species containers (num_species in all),
-  // kinetic species in [0, num_kinetic_species) followed by the fluid species;
-  // 'species' owns the allocation and 'fluid_species' is a view into its fluid
-  // tail (both serve the per-kind public API and the file naming).
+  // Species data: one array of species containers in input order.
   int num_species; // Total number of species (kinetic + fluid).
-  int num_kinetic_species; // Number of kinetic species (the head of 'species').
-  int num_fluid_species; // Number of fluid species (the tail of 'species').
-  struct vlasov_species *species; // Species containers (owns the backing storage).
-  struct vlasov_species *fluid_species; // View into the fluid tail of 'species'.
+  int num_kinetic_species; // Number of species with a kinetic aspect.
+  int num_fluid_species; // Number of species with a fluid aspect.
+  struct vlasov_species *species; // Species containers.
 
   bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
   struct vm_fluid_em_coupling *fl_em; // fluid-EM coupling data
@@ -256,24 +252,6 @@ struct vm_species* vm_find_species(const gkyl_vlasov_app *app, const char *nm);
  * @return Index of the species in app->species, -1 if not found
  */
 int vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm);
-
-/**
- * Find fluid species with given name.
- *
- * @param app Top-level app to look into
- * @param nm Name of fluid species
- * @return Pointer to fluid species with given name. NULL if not found.o
- */
-struct vm_fluid_species *vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm);
-
-/**
- * Return index fluid species in the order it appears in the input.
- *
- * @param app Top-level app to look into
- * @param nm Name of fluid species
- * @return Index of species, -1 if not found
- */
-int vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm);
 
 /** vm_fluid_em_coupling API */
 

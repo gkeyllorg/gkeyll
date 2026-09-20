@@ -511,27 +511,25 @@ void gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0);
 void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0);
 
 /**
- * Initialize a kinetic species by projecting initial conditions on basis
- * functions. The species index (sidx) counts the GKYL_SPECIES_VLASOV entries
- * of gkyl_vm's species[] list, in declaration order (kinetic and fluid
- * species are indexed separately by the per-kind app functions).
+ * Initialize a species by projecting initial conditions on basis functions.
+ * Species are indexed in the order they appear in gkyl_vm's species[] list
+ * (kinetic and fluid alike); see gkyl_vlasov_app_find_species to resolve a
+ * species by name.
  *
  * @param app App object.
- * @param sidx Index of kinetic species to initialize.
+ * @param sidx Index of species to initialize.
  * @param t0 Time for initial conditions
  */
 void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0);
 
 /**
- * Initialize a fluid species by projecting initial conditions on basis
- * functions. The fluid species index (sidx) counts the GKYL_SPECIES_FLUID
- * entries of gkyl_vm's species[] list, in declaration order.
+ * Find a species by name.
  *
  * @param app App object.
- * @param sidx Index of fluid species to initialize.
- * @param t0 Time for initial conditions
+ * @param nm Species name.
+ * @return Index of the species (as used by the per-species app functions), -1 if not found.
  */
-void gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, double t0);
+int gkyl_vlasov_app_find_species(const gkyl_vlasov_app* app, const char *nm);
 
 /**
  * Initialize field from file
@@ -546,22 +544,11 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname);
  * Initialize Vlasov species from file
  *
  * @param app App object
- * @param sidx Species index (see gkyl_vlasov_app_apply_ic_species for the indexing).
+ * @param sidx Index of species (see gkyl_vlasov_app_apply_ic_species).
  * @param fname file to read
  */
 struct gkyl_app_restart_status 
 gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
-  const char *fname);
-
-/**
- * Initialize fluid species from file
- *
- * @param app App object
- * @param sidx Species index (see gkyl_vlasov_app_apply_ic_species for the indexing).
- * @param fname file to read
- */
-struct gkyl_app_restart_status 
-gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
   const char *fname);
 
 /**
@@ -577,21 +564,11 @@ gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame);
  * Initialize Vlasov species from frame
  *
  * @param app App object
- * @param sidx Species index (see gkyl_vlasov_app_apply_ic_species for the indexing).
+ * @param sidx Index of species (see gkyl_vlasov_app_apply_ic_species).
  * @param frame frame to read
  */
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame);
-
-/**
- * Initialize fluid species from frame
- *
- * @param app App object
- * @param sidx Species index (see gkyl_vlasov_app_apply_ic_species for the indexing).
- * @param frame frame to read
- */
-struct gkyl_app_restart_status
-gkyl_vlasov_app_from_frame_fluid_species(gkyl_vlasov_app *app, int sidx, int frame);
 
 /**
  * Initialize the Vlasov app from a specific frame.
@@ -648,21 +625,11 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
  * Write species data to file.
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of species to write (see gkyl_vlasov_app_apply_ic_species).
  * @param tm Time-stamp
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write fluid species data to file. 
- * 
- * @param app App object.
- * @param sidx Index of fluid species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.

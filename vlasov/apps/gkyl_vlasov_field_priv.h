@@ -452,7 +452,7 @@ double vm_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_arr
  * @param app Vlasov app object
  * @param dt Time-step taken
  * @param fin[] Input distribution function (num_species size)
- * @param fluidin[] Input fluid array (num_fluid_species size)
+ * @param fluidin[] Input fluid arrays, indexed over the overall species count
  * @param emin Input field at the start of the step
  * @param emout On output, the completed field emin + dt*RHS
  */

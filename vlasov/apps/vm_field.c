@@ -516,7 +516,7 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
     vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], fluidin[i], emout);
 
   // Accumulate applied current to electric field terms.
-  // *Only* accumulate applied currents if num_fluid_species = 0 and there is no fluid-EM coupling.
+  // *Only* accumulate applied currents if there is no fluid-EM coupling.
   // If there are fluid species, then applied current coupling handled by implicit fluid-EM coupling
   // See vm_fluid_em_coupling.c
   if (app->field->has_app_current && !app->has_fluid_em_coupling) {

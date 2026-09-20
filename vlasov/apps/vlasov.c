@@ -100,19 +100,11 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
 
-  // Partition the species input kinetic-first, preserving declaration order
-  // within each kind (which sets the diagnostic and restart file naming).
-  struct gkyl_vlasov_species *sinp =
-    gkyl_malloc(sizeof(struct gkyl_vlasov_species[GKYL_MAX_SPECIES]));
-  int ntot = 0, ns = 0, nsf = 0;
-  for (int i=0; i<vm->num_species; ++i)
-    if (vm->species[i].type != GKYL_SPECIES_FLUID)
-      sinp[ntot++] = vm->species[i];
-  ns = ntot;
-  for (int i=0; i<vm->num_species; ++i)
-    if (vm->species[i].type == GKYL_SPECIES_FLUID)
-      sinp[ntot++] = vm->species[i];
-  nsf = ntot - ns;
+  int ntot = vm->num_species, ns = 0, nsf = 0;
+  for (int i=0; i<ntot; ++i) {
+    if (vm->species[i].type != GKYL_SPECIES_FLUID) ns += 1;
+    if (vm->species[i].type != GKYL_SPECIES_VLASOV) nsf += 1;
+  }
 
   int cdim = app->cdim = vm->cdim;
   int vdim = app->vdim = vm->vdim;
@@ -276,56 +268,60 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // A field object is always created: the null field when no field is present.
   app->field = vlasov_field_new(vm, app);
 
-  // One backing array of species containers: kinetic species in [0, ns), fluid
-  // species in [ns, ns+nsf); 'fluid_species' is a view into the fluid tail.
   app->species = ntot>0 ? gkyl_malloc(sizeof(struct vlasov_species[ntot])) : 0;
-  app->fluid_species = app->species ? app->species + ns : 0;
 
   // Construct each species container (allocates its aspect, stores the input,
   // and sets its methods); the aspects are initialized below, once all
   // containers exist, since the initializations look species up by name.
   for (int i=0; i<ntot; ++i)
-    vlasov_species_new(app, &sinp[i], &app->species[i]);
-  gkyl_free(sinp);
+    vlasov_species_new(app, &vm->species[i], &app->species[i]);
 
-  // initialize each species
-  for (int i=0; i<ns; ++i) 
-    vm_species_init(vm, app, app->species[i].dist);
+  // initialize each kinetic species
+  for (int i=0; i<ntot; ++i)
+    if (app->species[i].dist)
+      vm_species_init(vm, app, app->species[i].dist);
 
   // initialize species wall emission terms: these rely
   // on other species which must be allocated in the previous step
-  for (int i=0; i<ns; ++i) {
-    if (app->species[i].dist->emit_lo)
-      vm_species_emission_cross_init(app, app->species[i].dist, &app->species[i].dist->bc_emission_lo);
-    if (app->species[i].dist->emit_up)
-      vm_species_emission_cross_init(app, app->species[i].dist, &app->species[i].dist->bc_emission_up);
+  for (int i=0; i<ntot; ++i) {
+    struct vm_species *vms = app->species[i].dist;
+    if (!vms) continue;
+    if (vms->emit_lo)
+      vm_species_emission_cross_init(app, vms, &vms->bc_emission_lo);
+    if (vms->emit_up)
+      vm_species_emission_cross_init(app, vms, &vms->bc_emission_up);
   }
   
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
   // allocated in the previous step
-  for (int i=0; i<ns; ++i) {
-    vm_species_lbo_cross_init(app, app->species[i].dist, &app->species[i].dist->lbo);
-    vm_species_bgk_cross_init(app, app->species[i].dist, &app->species[i].dist->bgk);
+  for (int i=0; i<ntot; ++i) {
+    struct vm_species *vms = app->species[i].dist;
+    if (!vms) continue;
+    vm_species_lbo_cross_init(app, vms, &vms->lbo);
+    vm_species_bgk_cross_init(app, vms, &vms->bgk);
   }
 
   // initialize each species source terms: this has to be done here
   // as they may initialize a bflux updater for their source species.
-
-  // initialize each species source terms
-  for (int i=0; i<ns; ++i)
-    if (app->species[i].dist->source_id)
-      vm_species_source_init(app, app->species[i].dist, &app->species[i].dist->src);
+  for (int i=0; i<ntot; ++i) {
+    struct vm_species *vms = app->species[i].dist;
+    if (vms && vms->source_id)
+      vm_species_source_init(app, vms, &vms->src);
+  }
 
   // initialize each fluid species
   // Fluid species must be initialized after kinetic species, as some fluid species couple
   // to kinetic species and pointers are allocated by the kinetic species objects
-  for (int i=0; i<nsf; ++i)
-    vm_fluid_species_init(vm, app, app->fluid_species[i].fluid);
+  for (int i=0; i<ntot; ++i)
+    if (app->species[i].fluid)
+      vm_fluid_species_init(vm, app, app->species[i].fluid);
 
-  for (int i=0; i<nsf; ++i)
-    if (app->fluid_species[i].fluid->source_id)
-      vm_fluid_species_source_init(app, app->fluid_species[i].fluid, &app->fluid_species[i].fluid->src);
+  for (int i=0; i<ntot; ++i) {
+    struct vm_fluid_species *vmf = app->species[i].fluid;
+    if (vmf && vmf->source_id)
+      vm_fluid_species_source_init(app, vmf, &vmf->src);
+  }
 
   // Check if there are both any fluid species and an EM field. 
   // If there are, initialize the implicit fluid-EM coupling solver.
@@ -337,8 +333,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // Use implicit BGK collisions if any species requests them.
   app->has_implicit_coll_scheme = false;
-  for (int i=0; i<ns; ++i){
-    if (app->species[i].dist->info.collisions.is_implicit){
+  for (int i=0; i<ntot; ++i){
+    if (app->species[i].dist && app->species[i].dist->info.collisions.is_implicit){
       app->has_implicit_coll_scheme = true;
     }
   }
@@ -387,24 +383,6 @@ vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm)
   return (i >= 0 && app->species[i].dist) ? i : -1;
 }
 
-struct vm_fluid_species *
-vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm)
-{
-  for (int i=0; i<app->num_fluid_species; ++i)
-    if (strcmp(nm, app->fluid_species[i].fluid->name) == 0)
-      return app->fluid_species[i].fluid;
-  return 0;
-}
-
-int
-vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm)
-{
-  for (int i=0; i<app->num_fluid_species; ++i)
-    if (strcmp(nm, app->fluid_species[i].fluid->name) == 0)
-      return i;
-  return -1;
-}
-
 void
 vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
   struct gkyl_array *distf[], struct gkyl_array *fluid[], struct gkyl_array *emfield)
@@ -451,15 +429,14 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
 void
 gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
 {
-  assert(sidx < app->num_kinetic_species);
+  assert(sidx < app->num_species);
   vlasov_species_apply_ic(app, &app->species[sidx], t0);
 }
 
-void
-gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, double t0)
+int
+gkyl_vlasov_app_find_species(const gkyl_vlasov_app* app, const char *nm)
 {
-  assert(sidx < app->num_fluid_species);
-  vlasov_species_apply_ic(app, &app->fluid_species[sidx], t0);
+  return vlasov_find_species_idx(app, nm);
 }
 
 void
@@ -506,12 +483,6 @@ void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
   vlasov_species_write(app, &app->species[sidx], tm, frame);
-}
-
-void
-gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-{
-  vlasov_species_write(app, &app->fluid_species[sidx], tm, frame);
 }
 
 void
@@ -873,13 +844,6 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
   return vlasov_species_from_file(app, &app->species[sidx], fname);
 }
 
-struct gkyl_app_restart_status 
-gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
-  const char *fname)
-{
-  return vlasov_species_from_file(app, &app->fluid_species[sidx], fname);
-}
-
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
 {
@@ -890,12 +854,6 @@ struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame)
 {
   return vlasov_species_read_from_frame(app, &app->species[sidx], frame);
-}
-
-struct gkyl_app_restart_status
-gkyl_vlasov_app_from_frame_fluid_species(gkyl_vlasov_app *app, int sidx, int frame)
-{
-  return vlasov_species_read_from_frame(app, &app->fluid_species[sidx], frame);
 }
 
 struct gkyl_app_restart_status
