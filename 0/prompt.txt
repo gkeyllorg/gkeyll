@@ -1,0 +1,83 @@
+In this branch of Gkeyll we are experimenting with a new gyrokinetic algorithm that allows the electrostatic potential (phi) to be discontinuous along the last configuration-space dimension (along the magnetic field). It appears to be working well for periodic boundaries, but in a case with non-periodic boundaries (the test rt_gk_sheath_1x2v_p1.c) it develops left-right asymmetries. I don't think there should be left-right asymmetries as the source is symmetric, the boundary conditions are symmetric, and the field solver is left-right symmetric. Can you help me understand what may be causing these asymmetries? If needed you can examine the Maxima that generates the gyrokinetic kernels in /Users/mfrancis/Documents/gkeyll/code/gkylcas/maxima/g0/gk_collisionless/.
+
+---
+
+I fixed the issue in gyrokinetic/apps/gk_field_1x.c:26. Now you can examine the asymmetry (say in rt_gk_sheath_1x2v_p1-elc_M0_1.gkyl or rt_gk_sheath_1x2v_p1-field_1.gkyl
+
+---
+
+I fixed the issue in gyrokinetic/apps/gk_field_1x.c:26. Now you can examine the asymmetry (say in rt_gk_sheath_1x2v_p1-elc_M0_1.gkyl or rt_gk_sheath_1x2v_p1-field_1.gkyl)
+
+---
+
+Can you examine why yfield comes out left-right asymmetric?
+
+---
+
+Can you see why yfield comes out more asymmetrical than I would expect? you can write it out with gkyl_grid_sub_array_write and run the rt_gk_sheath_1x2v_p1 regression test.
+
+---
+
+Ok, more concretely, the final electron density that this version of the code produces seems erroneously asymmetric. You can compare the baseline produced with main (../../gkeyll_v1/gkeyll/rt_gk_sheath_1x2v_p1-elc_M0_1.gkyl) with the one produced in this branch (./rt_gk_sheath_1x2v_p1-elc_M0_1.gkyl).
+
+Please examine if there's something in the gyrokinetic volume kernel or the gk_collisionless_flux_surfvpar_1x2v_ser_p1.c kernel that could be responsible for this.
+
+---
+
+Why is yfield discontinuous across a v_\parallel=0 face?
+
+Shouldn't the jump term in ypot_der_surf_n of the gk_collisionless_flux_surfx and gk_collisionless_flux_boundary_surfx kernels be zero in that case, and thus give a continuous yfield?
+
+---
+
+Can this be fixed by changing the penalty term of the weak derivative of the Yushmanov potential?
+
+---
+
+can you clarify what quantity you are denoting with \Psi in this conversation?
+
+---
+
+Ok, I think I finally understand the discontinuity in yfield across the v_\parallel=0 surface. One question: shouldn't this cause a loss of particles? because I checked particle conservation and it appeared to be exact still.
+
+---
+
+Would it work to use the following: a v_\parallel flux (\hat{G}) like
+
+\hat{G} = {\dot{v} * f} - s(\dot{v}) * [\dot{v} * f]
+
+where \dot{v} is the advecting scalar in the v_parallel direction (acceleration) and 
+
+s(\dot{v}) = \begin{cases}
+sign([\dot{v}]) \quad |{\dot{v}}| > 0.01 * \max(|\dot{v}_L|,|\dot{v}_R|) \\
+0 \quad \text{otherwise}
+\end{cases}
+
+?
+
+---
+
+Before testing the Rusanov flux, can you create a plan for implementing the closer version of what I proposed, that you suggested?  i mean
+
+  [
+  s(a)=
+  \begin{cases}
+  \operatorname{sign}({a}),&
+  |{a}|>\epsilon\max(|a_L|,|a_R|),\
+  0,&\text{otherwise}.
+  \end{cases}
+  ]
+
+Make a plan to edit the Maxima that generates the kernels and gk_collisionless_flux.
+
+---
+
+please continue creating the plan
+
+---
+
+Implement the plan.
+
+---
+
+I can run the Maxima manually if needed
