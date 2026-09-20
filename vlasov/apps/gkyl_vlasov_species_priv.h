@@ -1801,3 +1801,23 @@ struct gkyl_app_restart_status vlasov_species_read_from_frame(gkyl_vlasov_app *a
 
 // Lifecycle.
 void vlasov_species_release(const gkyl_vlasov_app *app, struct vlasov_species *sp);
+
+/**
+ * Gather the current evolved state of every species into arrays indexed over
+ * the overall species count (NULL where a species lacks that aspect).
+ *
+ * @param app Vlasov app object
+ * @param distf On output, distf[i] is the distribution of species i (may be NULL to skip)
+ * @param fluid On output, fluid[i] is the fluid moments of species i (may be NULL to skip)
+ */
+void vlasov_species_gather_state(gkyl_vlasov_app *app, struct gkyl_array *distf[],
+  struct gkyl_array *fluid[]);
+
+/**
+ * Gather the current distribution functions as read-only inputs for the field
+ * methods (initial conditions, restart, the Poisson solve, diagnostics).
+ *
+ * @param app Vlasov app object
+ * @param fin On output, fin[i] is the distribution of species i (NULL if it has no kinetic aspect)
+ */
+void vlasov_species_gather_dist(gkyl_vlasov_app *app, const struct gkyl_array *fin[]);

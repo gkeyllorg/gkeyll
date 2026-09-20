@@ -400,7 +400,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->calc_energy_func = vm_field_calc_energy;
   f->write_func = vm_field_write;
   f->write_energy_func = vm_field_write_energy;
-  f->read_func = vm_field_read_from_frame;
+  f->from_file_func = vm_field_from_file;
   f->release_func = vm_field_release;
 
   return f;
@@ -556,7 +556,7 @@ vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array
 // Combine the RK stages of the field state (out = c1*arr1 + c2*arr2). The field
 // is part of the RK state vector only for Vlasov-Maxwell (E_B/GR_D_B); for
 // Vlasov-Poisson the potential is re-solved from the charge density each stage
-// (see vp_calc_field), so this is a no-op. Note: for Vlasov-Poisson the em/em1/
+// (see vp_field_solve), so this is a no-op. Note: for Vlasov-Poisson the em/em1/
 // emnew pointers alias the Poisson scratch arrays via the vm_field union, so
 // skipping the combine here also avoids scribbling on them.
 void
@@ -733,7 +733,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
 }
 
 void 
-vm_field_write(gkyl_vlasov_app* app, double tm, int frame)
+vm_field_write(gkyl_vlasov_app* app, double tm, int frame, const struct gkyl_array *fin[])
 {
   struct timespec wst = gkyl_wall_clock();  
 
@@ -820,7 +820,8 @@ vm_field_write(gkyl_vlasov_app* app, double tm, int frame)
 }
 
 void
-vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
+vm_field_calc_energy(gkyl_vlasov_app *app, double tm, struct vm_field *field,
+  const struct gkyl_array *fin[])
 {
   struct timespec wst = gkyl_wall_clock();  
 
@@ -886,13 +887,46 @@ vm_field_write_energy(gkyl_vlasov_app *app)
   app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-// Read the Vlasov-Maxwell EM field from its restart file for the given frame.
 struct gkyl_app_restart_status
-vm_field_read_from_frame(gkyl_vlasov_app *app, struct vm_field *field, int frame)
+vm_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fname)
 {
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_field(app, fileNm.str);
-  cstr_drop(&fileNm);
+  struct gkyl_app_restart_status rstat = vlasov_header_from_file(app, fname);
+
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    // Fixed-function field BCs are frozen from the initial conditions, so seed
+    // those buffers before the local solution is overwritten by restart data.
+    vm_field_apply_ic(app, field, 0, 0.0);
+
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, field->em_host, fname);
+    if (app->use_gpu)
+      gkyl_array_copy(field->em, field->em_host);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      // For GR, rescale the primitive fields to the evolved quantities by
+      // multiplying by Jc.
+      if (field->field_id == GKYL_FIELD_GR_D_B) {
+        gkyl_array_copy(field->em_no_J, field->em_host);
+        gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
+          field->em_no_J, field->em, app->use_gpu);
+      }
+      else if (field->weight_by_pos_jacob) {
+        // Restart files hold the physical E, B; rescale to the evolved J*E, J*B on
+        // the interior (BCs re-fill the ghost cells below).
+        gkyl_array_copy(field->em_no_J, field->em_host);
+        gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local,
+          field->em_no_J, field->em);
+      }
+
+      vm_field_apply_bc(app, field, field->em);
+    }
+  }
+
+  // Recompute the external EM field and applied current: they are not part of
+  // the restart file, and the time-stepping loop only recomputes them when they
+  // are time dependent.
+  vm_field_calc_ext_em(app, field, rstat.stime);
+  vm_field_calc_app_current(app, field, rstat.stime);
+
   return rstat;
 }
 

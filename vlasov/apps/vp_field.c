@@ -243,7 +243,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   vpf->calc_energy_func = vp_field_calc_energy;
   vpf->write_func = vp_field_write;
   vpf->write_energy_func = vp_field_write_energy;
-  vpf->read_func = vp_field_read_from_frame;
+  vpf->from_file_func = vp_field_from_file;
   vpf->release_func = vp_field_release;
 
   return vpf;
@@ -256,16 +256,24 @@ double
 vp_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
   const struct gkyl_array *emin, struct gkyl_array *emout)
 {
-  vp_calc_field(app, tcurr, fin);
+  vp_field_solve(app, app->field, fin);
   return DBL_MAX;
 }
 
-// Restart read for Vlasov-Poisson: a no-op. The potential is re-solved from the
-// restarted distribution in gkyl_vlasov_app_read_from_frame (after the species
-// are read), not read from a field file.
-struct gkyl_app_restart_status
-vp_field_read_from_frame(gkyl_vlasov_app *app, struct vm_field *field, int frame)
+// Evaluate the static external potentials and fields. Shared by the initial
+// conditions and the restart: the potential itself is solved from the
+// distribution wherever it is needed, so neither path solves it here.
+static void
+vp_field_calc_static_ext(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
+  vp_field_calc_ext_pot(app, field, tm);
+  vp_field_calc_ext_em(app, field, tm);
+}
+
+struct gkyl_app_restart_status
+vp_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fname)
+{
+  vp_field_calc_static_ext(app, field, app->tcurr);
   return (struct gkyl_app_restart_status) { .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0 };
 }
 
@@ -331,26 +339,18 @@ vp_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double t
 }
 
 void
-vp_field_accumulate_charge_dens(gkyl_vlasov_app *app, struct vm_field *field,
-  const struct gkyl_array *fin[])
+vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[])
 {
-  // Calculate the charge density. Each species owns its explicit contribution
-  // (kinetic species accumulate q * m0; species without a Poisson coupling are
-  // a no-op); the field only owns this loop and the solve. fin[] is indexed
-  // over the overall species count. There is no fluid state to pass here (the
-  // fluid coupling slot is a no-op under Poisson).
+  struct timespec wst = gkyl_wall_clock();
+
+  // Accumulate the charge density: each species owns its explicit contribution
+  // (kinetic species accumulate q*m0; species without a Poisson coupling are a
+  // no-op). fin[] is indexed over the overall species count.
   gkyl_array_clear(field->rho_c, 0.0);
   int num_species = app->num_species + app->num_fluid_species;
   for (int i=0; i<num_species; ++i)
     vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], 0, field->rho_c);
-}
 
-void
-vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field)
-{
-  // Compute the electrostatic potential.
-
-  struct timespec wst = gkyl_wall_clock();
   // Gather charge density into global array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global);
 
@@ -368,26 +368,15 @@ void
 vp_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *fin[], double t0)
 {
-  if (!app->has_field) return;
-  
-  // Compute electrostatic potential from Poisson's equation.
-  vp_field_accumulate_charge_dens(app, field, fin);
-
-  // Solve the field equation.
-  vp_field_solve(app, field);
-
-  // Pre-compute external potentials and/or fields.
-  if (field->has_ext_pot) {
-    vp_field_calc_ext_pot(app, field, t0);
-  }
-  if (field->has_ext_em) {
-    vp_field_calc_ext_em(app, field, t0);
-  }
+  vp_field_calc_static_ext(app, field, t0);
 }
 
 void 
-vp_field_write(gkyl_vlasov_app* app, double tm, int frame)
+vp_field_write(gkyl_vlasov_app* app, double tm, int frame, const struct gkyl_array *fin[])
 {
+  // The potential is solved on demand so the written phi is at time tm.
+  vp_field_solve(app, app->field, fin);
+
   struct timespec wst = gkyl_wall_clock();  
 
   struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
@@ -419,7 +408,7 @@ vp_field_write(gkyl_vlasov_app* app, double tm, int frame)
       snprintf(fileNm_ext_em, sizeof fileNm_ext_em, fmt_ext_em, app->name, frame);
 
       // External EM field computed with project on basis, so just use host copy. 
-      vm_field_calc_ext_em(app, app->field, tm);
+      vp_field_calc_ext_em(app, app->field, tm);
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
         mt, app->field->ext_em_host, fileNm_ext_em);
@@ -446,8 +435,12 @@ vp_field_write(gkyl_vlasov_app* app, double tm, int frame)
 }
 
 void
-vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
+vp_field_calc_energy(gkyl_vlasov_app *app, double tm, struct vm_field *field,
+  const struct gkyl_array *fin[])
 {
+  // The potential is solved on demand so the energy is at time tm.
+  vp_field_solve(app, field, fin);
+
   struct timespec wst = gkyl_wall_clock();  
 
   gkyl_array_integrate_advance(field->calc_es_energy, field->phi,

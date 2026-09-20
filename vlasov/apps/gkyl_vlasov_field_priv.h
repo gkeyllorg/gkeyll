@@ -59,13 +59,16 @@ struct vm_field {
   void (*calc_ext_em_func)(gkyl_vlasov_app *app, struct vm_field *field, double tm);
   void (*calc_app_current_func)(gkyl_vlasov_app *app, struct vm_field *field, double tm);
   void (*calc_ext_pot_func)(gkyl_vlasov_app *app, struct vm_field *field, double tm);
-  void (*calc_energy_func)(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
-  void (*write_func)(gkyl_vlasov_app *app, double tm, int frame);
+  void (*calc_energy_func)(gkyl_vlasov_app *app, double tm, struct vm_field *field,
+    const struct gkyl_array *fin[]);
+  void (*write_func)(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[]);
   void (*write_energy_func)(gkyl_vlasov_app *app);
-  // Read the field's restart data for the given frame. Vlasov-Maxwell reads the
-  // EM field from its restart file; Vlasov-Poisson (re-solved from the restarted
-  // distribution elsewhere) and the null field are no-ops.
-  struct gkyl_app_restart_status (*read_func)(gkyl_vlasov_app *app, struct vm_field *field, int frame);
+  // Restart the field from the named file. Vlasov-Maxwell reads the EM field;
+  // Vlasov-Poisson evaluates its static external potentials/fields (the
+  // potential is solved from the distribution whenever it is needed); the null
+  // field is a no-op.
+  struct gkyl_app_restart_status (*from_file_func)(gkyl_vlasov_app *app, struct vm_field *field,
+    const char *fname);
   void (*release_func)(const gkyl_vlasov_app *app, struct vm_field *field);
 
   union {
@@ -201,11 +204,14 @@ void vlasov_field_calc_ext_em(gkyl_vlasov_app *app, double tm);
 void vlasov_field_calc_app_current(gkyl_vlasov_app *app, double tm);
 void vlasov_field_calc_ext_pot(gkyl_vlasov_app *app, double tm);
 
-// Diagnostics and lifecycle.
-void vlasov_field_calc_energy(gkyl_vlasov_app *app, double tm);
-void vlasov_field_write(gkyl_vlasov_app *app, double tm, int frame);
+// Diagnostics. The distributions fin[] (indexed over the overall species count)
+// let Vlasov-Poisson solve for the potential at the diagnostic time.
+void vlasov_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct gkyl_array *fin[]);
+void vlasov_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[]);
 void vlasov_field_write_energy(gkyl_vlasov_app *app);
-// Read the field's restart data for the given frame (dispatches by field type).
+// Restart: from_file dispatches by field type; read_from_frame names the frame
+// file, delegates to from_file, and marks the energy diagnostic to append.
+struct gkyl_app_restart_status vlasov_field_from_file(gkyl_vlasov_app *app, const char *fname);
 struct gkyl_app_restart_status vlasov_field_read_from_frame(gkyl_vlasov_app *app, int frame);
 void vlasov_field_release(gkyl_vlasov_app *app);
 
@@ -382,8 +388,9 @@ void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field,
  * @param app Vlasov app object
  * @param tm Time-stamp
  * @param frame Frame number
+ * @param fin[] Input distribution functions; unused for Vlasov-Maxwell
  */
-void vm_field_write(gkyl_vlasov_app* app, double tm, int frame);
+void vm_field_write(gkyl_vlasov_app* app, double tm, int frame, const struct gkyl_array *fin[]);
 
 /**
  * Compute field energy diagnostic.
@@ -391,8 +398,10 @@ void vm_field_write(gkyl_vlasov_app* app, double tm, int frame);
  * @param app Vlasov app object
  * @param tm Time at which diagnostic is computed
  * @param field Pointer to field
+ * @param fin[] Input distribution functions; unused for Vlasov-Maxwell
  */
-void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
+void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, struct vm_field *field,
+  const struct gkyl_array *fin[]);
 
 /**
  * Write out electromagnetic field energy.
@@ -402,15 +411,18 @@ void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field
 void vm_field_write_energy(gkyl_vlasov_app* app);
 
 /**
- * Read the Vlasov-Maxwell EM field for the given restart frame.
+ * Restart the Vlasov-Maxwell EM field from the named file: seed the fixed-
+ * function BC buffers from the initial conditions, read the field, rescale it
+ * to the evolved (Jacobian-weighted) representation, apply BCs, and recompute
+ * the external EM field and applied current.
  *
  * @param app Vlasov app object
  * @param field Pointer to field
- * @param frame Frame number
+ * @param fname File to read
  * @return Restart status
  */
-struct gkyl_app_restart_status vm_field_read_from_frame(gkyl_vlasov_app *app,
-  struct vm_field *field, int frame);
+struct gkyl_app_restart_status vm_field_from_file(gkyl_vlasov_app *app,
+  struct vm_field *field, const char *fname);
 
 /**
  * Release resources allocated by field
@@ -463,43 +475,42 @@ void vp_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, dou
 void vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm);
 
 /**
- * Compute field initial conditions.
+ * Vlasov-Poisson initial conditions: evaluate the static external potentials
+ * and fields. The potential itself is not solved here; it is solved from the
+ * distribution wherever it is needed (each forward Euler step and the field
+ * diagnostics), so initial conditions and restart share this code path.
  *
  * @param app Vlasov app object.
  * @param field Field object.
- * @param fin[] Input distribution function (num_species size).
- * @param t0 Time for use in ICs.
+ * @param fin[] Input distribution functions; unused.
+ * @param t0 Time at which to evaluate the externals.
  */
 void vp_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *fin[], double t0);
 
 /**
- * Accumulate charge density for Poisson solve.
+ * Restart for Vlasov-Poisson: no field file is read; evaluates the static
+ * external potentials and fields exactly as the initial conditions do.
+ *
+ * @param app Vlasov app object.
+ * @param field Field object.
+ * @param fname Unused.
+ * @return Restart status (always success; frame/time come from the species files).
+ */
+struct gkyl_app_restart_status vp_field_from_file(gkyl_vlasov_app *app,
+  struct vm_field *field, const char *fname);
+
+/**
+ * Solve for the electrostatic potential from the distribution functions:
+ * accumulate the charge density over all species, then solve the Poisson
+ * equation. The single definition of the potential, used by the field update
+ * (each forward Euler stage) and by the field diagnostics.
  *
  * @param app Vlasov app object.
  * @param field Pointer to field.
- * @param fin[] Input distribution function (num_species size).
+ * @param fin[] Input distribution functions, indexed over the overall species count.
  */
-void vp_field_accumulate_charge_dens(gkyl_vlasov_app *app, struct vm_field *field,
-  const struct gkyl_array *fin[]);
-
-/**
- * Solve the Poisson equation for the electrostatic potential.
- *
- * @param app Vlasov app object.
- * @param field Pointer to field.
- */
-void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field);
-
-/**
- * Compute the electrostatic potential for Vlasov-Poisson (accumulate the charge
- * density then solve the Poisson equation).
- *
- * @param app Vlasov app object.
- * @param tcurr Current time.
- * @param fin[] Input distribution function (num_species size).
- */
-void vp_calc_field(gkyl_vlasov_app* app, double tcurr, const struct gkyl_array *fin[]);
+void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[]);
 
 /**
  * Update the field at the current time: solve for the potential from the charge
@@ -546,22 +557,27 @@ void vp_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struc
 void vp_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em);
 
 /**
- * Write out potential fields.
+ * Write out the potential (solved here from fin[] so it is at time tm) and the
+ * external fields/potentials.
  *
  * @param app Vlasov app object
  * @param tm Time-stamp
  * @param frame Frame number
+ * @param fin[] Input distribution functions, indexed over the overall species count
  */
-void vp_field_write(gkyl_vlasov_app* app, double tm, int frame);
+void vp_field_write(gkyl_vlasov_app* app, double tm, int frame, const struct gkyl_array *fin[]);
 
 /**
- * Compute potential field energy diagnostic.
+ * Compute the electrostatic field energy diagnostic (the potential is solved
+ * here from fin[] so it is at time tm).
  *
  * @param app Vlasov app object
  * @param tm Time at which diagnostic is computed
  * @param field Pointer to field
+ * @param fin[] Input distribution functions, indexed over the overall species count
  */
-void vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
+void vp_field_calc_energy(gkyl_vlasov_app *app, double tm, struct vm_field *field,
+  const struct gkyl_array *fin[]);
 
 /**
  * Write out potential field energy.
@@ -569,14 +585,6 @@ void vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field
  * @param app Vlasov app object
  */
 void vp_field_write_energy(gkyl_vlasov_app* app);
-
-/**
- * Restart read for Vlasov-Poisson: a no-op, since the potential is re-solved
- * from the restarted distribution (see gkyl_vlasov_app_read_from_frame) rather
- * than read from a field file.
- */
-struct gkyl_app_restart_status vp_field_read_from_frame(gkyl_vlasov_app *app,
-  struct vm_field *field, int frame);
 
 /**
  * Release resources allocated by field.

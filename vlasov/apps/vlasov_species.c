@@ -585,6 +585,26 @@ vlasov_species_read_from_frame(gkyl_vlasov_app *app, struct vlasov_species *sp, 
   return rstat;
 }
 
+void
+vlasov_species_gather_state(gkyl_vlasov_app *app, struct gkyl_array *distf[],
+  struct gkyl_array *fluid[])
+{
+  int num_species = app->num_species + app->num_fluid_species;
+  for (int i=0; i<num_species; ++i) {
+    struct vlasov_species *sp = &app->species[i];
+    if (distf) distf[i] = sp->dist ? sp->dist->f : 0;
+    if (fluid) fluid[i] = sp->fluid ? sp->fluid->fluid : 0;
+  }
+}
+
+void
+vlasov_species_gather_dist(gkyl_vlasov_app *app, const struct gkyl_array *fin[])
+{
+  int num_species = app->num_species + app->num_fluid_species;
+  for (int i=0; i<num_species; ++i)
+    fin[i] = app->species[i].dist ? app->species[i].dist->f : 0;
+}
+
 // Release each present aspect and the aspect allocations themselves.
 void
 vlasov_species_release(const gkyl_vlasov_app *app, struct vlasov_species *sp)

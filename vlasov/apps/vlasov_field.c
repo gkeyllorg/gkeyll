@@ -31,16 +31,17 @@ no_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *fin[], double t0) { }
 
 static void
-no_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field) { }
+no_field_calc_energy(gkyl_vlasov_app *app, double tm, struct vm_field *field,
+  const struct gkyl_array *fin[]) { }
 
 static void
-no_field_write(gkyl_vlasov_app *app, double tm, int frame) { }
+no_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[]) { }
 
 static void
 no_field_write_energy(gkyl_vlasov_app *app) { }
 
 static struct gkyl_app_restart_status
-no_field_read_from_frame(gkyl_vlasov_app *app, struct vm_field *field, int frame)
+no_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fname)
 {
   return (struct gkyl_app_restart_status) { .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0 };
 }
@@ -88,7 +89,7 @@ no_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->calc_energy_func = no_field_calc_energy;
   f->write_func = no_field_write;
   f->write_energy_func = no_field_write_energy;
-  f->read_func = no_field_read_from_frame;
+  f->from_file_func = no_field_from_file;
   f->release_func = no_field_release;
 
   return f;
@@ -169,15 +170,15 @@ vlasov_field_calc_ext_pot(gkyl_vlasov_app *app, double tm)
 }
 
 void
-vlasov_field_calc_energy(gkyl_vlasov_app *app, double tm)
+vlasov_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct gkyl_array *fin[])
 {
-  app->field->calc_energy_func(app, tm, app->field);
+  app->field->calc_energy_func(app, tm, app->field, fin);
 }
 
 void
-vlasov_field_write(gkyl_vlasov_app *app, double tm, int frame)
+vlasov_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[])
 {
-  app->field->write_func(app, tm, frame);
+  app->field->write_func(app, tm, frame, fin);
 }
 
 void
@@ -187,9 +188,21 @@ vlasov_field_write_energy(gkyl_vlasov_app *app)
 }
 
 struct gkyl_app_restart_status
+vlasov_field_from_file(gkyl_vlasov_app *app, const char *fname)
+{
+  return app->field->from_file_func(app, app->field, fname);
+}
+
+struct gkyl_app_restart_status
 vlasov_field_read_from_frame(gkyl_vlasov_app *app, int frame)
 {
-  return app->field->read_func(app, app->field, frame);
+  cstr fileNm = cstr_from_fmt("%s-field_%d.gkyl", app->name, frame);
+  struct gkyl_app_restart_status rstat = vlasov_field_from_file(app, fileNm.str);
+  cstr_drop(&fileNm);
+
+  app->field->is_first_energy_write_call = false; // append to existing diagnostic
+
+  return rstat;
 }
 
 void

@@ -423,16 +423,6 @@ vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
 }
 
 void
-vp_calc_field(gkyl_vlasov_app* app, double tcurr, const struct gkyl_array *fin[])
-{
-  // Compute electrostatic potential from Poisson's equation.
-  vp_field_accumulate_charge_dens(app, app->field, fin);
-
-  // Solve the field equation.
-  vp_field_solve(app, app->field);
-}
-
-void
 gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
@@ -441,17 +431,11 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 
   gkyl_vlasov_app_apply_ic_field(app, t0); // no-op for the null field
 
-  // Arrays indexed over the overall species count (kinetic + fluid); NULL where
-  // a species lacks that aspect.
+  // BCs must be done after all species initialize for emission BCs to work.
   int num_species = app->num_species + app->num_fluid_species;
   struct gkyl_array *distf[num_species];
   struct gkyl_array *fluid[num_species];
-  for (int i=0; i<num_species; ++i) {
-    struct vlasov_species *sp = &app->species[i];
-    distf[i] = sp->dist  ? sp->dist->f      : 0;
-    fluid[i] = sp->fluid ? sp->fluid->fluid : 0;
-  }
-  // BCs must be done after all species initialize for emission BCs to work.
+  vlasov_species_gather_state(app, distf, fluid);
   vm_apply_bc(app, t0, distf, fluid, app->field->em);
 }
 
@@ -461,20 +445,10 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
 
-  if (app->field->field_id != GKYL_FIELD_NULL) {
-    // Indexed over the overall species count (NULL where a species has no
-    // kinetic aspect), matching the per-species field-coupling dispatch.
-    int num_species = app->num_species + app->num_fluid_species;
-    struct gkyl_array *distf[num_species];
-    for (int i=0; i<num_species; ++i)
-      distf[i] = app->species[i].dist ? app->species[i].dist->f : 0;
-
-    // Dispatches to the Maxwell or Poisson IC; the distribution fin is used only
-    // by Vlasov-Poisson (to form the charge density), ignored by Vlasov-Maxwell.
-    // MF 2024/09/27/: Need the cast here for consistency. Fixing
-    // this may require removing 'const' from a lot of places.
-    vlasov_field_apply_ic(app, (const struct gkyl_array **) distf, t0);
-  }
+  // Dispatches to the Maxwell or Poisson IC (no-op for the null field).
+  const struct gkyl_array *fin[app->num_species + app->num_fluid_species];
+  vlasov_species_gather_dist(app, fin);
+  vlasov_field_apply_ic(app, fin, t0);
 
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
 }
@@ -510,7 +484,10 @@ gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm)
 void
 gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
 {
-  vlasov_field_calc_energy(app, tm); // no-op for the null field
+  // The distributions let Vlasov-Poisson solve for the potential at time tm.
+  const struct gkyl_array *fin[app->num_species + app->num_fluid_species];
+  vlasov_species_gather_dist(app, fin);
+  vlasov_field_calc_energy(app, tm, fin); // no-op for the null field
 }
 
 void
@@ -524,7 +501,10 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
-  vlasov_field_write(app, tm, frame);
+  // The distributions let Vlasov-Poisson solve for the potential at time tm.
+  const struct gkyl_array *fin[app->num_species + app->num_fluid_species];
+  vlasov_species_gather_dist(app, fin);
+  vlasov_field_write(app, tm, frame, fin);
 }
 
 void
@@ -887,56 +867,7 @@ vlasov_header_from_file(gkyl_vlasov_app *app, const char *fname)
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
 {
-  // Only Vlasov-Maxwell stores the EM field in the restart file; the Vlasov-
-  // Poisson potential (re-solved from the distribution) and the null field have
-  // nothing to read here.
-  if (app->field->field_id != GKYL_FIELD_E_B && app->field->field_id != GKYL_FIELD_GR_D_B)
-    return (struct gkyl_app_restart_status) {
-      .io_status = GKYL_ARRAY_RIO_SUCCESS,
-      .frame = 0,
-      .stime = 0.0
-    };
-
-  struct gkyl_app_restart_status rstat = vlasov_header_from_file(app, fname);
-
-  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    // Fixed-function field BCs are frozen from the initial conditions, so seed
-    // those buffers before the local solution is overwritten by restart data.
-    gkyl_vlasov_app_apply_ic_field(app, 0.0);
-
-    rstat.io_status =
-      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->em_host, fname);
-    if (app->use_gpu)
-      gkyl_array_copy(app->field->em, app->field->em_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-
-      // For GR, rescale the primitive fields to the evolved quantities by multiplying
-      // by Jc
-      if (app->field->field_id == GKYL_FIELD_GR_D_B) {
-        gkyl_array_copy(app->field->em_no_J, app->field->em_host);
-        gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
-          app->field->em_no_J, app->field->em, app->use_gpu);
-      }
-      else if (app->field->weight_by_pos_jacob) {
-        // Restart files hold the physical E, B; rescale to the evolved J*E, J*B on
-        // the interior (BCs re-fill the ghost cells below).
-        gkyl_array_copy(app->field->em_no_J, app->field->em_host);
-        gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local,
-          app->field->em_no_J, app->field->em);
-      }
-
-      vm_field_apply_bc(app, app->field, app->field->em);
-    }
-  }
-
-  // Compute external EM field and applied current if present
-  // Computation necessary in case external EM field or applied current
-  // are time-independent and not computed in the time-stepping loop
-  // since they are not read-in as part of restarts. 
-  vm_field_calc_ext_em(app, app->field, rstat.stime);
-  vm_field_calc_app_current(app, app->field, rstat.stime);  
-
-  return rstat;
+  return vlasov_field_from_file(app, fname);
 }
 
 struct gkyl_app_restart_status 
@@ -956,14 +887,7 @@ gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
 {
-  // The field's read method handles whatever this field type needs from the
-  // restart (Vlasov-Maxwell reads the EM field; no-op for Vlasov-Poisson, which
-  // is re-solved from the restarted distribution, and for the null field).
-  struct gkyl_app_restart_status rstat = vlasov_field_read_from_frame(app, frame);
-
-  app->field->is_first_energy_write_call = false; // append to existing diagnostic
-  
-  return rstat;
+  return vlasov_field_read_from_frame(app, frame);
 }
 
 struct gkyl_app_restart_status
@@ -983,32 +907,12 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
 
-  // Field always exists; from_frame_field sorts by field type (no-op for null).
+  // Field and species restarts are independent: the Poisson potential is solved
+  // from the distribution whenever it is needed, so no re-solve happens here.
   rstat = gkyl_vlasov_app_from_frame_field(app, frame);
 
   for (int i = 0; i < app->num_species + app->num_fluid_species; i++) {
     rstat = vlasov_species_read_from_frame(app, &app->species[i], frame);
-  }
-
-  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    // Compute the fields and apply BCs.
-    if ((app->field->field_id != GKYL_FIELD_E_B) && (app->field->field_id != GKYL_FIELD_GR_D_B)
-      && (app->field->field_id != GKYL_FIELD_NULL)) {
-      // Indexed over the overall species count (NULL where a species has no
-      // kinetic aspect), matching the per-species field-coupling dispatch.
-      int num_species = app->num_species + app->num_fluid_species;
-      struct gkyl_array *distf[num_species];
-      for (int i=0; i<num_species; ++i)
-        distf[i] = app->species[i].dist ? app->species[i].dist->f : 0;
-
-      // MF 2024/09/27/: Need the cast here for consistency. Fixing
-      // this may require removing 'const' from a lot of places.
-      vp_field_apply_ic(app, app->field, (const struct gkyl_array **) distf, rstat.stime);
-      // Apply boundary conditions.
-      for (int i=0; i<app->num_species; ++i) {
-        vm_species_apply_bc(app, app->species[i].dist, distf[i], rstat.stime);
-      }
-    }
   }
 
   return rstat;
