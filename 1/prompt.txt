@@ -1,0 +1,13 @@
+Do you foresee any issues with running this new algorithm in parallel in 1D, with MPI decomposition along the first dimension (along the magnetic field)?
+
+---
+
+Your analysis sounds correct. Only the boundary-adjacent MPI ranks should use the boundary kernels/stencils.
+
+---
+
+Create a plan to fix this please
+
+---
+
+Implement the plan.
