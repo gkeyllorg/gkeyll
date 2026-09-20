@@ -3,7 +3,7 @@
 #include <string.h>
 
 // Vlasov species dispatch over the species container (struct vlasov_species).
-// Per-aspect operations apply to whichever aspects (dist, fluid) a species owns;
+// Per-aspect operations apply to whichever aspects (kinetic, fluid) a species owns;
 // the staging phases and the explicit field coupling go through the function
 // pointers set by the constructors. RK-state arrays (fin, fluidin, fout,
 // fluidout) are indexed over the overall species count and are NULL where a
@@ -27,15 +27,15 @@ static void
 kinetic_calc_self_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin)
 {
-  vm_species_lbo_moms(app, sp->dist, &sp->dist->lbo, fin);
-  vm_species_bgk_moms(app, sp->dist, &sp->dist->bgk, fin);
+  vm_species_lbo_moms(app, sp->kinetic, &sp->kinetic->lbo, fin);
+  vm_species_bgk_moms(app, sp->kinetic, &sp->kinetic->bgk, fin);
 }
 
 static void
 kinetic_calc_cross_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin)
 {
-  vm_species_lbo_cross_moms(app, sp->dist, &sp->dist->lbo, fin);
+  vm_species_lbo_cross_moms(app, sp->kinetic, &sp->kinetic->lbo, fin);
 }
 
 static void
@@ -79,7 +79,7 @@ kinetic_accumulate_current(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin,
   struct gkyl_array *target)
 {
-  struct vm_species *s = sp->dist;
+  struct vm_species *s = sp->kinetic;
   double qbyeps = sp->charge/app->field->info.epsilon0;
 
   vm_species_moment_calc(&s->m1i, s->local, app->local, fin);
@@ -95,7 +95,7 @@ kinetic_accumulate_current_gr(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin,
   struct gkyl_array *target)
 {
-  struct vm_species *s = sp->dist;
+  struct vm_species *s = sp->kinetic;
   double qbyeps = sp->charge/app->field->info.epsilon0;
 
   vm_species_moment_calc(&s->m0, s->local, app->local, fin);
@@ -113,7 +113,7 @@ kinetic_accumulate_charge_dens(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin,
   struct gkyl_array *target)
 {
-  struct vm_species *s = sp->dist;
+  struct vm_species *s = sp->kinetic;
 
   vm_species_moment_calc(&s->m0, s->local, app->local, fin);
   gkyl_array_accumulate_range(target, sp->charge, s->m0.marr, &app->local);
@@ -124,19 +124,19 @@ kinetic_accumulate_charge_dens(gkyl_vlasov_app *app, struct vlasov_species *sp,
 // Construct a species from its input: validate the declared type against the
 // input blocks and dispatch to the typed constructor.
 void
-vlasov_species_new(struct gkyl_vlasov_app *app,
+vlasov_species_init(struct gkyl_vlasov_app *app,
   const struct gkyl_vlasov_species *inp, struct vlasov_species *sp)
 {
   switch (inp->type) {
     case GKYL_SPECIES_VLASOV:
       assert(inp->kinetic.cells[0] > 0); // kinetic species require a velocity grid
       assert(!inp->fluid.equation); // ... and must not carry a fluid equation object
-      vlasov_kinetic_species_new(app, inp, sp);
+      vlasov_kinetic_species_init(app, inp, sp);
       break;
     case GKYL_SPECIES_FLUID:
       assert(inp->fluid.equation); // fluid species require an equation object
       assert(inp->kinetic.cells[0] == 0); // ... and must not declare a velocity grid
-      vlasov_fluid_species_new(app, inp, sp);
+      vlasov_fluid_species_init(app, inp, sp);
       break;
     default:
       assert(false); // GKYL_SPECIES_PKPM is reserved and not supported here
@@ -145,7 +145,7 @@ vlasov_species_new(struct gkyl_vlasov_app *app,
 }
 
 void
-vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
+vlasov_kinetic_species_init(struct gkyl_vlasov_app *app,
   const struct gkyl_vlasov_species *inp, struct vlasov_species *sp)
 {
   *sp = (struct vlasov_species) { };
@@ -155,12 +155,12 @@ vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
   sp->charge = inp->charge;
   sp->mass = inp->mass;
 
-  sp->dist = gkyl_malloc(sizeof(struct vm_species));
-  *sp->dist = (struct vm_species) { };
-  sp->dist->info = inp->kinetic;
-  strcpy(sp->dist->name, inp->name);
-  sp->dist->charge = inp->charge;
-  sp->dist->mass = inp->mass;
+  sp->kinetic = gkyl_malloc(sizeof(struct vm_species));
+  *sp->kinetic = (struct vm_species) { };
+  sp->kinetic->info = inp->kinetic;
+  strcpy(sp->kinetic->name, inp->name);
+  sp->kinetic->charge = inp->charge;
+  sp->kinetic->mass = inp->mass;
 
   sp->calc_self_moms_func = kinetic_calc_self_moms;
   sp->calc_cross_moms_func = kinetic_calc_cross_moms;
@@ -184,7 +184,7 @@ vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
 }
 
 void
-vlasov_fluid_species_new(struct gkyl_vlasov_app *app,
+vlasov_fluid_species_init(struct gkyl_vlasov_app *app,
   const struct gkyl_vlasov_species *inp, struct vlasov_species *sp)
 {
   *sp = (struct vlasov_species) { };
@@ -241,8 +241,8 @@ vlasov_species_accumulate_field_coupling(gkyl_vlasov_app *app, struct vlasov_spe
 void
 vlasov_species_calc_app_accel(gkyl_vlasov_app *app, struct vlasov_species *sp, double tcurr)
 {
-  if (sp->dist && sp->dist->collisionless.app_accel_evolve)
-    vm_species_collisionless_app_accel(app, &sp->dist->collisionless, tcurr);
+  if (sp->kinetic && sp->kinetic->collisionless.app_accel_evolve)
+    vm_species_collisionless_app_accel(app, &sp->kinetic->collisionless, tcurr);
 }
 
 // Compute the species RHS, returning the maximum stable time-step across
@@ -254,7 +254,7 @@ vlasov_species_rhs(gkyl_vlasov_app *app, struct vlasov_species *sp,
   struct gkyl_array *fout, struct gkyl_array *fluidout)
 {
   double dt = DBL_MAX;
-  if (sp->dist)  dt = fmin(dt, vm_species_rhs(app, sp->dist, fin, emin, fout));
+  if (sp->kinetic)  dt = fmin(dt, vm_species_rhs(app, sp->kinetic, fin, emin, fout));
   if (sp->fluid) dt = fmin(dt, vm_fluid_species_rhs(app, sp->fluid, fluidin, emin, fluidout));
   return dt;
 }
@@ -265,8 +265,8 @@ void
 vlasov_species_calc_source_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin)
 {
-  if (sp->dist && sp->dist->source_id)
-    vm_species_source_adapt_moms(app, sp->dist, &sp->dist->src, fin);
+  if (sp->kinetic && sp->kinetic->source_id)
+    vm_species_source_adapt_moms(app, sp->kinetic, &sp->kinetic->src, fin);
 }
 
 // Accumulate the source onto the RHS for each present aspect. Takes the full
@@ -277,11 +277,11 @@ vlasov_species_source_rhs(gkyl_vlasov_app *app, struct vlasov_species *sp, doubl
   const struct gkyl_array *fin[], const struct gkyl_array *fluidin[],
   struct gkyl_array *fout[], struct gkyl_array *fluidout[])
 {
-  if (sp->dist && sp->dist->source_id) {
-    if (sp->dist->src.evolve_source)
-      vm_species_source_calc(app, sp->dist, &sp->dist->src, tcurr);
-    vm_species_source_adapt(app, sp->dist, &sp->dist->src);
-    vm_species_source_rhs(app, sp->dist, &sp->dist->src, fin, fout);
+  if (sp->kinetic && sp->kinetic->source_id) {
+    if (sp->kinetic->src.evolve_source)
+      vm_species_source_calc(app, sp->kinetic, &sp->kinetic->src, tcurr);
+    vm_species_source_adapt(app, sp->kinetic, &sp->kinetic->src);
+    vm_species_source_rhs(app, sp->kinetic, &sp->kinetic->src, fin, fout);
   }
   if (sp->fluid && sp->fluid->source_id)
     vm_fluid_species_source_rhs(app, sp->fluid, &sp->fluid->src, fluidin, fluidout);
@@ -293,8 +293,8 @@ void
 vlasov_species_calc_implicit_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin)
 {
-  if (sp->dist)
-    vm_species_bgk_moms_implicit(app, sp->dist, &sp->dist->bgk, fin);
+  if (sp->kinetic)
+    vm_species_bgk_moms_implicit(app, sp->kinetic, &sp->kinetic->bgk, fin);
 }
 
 // Implicit collision update, phase 2: the implicit RHS. Run after phase 1 for
@@ -303,8 +303,8 @@ void
 vlasov_species_rhs_implicit(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, struct gkyl_array *fout, double dt)
 {
-  if (sp->dist)
-    vm_species_rhs_implicit(app, sp->dist, fin, fout, dt);
+  if (sp->kinetic)
+    vm_species_rhs_implicit(app, sp->kinetic, fin, fout, dt);
 }
 
 // Implicit collision update, phase 3: BCs and copy-back into the solution.
@@ -312,9 +312,9 @@ void
 vlasov_species_finish_implicit_update(gkyl_vlasov_app *app, struct vlasov_species *sp,
   struct gkyl_array *fout, double tcurr)
 {
-  if (sp->dist) {
-    vm_species_apply_bc(app, sp->dist, fout, tcurr);
-    gkyl_array_copy_range(sp->dist->f, fout, &sp->dist->local_ext);
+  if (sp->kinetic) {
+    vm_species_apply_bc(app, sp->kinetic, fout, tcurr);
+    gkyl_array_copy_range(sp->kinetic->f, fout, &sp->kinetic->local_ext);
   }
 }
 
@@ -324,7 +324,7 @@ vlasov_species_step_f(struct vlasov_species *sp, double dt,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin,
   struct gkyl_array *fout, struct gkyl_array *fluidout)
 {
-  if (sp->dist)  vm_species_step_f(sp->dist, fout, dt, fin);
+  if (sp->kinetic)  vm_species_step_f(sp->kinetic, fout, dt, fin);
   if (sp->fluid) vm_fluid_species_step_f(sp->fluid, fluidout, dt, fluidin);
 }
 
@@ -333,8 +333,8 @@ vlasov_species_step_f(struct vlasov_species *sp, double dt,
 void
 vlasov_species_combine(gkyl_vlasov_app *app, struct vlasov_species *sp, double c1, double c2)
 {
-  if (sp->dist) {
-    struct vm_species *d = sp->dist;
+  if (sp->kinetic) {
+    struct vm_species *d = sp->kinetic;
     vm_species_combine(d, d->f1, c1, d->f, c2, d->fnew, &d->local_ext);
   }
   if (sp->fluid) {
@@ -347,8 +347,8 @@ vlasov_species_combine(gkyl_vlasov_app *app, struct vlasov_species *sp, double c
 void
 vlasov_species_copy_range(gkyl_vlasov_app *app, struct vlasov_species *sp)
 {
-  if (sp->dist) {
-    struct vm_species *d = sp->dist;
+  if (sp->kinetic) {
+    struct vm_species *d = sp->kinetic;
     vm_species_copy_range(d, d->f, d->f1, &d->local_ext);
   }
   if (sp->fluid) {
@@ -362,7 +362,7 @@ void
 vlasov_species_apply_bc(gkyl_vlasov_app *app, struct vlasov_species *sp,
   struct gkyl_array *f, struct gkyl_array *fluid, double tcurr)
 {
-  if (sp->dist)  vm_species_apply_bc(app, sp->dist, f, tcurr);
+  if (sp->kinetic)  vm_species_apply_bc(app, sp->kinetic, f, tcurr);
   if (sp->fluid) vm_fluid_species_apply_bc(app, sp->fluid, fluid);
 }
 
@@ -380,9 +380,9 @@ void
 vlasov_species_apply_ic(gkyl_vlasov_app *app, struct vlasov_species *sp, double t0)
 {
   app->tcurr = t0;
-  if (sp->dist) {
+  if (sp->kinetic) {
     struct timespec wtm = gkyl_wall_clock();
-    vm_species_apply_ic(app, sp->dist, t0);
+    vm_species_apply_ic(app, sp->kinetic, t0);
     app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
   }
   if (sp->fluid) {
@@ -396,10 +396,10 @@ vlasov_species_apply_ic(gkyl_vlasov_app *app, struct vlasov_species *sp, double 
 void
 vlasov_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm)
 {
-  if (sp->dist) {
-    vm_species_calc_integrated_mom(app, sp->dist, tm);
-    if (sp->dist->src.write_source)
-      vm_species_source_calc_integrated_mom(app, sp->dist, &sp->dist->src, tm);
+  if (sp->kinetic) {
+    vm_species_calc_integrated_mom(app, sp->kinetic, tm);
+    if (sp->kinetic->src.write_source)
+      vm_species_source_calc_integrated_mom(app, sp->kinetic, &sp->kinetic->src, tm);
   }
   if (sp->fluid)
     vm_fluid_species_calc_integrated_mom(app, sp->fluid, tm);
@@ -409,8 +409,8 @@ vlasov_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vlasov_species *
 void
 vlasov_species_calc_integrated_L2_f(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm)
 {
-  if (sp->dist)
-    vm_species_calc_L2(app, sp->dist, tm);
+  if (sp->kinetic)
+    vm_species_calc_L2(app, sp->kinetic, tm);
 }
 
 // Write the evolved state (and attendant diagnostics: sources, emission
@@ -418,8 +418,8 @@ vlasov_species_calc_integrated_L2_f(gkyl_vlasov_app *app, struct vlasov_species 
 void
 vlasov_species_write(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm, int frame)
 {
-  if (sp->dist) {
-    struct vm_species *vms = sp->dist;
+  if (sp->kinetic) {
+    struct vm_species *vms = sp->kinetic;
     vm_species_write(app, vms, tm, frame);
 
     if (vms->src.write_source)
@@ -446,10 +446,10 @@ vlasov_species_write(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm,
 void
 vlasov_species_write_mom(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm, int frame)
 {
-  if (sp->dist) {
-    vm_species_write_mom(app, sp->dist, tm, frame);
-    if (sp->dist->src.write_source)
-      vm_species_source_write_mom(app, sp->dist, &sp->dist->src, tm, frame);
+  if (sp->kinetic) {
+    vm_species_write_mom(app, sp->kinetic, tm, frame);
+    if (sp->kinetic->src.write_source)
+      vm_species_source_write_mom(app, sp->kinetic, &sp->kinetic->src, tm, frame);
   }
 }
 
@@ -457,10 +457,10 @@ vlasov_species_write_mom(gkyl_vlasov_app *app, struct vlasov_species *sp, double
 void
 vlasov_species_write_integrated_mom(gkyl_vlasov_app *app, struct vlasov_species *sp)
 {
-  if (sp->dist) {
-    vm_species_write_integrated_mom(app, sp->dist);
-    if (sp->dist->src.write_source)
-      vm_species_source_write_integrated_mom(app, sp->dist, &sp->dist->src);
+  if (sp->kinetic) {
+    vm_species_write_integrated_mom(app, sp->kinetic);
+    if (sp->kinetic->src.write_source)
+      vm_species_source_write_integrated_mom(app, sp->kinetic, &sp->kinetic->src);
   }
   if (sp->fluid)
     vm_fluid_species_write_integrated_mom(app, sp->fluid);
@@ -470,16 +470,16 @@ vlasov_species_write_integrated_mom(gkyl_vlasov_app *app, struct vlasov_species 
 void
 vlasov_species_write_integrated_L2_f(gkyl_vlasov_app *app, struct vlasov_species *sp)
 {
-  if (sp->dist)
-    vm_species_write_L2(app, sp->dist);
+  if (sp->kinetic)
+    vm_species_write_L2(app, sp->kinetic);
 }
 
 // Append the LTE-correction iteration status (kinetic aspect only).
 void
 vlasov_species_write_lte_corr_status(gkyl_vlasov_app *app, struct vlasov_species *sp)
 {
-  if (sp->dist)
-    vm_species_lte_write_max_corr_status(app, sp->dist);
+  if (sp->kinetic)
+    vm_species_lte_write_max_corr_status(app, sp->kinetic);
 }
 
 // Read each present aspect's evolved state from the named file and rebuild what
@@ -491,8 +491,8 @@ vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const 
 {
   struct gkyl_app_restart_status rstat = vlasov_header_from_file(app, fname);
 
-  if (sp->dist) {
-    struct vm_species *vms = sp->dist;
+  if (sp->kinetic) {
+    struct vm_species *vms = sp->kinetic;
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       rstat.io_status =
         gkyl_comm_array_read(vms->comm, &vms->grid, &vms->local, vms->f_host, fname);
@@ -553,16 +553,16 @@ vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const 
 struct gkyl_app_restart_status
 vlasov_species_read_from_frame(gkyl_vlasov_app *app, struct vlasov_species *sp, int frame)
 {
-  if (sp->dist)
+  if (sp->kinetic)
     vlasov_species_apply_ic(app, sp, 0.0);
 
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, sp->name, frame);
   struct gkyl_app_restart_status rstat = vlasov_species_from_file(app, sp, fileNm.str);
   cstr_drop(&fileNm);
 
-  if (sp->dist) {
-    sp->dist->is_first_integ_write_call = false; // append to existing diagnostic
-    sp->dist->is_first_integ_L2_write_call = false; // append to existing diagnostic
+  if (sp->kinetic) {
+    sp->kinetic->is_first_integ_write_call = false; // append to existing diagnostic
+    sp->kinetic->is_first_integ_L2_write_call = false; // append to existing diagnostic
   }
   if (sp->fluid) {
     sp->fluid->is_first_integ_write_call = false; // append to existing diagnostic
@@ -578,7 +578,7 @@ vlasov_species_gather_state(gkyl_vlasov_app *app, struct gkyl_array *distf[],
   int num_species = app->num_species;
   for (int i=0; i<num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];
-    if (distf) distf[i] = sp->dist ? sp->dist->f : 0;
+    if (distf) distf[i] = sp->kinetic ? sp->kinetic->f : 0;
     if (fluid) fluid[i] = sp->fluid ? sp->fluid->fluid : 0;
   }
 }
@@ -588,16 +588,16 @@ vlasov_species_gather_dist(gkyl_vlasov_app *app, const struct gkyl_array *fin[])
 {
   int num_species = app->num_species;
   for (int i=0; i<num_species; ++i)
-    fin[i] = app->species[i].dist ? app->species[i].dist->f : 0;
+    fin[i] = app->species[i].kinetic ? app->species[i].kinetic->f : 0;
 }
 
 // Release each present aspect and the aspect allocations themselves.
 void
 vlasov_species_release(const gkyl_vlasov_app *app, struct vlasov_species *sp)
 {
-  if (sp->dist) {
-    vm_species_release(app, sp->dist);
-    gkyl_free(sp->dist);
+  if (sp->kinetic) {
+    vm_species_release(app, sp->kinetic);
+    gkyl_free(sp->kinetic);
   }
   if (sp->fluid) {
     vm_fluid_species_release(app, sp->fluid);

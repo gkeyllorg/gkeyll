@@ -9,7 +9,7 @@
 
 // initialize fluid-EM coupling object
 struct vm_fluid_em_coupling*
-vm_fluid_em_coupling_init(struct gkyl_vlasov_app *app)
+vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
 {
   struct vm_fluid_em_coupling *fl_em = gkyl_malloc(sizeof(struct vm_fluid_em_coupling));
 

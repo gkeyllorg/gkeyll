@@ -1641,9 +1641,9 @@ void
 vm_species_n_iter_corr(gkyl_vlasov_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
-    if (!app->species[i].dist) continue;
-    app->stat.num_corr[i] = app->species[i].dist->lte.num_corr;
-    app->stat.n_iter_corr[i] = app->species[i].dist->lte.n_iter;
+    if (!app->species[i].kinetic) continue;
+    app->stat.num_corr[i] = app->species[i].kinetic->lte.num_corr;
+    app->stat.n_iter_corr[i] = app->species[i].kinetic->lte.n_iter;
   }
 }
 

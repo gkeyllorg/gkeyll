@@ -261,7 +261,7 @@ int vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm);
  * @param app Vlasov app object
  * @return Newly created fluid-EM coupling updater
  */
-struct vm_fluid_em_coupling* vm_fluid_em_coupling_init(struct gkyl_vlasov_app *app);
+struct vm_fluid_em_coupling* vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app);
 
 /**
  * Compute implicit update of fluid-EM coupling 

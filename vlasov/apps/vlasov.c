@@ -274,17 +274,17 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // and sets its methods); the aspects are initialized below, once all
   // containers exist, since the initializations look species up by name.
   for (int i=0; i<ntot; ++i)
-    vlasov_species_new(app, &vm->species[i], &app->species[i]);
+    vlasov_species_init(app, &vm->species[i], &app->species[i]);
 
   // initialize each kinetic species
   for (int i=0; i<ntot; ++i)
-    if (app->species[i].dist)
-      vm_species_init(vm, app, app->species[i].dist);
+    if (app->species[i].kinetic)
+      vm_species_init(vm, app, app->species[i].kinetic);
 
   // initialize species wall emission terms: these rely
   // on other species which must be allocated in the previous step
   for (int i=0; i<ntot; ++i) {
-    struct vm_species *vms = app->species[i].dist;
+    struct vm_species *vms = app->species[i].kinetic;
     if (!vms) continue;
     if (vms->emit_lo)
       vm_species_emission_cross_init(app, vms, &vms->bc_emission_lo);
@@ -296,7 +296,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // as need pointers to colliding species' collision objects
   // allocated in the previous step
   for (int i=0; i<ntot; ++i) {
-    struct vm_species *vms = app->species[i].dist;
+    struct vm_species *vms = app->species[i].kinetic;
     if (!vms) continue;
     vm_species_lbo_cross_init(app, vms, &vms->lbo);
     vm_species_bgk_cross_init(app, vms, &vms->bgk);
@@ -305,7 +305,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // initialize each species source terms: this has to be done here
   // as they may initialize a bflux updater for their source species.
   for (int i=0; i<ntot; ++i) {
-    struct vm_species *vms = app->species[i].dist;
+    struct vm_species *vms = app->species[i].kinetic;
     if (vms && vms->source_id)
       vm_species_source_init(app, vms, &vms->src);
   }
@@ -328,13 +328,13 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   app->has_fluid_em_coupling = false;
   if (nsf > 0 && app->has_field) {
     app->has_fluid_em_coupling = true;
-    app->fl_em = vm_fluid_em_coupling_init(app);
+    app->fl_em = vm_fluid_em_coupling_new(app);
   }
 
   // Use implicit BGK collisions if any species requests them.
   app->has_implicit_coll_scheme = false;
   for (int i=0; i<ntot; ++i){
-    if (app->species[i].dist && app->species[i].dist->info.collisions.is_implicit){
+    if (app->species[i].kinetic && app->species[i].kinetic->info.collisions.is_implicit){
       app->has_implicit_coll_scheme = true;
     }
   }
@@ -373,14 +373,14 @@ struct vm_species *
 vm_find_species(const gkyl_vlasov_app *app, const char *nm)
 {
   int i = vm_find_species_idx(app, nm);
-  return i >= 0 ? app->species[i].dist : 0;
+  return i >= 0 ? app->species[i].kinetic : 0;
 }
 
 int
 vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm)
 {
   int i = vlasov_find_species_idx(app, nm);
-  return (i >= 0 && app->species[i].dist) ? i : -1;
+  return (i >= 0 && app->species[i].kinetic) ? i : -1;
 }
 
 void
@@ -721,8 +721,8 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   gkyl_vlasov_app_cout(app, fp, " num_ranks : %d,\n", num_ranks); 
   
   for (int s=0; s<app->num_species; ++s)
-    if (app->species[s].dist)
-      range_stat_write(app, app->species[s].dist->name, &app->species[s].dist->global, fp);
+    if (app->species[s].kinetic)
+      range_stat_write(app, app->species[s].kinetic->name, &app->species[s].kinetic->global, fp);
   
   gkyl_vlasov_app_cout(app, fp, " nup : %ld,\n", stat.nup);
   gkyl_vlasov_app_cout(app, fp, " nfeuler : %ld,\n", stat.nfeuler);

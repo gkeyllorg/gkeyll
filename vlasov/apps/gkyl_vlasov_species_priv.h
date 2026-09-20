@@ -736,7 +736,7 @@ struct vm_fluid_species {
 };
 
 // ---- species container ----
-// A species owns a kinetic aspect (dist), a fluid aspect (fluid), or both; an
+// A species owns a kinetic aspect (kinetic), a fluid aspect (fluid), or both; an
 // absent aspect is NULL. Per-aspect operations apply to whichever aspects are
 // present; the staging phases and the explicit field coupling are dispatched
 // through the function pointers below, set by the constructors.
@@ -746,7 +746,7 @@ struct vlasov_species {
   char name[128]; // Species name.
   double charge, mass; // Charge and mass.
 
-  struct vm_species *dist;        // kinetic aspect (NULL if absent)
+  struct vm_species *kinetic;     // kinetic aspect (NULL if absent)
   struct vm_fluid_species *fluid; // fluid aspect (NULL if absent)
 
   // Staging phases: fill the pre-RHS auxiliary arrays (kinetic: collision
@@ -1695,7 +1695,7 @@ void vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_specie
  * @param inp Species input
  * @param sp Species container to construct
  */
-void vlasov_species_new(struct gkyl_vlasov_app *app,
+void vlasov_species_init(struct gkyl_vlasov_app *app,
   const struct gkyl_vlasov_species *inp, struct vlasov_species *sp);
 
 /**
@@ -1707,7 +1707,7 @@ void vlasov_species_new(struct gkyl_vlasov_app *app,
  * @param inp Species input
  * @param sp Species container to construct
  */
-void vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
+void vlasov_kinetic_species_init(struct gkyl_vlasov_app *app,
   const struct gkyl_vlasov_species *inp, struct vlasov_species *sp);
 
 /**
@@ -1719,7 +1719,7 @@ void vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
  * @param inp Species input
  * @param sp Species container to construct
  */
-void vlasov_fluid_species_new(struct gkyl_vlasov_app *app,
+void vlasov_fluid_species_init(struct gkyl_vlasov_app *app,
   const struct gkyl_vlasov_species *inp, struct vlasov_species *sp);
 
 /**

@@ -25,8 +25,8 @@ set_rk_arrays(gkyl_vlasov_app *app, enum vm_rk_buf in, enum vm_rk_buf out,
   int num_species = app->num_species;
   for (int i=0; i<num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];
-    fin[i]      = sp->dist  ? dist_buf(sp->dist, in)   : 0;
-    fout[i]     = sp->dist  ? dist_buf(sp->dist, out)  : 0;
+    fin[i]      = sp->kinetic  ? dist_buf(sp->kinetic, in)   : 0;
+    fout[i]     = sp->kinetic  ? dist_buf(sp->kinetic, out)  : 0;
     fluidin[i]  = sp->fluid ? fluid_buf(sp->fluid, in)  : 0;
     fluidout[i] = sp->fluid ? fluid_buf(sp->fluid, out) : 0;
   }

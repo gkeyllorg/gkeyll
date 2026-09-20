@@ -16,8 +16,8 @@ update_implicit_coll(gkyl_vlasov_app* app, double dt0)
 
   for (int i=0; i<num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];
-    fin[i] = sp->dist ? sp->dist->f : 0;
-    fout[i] = sp->dist ? sp->dist->f1 : 0;
+    fin[i] = sp->kinetic ? sp->kinetic->f : 0;
+    fout[i] = sp->kinetic ? sp->kinetic->f1 : 0;
   }
 
   for (int i=0; i<num_species; ++i)
