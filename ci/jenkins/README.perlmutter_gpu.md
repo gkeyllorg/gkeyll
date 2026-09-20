@@ -40,7 +40,7 @@ its detached tmux session continues running after logout, but restarting it or
 using the CLI in a later login requires the Java setup above.
 
 ```sh
-export GKEYLL_CI_ROOT=/pscratch/sd/<first-letter>/<username>/gkeyll_ci
+export GKEYLL_CI_ROOT=/pscratch/sd/${USER:0:1}/$USER/gkeyll_ci
 export JAVA_HOME=<java-21-or-newer-installation>
 mkdir -p "$GKEYLL_CI_ROOT"
 java -version
@@ -52,7 +52,7 @@ From the reviewed Gkeyll checkout, start the controller (see
 `./ci/jenkins/gkeyll-ci.sh -h`):
 
 ```sh
-export GKEYLL_CI_ROOT=/pscratch/sd/<first-letter>/<username>/gkeyll_ci
+export GKEYLL_CI_ROOT=/pscratch/sd/${USER:0:1}/$USER/gkeyll_ci
 export JAVA_HOME=<java-21-or-newer-installation>
 ./ci/jenkins/gkeyll-ci.sh perlmutter_gpu start
 ```

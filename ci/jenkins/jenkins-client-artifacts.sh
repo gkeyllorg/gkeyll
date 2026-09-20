@@ -11,23 +11,37 @@ ci_build_payload() {
 }
 
 ci_artifact_records() {
-    local build_number="$1" payload="$2"
+    local payload="$2"
     python3 -c '
 import json
 import sys
-import urllib.parse
 
-base = sys.argv[1].rstrip("/")
 for artifact in json.load(sys.stdin).get("artifacts", []):
     path = artifact.get("relativePath")
     if isinstance(path, str) and path:
-        print("{}\t{}/artifact/{}".format(path, base, urllib.parse.quote(path, safe="/")))
-' "$(ci_build_url "$build_number")" <<< "$payload"
+        print(path)
+' <<< "$payload"
+}
+
+ci_print_tree_line() {
+    printf '├─ %s\n' "$*"
+}
+
+ci_print_tree_items() {
+    local -a items=("$@")
+    local index
+    for ((index = 0; index < ${#items[@]}; ++index)); do
+        if ((index + 1 == ${#items[@]})); then
+            printf '│  └─ %s\n' "${items[index]}"
+        else
+            printf '│  ├─ %s\n' "${items[index]}"
+        fi
+    done
 }
 
 ci_print_build() {
     local payload="$1"
-    python3 -c '
+    ci_print_tree_line "$(python3 -c '
 import datetime
 import json
 import sys
@@ -49,7 +63,7 @@ print("BUILD #{number} {state} queue={queue} {when} pr={pr} candidate={candidate
     when=when, pr=values.get("CANDIDATE_PR", "-"),
     candidate=values.get("CANDIDATE_REF", "-"),
     baseline=values.get("BASELINE_REF", "-"), url=build.get("url", "-")))
-' <<< "$payload"
+' <<< "$payload")"
 }
 
 ci_artifact_url() {
@@ -73,8 +87,8 @@ ci_download_artifact() {
 }
 
 ci_print_failure_summary() {
-    local build_number="$1" payload="$2" record artifact_path artifact_url temporary
-    while IFS=$'\t' read -r artifact_path artifact_url; do
+    local build_number="$1" payload="$2" record artifact_path temporary
+    while IFS= read -r artifact_path; do
         [[ "$artifact_path" == ci-failure-summary.txt ]] || continue
         temporary="$(mktemp "${TMPDIR:-/tmp}/gkeyll-ci-failure.XXXXXX")"
         if ci_download_artifact "$build_number" "$artifact_path" "$temporary"; then
@@ -87,46 +101,62 @@ ci_print_failure_summary() {
                 esac
             done < "$temporary"
             rm -f "$temporary"
-            echo "Failure: ${stage:-unknown}: ${message:-${result:-unknown failure}}"
+            ci_print_tree_line "Failure: ${stage:-unknown}: ${message:-${result:-unknown failure}}"
         else
             rm -f "$temporary"
-            echo 'Failure: CI failure summary artifact could not be downloaded.'
+            ci_print_tree_line 'Failure: CI failure summary artifact could not be downloaded.'
         fi
         return
     done < <(ci_artifact_records "$build_number" "$payload")
 }
 
 ci_print_regression_failures() {
-    local build_number="$1" payload="$2" queryrdb record artifact_path artifact_url temporary layer output found=false
+    local build_number="$1" payload="$2" queryrdb record artifact_path temporary layer output
+    local -a failures=()
     queryrdb="${GKYL_QUERYRDB:-$SCRIPT_DIR/../../gkylsoft/gkeyll/bin/gkeyll}"
     [[ -x "$queryrdb" ]] || {
-        echo "Regression failures: queryrdb is unavailable at $queryrdb"
+        ci_print_tree_line "Regression failures: queryrdb is unavailable at $queryrdb"
         return
     }
-    while IFS=$'\t' read -r artifact_path artifact_url; do
+    while IFS= read -r artifact_path; do
         [[ "$artifact_path" =~ ^gkylsoft/gkeyll-results/(.*/)?(moments|vlasov|gyrokinetic|pkpm)/regressiondb$ ]] || continue
         layer="${BASH_REMATCH[2]}"
         temporary="$(mktemp "${TMPDIR:-/tmp}/gkeyll-ci-regressiondb.XXXXXX")"
         if ! ci_download_artifact "$build_number" "$artifact_path" "$temporary"; then
             rm -f "$temporary"
-            echo "Regression failures: could not download $artifact_path"
+            ci_print_tree_line "Regression failures: could not download $artifact_path"
             continue
         fi
         if output="$("$queryrdb" queryrdb --db "$temporary" query --id 1 --fail-only 2>/dev/null)"; then
             while IFS= read -r record; do
                 if [[ "$record" =~ ^[[:space:]]*[0-9]+[[:space:]]*:[[:space:]]+[^[:space:]]+[[:space:]]+(.+)[[:space:]]+(fail|timeout|compile_fail|no_output|crash)[[:space:]] ]]; then
-                    if [[ "$found" == false ]]; then
-                        echo 'Regression failures:'
-                        found=true
-                    fi
-                    echo "  $layer/${BASH_REMATCH[1]} [${BASH_REMATCH[2]}]"
+                    failures+=("$layer/${BASH_REMATCH[1]} [${BASH_REMATCH[2]}]")
                 fi
             done <<< "$output"
         else
-            echo "Regression failures: queryrdb could not inspect $artifact_path"
+            ci_print_tree_line "Regression failures: queryrdb could not inspect $artifact_path"
         fi
         rm -f "$temporary"
     done < <(ci_artifact_records "$build_number" "$payload")
+    if ((${#failures[@]})); then
+        ci_print_tree_line 'Regression failures:'
+        ci_print_tree_items "${failures[@]}"
+    fi
+}
+
+ci_print_artifact_list() {
+    local build_number="$1" payload="$2" artifact_path
+    local -a artifacts=()
+    while IFS= read -r artifact_path; do
+        artifacts+=("$artifact_path")
+    done < <(ci_artifact_records "$build_number" "$payload")
+    ci_print_tree_line "Artifacts URL: $(ci_build_url "$build_number")/artifact/"
+    ci_print_tree_line 'Artifacts:'
+    if ((${#artifacts[@]})); then
+        ci_print_tree_items "${artifacts[@]}"
+    else
+        ci_print_tree_items '(none)'
+    fi
 }
 
 ci_info_command() {
@@ -137,14 +167,7 @@ ci_info_command() {
     ci_print_build "$payload"
     ci_print_failure_summary "$2" "$payload"
     ci_print_regression_failures "$2" "$payload"
-    echo "Artifacts URL: $(ci_build_url "$2")/artifact/"
-    echo 'Artifacts:'
-    local artifact_path artifact_url found=false
-    while IFS=$'\t' read -r artifact_path artifact_url; do
-        echo "  $artifact_path  $artifact_url"
-        found=true
-    done < <(ci_artifact_records "$2" "$payload")
-    [[ "$found" == true ]] || echo '  (none)'
+    ci_print_artifact_list "$2" "$payload"
 }
 
 ci_artifact_command() {
@@ -166,20 +189,15 @@ ci_artifact_command() {
     local payload
     payload="$(ci_build_payload "$build_number")" || die "Build #$build_number is not available"
     if [[ "$mode" == list ]]; then
-        local artifact_path artifact_url found=false
-        while IFS=$'\t' read -r artifact_path artifact_url; do
-            echo "$artifact_path  $artifact_url"
-            found=true
-        done < <(ci_artifact_records "$build_number" "$payload")
-        [[ "$found" == true ]] || echo 'No archived artifacts.'
+        ci_print_artifact_list "$build_number" "$payload"
         return
     fi
 
     [[ -n "$output_dir" ]] || output_dir="gkeyll-ci-build-$build_number"
     [[ ! -e "$output_dir" ]] || die "output directory already exists: $output_dir"
     local -a available=() selected=() requested=()
-    local artifact_path artifact_url requested_path
-    while IFS=$'\t' read -r artifact_path artifact_url; do
+    local artifact_path requested_path
+    while IFS= read -r artifact_path; do
         ci_safe_artifact_path "$artifact_path" || die "Jenkins returned unsafe artifact path: $artifact_path"
         available+=("$artifact_path")
     done < <(ci_artifact_records "$build_number" "$payload")

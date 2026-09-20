@@ -341,6 +341,33 @@ parser:option("--layer",
 parser:option("--db",
    "Open this specific database file instead of using --layer")
 
+-- argparse only includes options belonging to the current command in its help
+-- output. Keep a complete option reference in the top-level help as well, so
+-- users do not need to discover subcommand-specific flags from examples.
+parser:epilog [[
+Command options:
+  summary
+    No command-specific options.
+
+  query
+    -i, --id <id>           ID of the run to query (default: 1)
+    -f, --fail-only         Show only failed tests.
+    -p, --pass-only         Show only passed tests.
+    -l, --comma-list        Output test names as a comma-separated list.
+    -t, --test <test>       Print a test's full run log; accepts its row ID
+                            or a name / substring.
+        --net-time          Print total wall-clock time for the run.
+
+  delete
+    -i, --id <id>           ID of the run to delete (default: 0).
+
+  history
+    -r, --regression <name> Name of the test whose history to show.
+        --time-only         Print only run times for passed runs.
+
+Run `queryrdb <command> -h` for command-specific usage and descriptions.
+]]
+
 -- 'summary' command.
 parser:command("summary", "Print a one-line summary of every stored run")
    :action(summary_action)
