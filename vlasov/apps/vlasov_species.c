@@ -2,43 +2,22 @@
 
 #include <string.h>
 
-// Vlasov species dispatcher over the unified container (struct vlasov_species).
-//
-// Two kinds of operations live here, deliberately organized differently:
-//
-// 1. Per-aspect operations (rhs, step/combine/copy, BCs, limiter, sources, the
-//    implicit collision phases): structurally identical for every species
-//    type -- "apply to whichever aspects are present" -- so the wrappers
-//    NULL-test sp->dist / sp->fluid directly. A species owning both aspects
-//    runs both halves sequentially through the same wrappers; per-aspect
-//    flavor differences live on the aspect-level vtables wired by the aspect
-//    inits.
-//
-// 2. Type-composed operations, wired once at construction through the
-//    container vtable (mirroring vm_field_new/vp_field_new):
-//    - accumulate_field_coupling_func: the species' explicit field source,
-//      selected by (species type x field type) -- kinetic x Maxwell gives
-//      current, kinetic x Poisson gives charge density, implicitly-coupled
-//      fluids give a no-op.
-//    - calc_self_moms_func / calc_cross_moms_func: the staging phases that
-//      fill the pre-RHS auxiliary arrays. These genuinely differ by type
-//      (kinetic: collision moments; fluid: primitive variables) rather than
-//      composing per-aspect.
-//
-// The RK-state arrays passed in (fin/fluidin/fout/fluidout) are indexed over
-// the overall species count: fin[i] is the distribution of species i (NULL if
-// it has no kinetic aspect) and fluidin[i] is its fluid moments (NULL if it
-// has no fluid aspect).
+// Vlasov species dispatch over the species container (struct vlasov_species).
+// Per-aspect operations apply to whichever aspects (dist, fluid) a species owns;
+// the staging phases and the explicit field coupling go through the function
+// pointers set by the constructors. RK-state arrays (fin, fluidin, fout,
+// fluidout) are indexed over the overall species count and are NULL where a
+// species lacks that aspect.
 
-// --- Type-composed implementations (wired by the constructors) ---------------
+// --- Methods assigned by the constructors -----------------------------------
 
-// No-op moments phase: wired where a species type has no work in that phase.
+// No-op moments phase for species types with no work in that phase.
 static void
 species_no_calc_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin) { }
 
-// No explicit field coupling: wired for the null field, and for fluid species
-// whose EM coupling is the implicit op-split (see vm_fluid_em_coupling.c).
+// No explicit field coupling: the null field, and fluid species (whose EM
+// coupling is the implicit operator split, see vm_fluid_em_coupling.c).
 static void
 species_no_field_coupling(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin,
@@ -67,30 +46,12 @@ fluid_calc_cross_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
   vm_fluid_species_prim_vars(app, sp->fluid, fluidin);
 }
 
-// Explicit coupling to Vlasov-Maxwell: accumulate this species' current onto
-// the EM RHS ('target' is emout), J_s = q_s * m1i, scaled by -1/epsilon0. A
-// triad species coupled to GR-Maxwell deposits through the GR kernel instead,
-// which needs the charge density as well as the current.
+// Ghost-current correction to dE/dt = -J in 1x: replace the current by its
+// global average (cell average of J/(eps0*nx) summed over the domain).
 static void
-kinetic_accumulate_current(gkyl_vlasov_app *app, struct vlasov_species *sp,
-  const struct gkyl_array *fin, const struct gkyl_array *fluidin,
-  struct gkyl_array *target)
+kinetic_accumulate_ghost_current(gkyl_vlasov_app *app, struct vm_species *s,
+  double qbyeps, struct gkyl_array *target)
 {
-  struct vm_species *s = sp->dist;
-  double qbyeps = sp->charge/app->field->info.epsilon0;
-
-  vm_species_moment_calc(&s->m1i, s->local, app->local, fin);
-  if (s->collisionless.has_gr_em_triad_coupling) {
-    vm_species_moment_calc(&s->m0, s->local, app->local, fin);
-    // The GR kernel forms q/eps0*(rho*beta - alpha*e^i_a*Jhat^a).
-    gkyl_dg_gr_maxwell_current_deposition_advance(s->collisionless.calc_current_dep,
-      &app->local, qbyeps, app->field->geom->lapse, app->field->geom->shift,
-      app->field->geom->vierb_con, s->m0.marr, s->m1i.marr, target);
-  }
-  else {
-    gkyl_array_accumulate_range(target, -qbyeps, s->m1i.marr, &app->local);
-  }
-
   if (app->field->use_ghost_current) {
     double avals_ghost_current[1], avals_ghost_current_global[1];
     // First set the scalar ghost current array to the cell average
@@ -111,6 +72,40 @@ kinetic_accumulate_current(gkyl_vlasov_app *app, struct vlasov_species *sp,
   }
 }
 
+// Explicit coupling to Vlasov-Maxwell: accumulate this species' current onto
+// the EM RHS ('target' is emout), J_s = q_s * m1i, scaled by -1/epsilon0.
+static void
+kinetic_accumulate_current(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  const struct gkyl_array *fin, const struct gkyl_array *fluidin,
+  struct gkyl_array *target)
+{
+  struct vm_species *s = sp->dist;
+  double qbyeps = sp->charge/app->field->info.epsilon0;
+
+  vm_species_moment_calc(&s->m1i, s->local, app->local, fin);
+  gkyl_array_accumulate_range(target, -qbyeps, s->m1i.marr, &app->local);
+  kinetic_accumulate_ghost_current(app, s, qbyeps, target);
+}
+
+// Explicit coupling of a triad species to GR-Maxwell: deposit the current
+// through the GR kernel, q/eps0*(rho*beta - alpha*e^i_a*Jhat^a), which needs
+// the charge density as well as the current.
+static void
+kinetic_accumulate_current_gr(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  const struct gkyl_array *fin, const struct gkyl_array *fluidin,
+  struct gkyl_array *target)
+{
+  struct vm_species *s = sp->dist;
+  double qbyeps = sp->charge/app->field->info.epsilon0;
+
+  vm_species_moment_calc(&s->m0, s->local, app->local, fin);
+  vm_species_moment_calc(&s->m1i, s->local, app->local, fin);
+  gkyl_dg_gr_maxwell_current_deposition_advance(s->collisionless.calc_current_dep,
+    &app->local, qbyeps, app->field->geom->lapse, app->field->geom->shift,
+    app->field->geom->vierb_con, s->m0.marr, s->m1i.marr, target);
+  kinetic_accumulate_ghost_current(app, s, qbyeps, target);
+}
+
 // Explicit coupling to Vlasov-Poisson: accumulate this species' charge density
 // onto the Poisson source ('target' is the field's rho_c), rho_s = q_s * m0.
 static void
@@ -126,8 +121,8 @@ kinetic_accumulate_charge_dens(gkyl_vlasov_app *app, struct vlasov_species *sp,
 
 // --- Constructors ------------------------------------------------------------
 
-// Construct a species from a unified input: validate the declared type against
-// the blocks and dispatch to the typed constructor.
+// Construct a species from its input: validate the declared type against the
+// input blocks and dispatch to the typed constructor.
 void
 vlasov_species_new(struct gkyl_vlasov_app *app,
   const struct gkyl_vlasov_species *inp, struct vlasov_species *sp)
@@ -163,17 +158,17 @@ vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
   sp->dist = gkyl_malloc(sizeof(struct vm_species));
   *sp->dist = (struct vm_species) { };
   sp->dist->info = inp->kinetic;
-  // Thread the identity into the aspect: aspect code is container-ignorant.
   strcpy(sp->dist->name, inp->name);
   sp->dist->charge = inp->charge;
   sp->dist->mass = inp->mass;
 
   sp->calc_self_moms_func = kinetic_calc_self_moms;
   sp->calc_cross_moms_func = kinetic_calc_cross_moms;
-  // Explicit field coupling is wired per field type (the field object is
-  // constructed before the species): Maxwell fields (E_B, GR_D_B) take the
-  // current density, Poisson fields the charge density, the null field nothing.
-  switch (app->field->field_id) {
+  // Explicit field coupling by field type: Maxwell fields take the current
+  // density (through the GR kernel for a triad species coupled to GR-Maxwell),
+  // Poisson fields the charge density, the null field nothing.
+  enum gkyl_field_id field_id = app->field->field_id;
+  switch (field_id) {
     case GKYL_FIELD_NULL:
       sp->accumulate_field_coupling_func = species_no_field_coupling;
       break;
@@ -183,7 +178,9 @@ vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
       sp->accumulate_field_coupling_func = kinetic_accumulate_charge_dens;
       break;
     default:
-      sp->accumulate_field_coupling_func = kinetic_accumulate_current;
+      sp->accumulate_field_coupling_func =
+        vm_species_has_gr_em_triad_coupling(app, field_id, inp->kinetic.model_id) ?
+        kinetic_accumulate_current_gr : kinetic_accumulate_current;
       break;
   }
 }
@@ -202,7 +199,6 @@ vlasov_fluid_species_new(struct gkyl_vlasov_app *app,
   sp->fluid = gkyl_malloc(sizeof(struct vm_fluid_species));
   *sp->fluid = (struct vm_fluid_species) { };
   sp->fluid->info = inp->fluid;
-  // Thread the identity into the aspect: aspect code is container-ignorant.
   strcpy(sp->fluid->name, inp->name);
   sp->fluid->charge = inp->charge;
   sp->fluid->mass = inp->mass;
@@ -212,7 +208,7 @@ vlasov_fluid_species_new(struct gkyl_vlasov_app *app,
   sp->accumulate_field_coupling_func = species_no_field_coupling;
 }
 
-// --- Type-composed wrappers (forward through the container vtable) -----------
+// --- Wrappers over the constructor-assigned methods --------------------------
 
 // Self-collision moments and boundary corrections (staging phase 1).
 void
@@ -241,7 +237,7 @@ vlasov_species_accumulate_field_coupling(gkyl_vlasov_app *app, struct vlasov_spe
   sp->accumulate_field_coupling_func(app, sp, fin, fluidin, target);
 }
 
-// --- Per-aspect wrappers (apply to whichever aspects are present) -------------
+// --- Per-aspect operations ---------------------------------------------------
 
 // Compute time-dependent applied acceleration (kinetic aspect only).
 void
@@ -252,8 +248,7 @@ vlasov_species_calc_app_accel(gkyl_vlasov_app *app, struct vlasov_species *sp, d
 }
 
 // Compute the species RHS, returning the maximum stable time-step across
-// aspects. Each aspect advances through its own vtable (flavor dispatch); any
-// cross-aspect coupling is pre-staged in the moms/vars phases, so the aspect
+// aspects. Cross-aspect coupling is staged in the moments phases, so the aspect
 // RHSs are independent here.
 double
 vlasov_species_rhs(gkyl_vlasov_app *app, struct vlasov_species *sp,
@@ -294,9 +289,8 @@ vlasov_species_source_rhs(gkyl_vlasov_app *app, struct vlasov_species *sp, doubl
     vm_fluid_species_source_rhs(app, sp->fluid, &sp->fluid->src, fluidin, fluidout);
 }
 
-// Implicit (op-split) collision update, phase 1: moments of the input
-// distribution (kinetic aspect only; the aspect-level BGK object no-ops for
-// species without implicit BGK collisions).
+// Implicit collision update, phase 1: moments of the input distribution
+// (kinetic aspect only; a no-op for species without implicit BGK collisions).
 void
 vlasov_species_calc_implicit_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin)
@@ -381,10 +375,7 @@ vlasov_species_limiter(gkyl_vlasov_app *app, struct vlasov_species *sp, struct g
   if (sp->fluid) vm_fluid_species_limiter(app, sp->fluid, fluid);
 }
 
-// --- IC, diagnostics, IO, restart, and release (per-aspect) -------------------
-// These are the operations a user consults to understand output and restart
-// semantics: what each species writes, how a frame is read back, and in what
-// order the pieces are seeded/overwritten on restart.
+// --- Initial conditions, diagnostics, I/O, restart, and release --------------
 
 // Project initial conditions for each present aspect.
 void
@@ -493,10 +484,10 @@ vlasov_species_write_lte_corr_status(gkyl_vlasov_app *app, struct vlasov_species
     vm_species_lte_write_max_corr_status(app, sp->dist);
 }
 
-// Read each present aspect's evolved state from the named file, then rebuild
-// the derived state a restart does not carry: velocity- and configuration-space
-// Jacobian rescale and boundary fluxes (kinetic), BCs, sources, and time-independent applied
-// accelerations (recomputed here since the time-stepping loop will not).
+// Read each present aspect's evolved state from the named file and rebuild what
+// a restart does not carry: the velocity- and configuration-space Jacobian
+// rescale and boundary fluxes (kinetic), BCs, sources, and static applied
+// accelerations.
 struct gkyl_app_restart_status
 vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const char *fname)
 {
@@ -557,13 +548,10 @@ vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const 
   return rstat;
 }
 
-// Restart a species from a frame. The kinetic aspect is first seeded from the
-// initial conditions -- the interior is overwritten by the read, but fixed-
-// function boundary buffers are frozen from the ICs and must be filled before
-// the read. Diagnostic dynvectors are then marked to append rather than
-// truncate. The frame file is named by the species (each aspect's evolved
-// state is one file; a species type owning both aspects must disambiguate the
-// fluid aspect's file name here).
+// Restart a species from a frame. The kinetic aspect is seeded from the initial
+// conditions first, so that fixed-function BC buffers are filled before the
+// read overwrites the interior; the diagnostic dynvectors are then marked to
+// append.
 struct gkyl_app_restart_status
 vlasov_species_read_from_frame(gkyl_vlasov_app *app, struct vlasov_species *sp, int frame)
 {

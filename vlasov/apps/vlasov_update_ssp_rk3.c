@@ -38,8 +38,6 @@ set_rk_arrays(gkyl_vlasov_app *app, enum vm_rk_buf in, enum vm_rk_buf out,
 struct gkyl_update_status
 vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
 {
-  // Single count over the overall species (kinetic + fluid); the vlasov_species_*
-  // wrappers dispatch to whichever aspects each species owns.
   int num_species = app->num_species + app->num_fluid_species;
 
   const struct gkyl_array *fin[num_species];

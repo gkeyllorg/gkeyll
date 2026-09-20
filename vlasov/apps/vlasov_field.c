@@ -1,20 +1,12 @@
 #include <gkyl_vlasov_priv.h>
 
-// Vlasov field dispatcher and type-agnostic wrappers. The concrete field type
-// (Vlasov-Maxwell vs Vlasov-Poisson) is chosen here at construction; the
-// constructors vm_field_new()/vp_field_new() set the field's *_func pointers,
-// and every wrapper below simply forwards to the appropriate pointer. This
-// keeps field-type dispatch out of vlasov.c / the time steppers, mirroring how
-// vm_species and GK's gk_field are organized.
+// Vlasov field dispatch: vlasov_field_new selects the concrete field type, and
+// the wrappers below forward to the function pointers set by its constructor.
 
-// --- Null field (GKYL_FIELD_NULL) -----------------------------------------
-// Used when no field is present (skip_field). A config-space EM field is
-// negligible memory next to the phase-space distribution, so we always allocate
-// em (zeroed) and acquire em1/emnew from it (there is no RK state to step). This
-// lets the rest of the app hold a valid app->field->em and call the field
-// methods uniformly; all of the null field's methods are no-ops. The combine/
-// copy_range/apply_bc/limiter/complete_update no-ops are shared with Vlasov-
-// Poisson (vp_field_*); the remaining no-ops are null-specific.
+// --- Null field (GKYL_FIELD_NULL) --------------------------------------------
+// Used when no field is present. A zeroed em is allocated (em1, emnew and
+// em_host alias it) so the app holds a valid field and calls its methods
+// uniformly; every method is a no-op.
 
 static double
 no_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
@@ -63,7 +55,7 @@ no_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->info = vm->field;
   f->field_id = GKYL_FIELD_NULL;
 
-  // Always allocate em; em1/emnew/em_host alias it (nothing is stepped or written).
+  // em1, emnew and em_host alias em; nothing is stepped or written.
   f->em = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->em, 0.0);
   f->em1 = gkyl_array_acquire(f->em);
@@ -98,9 +90,7 @@ no_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 struct vm_field*
 vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 {
-  // A field object is always created: a real Maxwell/Poisson field if one is
-  // present, otherwise a no-op null field (GKYL_FIELD_NULL). This lets callers
-  // treat app->field uniformly instead of branching on its existence.
+  // A field object is always created: the null field when no field is present.
   if (vm->skip_field)
     return no_field_new(vm, app);
   return vm->is_electrostatic ? vp_field_new(vm, app) : vm_field_new(vm, app);

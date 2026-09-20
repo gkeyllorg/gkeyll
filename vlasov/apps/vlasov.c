@@ -100,10 +100,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
 
-  // Stably partition the species input kinetic-first so the internal container
-  // array keeps the kinetic-head/fluid-tail layout restart IO relies on;
-  // relative declaration order within each kind is preserved (it determines
-  // diagnostic/restart file naming).
+  // Partition the species input kinetic-first, preserving declaration order
+  // within each kind (which sets the diagnostic and restart file naming).
   struct gkyl_vlasov_species *sinp =
     gkyl_malloc(sizeof(struct gkyl_vlasov_species[GKYL_MAX_SPECIES]));
   int ntot = 0, ns = 0, nsf = 0;
@@ -274,25 +272,17 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   vm_geom_init(vm, app, app->vm_geom);
 
   app->has_field = !vm->skip_field; // note inversion of truth value
-  // A field object is always created: a real Maxwell/Poisson field if present,
-  // otherwise a no-op null field (GKYL_FIELD_NULL). The constructor sets the
-  // field's dispatch methods; callers use the vlasov_field_* wrappers.
+  // A field object is always created: the null field when no field is present.
   app->field = vlasov_field_new(vm, app);
 
-  // Allocate one backing array of unified species containers: kinetic species
-  // occupy [0, ns), fluid species [ns, ns+nsf) (guaranteed by the stable
-  // partition of the unified input list above). 'species' owns the storage;
-  // 'fluid_species' is a view into the fluid tail (kept dense/contiguous so
-  // restart IO can keep indexing it directly).
+  // One backing array of species containers: kinetic species in [0, ns), fluid
+  // species in [ns, ns+nsf); 'fluid_species' is a view into the fluid tail.
   app->species = ntot>0 ? gkyl_malloc(sizeof(struct vlasov_species[ntot])) : 0;
   app->fluid_species = app->species ? app->species + ns : 0;
 
-  // Construct each species container from its unified input: dispatches on the
-  // declared type, allocates the aspect sub-object, stores its info (needed
-  // before the init loops below, which look up species by name), hoists the
-  // identity, and wires the container's dispatch methods. The heavy aspect
-  // initialization follows in vm_species_init / vm_fluid_species_init once all
-  // containers exist.
+  // Construct each species container (allocates its aspect, stores the input,
+  // and sets its methods); the aspects are initialized below, once all
+  // containers exist, since the initializations look species up by name.
   for (int i=0; i<ntot; ++i)
     vlasov_species_new(app, &sinp[i], &app->species[i]);
   gkyl_free(sinp);
@@ -344,8 +334,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     app->fl_em = vm_fluid_em_coupling_init(app);
   }
 
-  // Use implicit BGK collisions if specified. Read from the constructed
-  // species (not the legacy input arrays, which are empty on the unified path).
+  // Use implicit BGK collisions if any species requests them.
   app->has_implicit_coll_scheme = false;
   for (int i=0; i<ns; ++i){
     if (app->species[i].dist->info.collisions.is_implicit){
@@ -946,13 +935,10 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   gkyl_free(app->vm_geom);
   for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
     vlasov_species_release(app, &app->species[i]);
-  // 'species' owns the single backing array; 'fluid_species' is only a view into
-  // its tail, so it must not be freed separately.
+  // 'fluid_species' is a view into 'species', which owns the backing array.
   if (app->species)
     gkyl_free(app->species);
-  // A field object always exists (the null field when skip_field is set), so
-  // release it unconditionally; each field type's release_func frees what it
-  // allocated.
+  // A field object always exists (the null field when no field is present).
   vlasov_field_release(app);
   if (app->has_fluid_em_coupling)
     vm_fluid_em_coupling_release(app, app->fl_em);

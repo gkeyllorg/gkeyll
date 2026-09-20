@@ -71,6 +71,14 @@ vm_species_collisionless_rhs_disabled(gkyl_vlasov_app *app, struct vm_species *v
   // Do nothing.
 }
 
+bool
+vm_species_has_gr_em_triad_coupling(const struct gkyl_vlasov_app *app,
+  enum gkyl_field_id field_id, enum gkyl_model_id model_id)
+{
+  return app->vm_geom->has_gr_em_triad_coupling && (field_id == GKYL_FIELD_GR_D_B) &&
+    (model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR);
+}
+
 void 
 vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vms, 
   struct vm_collisionless *cls)
@@ -83,9 +91,7 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   // Note: the potentials are the total potentials and thus can include both (or either) gravitational
   // or electrostatic interactions. 
   cls->qbym = vms->charge/vms->mass;
-  cls->has_gr_em_triad_coupling = app->vm_geom->has_gr_em_triad_coupling &&
-    (vms->field_id == GKYL_FIELD_GR_D_B) &&
-    (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR);
+  cls->has_gr_em_triad_coupling = vm_species_has_gr_em_triad_coupling(app, vms->field_id, vms->model_id);
   cls->qmem = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
   cls->calc_lorentz = 0;
   cls->calc_current_dep = 0;

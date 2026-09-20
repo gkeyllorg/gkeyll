@@ -1,12 +1,8 @@
 #pragma once
 
-// Private header for the Vlasov field object. Holds the (union) field struct
-// shared by Vlasov-Maxwell and Vlasov-Poisson, the per-object dispatch function
-// pointers, and the field API. The concrete field type (E_B/GR_D_B Maxwell vs
-// PHI Poisson) is selected in vlasov_field_new(), which dispatches to
-// vm_field_new()/vp_field_new(); those constructors set the *_func pointers, and
-// the rest of the app calls the vlasov_field_* wrappers (below) so it never
-// branches on the field type itself. Modeled on vm_species / GK's gk_field.
+// Private header for the Vlasov field object: the field struct shared by
+// Vlasov-Maxwell and Vlasov-Poisson (with its dispatch function pointers), the
+// type-agnostic vlasov_field_* API, and the vm_field_* / vp_field_* APIs.
 
 #include <gkyl_array.h>
 #include <gkyl_array_integrate.h>
@@ -30,9 +26,7 @@ struct gkyl_vlasov_position_map; // configuration-space position map, defined in
 // Coordinate-map context for projecting external fields/potentials on a
 // non-uniform configuration mesh: the projection's computational quadrature
 // coordinates are mapped to physical ones via the position map before the
-// user-supplied function is evaluated. Identity map -> identity c2p (transparent
-// for uniform grids). Lives in the field struct so it outlives the projection
-// objects that capture a pointer to it.
+// user-supplied function is evaluated (the identity map is transparent).
 struct vm_field_proj_c2p_ctx {
   const struct gkyl_vlasov_position_map *pos_map; // configuration-space position map.
 };
@@ -42,8 +36,7 @@ struct vm_field {
   struct gkyl_vlasov_field info; // data for field
   enum gkyl_field_id field_id; // Type of field.
 
-  // Type-specific methods set by vm_field_new()/vp_field_new(). Dispatched
-  // through the vlasov_field_* wrappers so callers stay field-type-agnostic.
+  // Pointers to various functions selected at runtime (by field type).
   double (*update_func)(gkyl_vlasov_app *app, double tcurr,
     const struct gkyl_array *fin[], const struct gkyl_array *emin, struct gkyl_array *emout);
   void (*combine_func)(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *out,
@@ -170,53 +163,173 @@ struct vm_field {
   bool is_first_energy_write_call; // flag for energy dynvec written first time
 };
 
-/** vlasov_field API: type-agnostic wrappers that dispatch via the field's
- *  *_func pointers, so callers (vlasov.c, vlasov_forward_euler.c,
- *  vlasov_update_ssp_rk3.c) never branch on the field type. Implemented in
- *  vlasov_field.c. */
+/** vlasov_field API: type-agnostic operations on the field object (vlasov_field.c). */
 
-// Create the field, dispatching on field type (Maxwell vs Poisson).
+/**
+ * Create the field object, dispatching on the field type (Maxwell, Poisson, or
+ * the null field when no field is present).
+ *
+ * @param vm App inputs
+ * @param app Vlasov app object
+ * @return New field object
+ */
 struct vm_field* vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app);
 
-// Update the field at the current time: RHS of Maxwell's equations for E_B/
-// GR_D_B, or the Poisson potential from the charge density for PHI. Returns the
-// max stable time-step (DBL_MAX for the elliptic Poisson solve).
+/**
+ * Update the field at the current time: the RHS of Maxwell's equations, or the
+ * Poisson solve for the potential from the charge density.
+ *
+ * @param app Vlasov app object
+ * @param tcurr Current time
+ * @param fin[] Input distribution functions (overall species count)
+ * @param emin Input EM field
+ * @param emout On output, the field RHS
+ * @return Maximum stable time-step (DBL_MAX for the Poisson solve)
+ */
 double vlasov_field_update(gkyl_vlasov_app *app, double tcurr,
   const struct gkyl_array *fin[], const struct gkyl_array *emin, struct gkyl_array *emout);
 
-// Combine/copy the field RK state (no-ops for Vlasov-Poisson, which re-solves
-// the potential each stage instead of carrying it in the RK state vector).
+/**
+ * Combine RK stages of the field state, out = c1*arr1 + c2*arr2 (no-op for
+ * Vlasov-Poisson).
+ *
+ * @param app Vlasov app object
+ * @param out Output array
+ * @param c1 Coefficient of arr1
+ * @param arr1 First input array
+ * @param c2 Coefficient of arr2
+ * @param arr2 Second input array
+ */
 void vlasov_field_combine(gkyl_vlasov_app *app, struct gkyl_array *out,
   double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2);
+
+/**
+ * Copy the field state, out = inp (no-op for Vlasov-Poisson).
+ *
+ * @param app Vlasov app object
+ * @param out Output array
+ * @param inp Input array
+ */
 void vlasov_field_copy_range(gkyl_vlasov_app *app, struct gkyl_array *out, const struct gkyl_array *inp);
 
-// Initial/boundary conditions and completion of the field update. For Vlasov-
-// Maxwell, complete_update accumulates the species current onto the field RHS
-// and finalizes emout = emin + dt*RHS; no-op for Vlasov-Poisson.
+/**
+ * Compute field initial conditions.
+ *
+ * @param app Vlasov app object
+ * @param fin[] Input distribution functions (overall species count)
+ * @param t0 Time for initial conditions
+ */
 void vlasov_field_apply_ic(gkyl_vlasov_app *app, const struct gkyl_array *fin[], double t0);
+
+/**
+ * Apply boundary conditions to the field (no-op for Vlasov-Poisson).
+ *
+ * @param app Vlasov app object
+ * @param em Field to apply BCs to
+ */
 void vlasov_field_apply_bc(gkyl_vlasov_app *app, struct gkyl_array *em);
+
+/**
+ * Limit slopes of the field (no-op for Vlasov-Poisson).
+ *
+ * @param app Vlasov app object
+ * @param em Field to limit
+ */
 void vlasov_field_limiter(gkyl_vlasov_app *app, struct gkyl_array *em);
+
+/**
+ * Complete the field update: for Vlasov-Maxwell, accumulate the species current
+ * onto the RHS and finalize emout = emin + dt*RHS (no-op for Vlasov-Poisson).
+ *
+ * @param app Vlasov app object
+ * @param dt Time-step
+ * @param fin[] Input distribution functions (overall species count)
+ * @param fluidin[] Input fluid moments (overall species count)
+ * @param emin Input EM field
+ * @param emout On input the field RHS, on output the updated field
+ */
 void vlasov_field_complete_update(gkyl_vlasov_app *app, double dt, const struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout);
 
-// External fields/potentials.
+/**
+ * Compute the external electromagnetic field.
+ *
+ * @param app Vlasov app object
+ * @param tm Time at which to evaluate the field
+ */
 void vlasov_field_calc_ext_em(gkyl_vlasov_app *app, double tm);
+
+/**
+ * Compute the applied current.
+ *
+ * @param app Vlasov app object
+ * @param tm Time at which to evaluate the current
+ */
 void vlasov_field_calc_app_current(gkyl_vlasov_app *app, double tm);
+
+/**
+ * Compute the external potentials.
+ *
+ * @param app Vlasov app object
+ * @param tm Time at which to evaluate the potentials
+ */
 void vlasov_field_calc_ext_pot(gkyl_vlasov_app *app, double tm);
 
-// Diagnostics. The distributions fin[] (indexed over the overall species count)
-// let Vlasov-Poisson solve for the potential at the diagnostic time.
+/**
+ * Compute the field energy diagnostic. Vlasov-Poisson solves for the potential
+ * from fin[] so the diagnostic is at time tm.
+ *
+ * @param app Vlasov app object
+ * @param tm Time at which the diagnostic is computed
+ * @param fin[] Input distribution functions (overall species count)
+ */
 void vlasov_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct gkyl_array *fin[]);
+
+/**
+ * Write the field. Vlasov-Poisson solves for the potential from fin[] so the
+ * written potential is at time tm.
+ *
+ * @param app Vlasov app object
+ * @param tm Time-stamp
+ * @param frame Frame number
+ * @param fin[] Input distribution functions (overall species count)
+ */
 void vlasov_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[]);
+
+/**
+ * Write the field energy diagnostic.
+ *
+ * @param app Vlasov app object
+ */
 void vlasov_field_write_energy(gkyl_vlasov_app *app);
-// Restart: from_file dispatches by field type; read_from_frame names the frame
-// file, delegates to from_file, and marks the energy diagnostic to append.
+
+/**
+ * Restart the field from the named file (dispatches by field type).
+ *
+ * @param app Vlasov app object
+ * @param fname File to read
+ * @return Restart status
+ */
 struct gkyl_app_restart_status vlasov_field_from_file(gkyl_vlasov_app *app, const char *fname);
+
+/**
+ * Restart the field from a frame: name the frame file, restart from it, and
+ * mark the energy diagnostic to append.
+ *
+ * @param app Vlasov app object
+ * @param frame Frame number
+ * @return Restart status
+ */
 struct gkyl_app_restart_status vlasov_field_read_from_frame(gkyl_vlasov_app *app, int frame);
+
+/**
+ * Release the field object.
+ *
+ * @param app Vlasov app object
+ */
 void vlasov_field_release(gkyl_vlasov_app *app);
 
-/** vm_field API (Vlasov-Maxwell): concrete implementations in vm_field.c.
- *  vm_field_new() assigns these to the field's *_func dispatch pointers. */
+/** vm_field API (Vlasov-Maxwell): implemented in vm_field.c. */
 
 /**
  * Create new field object
@@ -232,8 +345,7 @@ struct vm_field* vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app);
  *
  * @param app Vlasov app object
  * @param field Field object
- * @param fin[] Input distribution function (num_species size); unused for
- *   Vlasov-Maxwell, present to match the unified apply_ic dispatch signature
+ * @param fin[] Input distribution functions; unused for Vlasov-Maxwell
  * @param t0 Time for use in ICs
  */
 void vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
@@ -268,7 +380,7 @@ void vm_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double 
 
 /**
  * Accumulate current density onto RHS from field equations. Loops over the
- * unified species list and dispatches each species' explicit field coupling
+ * species and dispatches each species' explicit field coupling
  * (kinetic species accumulate -q/eps0*m1i; implicitly-coupled fluid species
  * are a no-op), then adds the applied current.
  *
@@ -432,11 +544,7 @@ struct gkyl_app_restart_status vm_field_from_file(gkyl_vlasov_app *app,
  */
 void vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f);
 
-/** vp_field API (Vlasov-Poisson): concrete implementations in vp_field.c.
- *  vp_field_new() assigns these to the field's *_func dispatch pointers. The
- *  combine/copy_range/apply_bc/limiter/complete_update operations are no-ops:
- *  the potential is re-solved each stage rather than carried in the RK state
- *  vector, and the electrostatic potential has no EM BCs/current/limiting. */
+/** vp_field API (Vlasov-Poisson): implemented in vp_field.c. */
 
 /**
  * Create new field object.
@@ -529,7 +637,7 @@ double vp_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_arr
 
 /**
  * Complete the field update. No-op for Vlasov-Poisson (the potential is solved
- * at the start of the step, not finalized from an RK state).
+ * from the distribution wherever it is needed, not carried in the RK state).
  */
 void vp_field_complete_update(gkyl_vlasov_app *app, double dt, const struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout);

@@ -410,9 +410,7 @@ void
 vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *fin[], double t0)
 {
-  // fin is unused for Vlasov-Maxwell (its IC comes from the field init function);
-  // the signature matches the unified apply_ic_func dispatch.
-  (void) fin;
+  (void) fin; // unused: the Vlasov-Maxwell IC comes from the field init function.
   if (!app->has_field) return;
 
   int poly_order = app->poly_order;
@@ -625,10 +623,10 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
     gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local, app->vm_geom->det_h,
        em, field->em_no_J, app->use_gpu); 
 
-    // Apply BCs after dividing out J so ghost cells are populated
-    // for conf_flux_surf which references the ghost cells for the flux
+    // Apply BCs after dividing out J so ghost cells are populated for
+    // conf_flux_surf, which references the ghost cells for the flux. The input
+    // em already has its BCs applied by the caller.
     vm_field_apply_bc(app, field, field->em_no_J);
-    vm_field_apply_bc(app, field, em);
 
     // Compute the surface expansion of the phase space flux in configuration space. 
     gkyl_dg_gr_maxwell_conf_flux_surf_advance(field->calc_conf_flux, &app->local, &app->local_ext, 

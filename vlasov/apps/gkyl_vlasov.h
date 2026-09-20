@@ -363,15 +363,9 @@ struct gkyl_vlasov_fluid_species {
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
-// Parameters for one Vlasov species, of any kind. The type states explicitly
-// which aspect(s) this species owns and selects which block(s) are read:
-// GKYL_SPECIES_VLASOV reads 'kinetic', GKYL_SPECIES_FLUID reads 'fluid'.
-// Identity (name/charge/mass) is declared here
-// at the top level -- the single canonical place; the blocks carry no
-// identity fields. The declared type is validated against the blocks at
-// construction: a kinetic species must set a velocity grid and must not carry
-// a fluid equation object; a fluid species must carry an equation object and
-// must not set a velocity grid.
+// Parameters for one Vlasov species. The type selects which block is read
+// (GKYL_SPECIES_VLASOV: 'kinetic', GKYL_SPECIES_FLUID: 'fluid'); the identity
+// (name, charge, mass) is declared here and not in the blocks.
 struct gkyl_vlasov_species {
   char name[128]; // Species name.
   double charge, mass; // Charge and mass.
@@ -411,10 +405,8 @@ struct gkyl_vm {
 
   struct gkyl_vlasov_geom geom; // geom object
 
-  // Species list: every species -- kinetic or fluid -- is one entry, in any
-  // order (internally they are stably partitioned kinetic-first; the relative
-  // declaration order within each kind is preserved and determines
-  // diagnostic/restart file naming).
+  // Species list: kinetic and fluid species in any order (declaration order
+  // within each kind sets the diagnostic and restart file naming).
   int num_species; // total number of species (kinetic + fluid)
   struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects
 

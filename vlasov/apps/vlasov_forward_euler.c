@@ -6,12 +6,8 @@
 // Note: this may not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by stability.
 // The actual time-step and dt_suggested are returned in the status object.
-//
-// Species are iterated over the overall species count (num_species +
-// num_fluid_species); each phase calls a vlasov_species_* wrapper that applies
-// to whichever aspects (kinetic/fluid) the species owns. The RK-state arrays
-// fin/fluidin/fout/fluidout are indexed the same way (NULL where a species
-// lacks that aspect).
+// Species loops run over the overall species count; the RK-state arrays are
+// NULL where a species lacks that aspect.
 void
 vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
@@ -26,7 +22,6 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // Compute external EM field or applied currents if present and time-dependent.
   // Note: external EM field and  applied currents use proj_on_basis
   // so does copy to GPU every call if app->use_gpu = true.
-  // A field object always exists; the null field has all evolve flags false.
   if (app->field->app_current_evolve && !app->has_fluid_em_coupling) {
     vlasov_field_calc_app_current(app, tcurr);
   }
@@ -40,16 +35,12 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<num_species; ++i)
     vlasov_species_calc_app_accel(app, &app->species[i], tcurr);
 
-  // Update the field at the start of the step so the species RHS sees the
-  // correct field/potential. For Vlasov-Maxwell this computes the RHS of
-  // Maxwell's equations (whose order relative to the species RHS does not
-  // matter); for Vlasov-Poisson this solves for the potential at the current
-  // time from the charge density (which the species RHS reads below).
+  // Update the field at the start of the step: the Maxwell RHS, or the Poisson
+  // solve for the potential at the current time (read by the species RHS below).
   double dt1_field = vlasov_field_update(app, tcurr, fin, emin, emout);
   dtmin = fmin(dtmin, dt1_field); // null field returns DBL_MAX (no constraint)
 
-  // Compute self-collision moments/boundary corrections (and fluid primitive
-  // moments are done with the cross moments below, after all self moments).
+  // Compute self-collision moments and boundary corrections.
   for (int i=0; i<num_species; ++i)
     vlasov_species_calc_self_moms(app, &app->species[i], fin[i]);
 
@@ -92,7 +83,6 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     vlasov_species_step_f(&app->species[i], dta, fin[i], fluidin[i], fout[i], fluidout[i]);
 
   // Complete the field update: for Vlasov-Maxwell, accumulate the species
-  // current onto the RHS and finalize emout = emin + dta*RHS; no-op for
-  // Vlasov-Poisson (potential solved at the start of the step) and the null field.
+  // current onto the RHS and finalize emout = emin + dta*RHS.
   vlasov_field_complete_update(app, dta, fin, fluidin, emin, emout);
 }

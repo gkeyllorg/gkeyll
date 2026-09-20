@@ -50,8 +50,7 @@ vmlbo_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *species,
 
 // Every stage rebuilds nu_sum = self_nu + sum_r cross_nu_sr: the self method
 // (const or computed) resets it and each cross method accumulates onto it, so
-// the four self/cross mode combinations compose correctly (mirrors the BGK
-// methods in vm_species_bgk.c).
+// the four self/cross mode combinations compose correctly.
 static void
 vmlbo_self_nu_calc_constNu(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_lbo_collisions *lbo, const struct gkyl_array *fin)

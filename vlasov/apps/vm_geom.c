@@ -212,7 +212,7 @@ vm_geom_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_
     vmg->has_gr_fields = true;
   }
   // (GR only) All coupled kinetic species are required to be either triad /
-  // triad_gr. The unified species list mixes kinetic and fluid entries; only the
+  // triad_gr. The species list mixes kinetic and fluid entries; only the
   // kinetic block carries a model_id, so scan the kinetic species and require at
   // least one.
   int num_kinetic = 0;

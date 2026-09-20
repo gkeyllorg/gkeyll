@@ -10,91 +10,30 @@
 
 #include <stc/cstr.h>
 
+// App-level dependencies; the field and species private headers below carry
+// the dependencies of their own layers.
 #include <gkyl_alloc.h>
 #include <gkyl_app_priv.h>
 #include <gkyl_array.h>
-#include <gkyl_array_integrate.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_bc_basic.h>
-#include <gkyl_bc_emission.h>
-#include <gkyl_bc_emission_spectrum.h>
-#include <gkyl_bc_emission_elastic.h>
-#include <gkyl_bgk_collisions.h>
-#include <gkyl_dg_advection.h>
-#include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_calc_canonical_pb_fluid_vars.h>
-#include <gkyl_dg_calc_canonical_pb_vars.h>
-#include <gkyl_dg_calc_em_vars.h>
-#include <gkyl_dg_calc_prim_vars.h>
-#include <gkyl_dg_calc_fluid_vars.h>
+#include <gkyl_basis.h>
 #include <gkyl_dg_calc_fluid_em_coupling.h>
-#include <gkyl_dg_calc_sr_vars.h>
-#include <gkyl_dg_canonical_pb_fluid.h>
-#include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
-#include <gkyl_dg_gr_maxwell_current_deposition.h>
-#include <gkyl_dg_gr_maxwell_divide_Jc.h>
 #include <gkyl_dg_gr_maxwell_geom.h>
-#include <gkyl_dg_gr_maxwell_lorentz_conf.h>
-#include <gkyl_dg_gr_maxwell_geom_source.h>
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
-#include <gkyl_dg_euler.h>
-#include <gkyl_dg_gaussian_filter.h>
-#include <gkyl_dg_maxwell.h>
-#include <gkyl_dg_updater_fluid.h>
-#include <gkyl_dg_updater_diffusion_fluid.h>
-#include <gkyl_dg_updater_diffusion_gen.h>
-#include <gkyl_dg_updater_lbo_vlasov.h>
-#include <gkyl_dg_vlasov.h>
-#include <gkyl_dg_vlasov_calc_hamil.h>
-#include <gkyl_dg_vlasov_calc_radiation.h>
-#include <gkyl_dg_vlasov_conf_flux_surf.h>
-#include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_eval_on_nodes.h>
-#include <gkyl_fem_poisson.h>
-#include <gkyl_ghost_surf_calc.h>
-#include <gkyl_hyper_dg.h>
-#include <gkyl_mom_bcorr_lbo_vlasov.h>
-#include <gkyl_mom_calc.h>
-#include <gkyl_mom_calc_bcorr.h>
-#include <gkyl_mom_vlasov.h>
-#include <gkyl_null_pool.h>
-#include <gkyl_prim_lbo_calc.h>
-#include <gkyl_prim_lbo_cross_calc.h>
-#include <gkyl_prim_lbo_type.h>
-#include <gkyl_prim_lbo_vlasov.h>
-#include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov.h>
-#include <gkyl_vlasov_cross_prim_moms_bgk.h>
-#include <gkyl_vlasov_lte_correct.h>
-#include <gkyl_vlasov_lte_moments.h>
-#include <gkyl_vlasov_lte_proj_on_basis.h>
-#include <gkyl_vlasov_triad_geom.h>
-#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
-#include <gkyl_wv_eqn.h>
-#include <gkyl_wv_maxwell.h>
 
-// The field object (struct vm_field) and its API. Included here so the app
-// struct below can hold a struct vm_field *; struct vm_geom (used only as a
-// pointer in struct vm_field) is forward-declared there and defined below.
+// The field and species objects and their private APIs.
 #include <gkyl_vlasov_field_priv.h>
-
-// The species objects (struct vm_species, struct vm_fluid_species) and the
-// unified container (struct vlasov_species), with their building-block structs.
-// Included here so the app struct below can hold a struct vlasov_species *;
-// struct vm_geom (held only as a pointer) is forward-declared there and
-// defined below.
 #include <gkyl_vlasov_species_priv.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -142,12 +81,8 @@ struct vm_geom {
 
 };
 
-// Implicit fluid-EM coupling data: an app-level assembly object. Participation
-// is a property of the species (it has a fluid aspect, under a dynamic Maxwell
-// field), so construction gathers the fluid-bearing species from app->species[]
-// by scanning for that property -- in declaration order, giving the grid-local
-// kernel the dense, stably-indexed lists it needs -- rather than assuming any
-// layout of the species array.
+// Implicit fluid-EM coupling data: the fluid-bearing species, gathered in
+// declaration order at construction.
 struct vm_fluid_em_coupling {
   int num_fluid; // number of gathered fluid-bearing species
   struct vlasov_species *species[GKYL_MAX_SPECIES]; // gathered species, in declaration order
@@ -201,14 +136,11 @@ struct gkyl_vlasov_app {
   // geometry data
   struct vm_geom *vm_geom;
 
-  // species data. One backing array of unified containers: kinetic species
-  // occupy indices [0, num_species), fluid species [num_species, num_species +
-  // num_fluid_species). 'species' points at the head, 'fluid_species' is a view
-  // into the fluid-typed tail (so the fluid view stays dense/contiguous, which
-  // restart IO relies on; the fluid-EM coupling gathers its own species list by
-  // property scan). 'species' owns the allocation.
+  // Species data: one backing array of species containers, kinetic species in
+  // [0, num_species) followed by fluid species; 'fluid_species' is a view into
+  // the fluid tail and 'species' owns the allocation.
   int num_species;
-  struct vlasov_species *species; // unified container array (owns the backing storage)
+  struct vlasov_species *species; // species containers (owns the backing storage)
 
   // fluid data
   int num_fluid_species;
@@ -233,10 +165,9 @@ void vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
   struct gkyl_update_status *st);
 
-// The implicit half of the op-split step: per-species implicit collisions
-// (BGK) followed by the holistic implicit fluid-EM coupling, both taken with
-// the explicit step's actual dt. Checks its own participation flags; a no-op
-// when neither implicit scheme is active.
+// The implicit half of the operator-split step: implicit BGK collisions for each
+// species, then the implicit fluid-EM coupling, both with the explicit step's
+// actual dt. A no-op when neither implicit scheme is active.
 void vlasov_update_implicit(gkyl_vlasov_app *app, double dt0);
 
 // Take a single time-step using a first-order operator split
@@ -334,9 +265,6 @@ struct vm_fluid_species *vm_find_fluid_species(const gkyl_vlasov_app *app, const
  * @return Index of species, -1 if not found
  */
 int vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm);
-
-/** The species/fluid private API (vm_species_* / vm_fluid_species_*) and the
- *  unified vlasov_species_* dispatch API now live in gkyl_vlasov_species_priv.h. */
 
 /** vm_fluid_em_coupling API */
 

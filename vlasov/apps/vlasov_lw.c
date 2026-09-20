@@ -401,9 +401,8 @@ struct vlasov_species_lw {
   int magic; // This must be first element in the struct.
   
   struct gkyl_vlasov_kinetic_species vm_species; // Input struct to construct species.
-  // Species identity: read from the Lua table (charge/mass) and the App table
-  // key (name); carried here because identity lives only at the top level of
-  // the unified species input, not in the kinetic block.
+  // Species identity: the name is the App table key, charge and mass are read
+  // from the species table.
   char name[128];
   double charge, mass;
   int vdim; // Velocity space dimensions.
@@ -2358,9 +2357,7 @@ vm_app_new(lua_State *L)
 
   // Set all fluid species input.
   int num_fluid_species = get_fluid_species_inp(L, cdim, fluid_species);
-  // Kinetic and fluid species share the single vm.species[] array; check the
-  // combined count before writing the fluid tail below (the C-side assert in
-  // gkyl_vlasov_app_new only fires after vm would already be overrun).
+  // Kinetic and fluid species share vm.species[]; check the combined count.
   if (num_kinetic_species + num_fluid_species > GKYL_MAX_SPECIES)
     return luaL_error(L, "Too many species: %d kinetic + %d fluid exceeds GKYL_MAX_SPECIES (%d)!",
       num_kinetic_species, num_fluid_species, GKYL_MAX_SPECIES);

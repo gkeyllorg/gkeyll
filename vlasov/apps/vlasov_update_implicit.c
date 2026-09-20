@@ -1,12 +1,8 @@
 #include <gkyl_vlasov_priv.h>
 
-// The implicit half of the op-split step, taken with the actual time-step of
-// the explicit SSP-RK3 half: per-species implicit collisions (BGK) first, then
-// the holistic implicit fluid-EM coupling. The per-species part dispatches
-// through the container vtable over all species (species without an implicit
-// collision operator no-op); the fluid-EM coupling is an app-level assembly --
-// participation is a property of the species, gathered at init by
-// vm_fluid_em_coupling_init -- handed off to one grid-local updater call.
+// The implicit half of the operator-split step, taken with the actual time-step
+// of the explicit SSP-RK3 half: implicit BGK collisions for each species, then
+// the implicit fluid-EM coupling.
 
 // Implicit BGK collisions in three phases over all species: moments, implicit
 // RHS (which computes cross moments, so it needs all species' moments first),

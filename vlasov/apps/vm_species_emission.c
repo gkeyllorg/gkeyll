@@ -60,8 +60,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *v
   // Initialize inelastic emission spectrums
   for (int i=0; i<emit->num_species; ++i) {
     emit->impact_species[i] = vm_find_species(app, emit->params->in_species[i]);
-    // in_species must name an existing *kinetic* species (a typo, or a fluid
-    // species, returns NULL and would segfault below without a message).
+    // in_species must name an existing kinetic species.
     assert(emit->impact_species[i]);
     struct vm_species *imp = emit->impact_species[i];
     emit->impact_grid[i] = &imp->bflux.boundary_grid[bdir];

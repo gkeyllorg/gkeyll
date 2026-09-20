@@ -602,9 +602,8 @@ vm_fluid_species_can_pb_fluid_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *a
   f->release_func = vm_fluid_species_can_pb_fluid_release; 
 }
 
-// Concrete time-stepping methods for a (present, evolving) Vlasov fluid aspect,
-// assigned to the fluid vtable in vm_fluid_species_init below. The "_enabled"
-// suffix mirrors the kinetic-side naming convention.
+// Time-stepping methods for an evolving fluid species, assigned in
+// vm_fluid_species_init.
 static void
 vm_fluid_species_apply_ic_enabled(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0)
 {
