@@ -20,8 +20,21 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
     gkyl_array_accumulate_range(cls->qmem, cls->qbym, app->field->ext_em, &app->local);
   }
 
-  if (vms->field_id == GKYL_FIELD_E_B || vms->field_id == GKYL_FIELD_GR_D_B) {
-    gkyl_array_accumulate_range(cls->qmem, cls->qbym, em, &app->local);
+  if (vms->field_id == GKYL_FIELD_E_B) {
+    // The Lorentz force uses the physical E, B. On a mapped grid the field stores
+    // J*E, J*B, so divide out the conf Jacobian first (identity map => no buffer).
+    const struct gkyl_array *em_force = em;
+    if (cls->em_no_J) {
+      gkyl_vlasov_position_map_divide_jacobpos_conf(vms->pos_map, &app->local,
+        cls->em_no_J->ncomp, em, cls->em_no_J);
+      em_force = cls->em_no_J;
+    }
+    gkyl_array_accumulate_range(cls->qmem, cls->qbym, em_force, &app->local);
+  }
+  else if (cls->has_gr_em_triad_coupling) {
+    gkyl_dg_gr_maxwell_lorentz_conf_advance(cls->calc_lorentz, &app->local,
+      app->vm_geom->lapse, app->vm_geom->shift, app->vm_geom->h_ij, app->vm_geom->h_ij_inv,
+      app->vm_geom->det_h, app->vm_geom->vierb_cov, app->vm_geom->vierb_con, em, cls->qmem);
   }
   else if (vms->field_id == GKYL_FIELD_PHI) {
     gkyl_array_set_offset(cls->pot_tot, cls->qbym, app->field->phi, 0);
@@ -35,7 +48,7 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
     &vms->local, fin, vms->f_no_J);
 
   // Compute the surface expansion of the phase space flux in configuration space. 
-  if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
+  if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
     gkyl_dg_vlasov_conf_flux_surf_advance(cls->calc_conf_flux, &app->local, &vms->local, &vms->local_ext, 
       vms->conf_poisson_tensor, vms->hamil, fin, vms->cflrate, cls->conf_flux_surf);
   }
@@ -70,8 +83,18 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   // Note: the potentials are the total potentials and thus can include both (or either) gravitational
   // or electrostatic interactions. 
   cls->qbym = vms->charge/vms->mass;
+  cls->has_gr_em_triad_coupling = app->vm_geom->has_gr_em_triad_coupling &&
+    (vms->field_id == GKYL_FIELD_GR_D_B) &&
+    (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR);
   cls->qmem = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+  cls->calc_lorentz = 0;
+  cls->calc_current_dep = 0;
   cls->pot_tot = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);
+  // Buffer for the physical E, B (field stores J*E, J*B on a mapped grid) used in
+  // the Lorentz force; only allocated when the standard Maxwell field is on a
+  // non-identity position map.
+  cls->em_no_J = ((vms->field_id == GKYL_FIELD_E_B) && (!vms->pos_map->is_identity)) ?
+    mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume) : 0;
 
   // Initialize applied acceleration for use in force update. 
   cls->app_accel = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
@@ -100,7 +123,11 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   cls->has_E = false;
   cls->has_B = false;
   cls->has_phi = false;
-  if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em || vms->field_id == GKYL_FIELD_GR_D_B) {
+  if (cls->has_gr_em_triad_coupling) {
+    cls->has_E = true;
+    cls->has_B = true;
+  }
+  else if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em) {
     cls->has_E = true;
     cls->has_B = true;
   }
@@ -110,6 +137,29 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   if (vms->field_id == GKYL_FIELD_NULL && cls->has_app_accel) {
     cls->has_E = true;
   }
+
+  if (cls->has_gr_em_triad_coupling) {
+    struct gkyl_dg_gr_maxwell_lorentz_conf_inp inp_lorentz = {
+      .pos_map = vms->pos_map,
+      .conf_grid = &app->grid,
+      .conf_basis = &app->basis,
+      .vdim = app->vdim,
+      .qbym = cls->qbym,
+      .chi = app->field->info.elcErrorSpeedFactor,
+      .gamma = app->field->info.mgnErrorSpeedFactor,
+      .K_phi = app->field->info.K_phi,
+      .K_psi = app->field->info.K_psi,
+      .use_gpu = app->use_gpu,
+    };
+    cls->calc_lorentz = gkyl_dg_gr_maxwell_lorentz_conf_inew(&inp_lorentz);
+    struct gkyl_dg_gr_maxwell_current_deposition_inp inp_current_dep = {
+      .conf_basis = &app->basis,
+      .vdim = vdim,
+      .use_gpu = app->use_gpu,
+    };
+    cls->calc_current_dep = gkyl_dg_gr_maxwell_current_deposition_inew(&inp_current_dep);
+  }
+
   cls->use_lo = false; 
   if (vms->info.use_lo == true) {
     cls->use_lo = true; 
@@ -136,16 +186,25 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   }
   cls->num_surf_vel_nodes = pow(app->poly_order+1+highorder, pdim - 1);
   if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-    cls->num_surf_vel_nodes = (int) ( pow(app->poly_order+1+highorder,vdim - 1) + pow(app->poly_order + 1,cdim) );
+    // Tensor p=1 hybrid: a velocity-direction surface has 2 nodes per
+    // configuration direction and 3 (lo) or 4 (ho) nodes per remaining
+    // velocity direction. Must match the vel_flux updater's
+    // num_nodes_conf*num_nodes_vel.
+    int nq_vel = cls->use_lo ? 3 : 4;
+    cls->num_surf_vel_nodes = (int) ( pow(2, cdim) * pow(nq_vel, vdim - 1) );
   }
 
   // Allocate nodal surface expansion of velocity space flux array (conf). 
-  if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
+  if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
 
     // Compute the number of configuration space nodes, with case for hybrid-tensor.
     cls->num_surf_conf_nodes = pow(app->poly_order+1+highorder,pdim - 1);
     if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-      cls->num_surf_conf_nodes = (int) ( pow(app->poly_order+1+highorder,vdim) + pow(app->poly_order + 1,cdim- 1) );
+      // Tensor p=1 hybrid: a configuration-direction surface has 2 nodes per
+      // remaining configuration direction and 3 (lo) or 4 (ho) nodes per
+      // velocity direction.
+      int nq_vel = cls->use_lo ? 3 : 4;
+      cls->num_surf_conf_nodes = (int) ( pow(2, cdim - 1) * pow(nq_vel, vdim) );
     }
 
     cls->conf_flux_surf = mkarr(app->use_gpu, cdim*cls->num_surf_conf_nodes, vms->local_ext.volume);
@@ -154,9 +213,12 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
       .conf_basis = &app->basis,
       .phase_basis = &vms->basis,
       .vel_range = &vms->local_vel,
+      .vel_map = vms->vel_map,
+      .pos_map = vms->pos_map,
       .hamil_range = &vms->hamil_range,
       .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
       .model_id = vms->model_id,
+      .hamil_id = vms->hamil_id,
       .use_lo = cls->use_lo,
       .use_gpu = app->use_gpu,
     }; 
@@ -170,9 +232,11 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
     .conf_basis = &app->basis,
     .phase_basis = &vms->basis,
     .vel_map = vms->vel_map,
+    .pos_map = vms->pos_map,
     .hamil_range = &vms->hamil_range,
     .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
     .model_id = vms->model_id,
+    .hamil_id = vms->hamil_id,
     .has_E = cls->has_E, 
     .has_phi = cls->has_phi, 
     .has_B = cls->has_B, 
@@ -189,8 +253,10 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
     .hamil_range = &vms->hamil_range,
     .phase_range = &vms->local,
     .vel_map = vms->vel_map,
+    .pos_map = vms->pos_map,
     .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0,
     .model_id = vms->model_id,
+    .hamil_id = vms->hamil_id,
     .has_E = cls->has_E, 
     .has_phi = cls->has_phi, 
     .has_B = cls->has_B, 
@@ -263,12 +329,17 @@ void
 vm_species_collisionless_release(const struct gkyl_vlasov_app *app, 
   const struct vm_species *vms, const struct vm_collisionless *cls)
 {
-  if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
+  if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
     gkyl_dg_vlasov_conf_flux_surf_release(cls->calc_conf_flux);
     gkyl_array_release(cls->conf_flux_surf);
   }
   gkyl_dg_vlasov_vel_flux_surf_release(cls->calc_vel_flux);
-  gkyl_array_release(cls->qmem); 
+  gkyl_array_release(cls->qmem);
+  if (cls->has_gr_em_triad_coupling) {
+    gkyl_dg_gr_maxwell_lorentz_conf_release(cls->calc_lorentz);
+    gkyl_dg_gr_maxwell_current_deposition_release(cls->calc_current_dep);
+  }
+  if (cls->em_no_J) gkyl_array_release(cls->em_no_J);
   gkyl_array_release(cls->pot_tot); 
   gkyl_array_release(cls->app_accel);
   if (cls->has_app_accel) {

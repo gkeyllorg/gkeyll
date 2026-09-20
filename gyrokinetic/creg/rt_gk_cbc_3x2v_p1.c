@@ -9,16 +9,6 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_run.h>
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
-
 #include <gkyl_math.h>
 #include <rt_arg_parse.h>
 
@@ -51,36 +41,36 @@ double interp_1x_lut(double x, double *lut_grid, double *lut_val, int N)
 
 // Define the context of the simulation. This stores global parameters.
 struct gk_app_ctx {
-    int cdim, vdim;
-    // Geometry and magnetic field parameters
-    double a_shift, Z_axis, R_axis, R0, a_mid, r0, B0, kappa, delta, q0, Cy, qaxis, qlcfs;
-    // Plasma parameters
-    double me, qe, mi, qi, n0, Te0, Ti0;
-    // Collision parameters
-    double nuFrac;
-    // Initial condition parameters
-    double Ln, LTe, LTi;
-    bool can_max;
-    // Krook and buffer parameters.
-    double nu_krook;
-    int num_cell_buff;
-    // Grid parameters
-    double Lx, Ly, Lz;
-    double x_min, y_min, z_min, x_max, y_max, z_max;
-    int num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu;
-    int cells[GKYL_MAX_DIM], poly_order;
-    double vpar_max_elc, mu_max_elc, vpar_max_ion, mu_max_ion;
-    // Simulation control parameters
-    double final_time, write_phase_freq;
-    int num_frames, int_diag_calc_num, num_failures_max;
-    double dt_failure_tol;
-    double max_run_time; // Maximum run time in seconds, 0 means no limit.
-    // Table for intPsi interpolation and lookup table (LUT).
-    int psi_lut_size;
-    double *r_lut;
-    double *psi_lut;
-    // Table for dPsidr.
-    double *dPsidr_int_lut;
+  int cdim, vdim;
+  // Geometry and magnetic field parameters
+  double a_shift, Z_axis, R_axis, R0, a_mid, r0, B0, kappa, delta, q0, Cy, qaxis, qlcfs;
+  // Plasma parameters
+  double me, qe, mi, qi, n0, Te0, Ti0;
+  // Collision parameters
+  double nuFrac;
+  // Initial condition parameters
+  double Ln, LTe, LTi;
+  bool can_max;
+  // Krook and buffer parameters.
+  double nu_krook;
+  int num_cell_buff;
+  // Grid parameters
+  double Lx, Ly, Lz;
+  double x_min, y_min, z_min, x_max, y_max, z_max;
+  int Nx, Ny, Nz, Nvpar, Nmu;
+  int cells[GKYL_MAX_DIM], poly_order;
+  double vpar_max_elc, mu_max_elc, vpar_max_ion, mu_max_ion;
+  // Simulation control parameters
+  double t_end, write_phase_freq;
+  int num_frames, int_diag_calc_num, num_failures_max;
+  double dt_failure_tol;
+  double max_run_time; // Maximum run time in seconds, 0 means no limit.
+  // Table for intPsi interpolation and lookup table (LUT).
+  int psi_lut_size;
+  double *r_lut;
+  double *psi_lut;
+  // Table for dPsidr.
+  double *dPsidr_int_lut;
 };
 
 // Geometry related functions 
@@ -354,7 +344,7 @@ void double_buffer_profile(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   struct gk_app_ctx *app = ctx;
-  int nx = app->num_cell_x;
+  int nx = app->Nx;
   double x_max = app->x_max;
   double x_min = app->x_min;
   double Lx = app->Lx;
@@ -370,7 +360,7 @@ double tanh_profile(double x, double v0, double Lgrad, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   // Profile use in Gysela (see V. Grandgirard et al. / Computer Physics Communications 207 (2016) 35–68).
-  double buff_frac = (double)app->num_cell_buff / app->num_cell_x; 
+  double buff_frac = (double)app->num_cell_buff / app->Nx; 
   double delta = 0.5*(1-buff_frac) * app->Lx;
   double arg = x / (app->a_mid * delta);
   double prof_factor = (app->a_mid * delta) / Lgrad;
@@ -559,18 +549,19 @@ struct gk_app_ctx create_ctx(void)
   double Cy = r0/q0; // Cylindrical coordinate shift for field-alignment.
 
   // Configuration domain parameters 
-  double Lx        = 150*rho_s;   // Domain size along x.
-  double x_min     = -Lx/2;
-  double x_max     = Lx/2;
-  double Ly        = 150*rho_s;   // Domain size along y.
-  double y_min     = -Ly/2;
-  double y_max     = Ly/2;
-  double Lz        = 2.*M_PI-1e-10;       // Domain size along magnetic field.
-  double z_min     = -Lz/2.;
-  double z_max     =  Lz/2.;
+  double Lx = 150*rho_s;   // Domain size along x.
+  double Ly = 150*rho_s;   // Domain size along y.
+  double Lz = 2.*M_PI-1e-10;       // Domain size along magnetic field.
   // Adjust the domain size along y to have integer toroidal mode number.
   // We need: 2*pi*Cy/Ly = integer.
   Ly = 2.*M_PI*Cy/round(2.*M_PI*Cy/Ly);
+
+  double x_min = -Lx/2;
+  double x_max =  Lx/2;
+  double y_min = -Ly/2;
+  double y_max =  Ly/2;
+  double z_min = -Lz/2;
+  double z_max =  Lz/2;
 
   // Initial conditions and gradients
   double kTi = 6.92; // R/LTi from Dimits et al. 2000.
@@ -604,11 +595,11 @@ struct gk_app_ctx create_ctx(void)
   double inv_asp_ratio = a_mid/R0;
 
   // Grid parameters
-  int num_cell_x = 4;
-  int num_cell_y = 4;
-  int num_cell_z = 4;
-  int num_cell_vpar = 4;
-  int num_cell_mu = 2;
+  int Nx = 4;
+  int Ny = 4;
+  int Nz = 4;
+  int Nvpar = 4;
+  int Nmu = 2;
   int poly_order = 1;
 
   // IC, Krook, buffer, and integration lookup tables (LUTs) parameters.
@@ -622,7 +613,7 @@ struct gk_app_ctx create_ctx(void)
   double mu_max_elc = 7*Te0/B0;
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = 7*Ti0/B0;
-  double final_time = 0.01*t_itg;
+  double t_end = 0.01*t_itg;
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
@@ -639,7 +630,7 @@ struct gk_app_ctx create_ctx(void)
   // printf("R0/c_s = %1.2e [s]\n", t_unit);
   // printf("t_itg = %1.2e [s], t_gam = %1.2e [s]\n", t_itg, t_gam);
   // printf("t_itg c_s/R0 = %1.2e, t_gam c_s/R0 = %1.2e\n", t_itg/t_unit, t_gam/t_unit);
-  // printf("Num cell for ky rhos = 0.5: %1.2g\n", (2.*M_PI/ky_itg)/(Ly/num_cell_y));
+  // printf("Num cell for ky rhos = 0.5: %1.2g\n", (2.*M_PI/ky_itg)/(Ly/Ny));
 
   struct gk_app_ctx ctx = {
     .cdim = cdim,
@@ -672,21 +663,21 @@ struct gk_app_ctx create_ctx(void)
     .mi = mi,  .qi = qi,
     .n0 = n0,  .Te0 = Te0,  .Ti0 = Ti0,
     .nuFrac = nuFrac,
-    .num_cell_x     = num_cell_x,
-    .num_cell_y     = num_cell_y,
-    .num_cell_z     = num_cell_z,
-    .num_cell_vpar  = num_cell_vpar,
-    .num_cell_mu    = num_cell_mu,
-    .cells = {num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu},
+    .Nx     = Nx,
+    .Ny     = Ny,
+    .Nz     = Nz,
+    .Nvpar  = Nvpar,
+    .Nmu    = Nmu,
+    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
     .poly_order   = poly_order,
     .vpar_max_elc = vpar_max_elc,  .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
     .write_phase_freq = write_phase_freq,
-    .final_time = final_time,  .num_frames = num_frames,
+    .t_end = t_end,  .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .psi_lut_size = psi_lut_nfact*num_cell_x,
+    .psi_lut_size = psi_lut_nfact*Nx,
   };
   return ctx;
 }
@@ -915,7 +906,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
-      .t_end = ctx.final_time,
+      .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
       .int_diag_calc_num = ctx.int_diag_calc_num,

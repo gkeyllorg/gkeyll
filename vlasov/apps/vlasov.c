@@ -238,6 +238,37 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
     app->mapc2p, app->c2p_ctx, app->use_gpu);
 
+  // Create the configuration-space position map (C^0 piecewise linear,
+  // diagonal). Always created; directions without a user map are the identity.
+  // Shared by all species, which acquire a reference.
+  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = { 0 };
+  for (int d=0; d<cdim; ++d) {
+    inp_pmap[d].eval_pmap = vm->mapc2p_pos[d].mapc2p_pos_func;
+    inp_pmap[d].ctx = vm->mapc2p_pos[d].mapc2p_pos_ctx;
+  }
+  app->pos_map = gkyl_vlasov_position_map_new(&app->grid, &app->local,
+    &app->local_ext, &app->basis, inp_pmap, app->use_gpu);
+
+  // Finalize the position-map ghost cells. The constructor filled every ghost
+  // with the adjacent local-skin value (a copy BC, valid at physical
+  // boundaries); now overwrite the periodic and inter-rank ghosts with the
+  // wrapped/neighbor values, mirroring the conf-array sync in vm_*_apply_bc.
+  struct gkyl_array *pos_map_arrs[] = {
+    app->pos_map->pmap, app->pos_map->jacob_pos,
+    app->pos_map->jacob_pos_surf, app->pos_map->jacob_pos_gauss
+  };
+  for (int ia=0; ia<4; ++ia) {
+    gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+      app->num_periodic_dir, app->periodic_dirs, pos_map_arrs[ia]);
+    gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, pos_map_arrs[ia]);
+  }
+
+  // The position map is static in time; write it once here (uniform/identity
+  // grids included), mirroring the mapc2p write above. Both the p=3 map and its
+  // p=0 cell average are written, with metadata built from the map's I/O basis.
+  gkyl_vlasov_position_map_write(app->pos_map, app->comm, app->name,
+    "position-map");
+
   // allocate space to store vlasov-maxwell geometry objects
   app->vm_geom = gkyl_malloc(sizeof(struct vm_geom));
   vm_geom_init(vm, app, app->vm_geom);
@@ -643,7 +674,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     [FL_EM_TM] = local->fl_em_tm,
     [INIT_SPECIES_TM] = local->init_species_tm,
     [INIT_FLUID_SPECIES_TM] = local->init_fluid_species_tm,
-    [INIT_FIELD_TM] = local->field_rhs_tm,
+    [INIT_FIELD_TM] = local->init_field_tm,
     [SPECIES_RHS_TM] = local->species_rhs_tm,
     [FLUID_SPECIES_RHS_TM] = local->fluid_species_rhs_tm,
     [FLUID_SPECIES_VARS_TM] = local->fluid_species_vars_tm,
@@ -674,7 +705,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   global->fl_em_tm = d_red_global[FL_EM_TM];
   global->init_species_tm = d_red_global[INIT_SPECIES_TM];
   global->init_fluid_species_tm = d_red_global[INIT_FLUID_SPECIES_TM];
-  global->field_rhs_tm = d_red_global[INIT_FIELD_TM];
+  global->init_field_tm = d_red_global[INIT_FIELD_TM];
   global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
   global->fluid_species_rhs_tm = d_red_global[FLUID_SPECIES_RHS_TM];
   global->fluid_species_vars_tm = d_red_global[FLUID_SPECIES_VARS_TM];
@@ -886,6 +917,13 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
         gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
           app->field->em_no_J, app->field->em, app->use_gpu);
       }
+      else if (app->field->weight_by_pos_jacob) {
+        // Restart files hold the physical E, B; rescale to the evolved J*E, J*B on
+        // the interior (BCs re-fill the ghost cells below).
+        gkyl_array_copy(app->field->em_no_J, app->field->em_host);
+        gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local,
+          app->field->em_no_J, app->field->em);
+      }
 
       vm_field_apply_bc(app, app->field, app->field->em);
     }
@@ -1019,6 +1057,7 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   gkyl_rect_decomp_release(app->decomp);
 
   gkyl_wave_geom_release(app->geom);
+  gkyl_vlasov_position_map_release(app->pos_map);
 
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev);

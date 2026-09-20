@@ -1,5 +1,6 @@
-#include <gkyl_nc_hamil_vol_comps_kernels.h> 
+#include <gkyl_nc_hamil_gen_vol_comps_kernels.h> 
 GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp0_2x3v_ser_p2(const double *w, const double *dxv, const int dir,
+   const double *jacob_pos, const double *jacob_vel,
    const double *alpha, double* GKYL_RESTRICT out) 
 { 
   const double dx10 = 2.0/dxv[0]; 
@@ -7,6 +8,11 @@ GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp0_2x3v_ser_p2(const double *w, const
   const double dv10 = 2.0/dxv[2]; 
   const double dv11 = 2.0/dxv[3]; 
   const double dv12 = 2.0/dxv[4]; 
+  const double jacob_cx_inv = 1.0/jacob_pos[0]; 
+  const double jacob_cy_inv = 1.0/jacob_pos[3]; 
+  const double jacob_vx_inv = 1.0/jacob_vel[0]; 
+  const double jacob_vy_inv = 1.0/jacob_vel[3]; 
+  const double jacob_vz_inv = 1.0/jacob_vel[6]; 
   
   if (dir == 0) { 
   } 

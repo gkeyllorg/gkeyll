@@ -20,6 +20,7 @@ typedef struct { array_integrate_t kernels[2]; } array_integrate_sq_weighted_ker
 typedef struct { array_integrate_t kernels[2]; } array_integrate_gradsq_kern_list;
 typedef struct { array_integrate_t kernels[2]; } array_integrate_gradperpsq_kern_list;
 typedef struct { array_integrate_t kernels[2]; } array_integrate_epsgradperpsq_kern_list;
+typedef struct { array_integrate_t kernels[2]; } array_integrate_epsgradsq_kern_list;
 
 GKYL_CU_D
 static const array_integrate_none_kern_list gkyl_array_integrate_none_ker_list_ser[] = {
@@ -79,6 +80,15 @@ static const array_integrate_epsgradperpsq_kern_list gkyl_array_integrate_epsgra
   {gkyl_array_integrate_op_eps_gradperp_sq_3x_ser_p1, gkyl_array_integrate_op_eps_gradperp_sq_3x_ser_p2},
 };
 
+// Metric-weighted FULL-gradient squared (all conf directions). Used by the
+// Vlasov position map for the electrostatic field energy.
+GKYL_CU_D
+static const array_integrate_epsgradsq_kern_list gkyl_array_integrate_epsgradsq_ker_list[] = {
+  {gkyl_array_integrate_op_eps_grad_sq_1x_ser_p1, gkyl_array_integrate_op_eps_grad_sq_1x_ser_p2},
+  {gkyl_array_integrate_op_eps_grad_sq_2x_ser_p1, gkyl_array_integrate_op_eps_grad_sq_2x_ser_p2},
+  {gkyl_array_integrate_op_eps_grad_sq_3x_ser_p1, gkyl_array_integrate_op_eps_grad_sq_3x_ser_p2},
+};
+
 // Primary struct in this updater.
 struct gkyl_array_integrate {
   enum gkyl_array_integrate_op op; // Operator type.
@@ -119,6 +129,9 @@ void gkyl_array_integrate_choose_kernel(enum gkyl_array_integrate_op op,
   }
   else if (op == GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ) {
     up->kernel = gkyl_array_integrate_epsgradperpsq_ker_list[ndim-1].kernels[poly_order-1];
+  }
+  else if (op == GKYL_ARRAY_INTEGRATE_OP_EPS_GRAD_SQ) {
+    up->kernel = gkyl_array_integrate_epsgradsq_ker_list[ndim-1].kernels[poly_order-1];
   }
   else {
     assert(false);

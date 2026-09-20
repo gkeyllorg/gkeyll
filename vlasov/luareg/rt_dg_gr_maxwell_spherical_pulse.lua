@@ -89,6 +89,14 @@ vlasovApp = Vlasov.App.new {
   field = Vlasov.Field.new {
     fieldID = G0.FieldModel.GR,
 
+    -- Speed factors
+    epsilon0 = 1.0,
+    mu0 = 1.0,
+    elcErrorSpeedFactor = 1.0, -- chi = c*elcErrorSpeedFactor = 1.
+    mgnErrorSpeedFactor = 1.0, -- gamma = c*mgnErrorSpeedFactor = 1.
+    K_phi = 1.0, -- Damping Constant (electric field).
+    K_psi = 1.0, -- Damping Constant (magnetic field).
+
     -- Initial conditions.
     init = function (t, xn)
       local r, theta = xn[1], xn[2]

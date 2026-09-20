@@ -52,6 +52,22 @@ GKYL_CU_DH double gr_maxwell_surfy_2x_tensor_p1(const double *w, const double *d
   out_6[2] += -(0.8660254037844386*(Fhat_r_nodal_6[1]+Fhat_l_nodal_6[1]+Fhat_r_nodal_6[0]+Fhat_l_nodal_6[0])*dx11); 
   out_6[3] += (0.8660254037844386*(Fhat_r_nodal_6[0]+Fhat_l_nodal_6[0])-0.8660254037844386*(Fhat_r_nodal_6[1]+Fhat_l_nodal_6[1]))*dx11; 
 
+  const double *Fhat_l_nodal_7 = &Fhat_l_nodal[28]; 
+  const double *Fhat_r_nodal_7 = &Fhat_r_nodal[28]; 
+  double *out_7 = &out[24]; 
+  out_7[0] += (-(0.5*Fhat_r_nodal_7[1])+0.5*Fhat_l_nodal_7[1]-0.5*Fhat_r_nodal_7[0]+0.5*Fhat_l_nodal_7[0])*dx11; 
+  out_7[1] += (-(0.5*Fhat_r_nodal_7[1])+0.5*(Fhat_l_nodal_7[1]+Fhat_r_nodal_7[0])-0.5*Fhat_l_nodal_7[0])*dx11; 
+  out_7[2] += -(0.8660254037844386*(Fhat_r_nodal_7[1]+Fhat_l_nodal_7[1]+Fhat_r_nodal_7[0]+Fhat_l_nodal_7[0])*dx11); 
+  out_7[3] += (0.8660254037844386*(Fhat_r_nodal_7[0]+Fhat_l_nodal_7[0])-0.8660254037844386*(Fhat_r_nodal_7[1]+Fhat_l_nodal_7[1]))*dx11; 
+
+  const double *Fhat_l_nodal_8 = &Fhat_l_nodal[30]; 
+  const double *Fhat_r_nodal_8 = &Fhat_r_nodal[30]; 
+  double *out_8 = &out[28]; 
+  out_8[0] += (-(0.5*Fhat_r_nodal_8[1])+0.5*Fhat_l_nodal_8[1]-0.5*Fhat_r_nodal_8[0]+0.5*Fhat_l_nodal_8[0])*dx11; 
+  out_8[1] += (-(0.5*Fhat_r_nodal_8[1])+0.5*(Fhat_l_nodal_8[1]+Fhat_r_nodal_8[0])-0.5*Fhat_l_nodal_8[0])*dx11; 
+  out_8[2] += -(0.8660254037844386*(Fhat_r_nodal_8[1]+Fhat_l_nodal_8[1]+Fhat_r_nodal_8[0]+Fhat_l_nodal_8[0])*dx11); 
+  out_8[3] += (0.8660254037844386*(Fhat_r_nodal_8[0]+Fhat_l_nodal_8[0])-0.8660254037844386*(Fhat_r_nodal_8[1]+Fhat_l_nodal_8[1]))*dx11; 
+
 
   return 0.0;
 

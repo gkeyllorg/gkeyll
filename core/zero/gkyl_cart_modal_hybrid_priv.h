@@ -47,13 +47,17 @@ static struct { void (*fs[4])(int dir, const double *f, double *fout); } fes_lis
   { NULL, flip_even_sign_3x1v_hyb_p1, flip_even_sign_3x2v_hyb_p1, flip_even_sign_3x3v_hyb_p1 },
 };
 
-// Number of basis functions: num_basis_list[ndim].count[poly_order]
+// Number of basis functions: num_basis_list[cdim].count[vdim]. The hybrid
+// basis is the tensor hybrid: full tensor product of p=1 tensor in
+// configuration space and p=2 tensor in velocity space, 2^cdim*3^vdim
+// functions (equal to the number of volume Gauss-Legendre quadrature nodes,
+// so the nodal and quadrature-nodal sets are one-to-one with the modal set).
 GKYL_CU_D
 static struct { int count[4]; } num_basis_list[] = {
-  { 0,  0,  0,  0 },  // No 0x basis functions.
-  { 0,  6, 16, 40 },
-  { 0, 12, 32, 80 },
-  { 0, 24, 64, 160 },
+  { 0,  0,  0,   0 },  // No 0x basis functions.
+  { 0,  6, 18,  54 },
+  { 0, 12, 36, 108 },
+  { 0, 24, 72, 216 },
 };
 
 // Node list function: ev_list[ndim].ev[poly_order]

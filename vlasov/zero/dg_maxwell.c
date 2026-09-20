@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -31,6 +32,7 @@ gkyl_maxwell_free(const struct gkyl_ref_count *ref)
     gkyl_surf_and_vol_node_arrays_release(maxwell->lapse);
     gkyl_surf_and_vol_node_arrays_release(maxwell->shift);
     gkyl_surf_and_vol_node_arrays_release(maxwell->h_ij);
+    gkyl_surf_and_vol_node_arrays_release(maxwell->h_ij_inv);
     gkyl_surf_and_vol_node_arrays_release(maxwell->det_h);
   }
 
@@ -50,6 +52,15 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
   int cdim = inp->cbasis->ndim;
   int poly_order = inp->cbasis->poly_order;
 
+  // Configuration-space range + position-map Jacobian for the curl kernels.
+  // The Jacobian (borrowed) is the per-conf-cell J of the C^0 linear position
+  // map. It is required: callers without a nonuniform position map pass an
+  // identity position map's Jacobian (J = 1 at every quadrature point), which
+  // keeps the kernels bit-identical to the uniform-grid case.
+  if (inp->crange) maxwell->crange = *inp->crange;
+  assert(inp->jacob_pos);
+  maxwell->jacob_pos = inp->jacob_pos;
+
   // For configuration fluxes in dg gr maxwell
   maxwell->use_conf_flux_surf = false;
   if (inp->field_id == GKYL_FIELD_GR_D_B){
@@ -60,6 +71,7 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
     maxwell->lapse = gkyl_surf_and_vol_node_arrays_acquire(inp->lapse);
     maxwell->shift = gkyl_surf_and_vol_node_arrays_acquire(inp->shift);
     maxwell->h_ij = gkyl_surf_and_vol_node_arrays_acquire(inp->h_ij);
+    maxwell->h_ij_inv = gkyl_surf_and_vol_node_arrays_acquire(inp->h_ij_inv);
     maxwell->det_h = gkyl_surf_and_vol_node_arrays_acquire(inp->det_h);
   }
 
@@ -110,9 +122,14 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
   maxwell->eqn.surf_term = surf;
   maxwell->eqn.boundary_surf_term = boundary_surf;
 
+  if (inp->field_id == GKYL_FIELD_GR_D_B) assert(fabs(inp->lightSpeed - 1.0) < 1e-12);
   maxwell->maxwell_data.c = inp->lightSpeed;
   maxwell->maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
   maxwell->maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
+  maxwell->gr_maxwell_data.chi = inp->elcErrorSpeedFactor;
+  maxwell->gr_maxwell_data.gamma = inp->mgnErrorSpeedFactor;
+  maxwell->gr_maxwell_data.K_phi = 0.0;
+  maxwell->gr_maxwell_data.K_psi = 0.0;
 
   // For volume kernel selection
   if ( maxwell->use_conf_flux_surf ) {

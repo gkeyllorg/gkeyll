@@ -3,7 +3,7 @@ GKYL_CU_DH void dg_gr_maxwell_rescale_Jc_2x_ser_p2(const double *J, const double
 { 
   const double *f_comp_no_J;
   double *Jf_comp;
-  for (int i=0; i<6; ++i) {
+  for (int i=0; i<8; ++i) {
     f_comp_no_J = &fields_no_J[i*8];
     Jf_comp = &Jfields[i*8];
     double Jfields_nodal[9] = {0.0};

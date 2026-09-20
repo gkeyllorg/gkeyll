@@ -95,7 +95,7 @@ gkyl_vlasov_cross_prim_moms_bgk_cu_dev_new(const struct gkyl_basis *pbasis, cons
   struct gkyl_vlasov_cross_prim_moms_bgk *up_cu = (struct gkyl_vlasov_cross_prim_moms_bgk*) gkyl_cu_malloc(sizeof(*up_cu));
   
   set_vlasov_cross_prim_moms_bgk_cu_ptrs<<<1,1>>>(up_cu, cdim,
-    vdim, poly_order, cbasis->b_type);
+    vdim, poly_order, gkyl_basis_phase_kernel_type(cbasis, pbasis));
 
   up->on_dev = up_cu;  
   return up;   

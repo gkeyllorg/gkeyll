@@ -3,7 +3,7 @@ GKYL_CU_DH void dg_gr_maxwell_divide_Jc_3x_tensor_p2(const double *J, const doub
 { 
   const double *Jf_comp;
   double *f_comp_no_J;
-  for (int i=0; i<6; ++i) {
+  for (int i=0; i<8; ++i) {
   Jf_comp = &Jfields[i*27];
   f_comp_no_J = &fields_no_J[i*27];
     double fields_no_J_nodal[27] = {0.0};

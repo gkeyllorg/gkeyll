@@ -8,7 +8,10 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_position_map.h>
 #include <gkyl_dg_interpolate.h>
-#include <gkyl_dg_updater_moment.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
+#include <gkyl_mom_calc.h>
+#include <gkyl_mom_vlasov.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_array_integrate.h>
 #include <gkyl_util.h>
@@ -323,14 +326,63 @@ void eval_distf_1x1v_vlasov(double t, const double *xn, double* restrict fout, v
   fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vx-ux,2))/(2.0*vtsq));
 }
 
-static void calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_basis *confBasis,
-  struct gkyl_basis *basis, struct gkyl_range *confLocal, struct gkyl_range *local,
+static void calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_rect_grid *velGrid,
+  struct gkyl_basis *confBasis, struct gkyl_basis *basis,
+  struct gkyl_range *confLocal, struct gkyl_range *local, struct gkyl_range *velLocal,
   bool use_gpu, struct gkyl_array *distf, struct gkyl_array *moms)
 {
-  struct gkyl_dg_updater_moment* mom_op = gkyl_dg_updater_moment_new(grid, confBasis,
-    basis, confLocal, 0, local, 0, 0, GKYL_F_MOMENT_M0M1M2, false, use_gpu);
-  gkyl_dg_updater_moment_advance(mom_op, local, confLocal, distf, moms);
-  gkyl_dg_updater_moment_release(mom_op);
+  int cdim = confBasis->ndim, pdim = basis->ndim, vdim = pdim - cdim;
+  int poly_order = confBasis->poly_order;
+  bool is_hybrid = basis->b_type == GKYL_BASIS_MODAL_HYBRID;
+
+  // The p=1 hybrid pairs a p=1 tensor configuration-space basis with a p=2
+  // tensor velocity-space basis; kernel selection keys on the conf basis type.
+  struct gkyl_basis vbasis, momConfBasis;
+  if (is_hybrid) {
+    gkyl_cart_modal_tensor(&vbasis, vdim, 2);
+    gkyl_cart_modal_tensor(&momConfBasis, cdim, poly_order);
+  }
+  else {
+    gkyl_cart_modal_serendip(&vbasis, vdim, poly_order);
+    momConfBasis = *confBasis;
+  }
+
+  // Identity velocity map and velocity-space Hamiltonian H = v^2/2.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(velGrid,
+    velLocal, &vbasis, inp_vmap, false, use_gpu);
+  struct gkyl_array *hamil = mkarr(use_gpu, vbasis.num_basis, velLocal->volume);
+  struct gkyl_array *gamma_inv = mkarr(use_gpu, vbasis.num_basis, velLocal->volume);
+  gkyl_dg_vlasov_calc_hamil(velGrid, &vbasis, velLocal,
+    GKYL_MODEL_DEFAULT, vvm, hamil, gamma_inv, use_gpu);
+
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &momConfBasis,
+    .phase_basis = basis,
+    .vel_range = velLocal,
+    .hamil_range = velLocal,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
+    .mom_type = GKYL_F_MOMENT_M0M1M2,
+    .use_gpu = use_gpu,
+    .vel_map = vvm,
+  };
+  struct gkyl_mom_type *mtype = gkyl_mom_vlasov_inew(&inp_mom);
+  gkyl_mom_calc *mcalc = gkyl_mom_calc_new(grid, mtype, use_gpu);
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    gkyl_mom_calc_advance_cu(mcalc, local, confLocal, distf, moms);
+  else
+    gkyl_mom_calc_advance(mcalc, local, confLocal, distf, moms);
+#else
+  gkyl_mom_calc_advance(mcalc, local, confLocal, distf, moms);
+#endif
+  gkyl_mom_calc_release(mcalc);
+  gkyl_mom_type_release(mtype);
+  gkyl_vlasov_velocity_map_release(vvm);
+  gkyl_array_release(hamil);
+  gkyl_array_release(gamma_inv);
 }
 
 void
@@ -417,7 +469,7 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   struct gkyl_array *moms = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_ho = use_gpu? mkarr(false, moms->ncomp, moms->size)
                                       : gkyl_array_acquire(moms);
-  calc_moms_vlasov(&grid, &confBasis, &basis, &confLocal, &local, use_gpu, distf, moms);
+  calc_moms_vlasov(&grid, &velGrid, &confBasis, &basis, &confLocal, &local, &velLocal, use_gpu, distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
   // Calculate the integrated moments.
@@ -476,7 +528,7 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   struct gkyl_array *moms_tar = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_tar_ext.volume);
   struct gkyl_array *moms_tar_ho = use_gpu? mkarr(false, moms_tar->ncomp, moms_tar->size)
                                           : gkyl_array_acquire(moms_tar);
-  calc_moms_vlasov(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, use_gpu, distf_tar, moms_tar);
+  calc_moms_vlasov(&grid_tar, &velGrid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, &velLocal_tar, use_gpu, distf_tar, moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.
@@ -656,7 +708,7 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   struct gkyl_array *moms = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_ho = use_gpu? mkarr(false, moms->ncomp, moms->size)
                                       : gkyl_array_acquire(moms);
-  calc_moms_vlasov(&grid, &confBasis, &basis, &confLocal, &local, use_gpu, distf, moms);
+  calc_moms_vlasov(&grid, &velGrid, &confBasis, &basis, &confLocal, &local, &velLocal, use_gpu, distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
   // Calculate the integrated moments.
@@ -715,7 +767,7 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   struct gkyl_array *moms_tar = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_tar_ext.volume);
   struct gkyl_array *moms_tar_ho = use_gpu? mkarr(false, moms_tar->ncomp, moms_tar->size)
                                           : gkyl_array_acquire(moms_tar);
-  calc_moms_vlasov(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, use_gpu, distf_tar, moms_tar);
+  calc_moms_vlasov(&grid_tar, &velGrid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, &velLocal_tar, use_gpu, distf_tar, moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.
@@ -974,15 +1026,6 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  // Create bmag arrays.
-  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
-                                      : gkyl_array_acquire(bmag);
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_1x, &proj_ctx);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
-
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu? mkarr(false, distf->ncomp, distf->size)
@@ -1136,11 +1179,8 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
-  gkyl_array_release(bmag);
   gkyl_array_release(distf);
-  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
-  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 
@@ -1167,10 +1207,11 @@ void eval_distf_1x2v_gk(double t, const double *xn, double* restrict fout, void 
 
   double vtsq = temp/mass;
 
-  double bmag[1] = {-1.0};
-  eval_bfield_1x(t, xn, bmag, ctx);
+  double bfield[3] = {0.0};
+  eval_bfield_1x(t, xn, bfield, ctx);
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
 
-  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag[0]/mass)/(2.0*vtsq));
+  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag/mass)/(2.0*vtsq));
 }
 
 void
@@ -1246,15 +1287,6 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
-  // Create bmag arrays.
-  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
-                                      : gkyl_array_acquire(bmag);
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_1x, &proj_ctx);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -1406,11 +1438,8 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
-  gkyl_array_release(bmag);
   gkyl_array_release(distf);
-  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
-  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 
@@ -1437,10 +1466,11 @@ void eval_distf_2x2v_gk(double t, const double *xn, double* restrict fout, void 
 
   double vtsq = temp/mass;
 
-  double bmag[1] = {-1.0};
-  eval_bfield_2x(t, xn, bmag, ctx);
+  double bfield[3] = {0.0};
+  eval_bfield_2x(t, xn, bfield, ctx);
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
 
-  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag[0]/mass)/(2.0*vtsq));
+  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag/mass)/(2.0*vtsq));
 }
 
 void
@@ -1525,15 +1555,6 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
-  // Create bmag arrays.
-  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
-                                      : gkyl_array_acquire(bmag);
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_2x, &proj_ctx);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -1685,11 +1706,8 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
-  gkyl_array_release(bmag);
   gkyl_array_release(distf);
-  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
-  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 
@@ -1716,10 +1734,11 @@ void eval_distf_3x2v_gk(double t, const double *xn, double* restrict fout, void 
 
   double vtsq = temp/mass;
 
-  double bmag[1] = {-1.0};
-  eval_bfield_3x(t, xn, bmag, ctx);
+  double bfield[3] = {0.0};
+  eval_bfield_3x(t, xn, bfield, ctx);
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
 
-  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag[0]/mass)/(2.0*vtsq));
+  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag/mass)/(2.0*vtsq));
 }
 
 void
@@ -1818,15 +1837,6 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
-  // Create bmag arrays.
-  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
-                                      : gkyl_array_acquire(bmag);
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_3x, &proj_ctx);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -1978,11 +1988,8 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
-  gkyl_array_release(bmag);
   gkyl_array_release(distf);
-  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
-  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 

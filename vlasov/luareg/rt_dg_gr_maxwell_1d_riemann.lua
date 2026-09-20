@@ -64,6 +64,14 @@ vlasovApp = Vlasov.App.new {
   -- Field.
   field = Vlasov.Field.new {
 
+    -- Speed factors
+    epsilon0 = 1.0,
+    mu0 = 1.0,
+    elcErrorSpeedFactor = 1.0, -- chi = c*elcErrorSpeedFactor = 1.
+    mgnErrorSpeedFactor = 1.0, -- gamma = c*mgnErrorSpeedFactor = 1.
+    K_phi = 1.0, -- Damping Constant (electric field).
+    K_psi = 1.0, -- Damping Constant (magnetic field).
+
     -- Use GR field ID
     fieldID = G0.FieldModel.GR,
 
@@ -96,19 +104,8 @@ vlasovApp = Vlasov.App.new {
         Bz = 0.0
       end
 
-      -- Must return conserved variables
-      local metric_det = 1.0 
-      
-      -- Compute Jc * D^i and Jc * B^i
-      local JDx = metric_det * Dx
-      local JDy = metric_det * Dy
-      local JDz = metric_det * Dz
-      local JBx = metric_det * Bx
-      local JBy = metric_det * By
-      local JBz = metric_det * Bz
-
-      -- Hand off the conserved varaibles (Q^\xi = J * U^\xi)
-      return JDx, JDy, JDz, JBx, JBy, JBz, 0.0, 0.0
+      -- Hand off the primative variables (U^\xi)
+      return Dx, Dy, Dz, Bx, By, Bz, 0.0, 0.0
     end,
 
     bcx = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy } -- Copy boundary conditions (x-direction).

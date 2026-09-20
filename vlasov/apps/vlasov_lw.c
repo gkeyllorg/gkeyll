@@ -1509,8 +1509,11 @@ vlasov_field_lw_new(lua_State *L)
   vm_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
   vm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+  vm_field.K_phi = glua_tbl_get_number(L, "K_phi", 0.0);
+  vm_field.K_psi = glua_tbl_get_number(L, "K_psi", 0.0);
   vm_field.limit_em = glua_tbl_get_bool(L, "limitField", false);
   vm_field.use_ghost_current = glua_tbl_get_bool(L, "useGhostCurrent", false);
+  vm_field.use_geom_sources = glua_tbl_get_bool(L, "useGeomSources", true);
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
   vm_field.is_static = !evolve;
@@ -1520,8 +1523,6 @@ vlasov_field_lw_new(lua_State *L)
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
 
-  bool use_lax = glua_tbl_get_bool(L, "useLax", false);
-  vm_field.use_lax = use_lax;
 
   with_lua_tbl_tbl(L, "bcx") { 
     int nbc = glua_objlen(L);
@@ -1709,6 +1710,9 @@ static struct luaL_Reg vm_field_ctor[] = {
 // Lua userdata object for holding Vlasov app and run parameters.
 struct vlasov_app_lw {
   gkyl_vlasov_app *app; // Vlasov app object.
+
+  bool has_mapc2p_pos_func[GKYL_MAX_CDIM]; // Is there a (per-direction) configuration-space mapping?
+  struct lua_func_ctx mapc2p_pos_func_ctx[GKYL_MAX_CDIM]; // Lua registry reference to configuration-space mapping.
 
   double t_start, t_end; // Start and end times of simulation.
   int num_frames; // Number of data frames to write.
@@ -2060,6 +2064,32 @@ vm_app_new(lua_State *L)
   with_lua_tbl_tbl(L, "upper") {
     for (int d = 0; d < cdim; d++) {
       vm.upper[d] = glua_tbl_iget_number(L, d + 1, 0);
+    }
+  }
+
+  // Per-direction non-uniform configuration-space mapping. Each entry of the
+  // mapc2pPos table is a per-direction table with a "pmap" function mapping the
+  // (scalar) computational coordinate to the physical coordinate in that
+  // direction. Directions without an entry use the identity map.
+  for (int d = 0; d < cdim; d++) {
+    app_lw->has_mapc2p_pos_func[d] = false;
+  }
+  with_lua_tbl_tbl(L, "mapc2pPos") {
+    for (int d = 0; d < cdim; d++) {
+      if (glua_tbl_iget_tbl(L, d + 1)) {
+        if (glua_tbl_get_func(L, "pmap")) {
+          app_lw->has_mapc2p_pos_func[d] = true;
+          app_lw->mapc2p_pos_func_ctx[d] = (struct lua_func_ctx) {
+            .func_ref = luaL_ref(L, LUA_REGISTRYINDEX),
+            .ndim = 1, // per-direction map: one (scalar) computational coordinate
+            .nret = 1,
+            .L = L,
+          };
+          vm.mapc2p_pos[d].mapc2p_pos_func = gkyl_lw_eval_cb;
+          vm.mapc2p_pos[d].mapc2p_pos_ctx = &app_lw->mapc2p_pos_func_ctx[d];
+        }
+      }
+      lua_pop(L, 1);
     }
   }
 

@@ -16,6 +16,7 @@ enum gkyl_array_integrate_op {
   GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ,  // int dx |nabla f|^2
   GKYL_ARRAY_INTEGRATE_OP_GRADPERP_SQ,  // int dx |nabla_perp f|^2
   GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ,  // int dx epsilon*|nabla_perp f|^2
+  GKYL_ARRAY_INTEGRATE_OP_EPS_GRAD_SQ,  // int dx sum_ij eps_ij d_i(f) d_j(f) (full conf gradient)
 };
 
 /**

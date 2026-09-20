@@ -68,7 +68,9 @@ fluid_calc_cross_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
 }
 
 // Explicit coupling to Vlasov-Maxwell: accumulate this species' current onto
-// the EM RHS ('target' is emout), J_s = q_s * m1i, scaled by -1/epsilon0.
+// the EM RHS ('target' is emout), J_s = q_s * m1i, scaled by -1/epsilon0. A
+// triad species coupled to GR-Maxwell deposits through the GR kernel instead,
+// which needs the charge density as well as the current.
 static void
 kinetic_accumulate_current(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin,
@@ -78,7 +80,16 @@ kinetic_accumulate_current(gkyl_vlasov_app *app, struct vlasov_species *sp,
   double qbyeps = sp->charge/app->field->info.epsilon0;
 
   vm_species_moment_calc(&s->m1i, s->local, app->local, fin);
-  gkyl_array_accumulate_range(target, -qbyeps, s->m1i.marr, &app->local);
+  if (s->collisionless.has_gr_em_triad_coupling) {
+    vm_species_moment_calc(&s->m0, s->local, app->local, fin);
+    // The GR kernel forms q/eps0*(rho*beta - alpha*e^i_a*Jhat^a).
+    gkyl_dg_gr_maxwell_current_deposition_advance(s->collisionless.calc_current_dep,
+      &app->local, qbyeps, app->field->geom->lapse, app->field->geom->shift,
+      app->field->geom->vierb_con, s->m0.marr, s->m1i.marr, target);
+  }
+  else {
+    gkyl_array_accumulate_range(target, -qbyeps, s->m1i.marr, &app->local);
+  }
 
   if (app->field->use_ghost_current) {
     double avals_ghost_current[1], avals_ghost_current_global[1];
@@ -483,8 +494,8 @@ vlasov_species_write_lte_corr_status(gkyl_vlasov_app *app, struct vlasov_species
 }
 
 // Read each present aspect's evolved state from the named file, then rebuild
-// the derived state a restart does not carry: velocity-space Jacobian rescale
-// and boundary fluxes (kinetic), BCs, sources, and time-independent applied
+// the derived state a restart does not carry: velocity- and configuration-space
+// Jacobian rescale and boundary fluxes (kinetic), BCs, sources, and time-independent applied
 // accelerations (recomputed here since the time-stepping loop will not).
 struct gkyl_app_restart_status
 vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const char *fname)
@@ -505,6 +516,11 @@ vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const 
         // Need to do this before applying boundary conditions since we only know f on
         // the local range for the rescaling.
         gkyl_vlasov_velocity_map_rescale_jacobvel(vms->vel_map, &app->basis, &vms->basis,
+          &vms->local, vms->f, vms->f_no_J);
+        gkyl_array_copy(vms->f, vms->f_no_J);
+        // Also rescale by the configuration-space Jacobian since the output
+        // distribution does not include it either (stored f is J_x*J_v*f).
+        gkyl_vlasov_position_map_rescale_jacobpos(vms->pos_map, &vms->basis,
           &vms->local, vms->f, vms->f_no_J);
         gkyl_array_copy(vms->f, vms->f_no_J);
 

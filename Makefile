@@ -28,6 +28,23 @@ HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DG
 -include config.mak
 -include alltargets.mak
 
+# Optional heavy kernel sets (tensor p=1 hybrid basis in 2x3v and 3x3v). Off by
+# default: they add tens of MB of generated kernels and, under nvcc, tens of
+# minutes of compile time. Set the knobs in config.mak (see ./configure --help).
+# The corresponding kernel tables get NULL rows when a set is not built, and the
+# apps refuse such configurations with a message pointing here.
+BUILD_VLASOV_HYB_2X3V ?=
+BUILD_VLASOV_HYB_3X3V ?=
+BUILD_VLASOV_HYB_3X3V_PHASE ?=
+
+ifeq ($(BUILD_VLASOV_HYB_3X3V_PHASE),1)
+ifneq ($(BUILD_VLASOV_HYB_3X3V),1)
+$(error BUILD_VLASOV_HYB_3X3V_PHASE=1 requires BUILD_VLASOV_HYB_3X3V=1: the 3x3v phase-space Hamiltonian kernels run on top of the 3x3v hybrid velocity-map, moment and flux kernels. Reconfigure with --build-vlasov-hyb-3x3v=yes as well)
+endif
+endif
+# (the -D flags for these knobs are added to CFLAGS below, after the compiler
+# specific CFLAGS are set, since the nvcc branch reassigns CFLAGS)
+
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC_DIR ?= $(PREFIX)/OpenBLAS/include/
 LAPACK_LIB_DIR ?= $(PREFIX)/OpenBLAS/lib/
@@ -97,6 +114,17 @@ CFLAGS += ${HAVE_APP_FLAGS}
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
 CFLAGS += -DGKYL_SHARE_DIR=\"$(GKYL_SHARE_DIR)\"
+
+# Optional heavy kernel set defines (knobs resolved above)
+ifeq ($(BUILD_VLASOV_HYB_2X3V),1)
+	CFLAGS += -DGKYL_BUILD_VLASOV_HYB_2X3V
+endif
+ifeq ($(BUILD_VLASOV_HYB_3X3V),1)
+	CFLAGS += -DGKYL_BUILD_VLASOV_HYB_3X3V
+endif
+ifeq ($(BUILD_VLASOV_HYB_3X3V_PHASE),1)
+	CFLAGS += -DGKYL_BUILD_VLASOV_HYB_3X3V_PHASE
+endif
 
 # MPI paths and flags
 USING_MPI =
@@ -204,6 +232,7 @@ export FIN_APP_LIB_DIR FIN_APP_LIB HAVE_APP_FLAGS
 export MKDIR_P GKYL_SHARE_DIR BUILD_APP
 export GKEYLL_SHARE_INSTALL_PREFIX SED_REPS_STR1 SED_REPS_STR2 MAKEFILE_FOR_EXT_C_INP_PHONY
 export CONF_MPI_INC_DIR CONF_MPI_LIB_DIR
+export BUILD_VLASOV_HYB_2X3V BUILD_VLASOV_HYB_3X3V BUILD_VLASOV_HYB_3X3V_PHASE
 export CONF_NCCL_INC_DIR CONF_NCCL_LIB_DIR
 export CONF_CUDSS_INC_DIR CONF_CUDSS_LIB_DIR
 export CONF_LUA_INC_DIR CONF_LUA_LIB_DIR CONF_LUA_LIB
@@ -282,8 +311,11 @@ core-install: ## Install core infrastructure code
 core-clean: ## Clean core infrastructure code
 	cd core && $(MAKE) -f Makefile-core clean
 
-core-check: core ## Run unit tests in core
+core-check: core ## (Re)build and run unit tests in core
 	cd core && $(MAKE) -f Makefile-core check
+
+core-unit-run: ## Run core unit tests
+	cd core && $(MAKE) -f Makefile-core unit-run
 
 core-valcheck: core ## Run valgrind on unit tests in core
 	cd core && $(MAKE) -f Makefile-core valcheck
@@ -308,8 +340,11 @@ moments-install: core-install ## Install moments infrastructure code
 moments-clean: ## Clean moments infrastructure code
 	cd moments && $(MAKE) -f Makefile-moments clean
 
-moments-check: moments ## Run unit tests in moments
+moments-check: moments ## (Re)build and run unit tests in moments
 	cd moments && $(MAKE) -f Makefile-moments check
+
+moments-unit-run: ## Run moments unit tests
+	cd moments && $(MAKE) -f Makefile-moments unit-run
 
 moments-valcheck: moments ## Run valgrind on unit tests in moments
 	cd moments && $(MAKE) -f Makefile-moments valcheck
@@ -331,8 +366,11 @@ vlasov-install: moments-install ## Install Vlasov infrastructure code
 vlasov-clean: ## Clean Vlasov infrastructure code
 	cd vlasov && $(MAKE) -f Makefile-vlasov clean
 
-vlasov-check: vlasov ## Run unit tests in Vlasov
+vlasov-check: vlasov ## (Re)build and run unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov check
+
+vlasov-unit-run: ## Run Vlasov unit tests
+	cd vlasov && $(MAKE) -f Makefile-vlasov unit-run
 
 vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov valcheck
@@ -354,8 +392,11 @@ gyrokinetic-install: vlasov-install ## Install Gyrokinetic infrastructure code
 gyrokinetic-clean: ## Clean Gyrokinetic infrastructure code
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic clean
 
-gyrokinetic-check: gyrokinetic ## Run unit tests in Gyrokinetics
+gyrokinetic-check: gyrokinetic ## (Re)build and run unit tests in Gyrokinetics
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic check
+
+gyrokinetic-unit-run: ## Run Gyrokinetic unit tests
+	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic unit-run
 
 gyrokinetic-valcheck: gyrokinetic ## Run valgrind on unit tests in Gyrokinetics
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic valcheck
@@ -377,8 +418,11 @@ pkpm-install: gyrokinetic-install ## Install PKPM infrastructure code
 pkpm-clean: ## Clean PKPM infrastructure code
 	cd pkpm && $(MAKE) -f Makefile-pkpm clean
 
-pkpm-check: pkpm ## Run unit tests in PKPM
+pkpm-check: pkpm ## (Re)build and run unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm check
+
+pkpm-unit-run: ## Run PKPM unit tests
+	cd pkpm && $(MAKE) -f Makefile-pkpm unit-run
 
 pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm valcheck
@@ -392,7 +436,7 @@ gkeyll-install: ${BUILD_APP}-install gkeyll ## Install Gkeyll executable
 
 ## Targets to build things all parts of the code
 
-# build all unit tests 
+# build all unit tests
 unit: pkpm-unit gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all unit tests
 
 # build all regression tests 
@@ -403,7 +447,25 @@ clean:
 	rm -rf ${BUILD_DIR}
 
 # Check everything
-check: core-check moments-check vlasov-check gyrokinetic-check pkpm-check ## Run all unit tests
+check: unit unit-run ## Build (if needed) and run all unit tests
+
+# Run all unit tests
+unit-run: ## Run all unit tests without (re)building them
+	@export GKYL_TEST_LOG=$$(mktemp); : > "$$GKYL_TEST_LOG"; \
+	for app in core moments vlasov gyrokinetic pkpm; do \
+	  $(MAKE) -C $$app -f Makefile-$$app unit-run; \
+	done; \
+	npass=$$(grep -c '^PASS ' "$$GKYL_TEST_LOG"); \
+	nfail=$$(grep -c '^FAIL ' "$$GKYL_TEST_LOG"); \
+	ntot=$$((npass+nfail)); \
+	echo "==================== gkeyll unit test summary ===================="; \
+	echo "Total: $$ntot   Passed: $$npass   Failed: $$nfail"; \
+	if [ $$nfail -gt 0 ]; then \
+	  echo "Failed tests:"; \
+	  grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; \
+	  rm -f "$$GKYL_TEST_LOG"; \
+	  exit 1; \
+	fi
 
 # From: https://www.client9.com/self-documenting-makefiles/
 .PHONY: help

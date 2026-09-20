@@ -39,18 +39,18 @@ static const gkyl_dg_calc_radiation_kern_list ser_rad_curvature_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_calc_radiation_kern_list tensor_rad_compton_kernels[] = {
   // 1x kernels
-  { NULL, NULL, rad_compton_1v_tensor_p2, rad_compton_1v_tensor_p3 }, // 0
-  { NULL, NULL, rad_compton_2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, rad_compton_3v_tensor_p2, NULL }, // 2
+  { NULL, rad_compton_1v_tensor_p1, rad_compton_1v_tensor_p2, rad_compton_1v_tensor_p3 }, // 0
+  { NULL, rad_compton_2v_tensor_p1, rad_compton_2v_tensor_p2, NULL }, // 1
+  { NULL, rad_compton_3v_tensor_p1, rad_compton_3v_tensor_p2, NULL }, // 2
 };
 
 // Curvature radiation, rad = -1/t_cool*sign(p)*p^4 = -1/t_cool*fabs(p)*p^3 (Tensor kernels).
 GKYL_CU_D
 static const gkyl_dg_calc_radiation_kern_list tensor_rad_curvature_kernels[] = {
   // 1x kernels
-  { NULL, NULL, rad_curvature_1v_tensor_p2, rad_curvature_1v_tensor_p3 }, // 0
-  { NULL, NULL, rad_curvature_2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, rad_curvature_3v_tensor_p2, NULL }, // 2
+  { NULL, rad_curvature_1v_tensor_p1, rad_curvature_1v_tensor_p2, rad_curvature_1v_tensor_p3 }, // 0
+  { NULL, rad_curvature_2v_tensor_p1, rad_curvature_2v_tensor_p2, NULL }, // 1
+  { NULL, rad_curvature_3v_tensor_p1, rad_curvature_3v_tensor_p2, NULL }, // 2
 };
 
 GKYL_CU_D

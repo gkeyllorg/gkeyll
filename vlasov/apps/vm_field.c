@@ -9,6 +9,17 @@
 #include <float.h>
 #include <time.h>
 
+// Configuration-space c2p for projecting the (physical-space) EM field initial
+// condition on a non-uniform conf mesh: maps the projection's computational
+// quadrature points to physical coordinates via the position map. Identity map
+// => identity c2p, so uniform grids are unaffected.
+static void
+vm_field_pos_c2p(const double *xcomp, double *xphys, void *ctx)
+{
+  struct vm_field_proj_c2p_ctx *c = ctx;
+  gkyl_vlasov_position_map_eval_mc2p(c->pos_map, xcomp, xphys);
+}
+
 static bool
 vm_field_is_fixed_func_bc(const struct vm_field *field, int d)
 {
@@ -73,13 +84,23 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   // Acquire the geometry object (only used for GR)
-  f->use_lax = false;
+  // Standard E_B Maxwell on a non-identity position map evolves the J-weighted
+  // fields J*E, J*B (so the mapped curl kernels and the J-weighted current are
+  // consistent) and keeps the physical E, B in em_no_J for the Lorentz force and
+  // I/O. The GR path uses the same em_no_J array (un-weighted by det_h instead).
+  f->weight_by_pos_jacob = (f->field_id == GKYL_FIELD_E_B) && (!app->pos_map->is_identity);
+  // c2p for projecting the (physical) EM field IC on a mapped conf mesh.
+  f->ext_c2p_ctx = (struct vm_field_proj_c2p_ctx) { .pos_map = app->pos_map };
   if ( f->field_id == GKYL_FIELD_GR_D_B ){
     f->geom = app->vm_geom;
     f->em_no_J = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
     f->em_no_J_host = app->use_gpu ? mkarr(false, f->em_no_J->ncomp, f->em_no_J->size)
                                    : gkyl_array_acquire(f->em_no_J);
-    f->use_lax = f->info.use_lax;
+  }
+  else if ( f->weight_by_pos_jacob ) {
+    f->em_no_J = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+    f->em_no_J_host = app->use_gpu ? mkarr(false, f->em_no_J->ncomp, f->em_no_J->size)
+                                   : gkyl_array_acquire(f->em_no_J);
   }
 
   // allocate EM arrays
@@ -173,8 +194,16 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   // equation object
-  double c = 1/sqrt(f->info.epsilon0*f->info.mu0);
+  double c = 1.0;
+  if (f->field_id == GKYL_FIELD_GR_D_B) {
+    // Check that the speed of light is in natural units for GR.
+    assert(fabs(f->info.epsilon0*f->info.mu0 - 1.0) < 1e-12);
+  }
+  else {
+    c = 1/sqrt(f->info.epsilon0*f->info.mu0);
+  }
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
+  double K_phi = f->info.K_phi, K_psi = f->info.K_psi;
 
   struct gkyl_dg_eqn *eqn;
 
@@ -189,10 +218,12 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     struct gkyl_dg_gr_maxwell_conf_flux_surf_inp inp_conf_flux = {
       .conf_basis = &app->basis,
       .conf_grid = &app->grid,
+      .pos_map = app->pos_map,
       .field_id = f->field_id,
       .theta_pole_lo = app->vm_geom->theta_pole_lo,
       .theta_pole_up = app->vm_geom->theta_pole_up,
-      .use_lax = f->info.use_lax,
+      .chi = ef,
+      .gamma = mf,
       .use_gpu = app->use_gpu,
     }; 
     f->calc_conf_flux = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp_conf_flux); 
@@ -202,10 +233,12 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   struct gkyl_dg_maxwell_inp inp_dg_maxwell = {
     .cbasis = &app->basis,
     .crange = &app->local,
+    .jacob_pos = app->pos_map->jacob_pos, // position-map Jacobian for the mapped curl (identity => no effect)
     .conf_flux_surf = (f->field_id == GKYL_FIELD_GR_D_B ) ? f->conf_flux_surf : 0,
     .lapse = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->lapse : 0,
     .shift = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->shift : 0,
     .h_ij = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->h_ij : 0,
+    .h_ij_inv = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->h_ij_inv : 0,
     .det_h = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->det_h : 0,
     .lightSpeed = c,
     .field_id = f->field_id,
@@ -267,7 +300,30 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->ghost_current = mkarr(app->use_gpu, 1, app->local_ext.volume);
     if (app->use_gpu) {
       f->red_ghost_current = gkyl_cu_malloc(sizeof(double[1]));
-    } 
+    }
+  }
+
+  f->use_geom_sources = false;
+  f->geom_source = 0;
+  f->calc_geom_source = 0;
+
+  // Geometric sources are only active for GR_D_B fields. For that model,
+  // use the input flag, which defaults to true in Lua.
+  bool use_geom_sources = f->field_id == GKYL_FIELD_GR_D_B && f->info.use_geom_sources;
+  if (use_geom_sources) {
+    f->use_geom_sources = true; 
+    f->geom_source = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_dg_gr_maxwell_geom_source_inp inp_geom_source = {
+      .conf_basis = &app->basis,
+      .conf_grid = &app->grid,
+      .field_id = f->field_id,
+      .chi = ef,
+      .gamma = mf,
+      .K_phi = K_phi,
+      .K_psi = K_psi,
+      .use_gpu = app->use_gpu,
+    };
+    f->calc_geom_source = gkyl_dg_gr_maxwell_geom_source_inew(&inp_geom_source);
   }
 
   // allocate buffer for applying BCs 
@@ -360,8 +416,20 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
   if (!app->has_field) return;
 
   int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-    poly_order+1, 8, field->info.init, field->info.ctx);
+  // Project the (physical-space) EM field IC on the physical coordinates of the
+  // (possibly mapped) conf mesh via the position-map c2p (identity => no effect).
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = poly_order+1,
+      .num_ret_vals = 8,
+      .eval = field->info.init,
+      .ctx = field->info.ctx,
+      .c2p_func = vm_field_pos_c2p,
+      .c2p_func_ctx = &field->ext_c2p_ctx,
+    }
+  );
 
   // run updater; need to project onto extended range for ease of handling
   // subsequent operations over extended range such as magnetic field unit vector computation
@@ -376,6 +444,22 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
     gkyl_array_copy(field->em_no_J, field->em_host);
     gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
       field->em_no_J, field->em, app->use_gpu);
+    // On a mapped conf mesh the evolved fields also carry the (cell-constant)
+    // position-map Jacobian: J_pos*J_c*(D,B). em_no_J stays J_pos-weighted
+    // (the surface kernels un-weight the normal direction per side).
+    if (!app->pos_map->is_identity) {
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local_ext,
+        field->em, field->em);
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local_ext,
+        field->em_no_J, field->em_no_J);
+    }
+  }
+  else if (field->weight_by_pos_jacob) {
+    // Physical E, B were projected into em_host/em_no_J; store the J-weighted
+    // fields evolved by the mapped Maxwell solver (em = J*E, J*B).
+    gkyl_array_copy(field->em_no_J, field->em_host);
+    gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local_ext,
+      field->em_no_J, field->em);
   }
   else if (app->use_gpu) {
     gkyl_array_copy(field->em, field->em_host);
@@ -442,6 +526,21 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
   }
 }
 
+void 
+vm_field_accumulate_geom_sources(gkyl_vlasov_app *app, 
+  const struct gkyl_array *emin, const struct vm_geom *vm_geom, struct gkyl_array *emout)
+{
+  // Accumulate the geometric source terms onto the fields .
+  // Accumulate *only* if there is geometry sources to accumulate.
+  if (app->field->use_geom_sources) {
+    gkyl_array_clear(app->field->geom_source, 0.0);
+    gkyl_dg_gr_maxwell_geom_source_advance(app->field->calc_geom_source, &app->local,
+      vm_geom->geom_factor_con, emin, app->field->geom_source);
+    gkyl_array_accumulate_range(emout, 1.0, app->field->geom_source, &app->local);
+  }
+}
+
+
 void
 vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em)
 {
@@ -499,6 +598,11 @@ vm_field_complete_update(gkyl_vlasov_app *app, double dt, const struct gkyl_arra
     app->stat.current_tm += gkyl_time_diff_now_sec(wst);
   }
 
+  // Accumulate geometric source terms onto the field RHS.
+  if (app->field->use_geom_sources) {
+    vm_field_accumulate_geom_sources(app, emin, app->vm_geom, emout);
+  }
+
   // complete update of field (even when field is static, it is
   // safest to do this accumulate as it ensure emout = emin)
   gkyl_array_accumulate(gkyl_array_scale(emout, dt), 1.0, emin);
@@ -528,7 +632,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
 
     // Compute the surface expansion of the phase space flux in configuration space. 
     gkyl_dg_gr_maxwell_conf_flux_surf_advance(field->calc_conf_flux, &app->local, &app->local_ext, 
-      field->geom->lapse, field->geom->shift, field->geom->h_ij, field->geom->det_h, em,
+      field->geom->lapse, field->geom->shift, field->geom->h_ij, field->geom->h_ij_inv, field->geom->det_h, em,
       field->em_no_J, field->cflrate, field->conf_flux_surf);
   }
 
@@ -655,6 +759,20 @@ vm_field_write(gkyl_vlasov_app* app, double tm, int frame)
     if (app->use_gpu) {
       gkyl_array_copy(app->field->em_no_J_host, app->field->em_no_J);
     }
+    // On a mapped mesh em_no_J still carries the position-map Jacobian.
+    if (!app->pos_map->is_identity) {
+      gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local,
+        app->field->em_no_J_host->ncomp, app->field->em_no_J_host, app->field->em_no_J_host);
+    }
+    field_to_write = app->field->em_no_J_host;
+  }
+  else if (app->field->weight_by_pos_jacob) {
+    // Write the physical E, B (divide the stored J*E, J*B by the conf Jacobian).
+    if (app->use_gpu) {
+      gkyl_array_copy(app->field->em_host, app->field->em);
+    }
+    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local,
+      app->field->em_host->ncomp, app->field->em_host, app->field->em_no_J_host);
     field_to_write = app->field->em_no_J_host;
   }
   else if (app->use_gpu) {
@@ -710,6 +828,15 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
     gkyl_dg_calc_l2_range(&app->basis, i, field->em_energy, i, field->em, app->local);
   }
   gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, &app->local);
+  // The field stores J*E, J*B, so the L2 carries J^2 while the (computational)
+  // cellVolume under-counts the physical volume by J; the net is one extra factor
+  // of J. Divide it out so the energy is the physical int J E^2, int J B^2
+  // (= int E^2, B^2 dx_phys). Identity map => J=1 => unchanged.
+  if (field->weight_by_pos_jacob ||
+      (field->field_id == GKYL_FIELD_GR_D_B && !app->pos_map->is_identity)) {
+    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local,
+      field->em_energy->ncomp, field->em_energy, field->em_energy);
+  }
   
   double energy[6] = { 0.0 };
   if (app->use_gpu) {
@@ -776,11 +903,19 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
+  if ( f->weight_by_pos_jacob ) {
+    gkyl_array_release(f->em_no_J);
+    gkyl_array_release(f->em_no_J_host);
+  }
   if ( f->field_id == GKYL_FIELD_GR_D_B ){
     gkyl_array_release(f->em_no_J);
     gkyl_array_release(f->em_no_J_host);
     gkyl_dg_gr_maxwell_conf_flux_surf_release(f->calc_conf_flux);
     gkyl_array_release(f->conf_flux_surf);
+    if (f->use_geom_sources) {
+      gkyl_dg_gr_maxwell_geom_source_release(f->calc_geom_source);
+      gkyl_array_release(f->geom_source);
+    }
   }
   gkyl_array_release(f->em_host);
   gkyl_array_release(f->em_dup);

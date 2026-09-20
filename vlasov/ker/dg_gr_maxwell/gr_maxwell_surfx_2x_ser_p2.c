@@ -76,6 +76,30 @@ GKYL_CU_DH double gr_maxwell_surfx_2x_ser_p2(const double *w, const double *dxv,
   out_6[6] += (-(0.8333333333333335*Fhat_r_nodal_6[2])+0.8333333333333335*(Fhat_l_nodal_6[2]+Fhat_r_nodal_6[0])-0.8333333333333335*Fhat_l_nodal_6[0])*dx10; 
   out_6[7] += (-(0.4303314829119352*(Fhat_r_nodal_6[2]+Fhat_l_nodal_6[2]))+0.8606629658238704*(Fhat_r_nodal_6[1]+Fhat_l_nodal_6[1])-0.4303314829119352*(Fhat_r_nodal_6[0]+Fhat_l_nodal_6[0]))*dx10; 
 
+  const double *Fhat_l_nodal_7 = &Fhat_l_nodal[18]; 
+  const double *Fhat_r_nodal_7 = &Fhat_r_nodal[18]; 
+  double *out_7 = &out[48]; 
+  out_7[0] += (-(0.2777777777777778*Fhat_r_nodal_7[2])+0.2777777777777778*Fhat_l_nodal_7[2]-0.4444444444444444*Fhat_r_nodal_7[1]+0.4444444444444444*Fhat_l_nodal_7[1]-0.2777777777777778*Fhat_r_nodal_7[0]+0.2777777777777778*Fhat_l_nodal_7[0])*dx10; 
+  out_7[1] += (-(0.48112522432468824*(Fhat_r_nodal_7[2]+Fhat_l_nodal_7[2]))-0.7698003589195012*(Fhat_r_nodal_7[1]+Fhat_l_nodal_7[1])-0.48112522432468824*(Fhat_r_nodal_7[0]+Fhat_l_nodal_7[0]))*dx10; 
+  out_7[2] += (-(0.37267799624996495*Fhat_r_nodal_7[2])+0.37267799624996495*(Fhat_l_nodal_7[2]+Fhat_r_nodal_7[0])-0.37267799624996495*Fhat_l_nodal_7[0])*dx10; 
+  out_7[3] += (0.6454972243679029*(Fhat_r_nodal_7[0]+Fhat_l_nodal_7[0])-0.6454972243679029*(Fhat_r_nodal_7[2]+Fhat_l_nodal_7[2]))*dx10; 
+  out_7[4] += (-(0.6211299937499417*Fhat_r_nodal_7[2])+0.6211299937499417*Fhat_l_nodal_7[2]-0.9938079899999065*Fhat_r_nodal_7[1]+0.9938079899999065*Fhat_l_nodal_7[1]-0.6211299937499417*Fhat_r_nodal_7[0]+0.6211299937499417*Fhat_l_nodal_7[0])*dx10; 
+  out_7[5] += (-(0.24845199749997662*Fhat_r_nodal_7[2])+0.24845199749997662*Fhat_l_nodal_7[2]+0.49690399499995325*Fhat_r_nodal_7[1]-0.49690399499995325*Fhat_l_nodal_7[1]-0.24845199749997662*Fhat_r_nodal_7[0]+0.24845199749997662*Fhat_l_nodal_7[0])*dx10; 
+  out_7[6] += (-(0.8333333333333335*Fhat_r_nodal_7[2])+0.8333333333333335*(Fhat_l_nodal_7[2]+Fhat_r_nodal_7[0])-0.8333333333333335*Fhat_l_nodal_7[0])*dx10; 
+  out_7[7] += (-(0.4303314829119352*(Fhat_r_nodal_7[2]+Fhat_l_nodal_7[2]))+0.8606629658238704*(Fhat_r_nodal_7[1]+Fhat_l_nodal_7[1])-0.4303314829119352*(Fhat_r_nodal_7[0]+Fhat_l_nodal_7[0]))*dx10; 
+
+  const double *Fhat_l_nodal_8 = &Fhat_l_nodal[21]; 
+  const double *Fhat_r_nodal_8 = &Fhat_r_nodal[21]; 
+  double *out_8 = &out[56]; 
+  out_8[0] += (-(0.2777777777777778*Fhat_r_nodal_8[2])+0.2777777777777778*Fhat_l_nodal_8[2]-0.4444444444444444*Fhat_r_nodal_8[1]+0.4444444444444444*Fhat_l_nodal_8[1]-0.2777777777777778*Fhat_r_nodal_8[0]+0.2777777777777778*Fhat_l_nodal_8[0])*dx10; 
+  out_8[1] += (-(0.48112522432468824*(Fhat_r_nodal_8[2]+Fhat_l_nodal_8[2]))-0.7698003589195012*(Fhat_r_nodal_8[1]+Fhat_l_nodal_8[1])-0.48112522432468824*(Fhat_r_nodal_8[0]+Fhat_l_nodal_8[0]))*dx10; 
+  out_8[2] += (-(0.37267799624996495*Fhat_r_nodal_8[2])+0.37267799624996495*(Fhat_l_nodal_8[2]+Fhat_r_nodal_8[0])-0.37267799624996495*Fhat_l_nodal_8[0])*dx10; 
+  out_8[3] += (0.6454972243679029*(Fhat_r_nodal_8[0]+Fhat_l_nodal_8[0])-0.6454972243679029*(Fhat_r_nodal_8[2]+Fhat_l_nodal_8[2]))*dx10; 
+  out_8[4] += (-(0.6211299937499417*Fhat_r_nodal_8[2])+0.6211299937499417*Fhat_l_nodal_8[2]-0.9938079899999065*Fhat_r_nodal_8[1]+0.9938079899999065*Fhat_l_nodal_8[1]-0.6211299937499417*Fhat_r_nodal_8[0]+0.6211299937499417*Fhat_l_nodal_8[0])*dx10; 
+  out_8[5] += (-(0.24845199749997662*Fhat_r_nodal_8[2])+0.24845199749997662*Fhat_l_nodal_8[2]+0.49690399499995325*Fhat_r_nodal_8[1]-0.49690399499995325*Fhat_l_nodal_8[1]-0.24845199749997662*Fhat_r_nodal_8[0]+0.24845199749997662*Fhat_l_nodal_8[0])*dx10; 
+  out_8[6] += (-(0.8333333333333335*Fhat_r_nodal_8[2])+0.8333333333333335*(Fhat_l_nodal_8[2]+Fhat_r_nodal_8[0])-0.8333333333333335*Fhat_l_nodal_8[0])*dx10; 
+  out_8[7] += (-(0.4303314829119352*(Fhat_r_nodal_8[2]+Fhat_l_nodal_8[2]))+0.8606629658238704*(Fhat_r_nodal_8[1]+Fhat_l_nodal_8[1])-0.4303314829119352*(Fhat_r_nodal_8[0]+Fhat_l_nodal_8[0]))*dx10; 
+
 
   return 0.0;
 

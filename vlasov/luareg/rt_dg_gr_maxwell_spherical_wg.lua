@@ -10,7 +10,7 @@ pi = math.pi
 -- Simulation parameters.
 Nr = 24 -- Cell count (r-direction).
 Ntheta = 48 -- Cell count (theta-direction).
-poly_order = 1 -- Polynomial order.
+poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
@@ -21,7 +21,7 @@ w = 2.2281321786 -- frequency of mode
 tperiod = 2*math.pi/w -- period of mode
 
 t_end = 2 * tperiod -- Final simulation time.
-num_frames = 1 -- 30 -- Number of output frames.
+num_frames = 30 -- 30 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
@@ -84,6 +84,14 @@ vlasovApp = Vlasov.App.new {
 
     -- Use GR field ID
     fieldID = G0.FieldModel.GR,
+
+    -- Speed factors
+    epsilon0 = 1.0,
+    mu0 = 1.0,
+    elcErrorSpeedFactor = 1.0, -- chi = c*elcErrorSpeedFactor = 1.
+    mgnErrorSpeedFactor = 1.0, -- gamma = c*mgnErrorSpeedFactor = 1.
+    K_phi = 1.0, -- Damping Constant (electric field).
+    K_psi = 1.0, -- Damping Constant (magnetic field).
 
     -- Initial conditions function.
     init = function (t, xn)

@@ -3,7 +3,7 @@ GKYL_CU_DH void dg_gr_maxwell_divide_Jc_2x_ser_p1(const double *J, const double 
 { 
   const double *Jf_comp;
   double *f_comp_no_J;
-  for (int i=0; i<6; ++i) {
+  for (int i=0; i<8; ++i) {
   Jf_comp = &Jfields[i*4];
   f_comp_no_J = &fields_no_J[i*4];
     double fields_no_J_nodal[4] = {0.0};

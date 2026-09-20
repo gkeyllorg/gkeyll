@@ -1,12 +1,14 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void vlasov_phi_vol_1x1v_ser_p1(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void vlasov_phi_vol_1x1v_ser_p1(const double *w, const double *dxv,
+  const double *jacob_pos, const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out) 
 { 
   double dx10 = 2.0/dxv[0]; 
   double dv10 = 2.0/dxv[1]; 
   const double *jacob_vx = &jacob_vel[0]; 
   const double jacob_vx_inv = 1.0/jacob_vx[0]; 
-  out[2] += dv10*dx10*(-(2.1213203435596424*f[0]*phi[1]*jacob_vx_inv)); 
-  out[3] += dv10*dx10*(-(2.1213203435596424*f[1]*phi[1]*jacob_vx_inv)); 
+  const double *jacob_cx = &jacob_pos[0]; 
+  const double jacob_cx_inv = 1.0/jacob_cx[0]; 
+  out[2] += dv10*dx10*jacob_cx_inv*jacob_vx_inv*(-(2.1213203435596424*f[0]*phi[1])); 
+  out[3] += dv10*dx10*jacob_cx_inv*jacob_vx_inv*(-(2.1213203435596424*f[1]*phi[1])); 
 
 } 

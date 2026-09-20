@@ -7,7 +7,20 @@
 
 #include <assert.h>
 #include <float.h>
+#include <math.h>
 #include <time.h>
+
+// Configuration-space c2p for external-field/potential projection: map the
+// projection's computational quadrature coordinates to physical ones via the
+// position map, so the user-supplied function (defined in physical space) is
+// sampled at the correct locations on a non-uniform conf mesh. For an identity
+// map eval_mc2p is the identity, leaving uniform-grid behavior unchanged.
+static void
+vp_field_ext_c2p(const double *xcomp, double *xphys, void *ctx)
+{
+  struct vm_field_proj_c2p_ctx *c = ctx;
+  gkyl_vlasov_position_map_eval_mc2p(c->pos_map, xcomp, xphys);
+}
 
 struct vm_field*
 vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
@@ -32,16 +45,65 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&vpf->global_sub_range, &app->global, &app->local);
 
-  // Set the permittivity in the Poisson equation.
-  vpf->epsilon = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-  gkyl_array_clear(vpf->epsilon, 0.0);
-  gkyl_array_shiftc(vpf->epsilon, vpf->info.epsilon0*pow(sqrt(2.0),app->cdim), 0);
+  // Set the permittivity in the Poisson equation. On a uniform grid (identity
+  // position map) this is the constant scalar epsilon0. On a non-uniform conf
+  // mesh it is the diagonal metric permittivity tensor
+  //   eps^{ii} = epsilon0 * J / J_xi^2   (off-diagonals 0, diagonal position map)
+  // with J = prod_i J_xi the total conf Jacobian (per cell constant). This makes
+  // the weak Poisson operator int eps^{ij} d_i(phi) d_j(psi) dxi equal the
+  // physical int epsilon0 grad(phi).grad(psi) dx; the RHS rho_c already carries J.
+  int cdim = app->cdim, nb = app->basis.num_basis;
+  double dg0 = pow(sqrt(2.0), cdim); // 0th DG coeff representing a constant value.
+  bool eps_const = app->pos_map->is_identity;
+  // Symmetric permittivity tensor component count: 1x->1, 2x->3, 3x->6.
+  int epsnum = eps_const ? 1 : cdim + (int) ceil((pow(3.0, cdim-1) - cdim)/2.0);
 
-  // Create Poisson solver.
+  vpf->epsilon = mkarr(app->use_gpu, epsnum*nb, app->global_ext.volume);
+  gkyl_array_clear(vpf->epsilon, 0.0);
+  if (eps_const) {
+    gkyl_array_shiftc(vpf->epsilon, vpf->info.epsilon0*dg0, 0);
+  }
+  else {
+    // Build the local diagonal tensor from the position map, then allgather to
+    // the global array the FEM solver reads (mirrors the rho_c allgather).
+    struct gkyl_array *eps_local = mkarr(app->use_gpu, epsnum*nb, app->local_ext.volume);
+    struct gkyl_array *eps_local_ho = app->use_gpu ? mkarr(false, epsnum*nb, app->local_ext.volume)
+                                                   : gkyl_array_acquire(eps_local);
+    gkyl_array_clear(eps_local_ho, 0.0);
+    int stride = app->basis.poly_order + 1; // per-direction block stride in jacob_pos.
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      long cidx = gkyl_range_idx(&app->local, iter.idx);
+      const double *jacob_pos = gkyl_array_cfetch(app->pos_map->jacob_pos_host, cidx);
+      const double *jacob_pos_gauss = gkyl_array_cfetch(app->pos_map->jacob_pos_gauss_host, cidx);
+      double Jtot = jacob_pos_gauss[0];
+      double *eps_d = gkyl_array_fetch(eps_local_ho, cidx);
+      for (int i=0; i<cdim; ++i) {
+        double Jxi = jacob_pos[i*stride];
+        int diag = i*cdim - (i*(i-1))/2; // index of (i,i) in symmetric upper-triangular storage.
+        eps_d[diag*nb] = vpf->info.epsilon0 * Jtot/(Jxi*Jxi) * dg0;
+      }
+    }
+    if (app->use_gpu) {
+      gkyl_array_copy(eps_local, eps_local_ho);
+    }
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, eps_local, vpf->epsilon);
+    gkyl_array_release(eps_local);
+    gkyl_array_release(eps_local_ho);
+  }
+
+  // Create Poisson solver (variable permittivity when the conf mesh is mapped).
   vpf->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->basis,
-    &vpf->info.poisson_bcs, NULL, vpf->epsilon, NULL, true, app->use_gpu);
+    &vpf->info.poisson_bcs, NULL, vpf->epsilon, NULL, eps_const, app->use_gpu);
 
   vpf->field_id = GKYL_FIELD_PHI;
+
+  // Coordinate map for projecting external fields/potentials: their user
+  // functions are defined in physical space, so the projection must map its
+  // computational quadrature points through the position map first. Identity map
+  // -> identity c2p, so uniform grids are unaffected.
+  vpf->ext_c2p_ctx = (struct vm_field_proj_c2p_ctx) { .pos_map = app->pos_map };
 
   // Initialize external potentials.
   vpf->ext_pot = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);
@@ -57,9 +119,18 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
     vpf->ext_pot_host = app->use_gpu ? mkarr(false, vpf->ext_pot->ncomp, vpf->ext_pot->size)
                                      : gkyl_array_acquire(vpf->ext_pot);
+    // Project on the physical coordinates of the (possibly mapped) conf mesh.
     // 4 components: phi and the three components of A.
-    vpf->ext_pot_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 4,
-      vpf->info.external_potentials, vpf->info.external_potentials_ctx);
+    vpf->ext_pot_proj = gkyl_eval_on_nodes_inew( &(struct gkyl_eval_on_nodes_inp) {
+        .grid = &app->grid,
+        .basis = &app->basis,
+        .num_ret_vals = 4,
+        .eval = vpf->info.external_potentials,
+        .ctx = vpf->info.external_potentials_ctx,
+        .c2p_func = vp_field_ext_c2p,
+        .c2p_func_ctx = &vpf->ext_c2p_ctx,
+      }
+    );
   }
 
   // Initialize external EM fields.
@@ -76,8 +147,19 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
     vpf->ext_em_host = app->use_gpu ? mkarr(false, vpf->ext_em->ncomp, vpf->ext_em->size)
                                     : gkyl_array_acquire(vpf->ext_em);
-    vpf->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->basis.poly_order+1,
-      6, vpf->info.ext_em, vpf->info.ext_em_ctx);
+    // Project on the physical coordinates of the (possibly mapped) conf mesh.
+    vpf->ext_em_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->basis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = app->basis.poly_order+1,
+        .num_ret_vals = 6,
+        .eval = vpf->info.ext_em,
+        .ctx = vpf->info.ext_em_ctx,
+        .c2p_func = vp_field_ext_c2p,
+        .c2p_func_ctx = &vpf->ext_c2p_ctx,
+      }
+    );
   }
 
   // Vlasov-Poisson doesn't presently use external currents or limiters.
@@ -94,11 +176,55 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   vpf->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
 
-  vpf->es_energy_fac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gkyl_array_shiftc(vpf->es_energy_fac, pow(sqrt(2.0),app->cdim), 0); // Sets es_energy_fac=1.
+  // Electrostatic field-energy factor. For an identity position map this is the
+  // scalar es_energy_fac=1 with the plain |grad phi|^2 operator (GRAD_SQ), exactly
+  // as before. For a mapped conf mesh the physical field energy is
+  //   int epsilon0/2 |grad_x phi|^2 dx = int sum_i (J/J_xi^2)(d_xi phi)^2 dxi,
+  // i.e. a diagonal metric eps_ii = J/J_xi^2 (J = prod_i J_xi, per-cell constant;
+  // no epsilon0 here, matching the existing |grad phi|^2 diagnostic convention)
+  // folded into the full-gradient weighted operator (EPS_GRAD_SQ). The weight uses
+  // the same symmetric upper-triangular layout as the Poisson permittivity tensor.
+  bool es_fac_const = app->pos_map->is_identity;
+  int es_epsnum = es_fac_const ? 1 : cdim + (int) ceil((pow(3.0, cdim-1) - cdim)/2.0);
+  vpf->es_energy_fac = mkarr(app->use_gpu, es_epsnum*nb, app->local_ext.volume);
+  gkyl_array_clear(vpf->es_energy_fac, 0.0);
+  if (es_fac_const) {
+    gkyl_array_shiftc(vpf->es_energy_fac, dg0, 0); // Sets es_energy_fac=1 (unused by GRAD_SQ).
+  }
+  else {
+    struct gkyl_array *esfac_ho = app->use_gpu ? mkarr(false, es_epsnum*nb, app->local_ext.volume)
+                                               : gkyl_array_acquire(vpf->es_energy_fac);
+    gkyl_array_clear(esfac_ho, 0.0);
+    int stride = app->basis.poly_order + 1; // per-direction block stride in jacob_pos.
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      long cidx = gkyl_range_idx(&app->local, iter.idx);
+      const double *jacob_pos = gkyl_array_cfetch(app->pos_map->jacob_pos_host, cidx);
+      const double *jacob_pos_gauss = gkyl_array_cfetch(app->pos_map->jacob_pos_gauss_host, cidx);
+      double Jtot = jacob_pos_gauss[0];
+      double *esfac_d = gkyl_array_fetch(esfac_ho, cidx);
+      for (int i=0; i<cdim; ++i) {
+        double Jxi = jacob_pos[i*stride];
+        int diag = i*cdim - (i*(i-1))/2; // (i,i) in symmetric upper-triangular storage.
+        // Diagonal metric weight = J^2/J_xi^2: one factor of J = sqrt(g) folds the
+        // physical volume into the metric (g^ii = 1/J_xi^2), and a second factor of
+        // J corrects the integrate operator's (computational) cell-volume factor to
+        // the physical cell volume J*dxi_comp. With this weight EPS_GRAD_SQ matches
+        // the uniform-grid GRAD_SQ diagnostic exactly for a constant-Jacobian map
+        // (verified for all cdim) and reduces to GRAD_SQ for the identity map.
+        esfac_d[diag*nb] = (Jtot*Jtot)/(Jxi*Jxi) * dg0;
+      }
+    }
+    if (app->use_gpu) {
+      gkyl_array_copy(vpf->es_energy_fac, esfac_ho);
+    }
+    gkyl_array_release(esfac_ho);
+  }
 
-  vpf->calc_es_energy = gkyl_array_integrate_new(&app->grid, &app->basis,
-    1, GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ, app->use_gpu);
+  vpf->calc_es_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 1,
+    es_fac_const ? GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ : GKYL_ARRAY_INTEGRATE_OP_EPS_GRAD_SQ,
+    app->use_gpu);
   vpf->is_first_energy_write_call = true;
 
   // Set the type-specific dispatch methods (Vlasov-Poisson). The potential is

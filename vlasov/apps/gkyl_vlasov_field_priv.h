@@ -13,6 +13,7 @@
 #include <gkyl_bc_basic.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
+#include <gkyl_dg_gr_maxwell_geom_source.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_eval_on_nodes.h>
@@ -24,6 +25,17 @@
 #include <gkyl_vlasov.h>
 
 struct vm_geom; // geometry data, defined in gkyl_vlasov_priv.h, owned by the app.
+struct gkyl_vlasov_position_map; // configuration-space position map, defined in zero/, owned by the app.
+
+// Coordinate-map context for projecting external fields/potentials on a
+// non-uniform configuration mesh: the projection's computational quadrature
+// coordinates are mapped to physical ones via the position map before the
+// user-supplied function is evaluated. Identity map -> identity c2p (transparent
+// for uniform grids). Lives in the field struct so it outlives the projection
+// objects that capture a pointer to it.
+struct vm_field_proj_c2p_ctx {
+  const struct gkyl_vlasov_position_map *pos_map; // configuration-space position map.
+};
 
 // field data
 struct vm_field {
@@ -90,6 +102,10 @@ struct vm_field {
       struct gkyl_array *ghost_current; // Array for storying global average of current density
       double *red_ghost_current; // memory for use in GPU reduction of average of current density
 
+      bool use_geom_sources; // Are we using geometric sources to correct dE/dt = -J in 1x?
+      struct gkyl_array *geom_source; // Geometric source contribution to field RHS.
+      struct gkyl_dg_gr_maxwell_geom_source *calc_geom_source; // Updater for geometric source contribution.
+
       // boundary conditions on lower/upper edges in each direction
       enum gkyl_field_bc_type lower_bc[3], upper_bc[3];
       // Pointers to updaters that apply BC.
@@ -120,7 +136,8 @@ struct vm_field {
   };
 
   struct vm_geom *geom; // Geometry data for GR-DG-Maxwell (owned by app as app->vm_geom)
-  bool use_lax; // Boolean for determining if we are using lax fluxes for dg-gr-maxwell
+  bool weight_by_pos_jacob; // True for the standard E_B Maxwell field on a non-identity position map:
+                            // em stores J*E, J*B; em_no_J holds the physical E, B for force/I/O.
   struct gkyl_array *em_no_J; // arrays for storing em field without Jc
   struct gkyl_array *em_no_J_host; // host copy of primitive GR fields for I/O
   int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
@@ -144,6 +161,7 @@ struct vm_field {
   struct gkyl_array *ext_pot; // external potentials
   struct gkyl_array *ext_pot_host; // host copy for use in IO and projecting
   gkyl_eval_on_nodes *ext_pot_proj; // projector for external potentials
+  struct vm_field_proj_c2p_ctx ext_c2p_ctx; // comp->phys map for external-field projection on mapped grids
 
   gkyl_dynvec integ_energy; // integrated energy components
   bool is_first_energy_write_call; // flag for energy dynvec written first time
@@ -243,15 +261,29 @@ void vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, dou
 void vm_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm);
 
 /**
- * Accumulate current density onto RHS from field equations
+ * Accumulate current density onto RHS from field equations. Loops over the
+ * unified species list and dispatches each species' explicit field coupling
+ * (kinetic species accumulate -q/eps0*m1i; implicitly-coupled fluid species
+ * are a no-op), then adds the applied current.
  *
  * @param app Vlasov app object
- * @param fin[] Input distribution function (num_species size)
- * @param fluidin[] Input fluid array (num_fluid_species size)
+ * @param fin[] Input distribution functions, indexed over the overall species count (NULL for fluid-only species)
+ * @param fluidin[] Input fluid arrays, indexed over the overall species count (NULL for kinetic-only species)
  * @param emout On output, the RHS from the field solver *with* accumulated current density
  */
 void vm_field_accumulate_current(gkyl_vlasov_app *app,
   const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], struct gkyl_array *emout);
+
+/**
+ * Accumulate geometric source terms onto RHS from field equations.
+ *
+ * @param app Vlasov app object
+ * @param emin Input field at the start of the step
+ * @param vm_geom Geometry data
+ * @param emout On output, the RHS from the field solver *with* geometric sources
+ */
+void vm_field_accumulate_geom_sources(gkyl_vlasov_app *app,
+  const struct gkyl_array *emin, const struct vm_geom *vm_geom, struct gkyl_array *emout);
 
 /**
  * Limit slopes of solution of EM variables

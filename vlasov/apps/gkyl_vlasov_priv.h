@@ -24,18 +24,20 @@
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_calc_canonical_pb_vars.h>
 #include <gkyl_dg_calc_canonical_pb_fluid_vars.h>
+#include <gkyl_dg_calc_canonical_pb_vars.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_fluid_em_coupling.h>
 #include <gkyl_dg_calc_sr_vars.h>
-#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
+#include <gkyl_dg_gr_maxwell_current_deposition.h>
 #include <gkyl_dg_gr_maxwell_divide_Jc.h>
 #include <gkyl_dg_gr_maxwell_geom.h>
+#include <gkyl_dg_gr_maxwell_lorentz_conf.h>
+#include <gkyl_dg_gr_maxwell_geom_source.h>
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_gaussian_filter.h>
@@ -44,8 +46,6 @@
 #include <gkyl_dg_updater_diffusion_fluid.h>
 #include <gkyl_dg_updater_diffusion_gen.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
-#include <gkyl_dg_updater_moment.h>
-#include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_calc_radiation.h>
@@ -80,6 +80,7 @@
 #include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
@@ -119,16 +120,25 @@ struct vm_geom {
 
   // Geometry needed for GR-DG-Maxwells
   bool has_gr_fields; // Boolean for determining if we have fields for GR-DG-Maxwells
+  bool has_gr_em_triad_coupling; // Boolean for GR-DG-Maxwell coupled to triad species
   struct gkyl_surf_and_vol_node_arrays *lapse; // lapse scalar (ADM \alpha)
   struct gkyl_surf_and_vol_node_arrays *shift; // shift vector - contravaraint radial component (ADM \beta^r)
+  struct gkyl_surf_and_vol_node_arrays *geom_factor_con; // contravariant geometric source factors
   struct gkyl_surf_and_vol_node_arrays *h_ij; // Spatial metric, covaraint components, h_ij
+  struct gkyl_surf_and_vol_node_arrays *h_ij_inv; // Spatial metric, contravariant components, h^ij
   struct gkyl_surf_and_vol_node_arrays *det_h; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))
+  struct gkyl_surf_and_vol_node_arrays *vierb_cov; // Covariant vierbein components
+  struct gkyl_surf_and_vol_node_arrays *vierb_con; // Contravariant vierbein components
 
   // Geometry copy for initalization (for GPU only)
   struct gkyl_surf_and_vol_node_arrays *lapse_init; // lapse scalar (ADM \alpha)
   struct gkyl_surf_and_vol_node_arrays *shift_init; // shift vector - contravaraint radial component (ADM \beta^r)
+  struct gkyl_surf_and_vol_node_arrays *geom_factor_con_init; // contravariant geometric source factors
   struct gkyl_surf_and_vol_node_arrays *h_ij_init; // Spatial metric, covaraint components, h_ij
+  struct gkyl_surf_and_vol_node_arrays *h_ij_inv_init; // Spatial metric, contravariant components, h^ij
   struct gkyl_surf_and_vol_node_arrays *det_h_init; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))
+  struct gkyl_surf_and_vol_node_arrays *vierb_cov_init; // Covariant vierbein components
+  struct gkyl_surf_and_vol_node_arrays *vierb_con_init; // Contravariant vierbein components
 
 };
 
@@ -181,6 +191,8 @@ struct gkyl_vlasov_app {
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
   struct gkyl_wave_geom *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 11/24/23)
+
+  struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (owns all position map arrays); shared by all species.
 
   bool has_field; // has field
   struct vm_field *field; // pointer to field object (its dispatch methods are

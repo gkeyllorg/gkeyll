@@ -46,6 +46,20 @@ GKYL_CU_DH double gr_maxwell_surfx_1x_tensor_p2(const double *w, const double *d
   out_6[1] += -(1.224744871391589*(Fhat_r_nodal_6[0]+Fhat_l_nodal_6[0])*dx10); 
   out_6[2] += (1.5811388300841895*Fhat_l_nodal_6[0]-1.5811388300841895*Fhat_r_nodal_6[0])*dx10; 
 
+  const double *Fhat_l_nodal_7 = &Fhat_l_nodal[6]; 
+  const double *Fhat_r_nodal_7 = &Fhat_r_nodal[6]; 
+  double *out_7 = &out[18]; 
+  out_7[0] += (0.7071067811865475*Fhat_l_nodal_7[0]-0.7071067811865475*Fhat_r_nodal_7[0])*dx10; 
+  out_7[1] += -(1.224744871391589*(Fhat_r_nodal_7[0]+Fhat_l_nodal_7[0])*dx10); 
+  out_7[2] += (1.5811388300841895*Fhat_l_nodal_7[0]-1.5811388300841895*Fhat_r_nodal_7[0])*dx10; 
+
+  const double *Fhat_l_nodal_8 = &Fhat_l_nodal[7]; 
+  const double *Fhat_r_nodal_8 = &Fhat_r_nodal[7]; 
+  double *out_8 = &out[21]; 
+  out_8[0] += (0.7071067811865475*Fhat_l_nodal_8[0]-0.7071067811865475*Fhat_r_nodal_8[0])*dx10; 
+  out_8[1] += -(1.224744871391589*(Fhat_r_nodal_8[0]+Fhat_l_nodal_8[0])*dx10); 
+  out_8[2] += (1.5811388300841895*Fhat_l_nodal_8[0]-1.5811388300841895*Fhat_r_nodal_8[0])*dx10; 
+
 
   return 0.0;
 

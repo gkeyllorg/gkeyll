@@ -1,17 +1,26 @@
 #include <gkyl_dg_gr_maxwell_kernels.h> 
-GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const double *dxv, 
-      const int theta_pole, const double *lapse_nodal, const double *shift_nodal, const double *h_ij_nodal, 
-      const double *J_c, const double *field_con_l, const double *field_con_r, 
+GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const gkyl_dg_gr_maxwell_inp *meq, const double *w, const double *dxv, 
+      const int theta_pole, const double *jacob_pos_l, const double *jacob_pos_r,
+      const double *lapse_nodal, const double *shift_nodal, const double *h_ij_nodal, 
+      const double *h_ij_inv_nodal, const double *J_c, const double *field_con_l, const double *field_con_r, 
       const double *field_no_J_con_l, const double *field_no_J_con_r, 
-      double* GKYL_RESTRICT A_plus_dQ, double* GKYL_RESTRICT A_minus_dQ,
       double* GKYL_RESTRICT flux_l, double* GKYL_RESTRICT flux_r, double* GKYL_RESTRICT max_alpha_quad) 
 { 
+  const double chi = meq->chi, gamma = meq->gamma; 
+  const double jacob_pos_l_inv = 1.0/jacob_pos_l[0]; 
+  const double jacob_pos_r_inv = 1.0/jacob_pos_r[0]; 
   const double *h_xx_nodal = &h_ij_nodal[0]; 
   const double *h_xy_nodal = &h_ij_nodal[1]; 
   const double *h_xz_nodal = &h_ij_nodal[2]; 
   const double *h_yy_nodal = &h_ij_nodal[3]; 
   const double *h_yz_nodal = &h_ij_nodal[4]; 
   const double *h_zz_nodal = &h_ij_nodal[5]; 
+  const double *h_xx_inv_nodal = &h_ij_inv_nodal[0]; 
+  const double *h_xy_inv_nodal = &h_ij_inv_nodal[1]; 
+  const double *h_xz_inv_nodal = &h_ij_inv_nodal[2]; 
+  const double *h_yy_inv_nodal = &h_ij_inv_nodal[3]; 
+  const double *h_yz_inv_nodal = &h_ij_inv_nodal[4]; 
+  const double *h_zz_inv_nodal = &h_ij_inv_nodal[5]; 
   const double *shift_nodal_x = &shift_nodal[0]; 
   const double *shift_nodal_y = &shift_nodal[1]; 
   const double *shift_nodal_z = &shift_nodal[2]; 
@@ -22,18 +31,46 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   double JBx_con_l_n[1] = {0.0};
   double JBy_con_l_n[1] = {0.0};
   double JBz_con_l_n[1] = {0.0};
+  double Jphi_l_n[1] = {0.0};
+  double Jpsi_l_n[1] = {0.0};
   double Dx_con_l_n[1] = {0.0};
   double Dy_con_l_n[1] = {0.0};
   double Dz_con_l_n[1] = {0.0};
   double Bx_con_l_n[1] = {0.0};
   double By_con_l_n[1] = {0.0};
   double Bz_con_l_n[1] = {0.0};
+  double phi_l_n[1] = {0.0};
+  double psi_l_n[1] = {0.0};
   double Ex_l_n[1] = {0.0};
   double Ey_l_n[1] = {0.0};
   double Ez_l_n[1] = {0.0};
   double Hx_l_n[1] = {0.0};
   double Hy_l_n[1] = {0.0};
   double Hz_l_n[1] = {0.0};
+  double FD11_l_n[1] = {0.0};
+  double FD12_l_n[1] = {0.0};
+  double FD13_l_n[1] = {0.0};
+  double FD21_l_n[1] = {0.0};
+  double FD22_l_n[1] = {0.0};
+  double FD23_l_n[1] = {0.0};
+  double FD31_l_n[1] = {0.0};
+  double FD32_l_n[1] = {0.0};
+  double FD33_l_n[1] = {0.0};
+  double FB11_l_n[1] = {0.0};
+  double FB12_l_n[1] = {0.0};
+  double FB13_l_n[1] = {0.0};
+  double FB21_l_n[1] = {0.0};
+  double FB22_l_n[1] = {0.0};
+  double FB23_l_n[1] = {0.0};
+  double FB31_l_n[1] = {0.0};
+  double FB32_l_n[1] = {0.0};
+  double FB33_l_n[1] = {0.0};
+  double FPhi1_l_n[1] = {0.0};
+  double FPhi2_l_n[1] = {0.0};
+  double FPhi3_l_n[1] = {0.0};
+  double FPsi1_l_n[1] = {0.0};
+  double FPsi2_l_n[1] = {0.0};
+  double FPsi3_l_n[1] = {0.0};
   
   double JDx_con_r_n[1] = {0.0};
   double JDy_con_r_n[1] = {0.0};
@@ -41,18 +78,46 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   double JBx_con_r_n[1] = {0.0};
   double JBy_con_r_n[1] = {0.0};
   double JBz_con_r_n[1] = {0.0};
+  double Jphi_r_n[1] = {0.0};
+  double Jpsi_r_n[1] = {0.0};
   double Dx_con_r_n[1] = {0.0};
   double Dy_con_r_n[1] = {0.0};
   double Dz_con_r_n[1] = {0.0};
   double Bx_con_r_n[1] = {0.0};
   double By_con_r_n[1] = {0.0};
   double Bz_con_r_n[1] = {0.0};
+  double phi_r_n[1] = {0.0};
+  double psi_r_n[1] = {0.0};
   double Ex_r_n[1] = {0.0};
   double Ey_r_n[1] = {0.0};
   double Ez_r_n[1] = {0.0};
   double Hx_r_n[1] = {0.0};
   double Hy_r_n[1] = {0.0};
   double Hz_r_n[1] = {0.0};
+  double FD11_r_n[1] = {0.0};
+  double FD12_r_n[1] = {0.0};
+  double FD13_r_n[1] = {0.0};
+  double FD21_r_n[1] = {0.0};
+  double FD22_r_n[1] = {0.0};
+  double FD23_r_n[1] = {0.0};
+  double FD31_r_n[1] = {0.0};
+  double FD32_r_n[1] = {0.0};
+  double FD33_r_n[1] = {0.0};
+  double FB11_r_n[1] = {0.0};
+  double FB12_r_n[1] = {0.0};
+  double FB13_r_n[1] = {0.0};
+  double FB21_r_n[1] = {0.0};
+  double FB22_r_n[1] = {0.0};
+  double FB23_r_n[1] = {0.0};
+  double FB31_r_n[1] = {0.0};
+  double FB32_r_n[1] = {0.0};
+  double FB33_r_n[1] = {0.0};
+  double FPhi1_r_n[1] = {0.0};
+  double FPhi2_r_n[1] = {0.0};
+  double FPhi3_r_n[1] = {0.0};
+  double FPsi1_r_n[1] = {0.0};
+  double FPsi2_r_n[1] = {0.0};
+  double FPsi3_r_n[1] = {0.0};
   
   const double *JDx_l = &field_con_l[0]; 
   const double *JDy_l = &field_con_l[2]; 
@@ -60,6 +125,8 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   const double *JBx_l = &field_con_l[6]; 
   const double *JBy_l = &field_con_l[8]; 
   const double *JBz_l = &field_con_l[10]; 
+  const double *Jphi_l = &field_con_l[12]; 
+  const double *Jpsi_l = &field_con_l[14]; 
   
   JDx_con_l_n[0] = 1.224744871391589*JDx_l[1]+0.7071067811865475*JDx_l[0];
   JDy_con_l_n[0] = 1.224744871391589*JDy_l[1]+0.7071067811865475*JDy_l[0];
@@ -67,6 +134,8 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   JBx_con_l_n[0] = 1.224744871391589*JBx_l[1]+0.7071067811865475*JBx_l[0];
   JBy_con_l_n[0] = 1.224744871391589*JBy_l[1]+0.7071067811865475*JBy_l[0];
   JBz_con_l_n[0] = 1.224744871391589*JBz_l[1]+0.7071067811865475*JBz_l[0];
+  Jphi_l_n[0] = 1.224744871391589*Jphi_l[1]+0.7071067811865475*Jphi_l[0];
+  Jpsi_l_n[0] = 1.224744871391589*Jpsi_l[1]+0.7071067811865475*Jpsi_l[0];
   
   const double *Dx_l = &field_no_J_con_l[0]; 
   const double *Dy_l = &field_no_J_con_l[2]; 
@@ -74,6 +143,8 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   const double *Bx_l = &field_no_J_con_l[6]; 
   const double *By_l = &field_no_J_con_l[8]; 
   const double *Bz_l = &field_no_J_con_l[10]; 
+  const double *phi_l = &field_no_J_con_l[12]; 
+  const double *psi_l = &field_no_J_con_l[14]; 
   
   Dx_con_l_n[0] = 1.224744871391589*Dx_l[1]+0.7071067811865475*Dx_l[0];
   Dy_con_l_n[0] = 1.224744871391589*Dy_l[1]+0.7071067811865475*Dy_l[0];
@@ -81,6 +152,8 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   Bx_con_l_n[0] = 1.224744871391589*Bx_l[1]+0.7071067811865475*Bx_l[0];
   By_con_l_n[0] = 1.224744871391589*By_l[1]+0.7071067811865475*By_l[0];
   Bz_con_l_n[0] = 1.224744871391589*Bz_l[1]+0.7071067811865475*Bz_l[0];
+  phi_l_n[0] = 1.224744871391589*phi_l[1]+0.7071067811865475*phi_l[0];
+  psi_l_n[0] = 1.224744871391589*psi_l[1]+0.7071067811865475*psi_l[0];
   
   // If at a theta pole, zero out B^(theta), and D^(theta) 
   if ( theta_pole ) { 
@@ -97,6 +170,30 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
       Ex_l_n[i] = lapse_nodal[i]*( h_xx_nodal[i]*JDx_con_l_n[i] + h_xy_nodal[i]*JDy_con_l_n[i] + h_xz_nodal[i]*JDz_con_l_n[i] ) / J_c[i] + ( shift_nodal_y[i]*JBz_con_l_n[i] - shift_nodal_z[i]*JBy_con_l_n[i]); 
       Ey_l_n[i] = lapse_nodal[i]*( h_xy_nodal[i]*JDx_con_l_n[i] + h_yy_nodal[i]*JDy_con_l_n[i] + h_yz_nodal[i]*JDz_con_l_n[i] ) / J_c[i] + ( - shift_nodal_x[i]*JBz_con_l_n[i] + shift_nodal_z[i]*JBx_con_l_n[i]); 
       Ez_l_n[i] = lapse_nodal[i]*( h_xz_nodal[i]*JDx_con_l_n[i] + h_yz_nodal[i]*JDy_con_l_n[i] + h_zz_nodal[i]*JDz_con_l_n[i] ) / J_c[i] + ( shift_nodal_x[i]*JBy_con_l_n[i] - shift_nodal_y[i]*JBx_con_l_n[i]); 
+      FD11_l_n[i] = chi*h_xx_inv_nodal[i]*Jphi_l_n[i]; 
+      FD12_l_n[i] = chi*h_xy_inv_nodal[i]*Jphi_l_n[i]; 
+      FD13_l_n[i] = chi*h_xz_inv_nodal[i]*Jphi_l_n[i]; 
+      FD21_l_n[i] = chi*h_xy_inv_nodal[i]*Jphi_l_n[i]; 
+      FD22_l_n[i] = chi*h_yy_inv_nodal[i]*Jphi_l_n[i]; 
+      FD23_l_n[i] = chi*h_yz_inv_nodal[i]*Jphi_l_n[i]; 
+      FD31_l_n[i] = chi*h_xz_inv_nodal[i]*Jphi_l_n[i]; 
+      FD32_l_n[i] = chi*h_yz_inv_nodal[i]*Jphi_l_n[i]; 
+      FD33_l_n[i] = chi*h_zz_inv_nodal[i]*Jphi_l_n[i]; 
+      FB11_l_n[i] = gamma*h_xx_inv_nodal[i]*Jpsi_l_n[i]; 
+      FB12_l_n[i] = gamma*h_xy_inv_nodal[i]*Jpsi_l_n[i]; 
+      FB13_l_n[i] = gamma*h_xz_inv_nodal[i]*Jpsi_l_n[i]; 
+      FB21_l_n[i] = gamma*h_xy_inv_nodal[i]*Jpsi_l_n[i]; 
+      FB22_l_n[i] = gamma*h_yy_inv_nodal[i]*Jpsi_l_n[i]; 
+      FB23_l_n[i] = gamma*h_yz_inv_nodal[i]*Jpsi_l_n[i]; 
+      FB31_l_n[i] = gamma*h_xz_inv_nodal[i]*Jpsi_l_n[i]; 
+      FB32_l_n[i] = gamma*h_yz_inv_nodal[i]*Jpsi_l_n[i]; 
+      FB33_l_n[i] = gamma*h_zz_inv_nodal[i]*Jpsi_l_n[i]; 
+      FPhi1_l_n[i] = chi*JDx_con_l_n[i]; 
+      FPhi2_l_n[i] = chi*JDy_con_l_n[i]; 
+      FPhi3_l_n[i] = chi*JDz_con_l_n[i]; 
+      FPsi1_l_n[i] = gamma*JBx_con_l_n[i]; 
+      FPsi2_l_n[i] = gamma*JBy_con_l_n[i]; 
+      FPsi3_l_n[i] = gamma*JBz_con_l_n[i]; 
     }
   }
   else {
@@ -116,6 +213,8 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   const double *JBx_r = &field_con_r[6]; 
   const double *JBy_r = &field_con_r[8]; 
   const double *JBz_r = &field_con_r[10]; 
+  const double *Jphi_r = &field_con_r[12]; 
+  const double *Jpsi_r = &field_con_r[14]; 
   
   JDx_con_r_n[0] = 0.7071067811865475*JDx_r[0]-1.224744871391589*JDx_r[1];
   JDy_con_r_n[0] = 0.7071067811865475*JDy_r[0]-1.224744871391589*JDy_r[1];
@@ -123,6 +222,8 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   JBx_con_r_n[0] = 0.7071067811865475*JBx_r[0]-1.224744871391589*JBx_r[1];
   JBy_con_r_n[0] = 0.7071067811865475*JBy_r[0]-1.224744871391589*JBy_r[1];
   JBz_con_r_n[0] = 0.7071067811865475*JBz_r[0]-1.224744871391589*JBz_r[1];
+  Jphi_r_n[0] = 0.7071067811865475*Jphi_r[0]-1.224744871391589*Jphi_r[1];
+  Jpsi_r_n[0] = 0.7071067811865475*Jpsi_r[0]-1.224744871391589*Jpsi_r[1];
   
   const double *Dx_r = &field_no_J_con_r[0]; 
   const double *Dy_r = &field_no_J_con_r[2]; 
@@ -130,6 +231,8 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   const double *Bx_r = &field_no_J_con_r[6]; 
   const double *By_r = &field_no_J_con_r[8]; 
   const double *Bz_r = &field_no_J_con_r[10]; 
+  const double *phi_r = &field_no_J_con_r[12]; 
+  const double *psi_r = &field_no_J_con_r[14]; 
   
   Dx_con_r_n[0] = 0.7071067811865475*Dx_r[0]-1.224744871391589*Dx_r[1];
   Dy_con_r_n[0] = 0.7071067811865475*Dy_r[0]-1.224744871391589*Dy_r[1];
@@ -137,6 +240,8 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   Bx_con_r_n[0] = 0.7071067811865475*Bx_r[0]-1.224744871391589*Bx_r[1];
   By_con_r_n[0] = 0.7071067811865475*By_r[0]-1.224744871391589*By_r[1];
   Bz_con_r_n[0] = 0.7071067811865475*Bz_r[0]-1.224744871391589*Bz_r[1];
+  phi_r_n[0] = 0.7071067811865475*phi_r[0]-1.224744871391589*phi_r[1];
+  psi_r_n[0] = 0.7071067811865475*psi_r[0]-1.224744871391589*psi_r[1];
   
   // If at a theta pole, zero out B^(theta), and D^(theta) 
   if ( theta_pole ) { 
@@ -153,6 +258,30 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
       Ex_r_n[i] = lapse_nodal[i]*( h_xx_nodal[i]*JDx_con_r_n[i] + h_xy_nodal[i]*JDy_con_r_n[i] + h_xz_nodal[i]*JDz_con_r_n[i] ) / J_c[i] + ( shift_nodal_y[i]*JBz_con_r_n[i] - shift_nodal_z[i]*JBy_con_r_n[i]); 
       Ey_r_n[i] = lapse_nodal[i]*( h_xy_nodal[i]*JDx_con_r_n[i] + h_yy_nodal[i]*JDy_con_r_n[i] + h_yz_nodal[i]*JDz_con_r_n[i] ) / J_c[i] + ( - shift_nodal_x[i]*JBz_con_r_n[i] + shift_nodal_z[i]*JBx_con_r_n[i]); 
       Ez_r_n[i] = lapse_nodal[i]*( h_xz_nodal[i]*JDx_con_r_n[i] + h_yz_nodal[i]*JDy_con_r_n[i] + h_zz_nodal[i]*JDz_con_r_n[i] ) / J_c[i] + ( shift_nodal_x[i]*JBy_con_r_n[i] - shift_nodal_y[i]*JBx_con_r_n[i]); 
+      FD11_r_n[i] = chi*h_xx_inv_nodal[i]*Jphi_r_n[i]; 
+      FD12_r_n[i] = chi*h_xy_inv_nodal[i]*Jphi_r_n[i]; 
+      FD13_r_n[i] = chi*h_xz_inv_nodal[i]*Jphi_r_n[i]; 
+      FD21_r_n[i] = chi*h_xy_inv_nodal[i]*Jphi_r_n[i]; 
+      FD22_r_n[i] = chi*h_yy_inv_nodal[i]*Jphi_r_n[i]; 
+      FD23_r_n[i] = chi*h_yz_inv_nodal[i]*Jphi_r_n[i]; 
+      FD31_r_n[i] = chi*h_xz_inv_nodal[i]*Jphi_r_n[i]; 
+      FD32_r_n[i] = chi*h_yz_inv_nodal[i]*Jphi_r_n[i]; 
+      FD33_r_n[i] = chi*h_zz_inv_nodal[i]*Jphi_r_n[i]; 
+      FB11_r_n[i] = gamma*h_xx_inv_nodal[i]*Jpsi_r_n[i]; 
+      FB12_r_n[i] = gamma*h_xy_inv_nodal[i]*Jpsi_r_n[i]; 
+      FB13_r_n[i] = gamma*h_xz_inv_nodal[i]*Jpsi_r_n[i]; 
+      FB21_r_n[i] = gamma*h_xy_inv_nodal[i]*Jpsi_r_n[i]; 
+      FB22_r_n[i] = gamma*h_yy_inv_nodal[i]*Jpsi_r_n[i]; 
+      FB23_r_n[i] = gamma*h_yz_inv_nodal[i]*Jpsi_r_n[i]; 
+      FB31_r_n[i] = gamma*h_xz_inv_nodal[i]*Jpsi_r_n[i]; 
+      FB32_r_n[i] = gamma*h_yz_inv_nodal[i]*Jpsi_r_n[i]; 
+      FB33_r_n[i] = gamma*h_zz_inv_nodal[i]*Jpsi_r_n[i]; 
+      FPhi1_r_n[i] = chi*JDx_con_r_n[i]; 
+      FPhi2_r_n[i] = chi*JDy_con_r_n[i]; 
+      FPhi3_r_n[i] = chi*JDz_con_r_n[i]; 
+      FPsi1_r_n[i] = gamma*JBx_con_r_n[i]; 
+      FPsi2_r_n[i] = gamma*JBy_con_r_n[i]; 
+      FPsi3_r_n[i] = gamma*JBz_con_r_n[i]; 
     }
   }
   else {
@@ -170,82 +299,71 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_1x_tensor_p1(const double *w, const d
   double *flux_r_quad; 
   flux_l_quad = &flux_l[0]; 
   flux_r_quad = &flux_r[0]; 
-  flux_l_quad[0] = 0.0; 
-  flux_r_quad[0] = 0.0; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FD11_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FD11_r_n[0]); 
   flux_l_quad = &flux_l[1]; 
   flux_r_quad = &flux_r[1]; 
-  flux_l_quad[0] = Hz_l_n[0]; 
-  flux_r_quad[0] = Hz_r_n[0]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(Hz_l_n[0]+FD12_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(Hz_r_n[0]+FD12_r_n[0]); 
   flux_l_quad = &flux_l[2]; 
   flux_r_quad = &flux_r[2]; 
-  flux_l_quad[0] = -(1.0*Hy_l_n[0]); 
-  flux_r_quad[0] = -(1.0*Hy_r_n[0]); 
+  flux_l_quad[0] = jacob_pos_l_inv*(FD13_l_n[0]-1.0*Hy_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FD13_r_n[0]-1.0*Hy_r_n[0]); 
   flux_l_quad = &flux_l[3]; 
   flux_r_quad = &flux_r[3]; 
-  flux_l_quad[0] = 0.0; 
-  flux_r_quad[0] = 0.0; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FB11_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FB11_r_n[0]); 
   flux_l_quad = &flux_l[4]; 
   flux_r_quad = &flux_r[4]; 
-  flux_l_quad[0] = -(1.0*Ez_l_n[0]); 
-  flux_r_quad[0] = -(1.0*Ez_r_n[0]); 
+  flux_l_quad[0] = jacob_pos_l_inv*(FB12_l_n[0]-1.0*Ez_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FB12_r_n[0]-1.0*Ez_r_n[0]); 
   flux_l_quad = &flux_l[5]; 
   flux_r_quad = &flux_r[5]; 
-  flux_l_quad[0] = Ey_l_n[0]; 
-  flux_r_quad[0] = Ey_r_n[0]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FB13_l_n[0]+Ey_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FB13_r_n[0]+Ey_r_n[0]); 
+  flux_l_quad = &flux_l[6]; 
+  flux_r_quad = &flux_r[6]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FPhi1_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FPhi1_r_n[0]); 
+  flux_l_quad = &flux_l[7]; 
+  flux_r_quad = &flux_r[7]; 
+  flux_l_quad[0] = jacob_pos_l_inv*(FPsi1_l_n[0]); 
+  flux_r_quad[0] = jacob_pos_r_inv*(FPsi1_r_n[0]); 
   
   double lambda_1[1] = {0.0};
   double lambda_2[1] = {0.0};
   double lambda_3[1] = {0.0};
+  double lambda_4[1] = {0.0};
+  double lambda_5[1] = {0.0};
+  double lambda_6[1] = {0.0};
   for (int i=0; i<1; ++i) {
-    lambda_2[i] = -shift_nodal_x[i] + lapse_nodal[i] * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] )/J_c[i];
-    lambda_3[i] = -shift_nodal_x[i] - lapse_nodal[i] * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] )/J_c[i];
+    if (theta_pole == 0) {
+    lambda_1[i] =   chi * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] )/J_c[i];
+    lambda_2[i] = - chi * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] )/J_c[i];
+    lambda_3[i] =   gamma * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] )/J_c[i];
+    lambda_4[i] = - gamma * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] )/J_c[i];
+    lambda_5[i] = -shift_nodal_x[i] + lapse_nodal[i] * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] )/J_c[i];
+    lambda_6[i] = -shift_nodal_x[i] - lapse_nodal[i] * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] )/J_c[i];
+    max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_1[i] ));
     max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_2[i] ));
     max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_3[i] ));
-  }
-  // If at the theta pole, dU = dQ = 0, so A_plus_dQ = A_minus_dQ = 0
-  if (theta_pole == 0) {    double dQ_n[6] = {0.0};
-    double lambda_plus_n[6] = {0.0};
-    double lambda_minus_n[6] = {0.0};
-    double A_plus_dQ_n[6] = {0.0};
-    double A_minus_dQ_n[6] = {0.0};
-    for (int i=0; i<1; ++i) {
-      dQ_n[0] = (JDx_con_r_n[i] - JDx_con_l_n[i]);
-      dQ_n[1] = (JDy_con_r_n[i] - JDy_con_l_n[i]);
-      dQ_n[2] = (JDz_con_r_n[i] - JDz_con_l_n[i]);
-      dQ_n[3] = (JBx_con_r_n[i] - JBx_con_l_n[i]);
-      dQ_n[4] = (JBy_con_r_n[i] - JBy_con_l_n[i]);
-      dQ_n[5] = (JBz_con_r_n[i] - JBz_con_l_n[i]);
-      lambda_plus_n[0] = (lambda_1[i] > 0.0) ? lambda_1[i] : 0.0;
-      lambda_plus_n[1] = (lambda_1[i] > 0.0) ? lambda_1[i] : 0.0;
-      lambda_plus_n[2] = (lambda_2[i] > 0.0) ? lambda_2[i] : 0.0;
-      lambda_plus_n[3] = (lambda_2[i] > 0.0) ? lambda_2[i] : 0.0;
-      lambda_plus_n[4] = (lambda_3[i] > 0.0) ? lambda_3[i] : 0.0;
-      lambda_plus_n[5] = (lambda_3[i] > 0.0) ? lambda_3[i] : 0.0;
-      lambda_minus_n[0] = (lambda_1[i] < 0.0) ? lambda_1[i] : 0.0;
-      lambda_minus_n[1] = (lambda_1[i] < 0.0) ? lambda_1[i] : 0.0;
-      lambda_minus_n[2] = (lambda_2[i] < 0.0) ? lambda_2[i] : 0.0;
-      lambda_minus_n[3] = (lambda_2[i] < 0.0) ? lambda_2[i] : 0.0;
-      lambda_minus_n[4] = (lambda_3[i] < 0.0) ? lambda_3[i] : 0.0;
-      lambda_minus_n[5] = (lambda_3[i] < 0.0) ? lambda_3[i] : 0.0;
-      A_dQ_x_calc(lapse_nodal[i], shift_nodal_x[i], shift_nodal_y[i], shift_nodal_z[i], 
-                      h_xx_nodal[i], h_xy_nodal[i], h_xz_nodal[i], h_yy_nodal[i], h_yz_nodal[i], h_zz_nodal[i], 
-                      J_c[i], lambda_plus_n, dQ_n, A_plus_dQ_n);
-      A_plus_dQ[i + 0*1] = A_plus_dQ_n[0]; 
-      A_plus_dQ[i + 1*1] = A_plus_dQ_n[1]; 
-      A_plus_dQ[i + 2*1] = A_plus_dQ_n[2]; 
-      A_plus_dQ[i + 3*1] = A_plus_dQ_n[3]; 
-      A_plus_dQ[i + 4*1] = A_plus_dQ_n[4]; 
-      A_plus_dQ[i + 5*1] = A_plus_dQ_n[5]; 
-      A_dQ_x_calc(lapse_nodal[i], shift_nodal_x[i], shift_nodal_y[i], shift_nodal_z[i], 
-                      h_xx_nodal[i], h_xy_nodal[i], h_xz_nodal[i], h_yy_nodal[i], h_yz_nodal[i], h_zz_nodal[i], 
-                      J_c[i], lambda_minus_n, dQ_n, A_minus_dQ_n);
-      A_minus_dQ[i + 0*1] = A_minus_dQ_n[0]; 
-      A_minus_dQ[i + 1*1] = A_minus_dQ_n[1]; 
-      A_minus_dQ[i + 2*1] = A_minus_dQ_n[2]; 
-      A_minus_dQ[i + 3*1] = A_minus_dQ_n[3]; 
-      A_minus_dQ[i + 4*1] = A_minus_dQ_n[4]; 
-      A_minus_dQ[i + 5*1] = A_minus_dQ_n[5]; 
+    max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_4[i] ));
+    max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_5[i] ));
+    max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_6[i] ));
     }
+    else {      lambda_1[i] =   chi * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] );
+      lambda_2[i] = - chi * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] );
+      lambda_3[i] =   gamma * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] );
+      lambda_4[i] = - gamma * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] );
+      lambda_5[i] =   lapse_nodal[i] * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] );
+      lambda_6[i] = - lapse_nodal[i] * sqrt( h_yy_nodal[i] * h_zz_nodal[i] - h_yz_nodal[i] * h_yz_nodal[i] );
+      max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_1[i] ));
+      max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_2[i] ));
+      max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_3[i] ));
+      max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_4[i] ));
+      max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_5[i] ));
+      max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_6[i] ));
+  }
   }
 
 } 

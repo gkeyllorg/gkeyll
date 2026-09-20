@@ -148,10 +148,18 @@ struct gkyl_vlasov_correct_inp {
 
 struct vlasov_mapc2p_vel {
   void *mapc2p_vel_ctx; // context for mapc2p function for velocity space
-  // pointer to mapc2p function for velocity space: 
-  // xc are the computational space coordinates and on output 
+  // pointer to mapc2p function for velocity space:
+  // xc are the computational space coordinates and on output
   // xp are the corresponding physical space coordinates.
   void (*mapc2p_vel_func)(double t, const double *xc, double *xp, void *ctx);
+};
+
+struct vlasov_mapc2p_pos {
+  void *mapc2p_pos_ctx; // context for mapc2p function for configuration space
+  // pointer to (per-direction) mapc2p function for configuration space:
+  // xc is the computational space coordinate and on output xp is the
+  // corresponding physical space coordinate. NULL => identity map.
+  void (*mapc2p_pos_func)(double t, const double *xc, double *xp, void *ctx);
 };
 
 // Parameters for Vlasov geometry.
@@ -279,6 +287,7 @@ struct gkyl_vlasov_field {
   double mu0; // Permeability of free space.
   // Correction speeds as a fraction of the speed of light for div(E)/div(B) errors. 
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
+  double K_phi, K_psi; // Geometric source coefficients for electric/magnetic cleaning fields.
 
   void *ctx; // Context for initial condition init function for Vlasov-Maxwell.
   // Pointer to initialization function for Vlasov-Maxwell fields. 
@@ -288,6 +297,7 @@ struct gkyl_vlasov_field {
   bool limit_em; // Optional input parameter for applying limiters to EM fields.
 
   bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x?
+  bool use_geom_sources; // Are we using geometric sources to correct dE/dt = -J in 1x?
   
   // Vlasov-Maxwell boundary conditions.
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
@@ -313,8 +323,7 @@ struct gkyl_vlasov_field {
   // Pointer to function defining external potentials (phi,A).
   void (*external_potentials)(double t, const double *xn, double *ext_pot, void *ctx);
   bool external_potentials_evolve; // Set to true if external potentials are time dependent.
-
-  bool use_lax; // Boolean for using lax fluxes in dg-gr-maxwell.
+  
 };
 
 // Parameters for the fluid block of a Vlasov species: the equation object,
@@ -388,6 +397,12 @@ struct gkyl_vm {
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
+  // Per-direction non-uniform configuration-space mapping (C^0 piecewise
+  // linear). Each direction with a NULL func is the identity map. This is a
+  // diagonal coordinate stretch and is independent of the general curvilinear
+  // mapc2p above (which feeds the wave_geom object).
+  struct vlasov_mapc2p_pos mapc2p_pos[GKYL_MAX_CDIM];
 
   double cfl_frac; // CFL fraction to use (default 1.0)
 
@@ -539,7 +554,7 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname);
  * Initialize Vlasov species from file
  *
  * @param app App object
- * @param sidx gk species index
+ * @param sidx Species index (see gkyl_vlasov_app_apply_ic_species for the indexing).
  * @param fname file to read
  */
 struct gkyl_app_restart_status 
@@ -550,7 +565,7 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
  * Initialize fluid species from file
  *
  * @param app App object
- * @param sidx gk species index
+ * @param sidx Species index (see gkyl_vlasov_app_apply_ic_species for the indexing).
  * @param fname file to read
  */
 struct gkyl_app_restart_status 
@@ -570,7 +585,7 @@ gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame);
  * Initialize Vlasov species from frame
  *
  * @param app App object
- * @param sidx gk species index
+ * @param sidx Species index (see gkyl_vlasov_app_apply_ic_species for the indexing).
  * @param frame frame to read
  */
 struct gkyl_app_restart_status
@@ -580,7 +595,7 @@ gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame);
  * Initialize fluid species from frame
  *
  * @param app App object
- * @param sidx gk species index
+ * @param sidx Species index (see gkyl_vlasov_app_apply_ic_species for the indexing).
  * @param frame frame to read
  */
 struct gkyl_app_restart_status

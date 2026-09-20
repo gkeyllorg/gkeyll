@@ -2,6 +2,8 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -16,8 +18,11 @@ struct gkyl_dg_vlasov_conf_flux_surf_inp {
   const struct gkyl_basis *phase_basis; // Phase-space basis functions. 
   const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_range *vel_range; // Velocity-space range for use in indexing velocity-space Jacobian. 
+  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (REQUIRED; provides vmap/jacob_vel_surf).
+  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (REQUIRED; provides jacob_pos).
   double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped.
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic). 
+  enum gkyl_hamil_id hamil_id; // enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
   bool use_lo; // bool to determine if using high-order kernels for non-canonical Hamiltonian models.
   bool use_gpu; // bool to determine if on GPU. 
 };

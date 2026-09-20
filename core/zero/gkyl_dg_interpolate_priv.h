@@ -155,6 +155,69 @@ static const dg_interp_kern_p_list_vlasov dg_interp_kern_list_vlasov_ser[] = {
   },
 };
 
+// Vlasov tensor p=1 hybrid (p1 conf x p2 vel) interpolation kernels;
+// p>1 tensor kernels do not exist.
+GKYL_CU_D
+static const dg_interp_kern_p_list_vlasov dg_interp_kern_list_vlasov_tensor[] = {
+  // 1x
+  { .vdim = {
+      { .list = {
+          { dg_interpolate_vlasov_1x1v_tensor_p1_x, dg_interpolate_vlasov_1x1v_tensor_p1_vx, NULL, NULL, NULL, NULL, },
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+        },
+      },
+      { .list = {
+          { dg_interpolate_vlasov_1x2v_tensor_p1_x, dg_interpolate_vlasov_1x2v_tensor_p1_vx, dg_interpolate_vlasov_1x2v_tensor_p1_vy, NULL, NULL, NULL, },
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+        },
+      },
+      { .list = {
+          { dg_interpolate_vlasov_1x3v_tensor_p1_x, dg_interpolate_vlasov_1x3v_tensor_p1_vx, dg_interpolate_vlasov_1x3v_tensor_p1_vy, dg_interpolate_vlasov_1x3v_tensor_p1_vz, NULL, NULL, },
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+        },
+      },
+    },
+  },
+  // 2x
+  { .vdim = {
+      { .list = {
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+        },
+      },
+      { .list = {
+          { dg_interpolate_vlasov_2x2v_tensor_p1_x, dg_interpolate_vlasov_2x2v_tensor_p1_y, dg_interpolate_vlasov_2x2v_tensor_p1_vx, dg_interpolate_vlasov_2x2v_tensor_p1_vy, NULL, NULL, },
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+        },
+      },
+      { .list = {
+          { dg_interpolate_vlasov_2x3v_tensor_p1_x, dg_interpolate_vlasov_2x3v_tensor_p1_y, dg_interpolate_vlasov_2x3v_tensor_p1_vx, dg_interpolate_vlasov_2x3v_tensor_p1_vy, dg_interpolate_vlasov_2x3v_tensor_p1_vz, NULL, },
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+        },
+      },
+    },
+  },
+  // 3x
+  { .vdim = {
+      { .list = {
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+        },
+      },
+      { .list = {
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+        },
+      },
+      { .list = {
+          { dg_interpolate_vlasov_3x3v_tensor_p1_x, dg_interpolate_vlasov_3x3v_tensor_p1_y, dg_interpolate_vlasov_3x3v_tensor_p1_z, dg_interpolate_vlasov_3x3v_tensor_p1_vx, dg_interpolate_vlasov_3x3v_tensor_p1_vy, dg_interpolate_vlasov_3x3v_tensor_p1_vz, },
+          { NULL, NULL, NULL, NULL, NULL, NULL, },
+        },
+      },
+    },
+  },
+};
+
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
 void dg_interp_choose_kernel_cu(struct gkyl_dg_interpolate_kernels *kernels,
@@ -190,7 +253,9 @@ dg_interp_choose_gk_interp_kernel(int cdim, struct gkyl_basis basis, int dir)
         return dg_interp_kern_list_vlasov_ser[cdim-1].vdim[vdim-1].list[poly_order-1].dirs[dir];
         break;
       case GKYL_BASIS_MODAL_HYBRID:
-        return dg_interp_kern_list_vlasov_ser[cdim-1].vdim[vdim-1].list[poly_order-1].dirs[dir];
+      case GKYL_BASIS_MODAL_TENSOR:
+        // The p=1 tensor hybrid (p1 conf x p2 vel); no p>1 tensor kernels.
+        return dg_interp_kern_list_vlasov_tensor[cdim-1].vdim[vdim-1].list[poly_order-1].dirs[dir];
         break;
       case GKYL_BASIS_MODAL_GKHYBRID:
         return dg_interp_kern_list_gk_ser[ndim-2].list[poly_order-1].dirs[dir];

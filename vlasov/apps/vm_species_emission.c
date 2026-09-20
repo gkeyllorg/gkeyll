@@ -76,6 +76,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *v
       .hamil_range = &imp->hamil_range,
       .hamil = imp->hamil,
       .model_id = imp->model_id,
+      .hamil_id = imp->hamil_id,
       .mom_type = GKYL_F_MOMENT_M0M1M2,
       .use_gpu = app->use_gpu,
     };

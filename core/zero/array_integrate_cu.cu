@@ -38,6 +38,9 @@ gkyl_array_integrate_set_ker_cu(struct gkyl_array_integrate *up, enum gkyl_array
   }
   else if (op == GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ) {
     up->kernel = gkyl_array_integrate_epsgradperpsq_ker_list[ndim-1].kernels[poly_order-1];
+  }
+  else if (op == GKYL_ARRAY_INTEGRATE_OP_EPS_GRAD_SQ) {
+    up->kernel = gkyl_array_integrate_epsgradsq_ker_list[ndim-1].kernels[poly_order-1];
   } else {
     assert(false);
   }

@@ -7,6 +7,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
 #include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_position_map.h>
 
 // Input packaged as a struct
 struct gkyl_dg_vlasov_inp {
@@ -17,6 +18,7 @@ struct gkyl_dg_vlasov_inp {
   const struct gkyl_range *phase_range; // Range for indexing velocity-space flux.
   double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped.
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
+  enum gkyl_hamil_id hamil_id; // enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
   bool has_E; // bool to determine whether we have electric fields (used for external forces too).
   bool has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
   bool has_B; // bool to determine whether we have magnetic fields.
@@ -24,6 +26,9 @@ struct gkyl_dg_vlasov_inp {
   const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object. Required: it also provides
                                                   // the velocity-space range used to index per-velocity-cell
                                                   // quantities (Jacobian, radiation drag).
+  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object. Required: provides the
+                                                  // (per-conf-cell constant) position-map Jacobian used to
+                                                  // transform the streaming term to mapped coordinates.
   const struct gkyl_array *poisson_tensor_conf; // Configuration space poisson tensor used for nc poisson brackets.
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space. 
   const struct gkyl_array *qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).

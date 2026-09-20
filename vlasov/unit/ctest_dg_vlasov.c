@@ -10,6 +10,7 @@
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_priv.h>
 #include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -69,7 +70,10 @@ test_dg_vlasov()
   struct gkyl_array *gamma_inv = mkarr1(false, vbasis.num_basis, velRange.volume);
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velRange, &vbasis, inp_vmap, false);
+    &velRange, &vbasis, inp_vmap, false, false);
+  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_position_map *pos_map = gkyl_vlasov_position_map_new(&confGrid,
+    &confRange, &confRange_ext, &cbasis, inp_pmap, false);
 
   gkyl_dg_vlasov_calc_hamil(&velGrid, &vbasis, &velRange, 
     GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, false);
@@ -90,8 +94,10 @@ test_dg_vlasov()
     .hamil_range = &velRange,
     .phase_range = &phaseRange,
     .vel_map = vel_map,
+    .pos_map = pos_map,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
+    .hamil_id = gkyl_hamil_id_from_model_id(model_id),
     .has_E = true, 
     .has_phi = false, 
     .has_B = true, 
@@ -120,6 +126,7 @@ test_dg_vlasov()
 
   gkyl_dg_eqn_release(eqn);
   gkyl_vlasov_velocity_map_release(vel_map);
+  gkyl_vlasov_position_map_release(pos_map);
   gkyl_array_release(qmem);
   gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);
@@ -175,7 +182,10 @@ test_cu_dg_vlasov()
   struct gkyl_array *gamma_inv = mkarr1(true, vbasis.num_basis, velRange.volume);
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velRange, &vbasis, inp_vmap, true);
+    &velRange, &vbasis, inp_vmap, false, true);
+  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_position_map *pos_map = gkyl_vlasov_position_map_new(&confGrid,
+    &confRange, &confRange_ext, &cbasis, inp_pmap, true);
 
   gkyl_dg_vlasov_calc_hamil(&velGrid, &vbasis, &velRange, 
     GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, true);
@@ -196,8 +206,10 @@ test_cu_dg_vlasov()
     .hamil_range = &velRange,
     .phase_range = &phaseRange,
     .vel_map = vel_map,
+    .pos_map = pos_map,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
+    .hamil_id = gkyl_hamil_id_from_model_id(model_id),
     .has_E = true, 
     .has_phi = false, 
     .has_B = true, 
@@ -226,6 +238,7 @@ test_cu_dg_vlasov()
 
   gkyl_dg_eqn_release(eqn);
   gkyl_vlasov_velocity_map_release(vel_map);
+  gkyl_vlasov_position_map_release(pos_map);
   gkyl_array_release(qmem);
   gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);

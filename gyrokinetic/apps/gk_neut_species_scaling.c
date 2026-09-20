@@ -258,8 +258,14 @@ gk_neut_species_scaling_apply_ic_cross(struct gkyl_gyrokinetic_app *app, struct 
   struct gk_scaling *sca)
 {
   if (sca->type == GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE) {
-    // Store the initial particle number density.
-    gkyl_array_set_offset(sca->Jm0_init, 1.0/ns->info.mass, ns->f, 0);
+    // Project and store the initial state. Need to re-project so that restarts use this as the state at t=0.
+    if (ns->info.init_from_file.type == 0)
+      gk_neut_species_projection_calc(app, ns, &ns->proj_init, ns->f1, 0.0);
+
+    gkyl_array_set_offset(sca->Jm0_init, 1.0/ns->info.mass, ns->f1, 0);
+
+    if (ns->info.init_from_file.type == 0)
+      gkyl_array_clear(ns->f1, 0.0);
   }
 }
 

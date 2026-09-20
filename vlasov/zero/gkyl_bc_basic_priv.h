@@ -308,7 +308,9 @@ maxwell_theta_pole_bc(size_t nc, double *out, const double *inp, void *ctx)
   mc->basis->flip_even_sign(dir, &inp[nbasis*4], &out[nbasis*4]);
   mc->basis->flip_odd_sign(dir, &inp[nbasis*5], &out[nbasis*5]);
 
-  // correction potentials not used for GR
+  // Correction potentials are scalars and remain continuous at the pole.
+  mc->basis->flip_odd_sign(dir, &inp[nbasis*6], &out[nbasis*6]);
+  mc->basis->flip_odd_sign(dir, &inp[nbasis*7], &out[nbasis*7]);
 }
 
 // Reflecting wall BCs for PKPM momentum

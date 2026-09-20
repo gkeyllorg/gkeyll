@@ -27,11 +27,12 @@
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_fluid_em_coupling.h>
 #include <gkyl_dg_calc_sr_vars.h>
-#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
+#include <gkyl_dg_gr_maxwell_current_deposition.h>
 #include <gkyl_dg_gr_maxwell_divide_Jc.h>
 #include <gkyl_dg_gr_maxwell_geom.h>
+#include <gkyl_dg_gr_maxwell_lorentz_conf.h>
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_gaussian_filter.h>
@@ -40,8 +41,6 @@
 #include <gkyl_dg_updater_diffusion_fluid.h>
 #include <gkyl_dg_updater_diffusion_gen.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
-#include <gkyl_dg_updater_moment.h>
-#include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_calc_radiation.h>
@@ -76,6 +75,7 @@
 #include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
@@ -96,7 +96,7 @@ struct vm_species_moment {
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
   // Options for moment calculation: 
-  // 1. Compute the moment directly with dg_updater_moment
+  // 1. Compute the moment directly with gkyl_mom_calc
   // 2. Compute the moments of the equivalent LTE (local thermodynamic equilibrium)
   //    distribution (n, V_drift, T/m) with specialized updater
   //    Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
@@ -121,9 +121,19 @@ struct vm_species_moment {
 // forward declare species struct
 struct vm_species;
 
+// Context for the computational->physical coordinate transform (c2p) used when
+// projecting on non-uniform meshes: configuration coords are mapped by the
+// position map, velocity coords (for phase-space projections) by the velocity map.
+struct vm_proj_c2p_ctx {
+  int cdim; // number of configuration-space dimensions
+  const struct gkyl_vlasov_position_map *pos_map; // configuration-space map
+  const struct gkyl_vlasov_velocity_map *vel_map; // velocity-space map
+};
+
 struct vm_proj {
   enum gkyl_projection_id proj_id; // type of projection
   enum gkyl_model_id model_id;
+  struct vm_proj_c2p_ctx c2p_ctx; // coordinate-map context for projections (captured by proj_on_basis)
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
@@ -187,11 +197,13 @@ struct vm_collisionless {
   bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
 
   double qbym; // Charge (q) divided by mass (m).
-  struct gkyl_array *qmem; // array for q/m*(E,B) 
+  struct gkyl_array *qmem; // array for q/m*(E,B)
+  struct gkyl_array *em_no_J; // physical E,B (stored field J*E,J*B divided by the conf Jacobian) for the Lorentz force on a mapped grid
   struct gkyl_array *pot_tot; // array for total potentials (q/m*phi + m*phi_g, q/m*A)
   bool has_E; // Do we have electric fields? 
   bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?
   bool has_B; // Do we have magnetic fields? 
+  bool has_gr_em_triad_coupling; // Do we need GR-Maxwell Lorentz-force fields for triad species?
   int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
   int num_surf_vel_nodes; // number of surface nodes at velocity-space surfaces
 
@@ -199,6 +211,8 @@ struct vm_collisionless {
   struct gkyl_array *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces. 
   struct gkyl_dg_vlasov_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 
   struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux; // Updater for computing modal expansion of surface fluxes (vel).   
+  struct gkyl_dg_gr_maxwell_lorentz_conf *calc_lorentz; // Updater for local GR Lorentz-force fields.
+  struct gkyl_dg_gr_maxwell_current_deposition *calc_current_dep; // Updater for GR current deposition.
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation object.
   struct gkyl_hyper_dg *slvr; // Vlasov solver.  
@@ -457,12 +471,19 @@ struct vm_species {
   bool write_cell_avg; // Boolean for only writing cell average of f.
 
   enum gkyl_field_id field_id; // Type of field equation.
-  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).  
+  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).
+  enum gkyl_hamil_id hamil_id; // Representation of the equation-object Hamiltonian (hamil):
+                               // sparse/dense velocity-space expansion or phase-space expansion.
+  enum gkyl_hamil_id mom_hamil_id; // Representation of the moment Hamiltonian (mom_hamil).
+                                   // Differs from hamil_id for triad-GR: the equation Hamiltonian
+                                   // is a phase-space expansion while moments use the dense
+                                   // velocity-space (SR) Hamiltonian.
   enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
 
   struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (owns all velocity map arrays).
+  struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (acquired reference to the app's pos_map).
 
-  struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian. 
+  struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian.
                              // When using uniform velocity-space mesh, just stores the distribution function at that RK stage. 
 
   // Organization of the different equation objects and the required data.

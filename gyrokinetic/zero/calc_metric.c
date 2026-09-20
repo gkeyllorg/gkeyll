@@ -440,7 +440,8 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         // on B: 1 = J*B/sqrt(g_33)
         double *bmag_n = gkyl_array_fetch(gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
-        dphidtheta = sqrt(dphidtheta);
+        // Argument is >= 0 analytically; clamp away roundoff so sqrt does not return NaN.
+        dphidtheta = sqrt(fmax(0.0, dphidtheta));
         // Recover sign from exact dphidtheta = F(psi)/R/\grad(psi).
         if (ddtheta_n[2] < 0) {
           dphidtheta = -dphidtheta;
@@ -627,7 +628,8 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
         // on B: 1 = J*B/sqrt(g_33)
         double *bmag_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
-        dphidtheta = sqrt(dphidtheta);
+        // Argument is >= 0 analytically; clamp away roundoff so sqrt does not return NaN.
+        dphidtheta = sqrt(fmax(0.0, dphidtheta));
         // Recover sign from exact dphidtheta = F(psi)/R/\grad(psi).
         if (ddtheta_n[2] < 0) {
           dphidtheta = -dphidtheta;
@@ -1459,6 +1461,13 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
                               tanvecFld_n[7]/sqrt(gFld_n[5]),
                               tanvecFld_n[8]/sqrt(gFld_n[5])};
         check_parallel(bhat_vec, e_3_norm, up->exit_at_checks);
+
+        // Store the Cartesian components of bhat at the nodes (this provider
+        // otherwise only computes the modal bcart via advance_bcart).
+        double *bcartFld_n = gkyl_array_fetch(gk_geom->geo_int.bcart_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        bcartFld_n[0] = bhat_vec[0];
+        bcartFld_n[1] = bhat_vec[1];
+        bcartFld_n[2] = bhat_vec[2];
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);

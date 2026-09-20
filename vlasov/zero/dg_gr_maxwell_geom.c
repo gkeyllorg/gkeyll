@@ -14,9 +14,21 @@ gkyl_dg_gr_maxwell_preset_shift(enum gkyl_triad_preset_geom_type preset_geom_typ
 }
 
 evalf_t
+gkyl_dg_gr_maxwell_preset_geom_factor_con(enum gkyl_triad_preset_geom_type preset_geom_type)
+{
+  return choose_geom_factor_con_kern(preset_geom_type);
+}
+
+evalf_t
 gkyl_dg_gr_maxwell_preset_h_ij(enum gkyl_triad_preset_geom_type preset_geom_type)
 {
   return choose_h_ij_kern(preset_geom_type);
+}
+
+evalf_t
+gkyl_dg_gr_maxwell_preset_h_ij_inv(enum gkyl_triad_preset_geom_type preset_geom_type)
+{
+  return choose_h_ij_inv_kern(preset_geom_type);
 }
 
 evalf_t

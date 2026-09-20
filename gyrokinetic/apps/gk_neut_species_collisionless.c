@@ -13,8 +13,20 @@ gk_neut_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_n
 {
   struct timespec wst = gkyl_wall_clock();
 
-  gkyl_dg_updater_vlasov_advance(gkcls->vlasov_slvr, &species->local, 
-    fin, species->cflrate, rhs);
+  // Divide out the velocity-space Jacobian (identity velocity map => copy).
+  gkyl_vlasov_velocity_map_divide_jacobvel(species->vlasov_vel_map, &app->basis, &species->basis,
+    &species->local, fin, species->f_no_J);
+
+  // Compute the surface expansion of the phase space flux in configuration space.
+  gkyl_dg_vlasov_conf_flux_surf_advance(gkcls->calc_conf_flux, &app->local, &species->local, &species->local_ext,
+    species->conf_poisson_tensor, species->hamil, fin, species->cflrate, gkcls->conf_flux_surf);
+
+  // Compute the surface expansion of the phase space flux in velocity space.
+  gkyl_dg_vlasov_vel_flux_surf_advance(gkcls->calc_vel_flux, &app->local, &species->local,
+    species->conf_poisson_tensor, species->hamil, 0, 0, 0,
+    species->f_no_J, species->cflrate, gkcls->vel_flux_surf);
+
+  gkyl_hyper_dg_advance(gkcls->slvr_vlasov, &species->local, fin, species->cflrate, rhs);
 
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -34,8 +46,8 @@ gk_neut_species_collisionless_write_diags_enabled(gkyl_gyrokinetic_app* app, str
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void 
-gk_neut_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, 
+void
+gk_neut_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
   struct gk_collisionless *gkcls)
 {
   gkcls->collisionless_id = gkns->info.collisionless.type;
@@ -49,44 +61,83 @@ gk_neut_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_n
     int cdim = app->cdim, vdim = gkns->info.vdim;
     int pdim = cdim+vdim;
 
-    // Determine which directions are zero-flux. By default
-    // we do not have zero-flux boundary conditions in any direction.
-    bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
-    for (int dir=0; dir<app->cdim; ++dir) {
-      if (gkns->lower_bc[dir].type == GKYL_BC_GK_SPECIES_ZERO_FLUX)
-        is_zero_flux[dir] = true;
-      if (gkns->upper_bc[dir].type == GKYL_BC_GK_SPECIES_ZERO_FLUX)
-        is_zero_flux[dir+pdim] = true;
+    // Surface node counts for the nodal flux expansions. Tensor p=1 hybrid:
+    // a velocity-direction surface has 2 nodes per configuration direction and
+    // 4 nodes per remaining velocity direction; a configuration-direction
+    // surface has 2 nodes per remaining configuration direction and 4 per
+    // velocity direction. Must match the flux updaters' node counts.
+    gkcls->num_surf_vel_nodes = (int) (pow(2, cdim) * pow(4, vdim - 1));
+    gkcls->num_surf_conf_nodes = (int) (pow(2, cdim - 1) * pow(4, vdim));
+
+    // Surface expansion of the phase-space flux in configuration space.
+    gkcls->conf_flux_surf = mkarr(app->use_gpu, cdim*gkcls->num_surf_conf_nodes, gkns->local_ext.volume);
+    struct gkyl_dg_vlasov_conf_flux_surf_inp inp_conf_flux = {
+      .phase_grid = &gkns->grid,
+      .conf_basis = &app->basis,
+      .phase_basis = &gkns->basis,
+      .vel_range = &gkns->local_vel,
+      .vel_map = gkns->vlasov_vel_map,
+      .pos_map = gkns->vlasov_pos_map,
+      .hamil_range = &gkns->hamil_range,
+      .model_id = gkns->model_id,
+      .hamil_id = gkns->hamil_id,
+      .use_gpu = app->use_gpu,
+    };
+    gkcls->calc_conf_flux = gkyl_dg_vlasov_conf_flux_surf_inew(&inp_conf_flux);
+
+    // Surface expansion of the phase-space flux in velocity space.
+    gkcls->vel_flux_surf = mkarr(app->use_gpu, vdim*gkcls->num_surf_vel_nodes, gkns->local_ext.volume);
+    struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
+      .phase_grid = &gkns->grid,
+      .conf_basis = &app->basis,
+      .phase_basis = &gkns->basis,
+      .vel_map = gkns->vlasov_vel_map,
+      .pos_map = gkns->vlasov_pos_map,
+      .hamil_range = &gkns->hamil_range,
+      .model_id = gkns->model_id,
+      .hamil_id = gkns->hamil_id,
+      .use_gpu = app->use_gpu,
+    };
+    gkcls->calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux);
+
+    struct gkyl_dg_vlasov_inp inp_eqn = {
+      .conf_basis = &app->basis,
+      .phase_basis = &gkns->basis,
+      .conf_range = &app->local,
+      .hamil_range = &gkns->hamil_range,
+      .phase_range = &gkns->local,
+      .vel_map = gkns->vlasov_vel_map,
+      .pos_map = gkns->vlasov_pos_map,
+      .model_id = gkns->model_id,
+      .hamil_id = gkns->hamil_id,
+      .poisson_tensor_conf = gkns->conf_poisson_tensor,
+      .hamil = gkns->hamil,
+      .conf_flux_surf = gkcls->conf_flux_surf,
+      .vel_flux_surf = gkcls->vel_flux_surf,
+      .f_no_J = gkns->f_no_J,
+      .use_gpu = app->use_gpu,
+    };
+    gkcls->eqn_vlasov = gkyl_dg_vlasov_inew(&inp_eqn);
+
+    int up_dirs[GKYL_MAX_DIM];
+    for (int d=0; d<pdim; ++d) {
+      up_dirs[d] = d;
     }
 
-    // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
-    struct gkyl_basis surf_basis, surf_quad_basis;
-    gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
-    gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
-  
-    int alpha_surf_sz = (cdim+vdim)*surf_basis.num_basis; 
-    int sgn_alpha_surf_sz = (cdim+vdim)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
-  
-    // Allocate arrays to store fields:
-    // 1. alpha_surf (surface phase space velocity)
-    // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
-    // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
-    gkcls->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, gkns->local_ext.volume);
-    gkcls->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, gkns->local_ext.volume);
-    gkcls->const_sgn_alpha = mk_int_arr(app->use_gpu, cdim+vdim, gkns->local_ext.volume);
-  
-    // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
-    struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&gkns->grid, 
-      &app->basis, &gkns->basis, app->use_gpu);
-    gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &gkns->local, &gkns->local_ext, gkns->hamil,
-      gkcls->alpha_surf, gkcls->sgn_alpha_surf, gkcls->const_sgn_alpha);
-    gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
-  
-    struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = gkns->hamil, .alpha_surf = gkcls->alpha_surf, 
-      .sgn_alpha_surf = gkcls->sgn_alpha_surf, .const_sgn_alpha = gkcls->const_sgn_alpha};
-  
-    gkcls->vlasov_slvr = gkyl_dg_updater_vlasov_new(&gkns->grid, &app->basis, &gkns->basis, 
-      &app->local, &gkns->local_vel, &gkns->local, is_zero_flux, gkns->model_id, gkns->field_id, &aux_inp, app->use_gpu);
+    // Zero-flux BCs from the input in configuration space, always in velocity space.
+    int zero_flux_flags[2*GKYL_MAX_DIM] = {false};
+    for (int dir=0; dir<cdim; ++dir) {
+      if (gkns->lower_bc[dir].type == GKYL_BC_GK_SPECIES_ZERO_FLUX)
+        zero_flux_flags[dir] = true;
+      if (gkns->upper_bc[dir].type == GKYL_BC_GK_SPECIES_ZERO_FLUX)
+        zero_flux_flags[dir+pdim] = true;
+    }
+    for (int dir=cdim; dir<pdim; ++dir) {
+      zero_flux_flags[dir] = zero_flux_flags[dir+pdim] = 1;
+    }
+
+    gkcls->slvr_vlasov = gkyl_hyper_dg_new(&gkns->grid, &gkns->basis, gkcls->eqn_vlasov,
+      pdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
     // Methods chosen at runtime.
     gkcls->rhs_func_neut = gk_neut_species_collisionless_rhs_enabled;
@@ -114,11 +165,13 @@ void
 gk_neut_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const struct gk_collisionless *gkcls)
 {
   if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_NEUTRAL) {
-    gkyl_array_release(gkcls->alpha_surf);
-    gkyl_array_release(gkcls->sgn_alpha_surf);
-    gkyl_array_release(gkcls->const_sgn_alpha);
+    gkyl_dg_vlasov_conf_flux_surf_release(gkcls->calc_conf_flux);
+    gkyl_array_release(gkcls->conf_flux_surf);
+    gkyl_dg_vlasov_vel_flux_surf_release(gkcls->calc_vel_flux);
+    gkyl_array_release(gkcls->vel_flux_surf);
 
-    gkyl_dg_updater_vlasov_release(gkcls->vlasov_slvr);
+    gkyl_hyper_dg_release(gkcls->slvr_vlasov);
+    gkyl_dg_eqn_release(gkcls->eqn_vlasov);
 
     if (gkcls->write_diagnostics) {
     }

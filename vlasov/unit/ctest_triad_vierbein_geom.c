@@ -115,7 +115,7 @@ test_triad_1x1v_flat_conf(int poly_order)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Construct the input map
-  struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
   inp_triad_geom.use_vierbein = true;
   inp_triad_geom.use_preset_geom = false;
   inp_triad_geom.eval_vierbein = eval_vierbein_1v; 
@@ -220,7 +220,7 @@ test_triad_1x2v_flat_conf(int poly_order)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Construct the input map
-  struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
   inp_triad_geom.use_vierbein = true;
   inp_triad_geom.use_preset_geom = false;
   inp_triad_geom.eval_vierbein = eval_vierbein_2v; 
@@ -358,7 +358,7 @@ test_triad_1x2v_annulus_conf(int poly_order)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Construct the input map
-  struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
   inp_triad_geom.use_vierbein = true;
   inp_triad_geom.use_preset_geom = false;
   inp_triad_geom.eval_vierbein = eval_vierbein_annulus_2v; 
@@ -699,7 +699,7 @@ test_triad_2x2v_rphi_ks_pnt(int poly_order)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Construct the input map
-  struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
   inp_triad_geom.use_vierbein = true;
   inp_triad_geom.use_preset_geom = false;
   inp_triad_geom.eval_vierbein = eval_ks_rphi_vierbein_2v; 
@@ -954,7 +954,7 @@ test_triad_3v_obl_sph_conf(int poly_order)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Construct the input map
-  struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
   inp_triad_geom.use_vierbein = true;
   inp_triad_geom.use_preset_geom = false;
   inp_triad_geom.eval_vierbein = eval_vierbein_obl_sph_3v; 
@@ -1092,7 +1092,7 @@ test_triad_3v_obl_sph_conf_pnt(int poly_order)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Construct the input map
-  struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
   inp_triad_geom.use_vierbein = true;
   inp_triad_geom.use_preset_geom = false;
   inp_triad_geom.eval_vierbein = eval_vierbein_obl_sph_3v; 

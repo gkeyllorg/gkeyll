@@ -1,5 +1,6 @@
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -33,7 +34,7 @@ mkarr(bool on_gpu, long nc, long size)
 // points needed by volume, surface, and projection operations.
 static void
 vlasov_velocity_map_c1_cubic(const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange,
-  int v_poly_order, struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM],
+  vmap_cubic_t vmap_op, struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM],
   struct gkyl_array *vmap, struct gkyl_array *jacob_vel, struct gkyl_array *jacob_vel_surf,
   struct gkyl_array *vmap_pgkyl, struct gkyl_array *vmap_avg_pgkyl,
   struct gkyl_array *jacob_vel_gauss)
@@ -94,7 +95,6 @@ vlasov_velocity_map_c1_cubic(const struct gkyl_rect_grid *vgrid, const struct gk
   }
 
   // initialize the mapping
-  vmap_cubic_t vmap_op = choose_vmap_kern(vdim, v_poly_order);
   const double *v_cubic_dir[3]; // 1D cubic in each direction
   int vidx_1D[1]; // 1D index for indexing correct cubic mapping
 
@@ -260,20 +260,27 @@ gkyl_vlasov_velocity_map_free(const struct gkyl_ref_count *ref)
 struct gkyl_vlasov_velocity_map*
 gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange,
   const struct gkyl_basis *vel_basis, struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM],
-  bool use_gpu)
+  bool use_lo, bool use_gpu)
 {
   struct gkyl_vlasov_velocity_map *vvm = gkyl_malloc(sizeof(*vvm));
 
   int vdim = vgrid->ndim;
   int poly_order = vel_basis->poly_order;
+  // The tensor p=2 velocity basis with use_lo is the low-order variant of the
+  // tensor p=1 hybrid: its surface kernels use p+1 = 3 quadrature nodes, so
+  // jacob_vel_surf is stored at 3 nodes per direction instead of p+2. Every
+  // other basis has a single surface node count (p+2), use_lo included: the
+  // hybrid is the only basis with distinct lo/ho surface variants.
+  bool hyb_lo = (vel_basis->b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 2) && use_lo;
 
   vvm->grid_vel = *vgrid;
   vvm->local_vel = *vrange;
   vvm->basis_vel = *vel_basis;
-  // Representation is chosen by the velocity basis: tensor bases (p>1) use
-  // the C^1 cubic, Serendipity bases use the C^0 linear whose Jacobian is
-  // piecewise constant. p=1 always uses the C^0 linear since tensor p=1 and
-  // Serendipity p=1 are the same basis.
+  // Representation is chosen by the velocity basis: tensor bases use the C^1
+  // cubic, Serendipity bases use the C^0 linear whose Jacobian is piecewise
+  // constant. Tensor p=1 hybrid species pass their p=2 tensor velocity basis
+  // here (the hybrid is p=2 in velocity space), so p=1 is always Serendipity
+  // and always the C^0 linear.
   vvm->rep = (vel_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY || poly_order == 1) ?
     GKYL_VLASOV_VMAP_C0_LINEAR : GKYL_VLASOV_VMAP_C1_CUBIC;
 
@@ -293,12 +300,15 @@ gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gk
   // 1/Jvi nodally in volume and surface operations respectively, with surface operations utilizing
   // more quadrature points to eliminate aliasing errors.
   vvm->jacob_vel = mkarr(use_gpu, vdim*(poly_order+1), vrange->volume);
-  vvm->jacob_vel_surf = mkarr(use_gpu, vdim*(poly_order+2), vrange->volume);
+  vvm->jacob_vel_surf = mkarr(use_gpu, vdim*(hyb_lo ? poly_order+1 : poly_order+2), vrange->volume);
   // need special basis sets to get the correct number of coefficients in 2V and 3V for constructing
   // the mapping in post-processing, as well as storing the velocity-space Jacobian at quadrature points.
   struct gkyl_basis vmap_pgkyl_basis, jacob_vel_basis;
   gkyl_cart_modal_serendip(&vmap_pgkyl_basis, vdim, 3);
   gkyl_cart_modal_tensor(&jacob_vel_basis, vdim, poly_order);
+  // Keep the I/O basis so the write can label the file with the basis the data
+  // is actually stored in (the species' velocity basis does not describe these arrays).
+  vvm->basis_pgkyl = vmap_pgkyl_basis;
   // velocity-space Jacobian at Gaussian quadrature points for projecting distribution functions
   // and dividing out velocity-space Jacobian nodally.
   vvm->jacob_vel_gauss = mkarr(use_gpu, jacob_vel_basis.num_basis, vrange->volume);
@@ -339,8 +349,12 @@ gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gk
       vvm->vmap_pgkyl_host, vvm->vmap_avg_pgkyl_host, vvm->jacob_vel_gauss_host);
   }
   else {
-    assert(choose_vmap_kern(vdim, poly_order)); // C^1 cubic kernels exist for tensor p=2,3.
-    vlasov_velocity_map_c1_cubic(vgrid, vrange, poly_order, inp,
+    // C^1 cubic kernels exist for tensor p=2,3; the hyb_lo variants differ
+    // only in writing jacob_vel_surf at 3 surface nodes instead of 4.
+    vmap_cubic_t vmap_op = hyb_lo ? choose_vmap_hyb_lo_kern(vdim)
+                                  : choose_vmap_kern(vdim, poly_order);
+    assert(vmap_op);
+    vlasov_velocity_map_c1_cubic(vgrid, vrange, vmap_op, inp,
       vvm->vmap_host, vvm->jacob_vel_host, vvm->jacob_vel_surf_host,
       vvm->vmap_pgkyl_host, vvm->vmap_avg_pgkyl_host, vvm->jacob_vel_gauss_host);
   }
@@ -368,31 +382,96 @@ gkyl_vlasov_velocity_map_is_cu_dev(const struct gkyl_vlasov_velocity_map *vvm)
 }
 
 void
+gkyl_vlasov_velocity_map_eval_c2p(const struct gkyl_vlasov_velocity_map *vvm,
+  const double *vc, double *vp)
+{
+  // Evaluate the stored (DG) velocity map at the computational velocity vc. The
+  // map is stored per direction in the 4-slot (cubic) layout, so a 1D p=3 modal
+  // basis evaluates each direction's expansion.
+  int vdim = vvm->grid_vel.ndim;
+
+  // Identity map: computational coordinates ARE physical coordinates. Return
+  // them exactly (bitwise) instead of reconstructing v through the DG
+  // expansion, so uniform grids are truly unaffected by the map machinery.
+  if (vvm->is_identity) {
+    for (int d=0; d<vdim; ++d) vp[d] = vc[d];
+    return;
+  }
+
+  struct gkyl_basis b1;
+  gkyl_cart_modal_tensor(&b1, 1, 3);
+
+  // Find the index of the cell containing vc.
+  int idx_vc[GKYL_MAX_VDIM];
+  for (int d=0; d<vdim; ++d) {
+    int idx = vvm->local_vel.lower[d] + (int) floor((vc[d] - vvm->grid_vel.lower[d])/vvm->grid_vel.dx[d]);
+    idx = GKYL_MIN2(idx, vvm->local_vel.upper[d]);
+    idx = GKYL_MAX2(idx, vvm->local_vel.lower[d]);
+    idx_vc[d] = idx;
+  }
+
+  // Fetch DG coefficients of the velocity map in idx_vc.
+  long lidx_vc = gkyl_range_idx(&vvm->local_vel, idx_vc);
+  const double *vmap_c = gkyl_array_cfetch(vvm->vmap_host, lidx_vc);
+
+  double vc_cc[GKYL_MAX_VDIM];
+  gkyl_rect_grid_cell_center(&vvm->grid_vel, idx_vc, vc_cc);
+  for (int d=0; d<vdim; ++d) {
+    // Convert computational to logical coord, then evaluate the expansion.
+    double vlog = (vc[d] - vc_cc[d])/(0.5*vvm->grid_vel.dx[d]);
+    vp[d] = b1.eval_expand(&vlog, &vmap_c[d*4]);
+  }
+}
+
+void
 gkyl_vlasov_velocity_map_write(const struct gkyl_vlasov_velocity_map *vvm,
-  struct gkyl_comm *comm, struct gkyl_msgpack_data *mt,
-  const char *app_name, const char *species_name, bool write_cell_avg)
+  struct gkyl_comm *comm, const char *app_name, const char *species_name)
 {
   int rank;
   gkyl_comm_get_rank(comm, &rank);
-  if (rank == 0) {
-    const char *fmt_vmap = "%s-%s_vmap.gkyl";
-    int sz_vmap = gkyl_calc_strlen(fmt_vmap, app_name, species_name);
-    char fileNm_vmap[sz_vmap+1]; // ensures no buffer overflow
-    snprintf(fileNm_vmap, sizeof fileNm_vmap, fmt_vmap, app_name, species_name);
+  // Since velocity space has no decomposition currently, make sure to only
+  // have rank 0 write out the velocity map. 
+  if (rank != 0)
+    return;
 
-    gkyl_grid_sub_array_write(&vvm->grid_vel, &vvm->local_vel,
-      mt, vvm->vmap_pgkyl_host, fileNm_vmap);
-
-    if (write_cell_avg) {
-      const char *fmt_vmap_avg = "%s-%s_vmap_avg.gkyl";
-      int sz_vmap_avg = gkyl_calc_strlen(fmt_vmap_avg, app_name, species_name);
-      char fileNm_vmap_avg[sz_vmap_avg+1]; // ensures no buffer overflow
-      snprintf(fileNm_vmap_avg, sizeof fileNm_vmap_avg, fmt_vmap_avg, app_name, species_name);
-
-      gkyl_grid_sub_array_write(&vvm->grid_vel, &vvm->local_vel,
-        mt, vvm->vmap_avg_pgkyl_host, fileNm_vmap_avg);
+  // The map is static and written once, so both files carry frame-0 metadata.
+  struct gkyl_msgpack_data *mt_vmap = gkyl_msgpack_create(4,
+    (struct gkyl_msgpack_map_elem []) {
+      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+      { .key = "frame", .elem_type = GKYL_MP_INT, .ival = 0 },
+      { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = vvm->basis_pgkyl.poly_order },
+      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = vvm->basis_pgkyl.id }
     }
-  }
+  );
+
+  const char *fmt_vmap = "%s-%s_vmap.gkyl";
+  int sz_vmap = gkyl_calc_strlen(fmt_vmap, app_name, species_name);
+  char fileNm_vmap[sz_vmap+1]; // ensures no buffer overflow
+  snprintf(fileNm_vmap, sizeof fileNm_vmap, fmt_vmap, app_name, species_name);
+
+  gkyl_grid_sub_array_write(&vvm->grid_vel, &vvm->local_vel,
+    mt_vmap, vvm->vmap_pgkyl_host, fileNm_vmap);
+  gkyl_msgpack_data_release(mt_vmap);
+
+  // The cell-average file holds one value per cell per direction: p=0 data,
+  // regardless of the map's I/O basis order.
+  struct gkyl_msgpack_data *mt_vmap_avg = gkyl_msgpack_create(4,
+    (struct gkyl_msgpack_map_elem []) {
+      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+      { .key = "frame", .elem_type = GKYL_MP_INT, .ival = 0 },
+      { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 0 },
+      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = vvm->basis_pgkyl.id }
+    }
+  );
+
+  const char *fmt_vmap_avg = "%s-%s_vmap_avg.gkyl";
+  int sz_vmap_avg = gkyl_calc_strlen(fmt_vmap_avg, app_name, species_name);
+  char fileNm_vmap_avg[sz_vmap_avg+1]; // ensures no buffer overflow
+  snprintf(fileNm_vmap_avg, sizeof fileNm_vmap_avg, fmt_vmap_avg, app_name, species_name);
+
+  gkyl_grid_sub_array_write(&vvm->grid_vel, &vvm->local_vel,
+    mt_vmap_avg, vvm->vmap_avg_pgkyl_host, fileNm_vmap_avg);
+  gkyl_msgpack_data_release(mt_vmap_avg);
 }
 
 void
@@ -418,7 +497,7 @@ gkyl_vlasov_velocity_map_divide_jacobvel(const struct gkyl_vlasov_velocity_map *
   int vdim = pdim - cdim;
   int poly_order = phase_basis->poly_order;
   divide_Jv_t divide_Jv;
-  switch (conf_basis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(conf_basis, phase_basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       divide_Jv = choose_ser_divide_Jv_kern(cdim, vdim, poly_order);
       break;
@@ -471,7 +550,7 @@ gkyl_vlasov_velocity_map_rescale_jacobvel(const struct gkyl_vlasov_velocity_map 
   int vdim = pdim - cdim;
   int poly_order = phase_basis->poly_order;
   rescale_Jv_t rescale_Jv;
-  switch (conf_basis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(conf_basis, phase_basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       rescale_Jv = choose_ser_rescale_Jv_kern(cdim, vdim, poly_order);
       break;
