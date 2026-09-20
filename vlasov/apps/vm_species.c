@@ -62,7 +62,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->hamil_id = gkyl_hamil_id_from_model_id(vms->model_id);
     vms->mom_hamil_id = vms->hamil_id;
 
-    // Hamiltonain for computing the moments is only a function of velocity space.
+    // Hamiltonian for computing the moments is only a function of velocity space.
     vms->mom_hamil_range = vms->local_vel;
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
@@ -90,7 +90,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->hamil_id = GKYL_HAMIL_VEL_SPARSE;
     vms->mom_hamil_id = GKYL_HAMIL_VEL_SPARSE;
 
-    // Hamiltonain is only a function of velocity space, non-relativistic only using the
+    // Hamiltonian is only a function of velocity space, non-relativistic only using the
     // same infrastructure as GKYL_MODEL_DEFAULT
     vms->mom_hamil_range = vms->local_vel; 
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
@@ -166,7 +166,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->mom_hamil_id = GKYL_HAMIL_VEL_DENSE;
 
     // 1. Build a velocity space only hamiltonian for moments.
-    // Hamiltonain is only a function of velocity space, non-relativistic only using the
+    // Hamiltonian is only a function of velocity space, non-relativistic only using the
     // same infrastructure as GKYL_MODEL_DEFAULT
     vms->mom_hamil_range = vms->local_vel;
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);

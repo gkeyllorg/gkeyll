@@ -61,21 +61,21 @@ struct vm_geom {
   bool has_gr_fields; // Boolean for determining if we have fields for GR-DG-Maxwells
   bool has_gr_em_triad_coupling; // Boolean for GR-DG-Maxwell coupled to triad species
   struct gkyl_surf_and_vol_node_arrays *lapse; // lapse scalar (ADM \alpha)
-  struct gkyl_surf_and_vol_node_arrays *shift; // shift vector - contravaraint radial component (ADM \beta^r)
+  struct gkyl_surf_and_vol_node_arrays *shift; // shift vector - contravariant radial component (ADM \beta^r)
   struct gkyl_surf_and_vol_node_arrays *geom_factor_con; // contravariant geometric source factors
-  struct gkyl_surf_and_vol_node_arrays *h_ij; // Spatial metric, covaraint components, h_ij
+  struct gkyl_surf_and_vol_node_arrays *h_ij; // Spatial metric, covariant components, h_ij
   struct gkyl_surf_and_vol_node_arrays *h_ij_inv; // Spatial metric, contravariant components, h^ij
-  struct gkyl_surf_and_vol_node_arrays *det_h; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))
+  struct gkyl_surf_and_vol_node_arrays *det_h; // Square root of the spatial determinant from Jc = sqrt(det(h_ij))
   struct gkyl_surf_and_vol_node_arrays *vierb_cov; // Covariant vierbein components
   struct gkyl_surf_and_vol_node_arrays *vierb_con; // Contravariant vierbein components
 
-  // Geometry copy for initalization (for GPU only)
+  // Geometry copy for initialization (for GPU only)
   struct gkyl_surf_and_vol_node_arrays *lapse_init; // lapse scalar (ADM \alpha)
-  struct gkyl_surf_and_vol_node_arrays *shift_init; // shift vector - contravaraint radial component (ADM \beta^r)
+  struct gkyl_surf_and_vol_node_arrays *shift_init; // shift vector - contravariant radial component (ADM \beta^r)
   struct gkyl_surf_and_vol_node_arrays *geom_factor_con_init; // contravariant geometric source factors
-  struct gkyl_surf_and_vol_node_arrays *h_ij_init; // Spatial metric, covaraint components, h_ij
+  struct gkyl_surf_and_vol_node_arrays *h_ij_init; // Spatial metric, covariant components, h_ij
   struct gkyl_surf_and_vol_node_arrays *h_ij_inv_init; // Spatial metric, contravariant components, h^ij
-  struct gkyl_surf_and_vol_node_arrays *det_h_init; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))
+  struct gkyl_surf_and_vol_node_arrays *det_h_init; // Square root of the spatial determinant from Jc = sqrt(det(h_ij))
   struct gkyl_surf_and_vol_node_arrays *vierb_cov_init; // Covariant vierbein components
   struct gkyl_surf_and_vol_node_arrays *vierb_con_init; // Contravariant vierbein components
 

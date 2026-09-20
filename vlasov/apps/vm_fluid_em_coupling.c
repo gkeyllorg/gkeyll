@@ -60,7 +60,7 @@ vm_fluid_em_coupling_update(struct gkyl_vlasov_app *app, struct vm_fluid_em_coup
     }
   }
   // Compute external EM field or applied currents if present and time-dependent
-  // (this object only exists when a dynamic Maxwell field is present).
+  // (this object only exists when there are fluid species and a field).
   // Note: external EM field and applied currents use proj_on_basis
   // so does copy to GPU every call if app->use_gpu = true.
   if (app->field->ext_em_evolve) {

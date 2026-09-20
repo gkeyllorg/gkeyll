@@ -61,7 +61,7 @@ struct gkyl_vlasov_collisions {
 
   // Parameters used to compute the Coulomb Logarithm.
   double den_ref; // Reference density.
-  double temp_ref; // Regerence temperature.
+  double temp_ref; // Reference temperature.
   double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
 
   // BGK collisions specific inputs
@@ -198,12 +198,12 @@ struct gkyl_vlasov_kinetic_species {
 
   bool is_static; // Set to true if species does not change in time.
   bool no_collisionless_terms; // Set to true to turn off collisionles terms.
-  bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
+  bool write_omega_cfl; // Whether to output dt diagnostic for the CFL constraint.
   bool write_cell_avg; // Boolean for only writing cell average of f.
   bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
 
-  bool use_vierbein; // bool to determine if we are using vierbein input or by defult using tanget vectos/ triads
-  bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
+  bool use_vierbein; // bool to determine if we are using vierbein input or by default using tangent vectors/ triads
+  bool use_extended_hamil_def; // bool to determine if we are using the extended hamil definitions which includes potentials
   
   // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   double skip_cell_thresh; 
@@ -245,7 +245,7 @@ struct gkyl_vlasov_kinetic_species {
   void (*h_ij)(double t, const double *xn, double *aout, void *ctx);
 
   void *h_ij_inv_ctx; // Context for spatial metric function (contravariant).
-  // Pointer to metric (contravaraint components) function.
+  // Pointer to metric (contravariant components) function.
   void (*h_ij_inv)(double t, const double *xn, double *aout, void *ctx);
 
   void *det_h_ctx; // Context for determinant of the spatial metric.

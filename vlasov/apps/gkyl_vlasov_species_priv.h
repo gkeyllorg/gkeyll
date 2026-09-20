@@ -100,7 +100,7 @@ struct vm_species_moment {
   //    Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
   union {
     struct {
-      struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // Epdater for computing LTE moments.
+      struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // Updater for computing LTE moments.
     };
     struct {
       struct gkyl_mom_type *mom_type; // Moment type. 
@@ -157,7 +157,7 @@ struct vm_proj {
       // also corrects the density of projected distribution function
       struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
 
-      // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
+      // Correction updater for ensuring LTE distribution has desired LTE (n, V_drift, T/m) moments
       bool correct_all_moms; // boolean if we are correcting all the moments
       struct gkyl_vlasov_lte_correct *corr_lte;    
     };
@@ -192,7 +192,7 @@ struct vm_collisionless {
   bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
   bool use_preset_geom; // bool to determine if we are using triad input geom
   bool use_vierbein; // bool to determine if using vierbein inputs for triads.
-  bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
+  bool use_extended_hamil_def; // bool to determine if we are using the extended hamil definitions which includes potentials
 
   double qbym; // Charge (q) divided by mass (m).
   struct gkyl_array *qmem; // array for q/m*(E,B)
@@ -246,7 +246,7 @@ struct vm_lbo_collisions {
                        // partner's computed cross nu reads this species' LTE moments.
   double norm_nu_fac_cross[GKYL_MAX_SPECIES]; // Cross collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2).
   double alpha_E_fac[GKYL_MAX_SPECIES]; // Time-independent factor in alpha_E.
-  double betaGreenep1; // Galue of Greene's factor beta + 1.
+  double betaGreenep1; // Value of Greene's factor beta + 1.
   double delta_sr; // Free parameter in relationship between alpha_E and nu_sr.
   double other_m[GKYL_MAX_SPECIES]; // Masses of species colliding with.
   struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // Self-primitive moments of species colliding with.
@@ -294,7 +294,7 @@ struct vm_bgk_collisions {
   bool norm_nu_cross; // Whether to compute cross-species collision frequency in space and time.
   double norm_nu_fac_cross[GKYL_MAX_SPECIES]; // Cross collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2).
   double alpha_E_fac[GKYL_MAX_SPECIES]; // Time-independent factor in alpha_E.
-  double betaGreenep1; // Galue of Greene's factor beta + 1.
+  double betaGreenep1; // Value of Greene's factor beta + 1.
   double delta_sr; // Free parameter in relationship between alpha_E and nu_sr.
   double other_m[GKYL_MAX_SPECIES]; // Masses of species colliding with.
   struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // Self-primitive moments of species colliding with.
@@ -310,7 +310,7 @@ struct vm_bgk_collisions {
   bool fixed_temp_relax; // Boolean for whether the temperature being relaxed to is fixed in time.
   struct gkyl_array *fixed_temp; // Array of fixed temperature BGK collisions are relaxing to.
 
-  bool implicit_step; // Whether or not to take an implcit BGK step.
+  bool implicit_step; // Whether or not to take an implicit BGK step.
 
   // Pointers to methods chosen at runtime.
   void (*moms_func)(gkyl_vlasov_app *app, const struct vm_species *vms,
@@ -415,7 +415,7 @@ struct vm_source {
   struct gkyl_array *adapt_source[GKYL_MAX_SPECIES]; // adaptive source array
   int adapt_proj_source[GKYL_MAX_SPECIES]; // Index of projection function to use for adaptive source. 
 
-  bool filter; // boolean for if we are filtering recaled M0
+  bool filter; // boolean for if we are filtering rescaled M0
   int num_filters; // number of times to apply filter
   gkyl_dg_gaussian_filter *gauss_filter; // updater for filtering rescaled M0
   
@@ -506,9 +506,9 @@ struct vm_species {
     // Canonical Poisson Bracket using specified Hamiltonian in phase space. 
     struct {
       struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
-      struct gkyl_array *h_ij_host; // Host side metric inverse array for intial projection
+      struct gkyl_array *h_ij_host; // Host side metric inverse array for initial projection
       struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket
-      struct gkyl_array *h_ij_inv_host; // Host side metric inverse array for intial projection
+      struct gkyl_array *h_ij_inv_host; // Host side metric inverse array for initial projection
       struct gkyl_array *det_h; // Specified metric determinant
       struct gkyl_array *det_h_host; // Host side metric determinant
       struct gkyl_array *background_flows; // Specified background flows
@@ -1005,7 +1005,6 @@ void vm_species_lbo_cross_moms(gkyl_vlasov_app *app,
  * @param lbo Pointer to LBO
  * @param fin Input distribution function
  * @param rhs On output, the RHS from LBO
- * @return Maximum stable time-step
  */
 void vm_species_lbo_rhs(gkyl_vlasov_app *app,
   const struct vm_species *species,
@@ -1139,13 +1138,14 @@ void vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_boundary_fluxes *bflux);
 
 /**
- * Compute boundary flux from rhs
+ * Compute the boundary fluxes of the input distribution and their integrated
+ * moments (used by boundary-flux sources).
  *
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param bflux Species boundary flux object
  * @param fin Input distribution function
- * @param rhs On output, the RHS from LBO
+ * @param rhs Work array whose ghost cells receive the boundary fluxes (overwritten by the BCs)
  */
 void vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs);
@@ -1237,25 +1237,23 @@ void vm_species_source_calc(gkyl_vlasov_app *app, const struct vm_species *speci
   struct vm_source *src, double tm);
 
 /**
- * Compute density re-scaling for adaptive sourcing. 
+ * Compute the moments needed to re-scale the density of adaptive sources.
  *
  * @param app Vlasov app object
  * @param species Species object
  * @param src Pointer to source
  * @param fin Input distribution function
- * @param tm Time for use in source
  */
 void vm_species_source_adapt_moms(gkyl_vlasov_app *app, const struct vm_species *species, 
   struct vm_source *src, const struct gkyl_array *fin);
 
 /**
- * Adapt source based on density re-scaling. 
+ * Re-scale the adaptive source from the moments computed by
+ * vm_species_source_adapt_moms.
  *
  * @param app Vlasov app object
  * @param species Species object
  * @param src Pointer to source
- * @param fin Input distribution function
- * @param tm Time for use in source
  */
 void vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *species, 
   struct vm_source *src);
@@ -1376,18 +1374,18 @@ double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
  * @param species Pointer to species
  * @param fin Input distribution function
  * @param rhs On output, the RHS from the species object
- * @param dt timestep size (used in the implcit coef.)
+ * @param dt timestep size (used in the implicit coef.)
  * @return Maximum stable time-step
  */
 double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
 
 /**
- * Scale and accumulate for forward euler method.
+ * Scale and accumulate for the forward Euler method: out = a*out + inp.
  *
- * @param species Pointer to species.
+ * @param vms Pointer to species.
  * @param out Output array.
- * @param dt Timestep.
+ * @param a Scale factor (the time-step).
  * @param inp Input array.
  */
 void vm_species_step_f(struct vm_species *vms, struct gkyl_array* out, double a,

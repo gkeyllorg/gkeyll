@@ -95,7 +95,7 @@ struct vm_field {
       double *em_energy_red; // memory for use in GPU reduction of EM energy
 
       bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x
-      struct gkyl_array *ghost_current; // Array for storying global average of current density
+      struct gkyl_array *ghost_current; // Array for storing global average of current density
       double *red_ghost_current; // memory for use in GPU reduction of average of current density
 
       bool use_geom_sources; // Are we using geometric sources to correct dE/dt = -J in 1x?

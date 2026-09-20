@@ -84,7 +84,6 @@ static const struct gkyl_str_int_pair triad_geom_type[] = {
   { 0, 0 }
 };
 
-
 // Vlasov collision type -> enum map.
 static const struct gkyl_str_int_pair collision_type[] = {
   { "None", GKYL_NO_COLLISIONS },
@@ -141,7 +140,6 @@ gkyl_register_vlasov_triad_geom_types(lua_State *L)
 {
   register_types(L, triad_geom_type, "TriadGeom");
 }
-
 
 void
 gkyl_register_vlasov_collision_types(lua_State *L)
@@ -469,7 +467,7 @@ struct vlasov_species_lw {
 
   // Parameters used to compute the Coulomb Logarithm.
   double den_ref; // Reference density.
-  double temp_ref; // Regerence temperature.
+  double temp_ref; // Reference temperature.
   double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
 
   bool lte_correct_all_moms; // Are we correcting all moments in collisions, or only density?
@@ -1039,7 +1037,6 @@ vlasov_species_lw_new(lua_State *L)
     .L = L,
   };
 
-
   vms_lw->has_hamiltonian_func = has_hamiltonian_func;
   vms_lw->hamiltonian_func_ref = (struct lua_func_ctx) {
     .func_ref = hamiltonian_func_ref,
@@ -1055,7 +1052,6 @@ vlasov_species_lw_new(lua_State *L)
     .nret = (vdim * (vdim + 1)) / 2,
     .L = L,
   };
-
 
   vms_lw->has_inverse_metric_func = has_inverse_metric_func;
   vms_lw->inverse_metric_func_ref = (struct lua_func_ctx) {
@@ -1225,9 +1221,9 @@ vlasov_species_lw_new(lua_State *L)
   lua_setmetatable(L, -2);
 
   // Anchor the constructor's input table as this userdata's environment: any
-  // Lua-wrapped objects it contains (e.g. a fluid species' equation object)
-  // then live exactly as long as this object. Composes with the App-level
-  // anchor, so inputs-of-inputs stay reachable for the app's lifetime.
+  // Lua-wrapped objects it contains then live exactly as long as this object.
+  // Composes with the App-level anchor, so inputs-of-inputs stay reachable for
+  // the app's lifetime.
   if (lua_istable(L, 1)) {
     lua_pushvalue(L, 1);
     lua_setfenv(L, -2);
@@ -1279,9 +1275,9 @@ vlasov_geom_lw_new(lua_State *L)
   lua_setmetatable(L, -2);
 
   // Anchor the constructor's input table as this userdata's environment: any
-  // Lua-wrapped objects it contains (e.g. a fluid species' equation object)
-  // then live exactly as long as this object. Composes with the App-level
-  // anchor, so inputs-of-inputs stay reachable for the app's lifetime.
+  // Lua-wrapped objects it contains then live exactly as long as this object.
+  // Composes with the App-level anchor, so inputs-of-inputs stay reachable for
+  // the app's lifetime.
   if (lua_istable(L, 1)) {
     lua_pushvalue(L, 1);
     lua_setfenv(L, -2);
@@ -1522,7 +1518,6 @@ vlasov_field_lw_new(lua_State *L)
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
 
-
   with_lua_tbl_tbl(L, "bcx") { 
     int nbc = glua_objlen(L);
 
@@ -1682,9 +1677,9 @@ vlasov_field_lw_new(lua_State *L)
   lua_setmetatable(L, -2);
 
   // Anchor the constructor's input table as this userdata's environment: any
-  // Lua-wrapped objects it contains (e.g. a fluid species' equation object)
-  // then live exactly as long as this object. Composes with the App-level
-  // anchor, so inputs-of-inputs stay reachable for the app's lifetime.
+  // Lua-wrapped objects it contains then live exactly as long as this object.
+  // Composes with the App-level anchor, so inputs-of-inputs stay reachable for
+  // the app's lifetime.
   if (lua_istable(L, 1)) {
     lua_pushvalue(L, 1);
     lua_setfenv(L, -2);
@@ -2133,7 +2128,6 @@ vm_app_new(lua_State *L)
     }
   }
 
-
   struct vlasov_species_lw *species[GKYL_MAX_SPECIES];
 
   // Set all species input.
@@ -2158,15 +2152,6 @@ vm_app_new(lua_State *L)
         vm.species[s].kinetic.mapc2p_vel[i].mapc2p_vel_ctx = &species[s]->mapc2p_vel_func_ref[i];
       }
     }
-
-
-
-
-
-
-
-
-
 
     if (species[s]->has_cov_tangent_basis_func) {
       vm.species[s].kinetic.cov_tangent_basis = gkyl_lw_eval_cb;
@@ -2213,14 +2198,6 @@ vm_app_new(lua_State *L)
       vm.species[s].kinetic.det_h_ctx = &species[s]->metric_determinant_func_ref;
     }
 
-    for (int i = 0; i < species[s]->num_init; i++) {
-
-
-
-      
-
-    }
-
     vm.species[s].kinetic.num_init = species[s]->num_init;
     for (int i = 0; i < species[s]->num_init; i++) {
       vm.species[s].kinetic.projection[i].proj_id = species[s]->proj_id[i];
@@ -2251,11 +2228,6 @@ vm_app_new(lua_State *L)
       vm.species[s].kinetic.projection[i].use_last_converged = species[s]->use_last_converged[i];
     }
 
-
-
-    for (int i = 0; i < species[s]->num_cross_collisions; i++) {
-    }
-    
     vm.species[s].kinetic.collisions.collision_id = species[s]->collision_id;
     vm.species[s].kinetic.collisions.nu_frac = species[s]->nu_frac;
     vm.species[s].kinetic.collisions.write_coll_diagnostics = species[s]->write_coll_diagnostics;
@@ -2280,25 +2252,11 @@ vm_app_new(lua_State *L)
     vm.species[s].kinetic.collisions.fixed_temp_relax = species[s]->fixed_temp_relax;
     vm.species[s].kinetic.collisions.is_implicit = species[s]->is_implicit;
 
-
     vm.species[s].kinetic.correct.correct_all_moms = species[s]->lte_correct_all_moms;
     vm.species[s].kinetic.correct.iter_eps = species[s]->lte_iter_eps;
     vm.species[s].kinetic.correct.max_iter = species[s]->lte_max_iter;
     vm.species[s].kinetic.correct.use_last_converged = species[s]->lte_use_last_converged;
     vm.species[s].kinetic.correct.output_f_lte = species[s]->output_f_lte;
-
-
-
-    for (int i = 0; i < species[s]->num_cross_source; i++) {
-    }
-
-    for (int i = 0; i < species[s]->num_sources; i++) {
-
-
-
-
-
-    }
 
     vm.species[s].kinetic.source.source_id = species[s]->source_id;
 
@@ -2347,7 +2305,6 @@ vm_app_new(lua_State *L)
       vm.species[s].kinetic.source.projection[i].max_iter = species[s]->source_max_iter[i];
       vm.species[s].kinetic.source.projection[i].use_last_converged = species[s]->source_use_last_converged[i];
     }
-
 
     vm.species[s].kinetic.radiation.radiation_id = species[s]->radiation_id;
     vm.species[s].kinetic.radiation.t_cool = species[s]->t_cool;

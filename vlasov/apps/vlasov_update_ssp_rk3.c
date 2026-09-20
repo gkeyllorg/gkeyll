@@ -1,9 +1,7 @@
 #include <gkyl_vlasov_priv.h>
 
-// Set the per-stage RK input/output array pointers for every species, indexed
-// over the overall species count. 'in'/'out' select which of the kinetic RK
-// buffers (f/f1/fnew) and fluid RK buffers (fluid/fluid1/fluidnew) this stage
-// reads and writes; entries are NULL where a species lacks that aspect.
+// RK buffers of a species: the solution (f, fluid), the first-stage buffer
+// (f1, fluid1) and the new-stage buffer (fnew, fluidnew).
 enum vm_rk_buf { VM_RK_F, VM_RK_F1, VM_RK_FNEW };
 
 static struct gkyl_array*
@@ -17,6 +15,9 @@ fluid_buf(struct vm_fluid_species *f, enum vm_rk_buf b)
   return b == VM_RK_F ? f->fluid : (b == VM_RK_F1 ? f->fluid1 : f->fluidnew);
 }
 
+// Set the per-stage RK input/output array pointers for every species, indexed
+// over the overall species count: 'in'/'out' select which buffers this stage
+// reads and writes; entries are NULL where a species lacks that aspect.
 static void
 set_rk_arrays(gkyl_vlasov_app *app, enum vm_rk_buf in, enum vm_rk_buf out,
   const struct gkyl_array *fin[], struct gkyl_array *fout[],
