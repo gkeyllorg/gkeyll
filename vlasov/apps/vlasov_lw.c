@@ -64,8 +64,6 @@ static const struct gkyl_str_int_pair model_type[] = {
 static const struct gkyl_str_int_pair field_type[] = {
   { "Default", GKYL_FIELD_E_B },
   { "Phi", GKYL_FIELD_PHI },
-  { "phiExtPotentials", GKYL_FIELD_PHI_EXT_POTENTIALS },
-  { "phiExtFields", GKYL_FIELD_PHI_EXT_FIELDS },
   { "Null", GKYL_FIELD_NULL},
   { "GR", GKYL_FIELD_GR_D_B},
   { 0, 0 }

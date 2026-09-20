@@ -173,8 +173,6 @@ vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
       sp->accumulate_field_coupling_func = species_no_field_coupling;
       break;
     case GKYL_FIELD_PHI:
-    case GKYL_FIELD_PHI_EXT_POTENTIALS:
-    case GKYL_FIELD_PHI_EXT_FIELDS:
       sp->accumulate_field_coupling_func = kinetic_accumulate_charge_dens;
       break;
     default:

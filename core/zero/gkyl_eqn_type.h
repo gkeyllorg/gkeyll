@@ -46,8 +46,6 @@ enum gkyl_gkfield_id {
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default.
   GKYL_FIELD_PHI = 1, // Poisson (only phi).
-  GKYL_FIELD_PHI_EXT_POTENTIALS = 2, // Poisson + external potentials (phi_ext, A_ext).
-  GKYL_FIELD_PHI_EXT_FIELDS = 3, // Poisson + external fields (E_ext, B_ext).
   GKYL_FIELD_NULL = 4, // no field is present.
   GKYL_FIELD_GR_D_B = 5, // Maxwell (D, B). This is for GR Maxwell.
 };
