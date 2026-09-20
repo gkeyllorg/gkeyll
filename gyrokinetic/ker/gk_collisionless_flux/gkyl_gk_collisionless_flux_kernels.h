@@ -7,6 +7,16 @@
 
 #define gsign(x) (((x) > 0) - ((x) < 0))
 
+GKYL_CU_DH static inline void
+gkyl_gk_collisionless_yfield_add(double *out, double val)
+{
+#ifdef __CUDA_ARCH__
+  atomicAdd(out, val);
+#else
+  *out += val;
+#endif
+}
+
 EXTERN_C_BEG
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_1x1v_ser_p1(
@@ -70,7 +80,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x1v_ser_p1(
               const double *vmap_prime_l, const double *vmap_prime_r, 
               const double *vmap, const double *vmapSq, const double q_, const double m_, 
               const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-              const double *bmag, const double *yfield, const double *JfL, const double *JfR, 
+              const double *bmag, const double *yfieldL, const double *yfieldR, const double *JfL, const double *JfR,
               double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_1x1v_ser_p2(
@@ -134,7 +144,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x1v_ser_p2(
               const double *vmap_prime_l, const double *vmap_prime_r, 
               const double *vmap, const double *vmapSq, const double q_, const double m_, 
               const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-              const double *bmag, const double *yfield, const double *JfL, const double *JfR, 
+              const double *bmag, const double *yfieldL, const double *yfieldR, const double *JfL, const double *JfR,
               double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_1x2v_ser_p1(
@@ -198,7 +208,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x2v_ser_p1(
               const double *vmap_prime_l, const double *vmap_prime_r, 
               const double *vmap, const double *vmapSq, const double q_, const double m_, 
               const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-              const double *bmag, const double *yfield, const double *JfL, const double *JfR, 
+              const double *bmag, const double *yfieldL, const double *yfieldR, const double *JfL, const double *JfR,
               double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_1x2v_ser_p2(
@@ -262,7 +272,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_1x2v_ser_p2(
               const double *vmap_prime_l, const double *vmap_prime_r, 
               const double *vmap, const double *vmapSq, const double q_, const double m_, 
               const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-              const double *bmag, const double *yfield, const double *JfL, const double *JfR, 
+              const double *bmag, const double *yfieldL, const double *yfieldR, const double *JfL, const double *JfR,
               double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_2x2v_ser_p1(
@@ -382,7 +392,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_2x2v_ser_p1(
               const double *vmap_prime_l, const double *vmap_prime_r, 
               const double *vmap, const double *vmapSq, const double q_, const double m_, 
               const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-              const double *bmag, const double *yfield, const double *JfL, const double *JfR, 
+              const double *bmag, const double *yfieldL, const double *yfieldR, const double *JfL, const double *JfR,
               double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_surfx_no_by_2x2v_ser_p1(
                 const double *w, const double *dxv,
@@ -501,7 +511,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_no_by_2x2v_ser_p1(
               const double *vmap_prime_l, const double *vmap_prime_r, 
               const double *vmap, const double *vmapSq, const double q_, const double m_, 
               const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-              const double *bmag, const double *yfield, const double *JfL, const double *JfR, 
+              const double *bmag, const double *yfieldL, const double *yfieldR, const double *JfL, const double *JfR,
               double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_2x2v_ser_p2(
@@ -621,7 +631,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_2x2v_ser_p2(
               const double *vmap_prime_l, const double *vmap_prime_r, 
               const double *vmap, const double *vmapSq, const double q_, const double m_, 
               const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-              const double *bmag, const double *yfield, const double *JfL, const double *JfR, 
+              const double *bmag, const double *yfieldL, const double *yfieldR, const double *JfL, const double *JfR,
               double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_surfx_no_by_2x2v_ser_p2(
                 const double *w, const double *dxv,
@@ -740,7 +750,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_no_by_2x2v_ser_p2(
               const double *vmap_prime_l, const double *vmap_prime_r, 
               const double *vmap, const double *vmapSq, const double q_, const double m_, 
               const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-              const double *bmag, const double *yfield, const double *JfL, const double *JfR, 
+              const double *bmag, const double *yfieldL, const double *yfieldR, const double *JfL, const double *JfR,
               double* GKYL_RESTRICT flux_surf); 
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_3x2v_ser_p1(
@@ -916,7 +926,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_3x2v_ser_p1(
               const double *vmap_prime_l, const double *vmap_prime_r, 
               const double *vmap, const double *vmapSq, const double q_, const double m_, 
               const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-              const double *bmag, const double *yfield, const double *JfL, const double *JfR, 
+              const double *bmag, const double *yfieldL, const double *yfieldR, const double *JfL, const double *JfR,
               double* GKYL_RESTRICT flux_surf); 
 GKYL_CU_DH double gk_collisionless_flux_surfx_no_by_3x2v_ser_p1(
                 const double *w, const double *dxv,
@@ -1091,7 +1101,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfvpar_no_by_3x2v_ser_p1(
               const double *vmap_prime_l, const double *vmap_prime_r, 
               const double *vmap, const double *vmapSq, const double q_, const double m_, 
               const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
-              const double *bmag, const double *yfield, const double *JfL, const double *JfR, 
+              const double *bmag, const double *yfieldL, const double *yfieldR, const double *JfL, const double *JfR,
               double* GKYL_RESTRICT flux_surf); 
 
 

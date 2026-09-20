@@ -81,7 +81,7 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(flux_surf)) {
     return gkyl_gk_collisionless_flux_surf_cu(up, conf_range, phase_range,
-      conf_ext_range, phase_ext_range, phi, fin, flux_surf, cflrate);
+      conf_ext_range, phase_ext_range, phi, fin, yfield, flux_surf, cflrate);
   }
 #endif
   int pdim = up->pdim;
@@ -208,8 +208,6 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
     const double *bmag_d = gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf);
     const double *vmap_d = gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
-    const double *yfield_d = gkyl_array_cfetch(yfield, loc_phase);
-
     double *flux_surf_d = gkyl_array_fetch(flux_surf, loc_phase);
     double *cflrate_d = gkyl_array_fetch(cflrate, loc_phase);
 
@@ -222,6 +220,8 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
     long loc_velL = gkyl_range_idx(&up->vel_map->local_vel, idx_velL);
     const double *fL = gkyl_array_cfetch(fin, locL);
     const double *fR = gkyl_array_cfetch(fin, loc_phase);
+    const double *yfieldL_d = gkyl_array_cfetch(yfield, locL);
+    const double *yfieldR_d = gkyl_array_cfetch(yfield, loc_phase);
 
     const double *vpL = gkyl_array_cfetch(up->vel_map->vmap_prime, loc_velL);
     const double *vpR = gkyl_array_cfetch(up->vel_map->vmap_prime, loc_vel);
@@ -229,7 +229,7 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
     const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
     const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
     cflrate_d[0] += up->flux_surfvpar[0](xc, up->phase_grid.dx, vpL, vpR, vmap_d, vmapSq_d, up->charge, up->mass,
-      dgv, gkdgv, bmag_d, yfield_d, fL, fR, flux_surf_d);
+      dgv, gkdgv, bmag_d, yfieldL_d, yfieldR_d, fL, fR, flux_surf_d);
   }
 }
 

@@ -35,7 +35,7 @@ GKYL_CU_DH double gk_collisionless_flux_surfx_1x1v_ser_p1(
 
   double *ypotderL = &yfieldL[0]; 
   double *ypotderR = &yfieldR[0]; 
-  ypotderR[1] += -(2.4494897427831783*phiR[0]*q_*rdx2); 
+  gkyl_gk_collisionless_yfield_add(&ypotderR[1], -(2.4494897427831783*phiR[0]*q_*rdx2));
   double *flux_surf_nodal = &flux_surf[0]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 
@@ -115,18 +115,18 @@ GKYL_CU_DH double gk_collisionless_flux_surfx_1x1v_ser_p1(
   ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
   ypot_der_surf_n[2] = ypot_der_avg_quad + gsign(alpha_quad)*ypot_der_jump_quad; 
 
-  ypotderL[0] += 0.2777777777777778*ypot_der_surf_n[2]*rdx2+0.4444444444444444*ypot_der_surf_n[1]*rdx2+0.2777777777777778*ypot_der_surf_n[0]*rdx2; 
-  ypotderL[1] += 0.48112522432468824*ypot_der_surf_n[2]*rdx2+0.7698003589195012*ypot_der_surf_n[1]*rdx2+0.48112522432468824*ypot_der_surf_n[0]*rdx2; 
-  ypotderL[2] += 0.37267799624996495*ypot_der_surf_n[2]*rdx2-0.37267799624996495*ypot_der_surf_n[0]*rdx2; 
-  ypotderL[3] += 0.6454972243679029*ypot_der_surf_n[2]*rdx2-0.6454972243679029*ypot_der_surf_n[0]*rdx2; 
-  ypotderL[4] += 0.24845199749997662*ypot_der_surf_n[2]*rdx2-0.49690399499995325*ypot_der_surf_n[1]*rdx2+0.24845199749997662*ypot_der_surf_n[0]*rdx2; 
-  ypotderL[5] += 0.4303314829119352*ypot_der_surf_n[2]*rdx2-0.8606629658238704*ypot_der_surf_n[1]*rdx2+0.4303314829119352*ypot_der_surf_n[0]*rdx2; 
-  ypotderR[0] += -(0.2777777777777778*ypot_der_surf_n[2]*rdx2)-0.4444444444444444*ypot_der_surf_n[1]*rdx2-0.2777777777777778*ypot_der_surf_n[0]*rdx2; 
-  ypotderR[1] += 0.48112522432468824*ypot_der_surf_n[2]*rdx2+0.7698003589195012*ypot_der_surf_n[1]*rdx2+0.48112522432468824*ypot_der_surf_n[0]*rdx2; 
-  ypotderR[2] += 0.37267799624996495*ypot_der_surf_n[0]*rdx2-0.37267799624996495*ypot_der_surf_n[2]*rdx2; 
-  ypotderR[3] += 0.6454972243679029*ypot_der_surf_n[2]*rdx2-0.6454972243679029*ypot_der_surf_n[0]*rdx2; 
-  ypotderR[4] += -(0.24845199749997662*ypot_der_surf_n[2]*rdx2)+0.49690399499995325*ypot_der_surf_n[1]*rdx2-0.24845199749997662*ypot_der_surf_n[0]*rdx2; 
-  ypotderR[5] += 0.4303314829119352*ypot_der_surf_n[2]*rdx2-0.8606629658238704*ypot_der_surf_n[1]*rdx2+0.4303314829119352*ypot_der_surf_n[0]*rdx2; 
+  gkyl_gk_collisionless_yfield_add(&ypotderL[0], 0.2777777777777778*ypot_der_surf_n[2]*rdx2+0.4444444444444444*ypot_der_surf_n[1]*rdx2+0.2777777777777778*ypot_der_surf_n[0]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderL[1], 0.48112522432468824*ypot_der_surf_n[2]*rdx2+0.7698003589195012*ypot_der_surf_n[1]*rdx2+0.48112522432468824*ypot_der_surf_n[0]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderL[2], 0.37267799624996495*ypot_der_surf_n[2]*rdx2-0.37267799624996495*ypot_der_surf_n[0]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderL[3], 0.6454972243679029*ypot_der_surf_n[2]*rdx2-0.6454972243679029*ypot_der_surf_n[0]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderL[4], 0.24845199749997662*ypot_der_surf_n[2]*rdx2-0.49690399499995325*ypot_der_surf_n[1]*rdx2+0.24845199749997662*ypot_der_surf_n[0]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderL[5], 0.4303314829119352*ypot_der_surf_n[2]*rdx2-0.8606629658238704*ypot_der_surf_n[1]*rdx2+0.4303314829119352*ypot_der_surf_n[0]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderR[0], -(0.2777777777777778*ypot_der_surf_n[2]*rdx2)-0.4444444444444444*ypot_der_surf_n[1]*rdx2-0.2777777777777778*ypot_der_surf_n[0]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderR[1], 0.48112522432468824*ypot_der_surf_n[2]*rdx2+0.7698003589195012*ypot_der_surf_n[1]*rdx2+0.48112522432468824*ypot_der_surf_n[0]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderR[2], 0.37267799624996495*ypot_der_surf_n[0]*rdx2-0.37267799624996495*ypot_der_surf_n[2]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderR[3], 0.6454972243679029*ypot_der_surf_n[2]*rdx2-0.6454972243679029*ypot_der_surf_n[0]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderR[4], -(0.24845199749997662*ypot_der_surf_n[2]*rdx2)+0.49690399499995325*ypot_der_surf_n[1]*rdx2-0.24845199749997662*ypot_der_surf_n[0]*rdx2);
+  gkyl_gk_collisionless_yfield_add(&ypotderR[5], 0.4303314829119352*ypot_der_surf_n[2]*rdx2-0.8606629658238704*ypot_der_surf_n[1]*rdx2+0.4303314829119352*ypot_der_surf_n[0]*rdx2);
 
 
   return cfl*1.5*rdx2; 
