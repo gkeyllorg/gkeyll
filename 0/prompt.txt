@@ -1,0 +1,136 @@
+In an earlier conversation we found that the gyrokinetic/creg/rt_gk_bgk_periodic_sodshock_1x2v_p1 test is failing on Stellar CPU. We determined:
+1. The test errors out because of inversion problem trying to compute the flow velocity u diving the 1st by the 0th moment of the distribution, u = M1/M0.
+2. The error doesn't appear on my Mac.
+3. Compiling on stellar with -march=native, or with -O0 -fno-fast-math doesn't change the behavior.
+
+Can you log onto (ssh manaurer@stellar) and help me debug this? my Gkeyll build is in /scratch/gpfs/manaurer/gkeyll_ci/gkeyll, and you must not access files outside of /scratch/gpfs/manaurer/gkeyll_ci
+
+---
+
+Are you sure it is calling vlasov/zero/vlasov_lte_moments.c ? that should be reserved for gk_neut_species but this test has a gk_species, I think.
+
+---
+
+What credential do you need to ssh into Stellar?
+
+---
+
+Please give me step by step instructions for using ssh-add to load the key into ssh-agent?
+
+---
+
+Normally I ssh into Stellar with
+
+ssh -NCf -D60000 manaurer@tigressgateway
+ssh manaurer@stellar
+
+And my ~/.ssh/config has
+
+Host stellar
+  Hostname stellar.princeton.edu
+  ProxyJump manaurer@tigressgateway
+
+Does that change anything?
+
+---
+
+There's no stellar or tigress key in ~/.ssh. Could this be it
+
+~/.ssh/sockets/22-tigressgateway.princeton.edu-manaurer
+
+?
+
+---
+
+ssh -G stellar | grep -Ei 'identityfile|identityagent|proxyjump|controlpath'
+
+returns 
+
+identityfile ~/.ssh/id_rsa
+identityfile ~/.ssh/id_ecdsa
+identityfile ~/.ssh/id_ecdsa_sk
+identityfile ~/.ssh/id_ed25519
+identityfile ~/.ssh/id_ed25519_sk
+proxyjump manaurer@tigressgateway
+
+---
+
+ssh-add -l
+
+returns
+
+The agent has no identities.
+
+and
+
+ls -l ~/.ssh/id_rsa ~/.ssh/id_ecdsa ~/.ssh/id_ecdsa_sk ~/.ssh/id_ed25519 ~/.ssh/
+ls: /Users/mfrancis/.ssh/id_ecdsa: No such file or directory
+ls: /Users/mfrancis/.ssh/id_ecdsa_sk: No such file or directory
+ls: /Users/mfrancis/.ssh/id_ed25519: No such file or directory
+ls: /Users/mfrancis/.ssh/id_rsa: No such file or directory
+/Users/mfrancis/.ssh/:
+total 168
+drwx------  5 mfrancis  staff    160 Sep 18 09:19 agent
+-rw-r--r--@ 1 mfrancis  staff   1018 Sep 13 13:58 config
+-rw-------  1 mfrancis  staff   2602 Nov 30  2020 engaging
+-rw-------  1 mfrancis  staff    573 Nov 30  2020 engaging.pub
+-rw-------  1 mfrancis  staff   3389 Jan 22  2021 hm2d
+-rw-r--r--  1 mfrancis  staff    745 Jan 22  2021 hm2d.pub
+-rw-------  1 mfrancis  staff  20584 Sep 17 22:03 known_hosts
+-rw-------  1 mfrancis  staff  19056 Sep 13 13:59 known_hosts.old
+-rw-------  1 mfrancis  staff   3190 Sep 17 20:48 nersc
+-rw-------  1 mfrancis  staff   1512 Sep 17 20:48 nersc-cert.pub
+-rw-------  1 mfrancis  staff    381 Sep 17 20:48 nersc.pub
+drwxr-xr-x  3 mfrancis  staff     96 Sep 18 08:42 sockets
+-rwxr-xr-x  1 mfrancis  staff   8160 Feb  2  2021 sshproxy.sh
+
+---
+
+No, engaging and hm2d are keys for something else.
+
+---
+
+To clarify, normally I ssh into Stellar with
+
+ssh -NCf -D60000 manaurer@tigressgateway
+
+I enter my password+2FA and then do
+
+ssh manaurer@stellar
+
+and enter my password again. And my ~/.ssh/config has
+
+Host stellar
+  Hostname stellar.princeton.edu
+  ProxyJump manaurer@tigressgateway
+
+Does that change anything?
+
+---
+
+Done. What will I need to do for you to access Stellar again in the future, in a new terminal or codex session ?
+
+---
+
+what does 
+
+ssh -S ~/.ssh/sockets/stellar-codex -O exit manaurer@stellar
+
+do?
+
+---
+
+Ok, back to the problem at hand: in an earlier conversation we found that the gyrokinetic/creg/rt_gk_bgk_periodic_sodshock_1x2v_p1 test is failing on Stellar CPU. We determined:
+1. The test errors out because of inversion problem trying to compute the flow velocity u diving the 1st by the 0th moment of the distribution, u = M1/M0.
+2. The error doesn't appear on my Mac.
+3. Compiling on stellar with -march=native, or with -O0 -fno-fast-math doesn't change the behavior.
+
+Can you log onto (ssh manaurer@stellar) and help me debug this? my Gkeyll build is in /scratch/gpfs/manaurer/gkeyll_ci/gkeyll, and you must not access files outside of /scratch/gpfs/manaurer/gkeyll_ci
+
+---
+
+Can you change the regression test that gave a gkyl_gyrokinetic_species with charge = 0 so they have charge = 1 and .init_zero_field and .is_static in the field table please? And add a check in gk_species_init ensuring that charge is not zero.
+
+---
+
+can you check other regression tests in gyrokinetic/creg/ that have a gkyl_gyrokinetic_species with charge = 0, and change them so they have charge = 1 and .init_zero_field and .is_static in the field table please?
