@@ -1,0 +1,38 @@
+In this branch we've added a CLI for our Jenkins-based CI. The CLI has several layers, from highest to lowest being: 
+- ../gkylsoft/gkeyll/bin/gkeyll jeci
+- ./ci/jenkins/gkeyll-ci.sh
+- ./ci/jenkins/jenkins-<machine>.sh
+
+One thing I frequently want to examine is the Jenkins console output. Could that be stored as an artifact or retreived some other way through the CLI? Ideally it'd be stored as an artifact and I could use the "fetch" command to download it. Alternatively we could add a new command, or a new flag to an existing command, to retreive it.
+
+---
+
+if you do
+
+gkeyll jeci stellar_cpu artifact --build 187
+
+is the console listed as one of the artifacts?
+
+---
+
+If you archive a jenkins-console.txt artifact from each Pipeline, will this file appear as an artifact in the Jenkins browser? or is it just a hack you are proposing for the CLI?
+
+---
+
+ok, I like this approach. I'd prefer that you pursue this approach where it is treated as just another artifact and not implement a --console flag. Please create a plan for this that starts with restoring their files to their original version for this branch (commit 669081e6e15ba3f0c0f60622a9fcff10e4a69001), and adding the new approach there.
+
+---
+
+Implement the plan.
+
+---
+
+1. Will this work with all 4 machines (personal/stellar_cpu/perlmutter_gpu/team) ?2. Will this work with Jenkins runs prior to this change?
+
+---
+
+Is there another, existing way to see the console via CLI?
+
+---
+
+ok, in that case undo all the work we've done here and simply change the description of the follow command in "-h" menus from "Wait for and stream a queued or known build." to "Wait for and stream the console of a queued or known build."
