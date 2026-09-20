@@ -983,6 +983,7 @@ vlasov_species_lw_new(lua_State *L)
 
   struct vlasov_species_lw *vms_lw = lua_newuserdata(L, sizeof(*vms_lw));
   vms_lw->magic = VLASOV_SPECIES_DEFAULT;
+  vms_lw->name[0] = '\0'; // set from the App-table key when the species is collected
   vms_lw->vdim = vdim;
   vms_lw->vm_species = vm_species;
   vms_lw->charge = sp_charge;
@@ -1405,6 +1406,7 @@ vlasov_fluid_species_lw_new(lua_State *L)
 
   struct vlasov_fluid_species_lw *vmfs_lw = lua_newuserdata(L, sizeof(*vmfs_lw));
   vmfs_lw->magic = VLASOV_FLUID_SPECIES_DEFAULT;
+  vmfs_lw->name[0] = '\0'; // set from the App-table key when the species is collected
   vmfs_lw->vlasov_fluid_species = vm_fluid_species;
   vmfs_lw->charge = sp_charge;
   vmfs_lw->mass = sp_mass;
@@ -1824,10 +1826,15 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
           }
         }
         
-        if (lua_type(L,TKEY) == LUA_TSTRING) {
-          const char *key = lua_tolstring(L, TKEY, 0);
-          strcpy(vms->name, key);
-        }
+        if (lua_type(L,TKEY) != LUA_TSTRING)
+          return luaL_error(L, "Species must be stored under a string key (its name) in the App table!");
+        const char *key = lua_tolstring(L, TKEY, 0);
+        if (strlen(key) >= sizeof(vms->name))
+          return luaL_error(L, "Species name '%s' is too long (max %d characters)!", key, (int) sizeof(vms->name)-1);
+        strcpy(vms->name, key);
+
+        if (curr >= GKYL_MAX_SPECIES)
+          return luaL_error(L, "Too many species: at most %d are supported!", GKYL_MAX_SPECIES);
         species[curr++] = vms;
       }
     }
@@ -1865,10 +1872,15 @@ get_fluid_species_inp(lua_State *L, int cdim, struct vlasov_fluid_species_lw *fl
         
         vmfs->init_ctx.ndim = cdim;
         
-        if (lua_type(L,TKEY) == LUA_TSTRING) {
-          const char *key = lua_tolstring(L, TKEY, 0);
-          strcpy(vmfs->name, key);
-        }
+        if (lua_type(L,TKEY) != LUA_TSTRING)
+          return luaL_error(L, "Fluid species must be stored under a string key (its name) in the App table!");
+        const char *key = lua_tolstring(L, TKEY, 0);
+        if (strlen(key) >= sizeof(vmfs->name))
+          return luaL_error(L, "Fluid species name '%s' is too long (max %d characters)!", key, (int) sizeof(vmfs->name)-1);
+        strcpy(vmfs->name, key);
+
+        if (curr >= GKYL_MAX_SPECIES)
+          return luaL_error(L, "Too many fluid species: at most %d are supported!", GKYL_MAX_SPECIES);
         fluid_species[curr++] = vmfs;
       }
     }
