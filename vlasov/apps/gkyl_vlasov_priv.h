@@ -136,15 +136,15 @@ struct gkyl_vlasov_app {
   // geometry data
   struct vm_geom *vm_geom;
 
-  // Species data: one backing array of species containers, kinetic species in
-  // [0, num_species) followed by fluid species; 'fluid_species' is a view into
-  // the fluid tail and 'species' owns the allocation.
-  int num_species;
-  struct vlasov_species *species; // species containers (owns the backing storage)
-
-  // fluid data
-  int num_fluid_species;
-  struct vlasov_species *fluid_species; // view into the fluid tail of 'species'
+  // Species data: one backing array of species containers (num_species in all),
+  // kinetic species in [0, num_kinetic_species) followed by the fluid species;
+  // 'species' owns the allocation and 'fluid_species' is a view into its fluid
+  // tail (both serve the per-kind public API and the file naming).
+  int num_species; // Total number of species (kinetic + fluid).
+  int num_kinetic_species; // Number of kinetic species (the head of 'species').
+  int num_fluid_species; // Number of fluid species (the tail of 'species').
+  struct vlasov_species *species; // Species containers (owns the backing storage).
+  struct vlasov_species *fluid_species; // View into the fluid tail of 'species'.
 
   bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
   struct vm_fluid_em_coupling *fl_em; // fluid-EM coupling data
@@ -231,20 +231,29 @@ void vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
   struct gkyl_array *distf[], struct gkyl_array *fluid[], struct gkyl_array *emfield);
 
 /**
- * Find species with given name.
+ * Find the species with the given name.
  *
  * @param app Top-level app to look into
  * @param nm Name of species
- * @return Pointer to species with given name. NULL if not found.
+ * @return Index of the species in app->species, -1 if not found
+ */
+int vlasov_find_species_idx(const gkyl_vlasov_app *app, const char *nm);
+
+/**
+ * Find the kinetic species with the given name.
+ *
+ * @param app Top-level app to look into
+ * @param nm Name of species
+ * @return Pointer to the kinetic aspect of the species. NULL if not found.
  */
 struct vm_species* vm_find_species(const gkyl_vlasov_app *app, const char *nm);
 
 /**
- * Return index of species in the order it appears in the input.
+ * Find the kinetic species with the given name.
  *
  * @param app Top-level app to look into
  * @param nm Name of species
- * @return Index of species, -1 if not found
+ * @return Index of the species in app->species, -1 if not found
  */
 int vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm);
 

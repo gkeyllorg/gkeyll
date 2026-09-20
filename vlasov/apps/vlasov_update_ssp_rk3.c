@@ -22,7 +22,7 @@ set_rk_arrays(gkyl_vlasov_app *app, enum vm_rk_buf in, enum vm_rk_buf out,
   const struct gkyl_array *fin[], struct gkyl_array *fout[],
   const struct gkyl_array *fluidin[], struct gkyl_array *fluidout[])
 {
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
   for (int i=0; i<num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];
     fin[i]      = sp->dist  ? dist_buf(sp->dist, in)   : 0;
@@ -38,7 +38,7 @@ set_rk_arrays(gkyl_vlasov_app *app, enum vm_rk_buf in, enum vm_rk_buf out,
 struct gkyl_update_status
 vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
 {
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
 
   const struct gkyl_array *fin[num_species];
   struct gkyl_array *fout[num_species];

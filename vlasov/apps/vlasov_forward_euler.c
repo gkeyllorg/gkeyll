@@ -17,7 +17,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   app->stat.nfeuler += 1;
 
   double dtmin = DBL_MAX;
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
 
   // Compute external EM field or applied currents if present and time-dependent.
   // Note: external EM field and  applied currents use proj_on_basis

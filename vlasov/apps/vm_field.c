@@ -511,7 +511,7 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
   // Each species owns its explicit contribution (kinetic species accumulate
   // -q/eps0 * m1i; implicitly-coupled fluid species are a no-op); the field
   // only owns this loop and the applied current below.
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
   for (int i=0; i<num_species; ++i)
     vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], fluidin[i], emout);
 

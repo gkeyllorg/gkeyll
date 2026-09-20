@@ -118,7 +118,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   int vdim = app->vdim = vm->vdim;
   int pdim = cdim+vdim;
   int poly_order = app->poly_order = vm->poly_order;
-  app->num_species = ns;
+  app->num_species = ntot;
+  app->num_kinetic_species = ns;
   app->num_fluid_species = nsf;
 
   double cfl_frac = vm->cfl_frac == 0 ? 1.0 : vm->cfl_frac;
@@ -363,22 +364,27 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   return app;
 }
 
+int
+vlasov_find_species_idx(const gkyl_vlasov_app *app, const char *nm)
+{
+  for (int i=0; i<app->num_species; ++i)
+    if (strcmp(nm, app->species[i].name) == 0)
+      return i;
+  return -1;
+}
+
 struct vm_species *
 vm_find_species(const gkyl_vlasov_app *app, const char *nm)
 {
-  for (int i=0; i<app->num_species; ++i)
-    if (strcmp(nm, app->species[i].dist->name) == 0)
-      return app->species[i].dist;
-  return 0;
+  int i = vm_find_species_idx(app, nm);
+  return i >= 0 ? app->species[i].dist : 0;
 }
 
 int
 vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm)
 {
-  for (int i=0; i<app->num_species; ++i)
-    if (strcmp(nm, app->species[i].dist->name) == 0)
-      return i;
-  return -1;
+  int i = vlasov_find_species_idx(app, nm);
+  return (i >= 0 && app->species[i].dist) ? i : -1;
 }
 
 struct vm_fluid_species *
@@ -404,7 +410,7 @@ vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
   struct gkyl_array *distf[], struct gkyl_array *fluid[], struct gkyl_array *emfield)
 {
   // distf[] and fluid[] are indexed over the overall species count.
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
   for (int i=0; i<num_species; ++i)
     vlasov_species_apply_bc(app, &app->species[i], distf[i], fluid[i], tcurr);
   // No-op for Vlasov-Poisson and the null field (no EM boundary conditions).
@@ -415,13 +421,13 @@ void
 gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
-  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_species; ++i)
     vlasov_species_apply_ic(app, &app->species[i], t0);
 
   gkyl_vlasov_app_apply_ic_field(app, t0); // no-op for the null field
 
   // BCs must be done after all species initialize for emission BCs to work.
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
   struct gkyl_array *distf[num_species];
   struct gkyl_array *fluid[num_species];
   vlasov_species_gather_state(app, distf, fluid);
@@ -435,7 +441,7 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   struct timespec wtm = gkyl_wall_clock();
 
   // Dispatches to the Maxwell or Poisson IC (no-op for the null field).
-  const struct gkyl_array *fin[app->num_species + app->num_fluid_species];
+  const struct gkyl_array *fin[app->num_species];
   vlasov_species_gather_dist(app, fin);
   vlasov_field_apply_ic(app, fin, t0);
 
@@ -445,7 +451,7 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
 void
 gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
 {
-  assert(sidx < app->num_species);
+  assert(sidx < app->num_kinetic_species);
   vlasov_species_apply_ic(app, &app->species[sidx], t0);
 }
 
@@ -459,14 +465,14 @@ gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, double t0
 void
 gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
 {
-  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_species; ++i)
     vlasov_species_calc_integrated_mom(app, &app->species[i], tm);
 }
 
 void
 gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm)
 {
-  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_species; ++i)
     vlasov_species_calc_integrated_L2_f(app, &app->species[i], tm);
 }
 
@@ -474,7 +480,7 @@ void
 gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
 {
   // The distributions let Vlasov-Poisson solve for the potential at time tm.
-  const struct gkyl_array *fin[app->num_species + app->num_fluid_species];
+  const struct gkyl_array *fin[app->num_species];
   vlasov_species_gather_dist(app, fin);
   vlasov_field_calc_energy(app, tm, fin); // no-op for the null field
 }
@@ -483,7 +489,7 @@ void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
   gkyl_vlasov_app_write_field(app, tm, frame); // no-op for the null field
-  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_species; ++i)
     vlasov_species_write(app, &app->species[i], tm, frame);
 }
 
@@ -491,7 +497,7 @@ void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
   // The distributions let Vlasov-Poisson solve for the potential at time tm.
-  const struct gkyl_array *fin[app->num_species + app->num_fluid_species];
+  const struct gkyl_array *fin[app->num_species];
   vlasov_species_gather_dist(app, fin);
   vlasov_field_write(app, tm, frame, fin);
 }
@@ -511,21 +517,21 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
 void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 {
-  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_species; ++i)
     vlasov_species_write_mom(app, &app->species[i], tm, frame);
 }
 
 void
 gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
 {
-  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_species; ++i)
     vlasov_species_write_integrated_mom(app, &app->species[i]);
 }
 
 void
 gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app* app)
 {
-  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_species; ++i)
     vlasov_species_write_integrated_L2_f(app, &app->species[i]);
 }
 
@@ -538,7 +544,7 @@ gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app* app)
 {
-  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_species; ++i)
     vlasov_species_write_lte_corr_status(app, &app->species[i]);
 }
 
@@ -744,7 +750,8 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   gkyl_vlasov_app_cout(app, fp, " num_ranks : %d,\n", num_ranks); 
   
   for (int s=0; s<app->num_species; ++s)
-    range_stat_write(app, app->species[s].dist->name, &app->species[s].dist->global, fp);
+    if (app->species[s].dist)
+      range_stat_write(app, app->species[s].dist->name, &app->species[s].dist->global, fp);
   
   gkyl_vlasov_app_cout(app, fp, " nup : %ld,\n", stat.nup);
   gkyl_vlasov_app_cout(app, fp, " nfeuler : %ld,\n", stat.nfeuler);
@@ -900,7 +907,7 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
   // from the distribution whenever it is needed, so no re-solve happens here.
   rstat = gkyl_vlasov_app_from_frame_field(app, frame);
 
-  for (int i = 0; i < app->num_species + app->num_fluid_species; i++) {
+  for (int i = 0; i < app->num_species; i++) {
     rstat = vlasov_species_read_from_frame(app, &app->species[i], frame);
   }
 
@@ -933,7 +940,7 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
 {
   vm_geom_release(app, app->vm_geom);
   gkyl_free(app->vm_geom);
-  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_species; ++i)
     vlasov_species_release(app, &app->species[i]);
   // 'fluid_species' is a view into 'species', which owns the backing array.
   if (app->species)

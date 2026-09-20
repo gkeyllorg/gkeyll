@@ -575,7 +575,7 @@ void
 vlasov_species_gather_state(gkyl_vlasov_app *app, struct gkyl_array *distf[],
   struct gkyl_array *fluid[])
 {
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
   for (int i=0; i<num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];
     if (distf) distf[i] = sp->dist ? sp->dist->f : 0;
@@ -586,7 +586,7 @@ vlasov_species_gather_state(gkyl_vlasov_app *app, struct gkyl_array *distf[],
 void
 vlasov_species_gather_dist(gkyl_vlasov_app *app, const struct gkyl_array *fin[])
 {
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
   for (int i=0; i<num_species; ++i)
     fin[i] = app->species[i].dist ? app->species[i].dist->f : 0;
 }

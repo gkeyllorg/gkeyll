@@ -10,7 +10,7 @@
 static void
 update_implicit_coll(gkyl_vlasov_app* app, double dt0)
 {
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
   const struct gkyl_array *fin[num_species];
   struct gkyl_array *fout[num_species];
 

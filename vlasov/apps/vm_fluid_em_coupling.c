@@ -14,7 +14,7 @@ vm_fluid_em_coupling_init(struct gkyl_vlasov_app *app)
   struct vm_fluid_em_coupling *fl_em = gkyl_malloc(sizeof(struct vm_fluid_em_coupling));
 
   // Gather the fluid-bearing species in declaration order.
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
   fl_em->num_fluid = 0;
   for (int i=0; i<num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];

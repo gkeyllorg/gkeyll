@@ -347,7 +347,7 @@ vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_a
   // (kinetic species accumulate q*m0; species without a Poisson coupling are a
   // no-op). fin[] is indexed over the overall species count.
   gkyl_array_clear(field->rho_c, 0.0);
-  int num_species = app->num_species + app->num_fluid_species;
+  int num_species = app->num_species;
   for (int i=0; i<num_species; ++i)
     vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], 0, field->rho_c);
 
