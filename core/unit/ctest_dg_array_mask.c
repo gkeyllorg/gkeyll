@@ -106,7 +106,7 @@ void test_mask_advance_threshold(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
 
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -159,7 +159,7 @@ void test_mask_advance_all_below(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -205,7 +205,7 @@ void test_mask_advance_all_above(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -255,7 +255,7 @@ void test_mask_advance_negative_values(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -312,7 +312,7 @@ void test_mask_advance_greater_than_threshold(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -365,7 +365,7 @@ void test_mask_advance_greater_than_all_above(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
 
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -411,7 +411,7 @@ void test_mask_advance_greater_than_all_below(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -461,7 +461,7 @@ void test_mask_advance_greater_than_negative_values(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -520,7 +520,7 @@ void test_mask_eval(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -623,7 +623,7 @@ void test_mask_scale_by_cell(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -781,7 +781,7 @@ void test_mask_advance_frac_threshold(bool use_gpu)
   }
   gkyl_array_copy(arr, arr_ho);
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -839,7 +839,7 @@ void test_mask_advance_frac_threshold_greater(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -929,7 +929,7 @@ void test_mask_advance_frac_threshold_spatial(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -1019,7 +1019,7 @@ void test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -1105,7 +1105,7 @@ void test_mask_advance_threshold_ext_range(bool use_gpu, int ncell, int nghost_c
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -1209,7 +1209,7 @@ void test_mask_advance_frac_threshold_ext_range(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
 
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 
@@ -1353,7 +1353,7 @@ void test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
   gkyl_array_copy(arr, arr_ho);
   
   double global_max = 0.0;
-  gkyl_array_reduce(&global_max, arr, GKYL_MAX);
+  gkyl_array_reduce(&global_max, arr_ho, GKYL_MAX);
   gkyl_dg_array_mask_advance_threshold(mask, global_max);
   gkyl_dg_array_mask_advance(mask, arr);
 

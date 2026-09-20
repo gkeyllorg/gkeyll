@@ -259,10 +259,10 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = app->global_par_ext,
+      .bcdir_ext_update_r = &app->global_par_ext,
       .num_ghost = ghost, // one ghost per config direction
-      .basis = app->basis,
-      .grid = app->grid,
+      .basis = &app->basis,
+      .grid = &app->grid,
       .use_gpu = app->use_gpu,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
@@ -271,7 +271,7 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       T_LU_lo.shift_func     = app->gk_geom->parallel_lower_bc_shift_func;
       T_LU_lo.shift_func_ctx = app->gk_geom->parallel_lower_bc_shift_ctx;
     }
-    f->bc_ts_lo = gkyl_bc_twistshift_new(&T_LU_lo);
+    f->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
 
     // TS BC updater for upper edge.
     struct gkyl_bc_twistshift_inp T_UL_up = {
@@ -280,10 +280,10 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_UPPER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = app->global_par_ext,
+      .bcdir_ext_update_r = &app->global_par_ext,
       .num_ghost = ghost, // one ghost per config direction
-      .basis = app->basis,
-      .grid = app->grid,
+      .basis = &app->basis,
+      .grid = &app->grid,
       .use_gpu = app->use_gpu,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
@@ -292,7 +292,7 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       T_UL_up.shift_func     = app->gk_geom->parallel_upper_bc_shift_func;
       T_UL_up.shift_func_ctx = app->gk_geom->parallel_upper_bc_shift_ctx;
     }
-    f->bc_ts_up = gkyl_bc_twistshift_new(&T_UL_up);
+    f->bc_ts_up = gkyl_bc_twistshift_inew(&T_UL_up);
 
     long buff_sz = app->global_lower_ghost[par_dir].volume;
     f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
@@ -356,10 +356,10 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = app->global_par_ext_core,
+      .bcdir_ext_update_r = &app->global_par_ext_core,
       .num_ghost = ghost, // one ghost per config direction
-      .basis = app->basis,
-      .grid = app->grid,
+      .basis = &app->basis,
+      .grid = &app->grid,
       .use_gpu = app->use_gpu,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
@@ -368,7 +368,7 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
       T_LU_lo.shift_func     = app->gk_geom->parallel_lower_bc_shift_func;
       T_LU_lo.shift_func_ctx = app->gk_geom->parallel_lower_bc_shift_ctx;
     }
-    f->bc_ts_lo = gkyl_bc_twistshift_new(&T_LU_lo);
+    f->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
 
     long buff_sz = GKYL_MAX2(app->global_lower_ghost_par_sol.volume, app->global_lower_ghost_par_core.volume);
     f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);

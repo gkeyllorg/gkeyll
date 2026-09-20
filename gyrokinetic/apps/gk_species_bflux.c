@@ -688,8 +688,11 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     bflux->eqns = gkyl_malloc(bflux->num_eqns*sizeof(struct gkyl_dg_eqn *));
 
     int eqc = 0;
-    if (gk_s->collisionless.collisionless_id)
+    if (gk_s->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_PASSIVE)
+      bflux->eqns[eqc++] = gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(gk_s->collisionless.passive_slvr);
+    else if (gk_s->collisionless.collisionless_id)
       bflux->eqns[eqc++] = gkyl_dg_updater_gyrokinetic_acquire_eqn(gk_s->collisionless.slvr);
+
     if (gk_s->anom_diff.anom_diff_id)
       bflux->eqns[eqc++] = gkyl_dg_updater_gk_anomalous_diffusion_acquire_eqn(gk_s->anom_diff.slvr);
   

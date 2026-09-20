@@ -33,13 +33,16 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_gk_collisionless_flux.h>
+#include <gkyl_gk_collisionless_passive_flux.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
+#include <gkyl_dg_gyrokinetic_passive.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_updater_gk_anomalous_diffusion.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
+#include <gkyl_dg_updater_gyrokinetic_passive.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
@@ -293,9 +296,15 @@ struct gk_collisionless {
       struct gkyl_array *apar; // A_parallel.
       struct gkyl_array *apardot; // d/dt A_parallel.
 
-      struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes.
-      gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
- 
+      struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes (GK/EM cases).
+      gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver (GK/EM cases).
+
+      // Passive advection (only for GKYL_GK_COLLISIONLESS_PASSIVE).
+      struct gkyl_array *passive_speeds;    // Conf-space passive speeds.
+      struct gkyl_array *passive_speeds_ho; // Host copy of passive_speeds.
+      struct gkyl_gk_collisionless_passive_flux *passive_surf_flux_op; // Passive flux updater.
+      gkyl_dg_updater_gyrokinetic_passive *passive_slvr; // Passive collisionless solver.
+
       // Methods chosen at runtime.
       void (*flux_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
         struct gk_collisionless *gkcls, const struct gkyl_array *fin);
@@ -1171,7 +1180,7 @@ struct gk_neut_species {
 
   bool is_fluid; // Whether this is a fluid species.
   enum gkyl_field_id field_id; // Type of Field equation (always GKYL_FIELD_NULL).
-  enum gkyl_model_id model_id; // Type of Vlasov equation (always GKYL_MODEL_CANONICAL_PB)
+  enum gkyl_model_id model_id; // Type of Vlasov equation (always GKYL_MODEL_TRIAD).
 
   struct gkyl_basis basis; // Species basis.
   struct gkyl_basis *basis_on_dev; // Species basis on device (or host if use_gpu=false).
