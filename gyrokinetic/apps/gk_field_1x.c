@@ -45,6 +45,9 @@ gk_field_ampere_solve_1x_enabled(gkyl_gyrokinetic_app *app, struct gk_field *fie
   gkyl_dg_div_op_range(field->div_mem, &app->basis, 0, out, 0, field->currentDens,
     0, field->lapWeightAmpere, &app->local);
 
+  // Smooth Apar after solving Ampere's law.
+  gk_field_fem_projection_par(app, field, out, out);
+
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
