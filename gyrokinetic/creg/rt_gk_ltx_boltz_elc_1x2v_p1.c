@@ -123,6 +123,16 @@ double integrand(double t, void *int_ctx)
   struct gk_app_ctx *app = inctx->app_ctx;
   return Jr(r,t,app) / pow(R_rtheta(r,t,app),2);
 }
+
+double Bphi(double R, void *ctx)
+{
+  // Toroidal magnetic field.
+  struct gk_app_ctx *app = ctx;
+  double B0 = app->B0;
+  double R0 = app->R0;
+  return B0*R0/R;
+}
+
 double dPsidr(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
@@ -135,8 +145,10 @@ double dPsidr(double r, double theta, void *ctx)
   double a_mid = app->a_mid;
   double qSep = app->qSep;
   double sSep = app->sSep;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
 
-  return ( B0*R_axis/(2.*M_PI*qprofile(r,a_mid,qSep,sSep)) )*integral.res;
+  return ( Bt*R/(2.*M_PI*qprofile(r,a_mid,qSep,sSep)) )*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -155,20 +167,12 @@ double alpha(double r, double theta, double phi, void *ctx)
     integral.res = -integral.res;
   }
 
-  double B0 = app->B0;
-  double R_axis = app->R_axis;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
 
-  return phi - B0*R_axis*integral.res/dPsidr(r,theta,ctx);
+  return phi - Bt*R*integral.res/dPsidr(r,theta,ctx);
 }
 
-double Bphi(double R, void *ctx)
-{
-  // Toroidal magnetic field.
-  struct gk_app_ctx *app = ctx;
-  double B0 = app->B0;
-  double R0 = app->R0;
-  return B0*R0/R;
-}
 double gradr(double r, double theta, void *ctx)
 {
   return (R_rtheta(r,theta,ctx)/Jr(r,theta,ctx))*sqrt(pow(dRdtheta(r,theta,ctx),2) + pow(dZdtheta(r,theta,ctx),2));
@@ -261,7 +265,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = R_rtheta(r, z, ctx);
   double Z   = kappa*r*sin(z);
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = q0/r0*y + alpha(r, z, 0, ctx);
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -271,11 +275,12 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 
 void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
+  double x = xc[0], y = xc[1], z = xc[2];
+
   struct gk_app_ctx *app = ctx;
   double r0 = app->r0;
   double q0 = app->q0;
 
-  double x = 0., y = 0., z = xc[2];
   double r = x+r0;
   double Bt = Bphi(R_rtheta(r,z,ctx),ctx);
   double Bp = dPsidr(r,z,ctx)/R_rtheta(r,z,ctx)*gradr(r,z,ctx);
@@ -285,13 +290,13 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
   double den = sqrt(pow(drdtheta,2) + pow(dzdtheta,2));
   double B_r = Bp*drdtheta/den;
   double B_z = Bp*dzdtheta/den;
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = q0/r0*y + alpha(r, z, 0, ctx);
   double R   = R_rtheta(r, z, ctx);
 
   // xc are computational coords. 
   // Set Cartesian components of magnetic field.
-  fout[0] = B_r * cos(phi) - Bt * sin(phi);
-  fout[1] = B_r * sin(phi) + Bt * cos(phi);
+  fout[0] = B_r * cos(phi) + Bt * sin(phi);
+  fout[1] = B_r * sin(phi) - Bt * cos(phi);
   fout[2] = B_z;
 }
 
