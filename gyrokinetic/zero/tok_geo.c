@@ -1603,119 +1603,6 @@ tok_build_sep_trace(const struct gkyl_tok_geo_grid_inp *inp,
   gkyl_free(rr); gkyl_free(zr); gkyl_free(rz); gkyl_free(zz);
 }
 
-static bool
-tok_half_domain_sep_rz(const struct gkyl_tok_geo_grid_inp *inp,
-  struct arc_length_ctx *arc_ctx, double theta, double *r, double *z)
-{
-  if (!inp->half_domain ||
-      !tok_geo_same_flux(arc_ctx->psi, arc_ctx->geo->psisep))
-    return false;
-
-  double zx = arc_ctx->geo->use_cubics
-    ? arc_ctx->geo->efit->Zxpt_cubic[0] : arc_ctx->geo->efit->Zxpt[0];
-  double za = arc_ctx->geo->zmaxis, z0 = 0.0, z1 = 0.0, rclose = 0.0;
-  switch (inp->ftype) {
-    case GKYL_GEOMETRY_TOKAMAK_CORE_R:
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
-      z0 = zx; z1 = za; rclose = inp->rright;
-      break;
-    case GKYL_GEOMETRY_TOKAMAK_CORE_L:
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
-      z0 = za; z1 = zx; rclose = inp->rleft;
-      break;
-    case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
-      z0 = arc_ctx->zmin_right; z1 = zx; rclose = inp->rright;
-      break;
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
-      z0 = arc_ctx->zmin; z1 = zx; rclose = inp->rright;
-      break;
-    case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
-      z0 = zx; z1 = arc_ctx->zmin_left; rclose = inp->rleft;
-      break;
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
-      z0 = zx; z1 = arc_ctx->zmin; rclose = inp->rleft;
-      break;
-    default:
-      return false;
-  }
-
-  // Use the actual (position-mapped) computational coordinate.  Corner
-  // nodes lie at frac=0 or 1, while interior and radial/alpha-surface
-  // quadrature nodes do not.  Inferring frac from the nodal-array index
-  // incorrectly maps the first and last Gauss points onto the segment ends.
-  double frac = (theta-inp->cgrid.lower[2])
-    /(inp->cgrid.upper[2]-inp->cgrid.lower[2]);
-  double zfixed = tok_sep_fixed_edge_is_first(inp->ftype) ? z0 : z1;
-  tok_build_sep_trace(inp, arc_ctx, zfixed, rclose);
-  int n = arc_ctx->sep_trace_n;
-  double total = arc_ctx->sep_trace_s[n-1];
-  arc_ctx->xpt_map_darc_dtheta = total/
-    (inp->cgrid.upper[2]-inp->cgrid.lower[2]);
-  if (tok_theta_measure_diag())
-    fprintf(stderr,
-      "TOK_THETA_MEASURE kind=map ftype=%d psi=%.17g sep_trace_arc=%.17g "
-      "theta_extent=%.17g darc_dtheta=%.17g trace_nodes=%d\n",
-      inp->ftype, arc_ctx->psi, total,
-      inp->cgrid.upper[2]-inp->cgrid.lower[2],
-      arc_ctx->xpt_map_darc_dtheta, n);
-  if (frac <= 0.0) {
-    *r = arc_ctx->sep_trace_r[0]; *z = arc_ctx->sep_trace_z[0];
-    return true;
-  }
-  if (frac >= 1.0) {
-    *r = arc_ctx->sep_trace_r[n-1]; *z = arc_ctx->sep_trace_z[n-1];
-    return true;
-  }
-  double target = frac*total;
-  int lo = 0, hi = n-1;
-  while (hi-lo > 1) {
-    int mid = (lo+hi)/2;
-    if (arc_ctx->sep_trace_s[mid] < target) lo = mid;
-    else hi = mid;
-  }
-  double ds = arc_ctx->sep_trace_s[hi]-arc_ctx->sep_trace_s[lo];
-  double w = ds > 0.0 ? (target-arc_ctx->sep_trace_s[lo])/ds : 0.0;
-  double rlin = arc_ctx->sep_trace_r[lo]
-    +w*(arc_ctx->sep_trace_r[hi]-arc_ctx->sep_trace_r[lo]);
-  double zlin = arc_ctx->sep_trace_z[lo]
-    +w*(arc_ctx->sep_trace_z[hi]-arc_ctx->sep_trace_z[lo]);
-  if (arc_ctx->sep_trace_param_is_r) {
-    double roots[16] = { 0.0 };
-    int nr = tok_geo_Z_psiR(arc_ctx->geo, arc_ctx->geo->psisep,
-      rlin, 16, roots);
-    if (nr == 0) {
-      fprintf(stderr,
-        "TOK_SEP_TRACE no Z root during resampling ftype=%d frac=%.17g R=%.17g\n",
-        inp->ftype, frac, rlin);
-      abort();
-    }
-    *r = rlin; *z = tok_nearest_value(zlin, roots, nr);
-  }
-  else {
-    double roots[8] = { 0.0 }, dRdZ[8] = { 0.0 };
-    double dR[8] = { 0.0 }, dZ[8] = { 0.0 };
-    int nr = gkyl_tok_geo_R_psiZ(arc_ctx->geo, arc_ctx->geo->psisep,
-      zlin, 8, roots, dRdZ, dR, dZ);
-    if (nr == 0) {
-      fprintf(stderr,
-        "TOK_SEP_TRACE no R root during resampling ftype=%d frac=%.17g Z=%.17g\n",
-        inp->ftype, frac, zlin);
-      abort();
-    }
-    *r = tok_nearest_value(rlin, roots, nr); *z = zlin;
-  }
-  double residual = tok_eval_psi_rz_local(arc_ctx->geo, *r, *z)
-    -arc_ctx->geo->psisep;
-  if (!isfinite(*r) || !isfinite(*z) || !isfinite(residual) ||
-      fabs(residual) > 1e-9*fmax(1.0, fabs(arc_ctx->geo->psisep))) {
-    fprintf(stderr,
-      "TOK_SEP_TRACE invalid resampled point ftype=%d frac=%.17g R=%.17g Z=%.17g residual=%.17g\n",
-      inp->ftype, frac, *r, *z, residual);
-    abort();
-  }
-  return true;
-}
-
 struct tok_ordered_point {
   double r, z, phi;
   double dr_dtheta, dz_dtheta, dphi_dtheta;
@@ -2277,6 +2164,191 @@ tok_xpt_sep_pin_z(const struct gkyl_tok_geo_grid_inp *inp,
     ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0];
   return true;
 }
+
+// The Z coordinate a topology endpoint denotes.
+//
+// Replaces the Z half of a second hand-written ftype ladder (in
+// tok_half_domain_sep_rz): the table already says whether an end is an X-point
+// ray, a plate in a named fixed-Z slot, or the midplane, so the Z follows from
+// the endpoint rather than from the block's name.
+static bool
+tok_ext_endpoint_z(const struct arc_length_ctx *arc_ctx,
+  const struct tok_ext_endpoint *e, double *z)
+{
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  switch (e->kind) {
+    case TOK_EXT_XPT_RAY: {
+      // Index by WHICH X point the endpoint names. Every half-domain block
+      // names the lower one, so this is index 0 there and the behaviour is
+      // unchanged; writing it generally keeps the helper honest for callers
+      // that are not half-domain.
+      int xi = (e->xpoint == TOK_EXT_UPPER_XPT && geo->efit->num_xpts > 1) ? 1 : 0;
+      *z = geo->use_cubics ? geo->efit->Zxpt_cubic[xi] : geo->efit->Zxpt[xi];
+      return true;
+    }
+    case TOK_EXT_MIDPLANE:
+      *z = geo->zmaxis;
+      return true;
+    case TOK_EXT_PLATE:
+      switch (e->fixed_z_slot) {
+        case TOK_EXT_ZMIN:       *z = arc_ctx->zmin;       return true;
+        case TOK_EXT_ZMAX:       *z = arc_ctx->zmax;       return true;
+        case TOK_EXT_ZMIN_LEFT:  *z = arc_ctx->zmin_left;  return true;
+        case TOK_EXT_ZMIN_RIGHT: *z = arc_ctx->zmin_right; return true;
+        case TOK_EXT_ZMAX_LEFT:  *z = arc_ctx->zmax_left;  return true;
+        case TOK_EXT_ZMAX_RIGHT: *z = arc_ctx->zmax_right; return true;
+        default: return false;
+      }
+    default:
+      return false;
+  }
+}
+
+// Which R side of the surface a block closes its root solve on.
+//
+// NOT an ordered fallback chain -- that would be a rule fitted to the eight
+// rows that happen to exist. An endpoint either asserts a side or it does not:
+// a midplane end carries `midplane_outboard`, a SOL_OUT/SOL_IN ray carries it
+// in the sector, a plate carries it in a _LEFT/_RIGHT slot; CORE and PF rays
+// and a plain ZMIN/ZMAX plate assert nothing. Ask both ends. If they assert
+// opposite sides the block is declared inconsistently, which is a defect to
+// report rather than to resolve by precedence.
+enum tok_ext_side { TOK_EXT_SIDE_NONE = 0, TOK_EXT_SIDE_OUTB, TOK_EXT_SIDE_INB };
+
+static enum tok_ext_side
+tok_ext_endpoint_side(const struct tok_ext_endpoint *e)
+{
+  if (e->kind == TOK_EXT_MIDPLANE)
+    return e->midplane_outboard ? TOK_EXT_SIDE_OUTB : TOK_EXT_SIDE_INB;
+  if (e->kind == TOK_EXT_PLATE) {
+    if (e->fixed_z_slot == TOK_EXT_ZMIN_RIGHT || e->fixed_z_slot == TOK_EXT_ZMAX_RIGHT)
+      return TOK_EXT_SIDE_OUTB;
+    if (e->fixed_z_slot == TOK_EXT_ZMIN_LEFT || e->fixed_z_slot == TOK_EXT_ZMAX_LEFT)
+      return TOK_EXT_SIDE_INB;
+    return TOK_EXT_SIDE_NONE;
+  }
+  if (e->sector == TOK_EXT_SOL_OUT) return TOK_EXT_SIDE_OUTB;
+  if (e->sector == TOK_EXT_SOL_IN)  return TOK_EXT_SIDE_INB;
+  return TOK_EXT_SIDE_NONE;
+}
+
+static bool
+tok_ext_block_rclose(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct tok_ext_topology *top, double *rclose)
+{
+  enum tok_ext_side lo = tok_ext_endpoint_side(&top->lower);
+  enum tok_ext_side up = tok_ext_endpoint_side(&top->upper);
+  if (lo != TOK_EXT_SIDE_NONE && up != TOK_EXT_SIDE_NONE && lo != up) {
+    fprintf(stderr,
+      "TOK_BLOCK_SIDE_CONFLICT ftype=%d: its two theta ends assert opposite "
+      "R sides of the surface\n", inp->ftype);
+    abort();
+  }
+  enum tok_ext_side s = lo != TOK_EXT_SIDE_NONE ? lo : up;
+  if (s == TOK_EXT_SIDE_NONE)
+    return false;
+  *rclose = s == TOK_EXT_SIDE_OUTB ? inp->rright : inp->rleft;
+  return true;
+}
+
+static bool
+tok_half_domain_sep_rz(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx, double theta, double *r, double *z)
+{
+  if (!inp->half_domain ||
+      !tok_geo_same_flux(arc_ctx->psi, arc_ctx->geo->psisep))
+    return false;
+
+  // z0/z1/rclose come from the topology table, which already names this
+  // block's two theta ends and the side it sits on. tok_sep_segment_equiv.c
+  // checks the table reproduces the ladder this replaces on all 8 half-domain
+  // ftypes, for both endpoints and rclose.
+  struct tok_ext_topology top;
+  if (!tok_ext_topology_from_ftype(inp->ftype, inp->half_domain, &top))
+    return false;
+  double z0 = 0.0, z1 = 0.0, rclose = 0.0;
+  if (!tok_ext_endpoint_z(arc_ctx, &top.lower, &z0) ||
+      !tok_ext_endpoint_z(arc_ctx, &top.upper, &z1) ||
+      !tok_ext_block_rclose(inp, &top, &rclose))
+    return false;
+
+  // Use the actual (position-mapped) computational coordinate.  Corner
+  // nodes lie at frac=0 or 1, while interior and radial/alpha-surface
+  // quadrature nodes do not.  Inferring frac from the nodal-array index
+  // incorrectly maps the first and last Gauss points onto the segment ends.
+  double frac = (theta-inp->cgrid.lower[2])
+    /(inp->cgrid.upper[2]-inp->cgrid.lower[2]);
+  double zfixed = tok_sep_fixed_edge_is_first(inp->ftype) ? z0 : z1;
+  tok_build_sep_trace(inp, arc_ctx, zfixed, rclose);
+  int n = arc_ctx->sep_trace_n;
+  double total = arc_ctx->sep_trace_s[n-1];
+  arc_ctx->xpt_map_darc_dtheta = total/
+    (inp->cgrid.upper[2]-inp->cgrid.lower[2]);
+  if (tok_theta_measure_diag())
+    fprintf(stderr,
+      "TOK_THETA_MEASURE kind=map ftype=%d psi=%.17g sep_trace_arc=%.17g "
+      "theta_extent=%.17g darc_dtheta=%.17g trace_nodes=%d\n",
+      inp->ftype, arc_ctx->psi, total,
+      inp->cgrid.upper[2]-inp->cgrid.lower[2],
+      arc_ctx->xpt_map_darc_dtheta, n);
+  if (frac <= 0.0) {
+    *r = arc_ctx->sep_trace_r[0]; *z = arc_ctx->sep_trace_z[0];
+    return true;
+  }
+  if (frac >= 1.0) {
+    *r = arc_ctx->sep_trace_r[n-1]; *z = arc_ctx->sep_trace_z[n-1];
+    return true;
+  }
+  double target = frac*total;
+  int lo = 0, hi = n-1;
+  while (hi-lo > 1) {
+    int mid = (lo+hi)/2;
+    if (arc_ctx->sep_trace_s[mid] < target) lo = mid;
+    else hi = mid;
+  }
+  double ds = arc_ctx->sep_trace_s[hi]-arc_ctx->sep_trace_s[lo];
+  double w = ds > 0.0 ? (target-arc_ctx->sep_trace_s[lo])/ds : 0.0;
+  double rlin = arc_ctx->sep_trace_r[lo]
+    +w*(arc_ctx->sep_trace_r[hi]-arc_ctx->sep_trace_r[lo]);
+  double zlin = arc_ctx->sep_trace_z[lo]
+    +w*(arc_ctx->sep_trace_z[hi]-arc_ctx->sep_trace_z[lo]);
+  if (arc_ctx->sep_trace_param_is_r) {
+    double roots[16] = { 0.0 };
+    int nr = tok_geo_Z_psiR(arc_ctx->geo, arc_ctx->geo->psisep,
+      rlin, 16, roots);
+    if (nr == 0) {
+      fprintf(stderr,
+        "TOK_SEP_TRACE no Z root during resampling ftype=%d frac=%.17g R=%.17g\n",
+        inp->ftype, frac, rlin);
+      abort();
+    }
+    *r = rlin; *z = tok_nearest_value(zlin, roots, nr);
+  }
+  else {
+    double roots[8] = { 0.0 }, dRdZ[8] = { 0.0 };
+    double dR[8] = { 0.0 }, dZ[8] = { 0.0 };
+    int nr = gkyl_tok_geo_R_psiZ(arc_ctx->geo, arc_ctx->geo->psisep,
+      zlin, 8, roots, dRdZ, dR, dZ);
+    if (nr == 0) {
+      fprintf(stderr,
+        "TOK_SEP_TRACE no R root during resampling ftype=%d frac=%.17g Z=%.17g\n",
+        inp->ftype, frac, zlin);
+      abort();
+    }
+    *r = tok_nearest_value(rlin, roots, nr); *z = zlin;
+  }
+  double residual = tok_eval_psi_rz_local(arc_ctx->geo, *r, *z)
+    -arc_ctx->geo->psisep;
+  if (!isfinite(*r) || !isfinite(*z) || !isfinite(residual) ||
+      fabs(residual) > 1e-9*fmax(1.0, fabs(arc_ctx->geo->psisep))) {
+    fprintf(stderr,
+      "TOK_SEP_TRACE invalid resampled point ftype=%d frac=%.17g R=%.17g Z=%.17g residual=%.17g\n",
+      inp->ftype, frac, *r, *z, residual);
+    abort();
+  }
+  return true;
+}
+
 
 // A material theta face follows the supplied limiter arc as psi varies. Its
 // corner chord can cross a concave bend even though every contour ends on the
