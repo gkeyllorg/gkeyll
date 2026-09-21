@@ -30,8 +30,7 @@ gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
     }
   }
 
-  // Populate potential ghosts at internal MPI interfaces. Physical-boundary
-  // ghosts are left untouched and are handled by the boundary flux kernels.
+  // Sync phi.
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, field->phi_smooth);
 }
 

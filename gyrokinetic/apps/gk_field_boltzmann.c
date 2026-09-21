@@ -81,6 +81,9 @@ gk_field_rhs_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 
   // Smooth the potential along z.
 //  gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
+
+  // Sync phi.
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, field->phi_smooth);
 }
 
 static void
