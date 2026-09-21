@@ -1260,7 +1260,8 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
       .shear_dir = 0, // shift varies with x.
       .edge = eI == 0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = &app->global_par_ext,
+      // With an LCFS the TS BC is only applied in the core.
+      .bcdir_ext_update_r = app->gk_geom->has_LCFS? &app->global_par_ext_core : &app->global_par_ext,
       .num_ghost = ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,

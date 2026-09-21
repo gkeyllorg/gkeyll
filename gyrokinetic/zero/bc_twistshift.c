@@ -1382,9 +1382,7 @@ ts_calc_mats(struct gkyl_bc_twistshift *up)
     for (int i=0; i<iter.idx[0]-up->shear_r.lower[0]; i++)
       linidx_mats_do += up->num_do[i];
 
-    // Check that the shift variation within this x-cell < Ly.
-    // The algorithm assumes at most one x-intersection per (y-boundary, y-boundary) pair,
-    // which breaks when |S(x_up) - S(x_lo)| >= Ly.
+    // Check that the shift variation within this x-cell < Ly - 2*dy.
     double x_lo = cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)];
     double x_up = cellb_tar[cellb_up(up->shear_dir_in_ts_grid)];
     double Ly = shift_dir_lims[1] - shift_dir_lims[0];
@@ -1393,10 +1391,11 @@ ts_calc_mats(struct gkyl_bc_twistshift *up)
     up->shift_func(0.0, (double[]){x_up}, &S_up, up->shift_func_ctx);
     up->shift_func(0.0, (double[]){xc_tar[up->shear_dir_in_ts_grid]}, &S_c, up->shift_func_ctx);
 
-    if (fabs(S_up - S_lo) >= Ly) {
+    double dy = up->ts_grid.dx[up->shift_dir_in_ts_grid];
+    if (fabs(S_up - S_lo) >= Ly - 2.0*dy) {
       fprintf(stderr, "bc_twistshift: shift variation |S(x_up)-S(x_lo)| = %g across a single x-cell"
-        " exceeds Ly = %g (cell ix=%d). Increase Nx, reduce the shear, or increase Ly.\n",
-        fabs(S_up - S_lo), Ly, iter.idx[0]);
+        " exceeds Ly - 2*dy = %g (cell ix=%d, Ly = %g, dy = %g). Increase Nx or Ny, reduce the shear,"
+        " or increase Ly.\n", fabs(S_up - S_lo), Ly - 2.0*dy, iter.idx[0], Ly, dy);
       assert(false);
     }
 
