@@ -514,8 +514,8 @@ vlasov_species_write_lte_corr_status(gkyl_vlasov_app *app, struct vlasov_species
 
 // Read each present aspect's evolved state from the named file and rebuild what
 // a restart does not carry: the velocity- and configuration-space Jacobian
-// rescale and boundary fluxes (kinetic), BCs, sources, and static applied
-// accelerations.
+// rescale and boundary fluxes (kinetic), BCs, and the sources and applied
+// accelerations evaluated at the frame time.
 struct gkyl_app_restart_status
 vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const char *fname)
 {
@@ -548,7 +548,7 @@ vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const 
         }
         vm_species_apply_bc(app, vms, vms->f, rstat.stime);
         if (vms->source_id) {
-          vm_species_source_calc(app, vms, &vms->src, 0.0);
+          vm_species_source_calc(app, vms, &vms->src, rstat.stime);
         }
       }
     }
@@ -566,7 +566,7 @@ vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const 
       if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
         vm_fluid_species_apply_bc(app, vm_fs, vm_fs->fluid);
         if (vm_fs->source_id) {
-          vm_fluid_species_source_calc(app, vm_fs, 0.0);
+          vm_fluid_species_source_calc(app, vm_fs, rstat.stime);
         }
       }
     }

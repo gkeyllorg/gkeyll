@@ -194,9 +194,12 @@ vlasov_field_read_from_frame(gkyl_vlasov_app *app, int frame)
 
   // The app clock resumes at the frame time. Every species restart sets it
   // from the species file (all field types); the field sets it here too when
-  // it has a file of its own (Vlasov-Maxwell), so a field-only restart is
-  // consistent as well.
-  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS && rstat.stime > 0.0)
+  // it has a file of its own (Maxwell, GR Maxwell), so a field-only restart is
+  // consistent as well, including a rewind to frame zero. The Poisson and null
+  // fields return a placeholder status and leave the clock to the species.
+  bool has_field_file = app->field->field_id == GKYL_FIELD_E_B
+    || app->field->field_id == GKYL_FIELD_GR_D_B;
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS && has_field_file)
     app->tcurr = rstat.stime;
 
   return rstat;
