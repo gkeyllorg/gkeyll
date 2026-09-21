@@ -309,8 +309,9 @@ struct gkyl_app_restart_status vlasov_field_from_file(gkyl_vlasov_app *app, cons
 
 /**
  * Restart the field from a frame: name the frame file, restart from it, mark
- * the energy diagnostic to append, and (Vlasov-Maxwell) set the app clock to
- * the frame time.
+ * the energy diagnostic to append, and set the app clock to the frame time
+ * when the field has a restart file of its own (the species restart sets the
+ * clock for every field type).
  *
  * @param app Vlasov app object
  * @param frame Frame number
