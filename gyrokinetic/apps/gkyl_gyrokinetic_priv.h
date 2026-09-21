@@ -14,6 +14,7 @@
 #include <gkyl_ambi_bolt_potential.h>
 #include <gkyl_app_priv.h>
 #include <gkyl_array.h>
+#include <gkyl_array_average.h>
 #include <gkyl_array_integrate.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
@@ -70,10 +71,12 @@
 #include <gkyl_gk_maxwellian_moments.h>
 #include <gkyl_gk_neut_fluid_prim_vars.h>
 #include <gkyl_tok_geo.h>
+#include <gkyl_translate_dim.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_mat.h>
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
@@ -1310,6 +1313,39 @@ struct gk_neut_species {
 };
 
 // Field data.
+// Adiabatic electron response with flux-surface average (2x/3x).
+struct gk_field_adiabatic {
+  double coef; // e^2/Te.
+  struct gkyl_array *ne0_jac; // n0*J, background (electron) density times the Jacobian.
+  struct gkyl_array *kJ; // coef*n0*J.
+  struct gkyl_array *kSq; // -coef*n0*J, Helmholtz coefficient passed to the solver.
+  struct gkyl_array *rho_bg; // q_e n0 J, background charge density.
+  struct gkyl_array *phi2, *rhs2; // Scratch fields for the zonal response solve.
+  struct gkyl_array *phi_lift; // Solution with zero rhs (lift of Dirichlet values/bias lines).
+
+  struct gkyl_basis basis_x; // 1D basis in x.
+  struct gkyl_range local_x, local_x_ext; // 1D ranges in x.
+  struct gkyl_array_average *fs_avg; // Flux-surface average operator.
+  struct gkyl_array *jphi; // J*phi.
+  struct gkyl_array *avg_jphi, *avg_jphi_ho, *avg_jphi_red_ho; // (y,z) average of J*phi, host copy, MPI-reduced.
+  struct gkyl_array *avg_j_ho; // Global (y,z) average of J.
+  struct gkyl_array *psi, *psi_ho; // Flux-surface averaged potential (1D in x).
+  gkyl_dg_bin_op_mem *div_mem; // Memory for the 1D weak division.
+
+  struct gkyl_range local_xy, local_xy_ext; // 2D (x,y) ranges (3x only).
+  struct gkyl_array *tmp_xy; // 2D scratch for the 1D->3D extension (3x only).
+  struct gkyl_translate_dim *inflate_lo, *inflate_up; // 1D->2D and 2D->3D extension updaters.
+
+  int num_zonal; // m = Nx*num_basis_x zonal degrees of freedom.
+  struct gkyl_mat *A; // I - G.
+  struct gkyl_mat *A_lu; // Work copy of A, LU factored at each solve.
+  struct gkyl_mat *rhs_m; // m x 1 work vector.
+  gkyl_mem_buff ipiv; // Pivots for the LU solve.
+
+  struct gkyl_array_integrate *calc_energy; // Computes int K (phi-<phi>)^2.
+  double *energy_red; // Memory for the energy reduction.
+};
+
 struct gk_field {
   struct gkyl_gyrokinetic_field info; // Data for field.
 
@@ -1351,7 +1387,7 @@ struct gk_field {
   bool is_dirichletvar; // Whether user provided spatially varying phi BCs.
   struct gkyl_array *phi_bc; // Spatially varying BC.
   struct gkyl_array *epsilon; // Polarization weight including geometric factors.
-  struct gkyl_array *kSq; // Weight for Poisson/Helmholtz solver. 
+  struct gk_field_adiabatic adiab; // Adiabatic electron response (2x/3x).
 
   struct gkyl_poisson_bias_line_list fem_parproj_bias_line_list; // Biased lines constraining the solution.
 

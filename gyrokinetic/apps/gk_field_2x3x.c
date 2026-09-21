@@ -474,6 +474,10 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   if (f->use_flr) {
     gk_field_flr_release(app, f);
   }
+
+  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+    gk_field_adiabatic_release(app, f);
+  }
 }
 
 void
@@ -556,9 +560,15 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     }
   }
 
+  // Adiabatic electrons add a Helmholtz term with kSq = -(e^2 n0/Te) J.
+  f->adiab.kSq = NULL;
+  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+    gk_field_adiabatic_coefs_new(app, f);
+  }
+
   // Initialize the Poisson solver.
   f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-    &poisson_bcs, f->info.bias_line_list, f->epsilon, NULL, app->use_gpu);
+    &poisson_bcs, f->info.bias_line_list, f->epsilon, f->adiab.kSq, app->use_gpu);
 
   f->phi_bc = 0;
   f->is_dirichletvar = false;
@@ -651,6 +661,10 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   // Set the pointer to the function that computes phi.
   f->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;
+  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+    gk_field_adiabatic_new(app, f);
+    f->rhs_phi_func = gk_field_adiabatic_rhs_phi_2x3x;
+  }
 
   // Set pointer to function that releases memory.
   f->release_func = gk_field_fem_release_2x3x;

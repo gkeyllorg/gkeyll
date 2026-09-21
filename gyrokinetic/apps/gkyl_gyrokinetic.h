@@ -557,8 +557,12 @@ struct gkyl_gyrokinetic_field {
   double polarization_bmag; // B factor in the polarization density.
   double kperpSq; // kperp^2 parameter for 1D field equations
 
-  // parameters for adiabatic electrons simulations
+  // Parameters for adiabatic electrons simulations. In 2x/3x the electron
+  // response is (e^2 n0/Te)(phi - <phi>), with <phi> the flux-surface average.
   double electron_mass, electron_charge, electron_density, electron_temp;
+  // Optional electron density profile n0(x) (2x/3x only), used instead of electron_density.
+  void (*electron_density_profile)(double t, const double *xn, double *out, void *ctx);
+  void *electron_density_profile_ctx;
 
   struct gkyl_gyrokinetic_bc poisson_bcs[2*GKYL_MAX_CDIM];
 
