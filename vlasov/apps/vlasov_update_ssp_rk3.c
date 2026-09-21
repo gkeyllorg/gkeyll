@@ -1,38 +1,5 @@
 #include <gkyl_vlasov_priv.h>
 
-// RK buffers of a species: the solution (f, fluid), the first-stage buffer
-// (f1, fluid1) and the new-stage buffer (fnew, fluidnew).
-enum vm_rk_buf { VM_RK_F, VM_RK_F1, VM_RK_FNEW };
-
-static struct gkyl_array*
-dist_buf(struct vm_species *d, enum vm_rk_buf b)
-{
-  return b == VM_RK_F ? d->f : (b == VM_RK_F1 ? d->f1 : d->fnew);
-}
-static struct gkyl_array*
-fluid_buf(struct vm_fluid_species *f, enum vm_rk_buf b)
-{
-  return b == VM_RK_F ? f->fluid : (b == VM_RK_F1 ? f->fluid1 : f->fluidnew);
-}
-
-// Set the per-stage RK input/output array pointers for every species, indexed
-// over the overall species count: 'in'/'out' select which buffers this stage
-// reads and writes; entries are NULL where a species lacks that aspect.
-static void
-set_rk_arrays(gkyl_vlasov_app *app, enum vm_rk_buf in, enum vm_rk_buf out,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[],
-  const struct gkyl_array *fluidin[], struct gkyl_array *fluidout[])
-{
-  int num_species = app->num_species;
-  for (int i=0; i<num_species; ++i) {
-    struct vlasov_species *sp = &app->species[i];
-    fin[i]      = sp->kinetic  ? dist_buf(sp->kinetic, in)   : 0;
-    fout[i]     = sp->kinetic  ? dist_buf(sp->kinetic, out)  : 0;
-    fluidin[i]  = sp->fluid ? fluid_buf(sp->fluid, in)  : 0;
-    fluidout[i] = sp->fluid ? fluid_buf(sp->fluid, out) : 0;
-  }
-}
-
 // Take time-step using the RK3 method. Also sets the status object
 // which has the actual and suggested dts used. These can be different
 // from the actual time-step.
@@ -57,7 +24,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
         do {
           struct timespec rk3_s1_tm = gkyl_wall_clock();
 
-          set_rk_arrays(app, VM_RK_F, VM_RK_F1, fin, fout, fluidin, fluidout);
+          vlasov_species_gather_rk_state(app, VM_RK_F, VM_RK_F1, fin, fout, fluidin, fluidout);
           vlasov_forward_euler(app, tcurr, dt, fin, fluidin, app->field->em,
             fout, fluidout, app->field->em1,
             &st
@@ -80,7 +47,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
         do {
           struct timespec rk3_s2_tm = gkyl_wall_clock();
 
-          set_rk_arrays(app, VM_RK_F1, VM_RK_FNEW, fin, fout, fluidin, fluidout);
+          vlasov_species_gather_rk_state(app, VM_RK_F1, VM_RK_FNEW, fin, fout, fluidin, fluidout);
           vlasov_forward_euler(app, tcurr+dt, dt, fin, fluidin, app->field->em1,
             fout, fluidout, app->field->emnew,
             &st
@@ -106,7 +73,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           }
           else {
             for (int i=0; i<num_species; ++i)
-              vlasov_species_combine(app, &app->species[i], 3.0/4.0, 1.0/4.0);
+              vlasov_species_combine(app, &app->species[i], VM_RK_F1, 3.0/4.0, VM_RK_F, 1.0/4.0, VM_RK_FNEW);
             vlasov_field_combine(app, app->field->em1,
               3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew); // no-op for null field
 
@@ -121,7 +88,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
         do {
           struct timespec rk3_s3_tm = gkyl_wall_clock();
 
-          set_rk_arrays(app, VM_RK_F1, VM_RK_FNEW, fin, fout, fluidin, fluidout);
+          vlasov_species_gather_rk_state(app, VM_RK_F1, VM_RK_FNEW, fin, fout, fluidin, fluidout);
           vlasov_forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->field->em1,
             fout, fluidout, app->field->emnew,
             &st
@@ -149,8 +116,8 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           }
           else {
             for (int i=0; i<num_species; ++i) {
-              vlasov_species_combine(app, &app->species[i], 1.0/3.0, 2.0/3.0);
-              vlasov_species_copy_range(app, &app->species[i]);
+              vlasov_species_combine(app, &app->species[i], VM_RK_F1, 1.0/3.0, VM_RK_F, 2.0/3.0, VM_RK_FNEW);
+              vlasov_species_copy_range(app, &app->species[i], VM_RK_F, VM_RK_F1);
             }
             // no-ops for the null field
             vlasov_field_combine(app, app->field->em1,

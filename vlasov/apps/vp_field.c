@@ -260,11 +260,11 @@ vp_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin
   return DBL_MAX;
 }
 
-// Evaluate the static external potentials and fields. Shared by the initial
-// conditions and the restart: the potential itself is solved from the
+// Evaluate the external potentials and fields at the given time. Shared by the
+// initial conditions and the restart: the potential itself is solved from the
 // distribution wherever it is needed, so neither path solves it here.
 static void
-vp_field_calc_static_ext(gkyl_vlasov_app *app, struct vm_field *field, double tm)
+vp_field_calc_ext(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
   vp_field_calc_ext_pot(app, field, tm);
   vp_field_calc_ext_em(app, field, tm);
@@ -273,7 +273,7 @@ vp_field_calc_static_ext(gkyl_vlasov_app *app, struct vm_field *field, double tm
 struct gkyl_app_restart_status
 vp_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fname)
 {
-  vp_field_calc_static_ext(app, field, app->tcurr);
+  vp_field_calc_ext(app, field, app->tcurr);
   return (struct gkyl_app_restart_status) { .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0 };
 }
 
@@ -368,7 +368,7 @@ void
 vp_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *fin[], double t0)
 {
-  vp_field_calc_static_ext(app, field, t0);
+  vp_field_calc_ext(app, field, t0);
 }
 
 void 

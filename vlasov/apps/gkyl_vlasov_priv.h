@@ -51,11 +51,11 @@ struct vlasov_output_meta {
 // geometry data
 struct vm_geom {
   struct gkyl_vlasov_geom info; // data for vlasov geometry
-  double spin_bh, mass_bh; // Charge and mass.
+  double spin_bh, mass_bh; // Black hole spin and mass.
   bool use_preset_geom; // bool to determine if we are using triad input geom
   enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
   int theta_pole_lo[GKYL_MAX_CDIM]; // (lower bound) Determines if the theta pole BC is being used
-  int theta_pole_up[GKYL_MAX_CDIM]; // (lower bound) Determines if the theta pole BC is being used
+  int theta_pole_up[GKYL_MAX_CDIM]; // (upper bound) Determines if the theta pole BC is being used
 
   // Geometry needed for GR-DG-Maxwells
   bool has_gr_fields; // Boolean for determining if we have fields for GR-DG-Maxwells
@@ -94,7 +94,7 @@ struct vm_fluid_em_coupling {
 struct gkyl_vlasov_app {
   char name[128]; // name of app
   struct gkyl_job_pool *job_pool; // Job pool
-  
+
   int cdim, vdim; // conf, velocity space dimensions
   int poly_order; // polynomial order
   double tcurr; // current time
@@ -104,18 +104,18 @@ struct gkyl_vlasov_app {
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
-    
+
   struct gkyl_rect_grid grid; // config-space grid
   struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
-  struct gkyl_range global, global_ext; // global, global-ext conf-space ranges  
+  struct gkyl_range global, global_ext; // global, global-ext conf-space ranges
   // To simplify BC application, store local skin and ghost ranges
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
-  struct gkyl_basis basis; // Configuration-space basis. 
-  struct gkyl_basis *basis_on_dev; // Pointer to configuration-space basis on device. 
+  struct gkyl_basis basis; // Configuration-space basis.
+  struct gkyl_basis *basis_on_dev; // Pointer to configuration-space basis on device.
 
   struct gkyl_rect_decomp *decomp; // decomposition object
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
@@ -138,8 +138,6 @@ struct gkyl_vlasov_app {
 
   // Species data: one array of species containers in input order.
   int num_species; // Total number of species (kinetic + fluid).
-  int num_kinetic_species; // Number of species with a kinetic aspect.
-  int num_fluid_species; // Number of species with a fluid aspect.
   struct vlasov_species *species; // Species containers.
 
   bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
@@ -153,12 +151,12 @@ struct gkyl_vlasov_app {
   struct gkyl_vlasov_stat stat; // statistics
 };
 
-// Take a single forward Euler step of the Vlasov-Maxwell system 
+// Take a single forward Euler step of the Vlasov-Maxwell system
 // with the suggested time-step dt. Also supports just Maxwell's equations
-// and fluid equations (Euler's) with potential Vlasov-fluid coupling. 
+// and fluid equations (Euler's) with potential Vlasov-fluid coupling.
 void vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
-  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
+  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout,
   struct gkyl_update_status *st);
 
 // The implicit half of the operator-split step: implicit BGK collisions for each
@@ -264,14 +262,23 @@ int vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm);
 struct vm_fluid_em_coupling* vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app);
 
 /**
- * Compute implicit update of fluid-EM coupling 
+ * Whether a fluid species takes part in the implicit fluid-EM coupling: only
+ * momentum-carrying fluids (Euler) do.
+ *
+ * @param f Fluid species
+ * @return True if the fluid species couples to the EM field
+ */
+bool vm_fluid_em_coupling_supported(const struct vm_fluid_species *f);
+
+/**
+ * Compute implicit update of fluid-EM coupling
  *
  * @param app Vlasov app object
  * @param fl_em fluid-EM coupling updater
  * @param tcurr Current time
  * @param dt Time step size
  */
-void vm_fluid_em_coupling_update(struct gkyl_vlasov_app *app, 
+void vm_fluid_em_coupling_update(struct gkyl_vlasov_app *app,
   struct vm_fluid_em_coupling *fl_em, double tcurr, double dt);
 
 /**
@@ -280,5 +287,26 @@ void vm_fluid_em_coupling_update(struct gkyl_vlasov_app *app,
  * @param app Vlasov app object
  * @param fl_em fluid-EM coupling updater to release
  */
-void vm_fluid_em_coupling_release(struct gkyl_vlasov_app *app, 
+void vm_fluid_em_coupling_release(struct gkyl_vlasov_app *app,
   struct vm_fluid_em_coupling *fl_em);
+
+/** vm_geom API */
+
+/**
+ * Initialize geom.
+ *
+ * @param vm Input VM data
+ * @param app Vlasov app object
+ * @param s On output, initialized geom object
+ */
+void vm_geom_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_geom *s);
+
+
+
+/**
+ * Delete resources used in geom.
+ *
+ * @param app Vlasov app object
+ * @param s Geom object to delete
+ */
+void vm_geom_release(const gkyl_vlasov_app* app, const struct vm_geom *s);

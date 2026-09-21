@@ -44,10 +44,10 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<num_species; ++i)
     vlasov_species_calc_self_moms(app, &app->species[i], fin[i]);
 
-  // Compute cross-species collision moments and fluid primitive moments. Needs
-  // to be done after self-collision moments, so a separate loop over species.
+  // Compute the coupled variables (LBO cross-collision moments, fluid primitive
+  // variables) after all species' self moments, hence a separate loop.
   for (int i=0; i<num_species; ++i)
-    vlasov_species_calc_cross_moms(app, &app->species[i], fin[i], fluidin[i]);
+    vlasov_species_calc_coupled_vars(app, &app->species[i], fin[i], fluidin[i]);
 
   // Compute RHS of the Vlasov/fluid equations.
   for (int i=0; i<num_species; ++i) {

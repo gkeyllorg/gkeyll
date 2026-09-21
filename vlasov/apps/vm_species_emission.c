@@ -126,8 +126,6 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_specie
   }
   // Inelastic emission contribution
   for (int i=0; i<emit->num_species; ++i) {
-    int species_idx;
-    species_idx = vm_find_species_idx(app, emit->impact_species[i]->name);
     gkyl_mom_calc_advance(emit->flux_slvr[i], &emit->impact_normal_r[i],
       emit->impact_cbuff_r[i], emit->bflux_arr[i], emit->flux[i]);
     

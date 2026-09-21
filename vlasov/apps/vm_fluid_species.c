@@ -722,11 +722,14 @@ void
 vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
 {
   int cdim = app->cdim;
-  // The fluid species array is allocated with gkyl_malloc, so flags that are only
-  // set on one initialization path must be given a definite default here.
+  // Only the canonical-PB initialization sets has_poisson; default it here.
   f->has_poisson = false;
   // Setup equation-specific memory and equation type/number of equations based on input table
   f->eqn_type = f->info.equation->type;
+  // The fluid DG updater has no isothermal Euler solver yet (it would fall
+  // through to the canonical-PB branch); reject it until one exists.
+  if (f->eqn_type == GKYL_EQN_ISO_EULER)
+    gkyl_exit("vm_fluid_species: isothermal Euler fluid species are not supported yet.");
   f->num_equations = f->info.equation->num_equations;
   f->equation = gkyl_wv_eqn_acquire(f->info.equation);
   if (f->eqn_type == GKYL_EQN_ADVECTION) {
@@ -758,12 +761,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   if (app->use_gpu) {
     f->fluid_host = mkarr(false, f->num_equations*app->basis.num_basis, app->local_ext.volume);
   }
-
-  // Duplicate copy of fluid data in case time step fails.
-  // Needed because of implicit source split which modifies solution and 
-  // is always successful, so if a time step fails due to the SSP RK3 
-  // we must restore the old solution before restarting the time step
-  f->fluid_dup = mkarr(app->use_gpu, f->num_equations*app->basis.num_basis, app->local_ext.volume);
 
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
@@ -1110,7 +1107,6 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_array_release(f->fluidnew);
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
-  gkyl_array_release(f->fluid_dup);
 
   if (f->has_diffusion) {
     gkyl_array_release(f->diffD);

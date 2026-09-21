@@ -14,10 +14,10 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
   if (vms->source_id == GKYL_BFLUX_SOURCE) {
     src->calc_bflux = true;
     assert(vms->info.source.source_length);
-    assert(vms->info.source.source_species);
     src->source_length = vms->info.source.source_length;
+    // source_species must name an existing kinetic species.
     src->source_species = vm_find_species(app, vms->info.source.source_species);
-    src->source_species_idx = vm_find_species_idx(app, vms->info.source.source_species);
+    assert(src->source_species);
     if (app->use_gpu) {
       src->scale_ptr = gkyl_cu_malloc((vdim+2)*sizeof(double));
     }
@@ -41,7 +41,6 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
     src->num_cross_source = vms->info.source.num_cross_source;
     for (int i=0; i<src->num_cross_source; i++) {
       src->adapt_source_species[i] = vm_find_species(app, vms->info.source.source_with[i]);
-      src->adapt_source_species_idx[i] = vm_find_species_idx(app, vms->info.source.source_with[i]);
       // source_with must name an existing *kinetic* species (a typo, or a fluid
       // species, returns NULL and would segfault in the adapt phase otherwise).
       assert(src->adapt_source_species[i]);

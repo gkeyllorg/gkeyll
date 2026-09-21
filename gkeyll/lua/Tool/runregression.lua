@@ -1348,12 +1348,6 @@ local function create_action(test, runDir, testType)
    -- linger and get compared against on a later check.
    os.execute(string.format("rm -rf '%s'", aDir))
    mkdir(aDir)
-   -- Remove the previous baseline first. Files an older version wrote but the
-   -- current one does not (renamed or dropped diagnostics) would otherwise
-   -- linger and later show up as [MISSING] failures for every branch.
-   for fn in lfs.dir(aDir) do
-      if string.sub(fn, -5) == ".gkyl" then os.remove(aDir .. "/" .. fn) end
-   end
    -- Copy all .gkyl output files from the scratch directory to the accepted dir.
    os.execute(string.format("cp -f '%s'/*.gkyl '%s/' 2>/dev/null", runDir, aDir))
    return -2

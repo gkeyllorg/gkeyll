@@ -117,12 +117,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[6]));
   }
 
-  // Duplicate copy of EM data in case time step fails.
-  // Needed because of implicit source split which modifies solution and 
-  // is always successful, so if a time step fails due to the SSP RK3 
-  // we must restore the old solution before restarting the time step
-  f->em_dup = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
-
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_energy_write_call = true;
 
@@ -950,7 +944,6 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
     }
   }
   gkyl_array_release(f->em_host);
-  gkyl_array_release(f->em_dup);
   
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);

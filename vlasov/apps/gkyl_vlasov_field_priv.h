@@ -57,7 +57,7 @@ struct vm_field {
   void (*write_func)(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[]);
   void (*write_energy_func)(gkyl_vlasov_app *app);
   // Restart the field from the named file. Vlasov-Maxwell reads the EM field;
-  // Vlasov-Poisson evaluates its static external potentials/fields (the
+  // Vlasov-Poisson evaluates its external potentials/fields (the
   // potential is solved from the distribution whenever it is needed); the null
   // field is a no-op.
   struct gkyl_app_restart_status (*from_file_func)(gkyl_vlasov_app *app, struct vm_field *field,
@@ -76,11 +76,6 @@ struct vm_field {
 
       struct gkyl_array *em_host;  // host copy for use IO and initialization
 
-      // Duplicate copy of EM data in case time step fails.
-      // Needed because of implicit source split which modifies solution and
-      // is always successful, so if a time step fails due to the SSP RK3
-      // we must restore the old solution before restarting the time step
-      struct gkyl_array *em_dup;
 
       bool has_sigma; // flag to indicate there is a resistive layer
       struct gkyl_array *sigma; // resistive layer for damping EM fields
@@ -583,8 +578,8 @@ void vp_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, dou
 void vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm);
 
 /**
- * Vlasov-Poisson initial conditions: evaluate the static external potentials
- * and fields. The potential itself is not solved here; it is solved from the
+ * Vlasov-Poisson initial conditions: evaluate the external potentials and
+ * fields at t0. The potential itself is not solved here; it is solved from the
  * distribution wherever it is needed (each forward Euler step and the field
  * diagnostics), so initial conditions and restart share this code path.
  *
@@ -597,8 +592,8 @@ void vp_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *fin[], double t0);
 
 /**
- * Restart for Vlasov-Poisson: no field file is read; evaluates the static
- * external potentials and fields exactly as the initial conditions do.
+ * Restart for Vlasov-Poisson: no field file is read; evaluates the external
+ * potentials and fields exactly as the initial conditions do.
  *
  * @param app Vlasov app object.
  * @param field Field object.

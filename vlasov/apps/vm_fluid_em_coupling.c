@@ -7,18 +7,26 @@
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
 
+bool
+vm_fluid_em_coupling_supported(const struct vm_fluid_species *f)
+{
+  // Euler only: isothermal Euler has the momentum layout the coupling expects
+  // but no fluid DG solver yet, and is rejected at fluid initialization.
+  return f->eqn_type == GKYL_EQN_EULER;
+}
+
 // initialize fluid-EM coupling object
 struct vm_fluid_em_coupling*
 vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
 {
   struct vm_fluid_em_coupling *fl_em = gkyl_malloc(sizeof(struct vm_fluid_em_coupling));
 
-  // Gather the fluid-bearing species in declaration order.
+  // Gather the coupled (momentum-carrying) fluid species in declaration order.
   int num_species = app->num_species;
   fl_em->num_fluid = 0;
   for (int i=0; i<num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];
-    if (sp->fluid) {
+    if (sp->fluid && vm_fluid_em_coupling_supported(sp->fluid)) {
       fl_em->species[fl_em->num_fluid] = sp;
       fl_em->qbym[fl_em->num_fluid] = sp->charge/sp->mass;
       fl_em->num_fluid += 1;
