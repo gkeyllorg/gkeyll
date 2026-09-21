@@ -224,6 +224,9 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_gyrokinetic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
           break;
+        case GKYL_BC_GK_SPECIES_UPDOWN_TOK_CORE:
+          gkyl_bc_updown_tok_core_advance(species->bc_updown_tok_core_lo, f);
+          break;
         case GKYL_BC_GK_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
         default:
@@ -687,6 +690,9 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
               (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
       gkyl_bc_basic_gyrokinetic_release(s->bc_lo[d]);
     }
+    else if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_UPDOWN_TOK_CORE) {
+      gkyl_bc_updown_tok_core_release(s->bc_updown_tok_core_lo);
+    }
     
     if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
@@ -902,6 +908,24 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       gks->bc_ts_lo = gkyl_bc_twistshift_inew(&tsinp);
       
     }
+    else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_UPDOWN_TOK_CORE) {
+      assert(d == 0); // Up-down tokamak core BC only allowed at the lower radial boundary.
+      assert(!app->is_multib); // Not supported in the multiblock app.
+      struct gkyl_bc_updown_tok_core_inp tok_core_inp = {
+        .dir = d,
+        .edge = GKYL_LOWER_EDGE,
+        .cdim = cdim,
+        .grid = &gks->grid,
+        .basis = gks->basis_on_dev,
+        .skin_r = &gks->local_lower_skin[d],
+        .ghost_r = &gks->local_lower_ghost[d],
+        .decomp = app->decomp,
+        .comm = gks->comm,
+        .avg_y = true,
+        .use_gpu = app->use_gpu,
+      };
+      gks->bc_updown_tok_core_lo = gkyl_bc_updown_tok_core_new(&tok_core_inp);
+    }
     else if ( (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
               (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
               (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
@@ -932,6 +956,8 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     }
 
     // Upper BC.
+    // Up-down tokamak core BC only allowed at the lower radial boundary.
+    assert(gks->upper_bc[d].type != GKYL_BC_GK_SPECIES_UPDOWN_TOK_CORE);
     if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       struct gkyl_range *sol_skin = gk_app_inp->geometry.has_LCFS? &gks->local_upper_skin_par_sol : &gks->local_upper_skin[d];
       struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS? &gks->local_upper_ghost_par_sol : &gks->local_upper_ghost[d];

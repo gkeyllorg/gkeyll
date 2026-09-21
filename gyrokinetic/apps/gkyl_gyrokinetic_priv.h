@@ -26,6 +26,7 @@
 #include <gkyl_bc_emission_elastic.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_bc_twistshift.h>
+#include <gkyl_bc_updown_tok_core.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_boundary_flux.h>
 #include <gkyl_dg_advection.h>
@@ -1077,6 +1078,8 @@ struct gk_species {
   // Pointers to updaters that apply (non-sheath) BC.
   struct gkyl_bc_basic_gyrokinetic *bc_lo[GKYL_MAX_CDIM];
   struct gkyl_bc_basic_gyrokinetic *bc_up[GKYL_MAX_CDIM];
+  // Up-down tokamak core BC (lower radial boundary, up-down symmetric tokamak).
+  struct gkyl_bc_updown_tok_core *bc_updown_tok_core_lo;
   // Local skin/ghost ranges.
   struct gkyl_range local_lower_skin[GKYL_MAX_DIM];
   struct gkyl_range local_lower_ghost[GKYL_MAX_DIM];

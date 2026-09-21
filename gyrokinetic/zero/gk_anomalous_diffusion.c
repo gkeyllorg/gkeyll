@@ -68,7 +68,8 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
   // ABSORB:     N/A         N/A         no
   // PERIODIC:   N/A         N/A         no
   // FIXED_FUNC: N/A         N/A         no
-  // ZERO_FLUX:  zero_flux   N/A         yes
+  // ZERO_FLUX:  zero_flux   zero_flux   yes
+  // UPDOWN_TOK_CORE (lower only): same as ZERO_FLUX.
   // ELSE:       local       local       yes
 
   switch (cbasis->b_type) {
@@ -81,10 +82,14 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
         boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
         boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
       }
-      else if (bc_x_lower == GKYL_BC_GK_SPECIES_ZERO_FLUX) {
+      else if ((bc_x_lower == GKYL_BC_GK_SPECIES_ZERO_FLUX) ||
+               (bc_x_lower == GKYL_BC_GK_SPECIES_UPDOWN_TOK_CORE)) {
+        // The up-down tokamak core BC ghost is the reflected skin (zero radial gradient),
+        // so it is a zero-flux boundary for diffusion.
         boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
-        // Boundary diag kernel not used.
-        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
+        // No diffusive flux through the boundary (used by boundary flux diagnostics
+        // for UPDOWN_TOK_CORE; ZERO_FLUX boundaries are skipped by those).
+        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_zeroflux_kernels;
       }
       else if ((bc_x_lower == GKYL_BC_GK_SPECIES_ABSORB) ||
                (bc_x_lower == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
@@ -105,8 +110,8 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
       }
       else if (bc_x_upper == GKYL_BC_GK_SPECIES_ZERO_FLUX) {
         boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
-        // Boundary diag kernel not used.
-        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
+        // No diffusive flux through the boundary.
+        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_zeroflux_kernels;
       }
       else if ((bc_x_upper == GKYL_BC_GK_SPECIES_ABSORB) ||
                (bc_x_upper == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {

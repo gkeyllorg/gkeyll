@@ -140,6 +140,7 @@ static const struct gkyl_str_int_pair gk_bcs[] = {
   { "speciesRecycle", GKYL_BC_GK_SPECIES_RECYCLE }, // Recycling.
   { "speciesPeriodic", GKYL_BC_GK_SPECIES_PERIODIC }, // Periodic.
   { "speciesTwistshift", GKYL_BC_GK_SPECIES_TWISTSHIFT }, // Twist-shift.
+  { "speciesUpdownTokCore", GKYL_BC_GK_SPECIES_UPDOWN_TOK_CORE }, // Up-down tokamak core BC (lower radial BC).
   // Field BCs.
   { "fieldPeriodic", GKYL_BC_GK_FIELD_PERIODIC }, // Periodic.
   { "fieldDirichlet", GKYL_BC_GK_FIELD_DIRICHLET }, // Dirichlet.

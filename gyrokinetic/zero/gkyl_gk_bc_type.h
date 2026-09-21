@@ -19,6 +19,7 @@ enum gkyl_gyrokinetic_bc_type {
   GKYL_BC_GK_SPECIES_PERIODIC, // Periodic.
   GKYL_BC_GK_SPECIES_TWISTSHIFT, // Twist-shift.
   GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, // Skin value at the boundary.
+  GKYL_BC_GK_SPECIES_UPDOWN_TOK_CORE, // Up-down mirror of the skin (for core BC of up-down symmetric tokamak).
   // Field BCs.
   GKYL_BC_GK_FIELD_PERIODIC, // Periodic.
   GKYL_BC_GK_FIELD_DIRICHLET, // Dirichlet.

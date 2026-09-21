@@ -119,6 +119,21 @@ GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_g
   { NULL, NULL }, // 3x2v
 };
 
+// Zero-flux boundary diagnostic: no diffusive flux through the boundary
+// (consistent with the zero_flux boundary_surf kernels).
+GKYL_CU_DH static double gk_anomalous_diffusion_boundary_diag_zero_flux(const double *wSkin, const double *dxSkin,
+  const double *nuEdge, const double *nuSkin, const double *jacobgeo_invEdge, const double *jacobgeo_invSkin,
+  int edge, const double *JfEdge, const double *JfSkin, double* GKYL_RESTRICT out)
+{
+  return 0.0;
+}
+GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list ser_gyrokinetic_boundary_diagx_zeroflux_kernels[] = {
+  { NULL, NULL }, // 1x1v
+  { NULL, NULL }, // 1x2v
+  { gk_anomalous_diffusion_boundary_diag_zero_flux, NULL }, // 2x2v
+  { NULL, NULL }, // 3x2v
+};
+
 // Macro for choosing volume and surface kernels.
 #define CKVOL(lst,pdim,poly_order) lst[pdim-2].kernels[poly_order-1]
 #define CKSURF(lst,pdim,poly_order) lst[pdim-2].kernels[poly_order-1]

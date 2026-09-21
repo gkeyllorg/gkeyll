@@ -51,7 +51,8 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
   //            bound_surf  bound_diag  hyper_dg-zero_flux
   // SKIP:      N/A         recovery    no
   // PERIODIC:  N/A         N/A         no
-  // ZERO_FLUX: zero_flux   N/A         yes
+  // ZERO_FLUX: zero_flux   zero_flux   yes
+  // UPDOWN_TOK_CORE (lower only): same as ZERO_FLUX.
   // ELSE:      local       local       yes
 
   switch (b_type) {
@@ -64,10 +65,11 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
         boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
         boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
       }
-      else if (bc_x_lower == GKYL_BC_GK_SPECIES_ZERO_FLUX) {
+      else if ((bc_x_lower == GKYL_BC_GK_SPECIES_ZERO_FLUX) ||
+               (bc_x_lower == GKYL_BC_GK_SPECIES_UPDOWN_TOK_CORE)) {
         boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
-        // Boundary diag kernel not used.
-        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
+        // No diffusive flux through the boundary.
+        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_zeroflux_kernels;
       }
       else if ((bc_x_lower == GKYL_BC_GK_SPECIES_ABSORB) ||
                (bc_x_lower == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
@@ -88,8 +90,8 @@ gk_anomalous_diffusion_set_cu_dev_ptrs(struct gk_anomalous_diffusion *diffusion,
       }
       else if (bc_x_upper == GKYL_BC_GK_SPECIES_ZERO_FLUX) {
         boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
-        // Boundary diag kernel not used.
-        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
+        // No diffusive flux through the boundary.
+        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_zeroflux_kernels;
       }
       else if ((bc_x_upper == GKYL_BC_GK_SPECIES_ABSORB) ||
                (bc_x_upper == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
