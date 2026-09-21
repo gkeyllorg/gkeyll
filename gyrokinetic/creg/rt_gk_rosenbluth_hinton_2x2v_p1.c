@@ -1,5 +1,8 @@
 // Rosenbluth-Hinton zonal flow test with kinetic ions and adiabatic electrons
 // (flux-surface averaged response) in the circular Cyclone base case geometry.
+// The initial perturbation is in the density, n0 delta_n g(x) sin(kx (x-x_min)),
+// with a Gaussian envelope g(x) vanishing at the walls, and a parallel flow,
+// upar = -(Ti/mi) (Bt/B)/Omega_pol dln(n)/dx, to approach canonical maxwellian.
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
@@ -45,7 +48,7 @@ double interp_1x_lut(double x, double *lut_grid, double *lut_val, int N)
 struct gk_app_ctx {
   int cdim, vdim;
   // Geometry and magnetic field parameters
-  double a_shift, Z_axis, R_axis, R0, a_mid, r0, B0, kappa, delta, q0, Cy, qaxis, qlcfs;
+  double a_shift, Z_axis, R_axis, R0, a_mid, r0, B_axis, B0, kappa, delta, q0, Cy, qaxis, qlcfs;
   // Plasma parameters
   double me, qe, mi, qi, n0, Te0, Ti0;
   // Initial condition parameters
@@ -56,6 +59,7 @@ struct gk_app_ctx {
   int Nx, Nz, Nvpar, Nmu;
   int cells[GKYL_MAX_DIM], poly_order;
   double vpar_max_ion, mu_max_ion;
+  double nu_star, nu_ion; // Ion collisionality nu_ii q R_axis/(eps^{3/2} v_ti) and the LBO frequency; 0 = collisionless.
   // Simulation control parameters
   double t_end, write_phase_freq;
   int num_frames, int_diag_calc_num, num_failures_max;
@@ -269,13 +273,48 @@ void eval_density_bc(double t, const double* GKYL_RESTRICT xn, double* GKYL_REST
 
 void eval_upar_ion(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  struct gk_app_ctx *app = ctx;
   fout[0] = 0.0;
+  // To first order in k*rho_pol the seed n(r*) F_M, with r* = r + b_phi vpar/Omega_pol the
+  // orbit-centre radius (b_phi = -Bt/B here), is n(x) F_M with the parallel flow
+  // u = -(Ti/mi) (Bt/B)/Omega_pol dln(n)/dx.
+  double x = xn[0], z = xn[1];
+  double r = r_x(x, app->r0);
+  double env = exp(-pow(x/app->pert_width, 2));
+  double s = sin(app->kx*(x - app->x_min)), c = cos(app->kx*(x - app->x_min));
+  double n = app->n0*(1.0 + app->delta_n*env*s);
+  double dndx = app->n0*app->delta_n*env*(app->kx*c - 2.0*x/pow(app->pert_width,2)*s);
+  double R = R_rtheta(r, z, ctx);
+  double Bt = Bphi(R, ctx), Bp = dPsidr(r, z, ctx)/R*gradr(r, z, ctx);
+  double omega_pol = app->qi*Bp/app->mi;
+  fout[0] = -(app->Ti0/app->mi)*(Bt/sqrt(Bt*Bt + Bp*Bp))/omega_pol*dndx/n;
 }
 
 void eval_temp_ion(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct gk_app_ctx *app = ctx;
   fout[0] = app->Ti0;
+}
+
+void eval_nu_ion(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  fout[0] = app->nu_ion;
+}
+
+void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  double vpar_max_ion = app->vpar_max_ion;
+  double mu_max_ion = app->mu_max_ion;
+  double cvpar = vc[0], cmu = vc[1];
+  if (fabs(cvpar) <= 0.5)
+    vp[0] = vpar_max_ion*cvpar;
+  else if (cvpar < -0.5)
+    vp[0] = -vpar_max_ion*2.0*pow(cvpar,2);
+  else
+    vp[0] =  vpar_max_ion*2.0*pow(cvpar,2);
+  vp[1] = mu_max_ion*pow(cmu,2);
 }
 
 // Geometry evaluation functions for the gk app
@@ -356,18 +395,20 @@ struct gk_app_ctx create_ctx(void)
   // R_axis: the flux surfaces are concentric about the magnetic axis, so R0
   // (which pairs with B0 in Bphi) is not the major radius of this surface.
   // The frequency is sqrt(7/4+taue) (vt/R_axis) times the q correction below,
-  // with vt = sqrt(2 Ti0/mi); hence the sqrt(2) on vti. Eq. 56 of Goerler et
-  // al. 2011 omits that sqrt(2) and lies ~30% below their own Fig. 7(b).
+  // with vt = sqrt(2 Ti0/mi); hence the sqrt(2) on vti. This is identical to
+  // Eq. 56 of Goerler et al. 2011.
   double taue = Te0/Ti0;
   double wgam_sw2007 = sqrt(7.0 + 4.0*taue)/2.0 * (sqrt(2.0)*vti/R_axis) * sqrt(1.0 + 2.0*(23.0 + 16.0*taue + 4.0*taue*taue)/pow(q0*(7.0 + 4.0*taue), 2));
   double t_gam = 2.*M_PI/wgam_sw2007;
   double inv_asp_ratio = r0/R_axis;
-  double residual_rh = 1.0/(1.0 + 1.6*q0*q0/sqrt(inv_asp_ratio));
+  // Residual with the finite-eps corrections of Xiao & Catto 2006 (0.104 here);
+  // Rosenbluth & Hinton 1998 keep only the 1.6 term (0.119).
+  double residual_rh = 1.0/(1.0 + q0*q0*(1.6/sqrt(inv_asp_ratio) + 0.5 + 0.36*sqrt(inv_asp_ratio)));
 
   // Grid parameters
-  int Nx = 16;
-  int Nz = 8;
-  int Nvpar = 12;
+  int Nx = 16/2;
+  int Nz = 8/2;
+  int Nvpar = 12/2;
   int Nmu = 6;
   int poly_order = 1;
   int psi_lut_nfact = 100*(poly_order+1); // Resolution factor for the psi lookup table.
@@ -375,6 +416,9 @@ struct gk_app_ctx create_ctx(void)
   // Velocity box dimensions
   double vpar_max_ion = 3.*vti * sqrt(2); // GENE normalizes with sqrt(2T/m)
   double mu_max_ion = 9.*Ti0/B_axis; // GENE uses B_axis as reference field.
+  // Optional ion-ion LBO collisions, nu_star = nu_ii q R_axis/(eps^{3/2} v_ti) with v_ti = sqrt(Ti/mi).
+  double nu_star = 0.0;
+  double nu_ion = nu_star*pow(inv_asp_ratio, 1.5)*vti/(q0*R_axis);
   double t_end = 20.0*t_gam;
   int num_frames = 100;
   double write_phase_freq = 0.1;
@@ -392,6 +436,7 @@ struct gk_app_ctx create_ctx(void)
     .R0     = R0    ,
     .a_mid  = a_mid ,
     .r0     = r0    ,
+    .B_axis = B_axis,
     .B0     = B0    ,
     .kappa  = kappa ,
     .delta  = delta ,
@@ -416,6 +461,7 @@ struct gk_app_ctx create_ctx(void)
     .cells = {Nx, Nz, Nvpar, Nmu},
     .poly_order   = poly_order,
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
+    .nu_star = nu_star,  .nu_ion = nu_ion,
     .write_phase_freq = write_phase_freq,
     .t_end = t_end,  .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
@@ -482,8 +528,10 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.qi, .mass = ctx.mi,
     .vdim = ctx.vdim,
-    .lower = { -ctx.vpar_max_ion, 0.0},
-    .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion},
+    .lower = { -1.0/sqrt(2.0), 0.0},
+    .upper = {  1.0/sqrt(2.0), 1.0},
+    .mapc2p.mapping = mapc2p_vel_ion,
+    .mapc2p.ctx = &ctx,
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
@@ -523,6 +571,12 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
+  if (ctx.nu_star > 0.0) {
+    ion.collisions.collision_id = GKYL_LBO_COLLISIONS;
+    ion.collisions.self_nu = eval_nu_ion;
+    ion.collisions.self_nu_ctx = &ctx;
+  }
+
   // field
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
@@ -530,6 +584,7 @@ main(int argc, char **argv)
     .electron_charge = ctx.qe,
     .electron_density = ctx.n0,
     .electron_temp = ctx.Te0,
+    .polarization_bmag = ctx.B_axis, // Important for the Rosenbluth-Hinton residual to be correct.
     .poisson_bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
