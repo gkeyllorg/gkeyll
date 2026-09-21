@@ -2231,6 +2231,53 @@ tok_ext_topology_from_ftype(enum gkyl_tok_geo_type ftype, bool half_domain,
   return true;
 }
 
+// Pin a separatrix node that sits at a block's theta BOUNDARY to the X point
+// that bounds that boundary.
+//
+// This replaces two hand-maintained ftype ladders -- one under
+// `if (inp->half_domain)` and one under its `else` -- which between them named
+// 36 ftypes to answer a question the topology table already answers.
+// `struct tok_ext_topology` records, for each end, whether theta is bounded by
+// an X-point ray (and WHICH X point), a divertor plate, or the midplane, and it
+// already takes half_domain as an input. So the half_domain split here was
+// never a second algorithm; it was the table, transcribed by hand twice.
+//
+// Equivalence is not assumed. refactor_20260921/tok_xpt_pin_equiv.c enumerates
+// every ftype x half_domain x end x {single,double null} -- 168 combinations --
+// and the table reproduces the ladders on all 160 that can be declared.
+//
+// The 8 that differ are all an UPPER block (PF_UP_*, DN_SOL_*_UP) inside a
+// LOWER half domain, which is not a geometry: a lower half domain closes on the
+// midplane and cannot contain the upper X point. No fixture in the tree
+// declares one. Both old implementations nevertheless ANSWERED it -- the ladder
+// silently declined to pin, the table silently pins to an X point -- so a
+// driver that declared such a block got a quietly wrong grid either way. It now
+// aborts, which is the only one of the three behaviours that is honest.
+static bool
+tok_xpt_sep_pin_z(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, bool at_upper, double *z_pin)
+{
+  if (inp->half_domain &&
+      (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_UP_L ||
+       inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_UP_R ||
+       inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP ||
+       inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP)) {
+    fprintf(stderr,
+      "TOK_HALF_DOMAIN_UPPER_BLOCK ftype=%d: a lower half domain closes on the "
+      "midplane and cannot contain the upper X point\n", inp->ftype);
+    abort();
+  }
+  struct tok_ext_topology top;
+  if (!tok_ext_topology_from_ftype(inp->ftype, inp->half_domain, &top))
+    return false;
+  const struct tok_ext_endpoint *e = at_upper ? &top.upper : &top.lower;
+  if (e->kind != TOK_EXT_XPT_RAY)
+    return false;
+  *z_pin = (e->xpoint == TOK_EXT_UPPER_XPT && geo->efit->num_xpts > 1)
+    ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0];
+  return true;
+}
+
 // A material theta face follows the supplied limiter arc as psi varies. Its
 // corner chord can cross a concave bend even though every contour ends on the
 // wall. Validate that native map separately; never call the chord contained.
@@ -8581,41 +8628,19 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
           z_curr = res.res;
           ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
 
-        if (inp->half_domain) { //Alternative for half domain
-          if (tok_geo_same_flux(psi_curr, geo->psisep)) {
-            if (it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
-              if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID)
-                z_curr = geo->efit->Zxpt[0];
-              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO || inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE)
-                z_curr = geo->efit->Zxpt[0];
-            }
-            if (it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])) {
-              if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO)
-                z_curr = geo->efit->Zxpt[0];
-              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP || inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE)
-                z_curr = geo->efit->Zxpt[0];
-            }
-          }
-        }
-        else { // For full domain
-          if (tok_geo_same_flux(psi_curr, geo->psisep)) {
-            if (it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
-              if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_UP_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP)
-                z_curr = (geo->efit->num_xpts > 1 ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0]);
-              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID)
-                z_curr = geo->efit->Zxpt[0];
-              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO || inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE)
-                z_curr = geo->efit->Zxpt[0];
-            }
-            if (it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])) {
-              if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_UP_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID)
-                z_curr = (geo->efit->num_xpts > 1 ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0]);
-              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO)
-                z_curr = geo->efit->Zxpt[0];
-              else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP || inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE)
-                z_curr = geo->efit->Zxpt[0];
-            }
-          }
+        if (tok_geo_same_flux(psi_curr, geo->psisep)) {
+          // The two ladders this replaces were separate `if`s, NOT else-if, so
+          // a one-cell-wide block matched both and the LOWER clause overwrote
+          // the upper. Evaluate lower last to preserve that exactly.
+          const bool at_upper = it == nrange->upper[TH_IDX] &&
+            (up->local.upper[TH_IDX] == up->global.upper[TH_IDX]);
+          const bool at_lower = it == nrange->lower[TH_IDX] &&
+            (up->local.lower[TH_IDX] == up->global.lower[TH_IDX]);
+          double z_pin = 0.0;
+          if (at_upper && tok_xpt_sep_pin_z(inp, geo, true, &z_pin))
+            z_curr = z_pin;
+          if (at_lower && tok_xpt_sep_pin_z(inp, geo, false, &z_pin))
+            z_curr = z_pin;
         }
 
         double sep_r_curr = 0.0;
