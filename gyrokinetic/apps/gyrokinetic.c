@@ -341,6 +341,15 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
 
+  // Pass periodicity to the geometry input to avoid asymmetric stencils in mpac2p geom gen.
+  for (int d=0; d<3; d++)
+    geometry_inp.geo_is_periodic[d] = false;
+  for (int d=0; d<app->num_periodic_dir; d++) {
+    int dir = app->periodic_dirs[d];
+    int geo_dir = app->cdim == 3? dir : (app->cdim == 2? (dir == 0? 0 : 2) : 2);
+    geometry_inp.geo_is_periodic[geo_dir] = true;
+  }
+
   if (app->cdim < 3){
     geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);
     switch (gk->basis_type) {
@@ -1251,7 +1260,8 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
       .shear_dir = 0, // shift varies with x.
       .edge = eI == 0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = &app->global_par_ext,
+      // With an LCFS the TS BC is only applied in the core.
+      .bcdir_ext_update_r = app->gk_geom->has_LCFS? &app->global_par_ext_core : &app->global_par_ext,
       .num_ghost = ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,

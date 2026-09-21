@@ -401,6 +401,10 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = eval_temp_elc_source,      
       }, 
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      },
     },
 
     .anomalous_diffusion = {
@@ -425,6 +429,15 @@ main(int argc, char **argv)
 
     .num_diag_moments = 9,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP, GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_MAXWELLIAN },
+
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    },
   };
 
   // ions
@@ -487,6 +500,10 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = eval_temp_ion_source,      
       }, 
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      },
     },
 
     .anomalous_diffusion = {
@@ -511,6 +528,15 @@ main(int argc, char **argv)
 
     .num_diag_moments = 9,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP, GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_MAXWELLIAN },
+
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    },
   };
 
   // field

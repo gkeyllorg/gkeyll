@@ -80,7 +80,7 @@ create_ctx(void)
   double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 1.0; // Final simulation time.
-  int num_frames = 10; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   double write_phase_freq = 1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -232,17 +232,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 3,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, },
-//    .num_integrated_diag_moments = 1,
-//    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-//    .time_rate_diagnostics = true,
-//
-//    .boundary_flux_diagnostics = {
-//      .num_diag_moments = 1,
-//      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-//      .num_integrated_diag_moments = 1,
-//      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
-////      .time_integrated = true,
-//    },
+   .num_integrated_diag_moments = 1,
+   .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+   .time_rate_diagnostics = true,
+
+   .boundary_flux_diagnostics = {
+     .num_diag_moments = 1,
+     .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+     .num_integrated_diag_moments = 1,
+     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+   },
   };
 
 

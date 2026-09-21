@@ -239,20 +239,20 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
   int modifiers[5] = {0, -1, 1, -2, 2};
-                                
+
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     for(int ia_delta = 0; ia_delta < 5; ia_delta++){ // should be <5
-      if((ia == nrange->lower[AL_IDX]) && (up->local.lower[AL_IDX]== up->global.lower[AL_IDX]) && dir==1){
+      if((ia == nrange->lower[AL_IDX]) && (up->local.lower[AL_IDX]== up->global.lower[AL_IDX]) && dir==1 && !up->is_periodic[AL_IDX]){
         if(ia_delta == 1 || ia_delta == 3)
-          continue; // want to use one sided stencils at edge
+          continue; // Want to use one sided stencils at edge.
       }
-      else if((ia == nrange->upper[AL_IDX])  && (up->local.upper[AL_IDX]== up->global.upper[AL_IDX])&& dir==1){
+      else if((ia == nrange->upper[AL_IDX])  && (up->local.upper[AL_IDX]== up->global.upper[AL_IDX]) && dir==1 && !up->is_periodic[AL_IDX]){
           if(ia_delta == 2 || ia_delta == 4)
-            continue; // want to use one sided stencils at edge
+            continue; // Want to use one sided stencils at edge.
       }
-      else{ //interior
+      else{ //Interior and periodic boundaries.
         if( ia_delta == 3 || ia_delta == 4)
           continue; //dont do two away
       }
@@ -265,17 +265,17 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
         if(ia_delta != 0)
           ip_delta_max = 1;
         for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
-          if((ip == nrange->lower[PSI_IDX]) && (up->local.lower[PSI_IDX]== up->global.lower[PSI_IDX]) && dir==0){
+          if((ip == nrange->lower[PSI_IDX]) && (up->local.lower[PSI_IDX]== up->global.lower[PSI_IDX]) && dir==0 && !up->is_periodic[PSI_IDX]){
             if(ip_delta == 1 || ip_delta == 3)
-              continue; // want to use one sided stencils at edge
+              continue; // Want to use one sided stencils at edge.
           }
-          else if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX]) && dir==0){
+          else if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX]) && dir==0 && !up->is_periodic[PSI_IDX]){
             if(ip_delta == 2 || ip_delta == 4)
-              continue; // want to use one sided stencils at edge
+              continue; // Want to use one sided stencils at edge.
           }
-          else{ // interior 
+          else{ // Interior and periodic boundaries.
             if( ip_delta == 3 || ip_delta == 4)
-              continue; //dont do two away
+              continue; // Don't do two away.
           }
           double psi_curr = dir == 0 ? psi_lo + ip*dpsi : calc_running_coord(psi_lo, ip-nrange->lower[PSI_IDX], dpsi) ;
           psi_curr += modifiers[ip_delta]*delta_psi;
@@ -287,17 +287,17 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
             if(ia_delta != 0 || ip_delta != 0 )
               it_delta_max = 1;
             for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
-              if((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && dir==2){
+              if((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && dir==2 && !up->is_periodic[TH_IDX]){
                 if(it_delta == 1 || it_delta == 3)
-                  continue; // want to use one sided stencils at edge
+                  continue; // Want to use one sided stencils at edge.
               }
-              else if((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && dir==2){
+              else if((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && dir==2 && !up->is_periodic[TH_IDX]){
                 if(it_delta == 2 || it_delta == 4)
-                  continue; // want to use one sided stencils at edge
+                  continue; // Want to use one sided stencils at edge.
               }
-              else{
+              else{ // Interior and periodic boundaries.
                 if( it_delta == 3 || it_delta == 4)
-                  continue; //dont do two away
+                  continue; // Don't do two away.
               }
               double theta_curr = dir==2 ? theta_lo + it*dtheta: calc_running_coord(theta_lo, it-nrange->lower[TH_IDX], dtheta);
               theta_curr += modifiers[it_delta]*delta_theta;
@@ -369,6 +369,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->geqdsk_sign_convention = 0;
   up->half_domain = 0;
 
+  for (int d=0; d<3; d++) up->is_periodic[d] = geometry_inp->geo_is_periodic[d];
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geometry_inp->x_LCFS;
