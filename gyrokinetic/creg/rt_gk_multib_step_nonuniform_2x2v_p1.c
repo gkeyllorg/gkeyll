@@ -14,9 +14,13 @@
 #include <gkyl_mpi_comm.h>
 #endif
 
-// Outer plates for angle of 3.05 degrees
+// Outer plates at 11.822 degrees. p1 is held fixed, so p0's Z sets the plate
+// ANGLE and not merely its placement: Z=-8.600 is 11.822 deg, Z=-8.538 is
+// 2.312 deg. Unified with the uniform STEP drivers, which already declare
+// -8.600. The stretch factor changes length only -- measured to change
+// nothing on its own -- so it is left as each file declared it.
 void shaped_pfunc_lower_outer(double s, double* RZ){
-  double p0[2] = {5.488-0.6,-8.538};
+  double p0[2] = {5.488-0.6,-8.600};
   double p1[2] = {5.855-0.6,-8.52318};
   p1[0] = (p1[0] - p0[0])*3 + p1[0];
   p1[1] = (p1[1] - p0[1])*3 + p1[1];
@@ -25,7 +29,7 @@ void shaped_pfunc_lower_outer(double s, double* RZ){
 }
 
 void shaped_pfunc_upper_outer(double s, double* RZ){
-  double p0[2] = {5.488-0.6,8.538};
+  double p0[2] = {5.488-0.6,8.600};
   double p1[2] = {5.855-0.6,8.52318};
   p1[0] = (p1[0] - p0[0])*3 + p1[0];
   p1[1] = (p1[1] - p0[1])*3 + p1[1];
