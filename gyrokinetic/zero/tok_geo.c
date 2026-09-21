@@ -1466,6 +1466,24 @@ tok_sep_trace_capacity(int nzcells)
   return mult*nzcells+1;
 }
 
+// Report the THREE quantities a block's theta parameterisation is built from,
+// so they can be compared on the same block. They are not the same curve:
+//   split : theta divided between blocks as arcL_lo/arcL_tot -- contour
+//           integrals over z-spans (tok_geo_utils.c, 6 sites)
+//   map   : xpt_map_darc_dtheta = sep_trace_s[n-1] / (cgrid theta extent)
+//   grade : nodes placed uniform in mu = integral |grad psi| ds along the trace,
+//           normalised by THIS block's own mtot
+// A seam is clean only if the split and the grading agree, and choosing between
+// the existing measures cannot achieve that while all three disagree -- which is
+// why GRADPSI_THETA=0 improves theta x1 and then diverges under refinement.
+// Diagnostic only; nothing branches on it.
+static bool
+tok_theta_measure_diag(void)
+{
+  const char *e = getenv("GKYL_TOK_THETA_MEASURE_DIAG");
+  return e && e[0] != '\0' && e[0] != '0';
+}
+
 static bool
 tok_ref_trace_follows_theta(void)
 {
@@ -1633,6 +1651,13 @@ tok_half_domain_sep_rz(const struct gkyl_tok_geo_grid_inp *inp,
   double total = arc_ctx->sep_trace_s[n-1];
   arc_ctx->xpt_map_darc_dtheta = total/
     (inp->cgrid.upper[2]-inp->cgrid.lower[2]);
+  if (tok_theta_measure_diag())
+    fprintf(stderr,
+      "TOK_THETA_MEASURE kind=map ftype=%d psi=%.17g sep_trace_arc=%.17g "
+      "theta_extent=%.17g darc_dtheta=%.17g trace_nodes=%d\n",
+      inp->ftype, arc_ctx->psi, total,
+      inp->cgrid.upper[2]-inp->cgrid.lower[2],
+      arc_ctx->xpt_map_darc_dtheta, n);
   if (frac <= 0.0) {
     *r = arc_ctx->sep_trace_r[0]; *z = arc_ctx->sep_trace_z[0];
     return true;
@@ -5122,6 +5147,11 @@ tok_ext_ladder_seed_by_gradpsi(const struct gkyl_tok_geo *geo, double psi,
 
   // w[i] = the normalized arc length at which mu reaches i/(n-1) of its total.
   const double mtot = mu[ns-1];
+  if (tok_theta_measure_diag())
+    fprintf(stderr,
+      "TOK_THETA_MEASURE kind=grade ftype=%d mtot=%.17g trace_arc=%.17g "
+      "stations=%d nodes=%d\n",
+      ftype, mtot, ts[pn-1], ns, n);
   int j = 0;
   for (int i=0; i<n; ++i) {
     double target = (i/(double) (n-1))*mtot;
