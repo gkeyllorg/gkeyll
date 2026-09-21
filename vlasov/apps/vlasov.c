@@ -822,14 +822,18 @@ gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame)
 struct gkyl_app_restart_status
 gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
 {
-  struct gkyl_app_restart_status rstat;
-
   // Field and species restarts are independent: the Poisson potential is solved
   // from the distribution whenever it is needed, so no re-solve happens here.
-  rstat = gkyl_vlasov_app_from_frame_field(app, frame);
+  // The first failure is reported; otherwise the status carries the frame and
+  // time read from the species files.
+  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_frame_field(app, frame);
+  if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS)
+    return rstat;
 
   for (int i = 0; i < app->num_species; i++) {
     rstat = vlasov_species_read_from_frame(app, &app->species[i], frame);
+    if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS)
+      return rstat;
   }
 
   return rstat;

@@ -900,6 +900,14 @@ vm_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fna
         gkyl_array_copy(field->em_no_J, field->em_host);
         gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
           field->em_no_J, field->em, app->use_gpu);
+        // On a mapped conf mesh the evolved fields also carry the position-map
+        // Jacobian (as in vm_field_apply_ic); the file holds the physical fields.
+        if (!app->pos_map->is_identity) {
+          gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local,
+            field->em, field->em);
+          gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local,
+            field->em_no_J, field->em_no_J);
+        }
       }
       else if (field->weight_by_pos_jacob) {
         // Restart files hold the physical E, B; rescale to the evolved J*E, J*B on

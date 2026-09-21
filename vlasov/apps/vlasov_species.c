@@ -579,7 +579,7 @@ vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const 
 // Restart a species from a frame. The kinetic aspect is seeded from the initial
 // conditions first, so that fixed-function BC buffers are filled before the
 // read overwrites the interior; the diagnostic dynvectors are then marked to
-// append.
+// append and the app clock is set to the frame time.
 struct gkyl_app_restart_status
 vlasov_species_read_from_frame(gkyl_vlasov_app *app, struct vlasov_species *sp, int frame)
 {
@@ -590,13 +590,21 @@ vlasov_species_read_from_frame(gkyl_vlasov_app *app, struct vlasov_species *sp, 
   struct gkyl_app_restart_status rstat = vlasov_species_from_file(app, sp, fileNm.str);
   cstr_drop(&fileNm);
 
+  // Diagnostic streams append to their existing files after a restart.
   if (sp->kinetic) {
-    sp->kinetic->is_first_integ_write_call = false; // append to existing diagnostic
-    sp->kinetic->is_first_integ_L2_write_call = false; // append to existing diagnostic
+    sp->kinetic->is_first_integ_write_call = false;
+    sp->kinetic->is_first_integ_L2_write_call = false;
+    sp->kinetic->src.is_first_integ_write_call = false;
+    sp->kinetic->lte.is_first_corr_status_write_call = false;
   }
   if (sp->fluid) {
-    sp->fluid->is_first_integ_write_call = false; // append to existing diagnostic
+    sp->fluid->is_first_integ_write_call = false;
   }
+
+  // The app clock resumes at the frame time: the stepper evaluates
+  // time-dependent forcing and sources at stage times taken from it.
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS)
+    app->tcurr = rstat.stime;
 
   return rstat;
 }

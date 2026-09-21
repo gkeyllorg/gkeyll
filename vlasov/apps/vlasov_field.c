@@ -192,6 +192,12 @@ vlasov_field_read_from_frame(gkyl_vlasov_app *app, int frame)
 
   app->field->is_first_energy_write_call = false; // append to existing diagnostic
 
+  // A Maxwell field file carries the frame time; resume the app clock from it
+  // (the Poisson and null fields have no file and leave the clock to the
+  // species restart).
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS && rstat.stime > 0.0)
+    app->tcurr = rstat.stime;
+
   return rstat;
 }
 

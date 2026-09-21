@@ -1094,7 +1094,8 @@ struct gkyl_app_restart_status vlasov_species_from_file(gkyl_vlasov_app *app,
 /**
  * Restart a species from a frame: seed the kinetic aspect from the initial
  * conditions (fills fixed-function BC buffers), read the frame file named by
- * the species, and mark the diagnostics to append.
+ * the species, mark the diagnostics to append, and set the app clock to the
+ * frame time.
  *
  * @param app Vlasov app object
  * @param sp Species container

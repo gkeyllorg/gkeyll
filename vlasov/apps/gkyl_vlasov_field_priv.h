@@ -308,8 +308,9 @@ void vlasov_field_write_energy(gkyl_vlasov_app *app);
 struct gkyl_app_restart_status vlasov_field_from_file(gkyl_vlasov_app *app, const char *fname);
 
 /**
- * Restart the field from a frame: name the frame file, restart from it, and
- * mark the energy diagnostic to append.
+ * Restart the field from a frame: name the frame file, restart from it, mark
+ * the energy diagnostic to append, and (Vlasov-Maxwell) set the app clock to
+ * the frame time.
  *
  * @param app Vlasov app object
  * @param frame Frame number

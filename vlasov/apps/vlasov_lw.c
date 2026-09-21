@@ -2854,10 +2854,8 @@ vm_app_run(lua_State *L)
   if (is_restart) {
     struct gkyl_app_restart_status status = gkyl_vlasov_app_read_from_frame(app, restart_frame);
 
-    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
-      goto freeresources;
-    }
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS)
+      return luaL_error(L, "Failed to read restart frame %d! (%s)", restart_frame, gkyl_array_rio_status_msg(status.io_status));
 
     frame_curr = status.frame;
     t_curr = status.stime;
