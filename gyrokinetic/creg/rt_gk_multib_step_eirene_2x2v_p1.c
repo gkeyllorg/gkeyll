@@ -7,13 +7,15 @@
 
 #include <rt_arg_parse.h>
 
-// Outer plates at 11.822 degrees. p1 is held fixed, so p0's Z sets the plate
-// ANGLE and not merely its placement: Z=-8.600 is 11.822 deg, Z=-8.538 is
-// 2.312 deg. Unified with the uniform STEP drivers, which already declare
-// -8.600. The stretch factor changes length only -- measured to change
-// nothing on its own -- so it is left as each file declared it.
+// Outer plates at 2.312 degrees. p1 is held fixed, so p0's Z sets the plate
+// ANGLE and not merely its placement: Z=-8.538 is 2.312 deg, Z=-8.600 is
+// 11.822 deg. All STEP drivers declare -8.538; the stretch factor changes
+// length only and is left as each file had it.
+//
+// Historical note: this comment used to read "angle of 3.05 degrees" over a
+// declaration computing 2.312. 3.05 deg would be Z=-8.542737.
 void shaped_pfunc_lower_outer(double s, double* RZ){
-  double p0[2] = {5.488-0.6,-8.600};
+  double p0[2] = {5.488-0.6,-8.538};
   double p1[2] = {5.855-0.6,-8.52318};
   p1[0] = (p1[0] - p0[0])*2 + p1[0];
   p1[1] = (p1[1] - p0[1])*2 + p1[1];
@@ -22,7 +24,7 @@ void shaped_pfunc_lower_outer(double s, double* RZ){
 }
 
 void shaped_pfunc_upper_outer(double s, double* RZ){
-  double p0[2] = {5.488-0.6,8.600};
+  double p0[2] = {5.488-0.6,8.538};
   double p1[2] = {5.855-0.6,8.52318};
   p1[0] = (p1[0] - p0[0])*2 + p1[0];
   p1[1] = (p1[1] - p0[1])*2 + p1[1];
