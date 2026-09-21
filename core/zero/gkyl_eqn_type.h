@@ -186,4 +186,5 @@ enum gkyl_gk_collisionless_type {
   GKYL_GK_COLLISIONLESS_EM_BPAR, // Electromagnetic with B_par fluctuations.
   GKYL_GK_COLLISIONLESS_EM, // Electromagnetic with B_perp and B_par fluctuations.
   GKYL_GK_COLLISIONLESS_NEUTRAL, // Neutral collisionless terms.
+  GKYL_GK_COLLISIONLESS_PASSIVE, // Passive advection (for dev/debug).
 };

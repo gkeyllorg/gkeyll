@@ -9,16 +9,6 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_run.h>
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
-
 #include <gkyl_math.h>
 #include <rt_arg_parse.h>
 
@@ -536,12 +526,13 @@ struct gk_app_ctx create_ctx(void)
   double Cy = r0/q0; // Cylindrical coordinate shift for field-alignment.
 
   // Configuration domain parameters 
-  double Lx        = 150*rho_s;   // Domain size along x.
-  double x_min     = -Lx/2;
-  double x_max     = Lx/2;
-  double Lz        = 2.*M_PI-1e-10;       // Domain size along magnetic field.
-  double z_min     = -Lz/2.;
-  double z_max     =  Lz/2.;
+  double Lx = 150*rho_s;   // Domain size along x.
+  double Lz = 2.*M_PI-1e-10;       // Domain size along magnetic field.
+
+  double x_min = -Lx/2;
+  double x_max =  Lx/2;
+  double z_min = -Lz/2;
+  double z_max =  Lz/2;
 
   // Initial conditions and gradients
   double kTi = 6.92; // R/LTi from Dimits et al. 2000.

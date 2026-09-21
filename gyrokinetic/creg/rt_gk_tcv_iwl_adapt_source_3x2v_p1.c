@@ -439,11 +439,11 @@ struct gk_app_ctx create_ctx(void)
   double floor_srcRECY = 1e-10;
 
   // Grid parameters (reduced resolution for the regression test, minimal recommended values in comments)
-  int Nx = 9; // (24) The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
+  int Nx = 24; // (24) The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
   int Ny = 4; // (16)
   int Nz = 8; // (12)
   int Nvpar = 8; // (12)
-  int Nmu = 8; // (8)
+  int Nmu = 4; // (8)
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 5.*vte;
