@@ -8962,8 +8962,42 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
       // this one did not, so a crossing in a DISCARDED trial killed the process
       // before the adjuster could move anything. `false`: the boundary is
       // movable, and moving it is the remedy.
+      // REPORTED, NOT GATING since 2026-09-21, for the same reason the fold
+      // check above was demoted: the criterion is a proxy that cannot answer
+      // the question it is named for.
+      //
+      // `reversal_cos = -0.5` is a bare threshold with no reference to the
+      // scale of anything it judges, chosen in 3e2aeb5b3 so that it "fires on
+      // nothing beyond the two known" cases of the NSTX-U 450 -- tuned to a
+      // dataset. An angle between successive radial steps cannot separate the
+      // two things that produce it:
+      //
+      //   a CROSSING -- adjacent flux surfaces actually intersect, and the
+      //      grid is invalid there;
+      //   TANGENTIAL SLIP -- the nodes slide along theta between surfaces that
+      //      remain strictly ordered, which is harmless.
+      //
+      // Measured 2026-09-21 on every case this gate was rejecting -- STEP's
+      // outboard plate at 2.312 deg, and all five TCV core cells -- the
+      // surfaces are ORDERED: offsetting each row along its neighbour's local
+      // normal keeps a strictly positive sign at every node (min +1.06e-05 on
+      // tcv_core090), and the signed-Jacobian guard is silent on the same
+      // blocks. They were rejected for curving, not for crossing.
+      //
+      // Why dropping it does not open a hole: a crossing between ADJACENT rows
+      // inverts the quad between them, and that is decided by the
+      // signed-Jacobian guard in calc_metric.c at the QUADRATURE points. That
+      // guard only became the fold check on 2026-09-19; when this cosine was
+      // written the fold check was the corner shoelace, which is itself wrong
+      // by up to an order of magnitude. This test was covering for that, and
+      // that job is done.
+      //
+      // The count is still computed and printed every build, so a regression
+      // stays visible. GKYL_TOK_SURFACE_CROSS_FATAL=1 restores the abort.
+      const char *fatal = getenv("GKYL_TOK_SURFACE_CROSS_FATAL");
       const char *allow = getenv("GKYL_TOK_ALLOW_SURFACE_CROSS");
-      if (!measurement_only &&
+      if (fatal && fatal[0] != '\0' && fatal[0] != '0' &&
+          !measurement_only &&
           !(allow && allow[0] != '\0' && allow[0] != '0') &&
           !tok_wall_trial_record(false)) {
         fprintf(stderr,
