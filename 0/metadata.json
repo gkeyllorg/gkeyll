@@ -1,0 +1,210 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3246C38TW9AJX44T717VYDY",
+  "session_id": "01a0c15f-2055-7062-8a96-5e91b691efec",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-21T13:59:04.655031Z",
+  "branch": "gk_dgH",
+  "checkpoints_count": 9,
+  "save_step_count": 8,
+  "files_touched": [
+    "gyrokinetic/ker/dg_gyrokinetic/dg_gyrokinetic_vol_1x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_surfvpar_1x1v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_surfvpar_1x2v_ser_p1.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "e23857b991e7",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 2104534,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 50061568,
+    "output_tokens": 183299,
+    "api_call_count": 413
+  },
+  "session_metrics": {
+    "turn_count": 9
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-21T13:59:04.01999Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 11,
+    "human_modified": 106,
+    "human_removed": 0,
+    "total_committed": 11,
+    "total_lines_changed": 132,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 53137,
+      "user_lines_removed": 17,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/creg/rt_gk_ltx_boltz_elc_1x2v_p1.c": 22,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/std_out.txt": 80,
+        "std_out.txt": 1
+      },
+      "user_removed_per_file": {
+        "gyrokinetic/creg/rt_gk_ltx_boltz_elc_1x2v_p1.c": 17
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 53173,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_surfvpar_1x2v_ser_p1.c": 58,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/std_out.txt": 80,
+        "std_out.txt": 1
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 53115,
+      "user_lines_removed": 0,
+      "agent_lines_added": 58,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/std_out.txt": 80,
+        "std_out.txt": 1
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 53173,
+      "user_lines_removed": 55,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/creg/rt_gk_ltx_boltz_elc_1x2v_p1.c": 5,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/ker/ambi_bolt_potential/ambi_bolt_potential_1x_p1_ser.c": 51,
+        "gyrokinetic/zero/gk_collisionless_flux.c": 2,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/std_out.txt": 80,
+        "std_out.txt": 1
+      },
+      "user_removed_per_file": {
+        "gyrokinetic/creg/rt_gk_ltx_boltz_elc_1x2v_p1.c": 3,
+        "gyrokinetic/ker/ambi_bolt_potential/ambi_bolt_potential_1x_p1_ser.c": 50,
+        "gyrokinetic/zero/gk_collisionless_flux.c": 2
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 53115,
+      "user_lines_removed": 0,
+      "agent_lines_added": 58,
+      "agent_lines_removed": 55,
+      "user_added_per_file": {
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/std_out.txt": 80,
+        "std_out.txt": 1
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 53115,
+      "user_lines_removed": 0,
+      "agent_lines_added": 121,
+      "agent_lines_removed": 118,
+      "user_added_per_file": {
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/std_out.txt": 80,
+        "std_out.txt": 1
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 53127,
+      "user_lines_removed": 0,
+      "agent_lines_added": 121,
+      "agent_lines_removed": 118,
+      "user_added_per_file": {
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/ker/dg_gyrokinetic/dg_gyrokinetic_vol_1x2v_ser_p1.c": 12,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/std_out.txt": 80,
+        "std_out.txt": 1
+      }
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 53149,
+      "user_lines_removed": 108,
+      "agent_lines_added": 126,
+      "agent_lines_removed": 53,
+      "user_added_per_file": {
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/ker/dg_gyrokinetic/dg_gyrokinetic_vol_1x2v_ser_p1.c": 22,
+        "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_surfvpar_1x1v_ser_p1.c": 4,
+        "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_surfvpar_1x2v_ser_p1.c": 8,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "rt_gk_ion_sound_adiabatic_elc_1x2v_p1-1801f4e2b/std_out.txt": 80,
+        "std_out.txt": 1
+      },
+      "user_removed_per_file": {
+        "gyrokinetic/creg/rt_gk_ltx_boltz_elc_1x2v_p1.c": 2,
+        "gyrokinetic/ker/dg_gyrokinetic/dg_gyrokinetic_vol_1x2v_ser_p1.c": 36,
+        "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_surfvpar_1x1v_ser_p1.c": 4,
+        "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_surfvpar_1x2v_ser_p1.c": 66
+      }
+    }
+  ]
+}

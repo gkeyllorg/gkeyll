@@ -1,0 +1,74 @@
+In this branch of Gkeyll we are trying a new algorithm that uses a discontinuous potential (phi) and a downwinded derivative of the Yushmanov potential. This is meant to provide some stability in certain subsonic regimes.
+
+I ran a 1x2v LTX simulation on Stellar using 16 CPUs, and the results are in
+
+/Users/mfrancis/Documents/gkeyll/publications/maan-gk_ltx_1x_2025/data/gr31_dgH
+
+You can examine the potential or the density (contained in -ion_BiMaxwellianMoments_#.gkyl) and see that this is still quite unstable. It is also left-right asymmetric. Can you help me determine why it is unstable, or a the very least why it is left-right asymmetric?
+
+---
+
+Let's switch to a simpler setting: the Boltzmann electron LTX regression test, rt_gk_ltx_boltz_elc_1x2v_p1, run in serial. If you run that you'll see that the final density (rt_gk_ltx_boltz_elc_1x2v_p1-ion_M0_1.gkyl) is left-right asymmetric. Can you determine why?
+
+---
+
+You can use pgkyl, e.g.
+
+pgkyl gk_ltx_1x2v_p1-ion_BiMaxwellianMoments_1.gkyl info
+pgkyl gk_ltx_1x2v_p1-ion_BiMaxwellianMoments_1.gkyl print
+pgkyl gk_ltx_1x2v_p1-ion_BiMaxwellianMoments_1.gkyl interp pl
+
+to examine a file
+
+---
+
+and you can use "select -c 0:2" to select the density, e.g.
+
+pgkyl gk_ltx_1x2v_p1-ion_BiMaxwellianMoments_1.gkyl select -c 0:2 info
+
+---
+
+You are welcomed to just use the gkeyll build in /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/. I can just undo anything you modify there at the end of our session if needed.
+
+---
+
+Don't do that. v_parallel=0 is meant to stay at a cell boundary.
+
+---
+
+Can you do that, perhaps by putting some print statements in the gk_collisionless_flux kernel and recording those values?
+
+---
+
+I just committed the version of the test that I think has the correct geometry
+
+---
+
+Would a different way to project the log(n) in the calculation of the potential make it more stable?
+
+---
+
+I tried the log of the cell-average of n, and that still gave left-right asymmetries.
+
+I've now simplified the setup considerably (not committed), by:
+- Setting the potential to static (time independent) and 0
+- commenting out the v_parallel flux
+- using absorbing instead of sheath boundary conditions
+
+and the test still comes out asymmetric. To me this would indicate there's something wrong with the configuration-space flux. What do you think? Can you investigate this simpler setup?
+
+---
+
+Can you add that dualcurlbhatoverB_z term to the gk_collisionless_flux_surfx and gk_collisionless_flux_boundary_surfx 1x2v kernels please? it'd be best if you modify the Maxima in /Users/mfrancis/Documents/gkeyll/code/gkylcas/maxima/g0/gk_collisionless/gk_collisionless_flux-surf-conf.mac and generate the kernels again, by running /Users/mfrancis/Documents/gkeyll/code/gkylcas/maxima/g0/gk_collisionless/ms-gk_collisionless_flux.mac, or I can run it manually.
+
+---
+
+where else could the asymmetry originate?
+
+---
+
+I commented out the v_parallel surface flux and zero-ed out the v_parallel volume term. There's still some left-right asymmetry in the ion density. Can you determine why?
+
+---
+
+Ok, I modified the maxima and generated kernels that don't have the curvature term in neither the surface or volume terms corresponding to configuration-space advection. Even with the evolving the electrostatic potential, the solution is symmetric now. But I had to also zero out the curvature term in the v_parallel advection terms, is that correct?
