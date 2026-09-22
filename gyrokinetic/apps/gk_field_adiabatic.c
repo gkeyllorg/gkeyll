@@ -122,10 +122,9 @@ gk_field_adiabatic_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_fiel
   gk_field_adiabatic_response_solve(app, field, ad->psi, ad->phi2); // Solve H phi2 = K E psi.
   gkyl_array_accumulate_range(field->phi_smooth, 1.0, ad->phi2, &app->local); // phi = phi1 + phi2.
 
-  // Smooth the potential along z.
-  field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
-
+  // Finish the solve with FLR effects (phi = A Phi_0), then smooth along z.
   field->invert_flr(app, field, field->phi_smooth);
+  field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
 }
 
 // Add factor*(1/2) int K (phi - <phi>)^2 over the local range to out.
@@ -164,10 +163,10 @@ gk_field_adiabatic_density_new(struct gkyl_gyrokinetic_app *app, struct gk_field
     assert(app->cdim > 1); // The 1x parallel smoother weight uses the scalar density.
     struct gkyl_array *ne0 = mkarr(app->use_gpu, nb, app->local_ext.volume);
     struct gkyl_array *ne0_ho = app->use_gpu? mkarr(false, nb, app->local_ext.volume) : gkyl_array_acquire(ne0);
-    struct gkyl_eval_on_nodes *proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1,
+    struct gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order+1, 1,
       f->info.electron_density_profile, f->info.electron_density_profile_ctx);
-    gkyl_eval_on_nodes_advance(proj, 0.0, &app->local, ne0_ho);
-    gkyl_eval_on_nodes_release(proj);
+    gkyl_proj_on_basis_advance(proj, 0.0, &app->local, ne0_ho);
+    gkyl_proj_on_basis_release(proj);
     gkyl_array_copy(ne0, ne0_ho);
     gkyl_dg_mul_op_range(&app->basis, 0, ad->ne0_jac, 0, ne0, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
     gkyl_array_release(ne0);
