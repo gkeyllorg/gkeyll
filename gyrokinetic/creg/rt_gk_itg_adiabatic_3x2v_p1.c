@@ -43,16 +43,10 @@ double interp_1x_lut(double x, double *lut_grid, double *lut_val, int N)
 }
 
 static const bool magnetic_shear = true;
-// Twist-shift BCs in z without shear (identical to periodic); always used with shear.
 static const bool twist_shift_bc = false;
-// Twist-shift anti-aliasing filter along x (0 = off): stencil half-width in cells and
-// cutoff wavelength in units of dx, with supersampling factor ts_upsample. Without
-// supersampling the filter does not stabilize the sheared case.
 static const int ts_filter_half_width = 4;
 static const double ts_filter_cutoff_dx = 4.0;
 static const int ts_upsample = 2;
-// FLR effects (Pade model, DR #797): ion gyroradius rho_i = sqrt(Ti0 mi)/(e B_axis) times
-// flr_rho_fac (0 = off; a small factor must reproduce the drift-kinetic result).
 static const double flr_rho_fac = 1.0;
 
 // Define the context of the simulation. This stores global parameters.
@@ -422,7 +416,7 @@ struct gk_app_ctx create_ctx(void)
   // The y box holds one wavelength of the toroidal mode n_tor, ky = n_tor/Cy
   // (ky*rho_s = 0.34 for n_tor = 25). The twist-shift is 2*pi*Cy*q(r): with constant
   // q it is q0*n_tor*Ly, so without shear q0*n_tor must be an integer for z to be periodic.
-  int n_tor = 45;
+  int n_tor = 25;
   double Ly = 2.*M_PI*Cy/n_tor;
 
   double x_min = -Lx/2;
@@ -441,14 +435,15 @@ struct gk_app_ctx create_ctx(void)
   double delta_n = 1.0e-6;
   double pert_width = Lx/8.0;
 
-  // Time unit of the growth rate. Measured gamma = 0.18 c_s/R0 at 12x8x8x8x4 and
-  // 16x8x16x12x6 cells (0.10 with the default cells); the unseeded 2*ky harmonic
-  // grows at 0.40 c_s/R0 and ends the linear phase of the seeded mode at t ~ 35 R0/c_s.
+  // Time unit of the growth rate. With the default switches gamma = 0.20 c_s/R0 and
+  // omega = -0.52 c_s/R0 at 32x8x16x8x4 cells, 0.17 and -0.18 with the default cells (0.28
+  // drift-kinetic; shearless drift-kinetic 0.18, converged at 12x8x8x8x4). The 2*ky
+  // harmonic ends the linear phase at t ~ 35-45 R0/c_s.
   double t_unit = R0/c_s;
   double inv_asp_ratio = r0/R_axis;
 
   // Grid parameters
-  int Nx = 8; // With shear the twist-shift must vary by less than Ly per x cell: Nx >= 24.
+  int Nx = 24; // With shear the twist-shift must vary by less than Ly per x cell: Nx >= 24 (48 for n_tor >= 35).
   int Ny = 4;
   int Nz = 4;
   int Nvpar = 6;
