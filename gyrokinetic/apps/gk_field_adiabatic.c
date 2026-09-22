@@ -197,6 +197,31 @@ gk_field_adiabatic_coefs_new(struct gkyl_gyrokinetic_app *app, struct gk_field *
   gkyl_array_set(ad->kJ, ad->coef, ad->ne0_jac);
   ad->kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   gkyl_array_set(ad->kSq, -ad->coef, ad->ne0_jac);
+
+  // With the Pade FLR model the adiabatic electrons respond to the true potential 
+  // K (phi - <phi>) = K (A Phi_0 - <A Phi_0>).
+  if (f->use_flr) {
+    assert(f->info.flr.use_fem_operator);
+    assert(!f->info.flr.avg_gyroradius);
+    // Reference gyroradius of the main ion (largest polarization weight), as in gk_field_flr_new
+    // but from the species inputs since the species are not initialized yet.
+    double rhoSq_ref = 0.0, eps_max = -1.0;
+    for (int i=0; i<app->num_species; ++i) {
+      const struct gkyl_gyrokinetic_species *si = &app->species[i].info;
+      if (!(si->flr.gyroradius > 0.0 || si->flr.Tperp > 0.0)) continue;
+      double eps_s0 = si->polarization_density*si->mass;
+      if (eps_s0 > eps_max) {
+        double bmag = si->flr.bmag ? si->flr.bmag : app->bmag_ref;
+        rhoSq_ref = si->flr.gyroradius > 0.0? pow(si->flr.gyroradius, 2.0) : si->flr.Tperp*si->mass/pow(si->charge*bmag, 2.0);
+        eps_max = eps_s0;
+      }
+    }
+    assert(rhoSq_ref > 0.0);
+    double flr_weight = ad->coef*f->info.electron_density*rhoSq_ref;
+    struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
+    for (int i=0; i<app->cdim-2/app->cdim; i++)
+      gkyl_array_accumulate_offset(f->epsilon, flr_weight, Jgij[i], i*app->basis.num_basis);
+  }
 }
 
 void
