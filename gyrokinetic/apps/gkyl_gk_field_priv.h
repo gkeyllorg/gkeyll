@@ -212,15 +212,28 @@ void
 gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
- * Apply FLR inversion to obtain the gyroaveraged potential.
- * Solves the FLR equation to compute the potential seen by particles.
+ * Retrieve the electrostatic potential phi from the modified potential Phi_0 with the
+ * simplified term phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J, valid for constant rho_i
+ * and eps_pol. Also conserves Phi_0 for the field energy computation.
  *
  * @param app Gyrokinetic application object.
  * @param field Field object containing solver state.
  * @param phi Electrostatic potential array (input/output).
  */
 void
-gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field,
+gk_field_invert_flr_const(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *phi);
+
+/**
+ * Same as gk_field_invert_flr_const but applying A = 1 - rho_i^2*nabla_perp^2
+ * to Phi_0 with the FEM perpendicular operator.
+ *
+ * @param app Gyrokinetic application object.
+ * @param field Field object containing solver state.
+ * @param phi Electrostatic potential array (input/output).
+ */
+void
+gk_field_invert_flr_op(gkyl_gyrokinetic_app *app, struct gk_field *field,
   struct gkyl_array *phi);
 
 /**

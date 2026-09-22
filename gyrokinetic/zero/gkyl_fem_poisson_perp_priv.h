@@ -621,6 +621,17 @@ struct gkyl_fem_poisson_perp {
   int num_bias_line; // Number of biased lines.
   struct gkyl_poisson_bias_line *bias_lines; // Biased lines.
   bias_src_func_t bias_line_src; // Function to enforce biasing in RHS source.
+
+  // Objects to apply the LHS operator (M+K), used to apply 1-rho^2*Lap_perp.
+  bool has_lhs_apply; // Whether the LHS-apply objects are allocated.
+  struct gkyl_array *kSq; // kSq (only if ishelmholtz), used to build the mass solver.
+  struct gkyl_poisson_bc bcs; // Saved BCs (used to build the mass solver).
+  struct gkyl_poisson_bias_line_list bias_list_ho; // Host-side copy of the bias
+                                                   // line list (used to build the mass solver).
+  struct gkyl_fem_poisson_perp *mass; // Mass-matrix (M) solver for the LHS apply.
+  struct gkyl_array *lhs_xin_wt; // -kSq*xin, the source of the weighted mass solve.
+  double *lhs_dual; // Host global dual (M+K)*x vector.
+  double *lhs_dual_cu; // Device global dual (M+K)*x vector.
 };
 
 void

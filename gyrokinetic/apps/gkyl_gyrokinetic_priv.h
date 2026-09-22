@@ -502,6 +502,7 @@ struct gk_boundary_fluxes {
   enum gkyl_distribution_moments calc_mom_names[BFLUX_MAX_MOM_NAMES]; // Names of moments calculated.
   bool *is_hamiltonian_mom; // True if need Hamiltonian moments.
   bool a_hamiltonian_mom; // There is one Hamiltonian moment.
+  struct gkyl_array *phi; // Potential used by the Hamiltonian moments.
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
@@ -1166,13 +1167,19 @@ struct gk_species {
   void (*calc_int_mom_dt_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom);
 
   // Quantities used for FLR model:
-  struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density.
-  struct gkyl_array *flr_rhoSqD2; // Laplacian weight in FLR operator.
-  struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
-  struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
-  // Pointer to function that performs the gyroaverage.
+  struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density (times J).
+  bool use_flr; // Whether this species is gyroaveraged.
+  double flr_rhoSq_ref; // Squared reference gyroradius of this species.
+  struct gkyl_array *flr_rhoSqD2; // Laplacian weight (rho^2/2 times J*g^ij) in FLR operator.
+  struct gkyl_array *flr_kSq; // -J weight of the identity term in FLR operator.
+  struct gkyl_array *flr_buff; // Buffer for the gyroaverage RHS/BC fields.
+  struct gkyl_array *flr_buff_dens; // z-smoothed density to gyroaverage.
+  struct gkyl_deflated_fem_poisson *flr_op; // Screened Poisson solver used to gyroaverage fields.
+  // Pointers to functions that gyroaverage a field, and a J-weighted density.
   void (*gyroaverage)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     struct gkyl_array *field_in, struct gkyl_array *field_gyroavg);
+  void (*gyroaverage_density)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gkyl_array *jac_dens_in, struct gkyl_array *jac_dens_gyroavg);
 
   double dt_omegaH; // Recorded at the end of the rhs evaluation.
   double dt_cfl_global_ho; // Global maximum Omega_CFL across all MPI processes.
@@ -1405,13 +1412,18 @@ struct gk_field {
   struct gkyl_fem_parproj *fem_parproj_rho_core, *fem_parproj_phi_core; // FEM projection in the core.
 
   struct gkyl_fem_poisson_perp *fem_poisson_perp; // Solves - nabla . (epsilon * nabla phi) - kSq * phi = rho.
+  struct gkyl_poisson_bc poisson_bcs; // Boundary conditions for Poisson solver.
 
   // Objects needed for FLR effects.
   bool use_flr; // Whether to apply FLR effects.
-  void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi); // Function inverting  FLR  operator.
-  struct gkyl_array *flr_rhoSq_sum; // Laplacian weight in FLR operator.
-  struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
-  struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
+  void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi); // Function retrieving phi from the modified potential Phi_0 by inverting the FLR operator, i.e. applying A = 1 - rho^2*nabla_perp^2.
+  double flr_local_fac; // rho_i^2/eps_pol in the local term phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J.
+  struct gkyl_array *flr_rhoSq; // rho^2 weight (times J*g^ij) in the perpendicular Laplacian of A.
+  struct gkyl_array *flr_kSq; // -J weight of the identity term in the FLR operator.
+  struct gkyl_fem_poisson_perp *flr_op; // Apply the operator 1 - rho_i^2*nabla_perp^2 to invert the FLR operator.
+  struct gkyl_array *flr_phi0; // Modified potential Phi_0 (before applying A), used in the field energy.
+  struct gkyl_array *flr_buff; // Buffer for the local term and the FLR field energy.
+  double *flr_energy_red; // Scratch reduction for the FLR field energy.
 
   struct gkyl_array_integrate *calc_em_energy; // Operator computing EM energy.
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy
@@ -4227,6 +4239,15 @@ void gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field
  * @param em Output field.
  */
 void gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field);
+
+/**
+ * Compute the gyroaveraged potential of each species from the current
+ * potential (a no-op for species without FLR effects).
+ *
+ * @param app Gyrokinetic app.
+ * @param field Pointer to field.
+ */
+void gk_field_gyroaverage_phi(gkyl_gyrokinetic_app *app, struct gk_field *field);
 
 /**
  * Read the field from a file.

@@ -417,11 +417,11 @@ gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field
   gkyl_fem_poisson_perp_set_rhs(field->fem_poisson_perp, field->rho_c);
   gkyl_fem_poisson_perp_solve(field->fem_poisson_perp, field->phi_smooth);
 
-  // Smooth the potential along z.
-  field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
-
   // Finish the Poisson solve with FLR effects.
   field->invert_flr(app, field, field->phi_smooth);
+
+  // Smooth the potential along z.
+  field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
 }
 
 static void
@@ -548,29 +548,33 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   }
 
   // Translate input file BCs into Poisson BCs.
-  struct gkyl_poisson_bc poisson_bcs = { };
   for (int d=0; d<app->cdim-1; d++) {
     if (bc_is_np[d]) {
       struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
       if (bc_lo != 0) {
-        poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
+        f->poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
         for (int i=0; i<3; i++) {
-          poisson_bcs.lo_value[d].v[i] = bc_lo->value[i];
+          f->poisson_bcs.lo_value[d].v[i] = bc_lo->value[i];
         }
       }
 
       struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
       if (bc_up != 0) {
-        poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
+        f->poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
         for (int i=0; i<3; i++) {
-          poisson_bcs.up_value[d].v[i] = bc_up->value[i];
+          f->poisson_bcs.up_value[d].v[i] = bc_up->value[i];
         }
       }
     } else {
-      poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-      poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
+      f->poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
+      f->poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
     }
   }
+
+  // FLR effects (operators created in gk_field_flr_new once the species,
+  // which provide the reference gyroradii, are initialized).
+  f->use_flr = f->info.flr.type != GKYL_GK_FLR_NONE;
+  f->invert_flr = gk_field_invert_flr_none;
 
   // Adiabatic electrons add a Helmholtz term with kSq = -(e^2 n0/Te) J.
   f->adiab.kSq = NULL;
@@ -580,7 +584,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   // Initialize the Poisson solver.
   f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-    &poisson_bcs, f->info.bias_line_list, f->epsilon, f->adiab.kSq, app->use_gpu);
+    &f->poisson_bcs, f->info.bias_line_list, f->epsilon, f->adiab.kSq, app->use_gpu);
 
   f->phi_bc = 0;
   f->is_dirichletvar = false;
@@ -635,19 +639,6 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
     1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
 
-  // Create operator needed for FLR effects.
-  f->use_flr = false;
-  f->invert_flr = gk_field_invert_flr_none;
-  for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    if (s->info.flr.type) {
-      f->use_flr = f->use_flr || s->info.flr.type;
-    }
-  }
-  if (f->use_flr) {
-    gk_field_flr_new(app, f);
-  }
-
   f->bc_par_phi = 0;
   // Deterime if we need IWL or TWISTSHIFT BCs on phi fro the species BCs.
   for (int s=0; s<app->num_species; s++) {
@@ -664,11 +655,11 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
   if (app->gk_geom->has_LCFS) {
     // Updaters to enforce twist-and-shift and sheath BCs.
-    gk_field_2x3x_add_IWL_updaters(app, f, &poisson_bcs);
+    gk_field_2x3x_add_IWL_updaters(app, f, &f->poisson_bcs);
   }
   else if (f->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
     // Updaters to enforce twist-and-shift BCs.
-    gk_field_2x3x_add_TS_updaters(app, f, &poisson_bcs);
+    gk_field_2x3x_add_TS_updaters(app, f, &f->poisson_bcs);
   }
 
   // Set the pointer to the function that computes phi.
