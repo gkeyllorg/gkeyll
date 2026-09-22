@@ -3228,8 +3228,34 @@ tok_ext_build_open_trace(const struct gkyl_tok_geo_grid_inp *inp,
   // Restrict it to boundaries that actually terminate on a turning point, i.e.
   // that have a midplane endpoint. Applying it to the leg blocks as well was
   // measured and is WORSE -- it put new folds into PF_LO_L and DN_SOL_IN_LO on
-  // 5 shots -- because their plate endpoints are ordinary points where the
-  // scored candidates are already both consistent and better conditioned.
+  // 5 shots.
+  //
+  // This comment previously added "because their plate endpoints are ordinary
+  // points where the scored candidates are already both consistent". THAT PART
+  // IS FALSE, measured 2026-09-21: the leg blocks' theta grading SHEARS with
+  // psi -- the same theta cell has a different arc fraction on each flux
+  // surface -- by 3.2x to 17.1x, and the shear GROWS under theta refinement,
+  // while every block that takes the follower or the CORE_HALF route is
+  // psi-consistent to <= 0.004. The legs are the LEAST consistent blocks in the
+  // tree, not blocks that did not need the fix.
+  //
+  // Enabling the follower on them anyway does NOT help: a controlled A/B
+  // (GKYL_TOK_EXT_FOLLOW_LEGS below, stepc/asdexc/tcvc at theta x2/x4/x8) moved
+  // 530 of 830 written arrays and left psi-shear unchanged to three decimals --
+  // stepc 3.004 -> 3.033, asdexc 4.349 -> 4.346, tcvc 5.863 -> 5.939 -- and
+  // still growing. So the shear is common to BOTH constructions and is not the
+  // construction-choice flip this function guards against.
+  //
+  // The 5-shot fold result above also did not reproduce in that A/B (0 of 9
+  // cases fail the grid gate on either arm), but it predates the separatrix
+  // kink fix, the Jacobian sign guard and the plate-root work, and was measured
+  // on NSTX-U shot geometry rather than these fixtures, so it is left standing
+  // rather than retired on weaker evidence than it was made with.
+  //
+  // The remaining structural difference is that tok_ext_build_core_half_trace
+  // anchors its polyline on the contour's OWN TURNING POINTS off the separatrix
+  // and appends the declared endpoints as caps, while this route marches
+  // endpoint to endpoint.
   // Enabled where it is measured to help. With the midplane as the UPPER
   // endpoint (half-domain CORE_R) it took 16 folded shots to 0 and lifted the
   // worst-cell ratio to ~0.5. With the midplane as the LOWER endpoint
@@ -3244,9 +3270,30 @@ tok_ext_build_open_trace(const struct gkyl_tok_geo_grid_inp *inp,
   // walk sailing 5 cm past the X point, looping the entire private-flux region
   // and returning along the opposite branch: arc 3.291 against 1.140.
   struct tok_ext_topology ftop;
-  bool follow_first = tok_ext_topology_from_ftype(inp->ftype,
-      inp->half_domain, &ftop) &&
+  const bool have_ftop = tok_ext_topology_from_ftype(inp->ftype,
+      inp->half_domain, &ftop);
+  bool follow_first = have_ftop &&
     (ftop.upper.kind == TOK_EXT_MIDPLANE || ftop.lower.kind == TOK_EXT_MIDPLANE);
+  // A/B HOOK, default OFF so the shipped path is bit-identical.
+  //
+  // The midplane restriction above is why the LEG blocks (every PF_* and every
+  // DN_SOL_*) keep a construction that can change from one flux surface to the
+  // next -- which is exactly the failure this function's comment describes.
+  // Measured 2026-09-21: their theta grading SHEARS with psi by 3.2-17.1x and
+  // the shear GROWS under theta refinement, while every block that DOES take
+  // the follower (or the CORE_HALF route) is psi-consistent to <= 0.004.
+  //
+  // So the comment's stated reason for the restriction -- that the leg blocks'
+  // "scored candidates are already both consistent" -- is contradicted by
+  // measurement. The FOLDS that prompted the restriction were real, but they
+  // were measured on an older tree, before the separatrix-kink fix, the
+  // Jacobian sign guard and the plate-root work. This flag re-tests that
+  // premise rather than assuming it either way.
+  if (have_ftop && !follow_first) {
+    const char *e = getenv("GKYL_TOK_EXT_FOLLOW_LEGS");
+    if (e && e[0] != '\0' && e[0] != '0')
+      follow_first = true;
+  }
   // Both halves of the core use the follower; the difference is only in when
   // it has to stand down, and that is a measured property, not a choice.
   //
