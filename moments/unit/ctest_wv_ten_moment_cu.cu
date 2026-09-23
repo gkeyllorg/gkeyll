@@ -100,7 +100,7 @@ __global__ void ker_cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn, int *nf
 int cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
-  ker_cu_wv_ten_moment_test<<<1, 1> > >(eqn, nfail_dev);
+  ker_cu_wv_ten_moment_test<<<1, 1>>>(eqn, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);

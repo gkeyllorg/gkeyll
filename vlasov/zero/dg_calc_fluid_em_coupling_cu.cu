@@ -157,13 +157,13 @@ void gkyl_dg_calc_fluid_em_coupling_advance_cu(
 
   if (num_fluids == 1) {
     gkyl_dg_calc_fluid_em_coupling_set_one_fluid_cu_kernel<<<
-      conf_range.nblocks, conf_range.nthreads> > >(
+      conf_range.nblocks, conf_range.nthreads>>>(
       up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, dt, app_accel[0]->on_dev,
       ext_em->on_dev, app_current->on_dev, fluid[0]->on_dev, em->on_dev
     );
   } else if (num_fluids == 2) {
     gkyl_dg_calc_fluid_em_coupling_set_two_fluids_cu_kernel<<<
-      conf_range.nblocks, conf_range.nthreads> > >(
+      conf_range.nblocks, conf_range.nthreads>>>(
       up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, dt, app_accel[0]->on_dev,
       app_accel[1]->on_dev, ext_em->on_dev, app_current->on_dev, fluid[0]->on_dev, fluid[1]->on_dev,
       em->on_dev
@@ -175,12 +175,12 @@ void gkyl_dg_calc_fluid_em_coupling_advance_cu(
 
   if (num_fluids == 1) {
     gkyl_dg_calc_fluid_em_coupling_copy_one_fluid_cu_kernel<<<
-      conf_range.nblocks, conf_range.nthreads> > >(
+      conf_range.nblocks, conf_range.nthreads>>>(
       up->on_dev, up->xs->on_dev, conf_range, fluid[0]->on_dev, em->on_dev
     );
   } else if (num_fluids == 2) {
     gkyl_dg_calc_fluid_em_coupling_copy_two_fluids_cu_kernel<<<
-      conf_range.nblocks, conf_range.nthreads> > >(
+      conf_range.nblocks, conf_range.nthreads>>>(
       up->on_dev, up->xs->on_dev, conf_range, fluid[0]->on_dev, fluid[1]->on_dev, em->on_dev
     );
   }
@@ -221,7 +221,7 @@ void gkyl_dg_calc_fluid_em_coupling_energy_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_calc_fluid_em_coupling_energy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_calc_fluid_em_coupling_energy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, conf_range, ke_old->on_dev, ke_new->on_dev, fluid->on_dev
   );
 }
@@ -274,7 +274,7 @@ gkyl_dg_calc_fluid_em_coupling *gkyl_dg_calc_fluid_em_coupling_cu_dev_new(
     (struct gkyl_dg_calc_fluid_em_coupling *)gkyl_cu_malloc(sizeof(gkyl_dg_calc_fluid_em_coupling));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_fluid_em_coupling), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_fluid_em_coupling_set_cu_dev_ptrs<<<1, 1> > >(up_cu, b_type, cdim, poly_order);
+  dg_calc_fluid_em_coupling_set_cu_dev_ptrs<<<1, 1>>>(up_cu, b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

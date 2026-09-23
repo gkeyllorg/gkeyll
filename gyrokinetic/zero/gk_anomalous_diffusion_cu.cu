@@ -26,7 +26,7 @@ void gkyl_gk_anomalous_diffusion_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_gk_anomalous_diffusion_auxfields auxin
 )
 {
-  gkyl_gk_anomalous_diffusion_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_gk_anomalous_diffusion_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.nu->on_dev, auxin.jacobgeo_inv->on_dev
   );
 }
@@ -150,7 +150,7 @@ struct gkyl_dg_eqn *gkyl_gk_anomalous_diffusion_cu_dev_new(
     (struct gk_anomalous_diffusion *)gkyl_cu_malloc(sizeof(struct gk_anomalous_diffusion));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct gk_anomalous_diffusion), GKYL_CU_MEMCPY_H2D);
 
-  gk_anomalous_diffusion_set_cu_dev_ptrs<<<1, 1> > >(
+  gk_anomalous_diffusion_set_cu_dev_ptrs<<<1, 1>>>(
     diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, bc_x_lower, bc_x_upper
   );
 

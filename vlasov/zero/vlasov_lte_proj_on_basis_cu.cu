@@ -62,7 +62,7 @@ void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(
 {
   int vdim = up->pdim - up->cdim;
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
-  gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads>>>(
     *conf_range, up->conf_basis_at_ords->on_dev, vdim, h_ij->on_dev, h_ij_inv->on_dev,
     det_h->on_dev, up->h_ij_quad->on_dev, up->h_ij_inv_quad->on_dev, up->det_h_quad->on_dev
   );
@@ -243,7 +243,7 @@ void gkyl_vlasov_lte_proj_on_basis_advance_cu(
   gkyl_parallelize_components_kernel_launch_dims(
     &dimGrid_conf, &dimBlock_conf, *conf_range, tot_conf_quad
   );
-  gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker<<<dimGrid_conf, dimBlock_conf> > >(
+  gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker<<<dimGrid_conf, dimBlock_conf>>>(
     *conf_range, vdim, up->conf_basis_at_ords->on_dev, moms_lte->on_dev,
     up->is_canonical_pb ? up->det_h_quad->on_dev : 0, up->is_relativistic, up->is_canonical_pb,
     up->moms_lte_quad->on_dev, up->expamp_quad->on_dev
@@ -252,7 +252,7 @@ void gkyl_vlasov_lte_proj_on_basis_advance_cu(
   dim3 dimGrid, dimBlock;
   int tot_phase_quad = up->basis_at_ords->size;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
-  gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker<<<dimGrid, dimBlock> > >(
+  gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker<<<dimGrid, dimBlock>>>(
     up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev,
     up->ordinates->on_dev, up->moms_lte_quad->on_dev, up->expamp_quad->on_dev,
     up->is_canonical_pb ? up->h_ij_inv_quad->on_dev : 0, up->p2c_qidx, up->is_relativistic,

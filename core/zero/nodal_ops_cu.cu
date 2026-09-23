@@ -82,7 +82,7 @@ void gkyl_nodal_ops_n2m_cu(
   int nblocks = update_range->nblocks;
   int nthreads = update_range->nthreads;
 
-  gkyl_nodal_ops_n2m_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_nodal_ops_n2m_cu_kernel<<<nblocks, nthreads>>>(
     cbasis, *grid, *nrange, *update_range, nodal_ops->nodes->on_dev, num_comp, nodal_fld->on_dev,
     modal_fld->on_dev
   );
@@ -137,7 +137,7 @@ void gkyl_nodal_ops_m2n_cu(
   int nblocks = update_range->nblocks;
   int nthreads = update_range->nthreads;
 
-  gkyl_nodal_ops_m2n_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_nodal_ops_m2n_cu_kernel<<<nblocks, nthreads>>>(
     cbasis, *grid, *nrange, *update_range, nodal_ops->nodes->on_dev, num_comp, nodal_fld->on_dev,
     modal_fld->on_dev
   );
@@ -195,7 +195,7 @@ void gkyl_nodal_ops_m2n_deflated_cu(
   int nblocks = deflated_update_range->nblocks;
   int nthreads = deflated_update_range->nthreads;
 
-  gkyl_nodal_ops_m2n_deflated_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_nodal_ops_m2n_deflated_cu_kernel<<<nblocks, nthreads>>>(
     deflated_cbasis, *deflated_grid, *nrange, *deflated_nrange, *deflated_update_range,
     nodal_ops->nodes->on_dev, num_comp, nodal_fld->on_dev, deflated_modal_fld->on_dev, extra_idx
   );

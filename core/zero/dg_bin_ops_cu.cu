@@ -40,7 +40,7 @@ void gkyl_dg_mul_op_cu(
   const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop
 )
 {
-  gkyl_dg_mul_op_cu_kernel<<<out->nblocks, out->nthreads> > >(
+  gkyl_dg_mul_op_cu_kernel<<<out->nblocks, out->nthreads>>>(
     *basis, c_oop, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev
   );
 }
@@ -85,7 +85,7 @@ void gkyl_dg_mul_op_range_cu(
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_dg_mul_op_range_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_mul_op_range_cu_kernel<<<nblocks, nthreads>>>(
     *basis, c_oop, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, *range
   );
 }
@@ -137,7 +137,7 @@ void gkyl_dg_mul_conf_phase_op_range_cu(
 {
   int nblocks = prange->nblocks;
   int nthreads = prange->nthreads;
-  gkyl_dg_mul_conf_phase_op_range_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_mul_conf_phase_op_range_cu_kernel<<<nblocks, nthreads>>>(
     *cbasis, *pbasis, pout->on_dev, cop->on_dev, pop->on_dev, *crange, *prange
   );
 }
@@ -204,7 +204,7 @@ void gkyl_dg_mul_conf_phase_op_accumulate_range_cu(
   dim3 dimGrid, dimBlock;
   int num_phase_basis = pbasis->num_basis;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *prange, num_phase_basis);
-  gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel<<<dimGrid, dimBlock> > >(
+  gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel<<<dimGrid, dimBlock>>>(
     *cbasis, *pbasis, pout->on_dev, a, cop->on_dev, pop->on_dev, *crange, *prange
   );
 }
@@ -246,7 +246,7 @@ void gkyl_dg_dot_product_op_cu(
 )
 {
   assert(basis->num_basis <= 20); // MF 2022/09/08: see hardcode in kernel above.
-  gkyl_dg_dot_product_op_cu_kernel<<<out->nblocks, out->nthreads> > >(
+  gkyl_dg_dot_product_op_cu_kernel<<<out->nblocks, out->nthreads>>>(
     *basis, out->on_dev, lop->on_dev, rop->on_dev
   );
 }
@@ -302,7 +302,7 @@ void gkyl_dg_dot_product_op_range_cu(
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
   assert(basis->num_basis <= 20); // MF 2022/09/08: see hardcode in kernel above.
-  gkyl_dg_dot_product_op_range_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_dot_product_op_range_cu_kernel<<<nblocks, nthreads>>>(
     *basis, out->on_dev, lop->on_dev, rop->on_dev, *range
   );
 }
@@ -352,14 +352,14 @@ void gkyl_dg_div_op_cu(
   struct gkyl_nmat *x_d = mem->xs;
 
   // construct matrices using CUDA kernel
-  gkyl_dg_div_set_op_cu_kernel<<<out->nblocks, out->nthreads> > >(
+  gkyl_dg_div_set_op_cu_kernel<<<out->nblocks, out->nthreads>>>(
     A_d->on_dev, x_d->on_dev, *basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev
   );
   // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
   assert(status);
   // copy solution into array (also lives on the device)
-  gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads> > >(
+  gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(
     x_d->on_dev, *basis, c_oop, out->on_dev
   );
 }
@@ -442,14 +442,14 @@ void gkyl_dg_div_op_range_cu(
   struct gkyl_nmat *x_d = mem->xs;
 
   // construct matrices using CUDA kernel
-  gkyl_dg_div_set_op_range_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_div_set_op_range_cu_kernel<<<nblocks, nthreads>>>(
     A_d->on_dev, x_d->on_dev, *basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, *range
   );
   // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
   assert(status);
   // copy solution into array (also lives on the device)
-  gkyl_dg_div_copy_sol_op_range_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_div_copy_sol_op_range_cu_kernel<<<nblocks, nthreads>>>(
     x_d->on_dev, *basis, c_oop, out->on_dev, *range
   );
 }
@@ -479,7 +479,7 @@ void gkyl_dg_inv_op_cu(
   const struct gkyl_array *iop
 )
 {
-  gkyl_dg_inv_op_cu_kernel<<<out->nblocks, out->nthreads> > >(
+  gkyl_dg_inv_op_cu_kernel<<<out->nblocks, out->nthreads>>>(
     *basis, c_oop, out->on_dev, c_iop, iop->on_dev
   );
 }
@@ -523,7 +523,7 @@ void gkyl_dg_inv_op_range_cu(
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_dg_inv_op_range_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_inv_op_range_cu_kernel<<<nblocks, nthreads>>>(
     *basis, c_oop, out->on_dev, c_iop, iop->on_dev, *range
   );
 }
@@ -565,7 +565,7 @@ void gkyl_dg_calc_op_range_cu(
   const struct gkyl_array *iop, struct gkyl_range range, enum gkyl_dg_op op
 )
 {
-  gkyl_dg_calc_op_range_cu_kernel<<<out->nblocks, out->nthreads> > >(
+  gkyl_dg_calc_op_range_cu_kernel<<<out->nblocks, out->nthreads>>>(
     *basis, c_oop, out->on_dev, c_iop, iop->on_dev, range, op
   );
 }

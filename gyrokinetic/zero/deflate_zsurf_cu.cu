@@ -54,7 +54,7 @@ void gkyl_deflate_zsurf_advance_cu(
 {
   int nblocks = deflated_range->nblocks;
   int nthreads = deflated_range->nthreads;
-  gkyl_deflate_zsurf_advance_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_deflate_zsurf_advance_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, zidx, *range, *deflated_range, field->on_dev, deflated_field->on_dev, ncomp
   );
 }
@@ -89,7 +89,7 @@ struct gkyl_deflate_zsurf *gkyl_deflate_zsurf_cu_dev_new(
   struct gkyl_deflate_zsurf *up_cu = (struct gkyl_deflate_zsurf *)gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_deflate_zsurf), GKYL_CU_MEMCPY_H2D);
 
-  deflate_zsurf_set_cu_dev_ptrs<<<1, 1> > >(up_cu, b_type, edge, poly_order);
+  deflate_zsurf_set_cu_dev_ptrs<<<1, 1>>>(up_cu, b_type, edge, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

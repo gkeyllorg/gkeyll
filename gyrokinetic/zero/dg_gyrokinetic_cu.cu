@@ -30,7 +30,7 @@ void gkyl_gyrokinetic_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin
 )
 {
-  gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.flux_surf->on_dev, auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev
   );
 }
@@ -146,7 +146,7 @@ struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_cu_dev_new(
     (struct dg_gyrokinetic *)gkyl_cu_malloc(sizeof(struct dg_gyrokinetic));
   gkyl_cu_memcpy(gyrokinetic_cu, gyrokinetic, sizeof(struct dg_gyrokinetic), GKYL_CU_MEMCPY_H2D);
 
-  dg_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_gyrokinetic_set_cu_dev_ptrs<<<1, 1>>>(
     gyrokinetic_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order, collless_type
   );
 

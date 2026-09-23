@@ -82,7 +82,7 @@ struct gkyl_mom_type *gkyl_mom_pkpm_cu_dev_new(
     (struct mom_type_pkpm *)gkyl_cu_malloc(sizeof(struct mom_type_pkpm));
   gkyl_cu_memcpy(mom_pkpm_cu, mom_pkpm, sizeof(struct mom_type_pkpm), GKYL_CU_MEMCPY_H2D);
 
-  set_cu_ptrs<<<1, 1> > >(mom_pkpm_cu, cbasis->b_type, cdim, poly_order, diag);
+  set_cu_ptrs<<<1, 1>>>(mom_pkpm_cu, cbasis->b_type, cdim, poly_order, diag);
 
   mom_pkpm->momt.on_dev = &mom_pkpm_cu->momt;
 

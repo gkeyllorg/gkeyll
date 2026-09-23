@@ -30,7 +30,7 @@ void gkyl_lbo_pkpm_diff_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_pkpm_diff_auxfields auxin
 )
 {
-  gkyl_lbo_pkpm_diff_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_lbo_pkpm_diff_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.nuSum->on_dev, auxin.nuPrimMomsSum->on_dev
   );
 }
@@ -109,7 +109,7 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_diff_cu_dev_new(
     lbo_pkpm_diff_cu, lbo_pkpm_diff, sizeof(struct dg_lbo_pkpm_diff), GKYL_CU_MEMCPY_H2D
   );
 
-  dg_lbo_pkpm_diff_set_cu_dev_ptrs<<<1, 1> > >(lbo_pkpm_diff_cu, cbasis->b_type, cdim, poly_order);
+  dg_lbo_pkpm_diff_set_cu_dev_ptrs<<<1, 1>>>(lbo_pkpm_diff_cu, cbasis->b_type, cdim, poly_order);
 
   lbo_pkpm_diff->eqn.on_dev = &lbo_pkpm_diff_cu->eqn;
 

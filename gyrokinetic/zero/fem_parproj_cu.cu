@@ -92,7 +92,7 @@ void fem_parproj_choose_kernels_cu(
   enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_kernels *kers
 )
 {
-  fem_parproj_set_cu_ker_ptrs<<<1, 1> > >(
+  fem_parproj_set_cu_ker_ptrs<<<1, 1>>>(
     kers, basis->b_type, basis->ndim, basis->poly_order, has_weight_lhs, has_weight_rhs, bctype
   );
 }
@@ -152,7 +152,7 @@ void gkyl_fem_parproj_set_rhs_cu(
   const struct gkyl_array *phibc_cu = phibc ? phibc->on_dev : NULL;
   const struct gkyl_array *wgt_cu = up->has_weight_rhs ? up->weight_rhs->on_dev : NULL;
 
-  gkyl_fem_parproj_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads> > >(
+  gkyl_fem_parproj_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(
     rhs_cu, rhsin->on_dev, wgt_cu, phibc_cu, *up->solve_range, up->perp_range2d, up->par_range1d,
     up->kernels, up->numnodes_global
   );
@@ -223,7 +223,7 @@ __global__ void gkyl_fem_parproj_bias_src_kernel(
 void gkyl_fem_parproj_bias_src_enabled_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
-  gkyl_fem_parproj_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads> > >(
+  gkyl_fem_parproj_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(
     rhs_cu, up->grid, *up->solve_range, up->perp_range2d, up->par_range1d, up->kernels,
     up->numnodes_global, up->num_bias_line, up->bias_lines
   );
@@ -274,7 +274,7 @@ void gkyl_fem_parproj_solve_cu(gkyl_fem_parproj *up, struct gkyl_array *phiout)
   gkyl_culinsolver_solve(up->prob_cu);
   double *x_cu = gkyl_culinsolver_get_sol_ptr(up->prob_cu, 0);
 
-  gkyl_fem_parproj_get_sol_kernel<<<phiout->nblocks, phiout->nthreads> > >(
+  gkyl_fem_parproj_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(
     phiout->on_dev, x_cu, *up->solve_range, up->perp_range2d, up->par_range1d, up->kernels,
     up->numnodes_global
   );

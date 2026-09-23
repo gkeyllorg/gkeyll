@@ -30,7 +30,7 @@ void gkyl_bc_gksheath_choose_reflectedf_kernel_cu(
   struct gkyl_bc_sheath_gyrokinetic_kernels *kers
 )
 {
-  gkyl_bc_gksheath_set_cu_ker_ptrs<<<1, 1> > >(basis, edge, kers);
+  gkyl_bc_gksheath_set_cu_ker_ptrs<<<1, 1>>>(basis, edge, kers);
 }
 
 __global__ static void gkyl_bc_sheath_gyrokinetic_advance_cu_ker(
@@ -99,7 +99,7 @@ void gkyl_bc_sheath_gyrokinetic_advance_cu(
   if (up->skin_r->volume > 0) {
     int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
 
-    gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads> > >(
+    gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(
       up->cdim, up->dir, *up->skin_r, *up->ghost_r, *conf_r, up->vel_map->local_vel, up->basis,
       up->vel_map->vmap->on_dev, up->q2Dm, phi->on_dev, phi_wall->on_dev, up->kernels_cu,
       distf->on_dev

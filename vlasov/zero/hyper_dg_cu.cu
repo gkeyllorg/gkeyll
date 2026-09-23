@@ -103,14 +103,14 @@ void gkyl_hyper_dg_advance_cu(
   int nblocks = update_range->nblocks;
   int nthreads = update_range->nthreads;
 
-  gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *update_range, fIn->on_dev, cflrate->on_dev, rhs->on_dev
   );
 }
 
 void gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *up, int update_vol_term)
 {
-  gkyl_hyper_dg_set_update_vol_cu_kernel<<<1, 1> > >(up, update_vol_term);
+  gkyl_hyper_dg_set_update_vol_cu_kernel<<<1, 1>>>(up, update_vol_term);
 }
 
 gkyl_hyper_dg *gkyl_hyper_dg_cu_dev_new(

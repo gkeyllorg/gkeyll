@@ -27,7 +27,7 @@ void gkyl_gyrokinetic_passive_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_passive_auxfields auxin
 )
 {
-  gkyl_gyrokinetic_passive_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_gyrokinetic_passive_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.flux_surf->on_dev, auxin.speeds->on_dev
   );
 }
@@ -122,7 +122,7 @@ struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_passive_cu_dev_new(
     (struct dg_gyrokinetic_passive *)gkyl_cu_malloc(sizeof(struct dg_gyrokinetic_passive));
   gkyl_cu_memcpy(gkp_cu, gkp, sizeof(struct dg_gyrokinetic_passive), GKYL_CU_MEMCPY_H2D);
 
-  dg_gyrokinetic_passive_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_gyrokinetic_passive_set_cu_dev_ptrs<<<1, 1>>>(
     gkp_cu, cbasis->b_type, cv_index_gkp[cdim].vdim[vdim], cdim, vdim, poly_order
   );
 

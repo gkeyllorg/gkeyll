@@ -75,7 +75,7 @@ struct gkyl_wv_eqn *gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *in
   struct wv_euler *euler_cu = (struct wv_euler *)gkyl_cu_malloc(sizeof(struct wv_euler));
   gkyl_cu_memcpy(euler_cu, euler, sizeof(struct wv_euler), GKYL_CU_MEMCPY_H2D);
 
-  wv_euler_set_cu_dev_ptrs<<<1, 1> > >(inp->rp_type, euler_cu);
+  wv_euler_set_cu_dev_ptrs<<<1, 1>>>(inp->rp_type, euler_cu);
 
   euler->eqn.on_dev = &euler_cu->eqn; // CPU eqn obj points to itself
   return &euler->eqn;

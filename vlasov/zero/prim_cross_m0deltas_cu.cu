@@ -123,7 +123,7 @@ void gkyl_prim_cross_m0deltas_advance_cu(
   struct gkyl_nmat *x_d = up->mem->xs;
 
   // Construct matrices using CUDA kernel.
-  gkyl_prim_cross_m0deltas_set_op_range_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_prim_cross_m0deltas_set_op_range_cu_kernel<<<nblocks, nthreads>>>(
     A_d->on_dev, x_d->on_dev, *up->basis, up->normNu, up->betap1T2, massself, m0self->on_dev,
     nuself->on_dev, massother, m0other->on_dev, nuother->on_dev, *up->range, out->on_dev
   );
@@ -133,7 +133,7 @@ void gkyl_prim_cross_m0deltas_advance_cu(
   assert(status);
 
   // Copy solution into array (also lives on the device).
-  gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel<<<nblocks, nthreads>>>(
     x_d->on_dev, *up->basis, out->on_dev, *up->range
   );
 }

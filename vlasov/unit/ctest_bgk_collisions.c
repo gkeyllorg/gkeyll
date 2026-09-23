@@ -13,14 +13,12 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static struct gkyl_array*
-mkarr(long nc, long size)
+static struct gkyl_array *mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-void
-test_bgk_explicit_1x1v()
+void test_bgk_explicit_1x1v()
 {
   int poly_order = 1;
   int cdim = 1, vdim = 1;
@@ -65,33 +63,37 @@ test_bgk_explicit_1x1v()
   // fill nufM deterministically
   gkyl_array_clear(nufM, 0.0);
   gkyl_array_shiftc(nufM, 3.0, 0);
-  if (pbasis.num_basis > 1) gkyl_array_shiftc(nufM, -1.5, 1);
+  if (pbasis.num_basis > 1) {
+    gkyl_array_shiftc(nufM, -1.5, 1);
+  }
 
-  gkyl_bgk_collisions_advance(up, &crange, &prange, nu, nufM, fin,
-    false, 0.0, out, cfl);
+  gkyl_bgk_collisions_advance(up, &crange, &prange, nu, nufM, fin, false, 0.0, out, cfl);
 
   // out should equal nufM exactly (since fin = 0).
   struct gkyl_range_iter it;
   gkyl_range_iter_init(&it, &prange);
-  double cellav_fac = 1.0/sqrt(pow(2.0, cdim));
+  double cellav_fac = 1.0 / sqrt(pow(2.0, cdim));
   while (gkyl_range_iter_next(&it)) {
     long ploc = gkyl_range_idx(&prange, it.idx);
     double *o = gkyl_array_fetch(out, ploc);
     double *fm = gkyl_array_fetch(nufM, ploc);
-    for (int k=0; k<pbasis.num_basis; ++k)
-      TEST_CHECK( gkyl_compare(fm[k], o[k], 1e-14) );
+    for (int k = 0; k < pbasis.num_basis; ++k) {
+      TEST_CHECK(gkyl_compare(fm[k], o[k], 1e-14));
+    }
     // cfl frequency increment = nu0 * cellav_fac
     double *c = gkyl_array_fetch(cfl, ploc);
-    TEST_CHECK( gkyl_compare(nu0*cellav_fac, c[0], 1e-14) );
+    TEST_CHECK(gkyl_compare(nu0 * cellav_fac, c[0], 1e-14));
   }
 
-  gkyl_array_release(nu); gkyl_array_release(nufM); gkyl_array_release(fin);
-  gkyl_array_release(out); gkyl_array_release(cfl);
+  gkyl_array_release(nu);
+  gkyl_array_release(nufM);
+  gkyl_array_release(fin);
+  gkyl_array_release(out);
+  gkyl_array_release(cfl);
   gkyl_bgk_collisions_release(up);
 }
 
-void
-test_bgk_implicit_1x1v()
+void test_bgk_implicit_1x1v()
 {
   int poly_order = 1;
   int cdim = 1, vdim = 1;
@@ -132,11 +134,10 @@ test_bgk_implicit_1x1v()
   gkyl_array_clear(nufM, 0.0);
   gkyl_array_shiftc(nufM, 5.0, 0);
 
-  gkyl_bgk_collisions_advance(up, &crange, &prange, nu, nufM, fin,
-    true, dt, out, cfl);
+  gkyl_bgk_collisions_advance(up, &crange, &prange, nu, nufM, fin, true, dt, out, cfl);
 
-  double cellav_fac = 1.0/sqrt(pow(2.0, cdim));
-  double factor = 1.0/(1.0 + nu0*cellav_fac*dt);
+  double cellav_fac = 1.0 / sqrt(pow(2.0, cdim));
+  double factor = 1.0 / (1.0 + nu0 * cellav_fac * dt);
 
   struct gkyl_range_iter it;
   gkyl_range_iter_init(&it, &prange);
@@ -144,17 +145,21 @@ test_bgk_implicit_1x1v()
     long ploc = gkyl_range_idx(&prange, it.idx);
     double *o = gkyl_array_fetch(out, ploc);
     double *fm = gkyl_array_fetch(nufM, ploc);
-    for (int k=0; k<pbasis.num_basis; ++k)
-      TEST_CHECK( gkyl_compare(factor*fm[k], o[k], 1e-13) );
+    for (int k = 0; k < pbasis.num_basis; ++k) {
+      TEST_CHECK(gkyl_compare(factor * fm[k], o[k], 1e-13));
+    }
   }
 
-  gkyl_array_release(nu); gkyl_array_release(nufM); gkyl_array_release(fin);
-  gkyl_array_release(out); gkyl_array_release(cfl);
+  gkyl_array_release(nu);
+  gkyl_array_release(nufM);
+  gkyl_array_release(fin);
+  gkyl_array_release(out);
+  gkyl_array_release(cfl);
   gkyl_bgk_collisions_release(up);
 }
 
 TEST_LIST = {
-  { "bgk_explicit_1x1v", test_bgk_explicit_1x1v },
-  { "bgk_implicit_1x1v", test_bgk_implicit_1x1v },
-  { NULL, NULL },
+  {"bgk_explicit_1x1v", test_bgk_explicit_1x1v},
+  {"bgk_implicit_1x1v", test_bgk_implicit_1x1v},
+  {NULL, NULL}
 };

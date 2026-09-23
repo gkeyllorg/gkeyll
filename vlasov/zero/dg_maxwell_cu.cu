@@ -74,9 +74,7 @@ struct gkyl_dg_eqn *gkyl_dg_maxwell_cu_dev_new(
   // copy the host struct to device struct
   struct dg_maxwell *maxwell_cu = (struct dg_maxwell *)gkyl_cu_malloc(sizeof(struct dg_maxwell));
   gkyl_cu_memcpy(maxwell_cu, maxwell, sizeof(struct dg_maxwell), GKYL_CU_MEMCPY_H2D);
-  dg_maxwell_set_cu_dev_ptrs<<<1, 1> > >(
-    maxwell_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order
-  );
+  dg_maxwell_set_cu_dev_ptrs<<<1, 1>>>(maxwell_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
 
   // set parent on_dev pointer
   maxwell->eqn.on_dev = &maxwell_cu->eqn;

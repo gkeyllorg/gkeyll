@@ -192,13 +192,11 @@ void gkyl_gk_collisionless_flux_surf(
         // Write into the skin cell's own cflrate (not the ghost cell's, which is excluded
         // from the CFL reduction range). Use a max instead of accumulating since cflrate_d
         // already holds this cell's lower-surface contribution from earlier in this dir loop.
-        cflrate_ext_d[0] = GKYL_MAX2(
-          cflrate_ext_d[0],
-          up->flux_surf_edge_up[dir](
-            xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass, dgs, gkdgs, bmag_d,
-            jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d
-          )
+        double cflrate_edge = up->flux_surf_edge_up[dir](
+          xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass, dgs, gkdgs, bmag_d,
+          jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d
         );
+        cflrate_ext_d[0] = GKYL_MAX2(cflrate_ext_d[0], cflrate_edge);
       }
     }
   }
