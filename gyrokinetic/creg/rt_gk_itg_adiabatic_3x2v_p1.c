@@ -48,6 +48,10 @@ static const int ts_filter_half_width = 4;
 static const double ts_filter_cutoff_dx = 4.0;
 static const int ts_upsample = 2;
 static const double flr_rho_fac = 1.0;
+// rho* scan: rhostar_inv = a_mid/rho_s sets B_axis (0 = 1.54 T, i.e. a_mid/rho_s = 203) and
+// ky_rhos sets n_tor (0 = the n_tor below); box, profiles and filter are fixed in rho_s units.
+static const double rhostar_inv = 0.0;
+static const double ky_rhos = 0.0;
 
 // Define the context of the simulation. This stores global parameters.
 struct gk_app_ctx {
@@ -407,6 +411,13 @@ struct gk_app_ctx create_ctx(void)
   double omega_ci = fabs(qi*B_axis/mi);
   double rho_s = c_s/omega_ci;
   double rho_i = vti/omega_ci;
+  if (rhostar_inv > 0.0) {
+    rho_s = a_mid/rhostar_inv;
+    B_axis = mi*c_s/(qi*rho_s);
+    B0 = B_axis*(R_axis/R0);
+    omega_ci = fabs(qi*B_axis/mi);
+    rho_i = vti/omega_ci;
+  }
   double q0 = qprofile(r0, a_mid, qaxis, qlcfs);
   double Cy = r0/q0; // Cylindrical coordinate shift for field-alignment.
 
@@ -416,7 +427,7 @@ struct gk_app_ctx create_ctx(void)
   // The y box holds one wavelength of the toroidal mode n_tor, ky = n_tor/Cy
   // (ky*rho_s = 0.34 for n_tor = 25). The twist-shift is 2*pi*Cy*q(r): with constant
   // q it is q0*n_tor*Ly, so without shear q0*n_tor must be an integer for z to be periodic.
-  int n_tor = 25;
+  int n_tor = ky_rhos > 0.0? (int) round(ky_rhos*Cy/rho_s) : 25;
   double Ly = 2.*M_PI*Cy/n_tor;
 
   double x_min = -Lx/2;
