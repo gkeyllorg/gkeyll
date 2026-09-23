@@ -85,12 +85,11 @@ void write_geometry(
 
 void test_mirror_load_geometry_ho(void)
 {
-  struct gkyl_efit_inp inp = {
-    // psiRZ and related inputs
-    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
-    .reflect = true
+  struct gkyl_efit_inp inp = {// psiRZ and related inputs
+                              .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
+                              .rz_poly_order = 2,
+                              .flux_poly_order = 1,
+                              .reflect = true
   };
 
   clock_t start, end;
@@ -817,26 +816,25 @@ void test_mirror_3x_p1_straight_cylinder_ho(void)
   // create mirror geometry for surfaces
   struct gkyl_mirror_grid_gen *mirror_grid_surf[3];
   for (int dir = 0; dir < cdim; dir++) {
-    mirror_grid_surf[dir] = gkyl_mirror_grid_gen_surf_inew(
-      &(struct gkyl_mirror_grid_gen_inp){.comp_grid = &grid,
-                                         .nrange = gk_geom->nrange_surf[dir],
-                                         .local = gk_geom->local,
-                                         .global = gk_geom->global,
-                                         .dir = dir,
-                                         .position_map = pos_map,
+    mirror_grid_surf[dir] = gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp
+    ){.comp_grid = &grid,
+      .nrange = gk_geom->nrange_surf[dir],
+      .local = gk_geom->local,
+      .global = gk_geom->global,
+      .dir = dir,
+      .position_map = pos_map,
 
-                                         .R = {psi_grid.lower[0], psi_grid.upper[0]},
-                                         .Z = {psi_grid.lower[1], psi_grid.upper[1]},
+      .R = {psi_grid.lower[0], psi_grid.upper[0]},
+      .Z = {psi_grid.lower[1], psi_grid.upper[1]},
 
-                                         // psi(R,Z) grid size
-                                         .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
-                                         .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
+      // psi(R,Z) grid size
+      .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
+      .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
 
-                                         .psiRZ = psi,
-                                         .fl_coord = ginp.fl_coord,
-                                         .include_axis = ginp.include_axis,
-                                         .write_psi_cubic = false}
-    );
+      .psiRZ = psi,
+      .fl_coord = ginp.fl_coord,
+      .include_axis = ginp.include_axis,
+      .write_psi_cubic = false});
   }
 
   for (int dir = 0; dir < cdim; dir++) {
@@ -1654,8 +1652,8 @@ static void check_mirror_field_direction(double curvature)
           const struct gkyl_array *nodal, *modal;
           struct gkyl_array *recovered;
         } fields[NFIELDS] = {
-          {"bmag", 1, surface ? face->bmag_nodal : vol->bmag_nodal,
-           surface ? face->bmag : vol->bmag},
+          {"bmag", 1, surface ? face->bmag_nodal : vol->bmag_nodal, surface ? face->bmag : vol->bmag
+          },
           {"bcart", 3, surface ? face->bcart_nodal : vol->bcart_nodal, surface ? NULL : vol->bcart},
           {"b_i", 3, surface ? face->b_i_nodal : vol->b_i_nodal, surface ? face->b_i : vol->b_i},
           {"B3", 1, surface ? face->B3_nodal : vol->B3_nodal, surface ? face->B3 : vol->B3},
