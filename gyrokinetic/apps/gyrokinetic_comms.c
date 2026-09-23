@@ -1,5 +1,7 @@
 #include <gkyl_gyrokinetic_comms.h>
+#include <gkyl_cuda_mpi_comm.h>
 #include <assert.h>
+#include <string.h>
 
 struct gkyl_comm *gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, FILE *iostream)
 {
@@ -8,10 +10,20 @@ struct gkyl_comm *gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, FILE *i
 
 #ifdef GKYL_HAVE_MPI
   if (use_gpu && use_mpi) {
+#ifdef GKYL_HAVE_CUDA
+    const char *backend = getenv("GKYL_GPU_COMM");
+    if (backend && strcmp(backend, "cuda_mpi") == 0) {
+      return gkyl_cuda_mpi_comm_new(&(struct gkyl_cuda_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
+    }
+    if (backend && strcmp(backend, "nccl") != 0) {
+      fprintf(iostream, " Unknown GKYL_GPU_COMM='%s'; choose cuda_mpi or nccl.\n", backend);
+      MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+#endif
 #ifdef GKYL_HAVE_NCCL
     comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){.mpi_comm = MPI_COMM_WORLD});
 #else
-    fprintf(iostream, " Using -g and -M together requires NCCL.\n");
+    fprintf(iostream, " Using -g and -M requires NCCL or GKYL_GPU_COMM=cuda_mpi.\n");
     assert(0 == 1);
 #endif
   } else if (use_mpi) {

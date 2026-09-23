@@ -382,6 +382,10 @@ int gkyl_multib_comm_conn_array_transfer(
     err = gkyl_multib_comm_conn_array_transfer_mpi(
       comm, num_blocks_local, blocks_local, mbcc_send, mbcc_recv, arr_send, arr_recv
     );
+  } else if (strcmp(comm->id, "cuda_mpi_comm") == 0) {
+    err = gkyl_multib_comm_conn_array_transfer_cuda_mpi(
+      comm, num_blocks_local, blocks_local, mbcc_send, mbcc_recv, arr_send, arr_recv
+    );
   } else if (strcmp(comm->id, "nccl_comm") == 0) {
     err = gkyl_multib_comm_conn_array_transfer_nccl(
       comm, num_blocks_local, blocks_local, mbcc_send, mbcc_recv, arr_send, arr_recv

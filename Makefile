@@ -114,7 +114,7 @@ else
 	MPI_RPATH = -Wl,-rpath,${CONF_MPI_LIB_DIR}
 endif
 
-	MPI_LIBS = -lmpi
+	MPI_LIBS = -lmpi ${CONF_MPI_EXTRA_LIBS}
 	CFLAGS += -DGKYL_HAVE_MPI
 endif
 

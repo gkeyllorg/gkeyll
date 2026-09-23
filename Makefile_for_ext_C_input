@@ -75,7 +75,7 @@ ifeq (${USE_MPI}, 1)
 	MPI_INC_DIR = ${CONF_MPI_INC_DIR}
 	MPI_LIB_DIR = ${CONF_MPI_LIB_DIR}
 	MPI_RPATH = -Wl,-rpath,${CONF_MPI_LIB_DIR}
-	MPI_LIBS = -lmpi
+	MPI_LIBS = -lmpi ${CONF_MPI_EXTRA_LIBS}
 	CFLAGS += -DGKYL_HAVE_MPI
 endif
 
