@@ -5,12 +5,11 @@
 
 #include <gkyl_cart_modal_gkhybrid_vel_priv.h>
 
-void
-gkyl_cart_modal_gkhybrid_vel(struct gkyl_basis *basis, int vdim)
+void gkyl_cart_modal_gkhybrid_vel(struct gkyl_basis *basis, int vdim)
 {
   int ndim = vdim;
-  assert(ndim==1 || ndim==2);
-  
+  assert(ndim == 1 || ndim == 2);
+
   basis->ndim = ndim;
   basis->poly_order = 1;
   basis->num_basis = num_basis_list[ndim].count[1];
@@ -30,8 +29,7 @@ gkyl_cart_modal_gkhybrid_vel(struct gkyl_basis *basis, int vdim)
   basis->modal_to_quad_nodal = m2qn_list[ndim].n2m[1];
 }
 
-struct gkyl_basis *
-gkyl_cart_modal_gkhybrid_vel_new(int vdim)
+struct gkyl_basis *gkyl_cart_modal_gkhybrid_vel_new(int vdim)
 {
   struct gkyl_basis *basis = gkyl_malloc(sizeof(struct gkyl_basis));
   gkyl_cart_modal_gkhybrid_vel(basis, vdim);
@@ -39,14 +37,12 @@ gkyl_cart_modal_gkhybrid_vel_new(int vdim)
 }
 
 #ifndef GKYL_HAVE_CUDA
-void
-gkyl_cart_modal_gkhybrid_vel_cu_dev(struct gkyl_basis *basis, int vdim)
+void gkyl_cart_modal_gkhybrid_vel_cu_dev(struct gkyl_basis *basis, int vdim)
 {
   assert(false);
 }
 
-struct gkyl_basis *
-gkyl_cart_modal_gkhybrid_vel_cu_dev_new(int vdim)
+struct gkyl_basis *gkyl_cart_modal_gkhybrid_vel_cu_dev_new(int vdim)
 {
   assert(false);
 }

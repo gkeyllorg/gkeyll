@@ -4,7 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_grid.h> 
+#include <gkyl_rect_grid.h>
 
 // Object type
 typedef struct gkyl_gk_maxwellian_moments gkyl_gk_maxwellian_moments;
@@ -15,10 +15,11 @@ struct gkyl_gk_maxwellian_moments_inp {
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
   const struct gkyl_basis *phase_basis; // Phase-space basis functions.
   const struct gkyl_range *conf_range; // Configuration-space range.
-  const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
+  const struct gkyl_range
+    *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gk_geometry *gk_geom; // Geometry object.
   const struct gkyl_velocity_map *vel_map; // Velocity mapping object.
-  double mass; // Mass factor. 
+  double mass; // Mass factor.
   bool divide_jacobgeo; // Whether to divide out the conf-space Jacobian from density.
   bool use_gpu; // bool for gpu useage
 };
@@ -34,7 +35,7 @@ struct gkyl_gk_maxwellian_moments_inp {
  * @param inp Input parameters defined in gkyl_gk_maxwellian_moments_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_gk_maxwellian_moments*
+struct gkyl_gk_maxwellian_moments *
 gkyl_gk_maxwellian_moments_inew(const struct gkyl_gk_maxwellian_moments_inp *inp);
 
 /**
@@ -48,9 +49,10 @@ gkyl_gk_maxwellian_moments_inew(const struct gkyl_gk_maxwellian_moments_inp *inp
  * @param fin Input distribution function
  * @param density_out Output density
  */
-void gkyl_gk_maxwellian_density_moment_advance(struct gkyl_gk_maxwellian_moments *up, 
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
-  const struct gkyl_array *fin, struct gkyl_array *density_out);
+void gkyl_gk_maxwellian_density_moment_advance(
+  struct gkyl_gk_maxwellian_moments *up, const struct gkyl_range *phase_local,
+  const struct gkyl_range *conf_local, const struct gkyl_array *fin, struct gkyl_array *density_out
+);
 
 /**
  * Compute the moments of an arbitrary distribution function for the equivalent 
@@ -66,9 +68,10 @@ void gkyl_gk_maxwellian_density_moment_advance(struct gkyl_gk_maxwellian_moments
  * @param fin Input distribution function
  * @param moms_out Output Maxwellian moments (n, u_par, T/m)
  */
-void gkyl_gk_maxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up, 
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
-  const struct gkyl_array *fin, struct gkyl_array *moms_out);
+void gkyl_gk_maxwellian_moments_advance(
+  struct gkyl_gk_maxwellian_moments *up, const struct gkyl_range *phase_local,
+  const struct gkyl_range *conf_local, const struct gkyl_array *fin, struct gkyl_array *moms_out
+);
 
 /**
  * Compute the moments of an arbitrary distribution function for the equivalent 
@@ -84,13 +87,14 @@ void gkyl_gk_maxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up,
  * @param fin Input distribution function
  * @param moms_out Output Maxwellian moments (n, u_par, T_par/m, T_perp/m)
  */
-void gkyl_gk_bimaxwellian_moments_advance(struct gkyl_gk_maxwellian_moments *up, 
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
-  const struct gkyl_array *fin, struct gkyl_array *moms_out);
+void gkyl_gk_bimaxwellian_moments_advance(
+  struct gkyl_gk_maxwellian_moments *up, const struct gkyl_range *phase_local,
+  const struct gkyl_range *conf_local, const struct gkyl_array *fin, struct gkyl_array *moms_out
+);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_gk_maxwellian_moments_release(gkyl_gk_maxwellian_moments* up);
+void gkyl_gk_maxwellian_moments_release(gkyl_gk_maxwellian_moments *up);

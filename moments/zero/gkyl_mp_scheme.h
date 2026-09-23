@@ -12,10 +12,10 @@
 enum gkyl_mp_recon {
   GKYL_MP_U5 = 0, // upwind-biased 5th order (default)
   GKYL_MP_C2, // centered second-order
-  GKYL_MP_C4, // centered fourth-order  
+  GKYL_MP_C4, // centered fourth-order
   GKYL_MP_C6, // centered sixth-order
   GKYL_MP_U1, // upwind-biased 1st order
-  GKYL_MP_U3, // upwind-biased 3rd order
+  GKYL_MP_U3 // upwind-biased 3rd order
 };
 
 // Object type for updater
@@ -31,7 +31,7 @@ struct gkyl_mp_scheme_inp {
 
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
-  double cfl; // CFL number to use  
+  double cfl; // CFL number to use
 
   const struct gkyl_wave_geom *geom; // geometry
 };
@@ -42,7 +42,7 @@ struct gkyl_mp_scheme_inp {
  *
  * @param winp Input for creating updater. See gkyl_mp_scheme_inp above.
  */
-gkyl_mp_scheme* gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *winp);
+gkyl_mp_scheme *gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *winp);
 
 /**
  * Compute wave-propagation update. The update_rng MUST be a sub-range
@@ -62,11 +62,12 @@ gkyl_mp_scheme* gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *winp);
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS of PDE 
  */
-void gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
-  const struct gkyl_range *update_range, const struct gkyl_array *qin,
-  struct gkyl_array *qrec_l, struct gkyl_array *qrec_r,
-  struct gkyl_array *amdq, struct gkyl_array *apdq,
-  struct gkyl_array *cflrate, struct gkyl_array *phi, struct gkyl_array *rhs);
+void gkyl_mp_scheme_advance(
+  gkyl_mp_scheme *mp, const struct gkyl_range *update_range, const struct gkyl_array *qin,
+  struct gkyl_array *qrec_l, struct gkyl_array *qrec_r, struct gkyl_array *amdq,
+  struct gkyl_array *apdq, struct gkyl_array *cflrate, struct gkyl_array *phi,
+  struct gkyl_array *rhs
+);
 
 /**
  * Compute an estimate of maximum stable time-step for given input
@@ -76,12 +77,13 @@ void gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
  * @param qin Input to compute dt for
  * @return maximum stable time-step
  */
-double gkyl_mp_scheme_max_dt(const gkyl_mp_scheme *mp, const struct gkyl_range *update_range,
-  const struct gkyl_array *qin);
+double gkyl_mp_scheme_max_dt(
+  const gkyl_mp_scheme *mp, const struct gkyl_range *update_range, const struct gkyl_array *qin
+);
 
 /**
  * Delete updater.
  *
  * @param mp Updater to delete.
  */
-void gkyl_mp_scheme_release(gkyl_mp_scheme* mp);
+void gkyl_mp_scheme_release(gkyl_mp_scheme *mp);
