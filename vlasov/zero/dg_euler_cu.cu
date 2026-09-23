@@ -33,7 +33,7 @@ __global__ static void gkyl_euler_set_auxfields_cu_kernel(
 // Host-side wrapper for set_auxfields_cu_kernel
 void gkyl_euler_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin)
 {
-  gkyl_euler_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_euler_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.u->on_dev, auxin.u_surf->on_dev, auxin.p->on_dev, auxin.p_surf->on_dev
   );
 }
@@ -112,7 +112,7 @@ struct gkyl_dg_eqn *gkyl_dg_euler_cu_dev_new(
   // copy the host struct to device struct
   struct dg_euler *euler_cu = (struct dg_euler *)gkyl_cu_malloc(sizeof(struct dg_euler));
   gkyl_cu_memcpy(euler_cu, euler, sizeof(struct dg_euler), GKYL_CU_MEMCPY_H2D);
-  dg_euler_set_cu_dev_ptrs<<<1, 1> > >(euler_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
+  dg_euler_set_cu_dev_ptrs<<<1, 1>>>(euler_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
 
   // set parent on_dev pointer
   euler->eqn.on_dev = &euler_cu->eqn;

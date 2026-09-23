@@ -50,7 +50,7 @@ void gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, delta_sr, betap1, m_self, prim_moms_self->on_dev, m_other,
     prim_moms_other->on_dev, prim_moms_cross->on_dev
   );
@@ -75,7 +75,7 @@ gkyl_gyrokinetic_cross_prim_moms_bgk *gkyl_gyrokinetic_cross_prim_moms_bgk_cu_de
   struct gkyl_gyrokinetic_cross_prim_moms_bgk *up_cu =
     (struct gkyl_gyrokinetic_cross_prim_moms_bgk *)gkyl_cu_malloc(sizeof(*up_cu));
 
-  set_gyrokinetic_cross_prim_moms_bgk_cu_ptrs<<<1, 1> > >(
+  set_gyrokinetic_cross_prim_moms_bgk_cu_ptrs<<<1, 1>>>(
     up_cu, conf_basis->ndim, phase_basis->ndim - conf_basis->ndim, phase_basis->poly_order
   );
 

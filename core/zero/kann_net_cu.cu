@@ -736,12 +736,12 @@ dispatch_forward(struct kann_cu_graph *cg, cublasHandle_t cublas_h, struct kann_
   switch (p->op) {
   case 1: // add
     nb = cu_nblocks(clen[0]);
-    ker_add_fwd<<<nb, KANN_CU_THREADS> > >(clen[0], clen[1], cx[0], cx[1], px);
+    ker_add_fwd<<<nb, KANN_CU_THREADS>>>(clen[0], clen[1], cx[0], cx[1], px);
     break;
 
   case 2: // mul
     nb = cu_nblocks(clen[0]);
-    ker_mul_fwd<<<nb, KANN_CU_THREADS> > >(clen[0], clen[1], cx[0], cx[1], px);
+    ker_mul_fwd<<<nb, KANN_CU_THREADS>>>(clen[0], clen[1], cx[0], cx[1], px);
     break;
 
   case 3: { // cmul: Y = X * W^T via cublasSgemm
@@ -773,33 +773,33 @@ dispatch_forward(struct kann_cu_graph *cg, cublasHandle_t cublas_h, struct kann_
 
   case 6: // sigm
     nb = cu_nblocks(len);
-    ker_sigm_fwd<<<nb, KANN_CU_THREADS> > >(len, cx[0], px);
+    ker_sigm_fwd<<<nb, KANN_CU_THREADS>>>(len, cx[0], px);
     break;
 
   case 7: // tanh
     nb = cu_nblocks(len);
-    ker_tanh_fwd<<<nb, KANN_CU_THREADS> > >(len, cx[0], px);
+    ker_tanh_fwd<<<nb, KANN_CU_THREADS>>>(len, cx[0], px);
     break;
 
   case 8: // relu
     nb = cu_nblocks(len);
-    ker_relu_fwd<<<nb, KANN_CU_THREADS> > >(len, cx[0], px);
+    ker_relu_fwd<<<nb, KANN_CU_THREADS>>>(len, cx[0], px);
     break;
 
   case 10: { // avg: mean of n_child tensors
     float inv = 1.0f / p->n_child;
     nb = cu_nblocks(len);
-    ker_zero<<<nb, KANN_CU_THREADS> > >(len, px);
+    ker_zero<<<nb, KANN_CU_THREADS>>>(len, px);
     for (int c = 0; c < p->n_child; ++c) {
       int ci = p->child_idx[c];
-      ker_saxpy<<<nb, KANN_CU_THREADS> > >(len, inv, cg->x + hn[ci].x_off, px);
+      ker_saxpy<<<nb, KANN_CU_THREADS>>>(len, inv, cg->x + hn[ci].x_off, px);
     }
     break;
   }
 
   case 11: // 1minus
     nb = cu_nblocks(len);
-    ker_1minus_fwd<<<nb, KANN_CU_THREADS> > >(len, cx[0], px);
+    ker_1minus_fwd<<<nb, KANN_CU_THREADS>>>(len, cx[0], px);
     break;
 
   case 12: { // select
@@ -816,12 +816,12 @@ dispatch_forward(struct kann_cu_graph *cg, cublasHandle_t cublas_h, struct kann_
   case 14: { // softmax
     int n1 = hn[p->child_idx[0]].d[hn[p->child_idx[0]].n_d - 1];
     int d0 = clen[0] / n1;
-    ker_softmax_fwd<<<d0, 1> > >(d0, n1, cx[0], px);
+    ker_softmax_fwd<<<d0, 1>>>(d0, n1, cx[0], px);
     break;
   }
 
   case 29: // mse
-    ker_mse_fwd<<<1, KANN_CU_THREADS> > >(clen[0], cx[0], cx[1], px);
+    ker_mse_fwd<<<1, KANN_CU_THREADS>>>(clen[0], cx[0], cx[1], px);
     break;
 
   case 32: { // stdnorm (layer normalization)
@@ -837,7 +837,7 @@ dispatch_forward(struct kann_cu_graph *cg, cublasHandle_t cublas_h, struct kann_
     while (t2 * 2 <= threads) {
       t2 *= 2;
     }
-    ker_stdnorm_fwd<<<sm, t2, t2 * sizeof(float)> > >(sm, sn, cx[0], px, cg->stdnorm_si + p->si_off);
+    ker_stdnorm_fwd<<<sm, t2, t2 * sizeof(float)>>>(sm, sn, cx[0], px, cg->stdnorm_si + p->si_off);
     break;
   }
 
@@ -875,22 +875,22 @@ static void dispatch_backward(
   case 1: // add
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       nb = cu_nblocks(clen[0]);
-      ker_add_bwd_child0<<<nb, KANN_CU_THREADS> > >(clen[0], pg, cg_arr[0]);
+      ker_add_bwd_child0<<<nb, KANN_CU_THREADS>>>(clen[0], pg, cg_arr[0]);
     }
     if ((cflag[1] & KAD_VAR) && cg_arr[1]) {
       nb = cu_nblocks(clen[1]);
-      ker_add_bwd_child1<<<nb, KANN_CU_THREADS> > >(clen[0], clen[1], pg, cg_arr[1]);
+      ker_add_bwd_child1<<<nb, KANN_CU_THREADS>>>(clen[0], clen[1], pg, cg_arr[1]);
     }
     break;
 
   case 2: // mul
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       nb = cu_nblocks(clen[0]);
-      ker_mul_bwd_child0<<<nb, KANN_CU_THREADS> > >(clen[0], clen[1], pg, cx[1], cg_arr[0]);
+      ker_mul_bwd_child0<<<nb, KANN_CU_THREADS>>>(clen[0], clen[1], pg, cx[1], cg_arr[0]);
     }
     if ((cflag[1] & KAD_VAR) && cg_arr[1]) {
       nb = cu_nblocks(clen[1]);
-      ker_mul_bwd_child1<<<nb, KANN_CU_THREADS> > >(clen[0], clen[1], pg, cx[0], cg_arr[1]);
+      ker_mul_bwd_child1<<<nb, KANN_CU_THREADS>>>(clen[0], clen[1], pg, cx[0], cg_arr[1]);
     }
     break;
 
@@ -934,7 +934,7 @@ static void dispatch_backward(
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       float *px = cg->x + p->x_off;
       nb = cu_nblocks(p->len);
-      ker_sigm_bwd<<<nb, KANN_CU_THREADS> > >(p->len, pg, px, cg_arr[0]);
+      ker_sigm_bwd<<<nb, KANN_CU_THREADS>>>(p->len, pg, px, cg_arr[0]);
     }
     break;
 
@@ -942,14 +942,14 @@ static void dispatch_backward(
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       float *px = cg->x + p->x_off;
       nb = cu_nblocks(p->len);
-      ker_tanh_bwd<<<nb, KANN_CU_THREADS> > >(p->len, pg, px, cg_arr[0]);
+      ker_tanh_bwd<<<nb, KANN_CU_THREADS>>>(p->len, pg, px, cg_arr[0]);
     }
     break;
 
   case 8: // relu
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       nb = cu_nblocks(p->len);
-      ker_relu_bwd<<<nb, KANN_CU_THREADS> > >(p->len, pg, cx[0], cg_arr[0]);
+      ker_relu_bwd<<<nb, KANN_CU_THREADS>>>(p->len, pg, cx[0], cg_arr[0]);
     }
     break;
 
@@ -959,7 +959,7 @@ static void dispatch_backward(
     for (int c = 0; c < p->n_child; ++c) {
       int ci = p->child_idx[c];
       if ((hn[ci].flag & KAD_VAR) && hn[ci].g_off >= 0) {
-        ker_saxpy<<<nb, KANN_CU_THREADS> > >(p->len, inv, pg, cg->g + hn[ci].g_off);
+        ker_saxpy<<<nb, KANN_CU_THREADS>>>(p->len, inv, pg, cg->g + hn[ci].g_off);
       }
     }
     break;
@@ -968,7 +968,7 @@ static void dispatch_backward(
   case 11: // 1minus
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       nb = cu_nblocks(p->len);
-      ker_1minus_bwd<<<nb, KANN_CU_THREADS> > >(p->len, pg, cg_arr[0]);
+      ker_1minus_bwd<<<nb, KANN_CU_THREADS>>>(p->len, pg, cg_arr[0]);
     }
     break;
 
@@ -981,7 +981,7 @@ static void dispatch_backward(
     if ((hn[ci].flag & KAD_VAR) && hn[ci].g_off >= 0) {
       int slen = hn[ci].len;
       nb = cu_nblocks(slen);
-      ker_saxpy<<<nb, KANN_CU_THREADS> > >(slen, 1.0f, pg, cg->g + hn[ci].g_off);
+      ker_saxpy<<<nb, KANN_CU_THREADS>>>(slen, 1.0f, pg, cg->g + hn[ci].g_off);
     }
     break;
   }
@@ -992,7 +992,7 @@ static void dispatch_backward(
       int n1 = q->d[q->n_d - 1];
       int d0 = q->len / n1;
       float *px = cg->x + p->x_off;
-      ker_softmax_bwd<<<d0, 1> > >(d0, n1, pg, px, cg_arr[0]);
+      ker_softmax_bwd<<<d0, 1>>>(d0, n1, pg, px, cg_arr[0]);
     }
     break;
   }
@@ -1000,7 +1000,7 @@ static void dispatch_backward(
   case 29: // mse
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       nb = cu_nblocks(clen[0]);
-      ker_mse_bwd<<<nb, KANN_CU_THREADS> > >(clen[0], pg, cx[0], cx[1], cg_arr[0]);
+      ker_mse_bwd<<<nb, KANN_CU_THREADS>>>(clen[0], pg, cx[0], cx[1], cg_arr[0]);
     }
     break;
 
@@ -1018,7 +1018,7 @@ static void dispatch_backward(
       while (t2 * 2 <= threads) {
         t2 *= 2;
       }
-      ker_stdnorm_bwd<<<sm, t2, 2 * t2 * sizeof(float)> > >(
+      ker_stdnorm_bwd<<<sm, t2, 2 * t2 * sizeof(float)>>>(
         sm, sn, pg, px, cg->stdnorm_si + p->si_off, cg_arr[0]
       );
     }
@@ -1088,7 +1088,7 @@ void kann_cu_rmsprop(struct kann_cu_graph *cg, float lr, float decay)
   for (int i = 0; i < cg->n_var_nodes; ++i) {
     struct kann_cu_var_node *vn = &cg->h_vars[i];
     int nb = cu_nblocks(vn->len);
-    ker_rmsprop<<<nb, KANN_CU_THREADS> > >(
+    ker_rmsprop<<<nb, KANN_CU_THREADS>>>(
       vn->len, lr, decay,
       cg->g + vn->g_off, // this variable's gradients (contiguous in g)
       cg->x + vn->x_off, // this variable's values (scattered in x)
@@ -1128,7 +1128,7 @@ void kann_cu_gather_input(
   struct kann_cu_node *hn = &cg->h_nodes[cg->in_node_idx];
   int total = batch_size * stride;
   int nb = cu_nblocks(total);
-  ker_gather_rows<<<nb, KANN_CU_THREADS> > >(
+  ker_gather_rows<<<nb, KANN_CU_THREADS>>>(
     total, stride, data_d, indices_d, offset, cg->x + hn->x_off
   );
 }
@@ -1141,7 +1141,7 @@ void kann_cu_gather_truth(
   struct kann_cu_node *hn = &cg->h_nodes[cg->truth_node_idx];
   int total = batch_size * stride;
   int nb = cu_nblocks(total);
-  ker_gather_rows<<<nb, KANN_CU_THREADS> > >(
+  ker_gather_rows<<<nb, KANN_CU_THREADS>>>(
     total, stride, data_d, indices_d, offset, cg->x + hn->x_off
   );
 }

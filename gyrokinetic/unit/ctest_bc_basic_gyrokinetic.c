@@ -18,14 +18,14 @@
 #include <gkyl_rect_grid.h>
 
 // Build a 1D conf grid + skin/ghost ranges at the given edge.
-static void
-setup_1x(enum gkyl_edge_loc edge, struct gkyl_basis *basis,
-  struct gkyl_range *local, struct gkyl_range *local_ext,
-  struct gkyl_range *skin_r, struct gkyl_range *ghost_r)
+static void setup_1x(
+  enum gkyl_edge_loc edge, struct gkyl_basis *basis, struct gkyl_range *local,
+  struct gkyl_range *local_ext, struct gkyl_range *skin_r, struct gkyl_range *ghost_r
+)
 {
-  int cells[] = { 8 };
-  int ghost[] = { 1 };
-  double lower[] = { 0.0 }, upper[] = { 1.0 };
+  int cells[] = {8};
+  int ghost[] = {1};
+  double lower[] = {0.0}, upper[] = {1.0};
 
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
@@ -36,34 +36,33 @@ setup_1x(enum gkyl_edge_loc edge, struct gkyl_basis *basis,
   gkyl_skin_ghost_ranges(skin_r, ghost_r, 0, edge, local_ext, ghost);
 }
 
-void
-test_bc_basic_ctor()
+void test_bc_basic_ctor()
 {
   struct gkyl_basis basis;
   struct gkyl_range local, local_ext, skin_r, ghost_r;
   setup_1x(GKYL_LOWER_EDGE, &basis, &local, &local_ext, &skin_r, &ghost_r);
 
   struct gkyl_bc_basic_gyrokinetic *bc = gkyl_bc_basic_gyrokinetic_new(
-    0, GKYL_LOWER_EDGE, GKYL_BC_GK_SPECIES_COPY, &basis, &skin_r, &ghost_r,
-    basis.num_basis, 1, false);
+    0, GKYL_LOWER_EDGE, GKYL_BC_GK_SPECIES_COPY, &basis, &skin_r, &ghost_r, basis.num_basis, 1,
+    false
+  );
 
-  TEST_CHECK( bc != NULL );
-  TEST_CHECK( bc->dir == 0 );
-  TEST_CHECK( bc->cdim == 1 );
-  TEST_CHECK( bc->edge == GKYL_LOWER_EDGE );
-  TEST_CHECK( bc->bctype == GKYL_BC_GK_SPECIES_COPY );
-  TEST_CHECK( bc->skin_r == &skin_r );
-  TEST_CHECK( bc->ghost_r == &ghost_r );
-  TEST_CHECK( bc->use_gpu == false );
-  TEST_CHECK( bc->array_copy_func != NULL );
+  TEST_CHECK(bc != NULL);
+  TEST_CHECK(bc->dir == 0);
+  TEST_CHECK(bc->cdim == 1);
+  TEST_CHECK(bc->edge == GKYL_LOWER_EDGE);
+  TEST_CHECK(bc->bctype == GKYL_BC_GK_SPECIES_COPY);
+  TEST_CHECK(bc->skin_r == &skin_r);
+  TEST_CHECK(bc->ghost_r == &ghost_r);
+  TEST_CHECK(bc->use_gpu == false);
+  TEST_CHECK(bc->array_copy_func != NULL);
 
   gkyl_bc_basic_gyrokinetic_release(bc);
 }
 
 // Verify that applying a COPY BC fills the ghost cell with an exact copy of
 // the skin cell.
-static void
-check_copy_advance(enum gkyl_edge_loc edge)
+static void check_copy_advance(enum gkyl_edge_loc edge)
 {
   struct gkyl_basis basis;
   struct gkyl_range local, local_ext, skin_r, ghost_r;
@@ -85,12 +84,14 @@ check_copy_advance(enum gkyl_edge_loc edge)
   while (gkyl_range_iter_next(&iter)) {
     long sidx = gkyl_range_idx(&skin_r, iter.idx);
     double *fs = gkyl_array_fetch(f, sidx);
-    for (int c=0; c<nc; c++)
+    for (int c = 0; c < nc; c++) {
       fs[c] = 10.0 + c + 0.5;
+    }
   }
 
   struct gkyl_bc_basic_gyrokinetic *bc = gkyl_bc_basic_gyrokinetic_new(
-    0, edge, GKYL_BC_GK_SPECIES_COPY, &basis, &skin_r, &ghost_r, nc, 1, false);
+    0, edge, GKYL_BC_GK_SPECIES_COPY, &basis, &skin_r, &ghost_r, nc, 1, false
+  );
 
   gkyl_bc_basic_gyrokinetic_advance(bc, buff, f);
 
@@ -99,8 +100,9 @@ check_copy_advance(enum gkyl_edge_loc edge)
   while (gkyl_range_iter_next(&iter)) {
     long gidx = gkyl_range_idx(&ghost_r, iter.idx);
     const double *fg = gkyl_array_cfetch(f, gidx);
-    for (int c=0; c<nc; c++)
-      TEST_CHECK( gkyl_compare(fg[c], 10.0 + c + 0.5, 1e-14) );
+    for (int c = 0; c < nc; c++) {
+      TEST_CHECK(gkyl_compare(fg[c], 10.0 + c + 0.5, 1e-14));
+    }
   }
 
   gkyl_bc_basic_gyrokinetic_release(bc);
@@ -108,31 +110,37 @@ check_copy_advance(enum gkyl_edge_loc edge)
   gkyl_array_release(buff);
 }
 
-void test_bc_basic_copy_lower() { check_copy_advance(GKYL_LOWER_EDGE); }
-void test_bc_basic_copy_upper() { check_copy_advance(GKYL_UPPER_EDGE); }
+void test_bc_basic_copy_lower()
+{
+  check_copy_advance(GKYL_LOWER_EDGE);
+}
+void test_bc_basic_copy_upper()
+{
+  check_copy_advance(GKYL_UPPER_EDGE);
+}
 
-void
-test_bc_basic_ctor_upper_reflect()
+void test_bc_basic_ctor_upper_reflect()
 {
   struct gkyl_basis basis;
   struct gkyl_range local, local_ext, skin_r, ghost_r;
   setup_1x(GKYL_UPPER_EDGE, &basis, &local, &local_ext, &skin_r, &ghost_r);
 
   struct gkyl_bc_basic_gyrokinetic *bc = gkyl_bc_basic_gyrokinetic_new(
-    0, GKYL_UPPER_EDGE, GKYL_BC_GK_SPECIES_REFLECT, &basis, &skin_r, &ghost_r,
-    basis.num_basis, 1, false);
+    0, GKYL_UPPER_EDGE, GKYL_BC_GK_SPECIES_REFLECT, &basis, &skin_r, &ghost_r, basis.num_basis, 1,
+    false
+  );
 
-  TEST_CHECK( bc != NULL );
-  TEST_CHECK( bc->edge == GKYL_UPPER_EDGE );
-  TEST_CHECK( bc->bctype == GKYL_BC_GK_SPECIES_REFLECT );
+  TEST_CHECK(bc != NULL);
+  TEST_CHECK(bc->edge == GKYL_UPPER_EDGE);
+  TEST_CHECK(bc->bctype == GKYL_BC_GK_SPECIES_REFLECT);
 
   gkyl_bc_basic_gyrokinetic_release(bc);
 }
 
 TEST_LIST = {
-  { "bc_basic_ctor", test_bc_basic_ctor },
-  { "bc_basic_copy_lower", test_bc_basic_copy_lower },
-  { "bc_basic_copy_upper", test_bc_basic_copy_upper },
-  { "bc_basic_ctor_upper_reflect", test_bc_basic_ctor_upper_reflect },
-  { NULL, NULL },
+  {"bc_basic_ctor", test_bc_basic_ctor},
+  {"bc_basic_copy_lower", test_bc_basic_copy_lower},
+  {"bc_basic_copy_upper", test_bc_basic_copy_upper},
+  {"bc_basic_ctor_upper_reflect", test_bc_basic_ctor_upper_reflect},
+  {NULL, NULL}
 };

@@ -78,7 +78,7 @@ void gkyl_dg_calc_fluid_vars_advance_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_dg_calc_fluid_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_dg_calc_fluid_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, fluid->on_dev, cell_avg_prim->on_dev
   );
 
@@ -87,7 +87,7 @@ void gkyl_dg_calc_fluid_vars_advance_cu(
     assert(status);
   }
 
-  gkyl_dg_calc_fluid_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_dg_calc_fluid_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, prim->on_dev, prim_surf->on_dev
   );
 }
@@ -128,7 +128,7 @@ void gkyl_dg_calc_fluid_vars_pressure_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_calc_fluid_vars_pressure_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_calc_fluid_vars_pressure_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, fluid->on_dev, u->on_dev, p->on_dev, p_surf->on_dev
   );
 }
@@ -167,7 +167,7 @@ void gkyl_dg_calc_fluid_vars_ke_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_calc_fluid_vars_ke_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_calc_fluid_vars_ke_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, fluid->on_dev, u->on_dev, ke->on_dev
   );
 }
@@ -217,7 +217,7 @@ void gkyl_dg_calc_fluid_vars_limiter_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_fluid_vars_limiter_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_fluid_vars_limiter_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, fluid->on_dev
   );
 }
@@ -258,7 +258,7 @@ void gkyl_dg_calc_fluid_integrated_vars_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_fluid_integrated_vars_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_fluid_integrated_vars_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, fluid->on_dev, u_i->on_dev, p_ij->on_dev, int_fluid_vars->on_dev
   );
 }
@@ -297,7 +297,7 @@ void gkyl_dg_calc_fluid_vars_source_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_fluid_vars_source_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_fluid_vars_source_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, app_accel->on_dev, fluid->on_dev, rhs->on_dev
   );
 }
@@ -375,7 +375,7 @@ gkyl_dg_calc_fluid_vars *gkyl_dg_calc_fluid_vars_cu_dev_new(
     (struct gkyl_dg_calc_fluid_vars *)gkyl_cu_malloc(sizeof(gkyl_dg_calc_fluid_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_fluid_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_fluid_vars_set_cu_dev_ptrs<<<1, 1> > >(up_cu, wv_eqn->on_dev, b_type, cdim, poly_order);
+  dg_calc_fluid_vars_set_cu_dev_ptrs<<<1, 1>>>(up_cu, wv_eqn->on_dev, b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

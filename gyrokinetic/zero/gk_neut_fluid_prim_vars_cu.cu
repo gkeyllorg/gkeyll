@@ -78,7 +78,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev
   );
 
@@ -87,7 +87,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(
     assert(status);
   }
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_udrift_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, out->on_dev, out_coff
   );
 }
@@ -139,7 +139,7 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev
   );
 
@@ -148,7 +148,7 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(
     assert(status);
   }
 
-  gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff
   );
 }
@@ -219,7 +219,7 @@ void gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_temp_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_temp_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev
   );
 
@@ -228,7 +228,7 @@ void gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(
     assert(status);
   }
 
-  gkyl_gk_neut_fluid_prim_vars_temp_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_temp_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff
   );
 }
@@ -280,7 +280,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev
   );
 
@@ -290,7 +290,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(
   }
 
   gkyl_gk_neut_fluid_prim_vars_udrift_pressure_copy_cu_kernel<<<
-    conf_range.nblocks, conf_range.nthreads> > >(
+    conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff
   );
 }
@@ -364,7 +364,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev
   );
 
@@ -373,8 +373,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(
     assert(status);
   }
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_temp_copy_cu_kernel<<<
-    conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_udrift_temp_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff
   );
 }
@@ -430,7 +429,7 @@ void gkyl_gk_neut_fluid_prim_vars_lte_advance_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev
   );
 
@@ -439,7 +438,7 @@ void gkyl_gk_neut_fluid_prim_vars_lte_advance_cu(
     assert(status);
   }
 
-  gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff
   );
 }
@@ -511,7 +510,7 @@ void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev
   );
 
@@ -520,8 +519,7 @@ void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance_cu(
     assert(status);
   }
 
-  gkyl_gk_neut_fluid_prim_vars_flow_energy_copy_cu_kernel<<<
-    conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_flow_energy_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff
   );
 }
@@ -580,7 +578,7 @@ void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance_cu(
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+  gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev
   );
 
@@ -590,7 +588,7 @@ void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance_cu(
   }
 
   gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_copy_cu_kernel<<<
-    conf_range.nblocks, conf_range.nthreads> > >(
+    conf_range.nblocks, conf_range.nthreads>>>(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff
   );
 }
@@ -680,7 +678,7 @@ gkyl_gk_neut_fluid_prim_vars *gkyl_gk_neut_fluid_prim_vars_cu_dev_new(
     (struct gkyl_gk_neut_fluid_prim_vars *)gkyl_cu_malloc(sizeof(gkyl_gk_neut_fluid_prim_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_gk_neut_fluid_prim_vars), GKYL_CU_MEMCPY_H2D);
 
-  gk_neut_fluid_prim_vars_set_cu_dev_ptrs<<<1, 1> > >(up_cu, b_type, cdim, poly_order);
+  gk_neut_fluid_prim_vars_set_cu_dev_ptrs<<<1, 1>>>(up_cu, b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

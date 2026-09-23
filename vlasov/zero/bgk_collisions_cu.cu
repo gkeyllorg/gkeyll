@@ -74,7 +74,7 @@ void gkyl_bgk_collisions_advance_cu(
 {
   int nblocks = prange->nblocks;
   int nthreads = prange->nthreads;
-  gkyl_bgk_collisions_advance_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_bgk_collisions_advance_cu_kernel<<<nblocks, nthreads>>>(
     up->cdim, up->vdim, up->poly_order, up->pnum_basis, up->pb_type, up->cellav_fac, *crange,
     *prange, nu->on_dev, nufM->on_dev, fin->on_dev, implicit_step, dt, out->on_dev, cflfreq->on_dev
   );

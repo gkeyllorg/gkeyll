@@ -86,7 +86,7 @@ __global__ void ker_dev_cu_ser_2d(struct gkyl_basis *basis, int *nfail)
 int dev_cu_ser_2d(struct gkyl_basis *basis)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
-  ker_dev_cu_ser_2d<<<1, 1> > >(basis, nfail_dev);
+  ker_dev_cu_ser_2d<<<1, 1>>>(basis, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);

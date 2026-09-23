@@ -121,7 +121,7 @@ void gkyl_prim_bgk_cross_calc_advance_cu(
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
 
-  gkyl_prim_bgk_cross_calc_advance_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_prim_bgk_cross_calc_advance_cu_kernel<<<nblocks, nthreads>>>(
     basis, vdim_phys, m0sdeltas->on_dev, massself, primsself->on_dev, massother, primsother->on_dev,
     *range, crossprims->on_dev
   );

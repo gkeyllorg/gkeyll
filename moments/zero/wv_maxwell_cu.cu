@@ -51,7 +51,7 @@ struct gkyl_wv_eqn *gkyl_wv_maxwell_cu_dev_new(double c, double e_fact, double b
   struct wv_maxwell *maxwell_cu = (struct wv_maxwell *)gkyl_cu_malloc(sizeof(struct wv_maxwell));
   gkyl_cu_memcpy(maxwell_cu, maxwell, sizeof(struct wv_maxwell), GKYL_CU_MEMCPY_H2D);
 
-  wv_maxwell_set_cu_dev_ptrs<<<1, 1> > >(maxwell_cu);
+  wv_maxwell_set_cu_dev_ptrs<<<1, 1>>>(maxwell_cu);
 
   maxwell->eqn.on_dev = &maxwell_cu->eqn; // CPU eqn obj points to itself
   return &maxwell->eqn;

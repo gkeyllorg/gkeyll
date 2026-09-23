@@ -68,7 +68,7 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new(
     GKYL_CU_MEMCPY_H2D
   );
 
-  gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(
+  gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs<<<1, 1>>>(
     prim_gyrokinetic_cu, cdim, vdim, poly_order, cbasis->b_type
   );
 

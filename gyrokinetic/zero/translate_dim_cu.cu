@@ -63,7 +63,7 @@ void trans_dim_choose_kernel_cu(
   struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge
 )
 {
-  gkyl_trans_dim_set_cu_ker_ptrs<<<1, 1> > >(
+  gkyl_trans_dim_set_cu_ker_ptrs<<<1, 1>>>(
     kernels, cdim_do, basis_do, cdim_tar, basis_tar, dir, edge
   );
 }
@@ -104,7 +104,7 @@ void gkyl_translate_dim_advance_cu(
 {
   int nblocks = rng_tar->nblocks, nthreads = rng_tar->nthreads;
 
-  gkyl_translate_dim_advance_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_translate_dim_advance_cu_ker<<<nblocks, nthreads>>>(
     up->cdim_do, up->cdim_tar, up->vdim_do, up->vdim_tar, up->num_basis_do, up->num_basis_tar,
     up->dir, up->kernels, *rng_do, *rng_tar, fdo->on_dev, ncomp, ftar->on_dev
   );

@@ -67,7 +67,7 @@ void gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(
 {
   dim3 dimGrid, dimBlock;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *conf_range, num_comp);
-  gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu_ker<<<dimGrid, dimBlock> > >(
+  gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu_ker<<<dimGrid, dimBlock>>>(
     *conf_range, num_comp, nc, moms_target->on_dev, moms_iter->on_dev, moms_abs_diff->on_dev
   );
 }

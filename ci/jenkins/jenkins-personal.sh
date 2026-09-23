@@ -3,13 +3,16 @@
 # already be running (for example as a Homebrew or systemd service).
 set -euo pipefail
 
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 JENKINS_URL="${JENKINS_URL:-http://127.0.0.1:8080}"
 JENKINS_JOB="${JENKINS_JOB:-gkeyll-ci-personal}"
-JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-}"
+JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-$HOME/.config/gkeyll/jenkins/personal.auth}"
 JENKINS_CLI_JAR="${JENKINS_CLI_JAR:-${TMPDIR:-/tmp}/gkeyll-jenkins-cli.jar}"
 CURL_CONFIG=''
 QUEUE_ID=''
 RESOLVED_BUILD_NUMBER=''
+
+source "$SCRIPT_DIR/jenkins-client-artifacts.sh"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 usage() {
@@ -17,30 +20,98 @@ usage() {
 Usage: jenkins-personal.sh <command> [flags]
 
 Commands:
-  run --pr NUMBER [--follow]                 Queue a GitHub pull-request build.
-  run --candidate-ref REF --baseline-ref REF [--follow]
-                                             Queue a branch or commit comparison.
-  active                                     List this job's queued and running work.
-  recent [--limit NUMBER]                    List retained builds (default: 10).
-  status --queue ID                          Show a queued build's current state.
-  status --build NUMBER                      Show a known build's current state.
-  follow --queue ID                          Wait for and stream a queued build.
-  follow --build NUMBER                      Stream a known Jenkins build.
-  abort --queue ID                           Cancel a queued Jenkins build.
-  abort --build NUMBER                       Abort a running Jenkins build.
+  run      Queue a pull-request or comparison build.
+  active   List this job's queued and running work.
+  recent   List retained builds.
+  info     Show detailed information for a retained build.
+  artifact List or download retained build artifacts.
+  status   Show a queued or known build's state.
+  follow   Wait for and stream the console of a queued or known build.
+  abort    Cancel a queued or running build.
 
 The run command returns after Jenkins accepts the request. --follow streams
 the build console and returns its final Jenkins result. Press Ctrl-C to stop
 following without aborting the Jenkins build.
 
-Jenkins must already be running. Set JENKINS_CLI_AUTH_FILE to a protected file
-containing one line: jenkins-user:api-token. JENKINS_URL and JENKINS_JOB
-override the loopback URL and gkeyll-ci-personal defaults.
+Jenkins must already be running. Credentials default to
+~/.config/gkeyll/jenkins/personal.auth, a protected file containing one line:
+jenkins-user:api-token. JENKINS_CLI_AUTH_FILE, JENKINS_URL, and JENKINS_JOB
+override their defaults.
 EOF
 }
+command_usage() {
+    case "$1" in
+        run) cat <<'EOF'
+Usage: jenkins-personal.sh run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--follow]
+
+Flags:
+  --pr NUMBER           Build GitHub pull request NUMBER.
+  --candidate-ref REF   Candidate branch or commit; requires --baseline-ref.
+  --baseline-ref REF    Baseline branch or commit; requires --candidate-ref.
+  --follow              Stream the build console after Jenkins queues it.
+EOF
+        ;;
+        active) cat <<'EOF'
+Usage: jenkins-personal.sh active
+
+This command takes no options.
+EOF
+        ;;
+        recent) cat <<'EOF'
+Usage: jenkins-personal.sh recent [--limit NUMBER]
+
+Flags:
+  --limit NUMBER        Number of retained builds to list (default: 10).
+EOF
+        ;;
+        status) cat <<'EOF'
+Usage: jenkins-personal.sh status (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Inspect a Jenkins queue item.
+  --build NUMBER        Inspect a known Jenkins build.
+EOF
+        ;;
+        info) cat <<'EOF'
+Usage: jenkins-personal.sh info --build NUMBER
+
+Flags:
+  --build NUMBER        Show detailed information for a retained Jenkins build.
+EOF
+        ;;
+        artifact) cat <<'EOF'
+Usage: jenkins-personal.sh artifact --build NUMBER [--list | --fetch [--only PATH[,PATH...]] [--output-dir DIR]]
+
+Flags:
+  --build NUMBER        Select a retained Jenkins build.
+  --list                List artifacts (the default).
+  --fetch               Download artifacts.
+  --only PATHS          Comma-separated artifact-relative paths to download.
+  --output-dir DIR      New directory for downloaded artifacts.
+EOF
+        ;;
+        follow) cat <<'EOF'
+Usage: jenkins-personal.sh follow (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Wait for this queue item, then stream its build.
+  --build NUMBER        Stream this known Jenkins build.
+EOF
+        ;;
+        abort) cat <<'EOF'
+Usage: jenkins-personal.sh abort (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Cancel this Jenkins queue item.
+  --build NUMBER        Abort this running Jenkins build.
+EOF
+        ;;
+    esac
+}
 job_path() { local p='/job' n; IFS=/ read -ra n <<< "$JENKINS_JOB"; for x in "${n[@]}"; do p+="/$x/job"; done; printf '%s' "${p%/job}"; }
+ci_build_url() { printf '%s%s/%s' "$JENKINS_URL" "$(job_path)" "$1"; }
 prepare_auth() {
-    [[ -n "$JENKINS_CLI_AUTH_FILE" ]] || die 'Set JENKINS_CLI_AUTH_FILE to a mode-600 user:api-token file'
+    [[ -f "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is missing: $JENKINS_CLI_AUTH_FILE"
     [[ -O "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is not owned by $USER"
     [[ "$(stat -f '%Lp' "$JENKINS_CLI_AUTH_FILE" 2>/dev/null || stat -c '%a' "$JENKINS_CLI_AUTH_FILE")" == 600 ]] || die 'credential file must have mode 600'
     local credential; credential="$(<"$JENKINS_CLI_AUTH_FILE")"
@@ -284,7 +355,10 @@ recent() {
 main() {
     (($#)) || { usage; exit 2; }
     case "$1" in -h|--help|help) usage; return;; esac
+    if (($# == 2)) && [[ "$2" == -h || "$2" == --help ]]; then
+        case "$1" in run|active|recent|info|artifact|status|follow|abort) command_usage "$1"; return;; esac
+    fi
     prepare_auth
-    case "$1" in run) shift; run "$@";; follow) shift; follow_command "$@";; status) shift; status_command "$@";; abort) shift; abort "$@";; active) shift; [[ $# == 0 ]] || die 'usage: active'; active;; recent) shift; [[ $# == 0 || ( $# == 2 && $1 == --limit ) ]] || die 'usage: recent [--limit NUMBER]'; recent "${2:-10}";; -h|--help|help) usage;; *) usage >&2; die "unknown command: $1";; esac
+    case "$1" in run) shift; run "$@";; follow) shift; follow_command "$@";; status) shift; status_command "$@";; abort) shift; abort "$@";; active) shift; [[ $# == 0 ]] || die 'usage: active'; active;; recent) shift; [[ $# == 0 || ( $# == 2 && $1 == --limit ) ]] || die 'usage: recent [--limit NUMBER]'; recent "${2:-10}";; info) shift; ci_info_command "$@";; artifact) shift; ci_artifact_command "$@";; -h|--help|help) usage;; *) usage >&2; die "unknown command: $1";; esac
 }
 main "$@"

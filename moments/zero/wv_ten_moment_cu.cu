@@ -61,7 +61,7 @@ struct gkyl_wv_eqn *gkyl_wv_ten_moment_cu_dev_inew(const struct gkyl_wv_ten_mome
     (struct wv_ten_moment *)gkyl_cu_malloc(sizeof(struct wv_ten_moment));
   gkyl_cu_memcpy(ten_moment_cu, ten_moment, sizeof(struct wv_ten_moment), GKYL_CU_MEMCPY_H2D);
 
-  wv_ten_moment_set_cu_dev_ptrs<<<1, 1> > >(ten_moment_cu);
+  wv_ten_moment_set_cu_dev_ptrs<<<1, 1>>>(ten_moment_cu);
 
   ten_moment->eqn.on_dev = &ten_moment_cu->eqn; // CPU eqn obj points to itself
   return &ten_moment->eqn;

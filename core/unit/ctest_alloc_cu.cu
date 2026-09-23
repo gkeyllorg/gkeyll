@@ -23,7 +23,7 @@ __global__ void ker_dev_cu_malloc_array(double **arr, int narr, int nelem, int *
 int dev_cu_malloc_array(double **arr, int narr, int nelem)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
-  ker_dev_cu_malloc_array<<<1, 1> > >(arr, narr, nelem, nfail_dev);
+  ker_dev_cu_malloc_array<<<1, 1>>>(arr, narr, nelem, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);

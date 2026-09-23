@@ -27,7 +27,7 @@ void gkyl_diffusion_gen_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin
 )
 {
-  gkyl_diffusion_gen_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.Dij->on_dev);
+  gkyl_diffusion_gen_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin.Dij->on_dev);
 }
 
 __global__ void static dg_diffusion_gen_set_cu_dev_ptrs(
@@ -106,7 +106,7 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(
   gkyl_cu_memcpy(
     diffusion_gen_cu, diffusion_gen, sizeof(struct dg_diffusion_gen), GKYL_CU_MEMCPY_H2D
   );
-  dg_diffusion_gen_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_diffusion_gen_set_cu_dev_ptrs<<<1, 1>>>(
     diffusion_gen_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order
   );
 

@@ -27,28 +27,25 @@
 static const double AVAL = 1.25;
 static const double BVAL = 0.60;
 
-static void
-eval_distf(double t, const double *xn, double *restrict fout, void *ctx)
+static void eval_distf(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = AVAL;
   fout[1] = BVAL;
 }
 
-static struct gkyl_array*
-mkarr(long nc, long size)
+static struct gkyl_array *mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-void
-test_mom_pkpm_diag_calc_1x1v_p1()
+void test_mom_pkpm_diag_calc_1x1v_p1()
 {
   int poly_order = 1;
   double mass = 2.0;
   double lower[] = {-1.0, -3.0}, upper[] = {1.0, 3.0};
   int cells[] = {2, 8};
   int cdim = 1, vdim = 1;
-  int pdim = cdim+vdim;
+  int pdim = cdim + vdim;
 
   double V = upper[1]; // symmetric domain [-V,V]
   double Lv = upper[1] - lower[1];
@@ -72,46 +69,46 @@ test_mom_pkpm_diag_calc_1x1v_p1()
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 2, eval_distf, NULL);
-  struct gkyl_array *distf = mkarr(2*basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *proj =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 2, eval_distf, NULL);
+  struct gkyl_array *distf = mkarr(2 * basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, distf);
 
   struct gkyl_mom_type *mt = gkyl_mom_pkpm_new(&confBasis, &basis, mass, true, false);
-  TEST_CHECK( mt->num_mom == 8 );
+  TEST_CHECK(mt->num_mom == 8);
   gkyl_mom_calc *mcalc = gkyl_mom_calc_new(&grid, mt, false);
 
-  struct gkyl_array *mom = mkarr(mt->num_mom*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *mom = mkarr(mt->num_mom * confBasis.num_basis, confLocal_ext.volume);
   gkyl_mom_calc_advance(mcalc, &local, &confLocal, distf, mom);
 
   double sqrt2 = sqrt(2.0);
-  double rho_exp     = mass * AVAL * Lv;
-  double ppar_exp    = mass * AVAL * (2.0*V*V*V)/3.0;       // \int_{-V}^{V} v^2 dv = 2V^3/3
-  double intG_exp    = mass * BVAL * Lv;
-  double rparpar_exp = mass * AVAL * (2.0*V*V*V*V*V)/5.0;   // \int v^4 = 2V^5/5
-  double intv2G_exp  = mass * BVAL * (2.0*V*V*V)/3.0;       // \int v^2 b dv
+  double rho_exp = mass * AVAL * Lv;
+  double ppar_exp = mass * AVAL * (2.0 * V * V * V) / 3.0; // \int_{-V}^{V} v^2 dv = 2V^3/3
+  double intG_exp = mass * BVAL * Lv;
+  double rparpar_exp = mass * AVAL * (2.0 * V * V * V * V * V) / 5.0; // \int v^4 = 2V^5/5
+  double intv2G_exp = mass * BVAL * (2.0 * V * V * V) / 3.0; // \int v^2 b dv
 
-  for (int i=1; i<=cells[0]; ++i) {
+  for (int i = 1; i <= cells[0]; ++i) {
     int cidx[] = {i};
     long lidx = gkyl_range_idx(&confLocal, cidx);
     double *m = gkyl_array_fetch(mom, lidx);
-    double rho     = m[0]/sqrt2;
-    double m1      = m[2]/sqrt2;
-    double ppar    = m[4]/sqrt2;
-    double intG    = m[6]/sqrt2;
-    double qpar    = m[8]/sqrt2;
-    double intvG   = m[10]/sqrt2;
-    double rparpar = m[12]/sqrt2;
-    double intv2G  = m[14]/sqrt2;
+    double rho = m[0] / sqrt2;
+    double m1 = m[2] / sqrt2;
+    double ppar = m[4] / sqrt2;
+    double intG = m[6] / sqrt2;
+    double qpar = m[8] / sqrt2;
+    double intvG = m[10] / sqrt2;
+    double rparpar = m[12] / sqrt2;
+    double intv2G = m[14] / sqrt2;
 
-    TEST_CHECK( gkyl_compare(rho_exp,     rho,     1e-12) );
-    TEST_CHECK( gkyl_compare(0.0,         m1,      1e-12) );  // odd moment
-    TEST_CHECK( gkyl_compare(ppar_exp,    ppar,    1e-12) );
-    TEST_CHECK( gkyl_compare(intG_exp,    intG,    1e-12) );
-    TEST_CHECK( gkyl_compare(0.0,         qpar,    1e-12) );  // odd moment
-    TEST_CHECK( gkyl_compare(0.0,         intvG,   1e-12) );  // odd moment
-    TEST_CHECK( gkyl_compare(rparpar_exp, rparpar, 1e-11) );
-    TEST_CHECK( gkyl_compare(intv2G_exp,  intv2G,  1e-12) );
+    TEST_CHECK(gkyl_compare(rho_exp, rho, 1e-12));
+    TEST_CHECK(gkyl_compare(0.0, m1, 1e-12)); // odd moment
+    TEST_CHECK(gkyl_compare(ppar_exp, ppar, 1e-12));
+    TEST_CHECK(gkyl_compare(intG_exp, intG, 1e-12));
+    TEST_CHECK(gkyl_compare(0.0, qpar, 1e-12)); // odd moment
+    TEST_CHECK(gkyl_compare(0.0, intvG, 1e-12)); // odd moment
+    TEST_CHECK(gkyl_compare(rparpar_exp, rparpar, 1e-11));
+    TEST_CHECK(gkyl_compare(intv2G_exp, intv2G, 1e-12));
   }
 
   gkyl_array_release(mom);
@@ -121,7 +118,4 @@ test_mom_pkpm_diag_calc_1x1v_p1()
   gkyl_proj_on_basis_release(proj);
 }
 
-TEST_LIST = {
-  { "mom_pkpm_diag_calc_1x1v_p1", test_mom_pkpm_diag_calc_1x1v_p1 },
-  { NULL, NULL },
-};
+TEST_LIST = {{"mom_pkpm_diag_calc_1x1v_p1", test_mom_pkpm_diag_calc_1x1v_p1}, {NULL, NULL}};
