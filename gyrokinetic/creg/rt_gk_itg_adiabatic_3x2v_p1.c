@@ -427,9 +427,10 @@ struct gk_app_ctx create_ctx(void)
   double z_max =  Lz/2;
 
   // Equilibrium gradients at x=0 (Dimits et al. 2000) and ITG seed.
-  double kTi = 6.92; // R0/LTi.
-  double etai = 3.114; // Ln/LTi.
-  double LTi = R0/kTi;
+  // Cyclone R/LTi and R/Ln are defined with R = R_axis (the same R as eps = r0/R_axis = 0.18).
+  double kTi = 6.92; // R_axis/LTi.
+  double etai = 3.114; // Ln/LTi (R_axis/Ln = 2.22).
+  double LTi = R_axis/kTi;
   double Ln = LTi*etai;
   double prof_width = Lx/4.0;
   double delta_n = 1.0e-6;
@@ -439,7 +440,7 @@ struct gk_app_ctx create_ctx(void)
   // omega = -0.52 c_s/R0 at 32x8x16x8x4 cells, 0.17 and -0.18 with the default cells (0.28
   // drift-kinetic; shearless drift-kinetic 0.18, converged at 12x8x8x8x4). The 2*ky
   // harmonic ends the linear phase at t ~ 35-45 R0/c_s.
-  double t_unit = R0/c_s;
+  double t_unit = R_axis/c_s; // Cyclone time unit R/c_s with R = R_axis.
   double inv_asp_ratio = r0/R_axis;
 
   // Grid parameters
@@ -464,7 +465,7 @@ struct gk_app_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  // printf("q0 = %g, ky*rho_s = %g, q0*n_tor = %g, R0/c_s = %g s\n", q0, n_tor/Cy*rho_s, q0*n_tor, t_unit);
+  // printf("q0 = %g, ky*rho_s = %g, q0*n_tor = %g, R_axis/c_s = %g s\n", q0, n_tor/Cy*rho_s, q0*n_tor, t_unit);
 
   struct gk_app_ctx ctx = {
     .cdim = cdim,
