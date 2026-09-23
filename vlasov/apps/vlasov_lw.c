@@ -949,7 +949,10 @@ vlasov_species_lw_new(lua_State *L)
             source_has_temp_init_func[i] = true;
           }
 
-          source_correct_all_moms[i] = glua_tbl_get_bool(L, "correctAllMoms", true);
+          // Sources default to the uncorrected LTE projection: the moment
+          // correction requires a target density that is positive throughout
+          // every cell, which localized or ramped sources rarely satisfy.
+          source_correct_all_moms[i] = glua_tbl_get_bool(L, "correctAllMoments", false);
           source_iter_eps[i] = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
           source_max_iter[i] = glua_tbl_get_integer(L, "maxIterations", 100);
           source_use_last_converged[i] = glua_tbl_get_bool(L, "useLastConverged", true);
@@ -1164,6 +1167,11 @@ vlasov_species_lw_new(lua_State *L)
       .nret = 1,
       .L = L,
     };
+
+    vms_lw->source_correct_all_moms[i] = source_correct_all_moms[i];
+    vms_lw->source_iter_eps[i] = source_iter_eps[i];
+    vms_lw->source_max_iter[i] = source_max_iter[i];
+    vms_lw->source_use_last_converged[i] = source_use_last_converged[i];
   }
 
   vms_lw->collision_id = collision_id;
