@@ -403,7 +403,8 @@ struct gk_lbo_collisions {
   struct gkyl_array
     *cross_nu_prim_moms; // Weak multiplication of collision frequency and primitive moments.
   struct gkyl_array *alpha_E; // Morse's alpha_E factor.
-  struct gkyl_array *cross_vtsq; // Scratch space holding the vtSq component of the cross-prim moments.
+  struct gkyl_array
+    *cross_vtsq; // Scratch space holding the vtSq component of the cross-prim moments.
   struct gkyl_array *cross_vtsq_floor; // Zeroed array used to floor cross vtSq cell-average to >= 0.
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
 
