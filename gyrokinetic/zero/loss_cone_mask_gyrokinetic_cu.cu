@@ -110,7 +110,7 @@ void gkyl_loss_cone_mask_gyrokinetic_advance_cu(
   const struct gkyl_array *phi_wall_lo_dev = phi_wall_lo ? phi_wall_lo->on_dev : 0;
   const struct gkyl_array *phi_wall_up_dev = phi_wall_up ? phi_wall_up->on_dev : 0;
 
-  gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(
     up->cdim, up->num_basis_conf, up->conf_corner_range, phase_corner_range, up->mass, up->charge,
     *phase_range, *conf_range, up->basis_at_corners_conf->on_dev, bmag->on_dev, phi->on_dev,
     phi_wall_lo_dev, phi_wall_up_dev, up->lower_orbit, up->upper_orbit, gvm->on_dev,
