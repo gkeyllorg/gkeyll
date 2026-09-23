@@ -4225,8 +4225,9 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   // Append to existing integrated diagnostics.
   app->is_first_dt_write_call = false;
   gk_s->is_first_integ_write_call = false;
-  if (gk_s->info.omegaH_dt_diagnostic)
+  if (gk_s->info.omegaH_dt_diagnostic) {
     gk_s->is_first_omegaH_dt_write_call = false;
+  }
   gk_s->is_first_L2norm_write_call = false;
   for (int b = 0; b < gk_s->bflux.num_boundaries; ++b) {
     gk_s->bflux.is_first_intmom_write_call[b] = false;
