@@ -14,8 +14,8 @@ struct sodshock_ctx {
   int cdim, vdim; // Dimensionality.
 
   // Physical constants (using normalized code units).
-  double mass; // Neutral mass.
-  double charge; // Neutral charge.
+  double mass; // Species mass.
+  double charge; // Species charge.
 
   double nl; // Left number density.
   double Tl; // Left temperature.
@@ -53,8 +53,8 @@ struct sodshock_ctx create_ctx(void)
   int cdim = 1, vdim = 2; // Dimensionality.
 
   // Physical constants (using normalized code units).
-  double mass = 1.0; // Neutral mass.
-  double charge = 0.0; // Neutral charge.
+  double mass = 1.0; // Species mass.
+  double charge = 1.0; // Species charge.
 
   double nl = 1.0; // Left number density.
   double Tl = 1.0; // Left temperature.
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  // Neutral species.
+  // Species.
   struct gkyl_gyrokinetic_species neut = {
     .name = "neut",
     .charge = ctx.charge,

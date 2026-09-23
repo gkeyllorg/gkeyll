@@ -16,4 +16,8 @@ cd "$CI_WORKSPACE"
 . machines/module_load.perlmutter-gpu.sh
 
 export SLURM_CPU_BIND=cores
+started="$(date +%s)"
 srun --ntasks=1 --cpus-per-task=32 --gpus-per-task=1 --cpu-bind=cores make unit-run
+elapsed="$(( $(date +%s) - started ))"
+printf '%s\n' "$elapsed" > unit-test-seconds.txt
+echo "Unit-test runtime: $elapsed seconds"

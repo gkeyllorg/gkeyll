@@ -3,7 +3,10 @@
 This private, manually triggered CUDA CI builds candidate and baseline CUDA/NCCL
 installations on the login node, then submits unit and C-regression work to GPU
 nodes. The trusted Pipeline never comes from the candidate PR. CUDA unit tests
-run automatically; GPU-capable C regressions are compared with a CPU baseline.
+run automatically; GPU-capable C regressions are compared with the CUDA/NCCL
+baseline built by the Pipeline.
+A separate manifest-selected C MPI lane uses four GPU ranks for Vlasov,
+gyrokinetic, and PKPM, plus a moments CPU MPI test.
 
 # Installation
 
@@ -13,8 +16,31 @@ Use a controller only in an authenticated Perlmutter session and as permitted
 by NERSC policy. Set a project scratch root visible to compute nodes; do not
 use `/tmp` or retain durable credentials only there.
 
+An existing Java 21 (or newer) installation is sufficient. To install Java 21
+through the NERSC Spack module, use the following once:
+
 ```sh
-export GKEYLL_CI_ROOT=/pscratch/sd/<first-letter>/<username>/gkeyll_ci
+module load spack
+spack info openjdk
+spack install openjdk@21
+```
+
+In each new Perlmutter login session that starts the controller or uses the
+Jenkins CLI, load Java and set `JAVA_HOME`:
+
+```sh
+module load spack
+spack load openjdk@21
+export JAVA_HOME="$(spack location --install-dir openjdk@21)"
+"$JAVA_HOME/bin/java" -version
+```
+
+`spack install` is needed only once. A controller that has already started in
+its detached tmux session continues running after logout, but restarting it or
+using the CLI in a later login requires the Java setup above.
+
+```sh
+export GKEYLL_CI_ROOT=/pscratch/sd/${USER:0:1}/$USER/gkeyll_ci
 export JAVA_HOME=<java-21-or-newer-installation>
 mkdir -p "$GKEYLL_CI_ROOT"
 java -version
@@ -26,7 +52,7 @@ From the reviewed Gkeyll checkout, start the controller (see
 `./ci/jenkins/gkeyll-ci.sh -h`):
 
 ```sh
-export GKEYLL_CI_ROOT=/pscratch/sd/<first-letter>/<username>/gkeyll_ci
+export GKEYLL_CI_ROOT=/pscratch/sd/${USER:0:1}/$USER/gkeyll_ci
 export JAVA_HOME=<java-21-or-newer-installation>
 ./ci/jenkins/gkeyll-ci.sh perlmutter_gpu start
 ```
@@ -35,16 +61,46 @@ It creates detached tmux session `gkeyll_ci` and binds only to loopback. Use
 `tmux attach -t gkeyll_ci` to inspect it or `tmux kill-session -t gkeyll_ci`
 to stop it.
 
-## Open Jenkins browser
-
-From your laptop, tunnel a local port to the controller and open the resulting
-local URL:
+Verify the private listener after startup:
 
 ```sh
-ssh -N -L 8081:127.0.0.1:8080 <username>@perlmutter.nersc.gov
+curl --fail --output /dev/null http://127.0.0.1:8080/login
+ss -ltn | grep '127.0.0.1:8080'
 ```
 
-Open `http://localhost:8081`. On first start, read
+## Open Jenkins browser
+
+Jenkins is bound to loopback on the particular Perlmutter login node where its
+controller started. In that controller session, record its hostname:
+
+```sh
+hostname -f
+```
+
+From your laptop, use the public Perlmutter address as a jump host and the
+recorded hostname as the final SSH target. For example, if the controller is on
+`login20.chn.perlmutter.nersc.gov`:
+
+```sh
+ssh -f -N -o ExitOnForwardFailure=yes \
+  -J <username>@perlmutter.nersc.gov \
+  -L 127.0.0.1:8084:127.0.0.1:8080 \
+  <username>@login20.chn.perlmutter.nersc.gov
+```
+
+`-f` backgrounds SSH only after authentication and forwarding succeed. Verify
+the tunnel from the laptop, then open the local URL:
+
+```sh
+curl --fail --output /dev/null http://127.0.0.1:8084/login
+```
+
+Open `http://127.0.0.1:8084`. The first `8084` is the local browser port; the
+final `8080` is the loopback-only Jenkins port on the controller node and
+normally remains unchanged. Choose another unused local port if necessary. Do
+not use `perlmutter.nersc.gov` as the final SSH target: it can select a
+different login node, which produces SSH `channel ... connect failed:
+Connection refused` errors. On first start, read
 `$GKEYLL_CI_ROOT/jenkins_home/secrets/initialAdminPassword`, create an admin
 account, and install Pipeline, Git, Credentials Binding, Git client, and
 GitHub plugins.
@@ -115,6 +171,8 @@ no Slurm job. Do not let a PR supply this Pipeline.
 ./ci/jenkins/gkeyll-ci.sh perlmutter_gpu run --candidate-ref feature --baseline-ref main --follow
 ./ci/jenkins/gkeyll-ci.sh perlmutter_gpu follow --queue 42
 ./ci/jenkins/gkeyll-ci.sh perlmutter_gpu active
+./ci/jenkins/gkeyll-ci.sh perlmutter_gpu info --build 42
+./ci/jenkins/gkeyll-ci.sh perlmutter_gpu artifact --build 42 --fetch --only ci-regression-summary.txt
 ./ci/jenkins/gkeyll-ci.sh perlmutter_gpu abort --build 42
 ```
 
