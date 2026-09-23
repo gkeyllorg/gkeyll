@@ -113,7 +113,7 @@ void gkyl_dg_iz_coll_cu(
   struct gkyl_array *cflrate
 )
 {
-  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(
+  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(
     up->on_dev, *up->conf_rng, up->adas_rng, up->basis_on_dev, maxwellian_moms_elc->on_dev,
     vtSq_iz1->on_dev, vtSq_iz2->on_dev, coef_iz->on_dev, up->ioniz_data->on_dev, up->type_self,
     up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe, up->dlogTe, up->resTe,

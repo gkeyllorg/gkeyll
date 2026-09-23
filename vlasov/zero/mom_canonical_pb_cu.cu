@@ -56,7 +56,7 @@ void gkyl_mom_canonical_pb_set_auxfields_cu(
   const struct gkyl_mom_type *momt, struct gkyl_mom_canonical_pb_auxfields auxin
 )
 {
-  gkyl_mom_canonical_pb_set_auxfields_cu_kernel<<<1, 1> > >(momt, auxin.hamil->on_dev);
+  gkyl_mom_canonical_pb_set_auxfields_cu_kernel<<<1, 1>>>(momt, auxin.hamil->on_dev);
 }
 
 __global__ static void set_cu_ptrs(
@@ -145,7 +145,7 @@ struct gkyl_mom_type *gkyl_mom_canonical_pb_cu_dev_new(
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  set_cu_ptrs<<<1, 1> > >(
+  set_cu_ptrs<<<1, 1>>>(
     momt_cu, mom_type, pbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]
   );
 
@@ -231,7 +231,7 @@ struct gkyl_mom_type *gkyl_int_mom_canonical_pb_cu_dev_new(
     (struct mom_type_canonical_pb *)gkyl_cu_malloc(sizeof(struct mom_type_canonical_pb));
   gkyl_cu_memcpy(momt_cu, mom_can_pb, sizeof(struct mom_type_canonical_pb), GKYL_CU_MEMCPY_H2D);
 
-  set_int_cu_ptrs<<<1, 1> > >(
+  set_int_cu_ptrs<<<1, 1>>>(
     momt_cu, mom_type, pbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]
   );
 

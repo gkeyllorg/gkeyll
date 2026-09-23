@@ -15,4 +15,8 @@ cd "$CI_WORKSPACE"
 # and build this checkout.
 . machines/module_load.stellar-intel.sh
 
+started="$(date +%s)"
 make unit-run
+elapsed="$(( $(date +%s) - started ))"
+printf '%s\n' "$elapsed" > unit-test-seconds.txt
+echo "Unit-test runtime: $elapsed seconds"

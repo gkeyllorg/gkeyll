@@ -21,17 +21,15 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static struct gkyl_array*
-mkarr(long nc, long size)
+static struct gkyl_array *mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-void
-test_div_ppar_uniform_1x1v_p1()
+void test_div_ppar_uniform_1x1v_p1()
 {
   int poly_order = 1;
-  int cdim = 1, vdim = 1, pdim = cdim+vdim;
+  int cdim = 1, vdim = 1, pdim = cdim + vdim;
   double lower[] = {-2.0, -3.0}, upper[] = {2.0, 3.0};
   int cells[] = {8, 6};
 
@@ -56,15 +54,15 @@ test_div_ppar_uniform_1x1v_p1()
 
   struct gkyl_dg_calc_pkpm_dist_vars *up =
     gkyl_dg_calc_pkpm_dist_vars_new(&grid, &confBasis, false);
-  TEST_CHECK( up != NULL );
+  TEST_CHECK(up != NULL);
 
-  int nbp = basis.num_basis;     // 6
+  int nbp = basis.num_basis; // 6
   int nbc = confBasis.num_basis; // 2
 
   // fIn: [F_0, T_perp/m G] -> 2 phase blocks.
-  struct gkyl_array *fIn = mkarr(2*nbp, local_ext.volume);
+  struct gkyl_array *fIn = mkarr(2 * nbp, local_ext.volume);
   // bvar volume expansion: 9 conf blocks [bx,by,bz,bxbx,...,bzbz].
-  struct gkyl_array *bvar = mkarr(9*nbc, confLocal_ext.volume);
+  struct gkyl_array *bvar = mkarr(9 * nbc, confLocal_ext.volume);
   // bvar_surf: 2*cdim*4 * Nbasis_surf = 8 * 1 = 8 components.
   struct gkyl_array *bvar_surf = mkarr(8, confLocal_ext.volume);
   // max_b: 2*cdim*Nbasis_surf = 2 components.
@@ -74,13 +72,13 @@ test_div_ppar_uniform_1x1v_p1()
   // Uniform F_0: only the phase cell-average component (index 0 of block 0).
   // Any uniform value gives div = 0; we pick a representative non-zero value.
   gkyl_array_clear(fIn, 0.0);
-  gkyl_array_shiftc(fIn, 1.3, 0);      // F_0 cell-average component
-  gkyl_array_shiftc(fIn, 0.5, nbp);    // G cell-average (unused by div_ppar but realistic)
+  gkyl_array_shiftc(fIn, 1.3, 0); // F_0 cell-average component
+  gkyl_array_shiftc(fIn, 0.5, nbp); // G cell-average (unused by div_ppar but realistic)
 
   // Uniform b = x_hat: bx = 1, bxbx = 1, all else 0 (volume expansion).
   gkyl_array_clear(bvar, 0.0);
-  gkyl_array_shiftc(bvar, sqrt(2.0), 0*nbc);     // bx cell-average physical value 1
-  gkyl_array_shiftc(bvar, sqrt(2.0), 3*nbc);     // bxbx cell-average physical value 1
+  gkyl_array_shiftc(bvar, sqrt(2.0), 0 * nbc); // bx cell-average physical value 1
+  gkyl_array_shiftc(bvar, sqrt(2.0), 3 * nbc); // bxbx cell-average physical value 1
 
   // Surface b expansion: [bx_xl, bx_xr, bxbx_xl, bxbx_xr, ...]; set b = 1 on
   // both surfaces and the surface unit tensor likewise.
@@ -96,8 +94,9 @@ test_div_ppar_uniform_1x1v_p1()
   gkyl_array_shiftc(max_b, 1.0, 1);
 
   gkyl_array_clear(div_ppar, 0.0);
-  gkyl_dg_calc_pkpm_dist_vars_div_ppar(up, &confLocal, &local,
-    bvar_surf, bvar, fIn, max_b, div_ppar);
+  gkyl_dg_calc_pkpm_dist_vars_div_ppar(
+    up, &confLocal, &local, bvar_surf, bvar, fIn, max_b, div_ppar
+  );
 
   // For a uniform state div(p_par b) must be identically zero in every cell
   // and every basis component.
@@ -106,8 +105,9 @@ test_div_ppar_uniform_1x1v_p1()
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&confLocal, iter.idx);
     const double *d = gkyl_array_cfetch(div_ppar, loc);
-    for (int k=0; k<nbc; ++k)
-      TEST_CHECK( gkyl_compare(d[k], 0.0, 1e-12) );
+    for (int k = 0; k < nbc; ++k) {
+      TEST_CHECK(gkyl_compare(d[k], 0.0, 1e-12));
+    }
   }
 
   gkyl_array_release(div_ppar);
@@ -118,11 +118,10 @@ test_div_ppar_uniform_1x1v_p1()
   gkyl_dg_calc_pkpm_dist_vars_release(up);
 }
 
-void
-test_dist_vars_new_2x2v_p1()
+void test_dist_vars_new_2x2v_p1()
 {
   int poly_order = 1;
-  int cdim = 2, vdim = 2, pdim = cdim+vdim;
+  int cdim = 2, vdim = 2, pdim = cdim + vdim;
   double lower[] = {-1.0, -1.0, -2.0, -2.0}, upper[] = {1.0, 1.0, 2.0, 2.0};
   int cells[] = {4, 4, 4, 4};
 
@@ -134,12 +133,12 @@ test_dist_vars_new_2x2v_p1()
 
   struct gkyl_dg_calc_pkpm_dist_vars *up =
     gkyl_dg_calc_pkpm_dist_vars_new(&grid, &confBasis, false);
-  TEST_CHECK( up != NULL );
+  TEST_CHECK(up != NULL);
   gkyl_dg_calc_pkpm_dist_vars_release(up);
 }
 
 TEST_LIST = {
-  { "div_ppar_uniform_1x1v_p1", test_div_ppar_uniform_1x1v_p1 },
-  { "dist_vars_new_2x2v_p1",    test_dist_vars_new_2x2v_p1 },
-  { NULL, NULL },
+  {"div_ppar_uniform_1x1v_p1", test_div_ppar_uniform_1x1v_p1},
+  {"dist_vars_new_2x2v_p1", test_dist_vars_new_2x2v_p1},
+  {NULL, NULL}
 };

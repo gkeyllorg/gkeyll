@@ -81,7 +81,7 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, *phase_range, *phase_ext_range, hamil->on_dev, alpha_surf->on_dev,
     sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev
   );
@@ -125,7 +125,7 @@ void gkyl_canonical_pb_contra_to_covariant_m1i_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, h_ij->on_dev, V_drift->on_dev, M1i->on_dev, V_drift_cov->on_dev,
     M1i_cov->on_dev
   );
@@ -170,7 +170,7 @@ void gkyl_canonical_pb_pressure_cu(
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_canonical_pb_pressure_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_canonical_pb_pressure_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, h_ij_inv->on_dev, MEnergy->on_dev, V_drift->on_dev, M1i->on_dev,
     pressure->on_dev
   );
@@ -221,7 +221,7 @@ gkyl_dg_calc_canonical_pb_vars *gkyl_dg_calc_canonical_pb_vars_cu_dev_new(
     (struct gkyl_dg_calc_canonical_pb_vars *)gkyl_cu_malloc(sizeof(gkyl_dg_calc_canonical_pb_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_canonical_pb_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1, 1>>>(
     up_cu, phase_basis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order
   );
 

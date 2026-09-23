@@ -36,7 +36,7 @@ void skin_surf_from_ghost_choose_kernel_cu(
 )
 {
   // Launch the kernel with a single thread to set the kernel pointers.
-  skin_surf_from_ghost_set_cu_ker_ptrs<<<1, 1> > >(basis, edge, dir, kers);
+  skin_surf_from_ghost_set_cu_ker_ptrs<<<1, 1>>>(basis, edge, dir, kers);
 }
 
 // CUDA kernel to copy ghost cell values to the adjacent skin (boundary) cells on the GPU.
@@ -84,7 +84,7 @@ void skin_surf_from_ghost_advance_cu(
     int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads; // CUDA grid configuration.
 
     // Launch the CUDA kernel to advance the ghost-to-skin update.
-    skin_surf_from_ghost_advance_cu_ker<<<nblocks, nthreads> > >(
+    skin_surf_from_ghost_advance_cu_ker<<<nblocks, nthreads>>>(
       up->dir, up->edge, *up->skin_r, *up->ghost_r, field->on_dev, up->kernels
     );
   }

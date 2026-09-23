@@ -43,7 +43,7 @@ void gkyl_dg_differentiate_op_local_cu(
   struct gkyl_array *out, int c_iop, const struct gkyl_array *inp
 )
 {
-  gkyl_dg_differentiate_op_local_cu_kernel<<<out->nblocks, out->nthreads> > >(
+  gkyl_dg_differentiate_op_local_cu_kernel<<<out->nblocks, out->nthreads>>>(
     *basis, dir, diff_order, dx, c_oop, out->on_dev, c_iop, inp->on_dev
   );
 }
@@ -94,7 +94,7 @@ void gkyl_dg_differentiate_op_local_range_cu(
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_dg_differentiate_op_local_range_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_differentiate_op_local_range_cu_kernel<<<nblocks, nthreads>>>(
     *basis, dir, diff_order, dx, c_oop, out->on_dev, c_iop, inp->on_dev, *range
   );
 }

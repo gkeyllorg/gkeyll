@@ -84,7 +84,7 @@ void gkyl_dg_recomb_coll_cu(
   struct gkyl_array *coef_recomb, struct gkyl_array *cflrate
 )
 {
-  gkyl_recomb_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(
+  gkyl_recomb_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(
     up->on_dev, *up->conf_rng, up->adas_rng, up->basis_on_dev, prim_vars_elc->on_dev,
     coef_recomb->on_dev, up->recomb_data->on_dev, up->mass_elc, up->elem_charge, up->maxLogTe,
     up->minLogTe, up->dlogTe, up->resTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resM0

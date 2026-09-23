@@ -92,7 +92,5 @@ void gkyl_boundary_flux_advance_cu(
 {
   int nblocks = up->ghost_r.nblocks, nthreads = up->ghost_r.nthreads;
 
-  gkyl_boundary_flux_advance_cu_ker<<<nblocks, nthreads> > >(
-    up->on_dev, fIn->on_dev, fluxOut->on_dev
-  );
+  gkyl_boundary_flux_advance_cu_ker<<<nblocks, nthreads>>>(up->on_dev, fIn->on_dev, fluxOut->on_dev);
 }

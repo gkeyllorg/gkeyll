@@ -27,7 +27,7 @@ void gk_pol_den_choose_kernel_cu(
   struct gkyl_gyrokinetic_pol_density_kernels *kernels, struct gkyl_basis cbasis
 )
 {
-  gkyl_gk_pol_den_set_cu_ker_ptrs<<<1, 1> > >(kernels, cbasis);
+  gkyl_gk_pol_den_set_cu_ker_ptrs<<<1, 1>>>(kernels, cbasis);
 }
 
 __global__ static void gkyl_gyrokinetic_pol_density_advance_cu_ker(
@@ -60,7 +60,7 @@ void gkyl_gyrokinetic_pol_density_advance_cu(
 {
   int nblocks = conf_rng->nblocks, nthreads = conf_rng->nthreads;
 
-  gkyl_gyrokinetic_pol_density_advance_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_gyrokinetic_pol_density_advance_cu_ker<<<nblocks, nthreads>>>(
     up->kernels, up->grid, *conf_rng, pol_weight->on_dev, phi->on_dev, npol->on_dev
   );
 }

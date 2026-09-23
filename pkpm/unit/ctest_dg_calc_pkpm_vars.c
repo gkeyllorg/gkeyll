@@ -30,8 +30,7 @@
 #include <gkyl_wv_ten_moment.h>
 #include <gkyl_wave_geom.h>
 
-static struct gkyl_array*
-mkarr(long nc, long size)
+static struct gkyl_array *mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
@@ -39,14 +38,12 @@ mkarr(long nc, long size)
 // Set the cell-average (physical) value of block `blk` (each block has
 // `nb` basis components) to `val` for *every* cell.  For a 1D p1 orthonormal
 // basis psi_0 = 1/sqrt(2), so component 0 must hold val*sqrt(2).
-static void
-set_const_block(struct gkyl_array *arr, int blk, int nb, double val)
+static void set_const_block(struct gkyl_array *arr, int blk, int nb, double val)
 {
-  gkyl_array_shiftc(arr, val*sqrt(2.0), blk*nb);
+  gkyl_array_shiftc(arr, val * sqrt(2.0), blk * nb);
 }
 
-void
-test_pressure_1x_p1()
+void test_pressure_1x_p1()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -67,14 +64,14 @@ test_pressure_1x_p1()
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, false);
   struct gkyl_wave_geom *geom = gkyl_wave_geom_new(&grid, &local_ext, 0, 0, false);
 
-  struct gkyl_dg_calc_pkpm_vars *up = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis,
-    &local, eqn, geom, 0.0, false);
+  struct gkyl_dg_calc_pkpm_vars *up =
+    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, eqn, geom, 0.0, false);
 
   // vlasov_pkpm_moms = [rho, p_par, p_perp] (3 blocks).
-  struct gkyl_array *moms = mkarr(3*nb, local_ext.volume);
+  struct gkyl_array *moms = mkarr(3 * nb, local_ext.volume);
   // bvar = [bx, by, bz, bxbx, bxby, bxbz, byby, bybz, bzbz] (9 blocks).
-  struct gkyl_array *bvar = mkarr(9*nb, local_ext.volume);
-  struct gkyl_array *p_ij = mkarr(6*nb, local_ext.volume);
+  struct gkyl_array *bvar = mkarr(9 * nb, local_ext.volume);
+  struct gkyl_array *p_ij = mkarr(6 * nb, local_ext.volume);
 
   double rho = 2.0, p_par = 3.5, p_perp = 1.25;
   gkyl_array_clear(moms, 0.0);
@@ -96,14 +93,14 @@ test_pressure_1x_p1()
     long loc = gkyl_range_idx(&local, iter.idx);
     const double *P = gkyl_array_cfetch(p_ij, loc);
     // Block layout: Pxx(0), Pxy(1), Pxz(2), Pyy(3), Pyz(4), Pzz(5).
-    double Pxx = P[0*nb]/s2, Pxy = P[1*nb]/s2, Pxz = P[2*nb]/s2;
-    double Pyy = P[3*nb]/s2, Pyz = P[4*nb]/s2, Pzz = P[5*nb]/s2;
-    TEST_CHECK( gkyl_compare(Pxx, p_par,  1e-12) );
-    TEST_CHECK( gkyl_compare(Pyy, p_perp, 1e-12) );
-    TEST_CHECK( gkyl_compare(Pzz, p_perp, 1e-12) );
-    TEST_CHECK( gkyl_compare(Pxy, 0.0,    1e-12) );
-    TEST_CHECK( gkyl_compare(Pxz, 0.0,    1e-12) );
-    TEST_CHECK( gkyl_compare(Pyz, 0.0,    1e-12) );
+    double Pxx = P[0 * nb] / s2, Pxy = P[1 * nb] / s2, Pxz = P[2 * nb] / s2;
+    double Pyy = P[3 * nb] / s2, Pyz = P[4 * nb] / s2, Pzz = P[5 * nb] / s2;
+    TEST_CHECK(gkyl_compare(Pxx, p_par, 1e-12));
+    TEST_CHECK(gkyl_compare(Pyy, p_perp, 1e-12));
+    TEST_CHECK(gkyl_compare(Pzz, p_perp, 1e-12));
+    TEST_CHECK(gkyl_compare(Pxy, 0.0, 1e-12));
+    TEST_CHECK(gkyl_compare(Pxz, 0.0, 1e-12));
+    TEST_CHECK(gkyl_compare(Pyz, 0.0, 1e-12));
   }
 
   gkyl_array_release(p_ij);
@@ -114,8 +111,7 @@ test_pressure_1x_p1()
   gkyl_wv_eqn_release(eqn);
 }
 
-void
-test_u_1x_p1()
+void test_u_1x_p1()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -137,15 +133,15 @@ test_u_1x_p1()
   struct gkyl_wave_geom *geom = gkyl_wave_geom_new(&grid, &local_ext, 0, 0, false);
 
   // Updater built over local (this is the mem_range used for the u solve).
-  struct gkyl_dg_calc_pkpm_vars *up = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis,
-    &local, eqn, geom, 0.0, false);
+  struct gkyl_dg_calc_pkpm_vars *up =
+    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, eqn, geom, 0.0, false);
 
-  struct gkyl_array *moms = mkarr(3*nb, local_ext.volume);
-  struct gkyl_array *euler = mkarr(3*nb, local_ext.volume); // [rhoux, rhouy, rhouz]
-  struct gkyl_array *pkpm_u = mkarr(3*nb, local_ext.volume);
+  struct gkyl_array *moms = mkarr(3 * nb, local_ext.volume);
+  struct gkyl_array *euler = mkarr(3 * nb, local_ext.volume); // [rhoux, rhouy, rhouz]
+  struct gkyl_array *pkpm_u = mkarr(3 * nb, local_ext.volume);
   struct gkyl_array *cell_avg_prim = gkyl_array_new(GKYL_INT, 1, local_ext.volume);
   // Int array: zero it via memset (gkyl_array_clear only supports GKYL_DOUBLE).
-  memset(cell_avg_prim->data, 0, cell_avg_prim->size*cell_avg_prim->esznc);
+  memset(cell_avg_prim->data, 0, cell_avg_prim->size * cell_avg_prim->esznc);
 
   double rho = 4.0;
   double rhoux = 6.0, rhouy = -2.0, rhouz = 10.0;
@@ -160,20 +156,20 @@ test_u_1x_p1()
   gkyl_array_clear(pkpm_u, 0.0);
   gkyl_dg_calc_pkpm_vars_u(up, moms, euler, cell_avg_prim, pkpm_u);
 
-  double ux_exp = rhoux/rho, uy_exp = rhouy/rho, uz_exp = rhouz/rho;
+  double ux_exp = rhoux / rho, uy_exp = rhouy / rho, uz_exp = rhouz / rho;
   double s2 = sqrt(2.0);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&local, iter.idx);
     const double *u = gkyl_array_cfetch(pkpm_u, loc);
-    TEST_CHECK( gkyl_compare(u[0*nb]/s2, ux_exp, 1e-12) );
-    TEST_CHECK( gkyl_compare(u[1*nb]/s2, uy_exp, 1e-12) );
-    TEST_CHECK( gkyl_compare(u[2*nb]/s2, uz_exp, 1e-12) );
+    TEST_CHECK(gkyl_compare(u[0 * nb] / s2, ux_exp, 1e-12));
+    TEST_CHECK(gkyl_compare(u[1 * nb] / s2, uy_exp, 1e-12));
+    TEST_CHECK(gkyl_compare(u[2 * nb] / s2, uz_exp, 1e-12));
     // Slopes should vanish for a uniform field.
-    TEST_CHECK( gkyl_compare(u[0*nb+1], 0.0, 1e-12) );
-    TEST_CHECK( gkyl_compare(u[1*nb+1], 0.0, 1e-12) );
-    TEST_CHECK( gkyl_compare(u[2*nb+1], 0.0, 1e-12) );
+    TEST_CHECK(gkyl_compare(u[0 * nb + 1], 0.0, 1e-12));
+    TEST_CHECK(gkyl_compare(u[1 * nb + 1], 0.0, 1e-12));
+    TEST_CHECK(gkyl_compare(u[2 * nb + 1], 0.0, 1e-12));
   }
 
   gkyl_array_release(cell_avg_prim);
@@ -185,8 +181,7 @@ test_u_1x_p1()
   gkyl_wv_eqn_release(eqn);
 }
 
-void
-test_integrated_vars_1x_p1()
+void test_integrated_vars_1x_p1()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -207,17 +202,17 @@ test_integrated_vars_1x_p1()
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, false);
   struct gkyl_wave_geom *geom = gkyl_wave_geom_new(&grid, &local_ext, 0, 0, false);
 
-  struct gkyl_dg_calc_pkpm_vars *up = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis,
-    &local, eqn, geom, 0.0, false);
+  struct gkyl_dg_calc_pkpm_vars *up =
+    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, eqn, geom, 0.0, false);
 
-  struct gkyl_array *moms = mkarr(3*nb, local_ext.volume);
-  struct gkyl_array *euler = mkarr(3*nb, local_ext.volume);
-  struct gkyl_array *prim = mkarr(9*nb, local_ext.volume); // [ux,uy,uz,...]
+  struct gkyl_array *moms = mkarr(3 * nb, local_ext.volume);
+  struct gkyl_array *euler = mkarr(3 * nb, local_ext.volume);
+  struct gkyl_array *prim = mkarr(9 * nb, local_ext.volume); // [ux,uy,uz,...]
   struct gkyl_array *int_vars = mkarr(9, local_ext.volume);
 
   double rho = 4.0, p_par = 3.0, p_perp = 1.5;
   double ux = 1.5, uy = -0.5, uz = 2.0;
-  double rhoux = rho*ux, rhouy = rho*uy, rhouz = rho*uz;
+  double rhoux = rho * ux, rhouy = rho * uy, rhouz = rho * uz;
 
   gkyl_array_clear(moms, 0.0);
   set_const_block(moms, 0, nb, rho);
@@ -246,15 +241,15 @@ test_integrated_vars_1x_p1()
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&local, iter.idx);
     const double *I = gkyl_array_cfetch(int_vars, loc);
-    TEST_CHECK( gkyl_compare(I[0], rho,        1e-12) );
-    TEST_CHECK( gkyl_compare(I[1], rhoux,      1e-12) );
-    TEST_CHECK( gkyl_compare(I[2], rhouy,      1e-12) );
-    TEST_CHECK( gkyl_compare(I[3], rhouz,      1e-12) );
-    TEST_CHECK( gkyl_compare(I[4], rhoux*ux,   1e-12) );
-    TEST_CHECK( gkyl_compare(I[5], rhouy*uy,   1e-12) );
-    TEST_CHECK( gkyl_compare(I[6], rhouz*uz,   1e-12) );
-    TEST_CHECK( gkyl_compare(I[7], p_par,      1e-12) );
-    TEST_CHECK( gkyl_compare(I[8], p_perp,     1e-12) );
+    TEST_CHECK(gkyl_compare(I[0], rho, 1e-12));
+    TEST_CHECK(gkyl_compare(I[1], rhoux, 1e-12));
+    TEST_CHECK(gkyl_compare(I[2], rhouy, 1e-12));
+    TEST_CHECK(gkyl_compare(I[3], rhouz, 1e-12));
+    TEST_CHECK(gkyl_compare(I[4], rhoux * ux, 1e-12));
+    TEST_CHECK(gkyl_compare(I[5], rhouy * uy, 1e-12));
+    TEST_CHECK(gkyl_compare(I[6], rhouz * uz, 1e-12));
+    TEST_CHECK(gkyl_compare(I[7], p_par, 1e-12));
+    TEST_CHECK(gkyl_compare(I[8], p_perp, 1e-12));
   }
 
   gkyl_array_release(int_vars);
@@ -266,8 +261,7 @@ test_integrated_vars_1x_p1()
   gkyl_wv_eqn_release(eqn);
 }
 
-void
-test_source_1x_p1()
+void test_source_1x_p1()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -288,14 +282,14 @@ test_source_1x_p1()
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, false);
   struct gkyl_wave_geom *geom = gkyl_wave_geom_new(&grid, &local_ext, 0, 0, false);
 
-  struct gkyl_dg_calc_pkpm_vars *up = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis,
-    &local, eqn, geom, 0.0, false);
+  struct gkyl_dg_calc_pkpm_vars *up =
+    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, eqn, geom, 0.0, false);
 
   // qmem = q/m*[Ex,Ey,Ez,Bx,By,Bz,phi,psi] (8 blocks).
-  struct gkyl_array *qmem = mkarr(8*nb, local_ext.volume);
-  struct gkyl_array *moms = mkarr(3*nb, local_ext.volume);
-  struct gkyl_array *euler = mkarr(3*nb, local_ext.volume);
-  struct gkyl_array *rhs = mkarr(3*nb, local_ext.volume);
+  struct gkyl_array *qmem = mkarr(8 * nb, local_ext.volume);
+  struct gkyl_array *moms = mkarr(3 * nb, local_ext.volume);
+  struct gkyl_array *euler = mkarr(3 * nb, local_ext.volume);
+  struct gkyl_array *rhs = mkarr(3 * nb, local_ext.volume);
 
   // Choose B along z only, E along x only, so source = rho*E + rhou x B.
   double rho = 3.0;
@@ -326,9 +320,9 @@ test_source_1x_p1()
   //   out_x = rho*Ex + (rhouy*Bz - rhouz*By)
   //   out_y = rho*Ey + (rhouz*Bx - rhoux*Bz)
   //   out_z = rho*Ez + (rhoux*By - rhouy*Bx)
-  double sx = rho*Ex + (rhouy*Bz - rhouz*By);
-  double sy = rho*Ey + (rhouz*Bx - rhoux*Bz);
-  double sz = rho*Ez + (rhoux*By - rhouy*Bx);
+  double sx = rho * Ex + (rhouy * Bz - rhouz * By);
+  double sy = rho * Ey + (rhouz * Bx - rhoux * Bz);
+  double sz = rho * Ez + (rhoux * By - rhouy * Bx);
   double s2 = sqrt(2.0);
 
   struct gkyl_range_iter iter;
@@ -336,9 +330,9 @@ test_source_1x_p1()
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&local, iter.idx);
     const double *o = gkyl_array_cfetch(rhs, loc);
-    TEST_CHECK( gkyl_compare(o[0*nb]/s2, sx, 1e-12) );
-    TEST_CHECK( gkyl_compare(o[1*nb]/s2, sy, 1e-12) );
-    TEST_CHECK( gkyl_compare(o[2*nb]/s2, sz, 1e-12) );
+    TEST_CHECK(gkyl_compare(o[0 * nb] / s2, sx, 1e-12));
+    TEST_CHECK(gkyl_compare(o[1 * nb] / s2, sy, 1e-12));
+    TEST_CHECK(gkyl_compare(o[2 * nb] / s2, sz, 1e-12));
   }
 
   gkyl_array_release(rhs);
@@ -351,9 +345,9 @@ test_source_1x_p1()
 }
 
 TEST_LIST = {
-  { "pressure_1x_p1",        test_pressure_1x_p1 },
-  { "u_1x_p1",               test_u_1x_p1 },
-  { "integrated_vars_1x_p1", test_integrated_vars_1x_p1 },
-  { "source_1x_p1",          test_source_1x_p1 },
-  { NULL, NULL },
+  {"pressure_1x_p1", test_pressure_1x_p1},
+  {"u_1x_p1", test_u_1x_p1},
+  {"integrated_vars_1x_p1", test_integrated_vars_1x_p1},
+  {"source_1x_p1", test_source_1x_p1},
+  {NULL, NULL}
 };

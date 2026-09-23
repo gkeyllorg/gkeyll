@@ -45,7 +45,7 @@ void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim, int poly_
   // "type" field can't be done on the device
   gkyl_cu_memcpy(basis, &ho_basis, sizeof(struct gkyl_basis), GKYL_CU_MEMCPY_H2D);
 
-  gkyl_cart_modal_tensor_cu_dev_kern<<<1, 1> > >(basis, ndim, poly_order);
+  gkyl_cart_modal_tensor_cu_dev_kern<<<1, 1>>>(basis, ndim, poly_order);
 }
 
 struct gkyl_basis *gkyl_cart_modal_tensor_cu_dev_new(int ndim, int poly_order)

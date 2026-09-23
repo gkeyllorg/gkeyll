@@ -134,7 +134,7 @@ void gkyl_gk_collisionless_passive_flux_surf_cu(
 )
 {
   gkyl_gk_collisionless_passive_flux_surf_conf_cu_kernel<<<
-    phase_range->volume, GKYL_DEFAULT_NUM_THREADS> > >(
+    phase_range->volume, GKYL_DEFAULT_NUM_THREADS>>>(
     up->on_dev, *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, fin->on_dev,
     flux_surf->on_dev, cflrate->on_dev
   );
@@ -212,7 +212,7 @@ gkyl_gk_collisionless_passive_flux *gkyl_gk_collisionless_passive_flux_cu_dev_ne
     (struct gkyl_gk_collisionless_passive_flux *)gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(*up), GKYL_CU_MEMCPY_H2D);
 
-  gk_collisionless_passive_flux_set_cu_dev_ptrs<<<1, 1> > >(
+  gk_collisionless_passive_flux_set_cu_dev_ptrs<<<1, 1>>>(
     up_cu, cdim, vdim, poly_order, bctype_conf_dev
   );
 

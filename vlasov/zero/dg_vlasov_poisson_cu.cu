@@ -26,7 +26,7 @@ void gkyl_vlasov_poisson_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin
 )
 {
-  gkyl_vlasov_poisson_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_vlasov_poisson_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.potentials->on_dev, auxin.fields_ext->on_dev
   );
 }
@@ -161,7 +161,7 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_poisson_cu_dev_new(
     (struct dg_vlasov_poisson *)gkyl_cu_malloc(sizeof(struct dg_vlasov_poisson));
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov_poisson), GKYL_CU_MEMCPY_H2D);
 
-  dg_vlasov_poisson_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_vlasov_poisson_set_cu_dev_ptrs<<<1, 1>>>(
     vlasov_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order, model_id, field_id
   );
 

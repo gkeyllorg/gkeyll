@@ -52,7 +52,7 @@ struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker_cu(
     eval_dirs_st.c[i] = eval_dirs[i];
   }
 
-  dg_eval_at_coord_choose_ker_cu_ker<<<1, 1> > >(
+  dg_eval_at_coord_choose_ker_cu_ker<<<1, 1>>>(
     cdim, ndim, *basis, num_eval_dirs, eval_dirs_st, kers
   );
 
@@ -130,7 +130,7 @@ void gkyl_dg_eval_at_coord_proj_advance_cu(
   int nblocks = rng_tar->nblocks;
   int nthreads = rng_tar->nthreads;
 
-  dg_eval_at_coord_proj_range_cu_kernel<<<nblocks, nthreads> > >(
+  dg_eval_at_coord_proj_range_cu_kernel<<<nblocks, nthreads>>>(
     up->num_basis_do, num_basis_tar, ncomp, is_eval, eval_coords_log, cell_idx, up->kers, *rng_do,
     *rng_tar, fdo->on_dev, ftar->on_dev
   );

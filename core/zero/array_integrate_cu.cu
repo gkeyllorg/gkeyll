@@ -71,7 +71,7 @@ struct gkyl_array_integrate *gkyl_array_integrate_cu_dev_new(
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_array_integrate), GKYL_CU_MEMCPY_H2D);
 
   // Set the kernel.
-  gkyl_array_integrate_set_ker_cu<<<1, 1> > >(up_cu, op, *basis);
+  gkyl_array_integrate_set_ker_cu<<<1, 1>>>(up_cu, op, *basis);
 
   up->on_dev = up_cu;
 
@@ -151,7 +151,7 @@ void gkyl_array_integrate_advance_cu(
     weight_on_dev = weight->on_dev;
     weight_range_copy = *weight_range;
   }
-  array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads> > >(
+  array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(
     up->on_dev, fin->on_dev, factor, weight_on_dev, *range, weight_range_copy, out
   );
   // device synchronize required because out may be host pinned memory
