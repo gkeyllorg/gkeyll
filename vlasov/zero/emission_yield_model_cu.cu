@@ -55,7 +55,7 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_cu_dev_new(
     model_cu, model, sizeof(struct gkyl_emission_yield_furman_pivi), GKYL_CU_MEMCPY_H2D
   );
 
-  furman_pivi_set_cu_dev_ptrs<<<1, 1> > >(model_cu);
+  furman_pivi_set_cu_dev_ptrs<<<1, 1>>>(model_cu);
 
   model->yield.on_dev = &model_cu->yield;
 
@@ -85,7 +85,7 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_schou_cu_dev_new(
     (struct gkyl_emission_yield_schou *)gkyl_cu_malloc(sizeof(struct gkyl_emission_yield_schou));
   gkyl_cu_memcpy(model_cu, model, sizeof(struct gkyl_emission_yield_schou), GKYL_CU_MEMCPY_H2D);
 
-  schou_set_cu_dev_ptrs<<<1, 1> > >(model_cu);
+  schou_set_cu_dev_ptrs<<<1, 1>>>(model_cu);
 
   model->yield.on_dev = &model_cu->yield;
 
@@ -119,7 +119,7 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_schou_srim_cu_dev_new(
     gkyl_cu_malloc(sizeof(struct gkyl_emission_yield_schou_srim));
   gkyl_cu_memcpy(model_cu, model, sizeof(struct gkyl_emission_yield_schou_srim), GKYL_CU_MEMCPY_H2D);
 
-  schou_srim_set_cu_dev_ptrs<<<1, 1> > >(model_cu);
+  schou_srim_set_cu_dev_ptrs<<<1, 1>>>(model_cu);
 
   model->yield.on_dev = &model_cu->yield;
 
@@ -144,7 +144,7 @@ gkyl_emission_yield_constant_cu_dev_new(double charge, double delta)
     ));
   gkyl_cu_memcpy(model_cu, model, sizeof(struct gkyl_emission_yield_constant), GKYL_CU_MEMCPY_H2D);
 
-  constant_set_cu_dev_ptrs<<<1, 1> > >(model_cu);
+  constant_set_cu_dev_ptrs<<<1, 1>>>(model_cu);
 
   model->yield.on_dev = &model_cu->yield;
 

@@ -31,7 +31,7 @@ void gkyl_vlasov_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin
 )
 {
-  gkyl_vlasov_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_vlasov_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.field ? auxin.field->on_dev : 0, auxin.cot_vec ? auxin.cot_vec->on_dev : 0,
     auxin.alpha_surf ? auxin.alpha_surf->on_dev : 0,
     auxin.sgn_alpha_surf ? auxin.sgn_alpha_surf->on_dev : 0,
@@ -185,7 +185,7 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_cu_dev_new(
   struct dg_vlasov *vlasov_cu = (struct dg_vlasov *)gkyl_cu_malloc(sizeof(struct dg_vlasov));
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov), GKYL_CU_MEMCPY_H2D);
 
-  dg_vlasov_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_vlasov_set_cu_dev_ptrs<<<1, 1>>>(
     vlasov_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order, model_id, field_id
   );
 

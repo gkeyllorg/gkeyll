@@ -75,7 +75,7 @@ void gkyl_mom_calc_bcorr_advance_cu(
     nblocks = vel_rng.nblocks;
     nthreads = vel_rng.nthreads;
 
-    gkyl_mom_calc_bcorr_advance_cu_ker<<<nblocks, nthreads> > >(
+    gkyl_mom_calc_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(
       bcorr->on_dev, *conf_rng, vel_rng, edge, fin->on_dev, out->on_dev
     );
 
@@ -86,7 +86,7 @@ void gkyl_mom_calc_bcorr_advance_cu(
     nblocks = vel_rng.nblocks;
     nthreads = vel_rng.nthreads;
 
-    gkyl_mom_calc_bcorr_advance_cu_ker<<<nblocks, nthreads> > >(
+    gkyl_mom_calc_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(
       bcorr->on_dev, *conf_rng, vel_rng, edge, fin->on_dev, out->on_dev
     );
 

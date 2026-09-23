@@ -133,6 +133,13 @@ After configuring runregression, and having generated accepted results with
 `runregression run create`, one may check the test using `runregression run check`. Note that the
 flag `-r` allows check a specific test or set of tests.
 
+The runregression tool produces SQL databases that may be examined with the `queryrdb` command,
+see
+
+```sh
+<gkeyll_install_prefix>/bin/gkeyll queryrdb -h
+```
+
 # Memory checks
 
 All code must be free of memory errors and leaks. Run the relevant CPU test
@@ -153,4 +160,5 @@ or hardware and distinguish completed checks from checks that could not run.
 
 # Gkeyll CI system
 
-Gkeyll has a CI system based on Jenkins which calls the aforementioned existing functionality to run unit and regression tests. See ci/jenkins/README.md for more details.
+Gkeyll has a CI system based on Jenkins which calls the aforementioned existing functionality to run
+unit and regression tests. See ci/jenkins/README.md for more details.

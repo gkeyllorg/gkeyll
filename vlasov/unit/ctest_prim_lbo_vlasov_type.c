@@ -6,25 +6,25 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 
-static void
-check_prim(struct gkyl_prim_lbo_type *prim, int cdim, int pdim, int poly_order,
-  int num_config, int num_phase, int udim)
+static void check_prim(
+  struct gkyl_prim_lbo_type *prim, int cdim, int pdim, int poly_order, int num_config,
+  int num_phase, int udim
+)
 {
-  TEST_CHECK( prim->cdim == cdim );
-  TEST_CHECK( prim->pdim == pdim );
-  TEST_CHECK( prim->poly_order == poly_order );
-  TEST_CHECK( prim->num_config == num_config );
-  TEST_CHECK( prim->num_phase == num_phase );
-  TEST_CHECK( prim->udim == udim );
-  TEST_CHECK( prim->self_prim != 0 );
-  TEST_CHECK( prim->cross_prim != 0 );
-  TEST_CHECK( prim->on_dev == prim );
+  TEST_CHECK(prim->cdim == cdim);
+  TEST_CHECK(prim->pdim == pdim);
+  TEST_CHECK(prim->poly_order == poly_order);
+  TEST_CHECK(prim->num_config == num_config);
+  TEST_CHECK(prim->num_phase == num_phase);
+  TEST_CHECK(prim->udim == udim);
+  TEST_CHECK(prim->self_prim != 0);
+  TEST_CHECK(prim->cross_prim != 0);
+  TEST_CHECK(prim->on_dev == prim);
 }
 
-void
-test_prim_1x1v()
+void test_prim_1x1v()
 {
-  int cdim = 1, vdim = 1, pdim = cdim+vdim;
+  int cdim = 1, vdim = 1, pdim = cdim + vdim;
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, cdim, poly_order);
@@ -37,10 +37,9 @@ test_prim_1x1v()
   gkyl_prim_lbo_type_release(prim);
 }
 
-void
-test_prim_1x2v()
+void test_prim_1x2v()
 {
-  int cdim = 1, vdim = 2, pdim = cdim+vdim;
+  int cdim = 1, vdim = 2, pdim = cdim + vdim;
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, cdim, poly_order);
@@ -52,10 +51,9 @@ test_prim_1x2v()
   gkyl_prim_lbo_type_release(prim);
 }
 
-void
-test_prim_1x3v()
+void test_prim_1x3v()
 {
-  int cdim = 1, vdim = 3, pdim = cdim+vdim;
+  int cdim = 1, vdim = 3, pdim = cdim + vdim;
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, cdim, poly_order);
@@ -67,10 +65,9 @@ test_prim_1x3v()
   gkyl_prim_lbo_type_release(prim);
 }
 
-void
-test_prim_2x2v()
+void test_prim_2x2v()
 {
-  int cdim = 2, vdim = 2, pdim = cdim+vdim;
+  int cdim = 2, vdim = 2, pdim = cdim + vdim;
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, cdim, poly_order);
@@ -83,9 +80,9 @@ test_prim_2x2v()
 }
 
 TEST_LIST = {
-  { "prim_1x1v", test_prim_1x1v },
-  { "prim_1x2v", test_prim_1x2v },
-  { "prim_1x3v", test_prim_1x3v },
-  { "prim_2x2v", test_prim_2x2v },
-  { NULL, NULL },
+  {"prim_1x1v", test_prim_1x1v},
+  {"prim_1x2v", test_prim_1x2v},
+  {"prim_1x3v", test_prim_1x3v},
+  {"prim_2x2v", test_prim_2x2v},
+  {NULL, NULL}
 };

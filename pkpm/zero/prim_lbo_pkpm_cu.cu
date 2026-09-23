@@ -69,7 +69,7 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_cu_dev_new(
     (struct prim_lbo_type_pkpm *)gkyl_cu_malloc(sizeof(struct prim_lbo_type_pkpm));
   gkyl_cu_memcpy(prim_pkpm_cu, prim_pkpm, sizeof(struct prim_lbo_type_pkpm), GKYL_CU_MEMCPY_H2D);
 
-  gkyl_prim_lbo_pkpm_set_cu_dev_ptrs<<<1, 1> > >(prim_pkpm_cu, cbasis->b_type, cdim, poly_order);
+  gkyl_prim_lbo_pkpm_set_cu_dev_ptrs<<<1, 1>>>(prim_pkpm_cu, cbasis->b_type, cdim, poly_order);
 
   prim_pkpm->prim.on_dev = &prim_pkpm_cu->prim;
 

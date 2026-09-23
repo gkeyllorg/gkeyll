@@ -53,7 +53,7 @@ void gkyl_dg_cx_coll_cu(
   struct gkyl_array *cflrate
 )
 {
-  gkyl_cx_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads> > >(
+  gkyl_cx_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(
     up->on_dev, *up->conf_rng, maxwellian_moms_ion->on_dev, maxwellian_moms_neut->on_dev,
     upar_b_i->on_dev, up->vt_sq_ion_min, up->vt_sq_neut_min, coef_cx->on_dev, up->a, up->b
   );
@@ -77,7 +77,7 @@ gkyl_dg_cx *gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp)
   struct gkyl_dg_cx *up_cu = (struct gkyl_dg_cx *)gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_cx), GKYL_CU_MEMCPY_H2D);
 
-  gkyl_dg_cx_set_cu_dev_ptrs<<<1, 1> > >(up_cu, *up->cbasis);
+  gkyl_dg_cx_set_cu_dev_ptrs<<<1, 1>>>(up_cu, *up->cbasis);
 
   // Set parent on_dev pointer.
   up->on_dev = up_cu;

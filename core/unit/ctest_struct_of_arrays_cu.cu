@@ -85,7 +85,7 @@ void test_array_container_accumulate_dev_assign_cu(
 {
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
-  ker_cu_array_container_accumulate_dev_assign<<<nblocks, nthreads> > >(num_containers, acs1, acs2);
+  ker_cu_array_container_accumulate_dev_assign<<<nblocks, nthreads>>>(num_containers, acs1, acs2);
 }
 
 __global__ void ker_cu_array_container_accumulate_dev_accumulate(
@@ -109,7 +109,7 @@ void test_array_container_accumulate_dev_accumulate_cu(
 {
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
-  ker_cu_array_container_accumulate_dev_accumulate<<<nblocks, nthreads> > >(
+  ker_cu_array_container_accumulate_dev_accumulate<<<nblocks, nthreads>>>(
     num_containers, acs1, a, acs2
   );
 }
@@ -135,7 +135,7 @@ int test_array_container_accumulate_dev_check_cu(
 
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
-  ker_cu_array_container_accumulate_dev_check<<<nblocks, nthreads> > >(
+  ker_cu_array_container_accumulate_dev_check<<<nblocks, nthreads>>>(
     num_containers, acs1, nfail_dev
   );
 
@@ -178,7 +178,7 @@ void test_array_bag_accumulate_dev_assign_cu(
 {
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
-  ker_cu_array_bag_accumulate_dev_assign<<<nblocks, nthreads> > >(num_arrays, innerbag1, innerbag2);
+  ker_cu_array_bag_accumulate_dev_assign<<<nblocks, nthreads>>>(num_arrays, innerbag1, innerbag2);
 }
 
 __global__ void ker_cu_array_bag_accumulate_dev_accumulate(
@@ -207,7 +207,7 @@ void test_array_bag_accumulate_dev_accumulate_cu(
 {
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
-  ker_cu_array_bag_accumulate_dev_accumulate<<<nblocks, nthreads> > >(
+  ker_cu_array_bag_accumulate_dev_accumulate<<<nblocks, nthreads>>>(
     num_bags, innerbag1, a, innerbag2
   );
 }
@@ -233,7 +233,7 @@ int test_array_bag_accumulate_dev_check_cu(
 
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(arr_size * arr_ncomp, nthreads);
-  ker_cu_array_bag_accumulate_dev_check<<<nblocks, nthreads> > >(num_bags, innerbag1, nfail_dev);
+  ker_cu_array_bag_accumulate_dev_check<<<nblocks, nthreads>>>(num_bags, innerbag1, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);

@@ -7,6 +7,7 @@
 set -euo pipefail
 
 readonly SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename -- "${BASH_SOURCE[0]}")"
+readonly SCRIPT_DIR="${SCRIPT_PATH%/*}"
 readonly DEFAULT_JAVA_HOME=/usr/lib/jvm/java-21-openjdk-21.0.12.1.1-1.1.el8.x86_64
 
 CI_ROOT="${GKEYLL_CI_ROOT:-/scratch/gpfs/${USER:?USER must be set}/gkeyll_ci}"
@@ -25,6 +26,8 @@ CURL_CONFIG=''
 SUBMITTED_QUEUE_ID=''
 RESOLVED_BUILD_NUMBER=''
 
+source "$SCRIPT_DIR/jenkins-client-artifacts.sh"
+
 die() {
     echo "ERROR: $*" >&2
     exit 1
@@ -36,18 +39,15 @@ Usage:
   jenkins-stellar_cpu.sh <command> [flags]
 
 Commands:
-  start                                      Start Jenkins in detached tmux.
-  run --pr NUMBER [--follow]                 Queue a GitHub pull-request build.
-  run --candidate-ref REF --baseline-ref REF [--follow]
-                                             Queue a branch or commit comparison.
-  active                                     List this job's queued and running work.
-  recent [--limit NUMBER]                    List retained builds (default: 10).
-  status --queue ID                          Show a queued build's current state.
-  status --build NUMBER                      Show a known build's current state.
-  follow --queue ID                          Wait for and stream a queued build.
-  follow --build NUMBER                      Stream a known Jenkins build.
-  abort --queue ID                           Cancel a queued Jenkins build.
-  abort --build NUMBER                       Abort a running Jenkins build.
+  start    Start Jenkins in detached tmux.
+  run      Queue a pull-request or comparison build.
+  active   List this job's queued and running work.
+  recent   List retained builds.
+  info     Show detailed information for a retained build.
+  artifact List or download retained build artifacts.
+  status   Show a queued or known build's state.
+  follow   Wait for and stream the console of a queued or known build.
+  abort    Cancel a queued or running build.
 
 The run command returns after Jenkins accepts the request. --follow streams
 the build console and returns its final Jenkins result. Press Ctrl-C to stop
@@ -57,6 +57,83 @@ GKEYLL_CI_ROOT defaults to /scratch/gpfs/$USER/gkeyll_ci. The Jenkins API
 credential file defaults to $JENKINS_HOME/jenkins-cli.auth and must contain
 one line in the form: jenkins-user:api-token
 EOF
+}
+
+command_usage() {
+    local script='jenkins-stellar_cpu.sh'
+    case "$1" in
+        start) cat <<EOF
+Usage: $script start
+
+This command takes no options.
+EOF
+        ;;
+        run) cat <<EOF
+Usage: $script run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--follow]
+
+Flags:
+  --pr NUMBER           Build GitHub pull request NUMBER.
+  --candidate-ref REF   Candidate branch or commit; requires --baseline-ref.
+  --baseline-ref REF    Baseline branch or commit; requires --candidate-ref.
+  --follow              Stream the build console after Jenkins queues it.
+EOF
+        ;;
+        active) cat <<EOF
+Usage: $script active
+
+This command takes no options.
+EOF
+        ;;
+        recent) cat <<EOF
+Usage: $script recent [--limit NUMBER]
+
+Flags:
+  --limit NUMBER        Number of retained builds to list (default: 10).
+EOF
+        ;;
+        status) cat <<EOF
+Usage: $script status (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Inspect a Jenkins queue item.
+  --build NUMBER        Inspect a known Jenkins build.
+EOF
+        ;;
+        info) cat <<EOF
+Usage: $script info --build NUMBER
+
+Flags:
+  --build NUMBER        Show detailed information for a retained Jenkins build.
+EOF
+        ;;
+        artifact) cat <<EOF
+Usage: $script artifact --build NUMBER [--list | --fetch [--only PATH[,PATH...]] [--output-dir DIR]]
+
+Flags:
+  --build NUMBER        Select a retained Jenkins build.
+  --list                List artifacts (the default).
+  --fetch               Download artifacts.
+  --only PATHS          Comma-separated artifact-relative paths to download.
+  --output-dir DIR      New directory for downloaded artifacts.
+EOF
+        ;;
+        follow) cat <<EOF
+Usage: $script follow (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Wait for this queue item, then stream its build.
+  --build NUMBER        Stream this known Jenkins build.
+EOF
+        ;;
+        abort) cat <<EOF
+Usage: $script abort (--queue ID | --build NUMBER)
+
+Flags:
+  --queue ID            Cancel this Jenkins queue item.
+  --build NUMBER        Abort this running Jenkins build.
+EOF
+        ;;
+    esac
 }
 
 prepare_paths() {
@@ -190,6 +267,10 @@ for build in json.load(sys.stdin).get("builds", []):
         print(build["number"])
         break
 ' "$queue_id" <<< "$payload"
+}
+
+ci_build_url() {
+    printf '%s/job/%s/%s' "$JENKINS_URL" "$JENKINS_JOB" "$1"
 }
 
 build_state() {
@@ -538,6 +619,9 @@ recent_command() {
 
 main() {
     (($# >= 1)) || { usage; exit 2; }
+    if (($# == 2)) && [[ "$2" == -h || "$2" == --help ]]; then
+        case "$1" in start|run|active|recent|info|artifact|status|follow|abort) command_usage "$1"; return;; esac
+    fi
     case "$1" in
         __controller) shift; (($# == 0)) || die '__controller takes no arguments'; run_controller ;;
         start) shift; (($# == 0)) || die 'start takes no arguments'; start_controller ;;
@@ -547,6 +631,8 @@ main() {
         abort) shift; abort_command "$@" ;;
         active) shift; active_command "$@" ;;
         recent) shift; recent_command "$@" ;;
+        info) shift; start_controller; prepare_auth; ci_info_command "$@" ;;
+        artifact) shift; start_controller; prepare_auth; ci_artifact_command "$@" ;;
         -h|--help|help) usage ;;
         *) usage >&2; die "unknown command: $1" ;;
     esac

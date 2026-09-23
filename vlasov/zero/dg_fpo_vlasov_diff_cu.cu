@@ -28,7 +28,7 @@ void gkyl_fpo_vlasov_diff_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_diff_auxfields auxin
 )
 {
-  gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.g->on_dev);
+  gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin.g->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov fpo kernel function
@@ -145,9 +145,7 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_cu_dev_new(
     fpo_vlasov_diff_cu, fpo_vlasov_diff, sizeof(struct dg_fpo_vlasov_diff), GKYL_CU_MEMCPY_H2D
   );
 
-  dg_fpo_vlasov_diff_set_cu_dev_ptrs<<<1, 1> > >(
-    fpo_vlasov_diff_cu, pbasis->b_type, cdim, poly_order
-  );
+  dg_fpo_vlasov_diff_set_cu_dev_ptrs<<<1, 1>>>(fpo_vlasov_diff_cu, pbasis->b_type, cdim, poly_order);
 
   fpo_vlasov_diff->eqn.on_dev = &fpo_vlasov_diff_cu->eqn;
 

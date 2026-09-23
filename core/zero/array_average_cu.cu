@@ -38,7 +38,7 @@ struct gkyl_array_average *gkyl_array_average_cu_dev_new(struct gkyl_array_avera
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_array_average), GKYL_CU_MEMCPY_H2D);
 
   // Set the kernel.
-  gkyl_array_average_set_ker_cu<<<1, 1> > >(up_cu);
+  gkyl_array_average_set_ker_cu<<<1, 1>>>(up_cu);
 
   up->weight = weight_ho;
 
@@ -95,9 +95,7 @@ void gkyl_array_average_advance_cu(
 
   gkyl_array_clear_range(avgout, 0.0, &up->local_avg);
 
-  gkyl_array_average_advance_cu_ker<<<nblocks, nthreads> > >(
-    up->on_dev, fin->on_dev, avgout->on_dev
-  );
+  gkyl_array_average_advance_cu_ker<<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, avgout->on_dev);
 
   if (up->isweighted) {
     gkyl_dg_div_op_range(

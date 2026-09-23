@@ -22,11 +22,11 @@ local sql = require "sqlite3"
 local LAYERS = { "moments", "vlasov", "gyrokinetic", "pkpm" }
 
 local statusToString = {
-   [-4] = "compile_fail", [-3] = "timeout", [-2] = "create", [-1] = "skip",
+   [-6] = "crash", [-5] = "no_output", [-4] = "compile_fail", [-3] = "timeout", [-2] = "create", [-1] = "skip",
    [0] = "fail", [1] = "pass",
 }
 -- Statuses that block a candidate build unless explicitly acknowledged.
-local BAD_STATUSES = { [0] = true, [-3] = true, [-4] = true }
+local BAD_STATUSES = { [0] = true, [-3] = true, [-4] = true, [-5] = true, [-6] = true }
 
 local resultsDir = GKYL_COMMANDS_L[1]
 local ackFile = GKYL_COMMANDS_L[2]
@@ -62,6 +62,15 @@ for _, layer in ipairs(LAYERS) do
    else
       f:close()
       local conn = sql.open(dbPath)
+      local cols, ncols = conn:exec("pragma table_info(RegressionMeta)")
+      local hasRunMode = false
+      for i = 1, ncols do
+         if cols.name[i] == "run_mode" then hasRunMode = true; break end
+      end
+      if not hasRunMode then
+         error("Legacy regression database schema at " .. dbPath
+            .. "; rerun runregression configure --drop-tables.")
+      end
       local guid = conn:rowexec("select guid from RegressionMeta order by rowid desc limit 1")
       if guid then
          local t, nrow = conn:exec(string.format(

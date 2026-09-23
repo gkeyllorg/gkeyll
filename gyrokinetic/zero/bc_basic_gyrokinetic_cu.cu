@@ -80,7 +80,7 @@ struct gkyl_array_copy_func *gkyl_bc_basic_gyrokinetic_create_arr_copy_func_cu(
 
   fout->ctx_on_dev = ctx_cu;
 
-  gkyl_bc_basic_gyrokinetic_create_set_cu_dev_ptrs<<<1, 1> > >(
+  gkyl_bc_basic_gyrokinetic_create_set_cu_dev_ptrs<<<1, 1>>>(
     dir, edge, cdim, bctype, basis, ncomp, ctx_cu, fout_cu
   );
 

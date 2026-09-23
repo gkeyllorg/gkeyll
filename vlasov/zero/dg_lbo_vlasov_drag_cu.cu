@@ -27,7 +27,7 @@ void gkyl_lbo_vlasov_drag_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_drag_auxfields auxin
 )
 {
-  gkyl_lbo_vlasov_drag_set_auxfields_cu_kernel<<<1, 1> > >(
+  gkyl_lbo_vlasov_drag_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.nuSum->on_dev, auxin.nuPrimMomsSum->on_dev
   );
 }
@@ -123,7 +123,7 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_drag_cu_dev_new(
     lbo_vlasov_drag_cu, lbo_vlasov_drag, sizeof(struct dg_lbo_vlasov_drag), GKYL_CU_MEMCPY_H2D
   );
 
-  dg_lbo_vlasov_drag_set_cu_dev_ptrs<<<1, 1> > >(
+  dg_lbo_vlasov_drag_set_cu_dev_ptrs<<<1, 1>>>(
     lbo_vlasov_drag_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order
   );
 

@@ -64,7 +64,7 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, *phase_range, pkpm_prim->on_dev, nu_prim_moms_sum->on_dev,
     div_b->on_dev, pkpm_accel->on_dev, fIn->on_dev, F_k_p_1->on_dev, g_dist_source->on_dev,
     F_k_m_1->on_dev
@@ -141,7 +141,7 @@ void gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu_kernel<<<nblocks, nthreads> > >(
+  gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu_kernel<<<nblocks, nthreads>>>(
     up->on_dev, *conf_range, *phase_range, bvar_surf->on_dev, bvar->on_dev, fIn->on_dev,
     max_b->on_dev, pkpm_div_ppar->on_dev
   );
@@ -180,7 +180,7 @@ gkyl_dg_calc_pkpm_dist_vars *gkyl_dg_calc_pkpm_dist_vars_cu_dev_new(
     (struct gkyl_dg_calc_pkpm_dist_vars *)gkyl_cu_malloc(sizeof(gkyl_dg_calc_pkpm_dist_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_pkpm_dist_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_pkpm_dist_vars_set_cu_dev_ptrs<<<1, 1> > >(up_cu, b_type, cdim, poly_order);
+  dg_calc_pkpm_dist_vars_set_cu_dev_ptrs<<<1, 1>>>(up_cu, b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

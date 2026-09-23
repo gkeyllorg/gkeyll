@@ -61,7 +61,7 @@ void gkyl_proj_exp_on_basis_advance_cu(
 )
 {
   int nblocks = range->nblocks, nthreads = range->nthreads;
-  gkyl_proj_exp_on_basis_advance_cu_ker<<<nblocks, nthreads> > >(
+  gkyl_proj_exp_on_basis_advance_cu_ker<<<nblocks, nthreads>>>(
     up->num_quad, *range, up->basis_at_ords->on_dev, up->weights->on_dev, alpha, beta, fIn->on_dev,
     fOut->on_dev
   );

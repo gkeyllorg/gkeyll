@@ -148,10 +148,10 @@ void fem_poisson_choose_kernels_cu(
   int *bckey_d = (int *)gkyl_cu_malloc(sizeof(int[GKYL_MAX_CDIM]));
   gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[GKYL_MAX_CDIM]), GKYL_CU_MEMCPY_H2D);
 
-  fem_poisson_set_cu_l2gker_ptrs<<<1, 1> > >(kers, basis->b_type, dim, poly_order, bckey_d);
+  fem_poisson_set_cu_l2gker_ptrs<<<1, 1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
 
   // Biasing kernels (set this before redefining bckey_d below).
-  fem_poisson_set_cu_biasker_ptrs<<<1, 1> > >(kers, basis->b_type, dim, poly_order, bckey_d);
+  fem_poisson_set_cu_biasker_ptrs<<<1, 1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
 
   for (int d = 0; d < basis->ndim; d++) {
     if (bcs->lo_type[d] == GKYL_POISSON_PERIODIC && bcs->up_type[d] == GKYL_POISSON_PERIODIC) {
@@ -198,7 +198,7 @@ void fem_poisson_choose_kernels_cu(
   };
   gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[GKYL_MAX_CDIM]), GKYL_CU_MEMCPY_H2D);
 
-  fem_poisson_set_cu_ker_ptrs<<<1, 1> > >(kers, basis->b_type, dim, poly_order, bckey_d, isvareps);
+  fem_poisson_set_cu_ker_ptrs<<<1, 1>>>(kers, basis->b_type, dim, poly_order, bckey_d, isvareps);
 
   gkyl_cu_free(bckey_d);
 }
@@ -330,7 +330,7 @@ __global__ void gkyl_fem_poisson_bias_src_kernel(
 void gkyl_fem_poisson_bias_src_enabled_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
-  gkyl_fem_poisson_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads> > >(
+  gkyl_fem_poisson_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(
     rhs_cu, up->grid, *up->solve_range, up->kernels_cu, up->num_bias_plane, up->bias_planes
   );
 }
@@ -342,7 +342,7 @@ void gkyl_fem_poisson_set_rhs_cu(
   gkyl_culinsolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
   const struct gkyl_array *phibc_cu = phibc ? phibc->on_dev : NULL;
-  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads> > >(
+  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(
     up->epsilon->on_dev, up->isvareps, up->dx_cu, rhs_cu, rhsin->on_dev, *up->solve_range,
     up->bcvals_cu, phibc_cu, up->kernels_cu
   );
@@ -357,7 +357,7 @@ void gkyl_fem_poisson_solve_cu(gkyl_fem_poisson *up, struct gkyl_array *phiout)
   gkyl_culinsolver_solve(up->prob_cu);
   double *x_cu = gkyl_culinsolver_get_sol_ptr(up->prob_cu, 0);
 
-  gkyl_fem_poisson_get_sol_kernel<<<phiout->nblocks, phiout->nthreads> > >(
+  gkyl_fem_poisson_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(
     phiout->on_dev, x_cu, *up->solve_range, up->kernels_cu
   );
 }
