@@ -55,12 +55,14 @@ double *gpython_array_data(gpython_array *a); /* contiguous (size x ncomp) buffe
  * Grid out-parameters are caller-allocated buffers of length gpython_MAX_DIM.
  * Status codes are gkyl_array_rio_status values; 0 == success.            */
 int gpython_file_type(const char *fname); /* gkyl file type, or -1 */
-int gpython_read_header(const char *fname, int *ndim, double *lower,
-    double *upper, int *cells, int *file_type, size_t *esznc,
-    size_t *tot_cells, char **meta, size_t *meta_sz); /* *meta: malloc'd   */
+int gpython_read_header(
+  const char *fname, int *ndim, double *lower, double *upper, int *cells, int *file_type,
+  size_t *esznc, size_t *tot_cells, char **meta, size_t *meta_sz
+); /* *meta: malloc'd   */
 void gpython_meta_release(char *meta);
-gpython_array *gpython_read_field(const char *fname, int *ndim, double *lower,
-    double *upper, int *cells); /* NULL on failure */
+gpython_array *gpython_read_field(
+  const char *fname, int *ndim, double *lower, double *upper, int *cells
+); /* NULL on failure */
 const char *gpython_status_msg(int status);
 
 /* ---- basis objects ------------------------------------------------------
@@ -86,16 +88,17 @@ void gpython_basis_eval(const gpython_basis *b, const double *z, double *bvals);
 /* Node coordinates: coords[num_basis * ndim].                              */
 void gpython_basis_node_list(const gpython_basis *b, double *coords);
 /* Exact nodal -> modal change of basis on one cell's num_basis values.     */
-void gpython_basis_nodal_to_modal(const gpython_basis *b, const double *fnodal,
-    double *fmodal);
+void gpython_basis_nodal_to_modal(const gpython_basis *b, const double *fnodal, double *fmodal);
 
 /* ---- weak (DG) algebra --------------------------------------------------
  * Operands must have ncomp == nfields * num_basis; the per-field loop runs
  * here. Returns 0 on success, nonzero on shape mismatch.                   */
-int gpython_dg_mul(const gpython_basis *b, gpython_array *out, const gpython_array *a1,
-    const gpython_array *a2);
-int gpython_dg_div(const gpython_basis *b, gpython_array *out, const gpython_array *a1,
-    const gpython_array *a2);
+int gpython_dg_mul(
+  const gpython_basis *b, gpython_array *out, const gpython_array *a1, const gpython_array *a2
+);
+int gpython_dg_div(
+  const gpython_basis *b, gpython_array *out, const gpython_array *a1, const gpython_array *a2
+);
 int gpython_dg_inv(const gpython_basis *b, gpython_array *out, const gpython_array *a1);
 /* Conf-space x phase-space weak product: pout = cop * pop, where cop lives
  * on a conf-space grid of cbasis->ndim dimensions and pop/pout live on a
@@ -107,9 +110,10 @@ int gpython_dg_inv(const gpython_basis *b, gpython_array *out, const gpython_arr
  * cbasis->ndim / pbasis->ndim), used to build the index ranges Gkeyll maps
  * each phase cell's conf cell through. Returns 0 on success, nonzero if the
  * arrays don't match the bases or cells don't cover the arrays.             */
-int gpython_dg_mul_conf_phase(const gpython_basis *cbasis, const gpython_basis *pbasis,
-    gpython_array *pout, const gpython_array *cop, const gpython_array *pop,
-    const int *conf_cells, const int *phase_cells);
+int gpython_dg_mul_conf_phase(
+  const gpython_basis *cbasis, const gpython_basis *pbasis, gpython_array *pout,
+  const gpython_array *cop, const gpython_array *pop, const int *conf_cells, const int *phase_cells
+);
 
 /* Local DG derivative (gkyl_dg_differentiate_op_local): differentiates the
  * DG expansion independently in every cell (no inter-cell stencil), field
@@ -125,8 +129,10 @@ int gpython_dg_mul_conf_phase(const gpython_basis *cbasis, const gpython_basis *
  * per basis_type), which this function does NOT check: an out-of-table
  * combination is a process abort in the kernel dispatch, not a clean
  * failure.                                                                 */
-int gpython_dg_differentiate(const gpython_basis *b, int dir, int diff_order,
-    double dx, gpython_array *out, const gpython_array *in);
+int gpython_dg_differentiate(
+  const gpython_basis *b, int dir, int diff_order, double dx, gpython_array *out,
+  const gpython_array *in
+);
 
 /* ---- linear coefficient ops / reductions ------------------------------- */
 void gpython_array_set(gpython_array *out, double c, const gpython_array *a);
@@ -143,15 +149,17 @@ void gpython_array_reduce(double *out, const gpython_array *a, int op);
  * cell's Gauss-Legendre quadrature nodes and reduces THOSE — the true
  * min/max/sum of the represented field, not the coefficients. op: 0/1/2
  * min/max/sum. Returns 0 on success, nonzero if comp is out of range.      */
-int gpython_array_dg_reduce(double *out, const gpython_basis *b, const gpython_array *a,
-    int comp, int op);
+int gpython_array_dg_reduce(
+  double *out, const gpython_basis *b, const gpython_array *a, int comp, int op
+);
 
 /* ---- integration (gkyl_array_integrate) ---------------------------------
  * op: 0 none, 1 abs, 2 sq. out[nfields]. Returns 0 on success, nonzero if
  * the grid does not cover the array.                                        */
-int gpython_array_integrate(int ndim, const double *lower, const double *upper,
-    const int *cells, const gpython_basis *b, int nfields, int op, double factor,
-    const gpython_array *a, double *out);
+int gpython_array_integrate(
+  int ndim, const double *lower, const double *upper, const int *cells, const gpython_basis *b,
+  int nfields, int op, double factor, const gpython_array *a, double *out
+);
 
 /* ---- averaging (gkyl_array_average) -------------------------------------
  * Single-field weighted (or plain) average of `a` over the donor dims
@@ -168,10 +176,11 @@ int gpython_array_integrate(int ndim, const double *lower, const double *upper,
  * argument, like gpython_dg_mul_conf_phase; a multi-field caller loops in
  * Python). Returns 0 on success, nonzero if `a`/`weight`/`out` don't match
  * the bases or the donor/target cell counts don't cover them.               */
-int gpython_array_average(int ndim, const double *lower, const double *upper,
-    const int *cells, const gpython_basis *b, const gpython_basis *b_avg,
-    int ndim_avg, const int *cells_avg, const int *avg_dim,
-    const gpython_array *weight, const gpython_array *a, gpython_array *out);
+int gpython_array_average(
+  int ndim, const double *lower, const double *upper, const int *cells, const gpython_basis *b,
+  const gpython_basis *b_avg, int ndim_avg, const int *cells_avg, const int *avg_dim,
+  const gpython_array *weight, const gpython_array *a, gpython_array *out
+);
 
 /* ---- evaluate-and-project (gkyl_dg_eval_at_coord_proj) --------------------
  * Evaluate a donor DG field at physical coordinates `eval_coords` in the
@@ -207,11 +216,12 @@ int gpython_array_average(int ndim, const double *lower, const double *upper,
  * eval_dirs) combination is a process abort in the kernel dispatch, not a
  * clean failure, so the caller (postgkyl's dg/modal.py) must stay within
  * the documented coverage before calling this function.                   */
-gpython_array *gpython_eval_at_coord_proj(const gpython_basis *b, int cdim_do, int ndim,
-    const double *lower, const double *upper, const int *cells,
-    int num_eval, const int *eval_dirs, const double *eval_coords,
-    int ndim_tar, const int *cells_tar, const gpython_array *in,
-    int *out_btype, int *out_poly_order, int *out_cdim, int *out_vdim);
+gpython_array *gpython_eval_at_coord_proj(
+  const gpython_basis *b, int cdim_do, int ndim, const double *lower, const double *upper,
+  const int *cells, int num_eval, const int *eval_dirs, const double *eval_coords, int ndim_tar,
+  const int *cells_tar, const gpython_array *in, int *out_btype, int *out_poly_order, int *out_cdim,
+  int *out_vdim
+);
 
 /* ---- pow(sqrt) projection (gkyl_proj_powsqrt_on_basis) -------------------
  * Single-field ``out = pow(sqrt(in), exponent)``, i.e. ``in ** (exponent/2)``,
@@ -229,8 +239,10 @@ gpython_array *gpython_eval_at_coord_proj(const gpython_basis *b, int cdim_do, i
  * indexing), unlike gpython_array_integrate/gpython_array_average, so there
  * is no lower/upper here. Returns 0 on success, nonzero if the operands
  * don't match the basis or `cells` does not cover them. */
-int gpython_powsqrt(const gpython_basis *b, int num_quad, double exponent,
-    int ndim, const int *cells, gpython_array *out, const gpython_array *in);
+int gpython_powsqrt(
+  const gpython_basis *b, int num_quad, double exponent, int ndim, const int *cells,
+  gpython_array *out, const gpython_array *in
+);
 
 /* ---- writing (gkyl_array_rio) --------------------------------------------
  * Mirrors gpython_read_field: writes the FULL array over a uniform grid built
@@ -240,9 +252,10 @@ int gpython_powsqrt(const gpython_basis *b, int num_quad, double exponent,
  * Returns -1 if the grid does not cover the array (checked here to avoid an
  * out-of-bounds C loop); otherwise a gkyl_array_rio_status (0 == success,
  * rendered by gpython_status_msg).                                             */
-int gpython_write_field(const char *fname, int ndim, const double *lower,
-    const double *upper, const int *cells, const char *meta, size_t meta_sz,
-    const gpython_array *a);
+int gpython_write_field(
+  const char *fname, int ndim, const double *lower, const double *upper, const int *cells,
+  const char *meta, size_t meta_sz, const gpython_array *a
+);
 
 /* ---- dynvector (time-series) I/O (gkyl_dynvec) ---------------------------
  * Double-precision dynvectors only (the only kind postgkyl ever produces).
@@ -250,12 +263,12 @@ int gpython_write_field(const char *fname, int ndim, const double *lower,
  * sized to the number of time samples found in the file — the caller
  * releases them like any other gpython_array. Returns 0 on success; nonzero if
  * the file is missing/unreadable or not a double-typed dynvector.          */
-int gpython_dynvec_read(const char *fname, size_t *ncomp, gpython_array **tm,
-    gpython_array **data);
+int gpython_dynvec_read(const char *fname, size_t *ncomp, gpython_array **tm, gpython_array **data);
 /* Writes a dynvector built by zipping tm[n] with data[n*ncomp:(n+1)*ncomp].
  * Returns 0 on success.                                                    */
-int gpython_dynvec_write(const char *fname, size_t ncomp, size_t n,
-    const double *tm, const double *data);
+int gpython_dynvec_write(
+  const char *fname, size_t ncomp, size_t n, const double *tm, const double *data
+);
 
 #ifdef __cplusplus
 }
