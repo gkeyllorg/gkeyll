@@ -8,27 +8,25 @@
 #include <rt_arg_parse.h>
 
 // map (r,theta) -> (x,y)
-void
-mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   double r = xc[0], th = xc[1], z = xc[2];
-  xp[0] = r*cos(th);
-  xp[1] = r*sin(th);
+  xp[0] = r * cos(th);
+  xp[1] = r * sin(th);
   xp[2] = z;
 }
 
-void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = xn[0], phi = xn[1], z = xn[2];
-  int m = 0, n = 1;  
-  double kn = 2*M_PI*n/10.0;
+  int m = 0, n = 1;
+  double kn = 2 * M_PI * n / 10.0;
 
   double w = 1.212168982106865; // frequency of mode
   double a = 1.0, b = -0.351948050727361;
 
-  double Ez_r = a*jn(m,r*sqrt(w*w-kn*kn)) + b*yn(m,r*sqrt(w*w-kn*kn));
-  double Ez = Ez_r*cos(m*phi)*cos(kn*z);
+  double Ez_r = a * jn(m, r * sqrt(w * w - kn * kn)) + b * yn(m, r * sqrt(w * w - kn * kn));
+  double Ez = Ez_r * cos(m * phi) * cos(kn * z);
 
   fout[0] = 0.0;
   fout[1] = 0.0;
@@ -37,17 +35,16 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[4] = 0.0;
   fout[5] = 0.0;
   fout[6] = 0.0;
-  fout[7] = 0.0;  
+  fout[7] = 0.0;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 3);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], 32*3);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], 32 * 3);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -59,26 +56,26 @@ main(int argc, char **argv)
 
     .ndim = 3,
     // grid in computational space
-    .lower = { 2.0, -0.05, 0.0 },
-    .upper = { 5.0, 0.05, 10.0 },
-    .cells = { NX, NY, NZ },
+    .lower = {2.0, -0.05, 0.0},
+    .upper = {5.0, 0.05, 10.0},
+    .cells = {NX, NY, NZ},
 
     .mapc2p = mapc2p, // mapping of computational to physical space
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 2 },
+    .periodic_dirs = {2},
 
     .cfl_frac = 0.9,
 
-    .field = {
-      .epsilon0 = 1.0, .mu0 = 1.0,
+    .field =
+      {.epsilon0 = 1.0,
+       .mu0 = 1.0,
 
-      .limiter = GKYL_NO_LIMITER,
-      .init = evalFieldInit,
+       .limiter = GKYL_NO_LIMITER,
+       .init = evalFieldInit,
 
-      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
-      .bcy = { GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE },
-    }
+       .bcx = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL},
+       .bcy = {GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE}}
   };
 
   // create app object
@@ -87,10 +84,10 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   double w = 1.212168982106865; // frequency of mode
-  double tperiod = 2*M_PI/w;
+  double tperiod = 2 * M_PI / w;
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 2*tperiod;
+  double tcurr = 0.0, tend = 2 * tperiod;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -104,7 +101,7 @@ main(int argc, char **argv)
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
-    
+
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
       break;
@@ -129,6 +126,6 @@ main(int argc, char **argv)
   printf("Species updates took %g secs\n", stat.species_tm);
   printf("Field updates took %g secs\n", stat.field_tm);
   printf("Total updates took %g secs\n", stat.total_tm);
-  
+
   return 0;
 }

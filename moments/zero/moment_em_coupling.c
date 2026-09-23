@@ -5,8 +5,7 @@
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
 
-gkyl_moment_em_coupling*
-gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
+gkyl_moment_em_coupling *gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 {
   gkyl_moment_em_coupling *mom_em = gkyl_malloc(sizeof(gkyl_moment_em_coupling));
 
@@ -27,19 +26,17 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     }
   }
 
-  mom_em->static_field = inp.static_field; 
+  mom_em->static_field = inp.static_field;
   mom_em->t_ramp_E = inp.t_ramp_E;
   if (mom_em->t_ramp_E != 0.0) {
     mom_em->ramp_app_E = true;
-  }
-  else {
+  } else {
     mom_em->ramp_app_E = false;
   }
   mom_em->t_ramp_curr = inp.t_ramp_curr;
   if (mom_em->t_ramp_curr != 0.0) {
     mom_em->ramp_app_curr = true;
-  }
-  else {
+  } else {
     mom_em->ramp_app_curr = false;
   }
 
@@ -52,8 +49,7 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
         mom_em->nu_base[i][j] = inp.nu_base[i][j];
       }
     }
-  }
-  else {
+  } else {
     for (int i = 0; i < mom_em->nfluids; i++) {
       for (int j = 0; j < mom_em->nfluids; j++) {
         mom_em->nu_base[i][j] = 0.0;
@@ -125,11 +121,14 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
   mom_em->has_vacuum_einstein_conformal_sources = inp.has_vacuum_einstein_conformal_sources;
   if (mom_em->has_vacuum_einstein_conformal_sources) {
-    mom_em->vacuum_einstein_conformal_excision_threshold = inp.vacuum_einstein_conformal_excision_threshold;
-    mom_em->vacuum_einstein_conformal_spacetime_slicing = inp.vacuum_einstein_conformal_spacetime_slicing;
-    mom_em->vacuum_einstein_conformal_spacetime_evolution = inp.vacuum_einstein_conformal_spacetime_evolution;
+    mom_em->vacuum_einstein_conformal_excision_threshold =
+      inp.vacuum_einstein_conformal_excision_threshold;
+    mom_em->vacuum_einstein_conformal_spacetime_slicing =
+      inp.vacuum_einstein_conformal_spacetime_slicing;
+    mom_em->vacuum_einstein_conformal_spacetime_evolution =
+      inp.vacuum_einstein_conformal_spacetime_evolution;
   }
-  
+
   mom_em->has_gr_mhd_sources = inp.has_gr_mhd_sources;
   if (mom_em->has_gr_mhd_sources) {
     mom_em->gr_mhd_gas_gamma = inp.gr_mhd_gas_gamma;
@@ -138,10 +137,14 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   return mom_em;
 }
 
-void
-gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
-  struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES],
-  struct gkyl_array* em, const struct gkyl_array* app_current, const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES])
+void gkyl_moment_em_coupling_implicit_advance(
+  const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
+  const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
+  const struct gkyl_array *p_rhs[GKYL_MAX_SPECIES], struct gkyl_array *em,
+  const struct gkyl_array *app_current, const struct gkyl_array *ext_em,
+  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES]
+)
 {
   int nfluids = mom_em->nfluids;
   double *fluid_s[GKYL_MAX_SPECIES];
@@ -166,15 +169,22 @@ gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, 
     const double *app_current_arr = app_current ? gkyl_array_cfetch(app_current, cell_idx) : 0;
     const double *ext_em_arr = ext_em ? gkyl_array_cfetch(ext_em, cell_idx) : 0;
 
-    implicit_source_coupling_update(mom_em, t_curr, dt, fluid_s, app_accel_s, p_rhs_s, em_arr, app_current_arr, ext_em_arr, nT_sources_s);
+    implicit_source_coupling_update(
+      mom_em, t_curr, dt, fluid_s, app_accel_s, p_rhs_s, em_arr, app_current_arr, ext_em_arr,
+      nT_sources_s
+    );
   }
 }
 
-void
-gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
-  struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES],
-  struct gkyl_array* em, const struct gkyl_array* app_current, const struct gkyl_array* app_current1, const struct gkyl_array* app_current2,
-  const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj *proj_app_curr, int nstrang)
+void gkyl_moment_em_coupling_explicit_advance(
+  const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
+  const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
+  const struct gkyl_array *p_rhs[GKYL_MAX_SPECIES], struct gkyl_array *em,
+  const struct gkyl_array *app_current, const struct gkyl_array *app_current1,
+  const struct gkyl_array *app_current2, const struct gkyl_array *ext_em,
+  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj *proj_app_curr, int nstrang
+)
 {
   int nfluids = mom_em->nfluids;
   double *fluid_s[GKYL_MAX_SPECIES];
@@ -202,14 +212,15 @@ gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, 
     const double *ext_em_arr = ext_em ? gkyl_array_cfetch(ext_em, cell_idx) : 0;
 
     if (mom_em->use_rel) {
-      explicit_source_coupling_update(mom_em, t_curr, dt_local, fluid_s, app_accel_s, em_arr, app_current_arr, app_current1_arr, app_current2_arr,
-        ext_em_arr, nstrang);
+      explicit_source_coupling_update(
+        mom_em, t_curr, dt_local, fluid_s, app_accel_s, em_arr, app_current_arr, app_current1_arr,
+        app_current2_arr, ext_em_arr, nstrang
+      );
     }
   }
 }
 
-void
-gkyl_moment_em_coupling_release(gkyl_moment_em_coupling* mom_em)
+void gkyl_moment_em_coupling_release(gkyl_moment_em_coupling *mom_em)
 {
   gkyl_free(mom_em);
 }
