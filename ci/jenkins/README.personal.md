@@ -10,13 +10,14 @@ contributor code.
 
 Install Jenkins LTS and Java 21 or newer with the normal local service
 mechanism (for example `brew install jenkins-lts` and `brew services start
-jenkins-lts` on macOS). Install Pipeline, Git, Credentials Binding, Git client,
-and GitHub Branch Source plugins.
+jenkins-lts` on macOS).
 
 ## Open Jenkins browser
 
 Open the local Jenkins URL, normally `http://127.0.0.1:8080`, complete first
-start setup, and create an administrator account.
+start setup, and create an administrator account. During initial setup, install
+the Pipeline, Git, Credentials Binding, Git client, and GitHub Branch Source
+plugins.
 
 ## Set up Jenkins
 
@@ -25,9 +26,9 @@ start setup, and create an administrator account.
 Create an API token for the user who will run the client and save it locally:
 
 ```sh
-mkdir -p "$HOME/.config/gkeyll"; umask 077
-printf '%s:%s\n' '<jenkins-user>' '<jenkins-api-token>' > "$HOME/.config/gkeyll/jenkins-cli.auth"
-chmod 600 "$HOME/.config/gkeyll/jenkins-cli.auth"
+mkdir -p "$HOME/.config/gkeyll/jenkins"; umask 077
+printf '%s:%s\n' '<jenkins-user>' '<jenkins-api-token>' > "$HOME/.config/gkeyll/jenkins/personal.auth"
+chmod 600 "$HOME/.config/gkeyll/jenkins/personal.auth"
 ```
 
 ### Create the GitHub credential
@@ -57,6 +58,14 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID |
 | `PERSONAL_BUILD_JOBS` | Optional; default `3` |
 | `PERSONAL_REGRESSION_JOBS` | Optional; default `1` |
+| `PERSONAL_MPI_HOME` | Optional MPI installation path for both trees; default is each tree's `gkylsoft/openmpi` |
+| `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
+
+The workflow sets `MPI_HOME` to `PERSONAL_MPI_HOME` while building each tree.
+If `PERSONAL_MPI_HOME` is unset or blank, it uses that tree's workspace-local
+`gkylsoft/openmpi`. Set `PERSONAL_MPI_HOME` (for example, `/opt/openmpi`) to use
+an existing MPI installation for both builds and parallel regressions.
+An ambient `MPI_HOME` does not select the CI installation.
 
 ### Create the one parameterized Pipeline job
 
@@ -72,12 +81,15 @@ to register parameters.
 ## CLI launch
 
 ```sh
-export JENKINS_CLI_AUTH_FILE="$HOME/.config/gkeyll/jenkins-cli.auth"
 ./ci/jenkins/gkeyll-ci.sh personal run --pr 1234 --follow
 ./ci/jenkins/gkeyll-ci.sh personal run --candidate-ref feature/new-solver --baseline-ref main
 ./ci/jenkins/gkeyll-ci.sh personal active
+./ci/jenkins/gkeyll-ci.sh personal info --build 42
+./ci/jenkins/gkeyll-ci.sh personal artifact --build 42 --fetch --only ci-regression-summary.txt
 ./ci/jenkins/gkeyll-ci.sh personal abort --build 42
 ```
+
+Set `JENKINS_CLI_AUTH_FILE` only to use a credential file at a different path.
 
 ## Browser launch
 

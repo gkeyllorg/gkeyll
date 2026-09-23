@@ -6,7 +6,8 @@ pull request or an explicit candidate/baseline comparison. Jenkins runs on the
 login side and submits unit tests and C regressions to Slurm CPU nodes.
 
 The job uses a reviewed Pipeline and fixed reviewed baseline. It does not use
-GitHub webhooks or run Lua, MPI, MOAT-only, or GPU regressions. Jenkins is
+GitHub webhooks or run Lua, MOAT-only, or GPU regressions. Alongside the
+serial C suite it runs manifest-selected C MPI regressions on four ranks. Jenkins is
 available only through the authenticated Stellar login session or an SSH tunnel.
 
 # Installation
@@ -65,6 +66,13 @@ tmux ls
 tmux kill-session -t gkeyll_ci
 ```
 
+Verify the private listener after startup:
+
+```sh
+curl --fail --output /dev/null http://127.0.0.1:8080/login
+ss -ltn | grep '127.0.0.1:8080'
+```
+
 The controller and its Jenkins agent must run as the same Unix account that
 submits Slurm allocations.
 
@@ -75,11 +83,13 @@ setup and remains useful for inspection. From your laptop, after SSH/Duo
 authentication, create a tunnel:
 
 ```sh
-ssh -N -L 8081:127.0.0.1:8080 <NetID>@stellar.princeton.edu
+ssh -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:8083:127.0.0.1:8080 <NetID>@stellar.princeton.edu
 ```
 
-Open `http://localhost:8081`. Choose another first port if 8081 is occupied;
-the final `8080` is the remote Jenkins port and normally remains unchanged.
+Open `http://127.0.0.1:8083`. The first `8083` is the local browser port; the
+final `8080` is the remote Jenkins port and normally remains unchanged. Choose
+another unused local port if necessary.
 
 On Jenkins' first start, obtain the unlock password on Stellar:
 
@@ -195,6 +205,8 @@ stop work after reconnecting:
 ./ci/jenkins/gkeyll-ci.sh stellar_cpu status --build 187
 ./ci/jenkins/gkeyll-ci.sh stellar_cpu active
 ./ci/jenkins/gkeyll-ci.sh stellar_cpu recent --limit 5
+./ci/jenkins/gkeyll-ci.sh stellar_cpu info --build 187
+./ci/jenkins/gkeyll-ci.sh stellar_cpu artifact --build 187 --fetch --only ci-regression-summary.txt
 ./ci/jenkins/gkeyll-ci.sh stellar_cpu abort --queue 42
 ```
 

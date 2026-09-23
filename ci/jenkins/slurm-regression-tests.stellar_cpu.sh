@@ -24,9 +24,13 @@ test -x "$baseline_gkeyll"
 test -x "$candidate_gkeyll"
 
 cd "$CI_BASELINE_DIR"
+started="$(date +%s)"
 "$baseline_gkeyll" runregression run -c --execute-only create \
   --jobs "$CI_REGRESSION_JOBS" \
   --timeout "$CI_REGRESSION_TEST_TIMEOUT"
+elapsed="$(( $(date +%s) - started ))"
+printf '%s\n' "$elapsed" > "$CI_WORKSPACE/baseline-c-regression-create-seconds.txt"
+echo "Baseline C-regression create runtime: $elapsed seconds"
 
 cd "$CI_WORKSPACE"
 # Use only C accepted output from the fixed baseline. Do not carry Lua
@@ -40,9 +44,13 @@ for layer in moments vlasov gyrokinetic pkpm; do
   fi
 done
 
+started="$(date +%s)"
 "$candidate_gkeyll" runregression run -c --execute-only check \
   --jobs "$CI_REGRESSION_JOBS" \
   --timeout "$CI_REGRESSION_TEST_TIMEOUT"
+elapsed="$(( $(date +%s) - started ))"
+printf '%s\n' "$elapsed" > candidate-c-regression-check-seconds.txt
+echo "Candidate C-regression check runtime: $elapsed seconds"
 "$candidate_gkeyll" ci/jenkins/check_regression_results.lua \
   "$CI_CANDIDATE_PREFIX/gkeyll-results" \
   ci/jenkins/expected_regression_diffs.txt \
