@@ -1,13 +1,15 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void gk_species_phi_wall_advance_disabled(
+static void
+gk_species_phi_wall_advance_disabled(
   gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall, double tm
 )
 {
 }
 
-static void gk_species_phi_wall_advance_enabled(
+static void
+gk_species_phi_wall_advance_enabled(
   gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall, double tm
 )
 {
@@ -17,7 +19,8 @@ static void gk_species_phi_wall_advance_enabled(
   }
 }
 
-void gk_species_phi_wall_init(
+void
+gk_species_phi_wall_init(
   gkyl_gyrokinetic_app *app, const struct gkyl_gyrokinetic_bc *bc,
   struct gk_species_wall_potential *wall
 )
@@ -43,14 +46,16 @@ void gk_species_phi_wall_init(
   }
 }
 
-void gk_species_phi_wall_advance(
+void
+gk_species_phi_wall_advance(
   gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall, double tm
 )
 {
   wall->advance_func(app, wall, tm);
 }
 
-void gk_species_phi_wall_release(
+void
+gk_species_phi_wall_release(
   const gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall
 )
 {

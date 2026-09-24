@@ -208,7 +208,8 @@ gk_species_rhs_implicit_static(
   return app->cfl / omega_cfl;
 }
 
-static void gk_species_apply_bc_dynamic(
+static void
+gk_species_apply_bc_dynamic(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, double tm, struct gkyl_array *f
 )
 {
@@ -222,51 +223,51 @@ static void gk_species_apply_bc_dynamic(
   for (int d = 0; d < cdim; ++d) {
     if (species->bc_is_np[d]) {
       switch (species->lower_bc[d].type) {
-      case GKYL_BC_GK_SPECIES_SHEATH:
-        gk_species_phi_wall_advance(app, &species->phi_wall_lo, tm);
-        gkyl_bc_sheath_gyrokinetic_advance(
-          species->bc_sheath_lo, app->field->phi_smooth, species->phi_wall_lo.phi, f, &app->local
-        );
-        break;
-      case GKYL_BC_GK_SPECIES_TWISTSHIFT:
-        gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
-        break;
-      case GKYL_BC_GK_SPECIES_COPY:
-      case GKYL_BC_GK_SPECIES_REFLECT:
-      case GKYL_BC_GK_SPECIES_ABSORB:
-        gkyl_bc_basic_gyrokinetic_advance(species->bc_lo[d], species->bc_buffer, f);
-        break;
-      case GKYL_BC_GK_SPECIES_FIXED_FUNC:
-        gkyl_bc_basic_gyrokinetic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
-        break;
-      case GKYL_BC_GK_SPECIES_ZERO_FLUX:
-        break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
-      default:
-        break;
+        case GKYL_BC_GK_SPECIES_SHEATH:
+          gk_species_phi_wall_advance(app, &species->phi_wall_lo, tm);
+          gkyl_bc_sheath_gyrokinetic_advance(
+            species->bc_sheath_lo, app->field->phi_smooth, species->phi_wall_lo.phi, f, &app->local
+          );
+          break;
+        case GKYL_BC_GK_SPECIES_TWISTSHIFT:
+          gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
+          break;
+        case GKYL_BC_GK_SPECIES_COPY:
+        case GKYL_BC_GK_SPECIES_REFLECT:
+        case GKYL_BC_GK_SPECIES_ABSORB:
+          gkyl_bc_basic_gyrokinetic_advance(species->bc_lo[d], species->bc_buffer, f);
+          break;
+        case GKYL_BC_GK_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_gyrokinetic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
+          break;
+        case GKYL_BC_GK_SPECIES_ZERO_FLUX:
+          break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
+        default:
+          break;
       }
 
       switch (species->upper_bc[d].type) {
-      case GKYL_BC_GK_SPECIES_SHEATH:
-        gk_species_phi_wall_advance(app, &species->phi_wall_up, tm);
-        gkyl_bc_sheath_gyrokinetic_advance(
-          species->bc_sheath_up, app->field->phi_smooth, species->phi_wall_up.phi, f, &app->local
-        );
-        break;
-      case GKYL_BC_GK_SPECIES_TWISTSHIFT:
-        gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
-        break;
-      case GKYL_BC_GK_SPECIES_COPY:
-      case GKYL_BC_GK_SPECIES_REFLECT:
-      case GKYL_BC_GK_SPECIES_ABSORB:
-        gkyl_bc_basic_gyrokinetic_advance(species->bc_up[d], species->bc_buffer, f);
-        break;
-      case GKYL_BC_GK_SPECIES_FIXED_FUNC:
-        gkyl_bc_basic_gyrokinetic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
-        break;
-      case GKYL_BC_GK_SPECIES_ZERO_FLUX:
-        break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
-      default:
-        break;
+        case GKYL_BC_GK_SPECIES_SHEATH:
+          gk_species_phi_wall_advance(app, &species->phi_wall_up, tm);
+          gkyl_bc_sheath_gyrokinetic_advance(
+            species->bc_sheath_up, app->field->phi_smooth, species->phi_wall_up.phi, f, &app->local
+          );
+          break;
+        case GKYL_BC_GK_SPECIES_TWISTSHIFT:
+          gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
+          break;
+        case GKYL_BC_GK_SPECIES_COPY:
+        case GKYL_BC_GK_SPECIES_REFLECT:
+        case GKYL_BC_GK_SPECIES_ABSORB:
+          gkyl_bc_basic_gyrokinetic_advance(species->bc_up[d], species->bc_buffer, f);
+          break;
+        case GKYL_BC_GK_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_gyrokinetic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
+          break;
+        case GKYL_BC_GK_SPECIES_ZERO_FLUX:
+          break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
+        default:
+          break;
       }
     }
   }
@@ -282,7 +283,8 @@ static void gk_species_apply_bc_dynamic(
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_species_apply_bc_static(
+static void
+gk_species_apply_bc_static(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, double tm, struct gkyl_array *f
 )
 {
@@ -2117,7 +2119,8 @@ gk_species_copy_range(
   species->copy_func(out, inp, range);
 }
 
-void gk_species_apply_bc(
+void
+gk_species_apply_bc(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, double tm, struct gkyl_array *f
 )
 {

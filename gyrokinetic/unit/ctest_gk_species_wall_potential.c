@@ -10,13 +10,15 @@ struct wall_profile_ctx {
   double space_slope;
 };
 
-static void wall_profile(double t, const double *xn, double *fout, void *ctx)
+static void
+wall_profile(double t, const double *xn, double *fout, void *ctx)
 {
   const struct wall_profile_ctx *profile = ctx;
   fout[0] = profile->offset + profile->time_slope * t + profile->space_slope * xn[0];
 }
 
-static gkyl_gyrokinetic_app make_app(void)
+static gkyl_gyrokinetic_app
+make_app(void)
 {
   gkyl_gyrokinetic_app app = {.cdim = 1, .use_gpu = false};
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -29,7 +31,8 @@ static gkyl_gyrokinetic_app make_app(void)
   return app;
 }
 
-static void check_profile(
+static void
+check_profile(
   const gkyl_gyrokinetic_app *app, const struct gkyl_array *phi,
   const struct wall_profile_ctx *profile, double tm
 )
@@ -51,7 +54,8 @@ static void check_profile(
   }
 }
 
-static void test_species_wall_profiles(void)
+static void
+test_species_wall_profiles(void)
 {
   // A linear profile lies exactly in the P1 basis. Compare its DG expansion
   // at both cell endpoints and the center with the closed-form profile, first
@@ -63,7 +67,7 @@ static void test_species_wall_profiles(void)
     .lower_bc[0] =
       {.type = GKYL_BC_GK_SPECIES_SHEATH, .aux_profile = wall_profile, .aux_ctx = &lower_ctx},
     .upper_bc[0] =
-      {.type = GKYL_BC_GK_SPECIES_SHEATH, .aux_profile = wall_profile, .aux_ctx = &upper_ctx}
+      {.type = GKYL_BC_GK_SPECIES_SHEATH, .aux_profile = wall_profile, .aux_ctx = &upper_ctx},
   };
 
   gk_species_phi_wall_init(&app, &species.lower_bc[0], &species.phi_wall_lo);
@@ -88,7 +92,8 @@ static void test_species_wall_profiles(void)
   gk_species_phi_wall_release(&app, &species.phi_wall_up);
 }
 
-static void test_grounded_and_non_sheath_walls(void)
+static void
+test_grounded_and_non_sheath_walls(void)
 {
   // A sheath with no auxiliary profile represents a grounded wall, so every
   // DG coefficient is exactly zero. A non-sheath boundary needs no wall-
@@ -96,7 +101,7 @@ static void test_grounded_and_non_sheath_walls(void)
   gkyl_gyrokinetic_app app = make_app();
   struct gk_species species = {
     .lower_bc[0] = {.type = GKYL_BC_GK_SPECIES_SHEATH},
-    .upper_bc[0] = {.type = GKYL_BC_GK_SPECIES_REFLECT}
+    .upper_bc[0] = {.type = GKYL_BC_GK_SPECIES_REFLECT},
   };
 
   gk_species_phi_wall_init(&app, &species.lower_bc[0], &species.phi_wall_lo);

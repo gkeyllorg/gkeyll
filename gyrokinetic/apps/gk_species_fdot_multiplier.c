@@ -7,15 +7,15 @@ static enum gkyl_gk_trapped_passing_orbit_type
 trapped_passing_orbit_from_species_bc(enum gkyl_gyrokinetic_bc_type bc)
 {
   switch (bc) {
-  case GKYL_BC_GK_SPECIES_SHEATH:
-    return GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH;
-  case GKYL_BC_GK_SPECIES_REFLECT:
-  case GKYL_BC_GK_SPECIES_ZERO_FLUX:
-  case GKYL_BC_GK_SPECIES_PERIODIC:
-  case GKYL_BC_GK_SPECIES_TWISTSHIFT:
-    return GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL;
-  default:
-    return GKYL_GK_TRAP_PASS_ORBIT_PASSING;
+    case GKYL_BC_GK_SPECIES_SHEATH:
+      return GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH;
+    case GKYL_BC_GK_SPECIES_REFLECT:
+    case GKYL_BC_GK_SPECIES_ZERO_FLUX:
+    case GKYL_BC_GK_SPECIES_PERIODIC:
+    case GKYL_BC_GK_SPECIES_TWISTSHIFT:
+      return GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL;
+    default:
+      return GKYL_GK_TRAP_PASS_ORBIT_PASSING;
   }
 }
 
@@ -379,7 +379,7 @@ gk_species_fdot_multiplier_init_comp(
         .charge = gks->info.charge,
         .use_gpu = app->use_gpu,
         .lower_orbit = trapped_passing_orbit_from_species_bc(gks->lower_bc[zdim].type),
-        .upper_orbit = trapped_passing_orbit_from_species_bc(gks->upper_bc[zdim].type)
+        .upper_orbit = trapped_passing_orbit_from_species_bc(gks->upper_bc[zdim].type),
       };
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 

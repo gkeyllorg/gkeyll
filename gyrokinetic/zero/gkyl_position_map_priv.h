@@ -264,7 +264,8 @@ calc_bmag_global_derivative(double theta, void *ctx)
  * scale B/dtheta_sample. This dimensionless comparison remains meaningful if
  * the magnetic-field units or normalization change.
  */
-static bool bmag_derivative_is_small(double dbmag, double bmag, double dtheta_sample)
+static bool
+bmag_derivative_is_small(double dbmag, double bmag, double dtheta_sample)
 {
   return fabs(dbmag) * dtheta_sample < 1e-10 * fabs(bmag);
 }

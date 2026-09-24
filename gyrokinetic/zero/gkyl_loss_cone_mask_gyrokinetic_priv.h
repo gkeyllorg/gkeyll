@@ -38,7 +38,8 @@ gk_lcm_conf_corner_z_side(const struct gkyl_range *conf_corner_range, int conf_c
  * Return the P1 corner with the anchor's transverse coordinates and the
  * requested lower (0) or upper (1) side in zdim.
  */
-GKYL_CU_DH static inline int gk_lcm_conf_corner_with_z_side(
+GKYL_CU_DH static inline int
+gk_lcm_conf_corner_with_z_side(
   const struct gkyl_range *conf_corner_range, int anchor_corner, int zdim, int z_side
 )
 {
@@ -49,7 +50,8 @@ GKYL_CU_DH static inline int gk_lcm_conf_corner_with_z_side(
 }
 
 /** Evaluate a configuration-space DG field at a range-linear P1 cell corner. */
-GKYL_CU_DH static inline double gk_lcm_field_corner_value(
+GKYL_CU_DH static inline double
+gk_lcm_field_corner_value(
   const struct gkyl_array *arr, const struct gkyl_array *basis_at_corners, int num_basis,
   long linidx, int corner
 )
@@ -70,7 +72,8 @@ GKYL_CU_DH static inline double gk_lcm_field_corner_value(
  * escape barrier. Equality means that the particle reaches the loss endpoint
  * with zero parallel kinetic energy.
  */
-GKYL_CU_DH static inline bool gk_lcm_hamiltonian_below_barrier(
+GKYL_CU_DH static inline bool
+gk_lcm_hamiltonian_below_barrier(
   double kinetic_energy, double magnetic_energy, double electric_energy, double barrier
 )
 {
@@ -94,7 +97,8 @@ GKYL_CU_DH static inline bool gk_lcm_hamiltonian_below_barrier(
  * transverse cell indices, z_cell is the anchor cell, and a sheath-trapped
  * orbit includes the material-wall potential.
  */
-GKYL_CU_DH static inline void gk_lcm_escape_barriers(
+GKYL_CU_DH static inline void
+gk_lcm_escape_barriers(
   int cdim, int num_basis_conf, const struct gkyl_range *conf_range,
   const struct gkyl_range *conf_corner_range, const struct gkyl_array *basis_at_corners_conf,
   const struct gkyl_array *phi, const struct gkyl_array *bmag, const struct gkyl_array *phi_wall_lo,

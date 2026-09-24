@@ -198,7 +198,8 @@ Z_psiz(double psiIn, double zIn, void *ctx)
 }
 
 // Geometry evaluation functions for the gk app
-void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   double psi = xc[0], theta = xc[1], z = xc[2];
 
@@ -214,7 +215,8 @@ void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
   xp[2] = Z;
 }
 
-void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xc[2];
@@ -232,34 +234,37 @@ void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *c
 }
 
 // Evaluate collision frequencies
-void evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   fout[0] = app->nuIon;
 }
 
-void eval_density_ion(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double z = xn[0];
   fout[0] = 1e17 * exp(-2 * pow(fabs(z), 2));
 }
 
-void eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   fout[0] = 0.0;
 }
 
-void eval_temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   fout[0] = app->Ti0;
 }
 
-void eval_density_ion_source(
+void
+eval_density_ion_source(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -296,7 +301,8 @@ eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   }
 }
 
-void mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *ctx)
+void
+mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double vpar_max_ion = app->vpar_max_ion;
@@ -473,7 +479,7 @@ create_ctx(void)
     .gamma = gamma,
     .Z_m = Z_m,
     .Z_min = Z_min,
-    .Z_max = Z_max
+    .Z_max = Z_max,
   };
 
   // Populate a couple more values in the context.
@@ -716,20 +722,24 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection =
-      {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-       .density = eval_density_ion,
-       .ctx_density = &ctx,
-       .upar = eval_upar_ion,
-       .ctx_upar = &ctx,
-       .temp = eval_temp_ion,
-       .ctx_temp = &ctx},
+      {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .density = eval_density_ion,
+        .ctx_density = &ctx,
+        .upar = eval_upar_ion,
+        .ctx_upar = &ctx,
+        .temp = eval_temp_ion,
+        .ctx_temp = &ctx,
+      },
 
     .mapc2p = {.mapping = mapc2p_vel_ion, .ctx = &ctx},
 
     .collisionless =
-      {.type = GKYL_GK_COLLISIONLESS_ES,
-       .scale_factor = 1.0, // Will be replaced below.
-       .write_diagnostics = true},
+      {
+        .type = GKYL_GK_COLLISIONLESS_ES,
+        .scale_factor = 1.0, // Will be replaced below.
+        .write_diagnostics = true,
+      },
 
     .time_rate_multiplier =
       {
@@ -743,28 +753,36 @@ main(int argc, char **argv)
       },
 
     .collisions =
-      {.collision_id = GKYL_LBO_COLLISIONS,
-       .den_ref = ctx.n0,
-       .temp_ref = ctx.Te0,
-       .write_diagnostics = true},
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .den_ref = ctx.n0,
+        .temp_ref = ctx.Te0,
+        .write_diagnostics = true,
+      },
     .source =
-      {.source_id = GKYL_PROJ_SOURCE,
-       .num_sources = 1,
-       .projection[0] =
-         {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-          .ctx_density = &ctx,
-          .density = eval_density_ion_source,
-          .ctx_upar = &ctx,
-          .upar = eval_upar_ion_source,
-          .ctx_temp = &ctx,
-          .temp = eval_temp_ion_source},
-       .diagnostics =
-         {.num_diag_moments = 6,
-          .diag_moments =
-            {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-             GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
-          .num_integrated_diag_moments = 1,
-          .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP}}},
+      {
+        .source_id = GKYL_PROJ_SOURCE,
+        .num_sources = 1,
+        .projection[0] =
+          {
+            .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+            .ctx_density = &ctx,
+            .density = eval_density_ion_source,
+            .ctx_upar = &ctx,
+            .upar = eval_upar_ion_source,
+            .ctx_temp = &ctx,
+            .temp = eval_temp_ion_source,
+          },
+        .diagnostics =
+          {
+            .num_diag_moments = 6,
+            .diag_moments =
+              {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
+               GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
+            .num_integrated_diag_moments = 1,
+            .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
+          },
+      },
 
     .bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
@@ -779,14 +797,15 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
 
     .boundary_flux_diagnostics =
-      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP}}
+      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP}
+      },
   };
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
-    .is_static = false
+    .is_static = false,
   };
 
   struct gkyl_gk app_inp = {

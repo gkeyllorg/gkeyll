@@ -29,12 +29,14 @@ struct lc_ctx {
 
 typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
 
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-static struct gkyl_comm *comm_new(struct gkyl_rect_decomp *decomp)
+static struct gkyl_comm *
+comm_new(struct gkyl_rect_decomp *decomp)
 {
 #ifdef GKYL_HAVE_MPI
   return gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD, .decomp = decomp}
@@ -44,21 +46,24 @@ static struct gkyl_comm *comm_new(struct gkyl_rect_decomp *decomp)
 #endif
 }
 
-static void bmag_func_1x(double t, const double *xn, double *fout, void *ctx)
+static void
+bmag_func_1x(double t, const double *xn, double *fout, void *ctx)
 {
   struct lc_ctx *p = ctx;
   double z = xn[0];
   fout[0] = p->b_m * (1.0 - ((p->r_m - 1.0) / p->r_m) * pow(cos(z), 2.0));
 }
 
-static void phi_func_1x(double t, const double *xn, double *fout, void *ctx)
+static void
+phi_func_1x(double t, const double *xn, double *fout, void *ctx)
 {
   struct lc_ctx *p = ctx;
   double z = xn[0];
   fout[0] = p->phi_fac * p->t0 / p->eV * (1.0 - pow(cos(4.0 * z), 2.0));
 }
 
-static void eval_dg_on_range(
+static void
+eval_dg_on_range(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, const struct gkyl_range *range,
   evalf_t eval, void *ctx, struct gkyl_array *out
 )
@@ -68,7 +73,8 @@ static void eval_dg_on_range(
   gkyl_eval_on_nodes_release(ev);
 }
 
-static void test_loss_cone_mask_parallel_4dom(void)
+static void
+test_loss_cone_mask_parallel_4dom(void)
 {
   // The four ranks each evaluate one z slab using globally gathered B and
   // phi. The independently evaluated single-domain result is the oracle; an
@@ -131,7 +137,7 @@ static void test_loss_cone_mask_parallel_4dom(void)
     .r_m = 8.0,
     .t0 = 100.0 * GKYL_ELEMENTARY_CHARGE,
     .eV = GKYL_ELEMENTARY_CHARGE,
-    .phi_fac = 5.0
+    .phi_fac = 5.0,
   };
 
   struct gkyl_array *bmag_local = mkarr(basis_conf.num_basis, conf_local->volume);
@@ -151,11 +157,12 @@ static void test_loss_cone_mask_parallel_4dom(void)
   );
 
   struct gkyl_loss_cone_mask_gyrokinetic *up_local =
-    gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp
-    ){.conf_basis = &basis_conf,
+    gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp){
+      .conf_basis = &basis_conf,
       .vel_map = gvm_local,
       .mass = 2.014 * GKYL_PROTON_MASS,
-      .charge = GKYL_ELEMENTARY_CHARGE});
+      .charge = GKYL_ELEMENTARY_CHARGE,
+    });
 
   struct gkyl_array *mask_local = mkarr(1, phase_local->volume);
   gkyl_loss_cone_mask_gyrokinetic_advance(
@@ -175,11 +182,12 @@ static void test_loss_cone_mask_parallel_4dom(void)
       c2p_in, grid_phase, grid_vel, phase_global, phase_global, vel_global, vel_global, false
     );
     struct gkyl_loss_cone_mask_gyrokinetic *up_ref =
-      gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp
-      ){.conf_basis = &basis_conf,
+      gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp){
+        .conf_basis = &basis_conf,
         .vel_map = gvm_global,
         .mass = 2.014 * GKYL_PROTON_MASS,
-        .charge = GKYL_ELEMENTARY_CHARGE});
+        .charge = GKYL_ELEMENTARY_CHARGE,
+      });
 
     struct gkyl_array *mask_ref = mkarr(1, phase_global.volume);
     gkyl_loss_cone_mask_gyrokinetic_advance(

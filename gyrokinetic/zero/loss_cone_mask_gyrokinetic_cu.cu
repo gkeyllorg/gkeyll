@@ -9,7 +9,8 @@ extern "C" {
 #include <gkyl_velocity_map.h>
 }
 
-__global__ static void gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker(
+__global__ static void
+gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker(
   int cdim, int num_basis_conf, struct gkyl_range conf_corner_range,
   struct gkyl_range phase_corner_range, double mass, double charge, struct gkyl_range phase_range,
   struct gkyl_range conf_range, const struct gkyl_array *basis_at_corners_conf,

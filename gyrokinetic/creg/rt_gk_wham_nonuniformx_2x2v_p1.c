@@ -797,15 +797,19 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry =
-      {.geometry_id = GKYL_GEOMETRY_MIRROR,
-       .world = {0.0},
-       .mirror_grid_info = grid_inp,
-       .position_map_info =
-         {.id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
-          .map_strength = 0.5,
-          .maximum_slope_at_min_B = 2,
-          .gaussian_std = 0.2,
-          .gaussian_max_integration_width = 0.5}},
+      {
+        .geometry_id = GKYL_GEOMETRY_MIRROR,
+        .world = {0.0},
+        .mirror_grid_info = grid_inp,
+        .position_map_info =
+          {
+            .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+            .map_strength = 0.5,
+            .maximum_slope_at_min_B = 2,
+            .gaussian_std = 0.2,
+            .gaussian_max_integration_width = 0.5,
+          },
+      },
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
