@@ -34,11 +34,13 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
-  const struct gkyl_basis *basis, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm, enum gkyl_gyrokinetic_bc_type type,
-  const char *surrogate_model_path, const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_range *phase_local, unsigned int poly_order, bool use_gpu);
+struct gkyl_bc_sheath_gyrokinetic *gkyl_bc_sheath_gyrokinetic_new(
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm,
+  enum gkyl_gyrokinetic_bc_type type, const char *surrogate_model_path,
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_range *phase_local,
+  unsigned int poly_order, bool use_gpu
+);
 
 /**
  * Compute the cutting velicity and apply the sheath BC with the bc_sheath_gyrokinetic object.
@@ -53,10 +55,12 @@ struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum 
  * @param distf Distribution function array to apply BC to.
  * @param conf_r Configuration space range (to index phi).
  */
-void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
-  const struct gkyl_array *phi, const struct gkyl_array *phi_wall, const struct gkyl_array *density, 
-  const struct gkyl_array *temperature, const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, 
-  struct gkyl_array *distf, const struct gkyl_range *conf_r);
+void gkyl_bc_sheath_gyrokinetic_advance(
+  const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
+  const struct gkyl_array *phi_wall, const struct gkyl_array *density,
+  const struct gkyl_array *temperature, const struct gkyl_array *bmag,
+  const struct gkyl_array *bimpact_angle, struct gkyl_array *distf, const struct gkyl_range *conf_r
+);
 
 /**
  * Set the vcut_fact array used in the sheath BC. 
@@ -66,7 +70,9 @@ void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic 
  * @param up BC updater.
  * @param vcut_fact The vcut_fact array to use in the sheath BC.
  */
-void gkyl_bc_sheath_gyrokinetic_set_vcutsq(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *vcut_fact);
+void gkyl_bc_sheath_gyrokinetic_set_vcutsq(
+  const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *vcut_fact
+);
 
 /**
  * Write out the vcutsq array.
@@ -75,8 +81,9 @@ void gkyl_bc_sheath_gyrokinetic_set_vcutsq(const struct gkyl_bc_sheath_gyrokinet
  * @param meta Metadata to write (may be NULL).
  * @param fname Name of output file (including .gkyl extension).
  */
-void gkyl_bc_sheath_gyrokinetic_write_vcutsq(struct gkyl_bc_sheath_gyrokinetic *up,
-  struct gkyl_msgpack_data *meta, const char *fname);
+void gkyl_bc_sheath_gyrokinetic_write_vcutsq(
+  struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_msgpack_data *meta, const char *fname
+);
 
 /**
  * Free memory associated with bc_sheath_gyrokinetic updater.
