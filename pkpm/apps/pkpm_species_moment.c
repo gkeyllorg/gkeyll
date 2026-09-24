@@ -2,7 +2,8 @@
 #include <gkyl_pkpm_priv.h>
 
 // initialize species moment object
-void pkpm_species_moment_init(
+void
+pkpm_species_moment_init(
   struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_species_moment *sm, bool is_diag
 )
 {
@@ -19,7 +20,8 @@ void pkpm_species_moment_init(
   }
 }
 
-void pkpm_species_moment_calc(
+void
+pkpm_species_moment_calc(
   const struct pkpm_species_moment *sm, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
@@ -28,9 +30,8 @@ void pkpm_species_moment_calc(
 }
 
 // release memory for moment data object
-void pkpm_species_moment_release(
-  const struct gkyl_pkpm_app *app, const struct pkpm_species_moment *sm
-)
+void
+pkpm_species_moment_release(const struct gkyl_pkpm_app *app, const struct pkpm_species_moment *sm)
 {
   if (app->use_gpu) {
     gkyl_array_release(sm->marr_host);

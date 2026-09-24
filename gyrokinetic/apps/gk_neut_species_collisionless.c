@@ -1,14 +1,16 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void gk_neut_species_collisionless_rhs_disabled(
+static void
+gk_neut_species_collisionless_rhs_disabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gk_collisionless *gkcls,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
 }
 
-static void gk_neut_species_collisionless_rhs_enabled(
+static void
+gk_neut_species_collisionless_rhs_enabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gk_collisionless *gkcls,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -20,14 +22,16 @@ static void gk_neut_species_collisionless_rhs_enabled(
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_neut_species_collisionless_write_diags_disabled(
+static void
+gk_neut_species_collisionless_write_diags_disabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
   double tm, int frame
 )
 {
 }
 
-static void gk_neut_species_collisionless_write_diags_enabled(
+static void
+gk_neut_species_collisionless_write_diags_enabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
   double tm, int frame
 )
@@ -37,7 +41,8 @@ static void gk_neut_species_collisionless_write_diags_enabled(
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gk_neut_species_collisionless_init(
+void
+gk_neut_species_collisionless_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls
 )
 {
@@ -93,7 +98,7 @@ void gk_neut_species_collisionless_init(
       .hamil = gkns->hamil,
       .alpha_surf = gkcls->alpha_surf,
       .sgn_alpha_surf = gkcls->sgn_alpha_surf,
-      .const_sgn_alpha = gkcls->const_sgn_alpha
+      .const_sgn_alpha = gkcls->const_sgn_alpha,
     };
 
     gkcls->vlasov_slvr = gkyl_dg_updater_vlasov_new(
@@ -109,7 +114,8 @@ void gk_neut_species_collisionless_init(
   }
 }
 
-void gk_neut_species_collisionless_rhs(
+void
+gk_neut_species_collisionless_rhs(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gk_collisionless *gkcls,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -117,7 +123,8 @@ void gk_neut_species_collisionless_rhs(
   gkcls->rhs_func_neut(app, species, gkcls, fin, rhs);
 }
 
-void gk_neut_species_collisionless_write_diags(
+void
+gk_neut_species_collisionless_write_diags(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
   double tm, int frame
 )
@@ -125,7 +132,8 @@ void gk_neut_species_collisionless_write_diags(
   gkcls->write_diags_func_neut(app, gkns, gkcls, tm, frame);
 }
 
-void gk_neut_species_collisionless_release(
+void
+gk_neut_species_collisionless_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_collisionless *gkcls
 )
 {

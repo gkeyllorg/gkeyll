@@ -4,7 +4,8 @@
 #include <gkyl_const.h>
 #include <math.h>
 
-void test_compare_double()
+void
+test_compare_double()
 {
   TEST_CHECK(gkyl_compare_double(1.0, 1.0, 1e-15));
   TEST_CHECK(gkyl_compare_double(0.0, 0.0, 1e-15));
@@ -19,7 +20,8 @@ void test_compare_double()
   );
 }
 
-void test_compare_float()
+void
+test_compare_float()
 {
   TEST_CHECK(gkyl_compare_float(1.0f, 1.0f, 1e-6f));
   TEST_CHECK(!gkyl_compare_float(1.0f, 2.0f, 1e-6f));
@@ -27,7 +29,8 @@ void test_compare_float()
   TEST_CHECK(gkyl_compare_float(100.0f, 100.0f, 1e-6f));
 }
 
-void test_copy_int_arr()
+void
+test_copy_int_arr()
 {
   int in[5] = {1, 2, 3, 4, 5};
   int out[5] = {0};
@@ -43,7 +46,8 @@ void test_copy_int_arr()
   TEST_CHECK(out2[3] == 9 && out2[4] == 9);
 }
 
-void test_copy_long_arr()
+void
+test_copy_long_arr()
 {
   long in[4] = {10L, 20L, 30L, 40L};
   long out[4] = {0};
@@ -53,7 +57,8 @@ void test_copy_long_arr()
   }
 }
 
-void test_copy_double_arr()
+void
+test_copy_double_arr()
 {
   double in[4] = {1.5, -2.5, 3.25, 0.0};
   double out[4] = {0};
@@ -63,7 +68,8 @@ void test_copy_double_arr()
   }
 }
 
-void test_int_div_up()
+void
+test_int_div_up()
 {
   TEST_CHECK(gkyl_int_div_up(10, 5) == 2);
   TEST_CHECK(gkyl_int_div_up(11, 5) == 3);
@@ -74,7 +80,8 @@ void test_int_div_up()
   TEST_CHECK(gkyl_int_div_up(100, 7) == 15);
 }
 
-void test_minmod_util()
+void
+test_minmod_util()
 {
   // all same sign positive -> min
   TEST_CHECK(gkyl_minmod(2.0, 3.0, 4.0) == 2.0);
@@ -85,14 +92,16 @@ void test_minmod_util()
   TEST_CHECK(gkyl_minmod(-1.0, 2.0, 3.0) == 0.0);
 }
 
-void test_sgn_macro()
+void
+test_sgn_macro()
 {
   TEST_CHECK(GKYL_SGN(5.0) == 1.0);
   TEST_CHECK(GKYL_SGN(-5.0) == -1.0);
   TEST_CHECK(GKYL_SGN(0.0) == 1.0);
 }
 
-void test_minmax_macros()
+void
+test_minmax_macros()
 {
   TEST_CHECK(GKYL_MIN2(3, 5) == 3);
   TEST_CHECK(GKYL_MIN2(5, 3) == 3);
@@ -102,7 +111,8 @@ void test_minmax_macros()
   TEST_CHECK(GKYL_MAX2(-2.5, 1.0) == 1.0);
 }
 
-void test_tm_trigger()
+void
+test_tm_trigger()
 {
   // Trigger every 1.0 time units.
   struct gkyl_tm_trigger tmt = {.dt = 1.0, .tcurr = 0.0, .curr = 0};
@@ -122,7 +132,8 @@ void test_tm_trigger()
   TEST_CHECK(tmt.curr == 3);
 }
 
-void test_search_str_int_pair()
+void
+test_search_str_int_pair()
 {
   struct gkyl_str_int_pair pairs[] = {{"one", 1}, {"two", 2}, {"three", 3}, {0, 0}};
 
@@ -136,7 +147,8 @@ void test_search_str_int_pair()
   TEST_CHECK(strcmp(s2, "none") == 0);
 }
 
-void test_constants()
+void
+test_constants()
 {
   // c = 1/sqrt(mu0 * eps0)
   double c = 1.0 / sqrt(GKYL_MU0 * GKYL_EPSILON0);

@@ -4,7 +4,8 @@
 
 #include <gkyl_dg_calc_gk_rad_vars.h>
 
-static void gks_rad_moms_disabled(
+static void
+gks_rad_moms_disabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -12,7 +13,8 @@ static void gks_rad_moms_disabled(
   // Do nothing.
 }
 
-static void gks_rad_moms_enabled(
+static void
+gks_rad_moms_enabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -60,7 +62,8 @@ static void gks_rad_moms_enabled(
   app->stat.species_rad_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gks_rad_rhs_disabled(
+static void
+gks_rad_rhs_disabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -68,7 +71,8 @@ static void gks_rad_rhs_disabled(
   // Do nothing.
 }
 
-static void gks_rad_rhs_enabled(
+static void
+gks_rad_rhs_enabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -217,7 +221,8 @@ gks_rad_write_drag_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, do
   gkyl_msgpack_data_release(mt_surfmu);
 }
 
-static void gk_species_radiation_emissivity(
+static void
+gk_species_radiation_emissivity(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_rad_drag *rad,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -284,14 +289,16 @@ static void gk_species_radiation_emissivity(
   app->stat.species_rad_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gks_rad_write_emissivity_disabled(
+static void
+gks_rad_write_emissivity_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
   // Do nothing.
 }
 
-static void gks_rad_write_emissivity_enabled(
+static void
+gks_rad_write_emissivity_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -376,7 +383,8 @@ static void gks_rad_write_emissivity_enabled(
   gkyl_msgpack_data_release(mt);
 }
 
-static inline void gk_species_radiation_integrated_moms(
+static inline void
+gk_species_radiation_integrated_moms(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_rad_drag *rad,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -433,12 +441,14 @@ gks_rad_calc_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gks_rad_write_integrated_mom_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+static void
+gks_rad_write_integrated_mom_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   // Do nothing.
 }
 
-static void gks_rad_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+static void
+gks_rad_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -452,11 +462,11 @@ static void gks_rad_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, stru
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
     if (gks->rad.is_first_integ_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description",
-         .elem_type = GKYL_MP_STRING,
-         .cval = "Volume integrated M0M1M2PARM2PERP of the radiation drag."}
-      };
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {{
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Volume integrated M0M1M2PARM2PERP of the radiation drag.",
+      }};
       int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -477,7 +487,8 @@ static void gks_rad_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, stru
   app->stat.n_diag_io += 1;
 }
 
-void gk_species_radiation_init(
+void
+gk_species_radiation_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_rad_drag *rad
 )
 {
@@ -697,7 +708,7 @@ void gk_species_radiation_init(
       .nvnu_surf = rad->nvnu_surf,
       .nvnu = rad->nvnu,
       .nvsqnu_surf = rad->nvsqnu_surf,
-      .nvsqnu = rad->nvsqnu
+      .nvsqnu = rad->nvsqnu,
     };
     rad->drag_slvr = gkyl_dg_updater_rad_gyrokinetic_new(
       &s->grid, &app->basis, &s->basis, &s->local, &app->local, s->vel_map, &drag_inp, app->use_gpu
@@ -759,7 +770,8 @@ void gk_species_radiation_init(
   }
 }
 
-void gk_species_radiation_moms(
+void
+gk_species_radiation_moms(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -767,7 +779,8 @@ void gk_species_radiation_moms(
   rad->moms_func(app, species, rad, fin, fin_neut);
 }
 
-void gk_species_radiation_rhs(
+void
+gk_species_radiation_rhs(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_rad_drag *rad,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -775,35 +788,38 @@ void gk_species_radiation_rhs(
   rad->rhs_func(app, species, rad, fin, rhs);
 }
 
-void gk_species_radiation_write_drag(
+void
+gk_species_radiation_write_drag(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
   gks->rad.write_drag_func(app, gks, tm, frame);
 }
 
-void gk_species_radiation_write_emissivity(
+void
+gk_species_radiation_write_emissivity(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
   gks->rad.write_emissivity_func(app, gks, tm, frame);
 }
 
-void gk_species_radiation_calc_integrated_mom(
+void
+gk_species_radiation_calc_integrated_mom(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm
 )
 {
   gks->rad.calc_integrated_mom_func(app, gks, tm);
 }
 
-void gk_species_radiation_write_integrated_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+void
+gk_species_radiation_write_integrated_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   gks->rad.write_integrated_mom_func(app, gks);
 }
 
-void gk_species_radiation_release(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_rad_drag *rad
-)
+void
+gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struct gk_rad_drag *rad)
 {
   if (rad->radiation_id == GKYL_GK_RADIATION) {
     for (int i = 0; i < rad->num_cross_collisions; ++i) {

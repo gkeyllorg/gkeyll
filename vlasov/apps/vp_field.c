@@ -9,7 +9,8 @@
 #include <float.h>
 #include <time.h>
 
-void vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm)
+void
+vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
   gkyl_eval_on_nodes_advance(field->ext_pot_proj, tm, &app->local, field->ext_pot_host);
   if (app->use_gpu) {
@@ -17,7 +18,8 @@ void vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double 
   }
 }
 
-void vp_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm)
+void
+vp_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
   gkyl_proj_on_basis_advance(field->ext_em_proj, tm, &app->local, field->ext_em_host);
   if (app->use_gpu) {
@@ -25,7 +27,8 @@ void vp_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double t
   }
 }
 
-struct vm_field *vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
+struct vm_field *
+vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 {
   // Initialize field object.
   struct vm_field *vpf = gkyl_malloc(sizeof(struct vm_field));
@@ -123,7 +126,8 @@ struct vm_field *vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   return vpf;
 }
 
-void vp_field_accumulate_charge_dens(
+void
+vp_field_accumulate_charge_dens(
   gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[]
 )
 {
@@ -140,7 +144,8 @@ void vp_field_accumulate_charge_dens(
   }
 }
 
-void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field)
+void
+vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field)
 {
   // Compute the electrostatic potential.
 
@@ -160,7 +165,8 @@ void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field)
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void vp_field_apply_ic(
+void
+vp_field_apply_ic(
   gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[], double t0
 )
 {
@@ -188,7 +194,8 @@ void vp_field_apply_ic(
   }
 }
 
-void vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
+void
+vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
 {
   gkyl_array_integrate_advance(
     field->calc_es_energy, field->phi, app->grid.cellVolume, field->es_energy_fac, &app->local,
@@ -211,7 +218,8 @@ void vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 }
 
-void vp_field_release(const gkyl_vlasov_app *app, struct vm_field *vpf)
+void
+vp_field_release(const gkyl_vlasov_app *app, struct vm_field *vpf)
 {
   // Release resources for Vlasov-Poisson field.
 

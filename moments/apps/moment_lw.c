@@ -125,52 +125,62 @@ static const struct gkyl_str_int_pair embed_geo_type[] = {
   {"PEC", GKYL_EMBED_PEC},       {"Func", GKYL_EMBED_FUNC},       {0, 0}
 };
 
-void gkyl_register_moment_scheme_types(lua_State *L)
+void
+gkyl_register_moment_scheme_types(lua_State *L)
 {
   register_types(L, moment_scheme_type, "SchemeType");
 }
 
-void gkyl_register_wave_limiter_types(lua_State *L)
+void
+gkyl_register_wave_limiter_types(lua_State *L)
 {
   register_types(L, wave_limiter, "WaveLimiter");
 }
 
-void gkyl_register_euler_rp_types(lua_State *L)
+void
+gkyl_register_euler_rp_types(lua_State *L)
 {
   register_types(L, euler_rp_type, "EulerRP");
 }
 
-void gkyl_register_mhd_rp_types(lua_State *L)
+void
+gkyl_register_mhd_rp_types(lua_State *L)
 {
   register_types(L, mhd_rp_type, "MHDRP");
 }
 
-void gkyl_register_mhd_divb_types(lua_State *L)
+void
+gkyl_register_mhd_divb_types(lua_State *L)
 {
   register_types(L, mhd_divb_type, "DivB");
 }
 
-void gkyl_register_braginskii_types(lua_State *L)
+void
+gkyl_register_braginskii_types(lua_State *L)
 {
   register_types(L, braginskii_type, "Braginskii");
 }
 
-void gkyl_register_spacetime_gauge_types(lua_State *L)
+void
+gkyl_register_spacetime_gauge_types(lua_State *L)
 {
   register_types(L, spacetime_gauge_type, "SpacetimeGauge");
 }
 
-void gkyl_register_spacetime_slicing_types(lua_State *L)
+void
+gkyl_register_spacetime_slicing_types(lua_State *L)
 {
   register_types(L, spacetime_slicing_type, "SpacetimeSlicing");
 }
 
-void gkyl_register_spacetime_evolution_types(lua_State *L)
+void
+gkyl_register_spacetime_evolution_types(lua_State *L)
 {
   register_types(L, spacetime_evolution_type, "SpacetimeEvolution");
 }
 
-void gkyl_register_embed_geo_types(lua_State *L)
+void
+gkyl_register_embed_geo_types(lua_State *L)
 {
   register_types(L, embed_geo_type, "EmbedBC");
 }
@@ -284,7 +294,8 @@ struct wv_eqn_lw {
 };
 
 // Clean up memory allocated for equation object.
-static int wv_eqn_lw_gc(lua_State *L)
+static int
+wv_eqn_lw_gc(lua_State *L)
 {
   struct wv_eqn_lw **l_wv_lw = GKYL_CHECK_UDATA(L, MOMENT_WAVE_EQN_METATABLE_NM);
   struct wv_eqn_lw *wv_lw = *l_wv_lw;
@@ -302,7 +313,8 @@ static int wv_eqn_lw_gc(lua_State *L)
 }
 
 // Acquire equation object.
-static struct gkyl_wv_eqn *wv_eqn_get(lua_State *L)
+static struct gkyl_wv_eqn *
+wv_eqn_get(lua_State *L)
 {
   struct wv_eqn_lw **l_wv_lw = luaL_checkudata(L, -1, MOMENT_WAVE_EQN_METATABLE_NM);
   struct wv_eqn_lw *wv_lw = *l_wv_lw;
@@ -316,7 +328,8 @@ static struct gkyl_wv_eqn *wv_eqn_get(lua_State *L)
 
 // Euler.new { gasGamma = 1.4, rpType = G0.EulerRP.Roe }
 // where rpType is one of G0.EulerRP.Roe, G0.EulerRP.Lax, G0.EulerRP.HLL or G0.EulerRP.HLLC.
-static int eqn_euler_lw_new(lua_State *L)
+static int
+eqn_euler_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *euler_lw = gkyl_malloc(sizeof(*euler_lw));
 
@@ -324,8 +337,11 @@ static int eqn_euler_lw_new(lua_State *L)
   enum gkyl_wv_euler_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_EULER_RP_ROE);
 
   euler_lw->magic = MOMENT_EQN_DEFAULT;
-  euler_lw->eqn = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp
-  ){.gas_gamma = gas_gamma, .rp_type = rp_type, .use_gpu = false});
+  euler_lw->eqn = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
+    .gas_gamma = gas_gamma,
+    .rp_type = rp_type,
+    .use_gpu = false,
+  });
   euler_lw->has_nn = false;
   euler_lw->ann = 0;
   euler_lw->has_spacetime = false;
@@ -350,7 +366,8 @@ static struct luaL_Reg eqn_euler_ctor[] = {{"new", eqn_euler_lw_new}, {0, 0}};
 /* ************************** */
 
 // IsoEuler.new { vThermal = 1.0 }
-static int eqn_iso_euler_lw_new(lua_State *L)
+static int
+eqn_iso_euler_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *iso_euler_lw = gkyl_malloc(sizeof(*iso_euler_lw));
 
@@ -385,7 +402,8 @@ static struct luaL_Reg eqn_iso_euler_ctor[] = {{"new", eqn_iso_euler_lw_new}, {0
 /* ************************************ */
 
 // SrEuler.new { gasgamma = 1.4 }
-static int eqn_sr_euler_lw_new(lua_State *L)
+static int
+eqn_sr_euler_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *sr_euler_lw = gkyl_malloc(sizeof(*sr_euler_lw));
 
@@ -417,7 +435,8 @@ static struct luaL_Reg eqn_sr_euler_ctor[] = {{"new", eqn_sr_euler_lw_new}, {0, 
 /* ******************** */
 
 // ColdFluid.new {  }
-static int eqn_coldfluid_lw_new(lua_State *L)
+static int
+eqn_coldfluid_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *coldfluid_lw = gkyl_malloc(sizeof(*coldfluid_lw));
 
@@ -447,7 +466,8 @@ static struct luaL_Reg eqn_coldfluid_ctor[] = {{"new", eqn_coldfluid_lw_new}, {0
 /* ******************** */
 
 // TenMoment.new { k0 = 1, hasGradClosure = false }
-static int eqn_tenmoment_lw_new(lua_State *L)
+static int
+eqn_tenmoment_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *tenm_lw = gkyl_malloc(sizeof(*tenm_lw));
 
@@ -507,7 +527,8 @@ static struct luaL_Reg eqn_tenmoment_ctor[] = {{"new", eqn_tenmoment_lw_new}, {0
 // Mhd.new { gasgamma = 1.4, rpType = "roe", divB = "glm", glmCh = 0.0, glmAlpha = 0.0 }
 // rpType is one of "roe", "hlld", "lax"
 // divB is "none", "glm", "eight_waves"
-static int eqn_mhd_lw_new(lua_State *L)
+static int
+eqn_mhd_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *mhd_lw = gkyl_malloc(sizeof(*mhd_lw));
 
@@ -521,12 +542,13 @@ static int eqn_mhd_lw_new(lua_State *L)
   double glm_alpha = glua_tbl_get_number(L, "glmAlpha", 0.4);
 
   mhd_lw->magic = MOMENT_EQN_DEFAULT;
-  mhd_lw->eqn = gkyl_wv_mhd_new(&(struct gkyl_wv_mhd_inp
-  ){.gas_gamma = gas_gamma,
+  mhd_lw->eqn = gkyl_wv_mhd_new(&(struct gkyl_wv_mhd_inp){
+    .gas_gamma = gas_gamma,
     .rp_type = rp_type,
     .divergence_constraint = divb,
     .glm_alpha = glm_alpha,
-    .glm_ch = glm_ch});
+    .glm_ch = glm_ch,
+  });
   mhd_lw->has_nn = false;
   mhd_lw->ann = 0;
   mhd_lw->has_spacetime = false;
@@ -552,7 +574,8 @@ static struct luaL_Reg eqn_mhd_ctor[] = {{"new", eqn_mhd_lw_new}, {0, 0}};
 
 // ReactiveEuler.new { gasGamma = 1.4, specificHeatCapacity = 2.5, energyOfFormation = 1.0, ignitionTemperature = 0.25, reactionRate = 250.0, rpType = "roe" }
 // where rpType is one of "roe" or "lax".
-static int eqn_reactive_euler_lw_new(lua_State *L)
+static int
+eqn_reactive_euler_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *reactive_euler_lw = gkyl_malloc(sizeof(*reactive_euler_lw));
 
@@ -567,14 +590,15 @@ static int eqn_reactive_euler_lw_new(lua_State *L)
     gkyl_search_str_int_pair_by_str(reactive_euler_rp_type, rp_str, WV_REACTIVE_EULER_RP_LAX);
 
   reactive_euler_lw->magic = MOMENT_EQN_DEFAULT;
-  reactive_euler_lw->eqn = gkyl_wv_reactive_euler_inew(&(struct gkyl_wv_reactive_euler_inp
-  ){.gas_gamma = gas_gamma,
+  reactive_euler_lw->eqn = gkyl_wv_reactive_euler_inew(&(struct gkyl_wv_reactive_euler_inp){
+    .gas_gamma = gas_gamma,
     .specific_heat_capacity = specific_heat_capacity,
     .energy_of_formation = energy_of_formation,
     .ignition_temperature = ignition_temperature,
     .reaction_rate = reaction_rate,
     .rp_type = rp_type,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
   reactive_euler_lw->has_nn = false;
   reactive_euler_lw->ann = 0;
   reactive_euler_lw->has_spacetime = false;
@@ -600,7 +624,8 @@ static struct luaL_Reg eqn_reactive_euler_ctor[] = {{"new", eqn_reactive_euler_l
 
 // EulerMixture.new { numComponents = 2, gasGamma = {1.4, 1.4}, rpType = "roe" }
 // where rpType is one of "roe" or "lax".
-static int eqn_euler_mixture_lw_new(lua_State *L)
+static int
+eqn_euler_mixture_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *euler_mixture_lw = gkyl_malloc(sizeof(*euler_mixture_lw));
 
@@ -619,9 +644,12 @@ static int eqn_euler_mixture_lw_new(lua_State *L)
     gkyl_search_str_int_pair_by_str(euler_mixture_rp_type, rp_str, WV_EULER_MIXTURE_RP_LAX);
 
   euler_mixture_lw->magic = MOMENT_EQN_DEFAULT;
-  euler_mixture_lw->eqn = gkyl_wv_euler_mixture_inew(&(struct gkyl_wv_euler_mixture_inp
-  ){.num_species = num_components, .gas_gamma_s = gas_gamma_s, .rp_type = rp_type, .use_gpu = false}
-  );
+  euler_mixture_lw->eqn = gkyl_wv_euler_mixture_inew(&(struct gkyl_wv_euler_mixture_inp){
+    .num_species = num_components,
+    .gas_gamma_s = gas_gamma_s,
+    .rp_type = rp_type,
+    .use_gpu = false,
+  });
   euler_mixture_lw->has_nn = false;
   euler_mixture_lw->ann = 0;
   euler_mixture_lw->has_spacetime = false;
@@ -647,7 +675,8 @@ static const luaL_Reg eqn_euler_mixture_ctor[] = {{"new", eqn_euler_mixture_lw_n
 
 // EulerRGFM.new { numComponents = 2, gasGamma = {1.4, 1.4}, reinitFreq = 3, rpType = "lax" }
 // where rpType is "lax".
-static int eqn_euler_rgfm_lw_new(lua_State *L)
+static int
+eqn_euler_rgfm_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *euler_rgfm_lw = gkyl_malloc(sizeof(*euler_rgfm_lw));
 
@@ -667,12 +696,13 @@ static int eqn_euler_rgfm_lw_new(lua_State *L)
     gkyl_search_str_int_pair_by_str(euler_rgfm_rp_type, rp_str, WV_EULER_RGFM_RP_LAX);
 
   euler_rgfm_lw->magic = MOMENT_EQN_DEFAULT;
-  euler_rgfm_lw->eqn = gkyl_wv_euler_rgfm_inew(&(struct gkyl_wv_euler_rgfm_inp
-  ){.num_species = num_components,
+  euler_rgfm_lw->eqn = gkyl_wv_euler_rgfm_inew(&(struct gkyl_wv_euler_rgfm_inp){
+    .num_species = num_components,
     .gas_gamma_s = gas_gamma_s,
     .reinit_freq = reinit_freq,
     .rp_type = rp_type,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
   euler_rgfm_lw->has_nn = false;
   euler_rgfm_lw->ann = 0;
   euler_rgfm_lw->has_spacetime = false;
@@ -698,7 +728,8 @@ static const luaL_Reg eqn_euler_rgfm_ctor[] = {{"new", eqn_euler_rgfm_lw_new}, {
 
 // IsoEulerMixture.new { numComponents = 2, vThermal = {1.0, 1.0}, rpType = "roe" }
 // where rpType is one of "roe" or "lax".
-static int eqn_iso_euler_mixture_lw_new(lua_State *L)
+static int
+eqn_iso_euler_mixture_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *iso_euler_mixture_lw = gkyl_malloc(sizeof(*iso_euler_mixture_lw));
 
@@ -717,8 +748,13 @@ static int eqn_iso_euler_mixture_lw_new(lua_State *L)
     gkyl_search_str_int_pair_by_str(iso_euler_mixture_rp_type, rp_str, WV_ISO_EULER_MIXTURE_RP_LAX);
 
   iso_euler_mixture_lw->magic = MOMENT_EQN_DEFAULT;
-  iso_euler_mixture_lw->eqn = gkyl_wv_iso_euler_mixture_inew(&(struct gkyl_wv_iso_euler_mixture_inp
-  ){.num_species = num_components, .vt_s = vt_s, .rp_type = rp_type, .use_gpu = false});
+  iso_euler_mixture_lw->eqn =
+    gkyl_wv_iso_euler_mixture_inew(&(struct gkyl_wv_iso_euler_mixture_inp){
+      .num_species = num_components,
+      .vt_s = vt_s,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    });
   iso_euler_mixture_lw->has_nn = false;
   iso_euler_mixture_lw->ann = 0;
   iso_euler_mixture_lw->has_spacetime = false;
@@ -744,7 +780,8 @@ static const luaL_Reg eqn_iso_euler_mixture_ctor[] = {{"new", eqn_iso_euler_mixt
 
 // GRMaxwell.new { lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "roe" }
 // where rpType is one of "roe" or "lax".
-static int eqn_gr_maxwell_lw_new(lua_State *L)
+static int
+eqn_gr_maxwell_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_maxwell_lw = gkyl_malloc(sizeof(*gr_maxwell_lw));
 
@@ -787,14 +824,15 @@ static int eqn_gr_maxwell_lw_new(lua_State *L)
   }
 
   gr_maxwell_lw->magic = MOMENT_EQN_DEFAULT;
-  gr_maxwell_lw->eqn = gkyl_wv_gr_maxwell_inew(&(struct gkyl_wv_gr_maxwell_inp
-  ){.light_speed = light_speed,
+  gr_maxwell_lw->eqn = gkyl_wv_gr_maxwell_inew(&(struct gkyl_wv_gr_maxwell_inp){
+    .light_speed = light_speed,
     .e_fact = e_fact,
     .b_fact = b_fact,
     .spacetime = spacetime,
     .reinit_freq = reinit_freq,
     .rp_type = rp_type,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
   gr_maxwell_lw->has_nn = false;
   gr_maxwell_lw->ann = 0;
   gr_maxwell_lw->has_spacetime = true;
@@ -820,7 +858,8 @@ static struct luaL_Reg eqn_gr_maxwell_ctor[] = {{"new", eqn_gr_maxwell_lw_new}, 
 
 // GRMaxwellTetrad.new { lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "roe" }
 // where rpType is one of "roe" or "lax".
-static int eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
+static int
+eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_maxwell_tetrad_lw = gkyl_malloc(sizeof(*gr_maxwell_tetrad_lw));
 
@@ -863,14 +902,16 @@ static int eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
   }
 
   gr_maxwell_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
-  gr_maxwell_tetrad_lw->eqn = gkyl_wv_gr_maxwell_tetrad_inew(&(struct gkyl_wv_gr_maxwell_tetrad_inp
-  ){.light_speed = light_speed,
-    .e_fact = e_fact,
-    .b_fact = b_fact,
-    .spacetime = spacetime,
-    .reinit_freq = reinit_freq,
-    .rp_type = rp_type,
-    .use_gpu = false});
+  gr_maxwell_tetrad_lw->eqn =
+    gkyl_wv_gr_maxwell_tetrad_inew(&(struct gkyl_wv_gr_maxwell_tetrad_inp){
+      .light_speed = light_speed,
+      .e_fact = e_fact,
+      .b_fact = b_fact,
+      .spacetime = spacetime,
+      .reinit_freq = reinit_freq,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    });
   gr_maxwell_tetrad_lw->has_nn = false;
   gr_maxwell_tetrad_lw->ann = 0;
   gr_maxwell_tetrad_lw->has_spacetime = true;
@@ -899,7 +940,8 @@ static struct luaL_Reg eqn_gr_maxwell_tetrad_ctor[] = {
 
 // GRUltraRelativisticEuler.new { gasGamma = 4.0 / 3.0, rpType = "hll" }
 // where rpType is one of "hll", "roe" or "lax".
-static int eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
+static int
+eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_ultra_rel_euler_lw = gkyl_malloc(sizeof(*gr_ultra_rel_euler_lw));
 
@@ -942,12 +984,13 @@ static int eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
 
   gr_ultra_rel_euler_lw->magic = MOMENT_EQN_DEFAULT;
   gr_ultra_rel_euler_lw->eqn =
-    gkyl_wv_gr_ultra_rel_euler_inew(&(struct gkyl_wv_gr_ultra_rel_euler_inp
-    ){.gas_gamma = gas_gamma,
+    gkyl_wv_gr_ultra_rel_euler_inew(&(struct gkyl_wv_gr_ultra_rel_euler_inp){
+      .gas_gamma = gas_gamma,
       .spacetime = spacetime,
       .reinit_freq = reinit_freq,
       .rp_type = rp_type,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
   gr_ultra_rel_euler_lw->has_nn = false;
   gr_ultra_rel_euler_lw->ann = 0;
   gr_ultra_rel_euler_lw->has_spacetime = true;
@@ -976,7 +1019,8 @@ static struct luaL_Reg eqn_gr_ultra_rel_euler_ctor[] = {
 
 // GRUltraRelativisticEulerTetrad.new { gasGamma = 4.0 / 3.0, rpType = "hll" }
 // where rpType is one of "hll", "roe" or "lax".
-static int eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
+static int
+eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_ultra_rel_euler_tetrad_lw =
     gkyl_malloc(sizeof(*gr_ultra_rel_euler_tetrad_lw));
@@ -1020,12 +1064,13 @@ static int eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
 
   gr_ultra_rel_euler_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
   gr_ultra_rel_euler_tetrad_lw->eqn =
-    gkyl_wv_gr_ultra_rel_euler_tetrad_inew(&(struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp
-    ){.gas_gamma = gas_gamma,
+    gkyl_wv_gr_ultra_rel_euler_tetrad_inew(&(struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp){
+      .gas_gamma = gas_gamma,
       .spacetime = spacetime,
       .reinit_freq = reinit_freq,
       .rp_type = rp_type,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
   gr_ultra_rel_euler_tetrad_lw->has_nn = false;
   gr_ultra_rel_euler_tetrad_lw->ann = 0;
   gr_ultra_rel_euler_tetrad_lw->has_spacetime = true;
@@ -1055,7 +1100,8 @@ static struct luaL_Reg eqn_gr_ultra_rel_euler_tetrad_ctor[] = {
 
 // GREuler.new { gasGamma = 5.0 / 3.0, rpType = "hll" }
 // where rpType is one of "hll", "roe" or "lax".
-static int eqn_gr_euler_lw_new(lua_State *L)
+static int
+eqn_gr_euler_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_euler_lw = gkyl_malloc(sizeof(*gr_euler_lw));
 
@@ -1096,12 +1142,13 @@ static int eqn_gr_euler_lw_new(lua_State *L)
   }
 
   gr_euler_lw->magic = MOMENT_EQN_DEFAULT;
-  gr_euler_lw->eqn = gkyl_wv_gr_euler_inew(&(struct gkyl_wv_gr_euler_inp
-  ){.gas_gamma = gas_gamma,
+  gr_euler_lw->eqn = gkyl_wv_gr_euler_inew(&(struct gkyl_wv_gr_euler_inp){
+    .gas_gamma = gas_gamma,
     .spacetime = spacetime,
     .reinit_freq = reinit_freq,
     .rp_type = rp_type,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
   gr_euler_lw->has_nn = false;
   gr_euler_lw->ann = 0;
   gr_euler_lw->has_spacetime = true;
@@ -1127,7 +1174,8 @@ static struct luaL_Reg eqn_gr_euler_ctor[] = {{"new", eqn_gr_euler_lw_new}, {0, 
 
 // GREulerTetrad.new { gasGamma = 5.0 / 3.0, rpType = "hll" }
 // where rpType is one of "hll", "roe" or "lax".
-static int eqn_gr_euler_tetrad_lw_new(lua_State *L)
+static int
+eqn_gr_euler_tetrad_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_euler_tetrad_lw = gkyl_malloc(sizeof(*gr_euler_tetrad_lw));
 
@@ -1168,12 +1216,13 @@ static int eqn_gr_euler_tetrad_lw_new(lua_State *L)
   }
 
   gr_euler_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
-  gr_euler_tetrad_lw->eqn = gkyl_wv_gr_euler_tetrad_inew(&(struct gkyl_wv_gr_euler_tetrad_inp
-  ){.gas_gamma = gas_gamma,
+  gr_euler_tetrad_lw->eqn = gkyl_wv_gr_euler_tetrad_inew(&(struct gkyl_wv_gr_euler_tetrad_inp){
+    .gas_gamma = gas_gamma,
     .spacetime = spacetime,
     .reinit_freq = reinit_freq,
     .rp_type = rp_type,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
   gr_euler_tetrad_lw->has_nn = false;
   gr_euler_tetrad_lw->ann = 0;
   gr_euler_tetrad_lw->has_spacetime = true;
@@ -1198,7 +1247,8 @@ static struct luaL_Reg eqn_gr_euler_tetrad_ctor[] = {{"new", eqn_gr_euler_tetrad
 /* ******************************************************************* */
 
 // GRMedium.new { gasGamma = 4.0 / 3.0, kappa = 8.0 * pi, rpType = "lax" }.
-static int eqn_gr_medium_lw_new(lua_State *L)
+static int
+eqn_gr_medium_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_medium_lw = gkyl_malloc(sizeof(*gr_medium_lw));
 
@@ -1210,8 +1260,12 @@ static int eqn_gr_medium_lw_new(lua_State *L)
     gkyl_search_str_int_pair_by_str(gr_medium_rp_type, rp_str, WV_GR_MEDIUM_RP_LAX);
 
   gr_medium_lw->magic = MOMENT_EQN_DEFAULT;
-  gr_medium_lw->eqn = gkyl_wv_gr_medium_inew(&(struct gkyl_wv_gr_medium_inp
-  ){.gas_gamma = gas_gamma, .kappa = kappa, .rp_type = rp_type, .use_gpu = false});
+  gr_medium_lw->eqn = gkyl_wv_gr_medium_inew(&(struct gkyl_wv_gr_medium_inp){
+    .gas_gamma = gas_gamma,
+    .kappa = kappa,
+    .rp_type = rp_type,
+    .use_gpu = false,
+  });
   gr_medium_lw->has_nn = false;
   gr_medium_lw->ann = 0;
   gr_medium_lw->has_spacetime = false;
@@ -1236,7 +1290,8 @@ static struct luaL_Reg eqn_gr_medium_ctor[] = {{"new", eqn_gr_medium_lw_new}, {0
 /* ************************************************ */
 
 // VacuumEinstein.new { excisionThreshold = 0.3, rpType = "hll" }.
-static int eqn_vacuum_einstein_lw_new(lua_State *L)
+static int
+eqn_vacuum_einstein_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *vacuum_einstein_lw = gkyl_malloc(sizeof(*vacuum_einstein_lw));
 
@@ -1251,12 +1306,13 @@ static int eqn_vacuum_einstein_lw_new(lua_State *L)
     glua_tbl_get_integer(L, "spacetimeEvolution", GKYL_RICCI_EVOLUTION);
 
   vacuum_einstein_lw->magic = MOMENT_EQN_DEFAULT;
-  vacuum_einstein_lw->eqn = gkyl_wv_vacuum_einstein_inew(&(struct gkyl_wv_vacuum_einstein_inp
-  ){.excision_threshold = excision_threshold,
+  vacuum_einstein_lw->eqn = gkyl_wv_vacuum_einstein_inew(&(struct gkyl_wv_vacuum_einstein_inp){
+    .excision_threshold = excision_threshold,
     .spacetime_slicing = spacetime_slicing,
     .spacetime_evolution = spacetime_evolution,
     .rp_type = rp_type,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
   vacuum_einstein_lw->has_nn = false;
   vacuum_einstein_lw->ann = 0;
 
@@ -1279,7 +1335,8 @@ static struct luaL_Reg eqn_vacuum_einstein_ctor[] = {{"new", eqn_vacuum_einstein
 /* ********************************************************** */
 
 // VacuumEinsteinConformal.new { excisionThreshold = 0.3, rpType = "hll" }.
-static int eqn_vacuum_einstein_conformal_lw_new(lua_State *L)
+static int
+eqn_vacuum_einstein_conformal_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *vacuum_einstein_conformal_lw =
     gkyl_malloc(sizeof(*vacuum_einstein_conformal_lw));
@@ -1297,12 +1354,13 @@ static int eqn_vacuum_einstein_conformal_lw_new(lua_State *L)
 
   vacuum_einstein_conformal_lw->magic = MOMENT_EQN_DEFAULT;
   vacuum_einstein_conformal_lw->eqn =
-    gkyl_wv_vacuum_einstein_conformal_inew(&(struct gkyl_wv_vacuum_einstein_conformal_inp
-    ){.excision_threshold = excision_threshold,
+    gkyl_wv_vacuum_einstein_conformal_inew(&(struct gkyl_wv_vacuum_einstein_conformal_inp){
+      .excision_threshold = excision_threshold,
       .spacetime_slicing = spacetime_slicing,
       .spacetime_evolution = spacetime_evolution,
       .rp_type = rp_type,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
   vacuum_einstein_conformal_lw->has_nn = false;
   vacuum_einstein_conformal_lw->ann = 0;
 
@@ -1331,7 +1389,8 @@ static struct luaL_Reg eqn_vacuum_einstein_conformal_ctor[] = {
 // GRTwoFluid.new { massElc = 1.0 / 1836.2, massIon = 1.0, chargeElc = -1.0, chargeIon = 1.0, gasGammaElc = 5.0 / 3.0, gasGammaIon = 5.0 / 3.0,
 // lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "hll" }
 // where rpType is one of "hll" or "lax".
-static int eqn_gr_twofluid_lw_new(lua_State *L)
+static int
+eqn_gr_twofluid_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_twofluid_lw = gkyl_malloc(sizeof(*gr_twofluid_lw));
 
@@ -1381,8 +1440,8 @@ static int eqn_gr_twofluid_lw_new(lua_State *L)
   }
 
   gr_twofluid_lw->magic = MOMENT_EQN_DEFAULT;
-  gr_twofluid_lw->eqn = gkyl_wv_gr_twofluid_inew(&(struct gkyl_wv_gr_twofluid_inp
-  ){.mass_elc = mass_elc,
+  gr_twofluid_lw->eqn = gkyl_wv_gr_twofluid_inew(&(struct gkyl_wv_gr_twofluid_inp){
+    .mass_elc = mass_elc,
     .mass_ion = mass_ion,
     .charge_elc = charge_elc,
     .charge_ion = charge_ion,
@@ -1394,7 +1453,8 @@ static int eqn_gr_twofluid_lw_new(lua_State *L)
     .spacetime = spacetime,
     .reinit_freq = reinit_freq,
     .rp_type = rp_type,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
   gr_twofluid_lw->has_nn = false;
   gr_twofluid_lw->ann = 0;
   gr_twofluid_lw->has_spacetime = true;
@@ -1421,7 +1481,8 @@ static struct luaL_Reg eqn_gr_twofluid_ctor[] = {{"new", eqn_gr_twofluid_lw_new}
 // GRTwoFluidTetrad.new { massElc = 1.0 / 1836.2, massIon = 1.0, chargeElc = -1.0, chargeIon = 1.0, gasGammaElc = 5.0 / 3.0, gasGammaIon = 5.0 / 3.0,
 // lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "hll" }
 // where rpType is one of "hll" or "lax".
-static int eqn_gr_twofluid_tetrad_lw_new(lua_State *L)
+static int
+eqn_gr_twofluid_tetrad_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_twofluid_tetrad_lw = gkyl_malloc(sizeof(*gr_twofluid_tetrad_lw));
 
@@ -1473,8 +1534,8 @@ static int eqn_gr_twofluid_tetrad_lw_new(lua_State *L)
 
   gr_twofluid_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
   gr_twofluid_tetrad_lw->eqn =
-    gkyl_wv_gr_twofluid_tetrad_inew(&(struct gkyl_wv_gr_twofluid_tetrad_inp
-    ){.mass_elc = mass_elc,
+    gkyl_wv_gr_twofluid_tetrad_inew(&(struct gkyl_wv_gr_twofluid_tetrad_inp){
+      .mass_elc = mass_elc,
       .mass_ion = mass_ion,
       .charge_elc = charge_elc,
       .charge_ion = charge_ion,
@@ -1486,7 +1547,8 @@ static int eqn_gr_twofluid_tetrad_lw_new(lua_State *L)
       .spacetime = spacetime,
       .reinit_freq = reinit_freq,
       .rp_type = rp_type,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
   gr_twofluid_tetrad_lw->has_nn = false;
   gr_twofluid_tetrad_lw->ann = 0;
   gr_twofluid_tetrad_lw->has_spacetime = true;
@@ -1515,7 +1577,8 @@ static struct luaL_Reg eqn_gr_twofluid_tetrad_ctor[] = {
 
 // GRMHD.new { gasGamma = 5.0 / 3.0, lightSpeed = 1.0, mgnErrorSpeedFactor = 0.0, rpType = "hll" }
 // where rpType is one of "hll" or "lax".
-static int eqn_gr_mhd_lw_new(lua_State *L)
+static int
+eqn_gr_mhd_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_mhd_lw = gkyl_malloc(sizeof(*gr_mhd_lw));
 
@@ -1560,15 +1623,16 @@ static int eqn_gr_mhd_lw_new(lua_State *L)
   int spacetime_gauge = glua_tbl_get_integer(L, "spacetimeGauge", GKYL_STATIC_GAUGE);
 
   gr_mhd_lw->magic = MOMENT_EQN_DEFAULT;
-  gr_mhd_lw->eqn = gkyl_wv_gr_mhd_inew(&(struct gkyl_wv_gr_mhd_inp
-  ){.gas_gamma = gas_gamma,
+  gr_mhd_lw->eqn = gkyl_wv_gr_mhd_inew(&(struct gkyl_wv_gr_mhd_inp){
+    .gas_gamma = gas_gamma,
     .light_speed = light_speed,
     .b_fact = b_fact,
     .spacetime = spacetime,
     .spacetime_gauge = spacetime_gauge,
     .reinit_freq = reinit_freq,
     .rp_type = rp_type,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
   gr_mhd_lw->has_nn = false;
   gr_mhd_lw->ann = 0;
   gr_mhd_lw->has_spacetime = true;
@@ -1594,7 +1658,8 @@ static struct luaL_Reg eqn_gr_mhd_ctor[] = {{"new", eqn_gr_mhd_lw_new}, {0, 0}};
 
 // GRMHDTetrad.new { gasGamma = 5.0 / 3.0, lightSpeed = 1.0, mgnErrorSpeedFactor = 0.0, rpType = "hll" }
 // where rpType is one of "hll" or "lax".
-static int eqn_gr_mhd_tetrad_lw_new(lua_State *L)
+static int
+eqn_gr_mhd_tetrad_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_mhd_tetrad_lw = gkyl_malloc(sizeof(*gr_mhd_tetrad_lw));
 
@@ -1639,15 +1704,16 @@ static int eqn_gr_mhd_tetrad_lw_new(lua_State *L)
   int spacetime_gauge = glua_tbl_get_integer(L, "spacetimeGauge", GKYL_STATIC_GAUGE);
 
   gr_mhd_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
-  gr_mhd_tetrad_lw->eqn = gkyl_wv_gr_mhd_tetrad_inew(&(struct gkyl_wv_gr_mhd_tetrad_inp
-  ){.gas_gamma = gas_gamma,
+  gr_mhd_tetrad_lw->eqn = gkyl_wv_gr_mhd_tetrad_inew(&(struct gkyl_wv_gr_mhd_tetrad_inp){
+    .gas_gamma = gas_gamma,
     .light_speed = light_speed,
     .b_fact = b_fact,
     .spacetime = spacetime,
     .spacetime_gauge = spacetime_gauge,
     .reinit_freq = reinit_freq,
     .rp_type = rp_type,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
   gr_mhd_tetrad_lw->has_nn = false;
   gr_mhd_tetrad_lw->ann = 0;
   gr_mhd_tetrad_lw->has_spacetime = true;
@@ -1672,7 +1738,8 @@ static struct luaL_Reg eqn_gr_mhd_tetrad_ctor[] = {{"new", eqn_gr_mhd_tetrad_lw_
 /* ************************* */
 
 // Advection.new { advectionSpeed = 1.0 }
-static int eqn_advect_lw_new(lua_State *L)
+static int
+eqn_advect_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *advect_lw = gkyl_malloc(sizeof(*advect_lw));
 
@@ -1704,7 +1771,8 @@ static struct luaL_Reg eqn_advect_ctor[] = {{"new", eqn_advect_lw_new}, {0, 0}};
 /* ************************* */
 
 // Burgers.new { }
-static int eqn_burgers_lw_new(lua_State *L)
+static int
+eqn_burgers_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *burgers_lw = gkyl_malloc(sizeof(*burgers_lw));
 
@@ -1730,7 +1798,8 @@ static int eqn_burgers_lw_new(lua_State *L)
 static struct luaL_Reg eqn_burgers_ctor[] = {{"new", eqn_burgers_lw_new}, {0, 0}};
 
 // Register and load all wave equation objects.
-static void eqn_openlibs(lua_State *L)
+static void
+eqn_openlibs(lua_State *L)
 {
   luaL_newmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
 
@@ -1777,7 +1846,8 @@ struct gr_spacetime_lw {
 };
 
 // Clean up memory allocated for spacetime object.
-static int gr_spacetime_lw_gc(lua_State *L)
+static int
+gr_spacetime_lw_gc(lua_State *L)
 {
   struct gr_spacetime_lw **l_gr_lw = GKYL_CHECK_UDATA(L, MOMENT_SPACETIME_METATABLE_NM);
   struct gr_spacetime_lw *gr_lw = *l_gr_lw;
@@ -1789,7 +1859,8 @@ static int gr_spacetime_lw_gc(lua_State *L)
 }
 
 // Acquire spacetime object.
-static struct gkyl_gr_spacetime *gr_spacetime_get(lua_State *L)
+static struct gkyl_gr_spacetime *
+gr_spacetime_get(lua_State *L)
 {
   struct gr_spacetime_lw **l_gr_lw = luaL_checkudata(L, -1, MOMENT_SPACETIME_METATABLE_NM);
   struct gr_spacetime_lw *gr_lw = *l_gr_lw;
@@ -1801,7 +1872,8 @@ static struct gkyl_gr_spacetime *gr_spacetime_get(lua_State *L)
 /* Minkowski Spacetime */
 /* ******************* */
 
-static int spacetime_minkowski_lw_new(lua_State *L)
+static int
+spacetime_minkowski_lw_new(lua_State *L)
 {
   struct gr_spacetime_lw *minkowski_lw = gkyl_malloc(sizeof(*minkowski_lw));
 
@@ -1820,7 +1892,8 @@ static int spacetime_minkowski_lw_new(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_spatial_metric_tensor(lua_State *L)
+static int
+spacetime_minkowski_lw_spatial_metric_tensor(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -1862,7 +1935,8 @@ static int spacetime_minkowski_lw_spatial_metric_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_inv_spatial_metric_tensor(lua_State *L)
+static int
+spacetime_minkowski_lw_inv_spatial_metric_tensor(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -1904,7 +1978,8 @@ static int spacetime_minkowski_lw_inv_spatial_metric_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_spatial_metric_det(lua_State *L)
+static int
+spacetime_minkowski_lw_spatial_metric_det(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -1924,7 +1999,8 @@ static int spacetime_minkowski_lw_spatial_metric_det(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_lapse_function(lua_State *L)
+static int
+spacetime_minkowski_lw_lapse_function(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -1944,7 +2020,8 @@ static int spacetime_minkowski_lw_lapse_function(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_shift_vector(lua_State *L)
+static int
+spacetime_minkowski_lw_shift_vector(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -1971,7 +2048,8 @@ static int spacetime_minkowski_lw_shift_vector(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_extrinsic_curvature_tensor(lua_State *L)
+static int
+spacetime_minkowski_lw_extrinsic_curvature_tensor(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -2019,7 +2097,8 @@ static int spacetime_minkowski_lw_extrinsic_curvature_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_lapse_function_der(lua_State *L)
+static int
+spacetime_minkowski_lw_lapse_function_der(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -2050,7 +2129,8 @@ static int spacetime_minkowski_lw_lapse_function_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_shift_vector_der(lua_State *L)
+static int
+spacetime_minkowski_lw_shift_vector_der(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -2096,7 +2176,8 @@ static int spacetime_minkowski_lw_shift_vector_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_spatial_metric_tensor_der(lua_State *L)
+static int
+spacetime_minkowski_lw_spatial_metric_tensor_der(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -2156,7 +2237,8 @@ static int spacetime_minkowski_lw_spatial_metric_tensor_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_excision_region(lua_State *L)
+static int
+spacetime_minkowski_lw_excision_region(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -2176,7 +2258,8 @@ static int spacetime_minkowski_lw_excision_region(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_conformal_factor(lua_State *L)
+static int
+spacetime_minkowski_lw_conformal_factor(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -2196,7 +2279,8 @@ static int spacetime_minkowski_lw_conformal_factor(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_bssn_conformal_factor(lua_State *L)
+static int
+spacetime_minkowski_lw_bssn_conformal_factor(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -2216,7 +2300,8 @@ static int spacetime_minkowski_lw_bssn_conformal_factor(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_conformal_factor_der(lua_State *L)
+static int
+spacetime_minkowski_lw_conformal_factor_der(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -2247,7 +2332,8 @@ static int spacetime_minkowski_lw_conformal_factor_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_bssn_conformal_factor_der(lua_State *L)
+static int
+spacetime_minkowski_lw_bssn_conformal_factor_der(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -2280,7 +2366,8 @@ static int spacetime_minkowski_lw_bssn_conformal_factor_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_minkowski_lw_bssn_conformal_factor_der2(lua_State *L)
+static int
+spacetime_minkowski_lw_bssn_conformal_factor_der2(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){.use_gpu = false});
@@ -2353,7 +2440,8 @@ static struct luaL_Reg spacetime_minkowski_ctor[] = {
 /* Black Hole Spacetime */
 /* ******************** */
 
-static int spacetime_blackhole_lw_new(lua_State *L)
+static int
+spacetime_blackhole_lw_new(lua_State *L)
 {
   struct gr_spacetime_lw *blackhole_lw = gkyl_malloc(sizeof(*blackhole_lw));
 
@@ -2364,8 +2452,14 @@ static int spacetime_blackhole_lw_new(lua_State *L)
   double pos_z = luaL_checknumber(L, 5);
 
   blackhole_lw->magic = MOMENT_SPACETIME_DEFAULT;
-  blackhole_lw->spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  blackhole_lw->spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   // Create Lua userdata.
   struct gr_spacetime_lw **l_blackhole_lw = lua_newuserdata(L, sizeof(struct gr_spacetime_lw *));
@@ -2378,7 +2472,8 @@ static int spacetime_blackhole_lw_new(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_spatial_metric_tensor(lua_State *L)
+static int
+spacetime_blackhole_lw_spatial_metric_tensor(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2386,8 +2481,14 @@ static int spacetime_blackhole_lw_spatial_metric_tensor(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2426,7 +2527,8 @@ static int spacetime_blackhole_lw_spatial_metric_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_inv_spatial_metric_tensor(lua_State *L)
+static int
+spacetime_blackhole_lw_inv_spatial_metric_tensor(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2434,8 +2536,14 @@ static int spacetime_blackhole_lw_inv_spatial_metric_tensor(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2474,7 +2582,8 @@ static int spacetime_blackhole_lw_inv_spatial_metric_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_spatial_metric_det(lua_State *L)
+static int
+spacetime_blackhole_lw_spatial_metric_det(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2482,8 +2591,14 @@ static int spacetime_blackhole_lw_spatial_metric_det(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2500,7 +2615,8 @@ static int spacetime_blackhole_lw_spatial_metric_det(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_lapse_function(lua_State *L)
+static int
+spacetime_blackhole_lw_lapse_function(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2508,8 +2624,14 @@ static int spacetime_blackhole_lw_lapse_function(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2526,7 +2648,8 @@ static int spacetime_blackhole_lw_lapse_function(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_shift_vector(lua_State *L)
+static int
+spacetime_blackhole_lw_shift_vector(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2534,8 +2657,14 @@ static int spacetime_blackhole_lw_shift_vector(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2559,7 +2688,8 @@ static int spacetime_blackhole_lw_shift_vector(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_extrinsic_curvature_tensor(lua_State *L)
+static int
+spacetime_blackhole_lw_extrinsic_curvature_tensor(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2567,8 +2697,14 @@ static int spacetime_blackhole_lw_extrinsic_curvature_tensor(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2613,7 +2749,8 @@ static int spacetime_blackhole_lw_extrinsic_curvature_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_lapse_function_der(lua_State *L)
+static int
+spacetime_blackhole_lw_lapse_function_der(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2621,8 +2758,14 @@ static int spacetime_blackhole_lw_lapse_function_der(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2650,7 +2793,8 @@ static int spacetime_blackhole_lw_lapse_function_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_shift_vector_der(lua_State *L)
+static int
+spacetime_blackhole_lw_shift_vector_der(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2658,8 +2802,14 @@ static int spacetime_blackhole_lw_shift_vector_der(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2702,7 +2852,8 @@ static int spacetime_blackhole_lw_shift_vector_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_spatial_metric_tensor_der(lua_State *L)
+static int
+spacetime_blackhole_lw_spatial_metric_tensor_der(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2710,8 +2861,14 @@ static int spacetime_blackhole_lw_spatial_metric_tensor_der(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2768,7 +2925,8 @@ static int spacetime_blackhole_lw_spatial_metric_tensor_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_excision_region(lua_State *L)
+static int
+spacetime_blackhole_lw_excision_region(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2776,8 +2934,14 @@ static int spacetime_blackhole_lw_excision_region(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2794,7 +2958,8 @@ static int spacetime_blackhole_lw_excision_region(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_conformal_factor(lua_State *L)
+static int
+spacetime_blackhole_lw_conformal_factor(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2802,8 +2967,14 @@ static int spacetime_blackhole_lw_conformal_factor(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2820,7 +2991,8 @@ static int spacetime_blackhole_lw_conformal_factor(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_bssn_conformal_factor(lua_State *L)
+static int
+spacetime_blackhole_lw_bssn_conformal_factor(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2828,8 +3000,14 @@ static int spacetime_blackhole_lw_bssn_conformal_factor(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2846,7 +3024,8 @@ static int spacetime_blackhole_lw_bssn_conformal_factor(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_conformal_factor_der(lua_State *L)
+static int
+spacetime_blackhole_lw_conformal_factor_der(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2854,8 +3033,14 @@ static int spacetime_blackhole_lw_conformal_factor_der(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2883,7 +3068,8 @@ static int spacetime_blackhole_lw_conformal_factor_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_bssn_conformal_factor_der(lua_State *L)
+static int
+spacetime_blackhole_lw_bssn_conformal_factor_der(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2891,8 +3077,14 @@ static int spacetime_blackhole_lw_bssn_conformal_factor_der(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -2922,7 +3114,8 @@ static int spacetime_blackhole_lw_bssn_conformal_factor_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_blackhole_lw_bssn_conformal_factor_der2(lua_State *L)
+static int
+spacetime_blackhole_lw_bssn_conformal_factor_der2(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -2930,8 +3123,14 @@ static int spacetime_blackhole_lw_bssn_conformal_factor_der2(lua_State *L)
   double pos_y = luaL_checknumber(L, 4);
   double pos_z = luaL_checknumber(L, 5);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp
-  ){.mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z, .use_gpu = false});
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew(&(struct gkyl_gr_blackhole_inp){
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 6);
   double x = luaL_checknumber(L, 7);
@@ -3001,7 +3200,8 @@ static struct luaL_Reg spacetime_blackhole_ctor[] = {
 /* Neutron Star Spacetime */
 /* ********************** */
 
-static int spacetime_neutronstar_lw_new(lua_State *L)
+static int
+spacetime_neutronstar_lw_new(lua_State *L)
 {
   struct gr_spacetime_lw *neutronstar_lw = gkyl_malloc(sizeof(*neutronstar_lw));
 
@@ -3015,8 +3215,8 @@ static int spacetime_neutronstar_lw_new(lua_State *L)
   double pos_z = luaL_checknumber(L, 8);
 
   neutronstar_lw->magic = MOMENT_SPACETIME_DEFAULT;
-  neutronstar_lw->spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
-  ){.mass = mass,
+  neutronstar_lw->spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
+    .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
     .spin_octupole = spin_octupole,
@@ -3024,7 +3224,8 @@ static int spacetime_neutronstar_lw_new(lua_State *L)
     .pos_x = pos_x,
     .pos_y = pos_y,
     .pos_z = pos_z,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   // Create Lua userdata.
   struct gr_spacetime_lw **l_neutronstar_lw = lua_newuserdata(L, sizeof(struct gr_spacetime_lw *));
@@ -3037,7 +3238,8 @@ static int spacetime_neutronstar_lw_new(lua_State *L)
   return 1;
 }
 
-static int spacetime_neutronstar_lw_spatial_metric_tensor(lua_State *L)
+static int
+spacetime_neutronstar_lw_spatial_metric_tensor(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -3048,8 +3250,8 @@ static int spacetime_neutronstar_lw_spatial_metric_tensor(lua_State *L)
   double pos_y = luaL_checknumber(L, 7);
   double pos_z = luaL_checknumber(L, 8);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
-  ){.mass = mass,
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
+    .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
     .spin_octupole = spin_octupole,
@@ -3057,7 +3259,8 @@ static int spacetime_neutronstar_lw_spatial_metric_tensor(lua_State *L)
     .pos_x = pos_x,
     .pos_y = pos_y,
     .pos_z = pos_z,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3096,7 +3299,8 @@ static int spacetime_neutronstar_lw_spatial_metric_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_neutronstar_lw_spatial_metric_det(lua_State *L)
+static int
+spacetime_neutronstar_lw_spatial_metric_det(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -3107,8 +3311,8 @@ static int spacetime_neutronstar_lw_spatial_metric_det(lua_State *L)
   double pos_y = luaL_checknumber(L, 7);
   double pos_z = luaL_checknumber(L, 8);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
-  ){.mass = mass,
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
+    .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
     .spin_octupole = spin_octupole,
@@ -3116,7 +3320,8 @@ static int spacetime_neutronstar_lw_spatial_metric_det(lua_State *L)
     .pos_x = pos_x,
     .pos_y = pos_y,
     .pos_z = pos_z,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3133,7 +3338,8 @@ static int spacetime_neutronstar_lw_spatial_metric_det(lua_State *L)
   return 1;
 }
 
-static int spacetime_neutronstar_lw_lapse_function(lua_State *L)
+static int
+spacetime_neutronstar_lw_lapse_function(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -3144,8 +3350,8 @@ static int spacetime_neutronstar_lw_lapse_function(lua_State *L)
   double pos_y = luaL_checknumber(L, 7);
   double pos_z = luaL_checknumber(L, 8);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
-  ){.mass = mass,
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
+    .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
     .spin_octupole = spin_octupole,
@@ -3153,7 +3359,8 @@ static int spacetime_neutronstar_lw_lapse_function(lua_State *L)
     .pos_x = pos_x,
     .pos_y = pos_y,
     .pos_z = pos_z,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3170,7 +3377,8 @@ static int spacetime_neutronstar_lw_lapse_function(lua_State *L)
   return 1;
 }
 
-static int spacetime_neutronstar_lw_shift_vector(lua_State *L)
+static int
+spacetime_neutronstar_lw_shift_vector(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -3181,8 +3389,8 @@ static int spacetime_neutronstar_lw_shift_vector(lua_State *L)
   double pos_y = luaL_checknumber(L, 7);
   double pos_z = luaL_checknumber(L, 8);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
-  ){.mass = mass,
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
+    .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
     .spin_octupole = spin_octupole,
@@ -3190,7 +3398,8 @@ static int spacetime_neutronstar_lw_shift_vector(lua_State *L)
     .pos_x = pos_x,
     .pos_y = pos_y,
     .pos_z = pos_z,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3214,7 +3423,8 @@ static int spacetime_neutronstar_lw_shift_vector(lua_State *L)
   return 1;
 }
 
-static int spacetime_neutronstar_lw_extrinsic_curvature_tensor(lua_State *L)
+static int
+spacetime_neutronstar_lw_extrinsic_curvature_tensor(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -3225,8 +3435,8 @@ static int spacetime_neutronstar_lw_extrinsic_curvature_tensor(lua_State *L)
   double pos_y = luaL_checknumber(L, 7);
   double pos_z = luaL_checknumber(L, 8);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
-  ){.mass = mass,
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
+    .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
     .spin_octupole = spin_octupole,
@@ -3234,7 +3444,8 @@ static int spacetime_neutronstar_lw_extrinsic_curvature_tensor(lua_State *L)
     .pos_x = pos_x,
     .pos_y = pos_y,
     .pos_z = pos_z,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3279,7 +3490,8 @@ static int spacetime_neutronstar_lw_extrinsic_curvature_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_neutronstar_lw_lapse_function_der(lua_State *L)
+static int
+spacetime_neutronstar_lw_lapse_function_der(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -3290,8 +3502,8 @@ static int spacetime_neutronstar_lw_lapse_function_der(lua_State *L)
   double pos_y = luaL_checknumber(L, 7);
   double pos_z = luaL_checknumber(L, 8);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
-  ){.mass = mass,
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
+    .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
     .spin_octupole = spin_octupole,
@@ -3299,7 +3511,8 @@ static int spacetime_neutronstar_lw_lapse_function_der(lua_State *L)
     .pos_x = pos_x,
     .pos_y = pos_y,
     .pos_z = pos_z,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3327,7 +3540,8 @@ static int spacetime_neutronstar_lw_lapse_function_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_neutronstar_lw_shift_vector_der(lua_State *L)
+static int
+spacetime_neutronstar_lw_shift_vector_der(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -3338,8 +3552,8 @@ static int spacetime_neutronstar_lw_shift_vector_der(lua_State *L)
   double pos_y = luaL_checknumber(L, 7);
   double pos_z = luaL_checknumber(L, 8);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
-  ){.mass = mass,
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
+    .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
     .spin_octupole = spin_octupole,
@@ -3347,7 +3561,8 @@ static int spacetime_neutronstar_lw_shift_vector_der(lua_State *L)
     .pos_x = pos_x,
     .pos_y = pos_y,
     .pos_z = pos_z,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3390,7 +3605,8 @@ static int spacetime_neutronstar_lw_shift_vector_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_neutronstar_lw_spatial_metric_tensor_der(lua_State *L)
+static int
+spacetime_neutronstar_lw_spatial_metric_tensor_der(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -3401,8 +3617,8 @@ static int spacetime_neutronstar_lw_spatial_metric_tensor_der(lua_State *L)
   double pos_y = luaL_checknumber(L, 7);
   double pos_z = luaL_checknumber(L, 8);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
-  ){.mass = mass,
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
+    .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
     .spin_octupole = spin_octupole,
@@ -3410,7 +3626,8 @@ static int spacetime_neutronstar_lw_spatial_metric_tensor_der(lua_State *L)
     .pos_x = pos_x,
     .pos_y = pos_y,
     .pos_z = pos_z,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3467,7 +3684,8 @@ static int spacetime_neutronstar_lw_spatial_metric_tensor_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_neutronstar_lw_excision_region(lua_State *L)
+static int
+spacetime_neutronstar_lw_excision_region(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
   double spin = luaL_checknumber(L, 2);
@@ -3478,8 +3696,8 @@ static int spacetime_neutronstar_lw_excision_region(lua_State *L)
   double pos_y = luaL_checknumber(L, 7);
   double pos_z = luaL_checknumber(L, 8);
 
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp
-  ){.mass = mass,
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
+    .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
     .spin_octupole = spin_octupole,
@@ -3487,7 +3705,8 @@ static int spacetime_neutronstar_lw_excision_region(lua_State *L)
     .pos_x = pos_x,
     .pos_y = pos_y,
     .pos_z = pos_z,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3523,7 +3742,8 @@ static struct luaL_Reg spacetime_neutronstar_ctor[] = {
 /* Brill-Lindquist (Binary Black Hole) Spacetime */
 /* ********************************************* */
 
-static int spacetime_brill_lindquist_lw_new(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_new(lua_State *L)
 {
   struct gr_spacetime_lw *brill_lindquist_lw = gkyl_malloc(sizeof(*brill_lindquist_lw));
 
@@ -3537,16 +3757,18 @@ static int spacetime_brill_lindquist_lw_new(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   brill_lindquist_lw->magic = MOMENT_SPACETIME_DEFAULT;
-  brill_lindquist_lw->spacetime = gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-  ){.mass1 = mass1,
-    .mass2 = mass2,
-    .pos_x1 = pos_x1,
-    .pos_y1 = pos_y1,
-    .pos_z1 = pos_z1,
-    .pos_x2 = pos_x2,
-    .pos_y2 = pos_y2,
-    .pos_z2 = pos_z2,
-    .use_gpu = false});
+  brill_lindquist_lw->spacetime =
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
+      .mass2 = mass2,
+      .pos_x1 = pos_x1,
+      .pos_y1 = pos_y1,
+      .pos_z1 = pos_z1,
+      .pos_x2 = pos_x2,
+      .pos_y2 = pos_y2,
+      .pos_z2 = pos_z2,
+      .use_gpu = false,
+    });
 
   // Create Lua userdata.
   struct gr_spacetime_lw **l_brill_lindquist_lw =
@@ -3560,7 +3782,8 @@ static int spacetime_brill_lindquist_lw_new(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_spatial_metric_tensor(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_spatial_metric_tensor(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -3572,8 +3795,8 @@ static int spacetime_brill_lindquist_lw_spatial_metric_tensor(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -3581,7 +3804,8 @@ static int spacetime_brill_lindquist_lw_spatial_metric_tensor(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3620,7 +3844,8 @@ static int spacetime_brill_lindquist_lw_spatial_metric_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_inv_spatial_metric_tensor(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_inv_spatial_metric_tensor(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -3632,8 +3857,8 @@ static int spacetime_brill_lindquist_lw_inv_spatial_metric_tensor(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -3641,7 +3866,8 @@ static int spacetime_brill_lindquist_lw_inv_spatial_metric_tensor(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3680,7 +3906,8 @@ static int spacetime_brill_lindquist_lw_inv_spatial_metric_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_spatial_metric_det(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_spatial_metric_det(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -3692,8 +3919,8 @@ static int spacetime_brill_lindquist_lw_spatial_metric_det(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -3701,7 +3928,8 @@ static int spacetime_brill_lindquist_lw_spatial_metric_det(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3718,7 +3946,8 @@ static int spacetime_brill_lindquist_lw_spatial_metric_det(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_lapse_function(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_lapse_function(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -3730,8 +3959,8 @@ static int spacetime_brill_lindquist_lw_lapse_function(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -3739,7 +3968,8 @@ static int spacetime_brill_lindquist_lw_lapse_function(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3756,7 +3986,8 @@ static int spacetime_brill_lindquist_lw_lapse_function(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_shift_vector(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_shift_vector(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -3768,8 +3999,8 @@ static int spacetime_brill_lindquist_lw_shift_vector(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -3777,7 +4008,8 @@ static int spacetime_brill_lindquist_lw_shift_vector(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3801,7 +4033,8 @@ static int spacetime_brill_lindquist_lw_shift_vector(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_extrinsic_curvature_tensor(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_extrinsic_curvature_tensor(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -3813,8 +4046,8 @@ static int spacetime_brill_lindquist_lw_extrinsic_curvature_tensor(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -3822,7 +4055,8 @@ static int spacetime_brill_lindquist_lw_extrinsic_curvature_tensor(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3867,7 +4101,8 @@ static int spacetime_brill_lindquist_lw_extrinsic_curvature_tensor(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_lapse_function_der(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_lapse_function_der(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -3879,8 +4114,8 @@ static int spacetime_brill_lindquist_lw_lapse_function_der(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -3888,7 +4123,8 @@ static int spacetime_brill_lindquist_lw_lapse_function_der(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3916,7 +4152,8 @@ static int spacetime_brill_lindquist_lw_lapse_function_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_shift_vector_der(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_shift_vector_der(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -3928,8 +4165,8 @@ static int spacetime_brill_lindquist_lw_shift_vector_der(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -3937,7 +4174,8 @@ static int spacetime_brill_lindquist_lw_shift_vector_der(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -3980,7 +4218,8 @@ static int spacetime_brill_lindquist_lw_shift_vector_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_spatial_metric_tensor_der(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_spatial_metric_tensor_der(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -3992,8 +4231,8 @@ static int spacetime_brill_lindquist_lw_spatial_metric_tensor_der(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -4001,7 +4240,8 @@ static int spacetime_brill_lindquist_lw_spatial_metric_tensor_der(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -4058,7 +4298,8 @@ static int spacetime_brill_lindquist_lw_spatial_metric_tensor_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_excision_region(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_excision_region(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -4070,8 +4311,8 @@ static int spacetime_brill_lindquist_lw_excision_region(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -4079,7 +4320,8 @@ static int spacetime_brill_lindquist_lw_excision_region(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -4096,7 +4338,8 @@ static int spacetime_brill_lindquist_lw_excision_region(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_conformal_factor(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_conformal_factor(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -4108,8 +4351,8 @@ static int spacetime_brill_lindquist_lw_conformal_factor(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -4117,7 +4360,8 @@ static int spacetime_brill_lindquist_lw_conformal_factor(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -4134,7 +4378,8 @@ static int spacetime_brill_lindquist_lw_conformal_factor(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_bssn_conformal_factor(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_bssn_conformal_factor(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -4146,8 +4391,8 @@ static int spacetime_brill_lindquist_lw_bssn_conformal_factor(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -4155,7 +4400,8 @@ static int spacetime_brill_lindquist_lw_bssn_conformal_factor(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -4172,7 +4418,8 @@ static int spacetime_brill_lindquist_lw_bssn_conformal_factor(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_conformal_factor_der(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_conformal_factor_der(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -4184,8 +4431,8 @@ static int spacetime_brill_lindquist_lw_conformal_factor_der(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -4193,7 +4440,8 @@ static int spacetime_brill_lindquist_lw_conformal_factor_der(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -4221,7 +4469,8 @@ static int spacetime_brill_lindquist_lw_conformal_factor_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_bssn_conformal_factor_der(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_bssn_conformal_factor_der(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -4233,8 +4482,8 @@ static int spacetime_brill_lindquist_lw_bssn_conformal_factor_der(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -4242,7 +4491,8 @@ static int spacetime_brill_lindquist_lw_bssn_conformal_factor_der(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -4272,7 +4522,8 @@ static int spacetime_brill_lindquist_lw_bssn_conformal_factor_der(lua_State *L)
   return 1;
 }
 
-static int spacetime_brill_lindquist_lw_bssn_conformal_factor_der2(lua_State *L)
+static int
+spacetime_brill_lindquist_lw_bssn_conformal_factor_der2(lua_State *L)
 {
   double mass1 = luaL_checknumber(L, 1);
   double mass2 = luaL_checknumber(L, 2);
@@ -4284,8 +4535,8 @@ static int spacetime_brill_lindquist_lw_bssn_conformal_factor_der2(lua_State *L)
   double pos_z2 = luaL_checknumber(L, 8);
 
   struct gkyl_gr_spacetime *spacetime =
-    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp
-    ){.mass1 = mass1,
+    gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
+      .mass1 = mass1,
       .mass2 = mass2,
       .pos_x1 = pos_x1,
       .pos_y1 = pos_y1,
@@ -4293,7 +4544,8 @@ static int spacetime_brill_lindquist_lw_bssn_conformal_factor_der2(lua_State *L)
       .pos_x2 = pos_x2,
       .pos_y2 = pos_y2,
       .pos_z2 = pos_z2,
-      .use_gpu = false});
+      .use_gpu = false,
+    });
 
   double t = luaL_checknumber(L, 9);
   double x = luaL_checknumber(L, 10);
@@ -4360,7 +4612,8 @@ static struct luaL_Reg spacetime_brill_lindquist_ctor[] = {
 };
 
 // Register and load all GR spacetime objects.
-static void spacetime_openlibs(lua_State *L)
+static void
+spacetime_openlibs(lua_State *L)
 {
   luaL_newmetatable(L, MOMENT_SPACETIME_METATABLE_NM);
 
@@ -4399,7 +4652,8 @@ struct moment_species_lw {
   struct lua_func_ctx nT_source_func_ctx; // Lua registry reference to temperature source function.
 };
 
-static int moment_species_lw_new(lua_State *L)
+static int
+moment_species_lw_new(lua_State *L)
 {
   int vdim = 0;
   struct gkyl_moment_species mom_species = {};
@@ -4576,26 +4830,29 @@ static int moment_species_lw_new(lua_State *L)
   moms_lw->evolve = evolve;
   moms_lw->mom_species = mom_species;
 
-  moms_lw->init_ctx = (struct lua_func_ctx
-  ){.func_ref = init_ref,
+  moms_lw->init_ctx = (struct lua_func_ctx){
+    .func_ref = init_ref,
     .ndim = 0, // This will be set later.
     .nret = mom_species.equation->num_equations,
-    .L = L};
+    .L = L,
+  };
 
   moms_lw->has_applied_acceleration_func = has_applied_acceleration_func;
-  moms_lw->applied_acceleration_func_ref = (struct lua_func_ctx
-  ){.func_ref = applied_acceleration_func_ref,
+  moms_lw->applied_acceleration_func_ref = (struct lua_func_ctx){
+    .func_ref = applied_acceleration_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L};
+    .L = L,
+  };
   moms_lw->evolve_applied_acceleration = evolve_applied_acceleration;
 
   moms_lw->has_nT_source = has_nT_source;
-  moms_lw->nT_source_func_ctx = (struct lua_func_ctx
-  ){.func_ref = nT_source_ref,
+  moms_lw->nT_source_func_ctx = (struct lua_func_ctx){
+    .func_ref = nT_source_ref,
     .ndim = 0, // This will be set later.
     .nret = GKYL_MOM_APP_NUM_NT_SOURCE,
-    .L = L};
+    .L = L,
+  };
 
   // Set metatable.
   luaL_getmetatable(L, MOMENT_SPECIES_METATABLE_NM);
@@ -4637,7 +4894,8 @@ struct moment_field_lw {
     applied_current_ramp_time; // Linear ramp for turning on applied current without re-projecting.
 };
 
-static int moment_field_lw_new(lua_State *L)
+static int
+moment_field_lw_new(lua_State *L)
 {
   int vdim = 0;
   struct gkyl_moment_field mom_field = {};
@@ -4719,27 +4977,30 @@ static int moment_field_lw_new(lua_State *L)
   momf_lw->evolve = evolve;
   momf_lw->mom_field = mom_field;
 
-  momf_lw->init_ctx = (struct lua_func_ctx
-  ){.func_ref = init_ref,
+  momf_lw->init_ctx = (struct lua_func_ctx){
+    .func_ref = init_ref,
     .ndim = 0, // This will be set later.
     .nret = 6,
-    .L = L};
+    .L = L,
+  };
 
   momf_lw->has_external_field_func = has_external_field_func;
-  momf_lw->external_field_func_ref = (struct lua_func_ctx
-  ){.func_ref = external_field_func_ref,
+  momf_lw->external_field_func_ref = (struct lua_func_ctx){
+    .func_ref = external_field_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 6,
-    .L = L};
+    .L = L,
+  };
   momf_lw->evolve_external_field = evolve_external_field;
   momf_lw->external_field_ramp_time = external_field_ramp_time;
 
   momf_lw->has_applied_current_func = has_applied_current_func;
-  momf_lw->applied_current_func_ref = (struct lua_func_ctx
-  ){.func_ref = applied_current_func_ref,
+  momf_lw->applied_current_func_ref = (struct lua_func_ctx){
+    .func_ref = applied_current_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L};
+    .L = L,
+  };
   momf_lw->evolve_applied_current = evolve_applied_current;
   momf_lw->applied_current_ramp_time = applied_current_ramp_time;
 
@@ -4786,7 +5047,8 @@ struct moment_app_lw {
 };
 
 // Find index of species in table given its name.
-static int app_find_species(const gkyl_moment_app *app, const char *nm)
+static int
+app_find_species(const gkyl_moment_app *app, const char *nm)
 {
   for (int i = 0; i < app->num_species; i++) {
     if (strcmp(app->species[i].name, nm) == 0) {
@@ -4829,7 +5091,8 @@ get_species_inp(lua_State *L, int cdim, struct moment_species_lw *species[GKYL_M
 }
 
 // comparison method to sort species array by species name
-static int species_compare_func(const void *a, const void *b)
+static int
+species_compare_func(const void *a, const void *b)
 {
   const struct moment_species_lw *const *spa = a;
   const struct moment_species_lw *const *spb = b;
@@ -4837,7 +5100,8 @@ static int species_compare_func(const void *a, const void *b)
 }
 
 // Create top-level App object.
-static int mom_app_new(lua_State *L)
+static int
+mom_app_new(lua_State *L)
 {
   struct moment_app_lw *app_lw = gkyl_malloc(sizeof(*app_lw));
 
@@ -5089,7 +5353,8 @@ static int mom_app_new(lua_State *L)
 }
 
 // Return number of species () -> int.
-static int mom_app_num_species(lua_State *L)
+static int
+mom_app_num_species(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5100,7 +5365,8 @@ static int mom_app_num_species(lua_State *L)
 }
 
 // Return number of species (int) -> string.
-static int mom_app_species_name(lua_State *L)
+static int
+mom_app_species_name(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5112,7 +5378,8 @@ static int mom_app_species_name(lua_State *L)
 }
 
 // Compute maximum time-step () -> double.
-static int mom_app_max_dt(lua_State *L)
+static int
+mom_app_max_dt(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5124,7 +5391,8 @@ static int mom_app_max_dt(lua_State *L)
 }
 
 // Apply initial conditions. (time) -> bool.
-static int mom_app_apply_ic(lua_State *L)
+static int
+mom_app_apply_ic(lua_State *L)
 {
   bool status = true;
 
@@ -5139,7 +5407,8 @@ static int mom_app_apply_ic(lua_State *L)
 }
 
 // Apply initial conditions to field. (time) -> bool.
-static int mom_app_apply_ic_field(lua_State *L)
+static int
+mom_app_apply_ic_field(lua_State *L)
 {
   bool status = true;
 
@@ -5154,7 +5423,8 @@ static int mom_app_apply_ic_field(lua_State *L)
 }
 
 // Apply initial conditions to species. (name, time) -> bool.
-static int mom_app_apply_ic_species(lua_State *L)
+static int
+mom_app_apply_ic_species(lua_State *L)
 {
   bool status = true;
 
@@ -5192,7 +5462,8 @@ static const struct gkyl_str_int_pair rio_status[] = {
 };
 
 // Pushes table with status on stack. Table is left on stack.
-static void push_restart_status_table(lua_State *L, struct gkyl_app_restart_status status)
+static void
+push_restart_status_table(lua_State *L, struct gkyl_app_restart_status status)
 {
   lua_newtable(L);
 
@@ -5214,7 +5485,8 @@ static void push_restart_status_table(lua_State *L, struct gkyl_app_restart_stat
 }
 
 // Read field from file. (file-name) -> status table. See above.
-static int mom_app_from_file_field(lua_State *L)
+static int
+mom_app_from_file_field(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5228,7 +5500,8 @@ static int mom_app_from_file_field(lua_State *L)
 }
 
 // Read field from file. (file-name, species-name) -> status table. See above.
-static int mom_app_from_file_species(lua_State *L)
+static int
+mom_app_from_file_species(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5250,7 +5523,8 @@ static int mom_app_from_file_species(lua_State *L)
 }
 
 // Read field from file. (frame) -> status table. See above.
-static int mom_app_from_frame_field(lua_State *L)
+static int
+mom_app_from_frame_field(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5264,7 +5538,8 @@ static int mom_app_from_frame_field(lua_State *L)
 }
 
 // Read field from file. (frame, species-name) -> status table. See above.
-static int mom_app_from_frame_species(lua_State *L)
+static int
+mom_app_from_frame_species(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5286,7 +5561,8 @@ static int mom_app_from_frame_species(lua_State *L)
 }
 
 // Compute integrated moments. (tm) -> bool.
-static int mom_app_calc_integrated_mom(lua_State *L)
+static int
+mom_app_calc_integrated_mom(lua_State *L)
 {
   bool status = true;
 
@@ -5301,7 +5577,8 @@ static int mom_app_calc_integrated_mom(lua_State *L)
 }
 
 // get number of field-energy diagnostics stored () -> int.
-static int mom_app_field_energy_ndiag(lua_State *L)
+static int
+mom_app_field_energy_ndiag(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5311,7 +5588,8 @@ static int mom_app_field_energy_ndiag(lua_State *L)
 }
 
 // Return the field energy as a table () -> table.
-static int mom_app_get_field_energy(lua_State *L)
+static int
+mom_app_get_field_energy(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5333,7 +5611,8 @@ static int mom_app_get_field_energy(lua_State *L)
 
 // Compute integrated field energy (L2 norm of each field
 // component). (tm) -> bool.
-static int mom_app_calc_field_energy(lua_State *L)
+static int
+mom_app_calc_field_energy(lua_State *L)
 {
   bool status = true;
 
@@ -5348,7 +5627,8 @@ static int mom_app_calc_field_energy(lua_State *L)
 }
 
 // Write solution (field and species) to file (time, frame) -> bool.
-static int mom_app_write(lua_State *L)
+static int
+mom_app_write(lua_State *L)
 {
   bool status = true;
 
@@ -5364,7 +5644,8 @@ static int mom_app_write(lua_State *L)
 }
 
 // Write field to file (time, frame) -> bool.
-static int mom_app_write_field(lua_State *L)
+static int
+mom_app_write_field(lua_State *L)
 {
   bool status = true;
 
@@ -5380,7 +5661,8 @@ static int mom_app_write_field(lua_State *L)
 }
 
 // Write species solution to file (name, time, frame) -> bool.
-static int mom_app_write_species(lua_State *L)
+static int
+mom_app_write_species(lua_State *L)
 {
   bool status = true;
 
@@ -5402,7 +5684,8 @@ static int mom_app_write_species(lua_State *L)
 }
 
 // Write integrated moments to file () -> bool.
-static int mom_app_write_integrated_mom(lua_State *L)
+static int
+mom_app_write_integrated_mom(lua_State *L)
 {
   bool status = true;
 
@@ -5416,7 +5699,8 @@ static int mom_app_write_integrated_mom(lua_State *L)
 }
 
 // Write integrated field energy to file () -> bool.
-static int mom_app_write_field_energy(lua_State *L)
+static int
+mom_app_write_field_energy(lua_State *L)
 {
   bool status = true;
 
@@ -5430,7 +5714,8 @@ static int mom_app_write_field_energy(lua_State *L)
 }
 
 // Write simulation statistics to JSON. () -> bool.
-static int mom_app_stat_write(lua_State *L)
+static int
+mom_app_stat_write(lua_State *L)
 {
   bool status = true;
 
@@ -5460,7 +5745,8 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, boo
 }
 
 // Calculate and append field energy to dynvector.
-static void calc_field_energy(
+static void
+calc_field_energy(
   struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, double force_calc
 )
 {
@@ -5470,7 +5756,8 @@ static void calc_field_energy(
 }
 
 // Calculate and append integrated moments to dynvector.
-static void calc_integrated_mom(
+static void
+calc_integrated_mom(
   struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc
 )
 {
@@ -5488,7 +5775,8 @@ static void calc_integrated_mom(
 
 // Update the solution by a suggested time-step. (dt) -> update status
 // table. See above. For details see the C API doc for this function.
-static int mom_app_update(lua_State *L)
+static int
+mom_app_update(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5522,7 +5810,8 @@ struct step_message_trigs {
 };
 
 // Write log message to console.
-static void write_step_message(
+static void
+write_step_message(
   const struct gkyl_moment_app *app, struct step_message_trigs *trigs, int step, double t_curr,
   double dt_next
 )
@@ -5545,7 +5834,8 @@ static void write_step_message(
   }
 }
 
-static void show_help(const struct gkyl_moment_app *app)
+static void
+show_help(const struct gkyl_moment_app *app)
 {
   gkyl_moment_app_cout(app, stdout, "Moment script takes the following arguments:\n");
   gkyl_moment_app_cout(app, stdout, " -h   Print this help message and exit\n");
@@ -5556,7 +5846,8 @@ static void show_help(const struct gkyl_moment_app *app)
   gkyl_moment_app_cout(app, stdout, "\n");
 }
 
-static struct gkyl_tool_args *tool_args_from_argv(int optind, int argc, char *const *argv)
+static struct gkyl_tool_args *
+tool_args_from_argv(int optind, int argc, char *const *argv)
 {
   struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
 
@@ -5586,7 +5877,8 @@ struct script_cli {
   struct gkyl_tool_args *rest;
 };
 
-static struct script_cli mom_parse_script_cli(struct gkyl_tool_args *acv)
+static struct script_cli
+mom_parse_script_cli(struct gkyl_tool_args *acv)
 {
   struct script_cli cli = {
     .help = -false,
@@ -5594,7 +5886,7 @@ static struct script_cli mom_parse_script_cli(struct gkyl_tool_args *acv)
     .num_steps = INT_MAX,
     .use_verbose = false,
     .is_restart = false,
-    .restart_frame = 0
+    .restart_frame = 0,
   };
 
   coption_long longopts[] = {{0}};
@@ -5604,25 +5896,25 @@ static struct script_cli mom_parse_script_cli(struct gkyl_tool_args *acv)
   int c;
   while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
     switch (c) {
-    case 'h':
-      cli.help = true;
-      break;
+      case 'h':
+        cli.help = true;
+        break;
 
-    case 'V':
-      cli.use_verbose = true;
-      break;
+      case 'V':
+        cli.use_verbose = true;
+        break;
 
-    case 's':
-      cli.num_steps = atoi(opt.arg);
-      break;
+      case 's':
+        cli.num_steps = atoi(opt.arg);
+        break;
 
-    case 'r':
-      cli.is_restart = true;
-      cli.restart_frame = atoi(opt.arg);
-      break;
+      case 'r':
+        cli.is_restart = true;
+        cli.restart_frame = atoi(opt.arg);
+        break;
 
-    case '?':
-      break;
+      case '?':
+        break;
     }
   }
 
@@ -5632,7 +5924,8 @@ static struct script_cli mom_parse_script_cli(struct gkyl_tool_args *acv)
 }
 
 // Run simulation. (num_steps) -> bool. num_steps is optional.
-static int mom_app_run(lua_State *L)
+static int
+mom_app_run(lua_State *L)
 {
   bool ret_status = true;
 
@@ -5691,13 +5984,19 @@ static int mom_app_run(lua_State *L)
   int integrated_mom_calcs = app_lw->integrated_mom_calcs;
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+    .dt = t_end / num_frames,
+    .tcurr = frame_curr * (t_end / num_frames),
+    .curr = frame_curr,
   };
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / field_energy_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_mom_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   struct step_message_trigs m_trig = {
@@ -5705,7 +6004,7 @@ static int mom_app_run(lua_State *L)
     .tenth = t_curr > 0.0 ? (int)floor(t_curr / t_end * 10.0) : 0.0,
     .p1c = t_curr > 0.0 ? (int)floor(t_curr / t_end * 100.0) % 10 : 0.0,
     .log_trig = {.dt = t_end / 10.0, .tcurr = t_curr},
-    .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr}
+    .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr},
   };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
@@ -5803,7 +6102,8 @@ freeresources:
 }
 
 // Return ghost cell as table of 2 elements.
-static int mom_app_nghost(lua_State *L)
+static int
+mom_app_nghost(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5824,7 +6124,8 @@ static int mom_app_nghost(lua_State *L)
 }
 
 // Clean up memory allocated for simulation.
-static int mom_app_gc(lua_State *L)
+static int
+mom_app_gc(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
@@ -5876,7 +6177,8 @@ static struct luaL_Reg mom_app_funcs[] = {
   {0, 0}
 };
 
-static void app_openlibs(lua_State *L)
+static void
+app_openlibs(lua_State *L)
 {
   // Register top-level App.
   do {
@@ -5914,7 +6216,8 @@ static void app_openlibs(lua_State *L)
   } while (0);
 }
 
-void gkyl_moment_lw_openlibs(lua_State *L)
+void
+gkyl_moment_lw_openlibs(lua_State *L)
 {
   // Register types for moment reconstruction and wave limiter schemes.
   gkyl_register_moment_scheme_types(L);

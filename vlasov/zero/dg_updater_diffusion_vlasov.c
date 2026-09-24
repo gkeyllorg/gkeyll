@@ -16,7 +16,8 @@ gkyl_dg_updater_diffusion_vlasov_acquire_eqn(const struct gkyl_dg_updater_diffus
   return gkyl_dg_eqn_acquire(up->dgeqn);
 }
 
-struct gkyl_dg_updater_diffusion_vlasov *gkyl_dg_updater_diffusion_vlasov_new(
+struct gkyl_dg_updater_diffusion_vlasov *
+gkyl_dg_updater_diffusion_vlasov_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir, int diff_order,
   const struct gkyl_range *diff_range, const bool *is_zero_flux_dir, bool use_gpu
@@ -61,7 +62,8 @@ struct gkyl_dg_updater_diffusion_vlasov *gkyl_dg_updater_diffusion_vlasov_new(
   return up;
 }
 
-void gkyl_dg_updater_diffusion_vlasov_advance(
+void
+gkyl_dg_updater_diffusion_vlasov_advance(
   struct gkyl_dg_updater_diffusion_vlasov *up, const struct gkyl_range *update_rng,
   const struct gkyl_array *coeff, const struct gkyl_array *GKYL_RESTRICT fIn,
   struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs
@@ -82,7 +84,8 @@ gkyl_dg_updater_diffusion_vlasov_get_tm(const struct gkyl_dg_updater_diffusion_v
   return (struct gkyl_dg_updater_diffusion_vlasov_tm){.diffusion_tm = up->diffusion_tm};
 }
 
-void gkyl_dg_updater_diffusion_vlasov_release(struct gkyl_dg_updater_diffusion_vlasov *up)
+void
+gkyl_dg_updater_diffusion_vlasov_release(struct gkyl_dg_updater_diffusion_vlasov *up)
 {
   gkyl_dg_eqn_release(up->dgeqn);
   gkyl_hyper_dg_release(up->hyperdg);

@@ -21,12 +21,14 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-void test_div_ppar_uniform_1x1v_p1()
+void
+test_div_ppar_uniform_1x1v_p1()
 {
   int poly_order = 1;
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
@@ -118,7 +120,8 @@ void test_div_ppar_uniform_1x1v_p1()
   gkyl_dg_calc_pkpm_dist_vars_release(up);
 }
 
-void test_dist_vars_new_2x2v_p1()
+void
+test_dist_vars_new_2x2v_p1()
 {
   int poly_order = 1;
   int cdim = 2, vdim = 2, pdim = cdim + vdim;

@@ -8,7 +8,8 @@
 #include <gkyl_mom_gyrokinetic_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
+void
+gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *base = container_of(ref, struct gkyl_mom_type, ref_count);
   struct mom_type_gyrokinetic *mom_gk = container_of(base, struct mom_type_gyrokinetic, momt);
@@ -28,7 +29,8 @@ void gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
   gkyl_free(mom_gk);
 }
 
-struct gkyl_mom_type *gkyl_mom_gyrokinetic_new(
+struct gkyl_mom_type *
+gkyl_mom_gyrokinetic_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, double mass, double charge,
   const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
@@ -61,22 +63,22 @@ struct gkyl_mom_type *gkyl_mom_gyrokinetic_new(
     *four_moments_kernels, *hamiltonian_moments_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    m0_kernels = ser_m0_kernels;
-    m1_kernels = ser_m1_kernels;
-    m2_kernels = ser_m2_kernels;
-    m2_par_kernels = ser_m2_par_kernels;
-    m2_perp_kernels = ser_m2_perp_kernels;
-    m3_par_kernels = ser_m3_par_kernels;
-    m3_perp_kernels = ser_m3_perp_kernels;
-    three_moments_kernels = ser_three_moments_kernels;
-    four_moments_kernels = ser_four_moments_kernels;
-    hamiltonian_moments_kernels = ser_hamiltonian_moments_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      m0_kernels = ser_m0_kernels;
+      m1_kernels = ser_m1_kernels;
+      m2_kernels = ser_m2_kernels;
+      m2_par_kernels = ser_m2_par_kernels;
+      m2_perp_kernels = ser_m2_perp_kernels;
+      m3_par_kernels = ser_m3_par_kernels;
+      m3_perp_kernels = ser_m3_perp_kernels;
+      three_moments_kernels = ser_three_moments_kernels;
+      four_moments_kernels = ser_four_moments_kernels;
+      hamiltonian_moments_kernels = ser_hamiltonian_moments_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   if (mom_type == GKYL_F_MOMENT_M0) { // density
@@ -168,7 +170,8 @@ struct gkyl_mom_type *gkyl_mom_gyrokinetic_new(
   return &mom_gk->momt;
 }
 
-struct gkyl_mom_type *gkyl_int_mom_gyrokinetic_new(
+struct gkyl_mom_type *
+gkyl_int_mom_gyrokinetic_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, double mass, double charge,
   const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
@@ -202,20 +205,20 @@ struct gkyl_mom_type *gkyl_int_mom_gyrokinetic_new(
 
   // Set kernel pointer.
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    int_m0_kernels = ser_int_m0_kernels;
-    int_m1_kernels = ser_int_m1_kernels;
-    int_m2_par_kernels = ser_int_m2_par_kernels;
-    int_m2_perp_kernels = ser_int_m2_perp_kernels;
-    int_m2_kernels = ser_int_m2_kernels;
-    int_three_moments_kernels = ser_int_three_moments_kernels;
-    int_four_moments_kernels = ser_int_four_moments_kernels;
-    int_hamiltonian_moments_kernels = ser_int_hamiltonian_moments_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      int_m0_kernels = ser_int_m0_kernels;
+      int_m1_kernels = ser_int_m1_kernels;
+      int_m2_par_kernels = ser_int_m2_par_kernels;
+      int_m2_perp_kernels = ser_int_m2_perp_kernels;
+      int_m2_kernels = ser_int_m2_kernels;
+      int_three_moments_kernels = ser_int_three_moments_kernels;
+      int_four_moments_kernels = ser_int_four_moments_kernels;
+      int_hamiltonian_moments_kernels = ser_int_hamiltonian_moments_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   assert(cv_index[cdim].vdim[vdim] != -1);

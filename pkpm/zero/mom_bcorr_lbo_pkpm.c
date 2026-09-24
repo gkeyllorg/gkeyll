@@ -11,7 +11,8 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void gkyl_mom_bcorr_lbo_pkpm_free(const struct gkyl_ref_count *ref)
+void
+gkyl_mom_bcorr_lbo_pkpm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
   if (GKYL_IS_CU_ALLOC(momt->flags)) {
@@ -20,7 +21,8 @@ void gkyl_mom_bcorr_lbo_pkpm_free(const struct gkyl_ref_count *ref)
   gkyl_free(momt);
 }
 
-struct gkyl_mom_type *gkyl_mom_bcorr_lbo_pkpm_new(
+struct gkyl_mom_type *
+gkyl_mom_bcorr_lbo_pkpm_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const double *vBoundary,
   double mass, bool use_gpu
 )
@@ -50,19 +52,19 @@ struct gkyl_mom_type *gkyl_mom_bcorr_lbo_pkpm_new(
   const gkyl_mom_bcorr_lbo_pkpm_kern_list *mom_bcorr_lbo_pkpm_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    mom_bcorr_lbo_pkpm_kernels = ser_mom_bcorr_lbo_pkpm_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mom_bcorr_lbo_pkpm_kernels = ser_mom_bcorr_lbo_pkpm_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    mom_bcorr_lbo_pkpm_kernels = ten_mom_bcorr_lbo_pkpm_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      mom_bcorr_lbo_pkpm_kernels = ten_mom_bcorr_lbo_pkpm_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   mom_bcorr->momt.kernel = CK(mom_bcorr_lbo_pkpm_kernels, cdim, poly_order);
@@ -79,7 +81,8 @@ struct gkyl_mom_type *gkyl_mom_bcorr_lbo_pkpm_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_mom_type *gkyl_mom_bcorr_lbo_pkpm_cu_dev_new(
+struct gkyl_mom_type *
+gkyl_mom_bcorr_lbo_pkpm_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const double *vBoundary,
   double mass
 )

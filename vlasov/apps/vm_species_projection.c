@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-void vm_species_projection_init(
+void
+vm_species_projection_init(
   struct gkyl_vlasov_app *app, struct vm_species *s, struct gkyl_vlasov_projection inp,
   struct vm_proj *proj
 )
@@ -9,14 +10,15 @@ void vm_species_projection_init(
   proj->proj_id = inp.proj_id;
   proj->model_id = s->model_id;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-    ){.grid = &s->grid,
+    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &s->grid,
       .basis = &app->basis,
       .qtype = GKYL_GAUSS_QUAD,
       .num_quad = app->basis.poly_order + 1,
       .num_ret_vals = 1,
       .eval = inp.func,
-      .ctx = inp.ctx_func});
+      .ctx = inp.ctx_func,
+    });
     if (app->use_gpu) {
       proj->proj_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
     }
@@ -59,7 +61,7 @@ void vm_species_projection_init(
       .hamil = s->hamil,
       .model_id = s->model_id,
       .use_gpu = app->use_gpu,
-      .quad_type = inp.quad_type
+      .quad_type = inp.quad_type,
     };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
@@ -92,14 +94,15 @@ void vm_species_projection_init(
         .quad_type = inp.quad_type,
         .max_iter = max_iter,
         .eps = iter_eps,
-        .use_last_converged = use_last_converged
+        .use_last_converged = use_last_converged,
       };
       proj->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
     }
   }
 }
 
-void vm_species_projection_calc(
+void
+vm_species_projection_calc(
   gkyl_vlasov_app *app, const struct vm_species *s, struct vm_proj *proj, struct gkyl_array *f,
   double tm
 )
@@ -145,7 +148,8 @@ void vm_species_projection_calc(
   }
 }
 
-void vm_species_projection_release(const struct gkyl_vlasov_app *app, const struct vm_proj *proj)
+void
+vm_species_projection_release(const struct gkyl_vlasov_app *app, const struct vm_proj *proj)
 {
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     gkyl_proj_on_basis_release(proj->proj_func);

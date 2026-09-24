@@ -56,12 +56,14 @@ struct gkyl_dg_array_mask {
  */
 void gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref);
 
-GKYL_CU_DH static bool eval_idx_ker_disabled(struct gkyl_dg_array_mask *mask, const int *idx)
+GKYL_CU_DH static bool
+eval_idx_ker_disabled(struct gkyl_dg_array_mask *mask, const int *idx)
 {
   return mask->default_value;
 }
 
-GKYL_CU_DH static bool eval_idx_ker_enabled(struct gkyl_dg_array_mask *mask, const int *idx)
+GKYL_CU_DH static bool
+eval_idx_ker_enabled(struct gkyl_dg_array_mask *mask, const int *idx)
 {
   long linidx = gkyl_range_idx(mask->mask_rng, idx);
   const double *mask_c = (const double *)gkyl_array_cfetch(mask->mask_arr, linidx);

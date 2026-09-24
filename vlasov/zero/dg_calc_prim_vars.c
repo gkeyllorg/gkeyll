@@ -6,7 +6,8 @@
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_util.h>
 
-void gkyl_calc_prim_vars_u_from_statevec(
+void
+gkyl_calc_prim_vars_u_from_statevec(
   gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array *statevec, struct gkyl_array *u_i
 )
@@ -18,7 +19,8 @@ void gkyl_calc_prim_vars_u_from_statevec(
   }
 }
 
-void gkyl_calc_prim_vars_u_from_rhou(
+void
+gkyl_calc_prim_vars_u_from_rhou(
   gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array *rho, const struct gkyl_array *rhou, struct gkyl_array *u_i
 )

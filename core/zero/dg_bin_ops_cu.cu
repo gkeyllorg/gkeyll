@@ -15,7 +15,8 @@ extern "C" {
 // start ID for use in various loops
 #define START_ID (threadIdx.x + blockIdx.x * blockDim.x)
 
-__global__ void gkyl_dg_mul_op_cu_kernel(
+__global__ void
+gkyl_dg_mul_op_cu_kernel(
   struct gkyl_basis basis, int c_oop, struct gkyl_array *out, int c_lop,
   const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop
 )
@@ -35,7 +36,8 @@ __global__ void gkyl_dg_mul_op_cu_kernel(
 }
 
 // Host-side wrapper for dg multiplication operation
-void gkyl_dg_mul_op_cu(
+void
+gkyl_dg_mul_op_cu(
   const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_lop,
   const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop
 )
@@ -45,7 +47,8 @@ void gkyl_dg_mul_op_cu(
   );
 }
 
-__global__ void gkyl_dg_mul_op_range_cu_kernel(
+__global__ void
+gkyl_dg_mul_op_range_cu_kernel(
   struct gkyl_basis basis, int c_oop, struct gkyl_array *out, int c_lop,
   const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop, struct gkyl_range range
 )
@@ -77,7 +80,8 @@ __global__ void gkyl_dg_mul_op_range_cu_kernel(
 }
 
 // Host-side wrapper for range-based dg multiplication operation
-void gkyl_dg_mul_op_range_cu(
+void
+gkyl_dg_mul_op_range_cu(
   const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_lop,
   const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop,
   const struct gkyl_range *range
@@ -90,7 +94,8 @@ void gkyl_dg_mul_op_range_cu(
   );
 }
 
-__global__ void gkyl_dg_mul_conf_phase_op_range_cu_kernel(
+__global__ void
+gkyl_dg_mul_conf_phase_op_range_cu_kernel(
   struct gkyl_basis cbasis, struct gkyl_basis pbasis, struct gkyl_array *pout,
   const struct gkyl_array *cop, const struct gkyl_array *pop, struct gkyl_range crange,
   struct gkyl_range prange
@@ -129,7 +134,8 @@ __global__ void gkyl_dg_mul_conf_phase_op_range_cu_kernel(
 }
 
 // Host-side wrapper for range-based dg conf*phase multiplication.
-void gkyl_dg_mul_conf_phase_op_range_cu(
+void
+gkyl_dg_mul_conf_phase_op_range_cu(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, struct gkyl_array *pout,
   const struct gkyl_array *cop, const struct gkyl_array *pop, const struct gkyl_range *crange,
   const struct gkyl_range *prange
@@ -142,7 +148,8 @@ void gkyl_dg_mul_conf_phase_op_range_cu(
   );
 }
 
-static void gkyl_parallelize_components_kernel_launch_dims(
+static void
+gkyl_parallelize_components_kernel_launch_dims(
   dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp
 )
 {
@@ -154,7 +161,8 @@ static void gkyl_parallelize_components_kernel_launch_dims(
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
 }
 
-__global__ void gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel(
+__global__ void
+gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel(
   struct gkyl_basis cbasis, struct gkyl_basis pbasis, struct gkyl_array *pout, double a,
   const struct gkyl_array *cop, const struct gkyl_array *pop, struct gkyl_range crange,
   struct gkyl_range prange
@@ -195,7 +203,8 @@ __global__ void gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel(
 }
 
 // Host-side wrapper for range-based dg conf*phase multiplication with accumulation to output.
-void gkyl_dg_mul_conf_phase_op_accumulate_range_cu(
+void
+gkyl_dg_mul_conf_phase_op_accumulate_range_cu(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, struct gkyl_array *pout,
   double a, const struct gkyl_array *cop, const struct gkyl_array *pop,
   const struct gkyl_range *crange, const struct gkyl_range *prange
@@ -209,7 +218,8 @@ void gkyl_dg_mul_conf_phase_op_accumulate_range_cu(
   );
 }
 
-__global__ void gkyl_dg_dot_product_op_cu_kernel(
+__global__ void
+gkyl_dg_dot_product_op_cu_kernel(
   struct gkyl_basis basis, struct gkyl_array *out, const struct gkyl_array *lop,
   const struct gkyl_array *rop
 )
@@ -240,7 +250,8 @@ __global__ void gkyl_dg_dot_product_op_cu_kernel(
 }
 
 // Host-side wrapper for dg dot product operation.
-void gkyl_dg_dot_product_op_cu(
+void
+gkyl_dg_dot_product_op_cu(
   const struct gkyl_basis *basis, struct gkyl_array *out, const struct gkyl_array *lop,
   const struct gkyl_array *rop
 )
@@ -251,7 +262,8 @@ void gkyl_dg_dot_product_op_cu(
   );
 }
 
-__global__ void gkyl_dg_dot_product_op_range_cu_kernel(
+__global__ void
+gkyl_dg_dot_product_op_range_cu_kernel(
   struct gkyl_basis basis, struct gkyl_array *out, const struct gkyl_array *lop,
   const struct gkyl_array *rop, struct gkyl_range range
 )
@@ -294,7 +306,8 @@ __global__ void gkyl_dg_dot_product_op_range_cu_kernel(
 }
 
 // Host-side wrapper for range-based dg dot product operation.
-void gkyl_dg_dot_product_op_range_cu(
+void
+gkyl_dg_dot_product_op_range_cu(
   const struct gkyl_basis *basis, struct gkyl_array *out, const struct gkyl_array *lop,
   const struct gkyl_array *rop, const struct gkyl_range *range
 )
@@ -307,7 +320,8 @@ void gkyl_dg_dot_product_op_range_cu(
   );
 }
 
-__global__ void gkyl_dg_div_set_op_cu_kernel(
+__global__ void
+gkyl_dg_div_set_op_cu_kernel(
   struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_basis basis, struct gkyl_array *out,
   int c_lop, const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop
 )
@@ -329,7 +343,8 @@ __global__ void gkyl_dg_div_set_op_cu_kernel(
   }
 }
 
-__global__ void gkyl_dg_div_copy_sol_op_cu_kernel(
+__global__ void
+gkyl_dg_div_copy_sol_op_cu_kernel(
   struct gkyl_nmat *xs, struct gkyl_basis basis, int c_oop, struct gkyl_array *out
 )
 {
@@ -342,7 +357,8 @@ __global__ void gkyl_dg_div_copy_sol_op_cu_kernel(
 }
 
 // Host-side wrapper for dg division operation
-void gkyl_dg_div_op_cu(
+void
+gkyl_dg_div_op_cu(
   gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
   int c_lop, const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop
 )
@@ -364,7 +380,8 @@ void gkyl_dg_div_op_cu(
   );
 }
 
-__global__ void gkyl_dg_div_set_op_range_cu_kernel(
+__global__ void
+gkyl_dg_div_set_op_range_cu_kernel(
   struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_basis basis, struct gkyl_array *out,
   int c_lop, const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop,
   struct gkyl_range range
@@ -400,7 +417,8 @@ __global__ void gkyl_dg_div_set_op_range_cu_kernel(
   }
 }
 
-__global__ void gkyl_dg_div_copy_sol_op_range_cu_kernel(
+__global__ void
+gkyl_dg_div_copy_sol_op_range_cu_kernel(
   struct gkyl_nmat *xs, struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
   struct gkyl_range range
 )
@@ -429,7 +447,8 @@ __global__ void gkyl_dg_div_copy_sol_op_range_cu_kernel(
 }
 
 // Host-side wrapper for range-based dg division operation
-void gkyl_dg_div_op_range_cu(
+void
+gkyl_dg_div_op_range_cu(
   gkyl_dg_bin_op_mem *mem, const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out,
   int c_lop, const struct gkyl_array *lop, int c_rop, const struct gkyl_array *rop,
   const struct gkyl_range *range
@@ -454,7 +473,8 @@ void gkyl_dg_div_op_range_cu(
   );
 }
 
-__global__ void gkyl_dg_inv_op_cu_kernel(
+__global__ void
+gkyl_dg_inv_op_cu_kernel(
   struct gkyl_basis basis, int c_oop, struct gkyl_array *out, int c_iop,
   const struct gkyl_array *iop
 )
@@ -474,7 +494,8 @@ __global__ void gkyl_dg_inv_op_cu_kernel(
 }
 
 // Host-side wrapper for dg inversion operation.
-void gkyl_dg_inv_op_cu(
+void
+gkyl_dg_inv_op_cu(
   const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
   const struct gkyl_array *iop
 )
@@ -484,7 +505,8 @@ void gkyl_dg_inv_op_cu(
   );
 }
 
-__global__ void gkyl_dg_inv_op_range_cu_kernel(
+__global__ void
+gkyl_dg_inv_op_range_cu_kernel(
   struct gkyl_basis basis, int c_oop, struct gkyl_array *out, int c_iop,
   const struct gkyl_array *iop, struct gkyl_range range
 )
@@ -516,7 +538,8 @@ __global__ void gkyl_dg_inv_op_range_cu_kernel(
 }
 
 // Host-side wrapper for range-based dg invtiplication operation
-void gkyl_dg_inv_op_range_cu(
+void
+gkyl_dg_inv_op_range_cu(
   const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
   const struct gkyl_array *iop, const struct gkyl_range *range
 )
@@ -528,7 +551,8 @@ void gkyl_dg_inv_op_range_cu(
   );
 }
 
-__global__ void gkyl_dg_calc_op_range_cu_kernel(
+__global__ void
+gkyl_dg_calc_op_range_cu_kernel(
   struct gkyl_basis basis, int c_oop, struct gkyl_array *out, int c_iop,
   const struct gkyl_array *iop, struct gkyl_range range, enum gkyl_dg_op op
 )
@@ -560,7 +584,8 @@ __global__ void gkyl_dg_calc_op_range_cu_kernel(
   }
 }
 
-void gkyl_dg_calc_op_range_cu(
+void
+gkyl_dg_calc_op_range_cu(
   const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
   const struct gkyl_array *iop, struct gkyl_range range, enum gkyl_dg_op op
 )

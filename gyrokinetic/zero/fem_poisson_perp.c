@@ -2,12 +2,14 @@
 #include <gkyl_fem_poisson_perp_priv.h>
 #include <gkyl_array_reduce.h>
 
-static void fem_poisson_perp_bias_src_disabled(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
+static void
+fem_poisson_perp_bias_src_disabled(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
 {
   // Do nothing.
 }
 
-static void fem_poisson_perp_bias_src_enabled(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
+static void
+fem_poisson_perp_bias_src_enabled(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -70,7 +72,8 @@ static void fem_poisson_perp_bias_src_enabled(gkyl_fem_poisson_perp *up, struct 
   }
 }
 
-struct gkyl_fem_poisson_perp *gkyl_fem_poisson_perp_new(
+struct gkyl_fem_poisson_perp *
+gkyl_fem_poisson_perp_new(
   const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
   const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
   struct gkyl_poisson_bias_line_list *bias_lines, struct gkyl_array *epsilon,
@@ -545,7 +548,8 @@ struct gkyl_fem_poisson_perp *gkyl_fem_poisson_perp_new(
   return up;
 }
 
-void gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
+void
+gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
 {
   if (up->isdomperiodic && !(up->ishelmholtz)) {
     // Subtract the volume averaged RHS from the RHS.
@@ -628,7 +632,8 @@ void gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array 
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 }
 
-void gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout)
+void
+gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -675,7 +680,8 @@ void gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *p
   }
 }
 
-void gkyl_fem_poisson_perp_update_lhs(
+void
+gkyl_fem_poisson_perp_update_lhs(
   gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq
 )
 {
@@ -730,7 +736,8 @@ void gkyl_fem_poisson_perp_update_lhs(
   gkyl_superlu_amat_update_from_triples(up->prob, up->tri);
 }
 
-void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
+void
+gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
 {
   if (up->isdomperiodic) {
     gkyl_array_release(up->rhs_cellavg);

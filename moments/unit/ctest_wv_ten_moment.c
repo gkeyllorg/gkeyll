@@ -18,7 +18,8 @@ static const int dir_p_shuffle[][6] = {{4, 5, 6, 7, 8, 9}, {7, 8, 5, 9, 6, 4}, {
 #define PYZ dp[4]
 #define PZZ dp[5]
 
-void calcq(const double pv[10], double q[10])
+void
+calcq(const double pv[10], double q[10])
 {
   double rho = pv[0], u = pv[1], v = pv[2], w = pv[3];
   double pxx = pv[4], pxy = pv[5], pxz = pv[6], pyy = pv[7], pyz = pv[8], pzz = pv[9];
@@ -35,7 +36,8 @@ void calcq(const double pv[10], double q[10])
   q[9] = pzz + rho * w * w;
 }
 
-void test_ten_moment_basic_ho()
+void
+test_ten_moment_basic_ho()
 {
   struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0, false, false, 1, 0, false);
 
@@ -116,7 +118,8 @@ void test_ten_moment_basic_ho()
   gkyl_wv_eqn_release(ten_moment);
 }
 
-void test_ten_moment_waves_ho()
+void
+test_ten_moment_waves_ho()
 {
   struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0, false, false, 1, 0, false);
 
@@ -182,7 +185,8 @@ void test_ten_moment_waves_ho()
 
 int cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn);
 
-void test_wv_ten_moment_dev()
+void
+test_wv_ten_moment_dev()
 {
   double k0 = 1.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(k0, false, false, 0, 0, true);

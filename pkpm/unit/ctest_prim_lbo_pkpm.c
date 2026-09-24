@@ -8,7 +8,8 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static void mk_conf_range(int cdim, struct gkyl_range *local, struct gkyl_range *local_ext)
+static void
+mk_conf_range(int cdim, struct gkyl_range *local, struct gkyl_range *local_ext)
 {
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
@@ -23,7 +24,8 @@ static void mk_conf_range(int cdim, struct gkyl_range *local, struct gkyl_range 
   gkyl_create_grid_ranges(&grid, ghost, local_ext, local);
 }
 
-void test_prim_lbo_pkpm_1x1v_p1()
+void
+test_prim_lbo_pkpm_1x1v_p1()
 {
   int poly_order = 1;
   struct gkyl_basis cbasis, pbasis;
@@ -46,7 +48,8 @@ void test_prim_lbo_pkpm_1x1v_p1()
   gkyl_prim_lbo_type_release(prim);
 }
 
-void test_prim_lbo_pkpm_1x1v_p2()
+void
+test_prim_lbo_pkpm_1x1v_p2()
 {
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
@@ -63,7 +66,8 @@ void test_prim_lbo_pkpm_1x1v_p2()
   gkyl_prim_lbo_type_release(prim);
 }
 
-void test_prim_lbo_pkpm_2x1v_p1()
+void
+test_prim_lbo_pkpm_2x1v_p1()
 {
   int poly_order = 1;
   struct gkyl_basis cbasis, pbasis;

@@ -13,7 +13,8 @@ extern "C" {
 #include <gkyl_array_ops_priv.h>
 }
 
-__global__ static void gkyl_iz_react_rate_cu_ker(
+__global__ static void
+gkyl_iz_react_rate_cu_ker(
   const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
   const struct gkyl_basis *adas_basis, const struct gkyl_array *maxwellian_moms_elc,
   struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz,
@@ -107,7 +108,8 @@ __global__ static void gkyl_iz_react_rate_cu_ker(
   }
 }
 
-void gkyl_dg_iz_coll_cu(
+void
+gkyl_dg_iz_coll_cu(
   const struct gkyl_dg_iz *up, const struct gkyl_array *maxwellian_moms_elc,
   struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz,
   struct gkyl_array *cflrate

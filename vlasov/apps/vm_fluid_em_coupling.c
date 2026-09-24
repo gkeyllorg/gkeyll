@@ -8,7 +8,8 @@
 #include <gkyl_vlasov_priv.h>
 
 // initialize fluid-EM coupling object
-struct vm_fluid_em_coupling *vm_fluid_em_coupling_init(struct gkyl_vlasov_app *app)
+struct vm_fluid_em_coupling *
+vm_fluid_em_coupling_init(struct gkyl_vlasov_app *app)
 {
   struct vm_fluid_em_coupling *fl_em = gkyl_malloc(sizeof(struct vm_fluid_em_coupling));
 
@@ -26,7 +27,8 @@ struct vm_fluid_em_coupling *vm_fluid_em_coupling_init(struct gkyl_vlasov_app *a
   return fl_em;
 }
 
-void vm_fluid_em_coupling_update(
+void
+vm_fluid_em_coupling_update(
   struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double tcurr, double dt
 )
 {
@@ -85,7 +87,8 @@ void vm_fluid_em_coupling_update(
   vm_field_apply_bc(app, app->field, app->field->em);
 }
 
-void vm_fluid_em_coupling_release(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em)
+void
+vm_fluid_em_coupling_release(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em)
 {
   gkyl_dg_calc_fluid_em_coupling_release(fl_em->slvr);
   gkyl_free(fl_em);

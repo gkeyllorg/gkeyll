@@ -32,7 +32,8 @@ struct gkyl_ten_moment_nn_closure {
   struct gkyl_kann_net *ann; // Neural network architecture.
 };
 
-static void create_offsets_vertices(const struct gkyl_range *range, long offsets[])
+static void
+create_offsets_vertices(const struct gkyl_range *range, long offsets[])
 {
   // Box-spanning stencil.
   struct gkyl_range box3;
@@ -49,7 +50,8 @@ static void create_offsets_vertices(const struct gkyl_range *range, long offsets
   }
 }
 
-static void create_offsets_centers(const struct gkyl_range *range, long offsets[])
+static void
+create_offsets_centers(const struct gkyl_range *range, long offsets[])
 {
   // Box-spanning stencil.
   struct gkyl_range box3;
@@ -66,7 +68,8 @@ static void create_offsets_centers(const struct gkyl_range *range, long offsets[
   }
 }
 
-static void var_setup(
+static void
+var_setup(
   const gkyl_ten_moment_nn_closure *nnclosure, int start, int end, const double *fluid_d[],
   double rho[], double p[][6]
 )
@@ -82,7 +85,8 @@ static void var_setup(
   }
 }
 
-int gkyl_ten_moment_nn_closure_n_in(const gkyl_ten_moment_nn_closure *nnclosure)
+int
+gkyl_ten_moment_nn_closure_n_in(const gkyl_ten_moment_nn_closure *nnclosure)
 {
   const int ndim = nnclosure->ndim;
   const int poly_order = nnclosure->poly_order;
@@ -92,7 +96,8 @@ int gkyl_ten_moment_nn_closure_n_in(const gkyl_ten_moment_nn_closure *nnclosure)
   return 12; // ndim == 2, poly_order == 1.
 }
 
-int gkyl_ten_moment_nn_closure_n_out(const gkyl_ten_moment_nn_closure *nnclosure)
+int
+gkyl_ten_moment_nn_closure_n_out(const gkyl_ten_moment_nn_closure *nnclosure)
 {
   const int ndim = nnclosure->ndim;
   const int poly_order = nnclosure->poly_order;
@@ -108,7 +113,8 @@ int gkyl_ten_moment_nn_closure_n_out(const gkyl_ten_moment_nn_closure *nnclosure
 // cell-averaged density and pressure tensor) is computed exactly once per cell
 // here and reused in gkyl_ten_moment_nn_closure_construct, avoiding any duplicate work.
 // Exposed (non-static) for unit testing the geometry.
-void gkyl_ten_moment_nn_closure_geom_calc(
+void
+gkyl_ten_moment_nn_closure_geom_calc(
   const gkyl_ten_moment_nn_closure *nnclosure, const double *fluid_d[], const double *em_tot_d[],
   float *input_data, struct gkyl_ten_moment_nn_closure_geom *geom
 )
@@ -708,7 +714,8 @@ void gkyl_ten_moment_nn_closure_geom_calc(
 // then write the closure contribution into rhs. This is the second half of the
 // former calc_nn_closure_update, reading the geometry from the cache rather
 // than recomputing it. Exposed (non-static) for unit testing the coupling.
-void gkyl_ten_moment_nn_closure_construct(
+void
+gkyl_ten_moment_nn_closure_construct(
   const gkyl_ten_moment_nn_closure *nnclosure, const struct gkyl_ten_moment_nn_closure_geom *geom,
   const float *output_data_predicted, double *rhs
 )
@@ -1111,7 +1118,8 @@ void gkyl_ten_moment_nn_closure_construct(
   rhs[P33] = -(divQx[5] + divQy[5] + divQz[5]);
 }
 
-void gkyl_ten_moment_nn_closure_advance(
+void
+gkyl_ten_moment_nn_closure_advance(
   const gkyl_ten_moment_nn_closure *nnclosure, const struct gkyl_range *heat_flux_rng,
   const struct gkyl_range *update_rng, const struct gkyl_array *fluid,
   const struct gkyl_array *em_tot, struct gkyl_array *heat_flux, struct gkyl_array *rhs
@@ -1208,8 +1216,8 @@ void gkyl_ten_moment_nn_closure_advance(
   gkyl_free(geom);
 }
 
-gkyl_ten_moment_nn_closure *gkyl_ten_moment_nn_closure_new(struct gkyl_ten_moment_nn_closure_inp inp
-)
+gkyl_ten_moment_nn_closure *
+gkyl_ten_moment_nn_closure_new(struct gkyl_ten_moment_nn_closure_inp inp)
 {
   gkyl_ten_moment_nn_closure *up = gkyl_malloc(sizeof(gkyl_ten_moment_nn_closure));
 
@@ -1222,7 +1230,8 @@ gkyl_ten_moment_nn_closure *gkyl_ten_moment_nn_closure_new(struct gkyl_ten_momen
   return up;
 }
 
-void gkyl_ten_moment_nn_closure_release(gkyl_ten_moment_nn_closure *nnclosure)
+void
+gkyl_ten_moment_nn_closure_release(gkyl_ten_moment_nn_closure *nnclosure)
 {
   free(nnclosure);
 }

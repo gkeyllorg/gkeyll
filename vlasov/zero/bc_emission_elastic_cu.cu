@@ -8,7 +8,8 @@ extern "C" {
 #include <gkyl_array_ops_priv.h>
 }
 
-__global__ static void gkyl_bc_emission_elastic_set_extern_params_cu_ker(
+__global__ static void
+gkyl_bc_emission_elastic_set_extern_params_cu_ker(
   struct gkyl_emission_elastic_model *elastic_model, int cdim, int vdim, double mass
 )
 {
@@ -17,7 +18,8 @@ __global__ static void gkyl_bc_emission_elastic_set_extern_params_cu_ker(
   elastic_model->mass = mass;
 }
 
-__global__ static void gkyl_bc_emission_elastic_create_set_cu_dev_ptrs(
+__global__ static void
+gkyl_bc_emission_elastic_create_set_cu_dev_ptrs(
   int dir, int cdim, const struct gkyl_basis *basis, int ncomp, struct bc_elastic_ctx *ctx,
   struct gkyl_array_copy_func *fout
 )
@@ -31,7 +33,8 @@ __global__ static void gkyl_bc_emission_elastic_create_set_cu_dev_ptrs(
   fout->ctx = ctx;
 }
 
-void gkyl_bc_emission_elastic_set_extern_params_cu(
+void
+gkyl_bc_emission_elastic_set_extern_params_cu(
   const struct gkyl_bc_emission_elastic *up, int cdim, int vdim, double mass
 )
 {
@@ -40,7 +43,8 @@ void gkyl_bc_emission_elastic_set_extern_params_cu(
   );
 }
 
-struct gkyl_array_copy_func *gkyl_bc_emission_elastic_create_arr_copy_func_cu(
+struct gkyl_array_copy_func *
+gkyl_bc_emission_elastic_create_arr_copy_func_cu(
   int dir, int cdim, const struct gkyl_basis *basis, int ncomp
 )
 {

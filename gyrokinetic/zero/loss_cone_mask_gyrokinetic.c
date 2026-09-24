@@ -36,7 +36,8 @@ get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2)
 
 // Sets ordinates, weights and basis functions at ords.
 // Returns the total number of quadrature nodes
-static int init_quad_values(
+static int
+init_quad_values(
   int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type qtype, int num_quad,
   struct gkyl_array **ordinates, struct gkyl_array **weights, struct gkyl_array **basis_at_ords,
   bool use_gpu
@@ -151,7 +152,8 @@ static int init_quad_values(
   return tot_quad;
 }
 
-static void gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(
+static void
+gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(
   gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *bmag, const double *bmag_max
 )
@@ -336,7 +338,8 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   return up;
 }
 
-static void proj_on_basis(
+static void
+proj_on_basis(
   const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array *fun_at_ords, double *f
 )
 {
@@ -359,7 +362,8 @@ static void proj_on_basis(
   }
 }
 
-static void nod_to_mod_reduce(
+static void
+nod_to_mod_reduce(
   const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array *fun_at_ords, double *f
 )
 {
@@ -383,7 +387,8 @@ static void nod_to_mod_reduce(
   }
 }
 
-void gkyl_loss_cone_mask_gyrokinetic_advance(
+void
+gkyl_loss_cone_mask_gyrokinetic_advance(
   gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *phi, const double *phi_m,
   struct gkyl_array *mask_out
@@ -499,7 +504,8 @@ void gkyl_loss_cone_mask_gyrokinetic_advance(
   }
 }
 
-void gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up)
+void
+gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up)
 {
   gkyl_velocity_map_release(up->vel_map);
 

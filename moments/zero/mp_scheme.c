@@ -36,7 +36,8 @@ struct gkyl_mp_scheme {
 // the interface. Note that depending on the scheme, some of the input
 // values may be ignored.
 
-static inline void c2_recovery(
+static inline void
+c2_recovery(
   int meqn, const double *f3m, const double *f2m, const double *fm, const double *fp,
   const double *f2p, const double *f3p, double *outl, double *outr
 )
@@ -47,7 +48,8 @@ static inline void c2_recovery(
   }
 }
 
-static inline void c4_recovery(
+static inline void
+c4_recovery(
   int meqn, const double *f3m, const double *f2m, const double *fm, const double *fp,
   const double *f2p, const double *f3p, double *outl, double *outr
 )
@@ -58,7 +60,8 @@ static inline void c4_recovery(
   }
 }
 
-static inline void c6_recovery(
+static inline void
+c6_recovery(
   int meqn, const double *f3m, const double *f2m, const double *fm, const double *fp,
   const double *f2p, const double *f3p, double *outl, double *outr
 )
@@ -70,7 +73,8 @@ static inline void c6_recovery(
   }
 }
 
-static inline void u1_recovery(
+static inline void
+u1_recovery(
   int meqn, const double *f3m, const double *f2m, const double *fm, const double *fp,
   const double *f2p, const double *f3p, double *outl, double *outr
 )
@@ -82,7 +86,8 @@ static inline void u1_recovery(
   }
 }
 
-static inline void u3_recovery(
+static inline void
+u3_recovery(
   int meqn, const double *f3m, const double *f2m, const double *fm, const double *fp,
   const double *f2p, const double *f3p, double *outl, double *outr
 )
@@ -94,7 +99,8 @@ static inline void u3_recovery(
   }
 }
 
-static inline void u5_recovery(
+static inline void
+u5_recovery(
   int meqn, const double *f3m, const double *f2m, const double *fm, const double *fp,
   const double *f2p, const double *f3p, double *outl, double *outr
 )
@@ -108,7 +114,8 @@ static inline void u5_recovery(
   }
 }
 
-static inline double minmod_2(double x, double y)
+static inline double
+minmod_2(double x, double y)
 {
   if (x > 0 && y > 0) {
     return fmin(x, y);
@@ -119,7 +126,8 @@ static inline double minmod_2(double x, double y)
   return 0.0;
 }
 
-static inline double minmod_4(double x, double y, double z, double w)
+static inline double
+minmod_4(double x, double y, double z, double w)
 {
   if (x > 0 && y > 0 && z > 0 && w > 0) {
     return fmin(fmin(x, y), fmin(z, w));
@@ -130,17 +138,20 @@ static inline double minmod_4(double x, double y, double z, double w)
   return 0.0;
 }
 
-static inline double median(double x, double y, double z)
+static inline double
+median(double x, double y, double z)
 {
   return x + minmod_2(y - x, z - x);
 }
 
-static inline double min_3(double x, double y, double z)
+static inline double
+min_3(double x, double y, double z)
 {
   return fmin(x, fmin(y, z));
 }
 
-static inline double max_3(double x, double y, double z)
+static inline double
+max_3(double x, double y, double z)
 {
   return fmax(x, fmax(y, z));
 }
@@ -188,14 +199,16 @@ mp_limiter(double qe, double q2m, double q1m, double q0, double q1p, double q2p)
   return median(qe, qmin, qmax);
 }
 
-static inline long get_offset(int dir, int loc, const struct gkyl_range *range)
+static inline long
+get_offset(int dir, int loc, const struct gkyl_range *range)
 {
   int idx[GKYL_MAX_CDIM] = {0, 0, 0};
   idx[dir] = loc;
   return gkyl_range_offset(range, idx);
 }
 
-gkyl_mp_scheme *gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
+gkyl_mp_scheme *
+gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
 {
   struct gkyl_mp_scheme *mp = gkyl_malloc(sizeof *mp);
 
@@ -216,30 +229,31 @@ gkyl_mp_scheme *gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
   mp->geom = gkyl_wave_geom_acquire(mpinp->geom);
 
   switch (mpinp->mp_recon) {
-  case GKYL_MP_C2:
-    mp->recovery_fn = c2_recovery;
-    break;
-  case GKYL_MP_C4:
-    mp->recovery_fn = c4_recovery;
-    break;
-  case GKYL_MP_C6:
-    mp->recovery_fn = c6_recovery;
-    break;
-  case GKYL_MP_U1:
-    mp->recovery_fn = u1_recovery;
-    break;
-  case GKYL_MP_U3:
-    mp->recovery_fn = u3_recovery;
-    break;
-  case GKYL_MP_U5:
-    mp->recovery_fn = u5_recovery;
-    break;
+    case GKYL_MP_C2:
+      mp->recovery_fn = c2_recovery;
+      break;
+    case GKYL_MP_C4:
+      mp->recovery_fn = c4_recovery;
+      break;
+    case GKYL_MP_C6:
+      mp->recovery_fn = c6_recovery;
+      break;
+    case GKYL_MP_U1:
+      mp->recovery_fn = u1_recovery;
+      break;
+    case GKYL_MP_U3:
+      mp->recovery_fn = u3_recovery;
+      break;
+    case GKYL_MP_U5:
+      mp->recovery_fn = u5_recovery;
+      break;
   }
 
   return mp;
 }
 
-void gkyl_mp_scheme_advance(
+void
+gkyl_mp_scheme_advance(
   gkyl_mp_scheme *mp, const struct gkyl_range *update_range, const struct gkyl_array *qin,
   struct gkyl_array *qrec_l, struct gkyl_array *qrec_r, struct gkyl_array *amdq,
   struct gkyl_array *apdq, struct gkyl_array *cflrate, struct gkyl_array *phi,
@@ -403,7 +417,8 @@ void gkyl_mp_scheme_advance(
   }
 }
 
-double gkyl_mp_scheme_max_dt(
+double
+gkyl_mp_scheme_max_dt(
   const gkyl_mp_scheme *mp, const struct gkyl_range *update_range, const struct gkyl_array *qin
 )
 {
@@ -425,7 +440,8 @@ double gkyl_mp_scheme_max_dt(
   return max_dt;
 }
 
-void gkyl_mp_scheme_release(gkyl_mp_scheme *mp)
+void
+gkyl_mp_scheme_release(gkyl_mp_scheme *mp)
 {
   gkyl_wv_eqn_release(mp->equation);
   gkyl_wave_geom_release(mp->geom);

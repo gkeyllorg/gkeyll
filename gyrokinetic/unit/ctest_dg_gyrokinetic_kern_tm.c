@@ -13,21 +13,24 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_position_map.h>
 
-void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 1.0;
 }
 
-static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr1(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (use_gpu) {
@@ -38,7 +41,8 @@ static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
   return a;
 }
 
-void test_3x2v_p1(bool use_gpu)
+void
+test_3x2v_p1(bool use_gpu)
 {
   // initialize grid and ranges
   int cdim = 3, vdim = 2;
@@ -108,7 +112,7 @@ void test_3x2v_p1(bool use_gpu)
     .geo_local_ext = confRange_ext,
     .geo_global = confRange,
     .geo_global_ext = confRange_ext,
-    .geo_basis = confBasis
+    .geo_basis = confBasis,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
@@ -119,7 +123,10 @@ void test_3x2v_p1(bool use_gpu)
   struct gkyl_array *apar = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
   struct gkyl_array *apardot = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
   struct gkyl_dg_gyrokinetic_auxfields aux = {
-    .flux_surf = flux_surf, .phi = phi, .apar = apar, .apardot = apardot
+    .flux_surf = flux_surf,
+    .phi = phi,
+    .apar = apar,
+    .apardot = apardot,
   };
 
   const bool is_zero_flux[GKYL_MAX_DIM] = {false};
@@ -171,12 +178,14 @@ void test_3x2v_p1(bool use_gpu)
   gkyl_dg_updater_gyrokinetic_release(up);
 }
 
-void test_gyrokinetic_kern_tm_3x2v_p1_ho()
+void
+test_gyrokinetic_kern_tm_3x2v_p1_ho()
 {
   test_3x2v_p1(false);
 }
 
-void test_gyrokinetic_kern_tm_3x2v_p1_dev()
+void
+test_gyrokinetic_kern_tm_3x2v_p1_dev()
 {
   test_3x2v_p1(true);
 }

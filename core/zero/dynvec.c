@@ -27,7 +27,8 @@ struct gkyl_dynvec_tag {
   struct gkyl_ref_count ref_count;
 };
 
-static void dynvec_free(const struct gkyl_ref_count *ref)
+static void
+dynvec_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dynvec_tag *dv = container_of(ref, struct gkyl_dynvec_tag, ref_count);
   gkyl_free(dv->data);
@@ -35,7 +36,8 @@ static void dynvec_free(const struct gkyl_ref_count *ref)
   gkyl_free(dv);
 }
 
-gkyl_dynvec gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp)
+gkyl_dynvec
+gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp)
 {
   struct gkyl_dynvec_tag *dv = gkyl_malloc(sizeof(struct gkyl_dynvec_tag));
   dv->type = type;
@@ -53,16 +55,19 @@ gkyl_dynvec gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp)
   return dv;
 }
 
-int gkyl_dynvec_elem_type(gkyl_dynvec vec)
+int
+gkyl_dynvec_elem_type(gkyl_dynvec vec)
 {
   return vec->type;
 }
-int gkyl_dynvec_ncomp(gkyl_dynvec vec)
+int
+gkyl_dynvec_ncomp(gkyl_dynvec vec)
 {
   return vec->ncomp;
 }
 
-void gkyl_dynvec_reserve_more(gkyl_dynvec dv, size_t rsize)
+void
+gkyl_dynvec_reserve_more(gkyl_dynvec dv, size_t rsize)
 {
   int n = gkyl_int_div_up(rsize, DYNVEC_ALLOC_SZ);
   dv->csize = n * DYNVEC_ALLOC_SZ + dv->csize;
@@ -70,7 +75,8 @@ void gkyl_dynvec_reserve_more(gkyl_dynvec dv, size_t rsize)
   dv->tm_mesh = gkyl_realloc(dv->tm_mesh, dv->csize * sizeof(double));
 }
 
-void gkyl_dynvec_append(gkyl_dynvec dv, double tm, const void *data)
+void
+gkyl_dynvec_append(gkyl_dynvec dv, double tm, const void *data)
 {
   size_t loc = dv->cloc;
   if (loc >= dv->csize) {
@@ -86,7 +92,8 @@ void gkyl_dynvec_append(gkyl_dynvec dv, double tm, const void *data)
   dv->cloc += 1;
 }
 
-bool gkyl_dynvec_get(const gkyl_dynvec dv, size_t idx, void *data)
+bool
+gkyl_dynvec_get(const gkyl_dynvec dv, size_t idx, void *data)
 {
   if (idx >= dv->cloc) {
     return false;
@@ -95,7 +102,8 @@ bool gkyl_dynvec_get(const gkyl_dynvec dv, size_t idx, void *data)
   return true;
 }
 
-double gkyl_dynvec_get_tm(const gkyl_dynvec dv, size_t idx)
+double
+gkyl_dynvec_get_tm(const gkyl_dynvec dv, size_t idx)
 {
   if (idx >= dv->cloc) {
     return 0.0;
@@ -103,7 +111,8 @@ double gkyl_dynvec_get_tm(const gkyl_dynvec dv, size_t idx)
   return dv->tm_mesh[idx];
 }
 
-bool gkyl_dynvec_getlast(const gkyl_dynvec dv, void *data)
+bool
+gkyl_dynvec_getlast(const gkyl_dynvec dv, void *data)
 {
   size_t loc = dv->cloc;
   if (loc == 0) {
@@ -112,23 +121,27 @@ bool gkyl_dynvec_getlast(const gkyl_dynvec dv, void *data)
   return gkyl_dynvec_get(dv, loc - 1, data);
 }
 
-double gkyl_dynvec_getlast_tm(const gkyl_dynvec dv)
+double
+gkyl_dynvec_getlast_tm(const gkyl_dynvec dv)
 {
   size_t loc = dv->cloc;
   return loc == 0 ? 0.0 : dv->tm_mesh[loc - 1];
 }
 
-size_t gkyl_dynvec_size(const gkyl_dynvec vec)
+size_t
+gkyl_dynvec_size(const gkyl_dynvec vec)
 {
   return vec->cloc;
 }
 
-size_t gkyl_dynvec_capacity(const gkyl_dynvec vec)
+size_t
+gkyl_dynvec_capacity(const gkyl_dynvec vec)
 {
   return vec->csize;
 }
 
-void gkyl_dynvec_clear(gkyl_dynvec dv)
+void
+gkyl_dynvec_clear(gkyl_dynvec dv)
 {
   dv->cloc = 0;
   dv->csize = DYNVEC_ALLOC_SZ;
@@ -136,7 +149,8 @@ void gkyl_dynvec_clear(gkyl_dynvec dv)
   dv->tm_mesh = gkyl_realloc(dv->tm_mesh, dv->csize * sizeof(double));
 }
 
-void gkyl_dynvec_clear_all_but(gkyl_dynvec dv, size_t num)
+void
+gkyl_dynvec_clear_all_but(gkyl_dynvec dv, size_t num)
 {
   if (num > dv->cloc) {
     return;
@@ -165,13 +179,15 @@ void gkyl_dynvec_clear_all_but(gkyl_dynvec dv, size_t num)
   gkyl_free(tm_mesh);
 }
 
-gkyl_dynvec gkyl_dynvec_acquire(const gkyl_dynvec vec)
+gkyl_dynvec
+gkyl_dynvec_acquire(const gkyl_dynvec vec)
 {
   gkyl_ref_count_inc(&vec->ref_count);
   return (struct gkyl_dynvec_tag *)vec;
 }
 
-static int gkyl_dynvec_write_mode(const gkyl_dynvec vec, const char *fname, const char *mode)
+static int
+gkyl_dynvec_write_mode(const gkyl_dynvec vec, const char *fname, const char *mode)
 {
   const char g0[5] = "gkyl0";
 
@@ -202,7 +218,8 @@ static int gkyl_dynvec_write_mode(const gkyl_dynvec vec, const char *fname, cons
   return errno;
 }
 
-static int gkyl_dynvec_write_mode_wmeta(
+static int
+gkyl_dynvec_write_mode_wmeta(
   const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta, const char *mode
 )
 {
@@ -238,17 +255,20 @@ static int gkyl_dynvec_write_mode_wmeta(
   return errno;
 }
 
-int gkyl_dynvec_write(const gkyl_dynvec vec, const char *fname)
+int
+gkyl_dynvec_write(const gkyl_dynvec vec, const char *fname)
 {
   return gkyl_dynvec_write_mode(vec, fname, "w");
 }
 
-int gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname)
+int
+gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname)
 {
   return gkyl_dynvec_write_mode(vec, fname, "a");
 }
 
-int gkyl_dynvec_write_wmeta(
+int
+gkyl_dynvec_write_wmeta(
   const gkyl_dynvec vec, const char *fname, const struct gkyl_msgpack_data *meta
 )
 {
@@ -256,7 +276,8 @@ int gkyl_dynvec_write_wmeta(
 }
 
 // ncomp returned in 'ncomp'
-static bool gkyl_dynvec_read_ncomp_1(FILE *fp, struct gkyl_dynvec_etype_ncomp *enc)
+static bool
+gkyl_dynvec_read_ncomp_1(FILE *fp, struct gkyl_dynvec_etype_ncomp *enc)
 {
   size_t frr;
   // Version 1 header
@@ -305,7 +326,8 @@ static bool gkyl_dynvec_read_ncomp_1(FILE *fp, struct gkyl_dynvec_etype_ncomp *e
   return true;
 }
 
-struct gkyl_dynvec_etype_ncomp gkyl_dynvec_read_ncomp(const char *fname)
+struct gkyl_dynvec_etype_ncomp
+gkyl_dynvec_read_ncomp(const char *fname)
 {
   struct gkyl_dynvec_etype_ncomp enc = {.type = GKYL_DOUBLE, .ncomp = 0};
   FILE *fp = 0;
@@ -313,7 +335,8 @@ struct gkyl_dynvec_etype_ncomp gkyl_dynvec_read_ncomp(const char *fname)
   return enc;
 }
 
-static bool gkyl_dynvec_read_1(gkyl_dynvec vec, FILE *fp)
+static bool
+gkyl_dynvec_read_1(gkyl_dynvec vec, FILE *fp)
 {
   size_t frr;
   // Version 1 header
@@ -379,7 +402,8 @@ static bool gkyl_dynvec_read_1(gkyl_dynvec vec, FILE *fp)
   return true;
 }
 
-bool gkyl_dynvec_read(gkyl_dynvec vec, const char *fname)
+bool
+gkyl_dynvec_read(gkyl_dynvec vec, const char *fname)
 {
   bool status = false;
   FILE *fp = fopen(fname, "r");
@@ -401,9 +425,8 @@ bool gkyl_dynvec_read(gkyl_dynvec vec, const char *fname)
   return status;
 }
 
-void gkyl_dynvec_to_array(
-  const gkyl_dynvec vec, struct gkyl_array *tm_mesh, struct gkyl_array *dyndata
-)
+void
+gkyl_dynvec_to_array(const gkyl_dynvec vec, struct gkyl_array *tm_mesh, struct gkyl_array *dyndata)
 {
   int nv = gkyl_dynvec_size(vec);
   for (int i = 0; i < nv; ++i) {
@@ -415,7 +438,8 @@ void gkyl_dynvec_to_array(
   }
 }
 
-void gkyl_dynvec_release(gkyl_dynvec vec)
+void
+gkyl_dynvec_release(gkyl_dynvec vec)
 {
   if (vec) {
     gkyl_ref_count_dec(&vec->ref_count);

@@ -99,216 +99,277 @@ GKYL_CU_D static const mul_op_kern_list ten_mul_list[] = {
 // Serendipity conf*phase multiplication kernels
 GKYL_CU_D static const cross_mul_op_kern_list ser_cross_mul_list[] = {
   // pdim=2
-  {.list =
-     {{NULL, binop_cross_mul_1d_2d_ser_p1, binop_cross_mul_1d_2d_ser_p2,
-       binop_cross_mul_1d_2d_ser_p3},
-      {NULL, NULL, NULL, NULL},
-      {NULL, NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_1d_2d_ser_p1, binop_cross_mul_1d_2d_ser_p2,
+        binop_cross_mul_1d_2d_ser_p3},
+       {NULL, NULL, NULL, NULL},
+       {NULL, NULL, NULL, NULL}},
+  },
   // pdim=3
-  {.list =
-     {{NULL, binop_cross_mul_1d_3d_ser_p1, binop_cross_mul_1d_3d_ser_p2,
-       binop_cross_mul_1d_3d_ser_p3},
-      {NULL, binop_cross_mul_2d_3d_ser_p1, binop_cross_mul_2d_3d_ser_p2,
-       binop_cross_mul_2d_3d_ser_p3},
-      {NULL, NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_1d_3d_ser_p1, binop_cross_mul_1d_3d_ser_p2,
+        binop_cross_mul_1d_3d_ser_p3},
+       {NULL, binop_cross_mul_2d_3d_ser_p1, binop_cross_mul_2d_3d_ser_p2,
+        binop_cross_mul_2d_3d_ser_p3},
+       {NULL, NULL, NULL, NULL}},
+  },
   // pdim=4
-  {.list =
-     {{NULL, binop_cross_mul_1d_4d_ser_p1, binop_cross_mul_1d_4d_ser_p2,
-       binop_cross_mul_1d_4d_ser_p3},
-      {NULL, binop_cross_mul_2d_4d_ser_p1, binop_cross_mul_2d_4d_ser_p2,
-       binop_cross_mul_2d_4d_ser_p3},
-      {NULL, binop_cross_mul_3d_4d_ser_p1, binop_cross_mul_3d_4d_ser_p2,
-       binop_cross_mul_3d_4d_ser_p3}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_1d_4d_ser_p1, binop_cross_mul_1d_4d_ser_p2,
+        binop_cross_mul_1d_4d_ser_p3},
+       {NULL, binop_cross_mul_2d_4d_ser_p1, binop_cross_mul_2d_4d_ser_p2,
+        binop_cross_mul_2d_4d_ser_p3},
+       {NULL, binop_cross_mul_3d_4d_ser_p1, binop_cross_mul_3d_4d_ser_p2,
+        binop_cross_mul_3d_4d_ser_p3}},
+  },
   // pdim=5
-  {.list =
-     {{NULL, NULL, NULL, NULL},
-      {NULL, binop_cross_mul_2d_5d_ser_p1, binop_cross_mul_2d_5d_ser_p2, NULL},
-      {NULL, binop_cross_mul_3d_5d_ser_p1, binop_cross_mul_3d_5d_ser_p2, NULL}}},
+  {
+    .list =
+      {{NULL, NULL, NULL, NULL},
+       {NULL, binop_cross_mul_2d_5d_ser_p1, binop_cross_mul_2d_5d_ser_p2, NULL},
+       {NULL, binop_cross_mul_3d_5d_ser_p1, binop_cross_mul_3d_5d_ser_p2, NULL}},
+  },
   // pdim=6
-  {.list =
-     {{NULL, NULL, NULL, NULL},
-      {NULL, NULL, NULL, NULL},
-      {NULL, binop_cross_mul_3d_6d_ser_p1, NULL, NULL}}}
+  {
+    .list =
+      {{NULL, NULL, NULL, NULL},
+       {NULL, NULL, NULL, NULL},
+       {NULL, binop_cross_mul_3d_6d_ser_p1, NULL, NULL}},
+  }
 };
 
 // Serendipity conf*phase multiplication with accumulation to output kernels
 GKYL_CU_D static const cross_mul_accumulate_op_kern_list ser_cross_mul_accumulate_list[] = {
   // pdim=2
-  {.list =
-     {{NULL, binop_cross_mul_accumulate_1d_2d_ser_p1, binop_cross_mul_accumulate_1d_2d_ser_p2,
-       binop_cross_mul_accumulate_1d_2d_ser_p3},
-      {NULL, NULL, NULL, NULL},
-      {NULL, NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_accumulate_1d_2d_ser_p1, binop_cross_mul_accumulate_1d_2d_ser_p2,
+        binop_cross_mul_accumulate_1d_2d_ser_p3},
+       {NULL, NULL, NULL, NULL},
+       {NULL, NULL, NULL, NULL}},
+  },
   // pdim=3
-  {.list =
-     {{NULL, binop_cross_mul_accumulate_1d_3d_ser_p1, binop_cross_mul_accumulate_1d_3d_ser_p2,
-       binop_cross_mul_accumulate_1d_3d_ser_p3},
-      {NULL, binop_cross_mul_accumulate_2d_3d_ser_p1, binop_cross_mul_accumulate_2d_3d_ser_p2,
-       binop_cross_mul_accumulate_2d_3d_ser_p3},
-      {NULL, NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_accumulate_1d_3d_ser_p1, binop_cross_mul_accumulate_1d_3d_ser_p2,
+        binop_cross_mul_accumulate_1d_3d_ser_p3},
+       {NULL, binop_cross_mul_accumulate_2d_3d_ser_p1, binop_cross_mul_accumulate_2d_3d_ser_p2,
+        binop_cross_mul_accumulate_2d_3d_ser_p3},
+       {NULL, NULL, NULL, NULL}},
+  },
   // pdim=4
-  {.list =
-     {{NULL, binop_cross_mul_accumulate_1d_4d_ser_p1, binop_cross_mul_accumulate_1d_4d_ser_p2,
-       binop_cross_mul_accumulate_1d_4d_ser_p3},
-      {NULL, binop_cross_mul_accumulate_2d_4d_ser_p1, binop_cross_mul_accumulate_2d_4d_ser_p2,
-       binop_cross_mul_accumulate_2d_4d_ser_p3},
-      {NULL, binop_cross_mul_accumulate_3d_4d_ser_p1, binop_cross_mul_accumulate_3d_4d_ser_p2,
-       binop_cross_mul_accumulate_3d_4d_ser_p3}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_accumulate_1d_4d_ser_p1, binop_cross_mul_accumulate_1d_4d_ser_p2,
+        binop_cross_mul_accumulate_1d_4d_ser_p3},
+       {NULL, binop_cross_mul_accumulate_2d_4d_ser_p1, binop_cross_mul_accumulate_2d_4d_ser_p2,
+        binop_cross_mul_accumulate_2d_4d_ser_p3},
+       {NULL, binop_cross_mul_accumulate_3d_4d_ser_p1, binop_cross_mul_accumulate_3d_4d_ser_p2,
+        binop_cross_mul_accumulate_3d_4d_ser_p3}},
+  },
   // pdim=5
-  {.list =
-     {{NULL, NULL, NULL, NULL},
-      {NULL, binop_cross_mul_accumulate_2d_5d_ser_p1, binop_cross_mul_accumulate_2d_5d_ser_p2, NULL},
-      {NULL, binop_cross_mul_accumulate_3d_5d_ser_p1, binop_cross_mul_accumulate_3d_5d_ser_p2, NULL}
-     }},
+  {
+    .list =
+      {{NULL, NULL, NULL, NULL},
+       {NULL, binop_cross_mul_accumulate_2d_5d_ser_p1, binop_cross_mul_accumulate_2d_5d_ser_p2, NULL
+       },
+       {NULL, binop_cross_mul_accumulate_3d_5d_ser_p1, binop_cross_mul_accumulate_3d_5d_ser_p2, NULL
+       }},
+  },
   // pdim=6
-  {.list =
-     {{NULL, NULL, NULL, NULL},
-      {NULL, NULL, NULL, NULL},
-      {NULL, binop_cross_mul_accumulate_3d_6d_ser_p1, NULL, NULL}}}
+  {
+    .list =
+      {{NULL, NULL, NULL, NULL},
+       {NULL, NULL, NULL, NULL},
+       {NULL, binop_cross_mul_accumulate_3d_6d_ser_p1, NULL, NULL}},
+  }
 };
 
 // Serendipity conf*phase multiplication with accumulation to output kernels and parallelization over components
 GKYL_CU_D static const cross_mul_accumulate_comp_par_op_kern_list
   ser_cross_mul_accumulate_comp_par_list[] = {
     // pdim=2
-    {.list =
-       {{NULL, binop_cross_mul_accumulate_comp_par_1d_2d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_1d_2d_ser_p2,
-         binop_cross_mul_accumulate_comp_par_1d_2d_ser_p3},
-        {NULL, NULL, NULL, NULL},
-        {NULL, NULL, NULL, NULL}}},
+    {
+      .list =
+        {{NULL, binop_cross_mul_accumulate_comp_par_1d_2d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_1d_2d_ser_p2,
+          binop_cross_mul_accumulate_comp_par_1d_2d_ser_p3},
+         {NULL, NULL, NULL, NULL},
+         {NULL, NULL, NULL, NULL}},
+    },
     // pdim=3
-    {.list =
-       {{NULL, binop_cross_mul_accumulate_comp_par_1d_3d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_1d_3d_ser_p2,
-         binop_cross_mul_accumulate_comp_par_1d_3d_ser_p3},
-        {NULL, binop_cross_mul_accumulate_comp_par_2d_3d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_2d_3d_ser_p2,
-         binop_cross_mul_accumulate_comp_par_2d_3d_ser_p3},
-        {NULL, NULL, NULL, NULL}}},
+    {
+      .list =
+        {{NULL, binop_cross_mul_accumulate_comp_par_1d_3d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_1d_3d_ser_p2,
+          binop_cross_mul_accumulate_comp_par_1d_3d_ser_p3},
+         {NULL, binop_cross_mul_accumulate_comp_par_2d_3d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_2d_3d_ser_p2,
+          binop_cross_mul_accumulate_comp_par_2d_3d_ser_p3},
+         {NULL, NULL, NULL, NULL}},
+    },
     // pdim=4
-    {.list =
-       {{NULL, binop_cross_mul_accumulate_comp_par_1d_4d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_1d_4d_ser_p2,
-         binop_cross_mul_accumulate_comp_par_1d_4d_ser_p3},
-        {NULL, binop_cross_mul_accumulate_comp_par_2d_4d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_2d_4d_ser_p2,
-         binop_cross_mul_accumulate_comp_par_2d_4d_ser_p3},
-        {NULL, binop_cross_mul_accumulate_comp_par_3d_4d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_3d_4d_ser_p2,
-         binop_cross_mul_accumulate_comp_par_3d_4d_ser_p3}}},
+    {
+      .list =
+        {{NULL, binop_cross_mul_accumulate_comp_par_1d_4d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_1d_4d_ser_p2,
+          binop_cross_mul_accumulate_comp_par_1d_4d_ser_p3},
+         {NULL, binop_cross_mul_accumulate_comp_par_2d_4d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_2d_4d_ser_p2,
+          binop_cross_mul_accumulate_comp_par_2d_4d_ser_p3},
+         {NULL, binop_cross_mul_accumulate_comp_par_3d_4d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_3d_4d_ser_p2,
+          binop_cross_mul_accumulate_comp_par_3d_4d_ser_p3}},
+    },
     // pdim=5
-    {.list =
-       {{NULL, NULL, NULL, NULL},
-        {NULL, binop_cross_mul_accumulate_comp_par_2d_5d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_2d_5d_ser_p2, NULL},
-        {NULL, binop_cross_mul_accumulate_comp_par_3d_5d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_3d_5d_ser_p2, NULL}}},
+    {
+      .list =
+        {{NULL, NULL, NULL, NULL},
+         {NULL, binop_cross_mul_accumulate_comp_par_2d_5d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_2d_5d_ser_p2, NULL},
+         {NULL, binop_cross_mul_accumulate_comp_par_3d_5d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_3d_5d_ser_p2, NULL}},
+    },
     // pdim=6
-    {.list =
-       {{NULL, NULL, NULL, NULL},
-        {NULL, NULL, NULL, NULL},
-        {NULL, binop_cross_mul_accumulate_comp_par_3d_6d_ser_p1, NULL, NULL}}}
+    {
+      .list =
+        {{NULL, NULL, NULL, NULL},
+         {NULL, NULL, NULL, NULL},
+         {NULL, binop_cross_mul_accumulate_comp_par_3d_6d_ser_p1, NULL, NULL}},
+    }
 };
 
 // Tensor conf*phase multiplication kernels
 GKYL_CU_D static const cross_mul_op_kern_list ten_cross_mul_list[] = {
   // pdim=2
-  {.list =
-     {{NULL, binop_cross_mul_1d_2d_ser_p1, binop_cross_mul_1d_2d_tensor_p2, NULL},
-      {NULL, NULL, NULL, NULL},
-      {NULL, NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_1d_2d_ser_p1, binop_cross_mul_1d_2d_tensor_p2, NULL},
+       {NULL, NULL, NULL, NULL},
+       {NULL, NULL, NULL, NULL}},
+  },
   // pdim=3
-  {.list =
-     {{NULL, binop_cross_mul_1d_3d_ser_p1, binop_cross_mul_1d_3d_tensor_p2, NULL},
-      {NULL, binop_cross_mul_2d_3d_ser_p1, binop_cross_mul_2d_3d_tensor_p2, NULL},
-      {NULL, NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_1d_3d_ser_p1, binop_cross_mul_1d_3d_tensor_p2, NULL},
+       {NULL, binop_cross_mul_2d_3d_ser_p1, binop_cross_mul_2d_3d_tensor_p2, NULL},
+       {NULL, NULL, NULL, NULL}},
+  },
   // pdim=4
-  {.list =
-     {{NULL, binop_cross_mul_1d_4d_ser_p1, binop_cross_mul_1d_4d_tensor_p2, NULL},
-      {NULL, binop_cross_mul_2d_4d_ser_p1, binop_cross_mul_2d_4d_tensor_p2, NULL},
-      {NULL, binop_cross_mul_3d_4d_ser_p1, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_1d_4d_ser_p1, binop_cross_mul_1d_4d_tensor_p2, NULL},
+       {NULL, binop_cross_mul_2d_4d_ser_p1, binop_cross_mul_2d_4d_tensor_p2, NULL},
+       {NULL, binop_cross_mul_3d_4d_ser_p1, NULL, NULL}},
+  },
   // pdim=5
-  {.list =
-     {{NULL, NULL, NULL, NULL},
-      {NULL, binop_cross_mul_2d_5d_ser_p1, binop_cross_mul_2d_5d_tensor_p2, NULL},
-      {NULL, binop_cross_mul_3d_5d_ser_p1, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL, NULL, NULL},
+       {NULL, binop_cross_mul_2d_5d_ser_p1, binop_cross_mul_2d_5d_tensor_p2, NULL},
+       {NULL, binop_cross_mul_3d_5d_ser_p1, NULL, NULL}},
+  },
   // pdim=6
-  {.list =
-     {{NULL, NULL, NULL, NULL},
-      {NULL, NULL, NULL, NULL},
-      {NULL, binop_cross_mul_3d_6d_ser_p1, NULL, NULL}}}
+  {
+    .list =
+      {{NULL, NULL, NULL, NULL},
+       {NULL, NULL, NULL, NULL},
+       {NULL, binop_cross_mul_3d_6d_ser_p1, NULL, NULL}},
+  }
 };
 
 // Tensor conf*phase multiplication with accumulation to output kernels
 GKYL_CU_D static const cross_mul_accumulate_op_kern_list ten_cross_mul_accumulate_list[] = {
   // pdim=2
-  {.list =
-     {{NULL, binop_cross_mul_accumulate_1d_2d_ser_p1, binop_cross_mul_accumulate_1d_2d_tensor_p2,
-       NULL},
-      {NULL, NULL, NULL, NULL},
-      {NULL, NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_accumulate_1d_2d_ser_p1, binop_cross_mul_accumulate_1d_2d_tensor_p2,
+        NULL},
+       {NULL, NULL, NULL, NULL},
+       {NULL, NULL, NULL, NULL}},
+  },
   // pdim=3
-  {.list =
-     {{NULL, binop_cross_mul_accumulate_1d_3d_ser_p1, binop_cross_mul_accumulate_1d_3d_tensor_p2,
-       NULL},
-      {NULL, binop_cross_mul_accumulate_2d_3d_ser_p1, binop_cross_mul_accumulate_2d_3d_tensor_p2,
-       NULL},
-      {NULL, NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_accumulate_1d_3d_ser_p1, binop_cross_mul_accumulate_1d_3d_tensor_p2,
+        NULL},
+       {NULL, binop_cross_mul_accumulate_2d_3d_ser_p1, binop_cross_mul_accumulate_2d_3d_tensor_p2,
+        NULL},
+       {NULL, NULL, NULL, NULL}},
+  },
   // pdim=4
-  {.list =
-     {{NULL, binop_cross_mul_accumulate_1d_4d_ser_p1, binop_cross_mul_accumulate_1d_4d_tensor_p2,
-       NULL},
-      {NULL, binop_cross_mul_accumulate_2d_4d_ser_p1, binop_cross_mul_accumulate_2d_4d_tensor_p2,
-       NULL},
-      {NULL, NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, binop_cross_mul_accumulate_1d_4d_ser_p1, binop_cross_mul_accumulate_1d_4d_tensor_p2,
+        NULL},
+       {NULL, binop_cross_mul_accumulate_2d_4d_ser_p1, binop_cross_mul_accumulate_2d_4d_tensor_p2,
+        NULL},
+       {NULL, NULL, NULL, NULL}},
+  },
   // pdim=5
-  {.list =
-     {{NULL, NULL, NULL, NULL},
-      {NULL, binop_cross_mul_accumulate_2d_5d_ser_p1, binop_cross_mul_accumulate_2d_5d_tensor_p2,
-       NULL},
-      {NULL, binop_cross_mul_accumulate_3d_5d_ser_p1, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL, NULL, NULL},
+       {NULL, binop_cross_mul_accumulate_2d_5d_ser_p1, binop_cross_mul_accumulate_2d_5d_tensor_p2,
+        NULL},
+       {NULL, binop_cross_mul_accumulate_3d_5d_ser_p1, NULL, NULL}},
+  },
   // pdim=6
-  {.list =
-     {{NULL, NULL, NULL, NULL},
-      {NULL, NULL, NULL, NULL},
-      {NULL, binop_cross_mul_accumulate_3d_6d_ser_p1, NULL, NULL}}}
+  {
+    .list =
+      {{NULL, NULL, NULL, NULL},
+       {NULL, NULL, NULL, NULL},
+       {NULL, binop_cross_mul_accumulate_3d_6d_ser_p1, NULL, NULL}},
+  }
 };
 
 // Tensor conf*phase multiplication with accumulation to output kernels and parallelization over components
 GKYL_CU_D static const cross_mul_accumulate_comp_par_op_kern_list
   ten_cross_mul_accumulate_comp_par_list[] = {
     // pdim=2
-    {.list =
-       {{NULL, binop_cross_mul_accumulate_comp_par_1d_2d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_1d_2d_tensor_p2, NULL},
-        {NULL, NULL, NULL, NULL},
-        {NULL, NULL, NULL, NULL}}},
+    {
+      .list =
+        {{NULL, binop_cross_mul_accumulate_comp_par_1d_2d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_1d_2d_tensor_p2, NULL},
+         {NULL, NULL, NULL, NULL},
+         {NULL, NULL, NULL, NULL}},
+    },
     // pdim=3
-    {.list =
-       {{NULL, binop_cross_mul_accumulate_comp_par_1d_3d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_1d_3d_tensor_p2, NULL},
-        {NULL, binop_cross_mul_accumulate_comp_par_2d_3d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_2d_3d_tensor_p2, NULL},
-        {NULL, NULL, NULL, NULL}}},
+    {
+      .list =
+        {{NULL, binop_cross_mul_accumulate_comp_par_1d_3d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_1d_3d_tensor_p2, NULL},
+         {NULL, binop_cross_mul_accumulate_comp_par_2d_3d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_2d_3d_tensor_p2, NULL},
+         {NULL, NULL, NULL, NULL}},
+    },
     // pdim=4
-    {.list =
-       {{NULL, binop_cross_mul_accumulate_comp_par_1d_4d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_1d_4d_tensor_p2, NULL},
-        {NULL, binop_cross_mul_accumulate_comp_par_2d_4d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_2d_4d_tensor_p2, NULL},
-        {NULL, NULL, NULL, NULL}}},
+    {
+      .list =
+        {{NULL, binop_cross_mul_accumulate_comp_par_1d_4d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_1d_4d_tensor_p2, NULL},
+         {NULL, binop_cross_mul_accumulate_comp_par_2d_4d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_2d_4d_tensor_p2, NULL},
+         {NULL, NULL, NULL, NULL}},
+    },
     // pdim=5
-    {.list =
-       {{NULL, NULL, NULL, NULL},
-        {NULL, binop_cross_mul_accumulate_comp_par_2d_5d_ser_p1,
-         binop_cross_mul_accumulate_comp_par_2d_5d_tensor_p2, NULL},
-        {NULL, binop_cross_mul_accumulate_comp_par_3d_5d_ser_p1, NULL, NULL}}},
+    {
+      .list =
+        {{NULL, NULL, NULL, NULL},
+         {NULL, binop_cross_mul_accumulate_comp_par_2d_5d_ser_p1,
+          binop_cross_mul_accumulate_comp_par_2d_5d_tensor_p2, NULL},
+         {NULL, binop_cross_mul_accumulate_comp_par_3d_5d_ser_p1, NULL, NULL}},
+    },
     // pdim=6
-    {.list =
-       {{NULL, NULL, NULL, NULL},
-        {NULL, NULL, NULL, NULL},
-        {NULL, binop_cross_mul_accumulate_comp_par_3d_6d_ser_p1, NULL, NULL}}}
+    {
+      .list =
+        {{NULL, NULL, NULL, NULL},
+         {NULL, NULL, NULL, NULL},
+         {NULL, binop_cross_mul_accumulate_comp_par_3d_6d_ser_p1, NULL, NULL}},
+    }
 };
 
 // Hybrid basis conf*phase multiplication kernels
@@ -403,13 +464,15 @@ GKYL_CU_D static const inv_op_kern_list ser_inv_list[] = {
   {ser_3x_p0_inv, ser_3x_p1_inv, NULL, NULL}
 };
 
-GKYL_CU_D static mul_op_t choose_ser_mul_kern(int dim, int poly_order)
+GKYL_CU_D static mul_op_t
+choose_ser_mul_kern(int dim, int poly_order)
 {
   assert(dim < 4);
   return ser_mul_list[dim].kernels[poly_order];
 }
 
-GKYL_CU_D static mul_op_t choose_ten_mul_kern(int dim, int poly_order)
+GKYL_CU_D static mul_op_t
+choose_ten_mul_kern(int dim, int poly_order)
 {
   assert(dim < 4);
   return ten_mul_list[dim].kernels[poly_order];
@@ -421,21 +484,21 @@ choose_mul_conf_phase_kern(enum gkyl_basis_type btype, int cdim, int vdim, int p
   int pdim = cdim + vdim;
 
   switch (btype) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_cross_mul_list[pdim - 2].list[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_HYBRID:
-    return hyb_cross_mul_list[cdim - 1].kernels[vdim - 1];
-    break;
-  case GKYL_BASIS_MODAL_GKHYBRID:
-    return gkhyb_cross_mul_list[cdim - 1].kernels[vdim - 1];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_cross_mul_list[pdim - 2].list[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_cross_mul_list[pdim - 2].list[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      return hyb_cross_mul_list[cdim - 1].kernels[vdim - 1];
+      break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      return gkhyb_cross_mul_list[cdim - 1].kernels[vdim - 1];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_cross_mul_list[pdim - 2].list[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
@@ -446,77 +509,84 @@ choose_mul_conf_phase_accumulate_kern(enum gkyl_basis_type btype, int cdim, int 
   int pdim = cdim + vdim;
 
   switch (btype) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_cross_mul_accumulate_list[pdim - 2].list[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_HYBRID:
-    return hyb_cross_mul_accumulate_list[cdim - 1].kernels[vdim - 1];
-    break;
-  case GKYL_BASIS_MODAL_GKHYBRID:
-    return gkhyb_cross_mul_accumulate_list[cdim - 1].kernels[vdim - 1];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_cross_mul_accumulate_list[pdim - 2].list[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_cross_mul_accumulate_list[pdim - 2].list[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      return hyb_cross_mul_accumulate_list[cdim - 1].kernels[vdim - 1];
+      break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      return gkhyb_cross_mul_accumulate_list[cdim - 1].kernels[vdim - 1];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_cross_mul_accumulate_list[pdim - 2].list[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
 
-GKYL_CU_D static mul_accumulate_comp_par_op_t choose_mul_conf_phase_accumulate_comp_par_kern(
+GKYL_CU_D static mul_accumulate_comp_par_op_t
+choose_mul_conf_phase_accumulate_comp_par_kern(
   enum gkyl_basis_type btype, int cdim, int vdim, int poly_order
 )
 {
   int pdim = cdim + vdim;
 
   switch (btype) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_cross_mul_accumulate_comp_par_list[pdim - 2].list[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_HYBRID:
-    return hyb_cross_mul_accumulate_comp_par_list[cdim - 1].kernels[vdim - 1];
-    break;
-  case GKYL_BASIS_MODAL_GKHYBRID:
-    return gkhyb_cross_mul_accumulate_comp_par_list[cdim - 1].kernels[vdim - 1];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_cross_mul_accumulate_comp_par_list[pdim - 2].list[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_cross_mul_accumulate_comp_par_list[pdim - 2].list[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      return hyb_cross_mul_accumulate_comp_par_list[cdim - 1].kernels[vdim - 1];
+      break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      return gkhyb_cross_mul_accumulate_comp_par_list[cdim - 1].kernels[vdim - 1];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_cross_mul_accumulate_comp_par_list[pdim - 2].list[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
 
-static mul_op_count_t choose_ser_mul_op_count_kern(int dim, int poly_order)
+static mul_op_count_t
+choose_ser_mul_op_count_kern(int dim, int poly_order)
 {
   return ser_mul_op_count_list[dim].kernels[poly_order];
 }
 
-GKYL_CU_D static div_set_op_t choose_ser_div_set_kern(int dim, int poly_order)
+GKYL_CU_D static div_set_op_t
+choose_ser_div_set_kern(int dim, int poly_order)
 {
   return ser_div_set_list[dim].kernels[poly_order];
 }
 
-GKYL_CU_D static div_set_op_t choose_ten_div_set_kern(int dim, int poly_order)
+GKYL_CU_D static div_set_op_t
+choose_ten_div_set_kern(int dim, int poly_order)
 {
   return ten_div_set_list[dim].kernels[poly_order];
 }
 
-GKYL_CU_D static inv_op_t choose_ser_inv_kern(int dim, int poly_order)
+GKYL_CU_D static inv_op_t
+choose_ser_inv_kern(int dim, int poly_order)
 {
   return ser_inv_list[dim].kernels[poly_order];
 }
 
-GKYL_CU_D static inline double dg_cell_mean(int nc, const double *f)
+GKYL_CU_D static inline double
+dg_cell_mean(int nc, const double *f)
 {
   return f[0];
 }
 
-GKYL_CU_D static inline double dg_cell_mean_l2(int nb, const double *f)
+GKYL_CU_D static inline double
+dg_cell_mean_l2(int nb, const double *f)
 {
   double sum = 0.0;
   for (int i = 0; i < nb; ++i) {
@@ -527,7 +597,8 @@ GKYL_CU_D static inline double dg_cell_mean_l2(int nb, const double *f)
 
 typedef double (*dp_op_t)(int nb, const double *f);
 
-GKYL_CU_D static dp_op_t dg_get_op_func(enum gkyl_dg_op op)
+GKYL_CU_D static dp_op_t
+dg_get_op_func(enum gkyl_dg_op op)
 {
   if (op == GKYL_DG_OP_MEAN) {
     return dg_cell_mean;

@@ -13,7 +13,8 @@
 // Gas constant
 static const double gas_gamma = 1.4;
 
-struct gkyl_block_geom *create_block_geom(void)
+struct gkyl_block_geom *
+create_block_geom(void)
 {
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
 
@@ -36,8 +37,8 @@ struct gkyl_block_geom *create_block_geom(void)
   // block 0
   gkyl_block_geom_set_block(
     bgeom, 0,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 1},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 1},
       .upper = {1, 2},
       .cells = {128, 128},
       .cuts = {1, 1},
@@ -53,14 +54,15 @@ struct gkyl_block_geom *create_block_geom(void)
           // y-direction connections
           {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
 
   // block 1
   gkyl_block_geom_set_block(
     bgeom, 1,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {128, 128},
       .cuts = {1, 1},
@@ -74,14 +76,15 @@ struct gkyl_block_geom *create_block_geom(void)
         {// y-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   // block 2
   gkyl_block_geom_set_block(
     bgeom, 2,
-    &(struct gkyl_block_geom_info
-    ){.lower = {1, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {1, 0},
       .upper = {2, 1},
       .cells = {128, 128},
       .cuts = {1, 1},
@@ -97,7 +100,8 @@ struct gkyl_block_geom *create_block_geom(void)
           // y-direction connections
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
 
   return bgeom;
@@ -115,7 +119,8 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_multib_app *app, double t_cu
   }
 }
 
-void initFluidSod(double t, const double *xn, double *restrict fout, void *ctx)
+void
+initFluidSod(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double xsloc = 1.25, ysloc = 1.5;
   double x = xn[0], y = xn[1];
@@ -133,7 +138,8 @@ void initFluidSod(double t, const double *xn, double *restrict fout, void *ctx)
   fout[4] = pr / (gas_gamma - 1);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -141,8 +147,10 @@ int main(int argc, char **argv)
   if (app_args.use_mpi) {
 #ifdef GKYL_HAVE_MPI
     MPI_Init(&argc, &argv);
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp
-    ){.mpi_comm = MPI_COMM_WORLD, .sync_corners = true});
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
+      .mpi_comm = MPI_COMM_WORLD,
+      .sync_corners = true,
+    });
 #endif
   }
   if (comm == 0) {
@@ -189,7 +197,7 @@ int main(int argc, char **argv)
     .blocks = euler_blocks,
 
     .num_physical_bcs = 8,
-    .bcs = euler_phys_bcs
+    .bcs = euler_phys_bcs,
   };
 
   struct gkyl_moment_multib app_inp = {
@@ -200,7 +208,7 @@ int main(int argc, char **argv)
     .num_species = 1,
     .species = {euler},
 
-    .comm = comm
+    .comm = comm,
   };
 
   // Set app output name from the executable name (argv[0]).

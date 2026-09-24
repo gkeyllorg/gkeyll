@@ -21,7 +21,8 @@ static const size_t ARRAY_ALIGN_BND = 32;
     data_ho[i] = 0;                                   \
   gkyl_cu_memcpy(arr->data, data_ho, arr->size * arr->esznc, GKYL_CU_MEMCPY_H2D);
 
-static void *g_array_alloc(size_t num, size_t sz)
+static void *
+g_array_alloc(size_t num, size_t sz)
 {
 #ifdef USE_ALIGNED_ALLOC
   return gkyl_aligned_alloc(ARRAY_ALIGN_BND, num * sz);
@@ -29,7 +30,8 @@ static void *g_array_alloc(size_t num, size_t sz)
   return gkyl_calloc(num, sz);
 #endif
 }
-static void g_array_free(void *ptr)
+static void
+g_array_free(void *ptr)
 {
 #ifdef USE_ALIGNED_ALLOC
   gkyl_aligned_free(ptr);
@@ -44,10 +46,11 @@ static const size_t array_elem_size[] = {
   [GKYL_LONG] = sizeof(long),
   [GKYL_FLOAT] = sizeof(float),
   [GKYL_DOUBLE] = sizeof(double),
-  [GKYL_USER] = 1
+  [GKYL_USER] = 1,
 };
 
-static void array_free(const struct gkyl_ref_count *ref)
+static void
+array_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_array *arr = container_of(ref, struct gkyl_array, ref_count);
 
@@ -125,7 +128,8 @@ array_new(enum gkyl_elem_type type, size_t ncomp, size_t size, bool is_alloc_ext
   return arr;
 }
 
-struct gkyl_array *gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+struct gkyl_array *
+gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 {
   return array_new(type, ncomp, size, false, 0);
 }
@@ -136,17 +140,20 @@ gkyl_array_new_from_buff(enum gkyl_elem_type type, size_t ncomp, size_t size, vo
   return array_new(type, ncomp, size, true, buff);
 }
 
-bool gkyl_array_is_cu_dev(const struct gkyl_array *arr)
+bool
+gkyl_array_is_cu_dev(const struct gkyl_array *arr)
 {
   return GKYL_IS_CU_ALLOC(arr->flags);
 }
 
-bool gkyl_array_is_using_buffer(const struct gkyl_array *arr)
+bool
+gkyl_array_is_using_buffer(const struct gkyl_array *arr)
 {
   return GKYL_IS_ALLOC_EXTERN(arr->flags);
 }
 
-struct gkyl_array *gkyl_array_copy(struct gkyl_array *dest, const struct gkyl_array *src)
+struct gkyl_array *
+gkyl_array_copy(struct gkyl_array *dest, const struct gkyl_array *src)
 {
   assert(dest->esznc == src->esznc);
 
@@ -174,7 +181,8 @@ struct gkyl_array *gkyl_array_copy(struct gkyl_array *dest, const struct gkyl_ar
   return dest;
 }
 
-struct gkyl_array *gkyl_array_copy_async(struct gkyl_array *dest, const struct gkyl_array *src)
+struct gkyl_array *
+gkyl_array_copy_async(struct gkyl_array *dest, const struct gkyl_array *src)
 {
   assert(dest->esznc == src->esznc);
 
@@ -208,7 +216,8 @@ struct gkyl_array *gkyl_array_copy_async(struct gkyl_array *dest, const struct g
   return dest;
 }
 
-struct gkyl_array *gkyl_array_clone(const struct gkyl_array *src)
+struct gkyl_array *
+gkyl_array_clone(const struct gkyl_array *src)
 {
   struct gkyl_array *arr = gkyl_malloc(sizeof(struct gkyl_array));
 
@@ -245,13 +254,15 @@ struct gkyl_array *gkyl_array_clone(const struct gkyl_array *src)
   return arr;
 }
 
-struct gkyl_array *gkyl_array_acquire(const struct gkyl_array *arr)
+struct gkyl_array *
+gkyl_array_acquire(const struct gkyl_array *arr)
 {
   gkyl_ref_count_inc(&arr->ref_count);
   return (struct gkyl_array *)arr;
 }
 
-void gkyl_array_release(const struct gkyl_array *arr)
+void
+gkyl_array_release(const struct gkyl_array *arr)
 {
   if (arr) {
     gkyl_ref_count_dec(&arr->ref_count);
@@ -262,7 +273,8 @@ void gkyl_array_release(const struct gkyl_array *arr)
 
 #ifdef GKYL_HAVE_CUDA
 
-struct gkyl_array *gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+struct gkyl_array *
+gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 {
   struct gkyl_array *arr = gkyl_malloc(sizeof(struct gkyl_array));
 
@@ -314,7 +326,8 @@ struct gkyl_array *gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp,
   return arr;
 }
 
-struct gkyl_array *gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+struct gkyl_array *
+gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 {
   struct gkyl_array *arr = gkyl_cu_malloc_host(sizeof(struct gkyl_array));
 
@@ -361,13 +374,15 @@ struct gkyl_array *gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp
 
 #else
 
-struct gkyl_array *gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+struct gkyl_array *
+gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 {
   assert(false);
   return 0;
 }
 
-struct gkyl_array *gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+struct gkyl_array *
+gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 {
   assert(false);
   return 0;

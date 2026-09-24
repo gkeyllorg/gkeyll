@@ -17,59 +17,68 @@
 #include <math.h>
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-void eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
 }
 
-void eval_M1i_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M1i_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 0.0;
 }
 
-void eval_M2_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M2_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
   double x = xn[0];
   fout[0] = T;
 }
 
-void eval_M1i_1v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M1i_1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 0.5;
 }
 
-void eval_M2_1v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M2_1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
   double x = xn[0];
   fout[0] = T;
 }
 
-void eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 0.5;
   fout[1] = 0.25;
 }
 
-void eval_M2_2v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M2_2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
   double x = xn[0];
   fout[0] = T;
 }
 
-void eval_M1i_3v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M1i_3v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 0.5;
@@ -77,14 +86,16 @@ void eval_M1i_3v(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = -0.5;
 }
 
-void eval_M2_3v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M2_3v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
   double x = xn[0];
   fout[0] = T;
 }
 
-void test_1x1v_no_drift(int poly_order)
+void
+test_1x1v_no_drift(int poly_order)
 {
   double lower[] = {0.1, -15.0}, upper[] = {1.0, 15.0};
   int cells[] = {2, 32};
@@ -170,7 +181,7 @@ void test_1x1v_no_drift(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
@@ -216,12 +227,14 @@ void test_1x1v_no_drift(int poly_order)
   gkyl_array_release(gamma_inv);
 }
 
-void test_proj_mj_on_basis_1x1v_no_drift_p2_ho()
+void
+test_proj_mj_on_basis_1x1v_no_drift_p2_ho()
 {
   test_1x1v_no_drift(2);
 }
 
-void test_1x1v(int poly_order)
+void
+test_1x1v(int poly_order)
 {
   double lower[] = {0.1, -15.0}, upper[] = {1.0, 15.0}; // +/- 15 on velocity
   int cells[] = {2, 32}; // default {2, 32}
@@ -308,7 +321,7 @@ void test_1x1v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
@@ -327,7 +340,7 @@ void test_1x1v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -370,12 +383,14 @@ void test_1x1v(int poly_order)
 }
 
 // special note, the p1 basis does not function
-void test_proj_mj_on_basis_1x1v_p2_ho()
+void
+test_proj_mj_on_basis_1x1v_p2_ho()
 {
   test_1x1v(2);
 }
 
-void test_1x2v(int poly_order)
+void
+test_1x2v(int poly_order)
 {
   double lower[] = {0.1, -15.0, -15.0}, upper[] = {1.0, 15.0, 15.0};
   int cells[] = {2, 16, 16};
@@ -463,7 +478,7 @@ void test_1x2v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
@@ -505,12 +520,14 @@ void test_1x2v(int poly_order)
   gkyl_array_release(gamma_inv);
 }
 
-void test_proj_mj_on_basis_1x2v_p2_ho()
+void
+test_proj_mj_on_basis_1x2v_p2_ho()
 {
   test_1x2v(2);
 }
 
-void test_1x3v(int poly_order)
+void
+test_1x3v(int poly_order)
 {
   double lower[] = {0.1, -15.0, -15.0, -15.0}, upper[] = {1.0, 15.0, 15.0, 15.0};
   int cells[] = {2, 16, 16, 16};
@@ -598,7 +615,7 @@ void test_1x3v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
@@ -649,7 +666,8 @@ void test_1x3v(int poly_order)
   gkyl_array_release(gamma_inv);
 }
 
-void test_proj_mj_on_basis_1x3v_p2_ho()
+void
+test_proj_mj_on_basis_1x3v_p2_ho()
 {
   test_1x3v(2);
 }

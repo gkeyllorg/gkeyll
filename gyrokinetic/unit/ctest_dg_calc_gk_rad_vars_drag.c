@@ -9,7 +9,8 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 
-void test_rad_drag_alloc()
+void
+test_rad_drag_alloc()
 {
   int num_collisions = 3;
   int num_densities[] = {1, 2, 4};
@@ -44,7 +45,8 @@ void test_rad_drag_alloc()
   gkyl_dg_calc_gk_rad_vars_drag_release(drag, num_collisions, false);
 }
 
-void test_rad_drag_alloc_single()
+void
+test_rad_drag_alloc_single()
 {
   int num_collisions = 1;
   int num_densities[] = {5};

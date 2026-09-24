@@ -10,14 +10,16 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_eqn *gkyl_dg_updater_diffusion_gyrokinetic_acquire_eqn(
+struct gkyl_dg_eqn *
+gkyl_dg_updater_diffusion_gyrokinetic_acquire_eqn(
   const struct gkyl_dg_updater_diffusion_gyrokinetic *up
 )
 {
   return gkyl_dg_eqn_acquire(up->dgeqn);
 }
 
-struct gkyl_dg_updater_diffusion_gyrokinetic *gkyl_dg_updater_diffusion_gyrokinetic_new(
+struct gkyl_dg_updater_diffusion_gyrokinetic *
+gkyl_dg_updater_diffusion_gyrokinetic_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir, int diff_order,
   const struct gkyl_range *diff_range, const bool *is_zero_flux_bc, const struct gkyl_array *coeff,
@@ -69,7 +71,8 @@ struct gkyl_dg_updater_diffusion_gyrokinetic *gkyl_dg_updater_diffusion_gyrokine
   return up;
 }
 
-void gkyl_dg_updater_diffusion_gyrokinetic_advance(
+void
+gkyl_dg_updater_diffusion_gyrokinetic_advance(
   struct gkyl_dg_updater_diffusion_gyrokinetic *up, const struct gkyl_range *update_rng,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
   struct gkyl_array *GKYL_RESTRICT rhs
@@ -86,7 +89,8 @@ gkyl_dg_updater_diffusion_gyrokinetic_get_tm(const struct gkyl_dg_updater_diffus
   return (struct gkyl_dg_updater_diffusion_gyrokinetic_tm){.diffusion_tm = up->diffusion_tm};
 }
 
-void gkyl_dg_updater_diffusion_gyrokinetic_release(struct gkyl_dg_updater_diffusion_gyrokinetic *up)
+void
+gkyl_dg_updater_diffusion_gyrokinetic_release(struct gkyl_dg_updater_diffusion_gyrokinetic *up)
 {
   gkyl_dg_eqn_release(up->dgeqn);
   gkyl_hyper_dg_release(up->hyperdg);

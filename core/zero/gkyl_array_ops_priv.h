@@ -9,7 +9,8 @@
 // Compute number of components stored in array 'arr'
 #define NCOM(arr) (arr->ncomp)
 
-GKYL_CU_DH static inline void array_clear1(long n, double *out, double val)
+GKYL_CU_DH static inline void
+array_clear1(long n, double *out, double val)
 {
   for (int c = 0; c < n; ++c) {
     out[c] = val;

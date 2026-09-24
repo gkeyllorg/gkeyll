@@ -104,7 +104,8 @@ struct gkyl_array_integrate {
   struct gkyl_array_integrate *on_dev; // Pointer to itself on device.
 };
 
-GKYL_CU_D static void gkyl_array_integrate_choose_kernel(
+GKYL_CU_D static void
+gkyl_array_integrate_choose_kernel(
   enum gkyl_array_integrate_op op, const struct gkyl_basis *basis, struct gkyl_array_integrate *up
 )
 {

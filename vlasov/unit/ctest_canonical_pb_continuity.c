@@ -21,23 +21,27 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-void info_h_ij_inv_1x1v(double t, const double *xn, double *fout, void *ctx)
+void
+info_h_ij_inv_1x1v(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = 1;
 }
 
-void info_det_h_1x1v(double t, const double *xn, double *fout, void *ctx)
+void
+info_det_h_1x1v(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = 1;
 }
 
-void info_hamil_1x1v(double t, const double *xn, double *fout, void *ctx)
+void
+info_hamil_1x1v(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0], v = xn[1];
   fout[0] = 0.5 * v * v;
 }
 
-void test_1x1v(int poly_order, enum gkyl_basis_type b_type)
+void
+test_1x1v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = {0.0, -5.0}, upper[] = {1.0, 5.0};
@@ -249,7 +253,8 @@ void test_1x1v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-void info_h_ij_inv_1x2v(double t, const double *xn, double *fout, void *ctx)
+void
+info_h_ij_inv_1x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   // [h^{xx},h^{xy},h^{yy}]
@@ -263,7 +268,8 @@ void info_h_ij_inv_1x2v(double t, const double *xn, double *fout, void *ctx)
   fout[2] = 1.0 / pow(R * sin(q[0]), 2);
 }
 
-void info_det_h_1x2v(double t, const double *xn, double *fout, void *ctx)
+void
+info_det_h_1x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double R = 1.0;
@@ -272,7 +278,8 @@ void info_det_h_1x2v(double t, const double *xn, double *fout, void *ctx)
   fout[0] = pow(R, 2) * sin(q[0]);
 }
 
-void info_hamil_1x2v(double t, const double *xn, double *fout, void *ctx)
+void
+info_hamil_1x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double w0 = xn[1], w1 = xn[2];
@@ -285,7 +292,8 @@ void info_hamil_1x2v(double t, const double *xn, double *fout, void *ctx)
   free(h_inv);
 }
 
-void test_1x2v(int poly_order, enum gkyl_basis_type b_type)
+void
+test_1x2v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = {pi / 4, -5.0, -5.0}, upper[] = {pi / 2, 5.0, 5.0};
@@ -497,7 +505,8 @@ void test_1x2v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-void info_h_ij_inv_1x3v(double t, const double *xn, double *fout, void *ctx)
+void
+info_h_ij_inv_1x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   double q_r = xn[0];
@@ -511,14 +520,16 @@ void info_h_ij_inv_1x3v(double t, const double *xn, double *fout, void *ctx)
   fout[5] = 1.0;
 }
 
-void info_det_h_1x3v(double t, const double *xn, double *fout, void *ctx)
+void
+info_det_h_1x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double q_r = xn[0];
   fout[0] = q_r;
 }
 
-void info_hamil_1x3v(double t, const double *xn, double *fout, void *ctx)
+void
+info_hamil_1x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double q_R = xn[0], p_R_dot = xn[1], p_theta_dot = xn[2], p_phi_dot = xn[3];
@@ -531,7 +542,8 @@ void info_hamil_1x3v(double t, const double *xn, double *fout, void *ctx)
   free(h_inv);
 }
 
-void test_1x3v(int poly_order, enum gkyl_basis_type b_type)
+void
+test_1x3v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = {0.5, -5.0, -5.0, -5.0}, upper[] = {1.5, 5.0, 5.0, 5.0};
@@ -743,7 +755,8 @@ void test_1x3v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-void info_h_ij_inv_2x2v(double t, const double *xn, double *fout, void *ctx)
+void
+info_h_ij_inv_2x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   // [h^{xx},h^{xy},h^{yy}]
@@ -757,7 +770,8 @@ void info_h_ij_inv_2x2v(double t, const double *xn, double *fout, void *ctx)
   fout[2] = 1.0 / pow(R * sin(q[0]), 2);
 }
 
-void info_det_h_2x2v(double t, const double *xn, double *fout, void *ctx)
+void
+info_det_h_2x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double R = 1.0;
@@ -766,7 +780,8 @@ void info_det_h_2x2v(double t, const double *xn, double *fout, void *ctx)
   fout[0] = pow(R, 2) * sin(q[0]);
 }
 
-void info_hamil_2x2v(double t, const double *xn, double *fout, void *ctx)
+void
+info_hamil_2x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double w0 = xn[2], w1 = xn[3];
@@ -779,7 +794,8 @@ void info_hamil_2x2v(double t, const double *xn, double *fout, void *ctx)
   free(h_inv);
 }
 
-void test_2x2v(int poly_order, enum gkyl_basis_type b_type)
+void
+test_2x2v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = {pi / 4, pi / 4, -5.0, -5.0},
@@ -1008,7 +1024,8 @@ void test_2x2v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-void info_h_ij_inv_2x3v(double t, const double *xn, double *fout, void *ctx)
+void
+info_h_ij_inv_2x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   double q_r = xn[0], q_theta = xn[1];
@@ -1022,14 +1039,16 @@ void info_h_ij_inv_2x3v(double t, const double *xn, double *fout, void *ctx)
   fout[5] = 1.0 / pow((2.0 + q_r * cos(q_theta)), 2);
 }
 
-void info_det_h_2x3v(double t, const double *xn, double *fout, void *ctx)
+void
+info_det_h_2x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double q_r = xn[0], q_theta = xn[1];
   fout[0] = q_r * (2.0 + q_r * cos(q_theta));
 }
 
-void info_hamil_2x3v(double t, const double *xn, double *fout, void *ctx)
+void
+info_hamil_2x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double q_R = xn[0], q_theta = xn[1], p_R_dot = xn[2], p_theta_dot = xn[3], p_phi_dot = xn[4];
@@ -1042,7 +1061,8 @@ void info_hamil_2x3v(double t, const double *xn, double *fout, void *ctx)
   free(h_inv);
 }
 
-void test_2x3v(int poly_order, enum gkyl_basis_type b_type)
+void
+test_2x3v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = {0.5, 0.0, -5.0, -5.0, -5.0}, upper[] = {1.5, 2.0 * pi, 5.0, 5.0, 5.0};
@@ -1255,7 +1275,8 @@ void test_2x3v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-void info_h_ij_inv_3x3v(double t, const double *xn, double *fout, void *ctx)
+void
+info_h_ij_inv_3x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   double q_r = xn[0], q_theta = xn[1], q_phi = xn[2];
@@ -1269,14 +1290,16 @@ void info_h_ij_inv_3x3v(double t, const double *xn, double *fout, void *ctx)
   fout[5] = 1.0 / pow((2.0 + q_r * cos(q_theta)), 2);
 }
 
-void info_det_h_3x3v(double t, const double *xn, double *fout, void *ctx)
+void
+info_det_h_3x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double q_r = xn[0], q_theta = xn[1], q_phi = xn[2];
   fout[0] = q_r * (2.0 + q_r * cos(q_theta));
 }
 
-void info_hamil_3x3v(double t, const double *xn, double *fout, void *ctx)
+void
+info_hamil_3x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double q_R = xn[0], q_theta = xn[1], q_phi = xn[2], p_R_dot = xn[3], p_theta_dot = xn[4],
@@ -1290,7 +1313,8 @@ void info_hamil_3x3v(double t, const double *xn, double *fout, void *ctx)
   free(h_inv);
 }
 
-void test_3x3v(int poly_order, enum gkyl_basis_type b_type)
+void
+test_3x3v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = {0.5, 0.0, 0.0, -5.0, -5.0, -5.0},
@@ -1492,88 +1516,108 @@ void test_3x3v(int poly_order, enum gkyl_basis_type b_type)
 }
 
 // Check the 1x1v_p1/2 continuity
-void test_canonical_pb_1x1v_p1_continuity_tensor_ho()
+void
+test_canonical_pb_1x1v_p1_continuity_tensor_ho()
 {
   test_1x1v(1, GKYL_BASIS_MODAL_TENSOR);
 }
-void test_canonical_pb_1x1v_p1_continuity_ser_ho()
+void
+test_canonical_pb_1x1v_p1_continuity_ser_ho()
 {
   test_1x1v(1, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-void test_canonical_pb_1x1v_p2_continuity_tensor_ho()
+void
+test_canonical_pb_1x1v_p2_continuity_tensor_ho()
 {
   test_1x1v(2, GKYL_BASIS_MODAL_TENSOR);
 }
-void test_canonical_pb_1x1v_p2_continuity_ser_ho()
+void
+test_canonical_pb_1x1v_p2_continuity_ser_ho()
 {
   test_1x1v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 // Check the 1x2v_p1/2 continuity
-void test_canonical_pb_1x2v_p1_continuity_tensor_ho()
+void
+test_canonical_pb_1x2v_p1_continuity_tensor_ho()
 {
   test_1x2v(1, GKYL_BASIS_MODAL_TENSOR);
 }
-void test_canonical_pb_1x2v_p1_continuity_ser_ho()
+void
+test_canonical_pb_1x2v_p1_continuity_ser_ho()
 {
   test_1x2v(1, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-void test_canonical_pb_1x2v_p2_continuity_tensor_ho()
+void
+test_canonical_pb_1x2v_p2_continuity_tensor_ho()
 {
   test_1x2v(2, GKYL_BASIS_MODAL_TENSOR);
 }
-void test_canonical_pb_1x2v_p2_continuity_ser_ho()
+void
+test_canonical_pb_1x2v_p2_continuity_ser_ho()
 {
   test_1x2v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 // Check the 1x3v_p1/2 continuity
-void test_canonical_pb_1x3v_p1_continuity_tensor_ho()
+void
+test_canonical_pb_1x3v_p1_continuity_tensor_ho()
 {
   test_1x3v(1, GKYL_BASIS_MODAL_TENSOR);
 }
-void test_canonical_pb_1x3v_p1_continuity_ser_ho()
+void
+test_canonical_pb_1x3v_p1_continuity_ser_ho()
 {
   test_1x3v(1, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-void test_canonical_pb_1x3v_p2_continuity_tensor_ho()
+void
+test_canonical_pb_1x3v_p2_continuity_tensor_ho()
 {
   test_1x3v(2, GKYL_BASIS_MODAL_TENSOR);
 }
-void test_canonical_pb_1x3v_p2_continuity_ser_ho()
+void
+test_canonical_pb_1x3v_p2_continuity_ser_ho()
 {
   test_1x3v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 // Check the 2x2v_p1/2 continuity
-void test_canonical_pb_2x2v_p1_continuity_tensor_ho()
+void
+test_canonical_pb_2x2v_p1_continuity_tensor_ho()
 {
   test_2x2v(1, GKYL_BASIS_MODAL_TENSOR);
 }
-void test_canonical_pb_2x2v_p1_continuity_ser_ho()
+void
+test_canonical_pb_2x2v_p1_continuity_ser_ho()
 {
   test_2x2v(1, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-void test_canonical_pb_2x2v_p2_continuity_tensor_ho()
+void
+test_canonical_pb_2x2v_p2_continuity_tensor_ho()
 {
   test_2x2v(2, GKYL_BASIS_MODAL_TENSOR);
 }
-void test_canonical_pb_2x2v_p2_continuity_ser_ho()
+void
+test_canonical_pb_2x2v_p2_continuity_ser_ho()
 {
   test_2x2v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 // Check the 2x3v_p1/2 continuity
-void test_canonical_pb_2x3v_p1_continuity_tensor_ho()
+void
+test_canonical_pb_2x3v_p1_continuity_tensor_ho()
 {
   test_2x3v(1, GKYL_BASIS_MODAL_TENSOR);
 }
-void test_canonical_pb_2x3v_p1_continuity_ser_ho()
+void
+test_canonical_pb_2x3v_p1_continuity_ser_ho()
 {
   test_2x3v(1, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-void test_canonical_pb_2x3v_p2_continuity_ser_ho()
+void
+test_canonical_pb_2x3v_p2_continuity_ser_ho()
 {
   test_2x3v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 // Check the 3x3v p1 (tensor only)
-void test_canonical_pb_3x3v_p1_continuity_tensor_ho()
+void
+test_canonical_pb_3x3v_p1_continuity_tensor_ho()
 {
   test_3x3v(1, GKYL_BASIS_MODAL_TENSOR);
 }

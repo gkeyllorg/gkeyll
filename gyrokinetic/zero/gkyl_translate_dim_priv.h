@@ -7,7 +7,8 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-static void translate_dim_range_check_conf_deflate(
+static void
+translate_dim_range_check_conf_deflate(
   int dir, int cdim_do, int cdim_tar, int vdim, const struct gkyl_range *rng_do,
   const struct gkyl_range *rng_tar
 )
@@ -22,7 +23,8 @@ static void translate_dim_range_check_conf_deflate(
   }
 }
 
-static void translate_dim_range_check_conf_inflate(
+static void
+translate_dim_range_check_conf_inflate(
   int dir, int cdim_do, int cdim_tar, int vdim, const struct gkyl_range *rng_do,
   const struct gkyl_range *rng_tar
 )
@@ -35,7 +37,8 @@ static void translate_dim_range_check_conf_inflate(
   assert(rng_do->upper[cdim_do - 1] == rng_tar->upper[cdim_tar - 1]);
 }
 
-static void translate_dim_range_check_phase_deflate(
+static void
+translate_dim_range_check_phase_deflate(
   int dir, int cdim_do, int cdim_tar, int vdim, const struct gkyl_range *rng_do,
   const struct gkyl_range *rng_tar
 )
@@ -47,7 +50,8 @@ static void translate_dim_range_check_phase_deflate(
   };
 }
 
-static void translate_dim_range_check_phase_inflate(
+static void
+translate_dim_range_check_phase_inflate(
   int dir, int cdim_do, int cdim_tar, int vdim, const struct gkyl_range *rng_do,
   const struct gkyl_range *rng_tar
 )
@@ -71,38 +75,44 @@ typedef struct {
 
 // Serendipity  kernels.
 GKYL_CU_D static const trans_dim_kern_list_updown trans_dim_kern_list_ser[] = { // 1x
-  {.list =
-     {{NULL, NULL, NULL},
-      {NULL, NULL, NULL},
-      {NULL, NULL, NULL},
-      {translate_dim_1x_ser_p1_to_2x_p1, NULL, NULL},
-      {NULL, NULL, NULL},
-      {NULL, NULL, NULL},
-      {NULL, NULL, NULL},
-      {NULL, NULL, NULL},
-      {NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL, NULL},
+       {NULL, NULL, NULL},
+       {NULL, NULL, NULL},
+       {translate_dim_1x_ser_p1_to_2x_p1, NULL, NULL},
+       {NULL, NULL, NULL},
+       {NULL, NULL, NULL},
+       {NULL, NULL, NULL},
+       {NULL, NULL, NULL},
+       {NULL, NULL, NULL}},
+  },
   // 2x
-  {.list =
-     {{translate_dim_2x_ser_p1_to_1x_p1_dirx_lo, NULL, NULL},
-      {translate_dim_2x_ser_p1_to_1x_p1_dirx_mid, NULL, NULL},
-      {translate_dim_2x_ser_p1_to_1x_p1_dirx_up, NULL, NULL},
-      {translate_dim_2x_ser_p1_to_1x_p1_diry_lo, NULL, NULL},
-      {translate_dim_2x_ser_p1_to_1x_p1_diry_mid, NULL, NULL},
-      {translate_dim_2x_ser_p1_to_1x_p1_diry_up, NULL, NULL},
-      {translate_dim_2x_ser_p1_to_3x_p1, NULL, NULL},
-      {NULL, NULL, NULL},
-      {NULL, NULL, NULL}}},
+  {
+    .list =
+      {{translate_dim_2x_ser_p1_to_1x_p1_dirx_lo, NULL, NULL},
+       {translate_dim_2x_ser_p1_to_1x_p1_dirx_mid, NULL, NULL},
+       {translate_dim_2x_ser_p1_to_1x_p1_dirx_up, NULL, NULL},
+       {translate_dim_2x_ser_p1_to_1x_p1_diry_lo, NULL, NULL},
+       {translate_dim_2x_ser_p1_to_1x_p1_diry_mid, NULL, NULL},
+       {translate_dim_2x_ser_p1_to_1x_p1_diry_up, NULL, NULL},
+       {translate_dim_2x_ser_p1_to_3x_p1, NULL, NULL},
+       {NULL, NULL, NULL},
+       {NULL, NULL, NULL}},
+  },
   // 3x
-  {.list =
-     {{translate_dim_3x_ser_p1_to_2x_p1_dirx_lo, NULL, NULL},
-      {translate_dim_3x_ser_p1_to_2x_p1_dirx_mid, NULL, NULL},
-      {translate_dim_3x_ser_p1_to_2x_p1_dirx_up, NULL, NULL},
-      {translate_dim_3x_ser_p1_to_2x_p1_diry_lo, NULL, NULL},
-      {translate_dim_3x_ser_p1_to_2x_p1_diry_mid, NULL, NULL},
-      {translate_dim_3x_ser_p1_to_2x_p1_diry_up, NULL, NULL},
-      {translate_dim_3x_ser_p1_to_2x_p1_dirz_lo, NULL, NULL},
-      {translate_dim_3x_ser_p1_to_2x_p1_dirz_mid, NULL, NULL},
-      {translate_dim_3x_ser_p1_to_2x_p1_dirz_up, NULL, NULL}}}
+  {
+    .list =
+      {{translate_dim_3x_ser_p1_to_2x_p1_dirx_lo, NULL, NULL},
+       {translate_dim_3x_ser_p1_to_2x_p1_dirx_mid, NULL, NULL},
+       {translate_dim_3x_ser_p1_to_2x_p1_dirx_up, NULL, NULL},
+       {translate_dim_3x_ser_p1_to_2x_p1_diry_lo, NULL, NULL},
+       {translate_dim_3x_ser_p1_to_2x_p1_diry_mid, NULL, NULL},
+       {translate_dim_3x_ser_p1_to_2x_p1_diry_up, NULL, NULL},
+       {translate_dim_3x_ser_p1_to_2x_p1_dirz_lo, NULL, NULL},
+       {translate_dim_3x_ser_p1_to_2x_p1_dirz_mid, NULL, NULL},
+       {translate_dim_3x_ser_p1_to_2x_p1_dirz_up, NULL, NULL}},
+  }
 };
 
 // GkHybrid kernels.
@@ -120,7 +130,8 @@ struct gkyl_translate_dim_kernels {
   );
 };
 
-GKYL_CU_DH static void translate_dim_get_idx_do_gk(
+GKYL_CU_DH static void
+translate_dim_get_idx_do_gk(
   int cdim_tar, int vdim, const int *idx_tar, const struct gkyl_range *rng_do, int cdim_do,
   int *idx_do, int dir
 )
@@ -134,7 +145,8 @@ GKYL_CU_DH static void translate_dim_get_idx_do_gk(
   }
 }
 
-GKYL_CU_DH static void translate_dim_get_idx_do_conf_down(
+GKYL_CU_DH static void
+translate_dim_get_idx_do_conf_down(
   int cdim_tar, int vdim, const int *idx_tar, const struct gkyl_range *rng_do, int cdim_do,
   int *idx_do, int dir
 )
@@ -149,7 +161,8 @@ GKYL_CU_DH static void translate_dim_get_idx_do_conf_down(
   idx_do[dir] = rng_do->lower[dir];
 }
 
-GKYL_CU_DH static void translate_dim_get_idx_do_conf_up(
+GKYL_CU_DH static void
+translate_dim_get_idx_do_conf_up(
   int cdim_tar, int vdim, const int *idx_tar, const struct gkyl_range *rng_do, int cdim_do,
   int *idx_do, int dir
 )
@@ -189,7 +202,8 @@ void gkyl_translate_dim_advance_cu(
 );
 #endif
 
-GKYL_CU_D static void trans_dim_choose_kernel(
+GKYL_CU_D static void
+trans_dim_choose_kernel(
   struct gkyl_translate_dim_kernels *kernels, int cdim_do, struct gkyl_basis basis_do, int cdim_tar,
   struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge, bool use_gpu
 )
@@ -208,30 +222,31 @@ GKYL_CU_D static void trans_dim_choose_kernel(
   if (cdim_tar < cdim_do) {
     dir_idx = dir;
     switch (edge) {
-    case GKYL_LOWER_EDGE:
-      edge_idx = 0;
-      break;
-    case GKYL_NO_EDGE:
-      edge_idx = 1;
-      break;
-    case GKYL_UPPER_EDGE:
-      edge_idx = 2;
-      break;
+      case GKYL_LOWER_EDGE:
+        edge_idx = 0;
+        break;
+      case GKYL_NO_EDGE:
+        edge_idx = 1;
+        break;
+      case GKYL_UPPER_EDGE:
+        edge_idx = 2;
+        break;
     }
   }
 
   // Choose kernel that translates DG coefficients.
   switch (basis_type) {
-  case GKYL_BASIS_MODAL_GKHYBRID:
-    kernels->translate = trans_dim_kern_list_gkhyb[cdim_tar + cdim_do - 3].kernels[poly_order - 1];
-    break;
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    kernels->translate =
-      trans_dim_kern_list_ser[cdim_do - 1].list[dir_idx * 3 + edge_idx].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      kernels->translate =
+        trans_dim_kern_list_gkhyb[cdim_tar + cdim_do - 3].kernels[poly_order - 1];
+      break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kernels->translate =
+        trans_dim_kern_list_ser[cdim_do - 1].list[dir_idx * 3 + edge_idx].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
 
   // Choose the function that populates the donor index.

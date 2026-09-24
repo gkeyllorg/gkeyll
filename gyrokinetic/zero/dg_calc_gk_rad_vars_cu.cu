@@ -14,7 +14,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel(
+__global__ void
+gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel(
   struct gkyl_dg_calc_gk_rad_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
   double a, double alpha, double beta, double gamma, double v0, struct gkyl_array *vnu_surf,
   struct gkyl_array *vnu, struct gkyl_array *vsqnu_surf, struct gkyl_array *vsqnu
@@ -60,7 +61,8 @@ __global__ void gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel(
 }
 
 // Host-side wrapper for radiation drag coefficient calculation
-void gkyl_dg_calc_gk_rad_vars_nu_advance_cu(
+void
+gkyl_dg_calc_gk_rad_vars_nu_advance_cu(
   const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, double a, double alpha, double beta, double gamma,
   double v0, struct gkyl_array *vnu_surf, struct gkyl_array *vnu, struct gkyl_array *vsqnu_surf,
@@ -75,7 +77,8 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance_cu(
   );
 }
 
-__global__ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(
+__global__ void
+gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(
   struct gkyl_dg_calc_gk_rad_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
   const struct gkyl_gk_rad_drag *vnu_surf, const struct gkyl_gk_rad_drag *vnu,
   const struct gkyl_gk_rad_drag *vsqnu_surf, const struct gkyl_gk_rad_drag *vsqnu,
@@ -129,7 +132,8 @@ __global__ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(
 }
 
 // Host-side wrapper for sum_s n_{i_s} nu_s(v) calculation for a given input n_{i_s} and nu_s(v)
-void gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(
+void
+gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(
   const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_gk_rad_drag *vnu_surf,
   const struct gkyl_gk_rad_drag *vnu, const struct gkyl_gk_rad_drag *vsqnu_surf,
@@ -150,7 +154,8 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(
 
 // CUDA kernel to set device pointers to gyrokinetic radiation vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_calc_gk_rad_vars_set_cu_dev_ptrs(
+__global__ static void
+dg_calc_gk_rad_vars_set_cu_dev_ptrs(
   struct gkyl_dg_calc_gk_rad_vars *up, int cdim, int vdim, int poly_order
 )
 {
@@ -159,7 +164,8 @@ __global__ static void dg_calc_gk_rad_vars_set_cu_dev_ptrs(
   up->rad_nI_nu = choose_rad_gyrokinetic_nI_nu_kern(cdim, vdim, poly_order);
 }
 
-gkyl_dg_calc_gk_rad_vars *gkyl_dg_calc_gk_rad_vars_cu_dev_new(
+gkyl_dg_calc_gk_rad_vars *
+gkyl_dg_calc_gk_rad_vars_cu_dev_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, double charge, double mass,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map

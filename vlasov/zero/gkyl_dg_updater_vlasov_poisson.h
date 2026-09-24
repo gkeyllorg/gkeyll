@@ -69,8 +69,9 @@ void gkyl_dg_updater_vlasov_poisson_advance(
  * @param up Updater object.
  * @return timers.
  */
-struct gkyl_dg_updater_vlasov_tm
-gkyl_dg_updater_vlasov_poisson_get_tm(const gkyl_dg_updater_vlasov *up);
+struct gkyl_dg_updater_vlasov_tm gkyl_dg_updater_vlasov_poisson_get_tm(
+  const gkyl_dg_updater_vlasov *up
+);
 
 /**
  * Delete updater.

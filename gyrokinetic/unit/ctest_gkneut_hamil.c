@@ -10,29 +10,34 @@
 #include <stdio.h>
 
 // Function to allocate a gkyl array, zero-initialized, on CPU or GPU
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   return on_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
                   gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-void eval_gxx(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_gxx(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
 }
-void eval_gyy(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_gyy(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2.0;
 }
-void eval_gzz(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_gzz(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 3.0;
 }
 
-void test_hamil(int cdim, bool use_gpu)
+void
+test_hamil(int cdim, bool use_gpu)
 {
   // construct phase grid
   // construct phase basis
@@ -181,13 +186,15 @@ void test_hamil(int cdim, bool use_gpu)
   gkyl_dg_calc_gk_neut_hamil_release(hamil_calc);
 }
 
-void test_gkneut_hamil_3x_ho()
+void
+test_gkneut_hamil_3x_ho()
 {
   test_hamil(3, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_gkneut_hamil_3x_dev()
+void
+test_gkneut_hamil_3x_dev()
 {
   test_hamil(3, true);
 }

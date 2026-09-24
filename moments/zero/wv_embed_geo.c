@@ -3,7 +3,8 @@
 #include <gkyl_fv_proj.h>
 #include <gkyl_wv_embed_geo.h>
 
-struct gkyl_wv_embed_geo *gkyl_wv_embed_geo_new(
+struct gkyl_wv_embed_geo *
+gkyl_wv_embed_geo_new(
   enum gkyl_embed_type type, void *mask_func, wv_embed_func_t embed_func, void *ctx
 )
 {
@@ -17,7 +18,8 @@ struct gkyl_wv_embed_geo *gkyl_wv_embed_geo_new(
   return geo;
 }
 
-void gkyl_wv_embed_geo_new_mask(
+void
+gkyl_wv_embed_geo_new_mask(
   struct gkyl_wv_embed_geo *geo, struct gkyl_rect_grid *grid, struct gkyl_range *rng,
   struct gkyl_array *mask
 )
@@ -27,7 +29,8 @@ void gkyl_wv_embed_geo_new_mask(
   gkyl_fv_proj_release(proj);
 }
 
-void gkyl_wv_embed_geo_release(gkyl_wv_embed_geo *geo)
+void
+gkyl_wv_embed_geo_release(gkyl_wv_embed_geo *geo)
 {
   gkyl_free(geo);
 }

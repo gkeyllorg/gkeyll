@@ -11,12 +11,14 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_position_map.h>
 
-static inline double SQ(double x)
+static inline double
+SQ(double x)
 {
   return x * x;
 };
 
-static void test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord)
+static void
+test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord)
 {
   double clower[] = {2.0e-6, 0.0, -2.0};
   double cupper[] = {3.0e-3, 2 * M_PI, 2.0};
@@ -48,8 +50,8 @@ static void test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_co
   struct gkyl_position_map *gpm = gkyl_position_map_null_new();
 
   // create mirror geometry
-  struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp
-  ){.comp_grid = &comp_grid,
+  struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp){
+    .comp_grid = &comp_grid,
     .nrange = node_range,
     .local = range,
     .global = range,
@@ -66,7 +68,8 @@ static void test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_co
     .include_axis = include_axis,
     .write_psi_cubic = false,
 
-    .position_map = gpm});
+    .position_map = gpm,
+  });
 
   TEST_CHECK(include_axis == gkyl_mirror_grid_gen_is_include_axis(geom));
   TEST_CHECK(fl_coord == gkyl_mirror_grid_gen_fl_coord(geom));
@@ -148,27 +151,32 @@ cleanup:
   return;
 }
 
-static void test_mirror_grid_gen_wham_no_axis_psi_ho(void)
+static void
+test_mirror_grid_gen_wham_no_axis_psi_ho(void)
 {
   test_wham(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
-static void test_mirror_grid_gen_wham_with_axis_psi_ho(void)
+static void
+test_mirror_grid_gen_wham_with_axis_psi_ho(void)
 {
   test_wham(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
-static void test_mirror_grid_gen_wham_no_axis_sqrt_psi_ho(void)
+static void
+test_mirror_grid_gen_wham_no_axis_sqrt_psi_ho(void)
 {
   test_wham(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
-static void test_mirror_grid_gen_wham_with_axis_sqrt_psi_ho(void)
+static void
+test_mirror_grid_gen_wham_with_axis_sqrt_psi_ho(void)
 {
   test_wham(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
-static void test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord)
+static void
+test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord)
 {
   double clower[] = {1.0e-3, 0.0, -0.75};
   double cupper[] = {0.5, 2 * M_PI, 0.75};
@@ -210,8 +218,8 @@ static void test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_li
   struct gkyl_position_map *gpm = gkyl_position_map_null_new();
 
   // create mirror geometry
-  struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp
-  ){.comp_grid = &comp_grid,
+  struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp){
+    .comp_grid = &comp_grid,
     .nrange = node_range,
     .local = range,
     .global = range,
@@ -229,7 +237,8 @@ static void test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_li
     .write_psi_cubic = false,
     .psi_cubic_fname = "ctest_mirror_grid_gen_quad.gkyl",
 
-    .position_map = gpm});
+    .position_map = gpm,
+  });
 
   TEST_CHECK(include_axis == gkyl_mirror_grid_gen_is_include_axis(geom));
   TEST_CHECK(fl_coord == gkyl_mirror_grid_gen_fl_coord(geom));
@@ -332,22 +341,26 @@ cleanup:
   return;
 }
 
-static void test_mirror_grid_gen_quad_geom_no_axis_psi_ho(void)
+static void
+test_mirror_grid_gen_quad_geom_no_axis_psi_ho(void)
 {
   test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
-static void test_mirror_grid_gen_quad_geom_with_axis_psi_ho(void)
+static void
+test_mirror_grid_gen_quad_geom_with_axis_psi_ho(void)
 {
   test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
 }
 
-static void test_mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho(void)
+static void
+test_mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho(void)
 {
   test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
-static void test_mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho(void)
+static void
+test_mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho(void)
 {
   test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }

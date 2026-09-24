@@ -9,7 +9,8 @@
 #include <gkyl_util.h>
 #include <time.h>
 
-void test_reduce_dg(bool use_gpu)
+void
+test_reduce_dg(bool use_gpu)
 {
   int poly_order = 1;
   int ncomp = 3;
@@ -170,7 +171,8 @@ void test_reduce_dg(bool use_gpu)
   }
 }
 
-void test_reduce_dg_range(bool use_gpu)
+void
+test_reduce_dg_range(bool use_gpu)
 {
   int poly_order = 1;
   int ncomp = 3;
@@ -329,12 +331,14 @@ void test_reduce_dg_range(bool use_gpu)
   }
 }
 
-void test_reduce_dg_ho()
+void
+test_reduce_dg_ho()
 {
   test_reduce_dg(false);
 }
 
-void test_reduce_dg_range_ho()
+void
+test_reduce_dg_range_ho()
 {
   test_reduce_dg_range(false);
 }
@@ -342,12 +346,14 @@ void test_reduce_dg_range_ho()
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_reduce_dg_dev()
+void
+test_reduce_dg_dev()
 {
   test_reduce_dg(true);
 }
 
-void test_reduce_dg_range_dev()
+void
+test_reduce_dg_range_dev()
 {
   test_reduce_dg_range(true);
 }

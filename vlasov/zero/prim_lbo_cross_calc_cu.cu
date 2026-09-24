@@ -11,7 +11,8 @@ extern "C" {
 #include <stdio.h>
 }
 
-__global__ static void gkyl_prim_lbo_cross_calc_set_cu_ker(
+__global__ static void
+gkyl_prim_lbo_cross_calc_set_cu_ker(
   gkyl_prim_lbo_cross_calc *calc, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   const struct gkyl_range conf_rng, const struct gkyl_array *alpha_E, double self_m,
   const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms, double other_m,
@@ -54,7 +55,8 @@ __global__ static void gkyl_prim_lbo_cross_calc_set_cu_ker(
   }
 }
 
-__global__ static void gkyl_prim_lbo_copy_sol_cu_ker(
+__global__ static void
+gkyl_prim_lbo_copy_sol_cu_ker(
   struct gkyl_nmat *xs, const struct gkyl_range conf_rng, int nc, int udim,
   struct gkyl_array *prim_moms_out
 )
@@ -79,7 +81,8 @@ __global__ static void gkyl_prim_lbo_copy_sol_cu_ker(
   }
 }
 
-void gkyl_prim_lbo_cross_calc_advance_cu(
+void
+gkyl_prim_lbo_cross_calc_advance_cu(
   struct gkyl_prim_lbo_cross_calc *calc, const struct gkyl_range *conf_rng,
   const struct gkyl_array *alpha_E, double self_m, const struct gkyl_array *self_moms,
   const struct gkyl_array *self_prim_moms, double other_m, const struct gkyl_array *other_moms,
@@ -111,7 +114,8 @@ void gkyl_prim_lbo_cross_calc_advance_cu(
   );
 }
 
-gkyl_prim_lbo_cross_calc *gkyl_prim_lbo_cross_calc_cu_dev_new(
+gkyl_prim_lbo_cross_calc *
+gkyl_prim_lbo_cross_calc_cu_dev_new(
   const struct gkyl_rect_grid *grid, struct gkyl_prim_lbo_type *prim
 )
 {

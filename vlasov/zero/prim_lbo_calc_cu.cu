@@ -10,7 +10,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void gkyl_prim_lbo_calc_set_cu_ker(
+__global__ static void
+gkyl_prim_lbo_calc_set_cu_ker(
   gkyl_prim_lbo_calc *calc, struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   const struct gkyl_array *nu
@@ -44,7 +45,8 @@ __global__ static void gkyl_prim_lbo_calc_set_cu_ker(
   }
 }
 
-__global__ static void gkyl_prim_lbo_copy_sol_cu_ker(
+__global__ static void
+gkyl_prim_lbo_copy_sol_cu_ker(
   struct gkyl_nmat *xs, struct gkyl_range conf_rng, int nc, int udim,
   struct gkyl_array *prim_moms_out
 )
@@ -69,7 +71,8 @@ __global__ static void gkyl_prim_lbo_copy_sol_cu_ker(
   }
 }
 
-void gkyl_prim_lbo_calc_advance_cu(
+void
+gkyl_prim_lbo_calc_advance_cu(
   struct gkyl_prim_lbo_calc *calc, const struct gkyl_range *conf_rng, const struct gkyl_array *moms,
   const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu,
   struct gkyl_array *prim_moms_out

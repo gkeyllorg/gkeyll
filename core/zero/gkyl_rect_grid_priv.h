@@ -10,7 +10,8 @@
  * @params lower_boundaries: lower sides of given cell (output)
  * @params upper_boundaries: upper sides of given cell (output)
  */
-GKYL_CU_DH void in_dir(
+GKYL_CU_DH void
+in_dir(
   const struct gkyl_rect_grid *grid, int *cell_in, const int *dim_trans, const int *known_index,
   double lower_boundaries[], double upper_boundaries[]
 )
@@ -35,7 +36,8 @@ GKYL_CU_DH void in_dir(
  * @params known_index: Any already known indices
  * @returns bool: true if point is in given cell
  */
-GKYL_CU_DH bool is_in_cell(
+GKYL_CU_DH bool
+is_in_cell(
   const struct gkyl_rect_grid *grid, const double *point, int *cell_in, const int *dim_trans,
   const int *known_index
 )

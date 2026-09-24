@@ -12,7 +12,8 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_vlasov_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_vlasov_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *field, const struct gkyl_array *cot_vec,
   const struct gkyl_array *alpha_surf, const struct gkyl_array *sgn_alpha_surf,
   const struct gkyl_array *const_sgn_alpha
@@ -27,9 +28,8 @@ __global__ static void gkyl_vlasov_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_vlasov_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin
-)
+void
+gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
   gkyl_vlasov_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.field ? auxin.field->on_dev : 0, auxin.cot_vec ? auxin.cot_vec->on_dev : 0,
@@ -41,7 +41,8 @@ void gkyl_vlasov_set_auxfields_cu(
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_vlasov_set_cu_dev_ptrs(
+__global__ static void
+dg_vlasov_set_cu_dev_ptrs(
   struct dg_vlasov *vlasov, enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim,
   int poly_order, enum gkyl_model_id model_id, enum gkyl_field_id field_id
 )
@@ -72,53 +73,53 @@ __global__ static void dg_vlasov_set_cu_dev_ptrs(
     *accel_boundary_surf_vy_kernels, *accel_boundary_surf_vz_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    stream_vol_kernels = ser_stream_vol_kernels;
-    vol_kernels = ser_vol_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      stream_vol_kernels = ser_stream_vol_kernels;
+      vol_kernels = ser_vol_kernels;
 
-    stream_surf_x_kernels = ser_stream_surf_x_kernels;
-    stream_surf_y_kernels = ser_stream_surf_y_kernels;
-    stream_surf_z_kernels = ser_stream_surf_z_kernels;
+      stream_surf_x_kernels = ser_stream_surf_x_kernels;
+      stream_surf_y_kernels = ser_stream_surf_y_kernels;
+      stream_surf_z_kernels = ser_stream_surf_z_kernels;
 
-    accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
-    accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
-    accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
+      accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
+      accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
+      accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
 
-    stream_boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
-    stream_boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
-    stream_boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
+      stream_boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
+      stream_boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
+      stream_boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
 
-    accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
-    accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
-    accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
+      accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
+      accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
+      accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    stream_vol_kernels = tensor_stream_vol_kernels;
-    vol_kernels = tensor_vol_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      stream_vol_kernels = tensor_stream_vol_kernels;
+      vol_kernels = tensor_vol_kernels;
 
-    stream_surf_x_kernels = tensor_stream_surf_x_kernels;
-    stream_surf_y_kernels = tensor_stream_surf_y_kernels;
-    stream_surf_z_kernels = tensor_stream_surf_z_kernels;
+      stream_surf_x_kernels = tensor_stream_surf_x_kernels;
+      stream_surf_y_kernels = tensor_stream_surf_y_kernels;
+      stream_surf_z_kernels = tensor_stream_surf_z_kernels;
 
-    accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
-    accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
-    accel_surf_vz_kernels = tensor_accel_surf_vz_kernels;
+      accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
+      accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
+      accel_surf_vz_kernels = tensor_accel_surf_vz_kernels;
 
-    stream_boundary_surf_x_kernels = tensor_stream_boundary_surf_x_kernels;
-    stream_boundary_surf_y_kernels = tensor_stream_boundary_surf_y_kernels;
-    stream_boundary_surf_z_kernels = tensor_stream_boundary_surf_z_kernels;
+      stream_boundary_surf_x_kernels = tensor_stream_boundary_surf_x_kernels;
+      stream_boundary_surf_y_kernels = tensor_stream_boundary_surf_y_kernels;
+      stream_boundary_surf_z_kernels = tensor_stream_boundary_surf_z_kernels;
 
-    accel_boundary_surf_vx_kernels = tensor_accel_boundary_surf_vx_kernels;
-    accel_boundary_surf_vy_kernels = tensor_accel_boundary_surf_vy_kernels;
-    accel_boundary_surf_vz_kernels = tensor_accel_boundary_surf_vz_kernels;
+      accel_boundary_surf_vx_kernels = tensor_accel_boundary_surf_vx_kernels;
+      accel_boundary_surf_vy_kernels = tensor_accel_boundary_surf_vy_kernels;
+      accel_boundary_surf_vz_kernels = tensor_accel_boundary_surf_vz_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   if (field_id == GKYL_FIELD_NULL) {
     vlasov->eqn.vol_term = stream_vol_kernels[cv_index].kernels[poly_order];
@@ -159,7 +160,8 @@ __global__ static void dg_vlasov_set_cu_dev_ptrs(
   }
 }
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_vlasov_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   enum gkyl_model_id model_id, enum gkyl_field_id field_id

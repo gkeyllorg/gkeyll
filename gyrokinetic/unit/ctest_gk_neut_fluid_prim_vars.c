@@ -60,7 +60,8 @@ struct setup {
   double cell_vol;
 };
 
-static void make_setup(struct setup *s, int poly_order)
+static void
+make_setup(struct setup *s, int poly_order)
 {
   double lower[] = {0.0}, upper[] = {2.0};
   int cells[] = {4};
@@ -75,7 +76,8 @@ static void make_setup(struct setup *s, int poly_order)
 // Read the integrated (cell-integral) scalar from component c of out, at the
 // first cell of the local range, and divide out the cell volume to recover the
 // pointwise primitive-variable value.
-static double read_val(struct gkyl_array *out, struct gkyl_range *range, int c, double cell_vol)
+static double
+read_val(struct gkyl_array *out, struct gkyl_range *range, int c, double cell_vol)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
@@ -85,7 +87,8 @@ static double read_val(struct gkyl_array *out, struct gkyl_range *range, int c, 
   return d[c] / cell_vol;
 }
 
-void test_prim_vars_udrift_pressure_temp()
+void
+test_prim_vars_udrift_pressure_temp()
 {
   struct setup s;
   make_setup(&s, 1);
@@ -166,7 +169,8 @@ void test_prim_vars_udrift_pressure_temp()
   gkyl_array_release(m);
 }
 
-void test_prim_vars_combined()
+void
+test_prim_vars_combined()
 {
   struct setup s;
   make_setup(&s, 1);

@@ -25,7 +25,8 @@ gkyl_nodal_ops_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid 
   return up;
 }
 
-void gkyl_nodal_ops_n2m_corners(
+void
+gkyl_nodal_ops_n2m_corners(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, const struct gkyl_array *nodal_fld,
@@ -88,7 +89,8 @@ void gkyl_nodal_ops_n2m_corners(
   }
 }
 
-void gkyl_nodal_ops_n2m_interior(
+void
+gkyl_nodal_ops_n2m_interior(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, const struct gkyl_array *nodal_fld,
@@ -144,7 +146,8 @@ void gkyl_nodal_ops_n2m_interior(
   }
 }
 
-void gkyl_nodal_ops_n2m_surface_1x(
+void
+gkyl_nodal_ops_n2m_surface_1x(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_rect_grid *grid,
   const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp,
   const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld, int dir
@@ -192,7 +195,8 @@ void gkyl_nodal_ops_n2m_surface_1x(
   }
 }
 
-void gkyl_nodal_ops_n2m_surface(
+void
+gkyl_nodal_ops_n2m_surface(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, const struct gkyl_array *nodal_fld,
@@ -270,7 +274,8 @@ void gkyl_nodal_ops_n2m_surface(
   }
 }
 
-void gkyl_nodal_ops_m2n_surface_1x(
+void
+gkyl_nodal_ops_m2n_surface_1x(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_rect_grid *grid,
   const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp,
   struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld, int dir
@@ -318,7 +323,8 @@ void gkyl_nodal_ops_m2n_surface_1x(
   }
 }
 
-void gkyl_nodal_ops_m2n_surface(
+void
+gkyl_nodal_ops_m2n_surface(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, struct gkyl_array *nodal_fld,
@@ -396,7 +402,8 @@ void gkyl_nodal_ops_m2n_surface(
   }
 }
 
-void gkyl_nodal_ops_m2n_corners_p2(
+void
+gkyl_nodal_ops_m2n_corners_p2(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, struct gkyl_array *nodal_fld,
@@ -441,7 +448,8 @@ void gkyl_nodal_ops_m2n_corners_p2(
   gkyl_array_release(nodes);
 }
 
-void gkyl_nodal_ops_m2n_corners(
+void
+gkyl_nodal_ops_m2n_corners(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, struct gkyl_array *nodal_fld,
@@ -495,7 +503,8 @@ void gkyl_nodal_ops_m2n_corners(
   }
 }
 
-void gkyl_nodal_ops_m2n_interior(
+void
+gkyl_nodal_ops_m2n_interior(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, struct gkyl_array *nodal_fld,
@@ -551,7 +560,8 @@ void gkyl_nodal_ops_m2n_interior(
   }
 }
 
-void gkyl_nodal_ops_m2n_deflated(
+void
+gkyl_nodal_ops_m2n_deflated(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *deflated_cbasis,
   const struct gkyl_rect_grid *deflated_grid, const struct gkyl_range *nrange,
   const struct gkyl_range *deflated_nrange, const struct gkyl_range *deflated_update_range,
@@ -595,7 +605,8 @@ void gkyl_nodal_ops_m2n_deflated(
   }
 }
 
-void gkyl_nodal_ops_n2m(
+void
+gkyl_nodal_ops_n2m(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, const struct gkyl_array *nodal_fld,
@@ -613,7 +624,8 @@ void gkyl_nodal_ops_n2m(
   }
 }
 
-void gkyl_nodal_ops_m2n(
+void
+gkyl_nodal_ops_m2n(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, struct gkyl_array *nodal_fld,
@@ -631,7 +643,8 @@ void gkyl_nodal_ops_m2n(
   }
 }
 
-void gkyl_nodal_ops_release(struct gkyl_nodal_ops *up)
+void
+gkyl_nodal_ops_release(struct gkyl_nodal_ops *up)
 {
   gkyl_array_release(up->nodes);
   gkyl_free(up);

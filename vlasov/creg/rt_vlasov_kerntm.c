@@ -8,12 +8,14 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
 
-void evalDistFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalDistFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0, fout[2] = 0.0;
@@ -31,53 +33,56 @@ struct kerntm_inp {
   bool use_gpu;
 };
 
-struct kerntm_inp get_inp(int argc, char **argv)
+struct kerntm_inp
+get_inp(int argc, char **argv)
 {
   int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
   bool use_gpu = false;
   while ((c = getopt(argc, argv, "+hgc:v:p:n:")) != -1) {
     switch (c) {
-    case 'h':
-      printf("Usage: app_vlasov_kerntm -c CDIM -v VDIM -p POLYORDER -n NLOOP -g\n");
-      exit(-1);
-      break;
+      case 'h':
+        printf("Usage: app_vlasov_kerntm -c CDIM -v VDIM -p POLYORDER -n NLOOP -g\n");
+        exit(-1);
+        break;
 
-    case 'g':
-      use_gpu = true;
-      break;
+      case 'g':
+        use_gpu = true;
+        break;
 
-    case 'c':
-      cdim = atoi(optarg);
-      break;
+      case 'c':
+        cdim = atoi(optarg);
+        break;
 
-    case 'v':
-      vdim = atoi(optarg);
-      break;
+      case 'v':
+        vdim = atoi(optarg);
+        break;
 
-    case 'p':
-      poly_order = atoi(optarg);
-      break;
+      case 'p':
+        poly_order = atoi(optarg);
+        break;
 
-    case 'n':
-      nloop = atoi(optarg);
-      break;
+      case 'n':
+        nloop = atoi(optarg);
+        break;
 
-    case '?':
-      break;
+      case '?':
+        break;
     }
   }
 
-  return (struct kerntm_inp
-  ){.cdim = cdim,
+  return (struct kerntm_inp){
+    .cdim = cdim,
     .vdim = vdim,
     .poly_order = poly_order,
     .ccells = {8, 8, 8},
     .vcells = {16, 16, 16},
     .nloop = nloop,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu,
+  };
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct kerntm_inp inp = get_inp(argc, argv);
 
@@ -112,7 +117,7 @@ int main(int argc, char **argv)
     .upper = {6.0, 6.0, 6.0},
     .cells = {inp.vcells[0], inp.vcells[1], inp.vcells[2]},
     .num_init = 1,
-    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFunc, .ctx_func = 0}
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFunc, .ctx_func = 0},
   };
 
   // field
@@ -133,7 +138,7 @@ int main(int argc, char **argv)
 
     .num_species = 1,
     .species = {elc},
-    .field = field
+    .field = field,
   };
 
   // create app object
