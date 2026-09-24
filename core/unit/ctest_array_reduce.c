@@ -27,11 +27,13 @@ test_reduce_ho()
     }
   }
 
-  double amin[ncomp], amax[ncomp];
+  double amin[ncomp], amax[ncomp], asum[ncomp];
   gkyl_array_reduce(&amin[0], arr, GKYL_MIN);
   gkyl_array_reduce(&amax[0], arr, GKYL_MAX);
+  gkyl_array_reduce(asum, arr, GKYL_SUM);
 
   for (size_t c = 0; c < ncomp; ++c) {
+    TEST_CHECK(gkyl_compare(asum[c], 0.25 * ncells * (ncells - 1) + 0.1 * c * ncells, 1e-14));
     TEST_CHECK(amin[c] == 0.1 * c);
     TEST_CHECK(amax[c] == 0.5 * (ncells - 1) + 0.1 * c);
   }
@@ -110,12 +112,18 @@ test_sum_reduce_range_ho()
 void
 test_sum_abs_reduce_range_ho()
 {
-  int shape[] = {2, 3};
-  struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, 2, shape);
+  int shape[] = {19, 37};
+  struct gkyl_range parent, range;
+  gkyl_range_init_from_shape(&parent, 2, shape);
+  int lower[] = {1, 1}, upper[] = {17, 35};
+  gkyl_sub_range_init(&range, &parent, lower, upper);
 
-  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, range.volume);
-  for (size_t i = 0; i < arr->size; ++i) {
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, parent.volume);
+  gkyl_array_clear(arr, 1e6); // Ghost cells must not enter the reduction.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
     double *d = gkyl_array_fetch(arr, i);
     d[0] = i % 2 == 0 ? 0.5 : -0.5;
     d[1] = i % 2 == 0 ? -1.5 : 1.5;
@@ -136,13 +144,19 @@ test_sum_abs_reduce_range_ho()
 void
 test_sum_abs_reduce_range_dev()
 {
-  int shape[] = {2, 3};
-  struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, 2, shape);
+  int shape[] = {19, 37};
+  struct gkyl_range parent, range;
+  gkyl_range_init_from_shape(&parent, 2, shape);
+  int lower[] = {1, 1}, upper[] = {17, 35};
+  gkyl_sub_range_init(&range, &parent, lower, upper);
 
-  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, range.volume);
-  struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2, range.volume);
-  for (size_t i = 0; i < arr->size; ++i) {
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, parent.volume);
+  struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2, parent.volume);
+  gkyl_array_clear(arr, 1e6); // Ghost cells must not enter the reduction.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
     double *d = gkyl_array_fetch(arr, i);
     d[0] = i % 2 == 0 ? 0.5 : -0.5;
     d[1] = i % 2 == 0 ? -1.5 : 1.5;

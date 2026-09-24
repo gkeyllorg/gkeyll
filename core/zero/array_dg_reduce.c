@@ -70,12 +70,11 @@ gkyl_array_dg_reducec(
           out[0] += arr_nodal[k];
         }
       }
+      break;
+    default:
+      assert(false);
+      break;
   }
-  break;
-  default:
-    assert(false);
-    break;
-}
 }
 
 void
@@ -151,10 +150,9 @@ gkyl_array_dg_reducec_range(
           out[0] += arr_nodal[k];
         }
       }
+      break;
+    default:
+      assert(false);
+      break;
   }
-  break;
-  default:
-    assert(false);
-    break;
-}
 }

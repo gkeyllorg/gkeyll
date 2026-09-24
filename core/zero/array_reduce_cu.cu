@@ -393,6 +393,8 @@ arraySumAbs_range_blockRedAtomic_cub(
     if (threadIdx.x == 0) {
       atomicAdd(&out[k], bResult);
     }
+    // All threads must finish using temp before the next component reduction.
+    __syncthreads();
   }
 }
 

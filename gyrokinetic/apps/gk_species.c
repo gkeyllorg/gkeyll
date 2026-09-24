@@ -566,9 +566,10 @@ gk_species_write_one_fdot_mom(
                                               gks->info.integrated_diag_moments[0];
   const char *mom_name = gkyl_distribution_moments_strs[mom_type];
 
+  struct gkyl_msgpack_map_elem io_meta_conf[gks->io_meta_conf_len];
+  memcpy(io_meta_conf, gks->io_meta_conf, sizeof io_meta_conf);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, io_meta_conf, "poly_order", 0);
   struct gkyl_msgpack_map_elem io_meta_fdot_mom[] = {
-    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
     {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description}
   };
   int io_meta_len[] = {
@@ -576,7 +577,7 @@ gk_species_write_one_fdot_mom(
     sizeof(io_meta_fdot_mom) / sizeof(io_meta_fdot_mom[0])
   };
   const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_conf, app->gk_geom->io_meta_basic, io_meta_fdot_mom
+    io_meta_conf, app->gk_geom->io_meta_basic, io_meta_fdot_mom
   };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
@@ -601,9 +602,16 @@ gk_species_write_fdot_mom_disabled(
 }
 
 static void
-gk_species_copy_fdot_mom_to_host(struct gk_species *gks)
+gk_species_copy_fdot_mom_to_host(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
+  // Integrated moment kernels return cell integrals. Convert to the orthonormal
+  // p0 coefficient of the cell average of the Jacobian-weighted moment.
+  double scale = 1.0;
+  for (int dir = 0; dir < app->cdim; ++dir) {
+    scale *= sqrt(2.0) / app->grid.dx[dir];
+  }
   gkyl_array_copy(gks->integ_moms.marr_host, gks->fdot_mom_new);
+  gkyl_array_scale(gks->integ_moms.marr_host, scale);
 }
 
 static void
@@ -625,9 +633,10 @@ gk_species_write_fdot_mom_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
-  gk_species_copy_fdot_mom_to_host(gks);
+  gk_species_copy_fdot_mom_to_host(app, gks);
   gk_species_write_one_fdot_mom(
-    app, gks, tm, frame, "fdot", "Configuration-space moments of (f_new-f_old)/dt."
+    app, gks, tm, frame, "fdot",
+    "Cell averages of Jacobian-weighted moments of (f_new-f_old)/dt (p0 DG coefficients)."
   );
 }
 
@@ -636,11 +645,11 @@ gk_species_write_fdot_abs_mom_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
-  gk_species_copy_fdot_mom_to_host(gks);
+  gk_species_copy_fdot_mom_to_host(app, gks);
   gk_species_abs_fdot_mom_host(app, gks);
   gk_species_write_one_fdot_mom(
     app, gks, tm, frame, "fdot_abs",
-    "Absolute value of the configuration-space moments of (f_new-f_old)/dt."
+    "Absolute cell averages of Jacobian-weighted moments of (f_new-f_old)/dt (p0 DG coefficients)."
   );
 }
 
@@ -649,14 +658,15 @@ gk_species_write_fdot_and_abs_mom_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
-  gk_species_copy_fdot_mom_to_host(gks);
+  gk_species_copy_fdot_mom_to_host(app, gks);
   gk_species_write_one_fdot_mom(
-    app, gks, tm, frame, "fdot", "Configuration-space moments of (f_new-f_old)/dt."
+    app, gks, tm, frame, "fdot",
+    "Cell averages of Jacobian-weighted moments of (f_new-f_old)/dt (p0 DG coefficients)."
   );
   gk_species_abs_fdot_mom_host(app, gks);
   gk_species_write_one_fdot_mom(
     app, gks, tm, frame, "fdot_abs",
-    "Absolute value of the configuration-space moments of (f_new-f_old)/dt."
+    "Absolute cell averages of Jacobian-weighted moments of (f_new-f_old)/dt (p0 DG coefficients)."
   );
 }
 

@@ -97,13 +97,18 @@ struct gkyl_phase_diagnostics_inp {
 };
 
 // Time-rate diagnostics for a gyrokinetic distribution function.
+// Fdot writes the stage-1 RHS on the next update after a phase-space frame is queued;
+// a final frame without a subsequent update has no Fdot output.
+// Moment diagnostics use completed-step finite differences. Spatial outputs are
+// p0 DG representations of cell-averaged, Jacobian-weighted moments; absolute
+// diagnostics take the absolute value of each cell integral before summation.
 enum gkyl_gyrokinetic_time_rate_diagnostic {
-  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT = 0, // Phase-space (f_new-f_old)/dt.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT = 0, // Phase-space stage-1 RHS.
   GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS, // Volume-integrated moments of fdot.
   GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS, // Volume integral of the absolute fdot moments.
   GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_MOMENTS, // Configuration-space moments of fdot.
   GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_MOMENTS, // Absolute value of the configuration-space fdot moments.
-  GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM // Sentinal value. Not a diagnostic. Index for total number of time-rate diagnostics.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM // Sentinel value. Not a diagnostic. Index for total number of time-rate diagnostics.
 };
 
 // Parameters for collisionless terms.

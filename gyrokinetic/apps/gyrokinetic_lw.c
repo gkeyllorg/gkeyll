@@ -419,9 +419,16 @@ gyrokinetic_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "timeRateDiagnostics")
   {
     int num_time_rate_diagnostics = glua_objlen(L);
+    if (num_time_rate_diagnostics > GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM) {
+      return luaL_error(L, "Too many timeRateDiagnostics entries");
+    }
 
     for (int i = 0; i < num_time_rate_diagnostics; i++) {
-      gk_species.time_rate_diagnostics[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      int diag = glua_tbl_iget_integer(L, i + 1, -1);
+      if (diag < 0 || diag >= GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM) {
+        return luaL_error(L, "Invalid timeRateDiagnostics entry");
+      }
+      gk_species.time_rate_diagnostics[i] = diag;
     }
 
     gk_species.num_time_rate_diagnostics = num_time_rate_diagnostics;
