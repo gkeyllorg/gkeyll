@@ -69,7 +69,8 @@ static const char *gkyl_distribution_moments_descriptions[] = {
   "Number density, drift velocity, parallel and perpendicular thermal speed squared.",
   "Number density, drift velocity, and thermal speed squared.",
   "Number density, momentum density divided by mass, and kinetic energy density times 2/mass.",
-  "Number density, momentum density divided by mass, and parallel and perpendicular kinetic energy density times 2/mass.",
+  "Number density, momentum density divided by mass, and parallel and perpendicular kinetic energy "
+  "density times 2/mass.",
   "Number density, momentum density, and Hamiltonian energy density.",
   "Momentum density (divided by mass) from the velocity gradient of the Hamiltonian.",
   "Hamiltonian energy density (for neutrals).",

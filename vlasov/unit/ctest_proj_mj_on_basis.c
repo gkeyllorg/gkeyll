@@ -211,7 +211,7 @@ test_1x1v_no_drift(int poly_order)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x1v_p%d_no_drift.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0);
@@ -228,7 +228,7 @@ test_1x1v_no_drift(int poly_order)
 }
 
 void
-test_1x1v_no_drift_p2()
+test_proj_mj_on_basis_1x1v_no_drift_p2_ho()
 {
   test_1x1v_no_drift(2);
 }
@@ -365,7 +365,7 @@ test_1x1v(int poly_order)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x1v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_vlasov_lte_moments_release(lte_moms);
@@ -384,7 +384,7 @@ test_1x1v(int poly_order)
 
 // special note, the p1 basis does not function
 void
-test_1x1v_p2()
+test_proj_mj_on_basis_1x1v_p2_ho()
 {
   test_1x1v(2);
 }
@@ -504,7 +504,7 @@ test_1x2v(int poly_order)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x2v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0);
@@ -521,7 +521,7 @@ test_1x2v(int poly_order)
 }
 
 void
-test_1x2v_p2()
+test_proj_mj_on_basis_1x2v_p2_ho()
 {
   test_1x2v(2);
 }
@@ -650,7 +650,7 @@ test_1x3v(int poly_order)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x3v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0);
@@ -667,15 +667,15 @@ test_1x3v(int poly_order)
 }
 
 void
-test_1x3v_p2()
+test_proj_mj_on_basis_1x3v_p2_ho()
 {
   test_1x3v(2);
 }
 
 TEST_LIST = {
-  {"test_1x1v_no_drift_p2", test_1x1v_no_drift_p2},
-  {"test_1x1v_p2", test_1x1v_p2},
-  {"test_1x2v_p2", test_1x2v_p2},
-  {"test_1x3v_p2", test_1x3v_p2},
+  {"test_proj_mj_on_basis_1x1v_no_drift_p2_ho", test_proj_mj_on_basis_1x1v_no_drift_p2_ho},
+  {"test_proj_mj_on_basis_1x1v_p2_ho", test_proj_mj_on_basis_1x1v_p2_ho},
+  {"test_proj_mj_on_basis_1x2v_p2_ho", test_proj_mj_on_basis_1x2v_p2_ho},
+  {"test_proj_mj_on_basis_1x3v_p2_ho", test_proj_mj_on_basis_1x3v_p2_ho},
   {NULL, NULL}
 };

@@ -40,7 +40,7 @@ struct gkyl_position_map_inp {
   double
     gaussian_max_integration_width; // The maximum width to integrate the Gaussian filter. Units of normalized field line length
   double compression_factor; // For PMAP_XPT_Compression. Specifies how much smaller the cells are
-    // near the X-point
+  // near the X-point
   double radial_compression_factor; // Factor by which cells are compressed radially near xpt
   bool compress_divertor; // Whether to apply compression at divertor plates for PMAP_XPT compression
 };

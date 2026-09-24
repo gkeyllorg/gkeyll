@@ -93,14 +93,14 @@ infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec
 void
 write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
 {
-  const char *gpcode =
-    "set macros\n"
-    "set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 5   # blue\n"
-    "set style line 2 lc rgb '#dd181f' lt 1 lw 2 pt 7   # red\n"
-    "BLUE = \"1\"\n"
-    "RED = \"2\"\n"
-    "set grid\n"
-    "plot \"rt_kann_mlp_data.txt\" using 1:2 with points pt 9 ps 3 title \"NN\", [-1:1] 1/(1+100*x**2) with lines ls @BLUE title \"Exact\"";
+  const char *gpcode = "set macros\n"
+                       "set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 5   # blue\n"
+                       "set style line 2 lc rgb '#dd181f' lt 1 lw 2 pt 7   # red\n"
+                       "BLUE = \"1\"\n"
+                       "RED = \"2\"\n"
+                       "set grid\n"
+                       "plot \"rt_kann_mlp_data.txt\" using 1:2 with points pt 9 ps 3 title "
+                       "\"NN\", [-1:1] 1/(1+100*x**2) with lines ls @BLUE title \"Exact\"";
 
   FILE *fp = 0;
   with_file(fp, "rt_kann_mlp.gp", "w")

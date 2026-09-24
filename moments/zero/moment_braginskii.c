@@ -91,7 +91,8 @@ mag_var_setup(
       // Pressure information is different for each equation type
       if (bes->param[n].type_eqn == GKYL_EQN_EULER) {
         p[n] = gkyl_euler_pressure(
-          bes->param[n].p_fac, fluid_d[j][n]
+          bes->param[n].p_fac,
+          fluid_d[j][n]
         ); // Euler needs to divide out gas_gamma factor to obtain pressure
       } else if (bes->param[n].type_eqn == GKYL_EQN_ISO_EULER) {
         p[n] = rho[n] * bes->param[n].p_fac *
@@ -429,7 +430,8 @@ unmag_var_setup(
       // Pressure information is different for each equation type
       if (bes->param[n].type_eqn == GKYL_EQN_EULER) {
         p[n] = gkyl_euler_pressure(
-          bes->param[n].p_fac, fluid_d[j][n]
+          bes->param[n].p_fac,
+          fluid_d[j][n]
         ); // Euler needs to divide out gas_gamma factor to obtain pressure
       } else if (bes->param[n].type_eqn == GKYL_EQN_ISO_EULER) {
         p[n] = rho[n] * bes->param[n].p_fac *

@@ -7,7 +7,7 @@
 #include <gkyl_gr_blackhole.h>
 
 void
-test_gr_maxwell_basic_minkowski()
+test_gr_maxwell_basic_minkowski_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
@@ -141,7 +141,7 @@ test_gr_maxwell_basic_minkowski()
 }
 
 void
-test_gr_maxwell_basic_schwarzschild()
+test_gr_maxwell_basic_schwarzschild_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
@@ -279,7 +279,7 @@ test_gr_maxwell_basic_schwarzschild()
 }
 
 void
-test_gr_maxwell_basic_kerr()
+test_gr_maxwell_basic_kerr_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
@@ -417,7 +417,7 @@ test_gr_maxwell_basic_kerr()
 }
 
 void
-test_gr_maxwell_waves_minkowski()
+test_gr_maxwell_waves_minkowski_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
@@ -589,7 +589,7 @@ test_gr_maxwell_waves_minkowski()
 }
 
 void
-test_gr_maxwell_waves_schwarzschild()
+test_gr_maxwell_waves_schwarzschild_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
@@ -766,7 +766,7 @@ test_gr_maxwell_waves_schwarzschild()
 }
 
 void
-test_gr_maxwell_waves_kerr()
+test_gr_maxwell_waves_kerr_ho()
 {
   double light_speed = 1.0;
   double e_fact = 0.0;
@@ -943,11 +943,11 @@ test_gr_maxwell_waves_kerr()
 }
 
 TEST_LIST = {
-  {"gr_maxwell_basic_minkowski", test_gr_maxwell_basic_minkowski},
-  {"gr_maxwell_basic_schwarzschild", test_gr_maxwell_basic_schwarzschild},
-  {"gr_maxwell_basic_kerr", test_gr_maxwell_basic_kerr},
-  {"gr_maxwell_waves_minkowski", test_gr_maxwell_waves_minkowski},
-  {"gr_maxwell_waves_schwarzschild", test_gr_maxwell_waves_schwarzschild},
-  {"gr_maxwell_waves_kerr", test_gr_maxwell_waves_kerr},
+  {"gr_maxwell_basic_minkowski_ho", test_gr_maxwell_basic_minkowski_ho},
+  {"gr_maxwell_basic_schwarzschild_ho", test_gr_maxwell_basic_schwarzschild_ho},
+  {"gr_maxwell_basic_kerr_ho", test_gr_maxwell_basic_kerr_ho},
+  {"gr_maxwell_waves_minkowski_ho", test_gr_maxwell_waves_minkowski_ho},
+  {"gr_maxwell_waves_schwarzschild_ho", test_gr_maxwell_waves_schwarzschild_ho},
+  {"gr_maxwell_waves_kerr_ho", test_gr_maxwell_waves_kerr_ho},
   {NULL, NULL}
 };

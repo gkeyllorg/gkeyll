@@ -109,10 +109,12 @@ create_ctx(void)
 
   double alpha = 5.0; // Neutron star alpha parameter (mass quadrupole moment coefficient).
   double beta = pow(
-    -0.36 + (1.48 * pow(sqrt(alpha), 0.65)), 3.0
+    -0.36 + (1.48 * pow(sqrt(alpha), 0.65)),
+    3.0
   ); // Neutron star beta parameter (spin octupole moment coefficient).
   double gamma = pow(
-    -4.749 + (0.27613 * pow(sqrt(alpha), 1.5146)) + (5.5168 * pow(sqrt(alpha), 0.22229)), 4.0
+    -4.749 + (0.27613 * pow(sqrt(alpha), 1.5146)) + (5.5168 * pow(sqrt(alpha), 0.22229)),
+    4.0
   ); // Neutron star gamma parameter (mass hexadecapole moment coefficient).
 
   double mass_quadrupole = -alpha * (spin_dimensionless * spin_dimensionless) *
@@ -129,8 +131,8 @@ create_ctx(void)
   );
 
   // Simulation parameters.
-  int Nx = 256; // Cell count (x-direction).
-  int Ny = 256; // Cell count (y-direction).
+  int Nx = 128; // Cell count (x-direction).
+  int Ny = 128; // Cell count (y-direction).
   double Lx = 5.0; // Domain size (x-direction).
   double Ly = 5.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.

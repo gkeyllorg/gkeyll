@@ -100,7 +100,7 @@ struct gk_geom_int {
   struct gkyl_array *jacobgeo_inv; // 1 component. 1/J
   struct gkyl_array *gij; // Metric coefficients g^{ij}. See g_ij for order.
   struct gkyl_array *gij_neut; // Metric coefficients g^{ij}. See g_ij for order.
-    // Calculated with coord definition alpha = phi for tokamak geometry.
+  // Calculated with coord definition alpha = phi for tokamak geometry.
   struct gkyl_array
     *b_i; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array
@@ -143,20 +143,20 @@ struct gk_geom_int {
   struct gkyl_array *dualcurlbhat_nodal; // 3 components, e^m \dot curl(bhat)
   struct gkyl_array *jacobgeo_nodal; // jacobian
   struct gkyl_array *g_ij_nodal; // 6 components.
-    // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
+  // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
   struct gkyl_array *g_ij_neut_nodal; // 6 components.
-    // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
-    // Calculated with coord definition alpha = phi for tokamak geometry
+  // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
+  // Calculated with coord definition alpha = phi for tokamak geometry
   struct gkyl_array *dxdz_nodal; // 9 components.
-    // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
+  // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
   struct gkyl_array *dzdx_nodal; // 9 components.
-    // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
+  // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
   struct gkyl_array *dualmag_nodal; // 3 components
-    // norms of the dual vectors : sqrt(e^i.e^i)
+  // norms of the dual vectors : sqrt(e^i.e^i)
   struct gkyl_array *normals_nodal; // 9 components
-    // Cartesian components of normal vectors in order n^1,, n^2, n^3
+  // Cartesian components of normal vectors in order n^1,, n^2, n^3
   struct gkyl_array *gij_neut_nodal; // Metric coefficients g^{ij}. See g_ij for order.
-    // Calculated with coord definition alpha = phi for tokamak geometry
+  // Calculated with coord definition alpha = phi for tokamak geometry
   struct gkyl_array
     *b_i_nodal; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array *b_i_nodal_fd; // 3 components. b_i at interior quad nodes and nodes epsilon away
@@ -194,14 +194,14 @@ struct gk_geometry {
   struct gk_geom_surf geo_surf[3]; // Surface geometry.
 
   int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis.
-    // 1 if psi increases toward magnetic axis.
+  // 1 if psi increases toward magnetic axis.
 
   int half_domain; // For double null geometry. 0 for full domain 1 for lower half domain.
 
   bool has_LCFS; // Whether the geometry has an LCFS.
   double x_LCFS; // For mapc2p IWL geometry, the user has to provide the
-    // location of the LCFS. For numerical IWL, it may be stored
-    // in the eqdsk.
+  // location of the LCFS. For numerical IWL, it may be stored
+  // in the eqdsk.
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
 
   // Functions defining the twistshift for parallel BCs.

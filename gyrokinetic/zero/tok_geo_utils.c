@@ -378,7 +378,7 @@ tok_geo_set_extent(
     double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
     double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
     arc_ctx.zmax = inp->zmax ? inp->zmax : zxpt_up; // Initial guess.
-      // zmax is specified for single null full core
+    // zmax is specified for single null full core
     double zlo = geo->zmaxis;
     find_upper_turning_point(geo, geo->psisep, zlo, &arc_ctx.zmax, 0);
     arc_ctx.zmin = zxpt_lo; // Initial guess
@@ -643,7 +643,7 @@ tok_find_endpoints(
     double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
     double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
     arc_ctx->zmax = inp->zmax ? inp->zmax : zxpt_up; // Initial guess.
-      // zmax is specified for single null full core
+    // zmax is specified for single null full core
     double zlo = geo->zmaxis;
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 0);
     arc_ctx->zmin = zxpt_lo; // Initial guess
@@ -941,7 +941,8 @@ tok_find_endpoints(
       if (fabs(rz_lcfs[0] - r_lcfs) > 1e-6) {
         fprintf(
           stderr,
-          "The upper plate function has an error. It must return (R(s=0),Z(s=0)) = (%1.16f, %1.16f). \n",
+          "The upper plate function has an error. It must return (R(s=0),Z(s=0)) = (%1.16f, "
+          "%1.16f). \n",
           R_lcfs[0], geo->efit->zmaxis
         );
         assert(false);
@@ -950,7 +951,8 @@ tok_find_endpoints(
       if (fabs(rz_lcfs[0] - r_lcfs) > 1e-6) {
         fprintf(
           stderr,
-          "The lower plate function has an error. It must return (R(s=0),Z(s=0)) = (%1.16f, %1.16f). \n",
+          "The lower plate function has an error. It must return (R(s=0),Z(s=0)) = (%1.16f, "
+          "%1.16f). \n",
           R_lcfs[0], geo->efit->zmaxis
         );
         assert(false);

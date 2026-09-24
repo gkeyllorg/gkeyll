@@ -62,9 +62,8 @@ get_inp(int argc, char **argv)
   while ((c = getopt(argc, argv, "+hgc:d:p:n:x:y:z:u:v:w:")) != -1) {
     switch (c) {
       case 'h':
-        printf(
-          "Usage: app_vlasov_kerntm -c CDIM -d VDIM -p POLYORDER -x NX -y NY -z NZ -u VX -v VY -w VZ -n NLOOP -g\n"
-        );
+        printf("Usage: app_vlasov_kerntm -c CDIM -d VDIM -p POLYORDER -x NX -y NY -z NZ -u VX -v VY "
+               "-w VZ -n NLOOP -g\n");
         exit(-1);
         break;
 

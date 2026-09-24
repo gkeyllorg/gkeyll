@@ -138,7 +138,8 @@ gkyl_tensor_field_cu_host_new(
   }
 
   tfld->tdata = gkyl_array_cu_host_new(
-    GKYL_DOUBLE, ncomp, size
+    GKYL_DOUBLE, ncomp,
+    size
   ); // gkyl_cu_malloc_host(tfld->size*tfld->esznc);
   gkyl_range_init_from_shape(&tfld->trange, rank, shape);
   tfld->ref_count = gkyl_ref_count_init(tensor_field_free);

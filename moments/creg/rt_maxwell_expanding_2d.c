@@ -78,8 +78,8 @@ create_ctx(void)
   double k_yn = k_wave_y / k_norm; // Normalized wave number (y-direction).
 
   // Simulation parameters.
-  int Nx = 256; // Cell count (x-direction).
-  int Ny = 256; // Cell count (y-direction).
+  int Nx = 128; // Cell count (x-direction).
+  int Ny = 128; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Ly = 1.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.

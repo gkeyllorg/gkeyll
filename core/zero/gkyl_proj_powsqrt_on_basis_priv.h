@@ -14,7 +14,7 @@ struct gkyl_proj_powsqrt_on_basis {
   struct gkyl_array *basis_at_ords; // conf-space basis functions at ordinates
 
   struct gkyl_array *fun_at_ords; // function (Maxwellian) evaluated at
-    // ordinates in a cell.
+  // ordinates in a cell.
 };
 
 void gkyl_proj_powsqrt_on_basis_advance_cu(

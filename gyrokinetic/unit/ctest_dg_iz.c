@@ -168,12 +168,12 @@ test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
 }
 
 void
-coll_iz_h()
+coll_iz_h_ho()
 {
   test_coll_iz(false, GKYL_ION_H);
 }
 void
-coll_iz_li()
+coll_iz_li_ho()
 {
   test_coll_iz(false, GKYL_ION_LI);
 }
@@ -215,12 +215,12 @@ coll_iz_o()
 
 #ifdef GKYL_HAVE_CUDA
 void
-coll_iz_h_gpu()
+coll_iz_h_dev()
 {
   test_coll_iz(true, GKYL_ION_H);
 }
 void
-coll_iz_li_gpu()
+coll_iz_li_dev()
 {
   test_coll_iz(true, GKYL_ION_LI);
 }
@@ -262,11 +262,11 @@ coll_iz_o_gpu()
 #endif
 
 TEST_LIST = {
-  {"coll_iz_h", coll_iz_h},
-  {"coll_iz_li", coll_iz_li},
+  {"coll_iz_h_ho", coll_iz_h_ho},
+  {"coll_iz_li_ho", coll_iz_li_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"coll_iz_h_gpu", coll_iz_h_gpu},
-  {"coll_iz_li_gpu", coll_iz_li_gpu},
+  {"coll_iz_h_dev", coll_iz_h_dev},
+  {"coll_iz_li_dev", coll_iz_li_dev},
 #endif
   {NULL, NULL}
 };

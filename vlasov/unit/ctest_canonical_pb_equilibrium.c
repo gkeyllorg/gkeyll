@@ -278,7 +278,7 @@ test_2x2v(int poly_order)
   // Write the output
   char fname[1024];
   sprintf(fname, "ctest_can_pb_eq_2x2v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // // Write the output (moments)
   // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n_corr.gkyl", poly_order);
@@ -361,9 +361,12 @@ test_2x2v(int poly_order)
 
 // special note, the p1 basis does not function
 void
-test_2x2v_p2()
+test_canonical_pb_equilibrium_2x2v_p2_ho()
 {
   test_2x2v(2);
 }
 
-TEST_LIST = {{"test_2x2v_p2", test_2x2v_p2}, {NULL, NULL}};
+TEST_LIST = {
+  {"test_canonical_pb_equilibrium_2x2v_p2_ho", test_canonical_pb_equilibrium_2x2v_p2_ho},
+  {NULL, NULL}
+};

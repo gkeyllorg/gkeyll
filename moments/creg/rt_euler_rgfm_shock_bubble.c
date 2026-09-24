@@ -85,7 +85,7 @@ create_ctx(void)
   double p_bub = 1.0 / gas_gamma1; // Bubble fluid pressure.
 
   // Simulation parameters.
-  int Nx = 325; // Cell count (x-direction).
+  int Nx = 89; // Cell count (x-direction).
   int Ny = 89; // Cell count (y-direction).
   double Lx = 0.325; // Domain size (x-direction).
   double Ly = 0.089; // Domain size (y-direction).

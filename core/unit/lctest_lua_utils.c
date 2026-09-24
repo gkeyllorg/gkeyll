@@ -114,8 +114,8 @@ test_2(void)
 {
   lua_State *L = new_lua_State();
 
-  const char *lcode1 =
-    "kvpairs = { tEnd = 101.1, nums = { 11, 12, 13, v = 2222 }, names = { \"Vlasov\", \"Maxwell\"}  }";
+  const char *lcode1 = "kvpairs = { tEnd = 101.1, nums = { 11, 12, 13, v = 2222 }, names = { "
+                       "\"Vlasov\", \"Maxwell\"}  }";
   glua_run_lua(L, lcode1, strlen(lcode1), stderr);
 
   with_lua_global(L, "kvpairs")

@@ -92,7 +92,7 @@ create_ctx(void)
   double nu_ii = vti / (50.0 * lambda_D); // Ion-ion collision frequency.
 
   // Simulation parameters.
-  int Nx = 256; // Cell count (configuration space: x-direction).
+  int Nx = 64; // Cell count (configuration space: x-direction).
   int Nvx = 64; // Cell count (velocity space: vx-direction).
   double Lx = 256.0 * lambda_D; // Domain size (configuration space: x-direction).
   double Ls = 100.0 * lambda_D; // Domain size (source).

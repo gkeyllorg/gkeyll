@@ -691,7 +691,8 @@ gk_species_source_bgk_init(
     if (src->source_bgk_id == GKYL_SOURCE_BGK_EXTERNAL) {
       // source_bgk rate.
       gkyl_array_shiftc(
-        src->rate, pow(sqrt(2.0), app->cdim) / src->injection_time, 0
+        src->rate, pow(sqrt(2.0), app->cdim) / src->injection_time,
+        0
       ); // Sets rate = 1/injection_time
 
       // Multiply the rate by the conf-space Jacobian.

@@ -1,0 +1,313 @@
+// Manually selected local CI. Configure this trusted Pipeline job from main.
+properties([
+    buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20')),
+    disableConcurrentBuilds(),
+    parameters([
+        string(name: 'CANDIDATE_PR', defaultValue: '', trim: true,
+            description: 'GitHub PR number; set this, or both reference fields.'),
+        string(name: 'CANDIDATE_REF', defaultValue: '', trim: true,
+            description: 'Candidate branch or full 40-character commit SHA.'),
+        string(name: 'BASELINE_REF', defaultValue: '', trim: true,
+            description: 'Baseline branch or full 40-character commit SHA.')
+    ])
+])
+
+def requireValue(String name, String value) {
+    value = value?.trim()
+    if (!value) error("${name} must be configured in Jenkins.")
+    value
+}
+
+def isCommitSha(String value) { value ==~ /[0-9a-fA-F]{40}/ }
+
+def validateBranchName(String name, String value) {
+    if (!(value ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/)
+        || value.contains('..') || value.contains('//') || value.endsWith('/')
+        || value.endsWith('.') || value.endsWith('.lock')) {
+        error("${name} must be a safe branch name or full 40-character commit SHA, got '${value}'.")
+    }
+    value
+}
+
+def validateRef(String name, String value) {
+    value = requireValue(name, value)
+    isCommitSha(value) ? value.toLowerCase() : validateBranchName(name, value)
+}
+
+def checkoutRef(String ref, String localRef) {
+    def refspec = isCommitSha(ref) ? "+${ref}:refs/remotes/origin/${localRef}" : "+refs/heads/${ref}:refs/remotes/origin/${localRef}"
+    checkout([$class: 'GitSCM', branches: [[name: "refs/remotes/origin/${localRef}"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [[$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]],
+        userRemoteConfigs: [[refspec: refspec, url: 'https://github.com/gkeyllorg/gkeyll.git']]])
+}
+
+def checkoutPullRequest(String number) {
+    checkout([$class: 'GitSCM', branches: [[name: 'refs/remotes/origin/candidate']],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [[$class: 'CleanBeforeCheckout'], [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]],
+        userRemoteConfigs: [[refspec: "+refs/pull/${number}/head:refs/remotes/origin/candidate", url: 'https://github.com/gkeyllorg/gkeyll.git']]])
+}
+
+def pullRequestBase(String statusCredentialsId, String number) {
+    def base = ''
+    withCredentials([usernamePassword(credentialsId: statusCredentialsId, usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
+        base = sh(returnStdout: true, script: """#!/bin/bash
+            set -euo pipefail
+            curl --fail --silent --show-error --header 'Accept: application/vnd.github+json' --header \"Authorization: Bearer \$GITHUB_TOKEN\" https://api.github.com/repos/gkeyllorg/gkeyll/pulls/${number} | python3 -c 'import json,sys; print(json.load(sys.stdin)["base"]["ref"])'
+        """).trim()
+    }
+    validateBranchName('GitHub PR base branch', base)
+}
+
+def publishStatus(String statusCredentialsId, String context, String commit, String state, String description) {
+    withCredentials([usernamePassword(credentialsId: statusCredentialsId, usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
+        withEnv(["CI_STATUS_CONTEXT=${context}", "CI_STATUS_COMMIT=${commit}", "CI_STATUS_STATE=${state}", "CI_STATUS_DESCRIPTION=${description.take(140)}"]) {
+            sh '''#!/bin/bash
+                set -euo pipefail
+                payload="$(python3 -c 'import json,os; print(json.dumps({"state":os.environ["CI_STATUS_STATE"],"context":os.environ["CI_STATUS_CONTEXT"],"description":os.environ["CI_STATUS_DESCRIPTION"]}))')"
+                curl --fail --silent --show-error --request POST --header 'Accept: application/vnd.github+json' --header "Authorization: Bearer $GITHUB_TOKEN" --header 'Content-Type: application/json' --data "$payload" "https://api.github.com/repos/gkeyllorg/gkeyll/statuses/$CI_STATUS_COMMIT"
+            '''
+        }
+    }
+}
+
+def timeCommand(String metricFile, String command) {
+    sh """#!/bin/bash
+        set -euo pipefail
+        started=\$(date +%s)
+        ${command}
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > '${metricFile}'
+        echo "${metricFile}: \$elapsed seconds"
+    """
+}
+
+def buildTree(String label, String prefix, String mkdeps, String configure, String jobs) {
+    def metricDirectory = label == 'baseline' ? '../' : ''
+    def mpiHome = env.PERSONAL_MPI_HOME?.trim() ?: "${prefix}/openmpi"
+    withEnv(["PREFIX=${prefix}", "MPI_HOME=${mpiHome}"]) {
+        sh """#!/bin/bash
+            set -euo pipefail
+            ./machines/${mkdeps}
+            ./machines/${configure}
+        """
+        timeCommand("${metricDirectory}${label}-unit-build-seconds.txt", "make -j${jobs} unit")
+        timeCommand("${metricDirectory}${label}-unit-test-seconds.txt", 'make unit-run')
+        timeCommand("${metricDirectory}${label}-regression-build-seconds.txt", "make -j${jobs} regression")
+        timeCommand("${metricDirectory}${label}-install-seconds.txt", "make -j${jobs} install")
+    }
+}
+
+def createBaseline(String baseline, String mkdeps, String configure, String jobs, String regressionJobs) {
+    dir('_baseline') {
+        deleteDir()
+        checkoutRef(baseline, 'baseline')
+        sh 'git rev-parse HEAD | tee ../ci-baseline-commit.txt'
+        buildTree('baseline', "${env.WORKSPACE}/_baseline/gkylsoft", mkdeps, configure, jobs)
+        sh "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression configure --source-dir \"${env.WORKSPACE}/_baseline\" --prefix \"${env.WORKSPACE}/_baseline/gkylsoft\""
+        timeCommand('../baseline-c-regression-create-seconds.txt', "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only create --timeout 900 --jobs ${regressionJobs}")
+    }
+}
+
+def runCandidateRegressions(String regressionJobs) {
+    def gkeyll = "${env.WORKSPACE}/gkylsoft/gkeyll/bin/gkeyll"
+    def results = "${env.WORKSPACE}/gkylsoft/gkeyll-results"
+    def baseline = "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll-results"
+    sh "\"${gkeyll}\" runregression configure --source-dir \"${env.WORKSPACE}\" --prefix \"${env.WORKSPACE}/gkylsoft\""
+    sh """set -euo pipefail
+        for layer in moments vlasov gyrokinetic pkpm; do
+            if [ -d \"${baseline}/\$layer/creg-accepted\" ]; then
+                rm -rf \"${results}/\$layer/creg-accepted\"
+                mv \"${baseline}/\$layer/creg-accepted\" \"${results}/\$layer/creg-accepted\"
+            fi
+        done
+        started=\$(date +%s)
+        \"${gkeyll}\" runregression run --c-only check --timeout 900 --jobs ${regressionJobs}
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > candidate-c-regression-check-seconds.txt
+        echo "Candidate C-regression check runtime: \$elapsed seconds"
+        \"${gkeyll}\" ci/jenkins/check_regression_results.lua \"${results}\" ci/jenkins/expected_regression_diffs.txt ci-regression-summary.txt
+    """
+}
+
+def runParallelRegressions(String mpiExec) {
+    def mpiHome = env.PERSONAL_MPI_HOME?.trim()
+    mpiExec = mpiExec ?: (mpiHome ? "${mpiHome}/bin/mpiexec" : '')
+    def candidateMpiExec = mpiExec ?: "${env.WORKSPACE}/gkylsoft/openmpi/bin/mpiexec"
+    def baselineMpiExec = mpiExec ?: "${env.WORKSPACE}/_baseline/gkylsoft/openmpi/bin/mpiexec"
+    def gkeyll = "${env.WORKSPACE}/gkylsoft/gkeyll/bin/gkeyll"
+    def baselineGkeyll = "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll"
+    def results = "${env.WORKSPACE}/gkylsoft/gkeyll-results/parallel-c-4"
+    def baselineResults = "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll-results/parallel-c-4"
+    sh """#!/bin/bash
+        set -euo pipefail
+        test -x "${candidateMpiExec}"
+        test -x "${baselineMpiExec}"
+
+        "${baselineGkeyll}" runregression configure --source-dir "${env.WORKSPACE}/_baseline" --prefix "${env.WORKSPACE}/_baseline/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${baselineMpiExec}"
+        started=\$(date +%s)
+        "${baselineGkeyll}" runregression run --c-only --parallel compile
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > baseline-parallel-c-compile-seconds.txt
+
+        started=\$(date +%s)
+        "${baselineGkeyll}" runregression run --c-only --parallel --execute-only create
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > baseline-parallel-c-regression-create-seconds.txt
+
+        "${gkeyll}" runregression configure --source-dir "${env.WORKSPACE}" --prefix "${env.WORKSPACE}/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${candidateMpiExec}"
+        started=\$(date +%s)
+        "${gkeyll}" runregression run --c-only --parallel compile
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > candidate-parallel-c-compile-seconds.txt
+
+        for layer in moments vlasov gyrokinetic pkpm; do
+            if [ -d "${baselineResults}/\$layer/creg-accepted" ]; then
+                rm -rf "${results}/\$layer/creg-accepted"
+                mv "${baselineResults}/\$layer/creg-accepted" "${results}/\$layer/creg-accepted"
+            fi
+        done
+        started=\$(date +%s)
+        "${gkeyll}" runregression run --c-only --parallel --execute-only check
+        elapsed=\$(( \$(date +%s) - started ))
+        printf '%s\\n' "\$elapsed" > candidate-parallel-c-regression-check-seconds.txt
+        "${gkeyll}" ci/jenkins/check_regression_results.lua "${results}" ci/jenkins/expected_regression_diffs.txt ci-parallel-regression-summary.txt
+    """
+}
+
+def writeCiTimingSummary() {
+    sh '''#!/bin/bash
+        set -euo pipefail
+
+        metric() {
+            local file="$1"
+            if [[ -f "$file" ]]; then
+                local value
+                value="$(tr -d '[:space:]' < "$file")"
+                if [[ -n "$value" ]]; then
+                    printf '%s' "$value"
+                    return
+                fi
+            fi
+            printf 'not-recorded'
+        }
+
+        candidate_unit_build="$(metric candidate-unit-build-seconds.txt)"
+        baseline_unit_build="$(metric baseline-unit-build-seconds.txt)"
+        candidate_unit_test="$(metric candidate-unit-test-seconds.txt)"
+        baseline_unit_test="$(metric baseline-unit-test-seconds.txt)"
+        candidate_regression_build="$(metric candidate-regression-build-seconds.txt)"
+        baseline_regression_build="$(metric baseline-regression-build-seconds.txt)"
+        candidate_install="$(metric candidate-install-seconds.txt)"
+        baseline_install="$(metric baseline-install-seconds.txt)"
+        candidate_parallel_compile="$(metric candidate-parallel-c-compile-seconds.txt)"
+        baseline_parallel_compile="$(metric baseline-parallel-c-compile-seconds.txt)"
+        regression_create="$(metric baseline-c-regression-create-seconds.txt)"
+        regression_check="$(metric candidate-c-regression-check-seconds.txt)"
+        parallel_regression_create="$(metric baseline-parallel-c-regression-create-seconds.txt)"
+        parallel_regression_check="$(metric candidate-parallel-c-regression-check-seconds.txt)"
+
+        {
+            printf 'candidate_unit_build_seconds=%s\n' "$candidate_unit_build"
+            printf 'baseline_unit_build_seconds=%s\n' "$baseline_unit_build"
+            printf 'candidate_unit_test_seconds=%s\n' "$candidate_unit_test"
+            printf 'baseline_unit_test_seconds=%s\n' "$baseline_unit_test"
+            printf 'candidate_regression_build_seconds=%s\n' "$candidate_regression_build"
+            printf 'baseline_regression_build_seconds=%s\n' "$baseline_regression_build"
+            printf 'candidate_install_seconds=%s\n' "$candidate_install"
+            printf 'baseline_install_seconds=%s\n' "$baseline_install"
+            printf 'candidate_parallel_c_compile_seconds=%s\n' "$candidate_parallel_compile"
+            printf 'baseline_parallel_c_compile_seconds=%s\n' "$baseline_parallel_compile"
+            printf 'baseline_c_regression_create_seconds=%s\n' "$regression_create"
+            printf 'candidate_c_regression_check_seconds=%s\n' "$regression_check"
+            printf 'baseline_parallel_c_regression_create_seconds=%s\n' "$parallel_regression_create"
+            printf 'candidate_parallel_c_regression_check_seconds=%s\n' "$parallel_regression_check"
+        } > ci-timing-summary.txt
+        cat ci-timing-summary.txt
+    '''
+}
+
+def candidatePr = params.CANDIDATE_PR?.trim() ?: env.CI_CANDIDATE_PR?.trim()
+def candidateRef = params.CANDIDATE_REF?.trim() ?: env.CI_CANDIDATE_REF?.trim()
+def requestedBaseline = params.BASELINE_REF?.trim() ?: env.CI_BASELINE_REF?.trim()
+if (!!candidatePr == !!candidateRef) error('Set exactly one of CANDIDATE_PR or CANDIDATE_REF.')
+if (candidatePr && !(candidatePr ==~ /[1-9][0-9]*/)) error("CANDIDATE_PR must be a positive integer, got '${candidatePr}'.")
+if (candidatePr && requestedBaseline) error('BASELINE_REF must be empty with CANDIDATE_PR.')
+if (candidateRef) { candidateRef = validateRef('CANDIDATE_REF', candidateRef); requestedBaseline = validateRef('BASELINE_REF', requestedBaseline) }
+
+def label = requireValue('PERSONAL_NODE_LABEL', env.PERSONAL_NODE_LABEL)
+def mkdeps = validateBranchName('PERSONAL_MKDEPS_SCRIPT', requireValue('PERSONAL_MKDEPS_SCRIPT', env.PERSONAL_MKDEPS_SCRIPT))
+def configure = validateBranchName('PERSONAL_CONFIGURE_SCRIPT', requireValue('PERSONAL_CONFIGURE_SCRIPT', env.PERSONAL_CONFIGURE_SCRIPT))
+def statusCredentialsId = requireValue('PERSONAL_GITHUB_CREDENTIAL_ID', env.PERSONAL_GITHUB_CREDENTIAL_ID)
+def jobs = (env.PERSONAL_BUILD_JOBS ?: '3').trim()
+def regressionJobs = (env.PERSONAL_REGRESSION_JOBS ?: '1').trim()
+def mpiExec = (env.PERSONAL_MPIEXEC ?: '').trim()
+if (!(jobs ==~ /[1-9][0-9]*/) || !(regressionJobs ==~ /[1-9][0-9]*/)) error('PERSONAL_BUILD_JOBS and PERSONAL_REGRESSION_JOBS must be positive integers.')
+
+def ciStage(String stageName, Closure body) {
+    env.CI_FAILURE_STAGE = stageName
+    stage(stageName) { body.call() }
+}
+
+def writeCiFailureSummary(String result, String stageName, String message) {
+    def compactMessage = (message ?: 'unknown failure').replaceAll('[\\r\\n]+', ' ').trim().take(500)
+    writeFile file: 'ci-failure-summary.txt', text: "result=${result}\nstage=${stageName ?: 'unknown'}\nmessage=${compactMessage}\n"
+}
+
+def runCi = {
+    def commit = ''
+    def status = 'failure'
+    def description = 'Personal CI failed.'
+    def failureMessage = ''
+    try {
+        ciStage('Resolve candidate and baseline') {
+            if (candidatePr) { candidateRef = "PR #${candidatePr}"; requestedBaseline = pullRequestBase(statusCredentialsId, candidatePr) }
+            writeFile file: 'ci-selection.txt', text: "candidate_selector=${candidateRef}\nbaseline_selector=${requestedBaseline}\n"
+        }
+        ciStage('Checkout candidate') {
+            deleteDir()
+            if (candidatePr) checkoutPullRequest(candidatePr); else checkoutRef(candidateRef, 'candidate')
+            commit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+            writeFile file: 'ci-candidate-commit.txt', text: "${commit}\n"
+            if (env.CI_TRUSTED_CI_COMMIT?.trim()) {
+                writeFile file: 'ci-trusted-ci-commit.txt', text: "${env.CI_TRUSTED_CI_COMMIT.trim()}\n"
+            }
+        }
+        ciStage('Report pending') { publishStatus(statusCredentialsId, env.CI_STATUS_CONTEXT ?: 'continuous-integration/jenkins/personal', commit, 'pending', 'Gkeyll CI is running.') }
+        ciStage('Build candidate') { buildTree('candidate', "${env.WORKSPACE}/gkylsoft", mkdeps, configure, jobs) }
+        ciStage('Build baseline') { createBaseline(requestedBaseline, mkdeps, configure, jobs, regressionJobs) }
+        ciStage('C regressions') { runCandidateRegressions(regressionJobs) }
+        ciStage('Parallel C regressions') { runParallelRegressions(mpiExec); status = 'success'; description = 'Personal CI passed.' }
+    } catch (err) {
+        failureMessage = err.toString()
+        if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) { status = 'error'; description = 'Personal CI was aborted.' }
+        throw err
+    } finally {
+        try {
+            writeCiTimingSummary()
+        } catch (err) {
+            status = 'error'
+            description = 'Personal CI timing summary failed.'
+            failureMessage = err.toString()
+            env.CI_FAILURE_STAGE = 'Write CI timing summary'
+            throw err
+        } finally {
+            if (status != 'success') writeCiFailureSummary(status, env.CI_FAILURE_STAGE, failureMessage ?: description)
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+        }
+        if (commit) publishStatus(statusCredentialsId, env.CI_STATUS_CONTEXT ?: 'continuous-integration/jenkins/personal', commit, status, description)
+        deleteDir()
+    }
+}
+
+// The team-workstation inline bootstrap already owns the agent while it
+// checks out this trusted workflow from main. Reusing that allocation avoids
+// a nested node() request, which can deadlock a one-executor workstation.
+if (env.CI_NODE_ALREADY_ALLOCATED == 'true') {
+    runCi()
+} else {
+    node(label) {
+        runCi()
+    }
+}

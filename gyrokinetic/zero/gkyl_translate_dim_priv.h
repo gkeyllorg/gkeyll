@@ -74,8 +74,7 @@ typedef struct {
 } trans_dim_kern_list_updown; // For use in kernel tables.
 
 // Serendipity  kernels.
-GKYL_CU_D static const trans_dim_kern_list_updown trans_dim_kern_list_ser[] = {
-  // 1x
+GKYL_CU_D static const trans_dim_kern_list_updown trans_dim_kern_list_ser[] = { // 1x
   {
     .list =
       {{NULL, NULL, NULL},

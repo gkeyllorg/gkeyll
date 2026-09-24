@@ -1538,6 +1538,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   double lower_vel[GKYL_MAX_DIM], upper_vel[GKYL_MAX_DIM];
 
   assert(vdim > 0); // Ensure user provided vdim in input file.
+  assert(gks->info.charge != 0.0); // Charged GK operators require a nonzero charge.
 
   for (int d = 0; d < cdim; ++d) {
     cells[d] = gk_app_inp->cells[d];

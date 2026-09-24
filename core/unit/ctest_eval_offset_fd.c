@@ -13,7 +13,7 @@ elc_field_1d(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 void
-test_1d()
+test_eval_offset_fd_1d_ho()
 {
   double lower[] = {-2.0}, upper[] = {2.0};
   int cells[] = {2};
@@ -65,4 +65,4 @@ test_1d()
   gkyl_array_release(elc_fld);
 }
 
-TEST_LIST = {{"test_1d", test_1d}, {NULL, NULL}};
+TEST_LIST = {{"test_eval_offset_fd_1d_ho", test_eval_offset_fd_1d_ho}, {NULL, NULL}};

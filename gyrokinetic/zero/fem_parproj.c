@@ -132,7 +132,8 @@ gkyl_fem_parproj_new(
   up->numnodes_global = gkyl_fem_parproj_global_num_nodes(basis, up->isperiodic, par_range.volume);
 
   up->brhs = gkyl_array_new(
-    GKYL_DOUBLE, 1, up->numnodes_global * perp_range.volume
+    GKYL_DOUBLE, 1,
+    up->numnodes_global * perp_range.volume
   ); // Global right side vector.
 
   // Allocate struct holding kernel pointers.

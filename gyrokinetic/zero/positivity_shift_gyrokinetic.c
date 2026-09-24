@@ -15,7 +15,7 @@ gkyl_positivity_shift_gyrokinetic_new(
   struct gkyl_positivity_shift_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
   assert(pbasis.poly_order == 1); // Because of the way a rescale/division is
-    // done in advance.
+  // done in advance.
 
   up->ffloor_fac = 0.0; // ffloor will be set to max(f)*ffloor_fac.
   up->grid = grid;
