@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3AJHGCQX29GMBPHWX7V8YHG",
+  "strategy": "manual-commit",
+  "branch": "time-dilation-collisionless-only",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_collisionless.c",
+    "gyrokinetic/apps/gk_species_fdot_multiplier.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic.h",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1.c",
+    "gyrokinetic/unit/ctest_gk_collisionless_fdot_multiplier.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 140935,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2777344,
+    "output_tokens": 24560,
+    "api_call_count": 28
+  }
+}
