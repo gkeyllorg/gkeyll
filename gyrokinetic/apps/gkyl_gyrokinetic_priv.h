@@ -1350,37 +1350,31 @@ struct gk_field {
   struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
                                       // for solving subset of Poisson solves with parallelization in z
 
-  // organization of the different equation objects and the required data and solvers
-  union {
-    struct {
-      struct gkyl_ambi_bolt_potential *ambi_pot;
-      struct gkyl_array *sheath_vals[2*GKYL_MAX_CDIM];
-    };
-    // EM GK model
-    struct {
-      struct gkyl_array *apar, *apar1, *aparnew; // Array for A_parallel and RK stages.
-      struct gkyl_array *apar_curr; // A_parallel at current RK stage.
-      struct gkyl_array *apar_smooth_aux; // Auxiliary array for smoothing A_parallel in z.
-      struct gkyl_array *apar_host; // Host copy for use IO.
-      struct gkyl_array *apardot; // Array for d(A_parallel)/dt (solved through Ohm's law).
-      struct gkyl_array *apardot_host; // Host copy for use IO.
-      struct gkyl_array *amperesol; // Array for Ampere's law solution.
-      struct gkyl_array *amperesol_host; // Host copy for use IO.
-      struct gkyl_array *currentDens; // Current density.
-      struct gkyl_array *currentDens_global; // Current density.
-      struct gkyl_array *currentDensdot; // Time derivative of current density.
-      struct gkyl_array *dApartdtSlvr_kSq; // Contains sum_s q_s^2/m_s n_s.
-      struct gkyl_array *dApartdtSlvr_lhs_factor; // Contains kperp^2/mu_0 + sum_s q_s^2/m_s n_s for 1D Ohm solve.
-      struct gkyl_array *dApartdtSlvr_rhs; // Contains sum_s q_s int dv vpar d/dt(F_s)*.
-      gkyl_dg_bin_op_mem *div_mem; // Memory for div operation in 1x Ohm's law. 
-      struct gkyl_array *lapWeightAmpere; // Factor in front of the laplacian operator (1/mu0 or kperp^2/mu0 for 1D).
-      struct gkyl_fem_parproj *fem_apar_parproj; // FEM smoother for projecting Apar onto continuous FEM basis
-      struct gkyl_fem_poisson_perp *fem_apar_solver; // Solver for IC Apar.
-      struct gkyl_fem_poisson_perp *fem_apardot_solver; // Solver for d(Apar)/dt.
-      struct gkyl_poisson_bc ampere_bcs; // BCs for Apar and d(Apar)/dt.
-      enum gkyl_fem_parproj_bc_type fem_parproj_ampere_bc; // Type of BC for projecting onto FEM basis.
-    };
-  };
+  // Organization of the different equation objects and the required data and solvers.
+  struct gkyl_ambi_bolt_potential *ambi_pot;
+  struct gkyl_array *sheath_vals[2*GKYL_MAX_CDIM];
+  // EM GK model.
+  struct gkyl_array *apar, *apar1, *aparnew; // Array for A_parallel and RK stages.
+  struct gkyl_array *apar_curr; // A_parallel at current RK stage.
+  struct gkyl_array *apar_smooth_aux; // Auxiliary array for smoothing A_parallel in z.
+  struct gkyl_array *apar_host; // Host copy for use IO.
+  struct gkyl_array *apardot; // Array for d(A_parallel)/dt (solved through Ohm's law).
+  struct gkyl_array *apardot_host; // Host copy for use IO.
+  struct gkyl_array *amperesol; // Array for Ampere's law solution.
+  struct gkyl_array *amperesol_host; // Host copy for use IO.
+  struct gkyl_array *currentDens; // Current density.
+  struct gkyl_array *currentDens_global; // Current density.
+  struct gkyl_array *currentDensdot; // Time derivative of current density.
+  struct gkyl_array *dApartdtSlvr_kSq; // Contains sum_s q_s^2/m_s n_s.
+  struct gkyl_array *dApartdtSlvr_lhs_factor; // Contains kperp^2/mu_0 + sum_s q_s^2/m_s n_s for 1D Ohm solve.
+  struct gkyl_array *dApartdtSlvr_rhs; // Contains sum_s q_s int dv vpar d/dt(F_s)*.
+  gkyl_dg_bin_op_mem *div_mem; // Memory for div operation in 1x Ohm's law. 
+  struct gkyl_array *lapWeightAmpere; // Factor in front of the laplacian operator (1/mu0 or kperp^2/mu0 for 1D).
+  struct gkyl_fem_parproj *fem_apar_parproj; // FEM smoother for projecting Apar onto continuous FEM basis
+  struct gkyl_fem_poisson_perp *fem_apar_solver; // Solver for IC Apar.
+  struct gkyl_fem_poisson_perp *fem_apardot_solver; // Solver for d(Apar)/dt.
+  struct gkyl_poisson_bc ampere_bcs; // BCs for Apar and d(Apar)/dt.
+  enum gkyl_fem_parproj_bc_type fem_parproj_ampere_bc; // Type of BC for projecting onto FEM basis.
 
   double es_energy_fac_1d; 
   struct gkyl_array *es_energy_fac; 
