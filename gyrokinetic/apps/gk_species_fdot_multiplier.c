@@ -256,13 +256,8 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_factor_user_specified(
 )
 {
   double omega_max = compute_global_array_max(app, fdmul, cflrate);
-  // A disabled or stationary collisionless operator has no CFL constraint to relax.
-  // Avoid 0/0 in the clamp, including in ghost cells.
-  if (omega_max == 0.0) {
-    gkyl_array_scale(combined_multiplier, fdmul->time_dilation_scale_const);
-    return;
-  }
-  omega_max = fdmul->cfl_factor_times_omega_max * omega_max;
+  // Keep the cap positive when all CFL rates vanish, avoiding 0*inf in the clamp.
+  omega_max = fmax(DBL_MIN, fdmul->cfl_factor_times_omega_max * omega_max);
   clamp_cflrate_by_omega_max(fdmul, omega_max, cflrate, combined_multiplier);
 }
 
