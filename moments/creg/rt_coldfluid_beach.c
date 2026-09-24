@@ -56,7 +56,8 @@ struct coldfluid_beach_ctx {
   double omega_drive; // Drive current angular frequency.
 };
 
-struct coldfluid_beach_ctx create_ctx(void)
+struct coldfluid_beach_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -111,13 +112,14 @@ struct coldfluid_beach_ctx create_ctx(void)
     .num_failures_max = num_failures_max,
     .deltaT = deltaT,
     .factor = factor,
-    .omega_drive = omega_drive
+    .omega_drive = omega_drive,
   };
 
   return ctx;
 }
 
-void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct coldfluid_beach_ctx *app = ctx;
@@ -145,7 +147,8 @@ void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[3] = 0.0;
 }
 
-void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   // Set electric field.
   fout[0] = 0.0, fout[1] = 0.0;
@@ -158,7 +161,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-void evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct coldfluid_beach_ctx *app = ctx;
@@ -182,7 +186,8 @@ void evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTR
   }
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -194,7 +199,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -224,7 +230,7 @@ int main(int argc, char **argv)
     .split_type = GKYL_WAVE_FWAVE,
 
     .init = evalElcInit,
-    .ctx = &ctx
+    .ctx = &ctx,
   };
 
   // Field.
@@ -237,7 +243,7 @@ int main(int argc, char **argv)
     .ctx = &ctx,
     .app_current = evalAppCurrent,
     .app_current_ctx = &ctx,
-    .app_current_evolve = true
+    .app_current_evolve = true,
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -310,7 +316,7 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Create app object.

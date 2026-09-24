@@ -69,7 +69,8 @@ struct prim_lbo_type_gyrokinetic {
  */
 void prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref);
 
-GKYL_CU_D static void self_prim(
+GKYL_CU_D static void
+self_prim(
   const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs, const int *idx,
   const double *moms, const double *boundary_corrections, const double *nu
 )
@@ -80,7 +81,8 @@ GKYL_CU_D static void self_prim(
   return prim_gyrokinetic->self_prim(A, rhs, moms, boundary_corrections, nu);
 }
 
-GKYL_CU_D static void cross_prim(
+GKYL_CU_D static void
+cross_prim(
   const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs, const int *idx,
   const double *alpha_E, const double m_self, const double *moms_self, const double *prim_moms_self,
   const double m_other, const double *moms_other, const double *prim_moms_other,

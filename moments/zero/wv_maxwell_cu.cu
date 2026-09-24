@@ -11,7 +11,8 @@ extern "C" {
 
 // CUDA kernel to set device pointers to maxwell kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void wv_maxwell_set_cu_dev_ptrs(struct wv_maxwell *maxwell)
+__global__ static void
+wv_maxwell_set_cu_dev_ptrs(struct wv_maxwell *maxwell)
 {
   maxwell->eqn.waves_func = wave;
   maxwell->eqn.qfluct_func = qfluct;
@@ -30,7 +31,8 @@ __global__ static void wv_maxwell_set_cu_dev_ptrs(struct wv_maxwell *maxwell)
   maxwell->eqn.cons_to_diag = maxwell_cons_to_diag;
 }
 
-struct gkyl_wv_eqn *gkyl_wv_maxwell_cu_dev_new(double c, double e_fact, double b_fact)
+struct gkyl_wv_eqn *
+gkyl_wv_maxwell_cu_dev_new(double c, double e_fact, double b_fact)
 {
   struct wv_maxwell *maxwell = (struct wv_maxwell *)gkyl_malloc(sizeof(struct wv_maxwell));
 

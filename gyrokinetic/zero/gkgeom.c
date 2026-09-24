@@ -34,12 +34,14 @@ struct gkyl_gkgeom {
 };
 
 // some helper functions
-static inline double choose_closest(double ref, double R[2], double out[2])
+static inline double
+choose_closest(double ref, double R[2], double out[2])
 {
   return fabs(R[0] - ref) < fabs(R[1] - ref) ? out[0] : out[1];
 }
 
-static inline double SQ(double x)
+static inline double
+SQ(double x)
 {
   return x * x;
 }
@@ -255,7 +257,8 @@ struct contour_ctx {
 };
 
 // Function to pass to numerical quadrature to integrate along a contour
-static inline double contour_func(double Z, void *ctx)
+static inline double
+contour_func(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
@@ -273,7 +276,8 @@ static inline double contour_func(double Z, void *ctx)
 // over z-cells. This needs to be done as the DG representation is,
 // well, discontinuous, and adaptive quadrature struggles with such
 // functions.
-static double integrate_psi_contour_memo(
+static double
+integrate_psi_contour_memo(
   const gkyl_gkgeom *geo, double psi, double zmin, double zmax, double rclose, bool use_memo,
   bool fill_memo, double *memo
 )
@@ -328,7 +332,8 @@ struct arc_length_ctx {
 };
 
 // Function to pass to root-finder to find Z location for given arc-length
-static inline double arc_length_func(double Z, void *ctx)
+static inline double
+arc_length_func(double Z, void *ctx)
 {
   struct arc_length_ctx *actx = ctx;
   double *arc_memo = actx->arc_memo;
@@ -338,7 +343,8 @@ static inline double arc_length_func(double Z, void *ctx)
   return ival;
 }
 
-gkyl_gkgeom *gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
+gkyl_gkgeom *
+gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
 {
   struct gkyl_gkgeom *geo = gkyl_malloc(sizeof(*geo));
 
@@ -368,14 +374,16 @@ gkyl_gkgeom *gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
   return geo;
 }
 
-double gkyl_gkgeom_integrate_psi_contour(
+double
+gkyl_gkgeom_integrate_psi_contour(
   const gkyl_gkgeom *geo, double psi, double zmin, double zmax, double rclose
 )
 {
   return integrate_psi_contour_memo(geo, psi, zmin, zmax, rclose, false, false, 0);
 }
 
-int gkyl_gkgeom_R_psiZ(
+int
+gkyl_gkgeom_R_psiZ(
   const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots, double *R, double *dR
 )
 {
@@ -399,7 +407,8 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange, struct gkyl_a
   gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
 }
 
-void gkyl_gkgeom_calcgeom(
+void
+gkyl_gkgeom_calcgeom(
   const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp *inp, struct gkyl_array *mapc2p
 )
 {
@@ -509,12 +518,14 @@ void gkyl_gkgeom_calcgeom(
   gkyl_array_release(mc2p);
 }
 
-struct gkyl_gkgeom_stat gkyl_gkgeom_get_stat(const gkyl_gkgeom *geo)
+struct gkyl_gkgeom_stat
+gkyl_gkgeom_get_stat(const gkyl_gkgeom *geo)
 {
   return geo->stat;
 }
 
-void gkyl_gkgeom_release(gkyl_gkgeom *geo)
+void
+gkyl_gkgeom_release(gkyl_gkgeom *geo)
 {
   gkyl_array_release(geo->psiRZ);
   gkyl_free(geo);

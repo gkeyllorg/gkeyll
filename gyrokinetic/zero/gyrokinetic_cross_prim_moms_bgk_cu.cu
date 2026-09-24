@@ -12,7 +12,8 @@ extern "C" {
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk_priv.h>
 }
 
-__global__ void gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu_kernel(
+__global__ void
+gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu_kernel(
   gkyl_gyrokinetic_cross_prim_moms_bgk *up, struct gkyl_range conf_range, double delta_sr,
   double betap1, double m_self, const struct gkyl_array *prim_moms_self, double m_other,
   const struct gkyl_array *prim_moms_other, struct gkyl_array *prim_moms_cross
@@ -42,7 +43,8 @@ __global__ void gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu_kernel(
 }
 
 // Host-side wrapper for cross BGK moments
-void gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(
+void
+gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(
   gkyl_gyrokinetic_cross_prim_moms_bgk *up, const struct gkyl_range *conf_range, double delta_sr,
   double betap1, double m_self, const struct gkyl_array *prim_moms_self, double m_other,
   const struct gkyl_array *prim_moms_other, struct gkyl_array *prim_moms_cross
@@ -56,14 +58,16 @@ void gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(
   );
 }
 
-__global__ static void set_gyrokinetic_cross_prim_moms_bgk_cu_ptrs(
+__global__ static void
+set_gyrokinetic_cross_prim_moms_bgk_cu_ptrs(
   struct gkyl_gyrokinetic_cross_prim_moms_bgk *up, int cdim, int vdim, int poly_order
 )
 {
   up->cross_prim_moms_calc = choose_gyrokinetic_cross_prim_moms_bgk_kern(cdim, vdim, poly_order);
 }
 
-gkyl_gyrokinetic_cross_prim_moms_bgk *gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new(
+gkyl_gyrokinetic_cross_prim_moms_bgk *
+gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new(
   const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis
 )
 {

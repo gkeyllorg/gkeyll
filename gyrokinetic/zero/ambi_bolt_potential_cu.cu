@@ -10,7 +10,8 @@ extern "C" {
 // CUDA kernel to set device pointers to l2g, RHS src and solution
 // kernels. Doing function pointer stuff in here avoids troublesome
 // cudaMemcpyFromSymbol.
-__global__ static void ambi_bolt_potential_set_cu_ker_ptrs(
+__global__ static void
+ambi_bolt_potential_set_cu_ker_ptrs(
   struct gkyl_ambi_bolt_potential_kernels *kers, enum gkyl_basis_type b_type, int dim,
   int poly_order
 )
@@ -18,15 +19,15 @@ __global__ static void ambi_bolt_potential_set_cu_ker_ptrs(
   const sheath_calc_kern_edge_list *sheath_calc_list;
   const phi_calc_kern_list *phi_calc_list;
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    sheath_calc_list = ser_sheath_calc_list;
-    phi_calc_list = ser_phi_calc_list;
-    break;
-    //    case GKYL_BASIS_MODAL_TENSOR:
-    //      break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      sheath_calc_list = ser_sheath_calc_list;
+      phi_calc_list = ser_phi_calc_list;
+      break;
+      //    case GKYL_BASIS_MODAL_TENSOR:
+      //      break;
+    default:
+      assert(false);
+      break;
   }
   for (int k = 0; k < 2; k++) {
     kers->sheath_calc[k] = CSHEATHK(sheath_calc_list, dim, poly_order, k);
@@ -36,7 +37,8 @@ __global__ static void ambi_bolt_potential_set_cu_ker_ptrs(
   ;
 }
 
-__global__ static void gkyl_ambi_bolt_potential_sheath_calc_cu_ker(
+__global__ static void
+gkyl_ambi_bolt_potential_sheath_calc_cu_ker(
   double dz, double charge_e, double mass_e, double temp_e,
   struct gkyl_ambi_bolt_potential_kernels *kers, enum gkyl_edge_loc edge, struct gkyl_range skin_r,
   struct gkyl_range ghost_r, const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
@@ -77,7 +79,8 @@ __global__ static void gkyl_ambi_bolt_potential_sheath_calc_cu_ker(
   }
 }
 
-__global__ static void gkyl_ambi_bolt_potential_phi_calc_cu_ker(
+__global__ static void
+gkyl_ambi_bolt_potential_phi_calc_cu_ker(
   double charge_e, double temp_e, struct gkyl_ambi_bolt_potential_kernels *kers,
   struct gkyl_range local_r, struct gkyl_range extlocal_r, const struct gkyl_array *m0i,
   const struct gkyl_array *sheath_vals, struct gkyl_array *phi
@@ -110,14 +113,16 @@ __global__ static void gkyl_ambi_bolt_potential_phi_calc_cu_ker(
   }
 }
 
-void ambi_bolt_potential_choose_kernels_cu(
+void
+ambi_bolt_potential_choose_kernels_cu(
   const struct gkyl_basis *basis, struct gkyl_ambi_bolt_potential_kernels *kers
 )
 {
   ambi_bolt_potential_set_cu_ker_ptrs<<<1, 1>>>(kers, basis->b_type, basis->ndim, basis->poly_order);
 }
 
-void gkyl_ambi_bolt_potential_sheath_calc_cu(
+void
+gkyl_ambi_bolt_potential_sheath_calc_cu(
   struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge, const struct gkyl_range *skin_r,
   const struct gkyl_range *ghost_r, const struct gkyl_array *cmag,
   const struct gkyl_array *jacobtot_inv, const struct gkyl_array *gammai,
@@ -133,7 +138,8 @@ void gkyl_ambi_bolt_potential_sheath_calc_cu(
   );
 }
 
-void gkyl_ambi_bolt_potential_phi_calc_cu(
+void
+gkyl_ambi_bolt_potential_phi_calc_cu(
   struct gkyl_ambi_bolt_potential *up, const struct gkyl_range *local_r,
   const struct gkyl_range *extlocal_r, const struct gkyl_array *m0i,
   const struct gkyl_array *sheath_vals, struct gkyl_array *phi

@@ -3,7 +3,8 @@
 #include <gkyl_eval_offset_fd.h>
 #include <gkyl_rect_decomp.h>
 
-void elc_field_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+elc_field_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = x + 0.1;
@@ -11,7 +12,8 @@ void elc_field_1d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = x * x * x + 0.3;
 }
 
-void test_eval_offset_fd_1d_ho()
+void
+test_eval_offset_fd_1d_ho()
 {
   double lower[] = {-2.0}, upper[] = {2.0};
   int cells[] = {2};
@@ -20,8 +22,12 @@ void test_eval_offset_fd_1d_ho()
 
   struct gkyl_offset_descr offsets[] = {{0.0}, {-0.5}, {-0.5}};
 
-  struct gkyl_eval_offset_fd *ev = gkyl_eval_offset_fd_new(&(struct gkyl_eval_offset_fd_inp
-  ){.grid = &grid, .num_ret_vals = 3, .offsets = offsets, .eval = elc_field_1d});
+  struct gkyl_eval_offset_fd *ev = gkyl_eval_offset_fd_new(&(struct gkyl_eval_offset_fd_inp){
+    .grid = &grid,
+    .num_ret_vals = 3,
+    .offsets = offsets,
+    .eval = elc_field_1d,
+  });
 
   int nghost[GKYL_MAX_DIM] = {0};
   struct gkyl_range arr_range, arr_ext_range;

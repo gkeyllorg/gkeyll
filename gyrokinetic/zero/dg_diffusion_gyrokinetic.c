@@ -9,7 +9,8 @@
 #include <gkyl_dg_diffusion_gyrokinetic_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count *ref)
+void
+gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -25,7 +26,8 @@ void gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count *ref)
   gkyl_free(diffusion);
 }
 
-void gkyl_dg_diffusion_gyrokinetic_set_auxfields(
+void
+gkyl_dg_diffusion_gyrokinetic_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gyrokinetic_auxfields auxin
 )
 {
@@ -42,7 +44,8 @@ void gkyl_dg_diffusion_gyrokinetic_set_auxfields(
   diffusion->auxfields.jacobgeo_inv = auxin.jacobgeo_inv;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_diffusion_gyrokinetic_new(
+struct gkyl_dg_eqn *
+gkyl_dg_diffusion_gyrokinetic_new(
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const,
   const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, bool use_gpu
 )
@@ -79,37 +82,37 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gyrokinetic_new(
   const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_diagz_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = diffusion->const_coeff ? ser_vol_kernels_constcoeff : ser_vol_kernels_varcoeff;
-    surfx_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfx_kernels_constcoeff :
-                                             ser_gyrokinetic_surfx_kernels_varcoeff;
-    surfy_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfy_kernels_constcoeff :
-                                             ser_gyrokinetic_surfy_kernels_varcoeff;
-    surfz_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfz_kernels_constcoeff :
-                                             ser_gyrokinetic_surfz_kernels_varcoeff;
-    boundary_surfx_kernels = diffusion->const_coeff ?
-                               ser_gyrokinetic_boundary_surfx_kernels_constcoeff :
-                               ser_gyrokinetic_boundary_surfx_kernels_varcoeff;
-    boundary_surfy_kernels = diffusion->const_coeff ?
-                               ser_gyrokinetic_boundary_surfy_kernels_constcoeff :
-                               ser_gyrokinetic_boundary_surfy_kernels_varcoeff;
-    boundary_surfz_kernels = diffusion->const_coeff ?
-                               ser_gyrokinetic_boundary_surfz_kernels_constcoeff :
-                               ser_gyrokinetic_boundary_surfz_kernels_varcoeff;
-    boundary_diagx_kernels = diffusion->const_coeff ?
-                               ser_gyrokinetic_boundary_diagx_kernels_constcoeff :
-                               ser_gyrokinetic_boundary_diagx_kernels_varcoeff;
-    boundary_diagy_kernels = diffusion->const_coeff ?
-                               ser_gyrokinetic_boundary_diagy_kernels_constcoeff :
-                               ser_gyrokinetic_boundary_diagy_kernels_varcoeff;
-    boundary_diagz_kernels = diffusion->const_coeff ?
-                               ser_gyrokinetic_boundary_diagz_kernels_constcoeff :
-                               ser_gyrokinetic_boundary_diagz_kernels_varcoeff;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = diffusion->const_coeff ? ser_vol_kernels_constcoeff : ser_vol_kernels_varcoeff;
+      surfx_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfx_kernels_constcoeff :
+                                               ser_gyrokinetic_surfx_kernels_varcoeff;
+      surfy_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfy_kernels_constcoeff :
+                                               ser_gyrokinetic_surfy_kernels_varcoeff;
+      surfz_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfz_kernels_constcoeff :
+                                               ser_gyrokinetic_surfz_kernels_varcoeff;
+      boundary_surfx_kernels = diffusion->const_coeff ?
+                                 ser_gyrokinetic_boundary_surfx_kernels_constcoeff :
+                                 ser_gyrokinetic_boundary_surfx_kernels_varcoeff;
+      boundary_surfy_kernels = diffusion->const_coeff ?
+                                 ser_gyrokinetic_boundary_surfy_kernels_constcoeff :
+                                 ser_gyrokinetic_boundary_surfy_kernels_varcoeff;
+      boundary_surfz_kernels = diffusion->const_coeff ?
+                                 ser_gyrokinetic_boundary_surfz_kernels_constcoeff :
+                                 ser_gyrokinetic_boundary_surfz_kernels_varcoeff;
+      boundary_diagx_kernels = diffusion->const_coeff ?
+                                 ser_gyrokinetic_boundary_diagx_kernels_constcoeff :
+                                 ser_gyrokinetic_boundary_diagx_kernels_varcoeff;
+      boundary_diagy_kernels = diffusion->const_coeff ?
+                                 ser_gyrokinetic_boundary_diagy_kernels_constcoeff :
+                                 ser_gyrokinetic_boundary_diagy_kernels_varcoeff;
+      boundary_diagz_kernels = diffusion->const_coeff ?
+                                 ser_gyrokinetic_boundary_diagz_kernels_constcoeff :
+                                 ser_gyrokinetic_boundary_diagz_kernels_varcoeff;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   int dirs_linidx = diffdirs_linidx(diff_in_dir, cdim);

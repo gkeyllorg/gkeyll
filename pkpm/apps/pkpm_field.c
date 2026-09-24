@@ -10,7 +10,8 @@
 #include <time.h>
 
 // initialize field object
-struct pkpm_field *pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
+struct pkpm_field *
+pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
 {
   struct pkpm_field *f = gkyl_malloc(sizeof(struct pkpm_field));
 
@@ -213,7 +214,8 @@ struct pkpm_field *pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *
   return f;
 }
 
-void pkpm_field_apply_ic(gkyl_pkpm_app *app, struct pkpm_field *field, double t0)
+void
+pkpm_field_apply_ic(gkyl_pkpm_app *app, struct pkpm_field *field, double t0)
 {
   int poly_order = app->poly_order;
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
@@ -238,7 +240,8 @@ void pkpm_field_apply_ic(gkyl_pkpm_app *app, struct pkpm_field *field, double t0
   pkpm_field_calc_app_current(app, field, t0);
 }
 
-void pkpm_field_calc_ext_em(gkyl_pkpm_app *app, struct pkpm_field *field, double tm)
+void
+pkpm_field_calc_ext_em(gkyl_pkpm_app *app, struct pkpm_field *field, double tm)
 {
   if (field->has_ext_em) {
     gkyl_proj_on_basis_advance(field->ext_em_proj, tm, &app->local_ext, field->ext_em_host);
@@ -249,7 +252,8 @@ void pkpm_field_calc_ext_em(gkyl_pkpm_app *app, struct pkpm_field *field, double
   }
 }
 
-void pkpm_field_calc_app_current(gkyl_pkpm_app *app, struct pkpm_field *field, double tm)
+void
+pkpm_field_calc_app_current(gkyl_pkpm_app *app, struct pkpm_field *field, double tm)
 {
   if (field->has_app_current) {
     gkyl_proj_on_basis_advance(
@@ -262,7 +266,8 @@ void pkpm_field_calc_app_current(gkyl_pkpm_app *app, struct pkpm_field *field, d
   }
 }
 
-void pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em)
+void
+pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em)
 {
   struct timespec tm = gkyl_wall_clock();
 
@@ -286,7 +291,8 @@ void pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const st
   app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
-void pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_array *em)
+void
+pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_array *em)
 {
   if (field->limit_em) {
     struct timespec tm = gkyl_wall_clock();
@@ -301,7 +307,8 @@ void pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gky
   }
 }
 
-void pkpm_field_explicit_accumulate_current(
+void
+pkpm_field_explicit_accumulate_current(
   gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *fluidin[],
   struct gkyl_array *emout
 )
@@ -326,7 +333,8 @@ void pkpm_field_explicit_accumulate_current(
 
 // Compute the RHS for field update, returning maximum stable
 // time-step.
-double pkpm_field_rhs(
+double
+pkpm_field_rhs(
   gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs
 )
 {
@@ -363,7 +371,8 @@ double pkpm_field_rhs(
 
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for EM fields
-void pkpm_field_apply_bc(gkyl_pkpm_app *app, const struct pkpm_field *field, struct gkyl_array *f)
+void
+pkpm_field_apply_bc(gkyl_pkpm_app *app, const struct pkpm_field *field, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -380,27 +389,27 @@ void pkpm_field_apply_bc(gkyl_pkpm_app *app, const struct pkpm_field *field, str
   for (int d = 0; d < cdim; ++d) {
     if (is_np_bc[d]) {
       switch (field->lower_bc[d]) {
-      case GKYL_FIELD_COPY:
-      case GKYL_FIELD_PEC_WALL:
-      case GKYL_FIELD_SYM_WALL:
-      case GKYL_FIELD_RESERVOIR:
-        gkyl_bc_basic_advance(field->bc_lo[d], field->bc_buffer, f);
-        break;
+        case GKYL_FIELD_COPY:
+        case GKYL_FIELD_PEC_WALL:
+        case GKYL_FIELD_SYM_WALL:
+        case GKYL_FIELD_RESERVOIR:
+          gkyl_bc_basic_advance(field->bc_lo[d], field->bc_buffer, f);
+          break;
 
-      default:
-        break;
+        default:
+          break;
       }
 
       switch (field->upper_bc[d]) {
-      case GKYL_FIELD_COPY:
-      case GKYL_FIELD_PEC_WALL:
-      case GKYL_FIELD_SYM_WALL:
-      case GKYL_FIELD_RESERVOIR:
-        gkyl_bc_basic_advance(field->bc_up[d], field->bc_buffer, f);
-        break;
+        case GKYL_FIELD_COPY:
+        case GKYL_FIELD_PEC_WALL:
+        case GKYL_FIELD_SYM_WALL:
+        case GKYL_FIELD_RESERVOIR:
+          gkyl_bc_basic_advance(field->bc_up[d], field->bc_buffer, f);
+          break;
 
-      default:
-        break;
+        default:
+          break;
       }
     }
   }
@@ -410,7 +419,8 @@ void pkpm_field_apply_bc(gkyl_pkpm_app *app, const struct pkpm_field *field, str
   app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void pkpm_field_calc_energy(gkyl_pkpm_app *app, double tm, const struct pkpm_field *field)
+void
+pkpm_field_calc_energy(gkyl_pkpm_app *app, double tm, const struct pkpm_field *field)
 {
   for (int i = 0; i < 6; ++i) {
     gkyl_dg_calc_l2_range(&app->confBasis, i, field->em_energy, i, field->em, app->local);
@@ -432,7 +442,8 @@ void pkpm_field_calc_energy(gkyl_pkpm_app *app, double tm, const struct pkpm_fie
 }
 
 // release resources for field
-void pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
+void
+pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
 {
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);

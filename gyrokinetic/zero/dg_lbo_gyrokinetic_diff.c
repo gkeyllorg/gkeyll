@@ -9,7 +9,8 @@
 #include <gkyl_dg_lbo_gyrokinetic_diff_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_lbo_gyrokinetic_diff_free(const struct gkyl_ref_count *ref)
+void
+gkyl_lbo_gyrokinetic_diff_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_lbo_gyrokinetic_diff *lbo = container_of(base, struct dg_lbo_gyrokinetic_diff, eqn);
@@ -23,7 +24,8 @@ void gkyl_lbo_gyrokinetic_diff_free(const struct gkyl_ref_count *ref)
   gkyl_free(lbo);
 }
 
-void gkyl_lbo_gyrokinetic_diff_set_auxfields(
+void
+gkyl_lbo_gyrokinetic_diff_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxin
 )
 {
@@ -41,7 +43,8 @@ void gkyl_lbo_gyrokinetic_diff_set_auxfields(
   lbo->auxfields.m2self = auxin.m2self;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_gyrokinetic_diff_new(
+struct gkyl_dg_eqn *
+gkyl_dg_lbo_gyrokinetic_diff_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid, double mass,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu
@@ -76,24 +79,24 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_gyrokinetic_diff_new(
     *boundary_surf_mu_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    if (vel_map->is_identity) {
-      surf_vpar_kernels = ser_surf_vpar_notmapped_kernels;
-      surf_mu_kernels = ser_surf_mu_notmapped_kernels;
-      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_notmapped_kernels;
-      boundary_surf_mu_kernels = ser_boundary_surf_mu_notmapped_kernels;
-    } else {
-      surf_vpar_kernels = ser_surf_vpar_mapped_kernels;
-      surf_mu_kernels = ser_surf_mu_mapped_kernels;
-      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_mapped_kernels;
-      boundary_surf_mu_kernels = ser_boundary_surf_mu_mapped_kernels;
-    }
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      if (vel_map->is_identity) {
+        surf_vpar_kernels = ser_surf_vpar_notmapped_kernels;
+        surf_mu_kernels = ser_surf_mu_notmapped_kernels;
+        boundary_surf_vpar_kernels = ser_boundary_surf_vpar_notmapped_kernels;
+        boundary_surf_mu_kernels = ser_boundary_surf_mu_notmapped_kernels;
+      } else {
+        surf_vpar_kernels = ser_surf_vpar_mapped_kernels;
+        surf_mu_kernels = ser_surf_mu_mapped_kernels;
+        boundary_surf_vpar_kernels = ser_boundary_surf_vpar_mapped_kernels;
+        boundary_surf_mu_kernels = ser_boundary_surf_mu_mapped_kernels;
+      }
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   lbo->eqn.vol_term = CK(vol_kernels, cdim, vdim, poly_order);

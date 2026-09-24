@@ -10,7 +10,8 @@ struct multib_comm_conn {
   struct gkyl_multib_comm_conn mcc;
 };
 
-static void multib_comm_conn_free(const struct gkyl_ref_count *ref)
+static void
+multib_comm_conn_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_multib_comm_conn *mcc = container_of(ref, struct gkyl_multib_comm_conn, ref_count);
   struct multib_comm_conn *cconn = container_of(mcc, struct multib_comm_conn, mcc);
@@ -42,7 +43,8 @@ gkyl_multib_comm_conn_new(int num, const struct gkyl_comm_conn *comm_conn)
 }
 
 // private method to compute send/recv connections
-static struct gkyl_multib_comm_conn *multib_comm_conn_new_sr(
+static struct gkyl_multib_comm_conn *
+multib_comm_conn_new_sr(
   enum multib_send_recv sr, int block_id, int block_rank, const int *nghost,
   const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp
 )
@@ -154,7 +156,8 @@ static struct gkyl_multib_comm_conn *multib_comm_conn_new_sr(
   return mbcc;
 }
 
-void gkyl_multib_comm_conn_create_multib_ranges_in_dir(
+void
+gkyl_multib_comm_conn_create_multib_ranges_in_dir(
   struct gkyl_range *multib_range_ext, struct gkyl_range *multib_range, const int *nghost,
   int nconnected, int *block_list, int dir, struct gkyl_rect_decomp **decomp
 )
@@ -178,7 +181,8 @@ void gkyl_multib_comm_conn_create_multib_ranges_in_dir(
 }
 
 // public method to compute send connections from block list
-struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send_from_connections(
+struct gkyl_multib_comm_conn *
+gkyl_multib_comm_conn_new_send_from_connections(
   int block_id, int block_rank, const int *nghost, int nconnected, int *block_list, int dir,
   struct gkyl_rect_decomp **decomp
 )
@@ -262,7 +266,8 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send_from_connections(
 }
 
 // public method to compute recv connections from block list
-struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv_from_connections(
+struct gkyl_multib_comm_conn *
+gkyl_multib_comm_conn_new_recv_from_connections(
   int block_id, int block_rank, const int *nghost, int nconnected, int *block_list, int dir,
   struct gkyl_rect_decomp **decomp
 )
@@ -347,7 +352,8 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv_from_connections(
   return mbcc;
 }
 
-struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send(
+struct gkyl_multib_comm_conn *
+gkyl_multib_comm_conn_new_send(
   int block_id, int block_rank, const int *nghost, const struct gkyl_block_connections *block_conn,
   struct gkyl_rect_decomp **decomp
 )
@@ -357,7 +363,8 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send(
   );
 }
 
-struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv(
+struct gkyl_multib_comm_conn *
+gkyl_multib_comm_conn_new_recv(
   int block_id, int block_rank, const int *nghost, const struct gkyl_block_connections *block_conn,
   struct gkyl_rect_decomp **decomp
 )
@@ -367,7 +374,8 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv(
   );
 }
 
-int gkyl_multib_comm_conn_array_transfer(
+int
+gkyl_multib_comm_conn_array_transfer(
   struct gkyl_comm *comm, int num_blocks_local, const int *blocks_local,
   struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
   struct gkyl_array **arr_send, struct gkyl_array **arr_recv
@@ -393,14 +401,16 @@ int gkyl_multib_comm_conn_array_transfer(
   return err;
 }
 
-static void swap_comm_conns(struct gkyl_comm_conn *ccj, struct gkyl_comm_conn *cck)
+static void
+swap_comm_conns(struct gkyl_comm_conn *ccj, struct gkyl_comm_conn *cck)
 {
   struct gkyl_comm_conn cc_tmp = *ccj;
   *ccj = *cck;
   *cck = cc_tmp;
 }
 
-void gkyl_multib_comm_conn_sort(struct gkyl_multib_comm_conn *mbcc)
+void
+gkyl_multib_comm_conn_sort(struct gkyl_multib_comm_conn *mbcc)
 {
   int num_conn = mbcc->num_comm_conn;
   // First sort connections in ascending rank (w/ bubble sort).
@@ -451,7 +461,8 @@ void gkyl_multib_comm_conn_sort(struct gkyl_multib_comm_conn *mbcc)
   }
 }
 
-void gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn)
+void
+gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn)
 {
   if (cconn) {
     gkyl_ref_count_dec(&cconn->ref_count);

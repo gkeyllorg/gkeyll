@@ -16,14 +16,16 @@
 #include <gkyl_rect_grid.h>
 #include <math.h>
 
-static void mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+static void
+mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-static void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+static void
+bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0;
@@ -39,7 +41,8 @@ struct fixture {
   struct gkyl_position_map *pmap;
 };
 
-static void make_fixture(struct fixture *fx, int poly_order, int vdim)
+static void
+make_fixture(struct fixture *fx, int poly_order, int vdim)
 {
   const int cdim = 1;
   const int ndim = cdim + vdim;
@@ -104,7 +107,7 @@ static void make_fixture(struct fixture *fx, int poly_order, int vdim)
     .local_ext = confLocal_ext,
     .global = fx->confLocal,
     .global_ext = confLocal_ext,
-    .basis = fx->confBasis
+    .basis = fx->confBasis,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(
@@ -120,21 +123,24 @@ static void make_fixture(struct fixture *fx, int poly_order, int vdim)
     gkyl_velocity_map_new(c2p_in, grid, velGrid, local, local_ext, velLocal, velLocal_ext, false);
 }
 
-static void free_fixture(struct fixture *fx)
+static void
+free_fixture(struct fixture *fx)
 {
   gkyl_gk_geometry_release(fx->gk_geom);
   gkyl_velocity_map_release(fx->gvm);
   gkyl_position_map_release(fx->pmap);
 }
 
-static struct gkyl_mom_type *mk_mom(struct fixture *fx, enum gkyl_distribution_moments mt)
+static struct gkyl_mom_type *
+mk_mom(struct fixture *fx, enum gkyl_distribution_moments mt)
 {
   return gkyl_mom_gyrokinetic_new(
     &fx->confBasis, &fx->basis, &fx->confLocal, 1.0, 1.0, fx->gvm, fx->gk_geom, NULL, mt, false
   );
 }
 
-void test_mom_types_1x2v()
+void
+test_mom_types_1x2v()
 {
   const int vdim = 2;
   struct fixture fx;
@@ -172,7 +178,8 @@ void test_mom_types_1x2v()
   free_fixture(&fx);
 }
 
-void test_int_mom_types_1x2v()
+void
+test_int_mom_types_1x2v()
 {
   const int vdim = 2;
   struct fixture fx;
@@ -206,7 +213,8 @@ void test_int_mom_types_1x2v()
   free_fixture(&fx);
 }
 
-void test_mom_types_1x1v()
+void
+test_mom_types_1x1v()
 {
   const int vdim = 1;
   struct fixture fx;

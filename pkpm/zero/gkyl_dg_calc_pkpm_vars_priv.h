@@ -427,15 +427,15 @@ GKYL_CU_D static pkpm_set_t
 choose_pkpm_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_set_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_set_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_set_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_set_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -443,15 +443,15 @@ GKYL_CU_D static pkpm_copy_t
 choose_pkpm_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_copy_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_copy_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_copy_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_copy_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -459,15 +459,15 @@ GKYL_CU_D static pkpm_u_set_t
 choose_pkpm_u_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_u_set_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_u_set_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_u_set_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_u_set_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -475,15 +475,15 @@ GKYL_CU_D static pkpm_u_copy_t
 choose_pkpm_u_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_u_copy_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_u_copy_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_u_copy_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_u_copy_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -491,15 +491,15 @@ GKYL_CU_D static pkpm_pressure_t
 choose_pkpm_pressure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_pressure_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_pressure_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_pressure_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_pressure_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -507,15 +507,15 @@ GKYL_CU_D static pkpm_p_force_t
 choose_pkpm_p_force_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_p_force_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_p_force_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_p_force_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_p_force_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -523,15 +523,15 @@ GKYL_CU_D static pkpm_int_t
 choose_pkpm_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_int_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_int_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_int_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_int_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -539,15 +539,15 @@ GKYL_CU_D static pkpm_source_t
 choose_pkpm_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_source_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_source_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_source_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_source_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -555,15 +555,15 @@ GKYL_CU_D static pkpm_io_t
 choose_pkpm_io_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_io_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_io_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_io_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_io_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -571,31 +571,31 @@ GKYL_CU_D static pkpm_accel_t
 choose_pkpm_accel_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    if (dir == 0) {
-      return ser_pkpm_accel_x_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 1) {
-      return ser_pkpm_accel_y_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 2) {
-      return ser_pkpm_accel_z_kernels[cdim - 1].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    if (dir == 0) {
-      return ten_pkpm_accel_x_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 1) {
-      return ten_pkpm_accel_y_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 2) {
-      return ten_pkpm_accel_z_kernels[cdim - 1].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      if (dir == 0) {
+        return ser_pkpm_accel_x_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 1) {
+        return ser_pkpm_accel_y_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 2) {
+        return ser_pkpm_accel_z_kernels[cdim - 1].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (dir == 0) {
+        return ten_pkpm_accel_x_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 1) {
+        return ten_pkpm_accel_y_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 2) {
+        return ten_pkpm_accel_z_kernels[cdim - 1].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -603,31 +603,31 @@ GKYL_CU_D static pkpm_penalization_t
 choose_pkpm_penalization_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    if (dir == 0) {
-      return ser_pkpm_penalization_x_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 1) {
-      return ser_pkpm_penalization_y_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 2) {
-      return ser_pkpm_penalization_z_kernels[cdim - 1].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    if (dir == 0) {
-      return ten_pkpm_penalization_x_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 1) {
-      return ten_pkpm_penalization_y_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 2) {
-      return ten_pkpm_penalization_z_kernels[cdim - 1].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      if (dir == 0) {
+        return ser_pkpm_penalization_x_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 1) {
+        return ser_pkpm_penalization_y_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 2) {
+        return ser_pkpm_penalization_z_kernels[cdim - 1].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (dir == 0) {
+        return ten_pkpm_penalization_x_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 1) {
+        return ten_pkpm_penalization_y_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 2) {
+        return ten_pkpm_penalization_z_kernels[cdim - 1].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -635,30 +635,30 @@ GKYL_CU_D static pkpm_limiter_t
 choose_pkpm_limiter_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    if (dir == 0) {
-      return ser_pkpm_limiter_x_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 1) {
-      return ser_pkpm_limiter_y_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 2) {
-      return ser_pkpm_limiter_z_kernels[cdim - 1].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    if (dir == 0) {
-      return ten_pkpm_limiter_x_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 1) {
-      return ten_pkpm_limiter_y_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 2) {
-      return ten_pkpm_limiter_z_kernels[cdim - 1].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      if (dir == 0) {
+        return ser_pkpm_limiter_x_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 1) {
+        return ser_pkpm_limiter_y_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 2) {
+        return ser_pkpm_limiter_z_kernels[cdim - 1].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (dir == 0) {
+        return ten_pkpm_limiter_x_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 1) {
+        return ten_pkpm_limiter_y_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 2) {
+        return ten_pkpm_limiter_z_kernels[cdim - 1].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    default:
+      assert(false);
+      break;
   }
 }

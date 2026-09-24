@@ -5,7 +5,8 @@
 #include <gkyl_wv_burgers_priv.h>
 
 // Structural properties of the inviscid Burgers' equation object.
-void test_burgers_basic_roe()
+void
+test_burgers_basic_roe()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
@@ -17,10 +18,13 @@ void test_burgers_basic_roe()
   gkyl_wv_eqn_release(eqn);
 }
 
-void test_burgers_basic_lax()
+void
+test_burgers_basic_lax()
 {
-  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_inew(&(struct gkyl_wv_burgers_inp
-  ){.rp_type = WV_BURGERS_RP_LAX, .use_gpu = false});
+  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_inew(&(struct gkyl_wv_burgers_inp){
+    .rp_type = WV_BURGERS_RP_LAX,
+    .use_gpu = false,
+  });
 
   TEST_CHECK(eqn->num_equations == 1);
   TEST_CHECK(eqn->num_waves == 2);
@@ -29,7 +33,8 @@ void test_burgers_basic_lax()
 }
 
 // Flux F(u) = u^2/2 ; F'(u) = u.
-void test_burgers_flux()
+void
+test_burgers_flux()
 {
   double q[1] = {3.0};
   double flux[1], flux_deriv[1];
@@ -47,7 +52,8 @@ void test_burgers_flux()
 }
 
 // Max speed = |u|.
-void test_burgers_max_speed()
+void
+test_burgers_max_speed()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
@@ -59,7 +65,8 @@ void test_burgers_max_speed()
 }
 
 // Rotation is identity (scalar). Round-trip recovers state.
-void test_burgers_rotate()
+void
+test_burgers_rotate()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
@@ -77,7 +84,8 @@ void test_burgers_rotate()
 }
 
 // Riemann round-trip recovers state.
-void test_burgers_riem_roundtrip()
+void
+test_burgers_riem_roundtrip()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
@@ -90,7 +98,8 @@ void test_burgers_riem_roundtrip()
 }
 
 // Flux jump = F(qr) - F(ql) = (qr^2 - ql^2)/2.
-void test_burgers_flux_jump()
+void
+test_burgers_flux_jump()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
@@ -104,7 +113,8 @@ void test_burgers_flux_jump()
 }
 
 // check_inv always true.
-void test_burgers_check_inv()
+void
+test_burgers_check_inv()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
   double q[1] = {-10.0};
@@ -113,7 +123,8 @@ void test_burgers_check_inv()
 }
 
 // Source term is zero.
-void test_burgers_source()
+void
+test_burgers_source()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
   double q[1] = {5.0}, s[1] = {123.0};
@@ -125,7 +136,8 @@ void test_burgers_source()
 // Roe wave: wave = delta, speed = Roe average = (ul+ur)/2.
 // Conservation: amdq + apdq = F(qr) - F(ql).
 // For Burgers the Roe speed (ql+qr)/2 makes wave*s exactly the flux jump.
-void test_burgers_waves_roe()
+void
+test_burgers_waves_roe()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
@@ -157,7 +169,8 @@ void test_burgers_waves_roe()
 }
 
 // Roe with negative Roe speed -> left-going fluctuation.
-void test_burgers_waves_roe_negative()
+void
+test_burgers_waves_roe_negative()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
@@ -180,10 +193,13 @@ void test_burgers_waves_roe_negative()
 }
 
 // Lax solver: symmetric speeds +-amax, conservation holds.
-void test_burgers_waves_lax()
+void
+test_burgers_waves_lax()
 {
-  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_inew(&(struct gkyl_wv_burgers_inp
-  ){.rp_type = WV_BURGERS_RP_LAX, .use_gpu = false});
+  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_inew(&(struct gkyl_wv_burgers_inp){
+    .rp_type = WV_BURGERS_RP_LAX,
+    .use_gpu = false,
+  });
 
   double ql[1] = {1.0}, qr[1] = {4.0};
   double delta[1] = {qr[0] - ql[0]};

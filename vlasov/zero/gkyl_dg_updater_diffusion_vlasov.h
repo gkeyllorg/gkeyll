@@ -59,8 +59,9 @@ void gkyl_dg_updater_diffusion_vlasov_advance(
  * @param diffusion Updater object
  * @return timers
  */
-struct gkyl_dg_updater_diffusion_vlasov_tm
-gkyl_dg_updater_diffusion_vlasov_get_tm(const struct gkyl_dg_updater_diffusion_vlasov *up);
+struct gkyl_dg_updater_diffusion_vlasov_tm gkyl_dg_updater_diffusion_vlasov_get_tm(
+  const struct gkyl_dg_updater_diffusion_vlasov *up
+);
 
 /**
  * Delete updater.

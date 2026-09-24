@@ -34,7 +34,8 @@ __global__ void static gkyl_cart_modal_gkhybrid_vel_cu_dev_kern(struct gkyl_basi
   basis->modal_to_quad_nodal = m2qn_list[ndim].n2m[1];
 }
 
-void gkyl_cart_modal_gkhybrid_vel_cu_dev(struct gkyl_basis *basis, int vdim)
+void
+gkyl_cart_modal_gkhybrid_vel_cu_dev(struct gkyl_basis *basis, int vdim)
 {
   int ndim = vdim;
   assert(ndim > 0 && ndim < 3);
@@ -49,7 +50,8 @@ void gkyl_cart_modal_gkhybrid_vel_cu_dev(struct gkyl_basis *basis, int vdim)
   gkyl_cart_modal_gkhybrid_vel_cu_dev_kern<<<1, 1>>>(basis, vdim);
 }
 
-struct gkyl_basis *gkyl_cart_modal_gkhybrid_vel_cu_dev_new(int vdim)
+struct gkyl_basis *
+gkyl_cart_modal_gkhybrid_vel_cu_dev_new(int vdim)
 {
   struct gkyl_basis *basis = (struct gkyl_basis *)gkyl_cu_malloc(sizeof(struct gkyl_basis));
   gkyl_cart_modal_gkhybrid_vel_cu_dev(basis, vdim);

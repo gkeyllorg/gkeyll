@@ -11,7 +11,8 @@
 // "Choose Kernel" based on cdim and polynomial order
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void gkyl_diffusion_gen_free(const struct gkyl_ref_count *ref)
+void
+gkyl_diffusion_gen_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -26,7 +27,8 @@ void gkyl_diffusion_gen_free(const struct gkyl_ref_count *ref)
   gkyl_free(diffusion_gen);
 }
 
-void gkyl_diffusion_gen_set_auxfields(
+void
+gkyl_diffusion_gen_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin
 )
 {
@@ -41,7 +43,8 @@ void gkyl_diffusion_gen_set_auxfields(
   diffusion_gen->auxfields.Dij = auxin.Dij;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(
+struct gkyl_dg_eqn *
+gkyl_dg_diffusion_gen_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu
 )
 {
@@ -68,22 +71,22 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(
   const gkyl_dg_diffusion_gen_surf_kern_list *surf_zz_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_xx_kernels = ser_surf_xx_kernels;
-    surf_xy_kernels = ser_surf_xy_kernels;
-    surf_xz_kernels = ser_surf_xz_kernels;
-    surf_yx_kernels = ser_surf_yx_kernels;
-    surf_yy_kernels = ser_surf_yy_kernels;
-    surf_yz_kernels = ser_surf_yz_kernels;
-    surf_zx_kernels = ser_surf_zx_kernels;
-    surf_zy_kernels = ser_surf_zy_kernels;
-    surf_zz_kernels = ser_surf_zz_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_xx_kernels = ser_surf_xx_kernels;
+      surf_xy_kernels = ser_surf_xy_kernels;
+      surf_xz_kernels = ser_surf_xz_kernels;
+      surf_yx_kernels = ser_surf_yx_kernels;
+      surf_yy_kernels = ser_surf_yy_kernels;
+      surf_yz_kernels = ser_surf_yz_kernels;
+      surf_zx_kernels = ser_surf_zx_kernels;
+      surf_zy_kernels = ser_surf_zy_kernels;
+      surf_zz_kernels = ser_surf_zz_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   diffusion_gen->eqn.num_equations = 1;
@@ -123,7 +126,8 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_diffusion_gen_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range
 )
 {

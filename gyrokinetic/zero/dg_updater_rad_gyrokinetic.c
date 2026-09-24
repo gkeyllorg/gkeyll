@@ -10,7 +10,8 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_updater_collisions *gkyl_dg_updater_rad_gyrokinetic_new(
+struct gkyl_dg_updater_collisions *
+gkyl_dg_updater_rad_gyrokinetic_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_velocity_map *vel_map, void *aux_inp,
@@ -47,7 +48,8 @@ struct gkyl_dg_updater_collisions *gkyl_dg_updater_rad_gyrokinetic_new(
   return up;
 }
 
-void gkyl_dg_updater_rad_gyrokinetic_advance(
+void
+gkyl_dg_updater_rad_gyrokinetic_advance(
   struct gkyl_dg_updater_collisions *rad, const struct gkyl_range *update_rng,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
   struct gkyl_array *GKYL_RESTRICT rhs
@@ -64,7 +66,8 @@ gkyl_dg_updater_rad_gyrokinetic_get_tm(const struct gkyl_dg_updater_collisions *
   return (struct gkyl_dg_updater_rad_gyrokinetic_tm){.drag_tm = coll->drag_tm};
 }
 
-void gkyl_dg_updater_rad_gyrokinetic_release(struct gkyl_dg_updater_collisions *coll)
+void
+gkyl_dg_updater_rad_gyrokinetic_release(struct gkyl_dg_updater_collisions *coll)
 {
   gkyl_dg_eqn_release(coll->coll_drag);
   gkyl_hyper_dg_release(coll->drag);

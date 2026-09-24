@@ -12,7 +12,8 @@
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 
 // "derived" class constructors
-struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(
+struct gkyl_mom_calc_bcorr *
+gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis, double mass, const struct gkyl_velocity_map *vel_map,
   bool use_gpu

@@ -55,8 +55,9 @@ void gkyl_dg_updater_rad_vlasov_advance(
  * @param rad Updater object
  * @return timers
  */
-struct gkyl_dg_updater_rad_vlasov_tm
-gkyl_dg_updater_rad_vlasov_get_tm(const struct gkyl_dg_updater_rad_vlasov *rad);
+struct gkyl_dg_updater_rad_vlasov_tm gkyl_dg_updater_rad_vlasov_get_tm(
+  const struct gkyl_dg_updater_rad_vlasov *rad
+);
 
 /**
  * Delete updater.

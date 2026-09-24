@@ -8,7 +8,8 @@
 #include <gkyl_dg_calc_pkpm_em_coupling_priv.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_new(
+struct gkyl_dg_calc_pkpm_em_coupling *
+gkyl_dg_calc_pkpm_em_coupling_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, int num_species,
   double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, bool use_gpu
 )
@@ -55,7 +56,8 @@ struct gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_new(
   return up;
 }
 
-void gkyl_dg_calc_pkpm_em_coupling_advance(
+void
+gkyl_dg_calc_pkpm_em_coupling_advance(
   struct gkyl_dg_calc_pkpm_em_coupling *up, double dt,
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
   const struct gkyl_array *app_current, const struct gkyl_array *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
@@ -123,7 +125,8 @@ void gkyl_dg_calc_pkpm_em_coupling_advance(
   }
 }
 
-void gkyl_dg_calc_pkpm_em_coupling_release(gkyl_dg_calc_pkpm_em_coupling *up)
+void
+gkyl_dg_calc_pkpm_em_coupling_release(gkyl_dg_calc_pkpm_em_coupling *up)
 {
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);

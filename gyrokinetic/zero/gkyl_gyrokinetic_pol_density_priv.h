@@ -46,7 +46,8 @@ void gkyl_gyrokinetic_pol_density_advance_cu(
 );
 #endif
 
-GKYL_CU_D static void gk_pol_den_choose_kernel(
+GKYL_CU_D static void
+gk_pol_den_choose_kernel(
   struct gkyl_gyrokinetic_pol_density_kernels *kernels, struct gkyl_basis cbasis, bool use_gpu
 )
 {
@@ -62,11 +63,11 @@ GKYL_CU_D static void gk_pol_den_choose_kernel(
   int poly_order = cbasis.poly_order;
 
   switch (basis_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    kernels->pol_den = gk_pol_density_kern_list_ser[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kernels->pol_den = gk_pol_density_kern_list_ser[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }

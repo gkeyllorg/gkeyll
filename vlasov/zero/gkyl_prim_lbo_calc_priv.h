@@ -20,8 +20,9 @@ struct gkyl_prim_lbo_calc {
  * Create new updater to compute primitive moments of distribution function on
  * NV-GPU. See new() method for documentation.
  */
-struct gkyl_prim_lbo_calc *
-gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid, struct gkyl_prim_lbo_type *prim);
+struct gkyl_prim_lbo_calc *gkyl_prim_lbo_calc_cu_dev_new(
+  const struct gkyl_rect_grid *grid, struct gkyl_prim_lbo_type *prim
+);
 
 /**
  * Compute primitive moments of distribution function. The phase_rng and conf_rng

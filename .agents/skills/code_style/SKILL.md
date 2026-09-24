@@ -10,13 +10,17 @@ user-invocable: true
 
 # Code style
 
-The style itself (indentation, brace placement, spacing, etc.) is defined entirely
-by the root `.clang-format` file. Don't try to memorize or restate those rules --
-just run the formatter and let it decide:
+The style itself (indentation, brace placement, spacing, etc.) is defined by the
+root `.clang-format` file plus one rule in `ci/format.py` (designated-initializer
+layout, see below). Don't try to memorize or restate those rules -- just run the
+formatter and let it decide:
 
 ```
-clang-format -i <file>
+python3 ci/format.py <file>...
 ```
+
+Do not run bare `clang-format -i`: it packs designated initializers back onto one
+line. `ci/format.py` needs clang-format 18.1.8 on PATH (`pip install clang-format==18.1.8`).
 
 A `pre-commit` hook runs this automatically on commit, and CI (`.github/workflows/format-check.yml`)
 double-checks on push/PR, so a file that hasn't been run through clang-format will
@@ -35,12 +39,17 @@ to "match" the style either -- leave them exactly as they are:
 
 The pre-commit hook and CI already exclude both for this reason.
 
-## Trailing commas in initializer lists are stripped automatically
+## Designated initializers: the script decides, not the trailing comma
 
-Don't add a trailing comma after the last element of a struct/array
-initializer expecting it to force (or preserve) a multi-line layout --
-clang-format expands every element onto its own line whenever one is
-present, which is rarely what's wanted. `ci/strip-trailing-commas.py` removes
-any comma directly before a closing `}` before clang-format runs, via the
-same pre-commit hook and CI check as clang-format itself, so there's also no
-need to manually remove existing ones -- the tooling already does it.
+A designated initializer that fits on one line stays on one line. One that does
+not gets one member per line, first member below the `{`, closing `}` on its own
+line. `ci/format.py` enforces this by stripping every trailing comma, running
+clang-format, re-adding a trailing comma to each list that did not fit, and running
+clang-format again. So don't add or remove trailing commas to steer the layout;
+write the list any way you like and run the script.
+
+## Two conventions the formatter enforces that you should know when reading code
+
+- Every function *definition* has its return type on its own line, so
+  `grep '^gkyl_foo('` finds the definition. Declarations keep the type on the same line.
+- `case` labels are indented one level inside `switch`.

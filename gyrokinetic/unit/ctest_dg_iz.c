@@ -16,23 +16,27 @@ double emass = GKYL_ELECTRON_MASS;
 double check_fac = 1.e10;
 double B0 = 0.5;
 
-void eval_n_elc(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_n_elc(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0e19;
 }
-void eval_T_over_m_elc_40ev(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_T_over_m_elc_40ev(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 40.0 * echarge / emass;
 }
-void eval_T_over_m_elc_100ev(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_T_over_m_elc_100ev(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 100.0 * echarge / emass;
 }
 
-void test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
+void
+test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
 {
   int charge_state;
   if (type_ion == GKYL_ION_H) {
@@ -85,7 +89,7 @@ void test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
     .conf_rng = &confRange,
     .type_ion = type_ion,
     .charge_state = charge_state,
-    .type_self = GKYL_SELF_ELC
+    .type_self = GKYL_SELF_ELC,
   };
 
   // coll struct.
@@ -163,77 +167,95 @@ void test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
   gkyl_dg_iz_release(coll_iz_up);
 }
 
-void coll_iz_h_ho()
+void
+coll_iz_h_ho()
 {
   test_coll_iz(false, GKYL_ION_H);
 }
-void coll_iz_li_ho()
+void
+coll_iz_li_ho()
 {
   test_coll_iz(false, GKYL_ION_LI);
 }
-void coll_iz_ar()
+void
+coll_iz_ar()
 {
   test_coll_iz(false, GKYL_ION_AR);
 }
-void coll_iz_he()
+void
+coll_iz_he()
 {
   test_coll_iz(false, GKYL_ION_HE);
 }
-void coll_iz_be()
+void
+coll_iz_be()
 {
   test_coll_iz(false, GKYL_ION_BE);
 }
-void coll_iz_b()
+void
+coll_iz_b()
 {
   test_coll_iz(false, GKYL_ION_B);
 }
-void coll_iz_c()
+void
+coll_iz_c()
 {
   test_coll_iz(false, GKYL_ION_C);
 }
-void coll_iz_n()
+void
+coll_iz_n()
 {
   test_coll_iz(false, GKYL_ION_N);
 }
-void coll_iz_o()
+void
+coll_iz_o()
 {
   test_coll_iz(false, GKYL_ION_O);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void coll_iz_h_dev()
+void
+coll_iz_h_dev()
 {
   test_coll_iz(true, GKYL_ION_H);
 }
-void coll_iz_li_dev()
+void
+coll_iz_li_dev()
 {
   test_coll_iz(true, GKYL_ION_LI);
 }
-void coll_iz_ar_gpu()
+void
+coll_iz_ar_gpu()
 {
   test_coll_iz(true, GKYL_ION_AR);
 }
-void coll_iz_he_gpu()
+void
+coll_iz_he_gpu()
 {
   test_coll_iz(true, GKYL_ION_HE);
 }
-void coll_iz_be_gpu()
+void
+coll_iz_be_gpu()
 {
   test_coll_iz(true, GKYL_ION_BE);
 }
-void coll_iz_b_gpu()
+void
+coll_iz_b_gpu()
 {
   test_coll_iz(true, GKYL_ION_B);
 }
-void coll_iz_c_gpu()
+void
+coll_iz_c_gpu()
 {
   test_coll_iz(true, GKYL_ION_C);
 }
-void coll_iz_n_gpu()
+void
+coll_iz_n_gpu()
 {
   test_coll_iz(true, GKYL_ION_N);
 }
-void coll_iz_o_gpu()
+void
+coll_iz_o_gpu()
 {
   test_coll_iz(true, GKYL_ION_O);
 }

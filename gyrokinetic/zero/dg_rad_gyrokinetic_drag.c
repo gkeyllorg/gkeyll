@@ -9,7 +9,8 @@
 #include <gkyl_dg_rad_gyrokinetic_drag_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_rad_gyrokinetic_free(const struct gkyl_ref_count *ref)
+void
+gkyl_rad_gyrokinetic_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_rad_gyrokinetic_drag *grad = container_of(base, struct dg_rad_gyrokinetic_drag, eqn);
@@ -23,7 +24,8 @@ void gkyl_rad_gyrokinetic_free(const struct gkyl_ref_count *ref)
   gkyl_free(grad);
 }
 
-void gkyl_rad_gyrokinetic_drag_set_auxfields(
+void
+gkyl_rad_gyrokinetic_drag_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin
 )
 {
@@ -41,7 +43,8 @@ void gkyl_rad_gyrokinetic_drag_set_auxfields(
   grad->auxfields.nvsqnu = auxin.nvsqnu;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_rad_gyrokinetic_drag_new(
+struct gkyl_dg_eqn *
+gkyl_dg_rad_gyrokinetic_drag_new(
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_velocity_map *vel_map, bool use_gpu
@@ -75,17 +78,17 @@ struct gkyl_dg_eqn *gkyl_dg_rad_gyrokinetic_drag_new(
     *boundary_surf_mu_kernels;
 
   switch (conf_basis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_vpar_kernels = ser_surf_vpar_kernels;
-    surf_mu_kernels = ser_surf_mu_kernels;
-    boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
-    boundary_surf_mu_kernels = ser_boundary_surf_mu_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_vpar_kernels = ser_surf_vpar_kernels;
+      surf_mu_kernels = ser_surf_mu_kernels;
+      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
+      boundary_surf_mu_kernels = ser_boundary_surf_mu_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   grad->eqn.vol_term = CK(vol_kernels, cdim, vdim, poly_order);

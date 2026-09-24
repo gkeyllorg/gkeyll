@@ -58,8 +58,9 @@ GKYL_CU_D void gkyl_advect_flux_deriv(double a, const double *q, double *flux_de
 * @param qin Conserved variable vector (input).
 * @param wout Riemann variable vector (output).
 */
-GKYL_CU_D static inline void
-cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout);
+GKYL_CU_D static inline void cons_to_riem(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout
+);
 
 /**
 * Compute conserved variables given the Riemann variables.
@@ -69,8 +70,9 @@ cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *
 * @param win Riemann variable vector (input).
 * @param qout Conserved variable vector (output).
 */
-GKYL_CU_D static inline void
-riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout);
+GKYL_CU_D static inline void riem_to_cons(
+  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout
+);
 
 /**
 * Boundary condition function for applying wall boundary conditions for the linear advection equation.
@@ -275,8 +277,9 @@ GKYL_CU_D static void qfluct(
 * @param flux_jump Jump in flux vector (output).
 * @return Maximum wave speeds for states ql and qr.
 */
-GKYL_CU_D static double
-flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump);
+GKYL_CU_D static double flux_jump(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump
+);
 
 /**
 * Determine whether invariant domain of the linear advection equation is satisfied.
@@ -303,8 +306,9 @@ GKYL_CU_D static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q
 * @param qin Conserved variable vector (input).
 * @param diag Diagnostic variable vector (output).
 */
-GKYL_CU_D static inline void
-advect_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag);
+GKYL_CU_D static inline void advect_cons_to_diag(
+  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag
+);
 
 /**
 * Compute forcing/source term vector from conserved variable vector.
@@ -313,8 +317,9 @@ advect_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *di
 * @param qin Conserved variable vector (input).
 * @param sout Forcing/source term vector (output).
 */
-GKYL_CU_DH static inline void
-advect_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout);
+GKYL_CU_DH static inline void advect_source(
+  const struct gkyl_wv_eqn *eqn, const double *qin, double *sout
+);
 
 /**
 * Free linear advection equation object.

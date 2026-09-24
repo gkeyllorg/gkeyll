@@ -10,7 +10,8 @@ extern "C" {
 // CUDA kernel to set device pointers to l2g kernel function.
 // Doing function pointer stuff in here avoids troublesome
 // cudaMemcpyFromSymbol.
-__global__ static void fem_poisson_set_cu_l2gker_ptrs(
+__global__ static void
+fem_poisson_set_cu_l2gker_ptrs(
   struct gkyl_fem_poisson_kernels *kers, enum gkyl_basis_type b_type, int dim, int poly_order,
   const int *bckey
 )
@@ -20,13 +21,13 @@ __global__ static void fem_poisson_set_cu_l2gker_ptrs(
   const local2global_kern_bcx_list_2x *local2global_2x_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    local2global_1x_kernels = ser_loc2glob_list_1x;
-    local2global_2x_kernels = ser_loc2glob_list_2x;
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      local2global_1x_kernels = ser_loc2glob_list_1x;
+      local2global_2x_kernels = ser_loc2glob_list_2x;
+      break;
+    default:
+      assert(false);
+      break;
   }
 
   for (int k = 0; k < (int)(pow(2, dim) + 0.5); k++) {
@@ -41,7 +42,8 @@ __global__ static void fem_poisson_set_cu_l2gker_ptrs(
 }
 
 // CUDA kernel to set device pointers to RHS src and solution kernels.
-__global__ static void fem_poisson_set_cu_ker_ptrs(
+__global__ static void
+fem_poisson_set_cu_ker_ptrs(
   struct gkyl_fem_poisson_kernels *kers, enum gkyl_basis_type b_type, int dim, int poly_order,
   const int *bckey, bool isvareps
 )
@@ -52,25 +54,25 @@ __global__ static void fem_poisson_set_cu_ker_ptrs(
 
   if (isvareps) {
     switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      srcstencil_1x_kernels = ser_srcstencil_vareps_list_1x;
-      srcstencil_2x_kernels = ser_srcstencil_vareps_list_2x;
-      break;
-      //      case GKYL_BASIS_MODAL_TENSOR:
-      //        break;
-    default:
-      assert(false);
+      case GKYL_BASIS_MODAL_SERENDIPITY:
+        srcstencil_1x_kernels = ser_srcstencil_vareps_list_1x;
+        srcstencil_2x_kernels = ser_srcstencil_vareps_list_2x;
+        break;
+        //      case GKYL_BASIS_MODAL_TENSOR:
+        //        break;
+      default:
+        assert(false);
     }
   } else {
     switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      srcstencil_1x_kernels = ser_srcstencil_consteps_list_1x;
-      srcstencil_2x_kernels = ser_srcstencil_consteps_list_2x;
-      break;
-      //      case GKYL_BASIS_MODAL_TENSOR:
-      //        break;
-    default:
-      assert(false);
+      case GKYL_BASIS_MODAL_SERENDIPITY:
+        srcstencil_1x_kernels = ser_srcstencil_consteps_list_1x;
+        srcstencil_2x_kernels = ser_srcstencil_consteps_list_2x;
+        break;
+        //      case GKYL_BASIS_MODAL_TENSOR:
+        //        break;
+      default:
+        assert(false);
     }
   }
 
@@ -88,13 +90,13 @@ __global__ static void fem_poisson_set_cu_ker_ptrs(
   const solstencil_kern_list *solstencil_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    solstencil_kernels = ser_solstencil_list;
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    break;
-  default:
-    assert(false);
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      solstencil_kernels = ser_solstencil_list;
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      break;
+    default:
+      assert(false);
   }
 
   kers->solker = solstencil_kernels[dim].kernels[poly_order];
@@ -103,7 +105,8 @@ __global__ static void fem_poisson_set_cu_ker_ptrs(
 // CUDA kernel to set device pointers to biasing kernel functions.
 // Doing function pointer stuff in here avoids troublesome
 // cudaMemcpyFromSymbol.
-__global__ static void fem_poisson_set_cu_biasker_ptrs(
+__global__ static void
+fem_poisson_set_cu_biasker_ptrs(
   struct gkyl_fem_poisson_kernels *kers, enum gkyl_basis_type b_type, int dim, int poly_order,
   const int *bckey
 )
@@ -113,13 +116,13 @@ __global__ static void fem_poisson_set_cu_biasker_ptrs(
   const bias_src_kern_bcx_list_2x *bias_plane_2x_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    bias_plane_1x_kernels = ser_bias_src_list_1x;
-    bias_plane_2x_kernels = ser_bias_src_list_2x;
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      bias_plane_1x_kernels = ser_bias_src_list_1x;
+      bias_plane_2x_kernels = ser_bias_src_list_2x;
+      break;
+    default:
+      assert(false);
+      break;
   }
 
   for (int k = 0; k < (int)(pow(2, dim) + 0.5); k++) {
@@ -133,7 +136,8 @@ __global__ static void fem_poisson_set_cu_biasker_ptrs(
   }
 }
 
-void fem_poisson_choose_kernels_cu(
+void
+fem_poisson_choose_kernels_cu(
   const struct gkyl_basis *basis, const struct gkyl_poisson_bc *bcs, bool isvareps,
   const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers
 )
@@ -203,7 +207,8 @@ void fem_poisson_choose_kernels_cu(
   gkyl_cu_free(bckey_d);
 }
 
-__global__ void gkyl_fem_poisson_set_rhs_kernel(
+__global__ void
+gkyl_fem_poisson_set_rhs_kernel(
   struct gkyl_array *epsilon, bool isvareps, const double *dx, double *rhs_global,
   struct gkyl_array *rhs_local, struct gkyl_range range, const double *bcvals,
   const struct gkyl_array *phibc, struct gkyl_fem_poisson_kernels *kers
@@ -246,7 +251,8 @@ __global__ void gkyl_fem_poisson_set_rhs_kernel(
   }
 }
 
-__global__ void gkyl_fem_poisson_get_sol_kernel(
+__global__ void
+gkyl_fem_poisson_get_sol_kernel(
   struct gkyl_array *x_local, const double *x_global, struct gkyl_range range,
   struct gkyl_fem_poisson_kernels *kers
 )
@@ -284,7 +290,8 @@ __global__ void gkyl_fem_poisson_get_sol_kernel(
   }
 }
 
-__global__ void gkyl_fem_poisson_bias_src_kernel(
+__global__ void
+gkyl_fem_poisson_bias_src_kernel(
   double *rhs_global, struct gkyl_rect_grid grid, struct gkyl_range range,
   struct gkyl_fem_poisson_kernels *kers, int num_bias_plane,
   struct gkyl_poisson_bias_plane *bias_planes
@@ -327,7 +334,8 @@ __global__ void gkyl_fem_poisson_bias_src_kernel(
   }
 }
 
-void gkyl_fem_poisson_bias_src_enabled_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
+void
+gkyl_fem_poisson_bias_src_enabled_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
   gkyl_fem_poisson_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(
@@ -335,7 +343,8 @@ void gkyl_fem_poisson_bias_src_enabled_cu(gkyl_fem_poisson *up, struct gkyl_arra
   );
 }
 
-void gkyl_fem_poisson_set_rhs_cu(
+void
+gkyl_fem_poisson_set_rhs_cu(
   gkyl_fem_poisson *up, struct gkyl_array *rhsin, const struct gkyl_array *phibc
 )
 {
@@ -351,7 +360,8 @@ void gkyl_fem_poisson_set_rhs_cu(
   up->bias_plane_src(up, rhsin);
 }
 
-void gkyl_fem_poisson_solve_cu(gkyl_fem_poisson *up, struct gkyl_array *phiout)
+void
+gkyl_fem_poisson_solve_cu(gkyl_fem_poisson *up, struct gkyl_array *phiout)
 {
   // Do linear solve with cusolver.
   gkyl_culinsolver_solve(up->prob_cu);

@@ -14,7 +14,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu_kernel(
+__global__ void
+gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu_kernel(
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up, const struct gkyl_range conf_range,
   const struct gkyl_range conf_ext_range, struct gkyl_array *phi, struct gkyl_array *alpha_surf,
   struct gkyl_array *sgn_alpha_surf, struct gkyl_array *const_sgn_alpha
@@ -63,7 +64,8 @@ __global__ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu_kernel(
   }
 }
 // Host-side wrapper for configuration-space surface alpha computation.
-void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu(
+void
+gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu(
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_array *phi,
   struct gkyl_array *alpha_surf, struct gkyl_array *sgn_alpha_surf,
@@ -78,7 +80,8 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu(
   );
 }
 
-__global__ void gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel(
+__global__ void
+gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel(
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up, struct gkyl_range conf_range,
   struct gkyl_range x_range, const struct gkyl_array *phi_zonal, const struct gkyl_array *n_zonal,
   struct gkyl_array *adiabatic_coupling_phi_n
@@ -105,7 +108,8 @@ __global__ void gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel(
   }
 }
 
-__global__ void gkyl_canonical_pb_fluid_vars_source_cu_kernel(
+__global__ void
+gkyl_canonical_pb_fluid_vars_source_cu_kernel(
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up, struct gkyl_range conf_range,
   const struct gkyl_array *phi, const struct gkyl_array *n0,
   const struct gkyl_array *adiabatic_coupling_phi_n, struct gkyl_array *rhs
@@ -137,7 +141,8 @@ __global__ void gkyl_canonical_pb_fluid_vars_source_cu_kernel(
 }
 
 // Host-side wrapper for source update of canonical PB fluid systems.
-void gkyl_canonical_pb_fluid_vars_source_cu(
+void
+gkyl_canonical_pb_fluid_vars_source_cu(
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *phi, const struct gkyl_array *n0, const struct gkyl_array *fluid,
   struct gkyl_array *rhs
@@ -174,7 +179,8 @@ void gkyl_canonical_pb_fluid_vars_source_cu(
 
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(
+__global__ static void
+dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up, enum gkyl_basis_type b_type, int cdim,
   int poly_order, enum gkyl_eqn_type eqn_type, bool is_modified
 )
@@ -200,7 +206,8 @@ __global__ static void dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(
   }
 }
 
-gkyl_dg_calc_canonical_pb_fluid_vars *gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(
+gkyl_dg_calc_canonical_pb_fluid_vars *
+gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_ext_range,
   const struct gkyl_wv_eqn *wv_eqn
@@ -249,7 +256,7 @@ gkyl_dg_calc_canonical_pb_fluid_vars *gkyl_dg_calc_canonical_pb_fluid_vars_cu_de
         .local_avg_ext = &up->x_local_ext,
         .weight = NULL,
         .avg_dim = int_dim_y,
-        .use_gpu = true // We will perform the average on GPUs
+        .use_gpu = true, // We will perform the average on GPUs
       };
       up->int_y = gkyl_array_average_inew(&inp_int_y);
       up->phi_zonal = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);

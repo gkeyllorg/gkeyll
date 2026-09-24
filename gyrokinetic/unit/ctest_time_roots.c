@@ -83,7 +83,8 @@ quad_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
   return sol;
 }
 
-static inline double cub(double x)
+static inline double
+cub(double x)
 {
   return x * x * x;
 }
@@ -171,7 +172,8 @@ cub_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
   return sol;
 }
 
-static int getR(
+static int
+getR(
   const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid, struct gkyl_array *psiRZ,
   double psi, double Z, int nmaxroots, double *R, double *dR
 )
@@ -210,7 +212,8 @@ static int getR(
   return sidx;
 }
 
-static int getRcub(
+static int
+getRcub(
   const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid, struct gkyl_array *psiRZ,
   double psi, double Z, int nmaxroots, double *R, double *dR
 )
@@ -249,7 +252,8 @@ static int getRcub(
   return sidx;
 }
 
-void time_roots_compare_quad_and_cub_ho(void)
+void
+time_roots_compare_quad_and_cub_ho(void)
 {
   clock_t start, end;
   double cpu_time_used;
@@ -258,7 +262,7 @@ void time_roots_compare_quad_and_cub_ho(void)
     .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
-    .reflect = true
+    .reflect = true,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
@@ -274,12 +278,13 @@ void time_roots_compare_quad_and_cub_ho(void)
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   struct gkyl_basis basis;
   gkyl_cart_modal_tensor(&basis, 2, 3);
-  gkyl_proj_on_basis *projCub = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-  ){.grid = &grid,
+  gkyl_proj_on_basis *projCub = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &grid,
     .basis = &basis,
     .num_ret_vals = 1,
     .ctx = efit->evf->ctx,
-    .eval = efit->evf->eval_cubic});
+    .eval = efit->evf->eval_cubic,
+  });
   struct gkyl_array *psi_cubic_DG = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis_advance(projCub, 0.0, &local, psi_cubic_DG);
   // gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic_DG, "psi_cubic.gkyl");

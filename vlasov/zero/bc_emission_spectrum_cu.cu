@@ -9,7 +9,8 @@ extern "C" {
 // start ID for use in various loops
 #define START_ID (threadIdx.x + blockIdx.x * blockDim.x)
 
-__global__ static void gkyl_bc_emission_spectrum_set_exterm_params_cu_ker(
+__global__ static void
+gkyl_bc_emission_spectrum_set_exterm_params_cu_ker(
   struct gkyl_emission_spectrum_model *spectrum_model,
   struct gkyl_emission_yield_model *yield_model, int cdim, int vdim, double mass_in, double mass_out
 )
@@ -23,7 +24,8 @@ __global__ static void gkyl_bc_emission_spectrum_set_exterm_params_cu_ker(
   yield_model->mass = mass_in;
 }
 
-__global__ static void gkyl_bc_emission_spectrum_sey_calc_cu_ker(
+__global__ static void
+gkyl_bc_emission_spectrum_sey_calc_cu_ker(
   struct gkyl_rect_grid grid, const struct gkyl_range ghost_r, struct gkyl_array *yield,
   struct gkyl_emission_yield_model *yield_model
 )
@@ -45,7 +47,8 @@ __global__ static void gkyl_bc_emission_spectrum_sey_calc_cu_ker(
   }
 }
 
-__global__ static void gkyl_bc_emission_spectrum_advance_cu_weight_ker(
+__global__ static void
+gkyl_bc_emission_spectrum_advance_cu_weight_ker(
   int cdim, int dir, enum gkyl_edge_loc edge, const struct gkyl_array *bflux,
   struct gkyl_array *weight, struct gkyl_rect_grid grid, struct gkyl_array *yield,
   const struct gkyl_range impact_buff_r, const struct gkyl_range impact_cbuff_r
@@ -84,7 +87,8 @@ __global__ static void gkyl_bc_emission_spectrum_advance_cu_weight_ker(
   }
 }
 
-__global__ static void gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(
+__global__ static void
+gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(
   const struct gkyl_array *spectrum, struct gkyl_array *f_emit, struct gkyl_array *weight,
   struct gkyl_array *k, const struct gkyl_array *flux, const struct gkyl_range emit_buff_r,
   const struct gkyl_range impact_cbuff_r, struct gkyl_emission_spectrum_model *spectrum_model
@@ -118,7 +122,8 @@ __global__ static void gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(
   }
 }
 
-void gkyl_bc_emission_spectrum_set_extern_params_cu(
+void
+gkyl_bc_emission_spectrum_set_extern_params_cu(
   const struct gkyl_bc_emission_spectrum *up, int cdim, int vdim, double mass_in, double mass_out
 )
 {
@@ -127,7 +132,8 @@ void gkyl_bc_emission_spectrum_set_extern_params_cu(
   );
 }
 
-void gkyl_bc_emission_spectrum_sey_calc_cu(
+void
+gkyl_bc_emission_spectrum_sey_calc_cu(
   const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid,
   const struct gkyl_range *impact_buff_r
 )
@@ -139,7 +145,8 @@ void gkyl_bc_emission_spectrum_sey_calc_cu(
   );
 }
 
-void gkyl_bc_emission_spectrum_advance_cu(
+void
+gkyl_bc_emission_spectrum_advance_cu(
   const struct gkyl_bc_emission_spectrum *up, struct gkyl_range *impact_buff_r,
   struct gkyl_range *impact_cbuff_r, struct gkyl_range *emit_buff_r, struct gkyl_array *bflux,
   struct gkyl_array *f_emit, struct gkyl_array *yield, struct gkyl_array *spectrum,

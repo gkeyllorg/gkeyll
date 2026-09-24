@@ -13,12 +13,14 @@ extern "C" {
 }
 
 // CUDA kernel to set device pointers to kernels.
-__global__ static void gkyl_dg_cx_set_cu_dev_ptrs(struct gkyl_dg_cx *up, struct gkyl_basis cbasis)
+__global__ static void
+gkyl_dg_cx_set_cu_dev_ptrs(struct gkyl_dg_cx *up, struct gkyl_basis cbasis)
 {
   up->react_rate = choose_kern(cbasis);
 };
 
-__global__ static void gkyl_cx_react_rate_cu_ker(
+__global__ static void
+gkyl_cx_react_rate_cu_ker(
   struct gkyl_dg_cx *up, const struct gkyl_range conf_rng,
   const struct gkyl_array *maxwellian_moms_ion, const struct gkyl_array *maxwellian_moms_neut,
   const struct gkyl_array *upar_b_i, double vt_sq_ion_min, double vt_sq_neut_min,
@@ -47,7 +49,8 @@ __global__ static void gkyl_cx_react_rate_cu_ker(
   }
 }
 
-void gkyl_dg_cx_coll_cu(
+void
+gkyl_dg_cx_coll_cu(
   const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
   struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
   struct gkyl_array *cflrate
@@ -59,7 +62,8 @@ void gkyl_dg_cx_coll_cu(
   );
 }
 
-gkyl_dg_cx *gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp)
+gkyl_dg_cx *
+gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp)
 {
   gkyl_dg_cx *up = (struct gkyl_dg_cx *)gkyl_malloc(sizeof(*up));
 

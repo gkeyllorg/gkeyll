@@ -8,7 +8,8 @@
 #include <gkyl_mom_vlasov_sr_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_mom_vm_sr_free(const struct gkyl_ref_count *ref)
+void
+gkyl_mom_vm_sr_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
   if (GKYL_IS_CU_ALLOC(momt->flags)) {
@@ -17,7 +18,8 @@ void gkyl_mom_vm_sr_free(const struct gkyl_ref_count *ref)
   gkyl_free(momt);
 }
 
-void gkyl_mom_vlasov_sr_set_auxfields(
+void
+gkyl_mom_vlasov_sr_set_auxfields(
   const struct gkyl_mom_type *momt, struct gkyl_mom_vlasov_sr_auxfields auxin
 )
 {
@@ -32,7 +34,8 @@ void gkyl_mom_vlasov_sr_set_auxfields(
   mom_vm_sr->auxfields.gamma = auxin.gamma;
 }
 
-struct gkyl_mom_type *gkyl_mom_vlasov_sr_new(
+struct gkyl_mom_type *
+gkyl_mom_vlasov_sr_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
   enum gkyl_distribution_moments mom_type, bool use_gpu
@@ -60,18 +63,18 @@ struct gkyl_mom_type *gkyl_mom_vlasov_sr_new(
     *Ni_kernels, *Tij_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    m0_kernels = ser_m0_kernels;
-    m1i_kernels = ser_m1i_kernels;
-    m2_kernels = ser_m2_kernels;
-    m3i_kernels = ser_m3i_kernels;
-    Ni_kernels = ser_Ni_kernels;
-    Tij_kernels = ser_Tij_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      m0_kernels = ser_m0_kernels;
+      m1i_kernels = ser_m1i_kernels;
+      m2_kernels = ser_m2_kernels;
+      m3i_kernels = ser_m3i_kernels;
+      Ni_kernels = ser_Ni_kernels;
+      Tij_kernels = ser_Tij_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   if (mom_type == GKYL_F_MOMENT_M0) { // density (GammaV*n)
@@ -130,7 +133,8 @@ struct gkyl_mom_type *gkyl_mom_vlasov_sr_new(
   return &mom_vm_sr->momt;
 }
 
-struct gkyl_mom_type *gkyl_int_mom_vlasov_sr_new(
+struct gkyl_mom_type *
+gkyl_int_mom_vlasov_sr_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
   enum gkyl_distribution_moments mom_type, bool use_gpu
@@ -158,13 +162,13 @@ struct gkyl_mom_type *gkyl_int_mom_vlasov_sr_new(
 
   // Set kernel pointer.
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    int_five_moments_kernels = ser_int_five_moments_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      int_five_moments_kernels = ser_int_five_moments_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   assert(cv_index[cdim].vdim[vdim] != -1);

@@ -10,14 +10,16 @@ struct range {
   struct gkyl_ref_count ref_count;
 };
 
-void range_free(const struct gkyl_ref_count *rc)
+void
+range_free(const struct gkyl_ref_count *rc)
 {
   struct range *on_dev = container_of(rc, struct range, ref_count);
   free_called = 1;
   gkyl_free(on_dev);
 }
 
-struct range *range_new(int value)
+struct range *
+range_new(int value)
 {
   struct range *rng = gkyl_malloc(sizeof(*rng));
   rng->value = value;
@@ -25,18 +27,21 @@ struct range *range_new(int value)
   return rng;
 }
 
-struct range *range_acquire(const struct range *rng)
+struct range *
+range_acquire(const struct range *rng)
 {
   gkyl_ref_count_inc(&rng->ref_count);
   return (struct range *)rng;
 }
 
-void range_release(const struct range *rng)
+void
+range_release(const struct range *rng)
 {
   gkyl_ref_count_dec(&rng->ref_count);
 }
 
-void test_ref_count_ho()
+void
+test_ref_count_ho()
 {
   struct range *rng = range_new(10);
   TEST_CHECK(rng->ref_count.count == 1);

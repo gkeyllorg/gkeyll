@@ -33,8 +33,9 @@ struct gkyl_multib_comm_conn {
  * @param comm_conn List of individual communication connections
  * @return New communication connection object
  */
-struct gkyl_multib_comm_conn *
-gkyl_multib_comm_conn_new(int num, const struct gkyl_comm_conn *comm_conn);
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new(
+  int num, const struct gkyl_comm_conn *comm_conn
+);
 
 /**
  * Construct the send communication connections for a rank from its

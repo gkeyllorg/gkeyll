@@ -10,7 +10,8 @@ extern "C" {
 #include <gkyl_mom_bcorr_lbo_vlasov_priv.h>
 }
 
-__global__ static void gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs(
+__global__ static void
+gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs(
   struct mom_type_bcorr_lbo_vlasov *mom_bcorr, enum gkyl_basis_type b_type, int vdim,
   int poly_order, int tblidx
 )
@@ -21,23 +22,24 @@ __global__ static void gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs(
   const gkyl_mom_bcorr_lbo_vlasov_kern_list *mom_bcorr_lbo_vlasov_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    mom_bcorr_lbo_vlasov_kernels = ser_mom_bcorr_lbo_vlasov_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mom_bcorr_lbo_vlasov_kernels = ser_mom_bcorr_lbo_vlasov_kernels;
+      break;
 
-    // case GKYL_BASIS_MODAL_TENSOR:
-    //   mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels;
-    //   break;
+      // case GKYL_BASIS_MODAL_TENSOR:
+      //   mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels;
+      //   break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   mom_bcorr->kernel = mom_bcorr_lbo_vlasov_kernels[tblidx].kernels[poly_order];
   mom_bcorr->momt.num_mom = vdim + 1;
 }
 
-struct gkyl_mom_type *gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(
+struct gkyl_mom_type *
+gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const double *vBoundary
 )
 {

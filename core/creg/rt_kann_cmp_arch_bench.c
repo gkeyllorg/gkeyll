@@ -11,7 +11,8 @@
 #include <math.h>
 
 // 2D function to fit: sin(2*pi*x)*sin(2*t)*exp(-t)
-static inline float ufunc(float t, float x)
+static inline float
+ufunc(float t, float x)
 {
   return sinf(2.0f * (float)M_PI * x) * sinf(2.0f * t) * expf(-t);
 }
@@ -20,20 +21,21 @@ enum arch_type { ARCH_MLP, ARCH_GRU, ARCH_GRU_NORM };
 
 static const char *arch_name[] = {"MLP", "GRU", "GRU+Norm"};
 
-static kad_node_t *build_net(enum arch_type arch, int nwidth, int ndepth)
+static kad_node_t *
+build_net(enum arch_type arch, int nwidth, int ndepth)
 {
   kad_node_t *t = kann_layer_input(2);
   for (int i = 0; i < ndepth; ++i) {
     switch (arch) {
-    case ARCH_MLP:
-      t = kann_layer_dense(t, nwidth);
-      break;
-    case ARCH_GRU:
-      t = kann_layer_gru(t, nwidth, 0);
-      break;
-    case ARCH_GRU_NORM:
-      t = kann_layer_gru(t, nwidth, KANN_RNN_NORM);
-      break;
+      case ARCH_MLP:
+        t = kann_layer_dense(t, nwidth);
+        break;
+      case ARCH_GRU:
+        t = kann_layer_gru(t, nwidth, 0);
+        break;
+      case ARCH_GRU_NORM:
+        t = kann_layer_gru(t, nwidth, KANN_RNN_NORM);
+        break;
     }
     t = kad_tanh(t);
   }
@@ -41,7 +43,8 @@ static kad_node_t *build_net(enum arch_type arch, int nwidth, int ndepth)
   return t;
 }
 
-static void fill_2d_data(struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out, int Nt, int Nx)
+static void
+fill_2d_data(struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out, int Nt, int Nx)
 {
   float dt = 3.0f / (Nt - 1);
   float dx = 1.0f / (Nx - 1);
@@ -57,7 +60,8 @@ static void fill_2d_data(struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out, int N
   }
 }
 
-static double bench_train(
+static double
+bench_train(
   enum arch_type arch, int ntrain_t, int ntrain_x, int nwidth, int ndepth, bool use_gpu,
   const char *save_file
 )
@@ -82,7 +86,11 @@ static double bench_train(
   }
 
   struct gkyl_kann_train_params params = {
-    .learning_rate = 1e-3f, .mini_size = 64, .max_epoch = 50, .max_drop_streak = 10, .frac_val = 0.1f
+    .learning_rate = 1e-3f,
+    .mini_size = 64,
+    .max_epoch = 50,
+    .max_drop_streak = 10,
+    .frac_val = 0.1f,
   };
 
   struct timespec t0, t1;
@@ -107,7 +115,8 @@ static double bench_train(
   return elapsed;
 }
 
-static double bench_infer_batch(const char *model_file, int nvec, bool use_gpu)
+static double
+bench_infer_batch(const char *model_file, int nvec, bool use_gpu)
 {
   struct gkyl_kann_net *net = gkyl_kann_net_load(model_file, use_gpu);
 
@@ -154,7 +163,8 @@ static double bench_infer_batch(const char *model_file, int nvec, bool use_gpu)
   return elapsed;
 }
 
-static double bench_infer_rnn(const char *model_file, int nvec, bool use_gpu)
+static double
+bench_infer_rnn(const char *model_file, int nvec, bool use_gpu)
 {
   struct gkyl_kann_net *net = gkyl_kann_net_load(model_file, use_gpu);
 
@@ -201,7 +211,8 @@ static double bench_infer_rnn(const char *model_file, int nvec, bool use_gpu)
   return elapsed;
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
   int ntrain_t = 51, ntrain_x = 51;
   int ninfer = 101;

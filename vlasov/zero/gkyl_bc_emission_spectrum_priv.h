@@ -21,7 +21,8 @@ struct gkyl_bc_emission_spectrum {
 };
 
 // Function to calculate the weighted mean of the SE yield
-GKYL_CU_D static void bc_weighted_delta(
+GKYL_CU_D static void
+bc_weighted_delta(
   const double *inp, int cdim, int dir, enum gkyl_edge_loc edge, double xc[GKYL_MAX_DIM],
   const double *gain, double *weight
 )

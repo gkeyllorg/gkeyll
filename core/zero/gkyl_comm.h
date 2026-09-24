@@ -181,8 +181,9 @@ void gkyl_comm_group_call_end(struct gkyl_comm *comm);
  * @param erange Range to extend by.
  * @return Newly created communicator.
  */
-struct gkyl_comm *
-gkyl_comm_extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange);
+struct gkyl_comm *gkyl_comm_extend_comm(
+  const struct gkyl_comm *comm, const struct gkyl_range *erange
+);
 
 /**
  * Split a communicator into a new communcator based on color. All
@@ -194,8 +195,9 @@ gkyl_comm_extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *era
  * @param new_decomp Decomp object to associate new communicator. Can be NULL.
  * @return Newly created communicator.
  */
-struct gkyl_comm *
-gkyl_comm_split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp);
+struct gkyl_comm *gkyl_comm_split_comm(
+  const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp
+);
 
 /**
  * Create a new communicator that incudes a subset of ranks in @a

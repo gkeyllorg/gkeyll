@@ -44,8 +44,9 @@ struct gkyl_dg_updater_diffusion_gyrokinetic *gkyl_dg_updater_diffusion_gyrokine
  * 
  * @return gyrokinetic diffusion equation object.
  */
-struct gkyl_dg_eqn *
-gkyl_dg_updater_diffusion_gyrokinetic_acquire_eqn(const gkyl_dg_updater_diffusion_gyrokinetic *up);
+struct gkyl_dg_eqn *gkyl_dg_updater_diffusion_gyrokinetic_acquire_eqn(
+  const gkyl_dg_updater_diffusion_gyrokinetic *up
+);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -71,8 +72,8 @@ void gkyl_dg_updater_diffusion_gyrokinetic_advance(
  * @param diffusion Updater object
  * @return timers
  */
-struct gkyl_dg_updater_diffusion_gyrokinetic_tm
-gkyl_dg_updater_diffusion_gyrokinetic_get_tm(const struct gkyl_dg_updater_diffusion_gyrokinetic *up
+struct gkyl_dg_updater_diffusion_gyrokinetic_tm gkyl_dg_updater_diffusion_gyrokinetic_get_tm(
+  const struct gkyl_dg_updater_diffusion_gyrokinetic *up
 );
 
 /**

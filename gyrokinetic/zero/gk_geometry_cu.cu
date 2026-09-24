@@ -12,7 +12,8 @@ extern "C" {
 #include <assert.h>
 }
 
-__global__ static void gk_geometry_set_corn_cu_kernel(
+__global__ static void
+gk_geometry_set_corn_cu_kernel(
   struct gk_geometry *gk_geom, struct gkyl_array *mc2p, struct gkyl_array *mc2nu_pos,
   struct gkyl_array *bmag, struct gkyl_array *bmag_inv, struct gkyl_array *mc2p_nodal,
   struct gkyl_array *mc2nu_pos_nodal, struct gkyl_array *bmag_nodal,
@@ -33,7 +34,8 @@ __global__ static void gk_geometry_set_corn_cu_kernel(
   gk_geom->geo_corn.mc2nu_pos_deflated = mc2nu_pos_deflated;
 }
 
-__global__ static void gk_geometry_set_int_cu_kernel(
+__global__ static void
+gk_geometry_set_int_cu_kernel(
   struct gk_geometry *gk_geom, struct gkyl_array *mc2p, struct gkyl_array *bmag,
   struct gkyl_array *g_ij, struct gkyl_array *g_ij_neut, struct gkyl_array *dxdz,
   struct gkyl_array *dzdx, struct gkyl_array *dualmag, struct gkyl_array *normals,
@@ -110,7 +112,8 @@ __global__ static void gk_geometry_set_int_cu_kernel(
   gk_geom->geo_int.bioverJB_nodal = bioverJB_nodal;
 }
 
-__global__ static void gk_geometry_set_surf_cu_kernel(
+__global__ static void
+gk_geometry_set_surf_cu_kernel(
   struct gk_geometry *gk_geom, int dir, struct gkyl_array *bmag, struct gkyl_array *jacobgeo,
   struct gkyl_array *jacobgeo_ratio, struct gkyl_array *b_i, struct gkyl_array *cmag,
   struct gkyl_array *jacobtot_inv, struct gkyl_array *B3, struct gkyl_array *normcurlbhat,
@@ -166,7 +169,8 @@ __global__ static void gk_geometry_set_surf_cu_kernel(
 }
 
 // Host-side wrapper for set_corn_cu_kernel
-void gkyl_geometry_set_corn_cu(struct gk_geometry *gk_geom, struct gk_geom_corn *geo_corn)
+void
+gkyl_geometry_set_corn_cu(struct gk_geometry *gk_geom, struct gk_geom_corn *geo_corn)
 {
   gk_geometry_set_corn_cu_kernel<<<1, 1>>>(
     gk_geom, geo_corn->mc2p->on_dev, geo_corn->mc2nu_pos->on_dev, geo_corn->bmag->on_dev,
@@ -177,7 +181,8 @@ void gkyl_geometry_set_corn_cu(struct gk_geometry *gk_geom, struct gk_geom_corn 
 }
 
 // Host-side wrapper for set_int_cu_kernel
-void gkyl_geometry_set_int_cu(struct gk_geometry *gk_geom, struct gk_geom_int *geo_int)
+void
+gkyl_geometry_set_int_cu(struct gk_geometry *gk_geom, struct gk_geom_int *geo_int)
 {
   gk_geometry_set_int_cu_kernel<<<1, 1>>>(
     gk_geom, geo_int->mc2p->on_dev, geo_int->bmag->on_dev, geo_int->g_ij->on_dev,
@@ -202,7 +207,8 @@ void gkyl_geometry_set_int_cu(struct gk_geometry *gk_geom, struct gk_geom_int *g
 }
 
 // Host-side wrapper for set_surf_cu_kernel
-void gkyl_geometry_set_surf_cu(struct gk_geometry *gk_geom, struct gk_geom_surf *geo_surf, int dir)
+void
+gkyl_geometry_set_surf_cu(struct gk_geometry *gk_geom, struct gk_geom_surf *geo_surf, int dir)
 {
   gk_geometry_set_surf_cu_kernel<<<1, 1>>>(
     gk_geom, dir, geo_surf->bmag->on_dev, geo_surf->jacobgeo->on_dev,
@@ -221,7 +227,8 @@ void gkyl_geometry_set_surf_cu(struct gk_geometry *gk_geom, struct gk_geom_surf 
   );
 }
 
-struct gk_geom_corn *gk_geometry_corn_cu_dev_alloc(struct gk_geom_corn up_corn_host)
+struct gk_geom_corn *
+gk_geometry_corn_cu_dev_alloc(struct gk_geom_corn up_corn_host)
 {
   struct gk_geom_corn *up_corn_dev =
     (struct gk_geom_corn *)gkyl_malloc(sizeof(struct gk_geom_corn));
@@ -260,7 +267,8 @@ struct gk_geom_corn *gk_geometry_corn_cu_dev_alloc(struct gk_geom_corn up_corn_h
   return up_corn_dev;
 }
 
-struct gk_geom_int *gk_geometry_int_cu_dev_alloc(struct gk_geom_int up_int_host)
+struct gk_geom_int *
+gk_geometry_int_cu_dev_alloc(struct gk_geom_int up_int_host)
 {
   struct gk_geom_int *up_int_dev = (struct gk_geom_int *)gkyl_malloc(sizeof(struct gk_geom_int));
   // Expansions.
@@ -421,7 +429,8 @@ struct gk_geom_int *gk_geometry_int_cu_dev_alloc(struct gk_geom_int up_int_host)
   return up_int_dev;
 }
 
-struct gk_geom_surf *gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf up_surf_host)
+struct gk_geom_surf *
+gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf up_surf_host)
 {
   struct gk_geom_surf *up_surf_dev =
     (struct gk_geom_surf *)gkyl_malloc(sizeof(struct gk_geom_surf));

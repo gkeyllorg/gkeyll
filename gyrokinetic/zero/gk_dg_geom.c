@@ -11,12 +11,14 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_dg_geom.h>
 
-static bool gk_dg_geom_is_cu_dev(const struct gkyl_gk_dg_geom *dgg)
+static bool
+gk_dg_geom_is_cu_dev(const struct gkyl_gk_dg_geom *dgg)
 {
   return GKYL_IS_CU_ALLOC(dgg->flags);
 }
 
-void gk_dg_geom_free(const struct gkyl_ref_count *ref)
+void
+gk_dg_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_gk_dg_geom *dgg = container_of(ref, struct gkyl_gk_dg_geom, ref_count);
 
@@ -33,7 +35,8 @@ void gk_dg_geom_free(const struct gkyl_ref_count *ref)
   gkyl_free(dgg);
 }
 
-struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
+struct gkyl_gk_dg_geom *
+gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
 {
   struct gkyl_gk_dg_geom *dgg = gkyl_malloc(sizeof *dgg);
 
@@ -67,7 +70,8 @@ struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *in
   return dgg;
 }
 
-struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new_from_host(
+struct gkyl_gk_dg_geom *
+gkyl_gk_dg_geom_new_from_host(
   const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host, bool use_gpu
 )
 {
@@ -79,22 +83,26 @@ struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new_from_host(
   return up_host;
 }
 
-struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_acquire(const struct gkyl_gk_dg_geom *dgg)
+struct gkyl_gk_dg_geom *
+gkyl_gk_dg_geom_acquire(const struct gkyl_gk_dg_geom *dgg)
 {
   gkyl_ref_count_inc(&dgg->ref_count);
   return (struct gkyl_gk_dg_geom *)dgg;
 }
 
-void gkyl_gk_dg_geom_write(const struct gkyl_gk_dg_geom *dgg, const char *fname)
+void
+gkyl_gk_dg_geom_write(const struct gkyl_gk_dg_geom *dgg, const char *fname)
 {
 }
 
-void gkyl_gk_dg_geom_release(const struct gkyl_gk_dg_geom *dgg)
+void
+gkyl_gk_dg_geom_release(const struct gkyl_gk_dg_geom *dgg)
 {
   gkyl_ref_count_dec(&dgg->ref_count);
 }
 
-void gkyl_gk_dg_geom_populate_vol(
+void
+gkyl_gk_dg_geom_populate_vol(
   struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom
 )
 {
@@ -162,7 +170,8 @@ void gkyl_gk_dg_geom_populate_vol(
   }
 }
 
-void gkyl_gk_dg_geom_populate_surf(
+void
+gkyl_gk_dg_geom_populate_surf(
   struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom
 )
 {

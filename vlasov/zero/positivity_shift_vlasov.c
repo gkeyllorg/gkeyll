@@ -4,7 +4,8 @@
 #include <gkyl_array_ops.h>
 #include <float.h>
 
-struct gkyl_positivity_shift_vlasov *gkyl_positivity_shift_vlasov_new(
+struct gkyl_positivity_shift_vlasov *
+gkyl_positivity_shift_vlasov_new(
   struct gkyl_basis cbasis, struct gkyl_basis pbasis, struct gkyl_rect_grid grid,
   const struct gkyl_range *conf_rng_ext, bool use_gpu
 )
@@ -47,7 +48,8 @@ struct gkyl_positivity_shift_vlasov *gkyl_positivity_shift_vlasov_new(
   return up;
 }
 
-void gkyl_positivity_shift_vlasov_advance(
+void
+gkyl_positivity_shift_vlasov_advance(
   gkyl_positivity_shift_vlasov *up, const struct gkyl_range *conf_rng,
   const struct gkyl_range *phase_rng, struct gkyl_array *GKYL_RESTRICT distf,
   struct gkyl_array *GKYL_RESTRICT m0, struct gkyl_array *GKYL_RESTRICT delta_m0
@@ -178,7 +180,8 @@ void gkyl_positivity_shift_vlasov_advance(
   up->ffloor[0] = up->ffloor_fac * distf_max * up->cellav_fac;
 }
 
-void gkyl_positivity_shift_vlasov_release(gkyl_positivity_shift_vlasov *up)
+void
+gkyl_positivity_shift_vlasov_release(gkyl_positivity_shift_vlasov *up)
 {
   // Release memory associated with this updater.
   if (!up->use_gpu) {

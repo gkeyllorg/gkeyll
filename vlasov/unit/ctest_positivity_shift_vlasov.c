@@ -13,7 +13,8 @@
 #include <acutest.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -35,7 +36,8 @@ struct test_ctx {
   double vy_max; // Maximum vy of the grid.
 };
 
-void eval_distf_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_distf_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vy = xn[1], vx = xn[2];
 
@@ -56,7 +58,8 @@ void eval_distf_1x2v(double t, const double *xn, double *restrict fout, void *ct
   }
 }
 
-void test_1x2v(int poly_order, bool use_gpu)
+void
+test_1x2v(int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double vx_max = 6.0, vy_max = 6.0;
@@ -74,7 +77,7 @@ void test_1x2v(int poly_order, bool use_gpu)
     .mass = 1.0, // Species mass.
     .vdim = vdim, // Number of velocity space dimensions.
     .vx_max = vx_max, // Maximum vx of the grid.
-    .vy_max = vy_max // Maximum vy of the grid.
+    .vy_max = vy_max, // Maximum vy of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -276,12 +279,14 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_positivity_shift_vlasov_release(pos_shift);
 }
 
-void test_positivity_shift_vlasov_1x2v_ho()
+void
+test_positivity_shift_vlasov_1x2v_ho()
 {
   test_1x2v(1, false);
 }
 
-void test_positivity_shift_vlasov_1x2v_dev()
+void
+test_positivity_shift_vlasov_1x2v_dev()
 {
   test_1x2v(1, true);
 }

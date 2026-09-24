@@ -8,7 +8,8 @@ extern "C" {
 #include <float.h>
 }
 
-__global__ void gkyl_dg_basis_ops_eval_array_at_coord_comp_cu_ker_eval(
+__global__ void
+gkyl_dg_basis_ops_eval_array_at_coord_comp_cu_ker_eval(
   const struct gkyl_array *arr, const double *coord, const struct gkyl_basis *basis,
   struct gkyl_rect_grid grid, struct gkyl_range rng, double *out
 )
@@ -31,7 +32,8 @@ __global__ void gkyl_dg_basis_ops_eval_array_at_coord_comp_cu_ker_eval(
   }
 }
 
-__global__ void gkyl_dg_basis_ops_eval_array_at_coord_comp_cu_ker_none(
+__global__ void
+gkyl_dg_basis_ops_eval_array_at_coord_comp_cu_ker_none(
   const struct gkyl_array *arr, const double *coord, const struct gkyl_basis *basis,
   struct gkyl_rect_grid grid, struct gkyl_range rng, double *out
 )
@@ -39,7 +41,8 @@ __global__ void gkyl_dg_basis_ops_eval_array_at_coord_comp_cu_ker_none(
   out[0] = -DBL_MAX;
 }
 
-void gkyl_dg_basis_ops_eval_array_at_coord_comp_cu(
+void
+gkyl_dg_basis_ops_eval_array_at_coord_comp_cu(
   const struct gkyl_array *arr, const double *coord, const struct gkyl_basis *basis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *rng, double *out
 )

@@ -16,7 +16,8 @@ extern "C" {
 #include <gkyl_mat_priv.h>
 }
 
-__global__ static void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(
+__global__ static void
+gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(
   struct gkyl_range conf_range, const struct gkyl_array *conf_basis_at_ords, int vdim,
   const struct gkyl_array *h_ij, const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h,
   struct gkyl_array *h_ij_quad_d, struct gkyl_array *h_ij_inv_quad_d,
@@ -55,7 +56,8 @@ __global__ static void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(
   }
 }
 
-void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(
+void
+gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(
   gkyl_vlasov_lte_proj_on_basis *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *h_ij, const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h
 )
@@ -68,7 +70,8 @@ void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(
   );
 }
 
-static void gkyl_parallelize_components_kernel_launch_dims(
+static void
+gkyl_parallelize_components_kernel_launch_dims(
   dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp
 )
 {
@@ -80,7 +83,8 @@ static void gkyl_parallelize_components_kernel_launch_dims(
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
 }
 
-__global__ static void gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker(
+__global__ static void
+gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker(
   struct gkyl_range conf_range, int vdim, const struct gkyl_array *conf_basis_at_ords,
   const struct gkyl_array *moms_lte, const struct gkyl_array *det_h_quad, bool is_relativistic,
   bool is_canonical_pb, struct gkyl_array *moms_lte_quad, struct gkyl_array *expamp_quad
@@ -134,7 +138,8 @@ __global__ static void gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker(
   }
 }
 
-__global__ static void gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(
+__global__ static void
+gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(
   struct gkyl_rect_grid phase_grid, struct gkyl_range phase_range, struct gkyl_range conf_range,
   const struct gkyl_array *conf_basis_at_ords, const struct gkyl_array *phase_ordinates,
   const struct gkyl_array *moms_lte_quad, const struct gkyl_array *expamp_quad,
@@ -230,7 +235,8 @@ __global__ static void gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(
   }
 }
 
-void gkyl_vlasov_lte_proj_on_basis_advance_cu(
+void
+gkyl_vlasov_lte_proj_on_basis_advance_cu(
   gkyl_vlasov_lte_proj_on_basis *up, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *moms_lte, struct gkyl_array *f_lte
 )

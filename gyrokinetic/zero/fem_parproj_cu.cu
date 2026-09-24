@@ -10,7 +10,8 @@ extern "C" {
 // CUDA kernel to set device pointers to l2g, RHS src and solution
 // kernels. Doing function pointer stuff in here avoids troublesome
 // cudaMemcpyFromSymbol.
-__global__ static void fem_parproj_set_cu_ker_ptrs(
+__global__ static void
+fem_parproj_set_cu_ker_ptrs(
   struct gkyl_fem_parproj_kernels *kers, enum gkyl_basis_type b_type, int dim, int poly_order,
   bool has_weight_lhs, bool has_weight_rhs, enum gkyl_fem_parproj_bc_type bctype
 )
@@ -19,12 +20,12 @@ __global__ static void fem_parproj_set_cu_ker_ptrs(
   int bckey_periodic = bctype == GKYL_FEM_PARPROJ_PERIODIC ? 0 : 1;
   const local2global_kern_list *local2global_kernels;
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    local2global_kernels = ser_loc2glob_list;
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      local2global_kernels = ser_loc2glob_list;
+      break;
+    default:
+      assert(false);
+      break;
   }
   for (int k = 0; k < 2; k++) {
     kers->l2g[k] = CK(local2global_kernels, dim, bckey_periodic, poly_order, k);
@@ -42,12 +43,12 @@ __global__ static void fem_parproj_set_cu_ker_ptrs(
 
   const srcstencil_kern_list *srcstencil_kernels;
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    srcstencil_kernels = has_weight_rhs ? ser_srcstencil_list_weighted :
-                                          ser_srcstencil_list_noweight;
-    break;
-  default:
-    assert(false);
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      srcstencil_kernels = has_weight_rhs ? ser_srcstencil_list_weighted :
+                                            ser_srcstencil_list_noweight;
+      break;
+    default:
+      assert(false);
   }
   for (int k = 0; k < 3; k++) {
     kers->srcker[k] = CK(srcstencil_kernels, dim, bckey_dirichlet, poly_order, k);
@@ -56,11 +57,11 @@ __global__ static void fem_parproj_set_cu_ker_ptrs(
   // Set the get solution stencil kernel.
   const solstencil_kern_list *solstencil_kernels;
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    solstencil_kernels = ser_solstencil_list;
-    break;
-  default:
-    assert(false);
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      solstencil_kernels = ser_solstencil_list;
+      break;
+    default:
+      assert(false);
   }
   kers->solker = solstencil_kernels[dim - 1].kernels[poly_order - 1];
 
@@ -73,21 +74,22 @@ __global__ static void fem_parproj_set_cu_ker_ptrs(
   }
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    for (int k = 0; k < 2; k++) {
-      kers->bias_src_ker[k] = CK(ser_bias_src_list, dim, bckey_periodic, poly_order, k);
-    }
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k = 0; k < 2; k++) {
+        kers->bias_src_ker[k] = CK(ser_bias_src_list, dim, bckey_periodic, poly_order, k);
+      }
 
-    break;
-    //    case GKYL_BASIS_MODAL_TENSOR:
-    //      break;
-  default:
-    assert(false);
-    break;
+      break;
+      //    case GKYL_BASIS_MODAL_TENSOR:
+      //      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
-void fem_parproj_choose_kernels_cu(
+void
+fem_parproj_choose_kernels_cu(
   const struct gkyl_basis *basis, bool has_weight_lhs, bool has_weight_rhs,
   enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_kernels *kers
 )
@@ -97,7 +99,8 @@ void fem_parproj_choose_kernels_cu(
   );
 }
 
-__global__ void gkyl_fem_parproj_set_rhs_kernel(
+__global__ void
+gkyl_fem_parproj_set_rhs_kernel(
   double *rhs_global, const struct gkyl_array *rhsin, const struct gkyl_array *weight,
   const struct gkyl_array *phibc, struct gkyl_range range, struct gkyl_range perp_range2d,
   struct gkyl_range par_range1d, struct gkyl_fem_parproj_kernels *kers, long numnodes_global
@@ -142,7 +145,8 @@ __global__ void gkyl_fem_parproj_set_rhs_kernel(
   }
 }
 
-void gkyl_fem_parproj_set_rhs_cu(
+void
+gkyl_fem_parproj_set_rhs_cu(
   gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc
 )
 {
@@ -161,7 +165,8 @@ void gkyl_fem_parproj_set_rhs_cu(
   up->bias_line_src(up, rhsin);
 }
 
-__global__ void gkyl_fem_parproj_bias_src_kernel(
+__global__ void
+gkyl_fem_parproj_bias_src_kernel(
   double *rhs_global, struct gkyl_rect_grid grid, struct gkyl_range range,
   struct gkyl_range perp_range2d, struct gkyl_range par_range1d,
   struct gkyl_fem_parproj_kernels *kers, long numnodes_global, int num_bias_line,
@@ -220,7 +225,8 @@ __global__ void gkyl_fem_parproj_bias_src_kernel(
   }
 }
 
-void gkyl_fem_parproj_bias_src_enabled_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
+void
+gkyl_fem_parproj_bias_src_enabled_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
   gkyl_fem_parproj_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(
@@ -229,7 +235,8 @@ void gkyl_fem_parproj_bias_src_enabled_cu(gkyl_fem_parproj *up, const struct gky
   );
 }
 
-__global__ void gkyl_fem_parproj_get_sol_kernel(
+__global__ void
+gkyl_fem_parproj_get_sol_kernel(
   struct gkyl_array *phiout, const double *x_global, struct gkyl_range range,
   struct gkyl_range perp_range2d, struct gkyl_range par_range1d,
   struct gkyl_fem_parproj_kernels *kers, long numnodes_global
@@ -269,7 +276,8 @@ __global__ void gkyl_fem_parproj_get_sol_kernel(
   }
 }
 
-void gkyl_fem_parproj_solve_cu(gkyl_fem_parproj *up, struct gkyl_array *phiout)
+void
+gkyl_fem_parproj_solve_cu(gkyl_fem_parproj *up, struct gkyl_array *phiout)
 {
   gkyl_culinsolver_solve(up->prob_cu);
   double *x_cu = gkyl_culinsolver_get_sol_ptr(up->prob_cu, 0);

@@ -14,7 +14,8 @@ struct sim_ctx {
   double Lx; // size of the box
 };
 
-void evalInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
   double x = xn[0], y = xn[1];
@@ -25,7 +26,8 @@ void evalInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   }
 }
 
-void D(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+D(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
   double x = xn[0], y = xn[1];
@@ -34,7 +36,8 @@ void D(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, voi
   fout[2] = y + 2.0;
 }
 
-void eval_advect_vel(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_advect_vel(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
   double x = xn[0], y = xn[1];
@@ -43,13 +46,15 @@ void eval_advect_vel(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[2] = 0.0;
 }
 
-struct sim_ctx create_ctx(void)
+struct sim_ctx
+create_ctx(void)
 {
   struct sim_ctx ctx = {.Lx = 2};
   return ctx;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -74,7 +79,7 @@ int main(int argc, char **argv)
     .init = evalInit,
     .equation = advect,
     .advection = {.velocity = eval_advect_vel, .velocity_ctx = &ctx},
-    .diffusion = {.Dij = D, .Dij_ctx = 0}
+    .diffusion = {.Dij = D, .Dij_ctx = 0},
   };
 
   // VM app
@@ -99,7 +104,7 @@ int main(int argc, char **argv)
 
     .skip_field = true,
 
-    .parallelism = {.use_gpu = app_args.use_gpu}
+    .parallelism = {.use_gpu = app_args.use_gpu},
   };
 
   // create app object

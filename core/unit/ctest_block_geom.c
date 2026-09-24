@@ -1,7 +1,8 @@
 #include <acutest.h>
 #include <gkyl_block_geom.h>
 
-static void test_block_geom_L_domain_ho()
+static void
+test_block_geom_L_domain_ho()
 {
   // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -24,8 +25,8 @@ static void test_block_geom_L_domain_ho()
   // block 0
   gkyl_block_geom_set_block(
     bgeom, 0,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {10, 10},
 
@@ -40,7 +41,8 @@ static void test_block_geom_L_domain_ho()
           // y-direction connections
           {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
   // topology is inconsistent at this point!
   TEST_CHECK(0 == gkyl_block_geom_check_consistency(bgeom));
@@ -48,8 +50,8 @@ static void test_block_geom_L_domain_ho()
   // block 1
   gkyl_block_geom_set_block(
     bgeom, 1,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {10, 10},
 
@@ -62,7 +64,8 @@ static void test_block_geom_L_domain_ho()
         {// y-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
   // geomlogy is inconsistent at this point!
   TEST_CHECK(0 == gkyl_block_geom_check_consistency(bgeom));
@@ -70,8 +73,8 @@ static void test_block_geom_L_domain_ho()
   // block 2
   gkyl_block_geom_set_block(
     bgeom, 2,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {10, 10},
 
@@ -86,7 +89,8 @@ static void test_block_geom_L_domain_ho()
           // y-direction connections
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
 
   // should be fully consistent as all blocks properly specified
@@ -111,7 +115,8 @@ static void test_block_geom_L_domain_ho()
   gkyl_block_topo_release(btopo);
 }
 
-static void test_block_geom_mobius_domain_ho()
+static void
+test_block_geom_mobius_domain_ho()
 {
   // 2D with 1 block
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 1);
@@ -129,8 +134,8 @@ static void test_block_geom_mobius_domain_ho()
   // block 0
   gkyl_block_geom_set_block(
     bgeom, 0,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {10, 10},
 
@@ -143,7 +148,8 @@ static void test_block_geom_mobius_domain_ho()
         {// y-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   TEST_CHECK(1 == gkyl_block_geom_check_consistency(bgeom));

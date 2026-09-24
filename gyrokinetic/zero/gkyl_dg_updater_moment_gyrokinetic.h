@@ -48,8 +48,9 @@ struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_gyrokinetic_new(
  * 
  * @return moment type object
  */
-struct gkyl_mom_type *
-gkyl_dg_updater_moment_gyrokinetic_acquire_type(const struct gkyl_dg_updater_moment *moment);
+struct gkyl_mom_type *gkyl_dg_updater_moment_gyrokinetic_acquire_type(
+  const struct gkyl_dg_updater_moment *moment
+);
 
 /**
  * Acquire number of moments
@@ -84,8 +85,9 @@ void gkyl_dg_updater_moment_gyrokinetic_advance(
  * @param moment Updater object
  * @return timers
  */
-struct gkyl_dg_updater_moment_tm
-gkyl_dg_updater_moment_gyrokinetic_get_tm(const struct gkyl_dg_updater_moment *moment);
+struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_gyrokinetic_get_tm(
+  const struct gkyl_dg_updater_moment *moment
+);
 
 /**
  * Delete updater.

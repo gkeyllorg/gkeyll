@@ -13,21 +13,24 @@
 #include <gkyl_basis.h>
 #include <gkyl_position_map.h>
 
-void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 1.0;
 }
 
-void test_dg_gyrokinetic_ho()
+void
+test_dg_gyrokinetic_ho()
 {
   // initialize grid and ranges
   int cdim = 3, vdim = 2;
@@ -95,7 +98,7 @@ void test_dg_gyrokinetic_ho()
     .geo_local_ext = confRange_ext,
     .geo_global = confRange,
     .geo_global_ext = confRange_ext,
-    .geo_basis = confBasis
+    .geo_basis = confBasis,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);

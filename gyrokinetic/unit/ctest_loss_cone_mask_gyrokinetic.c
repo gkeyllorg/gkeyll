@@ -33,21 +33,24 @@ struct loss_cone_mask_test_ctx {
 };
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
                                    gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-void mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
 
@@ -61,7 +64,8 @@ void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void
   //  fout[0] = (B_m/R_m) * (1.0 + (R_m-1.0)*pow(sin(z), 2.0));
 }
 
-void phi_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+phi_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double z = xc[0];
 
@@ -73,7 +77,8 @@ void phi_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void *c
   fout[0] = 0.0; //0.5 * phi_fac*T0/eV * (1.0 + cos(z));
 }
 
-void mask_ref_1x2v(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+mask_ref_1x2v(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double z = xc[0], vpar = xc[1], mu = xc[2];
   struct loss_cone_mask_test_ctx *params = ctx;
@@ -106,7 +111,8 @@ void mask_ref_1x2v(double t, const double *xc, double *GKYL_RESTRICT fout, void 
   }
 }
 
-void test_1x2v_gk(int poly_order, bool use_gpu)
+void
+test_1x2v_gk(int poly_order, bool use_gpu)
 {
   double eV = GKYL_ELEMENTARY_CHARGE;
   double mass_proton = GKYL_PROTON_MASS;
@@ -129,7 +135,7 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
     .Nmu = 4,
     .quad_type = GKYL_GAUSS_LOBATTO_QUAD,
     .num_quad = 2,
-    .cellwise_trap_loss = true
+    .cellwise_trap_loss = true,
   };
   ctx.B0 = ctx.B_m / 2.0;
   ctx.vpar_max = 6.0 * sqrt(ctx.T0 / ctx.mass);
@@ -223,7 +229,7 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
     .local_ext = local_ext_conf,
     .global = local_conf,
     .global_ext = local_ext_conf,
-    .basis = basis_conf
+    .basis = basis_conf,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(grid_conf, geometry_input);
   gkyl_create_grid_ranges(
@@ -331,7 +337,7 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
     .qtype = ctx.quad_type,
     .num_quad = ctx.num_quad,
     .cellwise_trap_loss = ctx.cellwise_trap_loss,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_loss_cone_mask_gyrokinetic *proj_mask =
     gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
@@ -413,13 +419,15 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
 #endif
 }
 
-void test_loss_cone_mask_1x2v_p1_gk_ho()
+void
+test_loss_cone_mask_1x2v_p1_gk_ho()
 {
   test_1x2v_gk(1, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_loss_cone_mask_1x2v_p1_gk_dev()
+void
+test_loss_cone_mask_1x2v_p1_gk_dev()
 {
   test_1x2v_gk(1, true);
 }

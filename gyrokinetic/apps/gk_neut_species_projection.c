@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void gk_neut_species_projection_kinetic_calc(
+static void
+gk_neut_species_projection_kinetic_calc(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_proj *proj, struct gkyl_array *f,
   double tm
 )
@@ -49,7 +50,8 @@ static void gk_neut_species_projection_kinetic_calc(
   }
 }
 
-static void gk_neut_species_projection_kinetic_release(
+static void
+gk_neut_species_projection_kinetic_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj
 )
 {
@@ -76,21 +78,23 @@ static void gk_neut_species_projection_kinetic_release(
   }
 }
 
-static void gk_neut_species_projection_kinetic_init(
+static void
+gk_neut_species_projection_kinetic_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj
 )
 {
   proj->proj_id = inp.proj_id;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-    ){.grid = &s->grid,
+    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &s->grid,
       .basis = &s->basis,
       .qtype = GKYL_GAUSS_QUAD,
       .num_quad = s->basis.poly_order + 1,
       .num_ret_vals = 1,
       .eval = inp.func,
-      .ctx = inp.ctx_func});
+      .ctx = inp.ctx_func,
+    });
     if (app->use_gpu) {
       proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
     }
@@ -126,7 +130,7 @@ static void gk_neut_species_projection_kinetic_init(
       .det_h = app->gk_geom->geo_int.jacobgeo,
       .hamil = s->hamil,
       .model_id = s->model_id,
-      .use_gpu = app->use_gpu
+      .use_gpu = app->use_gpu,
     };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
@@ -150,7 +154,7 @@ static void gk_neut_species_projection_kinetic_init(
         .model_id = s->model_id,
         .use_gpu = app->use_gpu,
         .max_iter = 100,
-        .eps = 1e-12
+        .eps = 1e-12,
       };
       proj->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
     }
@@ -160,7 +164,8 @@ static void gk_neut_species_projection_kinetic_init(
   proj->release_func = gk_neut_species_projection_kinetic_release;
 }
 
-static void gk_neut_species_projection_fluid_calc(
+static void
+gk_neut_species_projection_fluid_calc(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_proj *proj, struct gkyl_array *f,
   double tm
 )
@@ -216,7 +221,8 @@ static void gk_neut_species_projection_fluid_calc(
   }
 }
 
-static void gk_neut_species_projection_fluid_release(
+static void
+gk_neut_species_projection_fluid_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj
 )
 {
@@ -237,21 +243,23 @@ static void gk_neut_species_projection_fluid_release(
   }
 }
 
-static void gk_neut_species_projection_fluid_init(
+static void
+gk_neut_species_projection_fluid_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj
 )
 {
   proj->proj_id = inp.proj_id;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-    ){.grid = &ns->grid,
+    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &ns->grid,
       .basis = &ns->basis,
       .qtype = GKYL_GAUSS_QUAD,
       .num_quad = ns->basis.poly_order + 1,
       .num_ret_vals = ns->num_moments,
       .eval = inp.func,
-      .ctx = inp.ctx_func});
+      .ctx = inp.ctx_func,
+    });
     if (app->use_gpu) {
       proj->proj_host = mkarr(false, ns->num_moments * ns->basis.num_basis, ns->local_ext.volume);
     }
@@ -277,7 +285,8 @@ static void gk_neut_species_projection_fluid_init(
   proj->release_func = gk_neut_species_projection_fluid_release;
 }
 
-void gk_neut_species_projection_init(
+void
+gk_neut_species_projection_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj
 )
@@ -289,7 +298,8 @@ void gk_neut_species_projection_init(
   }
 }
 
-void gk_neut_species_projection_calc(
+void
+gk_neut_species_projection_calc(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_proj *proj, struct gkyl_array *f,
   double tm
 )
@@ -297,7 +307,8 @@ void gk_neut_species_projection_calc(
   proj->neut_calc_func(app, s, proj, f, tm);
 }
 
-void gk_neut_species_projection_release(
+void
+gk_neut_species_projection_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj
 )
 {

@@ -7,7 +7,8 @@
 #include <gkyl_dg_diffusion_vlasov.h>
 #include <gkyl_dg_diffusion_vlasov_priv.h>
 
-void test_diffusion_vlasov_1x1v_const()
+void
+test_diffusion_vlasov_1x1v_const()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   int poly_order = 2;
@@ -40,7 +41,8 @@ void test_diffusion_vlasov_1x1v_const()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_diffusion_vlasov_1x1v_varcoeff()
+void
+test_diffusion_vlasov_1x1v_varcoeff()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   int poly_order = 2;

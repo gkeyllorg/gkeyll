@@ -4,7 +4,8 @@
 
 #include <gkyl_lua_utils.h>
 
-static lua_State *new_lua_State(void)
+static lua_State *
+new_lua_State(void)
 {
   lua_State *L = luaL_newstate();
   lua_gc(L, LUA_GCSTOP, 0);
@@ -13,7 +14,8 @@ static lua_State *new_lua_State(void)
   return L;
 }
 
-void test_0(void)
+void
+test_0(void)
 {
   lua_State *L = new_lua_State();
 
@@ -43,7 +45,8 @@ void test_0(void)
   lua_close(L);
 }
 
-void test_1(void)
+void
+test_1(void)
 {
   lua_State *L = new_lua_State();
 
@@ -106,7 +109,8 @@ void test_1(void)
   lua_close(L);
 }
 
-void test_2(void)
+void
+test_2(void)
 {
   lua_State *L = new_lua_State();
 
@@ -153,7 +157,8 @@ void test_2(void)
   lua_close(L);
 }
 
-void test_3(void)
+void
+test_3(void)
 {
   lua_State *L = new_lua_State();
 
@@ -219,7 +224,8 @@ void test_3(void)
   lua_close(L);
 }
 
-void test_4(void)
+void
+test_4(void)
 {
   /* lua_State *L = new_lua_State(); */
 

@@ -1427,8 +1427,9 @@ void gkyl_gyrokinetic_app_read_geometry(
  * @param app App object
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fname);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_file_field(
+  gkyl_gyrokinetic_app *app, const char *fname
+);
 
 /**
  * Initialize gyrokinetic species from file
@@ -1437,8 +1438,9 @@ gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fnam
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx, const char *fname);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_file_species(
+  gkyl_gyrokinetic_app *app, int sidx, const char *fname
+);
 
 /**
  * Initialize neutral species from file
@@ -1447,8 +1449,9 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx, cons
  * @param sidx neut species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx, const char *fname);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_file_neut_species(
+  gkyl_gyrokinetic_app *app, int sidx, const char *fname
+);
 
 /**
  * Initialize the gyrokinetic app from a specific frame.
@@ -1456,8 +1459,9 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_read_from_frame(
+  gkyl_gyrokinetic_app *app, int frame
+);
 
 /**
  * Initialize field from frame
@@ -1465,8 +1469,9 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame);
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_frame_field(
+  gkyl_gyrokinetic_app *app, int frame
+);
 
 /**
  * Initialize gyrokinetic species from file
@@ -1475,8 +1480,9 @@ gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame);
  * @param sidx gk species index
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_frame_species(
+  gkyl_gyrokinetic_app *app, int sidx, int frame
+);
 
 /**
  * Initialize neutral species from file
@@ -1485,8 +1491,9 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
  * @param sidx neut species index
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_frame_neut_species(
+  gkyl_gyrokinetic_app *app, int sidx, int frame
+);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the

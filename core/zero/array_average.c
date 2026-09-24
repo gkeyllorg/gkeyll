@@ -6,15 +6,16 @@
 
 #include <assert.h>
 
-struct gkyl_array_average *gkyl_array_average_new(
+struct gkyl_array_average *
+gkyl_array_average_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const struct gkyl_basis *basis_avg, const struct gkyl_range *local,
   const struct gkyl_range *local_avg, const struct gkyl_range *local_avg_ext,
   const struct gkyl_array *weight, const int *avg_dim, bool use_gpu
 )
 {
-  return gkyl_array_average_inew(&(struct gkyl_array_average_inp
-  ){.grid = grid,
+  return gkyl_array_average_inew(&(struct gkyl_array_average_inp){
+    .grid = grid,
     .basis = *basis,
     .basis_avg = *basis_avg,
     .local = local,
@@ -22,10 +23,12 @@ struct gkyl_array_average *gkyl_array_average_new(
     .local_avg_ext = local_avg_ext,
     .weight = weight,
     .avg_dim = avg_dim,
-    .use_gpu = use_gpu});
+    .use_gpu = use_gpu,
+  });
 }
 
-struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_average_inp *inp)
+struct gkyl_array_average *
+gkyl_array_average_inew(const struct gkyl_array_average_inp *inp)
 {
   // works for p <=2 only due to the gkyl_dg_div_op_range call in advance
   assert(inp->basis.poly_order <= 2);
@@ -99,7 +102,7 @@ struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_avera
       .local_avg = inp->local_avg,
       .weight = NULL, // Recursive call without weights
       .avg_dim = inp->avg_dim,
-      .use_gpu = inp->use_gpu
+      .use_gpu = inp->use_gpu,
     };
     struct gkyl_array_average *int_w = gkyl_array_average_inew(&inp_integral);
     // run the updater to integrate the weight
@@ -134,7 +137,8 @@ struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_avera
   return up;
 }
 
-void gkyl_array_average_advance(
+void
+gkyl_array_average_advance(
   const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout
 )
 {
@@ -189,7 +193,8 @@ void gkyl_array_average_advance(
   }
 }
 
-void gkyl_array_average_release(struct gkyl_array_average *up)
+void
+gkyl_array_average_release(struct gkyl_array_average *up)
 {
   // release memory associated with this updater.
 #ifdef GKYL_HAVE_CUDA

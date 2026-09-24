@@ -31,7 +31,8 @@ get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2)
 
 // Sets ordinates, weights and basis functions at ords.
 // Returns the total number of quadrature nodes
-static int init_quad_values(
+static int
+init_quad_values(
   int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type quad_type, int num_quad,
   struct gkyl_array **ordinates, struct gkyl_array **weights, struct gkyl_array **basis_at_ords,
   bool use_gpu
@@ -159,7 +160,8 @@ static int init_quad_values(
   return tot_quad;
 }
 
-static void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars(
+static void
+gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars(
   gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *bmag, const struct gkyl_array *jacobtot
 )
@@ -361,14 +363,15 @@ gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_ba
     .gk_geom = inp->gk_geom,
     .vel_map = inp->vel_map,
     .divide_jacobgeo = inp->divide_jacobgeo,
-    .use_gpu = inp->use_gpu
+    .use_gpu = inp->use_gpu,
   };
   up->moments_up = gkyl_gk_maxwellian_moments_inew(&inp_mom);
 
   return up;
 }
 
-static void proj_on_basis(
+static void
+proj_on_basis(
   const gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double *f
 )
 {
@@ -391,7 +394,8 @@ static void proj_on_basis(
   }
 }
 
-void gkyl_gk_maxwellian_proj_on_basis_advance(
+void
+gkyl_gk_maxwellian_proj_on_basis_advance(
   gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *moms_maxwellian, bool use_jacobtot,
   struct gkyl_array *f_maxwellian
@@ -553,7 +557,8 @@ void gkyl_gk_maxwellian_proj_on_basis_advance(
   );
 }
 
-void gkyl_gk_maxwellian_proj_on_basis_release(gkyl_gk_maxwellian_proj_on_basis *up)
+void
+gkyl_gk_maxwellian_proj_on_basis_release(gkyl_gk_maxwellian_proj_on_basis *up)
 {
   gkyl_velocity_map_release(up->vel_map);
 

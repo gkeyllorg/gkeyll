@@ -8,7 +8,8 @@
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dg_vlasov_sr_priv.h>
 
-void test_vlasov_sr_1x1v_p2()
+void
+test_vlasov_sr_1x1v_p2()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;
@@ -39,7 +40,8 @@ void test_vlasov_sr_1x1v_p2()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_vlasov_sr_1x1v_null_field()
+void
+test_vlasov_sr_1x1v_null_field()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;
@@ -65,7 +67,8 @@ void test_vlasov_sr_1x1v_null_field()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_vlasov_sr_1x2v_hybrid()
+void
+test_vlasov_sr_1x2v_hybrid()
 {
   int cdim = 1, vdim = 2, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;

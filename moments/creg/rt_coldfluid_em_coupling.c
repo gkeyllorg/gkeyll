@@ -50,7 +50,8 @@ struct coldfluid_em_coupling_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct coldfluid_em_coupling_ctx create_ctx(void)
+struct coldfluid_em_coupling_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -103,13 +104,14 @@ struct coldfluid_em_coupling_ctx create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct coldfluid_em_coupling_ctx *app = ctx;
 
@@ -123,7 +125,8 @@ void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[3] = 0.0;
 }
 
-void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   // Set electric field.
   fout[0] = 0.0, fout[1] = 0.0;
@@ -136,7 +139,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-void evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct coldfluid_em_coupling_ctx *app = ctx;
@@ -171,7 +175,8 @@ void evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTR
   fout[1] = current;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -183,7 +188,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -215,7 +221,7 @@ int main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
 
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY}
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
   };
 
   // Field.
@@ -230,7 +236,7 @@ int main(int argc, char **argv)
     .app_current_ctx = &ctx,
     .app_current_evolve = true,
 
-    .bcx = {GKYL_FIELD_COPY, GKYL_FIELD_COPY}
+    .bcx = {GKYL_FIELD_COPY, GKYL_FIELD_COPY},
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -303,7 +309,7 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Create app object.
