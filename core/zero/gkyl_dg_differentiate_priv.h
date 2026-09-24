@@ -25,8 +25,7 @@ typedef struct {
 //   ndim  : 1..3
 //   dir   : 0..ndim-1
 //   order : 1..2
-GKYL_CU_D static const differentiate_op_kern_list ser_differentiate_list[3][3][2] = {
-  // ndim = 1
+GKYL_CU_D static const differentiate_op_kern_list ser_differentiate_list[3][3][2] = { // ndim = 1
   {// dir0
    {
      {dg_differentiate_local_ser_1x_p1_dir0_order1, dg_differentiate_local_ser_1x_p2_dir0_order1,
@@ -80,8 +79,7 @@ GKYL_CU_D static const differentiate_op_kern_list ser_differentiate_list[3][3][2
 // p1 tensor == p1 serendipity; tensor-specific kernels exist only for p2.
 // No tensor kernels for 3D.
 // [ndim-1][dir][diff_order-1].kernels[poly_order]
-GKYL_CU_D static const differentiate_op_kern_list ten_differentiate_list[3][3][2] = {
-  // ndim = 1
+GKYL_CU_D static const differentiate_op_kern_list ten_differentiate_list[3][3][2] = { // ndim = 1
   {// dir0
    {
      {dg_differentiate_local_ser_1x_p1_dir0_order1, dg_differentiate_local_tensor_1x_p2_dir0_order1,

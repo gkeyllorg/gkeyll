@@ -61,7 +61,8 @@ gyrokinetic_cuts_check(
       if (comm_rank == 0) {
         fprintf(
           iostream,
-          "\n*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n\n",
+          "\n*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be "
+          "> 1!\n\n",
           cuts_used[d], d
         );
       }

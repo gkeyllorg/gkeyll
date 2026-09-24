@@ -41,7 +41,7 @@ bc_copy(
 }
 
 void
-test_1()
+test_apply_bc_1_ho()
 {
   int ndim = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -92,7 +92,7 @@ test_1()
 }
 
 void
-test_2()
+test_apply_bc_2_ho()
 {
   int ndim = 2;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -164,7 +164,7 @@ test_2()
 }
 
 void
-test_3()
+test_apply_bc_3_ho()
 {
   int ndim = 2;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -315,7 +315,7 @@ skin_ghost_ranges_init(
 }
 
 void
-test_bc_buff_rtheta()
+test_apply_bc_buff_rtheta_ho()
 {
   int ndim = 2;
   double lower[] = {0.25, 0.0}, upper[] = {1.25, 2 * M_PI / 4};
@@ -431,9 +431,9 @@ test_bc_buff_rtheta()
 }
 
 TEST_LIST = {
-  {"test_1", test_1},
-  {"test_2", test_2},
-  {"test_3", test_3},
-  {"test_bc_buff_rtheta", test_bc_buff_rtheta},
+  {"test_apply_bc_1_ho", test_apply_bc_1_ho},
+  {"test_apply_bc_2_ho", test_apply_bc_2_ho},
+  {"test_apply_bc_3_ho", test_apply_bc_3_ho},
+  {"test_apply_bc_buff_rtheta_ho", test_apply_bc_buff_rtheta_ho},
   {NULL, NULL}
 };

@@ -119,8 +119,8 @@ struct gk_species_moment {
   struct gk_geometry *gk_geom; // geometry struct for dividing moments by Jacobian
   struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in dividing moments by Jacobian
   bool is_integrated; // boolean for if computing integrated moments
-    // integrated moments do not need to divide by Jacobian since
-    // the inverse Jacobian is already included in the computation
+  // integrated moments do not need to divide by Jacobian since
+  // the inverse Jacobian is already included in the computation
   int num_mom; // number of moments
 
   struct gkyl_array *marr; // array to moment data
@@ -732,9 +732,9 @@ struct gk_react {
     react_type[GKYL_MAX_REACT]; // Input struct for type of reactions.
 
   struct gkyl_array *f_react; // Distribution function array which holds update for each reaction
-    // form depends on type_self, e.g., for ionization and type_self == GKYL_SELF_ELC
-    // f_react = n_donor*(fmax1(n_elc, upar_elc, vtiz1^2) + fmax2(n_elc, upar_donor, vtiz2^2) - f_elc)
-    // RHS update is then obtained by incrementing rhs += coeff_react*f_react
+  // form depends on type_self, e.g., for ionization and type_self == GKYL_SELF_ELC
+  // f_react = n_donor*(fmax1(n_elc, upar_elc, vtiz1^2) + fmax2(n_elc, upar_donor, vtiz2^2) - f_elc)
+  // RHS update is then obtained by incrementing rhs += coeff_react*f_react
 
   enum gkyl_react_id
     react_id[GKYL_MAX_REACT]; // What type of reaction (ionization, charge exchange, recombination).
@@ -1573,7 +1573,7 @@ struct gk_field {
   struct gkyl_array *phi_pol; // Initial polarization density potential.
 
   struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
-    // for solving subset of Poisson solves with parallelization in z
+  // for solving subset of Poisson solves with parallelization in z
 
   // organization of the different equation objects and the required data and solvers
   union {
@@ -1610,7 +1610,8 @@ struct gk_field {
   // Objects needed for FLR effects.
   bool use_flr; // Whether to apply FLR effects.
   void (*invert_flr)(
-    gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi
+    gkyl_gyrokinetic_app *app, struct gk_field *field,
+    struct gkyl_array *phi
   ); // Function inverting  FLR  operator.
   struct gkyl_array *flr_rhoSq_sum; // Laplacian weight in FLR operator.
   struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.

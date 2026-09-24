@@ -233,8 +233,8 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, doubl
   struct gkyl_msgpack_map_elem desc_nu_prim[] = {{
     .key = "Description",
     .elem_type = GKYL_MP_STRING,
-    .cval =
-      "Drift velocity and thermal speed squared, times collision frequency, summed over colliding species.",
+    .cval = "Drift velocity and thermal speed squared, times collision frequency, summed over "
+            "colliding species.",
   }};
   int io_meta_nu_prim_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta_nu_prim[] = {

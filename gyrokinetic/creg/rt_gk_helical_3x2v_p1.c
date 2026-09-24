@@ -79,12 +79,6 @@ struct gk_app_ctx {
   double max_run_time; // Maximum run time in seconds, 0 means no limit.
 };
 
-double
-random0to1()
-{
-  return 1.0; //(double)rand() / (double)RAND_MAX;
-}
-
 // Common source density profiles.
 double
 sourceDensity(double t, const double *GKYL_RESTRICT xn, void *ctx)
@@ -134,7 +128,8 @@ densityInit(double t, const double *GKYL_RESTRICT xn, void *ctx)
   double effectiveSource = sourceDensity(t, xSource, ctx);
   double c_ss = sqrt(5 / 3 * sourceTemperature(t, xSource, ctx) / app->mi);
   double nPeak = 4 * sqrt(5) / 3 / c_ss * Ls * effectiveSource / 2;
-  double perturb = 1e-3 * (random0to1() - 0.5) * 2.0;
+  pcg64_random_t rng = gkyl_pcg64_init(0);
+  double perturb = 1e-3 * (gkyl_pcg64_rand_double(&rng) - 0.5) * 2.0;
   if (fabs(z) <= Ls) {
     return nPeak * (1 + sqrt(1 - pow(z / Ls, 2))) / 2 * (1 + perturb);
   } else {
@@ -215,7 +210,7 @@ Bvert(const double *xc, void *ctx)
   int n = app->n;
   double R = Rx(xc, ctx);
 
-  return Bvx0 * pow(R, n);
+  return Bvx0 * pow(R / x0, n);
 }
 
 double
@@ -375,11 +370,11 @@ create_ctx(void)
   double z_max = Lz / 2;
 
   // Grid parameters
-  int Nx = 8;
-  int Ny = 4;
-  int Nz = 4;
-  int Nvpar = 4;
-  int Nmu = 2;
+  int Nx = 8; // (16)
+  int Ny = 4; // (32)
+  int Nz = 4; // (12)
+  int Nvpar = 4; // (10)
+  int Nmu = 2; // (5)
   int poly_order = 1;
 
   double vpar_max_elc = 4. * vte;
@@ -387,7 +382,7 @@ create_ctx(void)
   double vpar_max_ion = 4. * vti;
   double mu_max_ion = 12 * mi * pow(vti, 2) / (2 * B0);
 
-  double t_end = 1.e-6; // End time, should terminate in 43 steps.
+  double t_end = 2.e-6; // End time, should terminate in 43 steps.
   int num_frames = 1;
   double write_phase_freq =
     1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
@@ -541,8 +536,18 @@ main(int argc, char **argv)
     .bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+       {
+         .dir = 2,
+         .edge = GKYL_LOWER_EDGE,
+         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
+       },
+       {
+         .dir = 2,
+         .edge = GKYL_UPPER_EDGE,
+         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
+       }},
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -620,18 +625,8 @@ main(int argc, char **argv)
     .bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {
-         .dir = 2,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
-         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
-       },
-       {
-         .dir = 2,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
-         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
-       }},
+       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -649,6 +644,8 @@ main(int argc, char **argv)
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
       },
+
+    .time_rate_diagnostics = true,
   };
 
   // field
@@ -662,7 +659,6 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_es_helical_3x2v_p1",
 
     .cfl_frac_omegaH = 1.0,
     .cfl_frac = 0.9,
@@ -698,6 +694,8 @@ main(int argc, char **argv)
       },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping =
@@ -712,7 +710,10 @@ main(int argc, char **argv)
         .restart_frame = app_args.restart_frame,
         .num_steps = app_args.num_steps,
       },
-    .print_verbosity = {.enabled = true, .frequency = 1.0},
+    // .print_verbosity = {
+    //   .enabled = true,
+    //   .frequency = 1.0,
+    // }
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

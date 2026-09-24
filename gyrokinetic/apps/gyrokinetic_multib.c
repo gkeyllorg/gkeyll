@@ -1233,7 +1233,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
 
   struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
   sbapp->field->is_first_energy_write_call = false; // Append to existing diagnostic.
-    //
+  //
   app->is_first_dt_write_call = false;
 
   return rstat;

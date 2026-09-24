@@ -48,8 +48,7 @@ typedef struct {
 //   ndim_do = 4 -> index 3   (15 combos)
 //   ndim_do = 5 -> index 4   (31 combos)
 //   ndim_do = 6 -> index 5   (63 combos)
-GKYL_CU_D static const eval_at_coord_kern_list ser_eval_at_coord_list[6][63] = {
-  // ndim_do = 1.
+GKYL_CU_D static const eval_at_coord_kern_list ser_eval_at_coord_list[6][63] = { // ndim_do = 1.
   {{gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0,
     gkyl_dg_eval_at_coord_proj_1x_ser_p2_eval_dirs_0, NULL}},
   // ndim_do = 2.
@@ -196,8 +195,7 @@ GKYL_CU_D static const eval_at_coord_kern_list ser_eval_at_coord_list[6][63] = {
    {gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_012345, NULL, NULL}}
 };
 
-GKYL_CU_D static const basis_tar_kern_list ser_basis_tar_list[6][63] = {
-  // ndim_do = 1.
+GKYL_CU_D static const basis_tar_kern_list ser_basis_tar_list[6][63] = { // ndim_do = 1.
   {{gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0_target_basis,
     gkyl_dg_eval_at_coord_proj_1x_ser_p2_eval_dirs_0_target_basis, NULL}},
   // ndim_do = 2.
@@ -345,8 +343,7 @@ GKYL_CU_D static const basis_tar_kern_list ser_basis_tar_list[6][63] = {
 };
 
 // Tensor kernels.
-GKYL_CU_D static const eval_at_coord_kern_list ten_eval_at_coord_list[3][7] = {
-  // ndim_do = 1.
+GKYL_CU_D static const eval_at_coord_kern_list ten_eval_at_coord_list[3][7] = { // ndim_do = 1.
   {{gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0, NULL, NULL},
    {NULL, NULL, NULL},
    {NULL, NULL, NULL},
@@ -375,8 +372,7 @@ GKYL_CU_D static const eval_at_coord_kern_list ten_eval_at_coord_list[3][7] = {
    {gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_012, NULL, NULL}}
 };
 
-GKYL_CU_D static const basis_tar_kern_list ten_basis_tar_list[3][7] = {
-  // ndim_do = 1.
+GKYL_CU_D static const basis_tar_kern_list ten_basis_tar_list[3][7] = { // ndim_do = 1.
   {{gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0_target_basis, NULL, NULL},
    {NULL, NULL, NULL},
    {NULL, NULL, NULL},
@@ -406,8 +402,7 @@ GKYL_CU_D static const basis_tar_kern_list ten_basis_tar_list[3][7] = {
 };
 
 // GK-hybrid kernels.
-GKYL_CU_D static const eval_at_coord_kern_list gkhyb_eval_at_coord_list[4][31] = {
-  // 1x1v.
+GKYL_CU_D static const eval_at_coord_kern_list gkhyb_eval_at_coord_list[4][31] = { // 1x1v.
   {{gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_0, NULL, NULL},
    {gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_1, NULL, NULL},
    {gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_01, NULL, NULL}},
@@ -469,8 +464,7 @@ GKYL_CU_D static const eval_at_coord_kern_list gkhyb_eval_at_coord_list[4][31] =
    {gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_01234, NULL, NULL}}
 };
 
-GKYL_CU_D static const basis_tar_kern_list gkhyb_basis_tar_list[4][31] = {
-  // 1x1v.
+GKYL_CU_D static const basis_tar_kern_list gkhyb_basis_tar_list[4][31] = { // 1x1v.
   {{gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_0_target_basis, NULL, NULL},
    {gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_1_target_basis, NULL, NULL},
    {gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_01_target_basis, NULL, NULL}},

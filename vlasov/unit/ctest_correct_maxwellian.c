@@ -214,7 +214,7 @@ test_1x1v(int poly_order, bool use_gpu)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d_corr_m0.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // Moments computed from *only* density-corrected LTE distribution function
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms_diag);
@@ -243,7 +243,7 @@ test_1x1v(int poly_order, bool use_gpu)
 
   // write distribution function to file
   sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d_corr_all_moms.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // Compare m0 to the computed m0 (density correction only)
   struct gkyl_range_iter iter;
@@ -297,14 +297,18 @@ test_1x1v(int poly_order, bool use_gpu)
 }
 
 void
-test_1x1v_p1()
+test_correct_maxwellian_1x1v_p1_ho()
 {
   test_1x1v(1, false);
 }
 void
-test_1x1v_p2()
+test_correct_maxwellian_1x1v_p2_ho()
 {
   test_1x1v(2, false);
 }
 
-TEST_LIST = {{"test_1x1v_p1", test_1x1v_p1}, {"test_1x1v_p2", test_1x1v_p2}, {NULL, NULL}};
+TEST_LIST = {
+  {"test_correct_maxwellian_1x1v_p1_ho", test_correct_maxwellian_1x1v_p1_ho},
+  {"test_correct_maxwellian_1x1v_p2_ho", test_correct_maxwellian_1x1v_p2_ho},
+  {NULL, NULL}
+};

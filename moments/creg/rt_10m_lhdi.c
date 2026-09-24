@@ -142,7 +142,7 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nx = 64; // Cell count (x-direction).
-  int Ny = 128; // Cell count (y-direction).
+  int Ny = 64; // Cell count (y-direction).
   double Lx = 6.4 * l; // Domain size (x-direction).
   double Ly = 12.8 * l; // Domain size (y-direction).
   double k0_elc = 1.0; // Closure parameter for electrons.

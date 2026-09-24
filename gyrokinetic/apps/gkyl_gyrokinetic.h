@@ -112,7 +112,7 @@ struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
   bool write_diagnostics; // Whether to output diagnostics.
   bool not_in_dfdt; // If true, the collision operator will not be added to df/dt.
-    // Used to ignore the collisional updates of this species, while updating cross-species collisions.
+  // Used to ignore the collisional updates of this species, while updating cross-species collisions.
 
   double nu_frac; // Rescales collision frequencies (default = 1).
 
@@ -200,10 +200,10 @@ struct gkyl_gyrokinetic_source_bgk {
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
   double injection_time; // Injection time for external source model
-    // nu(x) = 1/coupling time
+  // nu(x) = 1/coupling time
   double damping_factor; // For external source model
-    // n_s = max(n_s, damping factor*n)
-    // to prevent driving n negative
+  // n_s = max(n_s, damping factor*n)
+  // to prevent driving n negative
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
@@ -222,7 +222,8 @@ struct gkyl_gyrokinetic_bc {
   enum gkyl_gyrokinetic_bc_type type; // BC type flag.
   double value[3]; // Meaning depends on type.
   void (*aux_profile)(
-    double t, const double *xn, double *fout, void *ctx
+    double t, const double *xn, double *fout,
+    void *ctx
   ); // Auxiliary function (e.g. wall potential).
   void *aux_ctx; // Context for aux_profile.
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
@@ -346,7 +347,7 @@ struct gkyl_gyrokinetic_flr {
   enum gkyl_gk_flr_type type;
   double Tperp; // Perp temperature used to evaluate gyroradius.
   double bmag; // Magnetic field used to evaluate gyroradius. If not provided
-    // it'll use B in the center of the domain.
+  // it'll use B in the center of the domain.
 };
 
 struct gkyl_gyrokinetic_correct_inp {
@@ -354,7 +355,7 @@ struct gkyl_gyrokinetic_correct_inp {
   double iter_eps; // error tolerance for moment fixes (density is always exact)
   int max_iter; // maximum number of iteration
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-    // *even if* the scheme fails to converge.
+  // *even if* the scheme fails to converge.
 };
 
 enum gkyl_gyrokinetic_positivity_type {
@@ -418,7 +419,7 @@ struct gkyl_gyrokinetic_fdot_multiplier_comp {
   // Parameters for time dilation types (FIXED_DT, MASK_F_*):
   double cfl_dt_min_value; // For FIXED_DT: the minimum allowed dt value.
   double f_threshold; // For MASK_F_* types: absolute value (THRESHOLD)
-    // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
+  // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
   double
     time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time. Small number (0,1] so that dt *= 1/time_dilation_scale_const
   double

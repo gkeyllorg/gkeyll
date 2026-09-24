@@ -120,7 +120,7 @@ bfield_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 }
 
 void
-test_3x_p1()
+test_mapc2p_3x_p1_ho()
 {
   struct gkyl_basis basis;
   int poly_order = 1;
@@ -393,7 +393,7 @@ dmapz_dz(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 }
 
 void
-test_3x_p1_pmap()
+test_mapc2p_3x_p1_pmap_ho()
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   struct gkyl_basis basis;
@@ -588,4 +588,8 @@ test_3x_p1_pmap()
   gkyl_gk_geometry_release(gk_geom);
 }
 
-TEST_LIST = {{"test_3x_p1", test_3x_p1}, {"test_3x_p1_pmap", test_3x_p1_pmap}, {NULL, NULL}};
+TEST_LIST = {
+  {"test_mapc2p_3x_p1_ho", test_mapc2p_3x_p1_ho},
+  {"test_mapc2p_3x_p1_pmap_ho", test_mapc2p_3x_p1_pmap_ho},
+  {NULL, NULL}
+};

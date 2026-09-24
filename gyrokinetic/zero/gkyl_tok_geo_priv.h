@@ -19,7 +19,7 @@ struct arc_length_ctx {
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
   double arcL_start; // For core bloks only. arc length between theta=0 and lower turning point
-    // measured counterclockwise from left side
+  // measured counterclockwise from left side
   double phi_right; // this is for when we need to switch sides
   double phi_left; // this is for when we need to switch sides
   double phi_bot; // For new way of trying to do core

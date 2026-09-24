@@ -15,7 +15,7 @@ gkyl_parallelize_components_kernel_launch_dims(
   dimBlock->y = ncomp;
   dimGrid->y = 1;
   dimBlock->x = gkyl_int_div_up(252, ncomp); // ncomp is always 3 or 4 so use closest
-    // integer multiple to 256 of both 3 and 4
+  // integer multiple to 256 of both 3 and 4
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
 }
 

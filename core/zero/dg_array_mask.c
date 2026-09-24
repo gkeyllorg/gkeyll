@@ -339,7 +339,8 @@ gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
     // Initialize the mask array on host.
     mask->mask_arr = gkyl_array_new(GKYL_DOUBLE, 1, mask->mask_rng_ext->volume);
     gkyl_array_clear(
-      mask->mask_arr, mask->default_value ? 1.0 : -1.0
+      mask->mask_arr,
+      mask->default_value ? 1.0 : -1.0
     ); // Initialize all cells to false for safety.
   }
 

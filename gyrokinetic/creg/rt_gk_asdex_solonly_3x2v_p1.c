@@ -286,8 +286,8 @@ create_ctx(void)
   double vpar_max_ion = 6. * vti;
   double mu_max_ion = mi * pow(4 * vti, 2) / (2 * B0);
 
-  double t_end = 1.0e-4;
-  int num_frames = 100;
+  double t_end = 1.0e-7;
+  int num_frames = 1;
   double write_phase_freq = 0.01;
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
@@ -689,7 +689,7 @@ main(int argc, char **argv)
     .cfl_frac = 1.0,
 
     .geometry =
-      {.geometry_id = GKYL_GEOMETRY_FROMFILE, .efit_info = efit_inp, .tok_grid_info = grid_inp},
+      {.geometry_id = GKYL_GEOMETRY_TOKAMAK, .efit_info = efit_inp, .tok_grid_info = grid_inp},
 
     .num_periodic_dir = 1,
     .periodic_dirs = {1},

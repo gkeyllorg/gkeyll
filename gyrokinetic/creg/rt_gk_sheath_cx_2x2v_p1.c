@@ -149,7 +149,7 @@ create_ctx(void)
     (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
   double t_end = 1.0e-7; // Final simulation time.
-  int num_frames = 2; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   double write_phase_freq =
     0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames * 100;

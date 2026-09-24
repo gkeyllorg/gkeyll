@@ -16,7 +16,7 @@
 #include <gkyl_util.h>
 
 static void
-mpi_0()
+mpi_0_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -41,7 +41,7 @@ mpi_0()
 }
 
 static void
-mpi_1()
+mpi_1_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]){1, 1}, (int[]){100, 100});
@@ -72,7 +72,7 @@ mpi_1()
 }
 
 static void
-mpi_n2_allreduce()
+mpi_n2_allreduce_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -121,7 +121,7 @@ mpi_n2_allreduce()
 }
 
 static void
-mpi_n2_allgather_1d()
+mpi_n2_allgather_1d_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -180,7 +180,7 @@ mpi_n2_allgather_1d()
 }
 
 static void
-mpi_n4_allgather_2d()
+mpi_n4_allgather_2d_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -253,7 +253,7 @@ mpi_n4_allgather_2d()
 }
 
 static void
-mpi_n2_allgather_1d_host()
+mpi_n2_allgather_1d_host_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -312,7 +312,7 @@ mpi_n2_allgather_1d_host()
 }
 
 static void
-mpi_n4_allgather_2d_host()
+mpi_n4_allgather_2d_host_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -385,7 +385,7 @@ mpi_n4_allgather_2d_host()
 }
 
 static void
-mpi_n2_sync_1d()
+mpi_n2_sync_1d_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -517,18 +517,18 @@ mpi_n4_sync_2d(bool use_corners)
 }
 
 void
-mpi_n4_sync_2d_no_corner()
+mpi_n4_sync_2d_no_corner_ho()
 {
   mpi_n4_sync_2d(false);
 }
 void
-mpi_n4_sync_2d_use_corner()
+mpi_n4_sync_2d_use_corner_ho()
 {
   mpi_n4_sync_2d(true);
 }
 
 static void
-mpi_n4_sync_1x1v()
+mpi_n4_sync_1x1v_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -678,7 +678,7 @@ mpi_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
 }
 
 static void
-mpi_n1_per_sync_2d()
+mpi_n1_per_sync_2d_ho()
 {
   int per_dirs_0[] = {0};
   int per_dirs_1[] = {1};
@@ -834,23 +834,23 @@ mpi_per_sync_corner_2d(int nrank, int cuts[])
 }
 
 static void
-mpi_n1_per_sync_corner_2d(void)
+mpi_n1_per_sync_corner_2d_ho(void)
 {
   mpi_per_sync_corner_2d(1, (int[]){1, 1});
 }
 static void
-mpi_n2_per_sync_corner_2d(void)
+mpi_n2_per_sync_corner_2d_ho(void)
 {
   mpi_per_sync_corner_2d(2, (int[]){2, 1});
 }
 static void
-mpi_n4_per_sync_corner_2d(void)
+mpi_n4_per_sync_corner_2d_ho(void)
 {
   mpi_per_sync_corner_2d(4, (int[]){2, 2});
 }
 
 static void
-mpi_n2_per_sync_2d()
+mpi_n2_per_sync_2d_ho()
 {
   int cuts_21[] = {2, 1};
   int cuts_12[] = {1, 2};
@@ -919,33 +919,33 @@ mpi_per_sync_corner_3d(int nrank, int cuts[])
 }
 
 static void
-mpi_n1_per_sync_corner_3d(void)
+mpi_n1_per_sync_corner_3d_ho(void)
 {
   mpi_per_sync_corner_3d(1, (int[]){1, 1, 1});
 }
 static void
-mpi_n2_per_sync_corner_3d(void)
+mpi_n2_per_sync_corner_3d_ho(void)
 {
   mpi_per_sync_corner_3d(2, (int[]){2, 1, 1});
 }
 static void
-mpi_n4_per_sync_corner_3d(void)
+mpi_n4_per_sync_corner_3d_ho(void)
 {
   mpi_per_sync_corner_3d(4, (int[]){2, 1, 2});
 }
 static void
-mpi_n8_per_sync_corner_3d(void)
+mpi_n8_per_sync_corner_3d_ho(void)
 {
   mpi_per_sync_corner_3d(8, (int[]){2, 2, 2});
 }
 static void
-mpi_n27_per_sync_corner_3d(void)
+mpi_n27_per_sync_corner_3d_ho(void)
 {
   mpi_per_sync_corner_3d(27, (int[]){3, 3, 3});
 }
 
 /* static void */
-/* mpi_n2_array_send_irecv_1d() */
+/* mpi_n2_array_send_irecv_1d_ho() */
 /* { */
 /*   int m_sz; */
 /*   MPI_Comm_size(MPI_COMM_WORLD, &m_sz); */
@@ -1004,7 +1004,7 @@ mpi_n27_per_sync_corner_3d(void)
 /* } */
 
 /* static void */
-/* mpi_n2_array_isend_irecv_2d() */
+/* mpi_n2_array_isend_irecv_2d_ho() */
 /* { */
 /*   int m_sz; */
 /*   MPI_Comm_size(MPI_COMM_WORLD, &m_sz); */
@@ -1070,7 +1070,7 @@ mpi_n27_per_sync_corner_3d(void)
 /* } */
 
 /* static void */
-/* mpi_n4_split_comm_2d() */
+/* mpi_n4_split_comm_2d_ho() */
 /* { */
 /*   // Test the use of two gkyl_comm objects simultaneously, mimicing the case */
 /*   // where one is used to decompose space and the other species. */
@@ -1174,7 +1174,7 @@ mpi_n27_per_sync_corner_3d(void)
 /* } */
 
 static void
-mpi_n4_create_comm_from_ranks_1()
+mpi_n4_create_comm_from_ranks_1_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1236,7 +1236,7 @@ mpi_n4_create_comm_from_ranks_1()
 }
 
 static void
-mpi_n4_create_comm_from_ranks_2()
+mpi_n4_create_comm_from_ranks_2_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1304,7 +1304,7 @@ mpi_n4_create_comm_from_ranks_2()
 }
 
 static void
-mpi_bcast_1d()
+mpi_bcast_1d_ho()
 {
   int bcast_rank = 1;
 
@@ -1413,7 +1413,7 @@ mpi_bcast_2d_test(int *cuts)
 }
 
 static void
-mpi_bcast_2d()
+mpi_bcast_2d_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1439,7 +1439,7 @@ mpi_bcast_2d()
 }
 
 void
-mpi_bcast_1d_host()
+mpi_bcast_1d_host_ho()
 {
   int bcast_rank = 1;
 
@@ -1548,7 +1548,7 @@ mpi_bcast_2d_host_test(int *cuts)
 }
 
 void
-mpi_bcast_2d_host()
+mpi_bcast_2d_host_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1574,47 +1574,46 @@ mpi_bcast_2d_host()
 }
 
 TEST_LIST = {
-  {"mpi_0", mpi_0},
-  {"mpi_1", mpi_1},
-  {"mpi_n2_allreduce", mpi_n2_allreduce},
+  {"mpi_0_ho", mpi_0_ho},
+  {"mpi_1_ho", mpi_1_ho},
+  {"mpi_n2_allreduce_ho", mpi_n2_allreduce_ho},
 
-  {"mpi_n2_allgather_1d", mpi_n2_allgather_1d},
-  {"mpi_n4_allgather_2d", mpi_n4_allgather_2d},
+  {"mpi_n2_allgather_1d_ho", mpi_n2_allgather_1d_ho},
+  {"mpi_n4_allgather_2d_ho", mpi_n4_allgather_2d_ho},
 
-  {"mpi_n2_allgather_1d_host", mpi_n2_allgather_1d_host},
-  {"mpi_n4_allgather_2d_host", mpi_n4_allgather_2d_host},
+  {"mpi_n2_allgather_1d_host_ho", mpi_n2_allgather_1d_host_ho},
+  {"mpi_n4_allgather_2d_host_ho", mpi_n4_allgather_2d_host_ho},
 
-  {"mpi_n2_sync_1d", mpi_n2_sync_1d},
-  {"mpi_n4_sync_2d_no_corner", mpi_n4_sync_2d_no_corner},
-  {"mpi_n4_sync_2d_use_corner", mpi_n4_sync_2d_use_corner},
-  {"mpi_n2_sync_1x1v", mpi_n4_sync_1x1v},
+  {"mpi_n2_sync_1d_ho", mpi_n2_sync_1d_ho},
+  {"mpi_n4_sync_2d_no_corner_ho", mpi_n4_sync_2d_no_corner_ho},
+  {"mpi_n4_sync_2d_use_corner_ho", mpi_n4_sync_2d_use_corner_ho},
+  {"mpi_n4_sync_1x1v_ho", mpi_n4_sync_1x1v_ho},
 
-  {"mpi_n1_per_sync_2d", mpi_n1_per_sync_2d},
-  {"mpi_n1_per_sync_corner_2d", mpi_n1_per_sync_corner_2d},
-  {"mpi_n2_per_sync_2d", mpi_n2_per_sync_2d},
+  {"mpi_n1_per_sync_2d_ho", mpi_n1_per_sync_2d_ho},
+  {"mpi_n2_per_sync_2d_ho", mpi_n2_per_sync_2d_ho},
 
-  {"mpi_n1_per_sync_corner_2d", mpi_n1_per_sync_corner_2d},
-  {"mpi_n2_per_sync_corner_2d", mpi_n2_per_sync_corner_2d},
-  {"mpi_n4_per_sync_corner_2d", mpi_n4_per_sync_corner_2d},
+  {"mpi_n1_per_sync_corner_2d_ho", mpi_n1_per_sync_corner_2d_ho},
+  {"mpi_n2_per_sync_corner_2d_ho", mpi_n2_per_sync_corner_2d_ho},
+  {"mpi_n4_per_sync_corner_2d_ho", mpi_n4_per_sync_corner_2d_ho},
 
-  {"mpi_n1_per_sync_corner_3d", mpi_n1_per_sync_corner_3d},
-  {"mpi_n2_per_sync_corner_3d", mpi_n2_per_sync_corner_3d},
-  {"mpi_n4_per_sync_corner_3d", mpi_n4_per_sync_corner_3d},
-  {"mpi_n8_per_sync_corner_3d", mpi_n8_per_sync_corner_3d},
-  {"mpi_n27_per_sync_corner_3d", mpi_n27_per_sync_corner_3d},
+  {"mpi_n1_per_sync_corner_3d_ho", mpi_n1_per_sync_corner_3d_ho},
+  {"mpi_n2_per_sync_corner_3d_ho", mpi_n2_per_sync_corner_3d_ho},
+  {"mpi_n4_per_sync_corner_3d_ho", mpi_n4_per_sync_corner_3d_ho},
+  {"mpi_n8_per_sync_corner_3d_ho", mpi_n8_per_sync_corner_3d_ho},
+  {"mpi_n27_per_sync_corner_3d_ho", mpi_n27_per_sync_corner_3d_ho},
 
-  /* {"mpi_n2_array_send_irecv_1d", mpi_n2_array_send_irecv_1d }, */
-  /* {"mpi_n2_array_isend_irecv_2d", mpi_n2_array_isend_irecv_2d }, */
+  /* {"mpi_n2_array_send_irecv_1d_ho", mpi_n2_array_send_irecv_1d_ho }, */
+  /* {"mpi_n2_array_isend_irecv_2d_ho", mpi_n2_array_isend_irecv_2d_ho }, */
 
-  /* {"mpi_n4_split_comm_2d", mpi_n4_split_comm_2d }, */
-  {"mpi_n4_create_comm_from_ranks_1", mpi_n4_create_comm_from_ranks_1},
-  {"mpi_n4_create_comm_from_ranks_2", mpi_n4_create_comm_from_ranks_2},
+  /* {"mpi_n4_split_comm_2d_ho", mpi_n4_split_comm_2d_ho }, */
+  {"mpi_n4_create_comm_from_ranks_1_ho", mpi_n4_create_comm_from_ranks_1_ho},
+  {"mpi_n4_create_comm_from_ranks_2_ho", mpi_n4_create_comm_from_ranks_2_ho},
 
-  {"mpi_bcast_1d", mpi_bcast_1d},
-  {"mpi_bcast_2d", mpi_bcast_2d},
+  {"mpi_bcast_1d_ho", mpi_bcast_1d_ho},
+  {"mpi_bcast_2d_ho", mpi_bcast_2d_ho},
 
-  {"mpi_bcast_1d_host", mpi_bcast_1d_host},
-  {"mpi_bcast_2d_host", mpi_bcast_2d_host},
+  {"mpi_bcast_1d_host_ho", mpi_bcast_1d_host_ho},
+  {"mpi_bcast_2d_host_ho", mpi_bcast_2d_host_ho},
 
   {NULL, NULL}
 };

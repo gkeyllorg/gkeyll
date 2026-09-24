@@ -222,7 +222,7 @@ test_deflate_inflate(bool use_gpu)
 }
 
 void
-test_poisson_slices()
+test_deflate_zsurf_poisson_slices_ho()
 {
   // Create the 2d field.
   // Create xz grid.
@@ -398,21 +398,21 @@ test_poisson_slices()
 }
 
 void
-test_deflate_inflate_ho(void)
+test_deflate_zsurf_inflate_ho(void)
 {
   test_deflate_inflate(false);
 }
 void
-test_deflate_inflate_dev(void)
+test_deflate_zsurf_inflate_dev(void)
 {
   test_deflate_inflate(true);
 }
 
 TEST_LIST = {
-  {"test_deflate_inflate_ho", test_deflate_inflate_ho},
-  {"test_poisson_slices", test_poisson_slices},
+  {"test_deflate_zsurf_inflate_ho", test_deflate_zsurf_inflate_ho},
+  {"test_deflate_zsurf_poisson_slices_ho", test_deflate_zsurf_poisson_slices_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_deflate_inflate_dev", test_deflate_inflate_dev},
+  {"test_deflate_zsurf_inflate_dev", test_deflate_zsurf_inflate_dev},
 #endif
   {NULL, NULL}
 };

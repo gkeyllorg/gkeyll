@@ -600,13 +600,11 @@ nonuniform_position_map_z(
   double z = zc[0];
 
   double Lz = app->Lz;
-
-  double Z = 0.0;
-
+  double Z = z;
   if (fabs(z) < Lz * 0.25) {
-    Z = -((z - (0.25 * Lz)) * (z - (0.25 * Lz)) / (0.5 * Lz)) + (0.25 * Lz);
-  } else {
-    Z = z;
+    double zn = 4.0 * z / Lz;
+    double shape = 1.0 - zn * zn;
+    Z += (Lz / 16.0) * shape * shape * shape;
   }
 
   // Set rescaled configuration space coordinate Z, from old configuration space coordinate z.

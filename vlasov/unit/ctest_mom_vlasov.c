@@ -13,7 +13,7 @@
 #include <gkyl_rect_grid.h>
 
 void
-test_mom_vlasov()
+test_mom_vlasov_ho()
 {
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
@@ -100,7 +100,7 @@ skin_ghost_ranges_init(
 }
 
 void
-test_1x1v_p1()
+test_mom_vlasov_1x1v_p1_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
@@ -233,7 +233,7 @@ test_1x1v_p1()
   //int sz = snprintf(0, 0, fmt, name, speciesName, momName, frame);
   //char fileNm[sz+1]; // ensures no buffer overflow
   //snprintf(fileNm, sizeof fileNm, fmt, name, speciesName, momName, frame);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, "ctest_mom_vlasov_distf_0.gkyl");
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, "ctest_mom_vlasov_distf_0.gkyl");
 
   // release memory for moment data object
   gkyl_array_release(m0);
@@ -256,7 +256,7 @@ test_1x1v_p1()
 }
 
 void
-test_1x2v_p1()
+test_mom_vlasov_1x2v_p1_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
@@ -372,7 +372,7 @@ test_1x2v_p1()
 }
 
 void
-test_2x2v_p1()
+test_mom_vlasov_2x2v_p1_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
@@ -494,7 +494,7 @@ test_2x2v_p1()
 }
 
 void
-test_big_2x2v_p2()
+test_mom_vlasov_big_2x2v_p2_ho()
 {
   int poly_order = 2;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
@@ -616,7 +616,7 @@ test_big_2x2v_p2()
 }
 
 void
-test_2x3v_p1()
+test_mom_vlasov_2x3v_p1_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0, 2.0};
@@ -741,7 +741,7 @@ test_2x3v_p1()
 int cu_mom_vlasov_test(const struct gkyl_mom_type *mom);
 
 void
-test_cu_mom_vlasov()
+test_mom_vlasov_dev()
 {
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
@@ -759,7 +759,7 @@ test_cu_mom_vlasov()
 }
 
 void
-test_1x1v_p1_cu()
+test_mom_vlasov_1x1v_p1_dev()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
@@ -899,7 +899,7 @@ test_1x1v_p1_cu()
 }
 
 void
-test_1x2v_p1_cu()
+test_mom_vlasov_1x2v_p1_dev()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
@@ -1030,7 +1030,7 @@ test_1x2v_p1_cu()
 }
 
 void
-test_2x2v_p1_cu()
+test_mom_vlasov_2x2v_p1_dev()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
@@ -1167,7 +1167,7 @@ test_2x2v_p1_cu()
 }
 
 void
-test_2x3v_p1_cu()
+test_mom_vlasov_2x3v_p1_dev()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0, 2.0};
@@ -1304,7 +1304,7 @@ test_2x3v_p1_cu()
 }
 
 void
-test_big_2x2v_p2_cu()
+test_mom_vlasov_big_2x2v_p2_dev()
 {
   int poly_order = 2;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
@@ -1443,19 +1443,19 @@ test_big_2x2v_p2_cu()
 #endif
 
 TEST_LIST = {
-  {"mom_vlasov", test_mom_vlasov},
-  {"test_1x1v_p1", test_1x1v_p1},
-  {"test_1x2v_p1", test_1x2v_p1},
-  {"test_2x2v_p1", test_2x2v_p1},
-  //  { "test_big_2x2v_p2", test_big_2x2v_p2 },
-  {"test_2x3v_p1", test_2x3v_p1},
+  {"mom_vlasov_ho", test_mom_vlasov_ho},
+  {"test_mom_vlasov_1x1v_p1_ho", test_mom_vlasov_1x1v_p1_ho},
+  {"test_mom_vlasov_1x2v_p1_ho", test_mom_vlasov_1x2v_p1_ho},
+  {"test_mom_vlasov_2x2v_p1_ho", test_mom_vlasov_2x2v_p1_ho},
+  //  { "test_mom_vlasov_big_2x2v_p2_ho", test_mom_vlasov_big_2x2v_p2_ho },
+  {"test_mom_vlasov_2x3v_p1_ho", test_mom_vlasov_2x3v_p1_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"cu_mom_vlasov", test_cu_mom_vlasov},
-  {"test_1x1v_p1_cu", test_1x1v_p1_cu},
-  {"test_1x2v_p1_cu", test_1x2v_p1_cu},
-  {"test_2x2v_p1_cu", test_2x2v_p1_cu},
-  {"test_2x3v_p1_cu", test_2x3v_p1_cu},
-//  { "test_big_2x2v_p2_cu", test_big_2x2v_p2_cu },
+  {"mom_vlasov_dev", test_mom_vlasov_dev},
+  {"test_mom_vlasov_1x1v_p1_dev", test_mom_vlasov_1x1v_p1_dev},
+  {"test_mom_vlasov_1x2v_p1_dev", test_mom_vlasov_1x2v_p1_dev},
+  {"test_mom_vlasov_2x2v_p1_dev", test_mom_vlasov_2x2v_p1_dev},
+  {"test_mom_vlasov_2x3v_p1_dev", test_mom_vlasov_2x3v_p1_dev},
+//  { "test_mom_vlasov_big_2x2v_p2_dev", test_mom_vlasov_big_2x2v_p2_dev },
 #endif
   {NULL, NULL}
 };

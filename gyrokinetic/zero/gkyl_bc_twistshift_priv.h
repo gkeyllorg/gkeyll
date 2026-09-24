@@ -133,7 +133,7 @@ struct gkyl_bc_twistshift {
 
   int *num_do; // Number of donors at each cell in shear_dir;
   int *shift_dir_idx_do; // Indices of donor cells, in the direction of the
-    // shift, for each cell in the TS grid.
+  // shift, for each cell in the TS grid.
 
   struct gkyl_bc_twistshift_kernels *kernels; // kernels for sub-cell integrals.
 
@@ -147,16 +147,16 @@ struct gkyl_bc_twistshift {
   struct gkyl_nmat *mm_contr; // Contribution resulting from a mat-mat mult.
 
   long *num_numcol_fidx_do; // 1D indexer, from a index identitying the num-numcol
-    // plane (in the num-numcol-num_basis space), to a
-    // linear index into the donor distribution function f.
+  // plane (in the num-numcol-num_basis space), to a
+  // linear index into the donor distribution function f.
 
   long *num_numcol_fidx_tar; // 1D indexer, from a index identitying the num-numcol
-    // plane (in the num-numcol-num_basis space), to a
-    // linear index into the target distribution function f.
+  // plane (in the num-numcol-num_basis space), to a
+  // linear index into the target distribution function f.
 
   int *num_do_cum; // Cumulative number of donors up to a give cell in shear_dir;
   struct gkyl_range permutted_ghost_r; // Ghost range to populate in the target
-    // field, with some dimensions permutted.
+  // field, with some dimensions permutted.
   struct gkyl_range ghost_r; // Ghost range this BC fills.
 };
 

@@ -37,7 +37,7 @@ calcq(const double pv[10], double q[10])
 }
 
 void
-test_ten_moment_basic()
+test_ten_moment_basic_ho()
 {
   struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0, false, false, 1, 0, false);
 
@@ -119,7 +119,7 @@ test_ten_moment_basic()
 }
 
 void
-test_ten_moment_waves()
+test_ten_moment_waves_ho()
 {
   struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0, false, false, 1, 0, false);
 
@@ -186,7 +186,7 @@ test_ten_moment_waves()
 int cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn);
 
 void
-test_cu_wv_ten_moment()
+test_wv_ten_moment_dev()
 {
   double k0 = 1.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(k0, false, false, 0, 0, true);
@@ -208,10 +208,10 @@ test_cu_wv_ten_moment()
 #endif
 
 TEST_LIST = {
-  {"ten_moment_basic", test_ten_moment_basic},
-  {"ten_moment_waves", test_ten_moment_waves},
+  {"ten_moment_basic_ho", test_ten_moment_basic_ho},
+  {"ten_moment_waves_ho", test_ten_moment_waves_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"cu_wv_ten_moment", test_cu_wv_ten_moment},
+  {"wv_ten_moment_dev", test_wv_ten_moment_dev},
 #endif
   {NULL, NULL}
 };

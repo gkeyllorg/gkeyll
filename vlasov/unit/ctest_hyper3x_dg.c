@@ -492,9 +492,9 @@ test_vlasov_3x3v_p1_(bool use_gpu)
 }
 
 void
-test_vlasov_3x3v_p1()
+test_hyper3x_dg_vlasov_3x3v_p1_ho()
 {
   test_vlasov_3x3v_p1_(false);
 }
 
-TEST_LIST = {{"test_vlasov_3x3v_p1", test_vlasov_3x3v_p1}, {NULL, NULL}};
+TEST_LIST = {{"test_hyper3x_dg_vlasov_3x3v_p1_ho", test_hyper3x_dg_vlasov_3x3v_p1_ho}, {NULL, NULL}};
