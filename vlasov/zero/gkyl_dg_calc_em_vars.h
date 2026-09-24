@@ -7,7 +7,6 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 
-
 // Object type
 typedef struct gkyl_dg_calc_em_vars gkyl_dg_calc_em_vars;
 
@@ -39,21 +38,21 @@ typedef struct gkyl_dg_calc_em_vars gkyl_dg_calc_em_vars;
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
-struct gkyl_dg_calc_em_vars* 
-gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
-  double limiter_fac, bool is_ExB, bool use_gpu);
+struct gkyl_dg_calc_em_vars *gkyl_dg_calc_em_vars_new(
+  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_range *mem_range, const struct gkyl_wv_eqn *wv_eqn,
+  const struct gkyl_wave_geom *geom, double limiter_fac, bool is_ExB, bool use_gpu
+);
 
 /**
  * Create new updater to compute EM variables on
  * NV-GPU. See new() method for documentation.
  */
-struct gkyl_dg_calc_em_vars* 
-gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_range *conf_range, 
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
-  double limiter_fac, bool is_ExB);
+struct gkyl_dg_calc_em_vars *gkyl_dg_calc_em_vars_cu_dev_new(
+  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn,
+  const struct gkyl_wave_geom *geom, double limiter_fac, bool is_ExB
+);
 
 /**
  * Compute either
@@ -73,9 +72,10 @@ gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
  * @param out            Output array of volume expansion of either magnetic field unit vector and unit tensor or E x B velocity
  * @param out_surf       Output array of surface expansion of EM variable
  */
-void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up, 
-  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, 
-  struct gkyl_array* out, struct gkyl_array* out_surf);
+void gkyl_dg_calc_em_vars_advance(
+  struct gkyl_dg_calc_em_vars *up, const struct gkyl_array *em, struct gkyl_array *cell_avg_magB2,
+  struct gkyl_array *out, struct gkyl_array *out_surf
+);
 
 /**
  * Compute div(b) and max(|b_i|) penalization
@@ -87,9 +87,11 @@ void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up,
  * @param max_b Output array of max(|b_i|) penalization
  * @param div_b Output array of div(b)
  */
-void gkyl_dg_calc_em_vars_div_b(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 
-  struct gkyl_array* max_b, struct gkyl_array* div_b);
+void gkyl_dg_calc_em_vars_div_b(
+  struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bvar_surf, const struct gkyl_array *bvar, struct gkyl_array *max_b,
+  struct gkyl_array *div_b
+);
 
 /**
  * Limit slopes for EM variables
@@ -98,8 +100,9 @@ void gkyl_dg_calc_em_vars_div_b(struct gkyl_dg_calc_em_vars *up, const struct gk
  * @param conf_range Configuration space range
  * @param em         Input (and Output after limiting) array of em variables [Ex, Ey, Ez, Bx, By, Bz, phi, psi]
  */
-void gkyl_dg_calc_em_vars_limiter(struct gkyl_dg_calc_em_vars *up, 
-  const struct gkyl_range *conf_range, struct gkyl_array* em);
+void gkyl_dg_calc_em_vars_limiter(
+  struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, struct gkyl_array *em
+);
 
 /**
  * Delete pointer to updater to compute EM variables.
@@ -112,14 +115,17 @@ void gkyl_dg_calc_em_vars_release(struct gkyl_dg_calc_em_vars *up);
  * Host-side wrappers for em vars operations on device
  */
 
-void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up, 
-  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, 
-  struct gkyl_array* out, struct gkyl_array* out_surf);
+void gkyl_dg_calc_em_vars_advance_cu(
+  struct gkyl_dg_calc_em_vars *up, const struct gkyl_array *em, struct gkyl_array *cell_avg_magB2,
+  struct gkyl_array *out, struct gkyl_array *out_surf
+);
 
-void gkyl_dg_calc_em_vars_div_b_cu(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 
-  struct gkyl_array* max_b, struct gkyl_array* div_b);
+void gkyl_dg_calc_em_vars_div_b_cu(
+  struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bvar_surf, const struct gkyl_array *bvar, struct gkyl_array *max_b,
+  struct gkyl_array *div_b
+);
 
-void gkyl_dg_calc_em_vars_limiter_cu(struct gkyl_dg_calc_em_vars *up, 
-  const struct gkyl_range *conf_range, struct gkyl_array* em);
-
+void gkyl_dg_calc_em_vars_limiter_cu(
+  struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, struct gkyl_array *em
+);

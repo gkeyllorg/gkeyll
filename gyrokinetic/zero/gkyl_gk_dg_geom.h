@@ -9,12 +9,11 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-
 // Geometry information for lower surfaces (left, bottom, front) for a cell
 struct gkyl_gk_dg_surf_geom {
   double B3; // n^3 \cdot \vec{B}
   double normcurlbhat; // normal to face perp to direction 'd' dotted with curl(bhat)
-  double bmag; // |B| 
+  double bmag; // |B|
   struct gkyl_vec3 bhat; // Covariant components of bhat (b_i)
   double Jc; // J_c
 };
@@ -31,19 +30,17 @@ struct gkyl_gk_dg_vol_geom {
   struct gkyl_vec3 bioverJB; // b_i/J_c/B
 };
 
-
-// geometry information over a range of cells: 
+// geometry information over a range of cells:
 struct gkyl_gk_dg_geom {
   struct gkyl_range range; // range over which geometry is defined
   struct gkyl_range surf_quad_range; // range for indexing surface nodes
-  struct gkyl_range vol_quad_range;  // range for indexing volume nodes
+  struct gkyl_range vol_quad_range; // range for indexing volume nodes
 
-  
   struct gkyl_array *surf_geom[GKYL_MAX_CDIM]; // surface geometry in dir 'd' in each cell
   struct gkyl_array *vol_geom; // cell geometry
-  
+
   uint32_t flags;
-  struct gkyl_ref_count ref_count;  
+  struct gkyl_ref_count ref_count;
   struct gkyl_gk_dg_geom *on_dev; // pointer to itself or device object
 };
 
@@ -63,7 +60,7 @@ struct gkyl_gk_dg_geom_inp {
  *
  * @param inp Inputs for use in constructing geometry
  */
-struct gkyl_gk_dg_geom* gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp);
+struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp);
 
 /**
  * Create a new DG geometry object from host object. 
@@ -72,9 +69,13 @@ struct gkyl_gk_dg_geom* gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *in
  * @param inp Inputs for use in constructing geometry
  * @param use_gpu whether to use gpu
  */
-struct gkyl_gk_dg_geom* gkyl_gk_dg_geom_new_from_host(const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host, bool use_gpu);
+struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new_from_host(
+  const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host, bool use_gpu
+);
 
-struct gkyl_gk_dg_geom* gkyl_gk_dg_geom_cu_dev_new_from_host(const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host);
+struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_cu_dev_new_from_host(
+  const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host
+);
 
 /**
  * Acquire pointer to geometry object. The pointer must be released
@@ -83,7 +84,7 @@ struct gkyl_gk_dg_geom* gkyl_gk_dg_geom_cu_dev_new_from_host(const struct gkyl_g
  * @param dgg Geometry to which a pointer is needed
  * @return Pointer to acquired geometry
  */
-struct gkyl_gk_dg_geom* gkyl_gk_dg_geom_acquire(const struct gkyl_gk_dg_geom* dgg);
+struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_acquire(const struct gkyl_gk_dg_geom *dgg);
 
 /**
  * Write out geometry data to file. The "fprefix" is the prefix of the
@@ -92,7 +93,7 @@ struct gkyl_gk_dg_geom* gkyl_gk_dg_geom_acquire(const struct gkyl_gk_dg_geom* dg
  * @param dgg Geometry to which a pointer is needed
  * @param fname Name of output file to write
  */
-void gkyl_gk_dg_geom_write(const struct gkyl_gk_dg_geom* dgg, const char *fprefix);
+void gkyl_gk_dg_geom_write(const struct gkyl_gk_dg_geom *dgg, const char *fprefix);
 
 /**
  * Get pointer to geometry on the surface normal to 'd' given by idx
@@ -105,11 +106,12 @@ void gkyl_gk_dg_geom_write(const struct gkyl_gk_dg_geom* dgg, const char *fprefi
  * @param idx Index into grid
  * @return Pointer to surface geometry at all quadrature nodes in cell @a idx
  */
-GKYL_CU_DH
-static inline const struct gkyl_gk_dg_surf_geom*
+GKYL_CU_DH static inline const struct gkyl_gk_dg_surf_geom *
 gkyl_gk_dg_geom_get_surf(const struct gkyl_gk_dg_geom *dgg, int d, const int *idx)
 {
-  return (const struct gkyl_gk_dg_surf_geom*) gkyl_array_cfetch(dgg->surf_geom[d], gkyl_range_idx(&dgg->range, idx));
+  return (const struct gkyl_gk_dg_surf_geom *)gkyl_array_cfetch(
+    dgg->surf_geom[d], gkyl_range_idx(&dgg->range, idx)
+  );
 }
 
 /**
@@ -120,8 +122,7 @@ gkyl_gk_dg_geom_get_surf(const struct gkyl_gk_dg_geom *dgg, int d, const int *id
  * @param idx Index (ndim-1) of surface quadrature node
  * @return Linear index for indexing surface quadrature array
  */
-GKYL_CU_DH
-static inline long
+GKYL_CU_DH static inline long
 gkyl_gk_dg_geom_surf_quad_idx(const struct gkyl_gk_dg_geom *dgg, const int *idx)
 {
   return gkyl_range_idx(&dgg->surf_quad_range, idx);
@@ -136,11 +137,12 @@ gkyl_gk_dg_geom_surf_quad_idx(const struct gkyl_gk_dg_geom *dgg, const int *idx)
  * @param idx Index into grid
  * @return Pointer to cell geometry at all quadrature nodes in cell @a idx
  */
-GKYL_CU_DH
-static inline const struct gkyl_gk_dg_vol_geom*
+GKYL_CU_DH static inline const struct gkyl_gk_dg_vol_geom *
 gkyl_gk_dg_geom_get_vol(const struct gkyl_gk_dg_geom *dgg, const int *idx)
 {
-  return (const struct gkyl_gk_dg_vol_geom*) gkyl_array_cfetch(dgg->vol_geom, gkyl_range_idx(&dgg->range, idx));
+  return (const struct gkyl_gk_dg_vol_geom *)gkyl_array_cfetch(
+    dgg->vol_geom, gkyl_range_idx(&dgg->range, idx)
+  );
 }
 
 /**
@@ -151,8 +153,7 @@ gkyl_gk_dg_geom_get_vol(const struct gkyl_gk_dg_geom *dgg, const int *idx)
  * @param vidx Index of volume quadrature node
  * @return Linear index for indexing volume quadrature array
  */
-GKYL_CU_DH
-static inline long
+GKYL_CU_DH static inline long
 gkyl_gk_dg_geom_vol_quad_idx(const struct gkyl_gk_dg_geom *dgg, const int *vidx)
 {
   return gkyl_range_idx(&dgg->vol_quad_range, vidx);
@@ -180,7 +181,9 @@ void gk_dg_geom_free(const struct gkyl_ref_count *ref);
  * @param gk_dg_geom gk_dg_geom object (stores geo specific to gyrokinetics)
  * @param gk_geom gk_geom object from which to populate dg geom objects
  */
-void gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom);
+void gkyl_gk_dg_geom_populate_vol(
+  struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom
+);
 
 /**
  * Populate surface quad point DG geometry objects 
@@ -190,4 +193,6 @@ void gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_d
  * @param gk_dg_geom gk_dg_geom object (stores geo specific to gyrokinetics)
  * @param gk_geom gk_geom object from which to populate dg geom objects
  */
-void gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom);
+void gkyl_gk_dg_geom_populate_surf(
+  struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom
+);
