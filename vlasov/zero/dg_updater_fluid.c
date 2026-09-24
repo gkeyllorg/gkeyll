@@ -13,12 +13,14 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_eqn *gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_fluid *fluid)
+struct gkyl_dg_eqn *
+gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_fluid *fluid)
 {
   return gkyl_dg_eqn_acquire(fluid->eqn_fluid);
 }
 
-gkyl_dg_updater_fluid *gkyl_dg_updater_fluid_new(
+gkyl_dg_updater_fluid *
+gkyl_dg_updater_fluid_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
   const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn,
   const struct gkyl_wave_geom *geom, void *aux_inp, bool use_gpu
@@ -58,7 +60,8 @@ gkyl_dg_updater_fluid *gkyl_dg_updater_fluid_new(
   return up;
 }
 
-void gkyl_dg_updater_fluid_advance(
+void
+gkyl_dg_updater_fluid_advance(
   gkyl_dg_updater_fluid *fluid, const struct gkyl_range *update_rng,
   const struct gkyl_array *GKYL_RESTRICT fluidIn, struct gkyl_array *GKYL_RESTRICT cflrate,
   struct gkyl_array *GKYL_RESTRICT rhs
@@ -69,12 +72,14 @@ void gkyl_dg_updater_fluid_advance(
   fluid->fluid_tm += gkyl_time_diff_now_sec(wst);
 }
 
-struct gkyl_dg_updater_fluid_tm gkyl_dg_updater_fluid_get_tm(const gkyl_dg_updater_fluid *fluid)
+struct gkyl_dg_updater_fluid_tm
+gkyl_dg_updater_fluid_get_tm(const gkyl_dg_updater_fluid *fluid)
 {
   return (struct gkyl_dg_updater_fluid_tm){.fluid_tm = fluid->fluid_tm};
 }
 
-void gkyl_dg_updater_fluid_release(gkyl_dg_updater_fluid *fluid)
+void
+gkyl_dg_updater_fluid_release(gkyl_dg_updater_fluid *fluid)
 {
   gkyl_dg_eqn_release(fluid->eqn_fluid);
   gkyl_hyper_dg_release(fluid->up_fluid);

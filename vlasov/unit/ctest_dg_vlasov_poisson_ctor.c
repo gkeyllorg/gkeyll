@@ -8,7 +8,8 @@
 #include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_poisson_priv.h>
 
-static void check_common(struct gkyl_dg_eqn *eqn, int cdim, int pdim, long cvol, long pvol)
+static void
+check_common(struct gkyl_dg_eqn *eqn, int cdim, int pdim, long cvol, long pvol)
 {
   TEST_CHECK(eqn->num_equations == 1);
   TEST_CHECK(eqn->vol_term != 0);
@@ -25,7 +26,8 @@ static void check_common(struct gkyl_dg_eqn *eqn, int cdim, int pdim, long cvol,
   TEST_CHECK(vp->auxfields.fields_ext == 0);
 }
 
-void test_vp_phi()
+void
+test_vp_phi()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;
@@ -45,7 +47,8 @@ void test_vp_phi()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_vp_phi_ext_potentials()
+void
+test_vp_phi_ext_potentials()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;
@@ -65,7 +68,8 @@ void test_vp_phi_ext_potentials()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_vp_phi_ext_fields()
+void
+test_vp_phi_ext_fields()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;

@@ -17,7 +17,7 @@ build-*/*
 .waf*
 .lock-waf*
 waf_tools/*.pyc
-waf_tools/__pycache__/
+__pycache__/
 gkylzero-dist*
 *.json
 TAGS

@@ -60,8 +60,9 @@ void gkyl_dg_updater_lbo_vlasov_advance(
  * @param lbo Updater object
  * @return timers
  */
-struct gkyl_dg_updater_lbo_vlasov_tm
-gkyl_dg_updater_lbo_vlasov_get_tm(const struct gkyl_dg_updater_collisions *coll);
+struct gkyl_dg_updater_lbo_vlasov_tm gkyl_dg_updater_lbo_vlasov_get_tm(
+  const struct gkyl_dg_updater_collisions *coll
+);
 
 /**
  * Delete updater.

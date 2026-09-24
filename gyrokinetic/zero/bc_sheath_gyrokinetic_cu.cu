@@ -6,7 +6,8 @@ extern "C" {
 }
 
 // CUDA kernel to set device pointers to kernel that computes the reflected f.
-__global__ static void gkyl_bc_gksheath_set_cu_ker_ptrs(
+__global__ static void
+gkyl_bc_gksheath_set_cu_ker_ptrs(
   const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
   struct gkyl_bc_sheath_gyrokinetic_kernels *kers
 )
@@ -16,16 +17,17 @@ __global__ static void gkyl_bc_gksheath_set_cu_ker_ptrs(
   int poly_order = basis->poly_order;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_GKHYBRID:
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    kers->reflectedf = ser_sheath_reflect_list[edge].list[dim - 2].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
+    case GKYL_BASIS_MODAL_GKHYBRID:
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kers->reflectedf = ser_sheath_reflect_list[edge].list[dim - 2].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
   }
 };
 
-void gkyl_bc_gksheath_choose_reflectedf_kernel_cu(
+void
+gkyl_bc_gksheath_choose_reflectedf_kernel_cu(
   const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
   struct gkyl_bc_sheath_gyrokinetic_kernels *kers
 )
@@ -33,7 +35,8 @@ void gkyl_bc_gksheath_choose_reflectedf_kernel_cu(
   gkyl_bc_gksheath_set_cu_ker_ptrs<<<1, 1>>>(basis, edge, kers);
 }
 
-__global__ static void gkyl_bc_sheath_gyrokinetic_advance_cu_ker(
+__global__ static void
+gkyl_bc_sheath_gyrokinetic_advance_cu_ker(
   int cdim, int dir, const struct gkyl_range skin_r, const struct gkyl_range ghost_r,
   const struct gkyl_range conf_r, const struct gkyl_range vel_r, const struct gkyl_basis *basis,
   const struct gkyl_array *vmap, double q2Dm, const struct gkyl_array *phi,
@@ -91,7 +94,8 @@ __global__ static void gkyl_bc_sheath_gyrokinetic_advance_cu_ker(
   }
 }
 
-void gkyl_bc_sheath_gyrokinetic_advance_cu(
+void
+gkyl_bc_sheath_gyrokinetic_advance_cu(
   const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r
 )

@@ -15,7 +15,8 @@
 #include <stdio.h>
 
 // Allocate cu_dev array
-static struct gkyl_array *mkarr(long nc, long size, bool use_gpu)
+static struct gkyl_array *
+mkarr(long nc, long size, bool use_gpu)
 {
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
                                    gkyl_array_new(GKYL_DOUBLE, nc, size);
@@ -32,7 +33,8 @@ struct skin_ghost_ranges {
 };
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(
+static void
+skin_ghost_ranges_init(
   struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost
 )
 {
@@ -48,17 +50,20 @@ static void skin_ghost_ranges_init(
   }
 }
 
-void eval_den_e(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_den_e(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0e19;
 }
-void eval_den_i(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_den_i(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0e19;
 }
-void eval_vtsq_e(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsq_e(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double eV = 1.602e-19;
@@ -66,7 +71,8 @@ void eval_vtsq_e(double t, const double *xn, double *restrict fout, void *ctx)
   double Te = 30.0 * eV;
   fout[0] = Te / me;
 }
-void eval_vtsq_i(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsq_i(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double eV = 1.602e-19;
@@ -74,7 +80,8 @@ void eval_vtsq_i(double t, const double *xn, double *restrict fout, void *ctx)
   double Ti = 10.0 * eV;
   fout[0] = Ti / mi;
 }
-void eval_upar_e(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_upar_e(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double vtsq[1];
@@ -82,7 +89,8 @@ void eval_upar_e(double t, const double *xn, double *restrict fout, void *ctx)
   double vt = sqrt(vtsq[0]);
   fout[0] = 0.01 * vt;
 }
-void eval_upar_i(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_upar_i(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double vtsq[1];
@@ -90,7 +98,8 @@ void eval_upar_i(double t, const double *xn, double *restrict fout, void *ctx)
   double vt = sqrt(vtsq[0]);
   fout[0] = 0.01 * vt;
 }
-void eval_nu_ei(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_nu_ei(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double eV = 1.602e-19;
@@ -105,7 +114,8 @@ void eval_nu_ei(double t, const double *xn, double *restrict fout, void *ctx)
     (6.0 * sqrt(2.0) * pow(M_PI, 3.0 / 2.0) * pow(8.85e-12, 2) * sqrt(me) * pow(Te, 3.0 / 2.0));
   fout[0] = nuElc / 1.96;
 }
-void eval_nu_ie(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_nu_ie(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double me = 9.11e-31;
@@ -115,7 +125,8 @@ void eval_nu_ie(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = nu_ei[0] * me / mi;
 }
 
-void test_1x1v(int poly_order, bool use_gpu)
+void
+test_1x1v(int poly_order, bool use_gpu)
 {
   double eV = 1.602e-19;
   double me = 9.11e-31;
@@ -335,7 +346,8 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_vtsq_i);
 }
 
-void test_1x2v(int poly_order, bool use_gpu)
+void
+test_1x2v(int poly_order, bool use_gpu)
 {
   double eV = 1.602e-19;
   double me = 9.11e-31;
@@ -656,24 +668,29 @@ run_equal_species(int cdim, int vdim, int poly_order, double n0, double upar0, d
   gkyl_array_release(out);
 }
 
-void test_equal_1x1v_p1()
+void
+test_equal_1x1v_p1()
 {
   run_equal_species(1, 1, 1, 2.0e19, 1.0e4, 5.0e11);
 }
-void test_equal_1x2v_p1()
+void
+test_equal_1x2v_p1()
 {
   run_equal_species(1, 2, 1, 3.0e19, -2.0e4, 8.0e11);
 }
-void test_equal_1x1v_zeroflow_p1()
+void
+test_equal_1x1v_zeroflow_p1()
 {
   run_equal_species(1, 1, 1, 1.0e19, 0.0, 1.0e12);
 }
 
-void test_cross_prim_moms_bgk_1x1v_p1_ho()
+void
+test_cross_prim_moms_bgk_1x1v_p1_ho()
 {
   test_1x1v(1, false);
 }
-void test_cross_prim_moms_bgk_1x2v_p1_ho()
+void
+test_cross_prim_moms_bgk_1x2v_p1_ho()
 {
   test_1x2v(1, false);
 }

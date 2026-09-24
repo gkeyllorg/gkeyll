@@ -19,17 +19,20 @@
 
 static const double AMP = 0.75;
 
-static void eval_const(double t, const double *xn, double *restrict fout, void *ctx)
+static void
+eval_const(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = AMP;
 }
 
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-void test_integ_1x1v_const()
+void
+test_integ_1x1v_const()
 {
   int poly_order = 2;
   // config x in [-1,3] (Lx=4), velocity vx in [-3,3] (Lv=6).
@@ -90,7 +93,8 @@ void test_integ_1x1v_const()
   gkyl_array_release(distf);
 }
 
-void test_integ_1x2v_const()
+void
+test_integ_1x2v_const()
 {
   int poly_order = 2;
   // x in [0,2] (Lx=2), vx,vy in [-2,2] (Lv=4 each).

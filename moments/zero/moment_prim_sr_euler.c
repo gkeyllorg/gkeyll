@@ -5,7 +5,8 @@
 #define TV 3
 #define TW 4
 
-double gkyl_sr_euler_max_abs_speed(double gas_gamma, const double q[5])
+double
+gkyl_sr_euler_max_abs_speed(double gas_gamma, const double q[5])
 {
   double v[5];
   gkyl_sr_euler_prim_vars(gas_gamma, q, v);
@@ -21,7 +22,8 @@ double gkyl_sr_euler_max_abs_speed(double gas_gamma, const double q[5])
   return (fac1 * q[2] + sqrt(fac2)) / (fac1 * fac0 + gas_gamma * pr);
 }
 
-void gkyl_sr_euler_flux(double gas_gamma, const double q[5], double flux[5])
+void
+gkyl_sr_euler_flux(double gas_gamma, const double q[5], double flux[5])
 {
   double v[5];
   gkyl_sr_euler_prim_vars(gas_gamma, q, v);

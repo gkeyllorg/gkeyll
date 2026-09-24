@@ -36,7 +36,8 @@ struct amr_gr_perturbed_density_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_gr_perturbed_density_ctx create_ctx(void)
+struct amr_gr_perturbed_density_ctx
+create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
@@ -81,13 +82,14 @@ struct amr_gr_perturbed_density_ctx create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct amr_gr_perturbed_density_ctx new_ctx =
@@ -223,7 +225,8 @@ void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   gkyl_free(vel);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct amr_gr_perturbed_density_ctx ctx = create_ctx(); // Context for initialization functions.
 
@@ -249,7 +252,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max
+    .num_failures_max = ctx.num_failures_max,
   };
 
   gr_euler1d_run_single(argc, argv, &init);

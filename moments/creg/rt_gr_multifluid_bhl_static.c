@@ -80,7 +80,8 @@ struct bhl_static_multifluid_ctx {
   double x_loc; // Shock location (x-direction).
 };
 
-struct bhl_static_multifluid_ctx create_ctx(void)
+struct bhl_static_multifluid_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -181,15 +182,14 @@ struct bhl_static_multifluid_ctx create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .x_loc = x_loc
+    .x_loc = x_loc,
   };
 
   return ctx;
 }
 
-void evalGRTwoFluidInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalGRTwoFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct bhl_static_multifluid_ctx *app = ctx;
@@ -475,7 +475,8 @@ void evalGRTwoFluidInit(
   gkyl_free(spatial_metric_der);
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -489,16 +490,16 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
   }
 }
 
-void calc_field_energy(
-  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc
-)
+void
+calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
   }
 }
 
-void calc_integrated_mom(
+void
+calc_integrated_mom(
   struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc
 )
 {
@@ -507,7 +508,8 @@ void calc_integrated_mom(
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -552,7 +554,7 @@ int main(int argc, char **argv)
     .gr_twofluid_e_fact = ctx.e_fact,
 
     .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-    .bcy = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY}
+    .bcy = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -627,7 +629,7 @@ int main(int argc, char **argv)
     .species = {twofluid},
 
     .parallelism =
-      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},
   };
 
   // Create app object.
@@ -664,7 +666,9 @@ int main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / field_energy_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
@@ -672,7 +676,9 @@ int main(int argc, char **argv)
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_mom_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -680,7 +686,9 @@ int main(int argc, char **argv)
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+    .dt = t_end / num_frames,
+    .tcurr = frame_curr * (t_end / num_frames),
+    .curr = frame_curr,
   };
 
   write_data(&io_trig, app, t_curr, false);

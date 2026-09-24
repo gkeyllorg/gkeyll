@@ -15,7 +15,8 @@ gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(const gkyl_dg_updater_gyrokineti
   return gkyl_dg_eqn_acquire(up->eqn_gyrokinetic_passive);
 }
 
-gkyl_dg_updater_gyrokinetic_passive *gkyl_dg_updater_gyrokinetic_passive_new(
+gkyl_dg_updater_gyrokinetic_passive *
+gkyl_dg_updater_gyrokinetic_passive_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const bool *is_zero_flux_bc, const double charge,
@@ -66,7 +67,8 @@ gkyl_dg_updater_gyrokinetic_passive *gkyl_dg_updater_gyrokinetic_passive_new(
   return up;
 }
 
-void gkyl_dg_updater_gyrokinetic_passive_advance(
+void
+gkyl_dg_updater_gyrokinetic_passive_advance(
   gkyl_dg_updater_gyrokinetic_passive *up, const struct gkyl_range *update_rng,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs
 )
@@ -79,11 +81,13 @@ void gkyl_dg_updater_gyrokinetic_passive_advance(
 struct gkyl_dg_updater_gyrokinetic_passive_tm
 gkyl_dg_updater_gyrokinetic_passive_get_tm(const gkyl_dg_updater_gyrokinetic_passive *up)
 {
-  return (struct gkyl_dg_updater_gyrokinetic_passive_tm
-  ){.gyrokinetic_passive_tm = up->gyrokinetic_passive_tm};
+  return (struct gkyl_dg_updater_gyrokinetic_passive_tm){
+    .gyrokinetic_passive_tm = up->gyrokinetic_passive_tm,
+  };
 }
 
-void gkyl_dg_updater_gyrokinetic_passive_release(gkyl_dg_updater_gyrokinetic_passive *up)
+void
+gkyl_dg_updater_gyrokinetic_passive_release(gkyl_dg_updater_gyrokinetic_passive *up)
 {
   gkyl_dg_eqn_release(up->eqn_gyrokinetic_passive);
   gkyl_hyper_dg_release(up->up_gyrokinetic_passive);

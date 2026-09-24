@@ -11,7 +11,8 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void gkyl_advection_free(const struct gkyl_ref_count *ref)
+void
+gkyl_advection_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -25,9 +26,8 @@ void gkyl_advection_free(const struct gkyl_ref_count *ref)
   gkyl_free(advection);
 }
 
-void gkyl_advection_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin
-)
+void
+gkyl_advection_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.u_i)) {
@@ -40,7 +40,8 @@ void gkyl_advection_set_auxfields(
   advection->auxfields.u_i = auxin.u_i;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_advection_new(
+struct gkyl_dg_eqn *
+gkyl_dg_advection_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu
 )
 {
@@ -58,16 +59,16 @@ struct gkyl_dg_eqn *gkyl_dg_advection_new(
   const gkyl_dg_advection_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_x_kernels = ser_surf_x_kernels;
-    surf_y_kernels = ser_surf_y_kernels;
-    surf_z_kernels = ser_surf_z_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_x_kernels = ser_surf_x_kernels;
+      surf_y_kernels = ser_surf_y_kernels;
+      surf_z_kernels = ser_surf_z_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   advection->eqn.num_equations = 1;

@@ -54,7 +54,8 @@ struct amr_5m_gem_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_5m_gem_ctx create_ctx(void)
+struct amr_5m_gem_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -137,13 +138,14 @@ struct amr_5m_gem_ctx create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -182,7 +184,8 @@ void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[4] = Ee_tot;
 }
 
-void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -221,7 +224,8 @@ void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[4] = Ei_tot;
 }
 
-void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -257,7 +261,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct amr_5m_gem_ctx ctx = create_ctx(); // Context for initialization functions.
 
@@ -314,7 +319,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max
+    .num_failures_max = ctx.num_failures_max,
   };
 
   five_moment_2d_run_double(argc, argv, &init);

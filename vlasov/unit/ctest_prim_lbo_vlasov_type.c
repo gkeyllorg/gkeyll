@@ -6,7 +6,8 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 
-static void check_prim(
+static void
+check_prim(
   struct gkyl_prim_lbo_type *prim, int cdim, int pdim, int poly_order, int num_config,
   int num_phase, int udim
 )
@@ -22,7 +23,8 @@ static void check_prim(
   TEST_CHECK(prim->on_dev == prim);
 }
 
-void test_prim_1x1v()
+void
+test_prim_1x1v()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   int poly_order = 2;
@@ -37,7 +39,8 @@ void test_prim_1x1v()
   gkyl_prim_lbo_type_release(prim);
 }
 
-void test_prim_1x2v()
+void
+test_prim_1x2v()
 {
   int cdim = 1, vdim = 2, pdim = cdim + vdim;
   int poly_order = 2;
@@ -51,7 +54,8 @@ void test_prim_1x2v()
   gkyl_prim_lbo_type_release(prim);
 }
 
-void test_prim_1x3v()
+void
+test_prim_1x3v()
 {
   int cdim = 1, vdim = 3, pdim = cdim + vdim;
   int poly_order = 2;
@@ -65,7 +69,8 @@ void test_prim_1x3v()
   gkyl_prim_lbo_type_release(prim);
 }
 
-void test_prim_2x2v()
+void
+test_prim_2x2v()
 {
   int cdim = 2, vdim = 2, pdim = cdim + vdim;
   int poly_order = 2;

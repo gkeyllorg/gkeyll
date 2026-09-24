@@ -15,7 +15,8 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_euler_pkpm_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_euler_pkpm_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vlasov_pkpm_moms,
   const struct gkyl_array *pkpm_prim, const struct gkyl_array *pkpm_prim_surf,
   const struct gkyl_array *pkpm_p_ij, const struct gkyl_array *pkpm_lax,
@@ -32,7 +33,8 @@ __global__ static void gkyl_euler_pkpm_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_euler_pkpm_set_auxfields_cu(
+void
+gkyl_euler_pkpm_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin
 )
 {
@@ -57,25 +59,25 @@ __global__ void static dg_euler_pkpm_set_cu_dev_ptrs(
   const gkyl_dg_euler_pkpm_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_x_kernels = ser_surf_x_kernels;
-    surf_y_kernels = ser_surf_y_kernels;
-    surf_z_kernels = ser_surf_z_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_x_kernels = ser_surf_x_kernels;
+      surf_y_kernels = ser_surf_y_kernels;
+      surf_z_kernels = ser_surf_z_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    vol_kernels = ten_vol_kernels;
-    surf_x_kernels = ten_surf_x_kernels;
-    surf_y_kernels = ten_surf_y_kernels;
-    surf_z_kernels = ten_surf_z_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_x_kernels = ten_surf_x_kernels;
+      surf_y_kernels = ten_surf_y_kernels;
+      surf_z_kernels = ten_surf_z_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   euler_pkpm->eqn.surf_term = surf;

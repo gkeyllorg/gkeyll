@@ -2,7 +2,8 @@
 #include <gkyl_block_topo.h>
 #include <gkyl_array_rio.h>
 
-static struct gkyl_block_topo *create_L_domain(void)
+static struct gkyl_block_topo *
+create_L_domain(void)
 {
   // 2D with 3 blocks
   struct gkyl_block_topo *btopo = gkyl_block_topo_new(2, 3);
@@ -24,53 +25,60 @@ static struct gkyl_block_topo *create_L_domain(void)
   */
 
   // block 0
-  btopo->conn[0] = (struct gkyl_block_connections
-  ){.connections[0] =
+  btopo->conn[0] = (struct gkyl_block_connections){
+    .connections[0] =
       {
         // x-direction connections
         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
       },
-    .connections[1] = {
-      // y-direction connections
-      {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-    }};
+    .connections[1] =
+      {
+        // y-direction connections
+        {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+        {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+      },
+  };
   // topology is inconsistent at this point!
   TEST_CHECK(0 == gkyl_block_topo_check_consistency(btopo));
 
   // block 1
-  btopo->conn[1] = (struct gkyl_block_connections
-  ){.connections[0] =
+  btopo->conn[1] = (struct gkyl_block_connections){
+    .connections[0] =
       {// x-direction connections
        {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
        {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
       },
-    .connections[1] = {// y-direction connections
-                       {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-                       {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-    }};
+    .connections[1] =
+      {// y-direction connections
+       {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
+       {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+      },
+  };
   // topology is inconsistent at this point!
   TEST_CHECK(0 == gkyl_block_topo_check_consistency(btopo));
 
   // block 2
-  btopo->conn[2] = (struct gkyl_block_connections
-  ){.connections[0] =
+  btopo->conn[2] = (struct gkyl_block_connections){
+    .connections[0] =
       {
         // x-direction connections
         {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
       },
-    .connections[1] = {
-      // y-direction connections
-      {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-      {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-    }};
+    .connections[1] =
+      {
+        // y-direction connections
+        {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
+        {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+      },
+  };
 
   return btopo;
 }
 
-static void test_block_topo_L_domain_ho()
+static void
+test_block_topo_L_domain_ho()
 {
   struct gkyl_block_topo *btopo = create_L_domain();
 
@@ -80,7 +88,8 @@ static void test_block_topo_L_domain_ho()
   gkyl_block_topo_release(btopo);
 }
 
-static void test_block_topo_mobius_domain_ho()
+static void
+test_block_topo_mobius_domain_ho()
 {
   // 2D with 1 block
   struct gkyl_block_topo *btopo = gkyl_block_topo_new(2, 1);
@@ -100,23 +109,26 @@ static void test_block_topo_mobius_domain_ho()
   */
 
   // block 0
-  btopo->conn[0] = (struct gkyl_block_connections
-  ){.connections[0] =
+  btopo->conn[0] = (struct gkyl_block_connections){
+    .connections[0] =
       {// x-direction connections
        {.bid = 0, .dir = 0, .edge = GKYL_UPPER_NEGATIVE}, // note twist
        {.bid = 0, .dir = 0, .edge = GKYL_LOWER_NEGATIVE}
       },
-    .connections[1] = {// y-direction connections
-                       {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-                       {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-    }};
+    .connections[1] =
+      {// y-direction connections
+       {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+       {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+      },
+  };
 
   TEST_CHECK(1 == gkyl_block_topo_check_consistency(btopo));
 
   gkyl_block_topo_release(btopo);
 }
 
-static void test_topo_io_ho()
+static void
+test_topo_io_ho()
 {
   struct gkyl_block_topo *btopo = create_L_domain();
   int status_out = gkyl_block_topo_write(btopo, "ctest_block_topo_L_domain.gkyl");

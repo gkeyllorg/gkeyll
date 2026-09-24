@@ -18,7 +18,8 @@
  */
 void gkyl_wave_geom_free(const struct gkyl_ref_count *ref);
 
-static void nomapc2p(double t, const double *xc, double *xp, void *ctx)
+static void
+nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {
   for (int i = 0; i < 3; ++i) {
     xp[i] = xc[i];
@@ -26,7 +27,8 @@ static void nomapc2p(double t, const double *xc, double *xp, void *ctx)
 }
 
 // Computes 1D geometry
-static void calc_geom_1d_from_nodes(
+static void
+calc_geom_1d_from_nodes(
   const double *dx, const double *xlp, const double *xrp, evalf_t mapc2p, void *ctx,
   struct gkyl_wave_cell_geom *geo
 )
@@ -45,7 +47,8 @@ static void calc_geom_1d_from_nodes(
   geo->tau2[0][2] = 1.0;
 }
 
-static void calc_geom_1d(
+static void
+calc_geom_1d(
   const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo
 )
 {
@@ -63,7 +66,8 @@ static void calc_geom_1d(
 }
 
 // Computes 2D geometry
-static void calc_geom_2d_from_nodes(
+static void
+calc_geom_2d_from_nodes(
   const double *dx, const struct gkyl_vec3 xll_p, const struct gkyl_vec3 xlr_p,
   const struct gkyl_vec3 xul_p, const struct gkyl_vec3 xur_p, evalf_t mapc2p, void *ctx,
   struct gkyl_wave_cell_geom *geo
@@ -106,7 +110,8 @@ static void calc_geom_2d_from_nodes(
   }
 }
 
-static void calc_geom_2d(
+static void
+calc_geom_2d(
   const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo
 )
 {
@@ -136,7 +141,8 @@ static void calc_geom_2d(
 }
 
 // Computes 3D geometry
-static double vol_tetra(
+static double
+vol_tetra(
   const struct gkyl_vec3 p1, const struct gkyl_vec3 p2, const struct gkyl_vec3 p3,
   const struct gkyl_vec3 p4
 )
@@ -171,7 +177,8 @@ static double vol_tetra(
    \|      z  \|
     4----------5
 */
-static double vol_hexa(const struct gkyl_vec3 *verts)
+static double
+vol_hexa(const struct gkyl_vec3 *verts)
 {
   // split the hexahedron into five tetrahedrons and add up their volumes
   // FIXME does this handle bad hexahedrons?
@@ -192,7 +199,8 @@ triangle_area(const struct gkyl_vec3 p1, const struct gkyl_vec3 p2, const struct
 }
 
 // Points are in anti-clockwise order, i.e., p1-p3 and p2-p4 are diagonals.
-static double planar_quad_area_norm(
+static double
+planar_quad_area_norm(
   const struct gkyl_vec3 p1, const struct gkyl_vec3 p2, const struct gkyl_vec3 p3,
   const struct gkyl_vec3 p4, struct gkyl_vec3 *norm
 )
@@ -217,11 +225,13 @@ static double planar_quad_area_norm(
 static inline struct gkyl_vec3
 gkyl_vec3_add_coeff(const double ca, struct gkyl_vec3 a, const double cb, struct gkyl_vec3 b)
 {
-  return (struct gkyl_vec3
-  ){.x = {ca * a.x[0] + cb * b.x[0], ca * a.x[1] + cb * b.x[1], ca * a.x[2] + cb * b.x[2]}};
+  return (struct gkyl_vec3){
+    .x = {ca * a.x[0] + cb * b.x[0], ca * a.x[1] + cb * b.x[1], ca * a.x[2] + cb * b.x[2]},
+  };
 }
 
-static double quad_area_norm_tang(
+static double
+quad_area_norm_tang(
   const struct gkyl_vec3 p1, const struct gkyl_vec3 p2, const struct gkyl_vec3 p3,
   const struct gkyl_vec3 p4, struct gkyl_vec3 *norm, struct gkyl_vec3 *tau1, struct gkyl_vec3 *tau2
 )
@@ -268,7 +278,8 @@ static double quad_area_norm_tang(
   return area;
 }
 
-static void calc_geom_3d_form_nodes(
+static void
+calc_geom_3d_form_nodes(
   const double *dx, struct gkyl_vec3 verts[8], evalf_t mapc2p, void *ctx,
   struct gkyl_wave_cell_geom *geo
 )
@@ -307,7 +318,8 @@ static void calc_geom_3d_form_nodes(
   }
 }
 
-static void calc_geom_3d(
+static void
+calc_geom_3d(
   const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo
 )
 {

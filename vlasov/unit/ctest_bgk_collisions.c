@@ -13,12 +13,14 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-void test_bgk_explicit_1x1v()
+void
+test_bgk_explicit_1x1v()
 {
   int poly_order = 1;
   int cdim = 1, vdim = 1;
@@ -93,7 +95,8 @@ void test_bgk_explicit_1x1v()
   gkyl_bgk_collisions_release(up);
 }
 
-void test_bgk_implicit_1x1v()
+void
+test_bgk_implicit_1x1v()
 {
   int poly_order = 1;
   int cdim = 1, vdim = 1;

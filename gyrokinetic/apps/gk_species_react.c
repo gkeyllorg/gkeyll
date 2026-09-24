@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void gks_react_cross_moms_disabled(
+static void
+gks_react_cross_moms_disabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_react *react,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -9,7 +10,8 @@ static void gks_react_cross_moms_disabled(
   // Do nothing.
 }
 
-static void gks_react_cross_moms_enabled(
+static void
+gks_react_cross_moms_enabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_react *react,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -166,7 +168,8 @@ static void gks_react_cross_moms_enabled(
   app->stat.species_react_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gks_react_rhs_disabled(
+static void
+gks_react_rhs_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -174,7 +177,8 @@ static void gks_react_rhs_disabled(
   // Do nothing.
 }
 
-void gks_react_rhs_enabled(
+void
+gks_react_rhs_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -339,14 +343,16 @@ void gks_react_rhs_enabled(
   app->stat.species_react_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gks_react_write_disabled(
+static void
+gks_react_write_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_react *gkr, int ridx, double tm,
   int frame
 )
 {
 }
 
-static void gks_react_write_enabled(
+static void
+gks_react_write_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_react *gkr, int ridx, double tm,
   int frame
 )
@@ -435,10 +441,11 @@ static void gks_react_write_enabled(
         frame
       );
 
-      struct gkyl_msgpack_map_elem desc[] = {
-        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Charge exchange reaction rate."
-        }
-      };
+      struct gkyl_msgpack_map_elem desc[] = {{
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Charge exchange reaction rate.",
+      }};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_conf, app->gk_geom->io_meta_basic, desc
       };
@@ -455,7 +462,8 @@ static void gks_react_write_enabled(
   }
 }
 
-void gk_species_react_init(
+void
+gk_species_react_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gkyl_gyrokinetic_react inp,
   struct gk_react *react, bool all_gk
 )
@@ -483,7 +491,8 @@ void gk_species_react_init(
   }
 }
 
-static double gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_species *s)
+static double
+gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_species *s)
 {
   double bmag_mid = app->bmag_ref;
 
@@ -516,7 +525,8 @@ gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_
   }
 }
 
-void gk_species_react_cross_init(
+void
+gk_species_react_cross_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react
 )
 {
@@ -587,7 +597,7 @@ void gk_species_react_cross_init(
           .conf_rng = &app->local,
           .type_ion = react->react_type[i].ion_id,
           .charge_state = react->react_type[i].charge_state,
-          .type_self = react->type_self[i]
+          .type_self = react->type_self[i],
         };
         react->iz[i] = gkyl_dg_iz_new(&iz_inp, app->use_gpu);
       } else if (react->react_id[i] == GKYL_REACT_RECOMB) {
@@ -601,7 +611,7 @@ void gk_species_react_cross_init(
           .mass_self = s->info.mass,
           .type_ion = react->react_type[i].ion_id,
           .charge_state = react->react_type[i].charge_state,
-          .type_self = react->type_self[i]
+          .type_self = react->type_self[i],
         };
         react->recomb[i] = gkyl_dg_recomb_new(&recomb_inp, app->use_gpu);
       } else if (react->react_id[i] == GKYL_REACT_CX) {
@@ -610,7 +620,7 @@ void gk_species_react_cross_init(
           .conf_rng = &app->local,
           .vt_sq_ion_min = ion_vt_sq_min,
           .vt_sq_neut_min = neut_vt_sq_min,
-          .type_ion = react->react_type[i].ion_id
+          .type_ion = react->react_type[i].ion_id,
         };
         react->cx[i] = gkyl_dg_cx_new(&cx_inp, app->use_gpu);
       }
@@ -624,7 +634,8 @@ void gk_species_react_cross_init(
   }
 }
 
-void gk_species_react_cross_moms(
+void
+gk_species_react_cross_moms(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_react *react,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -632,7 +643,8 @@ void gk_species_react_cross_moms(
   react->cross_moms_func(app, species, react, fin, fin_neut);
 }
 
-void gk_species_react_rhs(
+void
+gk_species_react_rhs(
   gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -640,7 +652,8 @@ void gk_species_react_rhs(
   react->rhs_func(app, s, react, fin, rhs);
 }
 
-void gk_species_react_write(
+void
+gk_species_react_write(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_react *gkr, int ridx, double tm,
   int frame
 )
@@ -648,7 +661,8 @@ void gk_species_react_write(
   gkr->write_func(app, gks, gkr, ridx, tm, frame);
 }
 
-void gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_react *react)
+void
+gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_react *react)
 {
   if (react->num_react) {
     gkyl_array_release(react->f_react);

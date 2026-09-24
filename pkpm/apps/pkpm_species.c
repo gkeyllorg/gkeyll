@@ -13,7 +13,8 @@
 #include <time.h>
 
 // initialize species object
-void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm_species *s)
+void
+pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm_species *s)
 {
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim + vdim;
@@ -201,7 +202,7 @@ void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct
     .pkpm_lax = s->pkpm_lax,
     .div_b = app->field->div_b,
     .pkpm_accel_vars = s->pkpm_accel,
-    .g_dist_source = s->g_dist_source
+    .g_dist_source = s->g_dist_source,
   };
   struct gkyl_dg_euler_pkpm_auxfields euler_pkpm_inp = {
     .vlasov_pkpm_moms = s->pkpm_moms.marr,
@@ -209,7 +210,7 @@ void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct
     .pkpm_prim_surf = s->pkpm_prim_surf,
     .pkpm_p_ij = s->pkpm_p_ij,
     .pkpm_lax = s->pkpm_lax,
-    .pkpm_penalization = s->pkpm_penalization
+    .pkpm_penalization = s->pkpm_penalization,
   };
   // create solver
   s->slvr = gkyl_dg_updater_pkpm_new(
@@ -405,7 +406,8 @@ void pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct
   }
 }
 
-void pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t0)
+void
+pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t0)
 {
   int poly_order = app->poly_order;
   gkyl_proj_on_basis *proj_dist;
@@ -452,7 +454,8 @@ void pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, dou
   );
 }
 
-void pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *species, double tm)
+void
+pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *species, double tm)
 {
   if (species->has_app_accel) {
     gkyl_proj_on_basis_advance(
@@ -465,7 +468,8 @@ void pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *specie
   }
 }
 
-void pkpm_species_calc_pkpm_vars(
+void
+pkpm_species_calc_pkpm_vars(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin
 )
@@ -518,7 +522,8 @@ void pkpm_species_calc_pkpm_vars(
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
-void pkpm_species_calc_pkpm_update_vars(
+void
+pkpm_species_calc_pkpm_update_vars(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin
 )
 {
@@ -540,7 +545,8 @@ void pkpm_species_calc_pkpm_update_vars(
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
-void pkpm_fluid_species_limiter(
+void
+pkpm_fluid_species_limiter(
   gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *fin, struct gkyl_array *fluid
 )
 {
@@ -570,7 +576,8 @@ void pkpm_fluid_species_limiter(
 
 // Compute the RHS for species update, returning maximum stable
 // time-step.
-double pkpm_species_rhs(
+double
+pkpm_species_rhs(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin, const struct gkyl_array *em, struct gkyl_array *rhs_f,
   struct gkyl_array *rhs_fluid
@@ -643,9 +650,8 @@ double pkpm_species_rhs(
 
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
-void pkpm_species_apply_bc(
-  gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *f
-)
+void
+pkpm_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -662,37 +668,37 @@ void pkpm_species_apply_bc(
   for (int d = 0; d < cdim; ++d) {
     if (is_np_bc[d]) {
       switch (species->lower_bc[d]) {
-      case GKYL_SPECIES_COPY:
-      case GKYL_SPECIES_REFLECT:
-      case GKYL_SPECIES_ABSORB:
-        gkyl_bc_basic_advance(species->bc_lo_dist[d], species->bc_buffer_dist, f);
-        break;
-      case GKYL_SPECIES_FIXED_FUNC:
-        gkyl_bc_basic_advance(species->bc_lo_dist[d], species->bc_buffer_lo_fixed_dist, f);
-        break;
-      case GKYL_SPECIES_NO_SLIP:
-      case GKYL_SPECIES_WEDGE:
-        assert(false);
-        break;
-      default:
-        break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(species->bc_lo_dist[d], species->bc_buffer_dist, f);
+          break;
+        case GKYL_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(species->bc_lo_dist[d], species->bc_buffer_lo_fixed_dist, f);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
+          break;
       }
 
       switch (species->upper_bc[d]) {
-      case GKYL_SPECIES_COPY:
-      case GKYL_SPECIES_REFLECT:
-      case GKYL_SPECIES_ABSORB:
-        gkyl_bc_basic_advance(species->bc_up_dist[d], species->bc_buffer_dist, f);
-        break;
-      case GKYL_SPECIES_FIXED_FUNC:
-        gkyl_bc_basic_advance(species->bc_up_dist[d], species->bc_buffer_up_fixed_dist, f);
-        break;
-      case GKYL_SPECIES_NO_SLIP:
-      case GKYL_SPECIES_WEDGE:
-        assert(false);
-        break;
-      default:
-        break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(species->bc_up_dist[d], species->bc_buffer_dist, f);
+          break;
+        case GKYL_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(species->bc_up_dist[d], species->bc_buffer_up_fixed_dist, f);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
+          break;
       }
     }
   }
@@ -704,7 +710,8 @@ void pkpm_species_apply_bc(
 
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
-void pkpm_fluid_species_apply_bc(
+void
+pkpm_fluid_species_apply_bc(
   gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *fluid
 )
 {
@@ -723,37 +730,37 @@ void pkpm_fluid_species_apply_bc(
   for (int d = 0; d < cdim; ++d) {
     if (is_np_bc[d]) {
       switch (species->lower_bc[d]) {
-      case GKYL_SPECIES_COPY:
-      case GKYL_SPECIES_REFLECT:
-      case GKYL_SPECIES_ABSORB:
-        gkyl_bc_basic_advance(species->bc_lo_fluid[d], species->bc_buffer_fluid, fluid);
-        break;
-      case GKYL_SPECIES_FIXED_FUNC:
-        gkyl_bc_basic_advance(species->bc_lo_fluid[d], species->bc_buffer_lo_fixed_fluid, fluid);
-        break;
-      case GKYL_SPECIES_NO_SLIP:
-      case GKYL_SPECIES_WEDGE:
-        assert(false);
-        break;
-      default:
-        break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(species->bc_lo_fluid[d], species->bc_buffer_fluid, fluid);
+          break;
+        case GKYL_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(species->bc_lo_fluid[d], species->bc_buffer_lo_fixed_fluid, fluid);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
+          break;
       }
 
       switch (species->upper_bc[d]) {
-      case GKYL_SPECIES_COPY:
-      case GKYL_SPECIES_REFLECT:
-      case GKYL_SPECIES_ABSORB:
-        gkyl_bc_basic_advance(species->bc_up_fluid[d], species->bc_buffer_fluid, fluid);
-        break;
-      case GKYL_SPECIES_FIXED_FUNC:
-        gkyl_bc_basic_advance(species->bc_up_fluid[d], species->bc_buffer_up_fixed_fluid, fluid);
-        break;
-      case GKYL_SPECIES_NO_SLIP:
-      case GKYL_SPECIES_WEDGE:
-        assert(false);
-        break;
-      default:
-        break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(species->bc_up_fluid[d], species->bc_buffer_fluid, fluid);
+          break;
+        case GKYL_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(species->bc_up_fluid[d], species->bc_buffer_up_fixed_fluid, fluid);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
+          break;
       }
     }
   }
@@ -763,7 +770,8 @@ void pkpm_fluid_species_apply_bc(
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_species *species)
+void
+pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_species *species)
 {
   gkyl_dg_calc_l2_range(&app->basis, 0, species->L2_f, 0, species->f, species->local);
   gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
@@ -781,7 +789,8 @@ void pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_speci
   gkyl_dynvec_append(species->integ_L2_f, tm, L2_global);
 }
 
-void pkpm_species_coll_tm(gkyl_pkpm_app *app)
+void
+pkpm_species_coll_tm(gkyl_pkpm_app *app)
 {
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
@@ -793,7 +802,8 @@ void pkpm_species_coll_tm(gkyl_pkpm_app *app)
   }
 }
 
-void pkpm_species_tm(gkyl_pkpm_app *app)
+void
+pkpm_species_tm(gkyl_pkpm_app *app)
 {
   app->stat.species_rhs_tm = 0.0;
   app->stat.fluid_species_rhs_tm = 0.0;
@@ -805,7 +815,8 @@ void pkpm_species_tm(gkyl_pkpm_app *app)
 }
 
 // release resources for PKPM species
-void pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
+void
+pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
 {
   // release various arrays
   gkyl_array_release(s->f);

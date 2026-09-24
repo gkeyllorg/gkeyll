@@ -12,7 +12,8 @@ extern "C" {
 // CUDA kernel to set pointer to nuSum, nuUSum and nuVtSqSum.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_lbo_vlasov_diff_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_lbo_vlasov_diff_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum,
   const struct gkyl_array *nuPrimMomsSum
 )
@@ -23,7 +24,8 @@ __global__ static void gkyl_lbo_vlasov_diff_set_auxfields_cu_kernel(
 }
 
 //// Host-side wrapper for device kernels setting nuSum, nuUSum and nuVtSqSum.
-void gkyl_lbo_vlasov_diff_set_auxfields_cu(
+void
+gkyl_lbo_vlasov_diff_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_diff_auxfields auxin
 )
 {
@@ -34,7 +36,8 @@ void gkyl_lbo_vlasov_diff_set_auxfields_cu(
 
 // CUDA kernel to set device pointers to range object and vlasov LBO kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_lbo_vlasov_diff_set_cu_dev_ptrs(
+__global__ static void
+dg_lbo_vlasov_diff_set_cu_dev_ptrs(
   struct dg_lbo_vlasov_diff *lbo_vlasov_diff, enum gkyl_basis_type b_type, int cv_index, int cdim,
   int vdim, int poly_order
 )
@@ -51,20 +54,20 @@ __global__ static void dg_lbo_vlasov_diff_set_cu_dev_ptrs(
     *boundary_surf_vy_kernels, *boundary_surf_vz_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_vx_kernels = ser_surf_vx_kernels;
-    surf_vy_kernels = ser_surf_vy_kernels;
-    surf_vz_kernels = ser_surf_vz_kernels;
-    boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
-    boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
-    boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_vx_kernels = ser_surf_vx_kernels;
+      surf_vy_kernels = ser_surf_vy_kernels;
+      surf_vz_kernels = ser_surf_vz_kernels;
+      boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   lbo_vlasov_diff->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
@@ -86,7 +89,8 @@ __global__ static void dg_lbo_vlasov_diff_set_cu_dev_ptrs(
   }
 }
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_lbo_vlasov_diff_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid
 )

@@ -2,7 +2,8 @@
 
 // Take time-step using the RK3 method for the explicit advective comps.
 // Use the actual timestep used to update
-void vlasov_update_implicit_coll(gkyl_vlasov_app *app, double dt0)
+void
+vlasov_update_implicit_coll(gkyl_vlasov_app *app, double dt0)
 {
   int ns = app->num_species;
   const struct gkyl_array *fin[ns];

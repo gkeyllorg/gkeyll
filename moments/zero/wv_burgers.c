@@ -15,17 +15,20 @@
 #include <gkyl_wv_burgers.h>
 #include <gkyl_wv_burgers_priv.h>
 
-static inline double gkyl_burgers_max_abs_speed(const double *q)
+static inline double
+gkyl_burgers_max_abs_speed(const double *q)
 {
   return fabs(q[0]);
 }
 
-void gkyl_burgers_flux(const double *q, double *flux)
+void
+gkyl_burgers_flux(const double *q, double *flux)
 {
   flux[0] = (0.5 * q[0] * q[0]);
 }
 
-void gkyl_burgers_flux_deriv(const double *q, double *flux_deriv)
+void
+gkyl_burgers_flux_deriv(const double *q, double *flux_deriv)
 {
   flux_deriv[0] = q[0];
 }
@@ -44,7 +47,8 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *
   qout[0] = win[0];
 }
 
-static void burgers_wall(
+static void
+burgers_wall(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -52,7 +56,8 @@ static void burgers_wall(
   ghost[0] = skin[0];
 }
 
-static void burgers_no_slip(
+static void
+burgers_no_slip(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -60,7 +65,8 @@ static void burgers_no_slip(
   ghost[0] = skin[0];
 }
 
-static inline void rot_to_local(
+static inline void
+rot_to_local(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
 )
@@ -68,7 +74,8 @@ static inline void rot_to_local(
   qlocal[0] = qglobal[0];
 }
 
-static inline void rot_to_global(
+static inline void
+rot_to_global(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
 )
@@ -76,7 +83,8 @@ static inline void rot_to_global(
   qglobal[0] = qlocal[0];
 }
 
-static double wave_lax(
+static double
+wave_lax(
   const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
   double *waves, double *s
 )
@@ -103,7 +111,8 @@ static double wave_lax(
   return s[1];
 }
 
-static void qfluct_lax(
+static void
+qfluct_lax(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -116,7 +125,8 @@ static void qfluct_lax(
   apdq[0] = (s0p * w0[0]) + (s1p * w1[0]);
 }
 
-static double wave_lax_l(
+static double
+wave_lax_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -124,7 +134,8 @@ static double wave_lax_l(
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void qfluct_lax_l(
+static void
+qfluct_lax_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -133,7 +144,8 @@ static void qfluct_lax_l(
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double wave_roe(
+static double
+wave_roe(
   const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
   double *waves, double *s
 )
@@ -158,7 +170,8 @@ static double wave_roe(
   return s[0];
 }
 
-static void qfluct_roe(
+static void
+qfluct_roe(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -174,7 +187,8 @@ static void qfluct_roe(
   }
 }
 
-static double wave_roe_l(
+static double
+wave_roe_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -188,7 +202,8 @@ static double wave_roe_l(
   return 0.0; // Unreachable code.
 }
 
-static void qfluct_roe_l(
+static void
+qfluct_roe_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -220,12 +235,14 @@ flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, dou
   return fmax(amaxl, amaxr);
 }
 
-static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   return true; // All states are assumed to be valid.
 }
 
-static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   return gkyl_burgers_max_abs_speed(q);
 }
@@ -236,12 +253,14 @@ burgers_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *d
   diag[0] = qin[0];
 }
 
-static inline void burgers_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
+static inline void
+burgers_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   sout[0] = 0.0;
 }
 
-void gkyl_burgers_free(const struct gkyl_ref_count *ref)
+void
+gkyl_burgers_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
 
@@ -255,13 +274,17 @@ void gkyl_burgers_free(const struct gkyl_ref_count *ref)
   gkyl_free(burgers);
 }
 
-struct gkyl_wv_eqn *gkyl_wv_burgers_new(bool use_gpu)
+struct gkyl_wv_eqn *
+gkyl_wv_burgers_new(bool use_gpu)
 {
-  return gkyl_wv_burgers_inew(&(struct gkyl_wv_burgers_inp
-  ){.rp_type = WV_BURGERS_RP_ROE, .use_gpu = use_gpu});
+  return gkyl_wv_burgers_inew(&(struct gkyl_wv_burgers_inp){
+    .rp_type = WV_BURGERS_RP_ROE,
+    .use_gpu = use_gpu,
+  });
 }
 
-struct gkyl_wv_eqn *gkyl_wv_burgers_inew(const struct gkyl_wv_burgers_inp *inp)
+struct gkyl_wv_eqn *
+gkyl_wv_burgers_inew(const struct gkyl_wv_burgers_inp *inp)
 {
   struct wv_burgers *burgers = gkyl_malloc(sizeof(struct wv_burgers));
 

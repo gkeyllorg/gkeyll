@@ -9,7 +9,8 @@
 #include <gkyl_dg_array_mask_priv.h>
 
 // Apply less-than threshold mask over phase range
-static void apply_mask_less_than(
+static void
+apply_mask_less_than(
   struct gkyl_array *mask_arr, const struct gkyl_array *arr_in, const struct gkyl_range *mask_rng,
   double threshold
 )
@@ -28,7 +29,8 @@ static void apply_mask_less_than(
 }
 
 // Apply greater-than threshold mask over phase range
-static void apply_mask_greater_than(
+static void
+apply_mask_greater_than(
   struct gkyl_array *mask_arr, const struct gkyl_array *arr_in, const struct gkyl_range *mask_rng,
   double threshold
 )
@@ -47,7 +49,8 @@ static void apply_mask_greater_than(
 }
 
 // Find max value in velocity space for a given configuration space cell
-static double find_local_max_in_vel_space(
+static double
+find_local_max_in_vel_space(
   const struct gkyl_array *arr_in, const struct gkyl_range *conf_rng,
   const struct gkyl_range *vel_rng, const struct gkyl_range *mask_rng, const int *conf_idx
 )
@@ -79,7 +82,8 @@ static double find_local_max_in_vel_space(
 }
 
 // Apply spatial fractional mask (less-than) for a given configuration space cell
-static void apply_conf_mask_less_than(
+static void
+apply_conf_mask_less_than(
   struct gkyl_array *mask_arr, const struct gkyl_array *arr_in, const struct gkyl_range *conf_rng,
   const struct gkyl_range *vel_rng, const struct gkyl_range *mask_rng, const int *conf_idx,
   double threshold
@@ -107,7 +111,8 @@ static void apply_conf_mask_less_than(
 }
 
 // Apply spatial fractional mask (greater-than) for a given configuration space cell
-static void apply_conf_mask_greater_than(
+static void
+apply_conf_mask_greater_than(
   struct gkyl_array *mask_arr, const struct gkyl_array *arr_in, const struct gkyl_range *conf_rng,
   const struct gkyl_range *vel_rng, const struct gkyl_range *mask_rng, const int *conf_idx,
   double threshold
@@ -134,16 +139,19 @@ static void apply_conf_mask_greater_than(
   }
 }
 
-static void advance_threshold_none(struct gkyl_dg_array_mask *mask, const double global_max)
+static void
+advance_threshold_none(struct gkyl_dg_array_mask *mask, const double global_max)
 {
 }
 
-static void advance_threshold_frac(struct gkyl_dg_array_mask *mask, const double global_max)
+static void
+advance_threshold_frac(struct gkyl_dg_array_mask *mask, const double global_max)
 {
   mask->threshold = mask->frac_threshold * global_max;
 }
 
-void gkyl_dg_array_mask_advance_threshold(struct gkyl_dg_array_mask *mask, const double global_max)
+void
+gkyl_dg_array_mask_advance_threshold(struct gkyl_dg_array_mask *mask, const double global_max)
 {
 #ifdef GKYL_HAVE_CUDA
   if (mask->use_gpu) {
@@ -154,16 +162,19 @@ void gkyl_dg_array_mask_advance_threshold(struct gkyl_dg_array_mask *mask, const
   mask->advance_threshold_func(mask, global_max);
 }
 
-static void advance_none(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
+static void
+advance_none(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
 }
 
-static void advance_less_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
+static void
+advance_less_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
   apply_mask_less_than(mask->mask_arr, arr_in, mask->mask_rng, mask->threshold);
 }
 
-static void advance_greater_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
+static void
+advance_greater_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
   apply_mask_greater_than(mask->mask_arr, arr_in, mask->mask_rng, mask->threshold);
 }
@@ -215,7 +226,8 @@ scale_by_cell_active(struct gkyl_dg_array_mask *mask, const struct gkyl_array *a
   gkyl_array_scale_by_cell(mask->mask_arr, arr_to_multiply);
 }
 
-void gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref)
+void
+gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_array_mask *mask = container_of(ref, struct gkyl_dg_array_mask, ref_count);
 
@@ -234,7 +246,8 @@ void gkyl_dg_array_mask_free(const struct gkyl_ref_count *ref)
   gkyl_free(mask);
 }
 
-struct gkyl_dg_array_mask *gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
+struct gkyl_dg_array_mask *
+gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp mask_inp)
 {
   struct gkyl_dg_array_mask *mask = gkyl_malloc(sizeof(*mask));
 
@@ -264,30 +277,30 @@ struct gkyl_dg_array_mask *gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp 
 
   // Set function pointers based on mask type (evaluated once here, not in advance)
   switch (mask->type) {
-  case GKYL_DG_ARRAY_MASK_NONE:
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_LESS:
-    mask->advance_func = advance_less_than;
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_GREATER:
-    mask->advance_func = advance_greater_than;
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
-    mask->advance_func = advance_less_than;
-    mask->advance_threshold_func = advance_threshold_frac;
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
-    mask->advance_func = advance_greater_than;
-    mask->advance_threshold_func = advance_threshold_frac;
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
-    mask->advance_func = advance_less_than_frac_conf;
-    break;
-  case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF:
-    mask->advance_func = advance_greater_than_frac_conf;
-    break;
-  default:
-    break;
+    case GKYL_DG_ARRAY_MASK_NONE:
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_LESS:
+      mask->advance_func = advance_less_than;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_GREATER:
+      mask->advance_func = advance_greater_than;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
+      mask->advance_func = advance_less_than;
+      mask->advance_threshold_func = advance_threshold_frac;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
+      mask->advance_func = advance_greater_than;
+      mask->advance_threshold_func = advance_threshold_frac;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
+      mask->advance_func = advance_less_than_frac_conf;
+      break;
+    case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF:
+      mask->advance_func = advance_greater_than_frac_conf;
+      break;
+    default:
+      break;
   }
 
   if (mask->type == GKYL_DG_ARRAY_MASK_NONE) {
@@ -342,7 +355,8 @@ struct gkyl_dg_array_mask *gkyl_dg_array_mask_new(struct gkyl_dg_array_mask_inp 
   return mask_out;
 }
 
-void gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
+void
+gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_in)
 {
 #ifdef GKYL_HAVE_CUDA
   if (mask->use_gpu) {
@@ -353,20 +367,23 @@ void gkyl_dg_array_mask_advance(struct gkyl_dg_array_mask *mask, const struct gk
   mask->advance_func(mask, arr_in);
 }
 
-void gkyl_dg_array_mask_scale_by_cell(
+void
+gkyl_dg_array_mask_scale_by_cell(
   struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_multiply
 )
 {
   mask->scale_by_cell_func(mask, arr_to_multiply);
 }
 
-struct gkyl_dg_array_mask *gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask)
+struct gkyl_dg_array_mask *
+gkyl_dg_array_mask_acquire(struct gkyl_dg_array_mask *mask)
 {
   gkyl_ref_count_inc(&mask->ref_count);
   return (struct gkyl_dg_array_mask *)mask;
 }
 
-void gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int *idx, bool *val)
+void
+gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int *idx, bool *val)
 {
 #ifdef GKYL_HAVE_CUDA
   if (mask->use_gpu) {
@@ -378,17 +395,20 @@ void gkyl_dg_array_mask_eval_idx(struct gkyl_dg_array_mask *mask, const int *idx
   val[0] = mask->eval_idx_func(mask, idx);
 }
 
-struct gkyl_dg_array_mask *gkyl_dg_array_mask_get_dev_ptr(struct gkyl_dg_array_mask *mask)
+struct gkyl_dg_array_mask *
+gkyl_dg_array_mask_get_dev_ptr(struct gkyl_dg_array_mask *mask)
 {
   return mask->on_dev;
 }
 
-const struct gkyl_array *gkyl_dg_array_mask_get_mask(const struct gkyl_dg_array_mask *mask)
+const struct gkyl_array *
+gkyl_dg_array_mask_get_mask(const struct gkyl_dg_array_mask *mask)
 {
   return mask->mask_arr;
 }
 
-void gkyl_dg_array_mask_release(struct gkyl_dg_array_mask *mask)
+void
+gkyl_dg_array_mask_release(struct gkyl_dg_array_mask *mask)
 {
   if (mask) {
     gkyl_ref_count_dec(&mask->ref_count);

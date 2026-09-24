@@ -65,8 +65,9 @@ void gkyl_dg_updater_lbo_gyrokinetic_advance(
  * @param lbo Updater object
  * @return timers
  */
-struct gkyl_dg_updater_lbo_gyrokinetic_tm
-gkyl_dg_updater_lbo_gyrokinetic_get_tm(const struct gkyl_dg_updater_collisions *coll);
+struct gkyl_dg_updater_lbo_gyrokinetic_tm gkyl_dg_updater_lbo_gyrokinetic_get_tm(
+  const struct gkyl_dg_updater_collisions *coll
+);
 
 /**
  * Delete updater.

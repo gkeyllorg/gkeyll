@@ -11,7 +11,8 @@ extern "C" {
 int cu_wv_euler_test(const struct gkyl_wv_eqn *eqn);
 }
 
-__global__ void ker_cu_wv_euler_test(const struct gkyl_wv_eqn *eqn, int *nfail)
+__global__ void
+ker_cu_wv_euler_test(const struct gkyl_wv_eqn *eqn, int *nfail)
 {
   *nfail = 0;
 
@@ -70,7 +71,8 @@ __global__ void ker_cu_wv_euler_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   }
 }
 
-int cu_wv_euler_test(const struct gkyl_wv_eqn *eqn)
+int
+cu_wv_euler_test(const struct gkyl_wv_eqn *eqn)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
   ker_cu_wv_euler_test<<<1, 1>>>(eqn, nfail_dev);

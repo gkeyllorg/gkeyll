@@ -20,7 +20,8 @@ extern "C" {
 // the reduction over CUDA blocks, but then the threads are compared thread-by-thread.
 // These particular functions are adapted from (adapted by JJ on 03/14/24):
 // https://github.com/treecode/Bonsai/blob/master/runtime/profiling/derived_atomic_functions.h
-__device__ static __forceinline__ double atomicMax_double(double *address, double val)
+__device__ static __forceinline__ double
+atomicMax_double(double *address, double val)
 {
   unsigned long long int ret = __double_as_longlong(*address);
   while (val > __longlong_as_double(ret)) {
@@ -33,7 +34,8 @@ __device__ static __forceinline__ double atomicMax_double(double *address, doubl
   return __longlong_as_double(ret);
 }
 
-__device__ static __forceinline__ double atomicMin_double(double *address, double val)
+__device__ static __forceinline__ double
+atomicMin_double(double *address, double val)
 {
   unsigned long long int ret = __double_as_longlong(*address);
   while (val < __longlong_as_double(ret)) {
@@ -47,7 +49,8 @@ __device__ static __forceinline__ double atomicMin_double(double *address, doubl
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void dg_arrayMax_blockRedAtomic_cub(
+__global__ void
+dg_arrayMax_blockRedAtomic_cub(
   const struct gkyl_array *inp, double *out, int comp, const struct gkyl_basis *basis
 )
 {
@@ -90,7 +93,8 @@ __global__ void dg_arrayMax_blockRedAtomic_cub(
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void dg_arrayMax_range_blockRedAtomic_cub(
+__global__ void
+dg_arrayMax_range_blockRedAtomic_cub(
   const struct gkyl_array *inp, double *out, int comp, const struct gkyl_basis *basis,
   struct gkyl_range range
 )
@@ -135,7 +139,8 @@ __global__ void dg_arrayMax_range_blockRedAtomic_cub(
   }
 }
 
-void gkyl_array_dg_reducec_max_cu(
+void
+gkyl_array_dg_reducec_max_cu(
   double *out_d, const struct gkyl_array *inp, int comp, const struct gkyl_basis *basis
 )
 {
@@ -146,7 +151,8 @@ void gkyl_array_dg_reducec_max_cu(
   cudaDeviceSynchronize();
 }
 
-void gkyl_array_dg_reducec_range_max_cu(
+void
+gkyl_array_dg_reducec_range_max_cu(
   double *out_d, const struct gkyl_array *inp, int comp, const struct gkyl_basis *basis,
   const struct gkyl_range *range
 )
@@ -160,7 +166,8 @@ void gkyl_array_dg_reducec_range_max_cu(
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void dg_arrayMin_blockRedAtomic_cub(
+__global__ void
+dg_arrayMin_blockRedAtomic_cub(
   const struct gkyl_array *inp, double *out, int comp, const struct gkyl_basis *basis
 )
 {
@@ -203,7 +210,8 @@ __global__ void dg_arrayMin_blockRedAtomic_cub(
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void dg_arrayMin_range_blockRedAtomic_cub(
+__global__ void
+dg_arrayMin_range_blockRedAtomic_cub(
   const struct gkyl_array *inp, double *out, int comp, const struct gkyl_basis *basis,
   struct gkyl_range range
 )
@@ -248,7 +256,8 @@ __global__ void dg_arrayMin_range_blockRedAtomic_cub(
   }
 }
 
-void gkyl_array_dg_reducec_min_cu(
+void
+gkyl_array_dg_reducec_min_cu(
   double *out_d, const struct gkyl_array *inp, int comp, const struct gkyl_basis *basis
 )
 {
@@ -259,7 +268,8 @@ void gkyl_array_dg_reducec_min_cu(
   cudaDeviceSynchronize();
 }
 
-void gkyl_array_dg_reducec_range_min_cu(
+void
+gkyl_array_dg_reducec_range_min_cu(
   double *out_d, const struct gkyl_array *inp, int comp, const struct gkyl_basis *basis,
   const struct gkyl_range *range
 )
@@ -273,7 +283,8 @@ void gkyl_array_dg_reducec_range_min_cu(
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void dg_arraySum_blockRedAtomic_cub(
+__global__ void
+dg_arraySum_blockRedAtomic_cub(
   const struct gkyl_array *inp, double *out, int comp, const struct gkyl_basis *basis
 )
 {
@@ -315,7 +326,8 @@ __global__ void dg_arraySum_blockRedAtomic_cub(
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void dg_arraySum_range_blockRedAtomic_cub(
+__global__ void
+dg_arraySum_range_blockRedAtomic_cub(
   const struct gkyl_array *inp, double *out, int comp, const struct gkyl_basis *basis,
   struct gkyl_range range
 )
@@ -359,7 +371,8 @@ __global__ void dg_arraySum_range_blockRedAtomic_cub(
   }
 }
 
-void gkyl_array_dg_reducec_sum_cu(
+void
+gkyl_array_dg_reducec_sum_cu(
   double *out_d, const struct gkyl_array *inp, int comp, const struct gkyl_basis *basis
 )
 {
@@ -372,7 +385,8 @@ void gkyl_array_dg_reducec_sum_cu(
   cudaDeviceSynchronize();
 }
 
-void gkyl_array_dg_reducec_range_sum_cu(
+void
+gkyl_array_dg_reducec_range_sum_cu(
   double *out_d, const struct gkyl_array *inp, int comp, const struct gkyl_basis *basis,
   const struct gkyl_range *range
 )

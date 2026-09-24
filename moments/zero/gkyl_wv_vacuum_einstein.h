@@ -64,5 +64,6 @@ enum gkyl_spacetime_slicing gkyl_wv_vacuum_einstein_spacetime_slicing(const stru
 * @param eqn Vacuum Einstein equations object using the Bona-Masso formalism.
 * @return Spacetime evolution system.
 */
-enum gkyl_spacetime_evolution
-gkyl_wv_vacuum_einstein_spacetime_evolution(const struct gkyl_wv_eqn *eqn);
+enum gkyl_spacetime_evolution gkyl_wv_vacuum_einstein_spacetime_evolution(
+  const struct gkyl_wv_eqn *eqn
+);

@@ -6,7 +6,8 @@
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_bin_ops.h>
 
-gkyl_rz_calc_derived_geo *gkyl_rz_calc_derived_geo_new(
+gkyl_rz_calc_derived_geo *
+gkyl_rz_calc_derived_geo_new(
   const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, int node_type, bool use_gpu
 )
 {
@@ -21,7 +22,8 @@ gkyl_rz_calc_derived_geo *gkyl_rz_calc_derived_geo_new(
   return up;
 }
 
-void gkyl_rz_calc_derived_geo_advance(
+void
+gkyl_rz_calc_derived_geo_advance(
   const gkyl_rz_calc_derived_geo *up, const struct gkyl_range *crange, struct gkyl_array *g_ij,
   struct gkyl_array *bmag, struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_inv,
   struct gkyl_array *gij, struct gkyl_array *b_i, struct gkyl_array *cmag,
@@ -54,7 +56,8 @@ void gkyl_rz_calc_derived_geo_advance(
   }
 }
 
-void gkyl_rz_calc_derived_geo_release(gkyl_rz_calc_derived_geo *up)
+void
+gkyl_rz_calc_derived_geo_release(gkyl_rz_calc_derived_geo *up)
 {
   gkyl_free(up);
 }

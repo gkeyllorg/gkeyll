@@ -27,7 +27,8 @@ void test_cudss_ops_multiple_rhs_dev();
     }                                                                                            \
   } while (0);
 
-void test_cudss_simple_dev()
+void
+test_cudss_simple_dev()
 {
   // This is meant to replicate the "simple" example in the cuDSS folder of the CUDA samples repo:
   //   https://github.com/NVIDIA/CUDALibrarySamples/blob/master/cuDSS/simple/simple.cpp
@@ -217,7 +218,8 @@ void test_cudss_simple_dev()
   //   printf("Example FAILED\n");
 }
 
-void test_cudss_ops_dev()
+void
+test_cudss_ops_dev()
 {
   int nfail = 0;
   double s, u, p, e, r, l;
@@ -299,7 +301,8 @@ void test_cudss_ops_dev()
   gkyl_culinsolver_prob_release(prob);
 }
 
-void test_cudss_ops_update_amat_dev()
+void
+test_cudss_ops_update_amat_dev()
 {
   int nfail = 0;
   double s, u, p, e, r, l;
@@ -443,7 +446,8 @@ void test_cudss_ops_update_amat_dev()
   gkyl_culinsolver_prob_release(prob);
 }
 
-void test_cudss_ops_multiple_rhs_dev()
+void
+test_cudss_ops_multiple_rhs_dev()
 {
   double s, u, p, e, r, l;
   int nrhs, m, n;
@@ -561,7 +565,8 @@ void test_cudss_ops_multiple_rhs_dev()
   gkyl_culinsolver_prob_release(prob);
 }
 
-void test_cudss_ops_update_amat_multiple_rhs_dev()
+void
+test_cudss_ops_update_amat_multiple_rhs_dev()
 {
   double s, u, p, e, r, l;
   int nrhs, m, n;

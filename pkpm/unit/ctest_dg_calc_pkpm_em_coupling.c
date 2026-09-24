@@ -26,19 +26,22 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
 // Set the cell-average (physical) value of block `blk` (each block has `nb`
 // basis components) to `val` for every cell.  1D p1 orthonormal: psi_0=1/sqrt2.
-static void set_const_block(struct gkyl_array *arr, int blk, int nb, double val)
+static void
+set_const_block(struct gkyl_array *arr, int blk, int nb, double val)
 {
   gkyl_array_shiftc(arr, val * sqrt(2.0), blk * nb);
 }
 
-void test_em_coupling_static_Epush_1x_p1()
+void
+test_em_coupling_static_Epush_1x_p1()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -140,7 +143,8 @@ void test_em_coupling_static_Epush_1x_p1()
   gkyl_dg_calc_pkpm_em_coupling_release(up);
 }
 
-void test_em_coupling_new_2x_p1()
+void
+test_em_coupling_new_2x_p1()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};

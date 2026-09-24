@@ -15,41 +15,48 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_util.h>
 
-void eval_one(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_one(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = 1.0;
 }
 
-void eval_hat(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_hat(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = 2. - fabs(xn[0]);
 }
 
-void eval_hat_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_hat_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double psi = xn[0], z = xn[1];
   fout[0] = 2. - fabs(z);
 }
 
-void eval_ramp_sheath_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_ramp_sheath_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double psi = xn[0], z = xn[1];
   fout[0] = 2. + psi;
 }
 
-void eval_parabola_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_parabola_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double psi = xn[0], z = xn[1];
   fout[0] = 10. - psi * psi - z * z;
 }
 
-void eval_parabola_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_parabola_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double psi = xn[0], z = xn[1], y = xn[2];
   fout[0] = 10. - psi * psi - z * z - y * y;
 }
 
-void test_ambi_bolt_init_1x_ho()
+void
+test_ambi_bolt_init_1x_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -86,7 +93,8 @@ void test_ambi_bolt_init_1x_ho()
   gkyl_ambi_bolt_potential_release(ambi);
 }
 
-void test_ambi_bolt_sheath_calc_1x_ho()
+void
+test_ambi_bolt_sheath_calc_1x_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -207,7 +215,8 @@ void test_ambi_bolt_sheath_calc_1x_ho()
   gkyl_proj_on_basis_release(proj_one);
 }
 
-void test_ambi_bolt_phi_calc_1x_ho()
+void
+test_ambi_bolt_phi_calc_1x_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -309,7 +318,8 @@ void test_ambi_bolt_phi_calc_1x_ho()
   gkyl_proj_on_basis_release(proj_one);
 }
 
-void test_ambi_bolt_sheath_calc_1x_hat_ho()
+void
+test_ambi_bolt_sheath_calc_1x_hat_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -429,7 +439,8 @@ void test_ambi_bolt_sheath_calc_1x_hat_ho()
   gkyl_proj_on_basis_release(proj_hat);
 }
 
-void test_ambi_bolt_phi_calc_1x_hat_ho()
+void
+test_ambi_bolt_phi_calc_1x_hat_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -534,7 +545,8 @@ void test_ambi_bolt_phi_calc_1x_hat_ho()
   gkyl_proj_on_basis_release(proj_hat);
 }
 
-void test_ambi_bolt_init_2x_ho()
+void
+test_ambi_bolt_init_2x_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -572,7 +584,8 @@ void test_ambi_bolt_init_2x_ho()
   gkyl_ambi_bolt_potential_release(ambi);
 }
 
-void test_ambi_bolt_sheath_calc_2x_one_ho()
+void
+test_ambi_bolt_sheath_calc_2x_one_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -692,7 +705,8 @@ void test_ambi_bolt_sheath_calc_2x_one_ho()
   gkyl_proj_on_basis_release(proj_one);
 }
 
-void test_ambi_bolt_sheath_calc_2x_hat_ho()
+void
+test_ambi_bolt_sheath_calc_2x_hat_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -815,7 +829,8 @@ void test_ambi_bolt_sheath_calc_2x_hat_ho()
   gkyl_proj_on_basis_release(proj_hat);
 }
 
-void test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
+void
+test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -941,7 +956,8 @@ void test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
   gkyl_proj_on_basis_release(proj_ramp);
 }
 
-void test_ambi_bolt_phi_calc_2x_one_ho()
+void
+test_ambi_bolt_phi_calc_2x_one_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -1045,7 +1061,8 @@ void test_ambi_bolt_phi_calc_2x_one_ho()
   gkyl_proj_on_basis_release(proj_one);
 }
 
-void test_ambi_bolt_phi_calc_2x_hat_ho()
+void
+test_ambi_bolt_phi_calc_2x_hat_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -1151,7 +1168,8 @@ void test_ambi_bolt_phi_calc_2x_hat_ho()
   gkyl_proj_on_basis_release(proj_hat);
 }
 
-void test_ambi_bolt_phi_calc_2x_ramp_ho()
+void
+test_ambi_bolt_phi_calc_2x_ramp_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -1257,7 +1275,8 @@ void test_ambi_bolt_phi_calc_2x_ramp_ho()
   gkyl_proj_on_basis_release(proj_ramp);
 }
 
-void test_ambi_bolt_phi_calc_2x_parabola_ho()
+void
+test_ambi_bolt_phi_calc_2x_parabola_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -1369,7 +1388,8 @@ void test_ambi_bolt_phi_calc_2x_parabola_ho()
   gkyl_proj_on_basis_release(proj_func);
 }
 
-void test_ambi_bolt_phi_calc_3x_one_ho()
+void
+test_ambi_bolt_phi_calc_3x_one_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0, -1.0}, upper[] = {1.0, 1.0, 1.0};
@@ -1486,7 +1506,8 @@ void test_ambi_bolt_phi_calc_3x_one_ho()
   gkyl_proj_on_basis_release(proj_func);
 }
 
-void test_ambi_bolt_phi_calc_3x_parabola_ho()
+void
+test_ambi_bolt_phi_calc_3x_parabola_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0, -1.0}, upper[] = {1.0, 1.0, 1.0};

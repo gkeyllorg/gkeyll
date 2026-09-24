@@ -2,7 +2,8 @@
 
 // Compute the nc intergated values over the update_rgn, storing the
 // result in the integ_q
-void calc_integ_quant(
+void
+calc_integ_quant(
   const struct gkyl_wv_eqn *eqn, double vol, const struct gkyl_array *q,
   const struct gkyl_wave_geom *geom, struct gkyl_range update_rng, double *integ_q
 )
@@ -28,7 +29,8 @@ void calc_integ_quant(
 
 // Check if nan occurs in the array, returning true if they do and
 // false otherwise
-bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng)
+bool
+check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &update_rng);
@@ -43,7 +45,8 @@ bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng)
   return false;
 }
 
-void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gkyl_array *f)
+void
+moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gkyl_array *f)
 {
   long idx_src, idx_dest;
   double *out;
@@ -88,7 +91,8 @@ void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gky
 }
 
 // apply wedge BCs
-void moment_apply_wedge_bc(
+void
+moment_apply_wedge_bc(
   const gkyl_moment_app *app, double tcurr, const struct gkyl_range *update_rng,
   struct gkyl_array *bc_buffer, int dir, const struct gkyl_wv_apply_bc *lo,
   const struct gkyl_wv_apply_bc *up, struct gkyl_array *f

@@ -139,7 +139,8 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
   return up;
 }
 
-void gkyl_vlasov_lte_density_moment_advance(
+void
+gkyl_vlasov_lte_density_moment_advance(
   struct gkyl_vlasov_lte_moments *lte_moms, const struct gkyl_range *phase_local,
   const struct gkyl_range *conf_local, const struct gkyl_array *fin, struct gkyl_array *density_out
 )
@@ -157,7 +158,8 @@ void gkyl_vlasov_lte_density_moment_advance(
   }
 }
 
-void gkyl_vlasov_lte_moments_advance(
+void
+gkyl_vlasov_lte_moments_advance(
   struct gkyl_vlasov_lte_moments *lte_moms, const struct gkyl_range *phase_local,
   const struct gkyl_range *conf_local, const struct gkyl_array *fin, struct gkyl_array *moms_out
 )
@@ -274,7 +276,8 @@ void gkyl_vlasov_lte_moments_advance(
   );
 }
 
-void gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
+void
+gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
 {
   gkyl_array_release(lte_moms->M0);
   gkyl_array_release(lte_moms->M1i);

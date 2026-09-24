@@ -50,7 +50,8 @@ struct bgk_relax_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct bgk_relax_ctx create_ctx(void)
+struct bgk_relax_ctx
+create_ctx(void)
 {
   int cdim = 1, vdim = 2; // Dimensionality.
 
@@ -118,13 +119,14 @@ struct bgk_relax_ctx create_ctx(void)
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void evalTopHatInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalTopHatInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct bgk_relax_ctx *app = ctx;
   double vpar = xn[1];
@@ -146,7 +148,8 @@ void evalTopHatInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTR
   fout[0] = n;
 }
 
-void evalBumpInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalBumpInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct bgk_relax_ctx *app = ctx;
   double vpar = xn[1], mu = xn[2];
@@ -173,7 +176,8 @@ void evalBumpInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   fout[0] = n;
 }
 
-void evalTopHatNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalTopHatNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct bgk_relax_ctx *app = ctx;
 
@@ -183,7 +187,8 @@ void evalTopHatNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   fout[0] = nu;
 }
 
-void evalBumpNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalBumpNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct bgk_relax_ctx *app = ctx;
 
@@ -193,9 +198,8 @@ void evalBumpNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   fout[0] = nu;
 }
 
-void evalBumpSquareNu(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalBumpSquareNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct bgk_relax_ctx *app = ctx;
 
@@ -205,9 +209,8 @@ void evalBumpSquareNu(
   fout[0] = sqrt(2.0) * nu;
 }
 
-void evalSquareBumpNu(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalSquareBumpNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct bgk_relax_ctx *app = ctx;
 
@@ -226,7 +229,8 @@ mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void 
   xp[2] = zc[2];
 }
 
-void bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct bgk_relax_ctx *app = ctx;
 
@@ -239,7 +243,8 @@ void bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT
   fout[2] = app->B0;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -283,23 +288,25 @@ int main(int argc, char **argv)
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
     .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS,
-       .self_nu = evalTopHatNu,
-       .self_nu_ctx = &ctx,
-       .num_cross_collisions = 1,
-       .collide_with = {"bump"},
-       .cross_nu = {evalSquareBumpNu},
-       .cross_nu_ctx = &ctx,
-       .den_ref = ctx.n0,
-       .temp_ref = pow(ctx.vt, 2) * ctx.mass,
-       .eps0 = 1.0,
-       .hbar = 1.0,
-       .eV = 1.0},
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalTopHatNu,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"bump"},
+        .cross_nu = {evalSquareBumpNu},
+        .cross_nu_ctx = &ctx,
+        .den_ref = ctx.n0,
+        .temp_ref = pow(ctx.vt, 2) * ctx.mass,
+        .eps0 = 1.0,
+        .hbar = 1.0,
+        .eV = 1.0,
+      },
 
     .num_diag_moments = 7,
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP}
+       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
   };
 
   // Bump species.
@@ -318,23 +325,25 @@ int main(int argc, char **argv)
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
     .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS,
-       .self_nu = evalBumpNu,
-       .self_nu_ctx = &ctx,
-       .num_cross_collisions = 1,
-       .collide_with = {"square"},
-       .cross_nu = {evalBumpSquareNu},
-       .cross_nu_ctx = &ctx,
-       .den_ref = ctx.n0,
-       .temp_ref = pow(ctx.vt, 2) * ctx.mass,
-       .eps0 = 1.0,
-       .hbar = 1.0,
-       .eV = 1.0},
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalBumpNu,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"square"},
+        .cross_nu = {evalBumpSquareNu},
+        .cross_nu_ctx = &ctx,
+        .den_ref = ctx.n0,
+        .temp_ref = pow(ctx.vt, 2) * ctx.mass,
+        .eps0 = 1.0,
+        .hbar = 1.0,
+        .eV = 1.0,
+      },
 
     .num_diag_moments = 7,
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP}
+       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
   };
 
   // Field.
@@ -346,7 +355,7 @@ int main(int argc, char **argv)
     .electron_temp = ctx.vt,
 
     .zero_init_field = true, // Don't compute the field at t = 0.
-    .is_static = true // Don't evolve the field in time.
+    .is_static = true, // Don't evolve the field in time.
   };
 
   // Gyrokinetic app.
@@ -362,13 +371,15 @@ int main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .geometry =
-      {.geometry_id = GKYL_GEOMETRY_MAPC2P,
-       .world = {0.0, 0.0},
+      {
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
+        .world = {0.0, 0.0},
 
-       .mapc2p = mapc2p,
-       .c2p_ctx = &ctx,
-       .bfield_func = bfield_func,
-       .bfield_ctx = &ctx},
+        .mapc2p = mapc2p,
+        .c2p_ctx = &ctx,
+        .bfield_func = bfield_func,
+        .bfield_ctx = &ctx,
+      },
 
     .num_periodic_dir = 1,
     .periodic_dirs = {0},
@@ -378,7 +389,7 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Set app output name from the executable name (argv[0]).
@@ -386,15 +397,17 @@ int main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping =
-      {.t_end = ctx.t_end,
-       .num_frames = ctx.num_frames,
-       .write_phase_freq = ctx.write_phase_freq,
-       .int_diag_calc_num = ctx.int_diag_calc_num,
-       .dt_failure_tol = ctx.dt_failure_tol,
-       .num_failures_max = ctx.num_failures_max,
-       .is_restart = app_args.is_restart,
-       .restart_frame = app_args.restart_frame,
-       .num_steps = app_args.num_steps}
+      {
+        .t_end = ctx.t_end,
+        .num_frames = ctx.num_frames,
+        .write_phase_freq = ctx.write_phase_freq,
+        .int_diag_calc_num = ctx.int_diag_calc_num,
+        .dt_failure_tol = ctx.dt_failure_tol,
+        .num_failures_max = ctx.num_failures_max,
+        .is_restart = app_args.is_restart,
+        .restart_frame = app_args.restart_frame,
+        .num_steps = app_args.num_steps,
+      },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

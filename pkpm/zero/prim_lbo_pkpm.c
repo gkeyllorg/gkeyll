@@ -11,7 +11,8 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void prim_lbo_pkpm_free(const struct gkyl_ref_count *ref)
+void
+prim_lbo_pkpm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_prim_lbo_type *prim = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
   if (GKYL_IS_CU_ALLOC(prim->flag)) {
@@ -20,7 +21,8 @@ void prim_lbo_pkpm_free(const struct gkyl_ref_count *ref)
   gkyl_free(prim);
 }
 
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_new(
+struct gkyl_prim_lbo_type *
+gkyl_prim_lbo_pkpm_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, bool use_gpu
 )
@@ -48,19 +50,19 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_new(
   const gkyl_prim_lbo_pkpm_self_kern_list *self_prim_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    self_prim_kernels = ser_self_prim_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      self_prim_kernels = ser_self_prim_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    self_prim_kernels = ten_self_prim_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      self_prim_kernels = ten_self_prim_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   prim_pkpm->self_prim = CK(self_prim_kernels, cdim, poly_order);
@@ -78,7 +80,8 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_pkpm_cu_dev_new(
+struct gkyl_prim_lbo_type *
+gkyl_prim_lbo_pkpm_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range
 )

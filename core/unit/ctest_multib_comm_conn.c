@@ -3,7 +3,8 @@
 #include <gkyl_block_geom.h>
 #include <gkyl_multib_comm_conn.h>
 
-static struct gkyl_block_geom *create_L_domain(const int *cuts)
+static struct gkyl_block_geom *
+create_L_domain(const int *cuts)
 {
   // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -23,8 +24,8 @@ static struct gkyl_block_geom *create_L_domain(const int *cuts)
   // block 0
   gkyl_block_geom_set_block(
     bgeom, 0,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {300, 300},
       .cuts = {cuts[0], cuts[1]},
@@ -40,14 +41,15 @@ static struct gkyl_block_geom *create_L_domain(const int *cuts)
           // y-direction connections
           {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
 
   // block 1
   gkyl_block_geom_set_block(
     bgeom, 1,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {300, 300},
       .cuts = {cuts[0], cuts[1]},
@@ -61,14 +63,15 @@ static struct gkyl_block_geom *create_L_domain(const int *cuts)
         {// y-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   // block 2
   gkyl_block_geom_set_block(
     bgeom, 2,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {300, 300},
       .cuts = {cuts[0], cuts[1]},
@@ -84,13 +87,15 @@ static struct gkyl_block_geom *create_L_domain(const int *cuts)
           // y-direction connections
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
 
   return bgeom;
 }
 
-static void test_multib_comm_conn_0_ho(void)
+static void
+test_multib_comm_conn_0_ho(void)
 {
   struct gkyl_comm_conn cclist[] = {{.rank = 1}, {.rank = 2}};
 
@@ -101,7 +106,8 @@ static void test_multib_comm_conn_0_ho(void)
   gkyl_multib_comm_conn_release(mbcc);
 }
 
-static void test_multib_comm_conn_L_domain_send_c1_ho(void)
+static void
+test_multib_comm_conn_L_domain_send_c1_ho(void)
 {
   struct gkyl_block_geom *geom = create_L_domain((int[]){1, 1});
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
@@ -167,7 +173,8 @@ static void test_multib_comm_conn_L_domain_send_c1_ho(void)
   gkyl_block_geom_release(geom);
 }
 
-static void test_multib_comm_conn_L_domain_send_c3_ho(void)
+static void
+test_multib_comm_conn_L_domain_send_c3_ho(void)
 {
   // THIS IS ONLY A PARTIAL TEST: checks send volume is correct and
   // total sends are correct
@@ -225,7 +232,8 @@ static void test_multib_comm_conn_L_domain_send_c3_ho(void)
   gkyl_block_geom_release(geom);
 }
 
-static void test_multib_comm_conn_L_domain_recv_c1_ho(void)
+static void
+test_multib_comm_conn_L_domain_recv_c1_ho(void)
 {
   struct gkyl_block_geom *geom = create_L_domain((int[]){1, 1});
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
@@ -291,7 +299,8 @@ static void test_multib_comm_conn_L_domain_recv_c1_ho(void)
   gkyl_block_geom_release(geom);
 }
 
-static void test_multib_comm_conn_L_domain_recv_c3_ho(void)
+static void
+test_multib_comm_conn_L_domain_recv_c3_ho(void)
 {
   // THIS IS ONLY A PARTIAL TEST: checks recv volume is correct and
   // total recvs are correct
@@ -349,7 +358,8 @@ static void test_multib_comm_conn_L_domain_recv_c3_ho(void)
   gkyl_block_geom_release(geom);
 }
 
-static void test_L_domain_sync_c3(void)
+static void
+test_L_domain_sync_c3(void)
 {
   struct gkyl_block_geom *geom = create_L_domain((int[]){3, 3});
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);

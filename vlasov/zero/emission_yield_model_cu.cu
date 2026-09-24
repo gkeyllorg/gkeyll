@@ -8,27 +8,32 @@ extern "C" {
 
 #include <cassert>
 
-__global__ static void furman_pivi_set_cu_dev_ptrs(struct gkyl_emission_yield_furman_pivi *model)
+__global__ static void
+furman_pivi_set_cu_dev_ptrs(struct gkyl_emission_yield_furman_pivi *model)
 {
   model->yield.function = gkyl_emission_yield_furman_pivi_yield;
 }
 
-__global__ static void schou_set_cu_dev_ptrs(struct gkyl_emission_yield_schou *model)
+__global__ static void
+schou_set_cu_dev_ptrs(struct gkyl_emission_yield_schou *model)
 {
   model->yield.function = gkyl_emission_yield_schou_yield;
 }
 
-__global__ static void schou_srim_set_cu_dev_ptrs(struct gkyl_emission_yield_schou_srim *model)
+__global__ static void
+schou_srim_set_cu_dev_ptrs(struct gkyl_emission_yield_schou_srim *model)
 {
   model->yield.function = gkyl_emission_yield_schou_srim_yield;
 }
 
-__global__ static void constant_set_cu_dev_ptrs(struct gkyl_emission_yield_constant *model)
+__global__ static void
+constant_set_cu_dev_ptrs(struct gkyl_emission_yield_constant *model)
 {
   model->yield.function = gkyl_emission_yield_constant_yield;
 }
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_cu_dev_new(
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_furman_pivi_cu_dev_new(
   double charge, double deltahat_ts, double Ehat_ts, double t1, double t2, double t3, double t4,
   double s
 )
@@ -62,7 +67,8 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_cu_dev_new(
   return &model->yield;
 }
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_schou_cu_dev_new(
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_schou_cu_dev_new(
   double charge, double int_wall, double a2, double a3, double a4, double a5, double nw
 )
 {
@@ -92,7 +98,8 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_schou_cu_dev_new(
   return &model->yield;
 }
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_schou_srim_cu_dev_new(
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_schou_srim_cu_dev_new(
   double charge, double int_wall, double lorentz_norm, double E0, double tau, double alpha,
   double beta, double gauss_norm, double gauss_E0, double gauss_tau
 )

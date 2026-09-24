@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# Run trailing-comma stripping and clang-format over every in-scope C/C++/CUDA
-# file in the repo, in that order (a trailing comma before a closing '}'
-# makes clang-format expand the whole list onto one line per element, so it
-# has to be gone before clang-format sees the file).
+# Run ci/format.py (clang-format plus Gkeyll's trailing-comma rules, see the
+# docstring there) over every in-scope C/C++/CUDA file in the repo.
 #
 # In scope: tracked *.c/*.h/*.cpp/*.hpp/*.cu/*.cuh files, excluding anything
 # under a */ker/* directory (auto-generated DG kernel code) or under
@@ -36,11 +34,7 @@ list_files() {
 if [[ "$mode" == "--check" ]]; then
   status=0
   while IFS= read -r -d '' f; do
-    if ! python3 ci/strip-trailing-commas.py --check "$f" > /dev/null 2>&1; then
-      echo "trailing comma(s) found: $f"
-      status=1
-    fi
-    if ! clang-format --dry-run --Werror "$f" > /dev/null 2>&1; then
+    if ! python3 ci/format.py --check "$f" > /dev/null 2>&1; then
       echo "not formatted: $f"
       status=1
     fi
@@ -49,8 +43,7 @@ if [[ "$mode" == "--check" ]]; then
 else
   count=0
   while IFS= read -r -d '' f; do
-    python3 ci/strip-trailing-commas.py "$f"
-    clang-format -i "$f"
+    python3 ci/format.py "$f"
     count=$((count + 1))
   done < <(list_files)
   echo "Formatted $count files."

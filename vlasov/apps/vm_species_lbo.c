@@ -1,9 +1,8 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-void vm_species_lbo_init(
-  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo
-)
+void
+vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo)
 {
   int cdim = app->cdim, vdim = app->vdim;
   double v_bounds[2 * GKYL_MAX_DIM] = {0.0};
@@ -73,17 +72,20 @@ void vm_species_lbo_init(
 
   // LBO updater
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = {
-    .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms
+    .nuSum = lbo->nu_sum,
+    .nuPrimMomsSum = lbo->nu_prim_moms,
   };
   struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = {
-    .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms
+    .nuSum = lbo->nu_sum,
+    .nuPrimMomsSum = lbo->nu_prim_moms,
   };
   lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_new(
     &s->grid, &app->confBasis, &app->basis, &app->local, &drag_inp, &diff_inp, app->use_gpu
   );
 }
 
-void vm_species_lbo_cross_init(
+void
+vm_species_lbo_cross_init(
   struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo
 )
 {
@@ -144,7 +146,8 @@ void vm_species_lbo_cross_init(
 }
 
 // computes moments, boundary corrections, and primitive moments
-void vm_species_lbo_moms(
+void
+vm_species_lbo_moms(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -177,7 +180,8 @@ void vm_species_lbo_moms(
 }
 
 // computes moments from cross-species collisions
-void vm_species_lbo_cross_moms(
+void
+vm_species_lbo_cross_moms(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -229,7 +233,8 @@ void vm_species_lbo_cross_moms(
 }
 
 // updates the collision terms in the rhs
-void vm_species_lbo_rhs(
+void
+vm_species_lbo_rhs(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -242,7 +247,8 @@ void vm_species_lbo_rhs(
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo)
+void
+vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo)
 {
   gkyl_array_release(lbo->boundary_corrections);
   gkyl_array_release(lbo->prim_moms);

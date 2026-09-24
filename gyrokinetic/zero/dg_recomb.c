@@ -15,7 +15,8 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_rect_decomp.h>
 
-struct gkyl_dg_recomb *gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
+struct gkyl_dg_recomb *
+gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
 {
   gkyl_dg_recomb *up = gkyl_malloc(sizeof(struct gkyl_dg_recomb));
 
@@ -140,7 +141,8 @@ struct gkyl_dg_recomb *gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool u
   return up;
 }
 
-void gkyl_dg_recomb_coll(
+void
+gkyl_dg_recomb_coll(
   const struct gkyl_dg_recomb *up, const struct gkyl_array *prim_vars_elc,
   struct gkyl_array *coef_recomb, struct gkyl_array *cflrate
 )
@@ -225,7 +227,8 @@ void gkyl_dg_recomb_coll(
   /* } */
 }
 
-void gkyl_dg_recomb_release(struct gkyl_dg_recomb *up)
+void
+gkyl_dg_recomb_release(struct gkyl_dg_recomb *up)
 {
   gkyl_array_release(up->recomb_data);
   free(up);

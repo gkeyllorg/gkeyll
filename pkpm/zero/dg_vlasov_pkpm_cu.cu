@@ -15,7 +15,8 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_vlasov_pkpm_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_vlasov_pkpm_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *bvar, const struct gkyl_array *bvar_surf,
   const struct gkyl_array *pkpm_prim, const struct gkyl_array *pkpm_prim_surf,
   const struct gkyl_array *max_b, const struct gkyl_array *pkpm_lax, const struct gkyl_array *div_b,
@@ -35,7 +36,8 @@ __global__ static void gkyl_vlasov_pkpm_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_vlasov_pkpm_set_auxfields_cu(
+void
+gkyl_vlasov_pkpm_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin
 )
 {
@@ -48,7 +50,8 @@ void gkyl_vlasov_pkpm_set_auxfields_cu(
 
 // CUDA kernel to set device pointers to range object and vlasov_pkpm kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_vlasov_pkpm_set_cu_dev_ptrs(
+__global__ static void
+dg_vlasov_pkpm_set_cu_dev_ptrs(
   struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
@@ -72,29 +75,29 @@ __global__ static void dg_vlasov_pkpm_set_cu_dev_ptrs(
   const gkyl_dg_vlasov_pkpm_accel_boundary_surf_kern_list *accel_boundary_surf_vpar_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    stream_surf_x_kernels = ser_stream_surf_x_kernels;
-    stream_surf_y_kernels = ser_stream_surf_y_kernels;
-    stream_surf_z_kernels = ser_stream_surf_z_kernels;
-    accel_surf_vpar_kernels = ser_accel_surf_vpar_kernels;
-    accel_boundary_surf_vpar_kernels = ser_accel_boundary_surf_vpar_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      stream_surf_x_kernels = ser_stream_surf_x_kernels;
+      stream_surf_y_kernels = ser_stream_surf_y_kernels;
+      stream_surf_z_kernels = ser_stream_surf_z_kernels;
+      accel_surf_vpar_kernels = ser_accel_surf_vpar_kernels;
+      accel_boundary_surf_vpar_kernels = ser_accel_boundary_surf_vpar_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    vol_kernels = ten_vol_kernels;
-    stream_surf_x_kernels = ten_stream_surf_x_kernels;
-    stream_surf_y_kernels = ten_stream_surf_y_kernels;
-    stream_surf_z_kernels = ten_stream_surf_z_kernels;
-    accel_surf_vpar_kernels = ten_accel_surf_vpar_kernels;
-    accel_boundary_surf_vpar_kernels = ten_accel_boundary_surf_vpar_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      stream_surf_x_kernels = ten_stream_surf_x_kernels;
+      stream_surf_y_kernels = ten_stream_surf_y_kernels;
+      stream_surf_z_kernels = ten_stream_surf_z_kernels;
+      accel_surf_vpar_kernels = ten_accel_surf_vpar_kernels;
+      accel_boundary_surf_vpar_kernels = ten_accel_boundary_surf_vpar_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   vlasov_pkpm->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
@@ -112,7 +115,8 @@ __global__ static void dg_vlasov_pkpm_set_cu_dev_ptrs(
   vlasov_pkpm->accel_boundary_surf = CK(accel_boundary_surf_vpar_kernels, cdim, poly_order);
 }
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_vlasov_pkpm_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range
 )

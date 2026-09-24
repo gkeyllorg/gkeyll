@@ -9,7 +9,8 @@
 #include <gkyl_dg_calc_em_vars_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_em_vars *gkyl_dg_calc_em_vars_new(
+gkyl_dg_calc_em_vars *
+gkyl_dg_calc_em_vars_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
   const struct gkyl_range *mem_range, const struct gkyl_wv_eqn *wv_eqn,
   const struct gkyl_wave_geom *geom, double limiter_fac, bool is_ExB, bool use_gpu
@@ -81,7 +82,8 @@ gkyl_dg_calc_em_vars *gkyl_dg_calc_em_vars_new(
   return up;
 }
 
-void gkyl_dg_calc_em_vars_advance(
+void
+gkyl_dg_calc_em_vars_advance(
   struct gkyl_dg_calc_em_vars *up, const struct gkyl_array *em, struct gkyl_array *cell_avg_magB2,
   struct gkyl_array *out, struct gkyl_array *out_surf
 )
@@ -129,7 +131,8 @@ void gkyl_dg_calc_em_vars_advance(
   }
 }
 
-void gkyl_dg_calc_em_vars_div_b(
+void
+gkyl_dg_calc_em_vars_div_b(
   struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *bvar_surf, const struct gkyl_array *bvar, struct gkyl_array *max_b,
   struct gkyl_array *div_b
@@ -175,7 +178,8 @@ void gkyl_dg_calc_em_vars_div_b(
   }
 }
 
-void gkyl_dg_calc_em_vars_limiter(
+void
+gkyl_dg_calc_em_vars_limiter(
   struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, struct gkyl_array *em
 )
 {
@@ -213,7 +217,8 @@ void gkyl_dg_calc_em_vars_limiter(
   }
 }
 
-void gkyl_dg_calc_em_vars_release(gkyl_dg_calc_em_vars *up)
+void
+gkyl_dg_calc_em_vars_release(gkyl_dg_calc_em_vars *up)
 {
   gkyl_wv_eqn_release(up->wv_eqn);
   gkyl_wave_geom_release(up->geom);

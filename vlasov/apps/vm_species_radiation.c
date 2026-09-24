@@ -1,9 +1,8 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-void vm_species_radiation_init(
-  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_rad_drag *rad
-)
+void
+vm_species_radiation_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_rad_drag *rad)
 {
   int vdim = app->vdim;
 
@@ -38,7 +37,8 @@ void vm_species_radiation_init(
 
   // Radiation operator uses the LBO kernels, so create auxiliary field struct for LBO
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = {
-    .nuSum = rad->nu, .nuPrimMomsSum = rad->nu_rad_drag
+    .nuSum = rad->nu,
+    .nuPrimMomsSum = rad->nu_rad_drag,
   };
   rad->rad_slvr = gkyl_dg_updater_rad_vlasov_new(
     &s->grid, &app->confBasis, &app->basis, &app->local, &drag_inp, app->use_gpu
@@ -46,7 +46,8 @@ void vm_species_radiation_init(
 }
 
 // updates the radiation terms in the rhs
-void vm_species_radiation_rhs(
+void
+vm_species_radiation_rhs(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_rad_drag *rad,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -55,7 +56,8 @@ void vm_species_radiation_rhs(
   gkyl_dg_updater_rad_vlasov_advance(rad->rad_slvr, &species->local, fin, species->cflrate, rhs);
 }
 
-void vm_species_radiation_release(const struct gkyl_vlasov_app *app, const struct vm_rad_drag *rad)
+void
+vm_species_radiation_release(const struct gkyl_vlasov_app *app, const struct vm_rad_drag *rad)
 {
   gkyl_array_release(rad->nu);
   gkyl_array_release(rad->nu_rad_drag);

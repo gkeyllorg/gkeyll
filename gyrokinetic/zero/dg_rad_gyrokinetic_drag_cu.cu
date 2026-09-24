@@ -12,7 +12,8 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nvnu_surf, const struct gkyl_array *nvnu,
   const struct gkyl_array *nvsqnu_surf, const struct gkyl_array *nvsqnu
 )
@@ -25,7 +26,8 @@ __global__ static void gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_rad_gyrokinetic_drag_set_auxfields_cu(
+void
+gkyl_rad_gyrokinetic_drag_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin
 )
 {
@@ -37,7 +39,8 @@ void gkyl_rad_gyrokinetic_drag_set_auxfields_cu(
 
 // CUDA kernel to set device pointers to range object and rad_gyrokinetic_drag kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_rad_gyrokinetic_drag_set_cu_dev_ptrs(
+__global__ static void
+dg_rad_gyrokinetic_drag_set_cu_dev_ptrs(
   struct dg_rad_gyrokinetic_drag *grad, enum gkyl_basis_type b_type, int cv_index, int cdim,
   int vdim, int poly_order
 )
@@ -56,17 +59,17 @@ __global__ static void dg_rad_gyrokinetic_drag_set_cu_dev_ptrs(
     *boundary_surf_mu_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_vpar_kernels = ser_surf_vpar_kernels;
-    surf_mu_kernels = ser_surf_mu_kernels;
-    boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
-    boundary_surf_mu_kernels = ser_boundary_surf_mu_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_vpar_kernels = ser_surf_vpar_kernels;
+      surf_mu_kernels = ser_surf_mu_kernels;
+      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
+      boundary_surf_mu_kernels = ser_boundary_surf_mu_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   grad->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
 
@@ -81,7 +84,8 @@ __global__ static void dg_rad_gyrokinetic_drag_set_cu_dev_ptrs(
   }
 }
 
-struct gkyl_dg_eqn *gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_velocity_map *vel_map

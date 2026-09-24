@@ -60,13 +60,15 @@ struct pkpm_kalf_ctx {
   bool use_gpu;
 };
 
-static inline double maxwellian(double n, double v, double vth)
+static inline double
+maxwellian(double n, double v, double vth)
 {
   double v2 = v * v;
   return n / sqrt(2 * M_PI * vth * vth) * exp(-v2 / (2 * vth * vth));
 }
 
-void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_kalf_ctx *app = ctx;
 
@@ -80,7 +82,8 @@ void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[0] = fv;
   fout[1] = app->vtElc * app->vtElc * fv;
 }
-void evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_kalf_ctx *app = ctx;
 
@@ -95,7 +98,8 @@ void evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[1] = app->vtIon * app->vtIon * fv;
 }
 
-void evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_kalf_ctx *app = ctx;
 
@@ -122,7 +126,8 @@ void evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   fout[2] = me * u_ze;
 }
 
-void evalFluidIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFluidIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_kalf_ctx *app = ctx;
 
@@ -149,7 +154,8 @@ void evalFluidIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   fout[2] = mi * u_zi;
 }
 
-void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_kalf_ctx *app = ctx;
 
@@ -194,19 +200,22 @@ void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-void evalNuElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalNuElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_kalf_ctx *app = ctx;
   fout[0] = app->nuElc;
 }
 
-void evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_kalf_ctx *app = ctx;
   fout[0] = app->nuIon;
 }
 
-struct pkpm_kalf_ctx create_ctx(void)
+struct pkpm_kalf_ctx
+create_ctx(void)
 {
   double epsilon0 = 1.0; // permittivity of free space
   double mu0 = 1.0; // pemiability of free space
@@ -330,19 +339,21 @@ struct pkpm_kalf_ctx create_ctx(void)
     .Lpar = Lpar,
     .Lperp = Lperp,
     .tend = tend,
-    .min_dt = 1.0e-2
+    .min_dt = 1.0e-2,
   };
   return ctx;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double tcurr)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double tcurr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
     gkyl_pkpm_app_write(app, tcurr, iot->curr - 1);
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -378,10 +389,12 @@ int main(int argc, char **argv)
     .init_fluid = evalFluidElc,
 
     .collisions =
-      {.collision_id = GKYL_LBO_COLLISIONS,
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
 
-       .ctx = &ctx,
-       .self_nu = evalNuElc}
+        .ctx = &ctx,
+        .self_nu = evalNuElc,
+      },
   };
 
   // ions
@@ -399,10 +412,12 @@ int main(int argc, char **argv)
     .init_fluid = evalFluidIon,
 
     .collisions =
-      {.collision_id = GKYL_LBO_COLLISIONS,
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
 
-       .ctx = &ctx,
-       .self_nu = evalNuIon}
+        .ctx = &ctx,
+        .self_nu = evalNuIon,
+      },
   };
 
   // field
@@ -413,7 +428,7 @@ int main(int argc, char **argv)
     .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
   };
 
   int nrank = 1; // number of processors in simulation
@@ -480,7 +495,7 @@ int main(int argc, char **argv)
     .field = field,
 
     .parallelism =
-      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},
   };
 
   // create app object

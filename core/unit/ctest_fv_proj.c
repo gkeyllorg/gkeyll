@@ -5,13 +5,15 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-void evalFunc(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = x * x;
 }
 
-void test_fv_proj_1_ho()
+void
+test_fv_proj_1_ho()
 {
   double lower[] = {-2.0}, upper[] = {4.0};
   int cells[] = {2};

@@ -5,7 +5,8 @@
 #include <gkyl_wv_advect_priv.h>
 
 // Basic structural properties of the linear advection equation object.
-void test_advect_basic_roe()
+void
+test_advect_basic_roe()
 {
   double a = 2.5;
   struct gkyl_wv_eqn *eqn = gkyl_wv_advect_new(a, false);
@@ -18,11 +19,15 @@ void test_advect_basic_roe()
   gkyl_wv_eqn_release(eqn);
 }
 
-void test_advect_basic_lax()
+void
+test_advect_basic_lax()
 {
   double a = -1.3;
-  struct gkyl_wv_eqn *eqn = gkyl_wv_advect_inew(&(struct gkyl_wv_advect_inp
-  ){.a = a, .rp_type = WV_ADVECT_RP_LAX, .use_gpu = false});
+  struct gkyl_wv_eqn *eqn = gkyl_wv_advect_inew(&(struct gkyl_wv_advect_inp){
+    .a = a,
+    .rp_type = WV_ADVECT_RP_LAX,
+    .use_gpu = false,
+  });
 
   TEST_CHECK(eqn->num_equations == 1);
   TEST_CHECK(eqn->num_waves == 2); // Lax has 2 waves
@@ -32,7 +37,8 @@ void test_advect_basic_lax()
 }
 
 // Flux F(q) = a*q, and flux derivative df/dq = a (the advection speed).
-void test_advect_flux()
+void
+test_advect_flux()
 {
   double a = 3.7;
   double q[1] = {4.2};
@@ -51,7 +57,8 @@ void test_advect_flux()
 }
 
 // Max speed is |a| independent of state.
-void test_advect_max_speed()
+void
+test_advect_max_speed()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_advect_new(-4.0, false);
 
@@ -63,7 +70,8 @@ void test_advect_max_speed()
 }
 
 // Rotation to local/global is the identity (scalar eqn). Round-trip recovers q.
-void test_advect_rotate()
+void
+test_advect_rotate()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_advect_new(1.0, false);
 
@@ -81,7 +89,8 @@ void test_advect_rotate()
 }
 
 // Riemann variable round-trip (identity here) recovers state.
-void test_advect_riem_roundtrip()
+void
+test_advect_riem_roundtrip()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_advect_new(2.0, false);
 
@@ -94,7 +103,8 @@ void test_advect_riem_roundtrip()
 }
 
 // Flux jump must equal F(qr) - F(ql) = a*(qr - ql).
-void test_advect_flux_jump()
+void
+test_advect_flux_jump()
 {
   double a = 1.7;
   struct gkyl_wv_eqn *eqn = gkyl_wv_advect_new(a, false);
@@ -109,7 +119,8 @@ void test_advect_flux_jump()
 }
 
 // check_inv always true for linear advection.
-void test_advect_check_inv()
+void
+test_advect_check_inv()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_advect_new(1.0, false);
   double q[1] = {-3.0};
@@ -118,7 +129,8 @@ void test_advect_check_inv()
 }
 
 // Source term is zero (homogeneous equation).
-void test_advect_source()
+void
+test_advect_source()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_advect_new(1.0, false);
   double q[1] = {3.0}, s[1] = {999.0};
@@ -128,7 +140,8 @@ void test_advect_source()
 }
 
 // cons_to_diag copies the state.
-void test_advect_cons_to_diag()
+void
+test_advect_cons_to_diag()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_advect_new(1.0, false);
   double q[1] = {6.6}, diag[1];
@@ -140,7 +153,8 @@ void test_advect_cons_to_diag()
 // Roe waves/qfluct: wave = delta, speed = a. Fluctuations split by sign of a.
 // Consistency: amdq + apdq = flux jump (conservation of f-waves/q-waves through
 // the Roe linearization, since wave*s = a*delta = F(qr)-F(ql)).
-void test_advect_waves_roe()
+void
+test_advect_waves_roe()
 {
   double a = 2.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_advect_new(a, false);
@@ -172,7 +186,8 @@ void test_advect_waves_roe()
 }
 
 // Roe with negative advection speed: all fluctuation should be left-going.
-void test_advect_waves_roe_negative()
+void
+test_advect_waves_roe_negative()
 {
   double a = -3.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_advect_new(a, false);
@@ -196,11 +211,15 @@ void test_advect_waves_roe_negative()
 }
 
 // Lax solver: two symmetric waves with speeds +-amax. Conservation must hold.
-void test_advect_waves_lax()
+void
+test_advect_waves_lax()
 {
   double a = 2.0;
-  struct gkyl_wv_eqn *eqn = gkyl_wv_advect_inew(&(struct gkyl_wv_advect_inp
-  ){.a = a, .rp_type = WV_ADVECT_RP_LAX, .use_gpu = false});
+  struct gkyl_wv_eqn *eqn = gkyl_wv_advect_inew(&(struct gkyl_wv_advect_inp){
+    .a = a,
+    .rp_type = WV_ADVECT_RP_LAX,
+    .use_gpu = false,
+  });
 
   double ql[1] = {1.0}, qr[1] = {4.0};
   double delta[1] = {qr[0] - ql[0]};

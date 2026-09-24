@@ -10,38 +10,44 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 
-void f_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+f_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2 + x;
 }
-void g_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+g_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2 * x * x + 8;
 }
 
-void fv2_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+fv2_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2. + x;
   fout[1] = 1. - x;
 }
-void gv2_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+gv2_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2 * x * x + 8;
   fout[1] = x * x - 8;
 }
 
-void fv3_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+fv3_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2. + x;
   fout[1] = 1. - x;
   fout[2] = 0.5 + x;
 }
-void gv3_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+gv3_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2 * x * x + 8;
@@ -49,7 +55,8 @@ void gv3_1d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = 0.5 * x * x + 4;
 }
 
-void check_dot_product_1d(
+void
+check_dot_product_1d(
   const double *fv1_d, const double *gv1_d, const double *fvdgv1_d, const double *fv2_d,
   const double *gv2_d, const double *fvdgv2_d, const double *fv3_d, const double *gv3_d,
   const double *fvdgv3_d, int poly_order
@@ -159,7 +166,8 @@ void check_dot_product_1d(
   return;
 }
 
-void test_1d(int poly_order, bool use_gpu)
+void
+test_1d(int poly_order, bool use_gpu)
 {
   double lower[] = {0.0}, upper[] = {1.0};
   int cells[] = {2};
@@ -485,7 +493,8 @@ void test_1d(int poly_order, bool use_gpu)
   }
 }
 
-void test_inv_1d(int poly_order, bool use_gpu)
+void
+test_inv_1d(int poly_order, bool use_gpu)
 {
   double lower[] = {0.0}, upper[] = {1.0};
   int cells[] = {2};
@@ -579,33 +588,38 @@ void test_inv_1d(int poly_order, bool use_gpu)
   }
 }
 
-void f_1d2d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+f_1d2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1 + x;
 }
 
-void f_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+f_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   fout[0] = 2 + x + y;
 }
-void g_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+g_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   fout[0] = 2 * x * y + 8;
 }
 
-void fv2_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+fv2_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   fout[0] = 2 + x + y;
   fout[1] = 1 - x + y;
 }
-void gv2_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+gv2_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -613,7 +627,8 @@ void gv2_2d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[1] = x * y - 4;
 }
 
-void fv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+fv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -621,7 +636,8 @@ void fv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[1] = 1 - x + y;
   fout[2] = 0.5 + x - y;
 }
-void gv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+gv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -630,7 +646,8 @@ void gv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = 0.5 * x * y + 2;
 }
 
-void check_dot_product_2d(
+void
+check_dot_product_2d(
   const double *fv2_d, const double *gv2_d, const double *fvdgv2_d, const double *fv3_d,
   const double *gv3_d, const double *fvdgv3_d, int poly_order
 )
@@ -975,7 +992,8 @@ void check_dot_product_2d(
   return;
 }
 
-void test_2d(int poly_order, bool use_gpu)
+void
+test_2d(int poly_order, bool use_gpu)
 {
   double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
   int cells[] = {2, 2};
@@ -1437,7 +1455,8 @@ void test_2d(int poly_order, bool use_gpu)
   }
 }
 
-void test_inv_2d(int poly_order, bool use_gpu)
+void
+test_inv_2d(int poly_order, bool use_gpu)
 {
   double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
   int cells[] = {2, 2};
@@ -1596,20 +1615,23 @@ void test_inv_2d(int poly_order, bool use_gpu)
   }
 }
 
-void f_1d3d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+f_1d3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 5 + x;
 }
 
-void f_3d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+f_3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   double z = xn[2];
   fout[0] = 5 + x + y + z;
 }
-void g_3d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+g_3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -1617,7 +1639,8 @@ void g_3d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = ((x * y * z + 8) * (x * y * z + 8) + 100);
 }
 
-void fg_3d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+fg_3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -1630,7 +1653,8 @@ void fg_3d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = f[0] * g[0];
 }
 
-void fv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+fv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -1639,7 +1663,8 @@ void fv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[1] = 2.5 - x + y - z;
   fout[2] = 12.5 + x - y + z;
 }
-void gv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+gv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -1649,7 +1674,8 @@ void gv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = ((x * y * z + 2) * (x * y * z - 2) + 25);
 }
 
-void check_dot_product_3d(
+void
+check_dot_product_3d(
   const double *fv3_d, const double *gv3_d, const double *fvdgv3_d, int poly_order
 )
 {
@@ -1756,7 +1782,8 @@ void check_dot_product_3d(
   return;
 }
 
-void test_3d(int poly_order, bool use_gpu)
+void
+test_3d(int poly_order, bool use_gpu)
 {
   double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
   int cells[] = {2, 2, 2};
@@ -2361,13 +2388,15 @@ void test_3d(int poly_order, bool use_gpu)
   }
 }
 
-void f_2d2d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+f_2d2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   fout[0] = 5 + x * y;
 }
 
-void f_4d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+f_4d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -2376,7 +2405,8 @@ void f_4d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = 5 + (x + y) * (vx + vy);
 }
 
-void test_4d(int poly_order, bool use_gpu)
+void
+test_4d(int poly_order, bool use_gpu)
 {
   double lower[] = {0.0, 0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0, 1.0};
   int cells[] = {2, 2, 2, 2};
@@ -2928,61 +2958,74 @@ void test_4d(int poly_order, bool use_gpu)
   }
 }
 
-void test_bin_ops_1d_p1_ho()
+void
+test_bin_ops_1d_p1_ho()
 {
   test_1d(1, false);
 }
-void test_bin_ops_1d_p2_ho()
+void
+test_bin_ops_1d_p2_ho()
 {
   test_1d(2, false);
 }
-void test_bin_ops_1d_p3_ho()
+void
+test_bin_ops_1d_p3_ho()
 {
   test_1d(3, false);
 }
 
-void test_bin_ops_inv_1d_p1_ho()
+void
+test_bin_ops_inv_1d_p1_ho()
 {
   test_inv_1d(1, false);
 }
 
-void test_bin_ops_2d_p1_ho()
+void
+test_bin_ops_2d_p1_ho()
 {
   test_2d(1, false);
 }
-void test_bin_ops_2d_p2_ho()
+void
+test_bin_ops_2d_p2_ho()
 {
   test_2d(2, false);
 }
-void test_bin_ops_2d_p3_ho()
+void
+test_bin_ops_2d_p3_ho()
 {
   test_2d(3, false);
 }
 
-void test_bin_ops_inv_2d_p1_ho()
+void
+test_bin_ops_inv_2d_p1_ho()
 {
   test_inv_2d(1, false);
 }
 
-void test_bin_ops_3d_p1_ho()
+void
+test_bin_ops_3d_p1_ho()
 {
   test_3d(1, false);
 }
-void test_bin_ops_3d_p2_ho()
+void
+test_bin_ops_3d_p2_ho()
 {
   test_3d(2, false);
 }
 
-void test_bin_ops_4d_p1_ho()
+void
+test_bin_ops_4d_p1_ho()
 {
   test_4d(1, false);
 }
-void test_bin_ops_4d_p2_ho()
+void
+test_bin_ops_4d_p2_ho()
 {
   test_4d(2, false);
 }
 
-void f_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
+void
+f_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -2991,7 +3034,8 @@ void f_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
     ((5 + x) * (5 + y) * (5 + z) * (5 + x) * (5 + y) * (5 + z) * (5 + x) * (5 + y) * (5 + z) + 100);
 }
 
-void g_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
+void
+g_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -2999,7 +3043,8 @@ void g_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = ((x * y * z + 8) * (x * y * z + 8) * (x * y * z + 8) + 100);
 }
 
-void test_bin_ops_3d_p3_ho()
+void
+test_bin_ops_3d_p3_ho()
 {
   int poly_order = 3;
   double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
@@ -3099,29 +3144,34 @@ void test_bin_ops_3d_p3_ho()
 // where f(x)=x, g(x,vx,vy)=sin(x)*cos(vx)+vy, ones=1
 // verifies gkyl_dg_mul_conf_phase_op_accumulate_range with a=-1 and pop=constant 1.
 
-void f_sub_eval(double t, const double *xn, double *restrict fout, void *ctx)
+void
+f_sub_eval(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = xn[0]; // f(x) = x
 }
 
-void g_eval(double t, const double *xn, double *restrict fout, void *ctx)
+void
+g_eval(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2];
   fout[0] = sin(x) * cos(vx) + vy; // g(x,vx,vy) = sin(x)*cos(vx) + vy
 }
 
-void ones_eval(double t, const double *xn, double *restrict fout, void *ctx)
+void
+ones_eval(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = 1.0;
 }
 
-void h_sol_eval(double t, const double *xn, double *restrict fout, void *ctx)
+void
+h_sol_eval(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2];
   fout[0] = sin(x) * cos(vx) + vy - x; // h = g - f
 }
 
-void test_subspace_accumulate(int poly_order, bool use_gpu)
+void
+test_subspace_accumulate(int poly_order, bool use_gpu)
 {
   // Main dimension
   int dim = 3;
@@ -3229,11 +3279,13 @@ void test_subspace_accumulate(int poly_order, bool use_gpu)
   gkyl_array_release(pout_ho);
 }
 
-void test_bin_ops_conf_phase_accumulate_subtract_p1_ho()
+void
+test_bin_ops_conf_phase_accumulate_subtract_p1_ho()
 {
   test_subspace_accumulate(1, false);
 }
-void test_bin_ops_conf_phase_accumulate_subtract_p2_ho()
+void
+test_bin_ops_conf_phase_accumulate_subtract_p2_ho()
 {
   test_subspace_accumulate(2, false);
 }
@@ -3241,52 +3293,63 @@ void test_bin_ops_conf_phase_accumulate_subtract_p2_ho()
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_bin_ops_1d_p1_dev()
+void
+test_bin_ops_1d_p1_dev()
 {
   test_1d(1, true);
 }
-void test_bin_ops_1d_p2_dev()
+void
+test_bin_ops_1d_p2_dev()
 {
   test_1d(2, true);
 }
-void test_bin_ops_1d_p3_dev()
+void
+test_bin_ops_1d_p3_dev()
 {
   test_1d(3, true);
 }
 
-void test_bin_ops_inv_1d_p1_dev()
+void
+test_bin_ops_inv_1d_p1_dev()
 {
   test_inv_1d(1, true);
 }
 
-void test_bin_ops_2d_p1_dev()
+void
+test_bin_ops_2d_p1_dev()
 {
   test_2d(1, true);
 }
-void test_bin_ops_2d_p2_dev()
+void
+test_bin_ops_2d_p2_dev()
 {
   test_2d(2, true);
 }
-void test_bin_ops_2d_p3_dev()
+void
+test_bin_ops_2d_p3_dev()
 {
   test_2d(3, true);
 }
 
-void test_bin_ops_inv_2d_p1_dev()
+void
+test_bin_ops_inv_2d_p1_dev()
 {
   test_inv_2d(1, true);
 }
 
-void test_bin_ops_3d_p1_dev()
+void
+test_bin_ops_3d_p1_dev()
 {
   test_3d(1, true);
 }
-void test_bin_ops_3d_p2_dev()
+void
+test_bin_ops_3d_p2_dev()
 {
   test_3d(2, true);
 }
 
-void test_bin_ops_3d_p3_dev()
+void
+test_bin_ops_3d_p3_dev()
 {
   int poly_order = 3;
   double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
@@ -3407,11 +3470,13 @@ void test_bin_ops_3d_p3_dev()
   gkyl_dg_bin_op_mem_release(mem);
 }
 
-void test_bin_ops_conf_phase_accumulate_subtract_p1_dev()
+void
+test_bin_ops_conf_phase_accumulate_subtract_p1_dev()
 {
   test_subspace_accumulate(1, true);
 }
-void test_bin_ops_conf_phase_accumulate_subtract_p2_dev()
+void
+test_bin_ops_conf_phase_accumulate_subtract_p2_dev()
 {
   test_subspace_accumulate(2, true);
 }

@@ -9,7 +9,8 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static void mk_setup(
+static void
+mk_setup(
   int cdim, struct gkyl_range *conf, struct gkyl_range *conf_ext, struct gkyl_rect_grid *pgrid
 )
 {
@@ -39,7 +40,8 @@ static void mk_setup(
   gkyl_rect_grid_init(pgrid, pdim, plower, pupper, pcells);
 }
 
-void test_lbo_pkpm_drag_1x1v_p1()
+void
+test_lbo_pkpm_drag_1x1v_p1()
 {
   int poly_order = 1;
   struct gkyl_basis cbasis, pbasis;
@@ -60,7 +62,8 @@ void test_lbo_pkpm_drag_1x1v_p1()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_lbo_pkpm_diff_1x1v_p1()
+void
+test_lbo_pkpm_diff_1x1v_p1()
 {
   int poly_order = 1;
   struct gkyl_basis cbasis, pbasis;
@@ -80,7 +83,8 @@ void test_lbo_pkpm_diff_1x1v_p1()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_lbo_pkpm_drag_1x1v_p2()
+void
+test_lbo_pkpm_drag_1x1v_p2()
 {
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
@@ -99,7 +103,8 @@ void test_lbo_pkpm_drag_1x1v_p2()
   gkyl_dg_eqn_release(diff);
 }
 
-void test_lbo_pkpm_2x1v_p1()
+void
+test_lbo_pkpm_2x1v_p1()
 {
   int poly_order = 1;
   struct gkyl_basis cbasis, pbasis;

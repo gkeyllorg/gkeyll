@@ -8,7 +8,8 @@
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_canonical_pb_priv.h>
 
-void test_canonical_pb_1x1v_p2()
+void
+test_canonical_pb_1x1v_p2()
 {
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 2);
@@ -45,7 +46,8 @@ void test_canonical_pb_1x1v_p2()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_canonical_pb_2x2v_p2()
+void
+test_canonical_pb_2x2v_p2()
 {
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, 2, 2);
@@ -72,7 +74,8 @@ void test_canonical_pb_2x2v_p2()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_canonical_pb_1x2v_p2()
+void
+test_canonical_pb_1x2v_p2()
 {
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 2);
