@@ -51,7 +51,8 @@ struct amr_euler_riem_2d_ctx {
   double loc; // Fluid boundaries (both x and y coordinates).
 };
 
-struct amr_euler_riem_2d_ctx create_ctx(void)
+struct amr_euler_riem_2d_ctx
+create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 1.4; // Adiabatic index.
@@ -129,13 +130,14 @@ struct amr_euler_riem_2d_ctx create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .loc = loc
+    .loc = loc,
   };
 
   return ctx;
 }
 
-void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_euler_riem_2d_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -206,7 +208,8 @@ void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * (u * u + v * v);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct amr_euler_riem_2d_ctx ctx = create_ctx(); // Context for initialization functions.
 
@@ -248,7 +251,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max
+    .num_failures_max = ctx.num_failures_max,
   };
 
   euler2d_run_double(argc, argv, &init);

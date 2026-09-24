@@ -11,7 +11,8 @@ extern "C" {
 
 // CUDA kernel to set device pointers to ten moment kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void wv_ten_moment_set_cu_dev_ptrs(struct wv_ten_moment *ten_moment)
+__global__ static void
+wv_ten_moment_set_cu_dev_ptrs(struct wv_ten_moment *ten_moment)
 {
   ten_moment->eqn.waves_func = wave;
   ten_moment->eqn.qfluct_func = qfluct;
@@ -29,7 +30,8 @@ __global__ static void wv_ten_moment_set_cu_dev_ptrs(struct wv_ten_moment *ten_m
   ten_moment->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 }
 
-struct gkyl_wv_eqn *gkyl_wv_ten_moment_cu_dev_inew(const struct gkyl_wv_ten_moment_inp *inp)
+struct gkyl_wv_eqn *
+gkyl_wv_ten_moment_cu_dev_inew(const struct gkyl_wv_ten_moment_inp *inp)
 {
   double k0 = inp->k0;
   bool use_grad_closure = inp->use_grad_closure;
@@ -67,7 +69,8 @@ struct gkyl_wv_eqn *gkyl_wv_ten_moment_cu_dev_inew(const struct gkyl_wv_ten_mome
   return &ten_moment->eqn;
 }
 
-struct gkyl_wv_eqn *gkyl_wv_ten_moment_cu_dev_new(
+struct gkyl_wv_eqn *
+gkyl_wv_ten_moment_cu_dev_new(
   double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, struct gkyl_kann_net *ann,
   bool use_gpu
 )
@@ -78,7 +81,7 @@ struct gkyl_wv_eqn *gkyl_wv_ten_moment_cu_dev_new(
     .use_nn_closure = use_nn_closure,
     .poly_order = poly_order,
     .ann = ann,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
 
   return gkyl_wv_ten_moment_cu_dev_inew(&ten_moment_inp);

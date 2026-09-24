@@ -15,29 +15,29 @@ __global__ static void
 wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
 {
   switch (rp_type) {
-  case WV_EULER_RP_ROE:
-    euler->eqn.num_waves = 3;
-    euler->eqn.waves_func = wave_roe_l;
-    euler->eqn.qfluct_func = qfluct_roe_l;
-    break;
+    case WV_EULER_RP_ROE:
+      euler->eqn.num_waves = 3;
+      euler->eqn.waves_func = wave_roe_l;
+      euler->eqn.qfluct_func = qfluct_roe_l;
+      break;
 
-  case WV_EULER_RP_HLLC:
-    euler->eqn.num_waves = 3;
-    euler->eqn.waves_func = wave_hllc_l;
-    euler->eqn.qfluct_func = qfluct_hllc_l;
-    break;
+    case WV_EULER_RP_HLLC:
+      euler->eqn.num_waves = 3;
+      euler->eqn.waves_func = wave_hllc_l;
+      euler->eqn.qfluct_func = qfluct_hllc_l;
+      break;
 
-  case WV_EULER_RP_LAX:
-    euler->eqn.num_waves = 2;
-    euler->eqn.waves_func = wave_lax_l;
-    euler->eqn.qfluct_func = qfluct_lax_l;
-    break;
+    case WV_EULER_RP_LAX:
+      euler->eqn.num_waves = 2;
+      euler->eqn.waves_func = wave_lax_l;
+      euler->eqn.qfluct_func = qfluct_lax_l;
+      break;
 
-  case WV_EULER_RP_HLL:
-    euler->eqn.num_waves = 2;
-    euler->eqn.waves_func = wave_hll_l;
-    euler->eqn.qfluct_func = qfluct_hll_l;
-    break;
+    case WV_EULER_RP_HLL:
+      euler->eqn.num_waves = 2;
+      euler->eqn.waves_func = wave_hll_l;
+      euler->eqn.qfluct_func = qfluct_hll_l;
+      break;
   }
 
   euler->eqn.flux_jump = flux_jump;
@@ -57,7 +57,8 @@ wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
   euler->eqn.source_func = euler_source;
 }
 
-struct gkyl_wv_eqn *gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp)
+struct gkyl_wv_eqn *
+gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp)
 {
   struct wv_euler *euler = (struct wv_euler *)gkyl_malloc(sizeof(struct wv_euler));
 

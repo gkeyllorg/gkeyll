@@ -13,7 +13,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void gkyl_dg_calc_fluid_em_coupling_set_one_fluid_cu_kernel(
+__global__ static void
+gkyl_dg_calc_fluid_em_coupling_set_one_fluid_cu_kernel(
   gkyl_dg_calc_fluid_em_coupling *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_range conf_range, double dt, const struct gkyl_array *app_accel,
   const struct gkyl_array *ext_em, const struct gkyl_array *app_current, struct gkyl_array *fluid,
@@ -49,7 +50,8 @@ __global__ static void gkyl_dg_calc_fluid_em_coupling_set_one_fluid_cu_kernel(
   }
 }
 
-__global__ static void gkyl_dg_calc_fluid_em_coupling_copy_one_fluid_cu_kernel(
+__global__ static void
+gkyl_dg_calc_fluid_em_coupling_copy_one_fluid_cu_kernel(
   gkyl_dg_calc_fluid_em_coupling *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   struct gkyl_array *fluid, struct gkyl_array *em
 )
@@ -76,7 +78,8 @@ __global__ static void gkyl_dg_calc_fluid_em_coupling_copy_one_fluid_cu_kernel(
   }
 }
 
-__global__ static void gkyl_dg_calc_fluid_em_coupling_set_two_fluids_cu_kernel(
+__global__ static void
+gkyl_dg_calc_fluid_em_coupling_set_two_fluids_cu_kernel(
   gkyl_dg_calc_fluid_em_coupling *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_range conf_range, double dt, const struct gkyl_array *app_accel_1,
   const struct gkyl_array *app_accel_2, const struct gkyl_array *ext_em,
@@ -115,7 +118,8 @@ __global__ static void gkyl_dg_calc_fluid_em_coupling_set_two_fluids_cu_kernel(
   }
 }
 
-__global__ static void gkyl_dg_calc_fluid_em_coupling_copy_two_fluids_cu_kernel(
+__global__ static void
+gkyl_dg_calc_fluid_em_coupling_copy_two_fluids_cu_kernel(
   gkyl_dg_calc_fluid_em_coupling *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   struct gkyl_array *fluid_1, struct gkyl_array *fluid_2, struct gkyl_array *em
 )
@@ -144,7 +148,8 @@ __global__ static void gkyl_dg_calc_fluid_em_coupling_copy_two_fluids_cu_kernel(
 }
 
 // Host-side wrapper for primitive variable calculation
-void gkyl_dg_calc_fluid_em_coupling_advance_cu(
+void
+gkyl_dg_calc_fluid_em_coupling_advance_cu(
   struct gkyl_dg_calc_fluid_em_coupling *up, double dt,
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
   const struct gkyl_array *app_current, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
@@ -186,7 +191,8 @@ void gkyl_dg_calc_fluid_em_coupling_advance_cu(
   }
 }
 
-__global__ void gkyl_calc_fluid_em_coupling_energy_cu_kernel(
+__global__ void
+gkyl_calc_fluid_em_coupling_energy_cu_kernel(
   struct gkyl_dg_calc_fluid_em_coupling *up, struct gkyl_range conf_range,
   const struct gkyl_array *ke_old, const struct gkyl_array *ke_new, struct gkyl_array *fluid
 )
@@ -214,7 +220,8 @@ __global__ void gkyl_calc_fluid_em_coupling_energy_cu_kernel(
 }
 
 // Host-side wrapper for kinetic energy calculation
-void gkyl_dg_calc_fluid_em_coupling_energy_cu(
+void
+gkyl_dg_calc_fluid_em_coupling_energy_cu(
   struct gkyl_dg_calc_fluid_em_coupling *up, const struct gkyl_array *ke_old,
   const struct gkyl_array *ke_new, struct gkyl_array *fluid
 )
@@ -228,7 +235,8 @@ void gkyl_dg_calc_fluid_em_coupling_energy_cu(
 
 // CUDA kernel to set device pointers to fluid vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_calc_fluid_em_coupling_set_cu_dev_ptrs(
+__global__ static void
+dg_calc_fluid_em_coupling_set_cu_dev_ptrs(
   struct gkyl_dg_calc_fluid_em_coupling *up, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
@@ -237,7 +245,8 @@ __global__ static void dg_calc_fluid_em_coupling_set_cu_dev_ptrs(
   up->fluid_em_coupling_energy = choose_fluid_em_coupling_energy_kern(b_type, cdim, poly_order);
 }
 
-gkyl_dg_calc_fluid_em_coupling *gkyl_dg_calc_fluid_em_coupling_cu_dev_new(
+gkyl_dg_calc_fluid_em_coupling *
+gkyl_dg_calc_fluid_em_coupling_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, int num_fluids,
   double qbym[GKYL_MAX_SPECIES], double epsilon0
 )

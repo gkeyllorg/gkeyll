@@ -1,7 +1,8 @@
 #include <gkyl_amr_patch_priv.h>
 #include <gkyl_wv_euler_mixture_priv.h>
 
-void skin_ghost_ranges_init_patch(
+void
+skin_ghost_ranges_init_patch(
   struct skin_ghost_ranges_patch *sgr, const struct gkyl_range *parent, const int *ghost
 )
 {
@@ -13,7 +14,8 @@ void skin_ghost_ranges_init_patch(
   );
 }
 
-void euler_patch_bc_updaters_init(
+void
+euler_patch_bc_updaters_init(
   const struct gkyl_wv_eqn *eqn, struct euler_patch_data *pdata,
   const struct gkyl_block_connections *conn
 )
@@ -49,7 +51,8 @@ void euler_patch_bc_updaters_init(
   pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 5, buff_sz);
 }
 
-void euler_nested_patch_bc_updaters_init(
+void
+euler_nested_patch_bc_updaters_init(
   const struct gkyl_wv_eqn *eqn, struct euler_patch_data *pdata,
   const struct gkyl_block_connections *conn
 )
@@ -85,7 +88,8 @@ void euler_nested_patch_bc_updaters_init(
   pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 5, buff_sz);
 }
 
-void gr_euler_patch_bc_updaters_init(
+void
+gr_euler_patch_bc_updaters_init(
   const struct gkyl_wv_eqn *eqn, struct euler_patch_data *pdata,
   const struct gkyl_block_connections *conn
 )
@@ -121,7 +125,8 @@ void gr_euler_patch_bc_updaters_init(
   pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 29, buff_sz);
 }
 
-void gr_euler_nested_patch_bc_updaters_init(
+void
+gr_euler_nested_patch_bc_updaters_init(
   const struct gkyl_wv_eqn *eqn, struct euler_patch_data *pdata,
   const struct gkyl_block_connections *conn
 )
@@ -157,7 +162,8 @@ void gr_euler_nested_patch_bc_updaters_init(
   pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 29, buff_sz);
 }
 
-void euler_mixture_patch_bc_updaters_init(
+void
+euler_mixture_patch_bc_updaters_init(
   const struct gkyl_wv_eqn *eqn, struct euler_patch_data *pdata,
   const struct gkyl_block_connections *conn
 )
@@ -196,7 +202,8 @@ void euler_mixture_patch_bc_updaters_init(
   pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 4 + (2 * num_species), buff_sz);
 }
 
-void euler_mixture_nested_patch_bc_updaters_init(
+void
+euler_mixture_nested_patch_bc_updaters_init(
   const struct gkyl_wv_eqn *eqn, struct euler_patch_data *pdata,
   const struct gkyl_block_connections *conn
 )
@@ -235,7 +242,8 @@ void euler_mixture_nested_patch_bc_updaters_init(
   pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 4 + (2 * num_species), buff_sz);
 }
 
-void euler_patch_bc_updaters_release(struct euler_patch_data *pdata)
+void
+euler_patch_bc_updaters_release(struct euler_patch_data *pdata)
 {
   if (pdata->lower_bc[0]) {
     gkyl_wv_apply_bc_release(pdata->lower_bc[0]);
@@ -248,7 +256,8 @@ void euler_patch_bc_updaters_release(struct euler_patch_data *pdata)
   gkyl_array_release(pdata->bc_buffer);
 }
 
-void euler_patch_bc_updaters_apply(
+void
+euler_patch_bc_updaters_apply(
   const struct euler_patch_data *pdata, double tm, struct gkyl_array *fld
 )
 {
@@ -261,7 +270,8 @@ void euler_patch_bc_updaters_apply(
   }
 }
 
-void patch_ll_projection_op(
+void
+patch_ll_projection_op(
   const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
   const struct gkyl_array *bc_buffer, struct gkyl_array *fld[]
 )
@@ -296,7 +306,8 @@ void patch_ll_projection_op(
   }
 }
 
-void patch_ll_restriction_op(
+void
+patch_ll_restriction_op(
   const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
   const struct gkyl_array *bc_buffer, struct gkyl_array *fld[]
 )
@@ -329,7 +340,8 @@ void patch_ll_restriction_op(
   }
 }
 
-void patch_lu_projection_op(
+void
+patch_lu_projection_op(
   const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
   const struct gkyl_array *bc_buffer, struct gkyl_array *fld[]
 )
@@ -364,7 +376,8 @@ void patch_lu_projection_op(
   }
 }
 
-void patch_lu_restriction_op(
+void
+patch_lu_restriction_op(
   const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
   const struct gkyl_array *bc_buffer, struct gkyl_array *fld[]
 )
@@ -397,7 +410,8 @@ void patch_lu_restriction_op(
   }
 }
 
-void patch_ul_projection_op(
+void
+patch_ul_projection_op(
   const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
   const struct gkyl_array *bc_buffer, struct gkyl_array *fld[]
 )
@@ -432,7 +446,8 @@ void patch_ul_projection_op(
   }
 }
 
-void patch_ul_restriction_op(
+void
+patch_ul_restriction_op(
   const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
   const struct gkyl_array *bc_buffer, struct gkyl_array *fld[]
 )
@@ -465,7 +480,8 @@ void patch_ul_restriction_op(
   }
 }
 
-void patch_uu_projection_op(
+void
+patch_uu_projection_op(
   const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
   const struct gkyl_array *bc_buffer, struct gkyl_array *fld[]
 )
@@ -500,7 +516,8 @@ void patch_uu_projection_op(
   }
 }
 
-void patch_uu_restriction_op(
+void
+patch_uu_restriction_op(
   const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
   const struct gkyl_array *bc_buffer, struct gkyl_array *fld[]
 )
@@ -533,7 +550,8 @@ void patch_uu_restriction_op(
   }
 }
 
-void euler_sync_patches(
+void
+euler_sync_patches(
   const struct gkyl_block_topo *ptopo, const struct euler_patch_data pdata[],
   struct gkyl_array *fld[]
 )
@@ -619,12 +637,14 @@ void euler_sync_patches(
   }
 }
 
-void euler_patch_data_write(const char *file_nm, const struct euler_patch_data *pdata)
+void
+euler_patch_data_write(const char *file_nm, const struct euler_patch_data *pdata)
 {
   gkyl_grid_sub_array_write(&pdata->grid, &pdata->range, 0, pdata->f[0], file_nm);
 }
 
-double euler_patch_data_max_dt(const struct euler_patch_data *pdata)
+double
+euler_patch_data_max_dt(const struct euler_patch_data *pdata)
 {
   double dt = DBL_MAX;
 
@@ -633,7 +653,8 @@ double euler_patch_data_max_dt(const struct euler_patch_data *pdata)
   return dt;
 }
 
-void euler_update_patch_job_func(void *ctx)
+void
+euler_update_patch_job_func(void *ctx)
 {
   struct euler_update_patch_ctx *up_ctx = ctx;
   const struct euler_patch_data *pdata = up_ctx->pdata;
@@ -649,7 +670,8 @@ void euler_update_patch_job_func(void *ctx)
   euler_patch_bc_updaters_apply(pdata, t_curr, pdata->f[d + 1]);
 }
 
-struct gkyl_update_status euler_update_all_patches(
+struct gkyl_update_status
+euler_update_all_patches(
   const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *ptopo,
   const struct euler_patch_data pdata[], double t_curr, double dt
 )
@@ -660,8 +682,13 @@ struct gkyl_update_status euler_update_all_patches(
   struct euler_update_patch_ctx euler_patch_ctx[num_patches];
 
   for (int i = 0; i < num_patches; i++) {
-    euler_patch_ctx[i] = (struct euler_update_patch_ctx
-    ){.pdata = &pdata[i], .t_curr = t_curr, .dir = 0, .dt = dt, .pidx = i};
+    euler_patch_ctx[i] = (struct euler_update_patch_ctx){
+      .pdata = &pdata[i],
+      .t_curr = t_curr,
+      .dir = 0,
+      .dt = dt,
+      .pidx = i,
+    };
   }
 
 #ifdef AMR_USETHREADS
@@ -679,8 +706,10 @@ struct gkyl_update_status euler_update_all_patches(
 
   for (int i = 0; i < num_patches; i++) {
     if (euler_patch_ctx[i].stat.success == false) {
-      return (struct gkyl_update_status
-      ){.success = false, .dt_suggested = euler_patch_ctx[i].stat.dt_suggested};
+      return (struct gkyl_update_status){
+        .success = false,
+        .dt_suggested = euler_patch_ctx[i].stat.dt_suggested,
+      };
     }
 
     dt_suggested = fmin(dt_suggested, euler_patch_ctx[i].stat.dt_suggested);
@@ -692,14 +721,16 @@ struct gkyl_update_status euler_update_all_patches(
   return (struct gkyl_update_status){.success = true, .dt_suggested = dt_suggested};
 }
 
-void euler_init_job_func_patch(void *ctx)
+void
+euler_init_job_func_patch(void *ctx)
 {
   struct euler_patch_data *pdata = ctx;
 
   gkyl_fv_proj_advance(pdata->fv_proj, 0.0, &pdata->ext_range, pdata->f[0]);
 }
 
-struct gkyl_update_status euler_update_patch(
+struct gkyl_update_status
+euler_update_patch(
   const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *ptopo,
   const struct euler_patch_data pdata[], double t_curr, double dt0, struct sim_stats *stats
 )
@@ -782,11 +813,15 @@ struct gkyl_update_status euler_update_patch(
     }
   }
 
-  return (struct gkyl_update_status
-  ){.success = true, .dt_actual = dt, .dt_suggested = dt_suggested};
+  return (struct gkyl_update_status){
+    .success = true,
+    .dt_actual = dt,
+    .dt_suggested = dt_suggested,
+  };
 }
 
-void euler_write_sol_patch(const char *fbase, int num_patches, const struct euler_patch_data pdata[])
+void
+euler_write_sol_patch(const char *fbase, int num_patches, const struct euler_patch_data pdata[])
 {
   for (int i = 0; i < num_patches; i++) {
     const char *fmt = "%s_p%d.gkyl";
@@ -798,7 +833,8 @@ void euler_write_sol_patch(const char *fbase, int num_patches, const struct eule
   }
 }
 
-double euler_max_dt_patch(int num_patches, const struct euler_patch_data pdata[])
+double
+euler_max_dt_patch(int num_patches, const struct euler_patch_data pdata[])
 {
   double dt = DBL_MAX;
 
@@ -809,54 +845,60 @@ double euler_max_dt_patch(int num_patches, const struct euler_patch_data pdata[]
   return dt;
 }
 
-struct gkyl_block_topo *create_patch_topo()
+struct gkyl_block_topo *
+create_patch_topo()
 {
   struct gkyl_block_topo *ptopo = gkyl_block_topo_new(1, 3);
 
-  ptopo->conn[0] = (struct gkyl_block_connections
-  ){.connections[0] = {
-      {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
-    }};
-  ptopo->conn[1] = (struct gkyl_block_connections
-  ){.connections[0] = {
-      {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
-    }};
-  ptopo->conn[2] = (struct gkyl_block_connections
-  ){.connections[0] = {
-      {.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE}, {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}
-    }};
+  ptopo->conn[0] = (struct gkyl_block_connections){
+    .connections[0] =
+      {{.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+       {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+  };
+  ptopo->conn[1] = (struct gkyl_block_connections){
+    .connections[0] =
+      {{.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
+       {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+  };
+  ptopo->conn[2] = (struct gkyl_block_connections){
+    .connections[0] =
+      {{.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+       {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}},
+  };
 
   return ptopo;
 }
 
-struct gkyl_block_topo *create_nested_patch_topo()
+struct gkyl_block_topo *
+create_nested_patch_topo()
 {
   struct gkyl_block_topo *ptopo = gkyl_block_topo_new(1, 5);
 
-  ptopo->conn[0] = (struct gkyl_block_connections
-  ){.connections[0] = {
-      {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
-    }};
-  ptopo->conn[1] = (struct gkyl_block_connections
-  ){.connections[0] = {
-      {.bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
-    }};
-  ptopo->conn[2] = (struct gkyl_block_connections
-  ){.connections[0] = {
-      {.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
-    }};
-  ptopo->conn[3] = (struct gkyl_block_connections
-  ){.connections[0] = {
-      {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
-    }};
-  ptopo->conn[4] = (struct gkyl_block_connections
-  ){.connections[0] = {
-      {.bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE}, {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}
-    }};
+  ptopo->conn[0] = (struct gkyl_block_connections){
+    .connections[0] =
+      {{.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+       {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+  };
+  ptopo->conn[1] = (struct gkyl_block_connections){
+    .connections[0] =
+      {{.bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+       {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+  };
+  ptopo->conn[2] = (struct gkyl_block_connections){
+    .connections[0] =
+      {{.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+       {.bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+  };
+  ptopo->conn[3] = (struct gkyl_block_connections){
+    .connections[0] =
+      {{.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
+       {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+  };
+  ptopo->conn[4] = (struct gkyl_block_connections){
+    .connections[0] =
+      {{.bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+       {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}},
+  };
 
   return ptopo;
 }

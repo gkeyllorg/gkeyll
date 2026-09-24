@@ -55,7 +55,8 @@ struct em_advect_resonant_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct em_advect_resonant_ctx create_ctx(void)
+struct em_advect_resonant_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -106,13 +107,14 @@ struct em_advect_resonant_ctx create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct em_advect_resonant_ctx *app = ctx;
 
@@ -138,7 +140,8 @@ void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[4] = E_elc;
 }
 
-void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double Ex = 0.0; // Total electric field (x-direction).
   double Ey = 0.0; // Total electric field (y-direction).
@@ -160,7 +163,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-void evalExternalFieldInit(
+void
+evalExternalFieldInit(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -187,7 +191,8 @@ void evalExternalFieldInit(
   fout[5] = Bz;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -199,7 +204,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -289,7 +295,7 @@ int main(int argc, char **argv)
     .equation = elc_euler,
 
     .init = evalElcInit,
-    .ctx = &ctx
+    .ctx = &ctx,
   };
 
   // Field.
@@ -305,7 +311,7 @@ int main(int argc, char **argv)
 
     .ext_em = evalExternalFieldInit,
     .ext_em_ctx = &ctx,
-    .ext_em_evolve = true
+    .ext_em_evolve = true,
   };
 
   // Moment app.
@@ -325,7 +331,7 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Create app object.

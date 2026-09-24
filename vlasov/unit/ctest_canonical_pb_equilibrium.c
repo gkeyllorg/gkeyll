@@ -22,33 +22,38 @@
 // 2. The correction routine matches moments properly
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-void eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
 }
 
-void eval_M2(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M2(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
   double x = xn[0];
   fout[0] = T;
 }
 
-void eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
   fout[1] = 1.0;
 }
 
-void info_h_ij_inv(double t, const double *xn, double *fout, void *ctx)
+void
+info_h_ij_inv(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   // [h^{xx},h^{xy},h^{yy}]
@@ -62,7 +67,8 @@ void info_h_ij_inv(double t, const double *xn, double *fout, void *ctx)
   fout[2] = 1.0 / pow(R * sin(q[0]), 2);
 }
 
-void info_h_ij(double t, const double *xn, double *fout, void *ctx)
+void
+info_h_ij(double t, const double *xn, double *fout, void *ctx)
 {
   // Metric tensor, must be symmetric!
   // [h_{xx},h_{xy},h_{yy}]
@@ -76,7 +82,8 @@ void info_h_ij(double t, const double *xn, double *fout, void *ctx)
   fout[2] = pow(R * sin(q[0]), 2);
 }
 
-void info_det_h(double t, const double *xn, double *fout, void *ctx)
+void
+info_det_h(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double R = 1.0;
@@ -85,7 +92,8 @@ void info_det_h(double t, const double *xn, double *fout, void *ctx)
   fout[0] = pow(R, 2) * sin(q[0]);
 }
 
-void info_hamil(double t, const double *xn, double *fout, void *ctx)
+void
+info_hamil(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double w0 = xn[2], w1 = xn[3];
@@ -98,7 +106,8 @@ void info_hamil(double t, const double *xn, double *fout, void *ctx)
   free(h_inv);
 }
 
-void test_2x2v(int poly_order)
+void
+test_2x2v(int poly_order)
 {
   double pi = 3.14159265359;
   double lower[] = {pi / 4, pi / 4, -5.0, -5.0},
@@ -210,7 +219,7 @@ void test_2x2v(int poly_order)
     .det_h = det_h,
     .hamil = hamil,
     .model_id = GKYL_MODEL_CANONICAL_PB,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
@@ -234,7 +243,7 @@ void test_2x2v(int poly_order)
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .use_gpu = false,
     .max_iter = 100,
-    .eps = 1e-12
+    .eps = 1e-12,
   };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew(&inp_corr);
   // Correct the other moments (V_drift, T/m)
@@ -258,7 +267,7 @@ void test_2x2v(int poly_order)
     .det_h = det_h,
     .hamil = hamil,
     .model_id = GKYL_MODEL_CANONICAL_PB,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -351,7 +360,8 @@ void test_2x2v(int poly_order)
 }
 
 // special note, the p1 basis does not function
-void test_canonical_pb_equilibrium_2x2v_p2_ho()
+void
+test_canonical_pb_equilibrium_2x2v_p2_ho()
 {
   test_2x2v(2);
 }

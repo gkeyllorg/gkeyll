@@ -20,27 +20,31 @@ GKYL_CU_D static const modal_to_quad_kernel_dim_list ser_modal_to_quad_kernel_di
   {.list = {{NULL, NULL, NULL}, {NULL, NULL, NULL}}},
   {.list = {{NULL, NULL, NULL}, {NULL, NULL, NULL}}},
   // 2X
-  {.list =
-     {{ser_2x_p1_surfx1_eval_quad_node_0_l, ser_2x_p1_surfx1_eval_quad_node_1_l, NULL, NULL},
-      {ser_2x_p1_surfx1_eval_quad_node_0_r, ser_2x_p1_surfx1_eval_quad_node_1_r, NULL, NULL},
-      {ser_2x_p1_surfx2_eval_quad_node_0_l, ser_2x_p1_surfx2_eval_quad_node_1_l, NULL, NULL},
-      {ser_2x_p1_surfx2_eval_quad_node_0_r, ser_2x_p1_surfx2_eval_quad_node_1_r, NULL, NULL},
-      {NULL, NULL, NULL, NULL},
-      {NULL, NULL, NULL, NULL}}},
+  {
+    .list =
+      {{ser_2x_p1_surfx1_eval_quad_node_0_l, ser_2x_p1_surfx1_eval_quad_node_1_l, NULL, NULL},
+       {ser_2x_p1_surfx1_eval_quad_node_0_r, ser_2x_p1_surfx1_eval_quad_node_1_r, NULL, NULL},
+       {ser_2x_p1_surfx2_eval_quad_node_0_l, ser_2x_p1_surfx2_eval_quad_node_1_l, NULL, NULL},
+       {ser_2x_p1_surfx2_eval_quad_node_0_r, ser_2x_p1_surfx2_eval_quad_node_1_r, NULL, NULL},
+       {NULL, NULL, NULL, NULL},
+       {NULL, NULL, NULL, NULL}},
+  },
   // 3X
-  {.list =
-     {{ser_3x_p1_surfx1_eval_quad_node_0_l, ser_3x_p1_surfx1_eval_quad_node_1_l,
-       ser_3x_p1_surfx1_eval_quad_node_2_l, ser_3x_p1_surfx1_eval_quad_node_3_l},
-      {ser_3x_p1_surfx1_eval_quad_node_0_r, ser_3x_p1_surfx1_eval_quad_node_1_r,
-       ser_3x_p1_surfx1_eval_quad_node_2_r, ser_3x_p1_surfx1_eval_quad_node_3_r},
-      {ser_3x_p1_surfx2_eval_quad_node_0_l, ser_3x_p1_surfx2_eval_quad_node_1_l,
-       ser_3x_p1_surfx2_eval_quad_node_2_l, ser_3x_p1_surfx2_eval_quad_node_3_l},
-      {ser_3x_p1_surfx2_eval_quad_node_0_r, ser_3x_p1_surfx2_eval_quad_node_1_r,
-       ser_3x_p1_surfx2_eval_quad_node_2_r, ser_3x_p1_surfx2_eval_quad_node_3_r},
-      {ser_3x_p1_surfx3_eval_quad_node_0_l, ser_3x_p1_surfx3_eval_quad_node_1_l,
-       ser_3x_p1_surfx3_eval_quad_node_2_l, ser_3x_p1_surfx3_eval_quad_node_3_l},
-      {ser_3x_p1_surfx3_eval_quad_node_0_r, ser_3x_p1_surfx3_eval_quad_node_1_r,
-       ser_3x_p1_surfx3_eval_quad_node_2_r, ser_3x_p1_surfx3_eval_quad_node_3_r}}}
+  {
+    .list =
+      {{ser_3x_p1_surfx1_eval_quad_node_0_l, ser_3x_p1_surfx1_eval_quad_node_1_l,
+        ser_3x_p1_surfx1_eval_quad_node_2_l, ser_3x_p1_surfx1_eval_quad_node_3_l},
+       {ser_3x_p1_surfx1_eval_quad_node_0_r, ser_3x_p1_surfx1_eval_quad_node_1_r,
+        ser_3x_p1_surfx1_eval_quad_node_2_r, ser_3x_p1_surfx1_eval_quad_node_3_r},
+       {ser_3x_p1_surfx2_eval_quad_node_0_l, ser_3x_p1_surfx2_eval_quad_node_1_l,
+        ser_3x_p1_surfx2_eval_quad_node_2_l, ser_3x_p1_surfx2_eval_quad_node_3_l},
+       {ser_3x_p1_surfx2_eval_quad_node_0_r, ser_3x_p1_surfx2_eval_quad_node_1_r,
+        ser_3x_p1_surfx2_eval_quad_node_2_r, ser_3x_p1_surfx2_eval_quad_node_3_r},
+       {ser_3x_p1_surfx3_eval_quad_node_0_l, ser_3x_p1_surfx3_eval_quad_node_1_l,
+        ser_3x_p1_surfx3_eval_quad_node_2_l, ser_3x_p1_surfx3_eval_quad_node_3_l},
+       {ser_3x_p1_surfx3_eval_quad_node_0_r, ser_3x_p1_surfx3_eval_quad_node_1_r,
+        ser_3x_p1_surfx3_eval_quad_node_2_r, ser_3x_p1_surfx3_eval_quad_node_3_r}},
+  }
 };
 
 struct bc_block_tensor {

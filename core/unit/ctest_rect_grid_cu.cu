@@ -9,7 +9,8 @@ extern "C" {
 int cu_rect_grid_test(const struct gkyl_rect_grid grid);
 }
 
-__global__ void ker_cu_rect_grid_test(const struct gkyl_rect_grid grid, int *nfail)
+__global__ void
+ker_cu_rect_grid_test(const struct gkyl_rect_grid grid, int *nfail)
 {
   *nfail = 0;
 
@@ -26,7 +27,8 @@ __global__ void ker_cu_rect_grid_test(const struct gkyl_rect_grid grid, int *nfa
   GKYL_CU_CHECK(grid.cellVolume == 0.075 * 0.2, nfail);
 }
 
-int cu_rect_grid_test(const struct gkyl_rect_grid grid)
+int
+cu_rect_grid_test(const struct gkyl_rect_grid grid)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
   ker_cu_rect_grid_test<<<1, 1>>>(grid, nfail_dev);

@@ -4,7 +4,8 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-void test_vec3_basic()
+void
+test_vec3_basic()
 {
   struct gkyl_vec3 z = gkyl_vec3_zeros();
   TEST_CHECK(z.x[0] == 0.0);
@@ -17,7 +18,8 @@ void test_vec3_basic()
   TEST_CHECK(a.x[2] == 3.0);
 }
 
-void test_vec3_scale()
+void
+test_vec3_scale()
 {
   struct gkyl_vec3 a = gkyl_vec3_new(1.0, -2.0, 3.5);
   struct gkyl_vec3 b = gkyl_vec3_scale(2.0, a);
@@ -29,7 +31,8 @@ void test_vec3_scale()
   TEST_CHECK(c.x[0] == 0.0 && c.x[1] == 0.0 && c.x[2] == 0.0);
 }
 
-void test_vec3_add_sub()
+void
+test_vec3_add_sub()
 {
   struct gkyl_vec3 a = gkyl_vec3_new(1.0, 2.0, 3.0);
   struct gkyl_vec3 b = gkyl_vec3_new(4.0, -1.0, 0.5);
@@ -49,7 +52,8 @@ void test_vec3_add_sub()
   TEST_CHECK(z.x[0] == 0.0 && z.x[1] == 0.0 && z.x[2] == 0.0);
 }
 
-void test_vec3_len_norm()
+void
+test_vec3_len_norm()
 {
   struct gkyl_vec3 a = gkyl_vec3_new(3.0, 4.0, 0.0);
   TEST_CHECK(gkyl_compare_double(gkyl_vec3_len(a), 5.0, 1e-15));
@@ -63,7 +67,8 @@ void test_vec3_len_norm()
   TEST_CHECK(gkyl_compare_double(gkyl_vec3_len(b), 3.0, 1e-15));
 }
 
-void test_vec3_dot()
+void
+test_vec3_dot()
 {
   struct gkyl_vec3 a = gkyl_vec3_new(1.0, 2.0, 3.0);
   struct gkyl_vec3 b = gkyl_vec3_new(4.0, 5.0, 6.0);
@@ -79,7 +84,8 @@ void test_vec3_dot()
   TEST_CHECK(gkyl_compare_double(gkyl_vec3_dot(a, a), l * l, 1e-13));
 }
 
-void test_vec3_cross()
+void
+test_vec3_cross()
 {
   struct gkyl_vec3 e1 = gkyl_vec3_new(1.0, 0.0, 0.0);
   struct gkyl_vec3 e2 = gkyl_vec3_new(0.0, 1.0, 0.0);
@@ -106,7 +112,8 @@ void test_vec3_cross()
   TEST_CHECK(gkyl_compare_double(gkyl_vec3_len(z), 0.0, 1e-14));
 }
 
-void test_vec3_triple()
+void
+test_vec3_triple()
 {
   struct gkyl_vec3 e1 = gkyl_vec3_new(1.0, 0.0, 0.0);
   struct gkyl_vec3 e2 = gkyl_vec3_new(0.0, 1.0, 0.0);
@@ -126,7 +133,8 @@ void test_vec3_triple()
   TEST_CHECK(gkyl_compare_double(gkyl_vec3_triple(e1, e2, gkyl_vec3_add(e1, e2)), 0.0, 1e-14));
 }
 
-void test_vec3_polar()
+void
+test_vec3_polar()
 {
   // At phi=0 the contravariant->cartesian transform should be near-identity in x.
   struct gkyl_vec3 pin = gkyl_vec3_new(2.0, 0.0, 5.0);
@@ -142,7 +150,8 @@ void test_vec3_polar()
   TEST_CHECK(gkyl_compare_double(cov.x[2], 7.0, 1e-14));
 }
 
-void test_minmod_2()
+void
+test_minmod_2()
 {
   TEST_CHECK(gkyl_minmod_2(2.0, 3.0) == 2.0);
   TEST_CHECK(gkyl_minmod_2(3.0, 2.0) == 2.0);
@@ -154,7 +163,8 @@ void test_minmod_2()
   TEST_CHECK(gkyl_minmod_2(0.0, 5.0) == 0.0);
 }
 
-void test_minmod_3()
+void
+test_minmod_3()
 {
   TEST_CHECK(gkyl_minmod_3(2.0, 3.0, 4.0) == 2.0);
   TEST_CHECK(gkyl_minmod_3(-2.0, -3.0, -4.0) == -2.0);
@@ -162,21 +172,24 @@ void test_minmod_3()
   TEST_CHECK(gkyl_minmod_3(1.0, 2.0, 0.0) == 0.0);
 }
 
-void test_minmod_4()
+void
+test_minmod_4()
 {
   TEST_CHECK(gkyl_minmod_4(2.0, 3.0, 4.0, 5.0) == 2.0);
   TEST_CHECK(gkyl_minmod_4(-2.0, -3.0, -4.0, -5.0) == -2.0);
   TEST_CHECK(gkyl_minmod_4(2.0, 3.0, -4.0, 5.0) == 0.0);
 }
 
-void test_median()
+void
+test_median()
 {
   TEST_CHECK(gkyl_compare_double(gkyl_median(1.0, 2.0, 3.0), 2.0, 1e-15));
   TEST_CHECK(gkyl_compare_double(gkyl_median(3.0, 1.0, 2.0), 2.0, 1e-15));
   TEST_CHECK(gkyl_compare_double(gkyl_median(2.0, 3.0, 1.0), 2.0, 1e-15));
 }
 
-void test_min_max_3()
+void
+test_min_max_3()
 {
   TEST_CHECK(gkyl_min_3(1.0, 2.0, 3.0) == 1.0);
   TEST_CHECK(gkyl_min_3(3.0, -1.0, 2.0) == -1.0);

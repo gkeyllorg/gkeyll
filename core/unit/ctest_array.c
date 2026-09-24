@@ -12,7 +12,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-static void set_array_to_zero_ho(struct gkyl_array *arr)
+static void
+set_array_to_zero_ho(struct gkyl_array *arr)
 {
   double *arr_d = arr->data;
   for (unsigned i = 0; i < arr->size; ++i) {
@@ -20,13 +21,15 @@ static void set_array_to_zero_ho(struct gkyl_array *arr)
   }
 }
 
-void test_array_0_ho()
+void
+test_array_0_ho()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
   gkyl_array_release(arr);
 }
 
-void test_array_base_ho()
+void
+test_array_base_ho()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
 
@@ -93,7 +96,8 @@ void test_array_base_ho()
   gkyl_array_release(brr);
 }
 
-void test_array_fetch_ho()
+void
+test_array_fetch_ho()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 20);
 
@@ -111,7 +115,8 @@ void test_array_fetch_ho()
   gkyl_array_release(arr);
 }
 
-void test_array_non_numeric_ho()
+void
+test_array_non_numeric_ho()
 {
   struct euler {
     double rho, u, E;
@@ -139,7 +144,8 @@ void test_array_non_numeric_ho()
   gkyl_array_release(brr);
 }
 
-void test_grid_sub_array_read_1_ho()
+void
+test_grid_sub_array_read_1_ho()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 60};
@@ -237,7 +243,8 @@ void test_grid_sub_array_read_1_ho()
   gkyl_array_release(arr2);
 }
 
-void test_grid_sub_array_read_2_ho()
+void
+test_grid_sub_array_read_2_ho()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 60};
@@ -302,7 +309,8 @@ void test_grid_sub_array_read_2_ho()
   gkyl_array_release(arr2);
 }
 
-void test_grid_array_new_from_file_1_ho()
+void
+test_grid_array_new_from_file_1_ho()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 60};
@@ -363,7 +371,8 @@ void test_grid_array_new_from_file_1_ho()
   gkyl_array_release(arr2);
 }
 
-void test_grid_array_read_p1_ho(void)
+void
+test_grid_array_read_p1_ho(void)
 {
   // read just header
   struct gkyl_rect_grid grid;
@@ -504,7 +513,8 @@ void test_grid_array_read_p1_ho(void)
   gkyl_array_release(s_arr);
 }
 
-static void test_array_from_buff_ho(void)
+static void
+test_array_from_buff_ho(void)
 {
   double *buff = gkyl_malloc(sizeof(double[400]));
 
@@ -583,7 +593,8 @@ static void test_array_from_buff_ho(void)
 /* Function signatures of kernel calls */
 int cu_array_test_and_flip_sign(struct gkyl_array *arr);
 
-void test_array_base_dev()
+void
+test_array_base_dev()
 {
   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 200);
 
@@ -625,7 +636,8 @@ void test_array_base_dev()
   gkyl_array_release(arr_cu);
 }
 
-void test_array_kernel_dev()
+void
+test_array_kernel_dev()
 {
   // create a host array struct containing device data
   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 20);

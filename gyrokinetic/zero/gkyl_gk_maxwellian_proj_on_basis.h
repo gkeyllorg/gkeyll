@@ -36,8 +36,9 @@ struct gkyl_gk_maxwellian_proj_on_basis_inp {
  * @param inp Input parameters defined in gkyl_gk_maxwellian_proj_on_basis_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_gk_maxwellian_proj_on_basis *
-gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_basis_inp *inp);
+struct gkyl_gk_maxwellian_proj_on_basis *gkyl_gk_maxwellian_proj_on_basis_inew(
+  const struct gkyl_gk_maxwellian_proj_on_basis_inp *inp
+);
 
 /**
  * Compute projection of Maxwellian (or bi-Maxwellian) distribution on basis. 

@@ -47,7 +47,8 @@ struct gkyl_culinsolver_prob {
   int *csr_rowptr_cu, *csr_colind_cu;
 };
 
-gkyl_culinsolver_prob *gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
+gkyl_culinsolver_prob *
+gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
 {
   struct gkyl_culinsolver_prob *prob = (struct gkyl_culinsolver_prob *)gkyl_malloc(sizeof(*prob));
 
@@ -114,9 +115,8 @@ gkyl_culinsolver_prob *gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, 
   return prob;
 }
 
-void gkyl_culinsolver_amat_from_triples(
-  struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri
-)
+void
+gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri)
 {
   prob->nnz = gkyl_mat_triples_size(tri[0]);
   for (size_t k = 0; k < prob->nprob; k++) {
@@ -219,7 +219,8 @@ void gkyl_culinsolver_amat_from_triples(
   gkyl_free(csr_rowptr);
 }
 
-void gkyl_culinsolver_amat_update_from_triples(
+void
+gkyl_culinsolver_amat_update_from_triples(
   struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri
 )
 {
@@ -261,7 +262,8 @@ void gkyl_culinsolver_amat_update_from_triples(
   }
 }
 
-void gkyl_culinsolver_amat_update(struct gkyl_culinsolver_prob *prob, double *csr_values)
+void
+gkyl_culinsolver_amat_update(struct gkyl_culinsolver_prob *prob, double *csr_values)
 {
   for (int i = 0; i < prob->nprob; i++) {
     long off = i * prob->nnz;
@@ -284,7 +286,8 @@ void gkyl_culinsolver_amat_update(struct gkyl_culinsolver_prob *prob, double *cs
   }
 }
 
-void gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl_mat_triples *tri)
+void
+gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl_mat_triples *tri)
 {
   long nnz_rhs = gkyl_mat_triples_size(tri); // Number of non-zero entries in RHS matrix B.
 
@@ -312,7 +315,8 @@ void gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl
   }
 }
 
-void gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
+void
+gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
 {
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
 
@@ -327,12 +331,14 @@ void gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
   }
 }
 
-void gkyl_culinsolver_sync(struct gkyl_culinsolver_prob *prob)
+void
+gkyl_culinsolver_sync(struct gkyl_culinsolver_prob *prob)
 {
   cudaStreamSynchronize(prob->stream);
 }
 
-void gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
+void
+gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
   gkyl_cu_memcpy(
@@ -341,37 +347,44 @@ void gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
   );
 }
 
-void gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val)
+void
+gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val)
 {
   gkyl_cu_memset(prob->rhs_cu, val, prob->nprob * prob->mrow * prob->nrhs * sizeof(double));
 }
 
-void gkyl_culinsolver_clear_csr_values(struct gkyl_culinsolver_prob *prob, double val)
+void
+gkyl_culinsolver_clear_csr_values(struct gkyl_culinsolver_prob *prob, double val)
 {
   gkyl_cu_memset(prob->csr_val_cu, val, prob->nprob * prob->nnz * sizeof(double));
 }
 
-double *gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc)
+double *
+gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs_cu + loc;
 }
 
-double *gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc)
+double *
+gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->x_cu + loc;
 }
 
-double *gkyl_culinsolver_get_csr_values_ptr(struct gkyl_culinsolver_prob *prob, long loc)
+double *
+gkyl_culinsolver_get_csr_values_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->csr_val_cu + loc;
 }
 
-double gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc)
+double
+gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->x_ho[loc];
 }
 
-void gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
+void
+gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
 {
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
 

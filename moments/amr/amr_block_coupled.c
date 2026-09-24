@@ -1,6 +1,7 @@
 #include <gkyl_amr_block_coupled_priv.h>
 
-void five_moment_wall_bc(
+void
+five_moment_wall_bc(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
   double *GKYL_RESTRICT ghost, void *ctx
 )
@@ -12,7 +13,8 @@ void five_moment_wall_bc(
   ghost[1] = -ghost[1];
 }
 
-void ten_moment_wall_bc(
+void
+ten_moment_wall_bc(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
   double *GKYL_RESTRICT ghost, void *ctx
 )
@@ -26,7 +28,8 @@ void ten_moment_wall_bc(
   }
 }
 
-void maxwell_wall_bc(
+void
+maxwell_wall_bc(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
   double *GKYL_RESTRICT ghost, void *ctx
 )
@@ -40,7 +43,8 @@ void maxwell_wall_bc(
   }
 }
 
-void five_moment_copy_bc(
+void
+five_moment_copy_bc(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
   double *GKYL_RESTRICT ghost, void *ctx
 )
@@ -50,7 +54,8 @@ void five_moment_copy_bc(
   }
 }
 
-void ten_moment_copy_bc(
+void
+ten_moment_copy_bc(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
   double *GKYL_RESTRICT ghost, void *ctx
 )
@@ -60,7 +65,8 @@ void ten_moment_copy_bc(
   }
 }
 
-void maxwell_copy_bc(
+void
+maxwell_copy_bc(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
   double *GKYL_RESTRICT ghost, void *ctx
 )
@@ -70,7 +76,8 @@ void maxwell_copy_bc(
   }
 }
 
-void five_moment_block_bc_updaters_init(
+void
+five_moment_block_bc_updaters_init(
   struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn
 )
 {
@@ -165,7 +172,8 @@ void five_moment_block_bc_updaters_init(
   bdata->bc_buffer_maxwell = gkyl_array_new(GKYL_DOUBLE, 8, buff_sz);
 }
 
-void five_moment_nested_block_bc_updaters_init(
+void
+five_moment_nested_block_bc_updaters_init(
   struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn
 )
 {
@@ -260,7 +268,8 @@ void five_moment_nested_block_bc_updaters_init(
   bdata->bc_buffer_maxwell = gkyl_array_new(GKYL_DOUBLE, 8, buff_sz);
 }
 
-void ten_moment_block_bc_updaters_init(
+void
+ten_moment_block_bc_updaters_init(
   struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn
 )
 {
@@ -355,7 +364,8 @@ void ten_moment_block_bc_updaters_init(
   bdata->bc_buffer_maxwell = gkyl_array_new(GKYL_DOUBLE, 8, buff_sz);
 }
 
-void ten_moment_nested_block_bc_updaters_init(
+void
+ten_moment_nested_block_bc_updaters_init(
   struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn
 )
 {
@@ -450,7 +460,8 @@ void ten_moment_nested_block_bc_updaters_init(
   bdata->bc_buffer_maxwell = gkyl_array_new(GKYL_DOUBLE, 8, buff_sz);
 }
 
-void five_moment_block_bc_updaters_release(struct five_moment_block_data *bdata)
+void
+five_moment_block_bc_updaters_release(struct five_moment_block_data *bdata)
 {
   for (int d = 0; d < 2; d++) {
     if (bdata->lower_bc_elc[d]) {
@@ -479,7 +490,8 @@ void five_moment_block_bc_updaters_release(struct five_moment_block_data *bdata)
   gkyl_array_release(bdata->bc_buffer_maxwell);
 }
 
-void five_moment_block_bc_updaters_apply(
+void
+five_moment_block_bc_updaters_apply(
   const struct five_moment_block_data *bdata, double tm, struct gkyl_array *fld_elc,
   struct gkyl_array *fld_ion, struct gkyl_array *fld_maxwell
 )
@@ -507,7 +519,8 @@ void five_moment_block_bc_updaters_apply(
   }
 }
 
-void block_coupled_ll_projection_op(
+void
+block_coupled_ll_projection_op(
   const int tbid, const int tdir, const int i, const int d,
   const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
   const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
@@ -568,7 +581,8 @@ void block_coupled_ll_projection_op(
   }
 }
 
-void block_coupled_ll_restriction_op(
+void
+block_coupled_ll_restriction_op(
   const int tbid, const int tdir, const int i, const int d,
   const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
   const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
@@ -627,7 +641,8 @@ void block_coupled_ll_restriction_op(
   }
 }
 
-void block_coupled_lu_projection_op(
+void
+block_coupled_lu_projection_op(
   const int tbid, const int tdir, const int i, const int d,
   const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
   const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
@@ -688,7 +703,8 @@ void block_coupled_lu_projection_op(
   }
 }
 
-void block_coupled_lu_restriction_op(
+void
+block_coupled_lu_restriction_op(
   const int tbid, const int tdir, const int i, const int d,
   const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
   const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
@@ -747,7 +763,8 @@ void block_coupled_lu_restriction_op(
   }
 }
 
-void block_coupled_ul_projection_op(
+void
+block_coupled_ul_projection_op(
   const int tbid, const int tdir, const int i, const int d,
   const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
   const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
@@ -808,7 +825,8 @@ void block_coupled_ul_projection_op(
   }
 }
 
-void block_coupled_ul_restriction_op(
+void
+block_coupled_ul_restriction_op(
   const int tbid, const int tdir, const int i, const int d,
   const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
   const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
@@ -867,7 +885,8 @@ void block_coupled_ul_restriction_op(
   }
 }
 
-void block_coupled_uu_projection_op(
+void
+block_coupled_uu_projection_op(
   const int tbid, const int tdir, const int i, const int d,
   const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
   const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
@@ -928,7 +947,8 @@ void block_coupled_uu_projection_op(
   }
 }
 
-void block_coupled_uu_restriction_op(
+void
+block_coupled_uu_restriction_op(
   const int tbid, const int tdir, const int i, const int d,
   const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
   const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
@@ -987,7 +1007,8 @@ void block_coupled_uu_restriction_op(
   }
 }
 
-void five_moment_sync_blocks(
+void
+five_moment_sync_blocks(
   const struct gkyl_block_topo *btopo, const struct five_moment_block_data bdata[],
   struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
 )
@@ -1148,7 +1169,8 @@ void five_moment_sync_blocks(
   }
 }
 
-void five_moment_block_data_write(
+void
+five_moment_block_data_write(
   const char *file_nm_elc, const char *file_nm_ion, const char *file_nm_maxwell,
   const struct five_moment_block_data *bdata
 )
@@ -1158,7 +1180,8 @@ void five_moment_block_data_write(
   gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f_maxwell[0], file_nm_maxwell);
 }
 
-double five_moment_block_data_max_dt(const struct five_moment_block_data *bdata)
+double
+five_moment_block_data_max_dt(const struct five_moment_block_data *bdata)
 {
   double dt = DBL_MAX;
 
@@ -1172,7 +1195,8 @@ double five_moment_block_data_max_dt(const struct five_moment_block_data *bdata)
   return dt;
 }
 
-void five_moment_update_block_job_func(void *ctx)
+void
+five_moment_update_block_job_func(void *ctx)
 {
   struct five_moment_update_block_ctx *ub_ctx = ctx;
   const struct five_moment_block_data *bdata = ub_ctx->bdata;
@@ -1197,7 +1221,8 @@ void five_moment_update_block_job_func(void *ctx)
   );
 }
 
-void five_moment_update_block_job_func_source(void *ctx)
+void
+five_moment_update_block_job_func_source(void *ctx)
 {
   struct five_moment_update_block_ctx *ub_ctx = ctx;
   const struct five_moment_block_data *bdata = ub_ctx->bdata;
@@ -1233,7 +1258,8 @@ void five_moment_update_block_job_func_source(void *ctx)
   );
 }
 
-struct gkyl_update_status five_moment_update_all_blocks(
+struct gkyl_update_status
+five_moment_update_all_blocks(
   const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo,
   const struct five_moment_block_data bdata[], double t_curr, double dt
 )
@@ -1247,8 +1273,14 @@ struct gkyl_update_status five_moment_update_all_blocks(
     struct five_moment_update_block_ctx five_moment_block_ctx[num_blocks];
 
     for (int i = 0; i < num_blocks; i++) {
-      five_moment_block_ctx[i] = (struct five_moment_update_block_ctx
-      ){.bdata = &bdata[i], .t_curr = t_curr, .dir = d, .dt = dt, .bidx = i, .nstrang = 0};
+      five_moment_block_ctx[i] = (struct five_moment_update_block_ctx){
+        .bdata = &bdata[i],
+        .t_curr = t_curr,
+        .dir = d,
+        .dt = dt,
+        .bidx = i,
+        .nstrang = 0,
+      };
     }
 
 #ifdef AMR_USETHREADS
@@ -1292,7 +1324,8 @@ struct gkyl_update_status five_moment_update_all_blocks(
   return (struct gkyl_update_status){.success = true, .dt_suggested = dt_suggested};
 }
 
-void five_moment_update_all_blocks_source(
+void
+five_moment_update_all_blocks_source(
   const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo,
   const struct five_moment_block_data bdata[], double t_curr, double dt, int nstrang
 )
@@ -1302,8 +1335,14 @@ void five_moment_update_all_blocks_source(
   struct five_moment_update_block_ctx five_moment_block_ctx[num_blocks];
 
   for (int i = 0; i < num_blocks; i++) {
-    five_moment_block_ctx[i] = (struct five_moment_update_block_ctx
-    ){.bdata = &bdata[i], .t_curr = t_curr, .dir = 0, .dt = dt, .bidx = i, .nstrang = nstrang};
+    five_moment_block_ctx[i] = (struct five_moment_update_block_ctx){
+      .bdata = &bdata[i],
+      .t_curr = t_curr,
+      .dir = 0,
+      .dt = dt,
+      .bidx = i,
+      .nstrang = nstrang,
+    };
   }
 
 #ifdef AMR_USETHREADS
@@ -1332,7 +1371,8 @@ void five_moment_update_all_blocks_source(
   five_moment_sync_blocks(btopo, bdata, fld_elc, fld_ion, fld_maxwell);
 }
 
-void five_moment_init_job_func_block(void *ctx)
+void
+five_moment_init_job_func_block(void *ctx)
 {
   struct five_moment_block_data *bdata = ctx;
 
@@ -1341,7 +1381,8 @@ void five_moment_init_job_func_block(void *ctx)
   gkyl_fv_proj_advance(bdata->fv_proj_maxwell, 0.0, &bdata->ext_range, bdata->f_maxwell[0]);
 }
 
-void five_moment_copy_job_func(void *ctx)
+void
+five_moment_copy_job_func(void *ctx)
 {
   struct five_moment_copy_job_ctx *j_ctx = ctx;
 
@@ -1350,7 +1391,8 @@ void five_moment_copy_job_func(void *ctx)
   gkyl_array_copy(j_ctx->out_maxwell, j_ctx->inp_maxwell);
 }
 
-struct gkyl_update_status five_moment_update_block(
+struct gkyl_update_status
+five_moment_update_block(
   const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo,
   const struct five_moment_block_data bdata[], double t_curr, double dt0, struct sim_stats *stats
 )
@@ -1376,14 +1418,15 @@ struct gkyl_update_status five_moment_update_block(
       state = FIRST_COUPLING_UPDATE;
 
       for (int i = 0; i < num_blocks; i++) {
-        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx
-        ){.bidx = i,
+        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){
+          .bidx = i,
           .inp_elc = bdata[i].f_elc[0],
           .inp_ion = bdata[i].f_ion[0],
           .inp_maxwell = bdata[i].f_maxwell[0],
           .out_elc = bdata[i].fdup_elc,
           .out_ion = bdata[i].fdup_ion,
-          .out_maxwell = bdata[i].fdup_maxwell};
+          .out_maxwell = bdata[i].fdup_maxwell,
+        };
       }
 
 #ifdef AMR_USETHREADS
@@ -1421,14 +1464,15 @@ struct gkyl_update_status five_moment_update_block(
       state = UPDATE_DONE;
 
       for (int i = 0; i < num_blocks; i++) {
-        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx
-        ){.bidx = i,
+        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){
+          .bidx = i,
           .inp_elc = bdata[i].f_elc[2],
           .inp_ion = bdata[i].f_ion[2],
           .inp_maxwell = bdata[i].f_maxwell[2],
           .out_elc = bdata[i].f_elc[0],
           .out_ion = bdata[i].f_ion[0],
-          .out_maxwell = bdata[i].f_maxwell[0]};
+          .out_maxwell = bdata[i].f_maxwell[0],
+        };
       }
 
 #ifdef AMR_USETHREADS
@@ -1445,14 +1489,15 @@ struct gkyl_update_status five_moment_update_block(
       state = PRE_UPDATE;
 
       for (int i = 0; i < num_blocks; i++) {
-        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx
-        ){.bidx = i,
+        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){
+          .bidx = i,
           .inp_elc = bdata[i].fdup_elc,
           .inp_ion = bdata[i].fdup_ion,
           .inp_maxwell = bdata[i].fdup_maxwell,
           .out_elc = bdata[i].f_elc[0],
           .out_ion = bdata[i].f_ion[0],
-          .out_maxwell = bdata[i].f_maxwell[0]};
+          .out_maxwell = bdata[i].f_maxwell[0],
+        };
       }
 
 #ifdef AMR_USETHREADS
@@ -1468,11 +1513,15 @@ struct gkyl_update_status five_moment_update_block(
     }
   }
 
-  return (struct gkyl_update_status
-  ){.success = true, .dt_actual = dt, .dt_suggested = dt_suggested};
+  return (struct gkyl_update_status){
+    .success = true,
+    .dt_actual = dt,
+    .dt_suggested = dt_suggested,
+  };
 }
 
-void five_moment_write_sol_block(
+void
+five_moment_write_sol_block(
   const char *fbase, int num_blocks, const struct five_moment_block_data bdata[]
 )
 {
@@ -1497,7 +1546,8 @@ void five_moment_write_sol_block(
   }
 }
 
-double five_moment_max_dt_block(int num_blocks, const struct five_moment_block_data bdata[])
+double
+five_moment_max_dt_block(int num_blocks, const struct five_moment_block_data bdata[])
 {
   double dt = DBL_MAX;
 

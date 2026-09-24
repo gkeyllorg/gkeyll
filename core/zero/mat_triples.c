@@ -7,20 +7,23 @@ struct mat_idx {
   size_t row, col;
 };
 
-static inline int cmp_long(long a, long b)
+static inline int
+cmp_long(long a, long b)
 {
   return a == b ? 0 : a < b ? -1 : 1;
 }
 
 static int (*mat_idx_cmp)(const struct mat_idx *mia, const struct mat_idx *mib);
 
-static inline int mat_idx_cmp_row(const struct mat_idx *mia, const struct mat_idx *mib)
+static inline int
+mat_idx_cmp_row(const struct mat_idx *mia, const struct mat_idx *mib)
 {
   return cmp_long(mia->row, mib->row) == 0 ? cmp_long(mia->col, mib->col) :
                                              cmp_long(mia->row, mib->row);
 }
 
-static inline int mat_idx_cmp_col(const struct mat_idx *mia, const struct mat_idx *mib)
+static inline int
+mat_idx_cmp_col(const struct mat_idx *mia, const struct mat_idx *mib)
 {
   return cmp_long(mia->col, mib->col) == 0 ? cmp_long(mia->row, mib->row) :
                                              cmp_long(mia->col, mib->col);
@@ -48,7 +51,8 @@ struct gkyl_mat_triples_iter {
   csmap_triple_iter it_curr, it_end; // iterator to start, end of map
 };
 
-gkyl_mat_triples *gkyl_mat_triples_new(size_t nr, size_t nc)
+gkyl_mat_triples *
+gkyl_mat_triples_new(size_t nr, size_t nc)
 {
   struct gkyl_mat_triples *tri = gkyl_malloc(sizeof(struct gkyl_mat_triples));
 
@@ -61,27 +65,32 @@ gkyl_mat_triples *gkyl_mat_triples_new(size_t nr, size_t nc)
   return tri;
 }
 
-void gkyl_mat_triples_set_rowmaj_order(gkyl_mat_triples *tri)
+void
+gkyl_mat_triples_set_rowmaj_order(gkyl_mat_triples *tri)
 {
   tri->ordering = ROWMAJOR;
 }
 
-void gkyl_mat_triples_set_colmaj_order(gkyl_mat_triples *tri)
+void
+gkyl_mat_triples_set_colmaj_order(gkyl_mat_triples *tri)
 {
   tri->ordering = COLMAJOR;
 }
 
-bool gkyl_mat_triples_is_rowmaj(gkyl_mat_triples *tri)
+bool
+gkyl_mat_triples_is_rowmaj(gkyl_mat_triples *tri)
 {
   return tri->ordering == ROWMAJOR;
 }
 
-bool gkyl_mat_triples_is_colmaj(gkyl_mat_triples *tri)
+bool
+gkyl_mat_triples_is_colmaj(gkyl_mat_triples *tri)
 {
   return tri->ordering == COLMAJOR;
 }
 
-GKYL_CU_DH double gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val)
+GKYL_CU_DH double
+gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i < gkyl_range_shape(&tri->range, 0) && j < gkyl_range_shape(&tri->range, 1));
   if (tri->ordering == COLMAJOR) {
@@ -98,7 +107,8 @@ GKYL_CU_DH double gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_
   return val;
 }
 
-GKYL_CU_DH double gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val)
+GKYL_CU_DH double
+gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i < gkyl_range_shape(&tri->range, 0) && j < gkyl_range_shape(&tri->range, 1));
   if (tri->ordering == COLMAJOR) {
@@ -124,7 +134,8 @@ GKYL_CU_DH double gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t
   return tot_val;
 }
 
-double gkyl_mat_triples_get(const gkyl_mat_triples *tri, size_t i, size_t j)
+double
+gkyl_mat_triples_get(const gkyl_mat_triples *tri, size_t i, size_t j)
 {
   long loc = gkyl_ridx(tri->range, i, j);
   const struct csmap_triple_value *mt =
@@ -132,12 +143,14 @@ double gkyl_mat_triples_get(const gkyl_mat_triples *tri, size_t i, size_t j)
   return mt ? mt->second.val : 0.0;
 }
 
-size_t gkyl_mat_triples_size(const gkyl_mat_triples *tri)
+size_t
+gkyl_mat_triples_size(const gkyl_mat_triples *tri)
 {
   return csmap_triple_size(tri->triples);
 }
 
-gkyl_mat_triples_iter *gkyl_mat_triples_iter_new(const gkyl_mat_triples *tri)
+gkyl_mat_triples_iter *
+gkyl_mat_triples_iter_new(const gkyl_mat_triples *tri)
 {
   struct gkyl_mat_triples_iter *iter = gkyl_malloc(sizeof(*iter));
 
@@ -151,14 +164,16 @@ gkyl_mat_triples_iter *gkyl_mat_triples_iter_new(const gkyl_mat_triples *tri)
   return iter;
 }
 
-void gkyl_mat_triples_iter_init(struct gkyl_mat_triples_iter *iter, const gkyl_mat_triples *tri)
+void
+gkyl_mat_triples_iter_init(struct gkyl_mat_triples_iter *iter, const gkyl_mat_triples *tri)
 {
   iter->is_first = true;
   iter->nrem = csmap_triple_size(tri->triples);
   iter->it_curr = csmap_triple_begin(&tri->triples);
 }
 
-bool gkyl_mat_triples_iter_next(gkyl_mat_triples_iter *iter)
+bool
+gkyl_mat_triples_iter_next(gkyl_mat_triples_iter *iter)
 {
   if (iter->is_first) {
     iter->is_first = false;
@@ -171,12 +186,14 @@ bool gkyl_mat_triples_iter_next(gkyl_mat_triples_iter *iter)
   return false;
 }
 
-struct gkyl_mtriple gkyl_mat_triples_iter_at(const gkyl_mat_triples_iter *iter)
+struct gkyl_mtriple
+gkyl_mat_triples_iter_at(const gkyl_mat_triples_iter *iter)
 {
   return iter->it_curr.ref->second;
 }
 
-void gkyl_mat_triples_clear(struct gkyl_mat_triples *tri, double val)
+void
+gkyl_mat_triples_clear(struct gkyl_mat_triples *tri, double val)
 {
   gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
   while (gkyl_mat_triples_iter_next(iter)) {
@@ -189,12 +206,14 @@ void gkyl_mat_triples_clear(struct gkyl_mat_triples *tri, double val)
   gkyl_mat_triples_iter_release(iter);
 }
 
-void gkyl_mat_triples_iter_release(gkyl_mat_triples_iter *iter)
+void
+gkyl_mat_triples_iter_release(gkyl_mat_triples_iter *iter)
 {
   gkyl_free(iter);
 }
 
-void gkyl_mat_triples_release(gkyl_mat_triples *tri)
+void
+gkyl_mat_triples_release(gkyl_mat_triples *tri)
 {
   csmap_triple_drop(&tri->triples);
   gkyl_free(tri);

@@ -1,7 +1,8 @@
 #include <gkyl_moment_priv.h>
 
 // initialize field
-void moment_field_init(
+void
+moment_field_init(
   const struct gkyl_moment *mom, const struct gkyl_moment_field *mom_fld,
   struct gkyl_moment_app *app, struct moment_field *fld
 )
@@ -21,13 +22,14 @@ void moment_field_init(
                                                            mom_fld->limiter;
 
   double c = 1 / sqrt(epsilon0 * mu0);
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp
-  ){.c = c,
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp){
+    .c = c,
     .e_fact = mom_fld->elc_error_speed_fact,
     .b_fact = mom_fld->mag_error_speed_fact,
     .rp_type = WV_MAXWELL_RP_ROE,
     .embed_geo = mom_fld->embed_geo,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   fld->maxwell = gkyl_wv_eqn_acquire(maxwell);
 
@@ -36,8 +38,8 @@ void moment_field_init(
   if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {
     // create updaters for each directional update
     for (int d = 0; d < ndim; ++d) {
-      fld->slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &app->grid,
+      fld->slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &app->grid,
         .equation = maxwell,
         .split_type = GKYL_WAVE_QWAVE, // q-waves is fine for linear systems
         .limiter = limiter,
@@ -46,7 +48,8 @@ void moment_field_init(
         .check_inv_domain = false,
         .cfl = app->cfl,
         .geom = app->geom,
-        .comm = app->comm});
+        .comm = app->comm,
+      });
     }
 
     // allocate arrays
@@ -73,15 +76,16 @@ void moment_field_init(
     enum gkyl_mp_recon mp_recon = fld->scheme_type == GKYL_MOMENT_KEP ? GKYL_MP_U3 : app->mp_recon;
 
     // single MP updater updates all directions
-    fld->mp_slvr = gkyl_mp_scheme_new(&(struct gkyl_mp_scheme_inp
-    ){.grid = &app->grid,
+    fld->mp_slvr = gkyl_mp_scheme_new(&(struct gkyl_mp_scheme_inp){
+      .grid = &app->grid,
       .equation = maxwell,
       .mp_recon = mp_recon,
       .skip_mp_limiter = mom->skip_mp_limiter,
       .num_up_dirs = num_up_dirs,
       .update_dirs = {update_dirs[0], update_dirs[1], update_dirs[2]},
       .cfl = app->cfl,
-      .geom = app->geom});
+      .geom = app->geom,
+    });
 
     // allocate arrays
     fld->f0 = mkarr(false, 8, app->local_ext.volume);
@@ -138,64 +142,66 @@ void moment_field_init(
       fld->upper_bct[dir] = bc[1];
 
       switch (bc[0]) {
-      case GKYL_FIELD_PEC_WALL:
-        fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0
-        );
-        break;
+        case GKYL_FIELD_PEC_WALL:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0
+          );
+          break;
 
-      case GKYL_FIELD_FUNC:
-        fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_lower_func, mom_fld->ctx
-        );
+        case GKYL_FIELD_FUNC:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_lower_func,
+            mom_fld->ctx
+          );
 
-      case GKYL_FIELD_COPY:
-      case GKYL_FIELD_WEDGE:
-        fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0
-        );
-        break;
+        case GKYL_FIELD_COPY:
+        case GKYL_FIELD_WEDGE:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0
+          );
+          break;
 
-      case GKYL_FIELD_SKIP:
-        fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_skip, 0
-        );
-        break;
+        case GKYL_FIELD_SKIP:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_skip, 0
+          );
+          break;
 
-      default:
-        assert(false);
-        break;
+        default:
+          assert(false);
+          break;
       }
 
       switch (bc[1]) {
-      case GKYL_FIELD_PEC_WALL:
-        fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, maxwell->wall_bc_func, 0
-        );
-        break;
+        case GKYL_FIELD_PEC_WALL:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, maxwell->wall_bc_func, 0
+          );
+          break;
 
-      case GKYL_FIELD_FUNC:
-        fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_upper_func, mom_fld->ctx
-        );
-        break;
+        case GKYL_FIELD_FUNC:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_upper_func,
+            mom_fld->ctx
+          );
+          break;
 
-      case GKYL_FIELD_COPY:
-      case GKYL_FIELD_WEDGE:
-        fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0
-        );
-        break;
+        case GKYL_FIELD_COPY:
+        case GKYL_FIELD_WEDGE:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0
+          );
+          break;
 
-      case GKYL_FIELD_SKIP:
-        fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_skip, 0
-        );
-        break;
+        case GKYL_FIELD_SKIP:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_skip, 0
+          );
+          break;
 
-      default:
-        assert(false);
-        break;
+        default:
+          assert(false);
+          break;
       }
     }
   }
@@ -275,7 +281,8 @@ void moment_field_init(
 }
 
 // apply BCs to EM field
-void moment_field_apply_bc(
+void
+moment_field_apply_bc(
   gkyl_moment_app *app, double tcurr, const struct moment_field *field, struct gkyl_array *f
 )
 {
@@ -316,7 +323,8 @@ void moment_field_apply_bc(
   app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
-double moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld)
+double
+moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld)
 {
   double max_dt = DBL_MAX;
   if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {
@@ -356,7 +364,8 @@ moment_field_update(gkyl_moment_app *app, const struct moment_field *fld, double
 }
 
 // Compute RHS of EM equations
-double moment_field_rhs(
+double
+moment_field_rhs(
   gkyl_moment_app *app, struct moment_field *fld, const struct gkyl_array *fin,
   struct gkyl_array *rhs
 )
@@ -380,7 +389,8 @@ double moment_field_rhs(
 }
 
 // free field
-void moment_field_release(const struct moment_field *fld)
+void
+moment_field_release(const struct moment_field *fld)
 {
   gkyl_wv_eqn_release(fld->maxwell);
 

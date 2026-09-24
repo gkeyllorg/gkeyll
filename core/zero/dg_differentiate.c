@@ -6,7 +6,8 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-void gkyl_dg_differentiate_op_local(
+void
+gkyl_dg_differentiate_op_local(
   const struct gkyl_basis *basis, int dir, int diff_order, double dx, int c_oop,
   struct gkyl_array *out, int c_iop, const struct gkyl_array *inp
 )
@@ -22,17 +23,17 @@ void gkyl_dg_differentiate_op_local(
 
   differentiate_op_t diff_op;
   switch (basis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    diff_op = choose_ser_differentiate_kern(ndim, dir, poly_order, diff_order);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      diff_op = choose_ser_differentiate_kern(ndim, dir, poly_order, diff_order);
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    diff_op = choose_ten_differentiate_kern(ndim, dir, poly_order, diff_order);
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      diff_op = choose_ten_differentiate_kern(ndim, dir, poly_order, diff_order);
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   assert(diff_op);
 
@@ -43,7 +44,8 @@ void gkyl_dg_differentiate_op_local(
   }
 }
 
-void gkyl_dg_differentiate_op_local_range(
+void
+gkyl_dg_differentiate_op_local_range(
   const struct gkyl_basis *basis, int dir, int diff_order, double dx, int c_oop,
   struct gkyl_array *out, int c_iop, const struct gkyl_array *inp, const struct gkyl_range *range
 )
@@ -61,17 +63,17 @@ void gkyl_dg_differentiate_op_local_range(
   differentiate_op_t diff_op;
 
   switch (basis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    diff_op = choose_ser_differentiate_kern(ndim, dir, poly_order, diff_order);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      diff_op = choose_ser_differentiate_kern(ndim, dir, poly_order, diff_order);
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    diff_op = choose_ten_differentiate_kern(ndim, dir, poly_order, diff_order);
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      diff_op = choose_ten_differentiate_kern(ndim, dir, poly_order, diff_order);
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   assert(diff_op);
 

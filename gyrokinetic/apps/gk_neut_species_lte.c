@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-void gk_neut_species_lte_fluid_from_moms(
+void
+gk_neut_species_lte_fluid_from_moms(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_lte *lte,
   const struct gkyl_array *moms_lte
 )
@@ -9,7 +10,8 @@ void gk_neut_species_lte_fluid_from_moms(
   // Do nothing.
 }
 
-void gk_neut_species_lte_kinetic_from_moms(
+void
+gk_neut_species_lte_kinetic_from_moms(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_lte *lte,
   const struct gkyl_array *moms_lte
 )
@@ -47,7 +49,8 @@ void gk_neut_species_lte_kinetic_from_moms(
   app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gk_neut_species_lte_fluid(
+void
+gk_neut_species_lte_fluid(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_lte *lte,
   const struct gkyl_array *fin
 )
@@ -55,7 +58,8 @@ void gk_neut_species_lte_fluid(
   // Do nothing.
 }
 
-void gk_neut_species_lte_kinetic(
+void
+gk_neut_species_lte_kinetic(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_lte *lte,
   const struct gkyl_array *fin
 )
@@ -74,14 +78,16 @@ void gk_neut_species_lte_kinetic(
   gk_neut_species_lte_from_moms(app, species, lte, lte->moms.marr);
 }
 
-void gk_neut_species_lte_fluid_write_max_corr_status(
+void
+gk_neut_species_lte_fluid_write_max_corr_status(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gk_ns
 )
 {
   // Do nothing.
 }
 
-void gk_neut_species_lte_kinetic_write_max_corr_status(
+void
+gk_neut_species_lte_kinetic_write_max_corr_status(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gk_ns
 )
 {
@@ -99,11 +105,11 @@ void gk_neut_species_lte_kinetic_write_max_corr_status(
 
       if (gk_ns->lte.is_first_corr_status_write_call) {
         // Write to a new file (this ensure previous output is removed).
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {
-          {.key = "Description",
-           .elem_type = GKYL_MP_STRING,
-           .cval = "Statistics on Maxwellian correction."}
-        };
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {{
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Statistics on Maxwellian correction.",
+        }};
         int io_meta_len[] = {gk_ns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
           gk_ns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -126,16 +132,14 @@ void gk_neut_species_lte_kinetic_write_max_corr_status(
   }
 }
 
-void gk_neut_species_lte_fluid_release(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte
-)
+void
+gk_neut_species_lte_fluid_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte)
 {
   gk_neut_species_moment_release(app, &lte->moms);
 }
 
-void gk_neut_species_lte_kinetic_release(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte
-)
+void
+gk_neut_species_lte_kinetic_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte)
 {
   gkyl_array_release(lte->f_lte);
 
@@ -148,7 +152,8 @@ void gk_neut_species_lte_kinetic_release(
   }
 }
 
-static void gk_neut_species_lte_fluid_init(
+static void
+gk_neut_species_lte_fluid_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_lte *lte,
   struct correct_all_moms_inp corr_inp
 )
@@ -162,7 +167,8 @@ static void gk_neut_species_lte_fluid_init(
   lte->release_func = gk_neut_species_lte_fluid_release;
 }
 
-static void gk_neut_species_lte_kinetic_init(
+static void
+gk_neut_species_lte_kinetic_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_lte *lte,
   struct correct_all_moms_inp corr_inp
 )
@@ -184,7 +190,7 @@ static void gk_neut_species_lte_kinetic_init(
     .det_h = app->gk_geom->geo_int.jacobgeo,
     .hamil = s->hamil,
     .model_id = s->model_id,
-    .use_gpu = app->use_gpu
+    .use_gpu = app->use_gpu,
   };
   lte->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
@@ -211,7 +217,7 @@ static void gk_neut_species_lte_kinetic_init(
       .use_gpu = app->use_gpu,
       .max_iter = max_iter,
       .eps = iter_eps,
-      .use_last_converged = use_last_converged
+      .use_last_converged = use_last_converged,
     };
     lte->n_iter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
@@ -228,7 +234,8 @@ static void gk_neut_species_lte_kinetic_init(
   lte->release_func = gk_neut_species_lte_kinetic_release;
 }
 
-void gk_neut_species_lte_init(
+void
+gk_neut_species_lte_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_lte *lte,
   struct correct_all_moms_inp corr_inp
 )
@@ -240,7 +247,8 @@ void gk_neut_species_lte_init(
   }
 }
 
-void gk_neut_species_lte_from_moms(
+void
+gk_neut_species_lte_from_moms(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_lte *lte,
   const struct gkyl_array *moms_lte
 )
@@ -248,7 +256,8 @@ void gk_neut_species_lte_from_moms(
   lte->from_moms_func(app, species, lte, moms_lte);
 }
 
-void gk_neut_species_lte(
+void
+gk_neut_species_lte(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_lte *lte,
   const struct gkyl_array *fin
 )
@@ -256,14 +265,14 @@ void gk_neut_species_lte(
   lte->from_f_func(app, species, lte, fin);
 }
 
-void gk_neut_species_lte_write_max_corr_status(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *gk_ns
-)
+void
+gk_neut_species_lte_write_max_corr_status(gkyl_gyrokinetic_app *app, struct gk_neut_species *gk_ns)
 {
   gk_ns->lte.write_max_corr_status_func(app, gk_ns);
 }
 
-void gk_neut_species_lte_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte)
+void
+gk_neut_species_lte_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte)
 {
   lte->release_func(app, lte);
 }

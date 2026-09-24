@@ -18,14 +18,16 @@ updater.
 #include <gkyl_dg_bin_ops.h>
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(long nc, long size, bool use_gpu)
+static struct gkyl_array *
+mkarr(long nc, long size, bool use_gpu)
 {
   return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
                    gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
 // Compare the computed result with the average computed with another updater.
-double solution_array_integrate(
+double
+solution_array_integrate(
   struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range local_ext,
   struct gkyl_range local, struct gkyl_array *win, struct gkyl_array *fin, bool use_gpu
 )
@@ -61,7 +63,8 @@ double solution_array_integrate(
 }
 
 // test 1x
-void evalFunc_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double lower[] = {-4.0}, upper[] = {6.0}; // Has to match the test below.
@@ -72,13 +75,15 @@ void evalFunc_1x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = x * sin(k_x * x + phi);
 }
 
-void evalWeight_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalWeight_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1 + x * x;
 }
 // direct weighted averaging x -> avg
-void test_1x(int poly_order, bool use_gpu)
+void
+test_1x(int poly_order, bool use_gpu)
 {
   // define grid and basis
   double lower[] = {-4.0}, upper[] = {6.0};
@@ -136,7 +141,7 @@ void test_1x(int poly_order, bool use_gpu)
     .local_avg_ext = &red_local_ext,
     .weight = wx_c,
     .avg_dim = avg_dim_x,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *avg_full = gkyl_array_average_inew(&inp_avg_full);
 
@@ -172,7 +177,8 @@ void test_1x(int poly_order, bool use_gpu)
 }
 
 // tests 2x
-void evalFunc_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double lower[] = {-4., -3.}, upper[] = {6., 5.};
@@ -182,14 +188,16 @@ void evalFunc_2x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = 1 + sin(k_x * x + k_y * y);
   fout[0] = x * y * sin(1.5 * k_x * x + 0.75 * k_y * y + phi) * cos(1.42 * k_y * y);
 }
-void evalWeight_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalWeight_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   fout[0] = 1 + x * x + y * y;
 }
 
 // one step weighted averaging x,y -> avg
-void test_2x_1step(int poly_order, bool use_gpu)
+void
+test_2x_1step(int poly_order, bool use_gpu)
 {
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
   int cells[] = {16, 8};
@@ -249,7 +257,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
     .local_avg_ext = &red_local_ext,
     .weight = wxy_c,
     .avg_dim = avg_dim_xy,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *avg_xy = gkyl_array_average_inew(&inp_avg_xy);
 
@@ -284,7 +292,8 @@ void test_2x_1step(int poly_order, bool use_gpu)
 }
 
 // two step integration of the weight x,y -> y -> int
-void test_2x_intx_inty(int poly_order, bool use_gpu)
+void
+test_2x_intx_inty(int poly_order, bool use_gpu)
 {
   // define grids and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
@@ -341,7 +350,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
     .local_avg_ext = &local_y_ext,
     .weight = NULL,
     .avg_dim = int_dim_x,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *int_x = gkyl_array_average_inew(&inp_int_x);
 
@@ -361,7 +370,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
     .local_avg_ext = &red_local_ext,
     .weight = NULL,
     .avg_dim = int_dim_y,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *int_y = gkyl_array_average_inew(&inp_int_y);
 
@@ -402,7 +411,8 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 }
 
 // two steps averaging x,y -> y -> avg
-void test_2x_avgx_avgy(int poly_order, bool use_gpu)
+void
+test_2x_avgx_avgy(int poly_order, bool use_gpu)
 {
   // define grids and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
@@ -471,7 +481,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .local_avg_ext = &local_y_ext,
     .weight = wxy_c,
     .avg_dim = avg_dim_x,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array *fy_c = mkarr(basis_y.num_basis, local_y_ext.volume, use_gpu);
 
@@ -493,7 +503,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .local_avg_ext = &local_y_ext,
     .weight = NULL,
     .avg_dim = avg_dim_x,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *int_x = gkyl_array_average_inew(&inp_int_x);
 
@@ -519,7 +529,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .local_avg_ext = &red_local_ext,
     .weight = NULL,
     .avg_dim = avg_dim_y,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *int_y = gkyl_array_average_inew(&inp_int_y);
 
@@ -576,7 +586,8 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
 }
 
 // two steps averaging x,y -> x -> avg
-void test_2x_avgy_avgx(int poly_order, bool use_gpu)
+void
+test_2x_avgy_avgx(int poly_order, bool use_gpu)
 {
   // define grid and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
@@ -647,7 +658,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .local_avg_ext = &local_x_ext,
     .weight = wxy_c,
     .avg_dim = avg_dim_y,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *avg_x = gkyl_array_average_inew(&inp_avg_x);
 
@@ -670,7 +681,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .local_avg_ext = &local_x_ext,
     .weight = NULL,
     .avg_dim = avg_dim_y,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *int_x = gkyl_array_average_inew(&inp_int_x);
 
@@ -696,7 +707,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .local_avg_ext = &red_local_ext,
     .weight = NULL,
     .avg_dim = avg_dim_x,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *int_y = gkyl_array_average_inew(&inp_int_y);
 
@@ -753,7 +764,8 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 }
 
 // test 3x
-void evalFunc_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -769,7 +781,8 @@ void evalFunc_3x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = x * y * z * sin(1.5 * k_x * x + 0.75 * k_y * y + 0.5 * k_z * z + phi) *
             cos(1.42 * k_y * y) * cos(4.20 * k_z * z);
 }
-void evalWeight_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalWeight_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -777,7 +790,8 @@ void evalWeight_3x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = 1 + x * x + y * y + z * z;
 }
 // two steps average x,y,z -> y,z -> avg
-void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
+void
+test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 {
   // define grids and basis
   double lower[] = {-4.0, -3.0, -2.0}, upper[] = {6.0, 5.0, 4.0};
@@ -851,7 +865,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .local_avg_ext = &local_yz_ext,
     .weight = wxyz_c,
     .avg_dim = avg_dim_x,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *avg_xyz_to_yz = gkyl_array_average_inew(&inp_avg_xyz_to_yz);
 
@@ -871,7 +885,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .local_avg_ext = &local_yz_ext,
     .weight = NULL,
     .avg_dim = avg_dim_x,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *int_xyz_to_yz = gkyl_array_average_inew(&inp_int_xyz_to_yz);
 
@@ -896,7 +910,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .local_avg_ext = &red_local_ext,
     .weight = NULL,
     .avg_dim = avg_dim_yz,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *int_yz = gkyl_array_average_inew(&inp_int_yz);
 
@@ -955,7 +969,8 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_array_release(wxyz_c_ho);
 }
 // two steps average x,y,z -> x -> avg
-void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
+void
+test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 {
   // define grids and basis
   double lower[] = {-4.0, -3.0, -2.0}, upper[] = {6.0, 5.0, 4.0};
@@ -1026,7 +1041,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .local_avg_ext = &local_x_ext,
     .weight = wxyz_c,
     .avg_dim = avg_dim_yz,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *avg_xyz_to_x = gkyl_array_average_inew(&inp_avg_xyz_to_x);
 
@@ -1045,7 +1060,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .local_avg_ext = &local_x_ext,
     .weight = NULL,
     .avg_dim = avg_dim_yz,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *int_xyz_to_x = gkyl_array_average_inew(&inp_int_xyz_to_x);
 
@@ -1071,7 +1086,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .local_avg_ext = &red_local_ext,
     .weight = NULL,
     .avg_dim = avg_dim_x,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_array_average *int_x = gkyl_array_average_inew(&inp_int_x);
 
@@ -1133,14 +1148,16 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   gkyl_array_release(wxyz_c_ho);
 }
 
-void test_array_average_1x_ho()
+void
+test_array_average_1x_ho()
 {
   for (int p = 1; p <= 2; p++) {
     test_1x(p, false);
   }
 }
 
-void test_array_average_2x_ho()
+void
+test_array_average_2x_ho()
 {
   for (int p = 1; p <= 2; p++) {
     test_2x_1step(p, false);
@@ -1150,7 +1167,8 @@ void test_array_average_2x_ho()
   }
 }
 
-void test_array_average_3x_ho()
+void
+test_array_average_3x_ho()
 {
   for (int p = 1; p <= 2; p++) {
     test_3x_avgx_avgyz(p, false);
@@ -1159,14 +1177,16 @@ void test_array_average_3x_ho()
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_array_average_1x_dev()
+void
+test_array_average_1x_dev()
 {
   for (int p = 1; p <= 2; p++) {
     test_1x(p, true);
   }
 }
 
-void test_array_average_2x_dev()
+void
+test_array_average_2x_dev()
 {
   for (int p = 1; p <= 2; p++) {
     test_2x_1step(p, true);
@@ -1176,7 +1196,8 @@ void test_array_average_2x_dev()
   }
 }
 
-void test_array_average_3x_dev()
+void
+test_array_average_3x_dev()
 {
   for (int p = 1; p <= 2; p++) {
     test_3x_avgx_avgyz(p, true);

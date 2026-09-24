@@ -15,7 +15,8 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr1(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (use_gpu) {
@@ -26,12 +27,14 @@ static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
   return a;
 }
 
-void evalDistFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalDistFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0, fout[2] = 0.0;
@@ -49,7 +52,8 @@ struct kerntm_inp {
   bool use_gpu;
 };
 
-struct kerntm_inp get_inp(int argc, char **argv)
+struct kerntm_inp
+get_inp(int argc, char **argv)
 {
   int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
   int nx, ny, nz = 8;
@@ -57,72 +61,74 @@ struct kerntm_inp get_inp(int argc, char **argv)
   bool use_gpu = false;
   while ((c = getopt(argc, argv, "+hgc:d:p:n:x:y:z:u:v:w:")) != -1) {
     switch (c) {
-    case 'h':
-      printf("Usage: app_vlasov_kerntm -c CDIM -d VDIM -p POLYORDER -x NX -y NY -z NZ -u VX -v VY "
-             "-w VZ -n NLOOP -g\n");
-      exit(-1);
-      break;
+      case 'h':
+        printf("Usage: app_vlasov_kerntm -c CDIM -d VDIM -p POLYORDER -x NX -y NY -z NZ -u VX -v VY "
+               "-w VZ -n NLOOP -g\n");
+        exit(-1);
+        break;
 
-    case 'g':
-      use_gpu = true;
-      break;
+      case 'g':
+        use_gpu = true;
+        break;
 
-    case 'c':
-      cdim = atoi(optarg);
-      break;
+      case 'c':
+        cdim = atoi(optarg);
+        break;
 
-    case 'd':
-      vdim = atoi(optarg);
-      break;
+      case 'd':
+        vdim = atoi(optarg);
+        break;
 
-    case 'p':
-      poly_order = atoi(optarg);
-      break;
+      case 'p':
+        poly_order = atoi(optarg);
+        break;
 
-    case 'n':
-      nloop = atoi(optarg);
-      break;
+      case 'n':
+        nloop = atoi(optarg);
+        break;
 
-    case 'x':
-      nx = atoi(optarg);
-      break;
+      case 'x':
+        nx = atoi(optarg);
+        break;
 
-    case 'y':
-      ny = atoi(optarg);
-      break;
+      case 'y':
+        ny = atoi(optarg);
+        break;
 
-    case 'z':
-      nz = atoi(optarg);
-      break;
+      case 'z':
+        nz = atoi(optarg);
+        break;
 
-    case 'u':
-      nvx = atoi(optarg);
-      break;
+      case 'u':
+        nvx = atoi(optarg);
+        break;
 
-    case 'v':
-      nvy = atoi(optarg);
-      break;
+      case 'v':
+        nvy = atoi(optarg);
+        break;
 
-    case 'w':
-      nvz = atoi(optarg);
-      break;
+      case 'w':
+        nvz = atoi(optarg);
+        break;
 
-    case '?':
-      break;
+      case '?':
+        break;
     }
   }
 
-  return (struct kerntm_inp
-  ){.cdim = cdim,
+  return (struct kerntm_inp){
+    .cdim = cdim,
     .vdim = vdim,
     .poly_order = poly_order,
     .ccells = {nx, ny, nz},
     .vcells = {nvx, nvy, nvz},
     .nloop = nloop,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu,
+  };
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct kerntm_inp inp = get_inp(argc, argv);
 
@@ -253,8 +259,13 @@ int main(int argc, char **argv)
     gkyl_array_clear(cflrate, 0.0);
     gkyl_vlasov_set_auxfields(
       eqn,
-      (struct gkyl_dg_vlasov_auxfields
-      ){.field = qmem, .cot_vec = 0, .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0}
+      (struct gkyl_dg_vlasov_auxfields){
+        .field = qmem,
+        .cot_vec = 0,
+        .alpha_surf = 0,
+        .sgn_alpha_surf = 0,
+        .const_sgn_alpha = 0,
+      }
     ); // must set EM fields to use
     gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }

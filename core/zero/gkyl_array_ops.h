@@ -6,7 +6,8 @@
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 
-GKYL_CU_DH static inline void *gkyl_flat_fetch(void *data, size_t loc)
+GKYL_CU_DH static inline void *
+gkyl_flat_fetch(void *data, size_t loc)
 {
   return ((char *)data) + loc;
 }
@@ -58,8 +59,9 @@ struct gkyl_array *gkyl_array_clear(struct gkyl_array *out, double val);
  * @param inp Input array
  * @return out array
  */
-struct gkyl_array *
-gkyl_array_accumulate(struct gkyl_array *out, double a, const struct gkyl_array *inp);
+struct gkyl_array *gkyl_array_accumulate(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp
+);
 
 /**
  * Compute out = out + a*inp[coff] where coff is a component-offset if
@@ -97,8 +99,9 @@ struct gkyl_array *gkyl_array_set(struct gkyl_array *out, double a, const struct
  * @param coff Component offset
  * @return out array
  */
-struct gkyl_array *
-gkyl_array_set_offset(struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff);
+struct gkyl_array *gkyl_array_set_offset(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
+);
 
 /**
  * Scale out = a*out. Returns out.
@@ -156,8 +159,9 @@ struct gkyl_array *gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned 
  * @param a Value to compare against each element.
  * @return out array.
  */
-struct gkyl_array *
-gkyl_array_min_by_cell(struct gkyl_array *out, const struct gkyl_array *inp, double a);
+struct gkyl_array *gkyl_array_min_by_cell(
+  struct gkyl_array *out, const struct gkyl_array *inp, double a
+);
 
 /**
  * Clear out = val. Returns out.
@@ -166,8 +170,9 @@ gkyl_array_min_by_cell(struct gkyl_array *out, const struct gkyl_array *inp, dou
  * @param val Factor to set 
  * @return out array
  */
-struct gkyl_array *
-gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_range *range);
+struct gkyl_array *gkyl_array_clear_range(
+  struct gkyl_array *out, double val, const struct gkyl_range *range
+);
 
 /**
  * Compute out = out + a*inp over a range of indices.
@@ -251,8 +256,9 @@ struct gkyl_array *gkyl_array_set_offset_range(
  * @return out array
  * @param range Range specifying region to scale
  */
-struct gkyl_array *
-gkyl_array_scale_range(struct gkyl_array *out, double a, const struct gkyl_range *range);
+struct gkyl_array *gkyl_array_scale_range(
+  struct gkyl_array *out, double a, const struct gkyl_range *range
+);
 
 /**
  * Shift the k-th coefficient in every cell, out_k = a+out_k within

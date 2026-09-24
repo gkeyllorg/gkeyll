@@ -1,6 +1,7 @@
 #include <gkyl_gk_neut_species_priv.h>
 
-static double gk_neut_species_fluid_rhs_dynamic(
+static double
+gk_neut_species_fluid_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
@@ -34,7 +35,8 @@ static double gk_neut_species_fluid_rhs_dynamic(
   return app->cfl / omega_cfl;
 }
 
-static double gk_neut_species_fluid_rhs_implicit_dynamic(
+static double
+gk_neut_species_fluid_rhs_implicit_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
 )
@@ -63,7 +65,8 @@ static double gk_neut_species_fluid_rhs_implicit_dynamic(
   return app->cfl / omega_cfl;
 }
 
-static void gk_neut_species_fluid_release_dynamic(
+static void
+gk_neut_species_fluid_release_dynamic(
   const gkyl_gyrokinetic_app *app, const struct gk_neut_species *ns
 )
 {
@@ -131,7 +134,8 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_n
   ns->release_is_static_func(app, ns);
 }
 
-static void gk_neut_species_fluid_init_dynamic(
+static void
+gk_neut_species_fluid_init_dynamic(
   struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns
 )
 {
@@ -180,7 +184,8 @@ static void gk_neut_species_fluid_init_dynamic(
   ns->report_n_iter_corr_func = gk_neut_species_n_iter_corr_disabled;
 }
 
-static void gk_neut_species_fluid_init_static(
+static void
+gk_neut_species_fluid_init_static(
   struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s
 )
 {
@@ -204,7 +209,8 @@ static void gk_neut_species_fluid_init_static(
   s->report_n_iter_corr_func = gk_neut_species_n_iter_corr_disabled;
 }
 
-void gk_neut_species_fluid_init(
+void
+gk_neut_species_fluid_init(
   struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns
 )
 {
@@ -367,7 +373,10 @@ void gk_neut_species_fluid_init(
   // This routine is utilized by both reactions and BGK collisions
   ns->lte = (struct gk_lte){};
   struct correct_all_moms_inp corr_inp = {
-    .correct_all_moms = false, .max_iter = 0, .iter_eps = 10, .use_last_converged = false
+    .correct_all_moms = false,
+    .max_iter = 0,
+    .iter_eps = 10,
+    .use_last_converged = false,
   };
   gk_neut_species_lte_init(app, ns, &ns->lte, corr_inp);
 

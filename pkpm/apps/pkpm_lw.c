@@ -75,7 +75,8 @@ struct pkpm_species_lw {
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 };
 
-static int pkpm_species_lw_new(lua_State *L)
+static int
+pkpm_species_lw_new(lua_State *L)
 {
   int vdim = 0;
   struct gkyl_pkpm_species pkpm_species = {};
@@ -208,25 +209,28 @@ static int pkpm_species_lw_new(lua_State *L)
   pkpm_s_lw->pkpm_species = pkpm_species;
 
   pkpm_s_lw->has_dist_init_func = has_dist_init_func;
-  pkpm_s_lw->dist_init_func_ref = (struct lua_func_ctx
-  ){.func_ref = dist_init_func_ref,
+  pkpm_s_lw->dist_init_func_ref = (struct lua_func_ctx){
+    .func_ref = dist_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 2,
-    .L = L};
+    .L = L,
+  };
 
   pkpm_s_lw->has_fluid_init_func = has_fluid_init_func;
-  pkpm_s_lw->fluid_init_func_ref = (struct lua_func_ctx
-  ){.func_ref = fluid_init_func_ref,
+  pkpm_s_lw->fluid_init_func_ref = (struct lua_func_ctx){
+    .func_ref = fluid_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L};
+    .L = L,
+  };
 
   pkpm_s_lw->has_applied_acceleration_func = has_applied_acceleration_func;
-  pkpm_s_lw->applied_acceleration_func_ref = (struct lua_func_ctx
-  ){.func_ref = applied_acceleration_func_ref,
+  pkpm_s_lw->applied_acceleration_func_ref = (struct lua_func_ctx){
+    .func_ref = applied_acceleration_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L};
+    .L = L,
+  };
   pkpm_s_lw->evolve_applied_acceleration = evolve_applied_acceleration;
 
   pkpm_s_lw->has_diffusion = has_diffusion;
@@ -280,7 +284,8 @@ struct pkpm_field_lw {
   bool evolve_applied_current; // Is the applied current evolved?
 };
 
-static int pkpm_field_lw_new(lua_State *L)
+static int
+pkpm_field_lw_new(lua_State *L)
 {
   int vdim = 0;
   struct gkyl_pkpm_field pkpm_field = {};
@@ -355,26 +360,29 @@ static int pkpm_field_lw_new(lua_State *L)
   pkpm_f_lw->evolve = evolve;
   pkpm_f_lw->pkpm_field = pkpm_field;
 
-  pkpm_f_lw->init_ref = (struct lua_func_ctx
-  ){.func_ref = init_ref,
+  pkpm_f_lw->init_ref = (struct lua_func_ctx){
+    .func_ref = init_ref,
     .ndim = 0, // This will be set later.
     .nret = 6,
-    .L = L};
+    .L = L,
+  };
 
   pkpm_f_lw->has_external_field_func = has_external_field_func;
-  pkpm_f_lw->external_field_func_ref = (struct lua_func_ctx
-  ){.func_ref = external_field_func_ref,
+  pkpm_f_lw->external_field_func_ref = (struct lua_func_ctx){
+    .func_ref = external_field_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 6,
-    .L = L};
+    .L = L,
+  };
   pkpm_f_lw->evolve_external_field = evolve_external_field;
 
   pkpm_f_lw->has_applied_current_func = has_applied_current_func;
-  pkpm_f_lw->applied_current_func_ref = (struct lua_func_ctx
-  ){.func_ref = applied_current_func_ref,
+  pkpm_f_lw->applied_current_func_ref = (struct lua_func_ctx){
+    .func_ref = applied_current_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L};
+    .L = L,
+  };
   pkpm_f_lw->evolve_applied_current = evolve_applied_current;
 
   // Set metatable.
@@ -489,14 +497,16 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
 }
 
 // Comparison method to sort species array by species name.
-static int species_compare_func(const void *a, const void *b)
+static int
+species_compare_func(const void *a, const void *b)
 {
   const struct pkpm_species_lw *const *spa = a;
   const struct pkpm_species_lw *const *spb = b;
   return strcmp((*spa)->pkpm_species.name, (*spb)->pkpm_species.name);
 }
 
-static struct gkyl_tool_args *tool_args_from_argv(int optind, int argc, char *const *argv)
+static struct gkyl_tool_args *
+tool_args_from_argv(int optind, int argc, char *const *argv)
 {
   struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
 
@@ -529,7 +539,8 @@ struct script_cli {
   struct gkyl_tool_args *rest;
 };
 
-static struct script_cli pkpm_parse_script_cli(struct gkyl_tool_args *acv)
+static struct script_cli
+pkpm_parse_script_cli(struct gkyl_tool_args *acv)
 {
   struct script_cli cli = {
     .help = -false,
@@ -540,7 +551,7 @@ static struct script_cli pkpm_parse_script_cli(struct gkyl_tool_args *acv)
     .trace_mem = false,
     .use_verbose = false,
     .is_restart = false,
-    .restart_frame = 0
+    .restart_frame = 0,
   };
 
 #ifdef GKYL_HAVE_MPI
@@ -557,37 +568,37 @@ static struct script_cli pkpm_parse_script_cli(struct gkyl_tool_args *acv)
   int c;
   while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
     switch (c) {
-    case 'h':
-      cli.help = true;
-      break;
+      case 'h':
+        cli.help = true;
+        break;
 
-    case 's':
-      cli.num_steps = atoi(opt.arg);
-      break;
+      case 's':
+        cli.num_steps = atoi(opt.arg);
+        break;
 
-    case 'S':
-      cli.use_mpi = false;
-      break;
+      case 'S':
+        cli.use_mpi = false;
+        break;
 
-    case 'G':
-      cli.use_gpu = false;
-      break;
+      case 'G':
+        cli.use_gpu = false;
+        break;
 
-    case 'm':
-      cli.trace_mem = true;
-      break;
+      case 'm':
+        cli.trace_mem = true;
+        break;
 
-    case 'V':
-      cli.use_verbose = true;
-      break;
+      case 'V':
+        cli.use_verbose = true;
+        break;
 
-    case 'r':
-      cli.is_restart = true;
-      cli.restart_frame = atoi(opt.arg);
-      break;
+      case 'r':
+        cli.is_restart = true;
+        cli.restart_frame = atoi(opt.arg);
+        break;
 
-    case '?':
-      break;
+      case '?':
+        break;
     }
   }
 
@@ -597,7 +608,8 @@ static struct script_cli pkpm_parse_script_cli(struct gkyl_tool_args *acv)
 }
 
 // Create top-level App object.
-static int pkpm_app_new(lua_State *L)
+static int
+pkpm_app_new(lua_State *L)
 {
   struct pkpm_app_lw *app_lw = gkyl_malloc(sizeof(*app_lw));
 
@@ -911,7 +923,8 @@ static int pkpm_app_new(lua_State *L)
 }
 
 // Apply initial conditions. (time) -> bool.
-static int pkpm_app_apply_ic(lua_State *L)
+static int
+pkpm_app_apply_ic(lua_State *L)
 {
   bool status = true;
 
@@ -926,7 +939,8 @@ static int pkpm_app_apply_ic(lua_State *L)
 }
 
 // Apply initial conditions to field. (time) -> bool.
-static int pkpm_app_apply_ic_field(lua_State *L)
+static int
+pkpm_app_apply_ic_field(lua_State *L)
 {
   bool status = true;
 
@@ -941,7 +955,8 @@ static int pkpm_app_apply_ic_field(lua_State *L)
 }
 
 // Apply initial conditions to species. (sidx, time) -> bool.
-static int pkpm_app_apply_ic_species(lua_State *L)
+static int
+pkpm_app_apply_ic_species(lua_State *L)
 {
   bool status = true;
 
@@ -957,7 +972,8 @@ static int pkpm_app_apply_ic_species(lua_State *L)
 }
 
 // Compute integrated moments. (tm) -> bool.
-static int pkpm_app_calc_integrated_mom(lua_State *L)
+static int
+pkpm_app_calc_integrated_mom(lua_State *L)
 {
   bool status = true;
 
@@ -972,7 +988,8 @@ static int pkpm_app_calc_integrated_mom(lua_State *L)
 }
 
 // Compute integrated L2 norm of distribution function. (tm) -> bool.
-static int pkpm_app_calc_integrated_L2_f(lua_State *L)
+static int
+pkpm_app_calc_integrated_L2_f(lua_State *L)
 {
   bool status = true;
 
@@ -988,7 +1005,8 @@ static int pkpm_app_calc_integrated_L2_f(lua_State *L)
 
 // Compute integrated field energy (L2 norm of each field
 // component). (tm) -> bool.
-static int pkpm_app_calc_field_energy(lua_State *L)
+static int
+pkpm_app_calc_field_energy(lua_State *L)
 {
   bool status = true;
 
@@ -1003,7 +1021,8 @@ static int pkpm_app_calc_field_energy(lua_State *L)
 }
 
 // Write solution (field and species) to file (time, frame) -> bool.
-static int pkpm_app_write(lua_State *L)
+static int
+pkpm_app_write(lua_State *L)
 {
   bool status = true;
 
@@ -1019,7 +1038,8 @@ static int pkpm_app_write(lua_State *L)
 }
 
 // Write field to file (time, frame) -> bool.
-static int pkpm_app_write_field(lua_State *L)
+static int
+pkpm_app_write_field(lua_State *L)
 {
   bool status = true;
 
@@ -1035,7 +1055,8 @@ static int pkpm_app_write_field(lua_State *L)
 }
 
 // Write species solution to file (sidx, time, frame) -> bool.
-static int pkpm_app_write_species(lua_State *L)
+static int
+pkpm_app_write_species(lua_State *L)
 {
   bool status = true;
 
@@ -1052,7 +1073,8 @@ static int pkpm_app_write_species(lua_State *L)
 }
 
 // Write integrated moments to file () -> bool.
-static int pkpm_app_write_integrated_mom(lua_State *L)
+static int
+pkpm_app_write_integrated_mom(lua_State *L)
 {
   bool status = true;
 
@@ -1066,7 +1088,8 @@ static int pkpm_app_write_integrated_mom(lua_State *L)
 }
 
 // Write integrated L2 norm of f to file () -> bool.
-static int pkpm_app_write_integrated_L2_f(lua_State *L)
+static int
+pkpm_app_write_integrated_L2_f(lua_State *L)
 {
   bool status = true;
 
@@ -1080,7 +1103,8 @@ static int pkpm_app_write_integrated_L2_f(lua_State *L)
 }
 
 // Write integrated field energy to file () -> bool.
-static int pkpm_app_write_field_energy(lua_State *L)
+static int
+pkpm_app_write_field_energy(lua_State *L)
 {
   bool status = true;
 
@@ -1094,7 +1118,8 @@ static int pkpm_app_write_field_energy(lua_State *L)
 }
 
 // Write simulation statistics to JSON. () -> bool.
-static int pkpm_app_stat_write(lua_State *L)
+static int
+pkpm_app_stat_write(lua_State *L)
 {
   bool status = true;
 
@@ -1151,7 +1176,8 @@ calc_integrated_L2_f(struct gkyl_tm_trigger *l2t, gkyl_pkpm_app *app, double t_c
   }
 }
 
-static void train_mom(
+static void
+train_mom(
   struct gkyl_tm_trigger *nn, gkyl_pkpm_app *app, double t_curr, bool force_train,
   struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
   int *output_moms, struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
@@ -1170,7 +1196,8 @@ static void train_mom(
   }
 }
 
-static void write_nn(
+static void
+write_nn(
   struct gkyl_tm_trigger *nnw, gkyl_pkpm_app *app, double t_curr, bool force_write,
   struct gkyl_kann_net **ann
 )
@@ -1185,7 +1212,8 @@ static void write_nn(
   }
 }
 
-static void test_mom(
+static void
+test_mom(
   struct gkyl_tm_trigger *nnt, gkyl_pkpm_app *app, double t_curr, bool force_test,
   struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
   int *output_moms, struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
@@ -1214,7 +1242,8 @@ struct step_message_trigs {
 };
 
 // Write log message to console.
-static void write_step_message(
+static void
+write_step_message(
   const struct gkyl_pkpm_app *app, struct step_message_trigs *trigs, int step, double t_curr,
   double dt_next
 )
@@ -1237,7 +1266,8 @@ static void write_step_message(
   }
 }
 
-static void show_help(const struct gkyl_pkpm_app *app)
+static void
+show_help(const struct gkyl_pkpm_app *app)
 {
   gkyl_pkpm_app_cout(app, stdout, "PKPM script takes the following arguments:\n");
   gkyl_pkpm_app_cout(app, stdout, " -h   Print this help message and exit\n");
@@ -1252,7 +1282,8 @@ static void show_help(const struct gkyl_pkpm_app *app)
 }
 
 // Run simulation. (num_steps) -> bool. num_steps is optional.
-static int pkpm_app_run(lua_State *L)
+static int
+pkpm_app_run(lua_State *L)
 {
   bool ret_status = true;
 
@@ -1317,16 +1348,24 @@ static int pkpm_app_run(lua_State *L)
   int integrated_L2_f_calcs = app_lw->integrated_L2_f_calcs;
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+    .dt = t_end / num_frames,
+    .tcurr = frame_curr * (t_end / num_frames),
+    .curr = frame_curr,
   };
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / field_energy_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_mom_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
   struct gkyl_tm_trigger l2f_trig = {
-    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_L2_f_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   struct step_message_trigs m_trig = {
@@ -1334,7 +1373,7 @@ static int pkpm_app_run(lua_State *L)
     .tenth = t_curr > 0.0 ? (int)floor(t_curr / t_end * 10.0) : 0.0,
     .p1c = t_curr > 0.0 ? (int)floor(t_curr / t_end * 100.0) % 10 : 0.0,
     .log_trig = {.dt = t_end / 10.0, .tcurr = t_curr},
-    .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr}
+    .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr},
   };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
@@ -1427,7 +1466,9 @@ static int pkpm_app_run(lua_State *L)
   // Create trigger for neural network writing.
   int num_nn_writes = app_lw->num_nn_writes;
   struct gkyl_tm_trigger nnw_trig = {
-    .dt = t_end / num_nn_writes, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / num_nn_writes,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   if (app_lw->train_nn) {
@@ -1652,7 +1693,8 @@ freeresources:
 }
 
 // Clean up memory allocated for simulation.
-static int pkpm_app_gc(lua_State *L)
+static int
+pkpm_app_gc(lua_State *L)
 {
   struct pkpm_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, PKPM_APP_METATABLE_NM);
   struct pkpm_app_lw *app_lw = *l_app_lw;
@@ -1685,7 +1727,8 @@ static struct luaL_Reg pkpm_app_funcs[] = {
   {0, 0}
 };
 
-static void app_openlibs(lua_State *L)
+static void
+app_openlibs(lua_State *L)
 {
   // Register top-level App.
   do {
@@ -1716,7 +1759,8 @@ static void app_openlibs(lua_State *L)
   } while (0);
 }
 
-void gkyl_pkpm_lw_openlibs(lua_State *L)
+void
+gkyl_pkpm_lw_openlibs(lua_State *L)
 {
   app_openlibs(L);
 }

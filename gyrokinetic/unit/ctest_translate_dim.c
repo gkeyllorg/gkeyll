@@ -10,7 +10,8 @@
 #include <acutest.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -21,7 +22,8 @@ static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
-void create_lower_dim_objects(
+void
+create_lower_dim_objects(
   int cdim_tar, struct gkyl_rect_grid grid_tar, int poly_order, struct gkyl_rect_grid *grid,
   struct gkyl_rect_grid *confGrid, struct gkyl_basis *basis, struct gkyl_basis *confBasis,
   struct gkyl_range *confLocal, struct gkyl_range *confLocal_ext, struct gkyl_range *local,
@@ -92,12 +94,14 @@ struct test_ctx {
   double mu_max; // Maximum mu of the grid.
 };
 
-double den_profile_1x(double n0, double z)
+double
+den_profile_1x(double n0, double z)
 {
   return n0 * (1.0 + 0.3 * cos(2.0 * M_PI * z));
 }
 
-void eval_distf_2x2v_low(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_distf_2x2v_low(double t, const double *xn, double *restrict fout, void *ctx)
 {
   // This projects a low-dim (1x2v) distribution for the 2x2v test.
   double x = xn[0], vpar = xn[1], mu = xn[2];
@@ -116,7 +120,8 @@ void eval_distf_2x2v_low(double t, const double *xn, double *restrict fout, void
             exp(-(pow(vpar - upar, 2) + 2.0 * mu * B0 / mass) / (2.0 * vtsq));
 }
 
-void test_2x2v(int poly_order, bool use_gpu)
+void
+test_2x2v(int poly_order, bool use_gpu)
 {
   const int cdim = 2;
   double vpar_max = 6.0;
@@ -135,7 +140,7 @@ void test_2x2v(int poly_order, bool use_gpu)
     .B0 = 1.0, // Magnetic field.
     .vdim = vdim, // Number of velocity space dimensions.
     .vpar_max = vpar_max, // Maximum vpar of the grid.
-    .mu_max = mu_max // Maximum mu of the grid.
+    .mu_max = mu_max, // Maximum mu of the grid.
   };
 
   double confLower[GKYL_MAX_CDIM] = {0.0}, confUpper[GKYL_MAX_CDIM] = {0.0};
@@ -261,12 +266,14 @@ void test_2x2v(int poly_order, bool use_gpu)
   gkyl_array_release(distf_low_ho);
 }
 
-double den_profile_2x(double n0, double x, double z)
+double
+den_profile_2x(double n0, double x, double z)
 {
   return n0 * (1.0 - x) * (1.0 + 0.3 * cos(2.0 * M_PI * z));
 }
 
-void eval_distf_3x2v_low(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_distf_3x2v_low(double t, const double *xn, double *restrict fout, void *ctx)
 {
   // This projects a low-dim (2x2v) distribution for the 3x2v test.
   double x = xn[0], y = xn[1], vpar = xn[2], mu = xn[3];
@@ -285,7 +292,8 @@ void eval_distf_3x2v_low(double t, const double *xn, double *restrict fout, void
             exp(-(pow(vpar - upar, 2) + 2.0 * mu * B0 / mass) / (2.0 * vtsq));
 }
 
-void test_3x2v(int poly_order, bool use_gpu)
+void
+test_3x2v(int poly_order, bool use_gpu)
 {
   const int cdim = 3;
   double vpar_max = 6.0;
@@ -304,7 +312,7 @@ void test_3x2v(int poly_order, bool use_gpu)
     .B0 = 1.0, // Magnetic field.
     .vdim = vdim, // Number of velocity space dimensions.
     .vpar_max = vpar_max, // Maximum vpar of the grid.
-    .mu_max = mu_max // Maximum mu of the grid.
+    .mu_max = mu_max, // Maximum mu of the grid.
   };
 
   double confLower[GKYL_MAX_CDIM] = {0.0}, confUpper[GKYL_MAX_CDIM] = {0.0};
@@ -431,22 +439,26 @@ void test_3x2v(int poly_order, bool use_gpu)
   gkyl_array_release(distf_low_ho);
 }
 
-void test_translate_dim_2x2v_ho()
+void
+test_translate_dim_2x2v_ho()
 {
   test_2x2v(1, false);
 }
 
-void test_translate_dim_2x2v_dev()
+void
+test_translate_dim_2x2v_dev()
 {
   test_2x2v(1, true);
 }
 
-void test_translate_dim_3x2v_ho()
+void
+test_translate_dim_3x2v_ho()
 {
   test_3x2v(1, false);
 }
 
-void test_translate_dim_3x2v_dev()
+void
+test_translate_dim_3x2v_dev()
 {
   test_3x2v(1, true);
 }

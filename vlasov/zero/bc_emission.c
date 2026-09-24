@@ -2,7 +2,8 @@
 #include <gkyl_bc_emission.h>
 
 // ctx with models specified by user
-struct gkyl_bc_emission_ctx *gkyl_bc_emission_new(
+struct gkyl_bc_emission_ctx *
+gkyl_bc_emission_new(
   int num_species, double t_bound, bool elastic,
   struct gkyl_emission_spectrum_model *spectrum_model[],
   struct gkyl_emission_yield_model *yield_model[],
@@ -27,7 +28,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_new(
 }
 
 // SEE copper preset
-struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_copper_new(
+struct gkyl_bc_emission_ctx *
+gkyl_bc_emission_secondary_electron_copper_new(
   int num_species, double t_bound, char in_species[][128], bool use_gpu
 )
 {
@@ -68,7 +70,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_copper_new(
 }
 
 // SEE oxidized lithium preset
-struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_oxidized_new(
+struct gkyl_bc_emission_ctx *
+gkyl_bc_emission_secondary_electron_lithium_oxidized_new(
   int num_species, double t_bound, char in_species[][128], bool use_gpu
 )
 {
@@ -104,7 +107,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_oxidize
 }
 
 // SEE oxidized lithium preset
-struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_clean_new(
+struct gkyl_bc_emission_ctx *
+gkyl_bc_emission_secondary_electron_lithium_clean_new(
   int num_species, double t_bound, char in_species[][128], bool use_gpu
 )
 {
@@ -136,7 +140,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_secondary_electron_lithium_clean_n
 }
 
 // Ion-impact SEE copper preset
-struct gkyl_bc_emission_ctx *gkyl_bc_emission_ion_impact_copper_new(
+struct gkyl_bc_emission_ctx *
+gkyl_bc_emission_ion_impact_copper_new(
   int num_species, double t_bound, char in_species[][128], bool use_gpu
 )
 {
@@ -168,7 +173,8 @@ struct gkyl_bc_emission_ctx *gkyl_bc_emission_ion_impact_copper_new(
   return ctx;
 }
 
-void gkyl_bc_emission_release(struct gkyl_bc_emission_ctx *ctx)
+void
+gkyl_bc_emission_release(struct gkyl_bc_emission_ctx *ctx)
 {
   for (int i = 0; i < ctx->num_species; ++i) {
     gkyl_emission_spectrum_model_release(ctx->spectrum_model[i]);

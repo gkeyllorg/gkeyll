@@ -3,7 +3,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_new(
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_furman_pivi_new(
   double charge, double deltahat_ts, double Ehat_ts, double t1, double t2, double t3, double t4,
   double s, bool use_gpu
 )
@@ -35,7 +36,8 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_new(
   return &model->yield;
 }
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_schou_new(
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_schou_new(
   double charge, double int_wall, double a2, double a3, double a4, double a5, double nw,
   bool use_gpu
 )
@@ -63,7 +65,8 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_schou_new(
   return &model->yield;
 }
 
-struct gkyl_emission_yield_model *gkyl_emission_yield_schou_srim_new(
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_schou_srim_new(
   double charge, double int_wall, double lorentz_norm, double E0, double tau, double alpha,
   double beta, double gauss_norm, double gauss_E0, double gauss_tau, bool use_gpu
 )
@@ -119,7 +122,8 @@ gkyl_emission_yield_constant_new(double charge, double delta, bool use_gpu)
   return &model->yield;
 }
 
-bool gkyl_emission_yield_model_is_cu_dev(const struct gkyl_emission_yield_model *model)
+bool
+gkyl_emission_yield_model_is_cu_dev(const struct gkyl_emission_yield_model *model)
 {
   return GKYL_IS_CU_ALLOC(model->flags);
 }
@@ -131,7 +135,8 @@ gkyl_emission_yield_model_acquire(const struct gkyl_emission_yield_model *model)
   return (struct gkyl_emission_yield_model *)model;
 }
 
-void gkyl_emission_yield_model_release(const struct gkyl_emission_yield_model *model)
+void
+gkyl_emission_yield_model_release(const struct gkyl_emission_yield_model *model)
 {
   gkyl_ref_count_dec(&model->ref_count);
 }

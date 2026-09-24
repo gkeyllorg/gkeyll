@@ -10,7 +10,8 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-static void create_offsets(struct gkyl_hyper_dg *up, const struct gkyl_range *range, long offsets[])
+static void
+create_offsets(struct gkyl_hyper_dg *up, const struct gkyl_range *range, long offsets[])
 {
   // Construct the offsets *only* in the directions being updated.
   // No need to load the neighbors that are not needed for the update.
@@ -34,7 +35,8 @@ static void create_offsets(struct gkyl_hyper_dg *up, const struct gkyl_range *ra
   }
 }
 
-void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *up, int update_vol_term)
+void
+gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *up, int update_vol_term)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -45,7 +47,8 @@ void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *up, int update_vol_term)
   up->update_vol_term = update_vol_term;
 }
 
-void gkyl_hyper_dg_advance(
+void
+gkyl_hyper_dg_advance(
   struct gkyl_hyper_dg *up, const struct gkyl_range *update_range, const struct gkyl_array *fIn,
   struct gkyl_array *cflrate, struct gkyl_array *rhs
 )
@@ -121,7 +124,8 @@ void gkyl_hyper_dg_advance(
   }
 }
 
-void gkyl_hyper_dg_gen_stencil_advance(
+void
+gkyl_hyper_dg_gen_stencil_advance(
   gkyl_hyper_dg *up, const struct gkyl_range *update_range, const struct gkyl_array *fIn,
   struct gkyl_array *cflrate, struct gkyl_array *rhs
 )
@@ -213,7 +217,8 @@ void gkyl_hyper_dg_gen_stencil_advance(
   }
 }
 
-gkyl_hyper_dg *gkyl_hyper_dg_new(
+gkyl_hyper_dg *
+gkyl_hyper_dg_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const struct gkyl_dg_eqn *equation, int num_up_dirs, int update_dirs[GKYL_MAX_DIM],
   int zero_flux_flags[2 * GKYL_MAX_DIM], int update_vol_term, bool use_gpu
@@ -253,7 +258,8 @@ gkyl_hyper_dg *gkyl_hyper_dg_new(
   return up;
 }
 
-void gkyl_hyper_dg_release(struct gkyl_hyper_dg *up)
+void
+gkyl_hyper_dg_release(struct gkyl_hyper_dg *up)
 {
   gkyl_dg_eqn_release(up->equation);
   if (GKYL_IS_CU_ALLOC(up->flags)) {

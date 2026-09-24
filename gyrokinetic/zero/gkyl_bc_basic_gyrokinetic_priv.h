@@ -47,7 +47,8 @@ struct dg_bc_ctx {
   const struct gkyl_basis *basis; // basis function.
 };
 
-GKYL_CU_D static void copy_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+copy_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   // Copy skin cell into ghost cell
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
@@ -57,7 +58,8 @@ GKYL_CU_D static void copy_bc(size_t nc, double *out, const double *inp, void *c
   }
 }
 
-GKYL_CU_D static void species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   // Set ghost cell to zero.
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
@@ -67,7 +69,8 @@ GKYL_CU_D static void species_absorb_bc(size_t nc, double *out, const double *in
   }
 }
 
-GKYL_CU_D static void species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   // Fill the ghost cell with a reflection of the distribution function
   // in the skin cell so that particle are reflected back into the domain.
@@ -80,7 +83,8 @@ GKYL_CU_D static void species_reflect_bc(size_t nc, double *out, const double *i
   mc->basis->flip_odd_sign(cdim, out, out);
 }
 
-GKYL_CU_D static void conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   // Fill the ghost cell with the skin cell evaluated at the boundary,
   // so it has no variation in the direction of the BC.
@@ -171,7 +175,8 @@ GKYL_CU_D static void conf_boundary_value_bc(size_t nc, double *out, const doubl
   }
 }
 
-GKYL_CU_D static void phase_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+phase_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   // Fill the ghost cell with the skin cell evaluated at the boundary,
   // so it has no variation in the direction of the BC.

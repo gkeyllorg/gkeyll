@@ -16,39 +16,45 @@
 #include <gkyl_array_ops.h>
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-void eval_den(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_den(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
 }
 
-void eval_udrift_2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_udrift_2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 0.5;
 }
 
-void eval_vtsq(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsq(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double vtsq = 1.0;
   fout[0] = vtsq;
 }
 
-void mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
   fout[0] = 0.0;
@@ -56,7 +62,8 @@ void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void
   fout[2] = 1.0;
 }
 
-void test_1x2v_gk(int poly_order, bool use_gpu)
+void
+test_1x2v_gk(int poly_order, bool use_gpu)
 {
   double mass = 1.0;
   double lower[] = {0.1, -6.0, 0.0}, upper[] = {1.0, 6.0, 6.0};
@@ -183,7 +190,7 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
+    .basis = confBasis,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(
@@ -221,7 +228,7 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
@@ -300,13 +307,15 @@ void test_1x2v_gk(int poly_order, bool use_gpu)
 #endif
 }
 
-void eval_den_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_den_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   fout[0] = 1.0 * (1.0 + 0.2 * cos(x)) * (1 + 0.2 * cos(y)) * (1.0 + 0.2 * cos(z));
 }
 
-void test_3x2v_gk(int poly_order, bool use_gpu)
+void
+test_3x2v_gk(int poly_order, bool use_gpu)
 {
   double mass = 1.0;
   double lower[] = {0.1, 0.1, 0.1, -6.0, 0.0}, upper[] = {1.0, 1.0, 1.0, 6.0, 6.0};
@@ -426,7 +435,7 @@ void test_3x2v_gk(int poly_order, bool use_gpu)
     .geo_local_ext = confLocal_ext,
     .geo_global = confLocal,
     .geo_global_ext = confLocal_ext,
-    .geo_basis = confBasis
+    .geo_basis = confBasis,
   };
   struct gk_geometry *gk_geom;
   gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
@@ -464,7 +473,7 @@ void test_3x2v_gk(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
@@ -568,7 +577,7 @@ void test_3x2v_gk(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .divide_jacobgeo = true,
     .mass = mass,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   gkyl_gk_maxwellian_moments *calc_moms = gkyl_gk_maxwellian_moments_inew(&inp_calc);
 
@@ -630,21 +639,25 @@ void test_3x2v_gk(int poly_order, bool use_gpu)
 #endif
 }
 
-void test_proj_maxwellian_1x2v_p1_gk_ho()
+void
+test_proj_maxwellian_1x2v_p1_gk_ho()
 {
   test_1x2v_gk(1, false);
 }
-void test_proj_maxwellian_3x2v_p1_gk_ho()
+void
+test_proj_maxwellian_3x2v_p1_gk_ho()
 {
   test_3x2v_gk(1, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_proj_maxwellian_1x2v_p1_gk_dev()
+void
+test_proj_maxwellian_1x2v_p1_gk_dev()
 {
   test_1x2v_gk(1, true);
 }
-void test_proj_maxwellian_3x2v_p1_gk_dev()
+void
+test_proj_maxwellian_3x2v_p1_gk_dev()
 {
   test_3x2v_gk(1, true);
 }

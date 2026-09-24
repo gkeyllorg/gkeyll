@@ -26,7 +26,8 @@ mapc2p_vel_identity(double t, const double *zc, double *GKYL_RESTRICT vp, void *
   }
 }
 
-void gkyl_velocity_map_free(const struct gkyl_ref_count *ref)
+void
+gkyl_velocity_map_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_velocity_map *gvm = container_of(ref, struct gkyl_velocity_map, ref_count);
 
@@ -52,7 +53,8 @@ void gkyl_velocity_map_free(const struct gkyl_ref_count *ref)
   gkyl_free(gvm);
 }
 
-struct gkyl_velocity_map *gkyl_velocity_map_new(
+struct gkyl_velocity_map *
+gkyl_velocity_map_new(
   struct gkyl_mapc2p_inp mapc2p_in, struct gkyl_rect_grid grid, struct gkyl_rect_grid grid_vel,
   struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_range local_vel,
   struct gkyl_range local_ext_vel, bool use_gpu
@@ -179,12 +181,14 @@ struct gkyl_velocity_map *gkyl_velocity_map_new(
   return gvm_out;
 }
 
-bool gkyl_velocity_map_is_cu_dev(const struct gkyl_velocity_map *gvm)
+bool
+gkyl_velocity_map_is_cu_dev(const struct gkyl_velocity_map *gvm)
 {
   return GKYL_IS_CU_ALLOC(gvm->flags);
 }
 
-void gkyl_velocity_map_write(
+void
+gkyl_velocity_map_write(
   const struct gkyl_velocity_map *gvm, struct gkyl_comm *species_comm, const char *app_name,
   const char *species_name
 )
@@ -219,7 +223,8 @@ void gkyl_velocity_map_write(
   }
 }
 
-void gkyl_velocity_map_get_boundary_values(const struct gkyl_velocity_map *gvm, double *vbounds)
+void
+gkyl_velocity_map_get_boundary_values(const struct gkyl_velocity_map *gvm, double *vbounds)
 {
   int vdim = gvm->local_vel.ndim;
   for (int d = 0; d < vdim; ++d) {
@@ -239,7 +244,8 @@ void gkyl_velocity_map_get_boundary_values(const struct gkyl_velocity_map *gvm, 
   }
 }
 
-void gkyl_velocity_map_reduce_dv_range(
+void
+gkyl_velocity_map_reduce_dv_range(
   const struct gkyl_velocity_map *gvm, enum gkyl_array_op op, double *dv_m,
   struct gkyl_range range_vel
 )
@@ -284,14 +290,14 @@ void gkyl_velocity_map_reduce_dv_range(
   }
 }
 
-void gkyl_velocity_map_reduce_dv(
-  const struct gkyl_velocity_map *gvm, enum gkyl_array_op op, double *dv_m
-)
+void
+gkyl_velocity_map_reduce_dv(const struct gkyl_velocity_map *gvm, enum gkyl_array_op op, double *dv_m)
 {
   gkyl_velocity_map_reduce_dv_range(gvm, op, dv_m, gvm->local_vel);
 }
 
-void gkyl_velocity_map_eval_c2p(const struct gkyl_velocity_map *gvm, const double *zc, double *vp)
+void
+gkyl_velocity_map_eval_c2p(const struct gkyl_velocity_map *gvm, const double *zc, double *vp)
 {
   // Find the index of the cell containing zc.
   int idx_zc[GKYL_MAX_VDIM];
@@ -320,13 +326,15 @@ void gkyl_velocity_map_eval_c2p(const struct gkyl_velocity_map *gvm, const doubl
   }
 }
 
-struct gkyl_velocity_map *gkyl_velocity_map_acquire(const struct gkyl_velocity_map *gvm)
+struct gkyl_velocity_map *
+gkyl_velocity_map_acquire(const struct gkyl_velocity_map *gvm)
 {
   gkyl_ref_count_inc(&gvm->ref_count);
   return (struct gkyl_velocity_map *)gvm;
 }
 
-void gkyl_velocity_map_release(const struct gkyl_velocity_map *gvm)
+void
+gkyl_velocity_map_release(const struct gkyl_velocity_map *gvm)
 {
   gkyl_ref_count_dec(&gvm->ref_count);
 }

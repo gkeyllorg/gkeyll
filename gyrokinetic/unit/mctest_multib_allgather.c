@@ -17,14 +17,16 @@
 #endif
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
                                    gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-struct gkyl_comm *comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
+struct gkyl_comm *
+comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
 {
   // Construct communicator for use in app.
   struct gkyl_comm *comm = 0;
@@ -50,7 +52,8 @@ struct gkyl_comm *comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
   return comm;
 }
 
-static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
+static struct gkyl_block_geom *
+create_L_domain_block_geom(int **cuts)
 {
   // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -71,8 +74,8 @@ static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
   int *cuts0 = cuts[0];
   gkyl_block_geom_set_block(
     bgeom, 0,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {300, 300},
       .cuts = {cuts0[0], cuts0[1]},
@@ -88,15 +91,16 @@ static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
           // y-direction connections
           {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
 
   // block 1
   int *cuts1 = cuts[1];
   gkyl_block_geom_set_block(
     bgeom, 1,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {300, 300},
       .cuts = {cuts1[0], cuts1[1]},
@@ -110,15 +114,16 @@ static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
         {// y-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   // block 2
   int *cuts2 = cuts[2];
   gkyl_block_geom_set_block(
     bgeom, 2,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {300, 300},
       .cuts = {cuts2[0], cuts2[1]},
@@ -134,13 +139,15 @@ static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
           // y-direction connections
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
 
   return bgeom;
 }
 
-static struct gkyl_block_geom *create_SOL_domain_block_geom(int **cuts)
+static struct gkyl_block_geom *
+create_SOL_domain_block_geom(int **cuts)
 {
   // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -164,8 +171,8 @@ static struct gkyl_block_geom *create_SOL_domain_block_geom(int **cuts)
   int *cuts0 = cuts[0];
   gkyl_block_geom_set_block(
     bgeom, 0,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {4, 8},
       .cuts = {cuts0[0], cuts0[1]},
@@ -180,15 +187,16 @@ static struct gkyl_block_geom *create_SOL_domain_block_geom(int **cuts)
         {// y-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
          {.bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   // block 1
   int *cuts1 = cuts[1];
   gkyl_block_geom_set_block(
     bgeom, 1,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {4, 8},
       .cuts = {cuts1[0], cuts1[1]},
@@ -202,15 +210,16 @@ static struct gkyl_block_geom *create_SOL_domain_block_geom(int **cuts)
         {// y-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
          {.bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   // block 2
   int *cuts2 = cuts[2];
   gkyl_block_geom_set_block(
     bgeom, 2,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {4, 8},
       .cuts = {cuts2[0], cuts2[1]},
@@ -224,14 +233,16 @@ static struct gkyl_block_geom *create_SOL_domain_block_geom(int **cuts)
         {// y-direction connections
          {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
-        }}
+        },
+    }
   );
 
   return bgeom;
 }
 
 // simple linear search to check if val occurs in lst
-static bool has_int(int n, int val, const int *lst)
+static bool
+has_int(int n, int val, const int *lst)
 {
   for (int i = 0; i < n; ++i) {
     if (val == lst[i]) {
@@ -241,7 +252,8 @@ static bool has_int(int n, int val, const int *lst)
   return false;
 }
 
-static inline int prod_of_elements_int(int ndim, int *arr)
+static inline int
+prod_of_elements_int(int ndim, int *arr)
 {
   int pr = 1;
   for (int d = 0; d < ndim; ++d) {
@@ -250,7 +262,8 @@ static inline int prod_of_elements_int(int ndim, int *arr)
   return pr;
 }
 
-int **cuts_array_new(int num_blocks, int ndim, int *cuts_all)
+int **
+cuts_array_new(int num_blocks, int ndim, int *cuts_all)
 {
   // Create an array of cuts from an array with all the cuts listed flat.
   int **cuts_arr = gkyl_malloc(num_blocks * sizeof(int *));
@@ -265,7 +278,8 @@ int **cuts_array_new(int num_blocks, int ndim, int *cuts_all)
   return cuts_arr;
 }
 
-void cuts_array_release(int num_blocks, int **cuts_arr)
+void
+cuts_array_release(int num_blocks, int **cuts_arr)
 {
   // Release the array of cuts arrays.
   for (int i = 0; i < num_blocks; i++) {
@@ -274,7 +288,8 @@ void cuts_array_release(int num_blocks, int **cuts_arr)
   gkyl_free(cuts_arr);
 }
 
-static void test_L_domain_send_connections_dir0_cuts1_ho()
+static void
+test_L_domain_send_connections_dir0_cuts1_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -357,7 +372,8 @@ static void test_L_domain_send_connections_dir0_cuts1_ho()
   gkyl_block_geom_release(geom);
 }
 
-static void test_L_domain_recv_connections_dir0_cuts1_ho()
+static void
+test_L_domain_recv_connections_dir0_cuts1_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -440,7 +456,8 @@ static void test_L_domain_recv_connections_dir0_cuts1_ho()
   gkyl_block_geom_release(geom);
 }
 
-static void test_L_domain_send_connections_dir0_cuts2_ho()
+static void
+test_L_domain_send_connections_dir0_cuts2_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -556,7 +573,8 @@ static void test_L_domain_send_connections_dir0_cuts2_ho()
   gkyl_block_geom_release(geom);
 }
 
-static void test_L_domain_send_connections_dir0_cuts2_par_ho()
+static void
+test_L_domain_send_connections_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -707,7 +725,8 @@ static void test_L_domain_send_connections_dir0_cuts2_par_ho()
   gkyl_comm_release(comm);
 }
 
-static void test_L_domain_recv_connections_dir0_cuts2_par_ho()
+static void
+test_L_domain_recv_connections_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -858,7 +877,8 @@ static void test_L_domain_recv_connections_dir0_cuts2_par_ho()
   gkyl_comm_release(comm);
 }
 
-static void test_L_domain_allgather_dir0_cuts2_par_ho()
+static void
+test_L_domain_allgather_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -1085,7 +1105,8 @@ static void test_L_domain_allgather_dir0_cuts2_par_ho()
   gkyl_comm_release(comm);
 }
 
-static void test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
+static void
+test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
 {
   printf("\n");
   // Create world comm.
@@ -1390,13 +1411,15 @@ static void test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
   gkyl_comm_release(comm);
 }
 
-static void test_SOL_domain_allgather_dir1_cuts2_par_ho(void)
+static void
+test_SOL_domain_allgather_dir1_cuts2_par_ho(void)
 {
   test_SOL_domain_allgather_dir1_cuts2_par(false);
 }
 
 #ifdef GKYL_HAVE_NCCL
-static void test_SOL_domain_allgather_dir1_cuts2_par_dev(void)
+static void
+test_SOL_domain_allgather_dir1_cuts2_par_dev(void)
 {
   test_SOL_domain_allgather_dir1_cuts2_par(true);
 }

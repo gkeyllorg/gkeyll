@@ -19,7 +19,8 @@
 #endif
 
 /** Disable denormalized floats from occuring */
-static void disable_denorm_float(void)
+static void
+disable_denorm_float(void)
 {
 #if defined(__GNUC__) || defined(__GNUG__)
 #if defined(__arm__) || defined(__arm64__) || defined(__powerpc64__)

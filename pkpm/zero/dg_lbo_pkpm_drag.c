@@ -11,7 +11,8 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void gkyl_lbo_pkpm_drag_free(const struct gkyl_ref_count *ref)
+void
+gkyl_lbo_pkpm_drag_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_lbo_pkpm_drag *lbo_pkpm_drag = container_of(base, struct dg_lbo_pkpm_drag, eqn);
@@ -23,7 +24,8 @@ void gkyl_lbo_pkpm_drag_free(const struct gkyl_ref_count *ref)
   gkyl_free(lbo_pkpm_drag);
 }
 
-void gkyl_lbo_pkpm_drag_set_auxfields(
+void
+gkyl_lbo_pkpm_drag_set_auxfields(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_pkpm_drag_auxfields auxin
 )
 {
@@ -39,7 +41,8 @@ void gkyl_lbo_pkpm_drag_set_auxfields(
   lbo_pkpm_drag->auxfields.nuPrimMomsSum = auxin.nuPrimMomsSum;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_drag_new(
+struct gkyl_dg_eqn *
+gkyl_dg_lbo_pkpm_drag_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid, bool use_gpu
 )
@@ -66,23 +69,23 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_drag_new(
   const gkyl_dg_lbo_pkpm_drag_boundary_surf_kern_list *boundary_surf_vpar_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_vpar_kernels = ser_surf_vpar_kernels;
-    boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_vpar_kernels = ser_surf_vpar_kernels;
+      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    vol_kernels = ten_vol_kernels;
-    surf_vpar_kernels = ten_surf_vpar_kernels;
-    boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_vpar_kernels = ten_surf_vpar_kernels;
+      boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   lbo_pkpm_drag->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
@@ -111,7 +114,8 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_drag_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_drag_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_lbo_pkpm_drag_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid
 )

@@ -4,7 +4,8 @@
 #include <gkyl_amr_patch_priv.h>
 #include <gkyl_amr_patch_coupled_priv.h>
 
-void five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_init *init)
+void
+five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -86,7 +87,9 @@ void five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_sing
   for (int i = 0; i < num_patches; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
       };
       mesh_pdata[i].euler_elc = gkyl_wv_euler_inew(&inp);
       mesh_pdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
@@ -96,39 +99,52 @@ void five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_sing
     }
     mesh_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
-    mesh_pdata[i].slvr_elc[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-    ){.grid = &mesh_pdata[i].grid,
+    mesh_pdata[i].slvr_elc[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+      .grid = &mesh_pdata[i].grid,
       .equation = mesh_pdata[i].euler_elc,
       .limiter = GKYL_MONOTONIZED_CENTERED,
       .num_up_dirs = 1,
       .update_dirs = {0},
       .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom});
-    mesh_pdata[i].slvr_ion[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-    ){.grid = &mesh_pdata[i].grid,
+      .geom = mesh_pdata[i].geom,
+    });
+    mesh_pdata[i].slvr_ion[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+      .grid = &mesh_pdata[i].grid,
       .equation = mesh_pdata[i].euler_ion,
       .limiter = GKYL_MONOTONIZED_CENTERED,
       .num_up_dirs = 1,
       .update_dirs = {0},
       .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom});
-    mesh_pdata[i].slvr_maxwell[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-    ){.grid = &mesh_pdata[i].grid,
+      .geom = mesh_pdata[i].geom,
+    });
+    mesh_pdata[i].slvr_maxwell[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+      .grid = &mesh_pdata[i].grid,
       .equation = mesh_pdata[i].maxwell,
       .limiter = GKYL_MONOTONIZED_CENTERED,
       .num_up_dirs = 1,
       .update_dirs = {0},
       .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom});
+      .geom = mesh_pdata[i].geom,
+    });
 
     struct gkyl_moment_em_coupling_inp mesh_src_inp = {
-      .grid = &mesh_pdata[i].grid, .nfluids = 2, .epsilon0 = epsilon0
+      .grid = &mesh_pdata[i].grid,
+      .nfluids = 2,
+      .epsilon0 = epsilon0,
     };
 
-    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data
-    ){.type = mesh_pdata[i].euler_elc->type, .charge = charge_elc, .mass = mass_elc, .k0 = k0_elc};
-    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data
-    ){.type = mesh_pdata[i].euler_ion->type, .charge = charge_ion, .mass = mass_ion, .k0 = k0_ion};
+    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data){
+      .type = mesh_pdata[i].euler_elc->type,
+      .charge = charge_elc,
+      .mass = mass_elc,
+      .k0 = k0_elc,
+    };
+    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data){
+      .type = mesh_pdata[i].euler_ion->type,
+      .charge = charge_ion,
+      .mass = mass_ion,
+      .k0 = k0_ion,
+    };
 
     mesh_pdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
   }
@@ -295,7 +311,8 @@ void five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_sing
   gkyl_job_pool_release(mesh_job_pool);
 }
 
-void five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_init *init)
+void
+five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -391,7 +408,9 @@ void five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_doub
   for (int i = 0; i < num_patches; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
       };
       mesh_pdata[i].euler_elc = gkyl_wv_euler_inew(&inp);
       mesh_pdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
@@ -401,39 +420,52 @@ void five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_doub
     }
     mesh_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
-    mesh_pdata[i].slvr_elc[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-    ){.grid = &mesh_pdata[i].grid,
+    mesh_pdata[i].slvr_elc[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+      .grid = &mesh_pdata[i].grid,
       .equation = mesh_pdata[i].euler_elc,
       .limiter = GKYL_MONOTONIZED_CENTERED,
       .num_up_dirs = 1,
       .update_dirs = {0},
       .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom});
-    mesh_pdata[i].slvr_ion[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-    ){.grid = &mesh_pdata[i].grid,
+      .geom = mesh_pdata[i].geom,
+    });
+    mesh_pdata[i].slvr_ion[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+      .grid = &mesh_pdata[i].grid,
       .equation = mesh_pdata[i].euler_ion,
       .limiter = GKYL_MONOTONIZED_CENTERED,
       .num_up_dirs = 1,
       .update_dirs = {0},
       .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom});
-    mesh_pdata[i].slvr_maxwell[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-    ){.grid = &mesh_pdata[i].grid,
+      .geom = mesh_pdata[i].geom,
+    });
+    mesh_pdata[i].slvr_maxwell[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+      .grid = &mesh_pdata[i].grid,
       .equation = mesh_pdata[i].maxwell,
       .limiter = GKYL_MONOTONIZED_CENTERED,
       .num_up_dirs = 1,
       .update_dirs = {0},
       .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom});
+      .geom = mesh_pdata[i].geom,
+    });
 
     struct gkyl_moment_em_coupling_inp mesh_src_inp = {
-      .grid = &mesh_pdata[i].grid, .nfluids = 2, .epsilon0 = epsilon0
+      .grid = &mesh_pdata[i].grid,
+      .nfluids = 2,
+      .epsilon0 = epsilon0,
     };
 
-    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data
-    ){.type = mesh_pdata[i].euler_elc->type, .charge = charge_elc, .mass = mass_elc, .k0 = k0_elc};
-    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data
-    ){.type = mesh_pdata[i].euler_ion->type, .charge = charge_ion, .mass = mass_ion, .k0 = k0_ion};
+    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data){
+      .type = mesh_pdata[i].euler_elc->type,
+      .charge = charge_elc,
+      .mass = mass_elc,
+      .k0 = k0_elc,
+    };
+    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data){
+      .type = mesh_pdata[i].euler_ion->type,
+      .charge = charge_ion,
+      .mass = mass_ion,
+      .k0 = k0_ion,
+    };
 
     mesh_pdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
   }
@@ -613,7 +645,8 @@ void five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_doub
   gkyl_job_pool_release(mesh_job_pool);
 }
 
-void five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_init *init)
+void
+five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -740,7 +773,9 @@ void five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_sing
   for (int i = 0; i < num_blocks; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
       };
       mesh_bdata[i].euler_elc = gkyl_wv_euler_inew(&inp);
       mesh_bdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
@@ -751,40 +786,53 @@ void five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_sing
     mesh_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
     for (int d = 0; d < ndim; d++) {
-      mesh_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &mesh_bdata[i].grid,
+      mesh_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &mesh_bdata[i].grid,
         .equation = mesh_bdata[i].euler_elc,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
         .update_dirs = {d},
         .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom});
-      mesh_bdata[i].slvr_ion[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &mesh_bdata[i].grid,
+        .geom = mesh_bdata[i].geom,
+      });
+      mesh_bdata[i].slvr_ion[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &mesh_bdata[i].grid,
         .equation = mesh_bdata[i].euler_ion,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
         .update_dirs = {d},
         .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom});
-      mesh_bdata[i].slvr_maxwell[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &mesh_bdata[i].grid,
+        .geom = mesh_bdata[i].geom,
+      });
+      mesh_bdata[i].slvr_maxwell[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &mesh_bdata[i].grid,
         .equation = mesh_bdata[i].maxwell,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
         .update_dirs = {d},
         .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom});
+        .geom = mesh_bdata[i].geom,
+      });
     }
 
     struct gkyl_moment_em_coupling_inp mesh_src_inp = {
-      .grid = &mesh_bdata[i].grid, .nfluids = 2, .epsilon0 = epsilon0
+      .grid = &mesh_bdata[i].grid,
+      .nfluids = 2,
+      .epsilon0 = epsilon0,
     };
 
-    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data
-    ){.type = mesh_bdata[i].euler_elc->type, .charge = charge_elc, .mass = mass_elc, .k0 = k0_elc};
-    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data
-    ){.type = mesh_bdata[i].euler_ion->type, .charge = charge_ion, .mass = mass_ion, .k0 = k0_ion};
+    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data){
+      .type = mesh_bdata[i].euler_elc->type,
+      .charge = charge_elc,
+      .mass = mass_elc,
+      .k0 = k0_elc,
+    };
+    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data){
+      .type = mesh_bdata[i].euler_ion->type,
+      .charge = charge_ion,
+      .mass = mass_ion,
+      .k0 = k0_ion,
+    };
 
     mesh_bdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
   }
@@ -955,7 +1003,8 @@ void five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_sing
   gkyl_job_pool_release(mesh_job_pool);
 }
 
-void five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_init *init)
+void
+five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -1153,7 +1202,9 @@ void five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_doub
   for (int i = 0; i < num_blocks; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
       };
       mesh_bdata[i].euler_elc = gkyl_wv_euler_inew(&inp);
       mesh_bdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
@@ -1164,40 +1215,53 @@ void five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_doub
     mesh_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
     for (int d = 0; d < ndim; d++) {
-      mesh_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &mesh_bdata[i].grid,
+      mesh_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &mesh_bdata[i].grid,
         .equation = mesh_bdata[i].euler_elc,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
         .update_dirs = {d},
         .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom});
-      mesh_bdata[i].slvr_ion[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &mesh_bdata[i].grid,
+        .geom = mesh_bdata[i].geom,
+      });
+      mesh_bdata[i].slvr_ion[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &mesh_bdata[i].grid,
         .equation = mesh_bdata[i].euler_ion,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
         .update_dirs = {d},
         .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom});
-      mesh_bdata[i].slvr_maxwell[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &mesh_bdata[i].grid,
+        .geom = mesh_bdata[i].geom,
+      });
+      mesh_bdata[i].slvr_maxwell[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &mesh_bdata[i].grid,
         .equation = mesh_bdata[i].maxwell,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
         .update_dirs = {d},
         .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom});
+        .geom = mesh_bdata[i].geom,
+      });
     }
 
     struct gkyl_moment_em_coupling_inp mesh_src_inp = {
-      .grid = &mesh_bdata[i].grid, .nfluids = 2, .epsilon0 = epsilon0
+      .grid = &mesh_bdata[i].grid,
+      .nfluids = 2,
+      .epsilon0 = epsilon0,
     };
 
-    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data
-    ){.type = mesh_bdata[i].euler_elc->type, .charge = charge_elc, .mass = mass_elc, .k0 = k0_elc};
-    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data
-    ){.type = mesh_bdata[i].euler_ion->type, .charge = charge_ion, .mass = mass_ion, .k0 = k0_ion};
+    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data){
+      .type = mesh_bdata[i].euler_elc->type,
+      .charge = charge_elc,
+      .mass = mass_elc,
+      .k0 = k0_elc,
+    };
+    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data){
+      .type = mesh_bdata[i].euler_ion->type,
+      .charge = charge_ion,
+      .mass = mass_ion,
+      .k0 = k0_ion,
+    };
 
     mesh_bdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
   }

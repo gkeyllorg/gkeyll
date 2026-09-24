@@ -35,7 +35,8 @@ static const double tol = 1.0e-5;
 
 // Fill a ten-moment cell with zero bulk velocity so the pressure tensor equals
 // the conserved P-components directly (p_ij = P_ij - rho u_i u_j = P_ij).
-static void set_fluid(
+static void
+set_fluid(
   double f[10], double rho, double p11, double p12, double p13, double p22, double p23, double p33
 )
 {
@@ -51,7 +52,8 @@ static void set_fluid(
   f[TM_P33] = p33;
 }
 
-static void set_em(double e[8], double bx, double by, double bz)
+static void
+set_em(double e[8], double bx, double by, double bz)
 {
   for (int i = 0; i < 8; i++) {
     e[i] = 0.0;
@@ -61,18 +63,24 @@ static void set_em(double e[8], double bx, double by, double bz)
   e[EM_BZ] = bz;
 }
 
-static struct gkyl_ten_moment_nn_closure *mk_closure_1d(int poly_order, double dx)
+static struct gkyl_ten_moment_nn_closure *
+mk_closure_1d(int poly_order, double dx)
 {
   static struct gkyl_rect_grid grid;
   // cells = 1/dx so that the grid spacing is exactly dx.
   int cells = (int)(1.0 / dx + 0.5);
   gkyl_rect_grid_init(&grid, 1, (double[]){0.0}, (double[]){1.0}, (int[]){cells});
-  return gkyl_ten_moment_nn_closure_new((struct gkyl_ten_moment_nn_closure_inp
-  ){.grid = &grid, .poly_order = poly_order, .k0 = 1.0, .ann = 0});
+  return gkyl_ten_moment_nn_closure_new((struct gkyl_ten_moment_nn_closure_inp){
+    .grid = &grid,
+    .poly_order = poly_order,
+    .k0 = 1.0,
+    .ann = 0,
+  });
 }
 
 // Input/output feature counts for each supported configuration.
-static void test_nn_closure_dims_ho(void)
+static void
+test_nn_closure_dims_ho(void)
 {
   struct gkyl_rect_grid grid1, grid2;
   gkyl_rect_grid_init(&grid1, 1, (double[]){0.0}, (double[]){1.0}, (int[]){10});
@@ -102,7 +110,8 @@ static void test_nn_closure_dims_ho(void)
 
 // Uniform stencil, B along x: b = (1,0,0), p_par = p_xx, p_perp = (p_yy+p_zz)/2,
 // all gradients zero.
-static void test_nn_closure_geom_1d_p1_uniform_bx_ho(void)
+static void
+test_nn_closure_geom_1d_p1_uniform_bx_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -139,7 +148,8 @@ static void test_nn_closure_geom_1d_p1_uniform_bx_ho(void)
 }
 
 // Uniform stencil, B along z: b = (0,0,1), p_par = p_zz, p_perp = (p_xx+p_yy)/2.
-static void test_nn_closure_geom_1d_p1_uniform_bz_ho(void)
+static void
+test_nn_closure_geom_1d_p1_uniform_bz_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -166,7 +176,8 @@ static void test_nn_closure_geom_1d_p1_uniform_bz_ho(void)
 
 // Uniform stencil, B at 45 deg in the x-y plane: b = (1,1,0)/sqrt(2).
 // p_par = 0.5 p_xx + 0.5 p_yy + p_xy, p_perp = (tr(p) - p_par)/2.
-static void test_nn_closure_geom_1d_p1_diagonal_b_ho(void)
+static void
+test_nn_closure_geom_1d_p1_diagonal_b_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -199,7 +210,8 @@ static void test_nn_closure_geom_1d_p1_diagonal_b_ho(void)
 
 // Density gradient only: B and pressure uniform along x, density linear across
 // the stencil. drho_dx = (rho_U - rho_L)/dx; field-aligned pressure gradients 0.
-static void test_nn_closure_geom_1d_p1_density_gradient_ho(void)
+static void
+test_nn_closure_geom_1d_p1_density_gradient_ho(void)
 {
   double dx = 0.1;
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, dx);
@@ -227,7 +239,8 @@ static void test_nn_closure_geom_1d_p1_density_gradient_ho(void)
 
 // Pressure gradient with B uniform along x. With b = (1,0,0) and uniform b,
 // p_par_dx = d(p_xx)/dx and p_perp_dx = 0.5( d tr(p)/dx - p_par_dx ).
-static void test_nn_closure_geom_1d_p1_pressure_gradient_ho(void)
+static void
+test_nn_closure_geom_1d_p1_pressure_gradient_ho(void)
 {
   double dx = 0.1;
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, dx);
@@ -258,7 +271,8 @@ static void test_nn_closure_geom_1d_p1_pressure_gradient_ho(void)
 
 // Vanishing magnetic field: the closure falls back to b = (1,0,0), so p_par
 // reduces to p_xx (avoids a divide-by-zero in the field direction).
-static void test_nn_closure_geom_1d_p1_zero_b_ho(void)
+static void
+test_nn_closure_geom_1d_p1_zero_b_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -284,7 +298,8 @@ static void test_nn_closure_geom_1d_p1_zero_b_ho(void)
 
 // Helper: zero a geometry cache and set a uniform field direction b along axis
 // `ax` (0=x,1=y,2=z), with |B| = 1 (so the divQ B-prefactor is unity).
-static void set_geom_uniform_b(struct gkyl_ten_moment_nn_closure_geom *g, int ax)
+static void
+set_geom_uniform_b(struct gkyl_ten_moment_nn_closure_geom *g, int ax)
 {
   for (int i = 0; i < 3; i++) {
     g->local_mag[i] = 0.0;
@@ -303,7 +318,8 @@ static void set_geom_uniform_b(struct gkyl_ten_moment_nn_closure_geom *g, int ax
 // Coupling/sign test: with b = x and a prescribed heat flux (q_par, q_par_dx,
 // q_perp, q_perp_dx), the pressure-tensor source must be d(P_ij)/dt = -d(q)/dx,
 // with q_par -> Pxx and q_perp -> Pyy, Pzz (and no off-diagonal/mass/momentum).
-static void test_nn_closure_consume_1d_p1_sign_and_mapping_ho(void)
+static void
+test_nn_closure_consume_1d_p1_sign_and_mapping_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -331,7 +347,8 @@ static void test_nn_closure_consume_1d_p1_sign_and_mapping_ho(void)
 }
 
 // Sign robustness: a negative parallel-flux gradient must flip the Pxx source.
-static void test_nn_closure_consume_1d_p1_sign_flip_ho(void)
+static void
+test_nn_closure_consume_1d_p1_sign_flip_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -353,7 +370,8 @@ static void test_nn_closure_consume_1d_p1_sign_flip_ho(void)
 // gradients) must produce no pressure source, even with q != 0. This is why the
 // network's constant offset in static regions does not inject a spurious source
 // provided it also predicts q' ~ 0 there.
-static void test_nn_closure_consume_1d_p1_uniform_q_zero_source_ho(void)
+static void
+test_nn_closure_consume_1d_p1_uniform_q_zero_source_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 

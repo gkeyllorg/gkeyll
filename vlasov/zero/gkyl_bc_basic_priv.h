@@ -47,7 +47,8 @@ struct dg_bc_ctx {
   const struct gkyl_basis *basis; // basis function.
 };
 
-GKYL_CU_D static void copy_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+copy_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int num_comp = mc->ncomp;
@@ -56,7 +57,8 @@ GKYL_CU_D static void copy_bc(size_t nc, double *out, const double *inp, void *c
   }
 }
 
-GKYL_CU_D static void reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir;
@@ -64,7 +66,8 @@ GKYL_CU_D static void reflect_bc(size_t nc, double *out, const double *inp, void
   mc->basis->flip_odd_sign(dir, inp, out);
 }
 
-GKYL_CU_D static void species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int num_comp = mc->ncomp;
@@ -73,7 +76,8 @@ GKYL_CU_D static void species_absorb_bc(size_t nc, double *out, const double *in
   }
 }
 
-GKYL_CU_D static void species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir, cdim = mc->cdim;
@@ -82,7 +86,8 @@ GKYL_CU_D static void species_reflect_bc(size_t nc, double *out, const double *i
   mc->basis->flip_odd_sign(dir + cdim, out, out);
 }
 
-GKYL_CU_D static void conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir;
@@ -186,7 +191,8 @@ GKYL_CU_D static const int m_flip_odd[3][3] = {
 };
 
 // Maxwell's perfect electrical conductor (zero normal B and zero tangent E)
-GKYL_CU_D static void maxwell_pec_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+maxwell_pec_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir;
@@ -220,7 +226,8 @@ GKYL_CU_D static const int m_sym_flip_odd[3][3] = {
 };
 
 // Maxwell's symmetry BC (zero normal E and zero tangent B)
-GKYL_CU_D static void maxwell_sym_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+maxwell_sym_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir;
@@ -243,7 +250,8 @@ GKYL_CU_D static void maxwell_sym_bc(size_t nc, double *out, const double *inp, 
 // Reservoir Maxwell's BCs for heat flux problem
 // Based on Roberg-Clark et al. PRL 2018
 // NOTE: ONLY WORKS WITH X BOUNDARY
-GKYL_CU_D static void maxwell_reservoir_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+maxwell_reservoir_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir;
@@ -266,7 +274,8 @@ GKYL_CU_D static void maxwell_reservoir_bc(size_t nc, double *out, const double 
 }
 
 // Reflecting wall BCs for PKPM momentum
-GKYL_CU_D static void pkpm_mom_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+pkpm_mom_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir;
@@ -284,7 +293,8 @@ GKYL_CU_D static void pkpm_mom_reflect_bc(size_t nc, double *out, const double *
 }
 
 // No-slip wall BCs for PKPM momentum
-GKYL_CU_D static void pkpm_mom_no_slip_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+pkpm_mom_no_slip_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir;
@@ -297,7 +307,8 @@ GKYL_CU_D static void pkpm_mom_no_slip_bc(size_t nc, double *out, const double *
   }
 }
 
-GKYL_CU_D static void pkpm_species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+pkpm_species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir, cdim = mc->cdim;
@@ -315,7 +326,8 @@ GKYL_CU_D static void pkpm_species_reflect_bc(size_t nc, double *out, const doub
 }
 
 // Reflecting wall BCs for Euler equations
-GKYL_CU_D static void euler_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+euler_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir;
@@ -341,7 +353,8 @@ GKYL_CU_D static void euler_reflect_bc(size_t nc, double *out, const double *inp
 }
 
 // No-slip wall BCs for Euler equations
-GKYL_CU_D static void euler_no_slip_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+euler_no_slip_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
   int dir = mc->dir;

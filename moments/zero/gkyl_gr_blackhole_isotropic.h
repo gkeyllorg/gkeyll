@@ -472,5 +472,6 @@ struct gkyl_gr_spacetime *gkyl_gr_blackhole_isotropic_new(
 * @param inp Input context struct.
 * @return Pointer to the black hole spacetime in isotropic gauge object.
 */
-struct gkyl_gr_spacetime *
-gkyl_gr_blackhole_isotropic_inew(const struct gkyl_gr_blackhole_isotropic_inp *inp);
+struct gkyl_gr_spacetime *gkyl_gr_blackhole_isotropic_inew(
+  const struct gkyl_gr_blackhole_isotropic_inp *inp
+);

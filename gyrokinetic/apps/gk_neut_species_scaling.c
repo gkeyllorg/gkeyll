@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void gk_neut_species_scaling_cross_moms_enabled(
+static void
+gk_neut_species_scaling_cross_moms_enabled(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_scaling *sca,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -27,7 +28,8 @@ static void gk_neut_species_scaling_cross_moms_enabled(
   app->stat.neut_species_react_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_neut_species_scaling_cross_moms_disabled(
+static void
+gk_neut_species_scaling_cross_moms_disabled(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_scaling *sca,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -35,7 +37,8 @@ static void gk_neut_species_scaling_cross_moms_disabled(
   // Do nothing.
 }
 
-static void gk_neut_species_scaling_rhs_enabled(
+static void
+gk_neut_species_scaling_rhs_enabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_scaling *sca,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -71,7 +74,8 @@ static void gk_neut_species_scaling_rhs_enabled(
   app->stat.neut_species_react_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_neut_species_scaling_rhs_disabled(
+static void
+gk_neut_species_scaling_rhs_disabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_scaling *sca,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -79,7 +83,8 @@ static void gk_neut_species_scaling_rhs_disabled(
   // Do nothing.
 }
 
-static void gk_neut_species_scaling_apply_enabled(
+static void
+gk_neut_species_scaling_apply_enabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, struct gk_scaling *sca,
   struct gkyl_array *fin, struct gkyl_array **bflux[]
 )
@@ -138,7 +143,8 @@ static void gk_neut_species_scaling_apply_enabled(
   }
 }
 
-static void gk_neut_species_scaling_apply_disabled(
+static void
+gk_neut_species_scaling_apply_disabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, struct gk_scaling *sca,
   struct gkyl_array *fin, struct gkyl_array **bflux[]
 )
@@ -146,7 +152,8 @@ static void gk_neut_species_scaling_apply_disabled(
   // Do nothing.
 }
 
-static void gk_neut_species_scaling_write_enabled(
+static void
+gk_neut_species_scaling_write_enabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_scaling *sca, int ridx,
   double tm, int frame
 )
@@ -171,7 +178,8 @@ static void gk_neut_species_scaling_write_enabled(
   app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
-static void gk_neut_species_scaling_write_disabled(
+static void
+gk_neut_species_scaling_write_disabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_scaling *sca, int ridx,
   double tm, int frame
 )
@@ -179,7 +187,8 @@ static void gk_neut_species_scaling_write_disabled(
   // Do nothing
 }
 
-void gk_neut_species_scaling_init(
+void
+gk_neut_species_scaling_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, struct gk_scaling *sca
 )
 {
@@ -229,7 +238,8 @@ void gk_neut_species_scaling_init(
   }
 }
 
-void gk_neut_species_scaling_cross_init(
+void
+gk_neut_species_scaling_cross_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, struct gk_scaling *sca
 )
 {
@@ -274,7 +284,7 @@ void gk_neut_species_scaling_cross_init(
       .conf_rng = &app->local,
       .type_ion = sca_inp->impacting_ion_id,
       .charge_state = 0,
-      .type_self = GKYL_SELF_ION // Could be GKYL_SELF_DONOR. It just can't be
+      .type_self = GKYL_SELF_ION, // Could be GKYL_SELF_DONOR. It just can't be
       // GKYL_SELF_ELC because we don't need to
       // compute the ionization temperatures.
     };
@@ -286,7 +296,8 @@ void gk_neut_species_scaling_cross_init(
   }
 }
 
-void gk_neut_species_scaling_apply_ic_cross(
+void
+gk_neut_species_scaling_apply_ic_cross(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, struct gk_scaling *sca
 )
 {
@@ -304,7 +315,8 @@ void gk_neut_species_scaling_apply_ic_cross(
   }
 }
 
-void gk_neut_species_scaling_cross_moms(
+void
+gk_neut_species_scaling_cross_moms(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *ns, struct gk_scaling *sca,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
@@ -312,7 +324,8 @@ void gk_neut_species_scaling_cross_moms(
   sca->cross_moms_func_neut(app, ns, sca, fin, fin_neut);
 }
 
-void gk_neut_species_scaling_rhs(
+void
+gk_neut_species_scaling_rhs(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, struct gk_scaling *sca,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -320,7 +333,8 @@ void gk_neut_species_scaling_rhs(
   sca->rhs_func_neut(app, ns, sca, fin, rhs);
 }
 
-void gk_neut_species_scaling_apply(
+void
+gk_neut_species_scaling_apply(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, struct gk_scaling *sca,
   struct gkyl_array *fin, struct gkyl_array **bflux[]
 )
@@ -328,7 +342,8 @@ void gk_neut_species_scaling_apply(
   sca->apply_func_neut(app, ns, sca, fin, bflux);
 }
 
-void gk_neut_species_scaling_write(
+void
+gk_neut_species_scaling_write(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_scaling *sca, int ridx,
   double tm, int frame
 )
@@ -336,9 +351,8 @@ void gk_neut_species_scaling_write(
   sca->write_func_neut(app, gkns, sca, ridx, tm, frame);
 }
 
-void gk_neut_species_scaling_release(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_scaling *sca
-)
+void
+gk_neut_species_scaling_release(const struct gkyl_gyrokinetic_app *app, const struct gk_scaling *sca)
 {
   if (sca->type == GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE) {
     gkyl_array_release(sca->Jm0_init);

@@ -32,7 +32,8 @@ struct ProblemState {
   struct gkyl_array *density, *velocity, *pressure, *internalEnergy;
 };
 
-static struct ProblemState *new_ProblemState(int ncell)
+static struct ProblemState *
+new_ProblemState(int ncell)
 {
   struct ProblemState *ps = gkyl_malloc(sizeof(*ps));
   ps->ncell = ncell;
@@ -45,7 +46,8 @@ static struct ProblemState *new_ProblemState(int ncell)
   return ps;
 }
 
-static void release_ProblemState(struct ProblemState *ps)
+static void
+release_ProblemState(struct ProblemState *ps)
 {
   gkyl_array_release(ps->density);
   gkyl_array_release(ps->velocity);
@@ -55,7 +57,8 @@ static void release_ProblemState(struct ProblemState *ps)
   gkyl_free(ps);
 }
 
-static void prefun(
+static void
+prefun(
   const struct ProblemState *ps, double *F, double *FD, double P, double DK, double PK, double CK
 )
 {
@@ -101,7 +104,8 @@ static void prefun(
  * @param ps Problem state
  * @return Guess for pressure in star region
  */
-static double guessp(struct ProblemState *ps)
+static double
+guessp(struct ProblemState *ps)
 {
   double GAMMA, G1, G2, G3, G4, G5, G6, G7, G8;
   double gas_gamma = ps->gas_gamma;
@@ -154,7 +158,8 @@ static double guessp(struct ProblemState *ps)
   return PM;
 }
 
-static void starpu(struct ProblemState *ps, double *pm, double *um)
+static void
+starpu(struct ProblemState *ps, double *pm, double *um)
 {
   double CHANGE, FL, FLD, FR, FRD, P, POLD, PSTART, TOLPRE, U, UDIFF, PSCALE;
 
@@ -353,7 +358,8 @@ sample(struct ProblemState *ps, double PM, double UM, double S, double *D, doubl
   }
 }
 
-static void sampleWithVacuum(struct ProblemState *ps, double S, double *D, double *U, double *P)
+static void
+sampleWithVacuum(struct ProblemState *ps, double S, double *D, double *U, double *P)
 {
   double gas_gamma = ps->gas_gamma;
   // compute constants related to gamma
@@ -401,7 +407,8 @@ static void sampleWithVacuum(struct ProblemState *ps, double S, double *D, doubl
   }
 }
 
-static void exactEulerRp(struct ProblemState *ps)
+static void
+exactEulerRp(struct ProblemState *ps)
 {
   double g1, g2, g3, g4, g5, g6, g7, g8;
 
@@ -451,7 +458,8 @@ static void exactEulerRp(struct ProblemState *ps)
   }
 }
 
-static void exactEulerRpWithVacuum(struct ProblemState *ps)
+static void
+exactEulerRpWithVacuum(struct ProblemState *ps)
 {
   double gas_gamma = ps->gas_gamma;
   double g8 = gas_gamma - 1;
@@ -487,7 +495,8 @@ static void exactEulerRpWithVacuum(struct ProblemState *ps)
   }
 }
 
-void solveRiemannProblem(struct _ProblemState _ps, const char *out_prefix)
+void
+solveRiemannProblem(struct _ProblemState _ps, const char *out_prefix)
 {
   struct ProblemState *ps = new_ProblemState(_ps.ncell);
 

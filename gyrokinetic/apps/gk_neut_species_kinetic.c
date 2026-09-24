@@ -1,6 +1,7 @@
 #include <gkyl_gk_neut_species_priv.h>
 
-static double gk_neut_species_kinetic_rhs_dynamic(
+static double
+gk_neut_species_kinetic_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
@@ -40,7 +41,8 @@ static double gk_neut_species_kinetic_rhs_dynamic(
   return app->cfl / omega_cfl;
 }
 
-static double gk_neut_species_kinetic_rhs_implicit_dynamic(
+static double
+gk_neut_species_kinetic_rhs_implicit_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
 )
@@ -70,7 +72,8 @@ static double gk_neut_species_kinetic_rhs_implicit_dynamic(
   return app->cfl / omega_cfl;
 }
 
-static void gk_neut_species_kinetic_apply_bc_dynamic(
+static void
+gk_neut_species_kinetic_apply_bc_dynamic(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f
 )
 {
@@ -84,39 +87,39 @@ static void gk_neut_species_kinetic_apply_bc_dynamic(
   for (int d = 0; d < cdim; ++d) {
     if (species->bc_is_np[d]) {
       switch (species->lower_bc[d].type) {
-      case GKYL_BC_GK_SPECIES_RECYCLE:
-        gk_neut_species_recycle_apply_bc(app, &species->bc_recycle_lo, species, f);
-        break;
-      case GKYL_BC_GK_SPECIES_COPY:
-      case GKYL_BC_GK_SPECIES_REFLECT:
-      case GKYL_BC_GK_SPECIES_ABSORB:
-        gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
-        break;
-      case GKYL_BC_GK_SPECIES_FIXED_FUNC:
-        gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
-        break;
-      case GKYL_BC_GK_SPECIES_ZERO_FLUX:
-        break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
-      default:
-        break;
+        case GKYL_BC_GK_SPECIES_RECYCLE:
+          gk_neut_species_recycle_apply_bc(app, &species->bc_recycle_lo, species, f);
+          break;
+        case GKYL_BC_GK_SPECIES_COPY:
+        case GKYL_BC_GK_SPECIES_REFLECT:
+        case GKYL_BC_GK_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
+          break;
+        case GKYL_BC_GK_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
+          break;
+        case GKYL_BC_GK_SPECIES_ZERO_FLUX:
+          break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
+        default:
+          break;
       }
 
       switch (species->upper_bc[d].type) {
-      case GKYL_BC_GK_SPECIES_RECYCLE:
-        gk_neut_species_recycle_apply_bc(app, &species->bc_recycle_up, species, f);
-        break;
-      case GKYL_BC_GK_SPECIES_COPY:
-      case GKYL_BC_GK_SPECIES_REFLECT:
-      case GKYL_BC_GK_SPECIES_ABSORB:
-        gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
-        break;
-      case GKYL_BC_GK_SPECIES_FIXED_FUNC:
-        gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
-        break;
-      case GKYL_BC_GK_SPECIES_ZERO_FLUX:
-        break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
-      default:
-        break;
+        case GKYL_BC_GK_SPECIES_RECYCLE:
+          gk_neut_species_recycle_apply_bc(app, &species->bc_recycle_up, species, f);
+          break;
+        case GKYL_BC_GK_SPECIES_COPY:
+        case GKYL_BC_GK_SPECIES_REFLECT:
+        case GKYL_BC_GK_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
+          break;
+        case GKYL_BC_GK_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
+          break;
+        case GKYL_BC_GK_SPECIES_ZERO_FLUX:
+          break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
+        default:
+          break;
       }
     }
   }
@@ -127,7 +130,8 @@ static void gk_neut_species_kinetic_apply_bc_dynamic(
 }
 
 // release all resources for dynamic species
-static void gk_neut_species_kinetic_release_dynamic(
+static void
+gk_neut_species_kinetic_release_dynamic(
   const gkyl_gyrokinetic_app *app, const struct gk_neut_species *s
 )
 {
@@ -238,7 +242,8 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk
   ns->release_is_static_func(app, ns);
 }
 
-void gk_neut_species_kinetic_init_dynamic(
+void
+gk_neut_species_kinetic_init_dynamic(
   struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s
 )
 {
@@ -360,7 +365,8 @@ void gk_neut_species_kinetic_init_dynamic(
   s->report_n_iter_corr_func = gk_neut_species_n_iter_corr_enabled;
 }
 
-static void gk_neut_species_kinetic_init_static(
+static void
+gk_neut_species_kinetic_init_static(
   struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s
 )
 {
@@ -632,7 +638,8 @@ static void gkyl_array_move_comp(
   gkyl_array_set_offset(out, 1.0, tmp, cout);
 }
 
-void gk_neut_species_kinetic_init(
+void
+gk_neut_species_kinetic_init(
   struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s
 )
 {
@@ -938,7 +945,7 @@ void gk_neut_species_kinetic_init(
     .correct_all_moms = correct_all_moms,
     .max_iter = max_iter,
     .iter_eps = iter_eps,
-    .use_last_converged = use_last_converged
+    .use_last_converged = use_last_converged,
   };
   gk_neut_species_lte_init(app, s, &s->lte, corr_inp);
 

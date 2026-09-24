@@ -1,15 +1,10 @@
 repos:
   - repo: local
     hooks:
-      - id: strip-trailing-commas
-        name: Strip trailing commas before closing braces
-        entry: python3 ci/strip-trailing-commas.py
-        language: system
-        files: \.(c|h|cpp|hpp|cu|cuh)$
-        exclude: (^|/)ker/|^core/minus/
-  - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v18.1.8
-    hooks:
-      - id: clang-format
+      - id: gkeyll-format
+        name: Format C/C++/CUDA (clang-format + trailing-comma rules)
+        entry: python ci/format.py
+        language: python
+        additional_dependencies: ["clang-format==18.1.8"]
         files: \.(c|h|cpp|hpp|cu|cuh)$
         exclude: (^|/)ker/|^core/minus/

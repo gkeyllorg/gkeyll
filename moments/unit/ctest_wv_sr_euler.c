@@ -4,7 +4,8 @@
 #include <gkyl_moment_prim_sr_euler.h>
 #include <gkyl_wv_sr_euler.h>
 
-void calcq(double gas_gamma, const double pv[5], double q[5])
+void
+calcq(double gas_gamma, const double pv[5], double q[5])
 {
   double rho = pv[0], u = pv[1], v = pv[2], w = pv[3], pr = pv[4];
   double gamma = 1 / sqrt(1 - u * u - v * v - w * w);
@@ -16,7 +17,8 @@ void calcq(double gas_gamma, const double pv[5], double q[5])
   q[4] = gamma * gamma * rhoh * w;
 }
 
-void test_sr_euler_prim1_ho()
+void
+test_sr_euler_prim1_ho()
 {
   double gas_gamma = 1.333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
@@ -87,7 +89,8 @@ void test_sr_euler_prim1_ho()
   gkyl_wv_eqn_release(sr_euler);
 }
 
-void test_sr_euler_waves_ho()
+void
+test_sr_euler_waves_ho()
 {
   double gas_gamma = 1.333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
@@ -150,7 +153,8 @@ void test_sr_euler_waves_ho()
   gkyl_wv_eqn_release(sr_euler);
 }
 
-void test_sr_euler_waves2_ho()
+void
+test_sr_euler_waves2_ho()
 {
   double gas_gamma = 1.3333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);

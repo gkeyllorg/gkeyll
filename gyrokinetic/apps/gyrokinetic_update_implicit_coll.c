@@ -2,7 +2,8 @@
 
 // Take time-step using an implicit method for collisions.
 // Use the actual timestep used to update explicit advection.
-void gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
+void
+gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
 {
   // Add contribution from implicit collision terms.
   double tcurr = app->tcurr, dt = dt0;

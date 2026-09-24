@@ -28,19 +28,22 @@
 static const double AVAL = 0.75; // F_0 amplitude
 static const double BVAL = 0.40; // G_1 amplitude
 
-static void eval_distf(double t, const double *xn, double *restrict fout, void *ctx)
+static void
+eval_distf(double t, const double *xn, double *restrict fout, void *ctx)
 {
   // 2-component distribution: F_0 (constant), G_1 (constant).
   fout[0] = AVAL;
   fout[1] = BVAL;
 }
 
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-void test_mom_pkpm_calc_1x1v_p1()
+void
+test_mom_pkpm_calc_1x1v_p1()
 {
   int poly_order = 1;
   double mass = 1.5;

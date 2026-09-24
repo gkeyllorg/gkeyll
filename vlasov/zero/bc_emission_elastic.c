@@ -8,7 +8,8 @@
 #include <assert.h>
 #include <math.h>
 
-struct gkyl_array_copy_func *gkyl_bc_emission_elastic_create_arr_copy_func(
+struct gkyl_array_copy_func *
+gkyl_bc_emission_elastic_create_arr_copy_func(
   int dir, int cdim, const struct gkyl_basis *basis, int ncomp, bool use_gpu
 )
 {
@@ -35,7 +36,8 @@ struct gkyl_array_copy_func *gkyl_bc_emission_elastic_create_arr_copy_func(
   return fout;
 }
 
-struct gkyl_bc_emission_elastic *gkyl_bc_emission_elastic_new(
+struct gkyl_bc_emission_elastic *
+gkyl_bc_emission_elastic_new(
   struct gkyl_emission_elastic_model *elastic_model, struct gkyl_array *elastic_yield, int dir,
   enum gkyl_edge_loc edge, int cdim, int vdim, double mass, int ncomp, struct gkyl_rect_grid *grid,
   struct gkyl_range *emit_buff_r, int poly_order, const struct gkyl_basis *dev_basis,
@@ -82,7 +84,8 @@ struct gkyl_bc_emission_elastic *gkyl_bc_emission_elastic_new(
   return up;
 }
 
-static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
+static inline void
+copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 {
   for (int i = 0; i < cdim; ++i) {
     out[i] = cidx[i];
@@ -92,7 +95,8 @@ static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const in
   }
 }
 
-void gkyl_bc_emission_elastic_advance(
+void
+gkyl_bc_emission_elastic_advance(
   const struct gkyl_bc_emission_elastic *up, struct gkyl_range *emit_skin_r,
   struct gkyl_array *buff_arr, struct gkyl_array *f_skin, struct gkyl_array *f_emit,
   struct gkyl_array *elastic_yield, struct gkyl_basis *basis
@@ -105,7 +109,8 @@ void gkyl_bc_emission_elastic_advance(
   gkyl_dg_mul_op(basis, 0, f_emit, 0, buff_arr, 0, elastic_yield);
 }
 
-void gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up)
+void
+gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up)
 {
   gkyl_emission_elastic_model_release(up->elastic_model);
   gkyl_free(up->reflect_func->ctx);
