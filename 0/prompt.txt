@@ -1,0 +1,5 @@
+This branch fixed a bunch of things from the geometry, but the lastest merge seemed to break a bunch of things. Main had a push that changed the autoformatter. Fix the branch to have the old fixes that were implemented before. The merge broke some things that need to be fixed
+
+---
+
+This branch fixed a bunch of things from the geometry, but the lastest merge seemed to break a bunch of things. Main had a push that changed the autoformatter. Fix the branch to have the old fixes that were implemented before. The merge broke some things that need to be fixed

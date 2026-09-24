@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3AB88833JZ9VYS7WEQH9429",
+  "session_id": "01a0d4b0-292a-7ed2-80be-235ff8cbd1a0",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-24T18:36:10.869694323Z",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "gyrokinetic/zero/position_map.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "c7de36e518d4",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 44791,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 777728,
+    "output_tokens": 3085,
+    "api_call_count": 19
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-24T18:36:10.803747536Z",
+    "agent_lines": 206,
+    "agent_removed": 218,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 206,
+    "total_lines_changed": 424,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 268,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "gyrokinetic/unit/ctest_gk_time_rate_diagnostics.c": 268
+      }
+    }
+  ]
+}
