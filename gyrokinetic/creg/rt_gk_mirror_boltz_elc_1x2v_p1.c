@@ -635,9 +635,11 @@ main(int argc, char **argv)
       },
 
     .positivity =
-      {.type = GKYL_GK_POSITIVITY_SHIFT,
-       .write_diagnostics = true,
-       .shift_regions = {.num_regions = 2, .lower = {-1.2, 0.8}, .upper = {-0.8, 1.2}}},
+      {
+        .type = GKYL_GK_POSITIVITY_SHIFT,
+        .write_diagnostics = true,
+        .shift_regions = {.num_regions = 2, .lower = {-1.2, 0.8}, .upper = {-0.8, 1.2}},
+      },
 
     .collisions =
       {

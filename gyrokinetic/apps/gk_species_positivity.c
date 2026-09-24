@@ -54,27 +54,34 @@ gks_pos_write_diags_enabled(
   struct gkyl_msgpack_map_elem mpe_pos[1 + 2 * GKYL_MAX_POSITIVITY_SHIFT_REGIONS];
   char region_keys[2 * GKYL_MAX_POSITIVITY_SHIFT_REGIONS][64];
   int mpe_pos_len = 0;
-  mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem
-  ){.key = "positivity_num_shift_regions",
+  mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem){
+    .key = "positivity_num_shift_regions",
     .elem_type = GKYL_MP_INT,
-    .ival = shift_regions->num_regions};
+    .ival = shift_regions->num_regions,
+  };
   for (int r = 0; r < shift_regions->num_regions; ++r) {
     snprintf(region_keys[2 * r], sizeof(region_keys[0]), "positivity_shift_region_%d_lower", r);
     snprintf(region_keys[2 * r + 1], sizeof(region_keys[0]), "positivity_shift_region_%d_upper", r);
-    mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem
-    ){.key = region_keys[2 * r], .elem_type = GKYL_MP_DOUBLE, .dval = shift_regions->lower[r]};
-    mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem
-    ){.key = region_keys[2 * r + 1], .elem_type = GKYL_MP_DOUBLE, .dval = shift_regions->upper[r]};
+    mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem){
+      .key = region_keys[2 * r],
+      .elem_type = GKYL_MP_DOUBLE,
+      .dval = shift_regions->lower[r],
+    };
+    mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem){
+      .key = region_keys[2 * r + 1],
+      .elem_type = GKYL_MP_DOUBLE,
+      .dval = shift_regions->upper[r],
+    };
   }
 
   // Package metadata using the configuration-space basis for these moments.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
-  struct gkyl_msgpack_map_elem desc[] = {
-    {.key = "Description",
-     .elem_type = GKYL_MP_STRING,
-     .cval = "M0M1M2PARM2PERP moments of the change in the distribution by the positivity shift."}
-  };
+  struct gkyl_msgpack_map_elem desc[] = {{
+    .key = "Description",
+    .elem_type = GKYL_MP_STRING,
+    .cval = "M0M1M2PARM2PERP moments of the change in the distribution by the positivity shift.",
+  }};
   int io_meta_len[] = {gks->io_meta_conf_len, mpe_pos_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gks->io_meta_conf, mpe_pos, app->gk_geom->io_meta_basic, desc
