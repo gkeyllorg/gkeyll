@@ -807,7 +807,7 @@ run_phase(
     .rate_const = 1 / 5e-6,
     .write_fbar = true,
     .write_rate = true,
-    .do_not_reset_fbar = true
+    .do_not_reset_fbar = true,
   };
 
   gkyl_gyrokinetic_app_reset_species_collisionless(app, t_curr, "ion", collisionless_inp);

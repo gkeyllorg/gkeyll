@@ -4384,7 +4384,9 @@ struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat = {
-    .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = frame, .stime = 0.0
+    .io_status = GKYL_ARRAY_RIO_SUCCESS,
+    .frame = frame,
+    .stime = 0.0,
   };
   for (int i = 0; i < app->num_neut_species; i++) {
     if (app->neut_species[i].info.is_static) {
@@ -4606,7 +4608,8 @@ gkyl_gyrokinetic_app_reset_species_positivity(
   gk_species_positivity_reset(app, tm, gks, &gks->positivity, pos_inp);
 }
 
-void gkyl_gyrokinetic_app_reset_species_damping(
+void
+gkyl_gyrokinetic_app_reset_species_damping(
   gkyl_gyrokinetic_app *app, double tm, const char *species_name,
   struct gkyl_gyrokinetic_damping damping_inp
 )
@@ -4615,7 +4618,8 @@ void gkyl_gyrokinetic_app_reset_species_damping(
   gk_species_damping_reset(app, tm, gks, &gks->damping, damping_inp);
 }
 
-void gkyl_gyrokinetic_app_reset_field(
+void
+gkyl_gyrokinetic_app_reset_field(
   gkyl_gyrokinetic_app *app, double tm, struct gkyl_gyrokinetic_field field_inp
 )
 {

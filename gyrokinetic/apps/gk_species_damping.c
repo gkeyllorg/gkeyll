@@ -4,7 +4,8 @@
 
 // Damping state synchronization helpers.
 
-static void gk_species_damping_set_fbar_to_f_cellwise_const(
+static void
+gk_species_damping_set_fbar_to_f_cellwise_const(
   const struct gk_species *gks, struct gk_damping *damp, const struct gkyl_array *f
 )
 {
@@ -13,7 +14,8 @@ static void gk_species_damping_set_fbar_to_f_cellwise_const(
   gkyl_array_set_offset(damp->fbarnew, 1.0, f, 0);
 }
 
-static void gk_species_damping_set_fbar_to_f_same_basis(
+static void
+gk_species_damping_set_fbar_to_f_same_basis(
   const struct gk_species *gks, struct gk_damping *damp, const struct gkyl_array *f
 )
 {
@@ -22,27 +24,31 @@ static void gk_species_damping_set_fbar_to_f_same_basis(
   gkyl_array_set(damp->fbarnew, 1.0, f);
 }
 
-void gk_species_damping_set_fbar_to_f_disabled(
+void
+gk_species_damping_set_fbar_to_f_disabled(
   const struct gk_species *gks, struct gk_damping *damp, const struct gkyl_array *f
 )
 {
 }
 
-void gk_species_damping_set_fbar_to_f(
+void
+gk_species_damping_set_fbar_to_f(
   const struct gk_species *gks, struct gk_damping *damp, const struct gkyl_array *f
 )
 {
   damp->set_fbar_to_f_func(gks, damp, f);
 }
 
-static enum gkyl_array_rio_status gk_species_damping_read_fbar_disabled(
+static enum gkyl_array_rio_status
+gk_species_damping_read_fbar_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *fname
 )
 {
   return GKYL_ARRAY_RIO_SUCCESS;
 }
 
-static enum gkyl_array_rio_status gk_species_damping_read_fbar_enabled(
+static enum gkyl_array_rio_status
+gk_species_damping_read_fbar_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *fname
 )
 {
@@ -76,13 +82,15 @@ gk_species_damping_write_disabled(
 {
 }
 
-static void gk_species_damping_write_rate_disabled(
+static void
+gk_species_damping_write_rate_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
 }
 
-static void gk_species_damping_write_rate_enabled(
+static void
+gk_species_damping_write_rate_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -120,13 +128,15 @@ static void gk_species_damping_write_rate_enabled(
   gkyl_msgpack_data_release(mt);
 }
 
-static void gk_species_damping_write_fbar_disabled(
+static void
+gk_species_damping_write_fbar_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
 }
 
-static void gk_species_damping_write_fbar_cellwise_const(
+static void
+gk_species_damping_write_fbar_cellwise_const(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -134,9 +144,11 @@ static void gk_species_damping_write_fbar_cellwise_const(
   struct gkyl_msgpack_map_elem mpe_fbar_p0[] = {
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
-    {.key = "Description",
-     .elem_type = GKYL_MP_STRING,
-     .cval = "Low-pass-filtered distribution function."},
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Low-pass-filtered distribution function.",
+    },
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
     {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame}
   };
@@ -169,7 +181,8 @@ static void gk_species_damping_write_fbar_cellwise_const(
   gkyl_msgpack_data_release(mt_fbar);
 }
 
-static void gk_species_damping_write_fbar_same_basis(
+static void
+gk_species_damping_write_fbar_same_basis(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -203,7 +216,8 @@ static void gk_species_damping_write_fbar_same_basis(
   gkyl_msgpack_data_release(mt_fbar);
 }
 
-void gk_species_damping_write_enabled(
+void
+gk_species_damping_write_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -224,14 +238,16 @@ gk_species_damping_write_init_only(
 
 // Damping rate projection helpers.
 
-static void proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
+static void
+proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
   int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
 }
 
-static void gk_species_damping_project_phase_rate(
+static void
+gk_species_damping_project_phase_rate(
   const struct gkyl_gyrokinetic_app *app, const struct gk_species *gks, int num_quad,
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx), void *rate_profile_ctx,
   struct gkyl_array *rate_host, struct gkyl_array *rate
@@ -245,15 +261,16 @@ static void gk_species_damping_project_phase_rate(
   struct gkyl_basis basis_mult;
   gkyl_cart_modal_serendip(&basis_mult, gks->basis.ndim, 0);
 
-  gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-  ){.grid = &gks->grid,
+  gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &gks->grid,
     .basis = &basis_mult,
     .num_quad = num_quad,
     .num_ret_vals = 1,
     .eval = rate_profile,
     .ctx = rate_profile_ctx,
     .c2p_func = proj_on_basis_c2p_phase_func,
-    .c2p_func_ctx = &proj_on_basis_c2p_ctx});
+    .c2p_func_ctx = &proj_on_basis_c2p_ctx,
+  });
   gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, rate_host);
   gkyl_proj_on_basis_release(projup);
   gkyl_array_copy(rate, rate_host);
@@ -265,7 +282,8 @@ static void gk_species_damping_project_phase_rate(
 
 // Damping RHS assembly dispatch helpers.
 
-void gk_species_damping_advance_disabled(
+void
+gk_species_damping_advance_disabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
   const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate
@@ -273,7 +291,8 @@ void gk_species_damping_advance_disabled(
 {
 }
 
-void gk_species_damping_advance_user_input(
+void
+gk_species_damping_advance_user_input(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
   const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate
@@ -287,7 +306,8 @@ void gk_species_damping_advance_user_input(
   gkyl_array_accumulate(cflrate, 1.0, damp->rate);
 }
 
-static void gk_species_damping_advance_low_pass_filter_cellwise_const(
+static void
+gk_species_damping_advance_low_pass_filter_cellwise_const(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
   const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate
@@ -304,7 +324,8 @@ static void gk_species_damping_advance_low_pass_filter_cellwise_const(
   gkyl_array_accumulate(cflrate, 1.0, damp->rate);
 }
 
-static void gk_species_damping_advance_low_pass_filter_same_basis(
+static void
+gk_species_damping_advance_low_pass_filter_same_basis(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
   const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate
@@ -321,7 +342,8 @@ static void gk_species_damping_advance_low_pass_filter_same_basis(
   gkyl_array_accumulate(cflrate, 1.0, damp->rate);
 }
 
-void gk_species_damping_advance(
+void
+gk_species_damping_advance(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
   const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate
@@ -342,14 +364,16 @@ gk_species_damping_write(gkyl_gyrokinetic_app *app, struct gk_species *gks, doub
 
 // Low-pass filter fbar RHS helpers.
 
-void gk_species_damping_calc_fbar_rhs_disabled(
+void
+gk_species_damping_calc_fbar_rhs_disabled(
   const struct gk_damping *damp, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *rhs_fbar
 )
 {
 }
 
-static void gk_species_damping_calc_fbar_rhs_cellwise_const(
+static void
+gk_species_damping_calc_fbar_rhs_cellwise_const(
   const struct gk_damping *damp, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *rhs_fbar
 )
@@ -360,7 +384,8 @@ static void gk_species_damping_calc_fbar_rhs_cellwise_const(
   gkyl_array_scale_by_cell(rhs_fbar, damp->rate);
 }
 
-static void gk_species_damping_calc_fbar_rhs_same_basis(
+static void
+gk_species_damping_calc_fbar_rhs_same_basis(
   const struct gk_damping *damp, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *rhs_fbar
 )
@@ -371,7 +396,8 @@ static void gk_species_damping_calc_fbar_rhs_same_basis(
   gkyl_array_scale_by_cell(rhs_fbar, damp->rate);
 }
 
-void gk_species_damping_calc_fbar_rhs(
+void
+gk_species_damping_calc_fbar_rhs(
   const struct gk_damping *damp, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *rhs_fbar
 )
@@ -381,14 +407,16 @@ void gk_species_damping_calc_fbar_rhs(
 
 // Low-pass filter stage update helpers.
 
-static void gk_species_damping_forward_euler_disabled(
+static void
+gk_species_damping_forward_euler_disabled(
   struct gk_species *gks, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *fbar_out, double dt
 )
 {
 }
 
-static void gk_species_damping_forward_euler_enabled(
+static void
+gk_species_damping_forward_euler_enabled(
   struct gk_species *gks, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *fbar_out, double dt
 )
@@ -397,7 +425,8 @@ static void gk_species_damping_forward_euler_enabled(
   gk_species_step_f(gks, fbar_out, dt, fbar_in);
 }
 
-void gk_species_damping_forward_euler(
+void
+gk_species_damping_forward_euler(
   struct gk_species *gks, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
   struct gkyl_array *fbar_out, double dt
 )
@@ -407,14 +436,16 @@ void gk_species_damping_forward_euler(
 
 // Low-pass filter RK stage combine/copy helpers.
 
-static void gk_species_damping_combine_disabled(
+static void
+gk_species_damping_combine_disabled(
   struct gk_species *gks, struct gkyl_array *fout, double c1, const struct gkyl_array *f1,
   double c2, const struct gkyl_array *f2, const struct gkyl_range *rng
 )
 {
 }
 
-static void gk_species_damping_combine_enabled(
+static void
+gk_species_damping_combine_enabled(
   struct gk_species *gks, struct gkyl_array *fout, double c1, const struct gkyl_array *f1,
   double c2, const struct gkyl_array *f2, const struct gkyl_range *rng
 )
@@ -422,7 +453,8 @@ static void gk_species_damping_combine_enabled(
   gk_species_combine(gks, fout, c1, f1, c2, f2, rng);
 }
 
-void gk_species_damping_combine(
+void
+gk_species_damping_combine(
   struct gk_species *gks, struct gkyl_array *fout, double c1, const struct gkyl_array *f1,
   double c2, const struct gkyl_array *f2, const struct gkyl_range *rng
 )
@@ -430,14 +462,16 @@ void gk_species_damping_combine(
   gks->damping.combine_func(gks, fout, c1, f1, c2, f2, rng);
 }
 
-static void gk_species_damping_copy_range_disabled(
+static void
+gk_species_damping_copy_range_disabled(
   struct gk_species *gks, struct gkyl_array *fout, const struct gkyl_array *fin,
   const struct gkyl_range *range
 )
 {
 }
 
-static void gk_species_damping_copy_range_enabled(
+static void
+gk_species_damping_copy_range_enabled(
   struct gk_species *gks, struct gkyl_array *fout, const struct gkyl_array *fin,
   const struct gkyl_range *range
 )
@@ -445,7 +479,8 @@ static void gk_species_damping_copy_range_enabled(
   gk_species_copy_range(gks, fout, fin, range);
 }
 
-void gk_species_damping_copy_range(
+void
+gk_species_damping_copy_range(
   struct gk_species *gks, struct gkyl_array *fout, const struct gkyl_array *fin,
   const struct gkyl_range *range
 )
@@ -455,7 +490,8 @@ void gk_species_damping_copy_range(
 
 // Damping object lifecycle.
 
-void gk_species_damping_init(
+void
+gk_species_damping_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_damping *damp
 )
 {
@@ -564,9 +600,8 @@ void gk_species_damping_init(
   }
 }
 
-void gk_species_damping_release(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_damping *damp
-)
+void
+gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct gk_damping *damp)
 {
   // Release remembered fbar state even when damping is currently disabled.
   if (damp->fbar_initialized) {
@@ -589,7 +624,8 @@ void gk_species_damping_release(
   }
 }
 
-void gk_species_damping_reset(
+void
+gk_species_damping_reset(
   gkyl_gyrokinetic_app *app, double tm, struct gk_species *gks, struct gk_damping *damp,
   struct gkyl_gyrokinetic_damping damp_inp
 )
