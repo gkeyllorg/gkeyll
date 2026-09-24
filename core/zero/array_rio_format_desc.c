@@ -6,7 +6,8 @@
 
 #include <gkyl_util.h>
 
-size_t gkyl_base_hdr_size(size_t meta_sz)
+size_t
+gkyl_base_hdr_size(size_t meta_sz)
 {
   size_t sz = 0;
   // magic string
@@ -21,7 +22,8 @@ size_t gkyl_base_hdr_size(size_t meta_sz)
   return sz;
 }
 
-size_t gkyl_file_type_1_partial_hrd_size(int ndim)
+size_t
+gkyl_file_type_1_partial_hrd_size(int ndim)
 {
   size_t sz = 0;
   // real_type
@@ -35,7 +37,8 @@ size_t gkyl_file_type_1_partial_hrd_size(int ndim)
   return sz;
 }
 
-size_t gkyl_file_type_1_hrd_size(int ndim)
+size_t
+gkyl_file_type_1_hrd_size(int ndim)
 {
   size_t sz = gkyl_file_type_1_partial_hrd_size(ndim);
   // esznc
@@ -45,7 +48,8 @@ size_t gkyl_file_type_1_hrd_size(int ndim)
   return sz;
 }
 
-size_t gkyl_file_type_2_hrd_size(void)
+size_t
+gkyl_file_type_2_hrd_size(void)
 {
   size_t sz = 0;
   // real_type
@@ -57,14 +61,16 @@ size_t gkyl_file_type_2_hrd_size(void)
   return sz;
 }
 
-size_t gkyl_file_type_3_hrd_size(int ndim)
+size_t
+gkyl_file_type_3_hrd_size(int ndim)
 {
   size_t sz = gkyl_file_type_1_hrd_size(ndim);
   sz += sizeof(uint64_t); // nrange
   return sz;
 }
 
-size_t gkyl_file_type_3_range_hrd_size(int ndim)
+size_t
+gkyl_file_type_3_range_hrd_size(int ndim)
 {
   size_t sz = 0;
   // loidx and upidx
@@ -73,7 +79,8 @@ size_t gkyl_file_type_3_range_hrd_size(int ndim)
   return sz;
 }
 
-int gkyl_get_gkyl_file_type(const char *fname)
+int
+gkyl_get_gkyl_file_type(const char *fname)
 {
   int file_type = -1;
   FILE *fp = 0;

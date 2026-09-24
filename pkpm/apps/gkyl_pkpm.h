@@ -457,8 +457,9 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app,
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx, const char *fname);
+struct gkyl_app_restart_status gkyl_pkpm_app_from_file_species(
+  gkyl_pkpm_app *app, int sidx, const char *fname
+);
 
 /**
  * Initialize pkpm fluid species from file
@@ -467,8 +468,9 @@ gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx, const char *fname)
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx, const char *fname);
+struct gkyl_app_restart_status gkyl_pkpm_app_from_file_fluid_species(
+  gkyl_pkpm_app *app, int sidx, const char *fname
+);
 
 /**
  * Initialize field from frame
@@ -485,8 +487,9 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app
  * @param sidx gk species index
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame);
+struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_species(
+  gkyl_pkpm_app *app, int sidx, int frame
+);
 
 /**
  * Initialize the pkpm app from a specific frame.

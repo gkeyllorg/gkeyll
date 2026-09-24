@@ -15,7 +15,8 @@ extern "C" {
 // CUDA kernel to set pointer to nuSum and nuPrimMomsSum (collision frequency * primitive moments)
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_lbo_pkpm_diff_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_lbo_pkpm_diff_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum,
   const struct gkyl_array *nuPrimMomsSum
 )
@@ -26,7 +27,8 @@ __global__ static void gkyl_lbo_pkpm_diff_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for device kernels setting nuSum and nuPrimMomsSum.
-void gkyl_lbo_pkpm_diff_set_auxfields_cu(
+void
+gkyl_lbo_pkpm_diff_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_pkpm_diff_auxfields auxin
 )
 {
@@ -37,7 +39,8 @@ void gkyl_lbo_pkpm_diff_set_auxfields_cu(
 
 // CUDA kernel to set device pointers to range object and Vlasov PKPM LBO diffusion kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_lbo_pkpm_diff_set_cu_dev_ptrs(
+__global__ static void
+dg_lbo_pkpm_diff_set_cu_dev_ptrs(
   struct dg_lbo_pkpm_diff *lbo_pkpm_diff, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
@@ -52,23 +55,23 @@ __global__ static void dg_lbo_pkpm_diff_set_cu_dev_ptrs(
   const gkyl_dg_lbo_pkpm_diff_boundary_surf_kern_list *boundary_surf_vpar_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_vpar_kernels = ser_surf_vpar_kernels;
-    boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_vpar_kernels = ser_surf_vpar_kernels;
+      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    vol_kernels = ten_vol_kernels;
-    surf_vpar_kernels = ten_surf_vpar_kernels;
-    boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_vpar_kernels = ten_surf_vpar_kernels;
+      boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   lbo_pkpm_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
@@ -78,7 +81,8 @@ __global__ static void dg_lbo_pkpm_diff_set_cu_dev_ptrs(
   lbo_pkpm_diff->boundary_surf = CK(boundary_surf_vpar_kernels, cdim, poly_order);
 }
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_diff_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_lbo_pkpm_diff_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid
 )

@@ -20,14 +20,16 @@
 
 #include <gkyl_deflated_dg_bin_ops.h>
 
-void proj_jac(double t, const double *xn, double *fout, void *ctx)
+void
+proj_jac(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
   fout[0] = 1.0 + z * z * cos(x);
 }
 
-void proj_rho(double t, const double *xn, double *fout, void *ctx)
+void
+proj_rho(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
@@ -35,7 +37,8 @@ void proj_rho(double t, const double *xn, double *fout, void *ctx)
 }
 
 // Check continuity along last dim in 2x
-void check_continuity_2x(
+void
+check_continuity_2x(
   struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis,
   struct gkyl_array *field
 )
@@ -73,7 +76,8 @@ void check_continuity_2x(
   gkyl_array_release(nodes);
 }
 
-void check_same(
+void
+check_same(
   struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
   struct gkyl_array *field2
 )
@@ -90,7 +94,8 @@ void check_same(
   }
 }
 
-void test_bop(bool use_gpu)
+void
+test_bop(bool use_gpu)
 {
   int c_lop = 0;
   int c_rop = 0;
@@ -209,11 +214,13 @@ void test_bop(bool use_gpu)
   gkyl_deflated_dg_bin_ops_release(operator);
 }
 
-void test_deflated_bop_ho(void)
+void
+test_deflated_bop_ho(void)
 {
   test_bop(false);
 }
-void test_deflated_bop_dev(void)
+void
+test_deflated_bop_dev(void)
 {
   test_bop(true);
 }

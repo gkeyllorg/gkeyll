@@ -50,8 +50,9 @@ gkyl_dg_updater_gyrokinetic_passive *gkyl_dg_updater_gyrokinetic_passive_new(
  * 
  * @return Passive gyrokinetic equation object.
  */
-struct gkyl_dg_eqn *
-gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(const gkyl_dg_updater_gyrokinetic_passive *up);
+struct gkyl_dg_eqn *gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(
+  const gkyl_dg_updater_gyrokinetic_passive *up
+);
 
 /**
  * Compute the RHS DG update.
@@ -73,8 +74,9 @@ void gkyl_dg_updater_gyrokinetic_passive_advance(
  * @param up Updater object.
  * @return Timers.
  */
-struct gkyl_dg_updater_gyrokinetic_passive_tm
-gkyl_dg_updater_gyrokinetic_passive_get_tm(const gkyl_dg_updater_gyrokinetic_passive *up);
+struct gkyl_dg_updater_gyrokinetic_passive_tm gkyl_dg_updater_gyrokinetic_passive_get_tm(
+  const gkyl_dg_updater_gyrokinetic_passive *up
+);
 
 /**
  * Delete updater.

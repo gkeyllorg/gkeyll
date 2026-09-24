@@ -7,7 +7,8 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 
-void test_range_0(struct gkyl_range *range)
+void
+test_range_0(struct gkyl_range *range)
 {
   TEST_CHECK(range->ndim == 0);
   TEST_CHECK(range->volume == 1);
@@ -15,7 +16,8 @@ void test_range_0(struct gkyl_range *range)
   TEST_CHECK(gkyl_range_is_sub_range(range) == 0);
 }
 
-void test_range_0_stack_ho()
+void
+test_range_0_stack_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 0, NULL, NULL);
@@ -23,7 +25,8 @@ void test_range_0_stack_ho()
   test_range_0(&range);
 }
 
-void test_range_0_heap_ho()
+void
+test_range_0_heap_ho()
 {
   struct gkyl_range *range = gkyl_range_new(0, NULL, NULL);
   test_range_0(range);
@@ -34,7 +37,8 @@ void test_range_0_heap_ho()
   gkyl_range_release(range);
 }
 
-void test_range_1_ho()
+void
+test_range_1_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
   struct gkyl_range range;
@@ -49,7 +53,8 @@ void test_range_1_ho()
   }
 }
 
-void test_range_shape_ho()
+void
+test_range_shape_ho()
 {
   int shape[] = {25, 50};
   struct gkyl_range range;
@@ -64,7 +69,8 @@ void test_range_shape_ho()
   }
 }
 
-void test_range_shape1_ho()
+void
+test_range_shape1_ho()
 {
   int shape[] = {25, 50};
   struct gkyl_range range;
@@ -79,7 +85,8 @@ void test_range_shape1_ho()
   }
 }
 
-void test_range_shift_ho()
+void
+test_range_shift_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
   struct gkyl_range range;
@@ -99,7 +106,8 @@ void test_range_shift_ho()
   }
 }
 
-static void test_range_reset_ho()
+static void
+test_range_reset_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
   struct gkyl_range range;
@@ -122,7 +130,8 @@ static void test_range_reset_ho()
   }
 }
 
-void test_range_iter_init_next_ho()
+void
+test_range_iter_init_next_ho()
 {
   // Test 1D range
   int lower1d[] = {1}, upper1d[] = {17};
@@ -194,7 +203,8 @@ void test_range_iter_init_next_ho()
   }
 }
 
-void test_sub_range_ho()
+void
+test_sub_range_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
   struct gkyl_range range;
@@ -238,7 +248,8 @@ void test_sub_range_ho()
   TEST_CHECK(gkyl_range_contains_idx(&range, (int[]){0, 20}) == 0);
 }
 
-void test_sub_range_inv_idx_ho()
+void
+test_sub_range_inv_idx_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
   struct gkyl_range range;
@@ -267,7 +278,8 @@ void test_sub_range_inv_idx_ho()
   }
 }
 
-void test_sub_sub_range_ho()
+void
+test_sub_sub_range_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
   struct gkyl_range range;
@@ -303,7 +315,8 @@ void test_sub_sub_range_ho()
   }
 }
 
-void test_shorten_from_above_ho()
+void
+test_shorten_from_above_ho()
 {
   int lower[] = {1, 1, 1}, upper[] = {20, 30, 20};
   struct gkyl_range range, shortr, shortr2;
@@ -339,7 +352,8 @@ void test_shorten_from_above_ho()
   TEST_CHECK(shortr2.volume == 20 * 20 * 3);
 }
 
-void test_shorten_from_below_ho()
+void
+test_shorten_from_below_ho()
 {
   int lower[] = {1, 1, 1}, upper[] = {20, 30, 20};
   struct gkyl_range range, shortr, shortr2;
@@ -375,7 +389,8 @@ void test_shorten_from_below_ho()
   TEST_CHECK(shortr2.volume == 20 * 20 * 3);
 }
 
-void test_range_skin_ho()
+void
+test_range_skin_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 10};
   struct gkyl_range range;
@@ -420,7 +435,8 @@ void test_range_skin_ho()
   TEST_CHECK(upperSkinRange2.upper[1] == 10);
 }
 
-void test_range_index_1d_ho()
+void
+test_range_index_1d_ho()
 {
   int lower[] = {-3}, upper[] = {17};
   struct gkyl_range range;
@@ -434,7 +450,8 @@ void test_range_index_1d_ho()
   TEST_CHECK(count == range.volume);
 }
 
-void test_range_index_2d_ho()
+void
+test_range_index_2d_ho()
 {
   int lower[2] = {1, 1}, upper[2] = {10, 20};
   struct gkyl_range range;
@@ -450,7 +467,8 @@ void test_range_index_2d_ho()
   TEST_CHECK(count == range.volume);
 }
 
-void test_range_index_3d_ho()
+void
+test_range_index_3d_ho()
 {
   int lower[] = {1, 1, 2}, upper[] = {10, 20, 29};
   struct gkyl_range range;
@@ -468,7 +486,8 @@ void test_range_index_3d_ho()
   TEST_CHECK(count == range.volume);
 }
 
-void test_range_index_4d_ho()
+void
+test_range_index_4d_ho()
 {
   int lower[] = {1, 1, 2, -1}, upper[] = {10, 20, 29, 10};
   struct gkyl_range range;
@@ -488,7 +507,8 @@ void test_range_index_4d_ho()
   TEST_CHECK(count == range.volume);
 }
 
-void test_range_index_5d_ho()
+void
+test_range_index_5d_ho()
 {
   int lower[] = {1, 1, 2, 0, 1}, upper[] = {4, 5, 8, 4, 3};
   struct gkyl_range range;
@@ -510,7 +530,8 @@ void test_range_index_5d_ho()
   TEST_CHECK(count == range.volume);
 }
 
-void test_range_index_6d_ho()
+void
+test_range_index_6d_ho()
 {
   int lower[] = {1, 1, 2, 0, 1, -5}, upper[] = {4, 5, 8, 4, 3, -1};
   struct gkyl_range range;
@@ -534,7 +555,8 @@ void test_range_index_6d_ho()
   TEST_CHECK(count == range.volume);
 }
 
-void test_range_idx_ho()
+void
+test_range_idx_ho()
 {
   int lower[] = {1, 1, 2}, upper[] = {10, 20, 29};
   struct gkyl_range range;
@@ -568,7 +590,8 @@ void test_range_idx_ho()
   TEST_CHECK(count == range.volume);
 }
 
-void test_range_offset_ho()
+void
+test_range_offset_ho()
 {
   int lower[] = {1, 1, 2}, upper[] = {10, 20, 29};
   struct gkyl_range range;
@@ -615,7 +638,8 @@ void test_range_offset_ho()
   TEST_CHECK(offset == -28 * 20);
 }
 
-void test_range_iter_2d()
+void
+test_range_iter_2d()
 {
   int lower[2] = {1, 1}, upper[2] = {2, 3};
   struct gkyl_range range;
@@ -633,7 +657,8 @@ void test_range_iter_2d()
   }
 }
 
-void test_range_iter_3d()
+void
+test_range_iter_3d()
 {
   int lower[3] = {1, 1, -10}, upper[3] = {2, 5, -5};
   struct gkyl_range range;
@@ -654,7 +679,8 @@ void test_range_iter_3d()
   }
 }
 
-void test_range_inv_idx(struct gkyl_range *range)
+void
+test_range_inv_idx(struct gkyl_range *range)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
@@ -668,7 +694,8 @@ void test_range_inv_idx(struct gkyl_range *range)
   }
 }
 
-void test_range_inv_idx_stack_ho()
+void
+test_range_inv_idx_stack_ho()
 {
   int lower[] = {1, 1, 1}, upper[] = {5, 5, 4};
   struct gkyl_range range;
@@ -676,7 +703,8 @@ void test_range_inv_idx_stack_ho()
   test_range_inv_idx(&range);
 }
 
-void test_range_inv_idx_heap_ho()
+void
+test_range_inv_idx_heap_ho()
 {
   int lower[] = {1, 1, 1}, upper[] = {5, 5, 4};
   struct gkyl_range *range = gkyl_range_new(3, lower, upper);
@@ -694,7 +722,8 @@ void test_range_inv_idx_heap_ho()
   gkyl_range_release(range);
 }
 
-void test_huge_range_ho()
+void
+test_huge_range_ho()
 {
   int lower[] = {1, 1, 1, 1, 1, 1}, upper[] = {64, 64, 64, 64, 64, 64};
   struct gkyl_range range;
@@ -715,7 +744,8 @@ void test_huge_range_ho()
   }
 }
 
-void test_range_deflate_ho()
+void
+test_range_deflate_ho()
 {
   int lower[] = {1, 1, 1}, upper[] = {10, 20, 30};
   struct gkyl_range range;
@@ -809,7 +839,8 @@ void test_range_deflate_ho()
   }
 }
 
-void test_range_skip_iter_ho()
+void
+test_range_skip_iter_ho()
 {
   int lower[] = {0, 0, 0}, upper[] = {5, 9, 17};
   struct gkyl_range range;
@@ -849,7 +880,8 @@ void test_range_skip_iter_ho()
   TEST_CHECK(count == localRange.volume);
 }
 
-void test_range_skip_iter_2_ho()
+void
+test_range_skip_iter_2_ho()
 {
   int lower[] = {0, 0, 0, 1, 1, 1}, upper[] = {17, 17, 17, 16, 16, 16};
   struct gkyl_range range;
@@ -866,7 +898,8 @@ void test_range_skip_iter_2_ho()
   TEST_CHECK(skip.delta * skip.range.volume == 16 * 16 * 16 * 16 * 16 * 16);
 }
 
-void test_range_split_1_ho()
+void
+test_range_split_1_ho()
 {
   int lower[] = {1}, upper[] = {10};
   struct gkyl_range range;
@@ -891,7 +924,8 @@ void test_range_split_1_ho()
   TEST_CHECK(tot == range.volume);
 }
 
-void test_range_split_2_ho()
+void
+test_range_split_2_ho()
 {
   int lower[] = {1, 2}, upper[] = {10, 25};
   struct gkyl_range range;
@@ -924,7 +958,8 @@ void test_range_split_2_ho()
   TEST_CHECK(tot == range.volume);
 }
 
-void test_range_split_3_ho()
+void
+test_range_split_3_ho()
 {
   int lower[] = {1, 2}, upper[] = {10, 25};
   struct gkyl_range range;
@@ -956,7 +991,8 @@ void test_range_split_3_ho()
   TEST_CHECK(tot == range.volume);
 }
 
-void test_sub_range_split_ho()
+void
+test_sub_range_split_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
   struct gkyl_range range;
@@ -991,7 +1027,8 @@ void test_sub_range_split_ho()
   TEST_CHECK(tot == subrange.volume);
 }
 
-void test_range_split_iter_1_ho()
+void
+test_range_split_iter_1_ho()
 {
   int lower[] = {1}, upper[] = {13};
   struct gkyl_range range;
@@ -1013,7 +1050,8 @@ void test_range_split_iter_1_ho()
   TEST_CHECK(tot_vol == range.volume);
 }
 
-void test_range_split_iter_2_ho()
+void
+test_range_split_iter_2_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 25};
   struct gkyl_range range;
@@ -1035,7 +1073,8 @@ void test_range_split_iter_2_ho()
   TEST_CHECK(tot_vol == range.volume);
 }
 
-void test_range_split_iter_3_ho()
+void
+test_range_split_iter_3_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 25};
   struct gkyl_range range;
@@ -1070,7 +1109,8 @@ void test_range_split_iter_3_ho()
   gkyl_array_release(arr);
 }
 
-void test_sub_range_split_iter_ho()
+void
+test_sub_range_split_iter_ho()
 {
   int lower[] = {1, 1}, upper[] = {20, 25};
   struct gkyl_range range;
@@ -1108,7 +1148,8 @@ void test_sub_range_split_iter_ho()
   gkyl_array_release(arr);
 }
 
-void test_range_nested_iter_ho()
+void
+test_range_nested_iter_ho()
 {
   int shape[] = {2, 2, 4, 8};
 
@@ -1143,7 +1184,8 @@ void test_range_nested_iter_ho()
   gkyl_array_release(carr);
 }
 
-void test_range_intersect_ho()
+void
+test_range_intersect_ho()
 {
   struct gkyl_range r1, r2, r3, r4, inter;
 
@@ -1174,7 +1216,8 @@ void test_range_intersect_ho()
   TEST_CHECK(0 == gkyl_range_intersect(&inter, &r1, &r4));
 }
 
-void test_range_intersect_2_ho()
+void
+test_range_intersect_2_ho()
 {
   struct gkyl_range r1, r2, r3, inter;
 
@@ -1189,7 +1232,8 @@ void test_range_intersect_2_ho()
   TEST_CHECK(0 == gkyl_range_intersect(&inter, &r1, &r3));
 }
 
-void test_range_sub_intersect_ho()
+void
+test_range_sub_intersect_ho()
 {
   struct gkyl_range local_ext;
   gkyl_range_init(&local_ext, 2, (int[]){1, 1}, (int[]){15, 15});
@@ -1210,7 +1254,8 @@ void test_range_sub_intersect_ho()
   }
 }
 
-void test_range_extend_ho(void)
+void
+test_range_extend_ho(void)
 {
   int lo[] = {1, 1}, up[] = {4, 8};
 
@@ -1230,7 +1275,8 @@ void test_range_extend_ho(void)
   TEST_CHECK(ext_range.upper[1] == 10);
 }
 
-static void test_range_perp_extend_ho(void)
+static void
+test_range_perp_extend_ho(void)
 {
   int lo[] = {1, 1}, up[] = {4, 8};
 
@@ -1266,7 +1312,8 @@ static void test_range_perp_extend_ho(void)
   } while (0);
 }
 
-static void test_range_skin_ghost_ho(void)
+static void
+test_range_skin_ghost_ho(void)
 {
   struct gkyl_range rng;
   gkyl_range_init(&rng, 2, (int[]){2, 3}, (int[]){100, 85});
@@ -1315,7 +1362,8 @@ static void test_range_skin_ghost_ho(void)
   } while (0);
 }
 
-static void test_range_skin_ghost_with_corners_ho(void)
+static void
+test_range_skin_ghost_with_corners_ho(void)
 {
   struct gkyl_range rng;
   gkyl_range_init(&rng, 2, (int[]){2, 3}, (int[]){100, 85});
@@ -1364,7 +1412,8 @@ static void test_range_skin_ghost_with_corners_ho(void)
   } while (0);
 }
 
-static void test_range_edge_match_ho(void)
+static void
+test_range_edge_match_ho(void)
 {
   struct gkyl_range base;
   gkyl_range_init(&base, 2, (int[]){5, 6}, (int[]){15, 20});
@@ -1401,7 +1450,8 @@ static void test_range_edge_match_ho(void)
   TEST_CHECK(dir_ed.eloc == GKYL_NO_EDGE);
 }
 
-void test_range_init_shape()
+void
+test_range_init_shape()
 {
   int lower[] = {1, 1}, upper[] = {4, 5};
   struct gkyl_range rng;
@@ -1414,7 +1464,8 @@ void test_range_init_shape()
   TEST_CHECK(!gkyl_range_is_sub_range(&rng));
 }
 
-void test_range_init_from_shape_basic()
+void
+test_range_init_from_shape_basic()
 {
   int shape[] = {3, 4, 5};
   struct gkyl_range rng;
@@ -1429,7 +1480,8 @@ void test_range_init_from_shape_basic()
   TEST_CHECK(rng.lower[0] == 0);
 }
 
-void test_range_index_roundtrip()
+void
+test_range_index_roundtrip()
 {
   int lower[] = {1, 1}, upper[] = {3, 4};
   struct gkyl_range rng;
@@ -1447,7 +1499,8 @@ void test_range_index_roundtrip()
   }
 }
 
-void test_range_index_unique()
+void
+test_range_index_unique()
 {
   int lower[] = {0, 0}, upper[] = {2, 2};
   struct gkyl_range rng;
@@ -1468,7 +1521,8 @@ void test_range_index_unique()
   }
 }
 
-void test_range_iter_basic()
+void
+test_range_iter_basic()
 {
   int lower[] = {1, 1}, upper[] = {3, 3};
   struct gkyl_range rng;
@@ -1487,7 +1541,8 @@ void test_range_iter_basic()
   TEST_CHECK(count == 9);
 }
 
-void test_range_shorten()
+void
+test_range_shorten()
 {
   int lower[] = {1, 1}, upper[] = {4, 6};
   struct gkyl_range rng;
@@ -1501,7 +1556,8 @@ void test_range_shorten()
   TEST_CHECK(srng.volume == 4);
 }
 
-void test_sub_range_basic()
+void
+test_sub_range_basic()
 {
   int lower[] = {1, 1}, upper[] = {10, 10};
   struct gkyl_range rng;
@@ -1523,7 +1579,8 @@ void test_sub_range_basic()
 /* Function signatures of kernel calls */
 int cu_range_test(const struct gkyl_range rng);
 
-void test_range_dev()
+void
+test_range_dev()
 {
   int shape[] = {25, 50};
   struct gkyl_range range;

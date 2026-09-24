@@ -11,7 +11,8 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void gkyl_euler_pkpm_free(const struct gkyl_ref_count *ref)
+void
+gkyl_euler_pkpm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_euler_pkpm *euler_pkpm = container_of(base, struct dg_euler_pkpm, eqn);
@@ -24,7 +25,8 @@ void gkyl_euler_pkpm_free(const struct gkyl_ref_count *ref)
   gkyl_free(euler_pkpm);
 }
 
-void gkyl_euler_pkpm_set_auxfields(
+void
+gkyl_euler_pkpm_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin
 )
 {
@@ -44,7 +46,8 @@ void gkyl_euler_pkpm_set_auxfields(
   euler_pkpm->auxfields.pkpm_penalization = auxin.pkpm_penalization;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_new(
+struct gkyl_dg_eqn *
+gkyl_dg_euler_pkpm_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu
 )
 {
@@ -62,25 +65,25 @@ struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_new(
   const gkyl_dg_euler_pkpm_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_x_kernels = ser_surf_x_kernels;
-    surf_y_kernels = ser_surf_y_kernels;
-    surf_z_kernels = ser_surf_z_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_x_kernels = ser_surf_x_kernels;
+      surf_y_kernels = ser_surf_y_kernels;
+      surf_z_kernels = ser_surf_z_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    vol_kernels = ten_vol_kernels;
-    surf_x_kernels = ten_surf_x_kernels;
-    surf_y_kernels = ten_surf_y_kernels;
-    surf_z_kernels = ten_surf_z_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_x_kernels = ten_surf_x_kernels;
+      surf_y_kernels = ten_surf_y_kernels;
+      surf_z_kernels = ten_surf_z_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   euler_pkpm->eqn.num_equations = 3;

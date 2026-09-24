@@ -6,7 +6,8 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
-void test_gr_mhd_tetrad_basic_minkowski_ho()
+void
+test_gr_mhd_tetrad_basic_minkowski_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -378,7 +379,8 @@ void test_gr_mhd_tetrad_basic_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_mhd_tetrad_basic_schwarzschild_ho()
+void
+test_gr_mhd_tetrad_basic_schwarzschild_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -758,7 +760,8 @@ void test_gr_mhd_tetrad_basic_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_mhd_tetrad_basic_kerr_ho()
+void
+test_gr_mhd_tetrad_basic_kerr_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -1138,7 +1141,8 @@ void test_gr_mhd_tetrad_basic_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_mhd_tetrad_waves_minkowski_ho()
+void
+test_gr_mhd_tetrad_waves_minkowski_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -1625,7 +1629,8 @@ void test_gr_mhd_tetrad_waves_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_mhd_tetrad_waves_schwarzschild_ho()
+void
+test_gr_mhd_tetrad_waves_schwarzschild_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -2117,7 +2122,8 @@ void test_gr_mhd_tetrad_waves_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_mhd_tetrad_waves_kerr_ho()
+void
+test_gr_mhd_tetrad_waves_kerr_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;

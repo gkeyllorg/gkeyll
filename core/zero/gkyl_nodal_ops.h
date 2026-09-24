@@ -20,8 +20,9 @@ struct gkyl_nodal_ops {
  * @param use_gpu Boolean for whether nodes are stored on device
  * Returns pointer to gkyl_nodal_ops struct.
  */
-struct gkyl_nodal_ops *
-gkyl_nodal_ops_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu);
+struct gkyl_nodal_ops *gkyl_nodal_ops_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu
+);
 
 /**
  * Transform nodal representation to modal representation

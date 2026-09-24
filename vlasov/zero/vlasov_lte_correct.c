@@ -80,7 +80,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .det_h = inp->det_h,
     .hamil = inp->hamil,
     .model_id = inp->model_id,
-    .use_gpu = inp->use_gpu
+    .use_gpu = inp->use_gpu,
   };
   up->moments_up = gkyl_vlasov_lte_moments_inew(&inp_mom);
 
@@ -105,14 +105,15 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .det_h = inp->det_h,
     .hamil = inp->hamil,
     .model_id = inp->model_id,
-    .use_gpu = inp->use_gpu
+    .use_gpu = inp->use_gpu,
   };
   up->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
   return up;
 }
 
-struct gkyl_vlasov_lte_correct_status gkyl_vlasov_lte_correct_all_moments(
+struct gkyl_vlasov_lte_correct_status
+gkyl_vlasov_lte_correct_all_moments(
   gkyl_vlasov_lte_correct *up, struct gkyl_array *f_lte, const struct gkyl_array *moms_target,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local
 )
@@ -307,7 +308,8 @@ struct gkyl_vlasov_lte_correct_status gkyl_vlasov_lte_correct_all_moments(
   return status;
 }
 
-void gkyl_vlasov_lte_correct_release(gkyl_vlasov_lte_correct *up)
+void
+gkyl_vlasov_lte_correct_release(gkyl_vlasov_lte_correct *up)
 {
   if (up->vel_map != 0) {
     gkyl_velocity_map_release(up->vel_map);
@@ -330,7 +332,8 @@ void gkyl_vlasov_lte_correct_release(gkyl_vlasov_lte_correct *up)
 
 #ifndef GKYL_HAVE_CUDA
 
-void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
+void
+gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
   const struct gkyl_range *conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
   const struct gkyl_array *moms_iter, struct gkyl_array *moms_abs_diff
 )

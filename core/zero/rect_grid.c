@@ -6,7 +6,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_grid_priv.h>
 #include <gkyl_util.h>
-void gkyl_rect_grid_init(
+void
+gkyl_rect_grid_init(
   struct gkyl_rect_grid *grid, int ndim, const double *lower, const double *upper, const int *cells
 )
 {
@@ -32,7 +33,8 @@ gkyl_rect_grid_new(int ndim, const double *lower, const double *upper, const int
   return out;
 }
 
-bool gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_grid *grid2)
+bool
+gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_grid *grid2)
 {
   if (grid1->ndim != grid2->ndim) {
     return false;
@@ -52,7 +54,8 @@ bool gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_gri
   return true;
 }
 
-GKYL_CU_DH void gkyl_rect_grid_find_cell(
+GKYL_CU_DH void
+gkyl_rect_grid_find_cell(
   const struct gkyl_rect_grid *grid, const double *point, const bool *pick_lower,
   const int *known_index, int *cell_index
 )
@@ -143,7 +146,8 @@ GKYL_CU_DH void gkyl_rect_grid_find_cell(
   }
 }
 
-void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, const char *nm, FILE *fp)
+void
+gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, const char *nm, FILE *fp)
 {
   if (fp == stdout || fp == stderr) {
     fprintf(fp, "%s = { ndim = %d, ", nm, grid->ndim);
@@ -191,7 +195,8 @@ void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, const char *nm, FIL
   }
 }
 
-bool gkyl_rect_grid_read(struct gkyl_rect_grid *grid, FILE *fp)
+bool
+gkyl_rect_grid_read(struct gkyl_rect_grid *grid, FILE *fp)
 {
   uint64_t ndim = grid->ndim;
   uint64_t cells64[GKYL_MAX_DIM];
@@ -222,7 +227,8 @@ bool gkyl_rect_grid_read(struct gkyl_rect_grid *grid, FILE *fp)
   return true;
 }
 
-void gkyl_rect_grid_release(struct gkyl_rect_grid *grid)
+void
+gkyl_rect_grid_release(struct gkyl_rect_grid *grid)
 {
   gkyl_free(grid);
 }

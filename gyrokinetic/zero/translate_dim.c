@@ -2,7 +2,8 @@
 #include <gkyl_translate_dim_priv.h>
 #include <gkyl_alloc.h>
 
-struct gkyl_translate_dim *gkyl_translate_dim_new(
+struct gkyl_translate_dim *
+gkyl_translate_dim_new(
   int cdim_do, struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir,
   enum gkyl_edge_loc edge, bool use_gpu
 )
@@ -47,7 +48,8 @@ struct gkyl_translate_dim *gkyl_translate_dim_new(
   return up;
 }
 
-void gkyl_translate_dim_advance(
+void
+gkyl_translate_dim_advance(
   gkyl_translate_dim *up, const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp, struct gkyl_array *GKYL_RESTRICT ftar
 )
@@ -84,7 +86,8 @@ void gkyl_translate_dim_advance(
   }
 }
 
-void gkyl_translate_dim_release(gkyl_translate_dim *up)
+void
+gkyl_translate_dim_release(gkyl_translate_dim *up)
 {
   // Release memory associated with this updater.
   if (!up->use_gpu) {

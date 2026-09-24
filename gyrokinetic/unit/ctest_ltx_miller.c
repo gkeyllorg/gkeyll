@@ -19,7 +19,8 @@
 #include <gkyl_gk_geometry_tok.h>
 #include <gkyl_nodal_ops.h>
 
-void write_geometry(
+void
+write_geometry(
   gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range local,
   const char *name
 )
@@ -86,7 +87,7 @@ struct gkyl_efit_inp inp = {
   .filepath = "gyrokinetic/data/eqdsk/ltx_miller.geqdsk",
   .rz_poly_order = 2,
   .flux_poly_order = 1,
-  .reflect = true
+  .reflect = true,
 };
 
 int cpoly_order = 1;
@@ -95,7 +96,8 @@ int cnghost[GKYL_MAX_CDIM] = {1, 1, 1};
 struct gkyl_rect_grid cgrid;
 struct gkyl_range clocal, clocal_ext;
 
-void test_ltx_miller_ho()
+void
+test_ltx_miller_ho()
 {
   clock_t start, end;
   double cpu_time_used;
@@ -113,7 +115,7 @@ void test_ltx_miller_ho()
     .rmin = 0.1,
     .rmax = 0.65,
     .zmin = -0.3,
-    .zmax = 0.3
+    .zmax = 0.3,
   };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -138,7 +140,7 @@ void test_ltx_miller_ho()
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis
+    .geo_basis = cbasis,
   };
 
   struct gk_geometry *up = gkyl_gk_geometry_tok_new(&geometry_inp);

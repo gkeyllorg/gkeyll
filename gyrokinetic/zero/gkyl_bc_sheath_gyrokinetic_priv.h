@@ -21,16 +21,20 @@ typedef struct {
 
 // Serendipity  kernels.
 GKYL_CU_D static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
-  {.list =
-     {{bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1, NULL},
-      {bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1, NULL},
-      {bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1, NULL},
-      {bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1, NULL}}},
-  {.list =
-     {{bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1, NULL},
-      {bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1, NULL},
-      {bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1, NULL},
-      {bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1, NULL}}}
+  {
+    .list =
+      {{bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1, NULL},
+       {bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1, NULL},
+       {bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1, NULL},
+       {bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1, NULL}},
+  },
+  {
+    .list =
+      {{bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1, NULL},
+       {bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1, NULL},
+       {bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1, NULL},
+       {bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1, NULL}},
+  }
 };
 
 struct gkyl_bc_sheath_gyrokinetic_kernels {
@@ -63,17 +67,18 @@ bc_gksheath_choose_reflectedf_kernel(const struct gkyl_basis *basis, enum gkyl_e
   enum gkyl_basis_type basis_type = basis->b_type;
   int poly_order = basis->poly_order;
   switch (basis_type) {
-  case GKYL_BASIS_MODAL_GKHYBRID:
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_sheath_reflect_list[edge].list[dim - 2].kernels[poly_order - 1];
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_sheath_reflect_list[edge].list[dim - 2].kernels[poly_order - 1];
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
 
-GKYL_CU_D static void bc_gksheath_reflect(
+GKYL_CU_D static void
+bc_gksheath_reflect(
   int dir, const struct gkyl_basis *basis, int cdim, double *out, const double *inp
 )
 {

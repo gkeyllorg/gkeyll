@@ -14,7 +14,8 @@ extern "C" {
 
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-__global__ static void set_cu_ptrs(
+__global__ static void
+set_cu_ptrs(
   struct mom_type_pkpm *mom_pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order, bool diag
 )
 {
@@ -22,21 +23,21 @@ __global__ static void set_cu_ptrs(
   const gkyl_mom_pkpm_kern_list *mom_pkpm_kernels, *mom_pkpm_diag_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    mom_pkpm_kernels = ser_mom_pkpm_kernels;
-    mom_pkpm_diag_kernels = ser_mom_pkpm_diag_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mom_pkpm_kernels = ser_mom_pkpm_kernels;
+      mom_pkpm_diag_kernels = ser_mom_pkpm_diag_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    mom_pkpm_kernels = ten_mom_pkpm_kernels;
-    mom_pkpm_diag_kernels = ten_mom_pkpm_diag_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      mom_pkpm_kernels = ten_mom_pkpm_kernels;
+      mom_pkpm_diag_kernels = ten_mom_pkpm_diag_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   if (diag) {
@@ -48,7 +49,8 @@ __global__ static void set_cu_ptrs(
   }
 }
 
-struct gkyl_mom_type *gkyl_mom_pkpm_cu_dev_new(
+struct gkyl_mom_type *
+gkyl_mom_pkpm_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass, bool diag
 )
 {

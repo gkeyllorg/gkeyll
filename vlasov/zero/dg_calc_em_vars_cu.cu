@@ -13,7 +13,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void gkyl_dg_calc_em_vars_set_cu_kernel(
+__global__ static void
+gkyl_dg_calc_em_vars_set_cu_kernel(
   struct gkyl_dg_calc_em_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_range conf_range, const struct gkyl_array *em, struct gkyl_array *cell_avg_magB2,
   struct gkyl_array *temp_var
@@ -43,7 +44,8 @@ __global__ static void gkyl_dg_calc_em_vars_set_cu_kernel(
   }
 }
 
-__global__ static void gkyl_dg_calc_em_vars_copy_cu_kernel(
+__global__ static void
+gkyl_dg_calc_em_vars_copy_cu_kernel(
   struct gkyl_dg_calc_em_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array *em, struct gkyl_array *cell_avg_magB2, struct gkyl_array *out,
   struct gkyl_array *out_surf
@@ -73,7 +75,8 @@ __global__ static void gkyl_dg_calc_em_vars_copy_cu_kernel(
   }
 }
 
-void gkyl_dg_calc_em_vars_advance_cu(
+void
+gkyl_dg_calc_em_vars_advance_cu(
   struct gkyl_dg_calc_em_vars *up, const struct gkyl_array *em, struct gkyl_array *cell_avg_magB2,
   struct gkyl_array *out, struct gkyl_array *out_surf
 )
@@ -97,7 +100,8 @@ void gkyl_dg_calc_em_vars_advance_cu(
   );
 }
 
-__global__ void gkyl_dg_calc_em_vars_div_b_cu_kernel(
+__global__ void
+gkyl_dg_calc_em_vars_div_b_cu_kernel(
   struct gkyl_dg_calc_em_vars *up, struct gkyl_range conf_range, const struct gkyl_array *bvar_surf,
   const struct gkyl_array *bvar, struct gkyl_array *max_b, struct gkyl_array *div_b
 )
@@ -142,7 +146,8 @@ __global__ void gkyl_dg_calc_em_vars_div_b_cu_kernel(
 }
 
 // Host-side wrapper for div(b) and max(|b_i|) variable calculations
-void gkyl_dg_calc_em_vars_div_b_cu(
+void
+gkyl_dg_calc_em_vars_div_b_cu(
   struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *bvar_surf, const struct gkyl_array *bvar, struct gkyl_array *max_b,
   struct gkyl_array *div_b
@@ -155,7 +160,8 @@ void gkyl_dg_calc_em_vars_div_b_cu(
   );
 }
 
-__global__ void gkyl_dg_calc_em_vars_limiter_cu_kernel(
+__global__ void
+gkyl_dg_calc_em_vars_limiter_cu_kernel(
   struct gkyl_dg_calc_em_vars *up, struct gkyl_range conf_range, struct gkyl_array *em
 )
 {
@@ -194,7 +200,8 @@ __global__ void gkyl_dg_calc_em_vars_limiter_cu_kernel(
 }
 
 // Host-side wrapper for slope limiter of em variables
-void gkyl_dg_calc_em_vars_limiter_cu(
+void
+gkyl_dg_calc_em_vars_limiter_cu(
   struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, struct gkyl_array *em
 )
 {
@@ -205,7 +212,8 @@ void gkyl_dg_calc_em_vars_limiter_cu(
 
 // CUDA kernel to set device pointers to em vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_calc_em_vars_set_cu_dev_ptrs(
+__global__ static void
+dg_calc_em_vars_set_cu_dev_ptrs(
   struct gkyl_dg_calc_em_vars *up, enum gkyl_basis_type b_type, int cdim, int poly_order,
   bool is_ExB
 )
@@ -226,7 +234,8 @@ __global__ static void dg_calc_em_vars_set_cu_dev_ptrs(
   }
 }
 
-gkyl_dg_calc_em_vars *gkyl_dg_calc_em_vars_cu_dev_new(
+gkyl_dg_calc_em_vars *
+gkyl_dg_calc_em_vars_cu_dev_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
   const struct gkyl_range *mem_range, const struct gkyl_wv_eqn *wv_eqn,
   const struct gkyl_wave_geom *wg, double limiter_fac, bool is_ExB

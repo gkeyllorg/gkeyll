@@ -4,13 +4,15 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_basis_ops.h>
 
-void gk_species_damping_write_disabled(
+void
+gk_species_damping_write_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
 }
 
-void gk_species_damping_write_enabled(
+void
+gk_species_damping_write_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -50,7 +52,8 @@ void gk_species_damping_write_enabled(
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gk_species_damping_write_init_only(
+void
+gk_species_damping_write_init_only(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -58,14 +61,16 @@ void gk_species_damping_write_init_only(
   gks->damping.write_func = gk_species_damping_write_disabled;
 }
 
-static void proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
+static void
+proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
   int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
 }
 
-void gk_species_damping_init(
+void
+gk_species_damping_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_damping *damp
 )
 {
@@ -93,15 +98,16 @@ void gk_species_damping_init(
       proj_on_basis_c2p_ctx.cdim = app->cdim;
       proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
       proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-      ){.grid = &gks->grid,
+      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+        .grid = &gks->grid,
         .basis = &gks->basis,
         .num_quad = num_quad,
         .num_ret_vals = 1,
         .eval = gks->info.damping.rate_profile,
         .ctx = gks->info.damping.rate_profile_ctx,
         .c2p_func = proj_on_basis_c2p_phase_func,
-        .c2p_func_ctx = &proj_on_basis_c2p_ctx});
+        .c2p_func_ctx = &proj_on_basis_c2p_ctx,
+      });
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, damp->rate_host);
       gkyl_proj_on_basis_release(projup);
       gkyl_array_copy(damp->rate, damp->rate_host);
@@ -175,7 +181,7 @@ void gk_species_damping_init(
         .mass = gks->info.mass,
         .charge = gks->info.charge,
         .num_quad = num_quad,
-        .use_gpu = app->use_gpu
+        .use_gpu = app->use_gpu,
       };
       damp->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
@@ -228,7 +234,8 @@ void gk_species_damping_init(
   }
 }
 
-void gk_species_damping_advance(
+void
+gk_species_damping_advance(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
   const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
   struct gkyl_array *rhs, struct gkyl_array *cflrate
@@ -266,16 +273,14 @@ void gk_species_damping_advance(
   }
 }
 
-void gk_species_damping_write(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
-)
+void
+gk_species_damping_write(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   gks->damping.write_func(app, gks, tm, frame);
 }
 
-void gk_species_damping_release(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_damping *damp
-)
+void
+gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct gk_damping *damp)
 {
   if (damp->type) {
     gkyl_array_release(damp->rate);

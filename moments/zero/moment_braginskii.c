@@ -23,7 +23,8 @@ struct gkyl_moment_braginskii {
     coll_fac; // constant multiplicative factor for collision time to increase or decrease collisionality
 };
 
-static void create_offsets_vertices(const struct gkyl_range *range, long offsets[])
+static void
+create_offsets_vertices(const struct gkyl_range *range, long offsets[])
 {
   // box spanning stencil
   struct gkyl_range box3;
@@ -39,7 +40,8 @@ static void create_offsets_vertices(const struct gkyl_range *range, long offsets
   }
 }
 
-static void create_offsets_centers(const struct gkyl_range *range, long offsets[])
+static void
+create_offsets_centers(const struct gkyl_range *range, long offsets[])
 {
   // box spanning stencil
   struct gkyl_range box3;
@@ -56,7 +58,8 @@ static void create_offsets_centers(const struct gkyl_range *range, long offsets[
 }
 
 // Fetch input quantities and compute derived quantities for magnetized Braginskii
-static void mag_var_setup(
+static void
+mag_var_setup(
   const gkyl_moment_braginskii *bes, int start, int end, const double *fluid_d[][GKYL_MAX_SPECIES],
   const double *em_tot_d[], double u[][2][3], double b[][3], double T[][2], double tau[][2],
   double eta_par[][2], double eta_perp[][2], double eta_cross[][2], double kappa_par[][2],
@@ -156,7 +159,8 @@ static void mag_var_setup(
   }
 }
 
-static void mag_brag_calc_vars(
+static void
+mag_brag_calc_vars(
   const gkyl_moment_braginskii *bes, const double *fluid_d[][GKYL_MAX_SPECIES],
   const double *em_tot_d[], double *cflrate[GKYL_MAX_SPECIES], double *brag_d[GKYL_MAX_SPECIES]
 )
@@ -396,7 +400,8 @@ static void mag_brag_calc_vars(
 }
 
 // Fetch input quantities and compute derived quantities for UNmagnetized Braginskii
-static void unmag_var_setup(
+static void
+unmag_var_setup(
   const gkyl_moment_braginskii *bes, int start, int end, const double *fluid_d[][GKYL_MAX_SPECIES],
   double u[][2][3], double T[][2], double tau[][2], double eta[][2], double kappa[][2],
   double current[][3]
@@ -464,7 +469,8 @@ static void unmag_var_setup(
   }
 }
 
-static void unmag_brag_calc_vars(
+static void
+unmag_brag_calc_vars(
   const gkyl_moment_braginskii *bes, const double *fluid_d[][GKYL_MAX_SPECIES],
   double *cflrate[GKYL_MAX_SPECIES], double *brag_d[GKYL_MAX_SPECIES]
 )
@@ -613,7 +619,8 @@ static void unmag_brag_calc_vars(
   }
 }
 
-static void brag_calc_update(
+static void
+brag_calc_update(
   const gkyl_moment_braginskii *bes, const double *brag_d[][GKYL_MAX_SPECIES],
   double *rhs[GKYL_MAX_SPECIES]
 )
@@ -700,7 +707,8 @@ static void brag_calc_update(
   }
 }
 
-gkyl_moment_braginskii *gkyl_moment_braginskii_new(struct gkyl_moment_braginskii_inp inp)
+gkyl_moment_braginskii *
+gkyl_moment_braginskii_new(struct gkyl_moment_braginskii_inp inp)
 {
   gkyl_moment_braginskii *up = gkyl_malloc(sizeof(gkyl_moment_braginskii));
 
@@ -716,7 +724,8 @@ gkyl_moment_braginskii *gkyl_moment_braginskii_new(struct gkyl_moment_braginskii
   return up;
 }
 
-static bool has_mag(const gkyl_moment_braginskii *bes)
+static bool
+has_mag(const gkyl_moment_braginskii *bes)
 {
   bool mag = false;
   for (int n = 0; n < bes->nfluids; ++n) {
@@ -728,7 +737,8 @@ static bool has_mag(const gkyl_moment_braginskii *bes)
   return mag;
 }
 
-void gkyl_moment_braginskii_advance(
+void
+gkyl_moment_braginskii_advance(
   const gkyl_moment_braginskii *bes, struct gkyl_range brag_vars_range,
   struct gkyl_range update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
   const struct gkyl_array *em_tot, struct gkyl_array *cflrate[GKYL_MAX_SPECIES],
@@ -798,7 +808,8 @@ void gkyl_moment_braginskii_advance(
   }
 }
 
-void gkyl_moment_braginskii_release(gkyl_moment_braginskii *up)
+void
+gkyl_moment_braginskii_release(gkyl_moment_braginskii *up)
 {
   free(up);
 }

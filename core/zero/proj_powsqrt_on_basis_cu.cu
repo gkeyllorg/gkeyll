@@ -7,7 +7,8 @@ extern "C" {
 #include <gkyl_range.h>
 }
 
-__global__ static void gkyl_proj_powsqrt_on_basis_advance_cu_ker(
+__global__ static void
+gkyl_proj_powsqrt_on_basis_advance_cu_ker(
   int num_quad, const struct gkyl_range range, const struct gkyl_array *GKYL_RESTRICT basis_at_ords,
   const struct gkyl_array *GKYL_RESTRICT weights, double expIn,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT fOut
@@ -55,7 +56,8 @@ __global__ static void gkyl_proj_powsqrt_on_basis_advance_cu_ker(
   }
 }
 
-void gkyl_proj_powsqrt_on_basis_advance_cu(
+void
+gkyl_proj_powsqrt_on_basis_advance_cu(
   const gkyl_proj_powsqrt_on_basis *up, const struct gkyl_range *range, double expIn,
   const struct gkyl_array *fIn, struct gkyl_array *fOut
 )

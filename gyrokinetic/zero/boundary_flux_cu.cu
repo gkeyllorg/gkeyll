@@ -8,7 +8,8 @@ extern "C" {
 #include <gkyl_boundary_flux_priv.h>
 }
 
-struct gkyl_boundary_flux *gkyl_boundary_flux_cu_dev_new(
+struct gkyl_boundary_flux *
+gkyl_boundary_flux_cu_dev_new(
   int dir, enum gkyl_edge_loc edge, const struct gkyl_rect_grid *grid,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, int num_eqns,
   const struct gkyl_dg_eqn **eqns
@@ -53,7 +54,8 @@ struct gkyl_boundary_flux *gkyl_boundary_flux_cu_dev_new(
   return up;
 }
 
-__global__ static void gkyl_boundary_flux_advance_cu_ker(
+__global__ static void
+gkyl_boundary_flux_advance_cu_ker(
   const struct gkyl_boundary_flux *up, const struct gkyl_array *fIn, struct gkyl_array *fluxOut
 )
 {
@@ -86,7 +88,8 @@ __global__ static void gkyl_boundary_flux_advance_cu_ker(
   }
 }
 
-void gkyl_boundary_flux_advance_cu(
+void
+gkyl_boundary_flux_advance_cu(
   struct gkyl_boundary_flux *up, const struct gkyl_array *fIn, struct gkyl_array *fluxOut
 )
 {

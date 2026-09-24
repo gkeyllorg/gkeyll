@@ -91,7 +91,8 @@ struct gkyl_dg_eqn *gkyl_dg_eqn_acquire(const struct gkyl_dg_eqn *eqn);
  * @param qRhsOut Output RHS for use in an explicit time-stepping scheme
  * @return cfl frequency *if volume term is computing stable time step* (otherwise returns 0.0)
  */
-GKYL_CU_DH static inline double gkyl_dg_eqn_vol_update(
+GKYL_CU_DH static inline double
+gkyl_dg_eqn_vol_update(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -119,7 +120,8 @@ GKYL_CU_DH static inline double gkyl_dg_eqn_vol_update(
  * @param qRhsOut Output RHS for use in an explicit time-stepping scheme in center cell (the cell being updated)
  * @return cfl frequency *if surface term is computing stable time step* (otherwise returns 0.0)
  */
-GKYL_CU_DH static inline double gkyl_dg_eqn_surf_update(
+GKYL_CU_DH static inline double
+gkyl_dg_eqn_surf_update(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC, const double *xcR,
   const double *dxL, const double *dxC, const double *dxR, const int *idxL, const int *idxC,
   const int *idxR, const double *qInL, const double *qInC, const double *qInR,
@@ -148,7 +150,8 @@ GKYL_CU_DH static inline double gkyl_dg_eqn_surf_update(
  * @param qRhsOut Output RHS for use in an explicit time-stepping scheme in skin cell (the cell being updated)
  * @return cfl frequency *if boundary surface term is computing stable time step* (otherwise returns 0.0)
  */
-GKYL_CU_DH static inline double gkyl_dg_eqn_boundary_surf_update(
+GKYL_CU_DH static inline double
+gkyl_dg_eqn_boundary_surf_update(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
   const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
   const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut
@@ -177,7 +180,8 @@ GKYL_CU_DH static inline double gkyl_dg_eqn_boundary_surf_update(
  * @param qRhsOut Output RHS for use in an explicit time-stepping scheme in skin cell (the cell being updated)
  * @return cfl frequency *if boundary surface term is computing stable time step* (otherwise returns 0.0)
  */
-GKYL_CU_DH static inline double gkyl_dg_eqn_boundary_diag_update(
+GKYL_CU_DH static inline double
+gkyl_dg_eqn_boundary_diag_update(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
   const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
   const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut

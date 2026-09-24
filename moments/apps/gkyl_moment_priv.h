@@ -376,13 +376,15 @@ struct moment_output_meta {
 /** Some common functions to species and fields */
 
 // functions for use in integrated quantities calculation
-static inline void integ_unit(int nc, const double *qin, double *integ_out)
+static inline void
+integ_unit(int nc, const double *qin, double *integ_out)
 {
   for (int i = 0; i < nc; ++i) {
     integ_out[i] = qin[i];
   }
 }
-static inline void integ_sq(int nc, const double *qin, double *integ_out)
+static inline void
+integ_sq(int nc, const double *qin, double *integ_out)
 {
   for (int i = 0; i < nc; ++i) {
     integ_out[i] = qin[i] * qin[i];
@@ -390,7 +392,8 @@ static inline void integ_sq(int nc, const double *qin, double *integ_out)
 }
 
 // function for copy BC
-static inline void bc_copy(
+static inline void
+bc_copy(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -401,7 +404,8 @@ static inline void bc_copy(
 }
 
 // function for skip BCs
-static inline void bc_skip(
+static inline void
+bc_skip(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -453,8 +457,9 @@ void moment_species_apply_bc(
 double moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *sp);
 
 // Advance solution of species by time-step dt to tcurr+dt
-struct gkyl_update_status
-moment_species_update(gkyl_moment_app *app, struct moment_species *sp, double tcurr, double dt);
+struct gkyl_update_status moment_species_update(
+  gkyl_moment_app *app, struct moment_species *sp, double tcurr, double dt
+);
 
 // Compute RHS of moment equations
 double moment_species_rhs(
@@ -482,8 +487,9 @@ void moment_field_apply_bc(
 double moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld);
 
 // Update EM field from tcurr to tcurr+dt
-struct gkyl_update_status
-moment_field_update(gkyl_moment_app *app, const struct moment_field *fld, double tcurr, double dt);
+struct gkyl_update_status moment_field_update(
+  gkyl_moment_app *app, const struct moment_field *fld, double tcurr, double dt
+);
 
 // Compute RHS of EM equations
 double moment_field_rhs(

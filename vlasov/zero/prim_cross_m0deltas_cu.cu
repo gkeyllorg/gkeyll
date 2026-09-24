@@ -10,7 +10,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(
+__global__ void
+gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(
   struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_basis basis, bool normNu, double betap1T2,
   double massself, struct gkyl_array *m0self, struct gkyl_array *nuself, double massother,
   struct gkyl_array *m0other, struct gkyl_array *nuother, struct gkyl_range range,
@@ -85,7 +86,8 @@ __global__ void gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(
 }
 
 // Modeled after gkyl_dg_div_copy_sol_op_range_cu_kernel in dg_bin_ops_cu.cu.
-__global__ void gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel(
+__global__ void
+gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel(
   struct gkyl_nmat *xs, struct gkyl_basis basis, struct gkyl_array *out, struct gkyl_range range
 )
 {
@@ -110,7 +112,8 @@ __global__ void gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel(
   }
 }
 
-void gkyl_prim_cross_m0deltas_advance_cu(
+void
+gkyl_prim_cross_m0deltas_advance_cu(
   gkyl_prim_cross_m0deltas *up, double massself, const struct gkyl_array *m0self,
   const struct gkyl_array *nuself, double massother, const struct gkyl_array *m0other,
   const struct gkyl_array *nuother, struct gkyl_array *out

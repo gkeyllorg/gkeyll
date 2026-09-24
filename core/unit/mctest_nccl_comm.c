@@ -11,7 +11,8 @@
 #include <gkyl_nccl_comm.h>
 #include <gkyl_rrobin_decomp.h>
 
-void nccl_allreduce_dev()
+void
+nccl_allreduce_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -82,7 +83,8 @@ void nccl_allreduce_dev()
   gkyl_comm_release(comm_dev);
 }
 
-void nccl_n2_allgather_1d_dev()
+void
+nccl_n2_allgather_1d_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -146,7 +148,8 @@ void nccl_n2_allgather_1d_dev()
   gkyl_array_release(arr_global_ho);
 }
 
-void nccl_n4_allgather_2d_dev()
+void
+nccl_n4_allgather_2d_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -224,7 +227,8 @@ void nccl_n4_allgather_2d_dev()
   gkyl_array_release(arr_global_ho);
 }
 
-void nccl_n2_allgather_1d_host_dev()
+void
+nccl_n2_allgather_1d_host_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -281,7 +285,8 @@ void nccl_n2_allgather_1d_host_dev()
   gkyl_array_release(arr_global_ho);
 }
 
-void nccl_n4_allgather_2d_host_dev()
+void
+nccl_n4_allgather_2d_host_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -584,7 +589,8 @@ void nccl_n4_allgather_2d_host_dev()
 //   gkyl_comm_release(comm_ho);
 // }
 
-void nccl_n2_sync_1d_dev()
+void
+nccl_n2_sync_1d_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -601,11 +607,17 @@ void nccl_n2_sync_1d_dev()
   int cuts[] = {2};
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
 
-  struct gkyl_comm *comm_ho = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp
-  ){.mpi_comm = MPI_COMM_WORLD, .decomp = decomp, .sync_corners = false});
+  struct gkyl_comm *comm_ho = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
+    .mpi_comm = MPI_COMM_WORLD,
+    .decomp = decomp,
+    .sync_corners = false,
+  });
 
-  struct gkyl_comm *comm_dev = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp
-  ){.mpi_comm = MPI_COMM_WORLD, .decomp = decomp, .sync_corners = false});
+  struct gkyl_comm *comm_dev = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
+    .mpi_comm = MPI_COMM_WORLD,
+    .decomp = decomp,
+    .sync_corners = false,
+  });
 
   int nghost[] = {1};
   struct gkyl_range local, local_ext;
@@ -645,7 +657,8 @@ void nccl_n2_sync_1d_dev()
   gkyl_comm_release(comm_ho);
 }
 
-void nccl_n4_sync_2d(bool use_corners)
+void
+nccl_n4_sync_2d(bool use_corners)
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -662,11 +675,17 @@ void nccl_n4_sync_2d(bool use_corners)
   int cuts[] = {2, 2};
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
 
-  struct gkyl_comm *comm_ho = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp
-  ){.mpi_comm = MPI_COMM_WORLD, .decomp = decomp, .sync_corners = use_corners});
+  struct gkyl_comm *comm_ho = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
+    .mpi_comm = MPI_COMM_WORLD,
+    .decomp = decomp,
+    .sync_corners = use_corners,
+  });
 
-  struct gkyl_comm *comm_dev = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp
-  ){.mpi_comm = MPI_COMM_WORLD, .decomp = decomp, .sync_corners = use_corners});
+  struct gkyl_comm *comm_dev = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
+    .mpi_comm = MPI_COMM_WORLD,
+    .decomp = decomp,
+    .sync_corners = use_corners,
+  });
 
   int nghost[] = {1, 1};
   struct gkyl_range local, local_ext;
@@ -725,16 +744,19 @@ void nccl_n4_sync_2d(bool use_corners)
   gkyl_comm_release(comm_ho);
 }
 
-void nccl_n4_sync_2d_no_corner_dev()
+void
+nccl_n4_sync_2d_no_corner_dev()
 {
   nccl_n4_sync_2d(false);
 }
-void nccl_n4_sync_2d_use_corner_dev()
+void
+nccl_n4_sync_2d_use_corner_dev()
 {
   nccl_n4_sync_2d(true);
 }
 
-void nccl_n4_sync_1x1v_dev()
+void
+nccl_n4_sync_1x1v_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -803,7 +825,8 @@ void nccl_n4_sync_1x1v_dev()
   gkyl_array_release(arr_ho);
 }
 
-void nccl_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
+void
+nccl_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -891,7 +914,8 @@ void nccl_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
   gkyl_rect_decomp_release(decomp);
 }
 
-void nccl_n1_per_sync_2d_dev()
+void
+nccl_n1_per_sync_2d_dev()
 {
   int per_dirs_0[] = {0};
   int per_dirs_1[] = {1};
@@ -906,7 +930,8 @@ void nccl_n1_per_sync_2d_dev()
   nccl_n1_per_sync_2d_tests(2, per_dirs_01);
 }
 
-void nccl_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
+void
+nccl_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1004,7 +1029,8 @@ void nccl_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
   gkyl_rect_decomp_release(decomp);
 }
 
-void nccl_n2_per_sync_2d_dev()
+void
+nccl_n2_per_sync_2d_dev()
 {
   int cuts_21[] = {2, 1};
   int cuts_12[] = {1, 2};
@@ -1021,7 +1047,8 @@ void nccl_n2_per_sync_2d_dev()
   nccl_n2_per_sync_2d_tests(cuts_12, 2, per_dirs_01);
 }
 
-void nccl_n4_multicomm_2d_dev()
+void
+nccl_n4_multicomm_2d_dev()
 {
   // Test the use of two gkyl_comm objects simultaneously, mimicing the case
   // where one is used to decompose space and the other species.
@@ -1140,7 +1167,8 @@ void nccl_n4_multicomm_2d_dev()
   gkyl_rect_decomp_release(confdecomp);
 }
 
-static void nccl_n4_create_comm_from_ranks_1_dev()
+static void
+nccl_n4_create_comm_from_ranks_1_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1201,7 +1229,8 @@ static void nccl_n4_create_comm_from_ranks_1_dev()
   gkyl_comm_release(comm_b2);
 }
 
-static void nccl_n4_create_comm_from_ranks_2_dev()
+static void
+nccl_n4_create_comm_from_ranks_2_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1268,7 +1297,8 @@ static void nccl_n4_create_comm_from_ranks_2_dev()
   gkyl_comm_release(comm_b2);
 }
 
-void nccl_bcast_1d_dev()
+void
+nccl_bcast_1d_dev()
 {
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1318,7 +1348,8 @@ void nccl_bcast_1d_dev()
   gkyl_array_release(arr_ho);
 }
 
-void nccl_bcast_2d_test(int *cuts)
+void
+nccl_bcast_2d_test(int *cuts)
 {
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1377,7 +1408,8 @@ void nccl_bcast_2d_test(int *cuts)
   gkyl_array_release(arr_ho);
 }
 
-void nccl_bcast_2d_dev()
+void
+nccl_bcast_2d_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1402,7 +1434,8 @@ void nccl_bcast_2d_dev()
   }
 }
 
-void nccl_bcast_1d_host_dev()
+void
+nccl_bcast_1d_host_dev()
 {
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1448,7 +1481,8 @@ void nccl_bcast_1d_host_dev()
   gkyl_array_release(arr_ho);
 }
 
-void nccl_bcast_2d_host_test(int *cuts)
+void
+nccl_bcast_2d_host_test(int *cuts)
 {
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1503,7 +1537,8 @@ void nccl_bcast_2d_host_test(int *cuts)
   gkyl_array_release(arr_ho);
 }
 
-void nccl_bcast_2d_host_dev()
+void
+nccl_bcast_2d_host_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);

@@ -87,7 +87,8 @@ struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
   return up;
 }
 
-void gkyl_positivity_shift_gyrokinetic_advance(
+void
+gkyl_positivity_shift_gyrokinetic_advance(
   gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
   const struct gkyl_range *phase_rng, struct gkyl_array *GKYL_RESTRICT distf,
   struct gkyl_array *GKYL_RESTRICT m0, struct gkyl_array *GKYL_RESTRICT delta_m0
@@ -241,7 +242,8 @@ void gkyl_positivity_shift_gyrokinetic_advance(
   up->ffloor[0] = up->ffloor_fac * distf_max * up->cellav_fac;
 }
 
-void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(
+void
+gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(
   gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
   const struct gkyl_range *phase_rng, const struct gkyl_array *GKYL_RESTRICT delta_m0s,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
@@ -321,7 +323,8 @@ void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(
   }
 }
 
-void gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic *up)
+void
+gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic *up)
 {
   // Release memory associated with this updater.
   gkyl_gk_geometry_release(up->gk_geom);

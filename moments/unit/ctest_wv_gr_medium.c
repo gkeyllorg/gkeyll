@@ -4,7 +4,8 @@
 #include <gkyl_wv_gr_medium.h>
 #include <gkyl_wv_gr_medium_priv.h>
 
-void test_gr_medium_basic_ho()
+void
+test_gr_medium_basic_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double kappa = 8.0 * M_PI;
@@ -119,7 +120,8 @@ void test_gr_medium_basic_ho()
   gkyl_wv_eqn_release(gr_medium);
 }
 
-void test_gr_medium_waves_ho()
+void
+test_gr_medium_waves_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double kappa = 8.0 * M_PI;
@@ -241,7 +243,8 @@ void test_gr_medium_waves_ho()
   gkyl_wv_eqn_release(gr_medium);
 }
 
-void test_gr_medium_waves_2_ho()
+void
+test_gr_medium_waves_2_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double kappa = 8.0 * M_PI;

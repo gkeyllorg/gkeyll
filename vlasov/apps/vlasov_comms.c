@@ -1,7 +1,8 @@
 #include <gkyl_vlasov_comms.h>
 #include <assert.h>
 
-struct gkyl_comm *gkyl_vlasov_comms_new(bool use_mpi, bool use_gpu, FILE *iostream)
+struct gkyl_comm *
+gkyl_vlasov_comms_new(bool use_mpi, bool use_gpu, FILE *iostream)
 {
   // Construct communicator for use in app.
   struct gkyl_comm *comm = 0;
@@ -26,7 +27,8 @@ struct gkyl_comm *gkyl_vlasov_comms_new(bool use_mpi, bool use_gpu, FILE *iostre
   return comm;
 }
 
-void gkyl_vlasov_comms_release(struct gkyl_comm *comm)
+void
+gkyl_vlasov_comms_release(struct gkyl_comm *comm)
 {
   if (comm != 0) {
     gkyl_comm_release(comm);

@@ -8,7 +8,8 @@
 #include <gkyl_dg_calc_gk_neut_hamil_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_gk_neut_hamil *gkyl_dg_calc_gk_neut_hamil_new(
+gkyl_dg_calc_gk_neut_hamil *
+gkyl_dg_calc_gk_neut_hamil_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *basis, int cdim, bool use_gpu
 )
 {
@@ -33,7 +34,8 @@ gkyl_dg_calc_gk_neut_hamil *gkyl_dg_calc_gk_neut_hamil_new(
   return up;
 }
 
-void gkyl_dg_calc_gk_neut_hamil_calc(
+void
+gkyl_dg_calc_gk_neut_hamil_calc(
   struct gkyl_dg_calc_gk_neut_hamil *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *gij, struct gkyl_array *hamil
 )
@@ -60,7 +62,8 @@ void gkyl_dg_calc_gk_neut_hamil_calc(
   }
 }
 
-void gkyl_dg_calc_gk_neut_hamil_release(gkyl_dg_calc_gk_neut_hamil *up)
+void
+gkyl_dg_calc_gk_neut_hamil_release(gkyl_dg_calc_gk_neut_hamil *up)
 {
   gkyl_free(up);
 }

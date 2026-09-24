@@ -67,7 +67,8 @@ struct cylindrical_sodshock_ctx {
   double midplane; // Radial midplane location designating jump in quantities.
 };
 
-struct cylindrical_sodshock_ctx create_ctx(void)
+struct cylindrical_sodshock_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -151,13 +152,14 @@ struct cylindrical_sodshock_ctx create_ctx(void)
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .midplane = midplane
+    .midplane = midplane,
   };
 
   return ctx;
 }
 
-void evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct cylindrical_sodshock_ctx *app = ctx;
   double r = xn[0];
@@ -180,7 +182,8 @@ void evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[0] = metric_det * n;
 }
 
-void evalTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct cylindrical_sodshock_ctx *app = ctx;
   double r = xn[0];
@@ -201,7 +204,8 @@ void evalTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   fout[0] = T;
 }
 
-void evalVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct cylindrical_sodshock_ctx *app = ctx;
   double r = xn[0];
@@ -236,7 +240,8 @@ void evalVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTR
   fout[2] = V_z_drift;
 }
 
-void evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct cylindrical_sodshock_ctx *app = ctx;
 
@@ -246,7 +251,8 @@ void evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[0] = nu;
 }
 
-void evalHamiltonian(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalHamiltonian(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double q_r = xn[0], p_r_dot = xn[2], p_theta_dot = xn[3], p_z_dot = xn[4];
 
@@ -268,7 +274,8 @@ void evalHamiltonian(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[0] = hamiltonian;
 }
 
-void evalInvMetric(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalInvMetric(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double q_r = xn[0];
 
@@ -289,7 +296,8 @@ void evalInvMetric(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[5] = inv_metric_z_z;
 }
 
-void evalMetric(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalMetric(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double q_r = xn[0];
 
@@ -309,7 +317,8 @@ void evalMetric(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   fout[5] = metric_z_z;
 }
 
-void evalMetricDet(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalMetricDet(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double q_r = xn[0];
 
@@ -319,7 +328,8 @@ void evalMetricDet(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[0] = metric_det;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -337,16 +347,16 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr
   }
 }
 
-void calc_field_energy(
-  struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc
-)
+void
+calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_field_energy(app, t_curr);
   }
 }
 
-void calc_integrated_mom(
+void
+calc_integrated_mom(
   struct gkyl_tm_trigger *imt, gkyl_vlasov_app *app, double t_curr, bool force_calc
 )
 {
@@ -355,7 +365,8 @@ void calc_integrated_mom(
   }
 }
 
-void calc_integrated_L2_f(
+void
+calc_integrated_L2_f(
   struct gkyl_tm_trigger *l2t, gkyl_vlasov_app *app, double t_curr, bool force_calc
 )
 {
@@ -364,7 +375,8 @@ void calc_integrated_L2_f(
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -469,31 +481,35 @@ int main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] =
-      {.proj_id = GKYL_PROJ_VLASOV_LTE,
-       .density = evalDensityInit,
-       .ctx_density = &ctx,
-       .temp = evalTempInit,
-       .ctx_temp = &ctx,
-       .V_drift = evalVDriftInit,
-       .ctx_V_drift = &ctx,
-       .correct_all_moms = true,
-       .iter_eps = 0.0,
-       .max_iter = 0,
-       .use_last_converged = false},
+      {
+        .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalVDriftInit,
+        .ctx_V_drift = &ctx,
+        .correct_all_moms = true,
+        .iter_eps = 0.0,
+        .max_iter = 0,
+        .use_last_converged = false,
+      },
     .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS,
-       .self_nu = evalNu,
-       .ctx = &ctx,
-       .has_implicit_coll_scheme = true,
-       .correct_all_moms = true,
-       .iter_eps = 0.0,
-       .max_iter = 0,
-       .use_last_converged = false},
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalNu,
+        .ctx = &ctx,
+        .has_implicit_coll_scheme = true,
+        .correct_all_moms = true,
+        .iter_eps = 0.0,
+        .max_iter = 0,
+        .use_last_converged = false,
+      },
 
     .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_REFLECT}},
 
     .num_diag_moments = 4,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE, GKYL_F_MOMENT_ENERGY}
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE, GKYL_F_MOMENT_ENERGY},
   };
 
   // Vlasov-Maxwell app.
@@ -518,7 +534,7 @@ int main(int argc, char **argv)
     .skip_field = true,
 
     .parallelism =
-      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},
   };
 
   // Create app object.
@@ -555,7 +571,9 @@ int main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / field_energy_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
@@ -563,7 +581,9 @@ int main(int argc, char **argv)
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_mom_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -571,7 +591,9 @@ int main(int argc, char **argv)
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
   struct gkyl_tm_trigger l2f_trig = {
-    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_L2_f_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
@@ -579,7 +601,9 @@ int main(int argc, char **argv)
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+    .dt = t_end / num_frames,
+    .tcurr = frame_curr * (t_end / num_frames),
+    .curr = frame_curr,
   };
 
   write_data(&io_trig, app, t_curr, false);

@@ -8,7 +8,8 @@
 #include <gkyl_mom_vlasov_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_mom_free(const struct gkyl_ref_count *ref)
+void
+gkyl_mom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
   if (GKYL_IS_CU_ALLOC(momt->flags)) {
@@ -17,7 +18,8 @@ void gkyl_mom_free(const struct gkyl_ref_count *ref)
   gkyl_free(momt);
 }
 
-struct gkyl_mom_type *gkyl_mom_vlasov_new(
+struct gkyl_mom_type *
+gkyl_mom_vlasov_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   enum gkyl_distribution_moments mom_type, bool use_gpu
 )
@@ -45,29 +47,29 @@ struct gkyl_mom_type *gkyl_mom_vlasov_new(
     *m3ijk_kernels, *five_moments_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    m0_kernels = ser_m0_kernels;
-    m1i_kernels = ser_m1i_kernels;
-    m2_kernels = ser_m2_kernels;
-    m2ij_kernels = ser_m2ij_kernels;
-    m3i_kernels = ser_m3i_kernels;
-    m3ijk_kernels = ser_m3ijk_kernels;
-    five_moments_kernels = ser_five_moments_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      m0_kernels = ser_m0_kernels;
+      m1i_kernels = ser_m1i_kernels;
+      m2_kernels = ser_m2_kernels;
+      m2ij_kernels = ser_m2ij_kernels;
+      m3i_kernels = ser_m3i_kernels;
+      m3ijk_kernels = ser_m3ijk_kernels;
+      five_moments_kernels = ser_five_moments_kernels;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    m0_kernels = tensor_m0_kernels;
-    m1i_kernels = tensor_m1i_kernels;
-    m2_kernels = tensor_m2_kernels;
-    m2ij_kernels = tensor_m2ij_kernels;
-    m3i_kernels = tensor_m3i_kernels;
-    m3ijk_kernels = tensor_m3ijk_kernels;
-    five_moments_kernels = tensor_five_moments_kernels;
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      m0_kernels = tensor_m0_kernels;
+      m1i_kernels = tensor_m1i_kernels;
+      m2_kernels = tensor_m2_kernels;
+      m2ij_kernels = tensor_m2ij_kernels;
+      m3i_kernels = tensor_m3i_kernels;
+      m3ijk_kernels = tensor_m3ijk_kernels;
+      five_moments_kernels = tensor_five_moments_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   if (mom_type == GKYL_F_MOMENT_M0) { // density
@@ -129,7 +131,8 @@ struct gkyl_mom_type *gkyl_mom_vlasov_new(
   return &mom_vm->momt;
 }
 
-struct gkyl_mom_type *gkyl_int_mom_vlasov_new(
+struct gkyl_mom_type *
+gkyl_int_mom_vlasov_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   enum gkyl_distribution_moments mom_type, bool use_gpu
 )
@@ -156,17 +159,17 @@ struct gkyl_mom_type *gkyl_int_mom_vlasov_new(
   const gkyl_mom_kern_list *int_five_moments_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    int_five_moments_kernels = ser_int_five_moments_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      int_five_moments_kernels = ser_int_five_moments_kernels;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    int_five_moments_kernels = tensor_int_five_moments_kernels;
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      int_five_moments_kernels = tensor_int_five_moments_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   assert(cv_index[cdim].vdim[vdim] != -1);

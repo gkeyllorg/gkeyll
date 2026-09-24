@@ -13,7 +13,8 @@ extern "C" {
 #include <gkyl_gk_dg_geom.h>
 }
 
-struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_cu_dev_new_from_host(
+struct gkyl_gk_dg_geom *
+gkyl_gk_dg_geom_cu_dev_new_from_host(
   const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host
 )
 {

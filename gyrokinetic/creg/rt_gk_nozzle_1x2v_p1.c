@@ -47,7 +47,8 @@ struct gk_nozzle_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-void eval_density_ion_init(
+void
+eval_density_ion_init(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -60,29 +61,29 @@ void eval_density_ion_init(
   }
 }
 
-void eval_upar_ion_init(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+eval_upar_ion_init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void eval_temp_ion_init(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+eval_temp_ion_init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_nozzle_ctx *app = ctx;
   double z = xn[0];
   fout[0] = app->Ti_init;
 }
 
-void eval_nu_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_nu_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_nozzle_ctx *app = ctx;
   fout[0] = app->nu_ion;
 }
 
-void mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *ctx)
+void
+mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *ctx)
 {
   struct gk_nozzle_ctx *app = ctx;
   double vpar_max_ion = app->vpar_max_ion;
@@ -106,7 +107,8 @@ void mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *
   vp[1] = mu_max_ion * cmu;
 }
 
-struct gk_nozzle_ctx create_ctx(void)
+struct gk_nozzle_ctx
+create_ctx(void)
 {
   int cdim = 1, vdim = 2; // Dimensionality.
 
@@ -182,12 +184,13 @@ struct gk_nozzle_ctx create_ctx(void)
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
   return ctx;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -225,16 +228,18 @@ int main(int argc, char **argv)
     .cells = {cells_v[0], cells_v[1]},
 
     .projection =
-      {.proj_id = GKYL_PROJ_BIMAXWELLIAN,
-       .density = eval_density_ion_init,
-       .ctx_density = &ctx,
-       .upar = eval_upar_ion_init,
-       .ctx_upar = &ctx,
-       .temppar = eval_temp_ion_init,
-       .ctx_temppar = &ctx,
-       .tempperp = eval_temp_ion_init,
-       .ctx_tempperp = &ctx,
-       .correct_all_moms = true},
+      {
+        .proj_id = GKYL_PROJ_BIMAXWELLIAN,
+        .density = eval_density_ion_init,
+        .ctx_density = &ctx,
+        .upar = eval_upar_ion_init,
+        .ctx_upar = &ctx,
+        .temppar = eval_temp_ion_init,
+        .ctx_temppar = &ctx,
+        .tempperp = eval_temp_ion_init,
+        .ctx_tempperp = &ctx,
+        .correct_all_moms = true,
+      },
 
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
@@ -247,7 +252,7 @@ int main(int argc, char **argv)
     .num_diag_moments = 6,
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
-       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN}
+       GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
   };
 
   struct gkyl_mirror_geo_grid_inp grid_inp = {
@@ -256,7 +261,7 @@ int main(int argc, char **argv)
     .zmin = -1.0, // Z of lower boundary
     .zmax = 1.0, // Z of upper boundary
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   struct gkyl_gyrokinetic_field field = {
@@ -269,7 +274,7 @@ int main(int argc, char **argv)
       ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
 
     .zero_init_field = true, // Don't compute the field at t=0.
-    .is_static = true // Don't update the field in time.
+    .is_static = true, // Don't update the field in time.
   };
 
   // GK app
@@ -282,9 +287,11 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry =
-      {.geometry_id = GKYL_GEOMETRY_MIRROR,
-       .world = {ctx.psi_eval, 0.0},
-       .mirror_grid_info = grid_inp},
+      {
+        .geometry_id = GKYL_GEOMETRY_MIRROR,
+        .world = {ctx.psi_eval, 0.0},
+        .mirror_grid_info = grid_inp,
+      },
 
     .field = field,
 
@@ -294,7 +301,7 @@ int main(int argc, char **argv)
     .num_species = 1,
     .species = {ion},
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Set app output name from the executable name (argv[0]).
@@ -302,15 +309,17 @@ int main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping =
-      {.t_end = ctx.t_end,
-       .num_frames = ctx.num_frames,
-       .write_phase_freq = ctx.write_phase_freq,
-       .int_diag_calc_num = ctx.int_diag_calc_num,
-       .dt_failure_tol = ctx.dt_failure_tol,
-       .num_failures_max = ctx.num_failures_max,
-       .is_restart = app_args.is_restart,
-       .restart_frame = app_args.restart_frame,
-       .num_steps = app_args.num_steps}
+      {
+        .t_end = ctx.t_end,
+        .num_frames = ctx.num_frames,
+        .write_phase_freq = ctx.write_phase_freq,
+        .int_diag_calc_num = ctx.int_diag_calc_num,
+        .dt_failure_tol = ctx.dt_failure_tol,
+        .num_failures_max = ctx.num_failures_max,
+        .is_restart = app_args.is_restart,
+        .restart_frame = app_args.restart_frame,
+        .num_steps = app_args.num_steps,
+      },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

@@ -237,8 +237,9 @@ int gkyl_search_str_int_pair_by_str(
  * @param def Default value to return
  * @return value corresponding to @a val, or @a def.
  */
-const char *
-gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val, const char *def);
+const char *gkyl_search_str_int_pair_by_int(
+  const struct gkyl_str_int_pair pairs[], int val, const char *def
+);
 
 /**
  * Time-trigger. Typical initialization is:
@@ -328,7 +329,8 @@ gkyl_copy_double_arr(int n, const double *GKYL_RESTRICT inp, double *GKYL_RESTRI
 /**
  *   Round a/b to nearest higher integer value
  */
-GKYL_CU_DH static inline int gkyl_int_div_up(int a, int b)
+GKYL_CU_DH static inline int
+gkyl_int_div_up(int a, int b)
 {
   return (a % b != 0) ? (a / b + 1) : (a / b);
 }
@@ -336,7 +338,8 @@ GKYL_CU_DH static inline int gkyl_int_div_up(int a, int b)
 /**
  *   Minmod limiter for choosing the minimal modification between 3 values (usually slopes)
  */
-GKYL_CU_DH static inline double gkyl_minmod(double a, double b, double c)
+GKYL_CU_DH static inline double
+gkyl_minmod(double a, double b, double c)
 {
   double sa = GKYL_SGN(a);
   double sb = GKYL_SGN(b);
@@ -507,27 +510,33 @@ struct gkyl_msgpack_map_elem {
 
 // The following functions and the macro reduce the errors in
 // constructing gkyl_msgpack_map_elem objects
-static inline struct gkyl_msgpack_map_elem gmpe_bval(const char *key, bool val)
+static inline struct gkyl_msgpack_map_elem
+gmpe_bval(const char *key, bool val)
 {
   return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_BOOL, .bval = val};
 }
-static inline struct gkyl_msgpack_map_elem gmpe_uval(const char *key, unsigned int val)
+static inline struct gkyl_msgpack_map_elem
+gmpe_uval(const char *key, unsigned int val)
 {
   return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_UNSIGNED_INT, .uval = val};
 }
-static inline struct gkyl_msgpack_map_elem gmpe_ival(const char *key, int val)
+static inline struct gkyl_msgpack_map_elem
+gmpe_ival(const char *key, int val)
 {
   return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_INT, .ival = val};
 }
-static inline struct gkyl_msgpack_map_elem gmpe_fval(const char *key, float val)
+static inline struct gkyl_msgpack_map_elem
+gmpe_fval(const char *key, float val)
 {
   return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_FLOAT, .fval = val};
 }
-static inline struct gkyl_msgpack_map_elem gmpe_dval(const char *key, double val)
+static inline struct gkyl_msgpack_map_elem
+gmpe_dval(const char *key, double val)
 {
   return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_DOUBLE, .dval = val};
 }
-static inline struct gkyl_msgpack_map_elem gmpe_cval(const char *key, char *val)
+static inline struct gkyl_msgpack_map_elem
+gmpe_cval(const char *key, char *val)
 {
   return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_STRING, .cval = val};
 }
@@ -558,8 +567,9 @@ bool gkyl_msgpack_map_elem_has_key(
  * @param elist_in List of elements to put in MessagePack.
  * @return New msgpack_map_elem object. Free with gkyl_msgpack_map_elem_release.
  */
-struct gkyl_msgpack_map_elem *
-gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist_in);
+struct gkyl_msgpack_map_elem *gkyl_msgpack_map_elem_clone(
+  int nvals, const struct gkyl_msgpack_map_elem *elist_in
+);
 
 /**
  * Allocate a new list of MessagePack map elements out of the union of one or
@@ -608,8 +618,9 @@ void gkyl_msgpack_map_elem_set_uint(
  * @param key Name of the element to update.
  * @return Value of the specified element.
  */
-double
-gkyl_msgpack_map_elem_get_double(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key);
+double gkyl_msgpack_map_elem_get_double(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key
+);
 
 /**
  * Fetch the type unsigned_int value of an element in an element list.
@@ -619,8 +630,9 @@ gkyl_msgpack_map_elem_get_double(int nvals, struct gkyl_msgpack_map_elem *elist,
  * @param key Name of the element to update.
  * @return Value of the specified element.
  */
-unsigned int
-gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key);
+unsigned int gkyl_msgpack_map_elem_get_uint(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key
+);
 
 /**
  * Fetch the pointer to the string value of an element in an element list.
@@ -630,8 +642,9 @@ gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist, c
  * @param key Name of the element to update.
  * @return Pointer to string value of the specified element.
  */
-char *
-gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key);
+char *gkyl_msgpack_map_elem_get_string(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key
+);
 
 /**
  * Free the memory allocated to store a string in an element of the given list.

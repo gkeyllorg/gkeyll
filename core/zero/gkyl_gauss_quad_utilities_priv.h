@@ -5,7 +5,8 @@
 #include <gkyl_gauss_quad_data.h>
 
 // create range to loop over quadrature points.
-static inline struct gkyl_range get_qrange(int dim, int num_quad)
+static inline struct gkyl_range
+get_qrange(int dim, int num_quad)
 {
   int qshape[GKYL_MAX_DIM];
   for (int i = 0; i < dim; ++i) {
@@ -18,7 +19,8 @@ static inline struct gkyl_range get_qrange(int dim, int num_quad)
 
 // Sets weights and basis functions at ords. Returns total
 // number of quadrature nodes.
-static int init_quad_values(
+static int
+init_quad_values(
   const struct gkyl_basis *basis, int num_quad, struct gkyl_array **weights,
   struct gkyl_array **basis_at_ords, bool use_gpu
 )

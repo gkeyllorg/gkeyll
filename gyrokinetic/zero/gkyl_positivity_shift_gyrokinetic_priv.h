@@ -141,7 +141,8 @@ void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(
 );
 #endif
 
-GKYL_CU_D static void pos_shift_gk_choose_shift_kernel(
+GKYL_CU_D static void
+pos_shift_gk_choose_shift_kernel(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kernels, struct gkyl_basis cbasis,
   struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype, bool use_gpu
 )
@@ -158,29 +159,29 @@ GKYL_CU_D static void pos_shift_gk_choose_shift_kernel(
   int poly_order = pbasis.poly_order;
 
   switch (pbasis_type) {
-  case GKYL_BASIS_MODAL_GKHYBRID:
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    kernels->is_m0_positive =
-      pos_shift_gk_kern_list_m0_pos_check_ser[cdim - 1].kernels[poly_order - 1];
-    kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY ?
-                       pos_shift_gk_kern_list_shift_ser[pdim - 2].kernels[poly_order - 1] :
-                       pos_shift_gk_kern_list_MRSlimiter_ser[pdim - 2].kernels[poly_order - 1];
-    kernels->m0 = pos_shift_gk_kern_list_m0_ser[pdim - 2].kernels[poly_order - 1];
-    kernels->conf_phase_mul_op =
-      choose_mul_conf_phase_kern(pbasis_type, cdim, pdim - cdim, poly_order);
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kernels->is_m0_positive =
+        pos_shift_gk_kern_list_m0_pos_check_ser[cdim - 1].kernels[poly_order - 1];
+      kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY ?
+                         pos_shift_gk_kern_list_shift_ser[pdim - 2].kernels[poly_order - 1] :
+                         pos_shift_gk_kern_list_MRSlimiter_ser[pdim - 2].kernels[poly_order - 1];
+      kernels->m0 = pos_shift_gk_kern_list_m0_ser[pdim - 2].kernels[poly_order - 1];
+      kernels->conf_phase_mul_op =
+        choose_mul_conf_phase_kern(pbasis_type, cdim, pdim - cdim, poly_order);
+      break;
+    default:
+      assert(false);
+      break;
   }
 
   switch (cbasis_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    kernels->conf_inv_op = choose_ser_inv_kern(cdim, poly_order);
-    kernels->conf_mul_op = choose_ser_mul_kern(cdim, poly_order);
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kernels->conf_inv_op = choose_ser_inv_kern(cdim, poly_order);
+      kernels->conf_mul_op = choose_ser_mul_kern(cdim, poly_order);
+      break;
+    default:
+      assert(false);
+      break;
   }
 }

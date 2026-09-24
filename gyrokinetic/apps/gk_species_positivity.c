@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-int gk_species_positivity_num_species_in_quasineut(gkyl_gyrokinetic_app *app)
+int
+gk_species_positivity_num_species_in_quasineut(gkyl_gyrokinetic_app *app)
 {
   int num_quasineut_rescale = 0;
   for (int i = 0; i < app->num_species; ++i) {
@@ -13,14 +14,16 @@ int gk_species_positivity_num_species_in_quasineut(gkyl_gyrokinetic_app *app)
   return num_quasineut_rescale;
 }
 
-static void gks_pos_write_diags_disabled(
+static void
+gks_pos_write_diags_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos, double tm, int frame
 )
 {
   // Empty.
 }
 
-static void gks_pos_deltaf_moms_calc(
+static void
+gks_pos_deltaf_moms_calc(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
@@ -30,7 +33,8 @@ static void gks_pos_deltaf_moms_calc(
   gk_species_moment_diag_jacobgeo_div(app, &pos->moms, pos->moms.marr, pos->moms.marr);
 }
 
-static void gks_pos_deltaf_moms_clear(
+static void
+gks_pos_deltaf_moms_clear(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
@@ -38,7 +42,8 @@ static void gks_pos_deltaf_moms_clear(
   pos->deltaf_moms_func = gks_pos_deltaf_moms_calc;
 }
 
-static void gks_pos_write_diags_enabled(
+static void
+gks_pos_write_diags_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos, double tm, int frame
 )
 {
@@ -108,21 +113,24 @@ static void gks_pos_write_diags_enabled(
   app->stat.n_diag += 1;
 }
 
-static void gks_pos_calc_integrated_diags_disabled(
+static void
+gks_pos_calc_integrated_diags_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos, double tm
 )
 {
   // Empty.
 }
 
-static void gks_pos_deltaf_integ_moms_calc(
+static void
+gks_pos_deltaf_integ_moms_calc(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
   gk_species_moment_calc(&pos->integ_moms, gks->local, app->local, pos->fbuffer_ptr);
 }
 
-static void gks_pos_deltaf_integ_moms_clear(
+static void
+gks_pos_deltaf_integ_moms_clear(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
@@ -130,7 +138,8 @@ static void gks_pos_deltaf_integ_moms_clear(
   pos->deltaf_integ_moms_func = gks_pos_deltaf_integ_moms_calc;
 }
 
-static void gks_pos_calc_integrated_diags_enabled(
+static void
+gks_pos_calc_integrated_diags_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos, double tm
 )
 {
@@ -161,14 +170,16 @@ static void gks_pos_calc_integrated_diags_enabled(
   app->stat.n_diag += 1;
 }
 
-static void gks_pos_write_integrated_diags_disabled(
+static void
+gks_pos_write_integrated_diags_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
   // Empty.
 }
 
-static void gks_pos_write_integrated_diags_enabled(
+static void
+gks_pos_write_integrated_diags_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
@@ -185,11 +196,11 @@ static void gks_pos_write_integrated_diags_enabled(
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
     if (pos->is_first_integ_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description",
-         .elem_type = GKYL_MP_STRING,
-         .cval = "Volume integrated moments of change in distribution due to positivity shift."}
-      };
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {{
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Volume integrated moments of change in distribution due to positivity shift.",
+      }};
       int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -211,7 +222,8 @@ static void gks_pos_write_integrated_diags_enabled(
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gks_pos_apply_disabled(
+void
+gks_pos_apply_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_positivity *pos,
   struct gkyl_array *fbuffer, struct gkyl_array *fout
 )
@@ -219,7 +231,8 @@ void gks_pos_apply_disabled(
   // Do nothing.
 }
 
-void gks_pos_apply_enabled(
+void
+gks_pos_apply_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos,
   struct gkyl_array *fbuffer, struct gkyl_array *fout
 )
@@ -244,7 +257,8 @@ void gks_pos_apply_enabled(
   app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
 }
 
-void gk_species_positivity_init(
+void
+gk_species_positivity_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
@@ -307,7 +321,8 @@ void gk_species_positivity_init(
   }
 }
 
-void gk_species_positivity_apply(
+void
+gk_species_positivity_apply(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos,
   struct gkyl_array *fbuffer, struct gkyl_array *fout
 )
@@ -315,28 +330,32 @@ void gk_species_positivity_apply(
   pos->apply_func(app, gks, pos, fbuffer, fout);
 }
 
-void gk_species_positivity_write_diags(
+void
+gk_species_positivity_write_diags(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos, double tm, int frame
 )
 {
   pos->write_diags_func(app, gks, pos, tm, frame);
 }
 
-void gk_species_positivity_calc_integrated_diags(
+void
+gk_species_positivity_calc_integrated_diags(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos, double tm
 )
 {
   pos->calc_integrated_diags_func(app, gks, pos, tm);
 }
 
-void gk_species_positivity_write_integrated_diags(
+void
+gk_species_positivity_write_integrated_diags(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
   pos->write_integrated_diags_func(app, gks, pos);
 }
 
-void gk_species_positivity_release(
+void
+gk_species_positivity_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_positivity *pos
 )
 {
@@ -363,7 +382,8 @@ void gk_species_positivity_release(
   }
 }
 
-void gk_species_positivity_reset(
+void
+gk_species_positivity_reset(
   gkyl_gyrokinetic_app *app, double tm, struct gk_species *gks, struct gk_positivity *pos,
   struct gkyl_gyrokinetic_positivity pos_inp
 )

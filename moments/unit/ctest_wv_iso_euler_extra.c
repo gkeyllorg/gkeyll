@@ -5,7 +5,8 @@
 #include <gkyl_wv_iso_euler.h>
 
 // Build conserved state {rho, rho*u, rho*v, rho*w}.
-static void calcq(double rho, double u, double v, double w, double q[4])
+static void
+calcq(double rho, double u, double v, double w, double q[4])
 {
   q[0] = rho;
   q[1] = rho * u;
@@ -14,7 +15,8 @@ static void calcq(double rho, double u, double v, double w, double q[4])
 }
 
 // Constructor wiring, equation/diag counts, type tag, and vt accessor.
-void test_iso_euler_struct()
+void
+test_iso_euler_struct()
 {
   double vt = 3.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_iso_euler_new(vt, false);
@@ -30,12 +32,19 @@ void test_iso_euler_struct()
 }
 
 // Lax RP selects 2 waves; Roe RP selects 3. inew honours rp_type.
-void test_iso_euler_rp_types()
+void
+test_iso_euler_rp_types()
 {
-  struct gkyl_wv_eqn *lax = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp
-  ){.vt = 1.0, .rp_type = WV_ISO_EULER_RP_LAX, .use_gpu = false});
-  struct gkyl_wv_eqn *roe = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp
-  ){.vt = 1.0, .rp_type = WV_ISO_EULER_RP_ROE, .use_gpu = false});
+  struct gkyl_wv_eqn *lax = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp){
+    .vt = 1.0,
+    .rp_type = WV_ISO_EULER_RP_LAX,
+    .use_gpu = false,
+  });
+  struct gkyl_wv_eqn *roe = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp){
+    .vt = 1.0,
+    .rp_type = WV_ISO_EULER_RP_ROE,
+    .use_gpu = false,
+  });
 
   TEST_CHECK(lax->num_waves == 2);
   TEST_CHECK(roe->num_waves == 3);
@@ -46,7 +55,8 @@ void test_iso_euler_rp_types()
 }
 
 // Max speed = |u| + vt.
-void test_iso_euler_max_speed()
+void
+test_iso_euler_max_speed()
 {
   double vt = 2.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_iso_euler_new(vt, false);
@@ -64,7 +74,8 @@ void test_iso_euler_max_speed()
 }
 
 // check_inv: valid iff density positive.
-void test_iso_euler_check_inv()
+void
+test_iso_euler_check_inv()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_iso_euler_new(1.0, false);
 
@@ -81,7 +92,8 @@ void test_iso_euler_check_inv()
 }
 
 // Diagnostics are just the conserved variables (no extra KE component).
-void test_iso_euler_cons_to_diag()
+void
+test_iso_euler_cons_to_diag()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_iso_euler_new(1.0, false);
 
@@ -98,7 +110,8 @@ void test_iso_euler_cons_to_diag()
 }
 
 // Source term is homogeneous (zero).
-void test_iso_euler_source()
+void
+test_iso_euler_source()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_iso_euler_new(1.0, false);
 
@@ -115,7 +128,8 @@ void test_iso_euler_source()
 
 // Flux jump equals the analytic flux difference in the x direction.
 // F = {rho*u, rho*u^2 + rho*vt^2, rho*u*v, rho*u*w}.
-void test_iso_euler_flux_jump()
+void
+test_iso_euler_flux_jump()
 {
   double vt = 1.5;
   struct gkyl_wv_eqn *eqn = gkyl_wv_iso_euler_new(vt, false);
@@ -140,7 +154,8 @@ void test_iso_euler_flux_jump()
 }
 
 // Riemann round-trip recovers conserved state (identity transform here).
-void test_iso_euler_riem_roundtrip()
+void
+test_iso_euler_riem_roundtrip()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_iso_euler_new(1.0, false);
 
@@ -161,7 +176,8 @@ void test_iso_euler_riem_roundtrip()
 }
 
 // Roe solver, equal states => zero jump => zero fluctuations.
-void test_iso_euler_waves_zero_jump()
+void
+test_iso_euler_waves_zero_jump()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_iso_euler_new(1.0, false);
 
@@ -183,11 +199,15 @@ void test_iso_euler_waves_zero_jump()
 }
 
 // Lax solver: fluctuations are conservative (amdq + apdq == flux jump) in x.
-void test_iso_euler_lax_conservation()
+void
+test_iso_euler_lax_conservation()
 {
   double vt = 1.0;
-  struct gkyl_wv_eqn *eqn = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp
-  ){.vt = vt, .rp_type = WV_ISO_EULER_RP_LAX, .use_gpu = false});
+  struct gkyl_wv_eqn *eqn = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp){
+    .vt = vt,
+    .rp_type = WV_ISO_EULER_RP_LAX,
+    .use_gpu = false,
+  });
 
   double ql[4];
   calcq(1.0, 0.2, 0.1, -0.1, ql);

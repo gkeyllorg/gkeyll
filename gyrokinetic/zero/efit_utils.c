@@ -2,7 +2,8 @@
 #include <float.h>
 #include <string.h>
 
-static double eval_laplacian_expand_2d_tensor_p2(int dir, const double *z, const double *f)
+static double
+eval_laplacian_expand_2d_tensor_p2(int dir, const double *z, const double *f)
 {
   const double z0 = z[0];
   const double z1 = z[1];
@@ -18,7 +19,8 @@ static double eval_laplacian_expand_2d_tensor_p2(int dir, const double *z, const
   return 0.0; // can't happen, suppresses warning
 }
 
-static double eval_mixedpartial_expand_2d_tensor_p2(const double *z, const double *f)
+static double
+eval_mixedpartial_expand_2d_tensor_p2(const double *z, const double *f)
 {
   const double z0 = z[0];
   const double z1 = z[1];
@@ -26,7 +28,8 @@ static double eval_mixedpartial_expand_2d_tensor_p2(const double *z, const doubl
          1.5 * f[3];
 }
 
-static void print_result(int n, double x[], double dx[], double errx, double errf, int niter)
+static void
+print_result(int n, double x[], double dx[], double errx, double errf, int niter)
 {
   double x0 = x[0];
   double y0 = x[1];
@@ -46,7 +49,8 @@ static void print_result(int n, double x[], double dx[], double errx, double err
   }
 }
 
-bool newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bool cubics)
+bool
+newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bool cubics)
 {
   int n = 2;
   double x[2] = {0.0, 0.0};
@@ -120,7 +124,8 @@ bool newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bo
   return false;
 }
 
-int find_xpts(gkyl_efit *up, double *Rxpt, double *Zxpt)
+int
+find_xpts(gkyl_efit *up, double *Rxpt, double *Zxpt)
 {
   bool found_xpt = false;
   double Rsep, Zsep;
@@ -169,7 +174,8 @@ int find_xpts(gkyl_efit *up, double *Rxpt, double *Zxpt)
   return num_xpts;
 }
 
-int find_xpts_cubic(gkyl_efit *up, double *Rxpt, double *Zxpt)
+int
+find_xpts_cubic(gkyl_efit *up, double *Rxpt, double *Zxpt)
 {
   bool found_xpt = false;
   double Rsep, Zsep;
@@ -219,7 +225,8 @@ int find_xpts_cubic(gkyl_efit *up, double *Rxpt, double *Zxpt)
   return num_xpts;
 }
 
-void get_stripped_filename(const char *filepath, char *out_buffer)
+void
+get_stripped_filename(const char *filepath, char *out_buffer)
 {
   const char *last_slash = strrchr(filepath, '/');
   const char *filename_start = (last_slash) ? last_slash + 1 : filepath;

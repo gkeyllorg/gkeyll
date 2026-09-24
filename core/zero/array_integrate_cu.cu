@@ -10,7 +10,8 @@ extern "C" {
 #include <gkyl_array_integrate_priv.h>
 }
 
-__global__ static void gkyl_array_integrate_set_ker_cu(
+__global__ static void
+gkyl_array_integrate_set_ker_cu(
   struct gkyl_array_integrate *up, enum gkyl_array_integrate_op op, struct gkyl_basis basis
 )
 {
@@ -40,7 +41,8 @@ __global__ static void gkyl_array_integrate_set_ker_cu(
   }
 }
 
-struct gkyl_array_integrate *gkyl_array_integrate_cu_dev_new(
+struct gkyl_array_integrate *
+gkyl_array_integrate_cu_dev_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_comp,
   enum gkyl_array_integrate_op op
 )
@@ -79,7 +81,8 @@ struct gkyl_array_integrate *gkyl_array_integrate_cu_dev_new(
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void array_integrate_blockRedAtomic_cub(
+__global__ void
+array_integrate_blockRedAtomic_cub(
   struct gkyl_array_integrate *up, const struct gkyl_array *inp, double factor,
   const struct gkyl_array *weight, const struct gkyl_range range, struct gkyl_range weight_range,
   double *out
@@ -135,7 +138,8 @@ __global__ void array_integrate_blockRedAtomic_cub(
   }
 }
 
-void gkyl_array_integrate_advance_cu(
+void
+gkyl_array_integrate_advance_cu(
   gkyl_array_integrate *up, const struct gkyl_array *fin, double factor,
   const struct gkyl_array *weight, const struct gkyl_range *range,
   const struct gkyl_range *weight_range, double *out

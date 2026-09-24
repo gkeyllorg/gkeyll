@@ -2,7 +2,8 @@
 
 // initialize source solver: this should be called after all species
 // and fields are initialized
-void moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *src)
+void
+moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *src)
 {
   struct gkyl_moment_em_coupling_inp src_inp = {
     .grid = &app->grid,
@@ -14,17 +15,18 @@ void moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupl
     .static_field = app->field.is_static,
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
     .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
-    .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0
+    .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0,
   };
 
   for (int i = 0; i < app->num_species; ++i) {
-    src_inp.param[i] = (struct gkyl_moment_em_coupling_data
-    ){.type = app->species[i].eqn_type,
+    src_inp.param[i] = (struct gkyl_moment_em_coupling_data){
+      .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
       // The gradient-based closure defines its heat flux through k0, so k0=0.0 in the source solve to avoid double-applying it.
       // The neural-network closure supplies the heat flux directly, so k0 is retained here as the integrating-factor relaxation rate.
-      .k0 = (app->species[i].has_grad_closure) ? 0.0 : app->species[i].k0};
+      .k0 = (app->species[i].has_grad_closure) ? 0.0 : app->species[i].k0,
+    };
   }
 
   src_inp.has_collision = app->has_collision;
@@ -242,7 +244,7 @@ void moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupl
         .cfl = app->cfl,
         .comm = app->comm,
         .update_range = &app->local,
-        .heat_flux_range = &src->non_ideal_local
+        .heat_flux_range = &src->non_ideal_local,
       };
       src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(&grad_closure_inp);
     }
@@ -255,7 +257,7 @@ void moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupl
         .grid = &app->grid,
         .k0 = app->species[i].k0,
         .poly_order = app->species[i].poly_order,
-        .ann = app->species[i].ann
+        .ann = app->species[i].ann,
       };
       src->nn_closure_slvr[i] = gkyl_ten_moment_nn_closure_new(nn_closure_inp);
     }
@@ -268,7 +270,7 @@ void moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupl
       .nfluids = app->num_species,
       .epsilon0 = app->field.epsilon0,
       // Check for multiplicative collisionality factor, default is 1.0
-      .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac
+      .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
     };
     for (int i = 0; i < app->num_species; ++i) {
       // Braginskii coefficients depend on pressure and coefficient to obtain
@@ -279,12 +281,13 @@ void moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupl
       } else if (app->species[i].eqn_type == GKYL_EQN_ISO_EULER) {
         p_fac = gkyl_wv_iso_euler_vt(app->species[i].equation);
       }
-      brag_inp.param[i] = (struct gkyl_moment_braginskii_data
-      ){.type_eqn = app->species[i].eqn_type,
+      brag_inp.param[i] = (struct gkyl_moment_braginskii_data){
+        .type_eqn = app->species[i].eqn_type,
         .type_brag = app->species[i].type_brag,
         .charge = app->species[i].charge,
         .mass = app->species[i].mass,
-        .p_fac = p_fac};
+        .p_fac = p_fac,
+      };
     }
     src->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
   }
@@ -292,7 +295,8 @@ void moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupl
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step
-struct gkyl_update_status moment_coupling_update(
+struct gkyl_update_status
+moment_coupling_update(
   gkyl_moment_app *app, struct moment_coupling *src, int nstrang, double tcurr, double dt
 )
 {
@@ -406,7 +410,8 @@ struct gkyl_update_status moment_coupling_update(
 }
 
 // free sources
-void moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_coupling *src)
+void
+moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_coupling *src)
 {
   gkyl_moment_em_coupling_release(src->slvr);
   for (int i = 0; i < app->num_species; ++i) {

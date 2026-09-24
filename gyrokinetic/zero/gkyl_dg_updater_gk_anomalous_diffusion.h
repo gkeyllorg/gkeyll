@@ -43,8 +43,8 @@ struct gkyl_dg_updater_gk_anomalous_diffusion *gkyl_dg_updater_gk_anomalous_diff
  * 
  * @return anomalous gyrokinetic diffusion equation object.
  */
-struct gkyl_dg_eqn *
-gkyl_dg_updater_gk_anomalous_diffusion_acquire_eqn(const gkyl_dg_updater_gk_anomalous_diffusion *up
+struct gkyl_dg_eqn *gkyl_dg_updater_gk_anomalous_diffusion_acquire_eqn(
+  const gkyl_dg_updater_gk_anomalous_diffusion *up
 );
 
 /**

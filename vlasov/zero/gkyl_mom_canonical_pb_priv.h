@@ -32,7 +32,8 @@ typedef struct {
   momf_t kernels[3];
 } gkyl_canonical_pb_mom_kern_list;
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -45,7 +46,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -58,7 +60,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -71,7 +74,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -84,7 +88,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -97,7 +102,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -110,7 +116,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -123,7 +130,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -136,7 +144,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -149,7 +158,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -162,7 +172,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -175,7 +186,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x1v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -188,7 +200,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x1v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -201,7 +214,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -214,7 +228,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -227,7 +242,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -240,7 +256,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -253,7 +270,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -266,7 +284,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -279,7 +298,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -327,7 +347,8 @@ GKYL_CU_D static const gkyl_canonical_pb_mom_kern_list ser_int_five_moments_kern
   {NULL, NULL, NULL} // 5
 };
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -340,7 +361,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -353,7 +375,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -366,7 +389,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -379,7 +403,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -392,7 +417,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -405,7 +431,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -418,7 +445,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -431,7 +459,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x3v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -444,7 +473,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x3v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_MEnergy_3x3v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_MEnergy_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -457,7 +487,8 @@ GKYL_CU_DH static void kernel_canonical_pb_MEnergy_3x3v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x1v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -470,7 +501,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x1v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x1v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -483,7 +515,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x1v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x2v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -496,7 +529,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x2v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x2v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -509,7 +543,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x2v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x3v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -522,7 +557,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x3v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x3v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -535,7 +571,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x3v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x2v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -548,7 +585,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x2v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x2v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -561,7 +599,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x2v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x3v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -574,7 +613,8 @@ GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x3v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_3x3v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_int_five_moments_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -625,7 +665,8 @@ GKYL_CU_D static const gkyl_canonical_pb_mom_kern_list tensor_int_five_moments_k
   {NULL, kernel_canonical_pb_int_five_moments_3x3v_tensor_p1, NULL} // 5
 };
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -638,7 +679,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x1v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -651,7 +693,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x1v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -664,7 +707,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -677,7 +721,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -690,7 +735,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -703,7 +749,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -716,7 +763,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -729,7 +777,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -742,7 +791,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -777,7 +827,8 @@ GKYL_CU_D static const gkyl_canonical_pb_mom_kern_list ser_m1i_from_h_kernels[] 
   {NULL, NULL, NULL} // 5
 };
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x1v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -790,7 +841,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x1v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x1v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -803,7 +855,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x1v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x2v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -816,7 +869,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x2v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x2v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -829,7 +883,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x2v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x3v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -842,7 +897,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x3v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x3v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -855,7 +911,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x3v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x2v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -868,7 +925,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x2v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x2v_tensor_p2(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -881,7 +939,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x2v_tensor_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x3v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -894,7 +953,8 @@ GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x3v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_3x3v_tensor_p1(
+GKYL_CU_DH static void
+kernel_canonical_pb_M1i_from_H_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )

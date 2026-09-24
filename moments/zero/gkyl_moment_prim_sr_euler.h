@@ -16,7 +16,8 @@
  * @param q Conserved variables
  * @param v Primitive variables (output)
  */
-static inline void gkyl_sr_euler_prim_vars(double gas_gamma, const double q[5], double v[5])
+static inline void
+gkyl_sr_euler_prim_vars(double gas_gamma, const double q[5], double v[5])
 {
   double us = 0., vs = 0., ws = 0., q2s = 0., cs2 = 0.;
   double gammas = 0., rhos = 0., rhoEpss = 0., fs = 0., dfs = 0., fac0 = 1.;

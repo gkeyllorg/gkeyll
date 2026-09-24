@@ -4,7 +4,8 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_tensor_field.h>
 
-static void tensor_field_free(const struct gkyl_ref_count *ref)
+static void
+tensor_field_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_tensor_field *tfld = container_of(ref, struct gkyl_tensor_field, ref_count);
 
@@ -44,7 +45,8 @@ gkyl_tensor_field_new(size_t rank, size_t ndim, size_t size, const enum gkyl_ten
   return tfld;
 }
 
-struct gkyl_tensor_field *gkyl_tensor_field_acquire(const struct gkyl_tensor_field *tfld)
+struct gkyl_tensor_field *
+gkyl_tensor_field_acquire(const struct gkyl_tensor_field *tfld)
 {
   gkyl_ref_count_inc(&tfld->ref_count);
   return (struct gkyl_tensor_field *)tfld;
@@ -60,14 +62,16 @@ gkyl_tensor_field_copy(struct gkyl_tensor_field *dest, const struct gkyl_tensor_
   return dest;
 }
 
-void gkyl_tensor_field_release(const struct gkyl_tensor_field *ten)
+void
+gkyl_tensor_field_release(const struct gkyl_tensor_field *ten)
 {
   if (ten) {
     gkyl_ref_count_dec(&ten->ref_count);
   }
 }
 
-bool gkyl_tensor_field_is_cu_dev(const struct gkyl_tensor_field *tfld)
+bool
+gkyl_tensor_field_is_cu_dev(const struct gkyl_tensor_field *tfld)
 {
   return GKYL_IS_CU_ALLOC(tfld->flags);
 }
@@ -76,7 +80,8 @@ bool gkyl_tensor_field_is_cu_dev(const struct gkyl_tensor_field *tfld)
 
 #ifdef GKYL_HAVE_CUDA
 
-struct gkyl_tensor_field *gkyl_tensor_field_cu_dev_new(
+struct gkyl_tensor_field *
+gkyl_tensor_field_cu_dev_new(
   size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc
 )
 {
@@ -114,7 +119,8 @@ struct gkyl_tensor_field *gkyl_tensor_field_cu_dev_new(
   return tfld;
 }
 
-struct gkyl_tensor_field *gkyl_tensor_field_cu_host_new(
+struct gkyl_tensor_field *
+gkyl_tensor_field_cu_host_new(
   size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc
 )
 {
@@ -151,7 +157,8 @@ struct gkyl_tensor_field *gkyl_tensor_field_cu_host_new(
 
 #else
 
-struct gkyl_tensor_field *gkyl_tensor_field_cu_dev_new(
+struct gkyl_tensor_field *
+gkyl_tensor_field_cu_dev_new(
   size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc
 )
 {
@@ -159,7 +166,8 @@ struct gkyl_tensor_field *gkyl_tensor_field_cu_dev_new(
   return 0;
 }
 
-struct gkyl_tensor_field *gkyl_tensor_field_cu_host_new(
+struct gkyl_tensor_field *
+gkyl_tensor_field_cu_host_new(
   size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc
 )
 {

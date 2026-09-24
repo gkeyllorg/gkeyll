@@ -4,14 +4,16 @@
 #include <gkyl_deflated_fem_poisson_priv.h>
 
 // allocate array (filled with zeros)
-static inline struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
+static inline struct gkyl_array *
+mkarr(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
                                    gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-struct gkyl_deflated_fem_poisson *gkyl_deflated_fem_poisson_new(
+struct gkyl_deflated_fem_poisson *
+gkyl_deflated_fem_poisson_new(
   struct gkyl_rect_grid grid, struct gkyl_basis *basis_on_dev, struct gkyl_basis basis,
   struct gkyl_range local, struct gkyl_range global_sub_range, struct gkyl_array *epsilon,
   struct gkyl_array *kSq, struct gkyl_poisson_bc poisson_bc,
@@ -186,7 +188,8 @@ struct gkyl_deflated_fem_poisson *gkyl_deflated_fem_poisson_new(
   return up;
 }
 
-void gkyl_deflated_fem_poisson_advance(
+void
+gkyl_deflated_fem_poisson_advance(
   struct gkyl_deflated_fem_poisson *up, struct gkyl_array *rhs, struct gkyl_array *phibc,
   struct gkyl_array *phi
 )
@@ -253,7 +256,8 @@ void gkyl_deflated_fem_poisson_advance(
   );
 }
 
-void gkyl_deflated_fem_poisson_release(struct gkyl_deflated_fem_poisson *up)
+void
+gkyl_deflated_fem_poisson_release(struct gkyl_deflated_fem_poisson *up)
 {
   gkyl_array_release(up->nodal_fld);
   gkyl_nodal_ops_release(up->n2m);

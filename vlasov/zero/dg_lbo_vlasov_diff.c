@@ -8,7 +8,8 @@
 #include <gkyl_dg_lbo_vlasov_diff_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_lbo_vlasov_diff_free(const struct gkyl_ref_count *ref)
+void
+gkyl_lbo_vlasov_diff_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(base, struct dg_lbo_vlasov_diff, eqn);
@@ -20,7 +21,8 @@ void gkyl_lbo_vlasov_diff_free(const struct gkyl_ref_count *ref)
   gkyl_free(lbo_vlasov_diff);
 }
 
-void gkyl_lbo_vlasov_diff_set_auxfields(
+void
+gkyl_lbo_vlasov_diff_set_auxfields(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_vlasov_diff_auxfields auxin
 )
 {
@@ -36,7 +38,8 @@ void gkyl_lbo_vlasov_diff_set_auxfields(
   lbo_vlasov_diff->auxfields.nuPrimMomsSum = auxin.nuPrimMomsSum;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_new(
+struct gkyl_dg_eqn *
+gkyl_dg_lbo_vlasov_diff_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid, bool use_gpu
 )
@@ -72,19 +75,19 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_new(
     *boundary_surf_vy_kernels, *boundary_surf_vz_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_vx_kernels = ser_surf_vx_kernels;
-    surf_vy_kernels = ser_surf_vy_kernels;
-    surf_vz_kernels = ser_surf_vz_kernels;
-    boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
-    boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
-    boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_vx_kernels = ser_surf_vx_kernels;
+      surf_vy_kernels = ser_surf_vy_kernels;
+      surf_vz_kernels = ser_surf_vz_kernels;
+      boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   lbo_vlasov_diff->eqn.vol_term = CK(vol_kernels, cdim, vdim, poly_order);
@@ -127,7 +130,8 @@ struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_vlasov_diff_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_lbo_vlasov_diff_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid
 )

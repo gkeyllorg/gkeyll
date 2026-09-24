@@ -31,8 +31,9 @@ struct gkyl_tensor_field {
  * @param iloc Enum array of size GKYL_MAX_DIM which for lower or upper indices
  * @return Pointer to newly allocated tensor field.
  */
-struct gkyl_tensor_field *
-gkyl_tensor_field_new(size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc);
+struct gkyl_tensor_field *gkyl_tensor_field_new(
+  size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc
+);
 
 /**
  * Create new tensor field with tdata on NV-GPU. Delete using gkyl_tensor_field_release method.
@@ -68,7 +69,8 @@ struct gkyl_tensor_field *gkyl_tensor_field_cu_host_new(
  * @param loc Tensor to fetch
  * @return Tensor at loc
  */
-GKYL_CU_DH static inline double *gkyl_tensor_field_fetch(struct gkyl_tensor_field *ten, long loc)
+GKYL_CU_DH static inline double *
+gkyl_tensor_field_fetch(struct gkyl_tensor_field *ten, long loc)
 {
   return (double *)gkyl_array_fetch(ten->tdata, loc);
 }
@@ -139,8 +141,9 @@ struct gkyl_tensor_field *gkyl_tensor_field_acquire(const struct gkyl_tensor_fie
  * @param dest Tensor field to which a pointer is needed
  * @return Pointer to acquired Tensor field
  */
-struct gkyl_tensor_field *
-gkyl_tensor_field_copy(struct gkyl_tensor_field *dest, const struct gkyl_tensor_field *src);
+struct gkyl_tensor_field *gkyl_tensor_field_copy(
+  struct gkyl_tensor_field *dest, const struct gkyl_tensor_field *src
+);
 
 /**
  * Returns true if tensor field lives on NV-GPU.

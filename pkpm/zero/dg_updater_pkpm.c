@@ -9,7 +9,8 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-gkyl_dg_updater_pkpm *gkyl_dg_updater_pkpm_new(
+gkyl_dg_updater_pkpm *
+gkyl_dg_updater_pkpm_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
@@ -60,7 +61,8 @@ gkyl_dg_updater_pkpm *gkyl_dg_updater_pkpm_new(
   return up;
 }
 
-void gkyl_dg_updater_pkpm_advance(
+void
+gkyl_dg_updater_pkpm_advance(
   gkyl_dg_updater_pkpm *pkpm, const struct gkyl_range *update_phase_rng,
   const struct gkyl_range *update_conf_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
   const struct gkyl_array *GKYL_RESTRICT fluidIn, struct gkyl_array *GKYL_RESTRICT cflrate_f,
@@ -77,12 +79,14 @@ void gkyl_dg_updater_pkpm_advance(
   pkpm->fluid_tm += gkyl_time_diff_now_sec(wst);
 }
 
-struct gkyl_dg_updater_pkpm_tm gkyl_dg_updater_pkpm_get_tm(const gkyl_dg_updater_pkpm *pkpm)
+struct gkyl_dg_updater_pkpm_tm
+gkyl_dg_updater_pkpm_get_tm(const gkyl_dg_updater_pkpm *pkpm)
 {
   return (struct gkyl_dg_updater_pkpm_tm){.vlasov_tm = pkpm->vlasov_tm, .fluid_tm = pkpm->fluid_tm};
 }
 
-void gkyl_dg_updater_pkpm_release(gkyl_dg_updater_pkpm *pkpm)
+void
+gkyl_dg_updater_pkpm_release(gkyl_dg_updater_pkpm *pkpm)
 {
   gkyl_dg_eqn_release(pkpm->eqn_vlasov);
   gkyl_dg_eqn_release(pkpm->eqn_fluid);

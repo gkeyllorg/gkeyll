@@ -111,7 +111,8 @@ void gkyl_radiation_read_release_fit_params(struct all_radiation_states *rad_dat
  * @param target The value to find the closest index to
  * @return The index of the array with the value closest to target
  */
-static inline int gkyl_radiation_read_find_nearest_idx(const struct gkyl_array *arr, double target)
+static inline int
+gkyl_radiation_read_find_nearest_idx(const struct gkyl_array *arr, double target)
 {
   int left = 0;
   int right = arr->size - 1;

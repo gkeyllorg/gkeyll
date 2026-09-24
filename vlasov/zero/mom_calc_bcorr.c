@@ -10,7 +10,8 @@
 #include <gkyl_mom_calc_bcorr_priv.h>
 #include <gkyl_util.h>
 
-struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_new(
+struct gkyl_mom_calc_bcorr *
+gkyl_mom_calc_bcorr_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt, bool use_gpu
 )
 {
@@ -29,7 +30,8 @@ struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_new(
   return up;
 }
 
-static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
+static inline void
+copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 {
   for (int i = 0; i < cdim; ++i) {
     out[i] = cidx[i];
@@ -39,7 +41,8 @@ static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const in
   }
 }
 
-void gkyl_mom_calc_bcorr_advance(
+void
+gkyl_mom_calc_bcorr_advance(
   const struct gkyl_mom_calc_bcorr *bcorr, const struct gkyl_range *phase_rng,
   const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
   struct gkyl_array *GKYL_RESTRICT out
@@ -138,7 +141,8 @@ void gkyl_mom_calc_bcorr_advance(
   }
 }
 
-void gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr *up)
+void
+gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr *up)
 {
   gkyl_mom_type_release(up->momt);
   if (GKYL_IS_CU_ALLOC(up->flags)) {
@@ -155,7 +159,8 @@ gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid, const struct g
   assert(false);
 }
 
-void gkyl_mom_calc_bcorr_advance_cu(
+void
+gkyl_mom_calc_bcorr_advance_cu(
   const struct gkyl_mom_calc_bcorr *bcorr, const struct gkyl_range *phase_rng,
   const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
   struct gkyl_array *GKYL_RESTRICT out
