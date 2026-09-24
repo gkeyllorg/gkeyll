@@ -1182,7 +1182,11 @@ gkyl_gyrokinetic_multib_app_from_file_neut_species(
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, int frame)
 {
-  struct gkyl_app_restart_status rstat;
+  struct gkyl_app_restart_status rstat = {
+    .io_status = GKYL_ARRAY_RIO_SUCCESS,
+    .frame = frame,
+    .stime = 0.0,
+  };
   for (int b = 0; b < app->num_local_blocks; ++b) {
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
     for (int i = 0; i < app->num_neut_species; i++) {
@@ -1191,9 +1195,15 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
         neut_frame = 0;
       }
       rstat = gkyl_gyrokinetic_app_from_frame_neut_species(sbapp, i, neut_frame);
+      if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+        return rstat;
+      }
     }
     for (int i = 0; i < app->num_species; i++) {
       rstat = gkyl_gyrokinetic_app_from_frame_species(sbapp, i, frame);
+      if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+        return rstat;
+      }
     }
   }
 

@@ -27,6 +27,7 @@ struct gk_poa_phase_params {
   bool is_static_field; // Whether to evolve the field.
   bool is_positivity_enabled; // Whether positivity is enabled.
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type; // Type of df/dt multipler.
+  enum gkyl_gyrokinetic_damping_type damping_type; // Type of damping.
 };
 
 // Define the context of the simulation. This is basically all the globals
@@ -564,6 +565,7 @@ create_ctx(void)
     poa_phases[2 * i].is_static_field = is_static_field_oap;
     poa_phases[2 * i].fdot_mult_type = fdot_mult_type_oap;
     poa_phases[2 * i].is_positivity_enabled = is_positivity_enabled_oap;
+    poa_phases[2 * i].damping_type = GKYL_GK_DAMPING_NONE;
 
     // FDPs.
     poa_phases[2 * i + 1].phase = GK_POA_FDP;
@@ -573,6 +575,7 @@ create_ctx(void)
     poa_phases[2 * i + 1].is_static_field = is_static_field_fdp;
     poa_phases[2 * i + 1].fdot_mult_type = fdot_mult_type_fdp;
     poa_phases[2 * i + 1].is_positivity_enabled = is_positivity_enabled_fdp;
+    poa_phases[2 * i + 1].damping_type = GKYL_GK_DAMPING_LOW_PASS_FILTER;
   }
   // Add an extra, longer FDP.
   poa_phases[num_phases - 1].phase = GK_POA_FDP;
@@ -582,6 +585,7 @@ create_ctx(void)
   poa_phases[num_phases - 1].is_static_field = is_static_field_fdp;
   poa_phases[num_phases - 1].fdot_mult_type = fdot_mult_type_fdp;
   poa_phases[num_phases - 1].is_positivity_enabled = is_positivity_enabled_fdp;
+  poa_phases[num_phases - 1].damping_type = GKYL_GK_DAMPING_LOW_PASS_FILTER;
 
   double write_phase_freq =
     0.5; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
@@ -797,10 +801,19 @@ run_phase(
     .type = pparams->is_positivity_enabled ? GKYL_GK_POSITIVITY_SHIFT : GKYL_GK_POSITIVITY_NONE,
     .write_diagnostics = pparams->is_positivity_enabled,
   };
+  struct gkyl_gyrokinetic_damping damping_inp = {
+    .type = pparams->damping_type,
+    .cellwise_const = false,
+    .rate_const = 1 / 5e-6,
+    .write_fbar = true,
+    .write_rate = true,
+    .do_not_reset_fbar = true,
+  };
 
   gkyl_gyrokinetic_app_reset_species_collisionless(app, t_curr, "ion", collisionless_inp);
   gkyl_gyrokinetic_app_reset_species_fdot_multiplier(app, t_curr, "ion", fdot_mult_inp);
   gkyl_gyrokinetic_app_reset_species_positivity(app, t_curr, "ion", positivity_inp);
+  gkyl_gyrokinetic_app_reset_species_damping(app, t_curr, "ion", damping_inp);
   gkyl_gyrokinetic_app_reset_field(app, t_curr, field_inp);
 
   // Compute initial guess of maximum stable time-step.
@@ -1065,9 +1078,8 @@ main(int argc, char **argv)
     write_data(&trig_write_conf, &trig_write_phase, app, tfs.t_curr, true);
   }
 
-  if (app_args.num_steps != INT_MAX) {
-    phase_idx_end = 1;
-  }
+  // if (app_args.num_steps != INT_MAX)
+  //   phase_idx_end = 1;
 
   // Loop over number of number of phases;
   for (int pit = phase_idx_init; pit < phase_idx_end; pit++) {
