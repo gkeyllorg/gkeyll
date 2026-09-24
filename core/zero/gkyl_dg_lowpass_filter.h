@@ -22,10 +22,10 @@ typedef struct gkyl_dg_lowpass_filter gkyl_dg_lowpass_filter;
  * @param use_gpu bool to determine if on GPU.
  * @return New filter updater.
  */
-struct gkyl_dg_lowpass_filter*
-gkyl_dg_lowpass_filter_new(int dir, int half_width, double cutoff_wavelength,
-  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *range, bool use_gpu);
+struct gkyl_dg_lowpass_filter *gkyl_dg_lowpass_filter_new(
+  int dir, int half_width, double cutoff_wavelength, const struct gkyl_basis *basis,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range, bool use_gpu
+);
 
 /**
  * Run the filter updater. Cannot be used in-place; ftar cells outside the
@@ -35,14 +35,13 @@ gkyl_dg_lowpass_filter_new(int dir, int half_width, double cutoff_wavelength,
  * @param fdo Donor field.
  * @param ftar Target (filtered) field.
  */
-void
-gkyl_dg_lowpass_filter_advance(gkyl_dg_lowpass_filter *up,
-  struct gkyl_array *fdo, struct gkyl_array *ftar);
+void gkyl_dg_lowpass_filter_advance(
+  gkyl_dg_lowpass_filter *up, struct gkyl_array *fdo, struct gkyl_array *ftar
+);
 
 /**
  * Release the memory associated with this filter updater.
  *
  * @param up Filter updater.
  */
-void
-gkyl_dg_lowpass_filter_release(gkyl_dg_lowpass_filter *up);
+void gkyl_dg_lowpass_filter_release(gkyl_dg_lowpass_filter *up);

@@ -12,30 +12,30 @@ struct sr_euler_ctx {
 };
 
 void
-evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sr_euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
 
   double x = xn[0];
   //ICs from test 4, shock tube, in Eulderink 1995
-  
-  double rhol = 10.0, ul = 0.0, pl = 40./3.;
-  double rhor = 1.0, ur = 0.0, pr = 2./(3.e7);
+
+  double rhol = 10.0, ul = 0.0, pl = 40. / 3.;
+  double rhor = 1.0, ur = 0.0, pr = 2. / (3.e7);
 
   double rho = rhor, u = ur, p = pr;
-  if (x<45.) {
+  if (x < 45.) {
     rho = rhol;
     u = ul;
     p = pl;
   }
 
-  double gamma = 1 / sqrt(1 - u*u);
-  double rhoh = gas_gamma * p / (gas_gamma - 1)  + rho;
-  
-  fout[0] = gamma*rho;
-  fout[1] = gamma*gamma*rhoh - p;
-  fout[2] = gamma*gamma*rhoh*u;
+  double gamma = 1 / sqrt(1 - u * u);
+  double rhoh = gas_gamma * p / (gas_gamma - 1) + rho;
+
+  fout[0] = gamma * rho;
+  fout[1] = gamma * gamma * rhoh - p;
+  fout[2] = gamma * gamma * rhoh * u;
   fout[3] = 0.;
   fout[4] = 0.;
 }
@@ -43,7 +43,7 @@ evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 struct sr_euler_ctx
 sr_euler_ctx(void)
 {
-  return (struct sr_euler_ctx) { .gas_gamma = 5./3. };
+  return (struct sr_euler_ctx){.gas_gamma = 5. / 3.};
 }
 
 int
@@ -70,21 +70,21 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalSREulerInit,
 
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
   };
 
   // VM app
   struct gkyl_moment app_inp = {
 
     .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { 100.0 }, 
-    .cells = { NX },
+    .lower = {0.0},
+    .upper = {100.0},
+    .cells = {NX},
 
     .cfl_frac = 0.9,
 
     .num_species = 1,
-    .species = { fluid },
+    .species = {fluid},
   };
 
   // create app object
@@ -107,7 +107,7 @@ main(int argc, char **argv)
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
-    
+
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
       break;
@@ -133,6 +133,6 @@ main(int argc, char **argv)
   printf("Species updates took %g secs\n", stat.species_tm);
   printf("Field updates took %g secs\n", stat.field_tm);
   printf("Total updates took %g secs\n", stat.total_tm);
-  
+
   return 0;
 }
