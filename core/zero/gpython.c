@@ -33,7 +33,8 @@
 
 _Static_assert(gpython_MAX_DIM == GKYL_MAX_DIM, "gpython_MAX_DIM out of sync with GKYL_MAX_DIM");
 
-int gpython_api_version(void)
+int
+gpython_api_version(void)
 {
   return GPYTHON_API_VERSION;
 }
@@ -46,37 +47,44 @@ int gpython_api_version(void)
 #define CBAS(b) ((const struct gkyl_basis *)(b))
 
 /* ---- arrays ------------------------------------------------------------ */
-gpython_array *gpython_array_new(size_t ncomp, size_t size)
+gpython_array *
+gpython_array_new(size_t ncomp, size_t size)
 {
   return (gpython_array *)gkyl_array_new(GKYL_DOUBLE, ncomp, size);
 }
 
-gpython_array *gpython_array_from_buff(size_t ncomp, size_t size, double *data)
+gpython_array *
+gpython_array_from_buff(size_t ncomp, size_t size, double *data)
 {
   return (gpython_array *)gkyl_array_new_from_buff(GKYL_DOUBLE, ncomp, size, data);
 }
 
-gpython_array *gpython_array_clone(const gpython_array *a)
+gpython_array *
+gpython_array_clone(const gpython_array *a)
 {
   return (gpython_array *)gkyl_array_clone(CARR(a));
 }
 
-void gpython_array_release(gpython_array *a)
+void
+gpython_array_release(gpython_array *a)
 {
   gkyl_array_release(CARR(a));
 }
 
-size_t gpython_array_ncomp(const gpython_array *a)
+size_t
+gpython_array_ncomp(const gpython_array *a)
 {
   return CARR(a)->ncomp;
 }
 
-size_t gpython_array_size(const gpython_array *a)
+size_t
+gpython_array_size(const gpython_array *a)
 {
   return CARR(a)->size;
 }
 
-double *gpython_array_data(gpython_array *a)
+double *
+gpython_array_data(gpython_array *a)
 {
   return (double *)ARR(a)->data;
 }
@@ -93,12 +101,14 @@ grid_out(const struct gkyl_rect_grid *grid, int *ndim, double *lower, double *up
   }
 }
 
-int gpython_file_type(const char *fname)
+int
+gpython_file_type(const char *fname)
 {
   return gkyl_get_gkyl_file_type(fname);
 }
 
-int gpython_read_header(
+int
+gpython_read_header(
   const char *fname, int *ndim, double *lower, double *upper, int *cells, int *file_type,
   size_t *esznc, size_t *tot_cells, char **meta, size_t *meta_sz
 )
@@ -124,7 +134,8 @@ int gpython_read_header(
   return 0;
 }
 
-void gpython_meta_release(char *meta)
+void
+gpython_meta_release(char *meta)
 {
   free(meta);
 }
@@ -141,7 +152,8 @@ gpython_read_field(const char *fname, int *ndim, double *lower, double *upper, i
   return (gpython_array *)arr;
 }
 
-const char *gpython_status_msg(int status)
+const char *
+gpython_status_msg(int status)
 {
   return gkyl_array_rio_status_msg((enum gkyl_array_rio_status)status);
 }
@@ -150,7 +162,8 @@ const char *gpython_status_msg(int status)
  * The heap-allocated struct gkyl_basis is plain data filled by the in-place
  * initializers; the function pointers it carries are dispatched HERE, in
  * compiled code, never from the interpreter. */
-gpython_basis *gpython_basis_new(const char *type, int ndim, int poly_order)
+gpython_basis *
+gpython_basis_new(const char *type, int ndim, int poly_order)
 {
   struct gkyl_basis *b = malloc(sizeof(struct gkyl_basis));
   if (strcmp(type, "serendipity") == 0) {
@@ -164,7 +177,8 @@ gpython_basis *gpython_basis_new(const char *type, int ndim, int poly_order)
   return (gpython_basis *)b;
 }
 
-gpython_basis *gpython_basis_new_hybrid(const char *type, int cdim, int vdim)
+gpython_basis *
+gpython_basis_new_hybrid(const char *type, int cdim, int vdim)
 {
   struct gkyl_basis *b = malloc(sizeof(struct gkyl_basis));
   if (strcmp(type, "hybrid") == 0) {
@@ -178,42 +192,50 @@ gpython_basis *gpython_basis_new_hybrid(const char *type, int cdim, int vdim)
   return (gpython_basis *)b;
 }
 
-void gpython_basis_release(gpython_basis *b)
+void
+gpython_basis_release(gpython_basis *b)
 {
   free(b);
 }
 
-int gpython_basis_ndim(const gpython_basis *b)
+int
+gpython_basis_ndim(const gpython_basis *b)
 {
   return (int)CBAS(b)->ndim;
 }
 
-int gpython_basis_poly_order(const gpython_basis *b)
+int
+gpython_basis_poly_order(const gpython_basis *b)
 {
   return (int)CBAS(b)->poly_order;
 }
 
-int gpython_basis_num_basis(const gpython_basis *b)
+int
+gpython_basis_num_basis(const gpython_basis *b)
 {
   return (int)CBAS(b)->num_basis;
 }
 
-const char *gpython_basis_id(const gpython_basis *b)
+const char *
+gpython_basis_id(const gpython_basis *b)
 {
   return CBAS(b)->id;
 }
 
-void gpython_basis_eval(const gpython_basis *b, const double *z, double *bvals)
+void
+gpython_basis_eval(const gpython_basis *b, const double *z, double *bvals)
 {
   CBAS(b)->eval(z, bvals);
 }
 
-void gpython_basis_node_list(const gpython_basis *b, double *coords)
+void
+gpython_basis_node_list(const gpython_basis *b, double *coords)
 {
   CBAS(b)->node_list(coords);
 }
 
-void gpython_basis_nodal_to_modal(const gpython_basis *b, const double *fnodal, double *fmodal)
+void
+gpython_basis_nodal_to_modal(const gpython_basis *b, const double *fnodal, double *fmodal)
 {
   CBAS(b)->nodal_to_modal(fnodal, fmodal);
 }
@@ -223,7 +245,8 @@ void gpython_basis_nodal_to_modal(const gpython_basis *b, const double *fnodal, 
  * arguments of the gkyl entry points are FIELD indices. The basis struct is
  * passed BY VALUE, exactly as the header declares — the compiler, not a
  * hand-written mirror, guarantees the ABI. */
-static int nfields_of(const gpython_basis *b, const gpython_array *a)
+static int
+nfields_of(const gpython_basis *b, const gpython_array *a)
 {
   size_t nb = (size_t)CBAS(b)->num_basis;
   if (CARR(a)->ncomp % nb != 0) {
@@ -239,7 +262,8 @@ weak_shapes_ok(const gpython_array *out, const gpython_array *a1, const gpython_
          (!a2 || (CARR(a1)->ncomp == CARR(a2)->ncomp && CARR(a1)->size == CARR(a2)->size));
 }
 
-int gpython_dg_mul(
+int
+gpython_dg_mul(
   const gpython_basis *b, gpython_array *out, const gpython_array *a1, const gpython_array *a2
 )
 {
@@ -253,7 +277,8 @@ int gpython_dg_mul(
   return 0;
 }
 
-int gpython_dg_div(
+int
+gpython_dg_div(
   const gpython_basis *b, gpython_array *out, const gpython_array *a1, const gpython_array *a2
 )
 {
@@ -269,7 +294,8 @@ int gpython_dg_div(
   return 0;
 }
 
-int gpython_dg_inv(const gpython_basis *b, gpython_array *out, const gpython_array *a1)
+int
+gpython_dg_inv(const gpython_basis *b, gpython_array *out, const gpython_array *a1)
 {
   int nf = nfields_of(b, a1);
   if (nf < 0 || !weak_shapes_ok(out, a1, NULL)) {
@@ -285,7 +311,8 @@ int gpython_dg_inv(const gpython_basis *b, gpython_array *out, const gpython_arr
  * the range volumes built from the caller's cell counts matching the
  * arrays' sizes exactly (mirrors gpython_array_integrate's range convention:
  * 1-indexed, lower=1, upper=cells). */
-int gpython_dg_mul_conf_phase(
+int
+gpython_dg_mul_conf_phase(
   const gpython_basis *cbasis, const gpython_basis *pbasis, gpython_array *pout,
   const gpython_array *cop, const gpython_array *pop, const int *conf_cells, const int *phase_cells
 )
@@ -318,7 +345,8 @@ int gpython_dg_mul_conf_phase(
 /* Local DG derivative: like gpython_dg_mul, the per-field loop lives here since
  * gkyl_dg_differentiate_op_local's c_oop/c_iop are field indices, not a
  * whole-array operation. */
-int gpython_dg_differentiate(
+int
+gpython_dg_differentiate(
   const gpython_basis *b, int dir, int diff_order, double dx, gpython_array *out,
   const gpython_array *in
 )
@@ -338,33 +366,39 @@ int gpython_dg_differentiate(
 }
 
 /* ---- linear coefficient ops / reductions -------------------------------- */
-void gpython_array_set(gpython_array *out, double c, const gpython_array *a)
+void
+gpython_array_set(gpython_array *out, double c, const gpython_array *a)
 {
   gkyl_array_set(ARR(out), c, CARR(a));
 }
 
-void gpython_array_accumulate(gpython_array *out, double c, const gpython_array *a)
+void
+gpython_array_accumulate(gpython_array *out, double c, const gpython_array *a)
 {
   gkyl_array_accumulate(ARR(out), c, CARR(a));
 }
 
-void gpython_array_scale(gpython_array *a, double c)
+void
+gpython_array_scale(gpython_array *a, double c)
 {
   gkyl_array_scale(ARR(a), c);
 }
 
-void gpython_array_shiftc(gpython_array *a, double val, unsigned comp)
+void
+gpython_array_shiftc(gpython_array *a, double val, unsigned comp)
 {
   gkyl_array_shiftc(ARR(a), val, comp);
 }
 
-void gpython_array_reduce(double *out, const gpython_array *a, int op)
+void
+gpython_array_reduce(double *out, const gpython_array *a, int op)
 {
   static const enum gkyl_array_op ops[] = {GKYL_MIN, GKYL_MAX, GKYL_SUM};
   gkyl_array_reduce(out, CARR(a), ops[op]);
 }
 
-int gpython_array_dg_reduce(
+int
+gpython_array_dg_reduce(
   double *out, const gpython_basis *b, const gpython_array *a, int comp, int op
 )
 {
@@ -378,7 +412,8 @@ int gpython_array_dg_reduce(
 }
 
 /* ---- integration --------------------------------------------------------- */
-int gpython_array_integrate(
+int
+gpython_array_integrate(
   int ndim, const double *lower, const double *upper, const int *cells, const gpython_basis *b,
   int nfields, int op, double factor, const gpython_array *a, double *out
 )
@@ -413,7 +448,8 @@ int gpython_array_integrate(
  * kernel gkyl_array_average_choose_kernel dispatches has no field-index
  * parameter at all, so a multi-field caller must loop, one field at a time,
  * in Python (dg/modal.py). */
-int gpython_array_average(
+int
+gpython_array_average(
   int ndim, const double *lower, const double *upper, const int *cells, const gpython_basis *b,
   const gpython_basis *b_avg, int ndim_avg, const int *cells_avg, const int *avg_dim,
   const gpython_array *weight, const gpython_array *a, gpython_array *out
@@ -463,7 +499,8 @@ int gpython_array_average(
 }
 
 /* ---- evaluate-and-project ------------------------------------------------- */
-gpython_array *gpython_eval_at_coord_proj(
+gpython_array *
+gpython_eval_at_coord_proj(
   const gpython_basis *b, int cdim_do, int ndim, const double *lower, const double *upper,
   const int *cells, int num_eval, const int *eval_dirs, const double *eval_coords, int ndim_tar,
   const int *cells_tar, const gpython_array *in, int *out_btype, int *out_poly_order, int *out_cdim,
@@ -530,7 +567,8 @@ gpython_array *gpython_eval_at_coord_proj(
 }
 
 /* ---- pow(sqrt) projection -------------------------------------------------- */
-int gpython_powsqrt(
+int
+gpython_powsqrt(
   const gpython_basis *b, int num_quad, double exponent, int ndim, const int *cells,
   gpython_array *out, const gpython_array *in
 )
@@ -557,7 +595,8 @@ int gpython_powsqrt(
 }
 
 /* ---- writing -------------------------------------------------------------- */
-int gpython_write_field(
+int
+gpython_write_field(
   const char *fname, int ndim, const double *lower, const double *upper, const int *cells,
   const char *meta, size_t meta_sz, const gpython_array *a
 )
@@ -583,7 +622,8 @@ int gpython_write_field(
  * The dynvec object itself never crosses gkyl_gpython.h: it is created, filled,
  * and released entirely inside this function, and its contents move to the
  * caller only as gpython_arrays (already opaque, already RAII'd). */
-int gpython_dynvec_read(const char *fname, size_t *ncomp, gpython_array **tm, gpython_array **data)
+int
+gpython_dynvec_read(const char *fname, size_t *ncomp, gpython_array **tm, gpython_array **data)
 {
   struct gkyl_dynvec_etype_ncomp info = gkyl_dynvec_read_ncomp(fname);
   if (info.ncomp == 0) {
@@ -612,9 +652,8 @@ int gpython_dynvec_read(const char *fname, size_t *ncomp, gpython_array **tm, gp
   return 0;
 }
 
-int gpython_dynvec_write(
-  const char *fname, size_t ncomp, size_t n, const double *tm, const double *data
-)
+int
+gpython_dynvec_write(const char *fname, size_t ncomp, size_t n, const double *tm, const double *data)
 {
   gkyl_dynvec vec = gkyl_dynvec_new(GKYL_DOUBLE, ncomp);
   for (size_t i = 0; i < n; ++i) {
