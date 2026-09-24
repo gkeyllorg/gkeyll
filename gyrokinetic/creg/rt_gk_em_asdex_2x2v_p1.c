@@ -528,13 +528,13 @@ main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "asdex.geqdsk", // equilibrium to use
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk", // equilibrium to use
     .rz_poly_order = 2,                      // polynomial order for psi(R,Z) used for field line tracing
     .flux_poly_order = 1,                    // polynomial order for fpol(psi)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_LSN_SOL,                     // type of geometry
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,    // type of geometry
     .rclose = 2.5,                             // closest R to region of interest
     .rright = 2.5,                             // Closest R to outboard SOL
     .rleft = 0.7,                              // closest R to inboard SOL
@@ -559,7 +559,7 @@ main(int argc, char **argv)
     .cfl_frac = 0.03,
 
     .geometry = {
-      .geometry_id = GKYL_TOKAMAK,
+      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
     },
