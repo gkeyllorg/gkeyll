@@ -1,0 +1,19 @@
+Here, an if statement was put inside the time loop. This is forbidden in this codebase. Is this if statement neccisary? Why is it here? Please remove it safely
+
+  // A disabled or stationary collisionless operator has no CFL constraint to relax.
+  // Avoid 0/0 in the clamp, including in ghost cells.
+  if (omega_max == 0.0) {
+    gkyl_array_scale(combined_multiplier, fdmul->time_dilation_scale_const);
+    return;
+  }
+
+---
+
+Here, an if statement was put inside the time loop. This is forbidden in this codebase. Is this if statement neccisary? Why is it here? Please remove it safely
+
+  // A disabled or stationary collisionless operator has no CFL constraint to relax.
+  // Avoid 0/0 in the clamp, including in ghost cells.
+  if (omega_max == 0.0) {
+    gkyl_array_scale(combined_multiplier, fdmul->time_dilation_scale_const);
+    return;
+  }
