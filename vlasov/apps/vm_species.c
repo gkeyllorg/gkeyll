@@ -13,7 +13,8 @@
 #include <time.h>
 
 // initialize species object
-void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s)
+void
+vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s)
 {
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim + vdim;
@@ -254,7 +255,7 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
       .hamil = s->hamil,
       .alpha_surf = s->alpha_surf,
       .sgn_alpha_surf = s->sgn_alpha_surf,
-      .const_sgn_alpha = s->const_sgn_alpha
+      .const_sgn_alpha = s->const_sgn_alpha,
     };
 
     //create solver
@@ -265,7 +266,11 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
   } else {
     if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B) {
       struct gkyl_dg_vlasov_auxfields aux_inp = {
-        .field = s->qmem, .cot_vec = 0, .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0
+        .field = s->qmem,
+        .cot_vec = 0,
+        .alpha_surf = 0,
+        .sgn_alpha_surf = 0,
+        .const_sgn_alpha = 0,
       };
       s->slvr = gkyl_dg_updater_vlasov_new(
         &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, is_zero_flux,
@@ -273,7 +278,8 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
       );
     } else {
       struct gkyl_dg_vlasov_poisson_auxfields aux_inp = {
-        .potentials = s->qmem, .fields_ext = s->qmem_ext
+        .potentials = s->qmem,
+        .fields_ext = s->qmem_ext,
       };
       s->slvr = gkyl_dg_updater_vlasov_poisson_new(
         &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, is_zero_flux,
@@ -368,7 +374,7 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
       .correct_all_moms = true,
       .max_iter = s->info.max_iter,
       .iter_eps = s->info.iter_eps,
-      .use_last_converged = s->info.use_last_converged
+      .use_last_converged = s->info.use_last_converged,
     };
     vm_species_lte_init(app, s, &s->lte, corr_inp);
   }
@@ -458,7 +464,8 @@ void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_
   }
 }
 
-void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
+void
+vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 {
   if (species->num_init > 1) {
     gkyl_array_clear(species->f, 0.0);
@@ -498,7 +505,8 @@ void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, doubl
   }
 }
 
-void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm)
+void
+vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm)
 {
   if (species->has_app_accel) {
     gkyl_proj_on_basis_advance(
@@ -513,7 +521,8 @@ void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species,
 
 // Compute the RHS for species update, returning maximum stable
 // time-step.
-double vm_species_rhs(
+double
+vm_species_rhs(
   gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin,
   const struct gkyl_array *em, struct gkyl_array *rhs
 )
@@ -586,7 +595,8 @@ double vm_species_rhs(
 
 // Compute the implicit RHS for species update, returning maximum stable
 // time-step.
-double vm_species_rhs_implicit(
+double
+vm_species_rhs_implicit(
   gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, double dt
 )
@@ -621,7 +631,8 @@ double vm_species_rhs_implicit(
 
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
-void vm_species_apply_bc(
+void
+vm_species_apply_bc(
   gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f, double tcurr
 )
 {
@@ -640,43 +651,43 @@ void vm_species_apply_bc(
   for (int d = 0; d < cdim; ++d) {
     if (is_np_bc[d]) {
       switch (species->lower_bc[d].type) {
-      case GKYL_SPECIES_EMISSION:
-        vm_species_emission_apply_bc(app, &species->bc_emission_lo, f, tcurr);
-        break;
-      case GKYL_SPECIES_COPY:
-      case GKYL_SPECIES_REFLECT:
-      case GKYL_SPECIES_ABSORB:
-        gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
-        break;
-      case GKYL_SPECIES_FIXED_FUNC:
-        gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
-        break;
-      case GKYL_SPECIES_NO_SLIP:
-      case GKYL_SPECIES_WEDGE:
-        assert(false);
-        break;
-      default:
-        break;
+        case GKYL_SPECIES_EMISSION:
+          vm_species_emission_apply_bc(app, &species->bc_emission_lo, f, tcurr);
+          break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
+          break;
       }
 
       switch (species->upper_bc[d].type) {
-      case GKYL_SPECIES_EMISSION:
-        vm_species_emission_apply_bc(app, &species->bc_emission_up, f, tcurr);
-        break;
-      case GKYL_SPECIES_COPY:
-      case GKYL_SPECIES_REFLECT:
-      case GKYL_SPECIES_ABSORB:
-        gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
-        break;
-      case GKYL_SPECIES_FIXED_FUNC:
-        gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
-        break;
-      case GKYL_SPECIES_NO_SLIP:
-      case GKYL_SPECIES_WEDGE:
-        assert(false);
-        break;
-      default:
-        break;
+        case GKYL_SPECIES_EMISSION:
+          vm_species_emission_apply_bc(app, &species->bc_emission_up, f, tcurr);
+          break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
+          break;
       }
     }
   }
@@ -686,7 +697,8 @@ void vm_species_apply_bc(
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species)
+void
+vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species)
 {
   gkyl_dg_calc_l2_range(&app->basis, 0, species->L2_f, 0, species->f, species->local);
   gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
@@ -704,7 +716,8 @@ void vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species
   gkyl_dynvec_append(species->integ_L2_f, tm, L2_global);
 }
 
-void vm_species_coll_tm(gkyl_vlasov_app *app)
+void
+vm_species_coll_tm(gkyl_vlasov_app *app)
 {
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
@@ -716,7 +729,8 @@ void vm_species_coll_tm(gkyl_vlasov_app *app)
   }
 }
 
-void vm_species_bgk_niter(gkyl_vlasov_app *app)
+void
+vm_species_bgk_niter(gkyl_vlasov_app *app)
 {
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
@@ -725,7 +739,8 @@ void vm_species_bgk_niter(gkyl_vlasov_app *app)
   }
 }
 
-void vm_species_tm(gkyl_vlasov_app *app)
+void
+vm_species_tm(gkyl_vlasov_app *app)
 {
   app->stat.species_rhs_tm = 0.0;
   for (int i = 0; i < app->num_species; ++i) {
@@ -740,7 +755,8 @@ void vm_species_tm(gkyl_vlasov_app *app)
   }
 }
 
-void vm_species_rad_tm(gkyl_vlasov_app *app)
+void
+vm_species_rad_tm(gkyl_vlasov_app *app)
 {
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].radiation_id == GKYL_VM_COMPTON_RADIATION) {
@@ -752,7 +768,8 @@ void vm_species_rad_tm(gkyl_vlasov_app *app)
 }
 
 // release resources for species
-void vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *s)
+void
+vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *s)
 {
   // release various arrays
   gkyl_array_release(s->f);

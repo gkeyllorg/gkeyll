@@ -8,7 +8,8 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
 
-static void check_prim(int cdim, int vdim, int poly_order)
+static void
+check_prim(int cdim, int vdim, int poly_order)
 {
   int pdim = cdim + vdim;
 
@@ -38,32 +39,39 @@ static void check_prim(int cdim, int vdim, int poly_order)
   gkyl_prim_lbo_type_release(prim);
 }
 
-void test_prim_ctor_1x1v_p1()
+void
+test_prim_ctor_1x1v_p1()
 {
   check_prim(1, 1, 1);
 }
-void test_prim_ctor_1x2v_p1()
+void
+test_prim_ctor_1x2v_p1()
 {
   check_prim(1, 2, 1);
 }
-void test_prim_ctor_2x2v_p1()
+void
+test_prim_ctor_2x2v_p1()
 {
   check_prim(2, 2, 1);
 }
-void test_prim_ctor_3x2v_p1()
+void
+test_prim_ctor_3x2v_p1()
 {
   check_prim(3, 2, 1);
 }
-void test_prim_ctor_1x1v_p2()
+void
+test_prim_ctor_1x1v_p2()
 {
   check_prim(1, 1, 2);
 }
-void test_prim_ctor_2x2v_p2()
+void
+test_prim_ctor_2x2v_p2()
 {
   check_prim(2, 2, 2);
 }
 
-void test_prim_ctor_acquire()
+void
+test_prim_ctor_acquire()
 {
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 1);

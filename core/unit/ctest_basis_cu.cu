@@ -9,7 +9,8 @@ extern "C" {
 int dev_cu_ser_2d(struct gkyl_basis *basis);
 }
 
-__global__ void ker_dev_cu_ser_2d(struct gkyl_basis *basis, int *nfail)
+__global__ void
+ker_dev_cu_ser_2d(struct gkyl_basis *basis, int *nfail)
 {
   *nfail = 0;
 
@@ -83,7 +84,8 @@ __global__ void ker_dev_cu_ser_2d(struct gkyl_basis *basis, int *nfail)
   GKYL_CU_CHECK(nodes[5] == -1, nfail);
 }
 
-int dev_cu_ser_2d(struct gkyl_basis *basis)
+int
+dev_cu_ser_2d(struct gkyl_basis *basis)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
   ker_dev_cu_ser_2d<<<1, 1>>>(basis, nfail_dev);

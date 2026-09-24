@@ -42,7 +42,8 @@ struct plate_ctx {
 };
 
 // some helper functions
-static double choose_closest(double ref, double *R, double *out, int nr)
+static double
+choose_closest(double ref, double *R, double *out, int nr)
 {
   //return fabs(R[0]-ref) < fabs(R[1]-ref) ? out[0] : out[1];
   int imin = 0;
@@ -56,23 +57,28 @@ static double choose_closest(double ref, double *R, double *out, int nr)
   return out[imin];
 }
 
-static inline double SQ(double x)
+static inline double
+SQ(double x)
 {
   return x * x;
 }
-static inline double CUB(double x)
+static inline double
+CUB(double x)
 {
   return x * x * x;
 }
-static inline double complex cSQ(double complex x)
+static inline double complex
+cSQ(double complex x)
 {
   return cpow(x, 2.0 + 0.0 * I);
 }
-static double complex cCUB(double complex x)
+static double complex
+cCUB(double complex x)
 {
   return cpow(x, 3.0 + 0.0 * I);
 }
-static double complex croot(double complex x, double n)
+static double complex
+croot(double complex x, double n)
 {
   double complex power = 1.0 / n + 0.0 * I;
   return cpow(x, power);
@@ -264,7 +270,8 @@ calc_RdR_p2_tensor_nrc(const double *psi, double psi0, double Z, double xc[2], d
 }
 
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis if delta2 is negative but very small
-static inline struct RdRdZ_sol calc_RdR_p2_tensor_with_tolerance(
+static inline struct RdRdZ_sol
+calc_RdR_p2_tensor_with_tolerance(
   const double *psi, double psi0, double Z, double xc[2], double dx[2]
 )
 {
@@ -601,7 +608,8 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
 // or no solutions. The number of roots found is returned and are
 // copied in the array R and dR. The calling function must ensure that
 // these arrays are big enough to hold all roots required
-static int R_psiZ(
+static int
+R_psiZ(
   const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots, double *R, double *dRdZ,
   double *dR, double *dZ
 )
@@ -676,7 +684,8 @@ static int R_psiZ(
 // or no solutions. The number of roots found is returned and are
 // copied in the array R and dR. The calling function must ensure that
 // these arrays are big enough to hold all roots required
-static int R_psiZ_cubic(
+static int
+R_psiZ_cubic(
   const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots, double *R, double *dRdZ,
   double *dR, double *dZ
 )
@@ -719,7 +728,8 @@ static int R_psiZ_cubic(
   return sidx;
 }
 
-static double calc_grad_psi_p1(const double *psih, const double eta[2], const double dx[2])
+static double
+calc_grad_psi_p1(const double *psih, const double eta[2], const double dx[2])
 {
   double x = eta[0];
   double y = eta[1];
@@ -730,7 +740,8 @@ static double calc_grad_psi_p1(const double *psih, const double eta[2], const do
   return sqrt(dpsidx * dpsidx + dpsidy * dpsidy);
 }
 
-static double calc_grad_psi_p2_tensor(const double *psih, const double eta[2], const double dx[2])
+static double
+calc_grad_psi_p2_tensor(const double *psih, const double eta[2], const double dx[2])
 {
   double x = eta[0];
   double y = eta[1];
@@ -747,7 +758,8 @@ static double calc_grad_psi_p2_tensor(const double *psih, const double eta[2], c
   return sqrt(dpsidx * dpsidx + dpsidy * dpsidy);
 }
 
-static double calc_grad_psi_p3(const double *psih, const double eta[2], const double dx[2])
+static double
+calc_grad_psi_p3(const double *psih, const double eta[2], const double dx[2])
 {
   double x = eta[0];
   double y = eta[1];
@@ -792,7 +804,8 @@ struct contour_ctx {
 };
 
 // Function to pass to numerical quadrature to integrate along a contour
-static inline double contour_func(double Z, void *ctx)
+static inline double
+contour_func(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
@@ -805,7 +818,8 @@ static inline double contour_func(double Z, void *ctx)
   return nr > 0 ? sqrt(1 + drdz * drdz) : 0.0;
 }
 
-static inline double phi_contour_func(double Z, void *ctx)
+static inline double
+phi_contour_func(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
@@ -855,7 +869,8 @@ static inline double phi_contour_func(double Z, void *ctx)
   }
 }
 
-static inline double dphidtheta_integrand(double Z, void *ctx)
+static inline double
+dphidtheta_integrand(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
@@ -910,7 +925,8 @@ static inline double dphidtheta_integrand(double Z, void *ctx)
 // over z-cells. This needs to be done as the DG representation is,
 // well, discontinuous, and adaptive quadrature struggles with such
 // functions.
-static double integrate_psi_contour_memo(
+static double
+integrate_psi_contour_memo(
   const struct gkyl_tok_geo *geo, double psi, double zmin, double zmax, double rclose,
   bool use_memo, bool fill_memo, double *memo
 )
@@ -967,7 +983,8 @@ static double integrate_psi_contour_memo(
   return res;
 }
 
-static double integrate_phi_along_psi_contour_memo(
+static double
+integrate_phi_along_psi_contour_memo(
   const struct gkyl_tok_geo *geo, double psi, double zmin, double zmax, double rclose,
   bool use_memo, bool fill_memo, double *memo
 )

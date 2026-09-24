@@ -12,7 +12,8 @@
 #include <float.h>
 #include <time.h>
 
-static void gk_field_fem_projection_par_rho_ts_2x(
+static void
+gk_field_fem_projection_par_rho_ts_2x(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
   struct gkyl_array *arr_fem
 )
@@ -33,7 +34,8 @@ static void gk_field_fem_projection_par_rho_ts_2x(
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
 }
 
-static void gk_field_fem_projection_par_phi_ts_2x(
+static void
+gk_field_fem_projection_par_phi_ts_2x(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
   struct gkyl_array *arr_fem
 )
@@ -54,7 +56,8 @@ static void gk_field_fem_projection_par_phi_ts_2x(
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
 }
 
-static void gk_field_fem_projection_par_phi_ts_3x(
+static void
+gk_field_fem_projection_par_phi_ts_3x(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
   struct gkyl_array *arr_fem
 )
@@ -88,7 +91,8 @@ static void gk_field_fem_projection_par_phi_ts_3x(
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
 }
 
-static void gk_field_fem_projection_par_rho_iwl_2x(
+static void
+gk_field_fem_projection_par_rho_iwl_2x(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
   struct gkyl_array *arr_fem
 )
@@ -113,7 +117,8 @@ static void gk_field_fem_projection_par_rho_iwl_2x(
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
 }
 
-static void gk_field_fem_projection_par_phi_iwl_2x(
+static void
+gk_field_fem_projection_par_phi_iwl_2x(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
   struct gkyl_array *arr_fem
 )
@@ -138,7 +143,8 @@ static void gk_field_fem_projection_par_phi_iwl_2x(
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
 }
 
-static void gk_field_fem_projection_par_phi_iwl_3x(
+static void
+gk_field_fem_projection_par_phi_iwl_3x(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
   struct gkyl_array *arr_fem
 )
@@ -175,7 +181,8 @@ static void gk_field_fem_projection_par_phi_iwl_3x(
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
 }
 
-static void gk_field_2x3x_fill_fem_parproj_bias_lines(
+static void
+gk_field_2x3x_fill_fem_parproj_bias_lines(
   struct gkyl_gyrokinetic_app *app, struct gk_field *f, struct gkyl_poisson_bc *poisson_bcs
 )
 {
@@ -262,7 +269,8 @@ static void gk_field_2x3x_fill_fem_parproj_bias_lines(
   gkyl_free(bias_lines_buff);
 }
 
-static void gk_field_2x3x_add_TS_updaters(
+static void
+gk_field_2x3x_add_TS_updaters(
   struct gkyl_gyrokinetic_app *app, struct gk_field *f, struct gkyl_poisson_bc *poisson_bcs
 )
 {
@@ -299,7 +307,7 @@ static void gk_field_2x3x_add_TS_updaters(
       .num_ghost = ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,
-      .use_gpu = app->use_gpu
+      .use_gpu = app->use_gpu,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
       T_LU_lo.shift_dg = app->delta_ts_x_lo;
@@ -320,7 +328,7 @@ static void gk_field_2x3x_add_TS_updaters(
       .num_ghost = ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,
-      .use_gpu = app->use_gpu
+      .use_gpu = app->use_gpu,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
       T_UL_up.shift_dg = app->delta_ts_x_up;
@@ -361,7 +369,8 @@ static void gk_field_2x3x_add_TS_updaters(
   );
 }
 
-static void gk_field_2x3x_add_IWL_updaters(
+static void
+gk_field_2x3x_add_IWL_updaters(
   struct gkyl_gyrokinetic_app *app, struct gk_field *f, struct gkyl_poisson_bc *poisson_bcs
 )
 {
@@ -402,7 +411,7 @@ static void gk_field_2x3x_add_IWL_updaters(
       .num_ghost = ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,
-      .use_gpu = app->use_gpu
+      .use_gpu = app->use_gpu,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
       T_LU_lo.shift_dg = app->delta_ts_x_lo;
@@ -445,7 +454,8 @@ static void gk_field_2x3x_add_IWL_updaters(
   );
 }
 
-static void gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+static void
+gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Smooth the charge density along z.
   field->fem_projection_par_rho_func(app, field, field->rho_c, field->rho_c);
@@ -461,7 +471,8 @@ static void gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, str
   field->invert_flr(app, field, field->phi_smooth);
 }
 
-static void gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+static void
+gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->rho_c);
   gkyl_array_release(f->rho_c_global_dg);
@@ -522,7 +533,8 @@ static void gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk
   }
 }
 
-void gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+void
+gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   // Create global subrange we'll copy the field solver solution from (into local).
   gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);

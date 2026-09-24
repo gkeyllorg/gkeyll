@@ -13,7 +13,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void gkyl_gk_collisionless_passive_flux_surf_conf_cu_kernel(
+__global__ void
+gkyl_gk_collisionless_passive_flux_surf_conf_cu_kernel(
   struct gkyl_gk_collisionless_passive_flux *up, struct gkyl_range conf_range,
   struct gkyl_range phase_range, struct gkyl_range conf_ext_range,
   struct gkyl_range phase_ext_range, const struct gkyl_array *fin, struct gkyl_array *flux_surf,
@@ -126,7 +127,8 @@ __global__ void gkyl_gk_collisionless_passive_flux_surf_conf_cu_kernel(
 }
 
 // Host-side wrapper for the passive surface flux kernel.
-void gkyl_gk_collisionless_passive_flux_surf_cu(
+void
+gkyl_gk_collisionless_passive_flux_surf_cu(
   gkyl_gk_collisionless_passive_flux *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_ext_range,
   const struct gkyl_range *phase_ext_range, const struct gkyl_array *fin,
@@ -142,7 +144,8 @@ void gkyl_gk_collisionless_passive_flux_surf_cu(
 
 // CUDA kernel to set device function pointers.
 // Doing function-pointer work here avoids troublesome cudaMemcpyFromSymbol.
-__global__ static void gk_collisionless_passive_flux_set_cu_dev_ptrs(
+__global__ static void
+gk_collisionless_passive_flux_set_cu_dev_ptrs(
   struct gkyl_gk_collisionless_passive_flux *up, int cdim, int vdim, int poly_order,
   const enum gkyl_gyrokinetic_bc_type *bctype_conf
 )
@@ -159,7 +162,8 @@ __global__ static void gk_collisionless_passive_flux_set_cu_dev_ptrs(
   }
 }
 
-gkyl_gk_collisionless_passive_flux *gkyl_gk_collisionless_passive_flux_cu_dev_new(
+gkyl_gk_collisionless_passive_flux *
+gkyl_gk_collisionless_passive_flux_cu_dev_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, const struct gkyl_array *passive_speeds,
   const double charge, const double mass, const struct gk_geometry *gk_geom,

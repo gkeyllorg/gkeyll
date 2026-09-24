@@ -167,8 +167,9 @@ void gyrokinetic_multib_calc_field_and_apply_bc(
  * @param app Gyrokinetic app.
  * @param dt0 Suggessted time step.
  */
-struct gkyl_update_status
-gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, double dt0);
+struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(
+  struct gkyl_gyrokinetic_multib_app *app, double dt0
+);
 
 /** Field API */
 

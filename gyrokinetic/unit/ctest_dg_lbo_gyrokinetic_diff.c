@@ -18,14 +18,16 @@
 #include <gkyl_range.h>
 #include <gkyl_velocity_map.h>
 
-static void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+static void
+mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-static void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+static void
+bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0;
@@ -42,7 +44,8 @@ struct lbo_env {
   struct gkyl_velocity_map *gvm;
 };
 
-static void lbo_env_init(struct lbo_env *e)
+static void
+lbo_env_init(struct lbo_env *e)
 {
   int cdim = 3, vdim = 2;
   int pdim = cdim + vdim;
@@ -96,7 +99,7 @@ static void lbo_env_init(struct lbo_env *e)
     .geo_local_ext = e->confRange_ext,
     .geo_global = e->confRange,
     .geo_global_ext = e->confRange_ext,
-    .geo_basis = e->confBasis
+    .geo_basis = e->confBasis,
   };
   e->gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
@@ -106,14 +109,16 @@ static void lbo_env_init(struct lbo_env *e)
   );
 }
 
-static void lbo_env_release(struct lbo_env *e)
+static void
+lbo_env_release(struct lbo_env *e)
 {
   gkyl_gk_geometry_release(e->gk_geom);
   gkyl_position_map_release(e->pmap);
   gkyl_velocity_map_release(e->gvm);
 }
 
-void test_lbo_diff_ctor()
+void
+test_lbo_diff_ctor()
 {
   struct lbo_env e;
   lbo_env_init(&e);
@@ -145,7 +150,8 @@ void test_lbo_diff_ctor()
   lbo_env_release(&e);
 }
 
-void test_lbo_diff_acquire()
+void
+test_lbo_diff_acquire()
 {
   struct lbo_env e;
   lbo_env_init(&e);

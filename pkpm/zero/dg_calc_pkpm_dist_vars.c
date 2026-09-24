@@ -8,7 +8,8 @@
 #include <gkyl_dg_calc_pkpm_dist_vars_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_pkpm_dist_vars *gkyl_dg_calc_pkpm_dist_vars_new(
+gkyl_dg_calc_pkpm_dist_vars *
+gkyl_dg_calc_pkpm_dist_vars_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *cbasis, bool use_gpu
 )
 {
@@ -38,7 +39,8 @@ gkyl_dg_calc_pkpm_dist_vars *gkyl_dg_calc_pkpm_dist_vars_new(
   return up;
 }
 
-void gkyl_dg_calc_pkpm_dist_vars_mirror_force(
+void
+gkyl_dg_calc_pkpm_dist_vars_mirror_force(
   struct gkyl_dg_calc_pkpm_dist_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *pkpm_prim,
   const struct gkyl_array *nu_prim_moms_sum, const struct gkyl_array *div_b,
@@ -81,7 +83,8 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force(
   }
 }
 
-void gkyl_dg_calc_pkpm_dist_vars_div_ppar(
+void
+gkyl_dg_calc_pkpm_dist_vars_div_ppar(
   struct gkyl_dg_calc_pkpm_dist_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *bvar_surf,
   const struct gkyl_array *bvar, const struct gkyl_array *fIn, const struct gkyl_array *max_b,
@@ -141,7 +144,8 @@ void gkyl_dg_calc_pkpm_dist_vars_div_ppar(
   }
 }
 
-void gkyl_dg_calc_pkpm_dist_vars_release(gkyl_dg_calc_pkpm_dist_vars *up)
+void
+gkyl_dg_calc_pkpm_dist_vars_release(gkyl_dg_calc_pkpm_dist_vars *up)
 {
   if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);

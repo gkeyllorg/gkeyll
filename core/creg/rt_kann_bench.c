@@ -8,12 +8,14 @@
 #include <time.h>
 #include <math.h>
 
-static inline float ufunc(float x)
+static inline float
+ufunc(float x)
 {
   return 1.0f / (1.0f + 100.0f * x * x);
 }
 
-static double bench_train(int ntrain, int nwidth, int ndepth, bool use_gpu)
+static double
+bench_train(int ntrain, int nwidth, int ndepth, bool use_gpu)
 {
   kad_node_t *t_net = kann_layer_input(1);
   for (int i = 0; i < ndepth; ++i) {
@@ -45,7 +47,11 @@ static double bench_train(int ntrain, int nwidth, int ndepth, bool use_gpu)
   }
 
   struct gkyl_kann_train_params params = {
-    .learning_rate = 1e-3f, .mini_size = 64, .max_epoch = 50, .max_drop_streak = 10, .frac_val = 0.1f
+    .learning_rate = 1e-3f,
+    .mini_size = 64,
+    .max_epoch = 50,
+    .max_drop_streak = 10,
+    .frac_val = 0.1f,
   };
 
   struct timespec t0, t1;
@@ -66,7 +72,8 @@ static double bench_train(int ntrain, int nwidth, int ndepth, bool use_gpu)
   return elapsed;
 }
 
-static double bench_infer(int nvec, int nwidth, int ndepth, bool use_gpu, const char *model_file)
+static double
+bench_infer(int nvec, int nwidth, int ndepth, bool use_gpu, const char *model_file)
 {
   struct gkyl_kann_net *net = gkyl_kann_net_load(model_file, use_gpu);
 
@@ -112,7 +119,8 @@ static double bench_infer(int nvec, int nwidth, int ndepth, bool use_gpu, const 
   return elapsed;
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
   int ntrain = 1001;
   int ninfer = 1001;
@@ -164,7 +172,7 @@ int main(int argc, char *argv[])
         .mini_size = 64,
         .max_epoch = 5,
         .max_drop_streak = 5,
-        .frac_val = 0.1f
+        .frac_val = 0.1f,
       };
       gkyl_kann_net_train_fnn1(net, &params, inp, out);
       gkyl_kann_net_save(net, "bench_tmp.kann");

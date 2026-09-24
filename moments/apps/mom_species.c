@@ -3,7 +3,8 @@
 #include <gkyl_wv_euler.h>
 
 // initialize species
-void moment_species_init(
+void
+moment_species_init(
   const struct gkyl_moment *mom, const struct gkyl_moment_species *mom_sp,
   struct gkyl_moment_app *app, struct moment_species *sp
 )
@@ -165,8 +166,8 @@ void moment_species_init(
   if (sp->scheme_type == GKYL_MOMENT_WAVE_PROP) {
     // create updaters for each directional update
     for (int d = 0; d < ndim; ++d) {
-      sp->slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &app->grid,
+      sp->slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &app->grid,
         .equation = mom_sp->equation,
         .split_type = split_type,
         .limiter = limiter,
@@ -176,7 +177,8 @@ void moment_species_init(
         .update_dirs = {d},
         .cfl = app->cfl,
         .geom = app->geom,
-        .comm = app->comm});
+        .comm = app->comm,
+      });
     }
 
     sp->fdup = mkarr(false, meqn, app->local_ext.volume);
@@ -199,25 +201,27 @@ void moment_species_init(
 
     if (sp->scheme_type == GKYL_MOMENT_MP) {
       // single MP updater updates all directions
-      sp->mp_slvr = gkyl_mp_scheme_new(&(struct gkyl_mp_scheme_inp
-      ){.grid = &app->grid,
+      sp->mp_slvr = gkyl_mp_scheme_new(&(struct gkyl_mp_scheme_inp){
+        .grid = &app->grid,
         .equation = mom_sp->equation,
         .mp_recon = app->mp_recon,
         .skip_mp_limiter = mom->skip_mp_limiter,
         .num_up_dirs = num_up_dirs,
         .update_dirs = {update_dirs[0], update_dirs[1], update_dirs[2]},
         .cfl = app->cfl,
-        .geom = app->geom});
+        .geom = app->geom,
+      });
     } else {
       // single KEP updater updates all directions
-      sp->kep_slvr = gkyl_kep_scheme_new(&(struct gkyl_kep_scheme_inp
-      ){.grid = &app->grid,
+      sp->kep_slvr = gkyl_kep_scheme_new(&(struct gkyl_kep_scheme_inp){
+        .grid = &app->grid,
         .equation = mom_sp->equation,
         .use_hybrid_flux = app->use_hybrid_flux_kep,
         .num_up_dirs = num_up_dirs,
         .update_dirs = {update_dirs[0], update_dirs[1], update_dirs[2]},
         .cfl = app->cfl,
-        .geom = app->geom});
+        .geom = app->geom,
+      });
     }
 
     // allocate arrays
@@ -277,84 +281,84 @@ void moment_species_init(
 
       // lower BCs
       switch (bc[0]) {
-      case GKYL_SPECIES_REFLECT:
-        sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
-          mom_sp->equation->wall_bc_func, 0
-        );
-        break;
+        case GKYL_SPECIES_REFLECT:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            mom_sp->equation->wall_bc_func, 0
+          );
+          break;
 
-      case GKYL_SPECIES_NO_SLIP:
-        sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
-          mom_sp->equation->no_slip_bc_func, 0
-        );
-        break;
+        case GKYL_SPECIES_NO_SLIP:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            mom_sp->equation->no_slip_bc_func, 0
+          );
+          break;
 
-      case GKYL_SPECIES_FUNC:
-        sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_lower_func,
-          mom_sp->ctx
-        );
-        break;
+        case GKYL_SPECIES_FUNC:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_lower_func,
+            mom_sp->ctx
+          );
+          break;
 
-      case GKYL_SPECIES_COPY:
-      case GKYL_SPECIES_WEDGE: // wedge also uses bc_copy
-        sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0
-        );
-        break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_WEDGE: // wedge also uses bc_copy
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0
+          );
+          break;
 
-      case GKYL_SPECIES_SKIP:
-        sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_skip, 0
-        );
-        break;
+        case GKYL_SPECIES_SKIP:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_skip, 0
+          );
+          break;
 
-      default:
-        assert(false);
-        break;
+        default:
+          assert(false);
+          break;
       }
 
       // upper BCs
       switch (bc[1]) {
-      case GKYL_SPECIES_REFLECT:
-        sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
-          mom_sp->equation->wall_bc_func, 0
-        );
-        break;
+        case GKYL_SPECIES_REFLECT:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            mom_sp->equation->wall_bc_func, 0
+          );
+          break;
 
-      case GKYL_SPECIES_NO_SLIP:
-        sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
-          mom_sp->equation->no_slip_bc_func, 0
-        );
-        break;
+        case GKYL_SPECIES_NO_SLIP:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            mom_sp->equation->no_slip_bc_func, 0
+          );
+          break;
 
-      case GKYL_SPECIES_FUNC:
-        sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_upper_func,
-          mom_sp->ctx
-        );
-        break;
+        case GKYL_SPECIES_FUNC:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_upper_func,
+            mom_sp->ctx
+          );
+          break;
 
-      case GKYL_SPECIES_COPY:
-      case GKYL_SPECIES_WEDGE:
-        sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0
-        );
-        break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_WEDGE:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0
+          );
+          break;
 
-      case GKYL_SPECIES_SKIP:
-        sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_skip, 0
-        );
-        break;
+        case GKYL_SPECIES_SKIP:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_skip, 0
+          );
+          break;
 
-      default:
-        assert(false);
-        break;
+        default:
+          assert(false);
+          break;
       }
     }
   }
@@ -416,7 +420,8 @@ void moment_species_init(
 }
 
 // apply BCs to species
-void moment_species_apply_bc(
+void
+moment_species_apply_bc(
   gkyl_moment_app *app, double tcurr, const struct moment_species *sp, struct gkyl_array *f
 )
 {
@@ -458,7 +463,8 @@ void moment_species_apply_bc(
 }
 
 // maximum stable time-step
-double moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *sp)
+double
+moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *sp)
 {
   double max_dt = DBL_MAX;
   if (sp->scheme_type == GKYL_MOMENT_WAVE_PROP) {
@@ -514,7 +520,8 @@ moment_species_update(gkyl_moment_app *app, struct moment_species *sp, double tc
 }
 
 // Compute RHS of moment equations
-double moment_species_rhs(
+double
+moment_species_rhs(
   gkyl_moment_app *app, struct moment_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs
 )
@@ -544,7 +551,8 @@ double moment_species_rhs(
 }
 
 // free species
-void moment_species_release(const struct moment_species *sp)
+void
+moment_species_release(const struct moment_species *sp)
 {
   gkyl_wv_eqn_release(sp->equation);
 
@@ -599,7 +607,8 @@ void moment_species_release(const struct moment_species *sp)
 
 /** mhd_src functions */
 
-void mhd_src_init(
+void
+mhd_src_init(
   const struct gkyl_moment_app *app, const struct gkyl_moment_species *sp, struct mhd_src *src
 )
 {
@@ -614,7 +623,7 @@ void mhd_src_init(
     .divergence_constraint = gkyl_wv_mhd_divergence_constraint(sp->equation),
     .glm_ch = gkyl_wv_mhd_glm_ch(sp->equation),
     .glm_alpha = gkyl_wv_mhd_glm_ch(sp->equation),
-    .dxyz_min = dxyz_min
+    .dxyz_min = dxyz_min,
   };
 
   src->slvr = gkyl_mhd_src_new(src_inp, &app->local_ext);
@@ -622,7 +631,8 @@ void mhd_src_init(
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step
-void mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang, double tcurr, double dt)
+void
+mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang, double tcurr, double dt)
 {
   int sidx[] = {0, app->ndim};
   int i = 0; // mhd has only one 'species'
@@ -642,7 +652,8 @@ void mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang, doub
   moment_species_apply_bc(app, tcurr, &app->species[i], fluid);
 }
 
-void mhd_src_release(const struct mhd_src *src)
+void
+mhd_src_release(const struct mhd_src *src)
 {
   gkyl_mhd_src_release(src->slvr);
 }

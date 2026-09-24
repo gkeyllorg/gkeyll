@@ -9,7 +9,8 @@
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_hyper_dg.h>
 
-static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr1(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (use_gpu) {
@@ -24,7 +25,8 @@ static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
 
 int hyper_dg_kernel_test(const gkyl_hyper_dg *slvr);
 
-void test_vlasov_3x3v_p1_(bool use_gpu)
+void
+test_vlasov_3x3v_p1_(bool use_gpu)
 {
   // initialize grid and ranges
   int cdim = 3, vdim = 3;
@@ -104,8 +106,14 @@ void test_vlasov_3x3v_p1_(bool use_gpu)
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     gkyl_vlasov_set_auxfields(
-      eqn, (struct gkyl_dg_vlasov_auxfields
-           ){.field = 0, .cot_vec = 0, .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0}
+      eqn,
+      (struct gkyl_dg_vlasov_auxfields){
+        .field = 0,
+        .cot_vec = 0,
+        .alpha_surf = 0,
+        .sgn_alpha_surf = 0,
+        .const_sgn_alpha = 0,
+      }
     ); // must set EM fields to use
 
     gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
@@ -483,7 +491,8 @@ void test_vlasov_3x3v_p1_(bool use_gpu)
   }
 }
 
-void test_hyper3x_dg_vlasov_3x3v_p1_ho()
+void
+test_hyper3x_dg_vlasov_3x3v_p1_ho()
 {
   test_vlasov_3x3v_p1_(false);
 }

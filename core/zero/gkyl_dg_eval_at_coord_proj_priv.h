@@ -526,7 +526,8 @@ GKYL_CU_D static const basis_tar_kern_list gkhyb_basis_tar_list[4][31] = { // 1x
    {gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_01234_target_basis, NULL, NULL}}
 };
 
-GKYL_CU_DH static void eval_at_coord_get_idx_do(
+GKYL_CU_DH static void
+eval_at_coord_get_idx_do(
   const bool *is_eval, int ndim_do, const int *idx_tar, const int *cell_idx, int *idx_do
 )
 {
@@ -573,7 +574,8 @@ struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker_cu(
 );
 #endif
 
-GKYL_CU_DH static int eval_dirs_to_mask(int num_eval_dirs, const int *eval_dirs)
+GKYL_CU_DH static int
+eval_dirs_to_mask(int num_eval_dirs, const int *eval_dirs)
 {
   // Encode eval_dirs as a bitmask: bit d is set iff direction d is evaluated.
   // Used to index the dispatch table as [ndim_do-1][mask-1].
@@ -584,7 +586,8 @@ GKYL_CU_DH static int eval_dirs_to_mask(int num_eval_dirs, const int *eval_dirs)
   return mask;
 }
 
-GKYL_CU_D static struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker(
+GKYL_CU_D static struct dg_ev_proj_kernels *
+dg_eval_at_coord_choose_ker(
   bool use_gpu, int cdim, int ndim, const struct gkyl_basis *basis, int num_eval_dirs,
   const int *eval_dirs
 )
@@ -609,21 +612,21 @@ GKYL_CU_D static struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker(
   assert(poly_order >= 1 && poly_order <= 3);
 
   switch (basis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    kers->ev_ker = ser_eval_at_coord_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
-    kers->basis_ker = ser_basis_tar_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    kers->ev_ker = ten_eval_at_coord_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
-    kers->basis_ker = ten_basis_tar_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
-    break;
-  case GKYL_BASIS_MODAL_GKHYBRID:
-    kers->ev_ker = gkhyb_eval_at_coord_list[ndim - 2][dir_mask - 1].kernels[poly_order - 1];
-    kers->basis_ker = gkhyb_basis_tar_list[ndim - 2][dir_mask - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kers->ev_ker = ser_eval_at_coord_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
+      kers->basis_ker = ser_basis_tar_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      kers->ev_ker = ten_eval_at_coord_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
+      kers->basis_ker = ten_basis_tar_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
+      break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      kers->ev_ker = gkhyb_eval_at_coord_list[ndim - 2][dir_mask - 1].kernels[poly_order - 1];
+      kers->basis_ker = gkhyb_basis_tar_list[ndim - 2][dir_mask - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   assert(kers->ev_ker);
 

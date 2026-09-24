@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-void vm_species_lte_init(
+void
+vm_species_lte_init(
   struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lte *lte,
   struct correct_all_moms_inp corr_inp
 )
@@ -28,7 +29,7 @@ void vm_species_lte_init(
     .det_h = s->det_h,
     .hamil = s->hamil,
     .model_id = s->model_id,
-    .use_gpu = app->use_gpu
+    .use_gpu = app->use_gpu,
   };
   lte->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
@@ -58,7 +59,7 @@ void vm_species_lte_init(
       .use_gpu = app->use_gpu,
       .max_iter = max_iter,
       .eps = iter_eps,
-      .use_last_converged = use_last_converged
+      .use_last_converged = use_last_converged,
     };
     lte->niter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
@@ -71,7 +72,8 @@ void vm_species_lte_init(
 }
 
 // Compute f_lte from input LTE moments
-void vm_species_lte_from_moms(
+void
+vm_species_lte_from_moms(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lte *lte,
   const struct gkyl_array *moms_lte
 )
@@ -110,7 +112,8 @@ void vm_species_lte_from_moms(
 }
 
 // Compute equivalent f_lte from fin
-void vm_species_lte(
+void
+vm_species_lte(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_lte *lte,
   const struct gkyl_array *fin
 )
@@ -120,7 +123,8 @@ void vm_species_lte(
   vm_species_lte_from_moms(app, species, lte, lte->moms.marr);
 }
 
-void vm_species_lte_release(const struct gkyl_vlasov_app *app, const struct vm_lte *lte)
+void
+vm_species_lte_release(const struct gkyl_vlasov_app *app, const struct vm_lte *lte)
 {
   gkyl_array_release(lte->f_lte);
 

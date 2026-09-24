@@ -10,13 +10,15 @@
 #include <gkyl_range.h>
 
 // Calculate the plasma frequency
-double plasma_frequency(double n, double m, double eps0, double eV)
+double
+plasma_frequency(double n, double m, double eps0, double eV)
 {
   return sqrt(n * eV * eV / m / eps0);
 }
 
 // Calculate the Coulomb Logarithm
-double coulomb_log(
+double
+coulomb_log(
   double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr,
   double bmag, double eps0, double hbar, double eV
 )
@@ -37,7 +39,8 @@ double coulomb_log(
   return 0.5 * log(inner);
 }
 
-double gkyl_calc_Morse_alpha_E_const(
+double
+gkyl_calc_Morse_alpha_E_const(
   double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr,
   double bmag, double eps0, double hbar, double eV
 )
@@ -47,7 +50,8 @@ double gkyl_calc_Morse_alpha_E_const(
   return 2.0 * pow(qs * qr, 2) * clog / (3.0 * pow(2.0 * M_PI, 1.5) * pow(eps0, 2) * ms * mr);
 }
 
-double gkyl_calc_Morse_alpha_E(
+double
+gkyl_calc_Morse_alpha_E(
   double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr,
   double bmag, double eps0, double hbar, double eV
 )
@@ -58,7 +62,8 @@ double gkyl_calc_Morse_alpha_E(
 }
 
 // create range to loop over quadrature points.
-static inline struct gkyl_range get_qrange(int dim, int num_quad)
+static inline struct gkyl_range
+get_qrange(int dim, int num_quad)
 {
   int qshape[GKYL_MAX_DIM];
   for (int i = 0; i < dim; ++i) {
@@ -71,7 +76,8 @@ static inline struct gkyl_range get_qrange(int dim, int num_quad)
 
 // Sets weights and basis functions at ords. Returns total
 // number of quadrature nodes.
-static int init_quad_values(
+static int
+init_quad_values(
   const struct gkyl_basis *basis, int num_quad, struct gkyl_array **weights,
   struct gkyl_array **basis_at_ords, bool use_gpu
 )
@@ -144,7 +150,8 @@ static int init_quad_values(
   return tot_quad;
 }
 
-gkyl_spitzer_coll_freq *gkyl_spitzer_coll_freq_new(
+gkyl_spitzer_coll_freq *
+gkyl_spitzer_coll_freq_new(
   const struct gkyl_basis *basis, int num_quad, double nufrac, double eps0, double hbar,
   bool use_gpu
 )
@@ -199,7 +206,8 @@ proj_on_basis(const gkyl_spitzer_coll_freq *up, const struct gkyl_array *fun_at_
   }
 }
 
-void calc_nu(
+void
+calc_nu(
   const gkyl_spitzer_coll_freq *up, struct gkyl_range qrange, const double *vtSqSelf_d,
   double vtSqMinSelf, const double *m0Other_d, const double *vtSqOther_d, double vtSqMinOther,
   double normNu, long linidx, struct gkyl_array *nuOut
@@ -240,7 +248,8 @@ void calc_nu(
   proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(nuOut, linidx));
 }
 
-void gkyl_spitzer_coll_freq_advance_normnu(
+void
+gkyl_spitzer_coll_freq_advance_normnu(
   const gkyl_spitzer_coll_freq *up, const struct gkyl_range *range,
   const struct gkyl_array *momsSelf, double vtSqMinSelf, const struct gkyl_array *momsOther,
   double vtSqMinOther, double normNu, struct gkyl_array *nuOut
@@ -281,7 +290,8 @@ void gkyl_spitzer_coll_freq_advance_normnu(
   }
 }
 
-void gkyl_spitzer_coll_freq_advance(
+void
+gkyl_spitzer_coll_freq_advance(
   const gkyl_spitzer_coll_freq *up, const struct gkyl_range *range, const struct gkyl_array *bmag,
   double qSelf, double mSelf, const struct gkyl_array *momsSelf, double vtSqMinSelf, double qOther,
   double mOther, const struct gkyl_array *momsOther, double vtSqMinOther, struct gkyl_array *nuOut
@@ -365,7 +375,8 @@ void gkyl_spitzer_coll_freq_advance(
   }
 }
 
-void gkyl_spitzer_coll_freq_release(gkyl_spitzer_coll_freq *up)
+void
+gkyl_spitzer_coll_freq_release(gkyl_spitzer_coll_freq *up)
 {
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);

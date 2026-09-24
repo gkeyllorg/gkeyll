@@ -12,7 +12,8 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_deflate_zsurf.h>
 
-void check_same(
+void
+check_same(
   struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
   struct gkyl_array *field2
 )
@@ -29,17 +30,20 @@ void check_same(
   }
 }
 
-void proj_func(double t, const double *xn, double *fout, void *ctx)
+void
+proj_func(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = cos(xn[0]) * sin(xn[1]);
 }
 
-void proj_func3d(double t, const double *xn, double *fout, void *ctx)
+void
+proj_func3d(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = cos(2 * xn[0]) * sin(xn[1]) * xn[2] * xn[2] * xn[2];
 }
 
-void test_p1_deflated()
+void
+test_p1_deflated()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
@@ -188,7 +192,8 @@ void test_p1_deflated()
   gkyl_deflate_zsurf_release(deflator_up);
 }
 
-void test_p1_deflated_3d()
+void
+test_p1_deflated_3d()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5, -2}, upper[] = {1.5, 1.5, 2};

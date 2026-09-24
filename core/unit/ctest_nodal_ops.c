@@ -11,7 +11,8 @@
 #include <gkyl_basis.h>
 #include <gkyl_nodal_ops.h>
 
-void check_same(
+void
+check_same(
   struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
   struct gkyl_array *field2
 )
@@ -28,17 +29,20 @@ void check_same(
   }
 }
 
-void proj_func(double t, const double *xn, double *fout, void *ctx)
+void
+proj_func(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = cos(xn[0]) * sin(xn[1]);
 }
 
-void proj_func3d(double t, const double *xn, double *fout, void *ctx)
+void
+proj_func3d(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = cos(2 * xn[0]) * sin(xn[1]) * xn[2] * xn[2] * xn[2];
 }
 
-void test_nodal_ops_p1_2x_ho()
+void
+test_nodal_ops_p1_2x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
@@ -122,7 +126,8 @@ void test_nodal_ops_p1_2x_ho()
   gkyl_nodal_ops_release(n2m);
 }
 
-void test_nodal_ops_p1_3x_ho()
+void
+test_nodal_ops_p1_3x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5, -1.0}, upper[] = {1.5, 1.5, 1.0};
@@ -206,7 +211,8 @@ void test_nodal_ops_p1_3x_ho()
   gkyl_nodal_ops_release(n2m);
 }
 
-void test_nodal_ops_p1_interior_2x_ho()
+void
+test_nodal_ops_p1_interior_2x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
@@ -258,7 +264,8 @@ void test_nodal_ops_p1_interior_2x_ho()
   gkyl_nodal_ops_release(n2m);
 }
 
-void test_nodal_ops_p1_interior_3x_ho()
+void
+test_nodal_ops_p1_interior_3x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5, -1.0}, upper[] = {1.5, 1.5, 1.0};
@@ -310,7 +317,8 @@ void test_nodal_ops_p1_interior_3x_ho()
   gkyl_nodal_ops_release(n2m);
 }
 
-void test_p2_btype(enum gkyl_basis_type basis_type)
+void
+test_p2_btype(enum gkyl_basis_type basis_type)
 {
   // create  grid
   double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
@@ -367,12 +375,14 @@ void test_p2_btype(enum gkyl_basis_type basis_type)
   gkyl_array_release(nodal_fld);
 }
 
-void test_nodal_ops_p2_ser_ho()
+void
+test_nodal_ops_p2_ser_ho()
 {
   return test_p2_btype(GKYL_BASIS_MODAL_SERENDIPITY);
 }
 
-void test_nodal_ops_p2_tensor_ho()
+void
+test_nodal_ops_p2_tensor_ho()
 {
   return test_p2_btype(GKYL_BASIS_MODAL_TENSOR);
 }

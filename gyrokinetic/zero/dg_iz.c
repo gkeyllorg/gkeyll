@@ -16,7 +16,8 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_array_ops_priv.h>
 
-struct gkyl_dg_iz *gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
+struct gkyl_dg_iz *
+gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
 {
   gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
 
@@ -131,7 +132,8 @@ struct gkyl_dg_iz *gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   return up;
 }
 
-void gkyl_dg_iz_coll(
+void
+gkyl_dg_iz_coll(
   const struct gkyl_dg_iz *up, const struct gkyl_array *prim_vars_elc, struct gkyl_array *vtSq_iz1,
   struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz, struct gkyl_array *cflrate
 )
@@ -228,7 +230,8 @@ void gkyl_dg_iz_coll(
   }
 }
 
-void gkyl_dg_iz_release(struct gkyl_dg_iz *up)
+void
+gkyl_dg_iz_release(struct gkyl_dg_iz *up)
 {
   gkyl_array_release(up->ioniz_data);
   free(up);

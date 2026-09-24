@@ -22,7 +22,8 @@ gkyl_advection_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const stru
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_advection_set_auxfields_cu(
+void
+gkyl_advection_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin
 )
 {
@@ -39,16 +40,16 @@ __global__ void static dg_advection_set_cu_dev_ptrs(
   const gkyl_dg_advection_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_x_kernels = ser_surf_x_kernels;
-    surf_y_kernels = ser_surf_y_kernels;
-    surf_z_kernels = ser_surf_z_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_x_kernels = ser_surf_x_kernels;
+      surf_y_kernels = ser_surf_y_kernels;
+      surf_z_kernels = ser_surf_z_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   advection->eqn.surf_term = surf;

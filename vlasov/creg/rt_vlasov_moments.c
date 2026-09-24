@@ -8,9 +8,8 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
 
-void evalDistFunc1x1v(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalDistFunc1x1v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], vx = xn[1];
   double n = 1.0 * sin(2 * M_PI * x);
@@ -21,9 +20,8 @@ void evalDistFunc1x1v(
   fout[0] = n / sqrt(2 * M_PI * Txx) * exp(-u2);
 }
 
-void evalDistFunc1x2v(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalDistFunc1x2v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2];
   double n = 1.0 * sin(2 * M_PI * x);
@@ -41,9 +39,8 @@ void evalDistFunc1x2v(
   fout[0] = n / (2 * M_PI * sqrt(detT)) * exp(-u2);
 }
 
-void evalDistFunc1x3v(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalDistFunc1x3v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
   double n = 1.0 * sin(2 * M_PI * x);
@@ -74,9 +71,8 @@ void evalDistFunc1x3v(
   fout[0] = n / sqrt((2 * M_PI) * (2 * M_PI) * (2 * M_PI) * detT) * exp(-u2);
 }
 
-void evalDistFunc2x2v(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalDistFunc2x2v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vx = xn[2], vy = xn[3];
   double n = 1.0 * sin(2 * M_PI * x) * sin(2 * M_PI * y);
@@ -95,9 +91,8 @@ void evalDistFunc2x2v(
   fout[0] = n / (2 * M_PI * sqrt(detT)) * exp(-u2);
 }
 
-void evalDistFunc2x3v(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalDistFunc2x3v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vx = xn[2], vy = xn[3], vz = xn[4];
   double n = 1.0 * sin(2 * M_PI * x) * sin(2 * M_PI * y);
@@ -129,9 +124,8 @@ void evalDistFunc2x3v(
   fout[0] = n / sqrt((2 * M_PI) * (2 * M_PI) * (2 * M_PI) * detT) * exp(-u2);
 }
 
-void evalDistFunc3x3v(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalDistFunc3x3v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2], vx = xn[3], vy = xn[4], vz = xn[5];
   double n = 1.0 * sin(2 * M_PI * x) * sin(2 * M_PI * y) * sin(2 * M_PI * z);
@@ -163,7 +157,8 @@ void evalDistFunc3x3v(
   fout[0] = n / sqrt((2 * M_PI) * (2 * M_PI) * (2 * M_PI) * detT) * exp(-u2);
 }
 
-void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0, fout[2] = 0.0;
@@ -182,40 +177,41 @@ struct moment_inp {
   evalf_t eval; // function to project
 };
 
-struct moment_inp get_inp(int argc, char **argv)
+struct moment_inp
+get_inp(int argc, char **argv)
 {
   int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
   bool use_gpu = false;
   evalf_t eval = evalDistFunc2x2v;
   while ((c = getopt(argc, argv, "+hgc:v:p:n:")) != -1) {
     switch (c) {
-    case 'h':
-      printf("Usage: app_vlasov_moments -c CDIM -v VDIM -p POLYORDER -n NLOOP -g\n");
-      exit(-1);
-      break;
+      case 'h':
+        printf("Usage: app_vlasov_moments -c CDIM -v VDIM -p POLYORDER -n NLOOP -g\n");
+        exit(-1);
+        break;
 
-    case 'c':
-      cdim = atoi(optarg);
-      break;
+      case 'c':
+        cdim = atoi(optarg);
+        break;
 
-    case 'v':
-      vdim = atoi(optarg);
-      break;
+      case 'v':
+        vdim = atoi(optarg);
+        break;
 
-    case 'p':
-      poly_order = atoi(optarg);
-      break;
+      case 'p':
+        poly_order = atoi(optarg);
+        break;
 
-    case 'n':
-      nloop = atoi(optarg);
-      break;
+      case 'n':
+        nloop = atoi(optarg);
+        break;
 
-    case 'g':
-      use_gpu = true;
-      break;
+      case 'g':
+        use_gpu = true;
+        break;
 
-    case '?':
-      break;
+      case '?':
+        break;
     }
   }
 
@@ -231,18 +227,20 @@ struct moment_inp get_inp(int argc, char **argv)
     eval = evalDistFunc3x3v;
   }
 
-  return (struct moment_inp
-  ){.cdim = cdim,
+  return (struct moment_inp){
+    .cdim = cdim,
     .vdim = vdim,
     .poly_order = poly_order,
     .ccells = {8, 8, 8},
     .vcells = {16, 16, 16},
     .nloop = nloop,
     .eval = eval,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu,
+  };
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct moment_inp inp = get_inp(argc, argv);
 
@@ -279,7 +277,7 @@ int main(int argc, char **argv)
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = inp.eval, .ctx_func = 0},
     .num_diag_moments = 4,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ}
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ},
   };
 
   // field
@@ -300,7 +298,7 @@ int main(int argc, char **argv)
     .species = {elc},
     .field = field,
 
-    .parallelism = {.use_gpu = inp.use_gpu}
+    .parallelism = {.use_gpu = inp.use_gpu},
   };
 
   // create app object

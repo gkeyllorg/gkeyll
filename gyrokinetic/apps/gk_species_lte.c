@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-void gk_species_lte_init(
+void
+gk_species_lte_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lte *lte,
   struct correct_all_moms_inp corr_inp
 )
@@ -21,7 +22,7 @@ void gk_species_lte_init(
     .gk_geom = app->gk_geom,
     .vel_map = s->vel_map,
     .mass = s->info.mass,
-    .use_gpu = app->use_gpu
+    .use_gpu = app->use_gpu,
   };
   lte->proj_max = gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
@@ -44,7 +45,7 @@ void gk_species_lte_init(
       .max_iter = max_iter,
       .eps = iter_eps,
       .use_last_converged = use_last_converged,
-      .use_gpu = app->use_gpu
+      .use_gpu = app->use_gpu,
     };
     lte->n_iter = 0; // Total number of iterations from correcting moments.
     lte->num_corr = 0; // Total number of times the correction updater is called.
@@ -58,7 +59,8 @@ void gk_species_lte_init(
 }
 
 // Compute f_lte from input Maxwellian (LTE=local thermodynamic equilibrium) moments
-void gk_species_lte_from_moms(
+void
+gk_species_lte_from_moms(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_lte *lte,
   const struct gkyl_array *moms_lte
 )
@@ -96,7 +98,8 @@ void gk_species_lte_from_moms(
   app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gk_species_lte(
+void
+gk_species_lte(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_lte *lte,
   const struct gkyl_array *fin
 )
@@ -115,7 +118,8 @@ void gk_species_lte(
   gk_species_lte_from_moms(app, species, lte, lte->moms.marr);
 }
 
-void gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+void
+gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   if (gks->lte.correct_all_moms) {
     struct timespec wst = gkyl_wall_clock();
@@ -131,11 +135,11 @@ void gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app *app, struct gk_s
 
       if (gks->lte.is_first_corr_status_write_call) {
         // Write to a new file (this ensure previous output is removed).
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {
-          {.key = "Description",
-           .elem_type = GKYL_MP_STRING,
-           .cval = "Statistics on the Maxwellian correction."}
-        };
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {{
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Statistics on the Maxwellian correction.",
+        }};
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
           gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -158,7 +162,8 @@ void gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app *app, struct gk_s
   }
 }
 
-void gk_species_lte_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte)
+void
+gk_species_lte_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte)
 {
   gkyl_array_release(lte->f_lte);
 

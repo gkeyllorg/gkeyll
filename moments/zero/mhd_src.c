@@ -13,7 +13,8 @@
 #define BZ (7)
 #define PSI_GLM (8)
 
-gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp, const struct gkyl_range *local_ext)
+gkyl_mhd_src *
+gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp, const struct gkyl_range *local_ext)
 {
   gkyl_mhd_src *up = gkyl_calloc(1, sizeof(gkyl_mhd_src));
 
@@ -73,7 +74,8 @@ calc_divB(const gkyl_mhd_src *up, const struct gkyl_range *update_range, struct 
   }
 }
 
-static void calc_B_dot_gradPsi(
+static void
+calc_B_dot_gradPsi(
   const gkyl_mhd_src *up, const struct gkyl_range *update_range, struct gkyl_array *q_array
 )
 {
@@ -111,7 +113,8 @@ static void calc_B_dot_gradPsi(
 // VARIOUS SOURCE UPDATES //
 ////////////////////////////
 
-static void gkyl_mhd_src_eight_wave(
+static void
+gkyl_mhd_src_eight_wave(
   const gkyl_mhd_src *up, double dt, const struct gkyl_range *update_range,
   struct gkyl_array *q_array, const struct gkyl_array *acc_array
 )
@@ -141,7 +144,8 @@ static void gkyl_mhd_src_eight_wave(
   }
 }
 
-static void gkyl_mhd_src_glm(
+static void
+gkyl_mhd_src_glm(
   const gkyl_mhd_src *up, double dt, const struct gkyl_range *update_range,
   struct gkyl_array *q_array, const struct gkyl_array *acc_array
 )
@@ -180,26 +184,28 @@ static void gkyl_mhd_src_glm(
 // SOURCE UPDATES MAIN API //
 /////////////////////////////
 
-void gkyl_mhd_src_advance(
+void
+gkyl_mhd_src_advance(
   const gkyl_mhd_src *up, double dt, const struct gkyl_range *update_range,
   struct gkyl_array *q_array, const struct gkyl_array *acc_array
 )
 {
   switch (up->divergence_constraint) {
-  case GKYL_MHD_DIVB_NONE:
-    break;
+    case GKYL_MHD_DIVB_NONE:
+      break;
 
-  case GKYL_MHD_DIVB_EIGHT_WAVES:
-    gkyl_mhd_src_eight_wave(up, dt, update_range, q_array, acc_array);
-    break;
+    case GKYL_MHD_DIVB_EIGHT_WAVES:
+      gkyl_mhd_src_eight_wave(up, dt, update_range, q_array, acc_array);
+      break;
 
-  case GKYL_MHD_DIVB_GLM:
-    gkyl_mhd_src_glm(up, dt, update_range, q_array, acc_array);
-    break;
+    case GKYL_MHD_DIVB_GLM:
+      gkyl_mhd_src_glm(up, dt, update_range, q_array, acc_array);
+      break;
   }
 }
 
-double gkyl_mhd_src_calc_divB(
+double
+gkyl_mhd_src_calc_divB(
   const gkyl_mhd_src *up, const struct gkyl_range *update_range, struct gkyl_array *q_array
 )
 {
@@ -219,7 +225,8 @@ double gkyl_mhd_src_calc_divB(
   return total / count;
 }
 
-void gkyl_mhd_src_release(gkyl_mhd_src *up)
+void
+gkyl_mhd_src_release(gkyl_mhd_src *up)
 {
   if (up->divB_array) {
     gkyl_array_release(up->divB_array);
@@ -236,7 +243,8 @@ void gkyl_mhd_src_release(gkyl_mhd_src *up)
 // MEMBER GETTERS AND SETTERS //
 ////////////////////////////////
 
-void gkyl_mhd_src_set_glm_ch(struct gkyl_mhd_src *up, const double glm_ch)
+void
+gkyl_mhd_src_set_glm_ch(struct gkyl_mhd_src *up, const double glm_ch)
 {
   up->glm_ch = glm_ch;
 }

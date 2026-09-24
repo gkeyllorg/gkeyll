@@ -6,7 +6,8 @@
 #include <gkyl_gr_neutronstar.h>
 #include <gkyl_gr_brill_lindquist.h>
 
-void test_gr_spacetime_minkowski_ho()
+void
+test_gr_spacetime_minkowski_ho()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
@@ -361,7 +362,8 @@ void test_gr_spacetime_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_spacetime_schwarzschild_ho()
+void
+test_gr_spacetime_schwarzschild_ho()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
 
@@ -754,7 +756,8 @@ void test_gr_spacetime_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_spacetime_kerr_ho()
+void
+test_gr_spacetime_kerr_ho()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
 
@@ -1147,7 +1150,8 @@ void test_gr_spacetime_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_spacetime_neutronstar_static_ho()
+void
+test_gr_spacetime_neutronstar_static_ho()
 {
   double mass = 0.1;
   double spin = 0.0;
@@ -1460,7 +1464,8 @@ void test_gr_spacetime_neutronstar_static_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_spacetime_neutronstar_spinning_ho()
+void
+test_gr_spacetime_neutronstar_spinning_ho()
 {
   double mass = 0.1;
   double spin = -0.12;
@@ -1773,7 +1778,8 @@ void test_gr_spacetime_neutronstar_spinning_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_spacetime_brill_lindquist_ho()
+void
+test_gr_spacetime_brill_lindquist_ho()
 {
   double mass1 = 0.5;
   double mass2 = 0.5;

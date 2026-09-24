@@ -10,12 +10,14 @@
 #include <stdio.h>
 #include <string.h>
 
-bool gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc)
+bool
+gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc)
 {
   return GKYL_IS_CU_ALLOC(bc->flags);
 }
 
-struct gkyl_array *gkyl_array_clear(struct gkyl_array *out, double val)
+struct gkyl_array *
+gkyl_array_clear(struct gkyl_array *out, double val)
 {
   assert(out->type == GKYL_DOUBLE);
 
@@ -55,7 +57,8 @@ gkyl_array_accumulate(struct gkyl_array *out, double a, const struct gkyl_array 
   return out;
 }
 
-struct gkyl_array *gkyl_array_accumulate_offset(
+struct gkyl_array *
+gkyl_array_accumulate_offset(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
 )
 {
@@ -90,7 +93,8 @@ struct gkyl_array *gkyl_array_accumulate_offset(
   return out;
 }
 
-struct gkyl_array *gkyl_array_set(struct gkyl_array *out, double a, const struct gkyl_array *inp)
+struct gkyl_array *
+gkyl_array_set(struct gkyl_array *out, double a, const struct gkyl_array *inp)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size && out->elemsz == inp->elemsz);
@@ -145,7 +149,8 @@ gkyl_array_set_offset(struct gkyl_array *out, double a, const struct gkyl_array 
   return out;
 }
 
-struct gkyl_array *gkyl_array_scale(struct gkyl_array *out, double a)
+struct gkyl_array *
+gkyl_array_scale(struct gkyl_array *out, double a)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -157,7 +162,8 @@ struct gkyl_array *gkyl_array_scale(struct gkyl_array *out, double a)
   return gkyl_array_set(out, a, out);
 }
 
-struct gkyl_array *gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a)
+struct gkyl_array *
+gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(out->size == a->size && NCOM(a) == 1);
@@ -197,7 +203,8 @@ gkyl_array_min_by_cell(struct gkyl_array *out, const struct gkyl_array *inp, dou
   return out;
 }
 
-struct gkyl_array *gkyl_array_min_by_cell_range(
+struct gkyl_array *
+gkyl_array_min_by_cell_range(
   struct gkyl_array *out, const struct gkyl_array *inp, double a, const struct gkyl_range *range
 )
 {
@@ -223,7 +230,8 @@ struct gkyl_array *gkyl_array_min_by_cell_range(
   return out;
 }
 
-struct gkyl_array *gkyl_array_divide_by_cell(struct gkyl_array *out, const struct gkyl_array *a)
+struct gkyl_array *
+gkyl_array_divide_by_cell(struct gkyl_array *out, const struct gkyl_array *a)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(out->size == a->size && NCOM(a) == 1);
@@ -244,7 +252,8 @@ struct gkyl_array *gkyl_array_divide_by_cell(struct gkyl_array *out, const struc
   return out;
 }
 
-struct gkyl_array *gkyl_array_invert_by_cell(struct gkyl_array *out, const struct gkyl_array *inp)
+struct gkyl_array *
+gkyl_array_invert_by_cell(struct gkyl_array *out, const struct gkyl_array *inp)
 {
   assert(out->type == GKYL_DOUBLE);
 #ifdef GKYL_HAVE_CUDA
@@ -262,7 +271,8 @@ struct gkyl_array *gkyl_array_invert_by_cell(struct gkyl_array *out, const struc
   return out;
 }
 
-struct gkyl_array *gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k)
+struct gkyl_array *
+gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(k < NCOM(out));
@@ -306,7 +316,8 @@ gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_ran
   return out;
 }
 
-struct gkyl_array *gkyl_array_accumulate_range(
+struct gkyl_array *
+gkyl_array_accumulate_range(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, const struct gkyl_range *range
 )
 {
@@ -336,7 +347,8 @@ struct gkyl_array *gkyl_array_accumulate_range(
   return out;
 }
 
-struct gkyl_array *gkyl_array_accumulate_offset_range(
+struct gkyl_array *
+gkyl_array_accumulate_offset_range(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff,
   const struct gkyl_range *range
 )
@@ -377,7 +389,8 @@ struct gkyl_array *gkyl_array_accumulate_offset_range(
   return out;
 }
 
-struct gkyl_array *gkyl_array_set_range(
+struct gkyl_array *
+gkyl_array_set_range(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, const struct gkyl_range *range
 )
 {
@@ -406,7 +419,8 @@ struct gkyl_array *gkyl_array_set_range(
   return out;
 }
 
-struct gkyl_array *gkyl_array_set_range_to_range(
+struct gkyl_array *
+gkyl_array_set_range_to_range(
   struct gkyl_array *out, double a, const struct gkyl_array *inp,
   const struct gkyl_range *out_range, const struct gkyl_range *inp_range
 )
@@ -448,7 +462,8 @@ struct gkyl_array *gkyl_array_set_range_to_range(
   return out;
 }
 
-struct gkyl_array *gkyl_array_set_offset_range(
+struct gkyl_array *
+gkyl_array_set_offset_range(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff,
   const struct gkyl_range *range
 )
@@ -525,7 +540,8 @@ gkyl_array_shiftc_range(struct gkyl_array *out, double a, unsigned k, const stru
   return out;
 }
 
-struct gkyl_array *gkyl_array_copy_range(
+struct gkyl_array *
+gkyl_array_copy_range(
   struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
 )
 {
@@ -549,7 +565,8 @@ struct gkyl_array *gkyl_array_copy_range(
   return out;
 }
 
-struct gkyl_array *gkyl_array_copy_range_to_range(
+struct gkyl_array *
+gkyl_array_copy_range_to_range(
   struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *out_range,
   const struct gkyl_range *inp_range
 )
@@ -587,9 +604,8 @@ struct gkyl_array *gkyl_array_copy_range_to_range(
   return out;
 }
 
-void gkyl_array_copy_to_buffer(
-  void *data, const struct gkyl_array *arr, const struct gkyl_range *range
-)
+void
+gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr, const struct gkyl_range *range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
@@ -612,9 +628,8 @@ void gkyl_array_copy_to_buffer(
 #undef _F
 }
 
-void gkyl_array_copy_from_buffer(
-  struct gkyl_array *arr, const void *data, const struct gkyl_range *range
-)
+void
+gkyl_array_copy_from_buffer(struct gkyl_array *arr, const void *data, const struct gkyl_range *range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
@@ -637,7 +652,8 @@ void gkyl_array_copy_from_buffer(
 #undef _F
 }
 
-void gkyl_array_copy_to_buffer_fn(
+void
+gkyl_array_copy_to_buffer_fn(
   void *data, const struct gkyl_array *arr, const struct gkyl_range *range,
   struct gkyl_array_copy_func *cf
 )
@@ -663,7 +679,8 @@ void gkyl_array_copy_to_buffer_fn(
   }
 }
 
-void gkyl_array_flip_copy_to_buffer_fn(
+void
+gkyl_array_flip_copy_to_buffer_fn(
   void *data, const struct gkyl_array *arr, int dir, const struct gkyl_range *range,
   struct gkyl_array_copy_func *cf
 )
@@ -700,7 +717,8 @@ void gkyl_array_flip_copy_to_buffer_fn(
   }
 }
 
-static double calc_rel_diff(double a, double b)
+static double
+calc_rel_diff(double a, double b)
 {
   if (isnan(a) || isnan(b)) {
     return DBL_MAX;
@@ -716,7 +734,8 @@ static double calc_rel_diff(double a, double b)
   return diff / fmin(absa + absb, DBL_MAX);
 }
 
-struct gkyl_array_diff gkyl_array_diff(
+struct gkyl_array_diff
+gkyl_array_diff(
   const struct gkyl_array *arr1, const struct gkyl_array *arr2, const struct gkyl_range *range
 )
 {
@@ -725,7 +744,7 @@ struct gkyl_array_diff gkyl_array_diff(
     .max_abs_diff = DBL_MAX,
     .min_abs_diff = DBL_MAX,
     .max_rel_diff = DBL_MAX,
-    .min_rel_diff = DBL_MAX
+    .min_rel_diff = DBL_MAX,
   };
 
   if ((arr1->type != GKYL_DOUBLE) && (arr2->type != GKYL_DOUBLE)) {
@@ -767,15 +786,17 @@ struct gkyl_array_diff gkyl_array_diff(
     }
   }
 
-  return (struct gkyl_array_diff
-  ){.is_compatible = true,
+  return (struct gkyl_array_diff){
+    .is_compatible = true,
     .max_abs_diff = max_abs_diff,
     .min_abs_diff = min_abs_diff,
     .max_rel_diff = max_rel_diff,
-    .min_rel_diff = min_rel_diff};
+    .min_rel_diff = min_rel_diff,
+  };
 }
 
-struct gkyl_array *gkyl_array_max_by_cell_per_cell_avg_range(
+struct gkyl_array *
+gkyl_array_max_by_cell_per_cell_avg_range(
   struct gkyl_array *out, const struct gkyl_array *inp, struct gkyl_range *range
 )
 {

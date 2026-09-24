@@ -10,7 +10,8 @@
 #include <gkyl_rz_calc_derived_geo.h>
 #include <gkyl_calc_metric_mirror.h>
 
-struct gk_geometry *gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
+struct gk_geometry *
+gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->geometry_id = geometry_inp->geometry_id;
@@ -57,8 +58,8 @@ struct gk_geometry *gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometr
 
   // Create mirror geometry for corners.
   struct gkyl_mirror_grid_gen *mirror_grid_corn =
-    gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp
-    ){.comp_grid = &up->grid,
+    gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp){
+      .comp_grid = &up->grid,
       .nrange = up->nrange_corn,
       .local = up->local,
       .global = up->global,
@@ -74,12 +75,13 @@ struct gk_geometry *gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometr
       .psiRZ = psi,
       .fl_coord = geometry_inp->mirror_grid_info.fl_coord,
       .include_axis = geometry_inp->mirror_grid_info.include_axis,
-      .write_psi_cubic = false});
+      .write_psi_cubic = false,
+    });
 
   // Create mirror geometry for interior.
   struct gkyl_mirror_grid_gen *mirror_grid_int =
-    gkyl_mirror_grid_gen_int_inew(&(struct gkyl_mirror_grid_gen_inp
-    ){.comp_grid = &up->grid,
+    gkyl_mirror_grid_gen_int_inew(&(struct gkyl_mirror_grid_gen_inp){
+      .comp_grid = &up->grid,
       .nrange = up->nrange_int,
       .local = up->local,
       .global = up->global,
@@ -95,13 +97,14 @@ struct gk_geometry *gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometr
       .psiRZ = psi,
       .fl_coord = geometry_inp->mirror_grid_info.fl_coord,
       .include_axis = geometry_inp->mirror_grid_info.include_axis,
-      .write_psi_cubic = false});
+      .write_psi_cubic = false,
+    });
 
   // create mirror geometry for surfaces
   struct gkyl_mirror_grid_gen *mirror_grid_surf[3];
   for (int dir = 0; dir < up->grid.ndim; dir++) {
-    mirror_grid_surf[dir] = gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp
-    ){.comp_grid = &up->grid,
+    mirror_grid_surf[dir] = gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp){
+      .comp_grid = &up->grid,
       .nrange = up->nrange_surf[dir],
       .local = up->local,
       .global = up->global,
@@ -118,7 +121,8 @@ struct gk_geometry *gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometr
       .psiRZ = psi,
       .fl_coord = geometry_inp->mirror_grid_info.fl_coord,
       .include_axis = geometry_inp->mirror_grid_info.include_axis,
-      .write_psi_cubic = false});
+      .write_psi_cubic = false,
+    });
   }
 
   // Now calculate the derived geometric coefficients at necessary nodes and compute modal expansions where required.
@@ -150,9 +154,11 @@ struct gk_geometry *gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometr
   // Store metadata for I/O.
   struct gkyl_msgpack_map_elem io_meta_basic[] = {
     {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
-    {.key = "geqdsk_sign_convention",
-     .elem_type = GKYL_MP_UNSIGNED_INT,
-     .uval = up->geqdsk_sign_convention}
+    {
+      .key = "geqdsk_sign_convention",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = up->geqdsk_sign_convention,
+    }
   };
   up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
   up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
@@ -172,7 +178,8 @@ struct gk_geometry *gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometr
   return up;
 }
 
-struct gk_geometry *gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
+struct gk_geometry *
+gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *gk_geom_3d;
   struct gk_geometry *gk_geom;

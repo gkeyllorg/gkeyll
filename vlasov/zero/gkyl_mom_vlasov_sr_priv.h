@@ -33,7 +33,8 @@ typedef struct {
   momf_t kernels[3];
 } gkyl_vlasov_sr_mom_kern_list;
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -41,7 +42,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_1x1v_ser_p1(
   return vlasov_sr_M0_1x1v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -49,7 +51,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_1x1v_ser_p2(
   return vlasov_sr_M0_1x1v_ser_p2(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_1x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -57,7 +60,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_1x2v_ser_p1(
   return vlasov_sr_M0_1x2v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_1x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -65,7 +69,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_1x2v_ser_p2(
   return vlasov_sr_M0_1x2v_ser_p2(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_1x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -73,7 +78,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_1x3v_ser_p1(
   return vlasov_sr_M0_1x3v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_1x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -81,7 +87,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_1x3v_ser_p2(
   return vlasov_sr_M0_1x3v_ser_p2(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_2x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -89,7 +96,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_2x2v_ser_p1(
   return vlasov_sr_M0_2x2v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_2x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -97,7 +105,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_2x2v_ser_p2(
   return vlasov_sr_M0_2x2v_ser_p2(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_2x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -105,7 +114,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_2x3v_ser_p1(
   return vlasov_sr_M0_2x3v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_2x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -113,7 +123,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_2x3v_ser_p2(
   return vlasov_sr_M0_2x3v_ser_p2(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M0_3x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M0_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -121,7 +132,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M0_3x3v_ser_p1(
   return vlasov_sr_M0_3x3v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -142,7 +154,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x1v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -163,7 +176,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x1v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -184,7 +198,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -205,7 +220,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -226,7 +242,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -247,7 +264,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_1x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -268,7 +286,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -289,7 +308,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -310,7 +330,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -331,7 +352,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_2x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M1i_3x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M1i_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -352,7 +374,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M1i_3x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -373,7 +396,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x1v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -394,7 +418,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x1v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_1x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -415,7 +440,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_1x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -436,7 +462,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_1x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -457,7 +484,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_1x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -478,7 +506,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_1x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_2x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -499,7 +528,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_2x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_2x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -520,7 +550,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_2x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_2x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -541,7 +572,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_2x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -562,7 +594,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_2x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M2_3x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M2_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -583,7 +616,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M2_3x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -591,7 +625,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x1v_ser_p1(
   return vlasov_sr_M3i_1x1v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -599,7 +634,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x1v_ser_p2(
   return vlasov_sr_M3i_1x1v_ser_p2(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -607,7 +643,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x2v_ser_p1(
   return vlasov_sr_M3i_1x2v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -615,7 +652,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x2v_ser_p2(
   return vlasov_sr_M3i_1x2v_ser_p2(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -623,7 +661,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x3v_ser_p1(
   return vlasov_sr_M3i_1x3v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -631,7 +670,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_1x3v_ser_p2(
   return vlasov_sr_M3i_1x3v_ser_p2(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -639,7 +679,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x2v_ser_p1(
   return vlasov_sr_M3i_2x2v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -647,7 +688,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x2v_ser_p2(
   return vlasov_sr_M3i_2x2v_ser_p2(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -655,7 +697,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x3v_ser_p1(
   return vlasov_sr_M3i_2x3v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -663,7 +706,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_2x3v_ser_p2(
   return vlasov_sr_M3i_2x3v_ser_p2(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_M3i_3x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_M3i_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -671,7 +715,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_M3i_3x3v_ser_p1(
   return vlasov_sr_M3i_3x3v_ser_p1(xc, dx, idx, f, out);
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -692,7 +737,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x1v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -713,7 +759,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x1v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -734,7 +781,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -755,7 +803,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -776,7 +825,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -797,7 +847,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_1x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -818,7 +869,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -839,7 +891,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -860,7 +913,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -881,7 +935,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_2x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Ni_3x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Ni_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -902,7 +957,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Ni_3x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -923,7 +979,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x1v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -944,7 +1001,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x1v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -965,7 +1023,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -986,7 +1045,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1007,7 +1067,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1028,7 +1089,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_1x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1049,7 +1111,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1070,7 +1133,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1091,7 +1155,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1112,7 +1177,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_2x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_Tij_3x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_Tij_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1133,7 +1199,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_Tij_3x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1154,7 +1221,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x1v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1175,7 +1243,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x1v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1196,7 +1265,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1217,7 +1287,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1238,7 +1309,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1259,7 +1331,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_1x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x2v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1280,7 +1353,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x2v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1301,7 +1375,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x2v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1322,7 +1397,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x3v_ser_p2(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -1343,7 +1419,8 @@ GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_2x3v_ser_p2(
   );
 }
 
-GKYL_CU_DH static void kernel_vlasov_sr_int_five_moments_3x3v_ser_p1(
+GKYL_CU_DH static void
+kernel_vlasov_sr_int_five_moments_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )

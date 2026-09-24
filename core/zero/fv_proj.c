@@ -3,7 +3,8 @@
 #include <gkyl_fv_proj.h>
 #include <gkyl_array_ops.h>
 
-gkyl_fv_proj *gkyl_fv_proj_new(
+gkyl_fv_proj *
+gkyl_fv_proj_new(
   const struct gkyl_rect_grid *grid, int num_quad, int num_ret_vals, evalf_t eval, void *ctx
 )
 {
@@ -14,7 +15,8 @@ gkyl_fv_proj *gkyl_fv_proj_new(
   return gkyl_proj_on_basis_new(grid, &basis, num_quad, num_ret_vals, eval, ctx);
 }
 
-void gkyl_fv_proj_advance(
+void
+gkyl_fv_proj_advance(
   const gkyl_fv_proj *pob, double tm, const struct gkyl_range *update_rng, struct gkyl_array *out
 )
 {
@@ -25,7 +27,8 @@ void gkyl_fv_proj_advance(
   gkyl_array_scale_range(out, denorm, update_rng);
 }
 
-void gkyl_fv_proj_release(gkyl_fv_proj *pob)
+void
+gkyl_fv_proj_release(gkyl_fv_proj *pob)
 {
   gkyl_proj_on_basis_release(pob);
 }

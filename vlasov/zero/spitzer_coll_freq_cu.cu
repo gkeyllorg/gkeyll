@@ -7,7 +7,8 @@ extern "C" {
 #include <gkyl_range.h>
 }
 
-GKYL_CU_D void calc_nu_cu(
+GKYL_CU_D void
+calc_nu_cu(
   const struct gkyl_array *GKYL_RESTRICT basis_at_ords,
   const struct gkyl_array *GKYL_RESTRICT weights, const double *vtSqSelf_d, double vtSqMinSelf,
   const double *GKYL_RESTRICT m0Other_d, const double *vtSqOther_d, double vtSqMinOther,
@@ -59,7 +60,8 @@ GKYL_CU_D void calc_nu_cu(
   }
 }
 
-__global__ static void gkyl_spitzer_coll_freq_advance_normnu_cu_ker(
+__global__ static void
+gkyl_spitzer_coll_freq_advance_normnu_cu_ker(
   const struct gkyl_range range, const struct gkyl_array *GKYL_RESTRICT basis_at_ords,
   const struct gkyl_array *GKYL_RESTRICT weights, const struct gkyl_array *momsSelf,
   double vtSqMinSelf, const struct gkyl_array *GKYL_RESTRICT momsOther, double vtSqMinOther,
@@ -87,7 +89,8 @@ __global__ static void gkyl_spitzer_coll_freq_advance_normnu_cu_ker(
   }
 }
 
-__global__ static void gkyl_spitzer_coll_freq_advance_cu_ker(
+__global__ static void
+gkyl_spitzer_coll_freq_advance_cu_ker(
   const struct gkyl_range range, const struct gkyl_array *GKYL_RESTRICT basis_at_ords,
   const struct gkyl_array *GKYL_RESTRICT weights, double nufraceps0_fac, double cellav_fac,
   double r4pieps0_fac, double hbar_fac, double eps0, const struct gkyl_array *GKYL_RESTRICT bmag,
@@ -157,7 +160,8 @@ __global__ static void gkyl_spitzer_coll_freq_advance_cu_ker(
   }
 }
 
-void gkyl_spitzer_coll_freq_advance_normnu_cu(
+void
+gkyl_spitzer_coll_freq_advance_normnu_cu(
   const gkyl_spitzer_coll_freq *up, const struct gkyl_range *range,
   const struct gkyl_array *momsSelf, double vtSqMinSelf, const struct gkyl_array *momsOther,
   double vtSqMinOther, double normNu, struct gkyl_array *nuOut
@@ -170,7 +174,8 @@ void gkyl_spitzer_coll_freq_advance_normnu_cu(
   );
 }
 
-void gkyl_spitzer_coll_freq_advance_cu(
+void
+gkyl_spitzer_coll_freq_advance_cu(
   const gkyl_spitzer_coll_freq *up, const struct gkyl_range *range, const struct gkyl_array *bmag,
   double qSelf, double mSelf, const struct gkyl_array *momsSelf, double vtSqMinSelf, double qOther,
   double mOther, const struct gkyl_array *momsOther, double vtSqMinOther, struct gkyl_array *nuOut

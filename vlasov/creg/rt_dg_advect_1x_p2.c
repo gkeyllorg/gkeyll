@@ -44,7 +44,8 @@ struct advect_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct advect_ctx create_ctx(void)
+struct advect_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -80,13 +81,14 @@ struct advect_ctx create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void evalAdvectInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalAdvectInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
 
@@ -96,7 +98,8 @@ void evalAdvectInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTR
   fout[0] = f;
 }
 
-void evalAdvectVel(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalAdvectVel(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct advect_ctx *app = ctx;
 
@@ -112,7 +115,8 @@ void evalAdvectVel(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[2] = uz;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -130,16 +134,16 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr
   }
 }
 
-void calc_field_energy(
-  struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc
-)
+void
+calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_field_energy(app, t_curr);
   }
 }
 
-void calc_integrated_mom(
+void
+calc_integrated_mom(
   struct gkyl_tm_trigger *imt, gkyl_vlasov_app *app, double t_curr, bool force_calc
 )
 {
@@ -148,7 +152,8 @@ void calc_integrated_mom(
   }
 }
 
-void calc_integrated_L2_f(
+void
+calc_integrated_L2_f(
   struct gkyl_tm_trigger *l2t, gkyl_vlasov_app *app, double t_curr, bool force_calc
 )
 {
@@ -157,7 +162,8 @@ void calc_integrated_L2_f(
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -185,7 +191,7 @@ int main(int argc, char **argv)
     .advection = {.velocity = evalAdvectVel, .velocity_ctx = &ctx},
 
     .init = evalAdvectInit,
-    .ctx = &ctx
+    .ctx = &ctx,
   };
 
   int nrank = 1; // Number of processors in simulation.
@@ -273,7 +279,7 @@ int main(int argc, char **argv)
 
     .skip_field = true,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Create app object.
@@ -310,7 +316,9 @@ int main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / field_energy_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
@@ -318,7 +326,9 @@ int main(int argc, char **argv)
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_mom_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -326,7 +336,9 @@ int main(int argc, char **argv)
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
   struct gkyl_tm_trigger l2f_trig = {
-    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_L2_f_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
@@ -334,7 +346,9 @@ int main(int argc, char **argv)
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+    .dt = t_end / num_frames,
+    .tcurr = frame_curr * (t_end / num_frames),
+    .curr = frame_curr,
   };
 
   write_data(&io_trig, app, t_curr, false);

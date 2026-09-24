@@ -8,7 +8,8 @@ extern "C" {
 }
 
 // CUDA kernel to set device pointers to kernels.
-__global__ static void gkyl_pos_shift_gk_set_cu_ker_ptrs(
+__global__ static void
+gkyl_pos_shift_gk_set_cu_ker_ptrs(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kernels, struct gkyl_basis cbasis,
   struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype
 )
@@ -18,34 +19,35 @@ __global__ static void gkyl_pos_shift_gk_set_cu_ker_ptrs(
   int poly_order = pbasis.poly_order;
 
   switch (pbasis_type) {
-  case GKYL_BASIS_MODAL_GKHYBRID:
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    kernels->is_m0_positive =
-      pos_shift_gk_kern_list_m0_pos_check_ser[cdim - 1].kernels[poly_order - 1];
-    kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY ?
-                       pos_shift_gk_kern_list_shift_ser[pdim - 2].kernels[poly_order - 1] :
-                       pos_shift_gk_kern_list_MRSlimiter_ser[pdim - 2].kernels[poly_order - 1];
-    kernels->m0 = pos_shift_gk_kern_list_m0_ser[pdim - 2].kernels[poly_order - 1];
-    kernels->conf_phase_mul_op =
-      choose_mul_conf_phase_kern(pbasis_type, cdim, pdim - cdim, poly_order);
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kernels->is_m0_positive =
+        pos_shift_gk_kern_list_m0_pos_check_ser[cdim - 1].kernels[poly_order - 1];
+      kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY ?
+                         pos_shift_gk_kern_list_shift_ser[pdim - 2].kernels[poly_order - 1] :
+                         pos_shift_gk_kern_list_MRSlimiter_ser[pdim - 2].kernels[poly_order - 1];
+      kernels->m0 = pos_shift_gk_kern_list_m0_ser[pdim - 2].kernels[poly_order - 1];
+      kernels->conf_phase_mul_op =
+        choose_mul_conf_phase_kern(pbasis_type, cdim, pdim - cdim, poly_order);
+      break;
+    default:
+      assert(false);
+      break;
   }
 
   switch (cbasis_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    kernels->conf_inv_op = choose_ser_inv_kern(cdim, poly_order);
-    kernels->conf_mul_op = choose_ser_mul_kern(cdim, poly_order);
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kernels->conf_inv_op = choose_ser_inv_kern(cdim, poly_order);
+      kernels->conf_mul_op = choose_ser_mul_kern(cdim, poly_order);
+      break;
+    default:
+      assert(false);
+      break;
   }
 };
 
-void pos_shift_gk_choose_shift_kernel_cu(
+void
+pos_shift_gk_choose_shift_kernel_cu(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kernels, struct gkyl_basis cbasis,
   struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype
 )
@@ -54,7 +56,8 @@ void pos_shift_gk_choose_shift_kernel_cu(
 }
 
 // Function borrowed from array_reduce_cu.cu.
-__device__ static __forceinline__ double pos_shift_atomicMax_double(double *address, double val)
+__device__ static __forceinline__ double
+pos_shift_atomicMax_double(double *address, double val)
 {
   unsigned long long int ret = __double_as_longlong(*address);
   while (val > __longlong_as_double(ret)) {
@@ -78,7 +81,8 @@ gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker(struct gkyl_arr
   }
 }
 
-__global__ static void gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
+__global__ static void
+gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_rect_grid grid,
   const struct gkyl_range conf_range, const struct gkyl_range vel_range,
   const struct gkyl_range phase_range, double *ffloor, double ffloor_fac, double cellav_fac,
@@ -188,7 +192,8 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
   pos_shift_atomicMax_double(ffloor, ffloor_fac * distf_max * cellav_fac);
 }
 
-__global__ static void gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker(
+__global__ static void
+gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_range conf_range,
   const struct gkyl_range phase_range, const struct gkyl_array *GKYL_RESTRICT shiftedf,
   const struct gkyl_array *GKYL_RESTRICT m0, const struct gkyl_array *GKYL_RESTRICT delta_m0,
@@ -223,7 +228,8 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker(
   }
 }
 
-__global__ static void gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker(
+__global__ static void
+gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_range conf_range,
   const struct gkyl_array *GKYL_RESTRICT shiftedf, struct gkyl_array *GKYL_RESTRICT m0,
   struct gkyl_array *GKYL_RESTRICT delta_m0
@@ -260,7 +266,8 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker(
   }
 }
 
-void gkyl_positivity_shift_gyrokinetic_advance_cu(
+void
+gkyl_positivity_shift_gyrokinetic_advance_cu(
   gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
   const struct gkyl_range *phase_rng, struct gkyl_array *GKYL_RESTRICT distf,
   struct gkyl_array *GKYL_RESTRICT m0, struct gkyl_array *GKYL_RESTRICT delta_m0
@@ -298,7 +305,8 @@ void gkyl_positivity_shift_gyrokinetic_advance_cu(
   );
 }
 
-__global__ static void gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker(
+__global__ static void
+gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_range conf_rng,
   const struct gkyl_range phase_rng, const struct gkyl_array *GKYL_RESTRICT delta_m0s,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
@@ -358,7 +366,8 @@ __global__ static void gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_
   }
 }
 
-void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(
+void
+gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(
   gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
   const struct gkyl_range *phase_rng, const struct gkyl_array *GKYL_RESTRICT delta_m0s,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,

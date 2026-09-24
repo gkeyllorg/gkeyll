@@ -10,7 +10,8 @@
 #define BY 4
 #define BZ 5
 
-void test_maxwell_basic_ho()
+void
+test_maxwell_basic_ho()
 {
   // speed of light in SI units so tests are non-trivial
   double c = 299792458.0;
@@ -76,7 +77,8 @@ void test_maxwell_basic_ho()
   gkyl_wv_eqn_release(maxwell);
 }
 
-void test_maxwell_waves_ho()
+void
+test_maxwell_waves_ho()
 {
   // speed of light in SI units so tests are non-trivial
   double c = 299792458.0;
@@ -150,7 +152,8 @@ void test_maxwell_waves_ho()
 
 int cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn);
 
-void test_wv_maxwell_dev()
+void
+test_wv_maxwell_dev()
 {
   double c = 299792458.0;
   double c2 = c * c;

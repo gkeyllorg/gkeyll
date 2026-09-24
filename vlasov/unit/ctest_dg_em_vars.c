@@ -18,19 +18,22 @@
 #include <time.h>
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-static struct gkyl_array *mk_int_arr(long nc, long size)
+static struct gkyl_array *
+mk_int_arr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_INT, nc, size);
   return a;
 }
 
-void eval_field_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_field_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2.0 * M_PI;
@@ -65,7 +68,8 @@ void eval_field_1x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[7] = 0.0;
 }
 
-void eval_analytic_bvar_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_analytic_bvar_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2.0 * M_PI;
@@ -130,7 +134,8 @@ void eval_analytic_bvar_1x(double t, const double *xn, double *restrict fout, vo
   fout[8] = bzbz;
 }
 
-void eval_analytic_ExB_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_analytic_ExB_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2.0 * M_PI;
@@ -165,7 +170,8 @@ void eval_analytic_ExB_1x(double t, const double *xn, double *restrict fout, voi
   fout[2] = num_ExB_z / magB2;
 }
 
-void eval_field_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_field_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -215,7 +221,8 @@ void eval_field_2x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[7] = 0.0;
 }
 
-void eval_analytic_bvar_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_analytic_bvar_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -295,7 +302,8 @@ void eval_analytic_bvar_2x(double t, const double *xn, double *restrict fout, vo
   fout[8] = bzbz;
 }
 
-void eval_analytic_ExB_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_analytic_ExB_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -345,7 +353,8 @@ void eval_analytic_ExB_2x(double t, const double *xn, double *restrict fout, voi
   fout[2] = num_ExB_z / magB2;
 }
 
-void eval_field_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_field_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -405,7 +414,8 @@ void eval_field_3x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[7] = 0.0;
 }
 
-void eval_analytic_bvar_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_analytic_bvar_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -495,7 +505,8 @@ void eval_analytic_bvar_3x(double t, const double *xn, double *restrict fout, vo
   fout[8] = bzbz;
 }
 
-void eval_analytic_ExB_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_analytic_ExB_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -555,7 +566,8 @@ void eval_analytic_ExB_3x(double t, const double *xn, double *restrict fout, voi
   fout[2] = num_ExB_z / magB2;
 }
 
-void test(
+void
+test(
   int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_analytic, bool use_gpu
 )
 {
@@ -1070,56 +1082,68 @@ void test(
   gkyl_dg_calc_em_vars_release(calc_ExB);
 }
 
-void test_dg_em_vars_1x_p1_ho()
+void
+test_dg_em_vars_1x_p1_ho()
 {
   test(1, 8, 1, 1.0e-12, 0, 0, false);
 }
-void test_dg_em_vars_2x_p1_ho()
+void
+test_dg_em_vars_2x_p1_ho()
 {
   test(2, 8, 1, 1.0e-12, 0, 0, false);
 }
-void test_dg_em_vars_3x_p1_ho()
+void
+test_dg_em_vars_3x_p1_ho()
 {
   test(3, 4, 1, 1.0e-12, 0, 0, false);
 }
 
-void test_dg_em_vars_1x_p2_ho()
+void
+test_dg_em_vars_1x_p2_ho()
 {
   test(1, 8, 2, 1.0e-12, 0, 0, false);
 }
 // Higher dimensions, p=2, *only* testing is b . b = 1 like we expect
-void test_dg_em_vars_2x_tensor_p2_ho()
+void
+test_dg_em_vars_2x_tensor_p2_ho()
 {
   test(2, 8, 2, 1.0e-12, 1, 0, false);
 }
-void test_dg_em_vars_3x_tensor_p2_ho()
+void
+test_dg_em_vars_3x_tensor_p2_ho()
 {
   test(3, 8, 2, 1.0e-12, 1, 0, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_dg_em_vars_1x_p1_dev()
+void
+test_dg_em_vars_1x_p1_dev()
 {
   test(1, 8, 1, 1.0e-12, 0, 0, true);
 }
-void test_dg_em_vars_2x_p1_dev()
+void
+test_dg_em_vars_2x_p1_dev()
 {
   test(2, 8, 1, 1.0e-12, 0, 0, true);
 }
-void test_dg_em_vars_3x_p1_dev()
+void
+test_dg_em_vars_3x_p1_dev()
 {
   test(3, 8, 1, 1.0e-12, 0, 0, true);
 }
 
-void test_dg_em_vars_1x_p2_dev()
+void
+test_dg_em_vars_1x_p2_dev()
 {
   test(1, 8, 2, 1.0e-12, 0, 0, true);
 }
-void test_dg_em_vars_2x_tensor_p2_dev()
+void
+test_dg_em_vars_2x_tensor_p2_dev()
 {
   test(2, 8, 2, 1.0e-12, 1, 0, true);
 }
-void test_dg_em_vars_3x_tensor_p2_dev()
+void
+test_dg_em_vars_3x_tensor_p2_dev()
 {
   test(3, 8, 2, 1.0e-12, 1, 0, true);
 }

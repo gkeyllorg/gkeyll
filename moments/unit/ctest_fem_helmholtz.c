@@ -11,9 +11,8 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_fem_poisson.h>
 
-void evalFunc2x_dirichletx_periodicy_sol(
-  double t, const double *xn, double *restrict fout, void *ctx
-)
+void
+evalFunc2x_dirichletx_periodicy_sol(double t, const double *xn, double *restrict fout, void *ctx)
 {
   // These values have to match those in the test below.
   double gxx = 3.0;
@@ -29,7 +28,8 @@ void evalFunc2x_dirichletx_periodicy_sol(
   //    -5*(-2*gxx*(M_PI - 9*x) + (kSq - gyy*pow(m,2))*(M_PI - 3*x)*(M_PI - x)*(M_PI + x))*sin(m*y))/15.;
   fout[0] = ((x - 4. * M_PI / 5.) + (x - M_PI) * sin(m * y)) * (x + M_PI) * (x - M_PI / 3.);
 }
-void evalFunc2x_dirichletx_periodicy(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc2x_dirichletx_periodicy(double t, const double *xn, double *restrict fout, void *ctx)
 {
   // These values have to match those in the test below.
   double gxx = 3.0;
@@ -51,13 +51,15 @@ void evalFunc2x_dirichletx_periodicy(double t, const double *xn, double *restric
 }
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-static struct gkyl_array *mkarr_cu(long nc, long size)
+static struct gkyl_array *
+mkarr_cu(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
   return a;
@@ -72,7 +74,8 @@ struct skin_ghost_ranges {
 };
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(
+static void
+skin_ghost_ranges_init(
   struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost
 )
 {
@@ -89,7 +92,8 @@ static void skin_ghost_ranges_init(
 }
 
 // Apply periodic BCs in one direction.
-void apply_periodic_bc(
+void
+apply_periodic_bc(
   struct gkyl_array *buff, struct gkyl_array *fld, const int dir, const struct skin_ghost_ranges sgr
 )
 {
@@ -100,7 +104,8 @@ void apply_periodic_bc(
   gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.lower_ghost[dir]));
 }
 
-void test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+void
+test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
 {
   // Determinant of g tensor has to be >0. Diagonal entries have to be  >0.
   double gxx = 3.0;
@@ -530,7 +535,8 @@ void test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool 
   }
 }
 
-void test_helmholtz_2x_p1_dirichletx_periodicy_ho()
+void
+test_helmholtz_2x_p1_dirichletx_periodicy_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -543,7 +549,8 @@ void test_helmholtz_2x_p1_dirichletx_periodicy_ho()
   test_2x(1, &cells[0], bc_tv, false);
 }
 
-void test_helmholtz_2x_p2_dirichletx_periodicy_ho()
+void
+test_helmholtz_2x_p2_dirichletx_periodicy_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;

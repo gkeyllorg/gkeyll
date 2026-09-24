@@ -4,7 +4,8 @@
 #include <gkyl_wv_euler_mixture.h>
 #include <gkyl_wv_euler_mixture_priv.h>
 
-void test_euler_mixture_twocomponent_basic_ho()
+void
+test_euler_mixture_twocomponent_basic_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -103,7 +104,8 @@ void test_euler_mixture_twocomponent_basic_ho()
   gkyl_free(gas_gamma_s);
 }
 
-void test_euler_mixture_threecomponent_basic_ho()
+void
+test_euler_mixture_threecomponent_basic_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -222,7 +224,8 @@ void test_euler_mixture_threecomponent_basic_ho()
   gkyl_free(gas_gamma_s);
 }
 
-void test_euler_mixture_twocomponent_waves_ho()
+void
+test_euler_mixture_twocomponent_waves_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -324,7 +327,8 @@ void test_euler_mixture_twocomponent_waves_ho()
   gkyl_free(gas_gamma_s);
 }
 
-void test_euler_mixture_twocomponent_waves_2_ho()
+void
+test_euler_mixture_twocomponent_waves_2_ho()
 {
   double gas_gamma1 = 1.2;
   double gas_gamma2 = 1.7;
@@ -426,7 +430,8 @@ void test_euler_mixture_twocomponent_waves_2_ho()
   gkyl_free(gas_gamma_s);
 }
 
-void test_euler_mixture_threecomponent_waves_ho()
+void
+test_euler_mixture_threecomponent_waves_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -556,7 +561,8 @@ void test_euler_mixture_threecomponent_waves_ho()
   gkyl_free(gas_gamma_s);
 }
 
-void test_euler_mixture_threecomponent_waves_2_ho()
+void
+test_euler_mixture_threecomponent_waves_2_ho()
 {
   double gas_gamma1 = 1.1;
   double gas_gamma2 = 1.5;

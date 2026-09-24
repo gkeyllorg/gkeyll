@@ -15,7 +15,8 @@
 #include <gkyl_calc_bmag.h>
 #include <math.h>
 
-void test_nonuniform_position_map(
+void
+test_nonuniform_position_map(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -32,7 +33,8 @@ void test_nonuniform_position_map(
   }
 }
 
-void test_nonuniform_position_map_slope(
+void
+test_nonuniform_position_map_slope(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -50,14 +52,16 @@ void test_nonuniform_position_map_slope(
   }
 }
 
-void test_identity_position_map(
+void
+test_identity_position_map(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
   fout[0] = xn[0];
 }
 
-void test_nonuniform_position_map_3x(
+void
+test_nonuniform_position_map_3x(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -76,7 +80,8 @@ void test_nonuniform_position_map_3x(
   }
 }
 
-void bmag_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+bmag_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   double s = 0.6;
@@ -86,7 +91,8 @@ void bmag_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
   fout[0] = B;
 }
 
-void test_position_map_init_1x_ho()
+void
+test_position_map_init_1x_ho()
 {
   int cells[] = {32};
   int poly_order = 1;
@@ -107,7 +113,7 @@ void test_position_map_init_1x_ho()
   struct gkyl_position_map_inp pos_map_inp = {
     .maps =
       {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
-    .ctxs = {NULL, NULL, NULL}
+    .ctxs = {NULL, NULL, NULL},
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
@@ -124,7 +130,8 @@ void test_position_map_init_1x_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void test_position_map_init_1x_null_ho()
+void
+test_position_map_init_1x_null_ho()
 {
   int cells[] = {8};
   int poly_order = 1;
@@ -171,7 +178,8 @@ void test_position_map_init_1x_null_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void test_position_map_init_2x_ho()
+void
+test_position_map_init_2x_ho()
 {
   int cells[] = {8, 8};
   int poly_order = 1;
@@ -192,7 +200,7 @@ void test_position_map_init_2x_ho()
   struct gkyl_position_map_inp pos_map_inp = {
     .maps =
       {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
-    .ctxs = {0, 0, 0}
+    .ctxs = {0, 0, 0},
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
@@ -209,7 +217,8 @@ void test_position_map_init_2x_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void test_position_map_init_3x_ho()
+void
+test_position_map_init_3x_ho()
 {
   int cells[] = {8, 8, 8};
   int poly_order = 1;
@@ -230,7 +239,7 @@ void test_position_map_init_3x_ho()
   struct gkyl_position_map_inp pos_map_inp = {
     .maps =
       {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
-    .ctxs = {0, 0, 0}
+    .ctxs = {0, 0, 0},
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
@@ -247,7 +256,8 @@ void test_position_map_init_3x_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void test_position_map_set_ho()
+void
+test_position_map_set_ho()
 {
   int cells[] = {8, 8, 8};
   int poly_order = 1;
@@ -268,7 +278,7 @@ void test_position_map_set_ho()
   struct gkyl_position_map_inp pos_map_inp = {
     .maps =
       {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
-    .ctxs = {0, 0, 0}
+    .ctxs = {0, 0, 0},
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
@@ -290,7 +300,8 @@ void test_position_map_set_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void test_position_map_eval_mc2nu_ho()
+void
+test_position_map_eval_mc2nu_ho()
 {
   int cells[] = {8, 8, 8};
   int poly_order = 2;
@@ -311,7 +322,7 @@ void test_position_map_eval_mc2nu_ho()
   struct gkyl_position_map_inp pos_map_inp = {
     .maps =
       {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
-    .ctxs = {0, 0, 0}
+    .ctxs = {0, 0, 0},
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
@@ -349,7 +360,8 @@ void test_position_map_eval_mc2nu_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void test_position_map_slope_ho()
+void
+test_position_map_slope_ho()
 {
   int cells[] = {8, 8, 8};
   int poly_order = 2;
@@ -370,7 +382,7 @@ void test_position_map_slope_ho()
   struct gkyl_position_map_inp pos_map_inp = {
     .maps =
       {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
-    .ctxs = {0, 0, 0}
+    .ctxs = {0, 0, 0},
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
@@ -418,7 +430,8 @@ void test_position_map_slope_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void test_position_polynomial_map_optimize_1x_ho()
+void
+test_position_polynomial_map_optimize_1x_ho()
 {
   int cells[] = {64};
   int poly_order = 1;
@@ -437,7 +450,8 @@ void test_position_polynomial_map_optimize_1x_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = {
-    .id = GKYL_PMAP_CONSTANT_DB_POLYNOMIAL, .map_strength = 1.0
+    .id = GKYL_PMAP_CONSTANT_DB_POLYNOMIAL,
+    .map_strength = 1.0,
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
@@ -478,7 +492,8 @@ void test_position_polynomial_map_optimize_1x_ho()
   gkyl_array_release(bmag_global);
 }
 
-void test_position_map_numeric_optimize_1x_ho()
+void
+test_position_map_numeric_optimize_1x_ho()
 {
   int cells[] = {64};
   int poly_order = 1;
@@ -497,7 +512,8 @@ void test_position_map_numeric_optimize_1x_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = {
-    .id = GKYL_PMAP_CONSTANT_DB_NUMERIC, .map_strength = 1.0
+    .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+    .map_strength = 1.0,
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
@@ -537,7 +553,8 @@ void test_position_map_numeric_optimize_1x_ho()
   gkyl_array_release(bmag_global);
 }
 
-void test_position_map_numeric_calculate_1x_ho()
+void
+test_position_map_numeric_calculate_1x_ho()
 {
   int cells[] = {64};
   int poly_order = 1;
@@ -556,7 +573,8 @@ void test_position_map_numeric_calculate_1x_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = {
-    .id = GKYL_PMAP_CONSTANT_DB_NUMERIC, .map_strength = 1.0
+    .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+    .map_strength = 1.0,
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
@@ -591,7 +609,8 @@ void test_position_map_numeric_calculate_1x_ho()
   gkyl_array_release(bmag_global);
 }
 
-void test_null_map_is_identity()
+void
+test_null_map_is_identity()
 {
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
@@ -615,13 +634,15 @@ void test_null_map_is_identity()
   gkyl_position_map_release(pmap);
 }
 
-static void nonuniform_map_1d(double t, const double *xn, double *fout, void *ctx)
+static void
+nonuniform_map_1d(double t, const double *xn, double *fout, void *ctx)
 {
   // A simple smooth monotone map z -> z + 0.1*sin(z) (identity-like near 0).
   fout[0] = xn[0] + 0.1 * sin(xn[0]);
 }
 
-void test_inew_constructor()
+void
+test_inew_constructor()
 {
   int cells[] = {16};
   int poly_order = 1;
@@ -639,14 +660,16 @@ void test_inew_constructor()
 
   struct gkyl_position_map_inew_inp inp = {
     .pmap_info =
-      {.maps = {nonuniform_map_1d, nonuniform_map_1d, nonuniform_map_1d}, .ctxs = {NULL, NULL, NULL}
+      {
+        .maps = {nonuniform_map_1d, nonuniform_map_1d, nonuniform_map_1d},
+        .ctxs = {NULL, NULL, NULL},
       },
     .grid = grid,
     .local = local,
     .local_ext = local_ext,
     .global = local,
     .global_ext = local_ext,
-    .basis = basis
+    .basis = basis,
   };
 
   struct gkyl_position_map *pmap = gkyl_position_map_inew(inp);
@@ -664,7 +687,8 @@ void test_inew_constructor()
   gkyl_position_map_release(pmap);
 }
 
-void test_acquire_refcount()
+void
+test_acquire_refcount()
 {
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
@@ -681,7 +705,8 @@ void test_acquire_refcount()
   gkyl_position_map_release(pmap2);
 }
 
-void test_set_compression()
+void
+test_set_compression()
 {
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 

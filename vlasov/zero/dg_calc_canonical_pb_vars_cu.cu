@@ -14,7 +14,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(
+__global__ void
+gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range conf_range,
   const struct gkyl_range phase_range, const struct gkyl_range phase_ext_range,
   struct gkyl_array *hamil, struct gkyl_array *alpha_surf, struct gkyl_array *sgn_alpha_surf,
@@ -72,7 +73,8 @@ __global__ void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(
   }
 }
 // Host-side wrapper
-void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(
+void
+gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range,
   struct gkyl_array *hamil, struct gkyl_array *alpha_surf, struct gkyl_array *sgn_alpha_surf,
@@ -88,7 +90,8 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(
 }
 
 /* Convert the bulk velocity from contravariant to covaraint components for can-pb*/
-__global__ void gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel(
+__global__ void
+gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range conf_range,
   const struct gkyl_array *h_ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
   struct gkyl_array *V_drift_cov, struct gkyl_array *M1i_cov
@@ -117,7 +120,8 @@ __global__ void gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel(
   }
 }
 // Host-side wrapper
-void gkyl_canonical_pb_contra_to_covariant_m1i_cu(
+void
+gkyl_canonical_pb_contra_to_covariant_m1i_cu(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *h_ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
   struct gkyl_array *V_drift_cov, struct gkyl_array *M1i_cov
@@ -132,7 +136,8 @@ void gkyl_canonical_pb_contra_to_covariant_m1i_cu(
 }
 
 /* Compute the pressure for can-pb*/
-__global__ void gkyl_canonical_pb_pressure_cu_kernel(
+__global__ void
+gkyl_canonical_pb_pressure_cu_kernel(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range conf_range,
   const struct gkyl_array *h_ij_inv, const struct gkyl_array *MEnergy,
   const struct gkyl_array *V_drift, const struct gkyl_array *M1i, struct gkyl_array *pressure
@@ -162,7 +167,8 @@ __global__ void gkyl_canonical_pb_pressure_cu_kernel(
   }
 }
 // Host-side wrapper
-void gkyl_canonical_pb_pressure_cu(
+void
+gkyl_canonical_pb_pressure_cu(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *h_ij_inv, const struct gkyl_array *MEnergy,
   const struct gkyl_array *V_drift, const struct gkyl_array *M1i, struct gkyl_array *pressure
@@ -178,7 +184,8 @@ void gkyl_canonical_pb_pressure_cu(
 
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(
+__global__ static void
+dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(
   struct gkyl_dg_calc_canonical_pb_vars *up, enum gkyl_basis_type b_type, int cv_index, int cdim,
   int vdim, int poly_order
 )
@@ -198,7 +205,8 @@ __global__ static void dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(
   }
 }
 
-gkyl_dg_calc_canonical_pb_vars *gkyl_dg_calc_canonical_pb_vars_cu_dev_new(
+gkyl_dg_calc_canonical_pb_vars *
+gkyl_dg_calc_canonical_pb_vars_cu_dev_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis
 )

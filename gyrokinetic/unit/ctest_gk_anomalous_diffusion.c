@@ -15,7 +15,8 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static void make_ranges(
+static void
+make_ranges(
   int cdim, struct gkyl_range *confRange, struct gkyl_range *confRange_ext,
   struct gkyl_basis *basis, struct gkyl_basis *cbasis
 )
@@ -40,7 +41,8 @@ static void make_ranges(
   gkyl_cart_modal_gkhybrid(basis, cdim, vdim);
 }
 
-void test_anom_diff_ctor_local()
+void
+test_anom_diff_ctor_local()
 {
   int cdim = 2;
   struct gkyl_basis basis, cbasis;
@@ -67,7 +69,8 @@ void test_anom_diff_ctor_local()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_anom_diff_ctor_zeroflux()
+void
+test_anom_diff_ctor_zeroflux()
 {
   int cdim = 2;
   struct gkyl_basis basis, cbasis;
@@ -91,7 +94,8 @@ void test_anom_diff_ctor_zeroflux()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_anom_diff_acquire()
+void
+test_anom_diff_acquire()
 {
   int cdim = 2;
   struct gkyl_basis basis, cbasis;

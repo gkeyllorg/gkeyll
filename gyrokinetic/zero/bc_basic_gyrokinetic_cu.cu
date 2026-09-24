@@ -7,7 +7,8 @@ extern "C" {
 #include <gkyl_alloc_flags_priv.h>
 }
 
-__global__ static void gkyl_bc_basic_gyrokinetic_create_set_cu_dev_ptrs(
+__global__ static void
+gkyl_bc_basic_gyrokinetic_create_set_cu_dev_ptrs(
   int dir, enum gkyl_edge_loc edge, int cdim, enum gkyl_gyrokinetic_bc_type bctype,
   const struct gkyl_basis *basis, int ncomp, struct dg_bc_ctx *ctx,
   struct gkyl_array_copy_func *fout
@@ -20,43 +21,44 @@ __global__ static void gkyl_bc_basic_gyrokinetic_create_set_cu_dev_ptrs(
   ctx->ncomp = ncomp;
 
   switch (bctype) {
-  case GKYL_BC_GK_SPECIES_COPY:
-    fout->func = copy_bc;
-    break;
+    case GKYL_BC_GK_SPECIES_COPY:
+      fout->func = copy_bc;
+      break;
 
-  case GKYL_BC_GK_SPECIES_FIXED_FUNC:
-    assert(basis->poly_order == 1); // MF 2025/11/03: Hardcoded for now.
-    assert(basis->b_type == GKYL_BASIS_MODAL_GKHYBRID); // MF 2025/11/03: Hardcoded for now.
-    fout->func = phase_boundary_value_bc;
-    break;
+    case GKYL_BC_GK_SPECIES_FIXED_FUNC:
+      assert(basis->poly_order == 1); // MF 2025/11/03: Hardcoded for now.
+      assert(basis->b_type == GKYL_BASIS_MODAL_GKHYBRID); // MF 2025/11/03: Hardcoded for now.
+      fout->func = phase_boundary_value_bc;
+      break;
 
-  case GKYL_BC_GK_SPECIES_ABSORB:
-    fout->func = species_absorb_bc;
-    break;
+    case GKYL_BC_GK_SPECIES_ABSORB:
+      fout->func = species_absorb_bc;
+      break;
 
-  case GKYL_BC_GK_SPECIES_REFLECT:
-    fout->func = species_reflect_bc;
-    break;
+    case GKYL_BC_GK_SPECIES_REFLECT:
+      fout->func = species_reflect_bc;
+      break;
 
-  case GKYL_BC_GK_SPECIES_BOUNDARY_VALUE:
-    assert(basis->poly_order == 1); // MF 2025/11/03: Hardcoded for now.
-    assert(basis->b_type == GKYL_BASIS_MODAL_GKHYBRID); // MF 2025/11/03: Hardcoded for now.
-    fout->func = phase_boundary_value_bc;
-    break;
+    case GKYL_BC_GK_SPECIES_BOUNDARY_VALUE:
+      assert(basis->poly_order == 1); // MF 2025/11/03: Hardcoded for now.
+      assert(basis->b_type == GKYL_BASIS_MODAL_GKHYBRID); // MF 2025/11/03: Hardcoded for now.
+      fout->func = phase_boundary_value_bc;
+      break;
 
-  case GKYL_BC_GK_FIELD_BOUNDARY_VALUE:
-    assert(basis->poly_order == 1); // MF 2025/11/03: Hardcoded for now.
-    fout->func = conf_boundary_value_bc;
-    break;
+    case GKYL_BC_GK_FIELD_BOUNDARY_VALUE:
+      assert(basis->poly_order == 1); // MF 2025/11/03: Hardcoded for now.
+      fout->func = conf_boundary_value_bc;
+      break;
 
-  default:
-    assert(false); // bctype not supported in bc_basic_gyrokinetic.
-    break;
+    default:
+      assert(false); // bctype not supported in bc_basic_gyrokinetic.
+      break;
   }
   fout->ctx = ctx;
 }
 
-struct gkyl_array_copy_func *gkyl_bc_basic_gyrokinetic_create_arr_copy_func_cu(
+struct gkyl_array_copy_func *
+gkyl_bc_basic_gyrokinetic_create_arr_copy_func_cu(
   int dir, enum gkyl_edge_loc edge, int cdim, enum gkyl_gyrokinetic_bc_type bctype,
   const struct gkyl_basis *basis, int ncomp
 )

@@ -76,7 +76,8 @@ gkyl_emission_spectrum_maxwellian_new(double charge, double vt, bool use_gpu)
   return &model->spectrum;
 }
 
-bool gkyl_emission_spectrum_model_is_cu_dev(const struct gkyl_emission_spectrum_model *model)
+bool
+gkyl_emission_spectrum_model_is_cu_dev(const struct gkyl_emission_spectrum_model *model)
 {
   return GKYL_IS_CU_ALLOC(model->flags);
 }
@@ -88,7 +89,8 @@ gkyl_emission_spectrum_model_acquire(const struct gkyl_emission_spectrum_model *
   return (struct gkyl_emission_spectrum_model *)spectrum;
 }
 
-void gkyl_emission_spectrum_model_release(const struct gkyl_emission_spectrum_model *spectrum)
+void
+gkyl_emission_spectrum_model_release(const struct gkyl_emission_spectrum_model *spectrum)
 {
   gkyl_ref_count_dec(&spectrum->ref_count);
 }

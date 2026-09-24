@@ -69,7 +69,8 @@ gk_species_damping_read_fbar(gkyl_gyrokinetic_app *app, struct gk_species *gks, 
 
 // Damping diagnostics write helpers.
 
-void gk_species_damping_write_disabled(
+void
+gk_species_damping_write_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -212,7 +213,8 @@ void gk_species_damping_write_enabled(
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gk_species_damping_write_init_only(
+void
+gk_species_damping_write_init_only(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -332,9 +334,8 @@ void gk_species_damping_advance(
   app->stat.species_damp_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gk_species_damping_write(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
-)
+void
+gk_species_damping_write(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   gks->damping.write_func(app, gks, tm, frame);
 }

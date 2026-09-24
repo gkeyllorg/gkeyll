@@ -8,7 +8,8 @@
 #include <gkyl_basis_gkhyb_1x2v_p1_surfx3_eval_quad.h>
 #include <gkyl_basis_gkhyb_1x2v_p1_upwind_quad_to_modal.h>
 
-static int ipow(int b, int e)
+static int
+ipow(int b, int e)
 {
   int r = 1;
   for (int i = 0; i < e; ++i) {
@@ -17,7 +18,8 @@ static int ipow(int b, int e)
   return r;
 }
 
-void test_basis_num_basis_serendip()
+void
+test_basis_num_basis_serendip()
 {
   struct gkyl_basis b;
 
@@ -50,7 +52,8 @@ void test_basis_num_basis_serendip()
   TEST_CHECK(b.b_type == GKYL_BASIS_MODAL_SERENDIPITY);
 }
 
-void test_basis_num_basis_tensor()
+void
+test_basis_num_basis_tensor()
 {
   struct gkyl_basis b;
   // tensor basis: num_basis = (poly_order+1)^ndim
@@ -63,7 +66,8 @@ void test_basis_num_basis_tensor()
   }
 }
 
-void test_basis_eval_expand_consistency()
+void
+test_basis_eval_expand_consistency()
 {
   // eval_expand(z,f) must equal sum_i f[i]*b_i(z), where b = eval(z).
   struct gkyl_basis b;
@@ -83,7 +87,8 @@ void test_basis_eval_expand_consistency()
   TEST_CHECK(gkyl_compare_double(ev, sum, 1e-13));
 }
 
-void test_basis_const_mode()
+void
+test_basis_const_mode()
 {
   // The first (0th) basis function is constant: same value at any z, and >0.
   struct gkyl_basis b;
@@ -101,7 +106,8 @@ void test_basis_const_mode()
   TEST_CHECK(gkyl_compare_double(b.eval_expand(z1, f), b.eval_expand(z2, f), 1e-14));
 }
 
-void test_basis_flip_odd_involution()
+void
+test_basis_flip_odd_involution()
 {
   // Applying flip_odd_sign twice in the same direction recovers the input.
   struct gkyl_basis b;
@@ -116,7 +122,8 @@ void test_basis_flip_odd_involution()
   }
 }
 
-void test_basis_flip_odd_reflection()
+void
+test_basis_flip_odd_reflection()
 {
   // flip_odd_sign(dir) on coefficients corresponds to reflecting z->-z in dir:
   // expand(flip(f))(z) == expand(f)(z with z[dir] negated).
@@ -131,7 +138,8 @@ void test_basis_flip_odd_reflection()
   TEST_CHECK(gkyl_compare_double(b.eval_expand(z, ff), b.eval_expand(zm, f), 1e-13));
 }
 
-void test_basis_new_release()
+void
+test_basis_new_release()
 {
   struct gkyl_basis *b = gkyl_cart_modal_serendip_new(3, 1);
   TEST_CHECK(b->num_basis == 8);
@@ -143,7 +151,8 @@ void test_basis_new_release()
   gkyl_cart_modal_basis_release(t);
 }
 
-void test_ser_1d_p0_members(struct gkyl_basis basis1)
+void
+test_ser_1d_p0_members(struct gkyl_basis basis1)
 {
   TEST_CHECK(basis1.ndim == 1);
   TEST_CHECK(basis1.poly_order == 0);
@@ -181,7 +190,8 @@ void test_ser_1d_p0_members(struct gkyl_basis basis1)
   TEST_CHECK(gkyl_compare(0.0, basis1.eval_grad_expand(0, z, f), 1e-15));
 }
 
-void test_basis_ser_1d_p0_ho()
+void
+test_basis_ser_1d_p0_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_serendip(&basis1, 1, 0);
@@ -193,7 +203,8 @@ void test_basis_ser_1d_p0_ho()
   gkyl_cart_modal_basis_release(basis2);
 }
 
-void test_ser_1d_members(struct gkyl_basis basis1)
+void
+test_ser_1d_members(struct gkyl_basis basis1)
 {
   TEST_CHECK(basis1.ndim == 1);
   TEST_CHECK(basis1.poly_order == 1);
@@ -235,7 +246,8 @@ void test_ser_1d_members(struct gkyl_basis basis1)
   TEST_CHECK(gkyl_compare(1.224744871391589, basis1.eval_grad_expand(0, z, f), 1e-15));
 }
 
-void test_basis_ser_1d_ho()
+void
+test_basis_ser_1d_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_serendip(&basis1, 1, 1);
@@ -247,7 +259,8 @@ void test_basis_ser_1d_ho()
   gkyl_cart_modal_basis_release(basis2);
 }
 
-void test_ser_2d_members(struct gkyl_basis basis)
+void
+test_ser_2d_members(struct gkyl_basis basis)
 {
   TEST_CHECK(basis.ndim == 2);
   TEST_CHECK(basis.poly_order == 2);
@@ -346,7 +359,8 @@ void test_ser_2d_members(struct gkyl_basis basis)
   TEST_CHECK(gkyl_compare(-3.150527379222043, basis.eval_grad_expand(1, z, f), 1e-15));
 }
 
-void test_basis_ser_2d_ho()
+void
+test_basis_ser_2d_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_serendip(&basis1, 2, 2);
@@ -357,7 +371,8 @@ void test_basis_ser_2d_ho()
   gkyl_cart_modal_basis_release(basis2);
 }
 
-void test_ten_2d_members(struct gkyl_basis basis)
+void
+test_ten_2d_members(struct gkyl_basis basis)
 {
   TEST_CHECK(basis.ndim == 2);
   TEST_CHECK(basis.poly_order == 2);
@@ -399,7 +414,8 @@ void test_ten_2d_members(struct gkyl_basis basis)
   TEST_CHECK(gkyl_compare(-0.8653711292220426, basis.eval_grad_expand(1, z, f), 1e-15));
 }
 
-void test_ten_2d_members_p3(struct gkyl_basis basis)
+void
+test_ten_2d_members_p3(struct gkyl_basis basis)
 {
   TEST_CHECK(basis.ndim == 2);
   TEST_CHECK(basis.poly_order == 3);
@@ -448,7 +464,8 @@ void test_ten_2d_members_p3(struct gkyl_basis basis)
   TEST_CHECK(gkyl_compare(-0.7090977834887839, basis.eval_grad_expand(1, z, f), 1e-14));
 }
 
-void test_basis_ten_2d_ho()
+void
+test_basis_ten_2d_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_tensor(&basis1, 2, 2);
@@ -463,7 +480,8 @@ void test_basis_ten_2d_ho()
   test_ten_2d_members_p3(basis3);
 }
 
-void test_hyb_members(struct gkyl_basis basis)
+void
+test_hyb_members(struct gkyl_basis basis)
 {
   TEST_CHECK(basis.ndim == 2);
   TEST_CHECK(basis.poly_order == 1);
@@ -499,7 +517,8 @@ void test_hyb_members(struct gkyl_basis basis)
   TEST_CHECK(-fin[5] == fout[5]);
 }
 
-void test_basis_hyb_ho()
+void
+test_basis_hyb_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_hybrid(&basis1, 1, 1);
@@ -510,7 +529,8 @@ void test_basis_hyb_ho()
   gkyl_cart_modal_basis_release(basis2);
 }
 
-void test_gkhyb_members(struct gkyl_basis basis)
+void
+test_gkhyb_members(struct gkyl_basis basis)
 {
   TEST_CHECK(basis.ndim == 3);
   TEST_CHECK(basis.poly_order == 1);
@@ -559,7 +579,8 @@ void test_gkhyb_members(struct gkyl_basis basis)
   TEST_CHECK(-fin[11] == fout[11]);
 }
 
-void test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
+void
+test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
 {
   // Accepted results here were generated with
   // ms-basis_surf_quad_upwind_accepted_results.mac
@@ -793,7 +814,8 @@ void test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
   }
 }
 
-void test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
+void
+test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
 {
   // Accepted results here were generated with
   // ms-basis_surf_quad_upwind_accepted_results.mac
@@ -907,7 +929,8 @@ void test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
   }
 }
 
-void test_basis_gkhyb_ho()
+void
+test_basis_gkhyb_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_gkhybrid(&basis1, 1, 2);
@@ -925,14 +948,16 @@ void test_basis_gkhyb_ho()
 
 int dev_cu_ser_2d(struct gkyl_basis *basis);
 
-void test_cu_ser_2d_members(struct gkyl_basis *basis)
+void
+test_cu_ser_2d_members(struct gkyl_basis *basis)
 {
   int nfail = dev_cu_ser_2d(basis);
 
   TEST_CHECK(nfail == 0);
 }
 
-void test_basis_ser_2d_dev()
+void
+test_basis_ser_2d_dev()
 {
   struct gkyl_basis *basis1 = gkyl_cu_malloc(sizeof(struct gkyl_basis));
   gkyl_cart_modal_serendip_cu_dev(basis1, 2, 2);

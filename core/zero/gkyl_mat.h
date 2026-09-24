@@ -64,7 +64,8 @@ struct gkyl_mat *gkyl_mat_clone(const struct gkyl_mat *in);
 /**
  * Set value in matrix.
  */
-GKYL_CU_DH static inline void gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
+GKYL_CU_DH static inline void
+gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
 {
   mat->data[c * mat->nr + r] = val;
 }
@@ -72,7 +73,8 @@ GKYL_CU_DH static inline void gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_
 /**
  * Increase value in matrix.
  */
-GKYL_CU_DH static inline void gkyl_mat_inc(struct gkyl_mat *mat, size_t r, size_t c, double val)
+GKYL_CU_DH static inline void
+gkyl_mat_inc(struct gkyl_mat *mat, size_t r, size_t c, double val)
 {
   mat->data[c * mat->nr + r] += val;
 }
@@ -80,7 +82,8 @@ GKYL_CU_DH static inline void gkyl_mat_inc(struct gkyl_mat *mat, size_t r, size_
 /**
  * Get value from matrix.
  */
-GKYL_CU_DH static inline double gkyl_mat_get(const struct gkyl_mat *mat, size_t r, size_t c)
+GKYL_CU_DH static inline double
+gkyl_mat_get(const struct gkyl_mat *mat, size_t r, size_t c)
 {
   return mat->data[c * mat->nr + r];
 }
@@ -88,7 +91,8 @@ GKYL_CU_DH static inline double gkyl_mat_get(const struct gkyl_mat *mat, size_t 
 /**
  * Get column of matrix as const pointer.
  */
-GKYL_CU_DH static inline const double *gkyl_mat_get_ccol(const struct gkyl_mat *mat, size_t c)
+GKYL_CU_DH static inline const double *
+gkyl_mat_get_ccol(const struct gkyl_mat *mat, size_t c)
 {
   return mat->data + c * mat->nr;
 }
@@ -96,7 +100,8 @@ GKYL_CU_DH static inline const double *gkyl_mat_get_ccol(const struct gkyl_mat *
 /**
  * Get column of matrix as pointer.
  */
-GKYL_CU_DH static inline double *gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
+GKYL_CU_DH static inline double *
+gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
 {
   return mat->data + c * mat->nr;
 }
@@ -104,7 +109,8 @@ GKYL_CU_DH static inline double *gkyl_mat_get_col(struct gkyl_mat *mat, size_t c
 /**
  * Set all elements of matrix to specified value. Returns pointer to @a mat.
  */
-GKYL_CU_DH static inline struct gkyl_mat *gkyl_mat_clear(struct gkyl_mat *mat, double val)
+GKYL_CU_DH static inline struct gkyl_mat *
+gkyl_mat_clear(struct gkyl_mat *mat, double val)
 {
   for (size_t i = 0; i < mat->nr * mat->nc; ++i) {
     mat->data[i] = val;
@@ -294,10 +300,14 @@ struct gkyl_mat *gkyl_mat_copy(struct gkyl_mat *dest, const struct gkyl_mat *src
  * @param n Matrix to fetch
  * @return Matrix (DO NOT free/release this)
  */
-GKYL_CU_DH static inline struct gkyl_mat gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
+GKYL_CU_DH static inline struct gkyl_mat
+gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
 {
-  return (struct gkyl_mat
-  ){.nr = mat->nr, .nc = mat->nc, .data = mat->data + num * mat->nr * mat->nc};
+  return (struct gkyl_mat){
+    .nr = mat->nr,
+    .nc = mat->nc,
+    .data = mat->data + num * mat->nr * mat->nc,
+  };
 }
 
 /**
