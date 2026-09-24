@@ -379,7 +379,8 @@ struct mirror_map_ctx {
   double lower, upper, shift, scale, curvature;
 };
 
-static void mirror_map(double t, const double *xn, double *out, void *ctx)
+static void
+mirror_map(double t, const double *xn, double *out, void *ctx)
 {
   const struct mirror_map_ctx *map = ctx;
   TEST_CHECK(xn[0] >= map->lower - 1e-14 && xn[0] <= map->upper + 1e-14);
@@ -387,7 +388,8 @@ static void mirror_map(double t, const double *xn, double *out, void *ctx)
   out[0] = map->shift + xn[0] * (map->scale + map->curvature * xn[0]);
 }
 
-static void mirror_map_deriv(double t, const double *xn, double *out, void *ctx)
+static void
+mirror_map_deriv(double t, const double *xn, double *out, void *ctx)
 {
   const struct mirror_map_ctx *map = ctx;
   TEST_CHECK(xn[0] >= map->lower - 1e-14 && xn[0] <= map->upper + 1e-14);
@@ -395,7 +397,8 @@ static void mirror_map_deriv(double t, const double *xn, double *out, void *ctx)
 }
 
 // Inspect bits: isfinite() can be optimized away in the normal -ffast-math build.
-static void mirror_check_close(double actual, double expected, double tol, const char *name)
+static void
+mirror_check_close(double actual, double expected, double tol, const char *name)
 {
   uint64_t bits;
   memcpy(&bits, &actual, sizeof bits);
@@ -406,7 +409,8 @@ static void mirror_check_close(double actual, double expected, double tol, const
 
 // Quadratic in each variable, so even the boundary derivative estimates used
 // to construct the bicubic interpolant reproduce this equilibrium exactly.
-static struct gkyl_array *mirror_psi(double strength, double curvature)
+static struct gkyl_array *
+mirror_psi(double strength, double curvature)
 {
   struct gkyl_range nodes;
   gkyl_range_init_from_shape(&nodes, 2, (int[]){9, 17});
@@ -421,7 +425,8 @@ static struct gkyl_array *mirror_psi(double strength, double curvature)
   return psi;
 }
 
-static int mirror_nodes_per_cell(int kind, int dim, int order)
+static int
+mirror_nodes_per_cell(int kind, int dim, int order)
 {
   return kind == -2 || (kind >= 0 && dim != kind) ? order + 1 : kind == -1 ? order : 1;
 }
@@ -463,7 +468,8 @@ mirror_coordinate(double lower, double upper, int cells, int node, int count, bo
   return lower + (upper - lower) * cell / cells;
 }
 
-static void mirror_check_geom(
+static void
+mirror_check_geom(
   const struct gkyl_mirror_grid_gen_geom *actual, const struct gkyl_mirror_grid_gen_geom *expected,
   double tol
 )
@@ -479,7 +485,8 @@ static void mirror_check_geom(
   mirror_check_close(actual->Jc, expected->Jc, tol, "Jacobian");
 }
 
-static void mirror_check_exact(
+static void
+mirror_check_exact(
   const struct gkyl_mirror_grid_gen_inp *inp, const struct gkyl_mirror_grid_gen *geom, int kind,
   int order, const struct mirror_map_ctx *maps, double strength, double curvature
 )
@@ -568,7 +575,8 @@ static void mirror_check_exact(
   }
 }
 
-static void mirror_check_partition(
+static void
+mirror_check_partition(
   const struct gkyl_mirror_grid_gen_inp *inp, const struct gkyl_mirror_grid_gen *geom,
   const struct gkyl_range *full_nodes, const struct gkyl_mirror_grid_gen *full, int kind, int order
 )
@@ -597,7 +605,8 @@ static void mirror_check_partition(
   }
 }
 
-static void mirror_exact_cases(int order, bool sqrt_psi)
+static void
+mirror_exact_cases(int order, bool sqrt_psi)
 {
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(
@@ -658,7 +667,7 @@ static void mirror_exact_cases(int order, bool sqrt_psi)
             .Z = {-1.0, 1.0},
             .nrcells = 8,
             .nzcells = 16,
-            .psiRZ = psi
+            .psiRZ = psi,
           };
           TEST_CASE_(
             "order=%d sqrt_psi=%d axis=%d map=%d kind=%d part=%d", order, sqrt_psi, include_axis,
@@ -682,24 +691,29 @@ static void mirror_exact_cases(int order, bool sqrt_psi)
   gkyl_array_release(psi);
 }
 
-static void test_mirror_exact_psi_p1_ho(void)
+static void
+test_mirror_exact_psi_p1_ho(void)
 {
   mirror_exact_cases(1, false);
 }
-static void test_mirror_exact_sqrt_psi_p1_ho(void)
+static void
+test_mirror_exact_sqrt_psi_p1_ho(void)
 {
   mirror_exact_cases(1, true);
 }
-static void test_mirror_exact_psi_p2_ho(void)
+static void
+test_mirror_exact_psi_p2_ho(void)
 {
   mirror_exact_cases(2, false);
 }
-static void test_mirror_exact_sqrt_psi_p2_ho(void)
+static void
+test_mirror_exact_sqrt_psi_p2_ho(void)
 {
   mirror_exact_cases(2, true);
 }
 
-static void test_mirror_curl_scaling_ho(void)
+static void
+test_mirror_curl_scaling_ho(void)
 {
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(
@@ -740,7 +754,7 @@ static void test_mirror_curl_scaling_ho(void)
           .Z = {-1.0, 1.0},
           .nrcells = 8,
           .nzcells = 16,
-          .psiRZ = psi
+          .psiRZ = psi,
         };
         struct gkyl_mirror_grid_gen *geom = mirror_generate(&inp, kind);
         TEST_ASSERT(geom != NULL);
@@ -782,7 +796,8 @@ mirror_generate_rejected(const struct gkyl_mirror_grid_gen_inp *inp, int kind)
   return geom;
 }
 
-static void test_mirror_root_bounds_ho(void)
+static void
+test_mirror_root_bounds_ho(void)
 {
   struct gkyl_array *psi = mirror_psi(1.0, 0.0);
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
@@ -811,7 +826,7 @@ static void test_mirror_root_bounds_ho(void)
         .Z = {-1.0, 1.0},
         .nrcells = 8,
         .nzcells = 16,
-        .psiRZ = psi
+        .psiRZ = psi,
       };
       struct gkyl_mirror_grid_gen *geom = trial < 3 ? mirror_generate_rejected(&inp, kind) :
                                                       mirror_generate(&inp, kind);
@@ -821,8 +836,11 @@ static void test_mirror_root_bounds_ho(void)
         if (trial == 3) {
           struct mirror_map_ctx maps[3];
           for (int dim = 0; dim < 3; ++dim) {
-            maps[dim] = (struct mirror_map_ctx
-            ){.lower = grid.lower[dim], .upper = grid.upper[dim], .scale = 1.0};
+            maps[dim] = (struct mirror_map_ctx){
+              .lower = grid.lower[dim],
+              .upper = grid.upper[dim],
+              .scale = 1.0,
+            };
           }
           mirror_check_exact(&inp, geom, kind, 1, maps, 1.0, 0.0);
         }
@@ -838,26 +856,30 @@ struct quadratic_map_ctx {
   double shift, scale, curvature;
 };
 
-static void quadratic_map(double t, const double *xn, double *out, void *ctx)
+static void
+quadratic_map(double t, const double *xn, double *out, void *ctx)
 {
   const struct quadratic_map_ctx *map = ctx;
   out[0] = map->shift + xn[0] * (map->scale + map->curvature * xn[0]);
 }
 
-static void quadratic_map_deriv(double t, const double *xn, double *out, void *ctx)
+static void
+quadratic_map_deriv(double t, const double *xn, double *out, void *ctx)
 {
   const struct quadratic_map_ctx *map = ctx;
   out[0] = map->scale + 2.0 * map->curvature * xn[0];
 }
 
 // Independent global-index construction of P1 corners and Gauss nodes.
-static double node_coordinate(double lower, double dx, int node, bool quadrature)
+static double
+node_coordinate(double lower, double dx, int node, bool quadrature)
 {
   return lower +
          dx * (quadrature ? node / 2 + 0.5 * (1.0 + (node % 2 ? 1.0 : -1.0) / sqrt(3.0)) : node);
 }
 
-static void check_mirror_mapping(
+static void
+check_mirror_mapping(
   bool analytic, enum gkyl_mirror_grid_gen_field_line_coord coord, struct quadratic_map_ctx map,
   bool map_all, bool include_axis
 )
@@ -930,7 +952,7 @@ static void check_mirror_mapping(
             .position_map = pmap,
             .fl_coord = coord,
             .dir = kind,
-            .include_axis = include_axis
+            .include_axis = include_axis,
           };
           struct gkyl_mirror_grid_gen *geom = kind == -2 ? gkyl_mirror_grid_gen_int_inew(&inp) :
                                               kind == -1 ? gkyl_mirror_grid_gen_inew(&inp) :
@@ -1016,35 +1038,40 @@ static void check_mirror_mapping(
   gkyl_array_release(psi);
 }
 
-static void test_mirror_identity(void)
+static void
+test_mirror_identity(void)
 {
   check_mirror_mapping(
     false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, (struct quadratic_map_ctx){0.0, 1.0, 0.0},
     false, false
   );
 }
-static void test_mirror_affine(void)
+static void
+test_mirror_affine(void)
 {
   check_mirror_mapping(
     true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, (struct quadratic_map_ctx){0.05, 0.75, 0.0},
     false, false
   );
 }
-static void test_mirror_nonlinear_numeric(void)
+static void
+test_mirror_nonlinear_numeric(void)
 {
   check_mirror_mapping(
     false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, (struct quadratic_map_ctx){0.05, 0.75, 0.12},
     false, false
   );
 }
-static void test_mirror_nonlinear_analytic(void)
+static void
+test_mirror_nonlinear_analytic(void)
 {
   check_mirror_mapping(
     true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, (struct quadratic_map_ctx){0.05, 0.75, 0.12},
     false, false
   );
 }
-static void test_mirror_sqrt_psi(void)
+static void
+test_mirror_sqrt_psi(void)
 {
   check_mirror_mapping(
     false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z,
@@ -1052,14 +1079,16 @@ static void test_mirror_sqrt_psi(void)
   );
 }
 
-static void test_mirror_all_maps(void)
+static void
+test_mirror_all_maps(void)
 {
   check_mirror_mapping(
     false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, (struct quadratic_map_ctx){0.05, 0.75, 0.12},
     true, false
   );
 }
-static void test_mirror_nonuniform_axis(void)
+static void
+test_mirror_nonuniform_axis(void)
 {
   check_mirror_mapping(
     false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z,

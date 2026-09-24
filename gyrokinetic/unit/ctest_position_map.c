@@ -739,7 +739,8 @@ struct bounded_map_ctx {
   bool cubic;
 };
 
-static void bounded_map(double t, const double *xn, double *out, void *ctx)
+static void
+bounded_map(double t, const double *xn, double *out, void *ctx)
 {
   struct bounded_map_ctx *map = ctx;
   map->calls++;
@@ -749,13 +750,15 @@ static void bounded_map(double t, const double *xn, double *out, void *ctx)
   out[0] = 0.1 + 0.7 * xn[0] + 0.2 * xn[0] * xn[0] * (map->cubic ? xn[0] : 1.0);
 }
 
-static void bounded_map_derivative(double t, const double *xn, double *out, void *ctx)
+static void
+bounded_map_derivative(double t, const double *xn, double *out, void *ctx)
 {
   struct bounded_map_ctx *map = ctx;
   out[0] = 0.7 + (map->cubic ? 0.6 * xn[0] * xn[0] : 0.4 * xn[0]);
 }
 
-static void test_slope_global_bounds(void)
+static void
+test_slope_global_bounds(void)
 {
   // The map index remains three-dimensional on 1D and 2D simulation grids.
   for (int cdim = 1; cdim <= 3; ++cdim) {
@@ -767,8 +770,10 @@ static void test_slope_global_bounds(void)
     gkyl_cart_modal_serendip(&basis, cdim, 1);
     struct bounded_map_ctx map = {0};
     struct gkyl_position_map *pmap = gkyl_position_map_new(
-      (struct gkyl_position_map_inp
-      ){.maps = {bounded_map, bounded_map, bounded_map}, .ctxs = {&map, &map, &map}},
+      (struct gkyl_position_map_inp){
+        .maps = {bounded_map, bounded_map, bounded_map},
+        .ctxs = {&map, &map, &map},
+      },
       grid, local, ext, local, ext, basis
     );
     double points[] = {0.0, 1e-14, 0.025, 0.37, 0.975, 1.0 - 1e-14, 1.0};
@@ -810,7 +815,8 @@ static void test_slope_global_bounds(void)
   }
 }
 
-static void test_compression_parameters(void)
+static void
+test_compression_parameters(void)
 {
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
   pmap->xpt_ctx->compression_factor = 0.6;
@@ -841,7 +847,8 @@ static void test_compression_parameters(void)
   gkyl_position_map_release(pmap);
 }
 
-static void asymmetric_bmag(double t, const double *xn, double *out, void *ctx)
+static void
+asymmetric_bmag(double t, const double *xn, double *out, void *ctx)
 {
   int profile = *(int *)ctx;
   if (profile == 0) {
@@ -852,7 +859,8 @@ static void asymmetric_bmag(double t, const double *xn, double *out, void *ctx)
   }
 }
 
-static void test_numeric_degenerate_and_strength(void)
+static void
+test_numeric_degenerate_and_strength(void)
 {
   for (int profile = 0; profile < 3; ++profile) {
     struct gkyl_rect_grid grid, grid3;

@@ -869,26 +869,30 @@ struct quadratic_map_ctx {
   double shift, scale, curvature;
 };
 
-static void quadratic_map(double t, const double *xn, double *out, void *ctx)
+static void
+quadratic_map(double t, const double *xn, double *out, void *ctx)
 {
   const struct quadratic_map_ctx *map = ctx;
   out[0] = map->shift + xn[0] * (map->scale + map->curvature * xn[0]);
 }
 
-static void quadratic_map_deriv(double t, const double *xn, double *out, void *ctx)
+static void
+quadratic_map_deriv(double t, const double *xn, double *out, void *ctx)
 {
   const struct quadratic_map_ctx *map = ctx;
   out[0] = map->scale + 2.0 * map->curvature * xn[0];
 }
 
 // Independent global-index construction of P1 corners and Gauss nodes.
-static double node_coordinate(double lower, double dx, int node, bool quadrature)
+static double
+node_coordinate(double lower, double dx, int node, bool quadrature)
 {
   return lower +
          dx * (quadrature ? node / 2 + 0.5 * (1.0 + (node % 2 ? 1.0 : -1.0) / sqrt(3.0)) : node);
 }
 
-static void compare_nodes(
+static void
+compare_nodes(
   const struct gkyl_array *actual, const struct gkyl_array *expected,
   const struct gkyl_range *nodes, const struct gkyl_range *full_nodes, int split_dim,
   int node_offset, double *error, const char *name
@@ -922,7 +926,8 @@ static void compare_nodes(
   }
 }
 
-static void check_tokamak_partitions(bool analytic)
+static void
+check_tokamak_partitions(bool analytic)
 {
   struct gkyl_rect_grid grid;
   double pi = M_PI;
@@ -939,7 +944,7 @@ static void check_tokamak_partitions(bool analytic)
     .id = analytic ? GKYL_PMAP_USER_INPUT_W_DERIVATIVE : GKYL_PMAP_USER_INPUT,
     .maps = {quadratic_map, 0, quadratic_map},
     .map_derivs = {quadratic_map_deriv, quadratic_map_deriv, quadratic_map_deriv},
-    .ctxs = {&maps[0], &maps[1], &maps[2]}
+    .ctxs = {&maps[0], &maps[1], &maps[2]},
   };
   struct gkyl_position_map *pmap =
     gkyl_position_map_new(map_inp, grid, global, global_ext, global, global_ext, basis);
@@ -947,10 +952,12 @@ static void check_tokamak_partitions(bool analytic)
     .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .position_map = pmap,
     .efit_info =
-      {.filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
-       .rz_poly_order = 2,
-       .flux_poly_order = 1,
-       .reflect = true},
+      {
+        .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
+        .rz_poly_order = 2,
+        .flux_poly_order = 1,
+        .reflect = true,
+      },
     .tok_grid_info =
       {.rclose = 0.5, .zmin = -1.0, .zmax = 1.0, .rleft = 0.001, .rmax = 1.0, .rright = 1.0},
     .grid = grid,
@@ -964,7 +971,7 @@ static void check_tokamak_partitions(bool analytic)
     .local = global,
     .local_ext = global_ext,
     .geo_local = global,
-    .geo_local_ext = global_ext
+    .geo_local_ext = global_ext,
   };
   struct gk_geometry *full = gkyl_gk_geometry_tok_new(&inp);
   double error = 0.0, slope_error = 0.0, curl_error = 0.0;
@@ -1064,11 +1071,13 @@ static void check_tokamak_partitions(bool analytic)
   gkyl_position_map_release(pmap);
 }
 
-static void test_tokamak_partitions_numeric(void)
+static void
+test_tokamak_partitions_numeric(void)
 {
   check_tokamak_partitions(false);
 }
-static void test_tokamak_partitions_analytic(void)
+static void
+test_tokamak_partitions_analytic(void)
 {
   check_tokamak_partitions(true);
 }

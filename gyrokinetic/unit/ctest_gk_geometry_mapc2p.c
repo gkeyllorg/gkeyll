@@ -594,26 +594,30 @@ struct quadratic_map_ctx {
   double shift, scale, curvature;
 };
 
-static void quadratic_map(double t, const double *xn, double *out, void *ctx)
+static void
+quadratic_map(double t, const double *xn, double *out, void *ctx)
 {
   const struct quadratic_map_ctx *map = ctx;
   out[0] = map->shift + xn[0] * (map->scale + map->curvature * xn[0]);
 }
 
-static void quadratic_map_deriv(double t, const double *xn, double *out, void *ctx)
+static void
+quadratic_map_deriv(double t, const double *xn, double *out, void *ctx)
 {
   const struct quadratic_map_ctx *map = ctx;
   out[0] = map->scale + 2.0 * map->curvature * xn[0];
 }
 
 // Independent global-index construction of P1 corners and Gauss nodes.
-static double node_coordinate(double lower, double dx, int node, bool quadrature)
+static double
+node_coordinate(double lower, double dx, int node, bool quadrature)
 {
   return lower +
          dx * (quadrature ? node / 2 + 0.5 * (1.0 + (node % 2 ? 1.0 : -1.0) / sqrt(3.0)) : node);
 }
 
-static void curved_cartesian_map(double t, const double *xn, double *out, void *ctx)
+static void
+curved_cartesian_map(double t, const double *xn, double *out, void *ctx)
 {
   for (int dim = 0; dim < 3; ++dim) {
     out[dim] = xn[dim];
@@ -621,14 +625,16 @@ static void curved_cartesian_map(double t, const double *xn, double *out, void *
   out[0] += 0.1 * xn[2] * xn[2];
 }
 
-static void curved_field(double t, const double *xn, double *out, void *ctx)
+static void
+curved_field(double t, const double *xn, double *out, void *ctx)
 {
   out[0] = 0.4 * xn[2];
   out[1] = 0.0;
   out[2] = 2.0;
 }
 
-static void compare_nodes(
+static void
+compare_nodes(
   const struct gkyl_array *actual, const struct gkyl_array *expected,
   const struct gkyl_range *nodes, const struct gkyl_range *full_nodes, int split_dim,
   int node_offset, double *error, const char *name
@@ -662,7 +668,8 @@ static void compare_nodes(
   }
 }
 
-static void test_mapc2p_partitions(void)
+static void
+test_mapc2p_partitions(void)
 {
   struct gkyl_rect_grid grid;
   double pi = M_PI;
@@ -679,7 +686,7 @@ static void test_mapc2p_partitions(void)
     .id = GKYL_PMAP_USER_INPUT,
     .maps = {quadratic_map, quadratic_map, quadratic_map},
     .map_derivs = {quadratic_map_deriv, quadratic_map_deriv, quadratic_map_deriv},
-    .ctxs = {&maps[0], &maps[1], &maps[2]}
+    .ctxs = {&maps[0], &maps[1], &maps[2]},
   };
   struct gkyl_position_map *pmap =
     gkyl_position_map_new(map_inp, grid, global, global_ext, global, global_ext, basis);
@@ -699,7 +706,7 @@ static void test_mapc2p_partitions(void)
     .local = global,
     .local_ext = global_ext,
     .geo_local = global,
-    .geo_local_ext = global_ext
+    .geo_local_ext = global_ext,
   };
   struct gk_geometry *full = gkyl_gk_geometry_mapc2p_new(&inp);
   double error = 0.0, slope_error = 0.0, curl_error = 0.0;

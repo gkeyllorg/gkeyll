@@ -98,7 +98,8 @@ curlbhat_func(
 
 // kind = -1: corners, -2: volume quadrature, 0..2: surface quadrature.
 // All three paths use the same coordinates and chain rule.
-static struct gkyl_mirror_grid_gen *mggen_new(const struct gkyl_mirror_grid_gen_inp *inp, int kind)
+static struct gkyl_mirror_grid_gen *
+mggen_new(const struct gkyl_mirror_grid_gen_inp *inp, int kind)
 {
   struct gkyl_mirror_grid_gen *geo = gkyl_malloc(sizeof *geo);
   geo->gg_x = gkyl_malloc(sizeof *geo->gg_x);
@@ -264,7 +265,8 @@ cleanup:
   return geo;
 }
 
-struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
+struct gkyl_mirror_grid_gen *
+gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 {
   return mggen_new(inp, -1);
 }

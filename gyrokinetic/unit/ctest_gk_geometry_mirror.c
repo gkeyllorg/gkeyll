@@ -84,7 +84,8 @@ write_geometry(
   gkyl_array_release(mc2p_nodal);
 }
 
-void test_mirror_load_geometry_ho(void)
+void
+test_mirror_load_geometry_ho(void)
 {
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
@@ -231,7 +232,8 @@ bmag_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
   fout[0] = 0.5;
 }
 
-void test_mirror_3x_p1_straight_cylinder_ho(void)
+void
+test_mirror_3x_p1_straight_cylinder_ho(void)
 {
   // Very similar to the unit test in ctest_gk_geometry.c
   // The geometry is created to extend from Z = -1 to 1, R = (0.001, 1) in units meters
@@ -1065,7 +1067,8 @@ exact_normals_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void 
   fout[8] = -1.0;
 }
 
-void test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
+void
+test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
 {
   // Same as the above test, but using a quadratic position map
   struct gkyl_basis basis;
@@ -1569,13 +1572,15 @@ struct mirror_direction_map {
   double shift, scale, curvature;
 };
 
-static void mirror_direction_map(double t, const double *xn, double *out, void *ctx)
+static void
+mirror_direction_map(double t, const double *xn, double *out, void *ctx)
 {
   const struct mirror_direction_map *map = ctx;
   out[0] = map->shift + xn[0] * (map->scale + map->curvature * xn[0]);
 }
 
-static void mirror_direction_map_deriv(double t, const double *xn, double *out, void *ctx)
+static void
+mirror_direction_map_deriv(double t, const double *xn, double *out, void *ctx)
 {
   const struct mirror_direction_map *map = ctx;
   out[0] = map->scale + 2.0 * map->curvature * xn[0];
@@ -1583,7 +1588,8 @@ static void mirror_direction_map_deriv(double t, const double *xn, double *out, 
 
 // Check the assembled geometry, including the modal fields after the generic
 // derived-geometry updater has run. That updater assumes bhat is along +e_3.
-static void check_mirror_field_direction(double curvature)
+static void
+check_mirror_field_direction(double curvature)
 {
   const double strength = 2.7;
   struct gkyl_rect_grid psi_grid;
@@ -1633,8 +1639,10 @@ static void check_mirror_field_direction(double curvature)
       struct gkyl_gk_geometry_inp inp = {
         .geometry_id = GKYL_GEOMETRY_MIRROR,
         .mirror_grid_info =
-          {.fl_coord = sqrt_psi ? GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z :
-                                  GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z},
+          {
+            .fl_coord = sqrt_psi ? GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z :
+                                   GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z,
+          },
         .position_map = pmap,
         .grid = grid,
         .local = local,
@@ -1647,7 +1655,7 @@ static void check_mirror_field_direction(double curvature)
         .geo_local_ext = ext,
         .geo_global = local,
         .geo_global_ext = ext,
-        .geo_basis = basis
+        .geo_basis = basis,
       };
       snprintf(
         inp.mirror_grid_info.filename_psi, sizeof inp.mirror_grid_info.filename_psi, "%s", filename
@@ -1790,12 +1798,14 @@ static void check_mirror_field_direction(double curvature)
   TEST_CHECK(remove(filename) == 0);
 }
 
-static void test_mirror_straight_field_direction_ho(void)
+static void
+test_mirror_straight_field_direction_ho(void)
 {
   check_mirror_field_direction(0.0);
 }
 
-static void test_mirror_curved_field_direction_ho(void)
+static void
+test_mirror_curved_field_direction_ho(void)
 {
   check_mirror_field_direction(0.7);
 }
