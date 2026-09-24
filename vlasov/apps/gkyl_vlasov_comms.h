@@ -20,7 +20,8 @@
  * @param Pointer to place where to put error messages.
  * @return New gkyl_comm communicator object.
  */
-struct gkyl_comm *gkyl_vlasov_comms_new(bool use_mpi, bool use_gpu, FILE *iostream);
+struct gkyl_comm* 
+gkyl_vlasov_comms_new(bool use_mpi, bool use_gpu, FILE *iostream);
 
 /**
  * Free gyrokinetic app decomp and comm objects.
@@ -28,4 +29,5 @@ struct gkyl_comm *gkyl_vlasov_comms_new(bool use_mpi, bool use_gpu, FILE *iostre
  * @param decomp Decomposition object.
  * @param comm Communicator object.
  */
-void gkyl_vlasov_comms_release(struct gkyl_comm *comm);
+void
+gkyl_vlasov_comms_release(struct gkyl_comm *comm);

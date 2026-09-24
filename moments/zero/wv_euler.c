@@ -10,54 +10,54 @@ void
 gkyl_euler_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
-
+  
   if (gkyl_wv_eqn_is_cu_dev(base)) {
     // free inner on_dev object
     struct wv_euler *euler = container_of(base->on_dev, struct wv_euler, eqn);
     gkyl_cu_free(euler);
   }
-
+  
   struct wv_euler *euler = container_of(base, struct wv_euler, eqn);
   gkyl_free(euler);
 }
 
-struct gkyl_wv_eqn *
+struct gkyl_wv_eqn*
 gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (inp->use_gpu) {
+  if(inp->use_gpu) {
     return gkyl_wv_euler_cu_dev_inew(inp);
-  }
-#endif
+  } 
+#endif  
   struct wv_euler *euler = gkyl_malloc(sizeof(struct wv_euler));
 
   euler->eqn.type = GKYL_EQN_EULER;
   euler->eqn.num_equations = 5;
   euler->eqn.num_diag = 6; // KE and PE stored separate
-
+  
   euler->gas_gamma = inp->gas_gamma;
 
   switch (inp->rp_type) {
     case WV_EULER_RP_ROE:
-      euler->eqn.num_waves = 3;
+      euler->eqn.num_waves = 3;  
       euler->eqn.waves_func = wave_roe_l;
       euler->eqn.qfluct_func = qfluct_roe_l;
       break;
 
     case WV_EULER_RP_HLLC:
-      euler->eqn.num_waves = 3;
+      euler->eqn.num_waves = 3;  
       euler->eqn.waves_func = wave_hllc_l;
       euler->eqn.qfluct_func = qfluct_hllc_l;
       break;
-
+      
     case WV_EULER_RP_LAX:
       euler->eqn.num_waves = 2;
       euler->eqn.waves_func = wave_lax_l;
       euler->eqn.qfluct_func = qfluct_lax_l;
-      break;
+      break;   
 
     case WV_EULER_RP_HLL:
-      euler->eqn.num_waves = 2;
+      euler->eqn.num_waves = 2;  
       euler->eqn.waves_func = wave_hll_l;
       euler->eqn.qfluct_func = qfluct_hll_l;
       break;
@@ -102,23 +102,24 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
         assert(false);
         break;
     }
-  }
+  } 
 
-  return &euler->eqn;
+  return &euler->eqn;  
 }
 
-struct gkyl_wv_eqn *
+struct gkyl_wv_eqn*
 gkyl_wv_euler_new(double gas_gamma, bool use_gpu)
 {
-  return gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
-    .gas_gamma = gas_gamma,
-    .rp_type = WV_EULER_RP_ROE,
-    .use_gpu = use_gpu,
-  });
+  return gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
+      .gas_gamma = gas_gamma,
+      .rp_type = WV_EULER_RP_ROE, 
+      .use_gpu = use_gpu
+    }
+  );
 }
 
 double
-gkyl_wv_euler_gas_gamma(const struct gkyl_wv_eqn *eqn)
+gkyl_wv_euler_gas_gamma(const struct gkyl_wv_eqn* eqn)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   return euler->gas_gamma;

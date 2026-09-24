@@ -35,10 +35,9 @@ struct gkyl_wv_gr_mhd_tetrad_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the general relativistic magnetohydrodynamics equations object in the tetrad basis with ideal gas equation of state.
 */
-struct gkyl_wv_eqn *gkyl_wv_gr_mhd_tetrad_new(
-  double gas_gamma, double light_speed, double b_fact, enum gkyl_spacetime_gauge spacetime_gauge,
-  int reinit_freq, struct gkyl_gr_spacetime *spacetime, bool use_gpu
-);
+struct gkyl_wv_eqn*
+gkyl_wv_gr_mhd_tetrad_new(double gas_gamma, double light_speed, double b_fact, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq,
+  struct gkyl_gr_spacetime* spacetime, bool use_gpu);
 
 /**
 * Create a new general relativistic magnetohydrodynamics equations object in the tetrad basis with ideal gas equation of state, from an input context struct.
@@ -46,7 +45,8 @@ struct gkyl_wv_eqn *gkyl_wv_gr_mhd_tetrad_new(
 * @param inp Input context struct.
 * @return Pointer to the general relativistic magnetohydrodynamics equations object in the tetad basis with ideal gas equation of state.
 */
-struct gkyl_wv_eqn *gkyl_wv_gr_mhd_tetrad_inew(const struct gkyl_wv_gr_mhd_tetrad_inp *inp);
+struct gkyl_wv_eqn*
+gkyl_wv_gr_mhd_tetrad_inew(const struct gkyl_wv_gr_mhd_tetrad_inp* inp);
 
 /**
 * Get adiabatic index.
@@ -54,7 +54,8 @@ struct gkyl_wv_eqn *gkyl_wv_gr_mhd_tetrad_inew(const struct gkyl_wv_gr_mhd_tetra
 * @param eqn General relativistic magnetohydrodynamics equations object in the tetrad basis with ideal gas equation of state.
 * @return Adiabatic index.
 */
-double gkyl_wv_gr_mhd_tetrad_gas_gamma(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_mhd_tetrad_gas_gamma(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get speed of light.
@@ -62,7 +63,8 @@ double gkyl_wv_gr_mhd_tetrad_gas_gamma(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic magnetohydrodynamics equations object in the tetrad basis with ideal gas equation of state.
 * @return Speed of light.
 */
-double gkyl_wv_gr_mhd_tetrad_light_speed(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_mhd_tetrad_light_speed(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get factor of speed of light for magnetic field correction.
@@ -70,7 +72,8 @@ double gkyl_wv_gr_mhd_tetrad_light_speed(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic magnetohydrodynamics equations object in the tetrad basis with ideal gas equation of state.
 * @return Factor of speed of light for magnetic field correction.
 */
-double gkyl_wv_gr_mhd_tetrad_b_fact(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_mhd_tetrad_b_fact(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get spacetime gauge choice.
@@ -78,7 +81,8 @@ double gkyl_wv_gr_mhd_tetrad_b_fact(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic magnetohydrodynamics equations object in the tetrad basis with ideal gas equation of state.
 * @return Spacetime gauge choice.
 */
-enum gkyl_spacetime_gauge gkyl_wv_gr_mhd_tetrad_spacetime_gauge(const struct gkyl_wv_eqn *eqn);
+enum gkyl_spacetime_gauge
+gkyl_wv_gr_mhd_tetrad_spacetime_gauge(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get spacetime reinitialization frequency.
@@ -86,7 +90,8 @@ enum gkyl_spacetime_gauge gkyl_wv_gr_mhd_tetrad_spacetime_gauge(const struct gky
 * @param eqn General relativistic magnetohydrodynamics equations object in the tetrad basis with ideal gas equation of state.
 * @return Spacetime reinitialization frequency.
 */
-int gkyl_wv_gr_mhd_tetrad_reinit_freq(const struct gkyl_wv_eqn *eqn);
+int
+gkyl_wv_gr_mhd_tetrad_reinit_freq(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get base spacetime object.
@@ -94,4 +99,5 @@ int gkyl_wv_gr_mhd_tetrad_reinit_freq(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic magnetohydrodynamics equations object in the tetrad basis with ideal gas equation of state.
 * @return Pointer to the base spacetime object.
 */
-struct gkyl_gr_spacetime *gkyl_wv_gr_mhd_tetrad_spacetime(const struct gkyl_wv_eqn *eqn);
+struct gkyl_gr_spacetime*
+gkyl_wv_gr_mhd_tetrad_spacetime(const struct gkyl_wv_eqn* eqn);

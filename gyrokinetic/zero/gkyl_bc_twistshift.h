@@ -42,7 +42,7 @@ struct gkyl_bc_twistshift_inp {
  * @param inp bc_twistshift_inp struct containing the inputs to the updater.
  * @return New updater pointer.
  */
-struct gkyl_bc_twistshift *gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp);
+struct gkyl_bc_twistshift* gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp);
 
 /**
  * Create a new updater to apply twist-shift BCs, passing each argument separately.
@@ -67,13 +67,11 @@ struct gkyl_bc_twistshift *gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshi
  * @param use_gpu Whether to apply the BC using the GPU.
  * @return New updater pointer.
  */
-struct gkyl_bc_twistshift *gkyl_bc_twistshift_new(
-  int bc_dir, int shift_dir, int shear_dir, enum gkyl_edge_loc edge, int cdim,
-  const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost, const struct gkyl_basis *basis,
-  const struct gkyl_rect_grid *grid, evalf_t shift_func, void *shift_func_ctx,
+struct gkyl_bc_twistshift* gkyl_bc_twistshift_new(int bc_dir, int shift_dir, int shear_dir,
+  enum gkyl_edge_loc edge, int cdim, const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost,
+  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, evalf_t shift_func, void *shift_func_ctx,
   struct gkyl_array *shift_dg, int shift_poly_order, enum gkyl_closed_flux_bc_type type,
-  int filter_half_width, double filter_cutoff_wavelength, int upsample_factor, bool use_gpu
-);
+  int filter_half_width, double filter_cutoff_wavelength, int upsample_factor, bool use_gpu);
 
 /**
  * Apply the twist-shift periodic BC. Expects periodicity along bc_dir to have
@@ -83,9 +81,7 @@ struct gkyl_bc_twistshift *gkyl_bc_twistshift_new(
  * @param fdo Donor field.
  * @param ftar Target field.
  */
-void gkyl_bc_twistshift_advance(
-  struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar
-);
+void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
  * Free memory associated with the bc_twistshift updater.

@@ -46,10 +46,8 @@ int gkyl_comm_get_size(struct gkyl_comm *comm, int *sz);
  * @param out Reduced values.
  * @return error code: 0 for success.
  */
-int gkyl_comm_allreduce(
-  struct gkyl_comm *comm, enum gkyl_elem_type type, enum gkyl_array_op op, int nelem,
-  const void *inp, void *out
-);
+int gkyl_comm_allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp, void *out);
 
 /**
  * All reduce values across domains on the host/MPI communicator.
@@ -62,10 +60,8 @@ int gkyl_comm_allreduce(
  * @param out Reduced values.
  * @return error code: 0 for success.
  */
-int gkyl_comm_allreduce_host(
-  struct gkyl_comm *comm, enum gkyl_elem_type type, enum gkyl_array_op op, int nelem,
-  const void *inp, void *out
-);
+int gkyl_comm_allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp, void *out);
 
 /**
  * Gather all local data into a global array on each process.
@@ -77,10 +73,9 @@ int gkyl_comm_allreduce_host(
  * @param array_global Global array.
  * @return error code: 0 for success.
  */
-int gkyl_comm_array_allgather(
-  struct gkyl_comm *comm, const struct gkyl_range *local, const struct gkyl_range *global,
-  const struct gkyl_array *array_local, struct gkyl_array *array_global
-);
+int gkyl_comm_array_allgather(struct gkyl_comm *comm, 
+  const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global);
 
 /**
  * Gather all local data on host into a global array on each process.
@@ -92,10 +87,9 @@ int gkyl_comm_array_allgather(
  * @param array_global Global array.
  * @return error code: 0 for success.
  */
-int gkyl_comm_array_allgather_host(
-  struct gkyl_comm *comm, const struct gkyl_range *local, const struct gkyl_range *global,
-  const struct gkyl_array *array_local, struct gkyl_array *array_global
-);
+int gkyl_comm_array_allgather_host(struct gkyl_comm *comm, 
+  const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global);
 
 /**
  * Broadcast an array to other processes.
@@ -106,10 +100,8 @@ int gkyl_comm_array_allgather_host(
  * @param root Broadcasting process.
  * @return error code: 0 for success.
  */
-int gkyl_comm_array_bcast(
-  struct gkyl_comm *comm, const struct gkyl_array *array_send, struct gkyl_array *array_recv,
-  int root
-);
+int gkyl_comm_array_bcast(struct gkyl_comm *comm, 
+  const struct gkyl_array *array_send, struct gkyl_array *array_recv, int root);
 
 /**
  * Broadcast a host side array to other processes.
@@ -120,10 +112,8 @@ int gkyl_comm_array_bcast(
  * @param root Broadcasting process.
  * @return error code: 0 for success.
  */
-int gkyl_comm_array_bcast_host(
-  struct gkyl_comm *comm, const struct gkyl_array *array_send, struct gkyl_array *array_recv,
-  int root
-);
+int gkyl_comm_array_bcast_host(struct gkyl_comm *comm, 
+  const struct gkyl_array *array_send, struct gkyl_array *array_recv, int root);
 
 /**
  * Synchronize array across domain.
@@ -134,10 +124,10 @@ int gkyl_comm_array_bcast_host(
  * @param array Array to synchronize.
  * @return error code: 0 for success.
  */
-int gkyl_comm_array_sync(
-  struct gkyl_comm *comm, const struct gkyl_range *local, const struct gkyl_range *local_ext,
-  struct gkyl_array *array
-);
+int gkyl_comm_array_sync(struct gkyl_comm *comm,
+  const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
+  struct gkyl_array *array);
 
 /**
  * Synchronize array across domain in periodic directions.
@@ -150,10 +140,11 @@ int gkyl_comm_array_sync(
  * @param array Array to synchronize.
  * @return error code: 0 for success.
  */
-int gkyl_comm_array_per_sync(
-  struct gkyl_comm *comm, const struct gkyl_range *local, const struct gkyl_range *local_ext,
-  int nper_dirs, const int *per_dirs, struct gkyl_array *array
-);
+int gkyl_comm_array_per_sync(struct gkyl_comm *comm,
+  const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
+  int nper_dirs, const int *per_dirs,
+  struct gkyl_array *array);
 
 /**
  * Barrier across domains
@@ -162,6 +153,7 @@ int gkyl_comm_array_per_sync(
  * @return error code: 0 for success.
  */
 int gkyl_comm_barrier(struct gkyl_comm *comm);
+
 
 /**
  * Start and end a group call
@@ -181,9 +173,8 @@ void gkyl_comm_group_call_end(struct gkyl_comm *comm);
  * @param erange Range to extend by.
  * @return Newly created communicator.
  */
-struct gkyl_comm *gkyl_comm_extend_comm(
-  const struct gkyl_comm *comm, const struct gkyl_range *erange
-);
+struct gkyl_comm* gkyl_comm_extend_comm(const struct gkyl_comm *comm,
+  const struct gkyl_range *erange);
 
 /**
  * Split a communicator into a new communcator based on color. All
@@ -195,9 +186,8 @@ struct gkyl_comm *gkyl_comm_extend_comm(
  * @param new_decomp Decomp object to associate new communicator. Can be NULL.
  * @return Newly created communicator.
  */
-struct gkyl_comm *gkyl_comm_split_comm(
-  const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp
-);
+struct gkyl_comm* gkyl_comm_split_comm(const struct gkyl_comm *comm, int color,
+  struct gkyl_rect_decomp *new_decomp);
 
 /**
  * Create a new communicator that incudes a subset of ranks in @a
@@ -212,10 +202,9 @@ struct gkyl_comm *gkyl_comm_split_comm(
  * @param is_valid On output, true if comm is usable, false otherwise.
  * @return Newly created communicator.
  */
-struct gkyl_comm *gkyl_comm_create_comm_from_ranks(
-  const struct gkyl_comm *comm, int nranks, const int *ranks, struct gkyl_rect_decomp *new_decomp,
-  bool *is_valid
-);
+struct gkyl_comm* gkyl_comm_create_comm_from_ranks(const struct gkyl_comm *comm, int nranks,
+  const int *ranks, struct gkyl_rect_decomp *new_decomp,
+  bool *is_valid);
 
 /**
  * Acquire pointer to communicator
@@ -223,7 +212,7 @@ struct gkyl_comm *gkyl_comm_create_comm_from_ranks(
  * @param comm Communicator to to get acquire.
  * @return Acquired comm obj pointer.
  */
-struct gkyl_comm *gkyl_comm_acquire(const struct gkyl_comm *comm);
+struct gkyl_comm* gkyl_comm_acquire(const struct gkyl_comm *comm);
 
 /**
  * Release communicator memory.

@@ -8,8 +8,8 @@
 #include <gkyl_range.h>
 
 // Struct containing the pointers to auxiliary fields.
-struct gkyl_dg_diffusion_gen_auxfields {
-  const struct gkyl_array *Dij;
+struct gkyl_dg_diffusion_gen_auxfields { 
+  const struct gkyl_array* Dij;
 };
 
 /**
@@ -20,9 +20,7 @@ struct gkyl_dg_diffusion_gen_auxfields {
  * @param range Range for use in indexing (generic) diffusion tensor
  * @return Pointer to generic diffusion equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu
-);
+struct gkyl_dg_eqn* gkyl_dg_diffusion_gen_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, bool use_gpu);
 
 /**
  * Create a new generic diffusion equation object that lives on NV-GPU (one which may have non-zero off-diagonal tensor elements).
@@ -32,9 +30,7 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(
  * @param conf_range Configuration space range for use in indexing (generic) diffusion tensor
  * @return Pointer to generic diffusion equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range
-);
+struct gkyl_dg_eqn* gkyl_dg_diffusion_gen_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range);
 
 /**
  * Set the auxiliary fields (e.g. diffusion tensor D) needed in updating generic diffusion equation.
@@ -42,9 +38,7 @@ struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_diffusion_gen_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin
-);
+void gkyl_diffusion_gen_set_auxfields(const struct gkyl_dg_eqn* eqn, struct gkyl_dg_diffusion_gen_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -54,8 +48,6 @@ void gkyl_diffusion_gen_set_auxfields(
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_diffusion_gen_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin
-);
+void gkyl_diffusion_gen_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin);
 
 #endif

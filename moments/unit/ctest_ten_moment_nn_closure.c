@@ -36,20 +36,12 @@ static const double tol = 1.0e-5;
 // Fill a ten-moment cell with zero bulk velocity so the pressure tensor equals
 // the conserved P-components directly (p_ij = P_ij - rho u_i u_j = P_ij).
 static void
-set_fluid(
-  double f[10], double rho, double p11, double p12, double p13, double p22, double p23, double p33
-)
+set_fluid(double f[10], double rho, double p11, double p12, double p13, double p22, double p23, double p33)
 {
   f[TM_RHO] = rho;
-  f[TM_MX] = 0.0;
-  f[TM_MY] = 0.0;
-  f[TM_MZ] = 0.0;
-  f[TM_P11] = p11;
-  f[TM_P12] = p12;
-  f[TM_P13] = p13;
-  f[TM_P22] = p22;
-  f[TM_P23] = p23;
-  f[TM_P33] = p33;
+  f[TM_MX] = 0.0; f[TM_MY] = 0.0; f[TM_MZ] = 0.0;
+  f[TM_P11] = p11; f[TM_P12] = p12; f[TM_P13] = p13;
+  f[TM_P22] = p22; f[TM_P23] = p23; f[TM_P33] = p33;
 }
 
 static void
@@ -58,24 +50,19 @@ set_em(double e[8], double bx, double by, double bz)
   for (int i = 0; i < 8; i++) {
     e[i] = 0.0;
   }
-  e[EM_BX] = bx;
-  e[EM_BY] = by;
-  e[EM_BZ] = bz;
+  e[EM_BX] = bx; e[EM_BY] = by; e[EM_BZ] = bz;
 }
 
-static struct gkyl_ten_moment_nn_closure *
+static struct gkyl_ten_moment_nn_closure*
 mk_closure_1d(int poly_order, double dx)
 {
   static struct gkyl_rect_grid grid;
   // cells = 1/dx so that the grid spacing is exactly dx.
   int cells = (int)(1.0 / dx + 0.5);
-  gkyl_rect_grid_init(&grid, 1, (double[]){0.0}, (double[]){1.0}, (int[]){cells});
-  return gkyl_ten_moment_nn_closure_new((struct gkyl_ten_moment_nn_closure_inp){
-    .grid = &grid,
-    .poly_order = poly_order,
-    .k0 = 1.0,
-    .ann = 0,
-  });
+  gkyl_rect_grid_init(&grid, 1, (double[]) { 0.0 }, (double[]) { 1.0 }, (int[]) { cells });
+  return gkyl_ten_moment_nn_closure_new( (struct gkyl_ten_moment_nn_closure_inp) {
+      .grid = &grid, .poly_order = poly_order, .k0 = 1.0, .ann = 0
+    });
 }
 
 // Input/output feature counts for each supported configuration.
@@ -83,18 +70,15 @@ static void
 test_nn_closure_dims(void)
 {
   struct gkyl_rect_grid grid1, grid2;
-  gkyl_rect_grid_init(&grid1, 1, (double[]){0.0}, (double[]){1.0}, (int[]){10});
-  gkyl_rect_grid_init(&grid2, 2, (double[]){0.0, 0.0}, (double[]){1.0, 1.0}, (int[]){10, 10});
+  gkyl_rect_grid_init(&grid1, 1, (double[]) { 0.0 }, (double[]) { 1.0 }, (int[]) { 10 });
+  gkyl_rect_grid_init(&grid2, 2, (double[]) { 0.0, 0.0 }, (double[]) { 1.0, 1.0 }, (int[]) { 10, 10 });
 
   struct gkyl_ten_moment_nn_closure *nn_1d_p1 = gkyl_ten_moment_nn_closure_new(
-    (struct gkyl_ten_moment_nn_closure_inp){.grid = &grid1, .poly_order = 1, .k0 = 1.0, .ann = 0}
-  );
+    (struct gkyl_ten_moment_nn_closure_inp) { .grid = &grid1, .poly_order = 1, .k0 = 1.0, .ann = 0 });
   struct gkyl_ten_moment_nn_closure *nn_1d_p2 = gkyl_ten_moment_nn_closure_new(
-    (struct gkyl_ten_moment_nn_closure_inp){.grid = &grid1, .poly_order = 2, .k0 = 1.0, .ann = 0}
-  );
+    (struct gkyl_ten_moment_nn_closure_inp) { .grid = &grid1, .poly_order = 2, .k0 = 1.0, .ann = 0 });
   struct gkyl_ten_moment_nn_closure *nn_2d_p1 = gkyl_ten_moment_nn_closure_new(
-    (struct gkyl_ten_moment_nn_closure_inp){.grid = &grid2, .poly_order = 1, .k0 = 1.0, .ann = 0}
-  );
+    (struct gkyl_ten_moment_nn_closure_inp) { .grid = &grid2, .poly_order = 1, .k0 = 1.0, .ann = 0 });
 
   TEST_CHECK(gkyl_ten_moment_nn_closure_n_in(nn_1d_p1) == 6);
   TEST_CHECK(gkyl_ten_moment_nn_closure_n_out(nn_1d_p1) == 4);
@@ -121,28 +105,28 @@ test_geom_1d_p1_uniform_bx(void)
   set_em(eL, 1.0, 0.0, 0.0);
   set_em(eU, 1.0, 0.0, 0.0);
 
-  const double *fluid_d[2] = {fL, fU};
-  const double *em_d[2] = {eL, eU};
+  const double *fluid_d[2] = { fL, fU };
+  const double *em_d[2] = { eL, eU };
 
   float in[6];
   struct gkyl_ten_moment_nn_closure_geom geom;
   gkyl_ten_moment_nn_closure_geom_calc(nn, fluid_d, em_d, in, &geom);
 
-  TEST_CHECK(fabs(in[0] - 2.0) < tol); // rho_avg
-  TEST_CHECK(fabs(in[1] - 0.0) < tol); // drho_dx
-  TEST_CHECK(fabs(in[2] - 3.0) < tol); // p_par = p_xx
-  TEST_CHECK(fabs(in[3] - 0.0) < tol); // p_par_dx
-  TEST_CHECK(fabs(in[4] - 0.75) < tol); // p_perp = (p_yy + p_zz)/2
-  TEST_CHECK(fabs(in[5] - 0.0) < tol); // p_perp_dx
+  TEST_CHECK( fabs(in[0] - 2.0) < tol );  // rho_avg
+  TEST_CHECK( fabs(in[1] - 0.0) < tol );  // drho_dx
+  TEST_CHECK( fabs(in[2] - 3.0) < tol );  // p_par = p_xx
+  TEST_CHECK( fabs(in[3] - 0.0) < tol );  // p_par_dx
+  TEST_CHECK( fabs(in[4] - 0.75) < tol ); // p_perp = (p_yy + p_zz)/2
+  TEST_CHECK( fabs(in[5] - 0.0) < tol );  // p_perp_dx
 
-  TEST_CHECK(fabs(geom.local_mag[0] - 1.0) < tol);
-  TEST_CHECK(fabs(geom.local_mag[1] - 0.0) < tol);
-  TEST_CHECK(fabs(geom.local_mag[2] - 0.0) < tol);
-  TEST_CHECK(fabs(geom.local_mag_dx[0]) < tol);
-  TEST_CHECK(fabs(geom.local_mag_dx[1]) < tol);
-  TEST_CHECK(fabs(geom.local_mag_dx[2]) < tol);
-  TEST_CHECK(fabs(geom.rho_avg - 2.0) < tol);
-  TEST_CHECK(fabs(geom.B_avg[0] - 1.0) < tol);
+  TEST_CHECK( fabs(geom.local_mag[0] - 1.0) < tol );
+  TEST_CHECK( fabs(geom.local_mag[1] - 0.0) < tol );
+  TEST_CHECK( fabs(geom.local_mag[2] - 0.0) < tol );
+  TEST_CHECK( fabs(geom.local_mag_dx[0]) < tol );
+  TEST_CHECK( fabs(geom.local_mag_dx[1]) < tol );
+  TEST_CHECK( fabs(geom.local_mag_dx[2]) < tol );
+  TEST_CHECK( fabs(geom.rho_avg - 2.0) < tol );
+  TEST_CHECK( fabs(geom.B_avg[0] - 1.0) < tol );
 
   gkyl_ten_moment_nn_closure_release(nn);
 }
@@ -159,17 +143,17 @@ test_geom_1d_p1_uniform_bz(void)
   set_em(eL, 0.0, 0.0, 1.0);
   set_em(eU, 0.0, 0.0, 1.0);
 
-  const double *fluid_d[2] = {fL, fU};
-  const double *em_d[2] = {eL, eU};
+  const double *fluid_d[2] = { fL, fU };
+  const double *em_d[2] = { eL, eU };
 
   float in[6];
   struct gkyl_ten_moment_nn_closure_geom geom;
   gkyl_ten_moment_nn_closure_geom_calc(nn, fluid_d, em_d, in, &geom);
 
-  TEST_CHECK(fabs(in[2] - 0.5) < tol); // p_par = p_zz
-  TEST_CHECK(fabs(in[4] - 2.0) < tol); // p_perp = (p_xx + p_yy)/2 = (3+1)/2
-  TEST_CHECK(fabs(geom.local_mag[2] - 1.0) < tol);
-  TEST_CHECK(fabs(geom.local_mag[0]) < tol);
+  TEST_CHECK( fabs(in[2] - 0.5) < tol ); // p_par = p_zz
+  TEST_CHECK( fabs(in[4] - 2.0) < tol ); // p_perp = (p_xx + p_yy)/2 = (3+1)/2
+  TEST_CHECK( fabs(geom.local_mag[2] - 1.0) < tol );
+  TEST_CHECK( fabs(geom.local_mag[0]) < tol );
 
   gkyl_ten_moment_nn_closure_release(nn);
 }
@@ -188,8 +172,8 @@ test_geom_1d_p1_diagonal_b(void)
   set_em(eL, 1.0, 1.0, 0.0);
   set_em(eU, 1.0, 1.0, 0.0);
 
-  const double *fluid_d[2] = {fL, fU};
-  const double *em_d[2] = {eL, eU};
+  const double *fluid_d[2] = { fL, fU };
+  const double *em_d[2] = { eL, eU };
 
   float in[6];
   struct gkyl_ten_moment_nn_closure_geom geom;
@@ -199,11 +183,11 @@ test_geom_1d_p1_diagonal_b(void)
   double p_perp_exp = 0.5 * ((pxx + pyy + pzz) - p_par_exp);
   double inv_sqrt2 = 1.0 / sqrt(2.0);
 
-  TEST_CHECK(fabs(in[2] - p_par_exp) < tol);
-  TEST_CHECK(fabs(in[4] - p_perp_exp) < tol);
-  TEST_CHECK(fabs(geom.local_mag[0] - inv_sqrt2) < tol);
-  TEST_CHECK(fabs(geom.local_mag[1] - inv_sqrt2) < tol);
-  TEST_CHECK(fabs(geom.local_mag[2] - 0.0) < tol);
+  TEST_CHECK( fabs(in[2] - p_par_exp) < tol );
+  TEST_CHECK( fabs(in[4] - p_perp_exp) < tol );
+  TEST_CHECK( fabs(geom.local_mag[0] - inv_sqrt2) < tol );
+  TEST_CHECK( fabs(geom.local_mag[1] - inv_sqrt2) < tol );
+  TEST_CHECK( fabs(geom.local_mag[2] - 0.0) < tol );
 
   gkyl_ten_moment_nn_closure_release(nn);
 }
@@ -222,17 +206,17 @@ test_geom_1d_p1_density_gradient(void)
   set_em(eL, 1.0, 0.0, 0.0);
   set_em(eU, 1.0, 0.0, 0.0);
 
-  const double *fluid_d[2] = {fL, fU};
-  const double *em_d[2] = {eL, eU};
+  const double *fluid_d[2] = { fL, fU };
+  const double *em_d[2] = { eL, eU };
 
   float in[6];
   struct gkyl_ten_moment_nn_closure_geom geom;
   gkyl_ten_moment_nn_closure_geom_calc(nn, fluid_d, em_d, in, &geom);
 
-  TEST_CHECK(fabs(in[0] - 2.0) < tol); // rho_avg = (1+3)/2
-  TEST_CHECK(fabs(in[1] - (2.0 / dx)) < tol); // drho_dx = (3-1)/dx = 20
-  TEST_CHECK(fabs(in[3] - 0.0) < tol); // p_par_dx
-  TEST_CHECK(fabs(in[5] - 0.0) < tol); // p_perp_dx
+  TEST_CHECK( fabs(in[0] - 2.0) < tol );           // rho_avg = (1+3)/2
+  TEST_CHECK( fabs(in[1] - (2.0 / dx)) < tol );    // drho_dx = (3-1)/dx = 20
+  TEST_CHECK( fabs(in[3] - 0.0) < tol );           // p_par_dx
+  TEST_CHECK( fabs(in[5] - 0.0) < tol );           // p_perp_dx
 
   gkyl_ten_moment_nn_closure_release(nn);
 }
@@ -251,20 +235,20 @@ test_geom_1d_p1_pressure_gradient(void)
   set_em(eL, 1.0, 0.0, 0.0);
   set_em(eU, 1.0, 0.0, 0.0);
 
-  const double *fluid_d[2] = {fL, fU};
-  const double *em_d[2] = {eL, eU};
+  const double *fluid_d[2] = { fL, fU };
+  const double *em_d[2] = { eL, eU };
 
   float in[6];
   struct gkyl_ten_moment_nn_closure_geom geom;
   gkyl_ten_moment_nn_closure_geom_calc(nn, fluid_d, em_d, in, &geom);
 
   // p_xx avg = 3, p_yy avg = 1.5, p_zz = 0.5 -> p_par = 3, p_perp = 0.5(5-3) = 1.
-  TEST_CHECK(fabs(in[2] - 3.0) < tol);
-  TEST_CHECK(fabs(in[4] - 1.0) < tol);
+  TEST_CHECK( fabs(in[2] - 3.0) < tol );
+  TEST_CHECK( fabs(in[4] - 1.0) < tol );
   // d p_xx/dx = (4-2)/dx = 20 -> p_par_dx = 20.
-  TEST_CHECK(fabs(in[3] - (2.0 / dx)) < tol);
+  TEST_CHECK( fabs(in[3] - (2.0 / dx)) < tol );
   // d tr/dx = (dPxx + dPyy)/dx = (2+1)/dx = 30 -> p_perp_dx = 0.5(30-20) = 5.
-  TEST_CHECK(fabs(in[5] - 5.0) < tol);
+  TEST_CHECK( fabs(in[5] - 5.0) < tol );
 
   gkyl_ten_moment_nn_closure_release(nn);
 }
@@ -282,16 +266,16 @@ test_geom_1d_p1_zero_b(void)
   set_em(eL, 0.0, 0.0, 0.0);
   set_em(eU, 0.0, 0.0, 0.0);
 
-  const double *fluid_d[2] = {fL, fU};
-  const double *em_d[2] = {eL, eU};
+  const double *fluid_d[2] = { fL, fU };
+  const double *em_d[2] = { eL, eU };
 
   float in[6];
   struct gkyl_ten_moment_nn_closure_geom geom;
   gkyl_ten_moment_nn_closure_geom_calc(nn, fluid_d, em_d, in, &geom);
 
-  TEST_CHECK(fabs(geom.local_mag[0] - 1.0) < tol);
-  TEST_CHECK(fabs(in[2] - 3.0) < tol); // p_par = p_xx
-  TEST_CHECK(fabs(in[4] - 0.75) < tol);
+  TEST_CHECK( fabs(geom.local_mag[0] - 1.0) < tol );
+  TEST_CHECK( fabs(in[2] - 3.0) < tol );  // p_par = p_xx
+  TEST_CHECK( fabs(in[4] - 0.75) < tol );
 
   gkyl_ten_moment_nn_closure_release(nn);
 }
@@ -302,10 +286,7 @@ static void
 set_geom_uniform_b(struct gkyl_ten_moment_nn_closure_geom *g, int ax)
 {
   for (int i = 0; i < 3; i++) {
-    g->local_mag[i] = 0.0;
-    g->local_mag_dx[i] = 0.0;
-    g->local_mag_dy[i] = 0.0;
-    g->B_avg[i] = 0.0;
+    g->local_mag[i] = 0.0; g->local_mag_dx[i] = 0.0; g->local_mag_dy[i] = 0.0; g->B_avg[i] = 0.0;
   }
   g->rho_avg = 1.0;
   for (int i = 0; i < 6; i++) {
@@ -327,21 +308,21 @@ test_consume_1d_p1_sign_and_mapping(void)
   set_geom_uniform_b(&geom, 0); // b = x, uniform
 
   // pred = [q_par, q_par_dx, q_perp, q_perp_dx]
-  float pred[4] = {0.3f, 0.5f, 0.2f, 0.1f};
-  double rhs[10] = {0.0};
+  float pred[4] = { 0.3f, 0.5f, 0.2f, 0.1f };
+  double rhs[10] = { 0.0 };
   gkyl_ten_moment_nn_closure_construct(nn, &geom, pred, rhs);
 
-  TEST_CHECK(fabs(rhs[TM_P11] - (-0.5)) < tol); // -q_par_dx
+  TEST_CHECK( fabs(rhs[TM_P11] - (-0.5)) < tol ); // -q_par_dx
   TEST_MSG("rhs[P11]=%g expected %g", rhs[TM_P11], -0.5);
-  TEST_CHECK(fabs(rhs[TM_P22] - (-0.1)) < tol); // -q_perp_dx
-  TEST_CHECK(fabs(rhs[TM_P33] - (-0.1)) < tol); // -q_perp_dx
-  TEST_CHECK(fabs(rhs[TM_P12]) < tol);
-  TEST_CHECK(fabs(rhs[TM_P13]) < tol);
-  TEST_CHECK(fabs(rhs[TM_P23]) < tol);
-  TEST_CHECK(fabs(rhs[TM_RHO]) < tol);
-  TEST_CHECK(fabs(rhs[TM_MX]) < tol);
-  TEST_CHECK(fabs(rhs[TM_MY]) < tol);
-  TEST_CHECK(fabs(rhs[TM_MZ]) < tol);
+  TEST_CHECK( fabs(rhs[TM_P22] - (-0.1)) < tol ); // -q_perp_dx
+  TEST_CHECK( fabs(rhs[TM_P33] - (-0.1)) < tol ); // -q_perp_dx
+  TEST_CHECK( fabs(rhs[TM_P12]) < tol );
+  TEST_CHECK( fabs(rhs[TM_P13]) < tol );
+  TEST_CHECK( fabs(rhs[TM_P23]) < tol );
+  TEST_CHECK( fabs(rhs[TM_RHO]) < tol );
+  TEST_CHECK( fabs(rhs[TM_MX]) < tol );
+  TEST_CHECK( fabs(rhs[TM_MY]) < tol );
+  TEST_CHECK( fabs(rhs[TM_MZ]) < tol );
 
   gkyl_ten_moment_nn_closure_release(nn);
 }
@@ -355,13 +336,13 @@ test_consume_1d_p1_sign_flip(void)
   struct gkyl_ten_moment_nn_closure_geom geom;
   set_geom_uniform_b(&geom, 0); // b = x
 
-  float pred[4] = {0.0f, -0.7f, 0.0f, 0.25f}; // q_par_dx<0, q_perp_dx>0
-  double rhs[10] = {0.0};
+  float pred[4] = { 0.0f, -0.7f, 0.0f, 0.25f }; // q_par_dx<0, q_perp_dx>0
+  double rhs[10] = { 0.0 };
   gkyl_ten_moment_nn_closure_construct(nn, &geom, pred, rhs);
 
-  TEST_CHECK(fabs(rhs[TM_P11] - 0.7) < tol); // -(-0.7)
-  TEST_CHECK(fabs(rhs[TM_P22] - (-0.25)) < tol);
-  TEST_CHECK(fabs(rhs[TM_P33] - (-0.25)) < tol);
+  TEST_CHECK( fabs(rhs[TM_P11] - 0.7) < tol );    // -(-0.7)
+  TEST_CHECK( fabs(rhs[TM_P22] - (-0.25)) < tol );
+  TEST_CHECK( fabs(rhs[TM_P33] - (-0.25)) < tol );
 
   gkyl_ten_moment_nn_closure_release(nn);
 }
@@ -378,12 +359,12 @@ test_consume_1d_p1_uniform_q_zero_source(void)
   struct gkyl_ten_moment_nn_closure_geom geom;
   set_geom_uniform_b(&geom, 0); // b = x
 
-  float pred[4] = {0.4f, 0.0f, 0.15f, 0.0f}; // nonzero q, zero gradients
-  double rhs[10] = {0.0};
+  float pred[4] = { 0.4f, 0.0f, 0.15f, 0.0f }; // nonzero q, zero gradients
+  double rhs[10] = { 0.0 };
   gkyl_ten_moment_nn_closure_construct(nn, &geom, pred, rhs);
 
   for (int n = 0; n < 10; n++) {
-    TEST_CHECK(fabs(rhs[n]) < tol);
+    TEST_CHECK( fabs(rhs[n]) < tol );
     TEST_MSG("rhs[%d] = %g (expected 0)", n, rhs[n]);
   }
 
@@ -391,15 +372,15 @@ test_consume_1d_p1_uniform_q_zero_source(void)
 }
 
 TEST_LIST = {
-  {"nn_closure_dims", test_nn_closure_dims},
-  {"geom_1d_p1_uniform_bx", test_geom_1d_p1_uniform_bx},
-  {"geom_1d_p1_uniform_bz", test_geom_1d_p1_uniform_bz},
-  {"geom_1d_p1_diagonal_b", test_geom_1d_p1_diagonal_b},
-  {"geom_1d_p1_density_gradient", test_geom_1d_p1_density_gradient},
-  {"geom_1d_p1_pressure_gradient", test_geom_1d_p1_pressure_gradient},
-  {"geom_1d_p1_zero_b", test_geom_1d_p1_zero_b},
-  {"consume_1d_p1_sign_and_mapping", test_consume_1d_p1_sign_and_mapping},
-  {"consume_1d_p1_sign_flip", test_consume_1d_p1_sign_flip},
-  {"consume_1d_p1_uniform_q_zero_source", test_consume_1d_p1_uniform_q_zero_source},
-  {NULL, NULL}
+  { "nn_closure_dims", test_nn_closure_dims },
+  { "geom_1d_p1_uniform_bx", test_geom_1d_p1_uniform_bx },
+  { "geom_1d_p1_uniform_bz", test_geom_1d_p1_uniform_bz },
+  { "geom_1d_p1_diagonal_b", test_geom_1d_p1_diagonal_b },
+  { "geom_1d_p1_density_gradient", test_geom_1d_p1_density_gradient },
+  { "geom_1d_p1_pressure_gradient", test_geom_1d_p1_pressure_gradient },
+  { "geom_1d_p1_zero_b", test_geom_1d_p1_zero_b },
+  { "consume_1d_p1_sign_and_mapping", test_consume_1d_p1_sign_and_mapping },
+  { "consume_1d_p1_sign_flip", test_consume_1d_p1_sign_flip },
+  { "consume_1d_p1_uniform_q_zero_source", test_consume_1d_p1_uniform_q_zero_source },
+  { NULL, NULL },
 };

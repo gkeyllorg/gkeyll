@@ -17,7 +17,7 @@
 
 struct gkyl_app_args {
   bool use_gpu; // should this be run on GPU?
-  bool use_mpi; // should this be run on MPI?
+  bool use_mpi; // should this be run on MPI?  
   bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
   bool trace_mem; // should we trace memory allocation/deallocations?
   int num_steps; // number of steps
@@ -26,8 +26,7 @@ struct gkyl_app_args {
   int vcells[3]; // velocity space cells
   int cuts[3]; // domain decomposition "cuts"
   char file_name[1024]; // name of input file
-  char app_name
-    [128]; // basename of argv[0] — use with snprintf/strcpy to set char[] name fields (cannot assign directly in compound literals)
+  char app_name[128]; // basename of argv[0] — use with snprintf/strcpy to set char[] name fields (cannot assign directly in compound literals)
   enum gkyl_basis_type basis_type; // type of basis functions to use
   enum gkyl_mp_recon mp_recon; // the XX in MP-XX
   bool skip_limiters; // should we skip limiters?
@@ -41,7 +40,8 @@ get_basis_type(const char *nm)
 {
   if (strcmp(nm, "ms") == 0) {
     return GKYL_BASIS_MODAL_SERENDIPITY;
-  } else if (strcmp(nm, "mt") == 0) {
+  }
+  else if (strcmp(nm, "mt") == 0) {
     return GKYL_BASIS_MODAL_TENSOR;
   }
   return -1;
@@ -52,18 +52,23 @@ get_mp_recon_type(const char *nm)
 {
   if (strcmp(nm, "u1") == 0) {
     return GKYL_MP_U1;
-  } else if (strcmp(nm, "u3") == 0) {
-    return GKYL_MP_U3;
-  } else if (strcmp(nm, "u5") == 0) {
-    return GKYL_MP_U5;
-  } else if (strcmp(nm, "c2") == 0) {
-    return GKYL_MP_C2;
-  } else if (strcmp(nm, "c4") == 0) {
-    return GKYL_MP_C4;
-  } else if (strcmp(nm, "c6") == 0) {
-    return GKYL_MP_C6;
   }
-
+  else if (strcmp(nm, "u3") == 0) {
+    return GKYL_MP_U3;
+  }
+  else if (strcmp(nm, "u5") == 0) {
+    return GKYL_MP_U5;
+  }
+  else if (strcmp(nm, "c2") == 0) {
+    return GKYL_MP_C2;
+  }
+  else if (strcmp(nm, "c4") == 0) {
+    return GKYL_MP_C4;
+  }
+  else if (strcmp(nm, "c6") == 0) {
+    return GKYL_MP_C6;
+  }  
+  
   return -1;
 }
 
@@ -80,21 +85,24 @@ parse_app_args(int argc, char **argv)
   int num_steps = INT_MAX;
   int num_threads = 1; // by default use only 1 thread
 
-  struct gkyl_app_args args = {.xcells = {0}, .vcells = {0}, .cuts = {1, 1, 1}};
+  struct gkyl_app_args args = {
+    .xcells = { 0 },
+    .vcells = { 0 },
+    .cuts = { 1, 1, 1 },
+  };
 
   strcpy(args.file_name, APP_ARGS_DEFAULT_FILE_NAME); // default
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
   int c;
   while ((c = getopt(argc, argv, "+hjgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:o:")) != -1) {
-    switch (c) {
+    switch (c)
+    {
       case 'h':
-        printf(
-          "Usage: <app_name> -g -m -s nsteps -t nthreads -i inp -b [ms|mt] -x NX -y NY -z NZ -u VX -v VY -w VZ\n"
-        );
+        printf("Usage: <app_name> -g -m -s nsteps -t nthreads -i inp -b [ms|mt] -x NX -y NY -z NZ -u VX -v VY -w VZ\n");
         printf(" All flags and parameters are optional.\n");
         printf(" -g     Run on GPUs if GPUs are present and code built for GPUs\n");
-        printf(" -M     Run with MPI if code built with MPI\n");
+        printf(" -M     Run with MPI if code built with MPI\n");        
         printf(" -sN    Only run N steps of simulation\n");
         printf(" -tN    Use N threads (when available)\n");
         printf(" -b     Basis function to use (ms: Modal serendipity; mt: Modal tensor-product)\n");
@@ -121,7 +129,7 @@ parse_app_args(int argc, char **argv)
 
       case 'M':
         use_mpi = true;
-        break;
+        break;        
 
       case 'm':
         trace_mem = true;
@@ -134,8 +142,8 @@ parse_app_args(int argc, char **argv)
       case 'r':
         is_restart = true;
         restart_frame = atoi(optarg);
-        break;
-
+        break;        
+      
       case 's':
         step_mode = true;
         num_steps = atoi(optarg);
@@ -148,23 +156,23 @@ parse_app_args(int argc, char **argv)
       case 'c':
         args.cuts[0] = atoi(optarg);
         break;
-
+        
       case 'd':
         args.cuts[1] = atoi(optarg);
         break;
-
+        
       case 'e':
         args.cuts[2] = atoi(optarg);
-        break;
+        break;        
 
       case 'x':
         args.xcells[0] = atoi(optarg);
         break;
-
+        
       case 'y':
         args.xcells[1] = atoi(optarg);
         break;
-
+        
       case 'z':
         args.xcells[2] = atoi(optarg);
         break;
@@ -172,14 +180,14 @@ parse_app_args(int argc, char **argv)
       case 'u':
         args.vcells[0] = atoi(optarg);
         break;
-
+        
       case 'v':
         args.vcells[1] = atoi(optarg);
         break;
-
+        
       case 'w':
         args.vcells[2] = atoi(optarg);
-        break;
+        break;        
 
       case 'i':
         strcpy(args.file_name, optarg);
@@ -190,10 +198,10 @@ parse_app_args(int argc, char **argv)
         assert(args.basis_type != -1);
         break;
 
-      case 'j':
+     case 'j':
         args.mp_recon = get_mp_recon_type(optarg);
         assert(args.mp_recon != -1);
-        break;
+        break;        
 
       case 'o':
         assert(strlen(optarg) < sizeof(args.opt_args));
@@ -204,7 +212,7 @@ parse_app_args(int argc, char **argv)
         break;
     }
   }
-
+  
   args.use_gpu = use_gpu;
   args.use_mpi = use_mpi;
   args.trace_mem = trace_mem;

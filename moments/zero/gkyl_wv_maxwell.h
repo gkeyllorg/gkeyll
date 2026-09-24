@@ -60,13 +60,14 @@ struct gkyl_wv_maxwell_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the Maxwell equations object.
 */
-struct gkyl_wv_eqn *gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu);
+struct gkyl_wv_eqn*
+gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu);
 
 /**
  * Create a new Maxwell equation object that lives on NV-GPU.
  * see new() method above for documentation.
  */
-struct gkyl_wv_eqn *gkyl_wv_maxwell_cu_dev_new(double c, double e_fact, double b_fact);
+ struct gkyl_wv_eqn* gkyl_wv_maxwell_cu_dev_new(double c, double e_fact, double b_fact);
 
 /**
 * Create a new Maxwell equations object, from an input context struct.
@@ -74,4 +75,5 @@ struct gkyl_wv_eqn *gkyl_wv_maxwell_cu_dev_new(double c, double e_fact, double b
 * @param inp Input context struct.
 * @return Pointer to the Maxwell equations object.
 */
-struct gkyl_wv_eqn *gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp *inp);
+struct gkyl_wv_eqn*
+gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp);

@@ -1,6 +1,7 @@
 #include <gkyl_amr_core.h>
 
-struct amr_euler_shock_bubble_ctx {
+struct amr_euler_shock_bubble_ctx
+{
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
@@ -114,7 +115,7 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_euler_shock_bubble_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -148,7 +149,8 @@ evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
     rho = rho_post; // Fluid mass density (post-shock).
     u = u_post; // Fluid velocity (post-shock).
     p = p_post; // Fluid pressure (post-shock).
-  } else {
+  }
+  else {
     rho = rho_pre; // Fluid mass density (pre-shock).
     u = u_pre; // Fluid velocity (pre-shock).
     p = p_pre; // Fluid pressure (pre-shock).
@@ -159,19 +161,16 @@ evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
     u = u_bub; // Fluid velocity (bubble).
     p = p_bub; // Fluid pressure (bubble).
   }
-
+  
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = rho * u;
-  fout[2] = 0.0;
-  fout[3] = 0.0;
+  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
   // Set fluid total energy density.
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct amr_euler_shock_bubble_ctx ctx = create_ctx(); // Context for initialization functions.
 

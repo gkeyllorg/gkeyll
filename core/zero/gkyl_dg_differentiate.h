@@ -20,10 +20,8 @@
  * @param c_iop Component of the input field to read from.
  * @param inp   Input DG field.
  */
-void gkyl_dg_differentiate_op_local(
-  const struct gkyl_basis *basis, int dir, int diff_order, double dx, int c_oop,
-  struct gkyl_array *out, int c_iop, const struct gkyl_array *inp
-);
+void gkyl_dg_differentiate_op_local(const struct gkyl_basis *basis, int dir, int diff_order,
+  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp);
 
 /**
  * Same as gkyl_dg_differentiate_op_local, but applied only over the
@@ -39,7 +37,6 @@ void gkyl_dg_differentiate_op_local(
  * @param inp   Input DG field.
  * @param range Range over which to apply the operator.
  */
-void gkyl_dg_differentiate_op_local_range(
-  const struct gkyl_basis *basis, int dir, int diff_order, double dx, int c_oop,
-  struct gkyl_array *out, int c_iop, const struct gkyl_array *inp, const struct gkyl_range *range
-);
+void gkyl_dg_differentiate_op_local_range(const struct gkyl_basis *basis, int dir, int diff_order,
+  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp,
+  const struct gkyl_range *range);

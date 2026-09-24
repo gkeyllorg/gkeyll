@@ -31,9 +31,9 @@ struct wv_gr_mhd_tetrad {
 * @param q Conserved variable vector.
 * @param flux Flux vector in direction 'dir' (output).
 */
-GKYL_CU_D void gkyl_gr_mhd_tetrad_flux(
-  double gas_gamma, double light_speed, double b_fact, const double q[75], double flux[75]
-);
+GKYL_CU_D
+void
+gkyl_gr_mhd_tetrad_flux(double gas_gamma, double light_speed, double b_fact, const double q[75], double flux[75]);
 
 /**
 * Compute general relativistic correction to special relativistic flux. Assumes rotation to local coordinate system.
@@ -44,10 +44,9 @@ GKYL_CU_D void gkyl_gr_mhd_tetrad_flux(
 * @param q Conserved variable vector.
 * @param flux Flux vector in direction 'dir' (output).
 */
-GKYL_CU_D void gkyl_gr_mhd_tetrad_flux_correction(
-  double gas_gamma, double light_speed, double b_fact, const double q[75], const double flux_sr[75],
-  double flux_gr[75]
-);
+GKYL_CU_D
+void
+gkyl_gr_mhd_tetrad_flux_correction(double gas_gamma, double light_speed, double b_fact, const double q[75], const double flux_sr[75], double flux_gr[75]);
 
 /**
 * Compute primitive variables given the conserved variables.
@@ -56,7 +55,9 @@ GKYL_CU_D void gkyl_gr_mhd_tetrad_flux_correction(
 * @param q Conserved variable vector.
 * @param v Primitive variable vector (output).
 */
-GKYL_CU_D void gkyl_gr_mhd_tetrad_prim_vars(double gas_gamma, const double q[75], double v[75]);
+GKYL_CU_D
+void
+gkyl_gr_mhd_tetrad_prim_vars(double gas_gamma, const double q[75], double v[75]);
 
 /**
 * Compute inverse spatial metric tensor (in covariant component form) given the conserved variables.
@@ -64,9 +65,9 @@ GKYL_CU_D void gkyl_gr_mhd_tetrad_prim_vars(double gas_gamma, const double q[75]
 * @param q Conserved variable vector.
 * @param inv_spatial_metric Inverse spatial metric tensor (output).
 */
-GKYL_CU_D void gkyl_gr_mhd_tetrad_inv_spatial_metric(
-  const double q[75], double ***inv_spatial_metric
-);
+GKYL_CU_D
+void
+gkyl_gr_mhd_tetrad_inv_spatial_metric(const double q[75], double ***inv_spatial_metric);
 
 /**
 * Compute ideal magnetohydrodynamic stress-energy tensor (in contravariant component form) given the conserved variables.
@@ -75,9 +76,9 @@ GKYL_CU_D void gkyl_gr_mhd_tetrad_inv_spatial_metric(
 * @param q Conserved variable vector.
 * @param stress_energy Stress-energy tensor (output).
 */
-GKYL_CU_D void gkyl_gr_mhd_tetrad_stress_energy_tensor(
-  double gas_gamma, const double q[75], double ***stress_energy
-);
+GKYL_CU_D
+void
+gkyl_gr_mhd_tetrad_stress_energy_tensor(double gas_gamma, const double q[75], double ***stress_energy);
 
 /**
 * Compute maximum absolute wave speed.
@@ -86,9 +87,9 @@ GKYL_CU_D void gkyl_gr_mhd_tetrad_stress_energy_tensor(
 * @param q Conserved variable vector.
 * @return Maximum absolute wave speed for a given q.
 */
-GKYL_CU_D static inline double gkyl_gr_mhd_tetrad_max_abs_speed(
-  double gas_gamma, const double q[71]
-);
+GKYL_CU_D
+static inline double
+gkyl_gr_mhd_tetrad_max_abs_speed(double gas_gamma, const double q[71]);
 
 /**
 * Compute Riemann variables given the conserved variables.
@@ -98,9 +99,9 @@ GKYL_CU_D static inline double gkyl_gr_mhd_tetrad_max_abs_speed(
 * @param qin Conserved variable vector (input).
 * @param wout Riemann variable vector (output).
 */
-GKYL_CU_D static inline void cons_to_riem(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout
-);
+GKYL_CU_D
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout);
 
 /**
 * Compute conserved variables given the Riemann variables.
@@ -110,9 +111,9 @@ GKYL_CU_D static inline void cons_to_riem(
 * @param win Riemann variable vector (input).
 * @param qout Conserved variable vector (output).
 */
-GKYL_CU_D static inline void riem_to_cons(
-  const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout
-);
+GKYL_CU_D
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double *qout);
 
 /**
 * Boundary condition function for applying wall boundary conditions for the general relativistic magnetohydrodynamics equations in the tetrad basis with ideal gas equation of state.
@@ -124,10 +125,9 @@ GKYL_CU_D static inline void riem_to_cons(
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-GKYL_CU_D static void gr_mhd_tetrad_tetrad_wall(
-  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
-  void *ctx
-);
+GKYL_CU_D
+static void
+gr_mhd_tetrad_tetrad_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying no-slip boundary conditions for the general relativistic magnetohydrodynamics equations in the tetrad basis with ideal gas equation of state.
@@ -139,10 +139,9 @@ GKYL_CU_D static void gr_mhd_tetrad_tetrad_wall(
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-GKYL_CU_D static void gr_mhd_tetrad_tetrad_no_slip(
-  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
-  void *ctx
-);
+GKYL_CU_D
+static void
+gr_mhd_tetrad_tetrad_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.
@@ -154,10 +153,10 @@ GKYL_CU_D static void gr_mhd_tetrad_tetrad_no_slip(
 * @param qglobal State vector in global coordinate frame (input).
 * @param qlocal State vector in local coordinate frame (output).
 */
-GKYL_CU_D static inline void rot_to_local(
-  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
-);
+GKYL_CU_D
+static inline void
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
+  double* GKYL_RESTRICT qlocal);
 
 /**
 * Rotate state vector from local to global coordinate frame.
@@ -169,10 +168,10 @@ GKYL_CU_D static inline void rot_to_local(
 * @param qlocal State vector in local coordinate frame (input).
 * @param qglobal State vector in global coordinate frame (output).
 */
-GKYL_CU_D static inline void rot_to_global(
-  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
-);
+GKYL_CU_D
+static inline void
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
+  double* GKYL_RESTRICT qglobal);
 
 /**
 * Compute waves and speeds using Lax fluxes.
@@ -185,10 +184,9 @@ GKYL_CU_D static inline void rot_to_global(
 * @param s Wave speeds (output).
 * @return Maximum wave speed.
 */
-GKYL_CU_D static double wave_lax(
-  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
-  double *waves, double *s
-);
+GKYL_CU_D
+static double
+wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
 
 /**
 * Compute fluctuations using Lax fluxes.
@@ -201,10 +199,9 @@ GKYL_CU_D static double wave_lax(
 * @param amdq Left-moving fluctuations (output).
 * @param apdq Right-moving fluctuations (output).
 */
-GKYL_CU_D static void qfluct_lax(
-  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
-  const double *s, double *amdq, double *apdq
-);
+GKYL_CU_D
+static void
+qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
 
 /**
 * Compute waves and speeds using Lax fluxes (with potential fallback).
@@ -218,10 +215,9 @@ GKYL_CU_D static void qfluct_lax(
 * @param s Wave speeds (output).
 * @return Maximum wave speed.
 */
-GKYL_CU_D static double wave_lax_l(
-  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
-  const double *qr, const double phil, const double phir, double *waves, double *s
-);
+GKYL_CU_D
+static double
+wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s);
 
 /**
 * Compute fluctuations using Lax fluxes (with potential fallback),
@@ -235,11 +231,10 @@ GKYL_CU_D static double wave_lax_l(
 * @param amdq Left-moving fluctuations (output).
 * @param apdq Right-moving fluctuations (output).
 */
-GKYL_CU_D static void qfluct_lax_l(
-  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
-  const double phil, const double phir, const double *waves, const double *s, double *amdq,
-  double *apdq
-);
+GKYL_CU_D
+static void
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
+  double* amdq, double* apdq);
 
 /**
 * Compute waves and speeds using HLL fluxes.
@@ -252,10 +247,9 @@ GKYL_CU_D static void qfluct_lax_l(
 * @param s Wave speeds (output).
 * @return Maximum wave speed.
 */
-GKYL_CU_D static double wave_hll(
-  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
-  double *waves, double *s
-);
+GKYL_CU_D
+static double
+wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
 
 /**
 * Compute fluctuations using HLL fluxes.
@@ -268,10 +262,9 @@ GKYL_CU_D static double wave_hll(
 * @param amdq Left-moving fluctuations (output).
 * @param apdq Right-moving fluctuations (output).
 */
-GKYL_CU_D static void qfluct_hll(
-  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
-  const double *s, double *amdq, double *apdq
-);
+GKYL_CU_D
+static void
+qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
 
 /**
 * Compute waves and speeds using HLL fluxes (with potential fallback).
@@ -285,10 +278,9 @@ GKYL_CU_D static void qfluct_hll(
 * @param s Wave speeds (output).
 * @return Maximum wave speed.
 */
-GKYL_CU_D static double wave_hll_l(
-  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
-  const double *qr, const double phil, const double phir, double *waves, double *s
-);
+GKYL_CU_D
+static double
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s);
 
 /**
 * Compute fluctuations using HLL fluxes (with potential fallback),
@@ -302,11 +294,10 @@ GKYL_CU_D static double wave_hll_l(
 * @param amdq Left-moving fluctuations (output).
 * @param apdq Right-moving fluctuations (output).
 */
-GKYL_CU_D static void qfluct_hll_l(
-  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
-  const double phil, const double phir, const double *waves, const double *s, double *amdq,
-  double *apdq
-);
+GKYL_CU_D
+static void
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
+  double* amdq, double* apdq);
 
 /**
 * Compute jump in flux given two conserved variable states.
@@ -317,9 +308,9 @@ GKYL_CU_D static void qfluct_hll_l(
 * @param flux_jump Jump in flux vector (output).
 * @return Maximum wave speeds for states ql and qr.
 */
-GKYL_CU_D static double flux_jump(
-  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump
-);
+GKYL_CU_D
+static double
+flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump);
 
 /**
 * Determine whether invariant domain of the general relativistic magnetohydrodynamics equations in the tetrad basis with ideal gas equation of state is satisfied.
@@ -328,7 +319,9 @@ GKYL_CU_D static double flux_jump(
 * @param q Conserved variable vector.
 * @return Whether the invariant domain is satisfied.
 */
-GKYL_CU_D static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q);
+GKYL_CU_D
+static bool
+check_inv(const struct gkyl_wv_eqn* eqn, const double* q);
 
 /**
 * Compute maximum wave speed from a conserved variable vector.
@@ -337,7 +330,9 @@ GKYL_CU_D static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q);
 * @param q Conserved variable vector.
 * @return Maximum absolute wave speed.
 */
-GKYL_CU_D static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q);
+GKYL_CU_D
+static double
+max_speed(const struct gkyl_wv_eqn* eqn, const double* q);
 
 /**
 * Convert conserved variables to diagnostic variables.
@@ -346,9 +341,9 @@ GKYL_CU_D static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q
 * @param qin Conserved variable vector (input).
 * @param diag Diagnostic variable vector (output).
 */
-GKYL_CU_D static inline void gr_mhd_tetrad_cons_to_diag(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *diag
-);
+GKYL_CU_D
+static inline void
+gr_mhd_tetrad_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
 
 /**
 * Compute forcing/source term vector from conserved variables.
@@ -357,13 +352,13 @@ GKYL_CU_D static inline void gr_mhd_tetrad_cons_to_diag(
 * @param qin Conserved variable vector (input).
 * @param sout Forcing/source term vector (output).
 */
-GKYL_CU_DH static inline void gr_mhd_tetrad_source(
-  const struct gkyl_wv_eqn *eqn, const double *qin, double *sout
-);
+GKYL_CU_DH
+static inline void
+gr_mhd_tetrad_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 
 /**
 * Free general relativistic magnetohydrodynamics equations object in the tetrad basis with ideal gas equation of state.
 *
 * @param ref Reference counter for general relativistic magnetohydrodynamics equations in the tetrad basis with ideal gas equation of state.
 */
-void gkyl_gr_mhd_tetrad_free(const struct gkyl_ref_count *ref);
+void gkyl_gr_mhd_tetrad_free(const struct gkyl_ref_count* ref);

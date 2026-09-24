@@ -8,7 +8,7 @@
 #include <gkyl_range.h>
 
 // Struct containing the pointers to auxiliary fields.
-struct gkyl_dg_advection_auxfields {
+struct gkyl_dg_advection_auxfields { 
   const struct gkyl_array *u_i;
 };
 
@@ -19,9 +19,7 @@ struct gkyl_dg_advection_auxfields {
  * @param conf_range Configuration space range for use in indexing advection velocity
  * @return Pointer to advection equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_advection_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu
-);
+struct gkyl_dg_eqn* gkyl_dg_advection_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, bool use_gpu);
 
 /**
  * Create a new advection equation object that lives on NV-GPU
@@ -30,9 +28,7 @@ struct gkyl_dg_eqn *gkyl_dg_advection_new(
  * @param conf_range Configuration space range for use in indexing advection velocity
  * @return Pointer to advection equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_advection_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range
-);
+struct gkyl_dg_eqn* gkyl_dg_advection_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range);
 
 /**
  * Set the auxiliary fields (e.g. advection velocity u) needed in updating advection equation.
@@ -40,9 +36,7 @@ struct gkyl_dg_eqn *gkyl_dg_advection_cu_dev_new(
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_advection_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin
-);
+void gkyl_advection_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -52,8 +46,6 @@ void gkyl_advection_set_auxfields(
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_advection_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin
-);
+void gkyl_advection_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin);
 
 #endif

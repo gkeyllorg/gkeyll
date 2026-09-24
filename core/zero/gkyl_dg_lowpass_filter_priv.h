@@ -28,26 +28,19 @@ struct gkyl_dg_lowpass_filter {
 
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device function.
-void gkyl_dg_lowpass_filter_advance_cu(
-  gkyl_dg_lowpass_filter *up, struct gkyl_array *GKYL_RESTRICT fdo,
-  struct gkyl_array *GKYL_RESTRICT ftar
-);
+void gkyl_dg_lowpass_filter_advance_cu(gkyl_dg_lowpass_filter *up,
+  struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar);
 #endif
 
-GKYL_CU_DH static inline int
+GKYL_CU_DH
+static inline int
 dg_lpf_mirror_idx(int idx, int lo, int up, bool *mirrored)
 {
   // Reflect an out-of-range index back in about the outer cell faces.
   int num_reflections = 0;
   while (idx < lo || idx > up) {
-    if (idx < lo) {
-      idx = 2 * lo - 1 - idx;
-      num_reflections++;
-    }
-    if (idx > up) {
-      idx = 2 * up + 1 - idx;
-      num_reflections++;
-    }
+    if (idx < lo) { idx = 2*lo - 1 - idx; num_reflections++; }
+    if (idx > up) { idx = 2*up + 1 - idx; num_reflections++; }
   }
   *mirrored = num_reflections % 2 == 1;
   return idx;
@@ -59,13 +52,12 @@ dg_lpf_calc_weights(int half_width, double fc, double *weights)
   // Sinc (cutoff fc in cycles/cell) times a Blackman window, normalized.
   int M = half_width;
   double wsum = 0.0;
-  for (int k = -M; k < M + 1; k++) {
-    double hk = k == 0 ? 2.0 * fc : sin(2.0 * M_PI * fc * k) / (M_PI * k);
-    double wk = 0.42 + 0.5 * cos(M_PI * k / M) + 0.08 * cos(2.0 * M_PI * k / M);
-    weights[k + M] = hk * wk;
-    wsum += weights[k + M];
+  for (int k=-M; k<M+1; k++) {
+    double hk = k == 0? 2.0*fc : sin(2.0*M_PI*fc*k)/(M_PI*k);
+    double wk = 0.42 + 0.5*cos(M_PI*k/M) + 0.08*cos(2.0*M_PI*k/M);
+    weights[k+M] = hk*wk;
+    wsum += weights[k+M];
   }
-  for (int k = 0; k < 2 * M + 1; k++) {
+  for (int k=0; k<2*M+1; k++)
     weights[k] /= wsum;
-  }
 }

@@ -9,7 +9,7 @@
  * Object holding use count and pointer to destructor function.
  */
 struct gkyl_ref_count {
-  void (*free)(const struct gkyl_ref_count *);
+  void (*free)(const struct gkyl_ref_count* );
   int count;
 };
 
@@ -21,9 +21,12 @@ struct gkyl_ref_count {
  * @return Ref object
  */
 static inline struct gkyl_ref_count
-gkyl_ref_count_init(void (*free)(const struct gkyl_ref_count *))
+gkyl_ref_count_init(void (*free)(const struct gkyl_ref_count* ))
 {
-  return (struct gkyl_ref_count){.free = free, .count = 1};
+  return (struct gkyl_ref_count) {
+    .free = free,
+    .count = 1,
+  };
 }
 
 /**
@@ -46,7 +49,6 @@ gkyl_ref_count_inc(const struct gkyl_ref_count *ref)
 static inline void
 gkyl_ref_count_dec(const struct gkyl_ref_count *ref)
 {
-  if (--((struct gkyl_ref_count *)ref)->count == 0) {
+  if (--((struct gkyl_ref_count *)ref)->count == 0)
     ref->free(ref);
-  }
 }

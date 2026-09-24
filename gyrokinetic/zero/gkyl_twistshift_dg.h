@@ -34,7 +34,7 @@ struct gkyl_twistshift_dg_inp {
  * @param inp twistshift_dg_inp struct containing the inputs to the updater.
  * @return New updater pointer.
  */
-struct gkyl_twistshift_dg *gkyl_twistshift_dg_inew(const struct gkyl_twistshift_dg_inp *inp);
+struct gkyl_twistshift_dg* gkyl_twistshift_dg_inew(const struct gkyl_twistshift_dg_inp *inp);
 
 /**
  * Create a new updater to apply twist-shift BCs, passing each argument separately.
@@ -55,12 +55,10 @@ struct gkyl_twistshift_dg *gkyl_twistshift_dg_inew(const struct gkyl_twistshift_
  * @param use_gpu Whether to apply the BC using the GPU.
  * @return New updater pointer.
  */
-struct gkyl_twistshift_dg *gkyl_twistshift_dg_new(
-  int bc_dir, int shift_dir, int shear_dir, enum gkyl_edge_loc edge, int cdim,
-  const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost, const struct gkyl_basis *basis,
-  const struct gkyl_rect_grid *grid, evalf_t shift_func, void *shift_func_ctx,
-  struct gkyl_array *shift_dg, int shift_poly_order, bool use_gpu
-);
+struct gkyl_twistshift_dg* gkyl_twistshift_dg_new(int bc_dir, int shift_dir, int shear_dir,
+  enum gkyl_edge_loc edge, int cdim, const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost,
+  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, evalf_t shift_func, void *shift_func_ctx,
+  struct gkyl_array *shift_dg, int shift_poly_order, bool use_gpu);
 
 /**
  * Apply the twist-shift. It assumes that periodicity along bc_dir has been
@@ -70,9 +68,7 @@ struct gkyl_twistshift_dg *gkyl_twistshift_dg_new(
  * @param fdo Donor field.
  * @param ftar Target field.
  */
-void gkyl_twistshift_dg_advance(
-  struct gkyl_twistshift_dg *up, struct gkyl_array *fdo, struct gkyl_array *ftar
-);
+void gkyl_twistshift_dg_advance(struct gkyl_twistshift_dg *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
  * Return pointers to the discretized shift, its range, and grid and basis.
@@ -85,10 +81,8 @@ void gkyl_twistshift_dg_advance(
  * @param shift_b Basis shift_dg coefficients are expanded on.
  * @return Discretized shift.
  */
-struct gkyl_array *gkyl_twistshift_dg_get_shift_objects(
-  struct gkyl_twistshift_dg *up, struct gkyl_rect_grid *shear_grid, struct gkyl_range *shear_r,
-  struct gkyl_basis *shift_b
-);
+struct gkyl_array* gkyl_twistshift_dg_get_shift_objects(struct gkyl_twistshift_dg *up,
+  struct gkyl_rect_grid *shear_grid, struct gkyl_range *shear_r, struct gkyl_basis *shift_b);
 
 /**
  * Free memory associated with twistshift_dg updater.

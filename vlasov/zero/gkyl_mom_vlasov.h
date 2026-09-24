@@ -12,10 +12,9 @@
  * @param mom_type Name of moment to compute.
  * @param use_gpu bool to determine if on GPU
  */
-struct gkyl_mom_type *gkyl_mom_vlasov_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  enum gkyl_distribution_moments mom_type, bool use_gpu
-);
+struct gkyl_mom_type* 
+gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, enum gkyl_distribution_moments mom_type, bool use_gpu);
 
 /**
  * Create new integrated Vlasov moment type object. Lab-frame
@@ -26,7 +25,6 @@ struct gkyl_mom_type *gkyl_mom_vlasov_new(
  * @param mom_type Name of moment to compute.
  * @param use_gpu bool to determine if on GPU
  */
-struct gkyl_mom_type *gkyl_int_mom_vlasov_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  enum gkyl_distribution_moments mom_type, bool use_gpu
-);
+struct gkyl_mom_type* 
+gkyl_int_mom_vlasov_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, enum gkyl_distribution_moments mom_type, bool use_gpu);

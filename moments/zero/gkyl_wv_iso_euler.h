@@ -23,7 +23,7 @@
 // Type of Riemann-solver to use:
 enum gkyl_wv_iso_euler_rp {
   WV_ISO_EULER_RP_LAX = 0, // Default (Lax fluxes).
-  WV_ISO_EULER_RP_ROE
+  WV_ISO_EULER_RP_ROE,
 };
 
 // Input context, packaged as a struct.
@@ -41,7 +41,8 @@ struct gkyl_wv_iso_euler_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the isothermal Euler equations object.
 */
-struct gkyl_wv_eqn *gkyl_wv_iso_euler_new(double vt, bool use_gpu);
+struct gkyl_wv_eqn*
+gkyl_wv_iso_euler_new(double vt, bool use_gpu);
 
 /**
 * Create a new isothermal Euler equations object, from an input context struct.
@@ -49,7 +50,8 @@ struct gkyl_wv_eqn *gkyl_wv_iso_euler_new(double vt, bool use_gpu);
 * @param inp Input context struct.
 * @return Pointer to the isothermal Euler equations object.
 */
-struct gkyl_wv_eqn *gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp *inp);
+struct gkyl_wv_eqn*
+gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp* inp);
 
 /**
  * Get thermal velocity.
@@ -57,4 +59,4 @@ struct gkyl_wv_eqn *gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp *i
  * @param wv Isothermal Euler equations object.
  * @return Thermal velocity.
  */
-double gkyl_wv_iso_euler_vt(const struct gkyl_wv_eqn *wv);
+ double gkyl_wv_iso_euler_vt(const struct gkyl_wv_eqn* wv);

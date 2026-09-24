@@ -6,7 +6,8 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_5m_riem_ctx {
+struct amr_5m_riem_ctx
+{
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
   double epsilon0; // Permittivity of free space.
@@ -133,7 +134,7 @@ create_ctx(void)
 }
 
 void
-evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
   struct amr_5m_riem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -153,7 +154,8 @@ evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   if (x < 0.5) {
     rho = rhol_elc; // Electron mass density (left).
     p = pl; // Electron pressure (left).
-  } else {
+  }
+  else {
     rho = rhor_elc; // Electron mass density (right).
     p = pr; // Electron pressure (right).
   }
@@ -161,15 +163,13 @@ evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   // Set electron mass density.
   fout[0] = rho;
   // Set electron momentum density.
-  fout[1] = 0.0;
-  fout[2] = 0.0;
-  fout[3] = 0.0;
+  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
   // Set electron total energy density.
-  fout[4] = p / (gas_gamma - 1.0);
+  fout[4] = p / (gas_gamma - 1.0);  
 }
 
 void
-evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
   struct amr_5m_riem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -188,7 +188,8 @@ evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   if (x < 0.5) {
     rho = rhol_ion; // Ion mass density (left).
     p = pl; // Ion pressure (left).
-  } else {
+  }
+  else {
     rho = rhor_ion; // Ion mass density (right).
     p = pr; // Ion pressure (right).
   }
@@ -196,15 +197,13 @@ evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   // Set ion mass density.
   fout[0] = rho;
   // Set ion momentum density.
-  fout[1] = 0.0;
-  fout[2] = 0.0;
-  fout[3] = 0.0;
+  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
   // Set ion total energy density.
-  fout[4] = p / (gas_gamma - 1.0);
+  fout[4] = p / (gas_gamma - 1.0);  
 }
 
 void
-evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
   struct amr_5m_riem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -218,23 +217,20 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
 
   if (x < 0.5) {
     Bz = Bzl; // Total magnetic field (z-direction, left).
-  } else {
+  }
+  else {
     Bz = Bzr; // Total magnetic field (z-direction, right).
   }
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0;
-  fout[2] = 0.0;
+  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = 0.0;
-  fout[5] = Bz;
+  fout[3] = Bx, fout[4] = 0.0; fout[5] = Bz;
   // Set correction potentials.
-  fout[6] = 0.0;
-  fout[7] = 0.0;
+  fout[6] = 0.0; fout[7] = 0.0;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct amr_5m_riem_ctx ctx = create_ctx(); // Context for initialization functions.
 

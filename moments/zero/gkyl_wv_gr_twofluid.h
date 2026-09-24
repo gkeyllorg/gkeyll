@@ -47,12 +47,9 @@ struct gkyl_wv_gr_twofluid_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the general relativistic two-fluid equations object with ideal gas equation of state.
 */
-struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_new(
-  double mass_elc, double mass_ion, double charge_elc, double charge_ion, double gas_gamma_elc,
-  double gas_gamma_ion, double light_speed, double e_fact, double b_fact,
-  enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
-  bool use_gpu
-);
+struct gkyl_wv_eqn*
+gkyl_wv_gr_twofluid_new(double mass_elc, double mass_ion, double charge_elc, double charge_ion, double gas_gamma_elc, double gas_gamma_ion,
+  double light_speed, double e_fact, double b_fact, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime* spacetime, bool use_gpu);
 
 /**
 * Create a new general relativistic two-fluid equations object with ideal gas equation of state, from an input context struct.
@@ -60,7 +57,8 @@ struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_new(
 * @param inp Input context struct.
 * @return Pointer to the general relativistic two-fluid equations object with ideal gas equation of state.
 */
-struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_inew(const struct gkyl_wv_gr_twofluid_inp *inp);
+struct gkyl_wv_eqn*
+gkyl_wv_gr_twofluid_inew(const struct gkyl_wv_gr_twofluid_inp* inp);
 
 /**
 * Get electron mass.
@@ -68,7 +66,8 @@ struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_inew(const struct gkyl_wv_gr_twofluid_in
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Electron mass.
 */
-double gkyl_wv_gr_twofluid_mass_elc(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_twofluid_mass_elc(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get ion mass.
@@ -76,7 +75,8 @@ double gkyl_wv_gr_twofluid_mass_elc(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Ion mass.
 */
-double gkyl_wv_gr_twofluid_mass_ion(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_twofluid_mass_ion(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get electron charge.
@@ -84,7 +84,8 @@ double gkyl_wv_gr_twofluid_mass_ion(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Electron charge.
 */
-double gkyl_wv_gr_twofluid_charge_elc(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_twofluid_charge_elc(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get ion charge.
@@ -92,7 +93,8 @@ double gkyl_wv_gr_twofluid_charge_elc(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Ion charge.
 */
-double gkyl_wv_gr_twofluid_charge_ion(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_twofluid_charge_ion(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get adiabatic index (electrons).
@@ -100,7 +102,8 @@ double gkyl_wv_gr_twofluid_charge_ion(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Adiabatic index (electrons).
 */
-double gkyl_wv_gr_twofluid_gas_gamma_elc(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_twofluid_gas_gamma_elc(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get adiabatic index (ions).
@@ -108,7 +111,8 @@ double gkyl_wv_gr_twofluid_gas_gamma_elc(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Adiabatic index (ions).
 */
-double gkyl_wv_gr_twofluid_gas_gamma_ion(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_twofluid_gas_gamma_ion(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get speed of light.
@@ -116,7 +120,8 @@ double gkyl_wv_gr_twofluid_gas_gamma_ion(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Speed of light.
 */
-double gkyl_wv_gr_twofluid_light_speed(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_twofluid_light_speed(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get factor of speed of light for electric field correction.
@@ -124,7 +129,8 @@ double gkyl_wv_gr_twofluid_light_speed(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Factor of speed of light for electric field correction.
 */
-double gkyl_wv_gr_twofluid_e_fact(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_twofluid_e_fact(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get factor of speed of light for magnetic field correction.
@@ -132,7 +138,8 @@ double gkyl_wv_gr_twofluid_e_fact(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Factor of speed of light for magnetic field correction.
 */
-double gkyl_wv_gr_twofluid_b_fact(const struct gkyl_wv_eqn *eqn);
+double
+gkyl_wv_gr_twofluid_b_fact(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get spacetime gauge choice.
@@ -140,7 +147,8 @@ double gkyl_wv_gr_twofluid_b_fact(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Spacetime gauge choice.
 */
-enum gkyl_spacetime_gauge gkyl_wv_gr_twofluid_spacetime_gauge(const struct gkyl_wv_eqn *eqn);
+enum gkyl_spacetime_gauge
+gkyl_wv_gr_twofluid_spacetime_gauge(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get spacetime reinitialization frequency.
@@ -148,7 +156,8 @@ enum gkyl_spacetime_gauge gkyl_wv_gr_twofluid_spacetime_gauge(const struct gkyl_
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Spacetime reinitialization frequency.
 */
-int gkyl_wv_gr_twofluid_reinit_freq(const struct gkyl_wv_eqn *eqn);
+int
+gkyl_wv_gr_twofluid_reinit_freq(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get base spacetime object.
@@ -156,4 +165,5 @@ int gkyl_wv_gr_twofluid_reinit_freq(const struct gkyl_wv_eqn *eqn);
 * @param eqn General relativistic two-fluid equations object with ideal gas equation of state.
 * @return Pointer to the base spacetime object.
 */
-struct gkyl_gr_spacetime *gkyl_wv_gr_twofluid_spacetime(const struct gkyl_wv_eqn *eqn);
+struct gkyl_gr_spacetime*
+gkyl_wv_gr_twofluid_spacetime(const struct gkyl_wv_eqn* eqn);

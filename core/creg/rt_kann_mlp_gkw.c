@@ -16,15 +16,15 @@ struct xrange {
 static inline float
 xrange_n(struct xrange xr, int n)
 {
-  float dx = (xr.xright - xr.xleft) / (xr.N - 1);
-  return xr.xleft + dx * n;
+  float dx = (xr.xright-xr.xleft)/(xr.N-1);
+  return xr.xleft + dx*n;
 }
 
 // function to fit
 static inline float
 ufunc(float x)
 {
-  return 1.0f / (1.0f + 100.0f * x * x);
+  return 1.0f/(1.0f+100.0f*x*x);
 }
 
 struct train_inp {
@@ -41,7 +41,7 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   kad_node_t *t_net;
   t_net = kann_layer_input(1);
 
-  for (int i = 0; i < nn_inp->ndepth; ++i) {
+  for (int i=0; i<nn_inp->ndepth; ++i) {
     t_net = kann_layer_dense(t_net, nn_inp->nwidth);
     t_net = kad_tanh(t_net);
   }
@@ -55,9 +55,13 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 1);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
-  struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = N};
+  struct xrange xr = {
+    .xleft = -1.0,
+    .xright = 1.0,
+    .N = N
+  };
 
-  for (int i = 0; i < N; ++i) {
+  for (int i=0; i<N; ++i) {
     inp->vals[i][0] = xrange_n(xr, i);
     out->vals[i][0] = ufunc(inp->vals[i][0]);
   }
@@ -94,7 +98,8 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
 
 // run inference on N input values
 void
-infer_ann(const char *nn_name, bool use_gpu, struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+infer_ann(const char *nn_name, bool use_gpu,
+  struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   struct gkyl_kann_net *net = gkyl_kann_net_load(nn_name, use_gpu);
 
@@ -128,17 +133,14 @@ write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
     "plot \"rt_kann_mlp_gkw_data.txt\" using 1:2 with points pt 9 ps 3 title \"NN\", [-1:1] 1/(1+100*x**2) with lines ls @BLUE title \"Exact\"";
 
   FILE *fp = 0;
-  with_file(fp, "rt_kann_mlp_gkw.gp", "w")
-  {
+  with_file(fp, "rt_kann_mlp_gkw.gp", "w") {
     fprintf(fp, "%s", gpcode);
   }
 
   fp = 0;
-  with_file(fp, "rt_kann_mlp_gkw_data.txt", "w")
-  {
-    for (int i = 0; i < inp->nvec; ++i) {
+  with_file(fp, "rt_kann_mlp_gkw_data.txt", "w") {
+    for (int i=0; i<inp->nvec; ++i)
       fprintf(fp, "%.5g %.5g\n", inp->vals[i][0], out->vals[i][0]);
-    }
   }
 }
 
@@ -148,7 +150,8 @@ main(int argc, char *argv[])
   int p_train = 0, p_infer = 0, p_verbose = 0, c;
   bool use_gpu = false;
   while ((c = getopt(argc, argv, "+htivg")) != -1) {
-    switch (c) {
+    switch (c)
+    {
       case 'h':
         fprintf(stdout, "rt_kann_mlp_gkw -i -t -v -g\n");
         fprintf(stdout, "  -t Run Training\n");
@@ -183,13 +186,12 @@ main(int argc, char *argv[])
 
   if (p_train) {
     fprintf(stdout, "*** Training%s\n", use_gpu ? " (GPU)" : "");
-    train_ann(
-      &(struct train_inp){
+    train_ann( &(struct train_inp) {
         .ntrain = 1001,
         .ndepth = 2,
         .nwidth = 256,
         .learning_rate = 1e-3f,
-        .use_gpu = use_gpu,
+        .use_gpu = use_gpu
       },
       "rt_kann_mlp_gkw.kann"
     );
@@ -201,10 +203,9 @@ main(int argc, char *argv[])
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 1);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
-    struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = inp->nvec};
-    for (int i = 0; i < inp->nvec; ++i) {
+    struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = inp->nvec };
+    for (int i=0; i<inp->nvec; ++i)
       inp->vals[i][0] = xrange_n(xr, i);
-    }
 
     infer_ann("rt_kann_mlp_gkw.kann", use_gpu, inp, out);
     write_to_gplot(inp, out);

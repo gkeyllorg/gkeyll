@@ -22,7 +22,8 @@
  * @param app Gyrokinetic application object.
  * @param f Field object to initialize.
  */
-void gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+void
+gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
  * Initialize the FEM object for 1D (1x) field solves.
@@ -31,7 +32,8 @@ void gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_fiel
  * @param app Gyrokinetic application object.
  * @param f Field object to initialize.
  */
-void gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+void
+gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
  * Initialize the FEM object for 2D or 3D (2x/3x) field solves.
@@ -40,7 +42,8 @@ void gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
  * @param app Gyrokinetic application object.
  * @param f Field object to initialize.
  */
-void gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+void
+gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /** FEM Projection Functions **/
 
@@ -54,10 +57,9 @@ void gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
  * @param arr_dg Input DG array to be projected.
  * @param arr_fem Output FEM array (projected result with parallel continuity).
  */
-void gk_field_fem_projection_par(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
-  struct gkyl_array *arr_fem
-);
+void
+gk_field_fem_projection_par(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
 
 /** Charge Density Accumulation Functions **/
 
@@ -71,9 +73,9 @@ void gk_field_fem_projection_par(
  * @param s Species object providing density moments.
  * @param bflux Boundary flux array (for boundary contributions).
  */
-void gk_field_accumulate_rho_c_adiabatic(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux
-);
+void
+gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gk_species *s, struct gkyl_array **bflux);
 
 /**
  * Accumulate charge density for a full Poisson solve.
@@ -85,9 +87,9 @@ void gk_field_accumulate_rho_c_adiabatic(
  * @param s Species object providing density moments.
  * @param bflux Boundary flux array (for boundary contributions).
  */
-void gk_field_accumulate_rho_c_poisson(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux
-);
+void
+gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gk_species *s, struct gkyl_array **bflux);
 
 /**
  * No-op function for parallel boundary conditions (disabled variant).
@@ -97,9 +99,9 @@ void gk_field_accumulate_rho_c_poisson(
  * @param field Field object.
  * @param finout Array (unchanged).
  */
-void gk_field_enforce_parallel_bc_disabled(
-  const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout
-);
+void
+gk_field_enforce_parallel_bc_disabled(const gkyl_gyrokinetic_app *app,
+  struct gk_field *field, struct gkyl_array *finout);
 
 /** Finite Larmor Radius (FLR) Correction Functions **/
 
@@ -110,7 +112,8 @@ void gk_field_enforce_parallel_bc_disabled(
  * @param app Gyrokinetic application object.
  * @param f Field object to initialize FLR corrections for.
  */
-void gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+void
+gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
  * Release FLR correction resources.
@@ -118,7 +121,8 @@ void gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
  * @param app Gyrokinetic application object.
  * @param f Field object whose FLR resources are to be released.
  */
-void gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+void
+gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
  * Apply FLR inversion to obtain the gyroaveraged potential.
@@ -128,7 +132,9 @@ void gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_fiel
  * @param field Field object containing solver state.
  * @param phi Electrostatic potential array (input/output).
  */
-void gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi);
+void
+gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *phi);
 
 /**
  * No-op function for FLR inversion (when FLR corrections are disabled).
@@ -138,9 +144,9 @@ void gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, stru
  * @param field Field object.
  * @param phi Electrostatic potential array (unchanged).
  */
-void gk_field_invert_flr_none(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi
-);
+void
+gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *phi);
 
 /** Biased Wall Functions **/
 
@@ -151,7 +157,8 @@ void gk_field_invert_flr_none(
  * @param app Gyrokinetic application object.
  * @param f Field object to initialize biased wall for.
  */
-void gk_field_biased_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+void
+gk_field_biased_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
  * Release biased wall resources.
@@ -159,7 +166,8 @@ void gk_field_biased_wall_new(struct gkyl_gyrokinetic_app *app, struct gk_field 
  * @param app Gyrokinetic application object.
  * @param f Field object whose biased wall resources are to be released.
  */
-void gk_field_biased_wall_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+void
+gk_field_biased_wall_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
  * Calculate and apply the wall potential at the current simulation time.
@@ -169,4 +177,5 @@ void gk_field_biased_wall_release(const struct gkyl_gyrokinetic_app *app, struct
  * @param field Field object containing the potential.
  * @param tm Current simulation time.
  */
-void gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm);
+void
+gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm);
