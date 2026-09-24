@@ -759,19 +759,21 @@ main(int argc, char **argv)
     .blocks = elc_blocks,
     .duplicate_across_blocks = false,
 
-     .num_diag_moments = 4,
-     .diag_moments =
-       {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
-     .num_integrated_diag_moments = 1,
-     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-     .num_time_rate_diagnostics = 2,
-     .time_rate_diagnostics =
-       {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
-        GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
-     .boundary_flux_diagnostics = {
-       .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-       //      .time_integrated = true,
-     }};
+    .num_diag_moments = 4,
+    .diag_moments =
+      {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+    .num_time_rate_diagnostics = 2,
+    .time_rate_diagnostics =
+      {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+       GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
+    .boundary_flux_diagnostics =
+      {
+        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+        //      .time_integrated = true,
+      },
+  };
 
   // Ions.
   // Ion core source:
@@ -937,19 +939,21 @@ main(int argc, char **argv)
     .blocks = ion_blocks,
     .duplicate_across_blocks = false,
 
-     .num_diag_moments = 4,
-     .diag_moments =
-       {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
-     .num_integrated_diag_moments = 1,
-     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-     .num_time_rate_diagnostics = 2,
-     .time_rate_diagnostics =
-       {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
-        GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
-     .boundary_flux_diagnostics = {
-       .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-       //      .time_integrated = true,
-     }};
+    .num_diag_moments = 4,
+    .diag_moments =
+      {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+    .num_time_rate_diagnostics = 2,
+    .time_rate_diagnostics =
+      {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+       GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
+    .boundary_flux_diagnostics =
+      {
+        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+        //      .time_integrated = true,
+      },
+  };
 
   // Field object
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];

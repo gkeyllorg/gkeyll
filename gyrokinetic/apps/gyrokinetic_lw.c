@@ -175,12 +175,14 @@ gkyl_register_gyrokinetic_field_types(lua_State *L)
   register_types(L, gk_field_type, "GKField");
 }
 
-void gkyl_register_gyrokinetic_time_rate_diagnostic_types(lua_State *L)
+void
+gkyl_register_gyrokinetic_time_rate_diagnostic_types(lua_State *L)
 {
   register_types(L, gk_time_rate_diagnostic_type, "TimeRateDiagnostic");
 }
 
-void gkyl_register_gyrokinetic_radiation_types(lua_State *L)
+void
+gkyl_register_gyrokinetic_radiation_types(lua_State *L)
 {
   register_types(L, gk_radiation_type, "Radiation");
 }

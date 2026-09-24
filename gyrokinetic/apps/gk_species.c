@@ -382,7 +382,8 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, doub
   }
 }
 
-void gk_species_write_fdot(
+void
+gk_species_write_fdot(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fdot
 )
 {
@@ -399,11 +400,11 @@ void gk_species_write_fdot(
     gks->io_meta_phase_len, gks->io_meta_phase, "frame", gks->fdot_io_frame
   );
 
-  struct gkyl_msgpack_map_elem io_meta_fdot[] = {
-    {.key = "Description",
-     .elem_type = GKYL_MP_STRING,
-     .cval = "Explicit SSP-RK3 stage-1 time rate of change of the distribution function."}
-  };
+  struct gkyl_msgpack_map_elem io_meta_fdot[] = {{
+    .key = "Description",
+    .elem_type = GKYL_MP_STRING,
+    .cval = "Explicit SSP-RK3 stage-1 time rate of change of the distribution function.",
+  }};
   int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gks->io_meta_phase, app->gk_geom->io_meta_basic, io_meta_fdot
@@ -539,7 +540,8 @@ gk_species_write_mom_static(gkyl_gyrokinetic_app *app, struct gk_species *gks, d
   // do nothing
 }
 
-static bool gk_species_has_fdot_mom_diagnostic(const struct gk_species *gks)
+static bool
+gk_species_has_fdot_mom_diagnostic(const struct gk_species *gks)
 {
   return !gks->info.is_static &&
          (gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_MOMENTS] ||
@@ -548,7 +550,8 @@ static bool gk_species_has_fdot_mom_diagnostic(const struct gk_species *gks)
           gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS]);
 }
 
-static void gk_species_write_one_fdot_mom(
+static void
+gk_species_write_one_fdot_mom(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame, const char *fdot_name,
   const char *description
 )
@@ -590,18 +593,21 @@ static void gk_species_write_one_fdot_mom(
   app->stat.n_diag_io += 1;
 }
 
-static void gk_species_write_fdot_mom_disabled(
+static void
+gk_species_write_fdot_mom_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
 }
 
-static void gk_species_copy_fdot_mom_to_host(struct gk_species *gks)
+static void
+gk_species_copy_fdot_mom_to_host(struct gk_species *gks)
 {
   gkyl_array_copy(gks->integ_moms.marr_host, gks->fdot_mom_new);
 }
 
-static void gk_species_abs_fdot_mom_host(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+static void
+gk_species_abs_fdot_mom_host(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &app->local);
@@ -614,7 +620,8 @@ static void gk_species_abs_fdot_mom_host(gkyl_gyrokinetic_app *app, struct gk_sp
   }
 }
 
-static void gk_species_write_fdot_mom_enabled(
+static void
+gk_species_write_fdot_mom_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -624,7 +631,8 @@ static void gk_species_write_fdot_mom_enabled(
   );
 }
 
-static void gk_species_write_fdot_abs_mom_enabled(
+static void
+gk_species_write_fdot_abs_mom_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -636,7 +644,8 @@ static void gk_species_write_fdot_abs_mom_enabled(
   );
 }
 
-static void gk_species_write_fdot_and_abs_mom_enabled(
+static void
+gk_species_write_fdot_and_abs_mom_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
 )
 {
@@ -651,7 +660,8 @@ static void gk_species_write_fdot_and_abs_mom_enabled(
   );
 }
 
-static void gk_species_calc_int_mom_dt_enabled(
+static void
+gk_species_calc_int_mom_dt_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
 )
 {
@@ -678,7 +688,8 @@ gk_species_calc_int_mom_dt(
   gks->calc_int_mom_dt_func(app, gks, dt, fdot_int_mom);
 }
 
-static void gk_species_calc_fdot_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+static void
+gk_species_calc_fdot_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_array_accumulate(gks->fdot_mom_new, -1.0, gks->fdot_mom_old);
@@ -686,11 +697,13 @@ static void gk_species_calc_fdot_mom_enabled(gkyl_gyrokinetic_app *app, struct g
   app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_species_calc_fdot_mom_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+static void
+gk_species_calc_fdot_mom_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
 }
 
-void gk_species_calc_fdot_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+void
+gk_species_calc_fdot_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   gks->calc_fdot_mom_func(app, gks);
 }
@@ -844,11 +857,11 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
       snprintf(abs_fileNm, sizeof abs_fileNm, abs_fmt, app->name, gks->info.name, "integrated_moms");
 
       if (gks->is_first_fdot_abs_integ_write_call) {
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {
-          {.key = "Description",
-           .elem_type = GKYL_MP_STRING,
-           .cval = "Volume integral of absolute moments of time rate of change."}
-        };
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {{
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Volume integral of absolute moments of time rate of change.",
+        }};
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
           gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi

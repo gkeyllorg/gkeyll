@@ -14,18 +14,18 @@ gkyl_array_dg_reducec(
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
     switch (op) {
-    case GKYL_MAX:
-      gkyl_array_dg_reducec_max_cu(out, arr, comp, basis);
-      break;
-    case GKYL_MIN:
-      gkyl_array_dg_reducec_min_cu(out, arr, comp, basis);
-      break;
-    case GKYL_SUM:
-      gkyl_array_dg_reducec_sum_cu(out, arr, comp, basis);
-      break;
-    default:
-      assert(false);
-      break;
+      case GKYL_MAX:
+        gkyl_array_dg_reducec_max_cu(out, arr, comp, basis);
+        break;
+      case GKYL_MIN:
+        gkyl_array_dg_reducec_min_cu(out, arr, comp, basis);
+        break;
+      case GKYL_SUM:
+        gkyl_array_dg_reducec_sum_cu(out, arr, comp, basis);
+        break;
+      default:
+        assert(false);
+        break;
     }
     return;
   }
@@ -70,12 +70,12 @@ gkyl_array_dg_reducec(
           out[0] += arr_nodal[k];
         }
       }
-    }
-    break;
+  }
+  break;
   default:
     assert(false);
     break;
-  }
+}
 }
 
 void
@@ -89,18 +89,18 @@ gkyl_array_dg_reducec_range(
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
     switch (op) {
-    case GKYL_MAX:
-      gkyl_array_dg_reducec_range_max_cu(out, arr, comp, basis, range);
-      break;
-    case GKYL_MIN:
-      gkyl_array_dg_reducec_range_min_cu(out, arr, comp, basis, range);
-      break;
-    case GKYL_SUM:
-      gkyl_array_dg_reducec_range_sum_cu(out, arr, comp, basis, range);
-      break;
-    default:
-      assert(false);
-      break;
+      case GKYL_MAX:
+        gkyl_array_dg_reducec_range_max_cu(out, arr, comp, basis, range);
+        break;
+      case GKYL_MIN:
+        gkyl_array_dg_reducec_range_min_cu(out, arr, comp, basis, range);
+        break;
+      case GKYL_SUM:
+        gkyl_array_dg_reducec_range_sum_cu(out, arr, comp, basis, range);
+        break;
+      default:
+        assert(false);
+        break;
     }
     return;
   }
@@ -151,10 +151,10 @@ gkyl_array_dg_reducec_range(
           out[0] += arr_nodal[k];
         }
       }
-    }
-    break;
+  }
+  break;
   default:
     assert(false);
     break;
-  }
+}
 }

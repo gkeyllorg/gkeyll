@@ -107,7 +107,8 @@ test_sum_reduce_range_ho()
   gkyl_array_release(arr);
 }
 
-void test_sum_abs_reduce_range_ho()
+void
+test_sum_abs_reduce_range_ho()
 {
   int shape[] = {2, 3};
   struct gkyl_range range;
@@ -132,7 +133,8 @@ void test_sum_abs_reduce_range_ho()
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_sum_abs_reduce_range_dev()
+void
+test_sum_abs_reduce_range_dev()
 {
   int shape[] = {2, 3};
   struct gkyl_range range;
@@ -160,7 +162,8 @@ void test_sum_abs_reduce_range_dev()
   gkyl_array_release(arr);
 }
 
-void test_array_reduce_max_dev()
+void
+test_array_reduce_max_dev()
 {
   unsigned long numComp = 3, numCells = 10;
   // Create host array and device copy

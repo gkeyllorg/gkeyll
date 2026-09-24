@@ -360,7 +360,8 @@ gkyl_array_reduce_range_sum_cu(
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void arraySumAbs_range_blockRedAtomic_cub(
+__global__ void
+arraySumAbs_range_blockRedAtomic_cub(
   const struct gkyl_array *inp, const struct gkyl_range range, double *out
 )
 {
@@ -395,7 +396,8 @@ __global__ void arraySumAbs_range_blockRedAtomic_cub(
   }
 }
 
-void gkyl_array_reduce_range_sum_abs_cu(
+void
+gkyl_array_reduce_range_sum_abs_cu(
   double *out_d, const struct gkyl_array *inp, const struct gkyl_range *range
 )
 {

@@ -11,18 +11,18 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
     switch (op) {
-    case GKYL_MAX:
-      gkyl_array_reduce_max_cu(out, arr);
-      break;
-    case GKYL_MIN:
-      gkyl_array_reduce_min_cu(out, arr);
-      break;
-    case GKYL_SUM:
-      gkyl_array_reduce_sum_cu(out, arr);
-      break;
-    default:
-      assert(false);
-      break;
+      case GKYL_MAX:
+        gkyl_array_reduce_max_cu(out, arr);
+        break;
+      case GKYL_MIN:
+        gkyl_array_reduce_min_cu(out, arr);
+        break;
+      case GKYL_SUM:
+        gkyl_array_reduce_sum_cu(out, arr);
+        break;
+      default:
+        assert(false);
+        break;
     }
     return;
   }
@@ -60,12 +60,12 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
       for (long k = 0; k < nc; ++k) {
         out[k] = 0;
       }
-    }
-    break;
+  }
+  break;
   default:
     assert(false);
     break;
-  }
+}
 }
 
 void
@@ -78,18 +78,18 @@ gkyl_array_reduce_range(
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
     switch (op) {
-    case GKYL_MAX:
-      gkyl_array_reduce_range_max_cu(res, arr, range);
-      break;
-    case GKYL_MIN:
-      gkyl_array_reduce_range_min_cu(res, arr, range);
-      break;
-    case GKYL_SUM:
-      gkyl_array_reduce_range_sum_cu(res, arr, range);
-      break;
-    case GKYL_SUM_ABS:
-      gkyl_array_reduce_range_sum_abs_cu(res, arr, range);
-      break;
+      case GKYL_MAX:
+        gkyl_array_reduce_range_max_cu(res, arr, range);
+        break;
+      case GKYL_MIN:
+        gkyl_array_reduce_range_min_cu(res, arr, range);
+        break;
+      case GKYL_SUM:
+        gkyl_array_reduce_range_sum_cu(res, arr, range);
+        break;
+      case GKYL_SUM_ABS:
+        gkyl_array_reduce_range_sum_abs_cu(res, arr, range);
+        break;
     }
     return;
   }
@@ -125,8 +125,8 @@ gkyl_array_reduce_range(
           res[i] = fmax(res[i], d[i]);
         }
       }
-    }
-    break;
+  }
+  break;
   case GKYL_SUM_ABS:
     for (long i = 0; i < n; ++i) {
       res[i] = 0;
@@ -140,5 +140,5 @@ gkyl_array_reduce_range(
       }
     }
     break;
-  }
+}
 }
