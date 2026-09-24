@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3AKBDWJHYDARRC9XP5BBAGK",
+  "strategy": "manual-commit",
+  "branch": "maxwells-world",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "core/zero/array_reduce_cu.cu",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/apps/gyrokinetic_multib.c",
+    "gyrokinetic/unit/ctest_gk_collisionless_fdot_multiplier.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mapc2p.c",
+    "gyrokinetic/unit/ctest_gk_geometry_tok.c",
+    "gyrokinetic/unit/ctest_mirror_grid_gen.c",
+    "gyrokinetic/unit/ctest_position_map.c",
+    "gyrokinetic/zero/gkyl_gk_geometry_priv.h",
+    "gyrokinetic/zero/gkyl_position_map_priv.h",
+    "gyrokinetic/zero/gkyl_positivity_shift_gyrokinetic_priv.h"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 664,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 131840,
+    "output_tokens": 757,
+    "api_call_count": 1
+  }
+}
