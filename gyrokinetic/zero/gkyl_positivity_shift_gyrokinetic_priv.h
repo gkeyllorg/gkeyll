@@ -85,7 +85,8 @@ struct gkyl_positivity_shift_gyrokinetic_shift_region_idx {
 // Return true if the conf-space cell with index conf_idx should be shifted,
 // i.e. its z cell index falls within one of the restriction regions. With no
 // regions specified the shift is applied everywhere.
-GKYL_CU_DH static inline bool pos_shift_gk_apply_in_cell(
+GKYL_CU_DH static inline bool
+pos_shift_gk_apply_in_cell(
   const struct gkyl_positivity_shift_gyrokinetic_shift_region_idx *regions, const int *conf_idx
 )
 {

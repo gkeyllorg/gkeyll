@@ -69,8 +69,6 @@ new_app(bool use_gpu, enum gkyl_gk_collisionless_type type, bool collisions)
     .poly_order = 1,
     .basis_type = GKYL_BASIS_MODAL_SERENDIPITY,
     .geometry = {.geometry_id = GKYL_GEOMETRY_MAPC2P, .mapc2p = mapc2p, .bfield_func = bfield},
-    .num_periodic_dir = 1,
-    .periodic_dirs = {0},
     .num_species = 1,
     .species = {{
       .name = "ion",
@@ -81,6 +79,10 @@ new_app(bool use_gpu, enum gkyl_gk_collisionless_type type, bool collisions)
       .upper = {6.0, 6.0},
       .cells = {12, 8},
       .polarization_density = 1.0,
+      // Open ends give the loss-cone checks both trapped and passing orbits.
+      .bcs =
+        {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+         {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
       .projection = {.proj_id = GKYL_PROJ_FUNC, .func = initial_dist},
       .collisions =
         {.collision_id = collisions ? GKYL_LBO_COLLISIONS : 0, .self_nu = collision_frequency},
@@ -124,10 +126,11 @@ compute_rhs(gkyl_gyrokinetic_app *app)
 {
   struct gk_species *species = &app->species[0];
   const struct gkyl_array *fin[] = {species->f};
+  const struct gkyl_array *fbar_in[] = {species->damping.fbar};
   struct gkyl_array *fout[] = {species->f1};
   struct gkyl_array **bflux[] = {species->bflux.f1};
   struct gkyl_update_status status = {.success = true};
-  gyrokinetic_rhs(app, 0.0, DBL_MAX, fin, fout, bflux, NULL, NULL, NULL, &status);
+  gyrokinetic_rhs(app, 0.0, DBL_MAX, fin, fbar_in, fout, bflux, NULL, NULL, NULL, &status);
   return status.dt_suggested;
 }
 
@@ -170,8 +173,8 @@ check_rhs(
       TEST_CHECK(gkyl_compare(((const double *)gkyl_array_cfetch(screen, loc))[0], mult, 2e-12));
     }
     screened_cells += mult < 1.0;
-    trapped_cells += mask == 0.0;
-    passing_cells += mask == 1.0;
+    trapped_cells += mask == 1.0;
+    passing_cells += mask == 0.0;
     for (int k = 0; k < species->basis.num_basis; ++k) {
       double other = base[k] - cls[k];
       double expected = mask * (mult * cls[k] + other);

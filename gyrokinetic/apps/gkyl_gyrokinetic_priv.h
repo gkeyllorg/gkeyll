@@ -3474,8 +3474,9 @@ void gk_species_damping_write(
  * @param fname Name of the fbar restart file.
  * @return Status of the file read.
  */
-enum gkyl_array_rio_status
-gk_species_damping_read_fbar(gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *fname);
+enum gkyl_array_rio_status gk_species_damping_read_fbar(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *fname
+);
 
 /**
  * Compute filtered distribution RHS for low-pass filter damping:

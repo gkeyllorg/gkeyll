@@ -1177,7 +1177,9 @@ struct gkyl_app_restart_status
 gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat = {
-    .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = frame, .stime = 0.0
+    .io_status = GKYL_ARRAY_RIO_SUCCESS,
+    .frame = frame,
+    .stime = 0.0,
   };
   for (int b = 0; b < app->num_local_blocks; ++b) {
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
