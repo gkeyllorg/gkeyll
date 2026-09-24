@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3AAZ45PND1AW7XT1QYQTTB0",
+  "strategy": "manual-commit",
+  "branch": "fdot-abs-integrated-moms",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "core/unit/ctest_array_reduce.c",
+    "core/zero/array_dg_reduce.c",
+    "core/zero/array_reduce.c",
+    "core/zero/array_reduce_cu.cu",
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic.h",
+    "gyrokinetic/apps/gyrokinetic_lw.c",
+    "gyrokinetic/apps/gyrokinetic_multib_update_ssp_rk3.c",
+    "gyrokinetic/apps/gyrokinetic_update_ssp_rk3.c",
+    "gyrokinetic/creg/rt_gk_step_2x2v_p1_cons.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 115295,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3709312,
+    "output_tokens": 17459,
+    "api_call_count": 44
+  }
+}
