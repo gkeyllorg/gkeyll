@@ -43,7 +43,7 @@ struct train_inp {
 };
 
 // Construct an MLP (with tanh activation) to use as a single "expert".
-static inline kad_node_t*
+static inline kad_node_t *
 single_expert(kad_node_t *input, int n_layers, int n_hidden, int n_output)
 {
   kad_node_t *t_net;
@@ -58,7 +58,7 @@ single_expert(kad_node_t *input, int n_layers, int n_hidden, int n_output)
 }
 
 // Construct a "weighted expert", with an initial (trainable) scalar weight and a trainable scalar bias.
-static inline kad_node_t*
+static inline kad_node_t *
 weighted_expert(kad_node_t *expert, int n_output, float init_weight)
 {
   kad_node_t *weight, *bias;
@@ -74,7 +74,7 @@ weighted_expert(kad_node_t *expert, int n_output, float init_weight)
 }
 
 // Construct a "mixture of experts" architecture consisting of multiple single "experts" linked together (with tanh activation and MSE cost).
-static inline kad_node_t*
+static inline kad_node_t *
 mixture_of_experts(int n_input, int n_layers, int n_hidden, int n_experts, int n_output)
 {
   kad_node_t *input;
@@ -86,12 +86,12 @@ mixture_of_experts(int n_input, int n_layers, int n_hidden, int n_experts, int n
 
   input = kann_layer_input(n_input);
 
-  experts = gkyl_malloc(n_experts * sizeof(kad_node_t*));
+  experts = gkyl_malloc(n_experts * sizeof(kad_node_t *));
   for (int i = 0; i < n_experts; i++) {
     experts[i] = single_expert(input, n_layers, n_hidden, n_output);
   }
 
-  weighted_experts = gkyl_malloc(n_experts * sizeof(kad_node_t*));
+  weighted_experts = gkyl_malloc(n_experts * sizeof(kad_node_t *));
   for (int i = 0; i < n_experts; i++) {
     weighted_experts[i] = weighted_expert(experts[i], n_output, 1.0f / n_experts);
   }
@@ -109,7 +109,7 @@ mixture_of_experts(int n_input, int n_layers, int n_hidden, int n_experts, int n
 
   cost = kad_mse(activation, truth);
   cost->ext_flag |= KANN_F_COST;
-  
+
   gkyl_free(experts);
   gkyl_free(weighted_experts);
 
@@ -139,11 +139,7 @@ train_mixture(struct train_inp *nn_inp, const char *nn_name)
     struct gkyl_kn_vec *inp_expert = gkyl_kn_vec_new(N_expert, 1);
     struct gkyl_kn_vec *out_expert = gkyl_kn_vec_new(N_expert, 1);
 
-    struct xrange xr_expert = {
-      .xleft = -1.0,
-      .xright = 1.0,
-      .N = N_expert
-    };
+    struct xrange xr_expert = {.xleft = -1.0, .xright = 1.0, .N = N_expert};
 
     for (int j = 0; j < N_expert; j++) {
       inp_expert->vals[j][0] = xrange_n(xr_expert, j);
@@ -175,11 +171,7 @@ train_mixture(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 1);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
-  struct xrange xr = {
-    .xleft = -1.0,
-    .xright = 1.0,
-    .N = N
-  };
+  struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = N};
 
   for (int i = 0; i < N; i++) {
     inp->vals[i][0] = xrange_n(xr, i);
@@ -210,8 +202,7 @@ train_mixture(struct train_inp *nn_inp, const char *nn_name)
 
 // Run inference on N input values.
 void
-infer_ann(const char *nn_name, bool use_gpu,
-  struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+infer_ann(const char *nn_name, bool use_gpu, struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   struct gkyl_kann_net *net = gkyl_kann_net_load(nn_name, use_gpu);
 
@@ -245,12 +236,14 @@ write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
     "plot \"rt_kann_moe_gkw_data.txt\" using 1:2 with points pt 9 ps 3 title \"NN\", [-1:1] 1/(1+100*x**2) with lines ls @BLUE title \"Exact\"";
 
   FILE *fp = 0;
-  with_file(fp, "rt_kann_moe_gkw.gp", "w") {
+  with_file(fp, "rt_kann_moe_gkw.gp", "w")
+  {
     fprintf(fp, "%s", gpcode);
   }
 
   fp = 0;
-  with_file(fp, "rt_kann_moe_gkw_data.txt", "w") {
+  with_file(fp, "rt_kann_moe_gkw_data.txt", "w")
+  {
     for (int i = 0; i < inp->nvec; i++) {
       fprintf(fp, "%.5g %.5g\n", inp->vals[i][0], out->vals[i][0]);
     }
@@ -263,8 +256,7 @@ main(int argc, char *argv[])
   int p_train = 0, p_infer = 0, p_verbose = 0, c;
   bool use_gpu = false;
   while ((c = getopt(argc, argv, "+htivg")) != -1) {
-    switch (c)
-    {
+    switch (c) {
       case 'h':
         fprintf(stdout, "rt_kann_moe_gkw -i -t -v -g\n");
         fprintf(stdout, "  -t Run Training\n");
@@ -299,13 +291,14 @@ main(int argc, char *argv[])
 
   if (p_train) {
     fprintf(stdout, "*** Training%s\n", use_gpu ? " (GPU)" : "");
-    train_mixture( &(struct train_inp) {
+    train_mixture(
+      &(struct train_inp){
         .ntrain = 1001,
         .ndepth = 2,
         .nwidth = 256,
         .nexperts = 3,
         .learning_rate = 1e-3f,
-        .use_gpu = use_gpu
+        .use_gpu = use_gpu,
       },
       "rt_kann_moe_gkw.kann"
     );
@@ -317,7 +310,7 @@ main(int argc, char *argv[])
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 1);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
-    struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = inp->nvec };
+    struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = inp->nvec};
     for (int i = 0; i < inp->nvec; i++) {
       inp->vals[i][0] = xrange_n(xr, i);
     }
