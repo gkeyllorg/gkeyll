@@ -186,8 +186,9 @@ struct gkyl_gyrokinetic_multib {
  *     initialized
  * @return New multi-block gk app object.
  */
-gkyl_gyrokinetic_multib_app *
-gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp);
+gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new(
+  const struct gkyl_gyrokinetic_multib *mbinp
+);
 
 /**
  * Construct a new gk multi-block app (geom only).
@@ -196,8 +197,9 @@ gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp);
  *     initialized
  * @return New multi-block gk app object.
  */
-gkyl_gyrokinetic_multib_app *
-gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp);
+gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new_geom(
+  const struct gkyl_gyrokinetic_multib *mbinp
+);
 
 /**
  * Initialize species by projecting initial conditions on
@@ -240,8 +242,9 @@ void gkyl_gyrokinetic_multib_app_apply_ic_neut_species(
  * @param app App object
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_multib_app_from_file_field(gkyl_gyrokinetic_multib_app *app, const char *fname);
+struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_file_field(
+  gkyl_gyrokinetic_multib_app *app, const char *fname
+);
 
 /**
  * Initialize gyrokinetic species from file
@@ -271,8 +274,9 @@ struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_file_neut_specie
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_read_from_frame(
+  gkyl_gyrokinetic_multib_app *app, int frame
+);
 
 /**
  * Initialize field from frame
@@ -280,8 +284,9 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_multib_app_from_frame_field(gkyl_gyrokinetic_multib_app *app, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_frame_field(
+  gkyl_gyrokinetic_multib_app *app, int frame
+);
 
 /**
  * Initialize gyrokinetic species from file
@@ -888,8 +893,9 @@ void gkyl_gyrokinetic_multib_app_cout(
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_update_status
-gkyl_gyrokinetic_multib_update(gkyl_gyrokinetic_multib_app *app, double dt);
+struct gkyl_update_status gkyl_gyrokinetic_multib_update(
+  gkyl_gyrokinetic_multib_app *app, double dt
+);
 
 /**
  * Return simulation statistics.

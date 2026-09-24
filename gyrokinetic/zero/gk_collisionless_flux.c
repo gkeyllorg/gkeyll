@@ -10,7 +10,8 @@
 #include <gkyl_gk_collisionless_flux_priv.h>
 #include <gkyl_util.h>
 
-gkyl_gk_collisionless_flux *gkyl_gk_collisionless_flux_new(
+gkyl_gk_collisionless_flux *
+gkyl_gk_collisionless_flux_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, const double charge, const double mass,
   enum gkyl_gk_collisionless_type type, const struct gk_geometry *gk_geom,
@@ -83,7 +84,8 @@ gkyl_gk_collisionless_flux *gkyl_gk_collisionless_flux_new(
   return up;
 }
 
-void gkyl_gk_collisionless_flux_surf(
+void
+gkyl_gk_collisionless_flux_surf(
   struct gkyl_gk_collisionless_flux *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_ext_range,
   const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi,
@@ -192,13 +194,11 @@ void gkyl_gk_collisionless_flux_surf(
         // Write into the skin cell's own cflrate (not the ghost cell's, which is excluded
         // from the CFL reduction range). Use a max instead of accumulating since cflrate_d
         // already holds this cell's lower-surface contribution from earlier in this dir loop.
-        cflrate_ext_d[0] = GKYL_MAX2(
-          cflrate_ext_d[0],
-          up->flux_surf_edge_up[dir](
-            xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass, dgs, gkdgs, bmag_d,
-            jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d
-          )
+        double cflrate_edge = up->flux_surf_edge_up[dir](
+          xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass, dgs, gkdgs, bmag_d,
+          jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d
         );
+        cflrate_ext_d[0] = GKYL_MAX2(cflrate_ext_d[0], cflrate_edge);
       }
     }
   }
@@ -247,7 +247,8 @@ void gkyl_gk_collisionless_flux_surf(
   }
 }
 
-void gkyl_gk_collisionless_flux_release(gkyl_gk_collisionless_flux *up)
+void
+gkyl_gk_collisionless_flux_release(gkyl_gk_collisionless_flux *up)
 {
   gkyl_gk_geometry_release(up->gk_geom);
   gkyl_dg_geom_release(up->dg_geom);

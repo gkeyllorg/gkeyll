@@ -14,7 +14,8 @@
 
 #include <gkyl_efit.h>
 
-void test_efit_solovev_ho()
+void
+test_efit_solovev_ho()
 {
   bool write_files = false;
 
@@ -22,7 +23,7 @@ void test_efit_solovev_ho()
     .filepath = "gyrokinetic/data/eqdsk/solovev.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
-    .reflect = true
+    .reflect = true,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
@@ -43,7 +44,8 @@ void test_efit_solovev_ho()
   gkyl_efit_release(efit);
 }
 
-void test_efit_step_ho()
+void
+test_efit_step_ho()
 {
   bool write_files = false;
 
@@ -51,7 +53,7 @@ void test_efit_step_ho()
     .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
-    .reflect = true
+    .reflect = true,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
@@ -72,7 +74,8 @@ void test_efit_step_ho()
   gkyl_efit_release(efit);
 }
 
-void test_efit_nstxu_ho()
+void
+test_efit_nstxu_ho()
 {
   bool write_files = false;
 
@@ -81,7 +84,7 @@ void test_efit_nstxu_ho()
     .filepath = "gyrokinetic/data/eqdsk/nstxu_DN.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
-    .reflect = true
+    .reflect = true,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
@@ -102,12 +105,15 @@ void test_efit_nstxu_ho()
   gkyl_efit_release(efit);
 }
 
-void test_efit_asdex_ho()
+void
+test_efit_asdex_ho()
 {
   bool write_files = false;
 
   struct gkyl_efit_inp inp = {
-    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk", .rz_poly_order = 2, .flux_poly_order = 1
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
@@ -128,7 +134,8 @@ void test_efit_asdex_ho()
   gkyl_efit_release(efit);
 }
 
-void test_efit_cerfon_ho()
+void
+test_efit_cerfon_ho()
 {
   bool write_files = false;
 
@@ -136,7 +143,7 @@ void test_efit_cerfon_ho()
     .filepath = "gyrokinetic/data/eqdsk/cerfon.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
-    .reflect = true
+    .reflect = true,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
@@ -157,7 +164,8 @@ void test_efit_cerfon_ho()
   gkyl_efit_release(efit);
 }
 
-void test_efit_elliptical_ho()
+void
+test_efit_elliptical_ho()
 {
   bool write_files = false;
 
@@ -165,7 +173,7 @@ void test_efit_elliptical_ho()
     .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
-    .reflect = true
+    .reflect = true,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
@@ -188,12 +196,13 @@ void test_efit_elliptical_ho()
   gkyl_efit_release(efit);
 }
 
-void test_efit_wham_ho()
+void
+test_efit_wham_ho()
 {
   bool write_files = false;
 
   struct gkyl_efit_inp inp = {
-    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk", .rz_poly_order = 2, .flux_poly_order = 1
+    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk", .rz_poly_order = 2, .flux_poly_order = 1,
     //.reflect =  true,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
@@ -215,12 +224,15 @@ void test_efit_wham_ho()
   gkyl_efit_release(efit);
 }
 
-void test_efit_tcv_ho()
+void
+test_efit_tcv_ho()
 {
   bool write_files = false;
 
   struct gkyl_efit_inp inp = {
-    .filepath = "gyrokinetic/data/eqdsk/tcv.geqdsk", .rz_poly_order = 2, .flux_poly_order = 1
+    .filepath = "gyrokinetic/data/eqdsk/tcv.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
@@ -239,7 +251,8 @@ void test_efit_tcv_ho()
   gkyl_efit_release(efit);
 }
 
-void test_efit_mast_ho()
+void
+test_efit_mast_ho()
 {
   bool write_files = false;
 
@@ -247,7 +260,7 @@ void test_efit_mast_ho()
     .filepath = "gyrokinetic/data/eqdsk/mast.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
-    .reflect = true
+    .reflect = true,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
@@ -268,7 +281,8 @@ void test_efit_mast_ho()
   gkyl_efit_release(efit);
 }
 
-void test_efit_ltx_ho()
+void
+test_efit_ltx_ho()
 {
   bool write_files = false;
 
@@ -276,7 +290,7 @@ void test_efit_ltx_ho()
     .filepath = "gyrokinetic/data/eqdsk/LTX_103955_03.eqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
-    .reflect = true
+    .reflect = true,
   };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 

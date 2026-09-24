@@ -9,7 +9,8 @@
 #include <gkyl_ghost_surf_calc_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_ghost_surf_calc_advance(
+void
+gkyl_ghost_surf_calc_advance(
   gkyl_ghost_surf_calc *gcalc, const struct gkyl_range *phase_rng, const struct gkyl_array *fIn,
   struct gkyl_array *rhs
 )
@@ -81,7 +82,8 @@ void gkyl_ghost_surf_calc_advance(
   }
 }
 
-gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_new(
+gkyl_ghost_surf_calc *
+gkyl_ghost_surf_calc_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_dg_eqn *equation, int cdim, bool use_gpu
 )
 {
@@ -103,7 +105,8 @@ gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_new(
   return up;
 }
 
-void gkyl_ghost_surf_calc_release(gkyl_ghost_surf_calc *up)
+void
+gkyl_ghost_surf_calc_release(gkyl_ghost_surf_calc *up)
 {
   gkyl_dg_eqn_release(up->equation);
   if (GKYL_IS_CU_ALLOC(up->flags)) {
@@ -114,7 +117,8 @@ void gkyl_ghost_surf_calc_release(gkyl_ghost_surf_calc *up)
 
 #ifndef GKYL_HAVE_CUDA
 
-void gkyl_ghost_surf_calc_advance_cu(
+void
+gkyl_ghost_surf_calc_advance_cu(
   gkyl_ghost_surf_calc *gcalc, const struct gkyl_range *phase_rng, const struct gkyl_array *fIn,
   struct gkyl_array *rhs
 )
@@ -122,7 +126,8 @@ void gkyl_ghost_surf_calc_advance_cu(
   assert(false);
 }
 
-gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_cu_dev_new(
+gkyl_ghost_surf_calc *
+gkyl_ghost_surf_calc_cu_dev_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_dg_eqn *equation, int cdim
 )
 {

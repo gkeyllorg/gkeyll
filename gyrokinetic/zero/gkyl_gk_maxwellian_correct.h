@@ -45,8 +45,9 @@ struct gkyl_gk_maxwellian_correct_status {
  * @param inp Input parameters defined in gkyl_gk_maxwellian_correct_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_gk_maxwellian_correct *
-gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp);
+struct gkyl_gk_maxwellian_correct *gkyl_gk_maxwellian_correct_inew(
+  const struct gkyl_gk_maxwellian_correct_inp *inp
+);
 
 /**
  * Fix the gyrokinetic Maxwellian (or bi-Maxwellian) distribution function

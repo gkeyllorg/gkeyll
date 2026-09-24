@@ -27,13 +27,15 @@ struct loss_cone_mask_test_ctx {
   int Nz, Nvpar, Nmu;
 };
 
-static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool use_gpu, long nc, long size)
 {
   return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
                    gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-static void bmag_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+static void
+bmag_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double z = xc[0];
   struct loss_cone_mask_test_ctx *params = ctx;
@@ -41,12 +43,14 @@ static void bmag_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout,
   fout[0] = params->B_m * (1.0 - ((params->R_m - 1.0) / params->R_m) * pow(cos(z), 2.0));
 }
 
-static void phi_func_1x_zero(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+static void
+phi_func_1x_zero(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-static void phi_func_1x_nonzero(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+static void
+phi_func_1x_nonzero(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double z = xc[0];
   struct loss_cone_mask_test_ctx *params = ctx;
@@ -55,7 +59,8 @@ static void phi_func_1x_nonzero(double t, const double *xc, double *GKYL_RESTRIC
   fout[0] = params->phi_fac * params->T0 / params->eV * (1.0 - pow(cos(4 * z), 2.0));
 }
 
-static double analytic_bmag(const struct loss_cone_mask_test_ctx *ctx, double z)
+static double
+analytic_bmag(const struct loss_cone_mask_test_ctx *ctx, double z)
 {
   return ctx->B_m * (1.0 - ((ctx->R_m - 1.0) / ctx->R_m) * pow(cos(z), 2.0));
 }
@@ -66,7 +71,8 @@ analytic_phi(const struct loss_cone_mask_test_ctx *ctx, double z, bool use_nonze
   return use_nonzero_phi ? ctx->phi_fac * ctx->T0 / ctx->eV * (1.0 - pow(cos(4.0 * z), 2.0)) : 0.0;
 }
 
-static double analytic_effective_potential(
+static double
+analytic_effective_potential(
   const struct loss_cone_mask_test_ctx *ctx, double z, double mu, bool use_nonzero_phi
 )
 {
@@ -80,7 +86,8 @@ static double analytic_effective_potential(
  * functions. This oracle deliberately does not evaluate the production DG
  * arrays or call any loss-cone helper.
  */
-static void build_analytic_reference_mask_1x2v(
+static void
+build_analytic_reference_mask_1x2v(
   const struct gkyl_rect_grid *grid, const struct gkyl_range *phase_range,
   const struct loss_cone_mask_test_ctx *ctx, bool use_nonzero_phi, struct gkyl_array *mask_ref
 )
@@ -123,7 +130,8 @@ static void build_analytic_reference_mask_1x2v(
   }
 }
 
-static void run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
+static void
+run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
 {
   double eV = GKYL_ELEMENTARY_CHARGE;
   double mass_proton = GKYL_PROTON_MASS;
@@ -142,7 +150,7 @@ static void run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     .z_max = GKYL_PI - 0.5,
     .Nz = 64,
     .Nvpar = 16,
-    .Nmu = 16
+    .Nmu = 16,
   };
   ctx.B0 = ctx.B_m / 2.0;
   ctx.vpar_max = 6.0 * sqrt(ctx.T0 / ctx.mass);
@@ -228,7 +236,7 @@ static void run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
     .vel_map = gvm,
     .use_gpu = use_gpu,
     .mass = ctx.mass,
-    .charge = ctx.charge
+    .charge = ctx.charge,
   };
   struct gkyl_loss_cone_mask_gyrokinetic *proj_mask =
     gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
@@ -251,7 +259,7 @@ static void run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
       .vel_map = gvm_ho,
       .use_gpu = false,
       .mass = ctx.mass,
-      .charge = ctx.charge
+      .charge = ctx.charge,
     };
     struct gkyl_loss_cone_mask_gyrokinetic *proj_mask_cpu =
       gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj_cpu);
@@ -346,7 +354,8 @@ set_constant_1x_p1(struct gkyl_array *field, const struct gkyl_range *range, dou
   }
 }
 
-static double constant_boundary_energy(
+static double
+constant_boundary_energy(
   double charge, double phi_plasma, double phi_wall, bool use_wall,
   enum gkyl_gk_trapped_passing_orbit_type orbit
 )
@@ -359,118 +368,141 @@ static double constant_boundary_energy(
            0.0;
 }
 
-static void run_constant_boundary_cases(bool use_gpu)
+static void
+run_constant_boundary_cases(bool use_gpu)
 {
   // With constant B and phi, mu*B cancels between H and each wall barrier.
   // These cases therefore have an exact, independent criterion in each
   // v_parallel cell: every velocity endpoint must satisfy K < Delta U at
   // both boundaries.
   const struct constant_boundary_case cases[] = {
-    {.name = "grounded_wall_electron",
-     .charge = -1.0,
-     .phi_plasma = 4.0,
-     .phi_wall_lo = 0.0,
-     .phi_wall_up = 0.0,
-     .use_wall_lo = true,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
-     .use_wall_up = true,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH},
-    {.name = "grounded_wall_ion_no_barrier",
-     .charge = 1.0,
-     .phi_plasma = 4.0,
-     .phi_wall_lo = 0.0,
-     .phi_wall_up = 0.0,
-     .use_wall_lo = true,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
-     .use_wall_up = true,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH},
-    {.name = "grounded_wall_ion_reversed_phi",
-     .charge = 1.0,
-     .phi_plasma = -4.0,
-     .phi_wall_lo = 0.0,
-     .phi_wall_up = 0.0,
-     .use_wall_lo = true,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
-     .use_wall_up = true,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH},
-    {.name = "asymmetric_biased_wall_electron",
-     .charge = -1.0,
-     .phi_plasma = 4.0,
-     .phi_wall_lo = 0.0,
-     .phi_wall_up = 3.0,
-     .use_wall_lo = true,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
-     .use_wall_up = true,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH},
-    {.name = "asymmetric_biased_wall_ion",
-     .charge = 1.0,
-     .phi_plasma = 0.0,
-     .phi_wall_lo = 4.0,
-     .phi_wall_up = 1.0,
-     .use_wall_lo = true,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
-     .use_wall_up = true,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH},
-    {// This is the asymmetric electron case shifted everywhere by +7 V.
-     .name = "gauge_shifted_asymmetric_electron",
-     .charge = -1.0,
-     .phi_plasma = 11.0,
-     .phi_wall_lo = 7.0,
-     .phi_wall_up = 10.0,
-     .use_wall_lo = true,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
-     .use_wall_up = true,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH
+    {
+      .name = "grounded_wall_electron",
+      .charge = -1.0,
+      .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0,
+      .phi_wall_up = 0.0,
+      .use_wall_lo = true,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+      .use_wall_up = true,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
     },
-    {// Delta U=2 and a v_parallel endpoint is exactly |v|=2. Equality
-     // reaches the wall and must be classified as passing/absorbed.
-     .name = "sheath_cutoff_equality",
-     .charge = -1.0,
-     .phi_plasma = 2.0,
-     .phi_wall_lo = 0.0,
-     .phi_wall_up = 0.0,
-     .use_wall_lo = true,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
-     .use_wall_up = true,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH
+    {
+      .name = "grounded_wall_ion_no_barrier",
+      .charge = 1.0,
+      .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0,
+      .phi_wall_up = 0.0,
+      .use_wall_lo = true,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+      .use_wall_up = true,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
     },
-    {.name = "passing_orbits",
-     .charge = -1.0,
-     .phi_plasma = 4.0,
-     .phi_wall_lo = 0.0,
-     .phi_wall_up = 0.0,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_PASSING,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_PASSING},
-    {.name = "passing_and_wall_trapped_orbits",
-     .charge = -1.0,
-     .phi_plasma = 4.0,
-     .phi_wall_lo = 0.0,
-     .phi_wall_up = 0.0,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_PASSING,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL},
-    {.name = "wall_trapped_and_sheath_trapped_orbits",
-     .charge = -1.0,
-     .phi_plasma = 4.0,
-     .phi_wall_lo = 0.0,
-     .phi_wall_up = 0.0,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL,
-     .use_wall_up = true,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH},
-    {.name = "sheath_trapped_and_wall_trapped_orbits",
-     .charge = -1.0,
-     .phi_plasma = 4.0,
-     .phi_wall_lo = 0.0,
-     .phi_wall_up = 0.0,
-     .use_wall_lo = true,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL},
-    {.name = "wall_trapped_orbits",
-     .charge = -1.0,
-     .phi_plasma = 4.0,
-     .phi_wall_lo = 0.0,
-     .phi_wall_up = 0.0,
-     .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL,
-     .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL}
+    {
+      .name = "grounded_wall_ion_reversed_phi",
+      .charge = 1.0,
+      .phi_plasma = -4.0,
+      .phi_wall_lo = 0.0,
+      .phi_wall_up = 0.0,
+      .use_wall_lo = true,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+      .use_wall_up = true,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+    },
+    {
+      .name = "asymmetric_biased_wall_electron",
+      .charge = -1.0,
+      .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0,
+      .phi_wall_up = 3.0,
+      .use_wall_lo = true,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+      .use_wall_up = true,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+    },
+    {
+      .name = "asymmetric_biased_wall_ion",
+      .charge = 1.0,
+      .phi_plasma = 0.0,
+      .phi_wall_lo = 4.0,
+      .phi_wall_up = 1.0,
+      .use_wall_lo = true,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+      .use_wall_up = true,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+    },
+    {
+      // This is the asymmetric electron case shifted everywhere by +7 V.
+      .name = "gauge_shifted_asymmetric_electron",
+      .charge = -1.0,
+      .phi_plasma = 11.0,
+      .phi_wall_lo = 7.0,
+      .phi_wall_up = 10.0,
+      .use_wall_lo = true,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+      .use_wall_up = true,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+    },
+    {
+      // Delta U=2 and a v_parallel endpoint is exactly |v|=2. Equality
+      // reaches the wall and must be classified as passing/absorbed.
+      .name = "sheath_cutoff_equality",
+      .charge = -1.0,
+      .phi_plasma = 2.0,
+      .phi_wall_lo = 0.0,
+      .phi_wall_up = 0.0,
+      .use_wall_lo = true,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+      .use_wall_up = true,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+    },
+    {
+      .name = "passing_orbits",
+      .charge = -1.0,
+      .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0,
+      .phi_wall_up = 0.0,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_PASSING,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_PASSING,
+    },
+    {
+      .name = "passing_and_wall_trapped_orbits",
+      .charge = -1.0,
+      .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0,
+      .phi_wall_up = 0.0,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_PASSING,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL,
+    },
+    {
+      .name = "wall_trapped_and_sheath_trapped_orbits",
+      .charge = -1.0,
+      .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0,
+      .phi_wall_up = 0.0,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL,
+      .use_wall_up = true,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+    },
+    {
+      .name = "sheath_trapped_and_wall_trapped_orbits",
+      .charge = -1.0,
+      .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0,
+      .phi_wall_up = 0.0,
+      .use_wall_lo = true,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL,
+    },
+    {
+      .name = "wall_trapped_orbits",
+      .charge = -1.0,
+      .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0,
+      .phi_wall_up = 0.0,
+      .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL,
+      .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL,
+    }
   };
 
   double lower[] = {-1.0, -4.0, 0.0};
@@ -529,14 +561,15 @@ static void run_constant_boundary_cases(bool use_gpu)
     gkyl_array_copy(phi_wall_up, phi_wall_up_ho);
 
     struct gkyl_loss_cone_mask_gyrokinetic *up =
-      gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp
-      ){.conf_basis = &basis_conf,
+      gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp){
+        .conf_basis = &basis_conf,
         .vel_map = gvm,
         .use_gpu = use_gpu,
         .mass = 1.0,
         .charge = test->charge,
         .lower_orbit = test->lower_orbit,
-        .upper_orbit = test->upper_orbit});
+        .upper_orbit = test->upper_orbit,
+      });
 
     const struct gkyl_array *wall_lo = test->use_wall_lo ? phi_wall_lo : 0;
     const struct gkyl_array *wall_up = test->use_wall_up ? phi_wall_up : 0;
@@ -590,21 +623,24 @@ static void run_constant_boundary_cases(bool use_gpu)
   gkyl_velocity_map_release(gvm);
 }
 
-void test_loss_cone_mask_1x2v_p1_gk_ho(void)
+void
+test_loss_cone_mask_1x2v_p1_gk_ho(void)
 {
   // Magnetic-mirror barriers only: compare every host mask cell with the
   // analytic Hamiltonian reference built above.
   run_case_1x2v(1, false, false);
 }
 
-void test_loss_cone_mask_1x2v_p1_nonzero_phi_gk_ho(void)
+void
+test_loss_cone_mask_1x2v_p1_nonzero_phi_gk_ho(void)
 {
   // Add a spatially varying electrostatic potential to check that q*phi is
   // included in both directional barriers.
   run_case_1x2v(1, false, true);
 }
 
-void test_loss_cone_mask_1x2v_p1_constant_boundaries_gk_ho(void)
+void
+test_loss_cone_mask_1x2v_p1_constant_boundaries_gk_ho(void)
 {
   // Check exact wall-potential thresholds, open/closed trajectories, gauge
   // invariance, and equality at the absorbing cutoff.
@@ -614,17 +650,20 @@ void test_loss_cone_mask_1x2v_p1_constant_boundaries_gk_ho(void)
 #ifdef GKYL_HAVE_CUDA
 // The device cases use the same independent expectations as the host cases
 // and also compare the device mask cell-by-cell with a host updater run.
-void test_loss_cone_mask_1x2v_p1_gk_dev(void)
+void
+test_loss_cone_mask_1x2v_p1_gk_dev(void)
 {
   run_case_1x2v(1, true, false);
 }
 
-void test_loss_cone_mask_1x2v_p1_nonzero_phi_gk_dev(void)
+void
+test_loss_cone_mask_1x2v_p1_nonzero_phi_gk_dev(void)
 {
   run_case_1x2v(1, true, true);
 }
 
-void test_loss_cone_mask_1x2v_p1_constant_boundaries_gk_dev(void)
+void
+test_loss_cone_mask_1x2v_p1_constant_boundaries_gk_dev(void)
 {
   run_constant_boundary_cases(true);
 }

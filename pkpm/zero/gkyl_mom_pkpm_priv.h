@@ -19,7 +19,8 @@ typedef struct {
   momf_t kernels[3];
 } gkyl_mom_pkpm_kern_list;
 
-GKYL_CU_DH static void kernel_mom_pkpm_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_mom_pkpm_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -29,7 +30,8 @@ GKYL_CU_DH static void kernel_mom_pkpm_1x1v_ser_p1(
   return mom_pkpm_1x1v_ser_p1(xc, dx, idx, mom_pkpm->mass, f, out);
 }
 
-GKYL_CU_DH static void kernel_mom_pkpm_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_mom_pkpm_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -39,7 +41,8 @@ GKYL_CU_DH static void kernel_mom_pkpm_1x1v_ser_p2(
   return mom_pkpm_1x1v_ser_p2(xc, dx, idx, mom_pkpm->mass, f, out);
 }
 
-GKYL_CU_DH static void kernel_mom_pkpm_1x1v_tensor_p2(
+GKYL_CU_DH static void
+kernel_mom_pkpm_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -49,7 +52,8 @@ GKYL_CU_DH static void kernel_mom_pkpm_1x1v_tensor_p2(
   return mom_pkpm_1x1v_tensor_p2(xc, dx, idx, mom_pkpm->mass, f, out);
 }
 
-GKYL_CU_DH static void kernel_mom_pkpm_2x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_mom_pkpm_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -59,7 +63,8 @@ GKYL_CU_DH static void kernel_mom_pkpm_2x1v_ser_p1(
   return mom_pkpm_2x1v_ser_p1(xc, dx, idx, mom_pkpm->mass, f, out);
 }
 
-GKYL_CU_DH static void kernel_mom_pkpm_2x1v_tensor_p2(
+GKYL_CU_DH static void
+kernel_mom_pkpm_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -69,7 +74,8 @@ GKYL_CU_DH static void kernel_mom_pkpm_2x1v_tensor_p2(
   return mom_pkpm_2x1v_tensor_p2(xc, dx, idx, mom_pkpm->mass, f, out);
 }
 
-GKYL_CU_DH static void kernel_mom_pkpm_3x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_mom_pkpm_3x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -99,7 +105,8 @@ GKYL_CU_D static const gkyl_mom_pkpm_kern_list ten_mom_pkpm_kernels[] = {
   {NULL, kernel_mom_pkpm_3x1v_ser_p1, NULL} // 2
 };
 
-GKYL_CU_DH static void kernel_mom_pkpm_diag_1x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_mom_pkpm_diag_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -109,7 +116,8 @@ GKYL_CU_DH static void kernel_mom_pkpm_diag_1x1v_ser_p1(
   return mom_pkpm_diag_1x1v_ser_p1(xc, dx, idx, mom_pkpm->mass, f, out);
 }
 
-GKYL_CU_DH static void kernel_mom_pkpm_diag_1x1v_ser_p2(
+GKYL_CU_DH static void
+kernel_mom_pkpm_diag_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -119,7 +127,8 @@ GKYL_CU_DH static void kernel_mom_pkpm_diag_1x1v_ser_p2(
   return mom_pkpm_diag_1x1v_ser_p2(xc, dx, idx, mom_pkpm->mass, f, out);
 }
 
-GKYL_CU_DH static void kernel_mom_pkpm_diag_1x1v_tensor_p2(
+GKYL_CU_DH static void
+kernel_mom_pkpm_diag_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -129,7 +138,8 @@ GKYL_CU_DH static void kernel_mom_pkpm_diag_1x1v_tensor_p2(
   return mom_pkpm_diag_1x1v_tensor_p2(xc, dx, idx, mom_pkpm->mass, f, out);
 }
 
-GKYL_CU_DH static void kernel_mom_pkpm_diag_2x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_mom_pkpm_diag_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -139,7 +149,8 @@ GKYL_CU_DH static void kernel_mom_pkpm_diag_2x1v_ser_p1(
   return mom_pkpm_diag_2x1v_ser_p1(xc, dx, idx, mom_pkpm->mass, f, out);
 }
 
-GKYL_CU_DH static void kernel_mom_pkpm_diag_2x1v_tensor_p2(
+GKYL_CU_DH static void
+kernel_mom_pkpm_diag_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )
@@ -149,7 +160,8 @@ GKYL_CU_DH static void kernel_mom_pkpm_diag_2x1v_tensor_p2(
   return mom_pkpm_diag_2x1v_tensor_p2(xc, dx, idx, mom_pkpm->mass, f, out);
 }
 
-GKYL_CU_DH static void kernel_mom_pkpm_diag_3x1v_ser_p1(
+GKYL_CU_DH static void
+kernel_mom_pkpm_diag_3x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
 )

@@ -17,7 +17,8 @@
 #endif
 #endif
 
-struct gkyl_comm *comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
+struct gkyl_comm *
+comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
 {
   // Construct communicator for use in app.
   struct gkyl_comm *comm = 0;
@@ -42,7 +43,8 @@ struct gkyl_comm *comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
   return comm;
 }
 
-static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
+static struct gkyl_block_geom *
+create_L_domain_block_geom(int **cuts)
 {
   // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -63,8 +65,8 @@ static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
   int *cuts0 = cuts[0];
   gkyl_block_geom_set_block(
     bgeom, 0,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {300, 300},
       .cuts = {cuts0[0], cuts0[1]},
@@ -80,15 +82,16 @@ static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
           // y-direction connections
           {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
 
   // block 1
   int *cuts1 = cuts[1];
   gkyl_block_geom_set_block(
     bgeom, 1,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {300, 300},
       .cuts = {cuts1[0], cuts1[1]},
@@ -102,15 +105,16 @@ static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
         {// y-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   // block 2
   int *cuts2 = cuts[2];
   gkyl_block_geom_set_block(
     bgeom, 2,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {300, 300},
       .cuts = {cuts2[0], cuts2[1]},
@@ -126,13 +130,15 @@ static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
           // y-direction connections
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
 
   return bgeom;
 }
 
-static struct gkyl_block_geom *create_cyclic_domain_block_geom(int **cuts)
+static struct gkyl_block_geom *
+create_cyclic_domain_block_geom(int **cuts)
 {
   // 2D with 2 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 2);
@@ -156,8 +162,8 @@ static struct gkyl_block_geom *create_cyclic_domain_block_geom(int **cuts)
   int *cuts0 = cuts[0];
   gkyl_block_geom_set_block(
     bgeom, 0,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {4, 8},
       .cuts = {cuts0[0], cuts0[1]},
@@ -172,15 +178,16 @@ static struct gkyl_block_geom *create_cyclic_domain_block_geom(int **cuts)
         {// y-direction connections
          {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
          {.bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   // block 1
   int *cuts1 = cuts[1];
   gkyl_block_geom_set_block(
     bgeom, 1,
-    &(struct gkyl_block_geom_info
-    ){.lower = {0, 0},
+    &(struct gkyl_block_geom_info){
+      .lower = {0, 0},
       .upper = {1, 1},
       .cells = {4, 6},
       .cuts = {cuts1[0], cuts1[1]},
@@ -194,13 +201,15 @@ static struct gkyl_block_geom *create_cyclic_domain_block_geom(int **cuts)
         {// y-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   return bgeom;
 }
 
-static inline int prod_of_elements_int(int ndim, int *arr)
+static inline int
+prod_of_elements_int(int ndim, int *arr)
 {
   int pr = 1;
   for (int d = 0; d < ndim; ++d) {
@@ -209,7 +218,8 @@ static inline int prod_of_elements_int(int ndim, int *arr)
   return pr;
 }
 
-static bool has_int(int n, int val, const int *lst)
+static bool
+has_int(int n, int val, const int *lst)
 {
   for (int i = 0; i < n; ++i) {
     if (val == lst[i]) {
@@ -232,7 +242,8 @@ struct app_L {
 };
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -243,7 +254,8 @@ static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
-static void test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
+static void
+test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 {
   // Create world comm.
   struct gkyl_comm *comm = comm_new(use_mpi, use_gpu, stderr);
@@ -485,7 +497,8 @@ static void test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_
   gkyl_comm_release(comm);
 }
 
-static void test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
+static void
+test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 {
   // Create world comm.
   struct gkyl_comm *comm = comm_new(use_mpi, use_gpu, stderr);
@@ -728,7 +741,8 @@ static void test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int 
   gkyl_comm_release(comm);
 }
 
-static void test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
+static void
+test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 {
   // Create world comm.
   struct gkyl_comm *comm = comm_new(use_mpi, use_gpu, stderr);
@@ -993,7 +1007,8 @@ static void test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, 
   gkyl_comm_release(comm);
 }
 
-int **cuts_array_new(int num_blocks, int ndim, int *cuts_all)
+int **
+cuts_array_new(int num_blocks, int ndim, int *cuts_all)
 {
   // Create an array of cuts from an array with all the cuts listed flat.
   int **cuts_arr = gkyl_malloc(num_blocks * sizeof(int *));
@@ -1008,7 +1023,8 @@ int **cuts_array_new(int num_blocks, int ndim, int *cuts_all)
   return cuts_arr;
 }
 
-void cuts_array_release(int num_blocks, int **cuts_arr)
+void
+cuts_array_release(int num_blocks, int **cuts_arr)
 {
   // Release the array of cuts arrays.
   for (int i = 0; i < num_blocks; i++) {
@@ -1017,7 +1033,8 @@ void cuts_array_release(int num_blocks, int **cuts_arr)
   gkyl_free(cuts_arr);
 }
 
-static void test_L_domain_sync_ho(void)
+static void
+test_L_domain_sync_ho(void)
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -1041,7 +1058,8 @@ static void test_L_domain_sync_ho(void)
   cuts_array_release(num_blocks, cuts1);
 }
 
-static void test_cyclic_domain_sync_ho(void)
+static void
+test_cyclic_domain_sync_ho(void)
 {
   int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
@@ -1055,7 +1073,8 @@ static void test_cyclic_domain_sync_ho(void)
   cuts_array_release(num_blocks, cuts1);
 }
 
-static void test_cyclic_domain_sync_ser_ho(void)
+static void
+test_cyclic_domain_sync_ser_ho(void)
 {
   int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
@@ -1073,7 +1092,8 @@ static void test_cyclic_domain_sync_ser_ho(void)
 }
 
 #ifdef GKYL_HAVE_CUDA
-static void test_L_domain_sync_dev(void)
+static void
+test_L_domain_sync_dev(void)
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -1090,7 +1110,8 @@ static void test_L_domain_sync_dev(void)
   cuts_array_release(num_blocks, cuts0);
 }
 
-static void test_cyclic_domain_sync_dev(void)
+static void
+test_cyclic_domain_sync_dev(void)
 {
   int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
@@ -1106,7 +1127,8 @@ static void test_cyclic_domain_sync_dev(void)
   cuts_array_release(num_blocks, cuts0);
 }
 
-static void test_cyclic_domain_sync_ser_dev(void)
+static void
+test_cyclic_domain_sync_ser_dev(void)
 {
   int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;

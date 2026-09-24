@@ -15,8 +15,9 @@ typedef struct gkyl_proj_powsqrt_on_basis gkyl_proj_powsqrt_on_basis;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_proj_powsqrt_on_basis *
-gkyl_proj_powsqrt_on_basis_new(const struct gkyl_basis *basis, int num_quad, bool use_gpu);
+gkyl_proj_powsqrt_on_basis *gkyl_proj_powsqrt_on_basis_new(
+  const struct gkyl_basis *basis, int num_quad, bool use_gpu
+);
 
 /**
  * Compute pow( sqrt(fIn), expIn) via quadrature.

@@ -13,7 +13,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void gkyl_deflate_zsurf_advance_cu_kernel(
+__global__ void
+gkyl_deflate_zsurf_advance_cu_kernel(
   const struct gkyl_deflate_zsurf *up, int zidx, struct gkyl_range range,
   struct gkyl_range deflated_range, const struct gkyl_array *field,
   struct gkyl_array *deflated_field, int ncomp
@@ -46,7 +47,8 @@ __global__ void gkyl_deflate_zsurf_advance_cu_kernel(
 }
 
 // Host-side wrapper for deflating 2d (x,z) modal expansion to a 1d (x) modal expansion
-void gkyl_deflate_zsurf_advance_cu(
+void
+gkyl_deflate_zsurf_advance_cu(
   const struct gkyl_deflate_zsurf *up, int zidx, const struct gkyl_range *range,
   const struct gkyl_range *deflated_range, const struct gkyl_array *field,
   struct gkyl_array *deflated_field, int ncomp
@@ -61,7 +63,8 @@ void gkyl_deflate_zsurf_advance_cu(
 
 // CUDA kernel to set device pointers to em vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void deflate_zsurf_set_cu_dev_ptrs(
+__global__ static void
+deflate_zsurf_set_cu_dev_ptrs(
   struct gkyl_deflate_zsurf *up, enum gkyl_basis_type b_type, int edge, int poly_order
 )
 {
@@ -69,7 +72,8 @@ __global__ static void deflate_zsurf_set_cu_dev_ptrs(
     deflate_zsurf_choose_kernel(b_type, up->cdim, edge, poly_order); // edge = 0,1 = lo, up
 }
 
-struct gkyl_deflate_zsurf *gkyl_deflate_zsurf_cu_dev_new(
+struct gkyl_deflate_zsurf *
+gkyl_deflate_zsurf_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *deflated_cbasis, int edge
 )
 {

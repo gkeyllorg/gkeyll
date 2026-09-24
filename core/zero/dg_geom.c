@@ -9,12 +9,14 @@
 #include <gkyl_math.h>
 #include <gkyl_util.h>
 
-static bool dg_geom_is_cu_dev(const struct gkyl_dg_geom *dgg)
+static bool
+dg_geom_is_cu_dev(const struct gkyl_dg_geom *dgg)
 {
   return GKYL_IS_CU_ALLOC(dgg->flags);
 }
 
-void dg_geom_free(const struct gkyl_ref_count *ref)
+void
+dg_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_geom *dgg = container_of(ref, struct gkyl_dg_geom, ref_count);
 
@@ -39,7 +41,8 @@ void dg_geom_free(const struct gkyl_ref_count *ref)
   gkyl_free(dgg);
 }
 
-struct gkyl_dg_geom *gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp)
+struct gkyl_dg_geom *
+gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp)
 {
   struct gkyl_dg_geom *dgg = gkyl_malloc(sizeof *dgg);
 
@@ -84,7 +87,8 @@ struct gkyl_dg_geom *gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp)
   return dgg;
 }
 
-struct gkyl_dg_geom *gkyl_dg_geom_new_from_host(
+struct gkyl_dg_geom *
+gkyl_dg_geom_new_from_host(
   const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host, bool use_gpu
 )
 {
@@ -96,17 +100,20 @@ struct gkyl_dg_geom *gkyl_dg_geom_new_from_host(
   return up_host;
 }
 
-struct gkyl_dg_geom *gkyl_dg_geom_acquire(const struct gkyl_dg_geom *dgg)
+struct gkyl_dg_geom *
+gkyl_dg_geom_acquire(const struct gkyl_dg_geom *dgg)
 {
   gkyl_ref_count_inc(&dgg->ref_count);
   return (struct gkyl_dg_geom *)dgg;
 }
 
-void gkyl_dg_geom_write(const struct gkyl_dg_geom *dgg, const char *fname)
+void
+gkyl_dg_geom_write(const struct gkyl_dg_geom *dgg, const char *fname)
 {
 }
 
-void gkyl_dg_geom_release(const struct gkyl_dg_geom *dgg)
+void
+gkyl_dg_geom_release(const struct gkyl_dg_geom *dgg)
 {
   gkyl_ref_count_dec(&dgg->ref_count);
 }

@@ -4,7 +4,8 @@
 #include <gkyl_wv_iso_euler_mixture.h>
 #include <gkyl_wv_iso_euler_mixture_priv.h>
 
-void test_iso_euler_mixture_twocomponent_basic_ho()
+void
+test_iso_euler_mixture_twocomponent_basic_ho()
 {
   double vt1 = 1.0;
   double vt2 = 10.0;
@@ -95,7 +96,8 @@ void test_iso_euler_mixture_twocomponent_basic_ho()
   gkyl_free(vt_s);
 }
 
-void test_iso_euler_mixture_threecomponent_basic_ho()
+void
+test_iso_euler_mixture_threecomponent_basic_ho()
 {
   double vt1 = 1.0;
   double vt2 = 10.0;
@@ -201,7 +203,8 @@ void test_iso_euler_mixture_threecomponent_basic_ho()
   gkyl_free(vt_s);
 }
 
-void test_iso_euler_mixture_twocomponent_waves_ho()
+void
+test_iso_euler_mixture_twocomponent_waves_ho()
 {
   double vt1 = 1.0;
   double vt2 = 10.0;
@@ -297,7 +300,8 @@ void test_iso_euler_mixture_twocomponent_waves_ho()
   gkyl_free(vt_s);
 }
 
-void test_iso_euler_mixture_twocomponent_waves_2_ho()
+void
+test_iso_euler_mixture_twocomponent_waves_2_ho()
 {
   double vt1 = 0.5;
   double vt2 = 50.0;
@@ -393,7 +397,8 @@ void test_iso_euler_mixture_twocomponent_waves_2_ho()
   gkyl_free(vt_s);
 }
 
-void test_iso_euler_mixture_threecomponent_waves_ho()
+void
+test_iso_euler_mixture_threecomponent_waves_ho()
 {
   double vt1 = 1.0;
   double vt2 = 10.0;
@@ -497,7 +502,8 @@ void test_iso_euler_mixture_threecomponent_waves_ho()
   gkyl_free(vt_s);
 }
 
-void test_iso_euler_mixture_threecomponent_waves_2_ho()
+void
+test_iso_euler_mixture_threecomponent_waves_2_ho()
 {
   double vt1 = 0.5;
   double vt2 = 50.0;

@@ -4,7 +4,8 @@
 #include <gkyl_amr_patch_priv.h>
 #include <gkyl_amr_patch_coupled_priv.h>
 
-void euler1d_run_single(int argc, char **argv, struct euler1d_single_init *init)
+void
+euler1d_run_single(int argc, char **argv, struct euler1d_single_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -69,21 +70,24 @@ void euler1d_run_single(int argc, char **argv, struct euler1d_single_init *init)
   for (int i = 0; i < num_patches; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
       };
       mesh_pdata[i].euler = gkyl_wv_euler_inew(&inp);
     } else {
       mesh_pdata[i].euler = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
     }
 
-    mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-    ){.grid = &mesh_pdata[i].grid,
+    mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+      .grid = &mesh_pdata[i].grid,
       .equation = mesh_pdata[i].euler,
       .limiter = GKYL_MONOTONIZED_CENTERED,
       .num_up_dirs = 1,
       .update_dirs = {0},
       .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom});
+      .geom = mesh_pdata[i].geom,
+    });
   }
 
   struct gkyl_block_topo *ptopo = create_patch_topo();
@@ -212,7 +216,8 @@ void euler1d_run_single(int argc, char **argv, struct euler1d_single_init *init)
   gkyl_job_pool_release(mesh_job_pool);
 }
 
-void euler1d_run_double(int argc, char **argv, struct euler1d_double_init *init)
+void
+euler1d_run_double(int argc, char **argv, struct euler1d_double_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -291,21 +296,24 @@ void euler1d_run_double(int argc, char **argv, struct euler1d_double_init *init)
   for (int i = 0; i < num_patches; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
       };
       mesh_pdata[i].euler = gkyl_wv_euler_inew(&inp);
     } else {
       mesh_pdata[i].euler = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
     }
 
-    mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-    ){.grid = &mesh_pdata[i].grid,
+    mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+      .grid = &mesh_pdata[i].grid,
       .equation = mesh_pdata[i].euler,
       .limiter = GKYL_MONOTONIZED_CENTERED,
       .num_up_dirs = 1,
       .update_dirs = {0},
       .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom});
+      .geom = mesh_pdata[i].geom,
+    });
   }
 
   struct gkyl_block_topo *ptopo = create_nested_patch_topo();
@@ -447,7 +455,8 @@ void euler1d_run_double(int argc, char **argv, struct euler1d_double_init *init)
   gkyl_job_pool_release(mesh_job_pool);
 }
 
-void euler2d_run_single(int argc, char **argv, struct euler2d_single_init *init)
+void
+euler2d_run_single(int argc, char **argv, struct euler2d_single_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -557,7 +566,9 @@ void euler2d_run_single(int argc, char **argv, struct euler2d_single_init *init)
   for (int i = 0; i < num_blocks; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
       };
       mesh_bdata[i].euler = gkyl_wv_euler_inew(&inp);
     } else {
@@ -565,14 +576,15 @@ void euler2d_run_single(int argc, char **argv, struct euler2d_single_init *init)
     }
 
     for (int d = 0; d < ndim; d++) {
-      mesh_bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &mesh_bdata[i].grid,
+      mesh_bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &mesh_bdata[i].grid,
         .equation = mesh_bdata[i].euler,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
         .update_dirs = {d},
         .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom});
+        .geom = mesh_bdata[i].geom,
+      });
     }
   }
 
@@ -708,7 +720,8 @@ void euler2d_run_single(int argc, char **argv, struct euler2d_single_init *init)
   gkyl_job_pool_release(mesh_job_pool);
 }
 
-void euler2d_run_double(int argc, char **argv, struct euler2d_double_init *init)
+void
+euler2d_run_double(int argc, char **argv, struct euler2d_double_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -889,7 +902,9 @@ void euler2d_run_double(int argc, char **argv, struct euler2d_double_init *init)
   for (int i = 0; i < num_blocks; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
       };
       mesh_bdata[i].euler = gkyl_wv_euler_inew(&inp);
     } else {
@@ -897,14 +912,15 @@ void euler2d_run_double(int argc, char **argv, struct euler2d_double_init *init)
     }
 
     for (int d = 0; d < ndim; d++) {
-      mesh_bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &mesh_bdata[i].grid,
+      mesh_bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &mesh_bdata[i].grid,
         .equation = mesh_bdata[i].euler,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
         .update_dirs = {d},
         .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom});
+        .geom = mesh_bdata[i].geom,
+      });
     }
   }
 

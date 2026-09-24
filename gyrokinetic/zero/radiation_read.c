@@ -8,7 +8,8 @@
  * STRING 'DELIM' #1 'DELIM' STRING 'DELIM' #2 
  * DELIM can be any of: ,:;=
  */
-static inline void gkyl_radiation_read_two_numbers(FILE *fptr, int *num1, int *num2)
+static inline void
+gkyl_radiation_read_two_numbers(FILE *fptr, int *num1, int *num2)
 {
   char str[BUFFER_LEN];
   char delim[5] = "=,;:";
@@ -20,7 +21,8 @@ static inline void gkyl_radiation_read_two_numbers(FILE *fptr, int *num1, int *n
   }
 }
 
-struct all_radiation_states *gkyl_radiation_read_rad_fit_params()
+struct all_radiation_states *
+gkyl_radiation_read_rad_fit_params()
 {
   char fname[4000];
   const char *fmt = "%s/%s";
@@ -125,7 +127,8 @@ struct all_radiation_states *gkyl_radiation_read_rad_fit_params()
   return rad_data;
 }
 
-int gkyl_radiation_read_get_num_densities(
+int
+gkyl_radiation_read_get_num_densities(
   const struct all_radiation_states rad_data, int atomic_z, int charge_state, double min_ne,
   double max_ne, int *num_densities
 )
@@ -160,7 +163,8 @@ int gkyl_radiation_read_get_num_densities(
   return 0;
 }
 
-int gkyl_radiation_read_get_fit_params(
+int
+gkyl_radiation_read_get_fit_params(
   const struct all_radiation_states rad_data, int atomic_z, int charge_state, double *a,
   double *alpha, double *beta, double *gamma, double *V0, int *num_densities,
   double electron_densities[GKYL_MAX_RAD_DENSITIES], double ref_dens, double min_ne, double max_ne
@@ -210,7 +214,8 @@ int gkyl_radiation_read_get_fit_params(
   return 0;
 }
 
-int gkyl_radiation_read_get_fit_lz(
+int
+gkyl_radiation_read_get_fit_lz(
   const struct all_radiation_states rad_data, int atomic_z, int charge_state, double ne, double *te,
   double *Lz
 )
@@ -236,7 +241,8 @@ int gkyl_radiation_read_get_fit_lz(
   return 0;
 }
 
-void gkyl_radiation_read_release_fit_params(struct all_radiation_states *rad_data)
+void
+gkyl_radiation_read_release_fit_params(struct all_radiation_states *rad_data)
 {
   int max_Z = rad_data->max_atomic_number;
   for (int i = 0; i < max_Z; i++) {

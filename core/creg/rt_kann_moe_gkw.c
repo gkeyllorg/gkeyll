@@ -12,20 +12,23 @@ struct xrange {
   int N;
 };
 
-static inline float xrange_n(struct xrange xr, int n)
+static inline float
+xrange_n(struct xrange xr, int n)
 {
   float dx = (xr.xright - xr.xleft) / (xr.N - 1);
   return xr.xleft + dx * n;
 }
 
 // Family of pretraining functions.
-static inline float tfunc(int n, float x)
+static inline float
+tfunc(int n, float x)
 {
   return sinf((2.0f * M_PI * (n + 1) * x) + n);
 }
 
 // Function to fit.
-static inline float ufunc(float x)
+static inline float
+ufunc(float x)
 {
   return 1.0f / (1.0f + 100.0f * x * x);
 }
@@ -40,7 +43,8 @@ struct train_inp {
 };
 
 // Construct an MLP (with tanh activation) to use as a single "expert".
-static inline kad_node_t *single_expert(kad_node_t *input, int n_layers, int n_hidden, int n_output)
+static inline kad_node_t *
+single_expert(kad_node_t *input, int n_layers, int n_hidden, int n_output)
 {
   kad_node_t *t_net;
 
@@ -54,7 +58,8 @@ static inline kad_node_t *single_expert(kad_node_t *input, int n_layers, int n_h
 }
 
 // Construct a "weighted expert", with an initial (trainable) scalar weight and a trainable scalar bias.
-static inline kad_node_t *weighted_expert(kad_node_t *expert, int n_output, float init_weight)
+static inline kad_node_t *
+weighted_expert(kad_node_t *expert, int n_output, float init_weight)
 {
   kad_node_t *weight, *bias;
   kad_node_t *t_net;
@@ -111,7 +116,8 @@ mixture_of_experts(int n_input, int n_layers, int n_hidden, int n_experts, int n
   return cost;
 }
 
-void train_mixture(struct train_inp *nn_inp, const char *nn_name)
+void
+train_mixture(struct train_inp *nn_inp, const char *nn_name)
 {
   kad_node_t *t_net = mixture_of_experts(1, nn_inp->ndepth, nn_inp->nwidth, nn_inp->nexperts, 1);
   struct gkyl_kann_net *net = gkyl_kann_net_new(t_net, nn_inp->use_gpu);
@@ -122,7 +128,7 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
     .mini_size = 64,
     .max_epoch = 50,
     .max_drop_streak = 10,
-    .frac_val = 0.1f
+    .frac_val = 0.1f,
   };
 
   // Run individual expert training (i.e. pretraining).
@@ -195,7 +201,8 @@ void train_mixture(struct train_inp *nn_inp, const char *nn_name)
 }
 
 // Run inference on N input values.
-void infer_ann(const char *nn_name, bool use_gpu, struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+void
+infer_ann(const char *nn_name, bool use_gpu, struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   struct gkyl_kann_net *net = gkyl_kann_net_load(nn_name, use_gpu);
 
@@ -216,7 +223,8 @@ void infer_ann(const char *nn_name, bool use_gpu, struct gkyl_kn_vec *inp, struc
   gkyl_kann_net_release(net);
 }
 
-void write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
+void
+write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
 {
   const char *gpcode = "set macros\n"
                        "set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 5   # blue\n"
@@ -242,39 +250,40 @@ void write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out
   }
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
   int p_train = 0, p_infer = 0, p_verbose = 0, c;
   bool use_gpu = false;
   while ((c = getopt(argc, argv, "+htivg")) != -1) {
     switch (c) {
-    case 'h':
-      fprintf(stdout, "rt_kann_moe_gkw -i -t -v -g\n");
-      fprintf(stdout, "  -t Run Training\n");
-      fprintf(stdout, "  -i Run Inference\n");
-      fprintf(stdout, "  -v Verbose mode\n");
-      fprintf(stdout, "  -g Run on GPU\n");
-      exit(0);
-      break;
+      case 'h':
+        fprintf(stdout, "rt_kann_moe_gkw -i -t -v -g\n");
+        fprintf(stdout, "  -t Run Training\n");
+        fprintf(stdout, "  -i Run Inference\n");
+        fprintf(stdout, "  -v Verbose mode\n");
+        fprintf(stdout, "  -g Run on GPU\n");
+        exit(0);
+        break;
 
-    case 't':
-      p_train = 1;
-      break;
+      case 't':
+        p_train = 1;
+        break;
 
-    case 'i':
-      p_infer = 1;
-      break;
+      case 'i':
+        p_infer = 1;
+        break;
 
-    case 'v':
-      p_verbose = 3;
-      break;
+      case 'v':
+        p_verbose = 3;
+        break;
 
-    case 'g':
-      use_gpu = true;
-      break;
+      case 'g':
+        use_gpu = true;
+        break;
 
-    case '?':
-      break;
+      case '?':
+        break;
     }
   }
 
@@ -283,13 +292,14 @@ int main(int argc, char *argv[])
   if (p_train) {
     fprintf(stdout, "*** Training%s\n", use_gpu ? " (GPU)" : "");
     train_mixture(
-      &(struct train_inp
-      ){.ntrain = 1001,
+      &(struct train_inp){
+        .ntrain = 1001,
         .ndepth = 2,
         .nwidth = 256,
         .nexperts = 3,
         .learning_rate = 1e-3f,
-        .use_gpu = use_gpu},
+        .use_gpu = use_gpu,
+      },
       "rt_kann_moe_gkw.kann"
     );
   }

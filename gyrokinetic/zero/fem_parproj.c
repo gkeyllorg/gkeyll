@@ -1,12 +1,14 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_parproj_priv.h>
 
-static void fem_parproj_bias_src_disabled(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
+static void
+fem_parproj_bias_src_disabled(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
 {
   // Do nothing.
 }
 
-static void fem_parproj_bias_src_enabled(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
+static void
+fem_parproj_bias_src_enabled(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -66,7 +68,8 @@ static void fem_parproj_bias_src_enabled(gkyl_fem_parproj *up, const struct gkyl
   }
 }
 
-struct gkyl_fem_parproj *gkyl_fem_parproj_new(
+struct gkyl_fem_parproj *
+gkyl_fem_parproj_new(
   const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
   struct gkyl_poisson_bias_line_list *bias_lines, const struct gkyl_array *weight_left,
@@ -403,7 +406,8 @@ struct gkyl_fem_parproj *gkyl_fem_parproj_new(
   return up;
 }
 
-void gkyl_fem_parproj_set_rhs(
+void
+gkyl_fem_parproj_set_rhs(
   struct gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc
 )
 {
@@ -459,7 +463,8 @@ void gkyl_fem_parproj_set_rhs(
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 }
 
-void gkyl_fem_parproj_solve(struct gkyl_fem_parproj *up, struct gkyl_array *phiout)
+void
+gkyl_fem_parproj_solve(struct gkyl_fem_parproj *up, struct gkyl_array *phiout)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -500,7 +505,8 @@ void gkyl_fem_parproj_solve(struct gkyl_fem_parproj *up, struct gkyl_array *phio
   }
 }
 
-void gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
+void
+gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
 {
   if (up->has_weight_rhs) {
     gkyl_array_release(up->weight_rhs);

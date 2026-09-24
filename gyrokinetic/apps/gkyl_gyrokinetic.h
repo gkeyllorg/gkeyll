@@ -107,17 +107,6 @@ enum gkyl_gyrokinetic_time_rate_diagnostic {
   GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM // Sentinal value. Not a diagnostic. Index for total number of time-rate diagnostics.
 };
 
-// Parameters for collisionless terms.
-struct gkyl_gyrokinetic_collisionless {
-  enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
-  bool write_diagnostics; // Whether to output diagnostics.
-  double scale_factor; // Factor multiplying collisionless terms (should be > 0).
-  // Passive advection speeds in x, y, z (for GKYL_GK_COLLISIONLESS_PASSIVE).
-  // Assumes no advection/dependence on vpar/mu. Should return cdim values.
-  evalf_t passive_speeds;
-  void *passive_speeds_ctx; // Context for passive_speeds.
-};
-
 // Parameters for species collisions
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -455,6 +444,20 @@ struct gkyl_gyrokinetic_fdot_multiplier_comp {
 struct gkyl_gyrokinetic_fdot_multiplier {
   int num_multipliers;
   struct gkyl_gyrokinetic_fdot_multiplier_comp multiplier[GKYL_MAX_FDOT_MUL];
+};
+
+// Parameters for collisionless terms.
+struct gkyl_gyrokinetic_collisionless {
+  enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
+  bool write_diagnostics; // Whether to output diagnostics.
+  double scale_factor; // Factor multiplying collisionless terms (should be > 0).
+  // Passive advection speeds in x, y, z (for GKYL_GK_COLLISIONLESS_PASSIVE).
+  // Assumes no advection/dependence on vpar/mu. Should return cdim values.
+  evalf_t passive_speeds;
+  void *passive_speeds_ctx; // Context for passive_speeds.
+  // Gyrokinetic species only: multiply the collisionless RHS and CFL rate after scale_factor.
+  // Collisions and sources are unaffected. An empty chain leaves the update unchanged.
+  struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
 };
 
 // Parameters for gk species.
@@ -1440,8 +1443,9 @@ void gkyl_gyrokinetic_app_read_geometry(
  * @param app App object
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fname);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_file_field(
+  gkyl_gyrokinetic_app *app, const char *fname
+);
 
 /**
  * Initialize gyrokinetic species from file
@@ -1450,8 +1454,9 @@ gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fnam
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx, const char *fname);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_file_species(
+  gkyl_gyrokinetic_app *app, int sidx, const char *fname
+);
 
 /**
  * Initialize neutral species from file
@@ -1460,8 +1465,9 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx, cons
  * @param sidx neut species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx, const char *fname);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_file_neut_species(
+  gkyl_gyrokinetic_app *app, int sidx, const char *fname
+);
 
 /**
  * Initialize the gyrokinetic app from a specific frame.
@@ -1469,8 +1475,9 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_read_from_frame(
+  gkyl_gyrokinetic_app *app, int frame
+);
 
 /**
  * Initialize field from frame
@@ -1478,8 +1485,9 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame);
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_frame_field(
+  gkyl_gyrokinetic_app *app, int frame
+);
 
 /**
  * Initialize gyrokinetic species from file
@@ -1488,8 +1496,9 @@ gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame);
  * @param sidx gk species index
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_frame_species(
+  gkyl_gyrokinetic_app *app, int sidx, int frame
+);
 
 /**
  * Initialize neutral species from file
@@ -1498,8 +1507,9 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
  * @param sidx neut species index
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_app_from_frame_neut_species(
+  gkyl_gyrokinetic_app *app, int sidx, int frame
+);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the
@@ -1577,7 +1587,8 @@ void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(
 );
 
 /**
- * Reset the collisionless multiplier for a given species.
+ * Reset the collisionless scale_factor and time_rate_multiplier for a given species.
+ * An empty multiplier chain disables collisionless time dilation.
  *
  * @param app App object.
  * @param tm Time-stamp.

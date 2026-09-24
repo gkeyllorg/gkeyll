@@ -22,18 +22,21 @@
 #include <gkyl_wv_ten_moment.h>
 #include <gkyl_wave_geom.h>
 
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
 // set cell-average physical value `val` of block `blk` for cdim=2 (factor 2).
-static void set_const_block_2x(struct gkyl_array *arr, int blk, int nb, double val)
+static void
+set_const_block_2x(struct gkyl_array *arr, int blk, int nb, double val)
 {
   gkyl_array_shiftc(arr, val * 2.0, blk * nb);
 }
 
-static void mk_setup(
+static void
+mk_setup(
   struct gkyl_rect_grid *grid, struct gkyl_basis *cbasis, struct gkyl_range *local,
   struct gkyl_range *local_ext, struct gkyl_wv_eqn **eqn, struct gkyl_wave_geom **geom
 )
@@ -49,7 +52,8 @@ static void mk_setup(
   *geom = gkyl_wave_geom_new(grid, local_ext, 0, 0, false);
 }
 
-void test_pressure_2x_p1_by()
+void
+test_pressure_2x_p1_by()
 {
   struct gkyl_rect_grid grid;
   struct gkyl_basis cbasis;
@@ -104,7 +108,8 @@ void test_pressure_2x_p1_by()
   gkyl_wv_eqn_release(eqn);
 }
 
-void test_integrated_vars_2x_p1()
+void
+test_integrated_vars_2x_p1()
 {
   struct gkyl_rect_grid grid;
   struct gkyl_basis cbasis;
@@ -169,7 +174,8 @@ void test_integrated_vars_2x_p1()
   gkyl_wv_eqn_release(eqn);
 }
 
-void test_u_2x_p1()
+void
+test_u_2x_p1()
 {
   struct gkyl_rect_grid grid;
   struct gkyl_basis cbasis;

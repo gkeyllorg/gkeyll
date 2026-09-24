@@ -17,7 +17,8 @@ static const uint32_t masks[] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
 #define IS_SUB_RANGE(flags) (((flags) & masks[R_IS_SUB_RANGE]) != 0)
 
 // Computes coefficients for mapping indices in row-major order
-static void calc_rowmajor_ac(struct gkyl_range *range, long ac[])
+static void
+calc_rowmajor_ac(struct gkyl_range *range, long ac[])
 {
   int ndim = range->ndim;
   ac[ndim] = 1L;
@@ -32,7 +33,8 @@ static void calc_rowmajor_ac(struct gkyl_range *range, long ac[])
 }
 
 // Computes stuff needed for "skip iterator"
-static long calc_skip_iter(const struct gkyl_range *rng, int *remDir)
+static long
+calc_skip_iter(const struct gkyl_range *rng, int *remDir)
 {
   int up[GKYL_MAX_DIM];
   for (int d = 0; d < rng->ndim; ++d) {
@@ -54,7 +56,8 @@ static long calc_skip_iter(const struct gkyl_range *rng, int *remDir)
 }
 
 // compute volume, safely (for malformed ranges)
-static long calc_volume_safely(int ndim, const int *lower, const int *upper)
+static long
+calc_volume_safely(int ndim, const int *lower, const int *upper)
 {
   int is_zero_vol = 0;
   long vol = 1L;
@@ -68,7 +71,8 @@ static long calc_volume_safely(int ndim, const int *lower, const int *upper)
   return vol;
 }
 
-void gkyl_range_init(struct gkyl_range *rng, int ndim, const int *lower, const int *upper)
+void
+gkyl_range_init(struct gkyl_range *rng, int ndim, const int *lower, const int *upper)
 {
   //  // MF 2023/07/07: commenting this out because it causes seg faults in g2.
   //  *rng = (struct gkyl_range) { };
@@ -107,14 +111,16 @@ void gkyl_range_init(struct gkyl_range *rng, int ndim, const int *lower, const i
   rng->nblocks = rng->volume / rng->nthreads + 1;
 }
 
-struct gkyl_range *gkyl_range_new(int ndim, const int *lower, const int *upper)
+struct gkyl_range *
+gkyl_range_new(int ndim, const int *lower, const int *upper)
 {
   struct gkyl_range *out = gkyl_calloc(1, sizeof(*out));
   gkyl_range_init(out, ndim, lower, upper);
   return out;
 }
 
-void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
+void
+gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
 {
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
   for (int i = 0; i < ndim; ++i) {
@@ -124,7 +130,8 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *sha
   gkyl_range_init(rng, ndim, lo, up);
 }
 
-void gkyl_range_init_from_shape1(struct gkyl_range *rng, int ndim, const int *shape)
+void
+gkyl_range_init_from_shape1(struct gkyl_range *rng, int ndim, const int *shape)
 {
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
   for (int i = 0; i < ndim; ++i) {
@@ -134,9 +141,8 @@ void gkyl_range_init_from_shape1(struct gkyl_range *rng, int ndim, const int *sh
   gkyl_range_init(rng, ndim, lo, up);
 }
 
-void gkyl_range_ten_prod(
-  struct gkyl_range *rng, const struct gkyl_range *a, const struct gkyl_range *b
-)
+void
+gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a, const struct gkyl_range *b)
 {
   int adim = a->ndim, bdim = b->ndim;
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
@@ -152,7 +158,8 @@ void gkyl_range_ten_prod(
   gkyl_range_init(rng, adim + bdim, lower, upper);
 }
 
-void gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp, const int *delta)
+void
+gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp, const int *delta)
 {
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 
@@ -163,9 +170,8 @@ void gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp, cons
   gkyl_range_init(rng, inp->ndim, lower, upper);
 }
 
-void gkyl_range_reset_lower(
-  struct gkyl_range *rng, const struct gkyl_range *inp, const int *new_lower
-)
+void
+gkyl_range_reset_lower(struct gkyl_range *rng, const struct gkyl_range *inp, const int *new_lower)
 {
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 
@@ -176,12 +182,14 @@ void gkyl_range_reset_lower(
   gkyl_range_init(rng, inp->ndim, lower, upper);
 }
 
-int gkyl_range_is_sub_range(const struct gkyl_range *rng)
+int
+gkyl_range_is_sub_range(const struct gkyl_range *rng)
 {
   return IS_SUB_RANGE(rng->flags);
 }
 
-void gkyl_sub_range_init(
+void
+gkyl_sub_range_init(
   struct gkyl_range *rng, const struct gkyl_range *bigrng, const int *sublower, const int *subupper
 )
 {
@@ -215,7 +223,8 @@ void gkyl_sub_range_init(
   rng->nblocks = rng->volume / rng->nthreads + 1;
 }
 
-struct gkyl_range gkyl_range_split(struct gkyl_range *rng, int nsplit, int tid)
+struct gkyl_range
+gkyl_range_split(struct gkyl_range *rng, int nsplit, int tid)
 {
   struct gkyl_range r = *rng;
   r.nsplit = nsplit;
@@ -226,7 +235,8 @@ struct gkyl_range gkyl_range_split(struct gkyl_range *rng, int nsplit, int tid)
 // Computes split and returns number of elements handled locally and
 // the initial index into the range. Number of elements is returned
 // and start index set in 'lower'
-static long range_calc_split(const struct gkyl_range *rng, int *lower)
+static long
+range_calc_split(const struct gkyl_range *rng, int *lower)
 {
   const int nsplit = rng->nsplit, tid = rng->tid;
   long quot = rng->volume / nsplit, rem = rng->volume % nsplit;
@@ -247,13 +257,15 @@ static long range_calc_split(const struct gkyl_range *rng, int *lower)
   return len;
 }
 
-long gkyl_range_split_len(const struct gkyl_range *rng)
+long
+gkyl_range_split_len(const struct gkyl_range *rng)
 {
   const long quot = rng->volume / rng->nsplit, rem = rng->volume % rng->nsplit;
   return rng->tid < rem ? quot + 1 : quot;
 }
 
-void gkyl_range_deflate(
+void
+gkyl_range_deflate(
   struct gkyl_range *srng, const struct gkyl_range *rng, const int *remDir, const int *locDir
 )
 {
@@ -293,7 +305,8 @@ void gkyl_range_deflate(
   srng->nblocks = srng->volume / srng->nthreads + 1;
 }
 
-void gkyl_range_shorten_from_above(
+void
+gkyl_range_shorten_from_above(
   struct gkyl_range *rng, const struct gkyl_range *range, int dir, int len
 )
 {
@@ -308,7 +321,8 @@ void gkyl_range_shorten_from_above(
   gkyl_sub_range_init(rng, range, lo, up);
 }
 
-void gkyl_range_shorten_from_below(
+void
+gkyl_range_shorten_from_below(
   struct gkyl_range *rng, const struct gkyl_range *range, int dir, int len
 )
 {
@@ -323,7 +337,8 @@ void gkyl_range_shorten_from_below(
   gkyl_sub_range_init(rng, range, lo, up);
 }
 
-void gkyl_range_extend(
+void
+gkyl_range_extend(
   struct gkyl_range *erng, const struct gkyl_range *range, const int *elo, const int *eup
 )
 {
@@ -337,7 +352,8 @@ void gkyl_range_extend(
   gkyl_range_init(erng, ndim, lo, up);
 }
 
-void gkyl_range_perp_extend(
+void
+gkyl_range_perp_extend(
   struct gkyl_range *erng, int dir, const struct gkyl_range *rng, const int *elo, const int *eup
 )
 {
@@ -352,9 +368,8 @@ void gkyl_range_perp_extend(
   gkyl_range_extend(erng, rng, elo_p, eup_p);
 }
 
-void gkyl_range_lower_skin(
-  struct gkyl_range *rng, const struct gkyl_range *range, int dir, int nskin
-)
+void
+gkyl_range_lower_skin(struct gkyl_range *rng, const struct gkyl_range *range, int dir, int nskin)
 {
   int ndim = range->ndim;
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
@@ -367,9 +382,8 @@ void gkyl_range_lower_skin(
   gkyl_sub_range_init(rng, range, lo, up);
 }
 
-void gkyl_range_upper_skin(
-  struct gkyl_range *rng, const struct gkyl_range *range, int dir, int nskin
-)
+void
+gkyl_range_upper_skin(struct gkyl_range *rng, const struct gkyl_range *range, int dir, int nskin)
 {
   int ndim = range->ndim;
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
@@ -383,7 +397,8 @@ void gkyl_range_upper_skin(
 }
 
 // Increment an int vector by fact*del[d] in each direction d.
-static inline void incr_int_array(
+static inline void
+incr_int_array(
   int ndim, int fact, const int *GKYL_RESTRICT del, const int *GKYL_RESTRICT inp,
   int *GKYL_RESTRICT out
 )
@@ -400,7 +415,8 @@ static inline void incr_int_array(
  * not include corners. I am not sure how to handle corners on
  * physical boundaries. Also, perhaps this code could be simplified.
  */
-void gkyl_skin_ghost_ranges(
+void
+gkyl_skin_ghost_ranges(
   struct gkyl_range *skin, struct gkyl_range *ghost, int dir, enum gkyl_edge_loc edge,
   const struct gkyl_range *parent, const int *nghost
 )
@@ -437,7 +453,8 @@ void gkyl_skin_ghost_ranges(
   }
 }
 
-void gkyl_skin_ghost_with_corners_ranges(
+void
+gkyl_skin_ghost_with_corners_ranges(
   struct gkyl_range *skin, struct gkyl_range *ghost, int dir, enum gkyl_edge_loc edge,
   const struct gkyl_range *parent, const int *nghost
 )
@@ -470,7 +487,8 @@ void gkyl_skin_ghost_with_corners_ranges(
   }
 }
 
-int gkyl_range_intersect(
+int
+gkyl_range_intersect(
   struct gkyl_range *irng, const struct gkyl_range *r1, const struct gkyl_range *r2
 )
 {
@@ -484,7 +502,8 @@ int gkyl_range_intersect(
   return irng->volume > 0 ? 1 : 0;
 }
 
-int gkyl_sub_range_intersect(
+int
+gkyl_sub_range_intersect(
   struct gkyl_range *irng, const struct gkyl_range *r1, const struct gkyl_range *r2
 )
 {
@@ -504,9 +523,8 @@ int gkyl_sub_range_intersect(
   return irng->volume > 0 ? 1 : 0;
 }
 
-bool gkyl_range_is_on_lower_edge(
-  int dir, const struct gkyl_range *range, const struct gkyl_range *parent
-)
+bool
+gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range, const struct gkyl_range *parent)
 {
   if (range->lower[dir] == parent->lower[dir]) {
     return true;
@@ -514,9 +532,8 @@ bool gkyl_range_is_on_lower_edge(
   return false;
 }
 
-bool gkyl_range_is_on_upper_edge(
-  int dir, const struct gkyl_range *range, const struct gkyl_range *parent
-)
+bool
+gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range, const struct gkyl_range *parent)
 {
   if (range->upper[dir] == parent->upper[dir]) {
     return true;
@@ -566,7 +583,8 @@ gkyl_range_edge_match(const struct gkyl_range *base, const struct gkyl_range *ta
   return no_dir_ed;
 }
 
-void gkyl_range_iter_init(struct gkyl_range_iter *iter, const struct gkyl_range *range)
+void
+gkyl_range_iter_init(struct gkyl_range_iter *iter, const struct gkyl_range *range)
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
@@ -578,7 +596,8 @@ void gkyl_range_iter_init(struct gkyl_range_iter *iter, const struct gkyl_range 
   }
 }
 
-void gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter, const struct gkyl_range *range)
+void
+gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter, const struct gkyl_range *range)
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
@@ -590,7 +609,8 @@ void gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter, const struct gk
   }
 }
 
-int gkyl_range_iter_next(struct gkyl_range_iter *iter)
+int
+gkyl_range_iter_next(struct gkyl_range_iter *iter)
 {
   if (iter->bumps_left-- < 1) {
     return 0;
@@ -611,14 +631,16 @@ int gkyl_range_iter_next(struct gkyl_range_iter *iter)
   return 0;
 }
 
-void gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter, const struct gkyl_range *range)
+void
+gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter, const struct gkyl_range *range)
 {
   int remDir[GKYL_MAX_DIM];
   iter->delta = calc_skip_iter(range, remDir);
   gkyl_range_deflate(&iter->range, range, remDir, range->lower);
 }
 
-void gkyl_print_range(const struct gkyl_range *range, const char *nm, FILE *fp)
+void
+gkyl_print_range(const struct gkyl_range *range, const char *nm, FILE *fp)
 {
   fprintf(fp, "%s = { ndim = %d, ", nm, range->ndim);
 
@@ -641,7 +663,8 @@ void gkyl_print_range(const struct gkyl_range *range, const char *nm, FILE *fp)
   fflush(fp);
 }
 
-bool gkyl_range_compare(const struct gkyl_range *r1, const struct gkyl_range *r2)
+bool
+gkyl_range_compare(const struct gkyl_range *r1, const struct gkyl_range *r2)
 {
   if (r1->ndim != r2->ndim) {
     return false;
@@ -657,31 +680,36 @@ bool gkyl_range_compare(const struct gkyl_range *r1, const struct gkyl_range *r2
   return true;
 }
 
-int gkyl_range_get_ndim(const struct gkyl_range *range)
+int
+gkyl_range_get_ndim(const struct gkyl_range *range)
 {
   return range->ndim;
 }
 
-void gkyl_range_get_lower(const struct gkyl_range *range, int *lower)
+void
+gkyl_range_get_lower(const struct gkyl_range *range, int *lower)
 {
   for (int d = 0; d < range->ndim; d++) {
     lower[d] = range->lower[d];
   }
 }
 
-void gkyl_range_get_upper(const struct gkyl_range *range, int *upper)
+void
+gkyl_range_get_upper(const struct gkyl_range *range, int *upper)
 {
   for (int d = 0; d < range->ndim; d++) {
     upper[d] = range->upper[d];
   }
 }
 
-long gkyl_range_get_volume(const struct gkyl_range *range)
+long
+gkyl_range_get_volume(const struct gkyl_range *range)
 {
   return range->volume;
 }
 
-void gkyl_range_release(struct gkyl_range *range)
+void
+gkyl_range_release(struct gkyl_range *range)
 {
   gkyl_free(range);
 }

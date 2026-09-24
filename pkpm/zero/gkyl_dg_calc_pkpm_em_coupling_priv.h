@@ -92,15 +92,15 @@ GKYL_CU_D static pkpm_em_coupling_set_t
 choose_pkpm_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_em_coupling_set_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_em_coupling_set_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_em_coupling_set_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_em_coupling_set_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -108,14 +108,14 @@ GKYL_CU_D static pkpm_em_coupling_copy_t
 choose_pkpm_em_coupling_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_pkpm_em_coupling_copy_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_pkpm_em_coupling_copy_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_em_coupling_copy_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_em_coupling_copy_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }

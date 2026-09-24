@@ -6,17 +6,20 @@
 #include <gkyl_range.h>
 #include <gkyl_proj_on_basis.h>
 
-static inline double sq(double x)
+static inline double
+sq(double x)
 {
   return x * x;
 }
-static inline double cub(double x)
+static inline double
+cub(double x)
 {
   return x * x * x;
 }
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
                                    gkyl_array_new(GKYL_DOUBLE, nc, size);
@@ -31,7 +34,8 @@ eval_array_at_coord_1d_func(double t, const double *xc, double *GKYL_RESTRICT fo
   fout[0] = 3.3 * 0.5 * (1.0 + cos((2 * M_PI / Lx) * x));
 }
 
-void test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
+void
+test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
 {
   double lower[] = {0.0}, upper[] = {5.0};
   int cells[] = {8};
@@ -104,7 +108,8 @@ void test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
   gkyl_array_release(fld);
 }
 
-void test_basis_ops_cubic_1d_ho(void)
+void
+test_basis_ops_cubic_1d_ho(void)
 {
   double val[2] = {1.0, 2.0};
   double grad[2] = {-1.0, -2.0};
@@ -124,7 +129,8 @@ void test_basis_ops_cubic_1d_ho(void)
   );
 }
 
-void test_basis_ops_cubic_2d_ho(void)
+void
+test_basis_ops_cubic_2d_ho(void)
 {
   double val[4] = {1.0, 2.0, 3.0, 4.0};
   double gradx[4] = {-1.0, -2.0, -3.0, -4.0};
@@ -169,7 +175,8 @@ void test_basis_ops_cubic_2d_ho(void)
   );
 }
 
-void test_basis_ops_cubic_evalf_2d_ho(void)
+void
+test_basis_ops_cubic_evalf_2d_ho(void)
 {
   double lower[] = {0.0, 0.0}, upper[] = {5.0, 5.0};
   int cells[] = {8, 8};
@@ -240,14 +247,16 @@ void test_basis_ops_cubic_evalf_2d_ho(void)
   gkyl_dg_basis_ops_evalf_release(evf);
 }
 
-void test_basis_ops_eval_array_at_coord_1d_ho()
+void
+test_basis_ops_eval_array_at_coord_1d_ho()
 {
   // p = 1
   test_eval_array_at_coord_1d_p_hodev(1, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_basis_ops_eval_array_at_coord_1d_dev()
+void
+test_basis_ops_eval_array_at_coord_1d_dev()
 {
   // p = 1
   test_eval_array_at_coord_1d_p_hodev(1, true);

@@ -10,7 +10,8 @@
 // A sheath-trapped orbit includes the material-wall potential as an endpoint.
 
 /** Allocate host or device array storage for precomputed corner data. */
-static struct gkyl_array *gk_lcm_mkarr(long nc, long size, bool use_gpu)
+static struct gkyl_array *
+gk_lcm_mkarr(long nc, long size, bool use_gpu)
 {
   return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
                    gkyl_array_new(GKYL_DOUBLE, nc, size);
@@ -21,7 +22,8 @@ static struct gkyl_array *gk_lcm_mkarr(long nc, long size, bool use_gpu)
  * corner. These are interpolation/cell-classification corners, not Gaussian
  * quadrature, positivity, or modal-basis nodes.
  */
-static void gk_lcm_init_corner_values(
+static void
+gk_lcm_init_corner_values(
   const struct gkyl_range *corner_range, const struct gkyl_basis *basis,
   struct gkyl_array **basis_at_corners, bool use_gpu
 )
@@ -81,7 +83,8 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   return up;
 }
 
-void gkyl_loss_cone_mask_gyrokinetic_advance(
+void
+gkyl_loss_cone_mask_gyrokinetic_advance(
   gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
@@ -182,7 +185,8 @@ void gkyl_loss_cone_mask_gyrokinetic_advance(
   }
 }
 
-void gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up)
+void
+gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up)
 {
   gkyl_velocity_map_release(up->vel_map);
   gkyl_array_release(up->basis_at_corners_conf);

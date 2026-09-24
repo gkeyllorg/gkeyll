@@ -11,7 +11,8 @@ struct gkyl_eval_offset_fd {
   void *ctx; // evaluation context
 };
 
-gkyl_eval_offset_fd *gkyl_eval_offset_fd_new(const struct gkyl_eval_offset_fd_inp *inp)
+gkyl_eval_offset_fd *
+gkyl_eval_offset_fd_new(const struct gkyl_eval_offset_fd_inp *inp)
 {
   struct gkyl_eval_offset_fd *up = gkyl_malloc(sizeof(*up));
 
@@ -26,7 +27,8 @@ gkyl_eval_offset_fd *gkyl_eval_offset_fd_new(const struct gkyl_eval_offset_fd_in
   return up;
 }
 
-static inline void comp_to_phys(
+static inline void
+comp_to_phys(
   int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
   double *GKYL_RESTRICT xout
 )
@@ -36,7 +38,8 @@ static inline void comp_to_phys(
   }
 }
 
-void gkyl_eval_offset_fd_advance(
+void
+gkyl_eval_offset_fd_advance(
   const gkyl_eval_offset_fd *up, double tm, const struct gkyl_range *update_rng,
   struct gkyl_array *out
 )
@@ -71,7 +74,8 @@ void gkyl_eval_offset_fd_advance(
   }
 }
 
-void gkyl_eval_offset_fd_release(gkyl_eval_offset_fd *up)
+void
+gkyl_eval_offset_fd_release(gkyl_eval_offset_fd *up)
 {
   gkyl_free(up->offsets);
   gkyl_free(up);

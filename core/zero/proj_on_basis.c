@@ -25,7 +25,8 @@ struct gkyl_proj_on_basis {
 };
 
 // Identity comp to phys coord mapping, for when user doesn't provide a map.
-static inline void c2p_identity(const double *xcomp, double *xphys, void *ctx)
+static inline void
+c2p_identity(const double *xcomp, double *xphys, void *ctx)
 {
   struct gkyl_rect_grid *grid = ctx;
   int ndim = grid->ndim;
@@ -34,13 +35,14 @@ static inline void c2p_identity(const double *xcomp, double *xphys, void *ctx)
   }
 }
 
-struct gkyl_proj_on_basis *gkyl_proj_on_basis_new(
+struct gkyl_proj_on_basis *
+gkyl_proj_on_basis_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_quad, int num_ret_vals,
   evalf_t eval, void *ctx
 )
 {
-  return gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-  ){.grid = grid,
+  return gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = grid,
     .basis = basis,
     .qtype = GKYL_GAUSS_QUAD,
     .num_quad = num_quad,
@@ -48,10 +50,12 @@ struct gkyl_proj_on_basis *gkyl_proj_on_basis_new(
     .eval = eval,
     .ctx = ctx,
     .c2p_func = 0,
-    .c2p_func_ctx = NULL});
+    .c2p_func_ctx = NULL,
+  });
 }
 
-struct gkyl_proj_on_basis *gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
+struct gkyl_proj_on_basis *
+gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
 {
   struct gkyl_proj_on_basis *up = gkyl_malloc(sizeof(struct gkyl_proj_on_basis));
 
@@ -135,17 +139,20 @@ struct gkyl_proj_on_basis *gkyl_proj_on_basis_inew(const struct gkyl_proj_on_bas
   return up;
 }
 
-int gkyl_proj_on_basis_get_tot_quad(const struct gkyl_proj_on_basis *up)
+int
+gkyl_proj_on_basis_get_tot_quad(const struct gkyl_proj_on_basis *up)
 {
   return up->tot_quad;
 }
 
-double *gkyl_proj_on_basis_fetch_ordinate(const struct gkyl_proj_on_basis *up, long node)
+double *
+gkyl_proj_on_basis_fetch_ordinate(const struct gkyl_proj_on_basis *up, long node)
 {
   return gkyl_array_fetch(up->ordinates, node);
 }
 
-static inline void log_to_comp(
+static inline void
+log_to_comp(
   int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
   double *GKYL_RESTRICT xout
 )
@@ -156,7 +163,8 @@ static inline void log_to_comp(
   }
 }
 
-void gkyl_proj_on_basis_quad(
+void
+gkyl_proj_on_basis_quad(
   const struct gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double *f
 )
 {
@@ -187,7 +195,8 @@ void gkyl_proj_on_basis_quad(
   }
 }
 
-void gkyl_proj_on_basis_advance(
+void
+gkyl_proj_on_basis_advance(
   const struct gkyl_proj_on_basis *up, double tm, const struct gkyl_range *update_range,
   struct gkyl_array *arr
 )
@@ -217,7 +226,8 @@ void gkyl_proj_on_basis_advance(
   gkyl_array_release(fun_at_ords);
 }
 
-void gkyl_proj_on_basis_release(struct gkyl_proj_on_basis *up)
+void
+gkyl_proj_on_basis_release(struct gkyl_proj_on_basis *up)
 {
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);

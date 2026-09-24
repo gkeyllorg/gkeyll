@@ -10,7 +10,8 @@
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_priv.h>
 
-void test_vlasov_null_field()
+void
+test_vlasov_null_field()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;
@@ -39,7 +40,8 @@ void test_vlasov_null_field()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_vlasov_2x3v()
+void
+test_vlasov_2x3v()
 {
   int cdim = 2, vdim = 3, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;
@@ -64,7 +66,8 @@ void test_vlasov_2x3v()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_vlasov_tensor_basis()
+void
+test_vlasov_tensor_basis()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;

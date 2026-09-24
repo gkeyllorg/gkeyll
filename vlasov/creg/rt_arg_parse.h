@@ -36,7 +36,8 @@ struct gkyl_app_args {
   char opt_args[128]; // optional arguments
 };
 
-static int get_basis_type(const char *nm)
+static int
+get_basis_type(const char *nm)
 {
   if (strcmp(nm, "ms") == 0) {
     return GKYL_BASIS_MODAL_SERENDIPITY;
@@ -46,7 +47,8 @@ static int get_basis_type(const char *nm)
   return -1;
 }
 
-static int get_mp_recon_type(const char *nm)
+static int
+get_mp_recon_type(const char *nm)
 {
   if (strcmp(nm, "u1") == 0) {
     return GKYL_MP_U1;
@@ -65,7 +67,8 @@ static int get_mp_recon_type(const char *nm)
   return -1;
 }
 
-static struct gkyl_app_args parse_app_args(int argc, char **argv)
+static struct gkyl_app_args
+parse_app_args(int argc, char **argv)
 {
   bool use_gpu = false;
   bool use_mpi = false;
@@ -85,119 +88,121 @@ static struct gkyl_app_args parse_app_args(int argc, char **argv)
   int c;
   while ((c = getopt(argc, argv, "+hjgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:o:")) != -1) {
     switch (c) {
-    case 'h':
-      printf("Usage: <app_name> -g -m -s nsteps -t nthreads -i inp -b [ms|mt] -x NX -y NY -z NZ -u "
-             "VX -v VY -w VZ\n");
-      printf(" All flags and parameters are optional.\n");
-      printf(" -g     Run on GPUs if GPUs are present and code built for GPUs\n");
-      printf(" -M     Run with MPI if code built with MPI\n");
-      printf(" -sN    Only run N steps of simulation\n");
-      printf(" -tN    Use N threads (when available)\n");
-      printf(" -b     Basis function to use (ms: Modal serendipity; mt: Modal tensor-product)\n");
-      printf("        (Ignored for finite-volume solvers)\n");
-      printf(" -j     Recovery scheme. One of u1, u3, u5, c2, c4, c6\n");
-      printf("        (Only used for MP-XX solvers)\n");
-      printf(" -l     Turn off limiters\n");
-      printf(" -rN    Restart the simulation from frame N\n");
-      printf(" -m     Turn on memory allocation/deallocation tracing\n");
-      printf(" -o     Optional arguments (as string, requires parsing)\n");
-      printf("\n");
-      printf(" Grid resolution in configuration space:\n");
-      printf(" -xNX -yNY -zNZ\n");
-      printf(" Grid resolution in velocity space:\n");
-      printf(" -uVX -vVY -wVZ\n");
-      printf(" Domain decomposition in each direction:\n");
-      printf(" -cPX -dPY -ePZ\n");
-      exit(-1);
-      break;
+      case 'h':
+        printf(
+          "Usage: <app_name> -g -m -s nsteps -t nthreads -i inp -b [ms|mt] -x NX -y NY -z NZ -u "
+          "VX -v VY -w VZ\n"
+        );
+        printf(" All flags and parameters are optional.\n");
+        printf(" -g     Run on GPUs if GPUs are present and code built for GPUs\n");
+        printf(" -M     Run with MPI if code built with MPI\n");
+        printf(" -sN    Only run N steps of simulation\n");
+        printf(" -tN    Use N threads (when available)\n");
+        printf(" -b     Basis function to use (ms: Modal serendipity; mt: Modal tensor-product)\n");
+        printf("        (Ignored for finite-volume solvers)\n");
+        printf(" -j     Recovery scheme. One of u1, u3, u5, c2, c4, c6\n");
+        printf("        (Only used for MP-XX solvers)\n");
+        printf(" -l     Turn off limiters\n");
+        printf(" -rN    Restart the simulation from frame N\n");
+        printf(" -m     Turn on memory allocation/deallocation tracing\n");
+        printf(" -o     Optional arguments (as string, requires parsing)\n");
+        printf("\n");
+        printf(" Grid resolution in configuration space:\n");
+        printf(" -xNX -yNY -zNZ\n");
+        printf(" Grid resolution in velocity space:\n");
+        printf(" -uVX -vVY -wVZ\n");
+        printf(" Domain decomposition in each direction:\n");
+        printf(" -cPX -dPY -ePZ\n");
+        exit(-1);
+        break;
 
-    case 'g':
-      use_gpu = true;
-      break;
+      case 'g':
+        use_gpu = true;
+        break;
 
-    case 'M':
-      use_mpi = true;
-      break;
+      case 'M':
+        use_mpi = true;
+        break;
 
-    case 'm':
-      trace_mem = true;
-      break;
+      case 'm':
+        trace_mem = true;
+        break;
 
-    case 'l':
-      skip_limiters = true;
-      break;
+      case 'l':
+        skip_limiters = true;
+        break;
 
-    case 'r':
-      is_restart = true;
-      restart_frame = atoi(optarg);
-      break;
+      case 'r':
+        is_restart = true;
+        restart_frame = atoi(optarg);
+        break;
 
-    case 's':
-      step_mode = true;
-      num_steps = atoi(optarg);
-      break;
+      case 's':
+        step_mode = true;
+        num_steps = atoi(optarg);
+        break;
 
-    case 't':
-      num_threads = atoi(optarg);
-      break;
+      case 't':
+        num_threads = atoi(optarg);
+        break;
 
-    case 'c':
-      args.cuts[0] = atoi(optarg);
-      break;
+      case 'c':
+        args.cuts[0] = atoi(optarg);
+        break;
 
-    case 'd':
-      args.cuts[1] = atoi(optarg);
-      break;
+      case 'd':
+        args.cuts[1] = atoi(optarg);
+        break;
 
-    case 'e':
-      args.cuts[2] = atoi(optarg);
-      break;
+      case 'e':
+        args.cuts[2] = atoi(optarg);
+        break;
 
-    case 'x':
-      args.xcells[0] = atoi(optarg);
-      break;
+      case 'x':
+        args.xcells[0] = atoi(optarg);
+        break;
 
-    case 'y':
-      args.xcells[1] = atoi(optarg);
-      break;
+      case 'y':
+        args.xcells[1] = atoi(optarg);
+        break;
 
-    case 'z':
-      args.xcells[2] = atoi(optarg);
-      break;
+      case 'z':
+        args.xcells[2] = atoi(optarg);
+        break;
 
-    case 'u':
-      args.vcells[0] = atoi(optarg);
-      break;
+      case 'u':
+        args.vcells[0] = atoi(optarg);
+        break;
 
-    case 'v':
-      args.vcells[1] = atoi(optarg);
-      break;
+      case 'v':
+        args.vcells[1] = atoi(optarg);
+        break;
 
-    case 'w':
-      args.vcells[2] = atoi(optarg);
-      break;
+      case 'w':
+        args.vcells[2] = atoi(optarg);
+        break;
 
-    case 'i':
-      strcpy(args.file_name, optarg);
-      break;
+      case 'i':
+        strcpy(args.file_name, optarg);
+        break;
 
-    case 'b':
-      args.basis_type = get_basis_type(optarg);
-      assert(args.basis_type != -1);
-      break;
+      case 'b':
+        args.basis_type = get_basis_type(optarg);
+        assert(args.basis_type != -1);
+        break;
 
-    case 'j':
-      args.mp_recon = get_mp_recon_type(optarg);
-      assert(args.mp_recon != -1);
-      break;
+      case 'j':
+        args.mp_recon = get_mp_recon_type(optarg);
+        assert(args.mp_recon != -1);
+        break;
 
-    case 'o':
-      assert(strlen(optarg) < sizeof(args.opt_args));
-      strcpy(args.opt_args, optarg);
-      break;
+      case 'o':
+        assert(strlen(optarg) < sizeof(args.opt_args));
+        strcpy(args.opt_args, optarg);
+        break;
 
-    case '?':
-      break;
+      case '?':
+        break;
     }
   }
 

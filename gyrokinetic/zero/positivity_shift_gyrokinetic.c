@@ -6,7 +6,8 @@
 
 // Convert the user-specified z-coordinate regions into inclusive cell-index
 // intervals along the field-line direction (z = last conf-space direction).
-static struct gkyl_positivity_shift_gyrokinetic_shift_region_idx pos_shift_gk_regions_coords_to_idx(
+static struct gkyl_positivity_shift_gyrokinetic_shift_region_idx
+pos_shift_gk_regions_coords_to_idx(
   struct gkyl_rect_grid grid, int cdim,
   struct gkyl_positivity_shift_gyrokinetic_regions coord_regions
 )
@@ -15,7 +16,8 @@ static struct gkyl_positivity_shift_gyrokinetic_shift_region_idx pos_shift_gk_re
   assert(coord_regions.num_regions <= GKYL_MAX_POSITIVITY_SHIFT_REGIONS);
 
   struct gkyl_positivity_shift_gyrokinetic_shift_region_idx idx_regions = {
-    .z_dir = z_dir, .num_regions = coord_regions.num_regions
+    .z_dir = z_dir,
+    .num_regions = coord_regions.num_regions,
   };
 
   double zlower = grid.lower[z_dir], dz = grid.dx[z_dir];
@@ -35,7 +37,8 @@ static struct gkyl_positivity_shift_gyrokinetic_shift_region_idx pos_shift_gk_re
   return idx_regions;
 }
 
-struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
+struct gkyl_positivity_shift_gyrokinetic *
+gkyl_positivity_shift_gyrokinetic_new(
   struct gkyl_basis cbasis, struct gkyl_basis pbasis, struct gkyl_rect_grid grid, double mass,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
   const struct gkyl_range *conf_rng_ext,
@@ -87,7 +90,8 @@ struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
   return up;
 }
 
-void gkyl_positivity_shift_gyrokinetic_advance(
+void
+gkyl_positivity_shift_gyrokinetic_advance(
   gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
   const struct gkyl_range *phase_rng, struct gkyl_array *GKYL_RESTRICT distf,
   struct gkyl_array *GKYL_RESTRICT m0, struct gkyl_array *GKYL_RESTRICT delta_m0
@@ -241,7 +245,8 @@ void gkyl_positivity_shift_gyrokinetic_advance(
   up->ffloor[0] = up->ffloor_fac * distf_max * up->cellav_fac;
 }
 
-void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(
+void
+gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(
   gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
   const struct gkyl_range *phase_rng, const struct gkyl_array *GKYL_RESTRICT delta_m0s,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
@@ -321,7 +326,8 @@ void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(
   }
 }
 
-void gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic *up)
+void
+gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic *up)
 {
   // Release memory associated with this updater.
   gkyl_gk_geometry_release(up->gk_geom);

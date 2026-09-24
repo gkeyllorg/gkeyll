@@ -54,8 +54,9 @@ struct gkyl_vlasov_lte_correct_status {
  * @param inp Input parameters defined in gkyl_vlasov_lte_correct_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_vlasov_lte_correct *
-gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp);
+struct gkyl_vlasov_lte_correct *gkyl_vlasov_lte_correct_inew(
+  const struct gkyl_vlasov_lte_correct_inp *inp
+);
 
 /**
  * Fix the LTE (local thermodynamic equlibrium) distribution function

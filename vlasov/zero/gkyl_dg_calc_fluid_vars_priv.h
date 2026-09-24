@@ -234,15 +234,15 @@ GKYL_CU_D static fluid_set_t
 choose_fluid_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_fluid_set_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_fluid_set_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_fluid_set_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_fluid_set_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -250,15 +250,15 @@ GKYL_CU_D static fluid_copy_t
 choose_fluid_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_fluid_copy_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_fluid_copy_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_fluid_copy_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_fluid_copy_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -266,15 +266,15 @@ GKYL_CU_D static fluid_pressure_t
 choose_fluid_pressure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_fluid_pressure_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_fluid_pressure_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_fluid_pressure_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_fluid_pressure_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -282,15 +282,15 @@ GKYL_CU_D static fluid_ke_t
 choose_fluid_ke_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_fluid_ke_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_fluid_ke_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_fluid_ke_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_fluid_ke_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -298,31 +298,31 @@ GKYL_CU_D static fluid_limiter_t
 choose_fluid_limiter_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    if (dir == 0) {
-      return ser_fluid_limiter_x_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 1) {
-      return ser_fluid_limiter_y_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 2) {
-      return ser_fluid_limiter_z_kernels[cdim - 1].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    if (dir == 0) {
-      return ten_fluid_limiter_x_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 1) {
-      return ten_fluid_limiter_y_kernels[cdim - 1].kernels[poly_order];
-    } else if (dir == 2) {
-      return ten_fluid_limiter_z_kernels[cdim - 1].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      if (dir == 0) {
+        return ser_fluid_limiter_x_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 1) {
+        return ser_fluid_limiter_y_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 2) {
+        return ser_fluid_limiter_z_kernels[cdim - 1].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (dir == 0) {
+        return ten_fluid_limiter_x_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 1) {
+        return ten_fluid_limiter_y_kernels[cdim - 1].kernels[poly_order];
+      } else if (dir == 2) {
+        return ten_fluid_limiter_z_kernels[cdim - 1].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -330,15 +330,15 @@ GKYL_CU_D static fluid_int_t
 choose_fluid_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_fluid_int_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_fluid_int_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_fluid_int_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_fluid_int_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -346,14 +346,14 @@ GKYL_CU_D static fluid_source_t
 choose_fluid_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_fluid_source_kernels[cdim - 1].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return ten_fluid_source_kernels[cdim - 1].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_fluid_source_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_fluid_source_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }

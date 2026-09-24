@@ -7,7 +7,8 @@
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_bcorr_lbo_vlasov_priv.h>
 
-void test_bcorr_1x1v()
+void
+test_bcorr_1x1v()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   int poly_order = 2;
@@ -37,7 +38,8 @@ void test_bcorr_1x1v()
   gkyl_mom_type_release(momt);
 }
 
-void test_bcorr_1x2v()
+void
+test_bcorr_1x2v()
 {
   int cdim = 1, vdim = 2, pdim = cdim + vdim;
   int poly_order = 2;
@@ -60,7 +62,8 @@ void test_bcorr_1x2v()
   gkyl_mom_type_release(momt);
 }
 
-void test_bcorr_1x3v()
+void
+test_bcorr_1x3v()
 {
   int cdim = 1, vdim = 3, pdim = cdim + vdim;
   int poly_order = 2;

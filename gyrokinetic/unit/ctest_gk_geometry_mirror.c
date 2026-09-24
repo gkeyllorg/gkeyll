@@ -16,7 +16,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-void write_geometry(
+void
+write_geometry(
   gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local, const char *name
 )
 {
@@ -83,13 +84,15 @@ void write_geometry(
   gkyl_array_release(mc2p_nodal);
 }
 
-void test_mirror_load_geometry_ho(void)
+void
+test_mirror_load_geometry_ho(void)
 {
-  struct gkyl_efit_inp inp = {// psiRZ and related inputs
-                              .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
-                              .rz_poly_order = 2,
-                              .flux_poly_order = 1,
-                              .reflect = true
+  struct gkyl_efit_inp inp = {
+    // psiRZ and related inputs
+    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect = true,
   };
 
   clock_t start, end;
@@ -118,7 +121,7 @@ void test_mirror_load_geometry_ho(void)
     .zmin = -2.0, // Z of lower boundary
     .zmax = 2.0, // Z of upper boundary
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
@@ -138,7 +141,7 @@ void test_mirror_load_geometry_ho(void)
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis
+    .geo_basis = cbasis,
   };
 
   struct gk_geometry *up = gkyl_gk_geometry_mirror_new(&geometry_inp);
@@ -155,7 +158,8 @@ void test_mirror_load_geometry_ho(void)
 //     return Bmag/2 * R**2
 
 // Functions for test_3x_straight_cylinder
-void mapc2p(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+mapc2p(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], zeta = xn[2];
   fout[0] = sqrt(psi * 4); // Function fed is psi = 0.25 * R^2 from the efit file
@@ -164,7 +168,8 @@ void mapc2p(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
   fout[2] = -alpha; // There is a minus due to conventions
 }
 
-void exact_gij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_gij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = xn[0], theta = xn[1], phi = xn[2];
   double psi = r * r / 4;
@@ -176,7 +181,8 @@ void exact_gij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx
   fout[5] = 1, 0; // g_33
 }
 
-void exact_g_contra_ij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_g_contra_ij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = xn[0], theta = xn[1], phi = xn[2];
   double psi = r * r / 4;
@@ -188,7 +194,8 @@ void exact_g_contra_ij(double t, const double *xn, double *GKYL_RESTRICT fout, v
   fout[5] = 1.0; // g_33
 }
 
-void exact_dual_magnitude(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_dual_magnitude(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = xn[0], theta = xn[1], phi = xn[2];
   double psi = r * r / 4;
@@ -197,7 +204,8 @@ void exact_dual_magnitude(double t, const double *xn, double *GKYL_RESTRICT fout
   fout[2] = 1.0;
 }
 
-void exact_normals(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_normals(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   // Remember cylindrical angle = - alpha
@@ -212,17 +220,20 @@ void exact_normals(double t, const double *xn, double *GKYL_RESTRICT fout, void 
   fout[8] = 1.0;
 }
 
-void exact_jacobian(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_jacobian(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 2.0;
 }
 
-void bmag_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+bmag_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.5;
 }
 
-void test_mirror_3x_p1_straight_cylinder_ho(void)
+void
+test_mirror_3x_p1_straight_cylinder_ho(void)
 {
   // Very similar to the unit test in ctest_gk_geometry.c
   // The geometry is created to extend from Z = -1 to 1, R = (0.001, 1) in units meters
@@ -257,7 +268,7 @@ void test_mirror_3x_p1_straight_cylinder_ho(void)
     .zmin = -1.0, // Z of lower boundary
     .zmax = 1.0, // Z of upper boundary
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, // coordinate system for psi grid
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_null_new();
@@ -278,7 +289,7 @@ void test_mirror_3x_p1_straight_cylinder_ho(void)
     .geo_local_ext = ext_range,
     .geo_global = range,
     .geo_global_ext = ext_range,
-    .geo_basis = basis
+    .geo_basis = basis,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
@@ -816,8 +827,8 @@ void test_mirror_3x_p1_straight_cylinder_ho(void)
   // create mirror geometry for surfaces
   struct gkyl_mirror_grid_gen *mirror_grid_surf[3];
   for (int dir = 0; dir < cdim; dir++) {
-    mirror_grid_surf[dir] = gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp
-    ){.comp_grid = &grid,
+    mirror_grid_surf[dir] = gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp){
+      .comp_grid = &grid,
       .nrange = gk_geom->nrange_surf[dir],
       .local = gk_geom->local,
       .global = gk_geom->global,
@@ -834,7 +845,8 @@ void test_mirror_3x_p1_straight_cylinder_ho(void)
       .psiRZ = psi,
       .fl_coord = ginp.fl_coord,
       .include_axis = ginp.include_axis,
-      .write_psi_cubic = false});
+      .write_psi_cubic = false,
+    });
   }
 
   for (int dir = 0; dir < cdim; dir++) {
@@ -978,21 +990,24 @@ void test_mirror_3x_p1_straight_cylinder_ho(void)
   gkyl_gk_geometry_release(gk_geom);
 }
 
-void mapz(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+mapz(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double a = 2.0;
   double s = 0.2;
   fout[0] = (-1 / (2 * a) * pow(a - xn[0], 2) + a) * (1 - s) + s * xn[0];
 }
 
-void dmapz_dz(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+dmapz_dz(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double a = 2.0;
   double s = 0.2;
   fout[0] = (1 / a * pow(a - xn[0], 1)) * (1 - s) + s;
 }
 
-void exact_gij_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_gij_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   double r = 2 * sqrt(psi);
@@ -1006,7 +1021,8 @@ void exact_gij_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void
   fout[5] = 1.0 * pow(dThetadtheta, 2); // g_33
 }
 
-void exact_g_contra_ij_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_g_contra_ij_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   double r = 2 * sqrt(psi);
@@ -1020,7 +1036,8 @@ void exact_g_contra_ij_pmap(double t, const double *xn, double *GKYL_RESTRICT fo
   fout[5] = 1.0 / pow(dThetadtheta, 2); // g_33
 }
 
-void exact_dual_magnitude_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_dual_magnitude_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   double r = 2 * sqrt(psi);
@@ -1031,7 +1048,8 @@ void exact_dual_magnitude_pmap(double t, const double *xn, double *GKYL_RESTRICT
   fout[2] = 1.0 / dThetadtheta;
 }
 
-void exact_normals_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_normals_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   double r = 2 * sqrt(psi);
@@ -1049,7 +1067,8 @@ void exact_normals_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, 
   fout[8] = -1.0;
 }
 
-void test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
+void
+test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
 {
   // Same as the above test, but using a quadratic position map
   struct gkyl_basis basis;
@@ -1085,7 +1104,7 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
     .zmin = -2.0, // Z of lower boundary
     .zmax = 2.0, // Z of upper boundary
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   // Initialize geometry
@@ -1104,7 +1123,7 @@ void test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
     .geo_local_ext = ext_range,
     .geo_global = range,
     .geo_global_ext = ext_range,
-    .geo_basis = basis
+    .geo_basis = basis,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
@@ -1553,13 +1572,15 @@ struct mirror_direction_map {
   double shift, scale, curvature;
 };
 
-static void mirror_direction_map(double t, const double *xn, double *out, void *ctx)
+static void
+mirror_direction_map(double t, const double *xn, double *out, void *ctx)
 {
   const struct mirror_direction_map *map = ctx;
   out[0] = map->shift + xn[0] * (map->scale + map->curvature * xn[0]);
 }
 
-static void mirror_direction_map_deriv(double t, const double *xn, double *out, void *ctx)
+static void
+mirror_direction_map_deriv(double t, const double *xn, double *out, void *ctx)
 {
   const struct mirror_direction_map *map = ctx;
   out[0] = map->scale + 2.0 * map->curvature * xn[0];
@@ -1567,7 +1588,8 @@ static void mirror_direction_map_deriv(double t, const double *xn, double *out, 
 
 // Check the assembled geometry, including the modal fields after the generic
 // derived-geometry updater has run. That updater assumes bhat is along +e_3.
-static void check_mirror_field_direction(double curvature)
+static void
+check_mirror_field_direction(double curvature)
 {
   const double strength = 2.7;
   struct gkyl_rect_grid psi_grid;
@@ -1617,8 +1639,10 @@ static void check_mirror_field_direction(double curvature)
       struct gkyl_gk_geometry_inp inp = {
         .geometry_id = GKYL_GEOMETRY_MIRROR,
         .mirror_grid_info =
-          {.fl_coord = sqrt_psi ? GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z :
-                                  GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z},
+          {
+            .fl_coord = sqrt_psi ? GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z :
+                                   GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z,
+          },
         .position_map = pmap,
         .grid = grid,
         .local = local,
@@ -1631,7 +1655,7 @@ static void check_mirror_field_direction(double curvature)
         .geo_local_ext = ext,
         .geo_global = local,
         .geo_global_ext = ext,
-        .geo_basis = basis
+        .geo_basis = basis,
       };
       snprintf(
         inp.mirror_grid_info.filename_psi, sizeof inp.mirror_grid_info.filename_psi, "%s", filename
@@ -1774,12 +1798,14 @@ static void check_mirror_field_direction(double curvature)
   TEST_CHECK(remove(filename) == 0);
 }
 
-static void test_mirror_straight_field_direction_ho(void)
+static void
+test_mirror_straight_field_direction_ho(void)
 {
   check_mirror_field_direction(0.0);
 }
 
-static void test_mirror_curved_field_direction_ho(void)
+static void
+test_mirror_curved_field_direction_ho(void)
 {
   check_mirror_field_direction(0.7);
 }

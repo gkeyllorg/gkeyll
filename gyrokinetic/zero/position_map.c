@@ -13,17 +13,20 @@
 // Remove with the print statements at the bottom
 #include <gkyl_util.h>
 
-void gkyl_position_map_identity(double t, const double *xn, double *fout, void *ctx)
+void
+gkyl_position_map_identity(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = xn[0];
 }
 
-void gkyl_position_map_identity_slope(double t, const double *xn, double *fout, void *ctx)
+void
+gkyl_position_map_identity_slope(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = 1.0;
 }
 
-struct gkyl_position_map *gkyl_position_map_null_new()
+struct gkyl_position_map *
+gkyl_position_map_null_new()
 {
   struct gkyl_position_map *gpm = gkyl_calloc(1, sizeof(*gpm));
   gpm->id = GKYL_PMAP_USER_INPUT;
@@ -50,14 +53,16 @@ struct gkyl_position_map *gkyl_position_map_null_new()
   return gpm;
 }
 
-struct gkyl_position_map *gkyl_position_map_inew(struct gkyl_position_map_inew_inp inp)
+struct gkyl_position_map *
+gkyl_position_map_inew(struct gkyl_position_map_inew_inp inp)
 {
   return gkyl_position_map_new(
     inp.pmap_info, inp.grid, inp.local, inp.local_ext, inp.global, inp.global_ext, inp.basis
   );
 }
 
-struct gkyl_position_map *gkyl_position_map_new(
+struct gkyl_position_map *
+gkyl_position_map_new(
   struct gkyl_position_map_inp pmap_info, struct gkyl_rect_grid grid, struct gkyl_range local,
   struct gkyl_range local_ext, struct gkyl_range global, struct gkyl_range global_ext,
   struct gkyl_basis basis
@@ -89,58 +94,58 @@ struct gkyl_position_map *gkyl_position_map_new(
   }
 
   switch (pmap_info.id) {
-  case GKYL_PMAP_USER_INPUT:
-  case GKYL_PMAP_USER_INPUT_W_DERIVATIVE:
-    for (int i = 0; i < 3; i++) {
-      if (pmap_info.maps[i]) {
-        gpm->maps[i] = pmap_info.maps[i];
-        gpm->map_derivs[i] = pmap_info.map_derivs[i];
-        gpm->ctxs[i] = pmap_info.ctxs[i];
+    case GKYL_PMAP_USER_INPUT:
+    case GKYL_PMAP_USER_INPUT_W_DERIVATIVE:
+      for (int i = 0; i < 3; i++) {
+        if (pmap_info.maps[i]) {
+          gpm->maps[i] = pmap_info.maps[i];
+          gpm->map_derivs[i] = pmap_info.map_derivs[i];
+          gpm->ctxs[i] = pmap_info.ctxs[i];
+        }
       }
-    }
-    break;
+      break;
 
-  case GKYL_PMAP_CONSTANT_DB_POLYNOMIAL:
-  case GKYL_PMAP_CONSTANT_DB_NUMERIC:
+    case GKYL_PMAP_CONSTANT_DB_POLYNOMIAL:
+    case GKYL_PMAP_CONSTANT_DB_NUMERIC:
 
-    for (int i = 0; i < 2; i++) {
-      if (pmap_info.maps[i] != 0) {
-        gpm->constB_ctx->maps_backup[i] = pmap_info.maps[i];
-        gpm->constB_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+      for (int i = 0; i < 2; i++) {
+        if (pmap_info.maps[i] != 0) {
+          gpm->constB_ctx->maps_backup[i] = pmap_info.maps[i];
+          gpm->constB_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+        }
       }
-    }
-    gpm->constB_ctx->map_strength = pmap_info.map_strength;
+      gpm->constB_ctx->map_strength = pmap_info.map_strength;
 
-    if (pmap_info.maximum_slope_at_min_B == 0.) {
-      gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = false;
-    } else {
-      gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = true;
-    }
-    gpm->constB_ctx->maximum_slope_at_min_B = pmap_info.maximum_slope_at_min_B;
-
-    if (pmap_info.maximum_slope_at_max_B == 0.) {
-      gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = false;
-    } else {
-      gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true;
-    }
-    gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
-    gpm->constB_ctx->gaussian_std = pmap_info.gaussian_std;
-    gpm->constB_ctx->gaussian_max_integration_width = pmap_info.gaussian_max_integration_width;
-
-    break;
-
-  case GKYL_PMAP_XPT_COMPRESSION:
-
-    for (int i = 0; i < 3; i++) {
-      if (pmap_info.maps[i] != 0) {
-        gpm->xpt_ctx->maps_backup[i] = pmap_info.maps[i];
-        gpm->xpt_ctx->map_derivs_backup[i] = pmap_info.map_derivs[i];
-        gpm->xpt_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+      if (pmap_info.maximum_slope_at_min_B == 0.) {
+        gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = false;
+      } else {
+        gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = true;
       }
-    }
-    gpm->xpt_ctx->compression_factor = pmap_info.compression_factor;
-    gpm->xpt_ctx->radial_compression_factor = pmap_info.radial_compression_factor;
-    gpm->xpt_ctx->compress_divertor = pmap_info.compress_divertor;
+      gpm->constB_ctx->maximum_slope_at_min_B = pmap_info.maximum_slope_at_min_B;
+
+      if (pmap_info.maximum_slope_at_max_B == 0.) {
+        gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = false;
+      } else {
+        gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true;
+      }
+      gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
+      gpm->constB_ctx->gaussian_std = pmap_info.gaussian_std;
+      gpm->constB_ctx->gaussian_max_integration_width = pmap_info.gaussian_max_integration_width;
+
+      break;
+
+    case GKYL_PMAP_XPT_COMPRESSION:
+
+      for (int i = 0; i < 3; i++) {
+        if (pmap_info.maps[i] != 0) {
+          gpm->xpt_ctx->maps_backup[i] = pmap_info.maps[i];
+          gpm->xpt_ctx->map_derivs_backup[i] = pmap_info.map_derivs[i];
+          gpm->xpt_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+        }
+      }
+      gpm->xpt_ctx->compression_factor = pmap_info.compression_factor;
+      gpm->xpt_ctx->radial_compression_factor = pmap_info.radial_compression_factor;
+      gpm->xpt_ctx->compress_divertor = pmap_info.compress_divertor;
   }
 
   gpm->grid = grid;
@@ -157,12 +162,14 @@ struct gkyl_position_map *gkyl_position_map_new(
   return gpm_out;
 }
 
-void gkyl_position_map_set_mc2nu(struct gkyl_position_map *gpm, struct gkyl_array *mc2nu)
+void
+gkyl_position_map_set_mc2nu(struct gkyl_position_map *gpm, struct gkyl_array *mc2nu)
 {
   gkyl_array_copy(gpm->mc2nu, mc2nu);
 }
 
-void gkyl_position_map_set_bmag(
+void
+gkyl_position_map_set_bmag(
   struct gkyl_position_map *gpm, struct gkyl_comm *comm, struct gkyl_array *bmag
 )
 {
@@ -188,7 +195,8 @@ void gkyl_position_map_set_bmag(
   }
 }
 
-void gkyl_position_map_set_compression(
+void
+gkyl_position_map_set_compression(
   struct gkyl_position_map *gpm, double zcut, double zcenter, double w, double psisep
 )
 {
@@ -222,9 +230,8 @@ void gkyl_position_map_set_compression(
   }
 }
 
-void gkyl_position_map_eval_mc2nu(
-  const struct gkyl_position_map *gpm, const double *x_comp, double *x_fa
-)
+void
+gkyl_position_map_eval_mc2nu(const struct gkyl_position_map *gpm, const double *x_comp, double *x_fa)
 {
   int cidx[GKYL_MAX_CDIM];
   for (int i = 0; i < gpm->grid.ndim; i++) {
@@ -251,7 +258,8 @@ void gkyl_position_map_eval_mc2nu(
   x_fa[gpm->grid.ndim - 1] = xyz_fa[2];
 }
 
-void gkyl_position_map_optimize(
+void
+gkyl_position_map_optimize(
   struct gkyl_position_map *gpm, struct gkyl_rect_grid grid, struct gkyl_range global
 )
 {
@@ -307,7 +315,8 @@ void gkyl_position_map_optimize(
   }
 }
 
-double gkyl_position_map_slope(
+double
+gkyl_position_map_slope(
   const struct gkyl_position_map *gpm, int ix_map, double x, double dx, double lower, double upper
 )
 {
@@ -341,18 +350,21 @@ double gkyl_position_map_slope(
   return (4.0 * (f_left - f) - (f_right - f)) / (2.0 * step);
 }
 
-struct gkyl_position_map *gkyl_position_map_acquire(const struct gkyl_position_map *gpm)
+struct gkyl_position_map *
+gkyl_position_map_acquire(const struct gkyl_position_map *gpm)
 {
   gkyl_ref_count_inc(&gpm->ref_count);
   return (struct gkyl_position_map *)gpm;
 }
 
-void gkyl_position_map_release(const struct gkyl_position_map *gpm)
+void
+gkyl_position_map_release(const struct gkyl_position_map *gpm)
 {
   gkyl_ref_count_dec(&gpm->ref_count);
 }
 
-void gkyl_position_map_free(const struct gkyl_ref_count *ref)
+void
+gkyl_position_map_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_position_map *gpm = container_of(ref, struct gkyl_position_map, ref_count);
   gkyl_array_release(gpm->mc2nu);

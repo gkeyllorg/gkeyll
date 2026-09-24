@@ -9,19 +9,22 @@
 
 #include <assert.h>
 
-void evalFunc_1x_quad(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_1x_quad(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = x * x;
 }
 
-void evalFunc_1x_trig(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_1x_trig(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = sin((2. * M_PI / (4.)) * x);
 }
 
-void test_1x(int poly_order, int test_func_op)
+void
+test_1x(int poly_order, int test_func_op)
 {
   double lower[] = {-2.0}, upper[] = {2.0};
   int cells[] = {2};
@@ -89,20 +92,23 @@ void test_1x(int poly_order, int test_func_op)
   gkyl_array_release(distf);
 }
 
-void evalFunc_2x_quad(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_2x_quad(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   fout[0] = x * x + x * y + y * y;
 }
 
-void evalFunc_2x_trig(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_2x_trig(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   fout[0] = sin((2. * M_PI / (4.)) * x) +
             sin((2. * M_PI / (4.)) * x) * cos((2. * M_PI / (4.)) * y) + cos((2. * M_PI / (4.)) * y);
 }
 
-void test_2x(int poly_order, int test_func_op)
+void
+test_2x(int poly_order, int test_func_op)
 {
   double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
   int cells[] = {2, 2};
@@ -248,7 +254,8 @@ void test_2x(int poly_order, int test_func_op)
   gkyl_array_release(distf);
 }
 
-void test_1x1v_hyb(int poly_order, int test_func_op)
+void
+test_1x1v_hyb(int poly_order, int test_func_op)
 {
   double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
   int cells[] = {2, 2};
@@ -345,13 +352,15 @@ void test_1x1v_hyb(int poly_order, int test_func_op)
   gkyl_array_release(distf);
 }
 
-void evalFunc_3x_quad(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_3x_quad(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   fout[0] = x * x + x * y + y * y + x * z + y * z + z * z;
 }
 
-void evalFunc_3x_trig(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_3x_trig(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   fout[0] =
@@ -360,7 +369,8 @@ void evalFunc_3x_trig(double t, const double *xn, double *restrict fout, void *c
     cos((2. * M_PI / (4.)) * y) * cos((2. * M_PI / (4.)) * z) + cos((2. * M_PI / (4.)) * z);
 }
 
-void test_3x(int poly_order, int test_func_op)
+void
+test_3x(int poly_order, int test_func_op)
 {
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
   int cells[] = {2, 2, 2};
@@ -559,13 +569,15 @@ void test_3x(int poly_order, int test_func_op)
   gkyl_array_release(distf);
 }
 
-void evalFunc_4x_quad(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_4x_quad(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2], vx = xn[3];
   fout[0] = x * x + x * y + x * z + x * vx + y * y + y * z + y * vx + z * z + z * vx + vx * vx;
 }
 
-void evalFunc_4x_trig(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_4x_trig(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2], vx = xn[3];
   fout[0] =
@@ -577,7 +589,8 @@ void evalFunc_4x_trig(double t, const double *xn, double *restrict fout, void *c
     cos((2. * M_PI / (4.)) * z) * cos((2. * M_PI / (4.)) * vx) + cos((2. * M_PI / (4.)) * vx);
 }
 
-void test_4x(int poly_order, int test_func_op)
+void
+test_4x(int poly_order, int test_func_op)
 {
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
   int cells[] = {2, 2, 2, 2};
@@ -1331,7 +1344,8 @@ void test_4x(int poly_order, int test_func_op)
   gkyl_array_release(distf);
 }
 
-void test_2x2v_hyb(int poly_order, int test_func_op)
+void
+test_2x2v_hyb(int poly_order, int test_func_op)
 {
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
   int cells[] = {2, 2, 2, 2};
@@ -1728,84 +1742,104 @@ void test_2x2v_hyb(int poly_order, int test_func_op)
   gkyl_array_release(distf);
 }
 
-void test_eval_on_nodes_1x_p1_quad_ho()
+void
+test_eval_on_nodes_1x_p1_quad_ho()
 {
   test_1x(1, 0);
 };
-void test_eval_on_nodes_1x_p1_trig_ho()
+void
+test_eval_on_nodes_1x_p1_trig_ho()
 {
   test_1x(1, 1);
 };
-void test_eval_on_nodes_1x1v_hyb_quad_ho()
+void
+test_eval_on_nodes_1x1v_hyb_quad_ho()
 {
   test_1x1v_hyb(1, 0);
 };
-void test_eval_on_nodes_1x1v_hyb_trig_ho()
+void
+test_eval_on_nodes_1x1v_hyb_trig_ho()
 {
   test_1x1v_hyb(1, 1);
 };
-void test_eval_on_nodes_2x_p1_quad_ho()
+void
+test_eval_on_nodes_2x_p1_quad_ho()
 {
   test_2x(1, 0);
 };
-void test_eval_on_nodes_2x_p1_trig_ho()
+void
+test_eval_on_nodes_2x_p1_trig_ho()
 {
   test_2x(1, 1);
 };
-void test_eval_on_nodes_3x_p1_quad_ho()
+void
+test_eval_on_nodes_3x_p1_quad_ho()
 {
   test_3x(1, 0);
 };
-void test_eval_on_nodes_3x_p1_trig_ho()
+void
+test_eval_on_nodes_3x_p1_trig_ho()
 {
   test_3x(1, 1);
 };
-void test_eval_on_nodes_4x_p1_quad_ho()
+void
+test_eval_on_nodes_4x_p1_quad_ho()
 {
   test_4x(1, 0);
 };
-void test_eval_on_nodes_4x_p1_trig_ho()
+void
+test_eval_on_nodes_4x_p1_trig_ho()
 {
   test_4x(1, 1);
 };
-void test_eval_on_nodes_2x2v_hyb_quad_ho()
+void
+test_eval_on_nodes_2x2v_hyb_quad_ho()
 {
   test_2x2v_hyb(1, 0);
 };
-void test_eval_on_nodes_2x2v_hyb_trig_ho()
+void
+test_eval_on_nodes_2x2v_hyb_trig_ho()
 {
   test_2x2v_hyb(1, 1);
 };
 
-void test_eval_on_nodes_1x_p2_quad_ho()
+void
+test_eval_on_nodes_1x_p2_quad_ho()
 {
   test_1x(2, 0);
 };
-void test_eval_on_nodes_1x_p2_trig_ho()
+void
+test_eval_on_nodes_1x_p2_trig_ho()
 {
   test_1x(2, 1);
 };
-void test_eval_on_nodes_2x_p2_quad_ho()
+void
+test_eval_on_nodes_2x_p2_quad_ho()
 {
   test_2x(2, 0);
 };
-void test_eval_on_nodes_2x_p2_trig_ho()
+void
+test_eval_on_nodes_2x_p2_trig_ho()
 {
   test_2x(2, 1);
 };
-void test_eval_on_nodes_3x_p2_quad_ho()
+void
+test_eval_on_nodes_3x_p2_quad_ho()
 {
   test_3x(2, 0);
 };
-void test_eval_on_nodes_3x_p2_trig_ho()
+void
+test_eval_on_nodes_3x_p2_trig_ho()
 {
   test_3x(2, 1);
 };
-void test_eval_on_nodes_4x_p2_quad_ho()
+void
+test_eval_on_nodes_4x_p2_quad_ho()
 {
   test_4x(2, 0);
 };
-void test_eval_on_nodes_4x_p2_trig_ho()
+void
+test_eval_on_nodes_4x_p2_trig_ho()
 {
   test_4x(2, 1);
 };

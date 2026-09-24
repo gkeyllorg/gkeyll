@@ -63,7 +63,8 @@ struct dg_gyrokinetic_passive {
 // function pointer in gkyl_dg_eqn.
 //
 
-GKYL_CU_DH static double kernel_dg_gyrokinetic_passive_vol_1x1v_ser_p1(
+GKYL_CU_DH static double
+kernel_dg_gyrokinetic_passive_vol_1x1v_ser_p1(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -89,7 +90,8 @@ GKYL_CU_DH static double kernel_dg_gyrokinetic_passive_vol_1x1v_ser_p1(
   );
 }
 
-GKYL_CU_DH static double kernel_dg_gyrokinetic_passive_vol_1x2v_ser_p1(
+GKYL_CU_DH static double
+kernel_dg_gyrokinetic_passive_vol_1x2v_ser_p1(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -115,7 +117,8 @@ GKYL_CU_DH static double kernel_dg_gyrokinetic_passive_vol_1x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static double kernel_dg_gyrokinetic_passive_vol_2x2v_ser_p1(
+GKYL_CU_DH static double
+kernel_dg_gyrokinetic_passive_vol_2x2v_ser_p1(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -141,7 +144,8 @@ GKYL_CU_DH static double kernel_dg_gyrokinetic_passive_vol_2x2v_ser_p1(
   );
 }
 
-GKYL_CU_DH static double kernel_dg_gyrokinetic_passive_vol_3x2v_ser_p1(
+GKYL_CU_DH static double
+kernel_dg_gyrokinetic_passive_vol_3x2v_ser_p1(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -240,7 +244,8 @@ GKYL_CU_D static const gkyl_dg_gyrokinetic_passive_boundary_surf_kern_list
 void gkyl_gyrokinetic_passive_free(const struct gkyl_ref_count *ref);
 
 // Surface dispatch: called by hyper_dg for each surface.
-GKYL_CU_D static double surf_passive(
+GKYL_CU_D static double
+surf_passive(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC, const double *xcR,
   const double *dxL, const double *dxC, const double *dxR, const int *idxL, const int *idxC,
   const int *idxR, const double *qInL, const double *qInC, const double *qInR,
@@ -276,7 +281,8 @@ GKYL_CU_D static double surf_passive(
 }
 
 // Boundary-surface dispatch.
-GKYL_CU_D static double boundary_surf_passive(
+GKYL_CU_D static double
+boundary_surf_passive(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
   const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
   const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut
@@ -307,7 +313,8 @@ GKYL_CU_D static double boundary_surf_passive(
 }
 
 // boundary_diag mirrors boundary_surf.
-GKYL_CU_D static double boundary_diag_passive(
+GKYL_CU_D static double
+boundary_diag_passive(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
   const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
   const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut

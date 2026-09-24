@@ -30,8 +30,9 @@ struct gkyl_dg_eqn *gkyl_dg_advection_new(
  * @param conf_range Configuration space range for use in indexing advection velocity
  * @return Pointer to advection equation object
  */
-struct gkyl_dg_eqn *
-gkyl_dg_advection_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range);
+struct gkyl_dg_eqn *gkyl_dg_advection_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range
+);
 
 /**
  * Set the auxiliary fields (e.g. advection velocity u) needed in updating advection equation.

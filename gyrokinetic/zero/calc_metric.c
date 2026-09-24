@@ -6,7 +6,8 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_array_ops_priv.h>
 
-gkyl_calc_metric *gkyl_calc_metric_new(
+gkyl_calc_metric *
+gkyl_calc_metric_new(
   const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
   const struct gkyl_range *global, const struct gkyl_range *global_ext,
   const struct gkyl_range *local, const struct gkyl_range *local_ext, bool exit_at_checks,
@@ -34,7 +35,8 @@ gkyl_calc_metric *gkyl_calc_metric_new(
   return up;
 }
 
-static inline double calc_metric(double dxdz[3][3], int i, int j)
+static inline double
+calc_metric(double dxdz[3][3], int i, int j)
 {
   double sum = 0;
   for (int k = 0; k < 3; ++k) {
@@ -44,14 +46,16 @@ static inline double calc_metric(double dxdz[3][3], int i, int j)
 }
 
 // Calculates e^1 = e_2 x e_3 /J
-static inline void calc_dual(double J, const double e_2[3], const double e_3[3], double e1[3])
+static inline void
+calc_dual(double J, const double e_2[3], const double e_3[3], double e1[3])
 {
   e1[0] = (e_2[1] * e_3[2] - e_2[2] * e_3[1]) / J;
   e1[1] = -(e_2[0] * e_3[2] - e_2[2] * e_3[0]) / J;
   e1[2] = (e_2[0] * e_3[1] - e_2[1] * e_3[0]) / J;
 }
 
-static inline void matTvec(double M[3][3], double v[3], double result[3])
+static inline void
+matTvec(double M[3][3], double v[3], double result[3])
 {
   for (int i = 0; i < 3; i++) {
     result[i] = 0.0;
@@ -61,12 +65,14 @@ static inline void matTvec(double M[3][3], double v[3], double result[3])
   }
 }
 
-static inline double dot(const double a[3], const double b[3])
+static inline double
+dot(const double a[3], const double b[3])
 {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
-static inline void cross(const double a[3], const double b[3], double c[3])
+static inline void
+cross(const double a[3], const double b[3], double c[3])
 {
   c[0] = a[1] * b[2] - a[2] * b[1];
   c[1] = a[2] * b[0] - a[0] * b[2];
@@ -101,7 +107,8 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
   }
 }
 
-static inline void check_right_handed(const double tan[9], const double dual[9], bool exit_at_check)
+static inline void
+check_right_handed(const double tan[9], const double dual[9], bool exit_at_check)
 {
   // Check that the coordinate system is right handed.
   const double *e1 = &tan[0];
@@ -124,7 +131,8 @@ static inline void check_right_handed(const double tan[9], const double dual[9],
   }
 }
 
-static inline void check_parallel(double *v1, double *v2, bool exit_at_check)
+static inline void
+check_parallel(double *v1, double *v2, bool exit_at_check)
 {
   // Check v1 and v2 are parallel by checking that:
   //   |v1 x v2 | < eps
@@ -205,7 +213,8 @@ check_axisymmetric(struct gkyl_array *arr, struct gkyl_range *range, bool exit_a
   }
 }
 
-void gkyl_calc_metric_advance_rz(
+void
+gkyl_calc_metric_advance_rz(
   gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
   struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc,
   struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld,
@@ -457,7 +466,8 @@ void gkyl_calc_metric_advance_rz(
   gkyl_array_release(normFld_nodal);
 }
 
-void gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *gk_geom)
+void
+gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *gk_geom)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
@@ -721,7 +731,8 @@ void gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geomet
   );
 }
 
-void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom)
+void
+gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
@@ -961,7 +972,8 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
   }
 }
 
-void gkyl_calc_metric_advance_rz_neut_interior(gkyl_calc_metric *up, struct gk_geometry *gk_geom)
+void
+gkyl_calc_metric_advance_rz_neut_interior(gkyl_calc_metric *up, struct gk_geometry *gk_geom)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
@@ -1037,7 +1049,8 @@ void gkyl_calc_metric_advance_rz_neut_interior(gkyl_calc_metric *up, struct gk_g
   );
 }
 
-void gkyl_calc_metric_advance_mirror(
+void
+gkyl_calc_metric_advance_mirror(
   gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
   struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc,
   struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld,
@@ -1262,7 +1275,8 @@ void gkyl_calc_metric_advance_mirror(
   gkyl_array_release(normFld_nodal);
 }
 
-void gkyl_calc_metric_advance_mirror_interior(
+void
+gkyl_calc_metric_advance_mirror_interior(
   gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
   struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc,
   struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld,
@@ -1423,7 +1437,8 @@ void gkyl_calc_metric_advance_mirror_interior(
   gkyl_array_release(normFld_nodal);
 }
 
-void gkyl_calc_metric_advance_mirror_surface(
+void
+gkyl_calc_metric_advance_mirror_surface(
   gkyl_calc_metric *up, int dir, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
   struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc,
   struct gkyl_array *jFld_nodal, struct gkyl_array *biFld_nodal, struct gkyl_array *cmagFld_nodal,
@@ -1511,7 +1526,8 @@ void gkyl_calc_metric_advance_mirror_surface(
   gkyl_array_release(gFld_nodal);
 }
 
-void gkyl_calc_metric_advance(
+void
+gkyl_calc_metric_advance(
   gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc,
   struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld,
   struct gkyl_array *dualmagFld, struct gkyl_array *normFld, const struct gkyl_range *update_range
@@ -1700,7 +1716,8 @@ void gkyl_calc_metric_advance(
   gkyl_array_release(normFld_nodal);
 }
 
-void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_geom)
+void
+gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_geom)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
@@ -1944,7 +1961,8 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
   );
 }
 
-void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom)
+void
+gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom)
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
@@ -2254,7 +2272,8 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
   );
 }
 
-void gkyl_calc_metric_advance_bcart(
+void
+gkyl_calc_metric_advance_bcart(
   gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *biFld,
   struct gkyl_array *dualFld, struct gkyl_array *bcartFld, const struct gkyl_range *update_range
 )
@@ -2308,7 +2327,8 @@ void gkyl_calc_metric_advance_bcart(
   gkyl_array_release(dualFld_nodal);
 }
 
-void gkyl_calc_metric_release(gkyl_calc_metric *up)
+void
+gkyl_calc_metric_release(gkyl_calc_metric *up)
 {
   gkyl_nodal_ops_release(up->n2m);
   gkyl_free(up);

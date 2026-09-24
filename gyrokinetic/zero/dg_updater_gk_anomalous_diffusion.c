@@ -10,14 +10,16 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_eqn *gkyl_dg_updater_gk_anomalous_diffusion_acquire_eqn(
+struct gkyl_dg_eqn *
+gkyl_dg_updater_gk_anomalous_diffusion_acquire_eqn(
   const struct gkyl_dg_updater_gk_anomalous_diffusion *up
 )
 {
   return gkyl_dg_eqn_acquire(up->dgeqn);
 }
 
-struct gkyl_dg_updater_gk_anomalous_diffusion *gkyl_dg_updater_gk_anomalous_diffusion_new(
+struct gkyl_dg_updater_gk_anomalous_diffusion *
+gkyl_dg_updater_gk_anomalous_diffusion_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
   enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
@@ -78,7 +80,8 @@ struct gkyl_dg_updater_gk_anomalous_diffusion *gkyl_dg_updater_gk_anomalous_diff
   return up;
 }
 
-void gkyl_dg_updater_gk_anomalous_diffusion_advance(
+void
+gkyl_dg_updater_gk_anomalous_diffusion_advance(
   struct gkyl_dg_updater_gk_anomalous_diffusion *up, const struct gkyl_range *update_rng,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
   struct gkyl_array *GKYL_RESTRICT rhs
@@ -89,15 +92,15 @@ void gkyl_dg_updater_gk_anomalous_diffusion_advance(
   up->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
 
-struct gkyl_dg_updater_gk_anomalous_diffusion_tm gkyl_dg_updater_gk_anomalous_diffusion_get_tm(
-  const struct gkyl_dg_updater_gk_anomalous_diffusion *up
+struct gkyl_dg_updater_gk_anomalous_diffusion_tm
+gkyl_dg_updater_gk_anomalous_diffusion_get_tm(const struct gkyl_dg_updater_gk_anomalous_diffusion *up
 )
 {
   return (struct gkyl_dg_updater_gk_anomalous_diffusion_tm){.diffusion_tm = up->diffusion_tm};
 }
 
-void gkyl_dg_updater_gk_anomalous_diffusion_release(struct gkyl_dg_updater_gk_anomalous_diffusion *up
-)
+void
+gkyl_dg_updater_gk_anomalous_diffusion_release(struct gkyl_dg_updater_gk_anomalous_diffusion *up)
 {
   gkyl_dg_eqn_release(up->dgeqn);
   gkyl_hyper_dg_release(up->hyperdg);

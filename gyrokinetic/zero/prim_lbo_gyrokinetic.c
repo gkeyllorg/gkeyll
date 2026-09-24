@@ -8,7 +8,8 @@
 #include <gkyl_prim_lbo_gyrokinetic.h>
 #include <gkyl_prim_lbo_gyrokinetic_priv.h>
 
-void prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
+void
+prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_prim_lbo_type *prim_ty = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
   if (GKYL_IS_CU_ALLOC(prim_ty->flag)) {
@@ -20,7 +21,8 @@ void prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
   gkyl_free(gk);
 }
 
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_new(
+struct gkyl_prim_lbo_type *
+gkyl_prim_lbo_gyrokinetic_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu
 )
 {
@@ -48,14 +50,14 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_new(
   const gkyl_prim_lbo_gyrokinetic_cross_kern_list *cross_prim_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    self_prim_kernels = ser_self_prim_kernels;
-    cross_prim_kernels = ser_cross_prim_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      self_prim_kernels = ser_self_prim_kernels;
+      cross_prim_kernels = ser_cross_prim_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   assert(NULL != self_prim_kernels[pdim - 2].kernels[poly_order]);
   assert(NULL != cross_prim_kernels[pdim - 2].kernels[poly_order]);

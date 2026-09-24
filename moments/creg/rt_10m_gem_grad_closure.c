@@ -75,7 +75,8 @@ struct gem_grad_closure_ctx {
   const char *nn_closure_file; // File path of neural network to use.
 };
 
-struct gem_grad_closure_ctx create_ctx(void)
+struct gem_grad_closure_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -160,13 +161,14 @@ struct gem_grad_closure_ctx create_ctx(void)
     .num_failures_max = num_failures_max,
     .use_nn_closure = use_nn_closure,
     .poly_order = poly_order,
-    .nn_closure_file = nn_closure_file
+    .nn_closure_file = nn_closure_file,
   };
 
   return ctx;
 }
 
-void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct gem_grad_closure_ctx *app = ctx;
@@ -217,7 +219,8 @@ void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[9] = pre_zz;
 }
 
-void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct gem_grad_closure_ctx *app = ctx;
@@ -267,7 +270,8 @@ void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[9] = pri_zz;
 }
 
-void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct gem_grad_closure_ctx *app = ctx;
@@ -305,7 +309,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -319,16 +324,16 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
   }
 }
 
-void calc_field_energy(
-  struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc
-)
+void
+calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
   }
 }
 
-void calc_integrated_mom(
+void
+calc_integrated_mom(
   struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc
 )
 {
@@ -337,7 +342,8 @@ void calc_integrated_mom(
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -405,7 +411,7 @@ int main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
 
-    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT}
+    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
   };
 
   struct gkyl_moment_species ion = {
@@ -417,7 +423,7 @@ int main(int argc, char **argv)
     .init = evalIonInit,
     .ctx = &ctx,
 
-    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT}
+    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
   };
 
   // Field.
@@ -429,7 +435,7 @@ int main(int argc, char **argv)
     .init = evalFieldInit,
     .ctx = &ctx,
 
-    .bcy = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL}
+    .bcy = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL},
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -462,15 +468,21 @@ int main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp
-    ){.mpi_comm = MPI_COMM_WORLD, .sync_corners = true});
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
+      .mpi_comm = MPI_COMM_WORLD,
+      .sync_corners = true,
+    });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp
-    ){.use_gpu = app_args.use_gpu, .sync_corners = true});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+      .use_gpu = app_args.use_gpu,
+      .sync_corners = true,
+    });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp
-  ){.use_gpu = app_args.use_gpu, .sync_corners = true});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+    .use_gpu = app_args.use_gpu,
+    .sync_corners = true,
+  });
 #endif
 
   int my_rank;
@@ -508,7 +520,7 @@ int main(int argc, char **argv)
     .field = field,
 
     .parallelism =
-      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},
   };
 
   // Create app object.
@@ -545,7 +557,9 @@ int main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / field_energy_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
@@ -553,7 +567,9 @@ int main(int argc, char **argv)
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_mom_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -561,7 +577,9 @@ int main(int argc, char **argv)
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+    .dt = t_end / num_frames,
+    .tcurr = frame_curr * (t_end / num_frames),
+    .curr = frame_curr,
   };
 
   write_data(&io_trig, app, t_curr, false);

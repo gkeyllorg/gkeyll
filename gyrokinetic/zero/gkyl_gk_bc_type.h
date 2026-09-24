@@ -44,21 +44,21 @@ gkyl_gyrokinetic_translate_poisson_bc_type(enum gkyl_gyrokinetic_bc_type bc_type
 {
   enum gkyl_poisson_bc_type poisson_bc_type;
   switch (bc_type) {
-  case GKYL_BC_GK_FIELD_PERIODIC:
-    poisson_bc_type = GKYL_POISSON_PERIODIC;
-    break;
-  case GKYL_BC_GK_FIELD_DIRICHLET:
-    poisson_bc_type = GKYL_POISSON_DIRICHLET;
-    break;
-  case GKYL_BC_GK_FIELD_NEUMANN:
-    poisson_bc_type = GKYL_POISSON_NEUMANN;
-    break;
-  case GKYL_BC_GK_FIELD_DIRICHLET_VARYING:
-    poisson_bc_type = GKYL_POISSON_DIRICHLET_VARYING;
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BC_GK_FIELD_PERIODIC:
+      poisson_bc_type = GKYL_POISSON_PERIODIC;
+      break;
+    case GKYL_BC_GK_FIELD_DIRICHLET:
+      poisson_bc_type = GKYL_POISSON_DIRICHLET;
+      break;
+    case GKYL_BC_GK_FIELD_NEUMANN:
+      poisson_bc_type = GKYL_POISSON_NEUMANN;
+      break;
+    case GKYL_BC_GK_FIELD_DIRICHLET_VARYING:
+      poisson_bc_type = GKYL_POISSON_DIRICHLET_VARYING;
+      break;
+    default:
+      assert(false);
+      break;
   }
   return poisson_bc_type;
 }
@@ -80,21 +80,21 @@ gkyl_gyrokinetic_translate_bc_basic_type(enum gkyl_gyrokinetic_bc_type bc_type)
 {
   enum gkyl_bc_basic_type bc_basic_type;
   switch (bc_type) {
-  case GKYL_BC_GK_SPECIES_COPY:
-    bc_basic_type = GKYL_BC_COPY;
-    break;
-  case GKYL_BC_GK_SPECIES_ABSORB:
-    bc_basic_type = GKYL_BC_ABSORB;
-    break;
-  case GKYL_BC_GK_SPECIES_REFLECT:
-    bc_basic_type = GKYL_BC_DISTF_REFLECT;
-    break;
-  case GKYL_BC_GK_SPECIES_FIXED_FUNC:
-    bc_basic_type = GKYL_BC_FIXED_FUNC;
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BC_GK_SPECIES_COPY:
+      bc_basic_type = GKYL_BC_COPY;
+      break;
+    case GKYL_BC_GK_SPECIES_ABSORB:
+      bc_basic_type = GKYL_BC_ABSORB;
+      break;
+    case GKYL_BC_GK_SPECIES_REFLECT:
+      bc_basic_type = GKYL_BC_DISTF_REFLECT;
+      break;
+    case GKYL_BC_GK_SPECIES_FIXED_FUNC:
+      bc_basic_type = GKYL_BC_FIXED_FUNC;
+      break;
+    default:
+      assert(false);
+      break;
   }
   return bc_basic_type;
 }

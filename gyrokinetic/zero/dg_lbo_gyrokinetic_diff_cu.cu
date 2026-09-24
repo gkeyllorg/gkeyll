@@ -13,7 +13,8 @@ extern "C" {
 // CUDA kernel to set pointer to nuSum, sum of collisionalities
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_lbo_gyrokinetic_diff_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_lbo_gyrokinetic_diff_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum,
   const struct gkyl_array *nuPrimMomsSum, const struct gkyl_array *m2self
 )
@@ -25,7 +26,8 @@ __global__ static void gkyl_lbo_gyrokinetic_diff_set_auxfields_cu_kernel(
 }
 
 //// Host-side wrapper for device kernels setting nuSum, nuUSum and nuVtSqSum.
-void gkyl_lbo_gyrokinetic_diff_set_auxfields_cu(
+void
+gkyl_lbo_gyrokinetic_diff_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxin
 )
 {
@@ -36,7 +38,8 @@ void gkyl_lbo_gyrokinetic_diff_set_auxfields_cu(
 
 // CUDA kernel to set device pointers to range object and gyrokinetic LBO kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(
+__global__ static void
+dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(
   struct dg_lbo_gyrokinetic_diff *lbo, enum gkyl_basis_type b_type, int cv_index, int cdim,
   int vdim, int poly_order, bool is_identity
 )
@@ -54,24 +57,24 @@ __global__ static void dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(
     *boundary_surf_mu_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    if (is_identity) {
-      surf_vpar_kernels = ser_surf_vpar_notmapped_kernels;
-      surf_mu_kernels = ser_surf_mu_notmapped_kernels;
-      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_notmapped_kernels;
-      boundary_surf_mu_kernels = ser_boundary_surf_mu_notmapped_kernels;
-    } else {
-      surf_vpar_kernels = ser_surf_vpar_mapped_kernels;
-      surf_mu_kernels = ser_surf_mu_mapped_kernels;
-      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_mapped_kernels;
-      boundary_surf_mu_kernels = ser_boundary_surf_mu_mapped_kernels;
-    }
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      if (is_identity) {
+        surf_vpar_kernels = ser_surf_vpar_notmapped_kernels;
+        surf_mu_kernels = ser_surf_mu_notmapped_kernels;
+        boundary_surf_vpar_kernels = ser_boundary_surf_vpar_notmapped_kernels;
+        boundary_surf_mu_kernels = ser_boundary_surf_mu_notmapped_kernels;
+      } else {
+        surf_vpar_kernels = ser_surf_vpar_mapped_kernels;
+        surf_mu_kernels = ser_surf_mu_mapped_kernels;
+        boundary_surf_vpar_kernels = ser_boundary_surf_vpar_mapped_kernels;
+        boundary_surf_mu_kernels = ser_boundary_surf_mu_mapped_kernels;
+      }
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   lbo->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
@@ -87,7 +90,8 @@ __global__ static void dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(
   }
 }
 
-struct gkyl_dg_eqn *gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid, double mass,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map

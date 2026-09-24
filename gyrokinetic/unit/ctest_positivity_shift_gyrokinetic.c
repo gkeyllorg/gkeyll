@@ -16,7 +16,8 @@
 #include <acutest.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -38,14 +39,16 @@ struct test_ctx {
   double mu_max; // Maximum mu of the grid.
 };
 
-void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void eval_bfield_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_bfield_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
 
@@ -57,13 +60,15 @@ void eval_bfield_1x(double t, const double *xn, double *restrict fout, void *ctx
   fout[2] = B0;
 }
 
-void eval_bmag_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_bmag_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   struct test_ctx *tctx = ctx;
   fout[0] = tctx->B0;
 }
 
-void eval_distf_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_distf_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1], mu = xn[2];
 
@@ -84,7 +89,8 @@ void eval_distf_1x2v(double t, const double *xn, double *restrict fout, void *ct
   }
 }
 
-void test_1x2v(int poly_order, bool use_gpu)
+void
+test_1x2v(int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double vpar_max = 6.0;
@@ -103,7 +109,7 @@ void test_1x2v(int poly_order, bool use_gpu)
     .B0 = 1.0, // Magnetic field.
     .vdim = vdim, // Number of velocity space dimensions.
     .vpar_max = vpar_max, // Maximum vpar of the grid.
-    .mu_max = mu_max // Maximum mu of the grid.
+    .mu_max = mu_max, // Maximum mu of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -194,7 +200,7 @@ void test_1x2v(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .position_map = pmap
+    .position_map = pmap,
   };
   int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
@@ -345,7 +351,8 @@ void test_1x2v(int poly_order, bool use_gpu)
 // there: within the region f matches the everywhere-shifted result, and outside
 // the region f is left untouched. Comparing against a reference run (rather than
 // golden numbers) keeps this robust to changes in the shift kernels.
-void test_1x2v_regions(int poly_order, bool use_gpu)
+void
+test_1x2v_regions(int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double vpar_max = 6.0;
@@ -364,7 +371,7 @@ void test_1x2v_regions(int poly_order, bool use_gpu)
     .B0 = 1.0,
     .vdim = vdim,
     .vpar_max = vpar_max,
-    .mu_max = mu_max
+    .mu_max = mu_max,
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -450,7 +457,7 @@ void test_1x2v_regions(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .position_map = pmap
+    .position_map = pmap,
   };
   int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
@@ -488,7 +495,9 @@ void test_1x2v_regions(int poly_order, bool use_gpu)
   // Restrict the shift to the upper z-cell only. The z-grid [0.1,1.0] has two
   // cells split at 0.55, so [0.6,1.0] selects only the second cell (index 2).
   struct gkyl_positivity_shift_gyrokinetic_regions region = {
-    .num_regions = 1, .lower = {0.6}, .upper = {1.0}
+    .num_regions = 1,
+    .lower = {0.6},
+    .upper = {1.0},
   };
   struct gkyl_positivity_shift_gyrokinetic *pos_reg = gkyl_positivity_shift_gyrokinetic_new(
     confBasis, basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal_ext, region, use_gpu
@@ -546,22 +555,26 @@ void test_1x2v_regions(int poly_order, bool use_gpu)
   gkyl_position_map_release(pmap);
 }
 
-void test_positivity_shift_1x2v_ho()
+void
+test_positivity_shift_1x2v_ho()
 {
   test_1x2v(1, false);
 }
 
-void test_positivity_shift_1x2v_dev()
+void
+test_positivity_shift_1x2v_dev()
 {
   test_1x2v(1, true);
 }
 
-void test_1x2v_regions_ho()
+void
+test_1x2v_regions_ho()
 {
   test_1x2v_regions(1, false);
 }
 
-void test_1x2v_regions_dev()
+void
+test_1x2v_regions_dev()
 {
   test_1x2v_regions(1, true);
 }

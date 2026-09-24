@@ -165,7 +165,8 @@ void gkyl_range_reset_lower(struct gkyl_range *rng, const struct gkyl_range *inp
  * @param dir Direction to compute shape
  * @return Shape in direction dit
  */
-GKYL_CU_DH static inline int gkyl_range_shape(const struct gkyl_range *rng, int dir)
+GKYL_CU_DH static inline int
+gkyl_range_shape(const struct gkyl_range *rng, int dir)
 {
   return rng->upper[dir] - rng->lower[dir] + 1;
 }
@@ -184,7 +185,8 @@ int gkyl_range_is_sub_range(const struct gkyl_range *rng);
  * @param rng Range obkect
  * @return 1 if true, 0 otherwise
  */
-GKYL_CU_DH static inline int gkyl_range_contains_idx(const struct gkyl_range *rng, const int *idx)
+GKYL_CU_DH static inline int
+gkyl_range_contains_idx(const struct gkyl_range *rng, const int *idx)
 {
   for (int i = 0; i < rng->ndim; ++i) {
     if ((idx[i] < rng->lower[i]) || (idx[i] > rng->upper[i])) {
@@ -485,8 +487,9 @@ bool gkyl_range_is_on_upper_edge(
  * @return direction and edge. Returned struct eloc is set
  *   to GKYL_NO_EDGE if ranges dont match.
  */
-struct gkyl_range_dir_edge
-gkyl_range_edge_match(const struct gkyl_range *base, const struct gkyl_range *targ);
+struct gkyl_range_dir_edge gkyl_range_edge_match(
+  const struct gkyl_range *base, const struct gkyl_range *targ
+);
 
 /**
  * General indexing function. Returns linear index into the index
@@ -495,34 +498,35 @@ gkyl_range_edge_match(const struct gkyl_range *base, const struct gkyl_range *ta
  * @param range Range object to index
  * @param idx Index for which to compute linear index
  */
-GKYL_CU_DH static inline long gkyl_range_idx(const struct gkyl_range *range, const int *idx)
+GKYL_CU_DH static inline long
+gkyl_range_idx(const struct gkyl_range *range, const int *idx)
 {
 #define RI(...) gkyl_ridx(*range, __VA_ARGS__)
   switch (range->ndim) {
-  case 0:
-    return range->ac[0];
-    break;
-  case 1:
-    return RI(idx[0]);
-    break;
-  case 2:
-    return RI(idx[0], idx[1]);
-    break;
-  case 3:
-    return RI(idx[0], idx[1], idx[2]);
-    break;
-  case 4:
-    return RI(idx[0], idx[1], idx[2], idx[3]);
-    break;
-  case 5:
-    return RI(idx[0], idx[1], idx[2], idx[3], idx[4]);
-    break;
-  case 6:
-    return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]);
-    break;
-  case 7:
-    return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5], idx[6]);
-    break;
+    case 0:
+      return range->ac[0];
+      break;
+    case 1:
+      return RI(idx[0]);
+      break;
+    case 2:
+      return RI(idx[0], idx[1]);
+      break;
+    case 3:
+      return RI(idx[0], idx[1], idx[2]);
+      break;
+    case 4:
+      return RI(idx[0], idx[1], idx[2], idx[3]);
+      break;
+    case 5:
+      return RI(idx[0], idx[1], idx[2], idx[3], idx[4]);
+      break;
+    case 6:
+      return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]);
+      break;
+    case 7:
+      return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5], idx[6]);
+      break;
   }
   return 0;
 #undef RI
@@ -537,7 +541,8 @@ GKYL_CU_DH static inline long gkyl_range_idx(const struct gkyl_range *range, con
  * @param idx Relative index for offset calculation
  * @return Relatice offset to idx.
  */
-GKYL_CU_DH static inline long gkyl_range_offset(const struct gkyl_range *range, const int *idx)
+GKYL_CU_DH static inline long
+gkyl_range_offset(const struct gkyl_range *range, const int *idx)
 {
   return gkyl_range_idx(range, idx) - range->linIdxZero;
 }
@@ -550,7 +555,8 @@ GKYL_CU_DH static inline long gkyl_range_offset(const struct gkyl_range *range, 
  * @param loc Linear index in [0, range->volume)
  * @param idx On output, the N-dimensional index into 'range'
  */
-GKYL_CU_DH static inline void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
+GKYL_CU_DH static inline void
+gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 {
   long n = loc;
   for (int i = 1; i <= range->ndim; ++i) {

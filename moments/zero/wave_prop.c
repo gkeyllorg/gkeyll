@@ -42,65 +42,69 @@ struct gkyl_wave_prop {
   long n_max_bad_cells; // maximum number of cells fixed in a call
 };
 
-static inline double fmax3(double a, double b, double c)
+static inline double
+fmax3(double a, double b, double c)
 {
   return fmax(fmax(a, b), c);
 }
 
-static inline double fmin3(double a, double b, double c)
+static inline double
+fmin3(double a, double b, double c)
 {
   return fmin(fmin(a, b), c);
 }
 
 // limiter function
-static inline double limiter_function(double r, enum gkyl_wave_limiter limiter)
+static inline double
+limiter_function(double r, enum gkyl_wave_limiter limiter)
 {
   double theta = 0.0;
   switch (limiter) {
-  case GKYL_NO_LIMITER:
-    theta = 1.0;
-    break;
+    case GKYL_NO_LIMITER:
+      theta = 1.0;
+      break;
 
-  // ** Fully formally-verified implementation of the minmod flux limiter **
-  // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/finite_volume/proof_limiter_minmod_symmetry.rkt **
-  // ** Proof of second-order TVD (total variation diminishing): ../proofs/finite_volume/proof_limiter_minmod_tvd.rkt **
-  case GKYL_MIN_MOD:
-    theta = fmax(0.0, fmin(1.0, r));
-    break;
+    // ** Fully formally-verified implementation of the minmod flux limiter **
+    // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/finite_volume/proof_limiter_minmod_symmetry.rkt **
+    // ** Proof of second-order TVD (total variation diminishing): ../proofs/finite_volume/proof_limiter_minmod_tvd.rkt **
+    case GKYL_MIN_MOD:
+      theta = fmax(0.0, fmin(1.0, r));
+      break;
 
-  // ** Partially formally-verified implementation of the superbee flux limiter **
-  // ** Proof of symmetry (equivalent action on forward and backward gradients): NOT PROVEN **
-  // ** Proof of second-order TVD (total variation diminishing): ../proofs/finite_volume/proof_limiter_superbee_tvd.rkt **
-  case GKYL_SUPERBEE:
-    theta = fmax3(0.0, fmin((2.0 * r), 1.0), fmin(r, 2.0));
-    break;
+    // ** Partially formally-verified implementation of the superbee flux limiter **
+    // ** Proof of symmetry (equivalent action on forward and backward gradients): NOT PROVEN **
+    // ** Proof of second-order TVD (total variation diminishing): ../proofs/finite_volume/proof_limiter_superbee_tvd.rkt **
+    case GKYL_SUPERBEE:
+      theta = fmax3(0.0, fmin((2.0 * r), 1.0), fmin(r, 2.0));
+      break;
 
-  // ** Partially formally-verified implementation of the van Leer flux limiter **
-  // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/finite_volume/proof_limiter_van_leer_symmetry.rkt **
-  // ** Proof of second-order TVD (total variation diminishing): NOT PROVEN **
-  case GKYL_VAN_LEER:
-    theta = ((r + fabs(r)) / (1.0 + fabs(r)));
-    break;
+    // ** Partially formally-verified implementation of the van Leer flux limiter **
+    // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/finite_volume/proof_limiter_van_leer_symmetry.rkt **
+    // ** Proof of second-order TVD (total variation diminishing): NOT PROVEN **
+    case GKYL_VAN_LEER:
+      theta = ((r + fabs(r)) / (1.0 + fabs(r)));
+      break;
 
-  // ** Fully formally-verified implementation of the monotonized-centered flux limiter **
-  // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/finite_volume/proof_limiter_monotonized_centered_symmetry.rkt **
-  // ** Proof of second-order TVD (total variation diminishing): ../proofs/finite_volume/proof_limiter_monotonized_centered_tvd.rkt **
-  case GKYL_MONOTONIZED_CENTERED:
-    theta = fmax(0.0, fmin3((2.0 * r), ((1.0 + r) / 2.0), 2.0));
-    break;
+    // ** Fully formally-verified implementation of the monotonized-centered flux limiter **
+    // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/finite_volume/proof_limiter_monotonized_centered_symmetry.rkt **
+    // ** Proof of second-order TVD (total variation diminishing): ../proofs/finite_volume/proof_limiter_monotonized_centered_tvd.rkt **
+    case GKYL_MONOTONIZED_CENTERED:
+      theta = fmax(0.0, fmin3((2.0 * r), ((1.0 + r) / 2.0), 2.0));
+      break;
 
-  case GKYL_BEAM_WARMING:
-    theta = r;
-    break;
+    case GKYL_BEAM_WARMING:
+      theta = r;
+      break;
 
-  case GKYL_ZERO:
-    theta = 0;
-    break;
+    case GKYL_ZERO:
+      theta = 0;
+      break;
   }
   return theta;
 }
 
-gkyl_wave_prop *gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
+gkyl_wave_prop *
+gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
 {
   gkyl_wave_prop *up = gkyl_malloc(sizeof(*up));
 
@@ -158,21 +162,24 @@ gkyl_wave_prop *gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
 
 // some helper functions
 
-static inline void copy_wv_vec(int n, double *GKYL_RESTRICT out, const double *GKYL_RESTRICT inp)
+static inline void
+copy_wv_vec(int n, double *GKYL_RESTRICT out, const double *GKYL_RESTRICT inp)
 {
   for (int i = 0; i < n; ++i) {
     out[i] = inp[i];
   }
 }
 
-static inline void calc_jump(int n, const double *ql, const double *qr, double *GKYL_RESTRICT jump)
+static inline void
+calc_jump(int n, const double *ql, const double *qr, double *GKYL_RESTRICT jump)
 {
   for (int d = 0; d < n; ++d) {
     jump[d] = qr[d] - ql[d];
   }
 }
 
-static inline void calc_first_order_update(
+static inline void
+calc_first_order_update(
   int meqn, double dtdx, double *GKYL_RESTRICT q, const double *GKYL_RESTRICT amdq_r,
   const double *GKYL_RESTRICT apdq_l
 )
@@ -182,7 +189,8 @@ static inline void calc_first_order_update(
   }
 }
 
-static inline double calc_cfla(int mwaves, double cfla, double dtdx, const double *s)
+static inline double
+calc_cfla(int mwaves, double cfla, double dtdx, const double *s)
 {
   double c = cfla;
   for (int i = 0; i < mwaves; ++i) {
@@ -201,14 +209,16 @@ wave_dot_prod(int meqn, const double *GKYL_RESTRICT wa, const double *GKYL_RESTR
   return dot;
 }
 
-static inline void wave_rescale(int meqn, double fact, double *w)
+static inline void
+wave_rescale(int meqn, double fact, double *w)
 {
   for (int i = 0; i < meqn; ++i) {
     w[i] *= fact;
   }
 }
 
-static inline void calc_second_order_qflux(
+static inline void
+calc_second_order_qflux(
   int meqn, double dtdx, double s, const double *waves, double *GKYL_RESTRICT flux2
 )
 {
@@ -219,12 +229,14 @@ static inline void calc_second_order_qflux(
 }
 
 // this is the sign function for doubles
-static inline int sign_double(double val)
+static inline int
+sign_double(double val)
 {
   return (0.0 < val) - (val < 0.0);
 }
 
-static inline void calc_second_order_fflux(
+static inline void
+calc_second_order_fflux(
   int meqn, double dtdx, double s, const double *waves, double *GKYL_RESTRICT flux2
 )
 {
@@ -234,7 +246,8 @@ static inline void calc_second_order_fflux(
   }
 }
 
-static inline void calc_second_order_update(
+static inline void
+calc_second_order_update(
   int meqn, double dtdx, double *GKYL_RESTRICT qout, const double *fl, const double *fr
 )
 {
@@ -243,7 +256,8 @@ static inline void calc_second_order_update(
   }
 }
 
-static void limit_waves(
+static void
+limit_waves(
   const gkyl_wave_prop *wv, int mwaves, const struct gkyl_range *slice_range, int lower, int upper,
   struct gkyl_array *waves, const struct gkyl_array *speed
 )
@@ -276,7 +290,8 @@ static void limit_waves(
 }
 
 // advance method
-struct gkyl_wave_prop_status gkyl_wave_prop_advance(
+struct gkyl_wave_prop_status
+gkyl_wave_prop_advance(
   gkyl_wave_prop *wv, double tm, double dt, const struct gkyl_range *update_range,
   struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *qout
 )
@@ -615,21 +630,26 @@ outsideloop:;
 
   if (is_cfl_violated > 0.0) {
     // indicate failure, and return smaller stable time-step
-    return (struct gkyl_wave_prop_status
-    ){.success = 0, .dt_suggested = dt_suggested, .max_speed = max_speed};
+    return (struct gkyl_wave_prop_status){
+      .success = 0,
+      .dt_suggested = dt_suggested,
+      .max_speed = max_speed,
+    };
   }
 
   // on success, suggest only bigger time-step; (Only way dt can
   // reduce is if the update fails. If the code comes here the update
   // succeeded and so we should not allow dt to reduce).
 
-  return (struct gkyl_wave_prop_status
-  ){.success = is_cfl_violated > 0.0 ? 0 : 1,
+  return (struct gkyl_wave_prop_status){
+    .success = is_cfl_violated > 0.0 ? 0 : 1,
     .dt_suggested = dt_suggested > dt ? dt_suggested : dt,
-    .max_speed = max_speed};
+    .max_speed = max_speed,
+  };
 }
 
-double gkyl_wave_prop_max_dt(
+double
+gkyl_wave_prop_max_dt(
   const gkyl_wave_prop *wv, const struct gkyl_range *update_range, const struct gkyl_array *qin
 )
 {
@@ -651,16 +671,19 @@ double gkyl_wave_prop_max_dt(
   return max_dt;
 }
 
-struct gkyl_wave_prop_stats gkyl_wave_prop_stats(const gkyl_wave_prop *wv)
+struct gkyl_wave_prop_stats
+gkyl_wave_prop_stats(const gkyl_wave_prop *wv)
 {
-  return (struct gkyl_wave_prop_stats
-  ){.n_calls = wv->n_calls,
+  return (struct gkyl_wave_prop_stats){
+    .n_calls = wv->n_calls,
     .n_bad_advance_calls = wv->n_bad_advance_calls,
     .n_bad_cells = wv->n_bad_cells,
-    .n_max_bad_cells = wv->n_max_bad_cells};
+    .n_max_bad_cells = wv->n_max_bad_cells,
+  };
 }
 
-void gkyl_wave_prop_release(gkyl_wave_prop *up)
+void
+gkyl_wave_prop_release(gkyl_wave_prop *up)
 {
   gkyl_wv_eqn_release(up->equation);
   gkyl_array_release(up->waves);

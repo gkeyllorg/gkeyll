@@ -30,7 +30,8 @@
 #include <gkyl_wv_ten_moment.h>
 #include <gkyl_wave_geom.h>
 
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
@@ -38,12 +39,14 @@ static struct gkyl_array *mkarr(long nc, long size)
 // Set the cell-average (physical) value of block `blk` (each block has
 // `nb` basis components) to `val` for *every* cell.  For a 1D p1 orthonormal
 // basis psi_0 = 1/sqrt(2), so component 0 must hold val*sqrt(2).
-static void set_const_block(struct gkyl_array *arr, int blk, int nb, double val)
+static void
+set_const_block(struct gkyl_array *arr, int blk, int nb, double val)
 {
   gkyl_array_shiftc(arr, val * sqrt(2.0), blk * nb);
 }
 
-void test_pressure_1x_p1()
+void
+test_pressure_1x_p1()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -111,7 +114,8 @@ void test_pressure_1x_p1()
   gkyl_wv_eqn_release(eqn);
 }
 
-void test_u_1x_p1()
+void
+test_u_1x_p1()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -181,7 +185,8 @@ void test_u_1x_p1()
   gkyl_wv_eqn_release(eqn);
 }
 
-void test_integrated_vars_1x_p1()
+void
+test_integrated_vars_1x_p1()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -261,7 +266,8 @@ void test_integrated_vars_1x_p1()
   gkyl_wv_eqn_release(eqn);
 }
 
-void test_source_1x_p1()
+void
+test_source_1x_p1()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};

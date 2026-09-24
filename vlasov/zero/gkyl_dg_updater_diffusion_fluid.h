@@ -59,8 +59,9 @@ void gkyl_dg_updater_diffusion_fluid_advance(
  * @param diffusion Updater object
  * @return timers
  */
-struct gkyl_dg_updater_diffusion_fluid_tm
-gkyl_dg_updater_diffusion_fluid_get_tm(const struct gkyl_dg_updater_diffusion_fluid *up);
+struct gkyl_dg_updater_diffusion_fluid_tm gkyl_dg_updater_diffusion_fluid_get_tm(
+  const struct gkyl_dg_updater_diffusion_fluid *up
+);
 
 /**
  * Delete updater.

@@ -2,7 +2,8 @@
 #include <gkyl_vlasov_priv.h>
 #include <gkyl_dg_updater_moment.h>
 
-void vm_species_bflux_init(
+void
+vm_species_bflux_init(
   struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_boundary_fluxes *bflux
 )
 {
@@ -66,7 +67,8 @@ void vm_species_bflux_init(
 }
 
 // computes rhs of the boundary flux
-void vm_species_bflux_rhs(
+void
+vm_species_bflux_rhs(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_boundary_fluxes *bflux,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -106,9 +108,8 @@ void vm_species_bflux_rhs(
   }
 }
 
-void vm_species_bflux_release(
-  const struct gkyl_vlasov_app *app, const struct vm_boundary_fluxes *bflux
-)
+void
+vm_species_bflux_release(const struct gkyl_vlasov_app *app, const struct vm_boundary_fluxes *bflux)
 {
   gkyl_ghost_surf_calc_release(bflux->flux_slvr);
   for (int i = 0; i < 2 * app->cdim; ++i) {

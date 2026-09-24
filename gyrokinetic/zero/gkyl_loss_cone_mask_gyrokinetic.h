@@ -45,8 +45,9 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
  * @param inp Input parameters defined in gkyl_loss_cone_mask_gyrokinetic_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_loss_cone_mask_gyrokinetic *
-gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp);
+struct gkyl_loss_cone_mask_gyrokinetic *gkyl_loss_cone_mask_gyrokinetic_inew(
+  const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp
+);
 
 /**
  * Compute the loss-cone mask from phase-space cell corners.

@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
+static void
+proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
   int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
@@ -9,7 +10,8 @@ static void proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, voi
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
 }
 
-static double gk_species_source_bgk_volume_integrate(
+static double
+gk_species_source_bgk_volume_integrate(
   gkyl_gyrokinetic_app *app, struct gk_source_bgk *src, const struct gkyl_array *arrin
 )
 {
@@ -25,14 +27,16 @@ static double gk_species_source_bgk_volume_integrate(
   return volint_global;
 }
 
-static void gk_species_source_bgk_rhs_disabled(
+static void
+gk_species_source_bgk_rhs_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
 }
 
-static void gk_species_source_bgk_rhs_feq_enabled(
+static void
+gk_species_source_bgk_rhs_feq_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -56,7 +60,8 @@ static void gk_species_source_bgk_rhs_feq_enabled(
   gkyl_array_accumulate(src->Jrate_df, 1.0, species->lte.f_lte);
 }
 
-static void gk_species_source_bgk_rhs_heating_enabled(
+static void
+gk_species_source_bgk_rhs_heating_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -114,7 +119,8 @@ static void gk_species_source_bgk_rhs_heating_enabled(
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_species_source_bgk_rhs_accumulate_maxwellian(
+static void
+gk_species_source_bgk_rhs_accumulate_maxwellian(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
   const struct gkyl_array *fin, struct gkyl_array *out
 )
@@ -209,7 +215,8 @@ static void gk_species_source_bgk_rhs_accumulate_maxwellian(
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_species_source_bgk_rhs_external_enabled(
+static void
+gk_species_source_bgk_rhs_external_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -232,13 +239,15 @@ static void gk_species_source_bgk_rhs_external_enabled(
   gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
 }
 
-static void gk_species_source_bgk_write_diags_disabled(
+static void
+gk_species_source_bgk_write_diags_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm, int frame
 )
 {
 }
 
-static void gk_species_source_bgk_write_diags_heating_enabled(
+static void
+gk_species_source_bgk_write_diags_heating_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm, int frame
 )
 {
@@ -255,11 +264,11 @@ static void gk_species_source_bgk_write_diags_heating_enabled(
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name);
 
     if (src->is_first_diag_dynvec_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description",
-         .elem_type = GKYL_MP_STRING,
-         .cval = "Squared thermal speed amplitude."}
-      };
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {{
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Squared thermal speed amplitude.",
+      }};
       int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -280,18 +289,19 @@ static void gk_species_source_bgk_write_diags_heating_enabled(
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_species_source_bgk_write_diags_external_enabled(
+static void
+gk_species_source_bgk_write_diags_external_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm, int frame
 )
 {
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
-  struct gkyl_msgpack_map_elem desc_bgk_moms[] = {
-    {.key = "Description",
-     .elem_type = GKYL_MP_STRING,
-     .cval = "BGK source particle (M0), momentum (M1) or kinetic energy (M2) source/sink rate."}
-  };
+  struct gkyl_msgpack_map_elem desc_bgk_moms[] = {{
+    .key = "Description",
+    .elem_type = GKYL_MP_STRING,
+    .cval = "BGK source particle (M0), momentum (M1) or kinetic energy (M2) source/sink rate.",
+  }};
   int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_bgk_moms
@@ -318,14 +328,16 @@ static void gk_species_source_bgk_write_diags_external_enabled(
   gkyl_msgpack_data_release(mt);
 }
 
-static void gk_species_source_bgk_update_integrated_diags_disabled(
+static void
+gk_species_source_bgk_update_integrated_diags_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm
 )
 {
   // Do nothing.
 }
 
-static void gk_species_source_bgk_update_integrated_diags_enabled(
+static void
+gk_species_source_bgk_update_integrated_diags_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm
 )
 {
@@ -355,14 +367,16 @@ static void gk_species_source_bgk_update_integrated_diags_enabled(
   }
 }
 
-static void gk_species_source_bgk_calc_integrated_diags_disabled(
+static void
+gk_species_source_bgk_calc_integrated_diags_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm
 )
 {
   // Do nothing.
 }
 
-static void gk_species_source_bgk_calc_integrated_diags_enabled(
+static void
+gk_species_source_bgk_calc_integrated_diags_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm
 )
 {
@@ -375,14 +389,16 @@ static void gk_species_source_bgk_calc_integrated_diags_enabled(
   app->stat.n_diag += 1;
 }
 
-static void gk_species_source_bgk_write_integrated_diags_disabled(
+static void
+gk_species_source_bgk_write_integrated_diags_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
 )
 {
   // Empty.
 }
 
-static void gk_species_source_bgk_write_integrated_diags_enabled(
+static void
+gk_species_source_bgk_write_integrated_diags_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
 )
 {
@@ -404,11 +420,11 @@ static void gk_species_source_bgk_write_integrated_diags_enabled(
     );
 
     if (src->is_first_diag_dynvec_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description",
-         .elem_type = GKYL_MP_STRING,
-         .cval = "Volume integrated moment of the BGK source."}
-      };
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {{
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Volume integrated moment of the BGK source.",
+      }};
       int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -429,7 +445,8 @@ static void gk_species_source_bgk_write_integrated_diags_enabled(
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_species_source_bgk_write_array(
+static void
+gk_species_source_bgk_write_array(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, int frame,
   double stime, char *file_suffix, char *description, struct gkyl_msgpack_map_elem *iom,
   int iom_len, struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_array *arrout
@@ -469,7 +486,8 @@ static void gk_species_source_bgk_write_array(
   gkyl_array_release(arr_ho);
 }
 
-void gk_species_source_bgk_init(
+void
+gk_species_source_bgk_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
 )
 {
@@ -540,10 +558,10 @@ void gk_species_source_bgk_init(
         .cdim = app->cdim,
         .vdim = gks->local_vel.ndim,
         .vel_map = gks->vel_map,
-        .pos_map = app->position_map
+        .pos_map = app->position_map,
       };
-      gkyl_proj_on_basis *proj_feq_shape = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-      ){.grid = &gks->grid,
+      gkyl_proj_on_basis *proj_feq_shape = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+        .grid = &gks->grid,
         .basis = &gks->basis,
         .qtype = GKYL_GAUSS_QUAD,
         .num_quad = gks->basis.poly_order + 1,
@@ -551,7 +569,8 @@ void gk_species_source_bgk_init(
         .eval = gks->info.source_bgk.feq_shape,
         .ctx = gks->info.source_bgk.feq_shape_ctx,
         .c2p_func = proj_on_basis_c2p_phase_func,
-        .c2p_func_ctx = &proj_feq_shape_c2p_ctx});
+        .c2p_func_ctx = &proj_feq_shape_c2p_ctx,
+      });
       gkyl_proj_on_basis_advance(proj_feq_shape, 0.0, &gks->local, Jrate_fmax_host);
       gkyl_array_copy(src->Jrate_df, Jrate_fmax_host);
       gkyl_proj_on_basis_release(proj_feq_shape);
@@ -712,7 +731,8 @@ void gk_species_source_bgk_init(
   }
 }
 
-void gk_species_source_bgk_rhs(
+void
+gk_species_source_bgk_rhs(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -720,28 +740,32 @@ void gk_species_source_bgk_rhs(
   src->rhs_func(app, species, src, fin, rhs);
 }
 
-void gk_species_source_bgk_write_diags(
+void
+gk_species_source_bgk_write_diags(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm, int frame
 )
 {
   src->write_diags_func(app, gks, src, tm, frame);
 }
 
-void gk_species_source_bgk_calc_integrated_diags(
+void
+gk_species_source_bgk_calc_integrated_diags(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm
 )
 {
   src->calc_integrated_diags_func(app, gks, src, tm);
 }
 
-void gk_species_source_bgk_write_integrated_diags(
+void
+gk_species_source_bgk_write_integrated_diags(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
 )
 {
   src->write_integrated_diags_func(app, gks, src);
 }
 
-void gk_species_source_bgk_release(
+void
+gk_species_source_bgk_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_source_bgk *src
 )
 {

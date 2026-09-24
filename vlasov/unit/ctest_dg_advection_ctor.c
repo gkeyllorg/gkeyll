@@ -7,7 +7,8 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_advection_priv.h>
 
-void test_advection_1x()
+void
+test_advection_1x()
 {
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 2);
@@ -38,7 +39,8 @@ void test_advection_1x()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_advection_2x()
+void
+test_advection_2x()
 {
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 2, 1);
@@ -58,7 +60,8 @@ void test_advection_2x()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_advection_3x()
+void
+test_advection_3x()
 {
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, 1);

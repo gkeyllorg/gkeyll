@@ -7,7 +7,8 @@ extern "C" {
 #include <gkyl_alloc_flags_priv.h>
 }
 
-struct gkyl_velocity_map *gkyl_velocity_map_new_cu_dev(struct gkyl_velocity_map *gvm_ho)
+struct gkyl_velocity_map *
+gkyl_velocity_map_new_cu_dev(struct gkyl_velocity_map *gvm_ho)
 {
   struct gkyl_velocity_map *gvm = (struct gkyl_velocity_map *)gkyl_malloc(sizeof(*gvm));
 

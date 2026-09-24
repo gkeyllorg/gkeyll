@@ -6,7 +6,8 @@
 // Note: this may not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by stability.
 // The actual time-step and dt_suggested are returned in the status object.
-void vlasov_forward_euler(
+void
+vlasov_forward_euler(
   gkyl_vlasov_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
   struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st

@@ -25,7 +25,8 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_dg_bin_ops.h>
 
-static double error_L2norm(
+static double
+error_L2norm(
   struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis,
   struct gkyl_array *field1, struct gkyl_array *field2
 )
@@ -50,7 +51,8 @@ static double error_L2norm(
   return sqrt(l2[0]);
 }
 
-static double field_L2norm(
+static double
+field_L2norm(
   struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis,
   struct gkyl_array *field
 )
@@ -66,17 +68,20 @@ static double field_L2norm(
 }
 
 // Return true when the TEST_OUTPUT env var is set (enables results file writing).
-static bool helmholtz_write_output(void)
+static bool
+helmholtz_write_output(void)
 {
   return getenv("TEST_OUTPUT") != NULL;
 }
 // Return true when the HELMHOLTZ_VERBOSE env var is set (enables extra printf output).
-static bool helmholtz_verbose(void)
+static bool
+helmholtz_verbose(void)
 {
   return getenv("HELMHOLTZ_VERBOSE") != NULL;
 }
 
-static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool use_gpu, long nc, long size)
 {
   // allocate array (filled with zeros)
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
@@ -86,28 +91,34 @@ static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
 
 // We want to test the solution to the Helmholtz equation: -d^2(phi)/dx^2 - kSq*phi = rho
 
-static double ksquare()
+static double
+ksquare()
 {
   return 20.0;
 } // To get kSq everywhere in one place for easy editing.
-static double x_dirichletbc_lo()
+static double
+x_dirichletbc_lo()
 {
   return 0.0;
 } // to set BC values in one place for easy editing.
-static double x_dirichletbc_up()
+static double
+x_dirichletbc_up()
 {
   return 0.5;
 } // Only effective for 2x problem.
-static double ksq_factor()
+static double
+ksq_factor()
 {
   return 3.0;
 } // To set the factor we introduce on kSq for testing, in one place for easy editing.
-static double eps_factor()
+static double
+eps_factor()
 {
   return 4.0;
 } // To set the factor we introduce on epsilon for testing, in one place for easy editing.
 
-static double p1_func(double x)
+static double
+p1_func(double x)
 {
   // This is a linear polynomial that is compatible with the BCs above. (assumes domain is [0,1])
   double a = -ksquare() * x_dirichletbc_lo();
@@ -115,7 +126,8 @@ static double p1_func(double x)
   return (b - a) * x + a;
 }
 
-static void evalFunc_ksquare(double t, const double *xn, double *restrict fout, void *ctx)
+static void
+evalFunc_ksquare(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   fout[0] = ksquare();
@@ -125,7 +137,8 @@ static void evalFunc_ksquare(double t, const double *xn, double *restrict fout, 
 }
 
 // RHS: rho(x,z) = (1.+kz*z+0.5*pow(z,2)) * sum_{m=1}^2 b_m sin(2*pi*m*x)
-void evalFunc_rhs_dirichletx_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_rhs_dirichletx_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
@@ -143,7 +156,8 @@ void evalFunc_rhs_dirichletx_2x(double t, const double *xn, double *restrict fou
   fout[0] += p1_func(x);
 }
 // Solution: phi(x,z) = (1.+kz*z+0.5*pow(z,2)) * sum_{m=1}^2 b_m*sin(2*pi*m*x)/( (2*pi*m)^2 - kSq )
-void evalFunc_sol_dirichletx_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_sol_dirichletx_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
@@ -162,7 +176,8 @@ void evalFunc_sol_dirichletx_2x(double t, const double *xn, double *restrict fou
   fout[0] += -p1_func(x) / ksquare();
 }
 // Periodic case (This is not suitable for convergence test as it leaves a constant offset in the solution)
-void evalFunc_rhs_periodicx_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_rhs_periodicx_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
@@ -181,7 +196,8 @@ void evalFunc_rhs_periodicx_2x(double t, const double *xn, double *restrict fout
   double kz = 0.;
   fout[0] *= (1. + kz * z);
 }
-void evalFunc_sol_periodicx_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_sol_periodicx_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
@@ -200,7 +216,8 @@ void evalFunc_sol_periodicx_2x(double t, const double *xn, double *restrict fout
   fout[0] *= (1. + kz * z);
 }
 
-double trig_func(double x, double y, bool laplacian)
+double
+trig_func(double x, double y, bool laplacian)
 {
   double amn[] = {0.0, -1., 0., -0.0};
   double out = 0.;
@@ -221,7 +238,8 @@ double trig_func(double x, double y, bool laplacian)
   return out;
 }
 
-double z_envelope(double z)
+double
+z_envelope(double z)
 {
   double kz = 1.;
   return 1.0;
@@ -232,17 +250,15 @@ double z_envelope(double z)
 // Derive rho from: -nabla_perp^2 phi + kSq(x,y)*phi = rho
 //   => rho = (kx^2 + ky^2)*phi + kSq(x,y)*phi
 // This is consistent with any kSq(x,y), including the spatially varying evalFunc_ksquare.
-void evalFunc_sol_dirichletx_dirichlety_3x(
-  double t, const double *xn, double *restrict fout, void *ctx
-)
+void
+evalFunc_sol_dirichletx_dirichlety_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double kx = M_PI, ky = M_PI;
   fout[0] = sin(kx * x) * sin(ky * y) * z_envelope(z);
 }
-void evalFunc_rhs_dirichletx_dirichlety_3x(
-  double t, const double *xn, double *restrict fout, void *ctx
-)
+void
+evalFunc_rhs_dirichletx_dirichlety_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double kx = M_PI, ky = M_PI;
@@ -252,9 +268,8 @@ void evalFunc_rhs_dirichletx_dirichlety_3x(
   fout[0] = (kx * kx + ky * ky - kSq_val[0]) * phi_val;
 }
 
-void evalFunc_sol_dirichletx_periodicy_3x(
-  double t, const double *xn, double *restrict fout, void *ctx
-)
+void
+evalFunc_sol_dirichletx_periodicy_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   fout[0] = trig_func(x, y, false);
@@ -262,9 +277,8 @@ void evalFunc_sol_dirichletx_periodicy_3x(
 }
 
 // Periodic case (This is not suitable for convergence test as it leaves a constant offset in the solution)
-void evalFunc_rhs_dirichletx_periodicy_3x(
-  double t, const double *xn, double *restrict fout, void *ctx
-)
+void
+evalFunc_rhs_dirichletx_periodicy_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double kSq[1];
@@ -275,7 +289,8 @@ void evalFunc_rhs_dirichletx_periodicy_3x(
 }
 
 // Read 2x grid resolution from environment variables (or defaults).
-static void get_2x_cells(int *cells)
+static void
+get_2x_cells(int *cells)
 {
   int nx = 32, nz = 48;
   char *env;
@@ -290,7 +305,8 @@ static void get_2x_cells(int *cells)
 }
 
 // Read 3x grid resolution from environment variables (or defaults).
-static void get_3x_cells(int *cells)
+static void
+get_3x_cells(int *cells)
 {
   int nx = 8, ny = 8, nz = 4;
   char *env;
@@ -309,19 +325,22 @@ static void get_3x_cells(int *cells)
 }
 
 // Introduce eps and ksq factors.
-static void introduce_factors(struct gkyl_array *eps, struct gkyl_array *kSqFld)
+static void
+introduce_factors(struct gkyl_array *eps, struct gkyl_array *kSqFld)
 {
   gkyl_array_scale(eps, eps_factor());
   gkyl_array_scale(kSqFld, ksq_factor());
 }
 // Remove eps and ksq factors.
-static void remove_factors(struct gkyl_array *eps, struct gkyl_array *kSqFld)
+static void
+remove_factors(struct gkyl_array *eps, struct gkyl_array *kSqFld)
 {
   gkyl_array_scale(eps, 1.0 / eps_factor());
   gkyl_array_scale(kSqFld, 1.0 / ksq_factor());
 }
 
-static double solve_fem_helmholtz_perp_2x(
+static double
+solve_fem_helmholtz_perp_2x(
   int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu, double *sol_L2_out
 )
 {
@@ -461,7 +480,8 @@ static double solve_fem_helmholtz_perp_2x(
   return err_L2;
 }
 
-void test_fem_helmholtz_perp_2x(
+void
+test_fem_helmholtz_perp_2x(
   int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu
 )
 {
@@ -490,7 +510,8 @@ void test_fem_helmholtz_perp_2x(
   }
 }
 
-static double solve_fem_helmholtz_perp_3x(
+static double
+solve_fem_helmholtz_perp_3x(
   int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu, double *sol_L2_out
 )
 {
@@ -647,7 +668,8 @@ static double solve_fem_helmholtz_perp_3x(
   return err_L2;
 }
 
-void test_fem_helmholtz_perp_3x(
+void
+test_fem_helmholtz_perp_3x(
   int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu
 )
 {
@@ -692,7 +714,8 @@ void test_fem_helmholtz_perp_3x(
 }
 
 // 2x test wrappers
-void test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho()
+void
+test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho()
 {
   int cells[2];
   get_2x_cells(cells);
@@ -704,7 +727,8 @@ void test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho()
   test_fem_helmholtz_perp_2x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_ksq_2x_p1_periodicx_ho()
+void
+test_fem_poisson_perp_ksq_2x_p1_periodicx_ho()
 {
   int cells[2];
   get_2x_cells(cells);
@@ -717,7 +741,8 @@ void test_fem_poisson_perp_ksq_2x_p1_periodicx_ho()
 }
 
 // 3x test wrappers
-void test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho()
+void
+test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho()
 {
   int cells[3];
   get_3x_cells(cells);
@@ -733,7 +758,8 @@ void test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho()
   test_fem_helmholtz_perp_3x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho()
+void
+test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho()
 {
   int cells[3];
   get_3x_cells(cells);
@@ -750,7 +776,8 @@ void test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho()
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev()
+void
+test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev()
 {
   int cells[2];
   get_2x_cells(cells);
@@ -762,7 +789,8 @@ void test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev()
   test_fem_helmholtz_perp_2x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_ksq_2x_p1_periodicx_dev()
+void
+test_fem_poisson_perp_ksq_2x_p1_periodicx_dev()
 {
   int cells[2];
   get_2x_cells(cells);
@@ -774,7 +802,8 @@ void test_fem_poisson_perp_ksq_2x_p1_periodicx_dev()
   test_fem_helmholtz_perp_2x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev()
+void
+test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev()
 {
   int cells[3];
   get_3x_cells(cells);
@@ -790,7 +819,8 @@ void test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev()
   test_fem_helmholtz_perp_3x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev()
+void
+test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev()
 {
   int cells[3];
   get_3x_cells(cells);

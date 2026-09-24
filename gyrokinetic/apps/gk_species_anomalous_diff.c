@@ -1,14 +1,16 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void gk_species_anomalous_diff_rhs_disabled(
+static void
+gk_species_anomalous_diff_rhs_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_anomalous_diff *gkad,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
 }
 
-static void gk_species_anomalous_diff_rhs_enabled(
+static void
+gk_species_anomalous_diff_rhs_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_anomalous_diff *gkad,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -22,14 +24,16 @@ static void gk_species_anomalous_diff_rhs_enabled(
   app->stat.species_diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_species_anomalous_diff_write_diags_disabled(
+static void
+gk_species_anomalous_diff_write_diags_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_anomalous_diff *gkad, double tm,
   int frame
 )
 {
 }
 
-static void gk_species_anomalous_diff_write_diags_enabled(
+static void
+gk_species_anomalous_diff_write_diags_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_anomalous_diff *gkad, double tm,
   int frame
 )
@@ -39,7 +43,8 @@ static void gk_species_anomalous_diff_write_diags_enabled(
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gk_anomalous_diff_write_conf_array(
+static void
+gk_anomalous_diff_write_conf_array(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_anomalous_diff *gkad, int frame,
   double stime, char *file_suffix, char *description, struct gkyl_array *arrout,
   struct gkyl_array *arrout_host
@@ -88,13 +93,15 @@ static void gk_anomalous_diff_write_conf_array(
   gkyl_array_release(arr_ho);
 }
 
-static void eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
+static void
+eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gkyl_position_map *gpm = ctx;
   gkyl_position_map_eval_mc2nu(gpm, xcomp, xphys);
 }
 
-void gk_species_anomalous_diff_init(
+void
+gk_species_anomalous_diff_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_anomalous_diff *gkad
 )
 {
@@ -110,14 +117,15 @@ void gk_species_anomalous_diff_init(
     struct gkyl_array *diffD_ho = app->use_gpu ?
                                     mkarr(false, gkad->diffD->ncomp, gkad->diffD->size) :
                                     gkyl_array_acquire(gkad->diffD);
-    struct gkyl_eval_on_nodes *diffDproj = gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp
-    ){.grid = &app->grid,
+    struct gkyl_eval_on_nodes *diffDproj = gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
+      .grid = &app->grid,
       .basis = &app->basis,
       .num_ret_vals = 1,
       .eval = gks->info.anomalous_diffusion.D_profile,
       .ctx = gks->info.anomalous_diffusion.D_profile_ctx,
       .c2p_func = eval_on_nodes_c2p_position_func,
-      .c2p_func_ctx = app->position_map});
+      .c2p_func_ctx = app->position_map,
+    });
     gkyl_eval_on_nodes_advance(diffDproj, 0.0, &app->local, diffD_ho);
     gkyl_array_copy(gkad->diffD, diffD_ho);
 
@@ -186,7 +194,8 @@ void gk_species_anomalous_diff_init(
   }
 }
 
-void gk_species_anomalous_diff_rhs(
+void
+gk_species_anomalous_diff_rhs(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_anomalous_diff *gkad,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -194,7 +203,8 @@ void gk_species_anomalous_diff_rhs(
   gkad->rhs_func(app, species, gkad, fin, rhs);
 }
 
-void gk_species_anomalous_diff_write_diags(
+void
+gk_species_anomalous_diff_write_diags(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_anomalous_diff *gkad, double tm,
   int frame
 )
@@ -202,7 +212,8 @@ void gk_species_anomalous_diff_write_diags(
   gkad->write_diags_func(app, gks, gkad, tm, frame);
 }
 
-void gk_species_anomalous_diff_release(
+void
+gk_species_anomalous_diff_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_anomalous_diff *gkad
 )
 {

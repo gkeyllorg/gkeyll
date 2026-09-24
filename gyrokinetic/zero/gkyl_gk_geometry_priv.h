@@ -34,7 +34,8 @@ static inline double gk_geometry_node_coord(
   return grid->lower[dir] + cell * grid->dx[dir];
 }
 
-static inline void get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
+static inline void
+get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
 {
   // Remove path from 'filepath' and output only the file name (including its extension)
   // to the buffer 'out_buffer' of size 'out_size'.
@@ -47,7 +48,8 @@ static inline void get_filename_from_path(const char *filepath, char *out_buffer
   }
 }
 
-static double calc_running_coord(double coord_lo, int i, double dx)
+static double
+calc_running_coord(double coord_lo, int i, double dx)
 {
   double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
   double coord = coord_lo;
@@ -57,7 +59,8 @@ static double calc_running_coord(double coord_lo, int i, double dx)
   return coord;
 }
 
-static double calc_running_surf_coord(double coord_lo, int i, double dx)
+static double
+calc_running_surf_coord(double coord_lo, int i, double dx)
 {
   double dels[3] = {(1.0 - 1.0 / sqrt(3)) / 2.0, 1.0 / sqrt(3), (1.0 - 1.0 / sqrt(3)) / 2.0};
   double coord = coord_lo;
@@ -67,7 +70,8 @@ static double calc_running_surf_coord(double coord_lo, int i, double dx)
   return coord;
 }
 
-static void gk_geometry_set_nodal_ranges(struct gk_geometry *up)
+static void
+gk_geometry_set_nodal_ranges(struct gk_geometry *up)
 {
   int poly_order = up->basis.poly_order;
 
@@ -109,7 +113,8 @@ static void gk_geometry_set_nodal_ranges(struct gk_geometry *up)
   }
 }
 
-static void gk_geometry_surf_alloc_nodal(struct gk_geometry *gk_geom, int dir)
+static void
+gk_geometry_surf_alloc_nodal(struct gk_geometry *gk_geom, int dir)
 {
   // mapc2p for calculations of tangents
   int num_fd_nodes = 13;
@@ -160,7 +165,8 @@ static void gk_geometry_surf_alloc_nodal(struct gk_geometry *gk_geom, int dir)
     gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
 }
 
-static void gk_geometry_surf_alloc_expansions(struct gk_geometry *up, int dir)
+static void
+gk_geometry_surf_alloc_expansions(struct gk_geometry *up, int dir)
 {
   up->geo_surf[dir].bmag =
     gkyl_array_new(GKYL_DOUBLE, 1 * up->num_surf_basis, up->local_ext.volume);
@@ -186,7 +192,8 @@ static void gk_geometry_surf_alloc_expansions(struct gk_geometry *up, int dir)
     gkyl_array_new(GKYL_DOUBLE, 1 * up->num_surf_basis, up->local_ext.volume);
 }
 
-static void gk_geometry_surf_release_nodal(struct gk_geometry *gk_geom, int dir)
+static void
+gk_geometry_surf_release_nodal(struct gk_geometry *gk_geom, int dir)
 {
   gkyl_array_release(gk_geom->geo_surf[dir].mc2p_nodal_fd);
   gkyl_array_release(gk_geom->geo_surf[dir].mc2p_nodal);
@@ -212,7 +219,8 @@ static void gk_geometry_surf_release_nodal(struct gk_geometry *gk_geom, int dir)
   gkyl_array_release(gk_geom->geo_surf[dir].deltats_nodal);
 }
 
-static void gk_geometry_int_alloc_nodal(struct gk_geometry *gk_geom)
+static void
+gk_geometry_int_alloc_nodal(struct gk_geometry *gk_geom)
 {
   // mapc2p for calculations of tangents
   int num_fd_nodes = 13;
@@ -244,7 +252,8 @@ static void gk_geometry_int_alloc_nodal(struct gk_geometry *gk_geom)
   gk_geom->geo_int.bioverJB_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
 }
 
-static void gk_geometry_int_alloc_expansions(struct gk_geometry *up)
+static void
+gk_geometry_int_alloc_expansions(struct gk_geometry *up)
 {
   // mapc2p
   up->geo_int.mc2p = gkyl_array_new(GKYL_DOUBLE, 3 * up->basis.num_basis, up->local_ext.volume);
@@ -283,7 +292,8 @@ static void gk_geometry_int_alloc_expansions(struct gk_geometry *up)
   up->geo_int.qprofile = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 }
 
-static void gk_geometry_int_release_nodal(struct gk_geometry *gk_geom)
+static void
+gk_geometry_int_release_nodal(struct gk_geometry *gk_geom)
 {
   gkyl_array_release(gk_geom->geo_int.mc2p_nodal_fd);
   gkyl_array_release(gk_geom->geo_int.mc2p_nodal);
@@ -309,7 +319,8 @@ static void gk_geometry_int_release_nodal(struct gk_geometry *gk_geom)
   gkyl_array_release(gk_geom->geo_int.bioverJB_nodal);
 }
 
-static void gk_geometry_corn_alloc_nodal(struct gk_geometry *gk_geom)
+static void
+gk_geometry_corn_alloc_nodal(struct gk_geometry *gk_geom)
 {
   // mapc2p
   gk_geom->geo_corn.mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_corn.volume);
@@ -317,7 +328,8 @@ static void gk_geometry_corn_alloc_nodal(struct gk_geometry *gk_geom)
   gk_geom->geo_corn.bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_corn.volume);
 }
 
-static void gk_geometry_corn_alloc_expansions(struct gk_geometry *up)
+static void
+gk_geometry_corn_alloc_expansions(struct gk_geometry *up)
 {
   // mapc2p
   up->geo_corn.mc2p = gkyl_array_new(GKYL_DOUBLE, 3 * up->basis.num_basis, up->local_ext.volume);
@@ -333,14 +345,16 @@ static void gk_geometry_corn_alloc_expansions(struct gk_geometry *up)
     gkyl_array_new(GKYL_DOUBLE, up->grid.ndim * up->basis.num_basis, up->local_ext.volume);
 }
 
-static void gk_geometry_corn_release_nodal(struct gk_geometry *gk_geom)
+static void
+gk_geometry_corn_release_nodal(struct gk_geometry *gk_geom)
 {
   gkyl_array_release(gk_geom->geo_corn.mc2p_nodal);
   gkyl_array_release(gk_geom->geo_corn.mc2nu_pos_nodal);
   gkyl_array_release(gk_geom->geo_corn.bmag_nodal);
 }
 
-static void gk_geometry_surf_calc_expansions(
+static void
+gk_geometry_surf_calc_expansions(
   struct gk_geometry *gk_geom, int dir, struct gkyl_range nrange_quad_surf
 )
 {

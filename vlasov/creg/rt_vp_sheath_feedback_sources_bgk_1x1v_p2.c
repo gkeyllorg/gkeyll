@@ -63,7 +63,8 @@ struct sheath_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct sheath_ctx create_ctx(void)
+struct sheath_ctx
+create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
@@ -140,15 +141,14 @@ struct sheath_ctx create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void evalElcDensityInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalElcDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -158,7 +158,8 @@ void evalElcDensityInit(
   fout[0] = n0;
 }
 
-void evalElcTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalElcTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -168,9 +169,8 @@ void evalElcTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[0] = Te;
 }
 
-void evalElcVDriftInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalElcVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -180,7 +180,8 @@ void evalElcVDriftInit(
   fout[0] = Vx_drift_elc;
 }
 
-void evalElcSourceDensityInit(
+void
+evalElcSourceDensityInit(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -201,7 +202,8 @@ void evalElcSourceDensityInit(
   fout[0] = n;
 }
 
-void evalElcSourceTempInit(
+void
+evalElcSourceTempInit(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -213,7 +215,8 @@ void evalElcSourceTempInit(
   fout[0] = Te;
 }
 
-void evalElcSourceVDriftInit(
+void
+evalElcSourceVDriftInit(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -225,9 +228,8 @@ void evalElcSourceVDriftInit(
   fout[0] = Vx_drift_elc;
 }
 
-void evalIonDensityInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalIonDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -237,7 +239,8 @@ void evalIonDensityInit(
   fout[0] = n0;
 }
 
-void evalIonTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalIonTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -247,9 +250,8 @@ void evalIonTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[0] = Ti;
 }
 
-void evalIonVDriftInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalIonVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -259,7 +261,8 @@ void evalIonVDriftInit(
   fout[0] = Vx_drift_ion;
 }
 
-void evalIonSourceDensityInit(
+void
+evalIonSourceDensityInit(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -280,7 +283,8 @@ void evalIonSourceDensityInit(
   fout[0] = n;
 }
 
-void evalIonSourceTempInit(
+void
+evalIonSourceTempInit(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -292,7 +296,8 @@ void evalIonSourceTempInit(
   fout[0] = Ti;
 }
 
-void evalIonSourceVDriftInit(
+void
+evalIonSourceVDriftInit(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -304,7 +309,8 @@ void evalIonSourceVDriftInit(
   fout[0] = Vx_drift_ion;
 }
 
-void evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -320,7 +326,8 @@ void evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
   fout[0] = nu;
 }
 
-void evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
@@ -336,7 +343,8 @@ void evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
   fout[0] = nu;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -354,16 +362,16 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr
   }
 }
 
-void calc_field_energy(
-  struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc
-)
+void
+calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_field_energy(app, t_curr);
   }
 }
 
-void calc_integrated_mom(
+void
+calc_integrated_mom(
   struct gkyl_tm_trigger *imt, gkyl_vlasov_app *app, double t_curr, bool force_calc
 )
 {
@@ -372,7 +380,8 @@ void calc_integrated_mom(
   }
 }
 
-void calc_integrated_L2_f(
+void
+calc_integrated_L2_f(
   struct gkyl_tm_trigger *l2t, gkyl_vlasov_app *app, double t_curr, bool force_calc
 )
 {
@@ -381,7 +390,8 @@ void calc_integrated_L2_f(
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -473,38 +483,46 @@ int main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] =
-      {.proj_id = GKYL_PROJ_VLASOV_LTE,
-       .density = evalElcDensityInit,
-       .ctx_density = &ctx,
-       .temp = evalElcTempInit,
-       .ctx_temp = &ctx,
-       .V_drift = evalElcVDriftInit,
-       .ctx_V_drift = &ctx},
+      {
+        .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalElcDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalElcTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalElcVDriftInit,
+        .ctx_V_drift = &ctx,
+      },
     .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS,
-       .self_nu = evalElcNu,
-       .ctx = &ctx,
-       .fixed_temp_relax = true},
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalElcNu,
+        .ctx = &ctx,
+        .fixed_temp_relax = true,
+      },
 
     .source =
-      {.source_id = GKYL_BFLUX_SOURCE,
-       .source_length = ctx.Ls,
-       .source_species = "ion",
+      {
+        .source_id = GKYL_BFLUX_SOURCE,
+        .source_length = ctx.Ls,
+        .source_species = "ion",
 
-       .num_sources = 1,
-       .projection[0] =
-         {.proj_id = GKYL_PROJ_VLASOV_LTE,
-          .density = evalElcSourceDensityInit,
-          .ctx_density = &ctx,
-          .temp = evalElcSourceTempInit,
-          .ctx_temp = &ctx,
-          .V_drift = evalElcSourceVDriftInit,
-          .ctx_V_drift = &ctx}},
+        .num_sources = 1,
+        .projection[0] =
+          {
+            .proj_id = GKYL_PROJ_VLASOV_LTE,
+            .density = evalElcSourceDensityInit,
+            .ctx_density = &ctx,
+            .temp = evalElcSourceTempInit,
+            .ctx_temp = &ctx,
+            .V_drift = evalElcSourceVDriftInit,
+            .ctx_V_drift = &ctx,
+          },
+      },
 
     .bcx = {.lower = {.type = GKYL_SPECIES_ABSORB}, .upper = {.type = GKYL_SPECIES_ABSORB}},
 
     .num_diag_moments = 1,
-    .diag_moments = {GKYL_F_MOMENT_LTE}
+    .diag_moments = {GKYL_F_MOMENT_LTE},
   };
 
   // Ions.
@@ -518,38 +536,46 @@ int main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] =
-      {.proj_id = GKYL_PROJ_VLASOV_LTE,
-       .density = evalIonDensityInit,
-       .ctx_density = &ctx,
-       .temp = evalIonTempInit,
-       .ctx_temp = &ctx,
-       .V_drift = evalIonVDriftInit,
-       .ctx_V_drift = &ctx},
+      {
+        .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalIonDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalIonTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalIonVDriftInit,
+        .ctx_V_drift = &ctx,
+      },
     .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS,
-       .self_nu = evalIonNu,
-       .ctx = &ctx,
-       .fixed_temp_relax = true},
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalIonNu,
+        .ctx = &ctx,
+        .fixed_temp_relax = true,
+      },
 
     .source =
-      {.source_id = GKYL_BFLUX_SOURCE,
-       .source_length = ctx.Ls,
-       .source_species = "ion",
+      {
+        .source_id = GKYL_BFLUX_SOURCE,
+        .source_length = ctx.Ls,
+        .source_species = "ion",
 
-       .num_sources = 1,
-       .projection[0] =
-         {.proj_id = GKYL_PROJ_VLASOV_LTE,
-          .density = evalIonSourceDensityInit,
-          .ctx_density = &ctx,
-          .temp = evalIonSourceTempInit,
-          .ctx_temp = &ctx,
-          .V_drift = evalIonSourceVDriftInit,
-          .ctx_V_drift = &ctx}},
+        .num_sources = 1,
+        .projection[0] =
+          {
+            .proj_id = GKYL_PROJ_VLASOV_LTE,
+            .density = evalIonSourceDensityInit,
+            .ctx_density = &ctx,
+            .temp = evalIonSourceTempInit,
+            .ctx_temp = &ctx,
+            .V_drift = evalIonSourceVDriftInit,
+            .ctx_V_drift = &ctx,
+          },
+      },
 
     .bcx = {.lower = {.type = GKYL_SPECIES_ABSORB}, .upper = {.type = GKYL_SPECIES_ABSORB}},
 
     .num_diag_moments = 1,
-    .diag_moments = {GKYL_F_MOMENT_LTE}
+    .diag_moments = {GKYL_F_MOMENT_LTE},
   };
 
   // Field.
@@ -557,11 +583,13 @@ int main(int argc, char **argv)
     .epsilon0 = ctx.epsilon0,
 
     .poisson_bcs =
-      {.lo_type = {GKYL_POISSON_DIRICHLET},
-       .up_type = {GKYL_POISSON_DIRICHLET},
+      {
+        .lo_type = {GKYL_POISSON_DIRICHLET},
+        .up_type = {GKYL_POISSON_DIRICHLET},
 
-       .lo_value = {0.0},
-       .up_value = {0.0}}
+        .lo_value = {0.0},
+        .up_value = {0.0},
+      },
   };
 
   // Vlasov-Poisson app.
@@ -586,7 +614,7 @@ int main(int argc, char **argv)
     .field = field,
     .is_electrostatic = true,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Create app object.
@@ -623,7 +651,9 @@ int main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / field_energy_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
@@ -631,7 +661,9 @@ int main(int argc, char **argv)
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_mom_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -639,7 +671,9 @@ int main(int argc, char **argv)
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
   struct gkyl_tm_trigger l2f_trig = {
-    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / integrated_L2_f_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
@@ -647,7 +681,9 @@ int main(int argc, char **argv)
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+    .dt = t_end / num_frames,
+    .tcurr = frame_curr * (t_end / num_frames),
+    .curr = frame_curr,
   };
 
   write_data(&io_trig, app, t_curr, false);

@@ -16,18 +16,21 @@ double emass = GKYL_ELECTRON_MASS;
 double check_fac = 1.e10;
 double B0 = 0.5;
 
-void eval_n_elc(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_n_elc(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0e19;
 }
-void eval_T_over_m_elc(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_T_over_m_elc(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 4.0 * echarge / emass;
 }
 
-void test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
+void
+test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
 {
   int charge_state;
   if (type_ion == GKYL_ION_H) {
@@ -81,7 +84,7 @@ void test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
     .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .type_ion = type_ion,
-    .charge_state = charge_state
+    .charge_state = charge_state,
   };
 
   // coll struct.
@@ -152,77 +155,95 @@ void test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
   gkyl_dg_recomb_release(coll_recomb_up);
 }
 
-void coll_recomb_h_ho()
+void
+coll_recomb_h_ho()
 {
   test_coll_recomb(false, GKYL_ION_H);
 }
-void coll_recomb_li_ho()
+void
+coll_recomb_li_ho()
 {
   test_coll_recomb(false, GKYL_ION_LI);
 }
-void coll_recomb_ar_ho()
+void
+coll_recomb_ar_ho()
 {
   test_coll_recomb(false, GKYL_ION_AR);
 }
-void coll_recomb_he()
+void
+coll_recomb_he()
 {
   test_coll_recomb(false, GKYL_ION_HE);
 }
-void coll_recomb_be()
+void
+coll_recomb_be()
 {
   test_coll_recomb(false, GKYL_ION_BE);
 }
-void coll_recomb_b()
+void
+coll_recomb_b()
 {
   test_coll_recomb(false, GKYL_ION_B);
 }
-void coll_recomb_c()
+void
+coll_recomb_c()
 {
   test_coll_recomb(false, GKYL_ION_C);
 }
-void coll_recomb_n()
+void
+coll_recomb_n()
 {
   test_coll_recomb(false, GKYL_ION_N);
 }
-void coll_recomb_o()
+void
+coll_recomb_o()
 {
   test_coll_recomb(false, GKYL_ION_O);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void coll_recomb_h_dev()
+void
+coll_recomb_h_dev()
 {
   test_coll_recomb(true, GKYL_ION_H);
 }
-void coll_recomb_li_dev()
+void
+coll_recomb_li_dev()
 {
   test_coll_recomb(true, GKYL_ION_LI);
 }
-void coll_recomb_ar_dev()
+void
+coll_recomb_ar_dev()
 {
   test_coll_recomb(true, GKYL_ION_AR);
 }
-void coll_recomb_he_gpu()
+void
+coll_recomb_he_gpu()
 {
   test_coll_recomb(true, GKYL_ION_HE);
 }
-void coll_recomb_be_gpu()
+void
+coll_recomb_be_gpu()
 {
   test_coll_recomb(true, GKYL_ION_BE);
 }
-void coll_recomb_b_gpu()
+void
+coll_recomb_b_gpu()
 {
   test_coll_recomb(true, GKYL_ION_B);
 }
-void coll_recomb_c_gpu()
+void
+coll_recomb_c_gpu()
 {
   test_coll_recomb(true, GKYL_ION_C);
 }
-void coll_recomb_n_gpu()
+void
+coll_recomb_n_gpu()
 {
   test_coll_recomb(true, GKYL_ION_N);
 }
-void coll_recomb_o_gpu()
+void
+coll_recomb_o_gpu()
 {
   test_coll_recomb(true, GKYL_ION_O);
 }

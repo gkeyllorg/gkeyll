@@ -9,7 +9,8 @@ extern "C" {
 #include <gkyl_bgk_collisions_priv.h>
 }
 
-__global__ void gkyl_bgk_collisions_advance_cu_kernel(
+__global__ void
+gkyl_bgk_collisions_advance_cu_kernel(
   unsigned cdim, unsigned vdim, unsigned poly_order, unsigned pnum_basis,
   enum gkyl_basis_type b_type, double cellav_fac, struct gkyl_range crange,
   struct gkyl_range prange, const struct gkyl_array *nu, const struct gkyl_array *nufM,
@@ -66,7 +67,8 @@ __global__ void gkyl_bgk_collisions_advance_cu_kernel(
   }
 }
 
-void gkyl_bgk_collisions_advance_cu(
+void
+gkyl_bgk_collisions_advance_cu(
   const gkyl_bgk_collisions *up, const struct gkyl_range *crange, const struct gkyl_range *prange,
   const struct gkyl_array *nu, const struct gkyl_array *nufM, const struct gkyl_array *fin,
   bool implicit_step, double dt, struct gkyl_array *out, struct gkyl_array *cflfreq
