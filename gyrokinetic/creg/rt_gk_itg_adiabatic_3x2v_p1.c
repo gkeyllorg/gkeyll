@@ -48,10 +48,10 @@ static const int ts_filter_half_width = 4;
 static const double ts_filter_cutoff_dx = 4.0;
 static const int ts_upsample = 2;
 static const double flr_rho_fac = 1.0;
-// rho* scan: rhostar_inv = a_mid/rho_s sets B_axis (0 = 1.54 T, i.e. a_mid/rho_s = 203) and
-// ky_rhos sets n_tor (0 = the n_tor below); box, profiles and filter are fixed in rho_s units.
 static const double rhostar_inv = 0.0;
 static const double ky_rhos = 0.0;
+static const double RoLT = 0.0;
+static const bool kinetic_electrons = false;
 
 // Define the context of the simulation. This stores global parameters.
 struct gk_app_ctx {
@@ -69,7 +69,7 @@ struct gk_app_ctx {
   double x_min, y_min, z_min, x_max, y_max, z_max;
   int Nx, Ny, Nz, Nvpar, Nmu;
   int cells[GKYL_MAX_DIM], poly_order;
-  double vpar_max_ion, mu_max_ion;
+  double vpar_max_ion, mu_max_ion, vpar_max_elc, mu_max_elc;
   double nu_star, nu_ion; // Ion collisionality nu_ii q R_axis/(eps^{3/2} v_ti) and the LBO frequency; 0 = collisionless.
   // Simulation control parameters
   double t_end, write_phase_freq;
@@ -333,6 +333,17 @@ void eval_temp_ion(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   fout[0] = tanh_profile(xn[0], app->Ti0, app->LTi, app->prof_width);
 }
 
+void eval_upar_elc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  fout[0] = 0.0;
+}
+
+void eval_temp_elc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  fout[0] = tanh_profile(xn[0], app->Te0, app->LTi, app->prof_width); // LTe = LTi.
+}
+
 void eval_nu_ion(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct gk_app_ctx *app = ctx;
@@ -352,6 +363,21 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
   else
     vp[0] =  vpar_max_ion*2.0*pow(cvpar,2);
   vp[1] = mu_max_ion*pow(cmu,2);
+}
+
+void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  double vpar_max_elc = app->vpar_max_elc;
+  double mu_max_elc = app->mu_max_elc;
+  double cvpar = vc[0], cmu = vc[1];
+  if (fabs(cvpar) <= 0.5)
+    vp[0] = vpar_max_elc*cvpar;
+  else if (cvpar < -0.5)
+    vp[0] = -vpar_max_elc*2.0*pow(cvpar,2);
+  else
+    vp[0] =  vpar_max_elc*2.0*pow(cvpar,2);
+  vp[1] = mu_max_elc*pow(cmu,2);
 }
 
 // Geometry evaluation functions for the gk app
@@ -439,10 +465,10 @@ struct gk_app_ctx create_ctx(void)
 
   // Equilibrium gradients at x=0 (Dimits et al. 2000) and ITG seed.
   // Cyclone R/LTi and R/Ln are defined with R = R_axis (the same R as eps = r0/R_axis = 0.18).
-  double kTi = 6.92; // R_axis/LTi.
-  double etai = 3.114; // Ln/LTi (R_axis/Ln = 2.22).
+  double kTi = RoLT > 0.0? RoLT : 6.92; // R_axis/LTi.
+  double kn = 2.22; // R_axis/Ln.
   double LTi = R_axis/kTi;
-  double Ln = LTi*etai;
+  double Ln = R_axis/kn;
   double prof_width = Lx/4.0;
   double delta_n = 1.0e-6;
   double pert_width = Lx/8.0;
@@ -466,6 +492,8 @@ struct gk_app_ctx create_ctx(void)
   // Velocity box dimensions
   double vpar_max_ion = 3.*vti * sqrt(2); // GENE normalizes with sqrt(2T/m)
   double mu_max_ion = 9.*Ti0/B_axis; // GENE uses B_axis as reference field.
+  double vpar_max_elc = 3.*vte * sqrt(2);
+  double mu_max_elc = 9.*Te0/B_axis;
   // Optional ion-ion LBO collisions, nu_star = nu_ii q R_axis/(eps^{3/2} v_ti) with v_ti = sqrt(Ti/mi).
   double nu_star = 0.0;
   double nu_ion = nu_star*pow(inv_asp_ratio, 1.5)*vti/(q0*R_axis);
@@ -515,6 +543,7 @@ struct gk_app_ctx create_ctx(void)
     .cells = {Nx, Ny, Nz, Nvpar, Nmu},
     .poly_order   = poly_order,
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
+    .vpar_max_elc = vpar_max_elc,  .mu_max_elc = mu_max_elc,
     .nu_star = nu_star,  .nu_ion = nu_ion,
     .write_phase_freq = write_phase_freq,
     .t_end = t_end,  .num_frames = num_frames,
@@ -625,9 +654,53 @@ main(int argc, char **argv)
   if (flr_rho_fac > 0.0)
     ion.flr.gyroradius = flr_rho_fac*sqrt(ctx.Ti0*ctx.mi)/(ctx.qi*ctx.B_axis);
 
+  // Drift-kinetic electrons with the same density (and seed) and temperature profiles.
+  struct gkyl_gyrokinetic_projection elc_bc = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    .density = eval_density_eq,
+    .ctx_density = &ctx,
+    .upar = eval_upar_elc,
+    .ctx_upar = &ctx,
+    .temp = eval_temp_elc,
+    .ctx_temp = &ctx,
+    .correct_all_moms = true,
+  };
+  struct gkyl_gyrokinetic_species elc = {
+    .name = "elc",
+    .charge = ctx.qe, .mass = ctx.me,
+    .vdim = ctx.vdim,
+    .lower = { -1.0/sqrt(2.0), 0.0},
+    .upper = {  1.0/sqrt(2.0), 1.0},
+    .mapc2p.mapping = mapc2p_vel_elc,
+    .mapc2p.ctx = &ctx,
+    .cells = { cells_v[0], cells_v[1] },
+    .polarization_density = ctx.n0,
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .density = eval_density_ion,
+      .ctx_density = &ctx,
+      .upar = eval_upar_elc,
+      .ctx_upar = &ctx,
+      .temp = eval_temp_elc,
+      .ctx_temp = &ctx,
+      .correct_all_moms = true,
+    },
+    .collisionless = { .type = GKYL_GK_COLLISIONLESS_ES, },
+    .bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_bc, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_bc, },
+    },
+    .num_diag_moments = 1,
+    .diag_moments = { GKYL_F_MOMENT_BIMAXWELLIAN },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+  };
+
   if (magnetic_shear || twist_shift_bc) {
     ion.bcs[2] = (struct gkyl_gyrokinetic_bc) { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT };
     ion.bcs[3] = (struct gkyl_gyrokinetic_bc) { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT };
+    elc.bcs[2] = ion.bcs[2];
+    elc.bcs[3] = ion.bcs[3];
   }
 
   if (ctx.nu_star > 0.0) {
@@ -638,7 +711,7 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
+    .gkfield_id = kinetic_electrons? GKYL_GK_FIELD_ES : GKYL_GK_FIELD_ADIABATIC,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_density = ctx.n0,
@@ -698,8 +771,8 @@ main(int argc, char **argv)
     .num_periodic_dir = (magnetic_shear || twist_shift_bc)? 1 : 2,
     .periodic_dirs = {1, 2},
 
-    .num_species = 1,
-    .species = { ion },
+    .num_species = kinetic_electrons? 2 : 1,
+    .species = { ion, elc },
 
     .field = field,
 
