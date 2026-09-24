@@ -616,11 +616,11 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name);
 
       if (gks->is_first_omegaH_dt_write_call) {
-        struct gkyl_msgpack_map_elem io_meta_omegaH_dt[] = {
-          {.key = "Description",
-           .elem_type = GKYL_MP_STRING,
-           .cval = "Stable time step for the omega_H mode for this charged species."}
-        };
+        struct gkyl_msgpack_map_elem io_meta_omegaH_dt[] = {{
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Stable time step for the omega_H mode for this charged species.",
+        }};
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
           gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_omegaH_dt
