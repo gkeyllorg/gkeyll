@@ -9,12 +9,14 @@
 #include <stdlib.h>
 #include <math.h>
 
-static inline float ufunc(float x)
+static inline float
+ufunc(float x)
 {
   return 1.0f / (1.0f + 100.0f * x * x);
 }
 
-static void train_and_save(int ntrain, int nwidth, int ndepth, bool use_gpu, const char *filename)
+static void
+train_and_save(int ntrain, int nwidth, int ndepth, bool use_gpu, const char *filename)
 {
   kad_node_t *t_net = kann_layer_input(1);
   for (int i = 0; i < ndepth; ++i) {
@@ -46,7 +48,11 @@ static void train_and_save(int ntrain, int nwidth, int ndepth, bool use_gpu, con
   }
 
   struct gkyl_kann_train_params params = {
-    .learning_rate = 1e-3f, .mini_size = 64, .max_epoch = 50, .max_drop_streak = 10, .frac_val = 0.1f
+    .learning_rate = 1e-3f,
+    .mini_size = 64,
+    .max_epoch = 50,
+    .max_drop_streak = 10,
+    .frac_val = 0.1f,
   };
 
   gkyl_kann_net_train_fnn1(net, &params, inp_t, out_t);
@@ -83,7 +89,8 @@ infer(const char *filename, bool use_gpu, const struct gkyl_kn_vec *inp, struct 
   gkyl_kann_net_release(net);
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
   int ntrain = 1001;
   int ninfer = 21;

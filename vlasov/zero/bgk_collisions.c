@@ -6,7 +6,8 @@
 #include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_array_ops_priv.h>
 
-gkyl_bgk_collisions *gkyl_bgk_collisions_new(
+gkyl_bgk_collisions *
+gkyl_bgk_collisions_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu
 )
 {
@@ -32,7 +33,8 @@ gkyl_bgk_collisions *gkyl_bgk_collisions_new(
   return up;
 }
 
-void gkyl_bgk_collisions_advance(
+void
+gkyl_bgk_collisions_advance(
   const gkyl_bgk_collisions *up, const struct gkyl_range *crange, const struct gkyl_range *prange,
   const struct gkyl_array *nu, const struct gkyl_array *nufM, const struct gkyl_array *fin,
   bool implicit_step, double dt, struct gkyl_array *out, struct gkyl_array *cflfreq
@@ -96,7 +98,8 @@ void gkyl_bgk_collisions_advance(
   }
 }
 
-void gkyl_bgk_collisions_release(gkyl_bgk_collisions *up)
+void
+gkyl_bgk_collisions_release(gkyl_bgk_collisions *up)
 {
   gkyl_free(up);
 }

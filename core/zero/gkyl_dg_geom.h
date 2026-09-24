@@ -73,8 +73,9 @@ struct gkyl_dg_geom *gkyl_dg_geom_new_from_host(
   const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host, bool use_gpu
 );
 
-struct gkyl_dg_geom *
-gkyl_dg_geom_cu_dev_new_from_host(const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host);
+struct gkyl_dg_geom *gkyl_dg_geom_cu_dev_new_from_host(
+  const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host
+);
 
 /**
  * Acquire pointer to geometry object. The pointer must be released

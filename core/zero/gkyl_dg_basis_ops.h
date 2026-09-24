@@ -178,8 +178,9 @@ void gkyl_dg_calc_cubic_2d_from_nodal_vals(
  * @param nodal_vals Array holding nodal values
  * @return Struct with context and function pointer
  */
-struct gkyl_basis_ops_evalf *
-gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid, const struct gkyl_array *nodal_vals);
+struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_array *nodal_vals
+);
 
 /**
  * Write the cubic DG representation to specified file.

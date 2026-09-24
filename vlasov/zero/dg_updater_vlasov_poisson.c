@@ -10,7 +10,8 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_eqn *gkyl_dg_updater_vlasov_poisson_acquire_eqn(const gkyl_dg_updater_vlasov *vlasov)
+struct gkyl_dg_eqn *
+gkyl_dg_updater_vlasov_poisson_acquire_eqn(const gkyl_dg_updater_vlasov *vlasov)
 {
   return gkyl_dg_eqn_acquire(vlasov->eqn_vlasov);
 }
@@ -21,7 +22,8 @@ gkyl_dg_updater_vlasov_poisson_get_tm(const gkyl_dg_updater_vlasov *vlasov)
   return (struct gkyl_dg_updater_vlasov_tm){.vlasov_tm = vlasov->vlasov_tm};
 }
 
-gkyl_dg_updater_vlasov *gkyl_dg_updater_vlasov_poisson_new(
+gkyl_dg_updater_vlasov *
+gkyl_dg_updater_vlasov_poisson_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
   const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
@@ -66,7 +68,8 @@ gkyl_dg_updater_vlasov *gkyl_dg_updater_vlasov_poisson_new(
   return up;
 }
 
-void gkyl_dg_updater_vlasov_poisson_advance(
+void
+gkyl_dg_updater_vlasov_poisson_advance(
   gkyl_dg_updater_vlasov *vlasov, const struct gkyl_range *update_rng,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
   struct gkyl_array *GKYL_RESTRICT rhs
@@ -77,7 +80,8 @@ void gkyl_dg_updater_vlasov_poisson_advance(
   vlasov->vlasov_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gkyl_dg_updater_vlasov_poisson_release(gkyl_dg_updater_vlasov *vlasov)
+void
+gkyl_dg_updater_vlasov_poisson_release(gkyl_dg_updater_vlasov *vlasov)
 {
   gkyl_dg_eqn_release(vlasov->eqn_vlasov);
   gkyl_hyper_dg_release(vlasov->hdg_vlasov);

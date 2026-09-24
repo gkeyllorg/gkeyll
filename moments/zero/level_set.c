@@ -42,7 +42,8 @@ struct gkyl_wave_prop {
   long n_max_bad_cells; // Maximum number of cells fixed in a call.
 };
 
-void euler_rgfm_reinit_level_set(
+void
+euler_rgfm_reinit_level_set(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )
@@ -144,7 +145,8 @@ void euler_rgfm_reinit_level_set(
   }
 }
 
-void gr_maxwell_impose_gauge(
+void
+gr_maxwell_impose_gauge(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )
@@ -223,7 +225,8 @@ void gr_maxwell_impose_gauge(
   }
 }
 
-void gr_maxwell_tetrad_impose_gauge(
+void
+gr_maxwell_tetrad_impose_gauge(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )
@@ -303,7 +306,8 @@ void gr_maxwell_tetrad_impose_gauge(
   }
 }
 
-void gr_euler_impose_gauge(
+void
+gr_euler_impose_gauge(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )
@@ -485,7 +489,8 @@ void gr_euler_impose_gauge(
   }
 }
 
-void gr_euler_tetrad_impose_gauge(
+void
+gr_euler_tetrad_impose_gauge(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )
@@ -668,7 +673,8 @@ void gr_euler_tetrad_impose_gauge(
   }
 }
 
-void gr_ultra_rel_euler_impose_gauge(
+void
+gr_ultra_rel_euler_impose_gauge(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )
@@ -1030,7 +1036,8 @@ void gr_ultra_rel_euler_impose_gauge(
   }
 }
 
-void gr_ultra_rel_euler_tetrad_impose_gauge(
+void
+gr_ultra_rel_euler_tetrad_impose_gauge(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )
@@ -1392,7 +1399,8 @@ void gr_ultra_rel_euler_tetrad_impose_gauge(
   }
 }
 
-void gr_twofluid_impose_gauge(
+void
+gr_twofluid_impose_gauge(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )
@@ -1574,7 +1582,8 @@ void gr_twofluid_impose_gauge(
   }
 }
 
-void gr_twofluid_tetrad_impose_gauge(
+void
+gr_twofluid_tetrad_impose_gauge(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )
@@ -1757,7 +1766,8 @@ void gr_twofluid_tetrad_impose_gauge(
   }
 }
 
-void gr_mhd_impose_gauge(
+void
+gr_mhd_impose_gauge(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )
@@ -2118,7 +2128,8 @@ void gr_mhd_impose_gauge(
   }
 }
 
-void gr_mhd_tetrad_impose_gauge(
+void
+gr_mhd_tetrad_impose_gauge(
   gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c,
   int upidx_c, struct gkyl_array *qout, int dir
 )

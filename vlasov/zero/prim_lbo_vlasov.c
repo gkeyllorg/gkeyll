@@ -9,7 +9,8 @@
 #include <gkyl_prim_lbo_vlasov_priv.h>
 #include <gkyl_util.h>
 
-void prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
+void
+prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_prim_lbo_type *prim_ty = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
   if (GKYL_IS_CU_ALLOC(prim_ty->flag)) {
@@ -20,7 +21,8 @@ void prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_free(vlasov);
 }
 
-struct gkyl_prim_lbo_type *gkyl_prim_lbo_vlasov_new(
+struct gkyl_prim_lbo_type *
+gkyl_prim_lbo_vlasov_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu
 )
 {
@@ -47,14 +49,14 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_vlasov_new(
   const gkyl_prim_lbo_vlasov_cross_kern_list *cross_prim_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    self_prim_kernels = ser_self_prim_kernels;
-    cross_prim_kernels = ser_cross_prim_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      self_prim_kernels = ser_self_prim_kernels;
+      cross_prim_kernels = ser_cross_prim_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   assert(cv_index[cdim].vdim[vdim] != -1);
   assert(NULL != self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);

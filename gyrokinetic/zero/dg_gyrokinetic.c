@@ -10,7 +10,8 @@
 #include <gkyl_dg_gyrokinetic_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_gyrokinetic_free(const struct gkyl_ref_count *ref)
+void
+gkyl_gyrokinetic_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_gyrokinetic *gyrokinetic = container_of(base, struct dg_gyrokinetic, eqn);
@@ -26,7 +27,8 @@ void gkyl_gyrokinetic_free(const struct gkyl_ref_count *ref)
   gkyl_free(gyrokinetic);
 }
 
-void gkyl_gyrokinetic_set_auxfields(
+void
+gkyl_gyrokinetic_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin
 )
 {
@@ -44,7 +46,8 @@ void gkyl_gyrokinetic_set_auxfields(
   gyrokinetic->auxfields.apardot = auxin.apardot;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_new(
+struct gkyl_dg_eqn *
+gkyl_dg_gyrokinetic_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const double charge,
   const double mass, enum gkyl_gk_collisionless_type collless_type,
@@ -86,23 +89,23 @@ struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_new(
   const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_x_kernels = ser_surf_x_kernels;
-    surf_y_kernels = ser_surf_y_kernels;
-    surf_z_kernels = ser_surf_z_kernels;
-    surf_vpar_kernels = ser_surf_vpar_kernels;
-    boundary_surf_x_kernels = ser_boundary_surf_x_kernels;
-    boundary_surf_y_kernels = ser_boundary_surf_y_kernels;
-    boundary_surf_z_kernels = ser_boundary_surf_z_kernels;
-    boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_x_kernels = ser_surf_x_kernels;
+      surf_y_kernels = ser_surf_y_kernels;
+      surf_z_kernels = ser_surf_z_kernels;
+      surf_vpar_kernels = ser_surf_vpar_kernels;
+      boundary_surf_x_kernels = ser_boundary_surf_x_kernels;
+      boundary_surf_y_kernels = ser_boundary_surf_y_kernels;
+      boundary_surf_z_kernels = ser_boundary_surf_z_kernels;
+      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
 
-    vol_no_by_kernels = ser_no_by_vol_kernels;
-    break;
+      vol_no_by_kernels = ser_no_by_vol_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   if (collless_type == GKYL_GK_COLLISIONLESS_ES) {

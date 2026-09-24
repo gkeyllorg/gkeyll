@@ -15,7 +15,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void gkyl_gk_collisionless_flux_surf_conf_cu_kernel(
+__global__ void
+gkyl_gk_collisionless_flux_surf_conf_cu_kernel(
   struct gkyl_gk_collisionless_flux *up, struct gkyl_range conf_range,
   struct gkyl_range phase_range, struct gkyl_range conf_ext_range,
   struct gkyl_range phase_ext_range, const struct gkyl_array *phi, const struct gkyl_array *fin,
@@ -124,7 +125,8 @@ __global__ void gkyl_gk_collisionless_flux_surf_conf_cu_kernel(
   }
 }
 
-__global__ void gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(
+__global__ void
+gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(
   struct gkyl_gk_collisionless_flux *up, struct gkyl_range conf_range,
   struct gkyl_range phase_range, struct gkyl_range conf_ext_range,
   struct gkyl_range phase_ext_range, struct gkyl_range vpar_range, const struct gkyl_array *phi,
@@ -189,7 +191,8 @@ __global__ void gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(
 }
 
 // Host-side wrapper for gyrokinetic surface alpha calculation
-void gkyl_gk_collisionless_flux_surf_cu(
+void
+gkyl_gk_collisionless_flux_surf_cu(
   struct gkyl_gk_collisionless_flux *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_ext_range,
   const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi,
@@ -218,7 +221,8 @@ void gkyl_gk_collisionless_flux_surf_cu(
 
 // CUDA kernel to set device pointers to gyrokinetic vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void gk_collisionless_flux_set_cu_dev_ptrs(
+__global__ static void
+gk_collisionless_flux_set_cu_dev_ptrs(
   struct gkyl_gk_collisionless_flux *up, int cdim, int vdim, int poly_order,
   enum gkyl_gk_collisionless_type type, const enum gkyl_gyrokinetic_bc_type *bctype_conf
 )
@@ -254,7 +258,8 @@ __global__ static void gk_collisionless_flux_set_cu_dev_ptrs(
   }
 }
 
-gkyl_gk_collisionless_flux *gkyl_gk_collisionless_flux_cu_dev_new(
+gkyl_gk_collisionless_flux *
+gkyl_gk_collisionless_flux_cu_dev_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, const double charge, const double mass,
   enum gkyl_gk_collisionless_type type, const struct gk_geometry *gk_geom,

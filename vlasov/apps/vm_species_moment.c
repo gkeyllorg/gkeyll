@@ -3,7 +3,8 @@
 #include <gkyl_vlasov_priv.h>
 
 // Initialize species moment object.
-void vm_species_moment_init(
+void
+vm_species_moment_init(
   struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_species_moment *sm,
   enum gkyl_distribution_moments mom_type, bool is_integrated
 )
@@ -30,7 +31,7 @@ void vm_species_moment_init(
       .det_h = s->det_h,
       .hamil = s->hamil,
       .model_id = s->model_id,
-      .use_gpu = app->use_gpu
+      .use_gpu = app->use_gpu,
     };
     // Compute (n, V_drift, T/m)
     sm->vlasov_lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
@@ -78,7 +79,8 @@ void vm_species_moment_init(
   }
 }
 
-void vm_species_moment_calc(
+void
+vm_species_moment_calc(
   const struct vm_species_moment *sm, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
@@ -91,7 +93,8 @@ void vm_species_moment_calc(
 }
 
 // release memory for moment data object
-void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm)
+void
+vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm)
 {
   if (app->use_gpu) {
     gkyl_array_release(sm->marr_host);

@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-void vm_species_emission_init(
+void
+vm_species_emission_init(
   struct gkyl_vlasov_app *app, struct vm_emitting_wall *emit, int dir, enum gkyl_edge_loc edge,
   void *ctx
 )
@@ -15,7 +16,8 @@ void vm_species_emission_init(
   emit->t_bound = params->t_bound;
 }
 
-void vm_species_emission_cross_init(
+void
+vm_species_emission_cross_init(
   struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_emitting_wall *emit
 )
 {
@@ -101,7 +103,8 @@ void vm_species_emission_cross_init(
   gkyl_array_release(proj_buffer);
 }
 
-void vm_species_emission_apply_bc(
+void
+vm_species_emission_apply_bc(
   struct gkyl_vlasov_app *app, const struct vm_emitting_wall *emit, struct gkyl_array *fout,
   double tcurr
 )
@@ -141,7 +144,8 @@ void vm_species_emission_apply_bc(
 
 // KB - The write function only works in 1x at the moment.
 // It expects a single rank to own the whole emit range.
-void vm_species_emission_write(
+void
+vm_species_emission_write(
   struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_emitting_wall *emit,
   struct gkyl_msgpack_data *mt, int frame
 )
@@ -159,7 +163,8 @@ void vm_species_emission_write(
   }
 }
 
-void vm_species_emission_release(const struct vm_emitting_wall *emit)
+void
+vm_species_emission_release(const struct vm_emitting_wall *emit)
 {
   gkyl_array_release(emit->f_emit_host);
   gkyl_array_release(emit->f_emit);

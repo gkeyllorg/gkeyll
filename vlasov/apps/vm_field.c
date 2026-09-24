@@ -10,7 +10,8 @@
 #include <time.h>
 
 // initialize field object
-struct vm_field *vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
+struct vm_field *
+vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 {
   struct vm_field *f = gkyl_malloc(sizeof(struct vm_field));
 
@@ -207,7 +208,8 @@ struct vm_field *vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   return f;
 }
 
-void vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
+void
+vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
 {
   if (!app->has_field) {
     return;
@@ -238,7 +240,8 @@ void vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
   vm_field_calc_app_current(app, field, t0);
 }
 
-void vm_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm)
+void
+vm_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
   if (field->has_ext_em) {
     gkyl_proj_on_basis_advance(field->ext_em_proj, tm, &app->local_ext, field->ext_em_host);
@@ -249,7 +252,8 @@ void vm_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double t
   }
 }
 
-void vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double tm)
+void
+vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
   if (field->has_app_current) {
     gkyl_proj_on_basis_advance(
@@ -262,7 +266,8 @@ void vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, dou
   }
 }
 
-void vm_field_accumulate_current(
+void
+vm_field_accumulate_current(
   gkyl_vlasov_app *app, const struct gkyl_array *fin[], const struct gkyl_array *fluidin[],
   struct gkyl_array *emout
 )
@@ -313,7 +318,8 @@ void vm_field_accumulate_current(
   }
 }
 
-void vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em)
+void
+vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em)
 {
   if (field->limit_em) {
     // Limit the slopes of the solution
@@ -326,7 +332,8 @@ void vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_
 
 // Compute the RHS for field update, returning maximum stable
 // time-step.
-double vm_field_rhs(
+double
+vm_field_rhs(
   gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs
 )
 {
@@ -363,7 +370,8 @@ double vm_field_rhs(
 
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for EM fields
-void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f)
+void
+vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -380,27 +388,27 @@ void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struc
   for (int d = 0; d < cdim; ++d) {
     if (is_np_bc[d]) {
       switch (field->lower_bc[d]) {
-      case GKYL_FIELD_COPY:
-      case GKYL_FIELD_PEC_WALL:
-      case GKYL_FIELD_SYM_WALL:
-      case GKYL_FIELD_RESERVOIR:
-        gkyl_bc_basic_advance(field->bc_lo[d], field->bc_buffer, f);
-        break;
+        case GKYL_FIELD_COPY:
+        case GKYL_FIELD_PEC_WALL:
+        case GKYL_FIELD_SYM_WALL:
+        case GKYL_FIELD_RESERVOIR:
+          gkyl_bc_basic_advance(field->bc_lo[d], field->bc_buffer, f);
+          break;
 
-      default:
-        break;
+        default:
+          break;
       }
 
       switch (field->upper_bc[d]) {
-      case GKYL_FIELD_COPY:
-      case GKYL_FIELD_PEC_WALL:
-      case GKYL_FIELD_SYM_WALL:
-      case GKYL_FIELD_RESERVOIR:
-        gkyl_bc_basic_advance(field->bc_up[d], field->bc_buffer, f);
-        break;
+        case GKYL_FIELD_COPY:
+        case GKYL_FIELD_PEC_WALL:
+        case GKYL_FIELD_SYM_WALL:
+        case GKYL_FIELD_RESERVOIR:
+          gkyl_bc_basic_advance(field->bc_up[d], field->bc_buffer, f);
+          break;
 
-      default:
-        break;
+        default:
+          break;
       }
     }
   }
@@ -410,7 +418,8 @@ void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struc
   app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
+void
+vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
 {
   for (int i = 0; i < 6; ++i) {
     gkyl_dg_calc_l2_range(&app->confBasis, i, field->em_energy, i, field->em, app->local);
@@ -432,7 +441,8 @@ void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field
 }
 
 // release resources for field
-void vm_field_release(const gkyl_vlasov_app *app, struct vm_field *f)
+void
+vm_field_release(const gkyl_vlasov_app *app, struct vm_field *f)
 {
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);

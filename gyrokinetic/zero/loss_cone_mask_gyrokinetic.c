@@ -182,7 +182,8 @@ void gkyl_loss_cone_mask_gyrokinetic_advance(
   }
 }
 
-void gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up)
+void
+gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up)
 {
   gkyl_velocity_map_release(up->vel_map);
   gkyl_array_release(up->basis_at_corners_conf);

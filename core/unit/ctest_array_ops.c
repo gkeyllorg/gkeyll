@@ -13,7 +13,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool use_gpu, long nc, long size)
 {
   // Allocate array (filled with zeros)
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
@@ -21,7 +22,8 @@ static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
   return a;
 }
 
-void test_array_clear_ho()
+void
+test_array_clear_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
 
@@ -35,7 +37,8 @@ void test_array_clear_ho()
   gkyl_array_release(a1);
 }
 
-void test_array_clear_range_ho()
+void
+test_array_clear_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -52,7 +55,8 @@ void test_array_clear_range_ho()
   gkyl_array_release(a1);
 }
 
-void test_array_accumulate_ho()
+void
+test_array_accumulate_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -73,7 +77,8 @@ void test_array_accumulate_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_accumulate_range_ho()
+void
+test_array_accumulate_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -122,7 +127,8 @@ void test_array_accumulate_range_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_accumulate_offset_ho()
+void
+test_array_accumulate_offset_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3 * a1->ncomp, 10);
@@ -175,7 +181,8 @@ void test_array_accumulate_offset_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_accumulate_offset_range_ho()
+void
+test_array_accumulate_offset_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -222,7 +229,8 @@ void test_array_accumulate_offset_range_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_combine_ho()
+void
+test_array_combine_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -247,7 +255,8 @@ void test_array_combine_ho()
   gkyl_array_release(b);
 }
 
-void test_array_set_ho()
+void
+test_array_set_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -268,7 +277,8 @@ void test_array_set_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_set_range_ho()
+void
+test_array_set_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -317,7 +327,8 @@ void test_array_set_range_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_set_offset_ho()
+void
+test_array_set_offset_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3 * a1->ncomp, a1->size);
@@ -370,7 +381,8 @@ void test_array_set_offset_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_set_offset_range_ho()
+void
+test_array_set_offset_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -416,7 +428,8 @@ void test_array_set_offset_range_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_scale_ho()
+void
+test_array_scale_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
 
@@ -434,7 +447,8 @@ void test_array_scale_ho()
   gkyl_array_release(a1);
 }
 
-void test_array_scale_by_cell_ho()
+void
+test_array_scale_by_cell_ho()
 {
   struct gkyl_array *a1 = mkarr(false, 3, 10);
   struct gkyl_array *s = mkarr(false, 1, 10);
@@ -459,7 +473,8 @@ void test_array_scale_by_cell_ho()
   gkyl_array_release(s);
 }
 
-void test_array_divide_by_cell()
+void
+test_array_divide_by_cell()
 {
   struct gkyl_array *a1 = mkarr(false, 3, 10);
   struct gkyl_array *s = mkarr(false, 1, 10);
@@ -484,7 +499,8 @@ void test_array_divide_by_cell()
   gkyl_array_release(s);
 }
 
-void test_array_shiftc_ho()
+void
+test_array_shiftc_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
 
@@ -543,7 +559,8 @@ void test_array_shiftc_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_invert_by_cell_ho()
+void
+test_array_invert_by_cell_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 8);
   double *a1_d = a1->data;
@@ -570,7 +587,8 @@ void test_array_invert_by_cell_ho()
   gkyl_array_release(a1);
 }
 
-void test_array_shiftc_range(bool on_gpu)
+void
+test_array_shiftc_range(bool on_gpu)
 {
   int lower[] = {1}, upper[] = {10};
   struct gkyl_range range;
@@ -686,7 +704,8 @@ void test_array_shiftc_range(bool on_gpu)
   }
 }
 
-void test_array_min_by_cell(bool on_gpu)
+void
+test_array_min_by_cell(bool on_gpu)
 {
   struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, 10);
   struct gkyl_array *a1 = a1_ho;
@@ -763,7 +782,8 @@ void test_array_min_by_cell(bool on_gpu)
   }
 }
 
-void test_array_min_range(bool on_gpu)
+void
+test_array_min_range(bool on_gpu)
 {
   int lower[] = {1}, upper[] = {10};
   struct gkyl_range range;
@@ -873,7 +893,8 @@ void test_array_min_range(bool on_gpu)
   }
 }
 
-void test_array_opcombine_ho()
+void
+test_array_opcombine_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -895,7 +916,8 @@ void test_array_opcombine_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_ops_comp_ho() // more than 1 "component" in array
+void
+test_array_ops_comp_ho() // more than 1 "component" in array
 {
   int nc = 5; // number of "components"
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, nc, 10);
@@ -919,7 +941,8 @@ void test_array_ops_comp_ho() // more than 1 "component" in array
   gkyl_array_release(arr);
 }
 
-void test_array_copy_buffer_ho()
+void
+test_array_copy_buffer_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -962,14 +985,16 @@ void test_array_copy_buffer_ho()
 }
 
 // function for use in the buffer_fn method
-GKYL_CU_DH static void buffer_fn(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_DH static void
+buffer_fn(size_t nc, double *out, const double *inp, void *ctx)
 {
   for (size_t i = 0; i < nc; ++i) {
     out[i] = 2 * inp[i];
   }
 }
 
-void test_array_copy_buffer_fn_ho()
+void
+test_array_copy_buffer_fn_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -1013,7 +1038,8 @@ void test_array_copy_buffer_fn_ho()
   gkyl_free(buff);
 }
 
-void test_array_flip_copy_buffer_fn_ho()
+void
+test_array_flip_copy_buffer_fn_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -1067,7 +1093,8 @@ void test_array_flip_copy_buffer_fn_ho()
   gkyl_free(buff);
 }
 
-void test_array_copy_range_ho()
+void
+test_array_copy_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -1122,7 +1149,8 @@ void test_array_copy_range_ho()
   gkyl_array_release(a2);
 }
 
-void test_array_copy_split_ho()
+void
+test_array_copy_split_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -1179,12 +1207,14 @@ void test_array_copy_split_ho()
   gkyl_free(buff);
 }
 
-void test_array_shiftc_range_ho()
+void
+test_array_shiftc_range_ho()
 {
   test_array_shiftc_range(false);
 }
 
-void test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
+void
+test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
 {
   // Test array_copy_range_to_range with ranges of different dimensionality.
   // MF 2025/01/22: at the moment this only works for deflating the last
@@ -1268,22 +1298,26 @@ void test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
   gkyl_array_release(a_do_ho);
 }
 
-void test_array_copy_range_to_range_diff_range_dim_ho()
+void
+test_array_copy_range_to_range_diff_range_dim_ho()
 {
   test_array_copy_range_to_range_diff_range_dim(false);
 }
 
-void test_array_min_by_cell_ho()
+void
+test_array_min_by_cell_ho()
 {
   test_array_min_by_cell(false);
 }
 
-void test_array_min_range_ho()
+void
+test_array_min_range_ho()
 {
   test_array_min_range(false);
 }
 
-void test_array_new_meta()
+void
+test_array_new_meta()
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, 3, 10);
   TEST_CHECK(a->type == GKYL_DOUBLE);
@@ -1293,7 +1327,8 @@ void test_array_new_meta()
   gkyl_array_release(a);
 }
 
-void test_array_clear_basic()
+void
+test_array_clear_basic()
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, 1, 50);
   gkyl_array_clear(a, 3.5);
@@ -1304,7 +1339,8 @@ void test_array_clear_basic()
   gkyl_array_release(a);
 }
 
-void test_array_scale_basic()
+void
+test_array_scale_basic()
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, 1, 20);
   gkyl_array_clear(a, 2.0);
@@ -1316,7 +1352,8 @@ void test_array_scale_basic()
   gkyl_array_release(a);
 }
 
-void test_array_accumulate_basic()
+void
+test_array_accumulate_basic()
 {
   // out = out + a*inp
   struct gkyl_array *out = gkyl_array_new(GKYL_DOUBLE, 1, 20);
@@ -1332,7 +1369,8 @@ void test_array_accumulate_basic()
   gkyl_array_release(inp);
 }
 
-void test_array_set_basic()
+void
+test_array_set_basic()
 {
   // out = a*inp
   struct gkyl_array *out = gkyl_array_new(GKYL_DOUBLE, 1, 20);
@@ -1348,7 +1386,8 @@ void test_array_set_basic()
   gkyl_array_release(inp);
 }
 
-void test_array_shiftc_basic()
+void
+test_array_shiftc_basic()
 {
   // shift component k by a (out[k] += a)
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, 3, 10);
@@ -1363,7 +1402,8 @@ void test_array_shiftc_basic()
   gkyl_array_release(a);
 }
 
-void test_array_copy_basic()
+void
+test_array_copy_basic()
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, 2, 15);
   struct gkyl_array *b = gkyl_array_new(GKYL_DOUBLE, 2, 15);
@@ -1380,7 +1420,8 @@ void test_array_copy_basic()
   gkyl_array_release(b);
 }
 
-void test_array_fetch_multicomp()
+void
+test_array_fetch_multicomp()
 {
   // Write per-component values via fetch and read back.
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, 4, 8);
@@ -1402,7 +1443,8 @@ void test_array_fetch_multicomp()
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_array_clear_dev()
+void
+test_array_clear_dev()
 {
   // create host array
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -1423,7 +1465,8 @@ void test_array_clear_dev()
   gkyl_array_release(a1_cu);
 }
 
-void test_array_clear_range_dev()
+void
+test_array_clear_range_dev()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -1446,7 +1489,8 @@ void test_array_clear_range_dev()
   gkyl_array_release(a1_cu);
 }
 
-void test_array_accumulate_dev()
+void
+test_array_accumulate_dev()
 {
   // create host arrays
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -1480,7 +1524,8 @@ void test_array_accumulate_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_accumulate_range_dev()
+void
+test_array_accumulate_range_dev()
 {
   int shape[] = {20, 10};
   struct gkyl_range range;
@@ -1551,7 +1596,8 @@ void test_array_accumulate_range_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_accumulate_offset_dev()
+void
+test_array_accumulate_offset_dev()
 {
   // create host arrays
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
@@ -1617,7 +1663,8 @@ void test_array_accumulate_offset_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_accumulate_offset_range_dev()
+void
+test_array_accumulate_offset_range_dev()
 {
   int shape[] = {20, 10};
   struct gkyl_range range;
@@ -1685,7 +1732,8 @@ void test_array_accumulate_offset_range_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_accumulate_range_4d_dev()
+void
+test_array_accumulate_range_4d_dev()
 {
   int lower[] = {1, 1, 1, 1};
   int upper[] = {46, 46, 32, 32};
@@ -1739,7 +1787,8 @@ void test_array_accumulate_range_4d_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_combine_dev()
+void
+test_array_combine_dev()
 {
   // create host arrays
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -1781,7 +1830,8 @@ void test_array_combine_dev()
   gkyl_array_release(b_cu);
 }
 
-void test_array_set_dev()
+void
+test_array_set_dev()
 {
   // create host arrays
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -1815,7 +1865,8 @@ void test_array_set_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_set_range_dev()
+void
+test_array_set_range_dev()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -1878,7 +1929,8 @@ void test_array_set_range_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_set_offset_dev()
+void
+test_array_set_offset_dev()
 {
   // create host arrays
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
@@ -1942,7 +1994,8 @@ void test_array_set_offset_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_set_offset_range_dev()
+void
+test_array_set_offset_range_dev()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -2000,7 +2053,8 @@ void test_array_set_offset_range_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_scale_dev()
+void
+test_array_scale_dev()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   // make device copies
@@ -2027,7 +2081,8 @@ void test_array_scale_dev()
   gkyl_array_release(a1_cu);
 }
 
-void test_array_scale_by_cell_dev()
+void
+test_array_scale_by_cell_dev()
 {
   struct gkyl_array *a1 = mkarr(true, 3, 10);
   struct gkyl_array *s = mkarr(true, 1, 10);
@@ -2064,7 +2119,8 @@ void test_array_scale_by_cell_dev()
   gkyl_array_release(s_ho);
 }
 
-void test_cu_array_divide_by_cell()
+void
+test_cu_array_divide_by_cell()
 {
   struct gkyl_array *a1 = mkarr(true, 3, 10);
   struct gkyl_array *s = mkarr(true, 1, 10);
@@ -2101,7 +2157,8 @@ void test_cu_array_divide_by_cell()
   gkyl_array_release(s_ho);
 }
 
-void test_array_shiftc_dev()
+void
+test_array_shiftc_dev()
 {
   double s = -0.5;
 
@@ -2174,7 +2231,8 @@ void test_array_shiftc_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_invert_by_cell_dev()
+void
+test_array_invert_by_cell_dev()
 {
   struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, 8);
   struct gkyl_array *a1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, 8);
@@ -2209,7 +2267,8 @@ void test_array_invert_by_cell_dev()
   gkyl_array_release(a1);
 }
 
-void test_array_copy_buffer_dev()
+void
+test_array_copy_buffer_dev()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -2257,7 +2316,8 @@ void test_array_copy_buffer_dev()
 // declare so we can use below
 void set_array_copy_fn(struct gkyl_array_copy_func *fn);
 
-void test_array_copy_buffer_fn_dev()
+void
+test_array_copy_buffer_fn_dev()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -2305,7 +2365,8 @@ void test_array_copy_buffer_fn_dev()
   gkyl_cu_free(fn);
 }
 
-void test_array_flip_copy_buffer_fn_dev()
+void
+test_array_flip_copy_buffer_fn_dev()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -2383,7 +2444,8 @@ void test_array_flip_copy_buffer_fn_dev()
   gkyl_cu_free(fn);
 }
 
-void test_array_copy_range_dev()
+void
+test_array_copy_range_dev()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -2452,22 +2514,26 @@ void test_array_copy_range_dev()
   gkyl_array_release(a2_cu);
 }
 
-void test_array_shiftc_range_dev()
+void
+test_array_shiftc_range_dev()
 {
   test_array_shiftc_range(true);
 }
 
-void test_array_copy_range_to_range_diff_range_dim_dev()
+void
+test_array_copy_range_to_range_diff_range_dim_dev()
 {
   test_array_copy_range_to_range_diff_range_dim(true);
 }
 
-void test_array_min_by_cell_dev()
+void
+test_array_min_by_cell_dev()
 {
   test_array_min_by_cell(true);
 }
 
-void test_array_min_range_dev()
+void
+test_array_min_range_dev()
 {
   test_array_min_range(true);
 }

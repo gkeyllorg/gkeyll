@@ -8,7 +8,8 @@ extern "C" {
 #include <gkyl_prim_bgk_cross_calc.h>
 }
 
-__global__ void gkyl_prim_bgk_cross_calc_advance_cu_kernel(
+__global__ void
+gkyl_prim_bgk_cross_calc_advance_cu_kernel(
   struct gkyl_basis basis, int vdim_phys, const struct gkyl_array *m0sdeltas, double massself,
   const struct gkyl_array *primsself, double massother, const struct gkyl_array *primsother,
   struct gkyl_range range, struct gkyl_array *crossprims
@@ -112,7 +113,8 @@ __global__ void gkyl_prim_bgk_cross_calc_advance_cu_kernel(
   }
 }
 
-void gkyl_prim_bgk_cross_calc_advance_cu(
+void
+gkyl_prim_bgk_cross_calc_advance_cu(
   struct gkyl_basis basis, int vdim_phys, const struct gkyl_array *m0sdeltas, double massself,
   const struct gkyl_array *primsself, double massother, const struct gkyl_array *primsother,
   const struct gkyl_range *range, struct gkyl_array *crossprims

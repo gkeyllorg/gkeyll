@@ -20,7 +20,8 @@ gkyl_hyper_dg_set_update_vol_cu_kernel(gkyl_hyper_dg *up, int update_vol_term)
   up->update_vol_term = update_vol_term;
 }
 
-__global__ static void gkyl_hyper_dg_advance_cu_kernel(
+__global__ static void
+gkyl_hyper_dg_advance_cu_kernel(
   gkyl_hyper_dg *up, struct gkyl_range update_range, const struct gkyl_array *GKYL_RESTRICT fIn,
   struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs
 )
@@ -94,7 +95,8 @@ __global__ static void gkyl_hyper_dg_advance_cu_kernel(
 }
 
 // wrapper to call advance kernel on device
-void gkyl_hyper_dg_advance_cu(
+void
+gkyl_hyper_dg_advance_cu(
   gkyl_hyper_dg *up, const struct gkyl_range *update_range,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
   struct gkyl_array *GKYL_RESTRICT rhs
@@ -108,12 +110,14 @@ void gkyl_hyper_dg_advance_cu(
   );
 }
 
-void gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *up, int update_vol_term)
+void
+gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *up, int update_vol_term)
 {
   gkyl_hyper_dg_set_update_vol_cu_kernel<<<1, 1>>>(up, update_vol_term);
 }
 
-gkyl_hyper_dg *gkyl_hyper_dg_cu_dev_new(
+gkyl_hyper_dg *
+gkyl_hyper_dg_cu_dev_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const struct gkyl_dg_eqn *equation, int num_up_dirs, int update_dirs[GKYL_MAX_DIM],
   int zero_flux_flags[2 * GKYL_MAX_DIM], int update_vol_term

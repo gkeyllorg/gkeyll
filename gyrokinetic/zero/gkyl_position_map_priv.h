@@ -27,7 +27,8 @@ static void gkyl_position_map_free(const struct gkyl_ref_count *ref);
  * @param constB_ctx Context for the constant B mapping
  * @param bmag_ctx Context for the magnetic field calculation
  */
-static void calculate_mirror_throat_location_polynomial(
+static void
+calculate_mirror_throat_location_polynomial(
   struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx
 )
 {
@@ -79,7 +80,8 @@ static void calculate_mirror_throat_location_polynomial(
  * @param fout Non-uniform coordinate
  * @param ctx position_map_constB_ctx context for the constant B mapping
  */
-static void position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx)
+static void
+position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_position_map_const_B_ctx *app = ctx;
   int n_ex = app->map_order_expander;
@@ -125,7 +127,8 @@ static void position_map_constB_z_polynomial(double t, const double *xn, double 
  * @param constB_ctx Context for the constant B mapping
  * @param bmag_ctx Context for the magnetic field calculation
  */
-static void calculate_optimal_mapping_polynomial(
+static void
+calculate_optimal_mapping_polynomial(
   struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx
 )
 {
@@ -235,7 +238,8 @@ static void calculate_optimal_mapping_polynomial(
  * @param theta The theta value to calculate the derivative at
  * @param ctx The context for the position map
  */
-static double calc_bmag_global_derivative(double theta, void *ctx)
+static double
+calc_bmag_global_derivative(double theta, void *ctx)
 {
   struct gkyl_position_map *gpm = ctx;
   struct gkyl_bmag_ctx *bmag_ctx = gpm->bmag_ctx;
@@ -271,7 +275,8 @@ static bool bmag_derivative_is_small(double dbmag, double bmag, double dtheta_sa
  * 
  * @param gpm The position map object
  */
-static void find_B_field_extrema(struct gkyl_position_map *gpm)
+static void
+find_B_field_extrema(struct gkyl_position_map *gpm)
 {
   // Assumes we are P1 in z, which means maxima and minima can only be in the center or edge of cells
   struct gkyl_position_map_const_B_ctx *constB_ctx = gpm->constB_ctx;
@@ -409,7 +414,8 @@ static void find_B_field_extrema(struct gkyl_position_map *gpm)
  * 
  * @param gpm The position map object
  */
-static void refine_B_field_extrema(struct gkyl_position_map *gpm)
+static void
+refine_B_field_extrema(struct gkyl_position_map *gpm)
 {
   int num_points_per_level = 10; // Number of points to evaluate per level for midpoint rule
   int num_iterations = 22; // Number of iterations to refine the extrema with midpoint rule
@@ -499,7 +505,8 @@ static void refine_B_field_extrema(struct gkyl_position_map *gpm)
  * @param theta The theta value to evaluate
  * @param ctx The context for the root finder. Type opt_Theta_ctx
  */
-static double position_map_numeric_optimization_function(double theta, void *ctx)
+static double
+position_map_numeric_optimization_function(double theta, void *ctx)
 {
   struct opt_Theta_ctx *ridders_ctx = ctx;
   struct gkyl_position_map *gpm = ridders_ctx->gpm;
@@ -531,7 +538,8 @@ static double position_map_numeric_optimization_function(double theta, void *ctx
  * @param fout Non-uniform coordinate
  * @param ctx The context for the position map
  */
-static void position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ctx)
+static void
+position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_position_map *gpm = ctx;
   int num_boundaries = gpm->constB_ctx->N_theta_boundaries;
@@ -707,7 +715,8 @@ struct gaussian_weight_ctx {
   double sigma; // Standard deviation for Gaussian weight
 };
 
-double position_map_constB_z_numeric_dbl_exp_wrapper(double z, void *ctx)
+double
+position_map_constB_z_numeric_dbl_exp_wrapper(double z, void *ctx)
 {
   struct gaussian_weight_ctx *gw_ctx = ctx;
   double fout[3];
@@ -720,7 +729,8 @@ double position_map_constB_z_numeric_dbl_exp_wrapper(double z, void *ctx)
   return fout[0] * weight;
 }
 
-double gaussian_norm_wrapper(double z, void *ctx)
+double
+gaussian_norm_wrapper(double z, void *ctx)
 {
   struct gaussian_weight_ctx *gw_ctx = ctx;
 
@@ -794,7 +804,8 @@ position_map_constB_z_numeric_moving_average(double t, const double *xn, double 
  * @param fout Non-uniform coordinate
  * @param ctx position_map_constB_ctx context for the constant B mapping
  */
-static void position_map_xpt_compression(double t, const double *xn, double *fout, void *ctx)
+static void
+position_map_xpt_compression(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_position_map_xpt_ctx *app = ctx;
   double uniform_coordinate = xn[0];
@@ -816,7 +827,8 @@ static void position_map_xpt_compression(double t, const double *xn, double *fou
  * @param fout Non-uniform coordinate
  * @param ctx position_map_constB_ctx context for the constant B mapping
  */
-static void position_map_sep_compression(double t, const double *xn, double *fout, void *ctx)
+static void
+position_map_sep_compression(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_position_map_xpt_ctx *app = ctx;
   double uniform_coordinate = xn[0];
@@ -838,7 +850,8 @@ static void position_map_sep_compression(double t, const double *xn, double *fou
  * @param fout Non-uniform coordinate
  * @param ctx position_map_constB_ctx context for the constant B mapping
  */
-static void position_map_deriv_xpt_compression(double t, const double *xn, double *fout, void *ctx)
+static void
+position_map_deriv_xpt_compression(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_position_map_xpt_ctx *app = ctx;
   double uniform_coordinate = xn[0];
@@ -859,7 +872,8 @@ static void position_map_deriv_xpt_compression(double t, const double *xn, doubl
  * @param fout Non-uniform coordinate
  * @param ctx position_map_constB_ctx context for the constant B mapping
  */
-static void position_map_deriv_sep_compression(double t, const double *xn, double *fout, void *ctx)
+static void
+position_map_deriv_sep_compression(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_position_map_xpt_ctx *app = ctx;
   double uniform_coordinate = xn[0];

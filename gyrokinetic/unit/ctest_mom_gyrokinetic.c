@@ -15,7 +15,8 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -26,7 +27,8 @@ static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
-void bfield_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0];
   fout[0] = 0.0;
@@ -34,7 +36,8 @@ void bfield_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void
   fout[2] = cos((2. * M_PI / (2. * 2. * M_PI)) * x);
 }
 
-void bfield_func_2x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func_2x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1];
   fout[0] = 0.0;
@@ -42,14 +45,16 @@ void bfield_func_2x(double t, const double *xc, double *GKYL_RESTRICT fout, void
   fout[2] = cos((2. * M_PI / (2. * 2. * M_PI)) * x) * exp(-(y * y) / (2. * pow(M_PI / 3, 2)));
 }
 
-void mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
   fout[0] = 0.0;
@@ -57,7 +62,8 @@ void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void
   fout[2] = cos((2. * M_PI / (2. * 2. * M_PI)) * x) * exp(-(y * y) / (2. * pow(M_PI / 3, 2)));
 }
 
-void test_mom_gyrokinetic_ho()
+void
+test_mom_gyrokinetic_ho()
 {
   double mass = 1.0;
   double charge = 1.0;
@@ -127,7 +133,7 @@ void test_mom_gyrokinetic_ho()
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
+    .basis = confBasis,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(
@@ -168,7 +174,8 @@ void test_mom_gyrokinetic_ho()
   gkyl_position_map_release(pmap);
 }
 
-void distf_1x1v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+distf_1x1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1];
   double bfield[3];
@@ -176,7 +183,8 @@ void distf_1x1v(double t, const double *xn, double *restrict fout, void *ctx)
   double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
   fout[0] = bmag * (x * x) * (vpar - 0.5) * (vpar - 0.5);
 }
-void distf_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+distf_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1], mu = xn[2];
   double bfield[3];
@@ -184,7 +192,8 @@ void distf_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
   double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
   fout[0] = bmag * (x * x) * (vpar - 0.5) * (vpar - 0.5);
 }
-void distf_2x2v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+distf_2x2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vpar = xn[2], mu = xn[3];
   double bfield[3];
@@ -193,7 +202,8 @@ void distf_2x2v(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = bmag * (x * x + y * y) * (vpar - 0.5) * (vpar - 0.5);
 }
 
-void test_1x1v(int polyOrder, bool use_gpu)
+void
+test_1x1v(int polyOrder, bool use_gpu)
 {
   double mass = 1.0;
   double charge = 1.0;
@@ -278,7 +288,7 @@ void test_1x1v(int polyOrder, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .position_map = pmap
+    .position_map = pmap,
   };
   int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
@@ -470,7 +480,8 @@ void test_1x1v(int polyOrder, bool use_gpu)
   gkyl_position_map_release(pmap);
 }
 
-void test_1x2v(int poly_order, bool use_gpu)
+void
+test_1x2v(int poly_order, bool use_gpu)
 {
   double mass = 1.0;
   double charge = 1.0;
@@ -554,7 +565,7 @@ void test_1x2v(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .position_map = pmap
+    .position_map = pmap,
   };
   int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
@@ -733,7 +744,8 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_position_map_release(pmap);
 }
 
-void test_2x2v(int poly_order, bool use_gpu)
+void
+test_2x2v(int poly_order, bool use_gpu)
 {
   double mass = 1.;
   double charge = 1.0;
@@ -817,7 +829,7 @@ void test_2x2v(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .position_map = pmap
+    .position_map = pmap,
   };
   int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
@@ -1158,53 +1170,65 @@ void test_2x2v(int poly_order, bool use_gpu)
   gkyl_position_map_release(pmap);
 }
 
-void test_mom_gyrokinetic_1x1v_p1_ho()
+void
+test_mom_gyrokinetic_1x1v_p1_ho()
 {
   test_1x1v(1, false);
 }
-void test_mom_gyrokinetic_1x1v_p2_ho()
+void
+test_mom_gyrokinetic_1x1v_p2_ho()
 {
   test_1x1v(2, false);
 }
-void test_mom_gyrokinetic_1x2v_p1_ho()
+void
+test_mom_gyrokinetic_1x2v_p1_ho()
 {
   test_1x2v(1, false);
 }
-void test_mom_gyrokinetic_1x2v_p2_ho()
+void
+test_mom_gyrokinetic_1x2v_p2_ho()
 {
   test_1x2v(2, false);
 }
-void test_mom_gyrokinetic_2x2v_p1_ho()
+void
+test_mom_gyrokinetic_2x2v_p1_ho()
 {
   test_2x2v(1, false);
 }
-void test_mom_gyrokinetic_2x2v_p2_ho()
+void
+test_mom_gyrokinetic_2x2v_p2_ho()
 {
   test_2x2v(2, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_mom_gyrokinetic_1x1v_p1_dev()
+void
+test_mom_gyrokinetic_1x1v_p1_dev()
 {
   test_1x1v(1, true);
 }
-void test_mom_gyrokinetic_1x1v_p2_dev()
+void
+test_mom_gyrokinetic_1x1v_p2_dev()
 {
   test_1x1v(2, true);
 }
-void test_mom_gyrokinetic_1x2v_p1_dev()
+void
+test_mom_gyrokinetic_1x2v_p1_dev()
 {
   test_1x2v(1, true);
 }
-void test_mom_gyrokinetic_1x2v_p2_dev()
+void
+test_mom_gyrokinetic_1x2v_p2_dev()
 {
   test_1x2v(2, true);
 }
-void test_mom_gyrokinetic_2x2v_p1_dev()
+void
+test_mom_gyrokinetic_2x2v_p1_dev()
 {
   test_2x2v(1, true);
 }
-void test_mom_gyrokinetic_2x2v_p2_dev()
+void
+test_mom_gyrokinetic_2x2v_p2_dev()
 {
   test_2x2v(2, true);
 }

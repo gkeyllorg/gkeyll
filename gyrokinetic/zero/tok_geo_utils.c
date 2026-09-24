@@ -4,7 +4,8 @@
 // Helper functions for finding turning points when necessary
 
 // This function will set zmax to be the upper turning point location
-void find_upper_turning_point(
+void
+find_upper_turning_point(
   struct gkyl_tok_geo *geo, double psi_curr, double zlo, double *zmax, double tolerance
 )
 {
@@ -43,7 +44,8 @@ void find_upper_turning_point(
 }
 
 // This function will set zmin to be the upper turning point location
-void find_lower_turning_point(
+void
+find_lower_turning_point(
   struct gkyl_tok_geo *geo, double psi_curr, double zup, double *zmin, double tolerance
 )
 {
@@ -79,9 +81,8 @@ void find_lower_turning_point(
 }
 
 // This function will set zmin to be the upper lower point location
-void find_lower_turning_point_pf_up(
-  struct gkyl_tok_geo *geo, double psi_curr, double zup, double *zmin
-)
+void
+find_lower_turning_point_pf_up(struct gkyl_tok_geo *geo, double psi_curr, double zup, double *zmin)
 {
   int nup = 0;
   double zlo = *zmin;
@@ -121,9 +122,8 @@ void find_lower_turning_point_pf_up(
 }
 
 // This function will set zmax to be the upper turning point location
-void find_upper_turning_point_pf_lo(
-  struct gkyl_tok_geo *geo, double psi_curr, double zlo, double *zmax
-)
+void
+find_upper_turning_point_pf_lo(struct gkyl_tok_geo *geo, double psi_curr, double zlo, double *zmax)
 {
   //Find the turning points
   double zlo_last;
@@ -167,7 +167,8 @@ void find_upper_turning_point_pf_lo(
 }
 
 // Sets zmax if plate is specified
-void set_upper_plate(
+void
+set_upper_plate(
   struct gkyl_tok_geo *geo, struct arc_length_ctx *arc_ctx, struct plate_ctx *pctx, double psi_curr
 )
 {
@@ -186,7 +187,8 @@ void set_upper_plate(
 }
 
 // Sets zmin if plate is specified
-void set_lower_plate(
+void
+set_lower_plate(
   struct gkyl_tok_geo *geo, struct arc_length_ctx *arc_ctx, struct plate_ctx *pctx, double psi_curr
 )
 {
@@ -205,7 +207,8 @@ void set_lower_plate(
 }
 
 // Sets zmax if plate is specified
-void set_upper_iwl_plate(
+void
+set_upper_iwl_plate(
   struct gkyl_tok_geo *geo, struct arc_length_ctx *arc_ctx, struct plate_ctx *pctx, double psi_curr
 )
 {
@@ -225,7 +228,8 @@ void set_upper_iwl_plate(
 }
 
 // Sets zmin if plate is specified
-void set_lower_iwl_plate(
+void
+set_lower_iwl_plate(
   struct gkyl_tok_geo *geo, struct arc_length_ctx *arc_ctx, struct plate_ctx *pctx, double psi_curr
 )
 {
@@ -244,7 +248,8 @@ void set_lower_iwl_plate(
   geo->rmin = rzplate[0];
 }
 
-void tok_geo_set_extent(
+void
+tok_geo_set_extent(
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up
 )
 {
@@ -271,7 +276,7 @@ void tok_geo_set_extent(
     .arc_memo_right = arc_memo_right,
     .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
-    .zmaxis = geo->zmaxis
+    .zmaxis = geo->zmaxis,
   };
   struct plate_ctx pctx = {.geo = geo};
 
@@ -616,7 +621,8 @@ void tok_geo_set_extent(
   gkyl_free(arc_memo_right);
 }
 
-void tok_find_endpoints(
+void
+tok_find_endpoints(
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_tok_geo *geo, struct arc_length_ctx *arc_ctx,
   struct plate_ctx *pctx, double psi_curr, double alpha_curr, double *arc_memo,
   double *arc_memo_left, double *arc_memo_right
@@ -999,7 +1005,8 @@ void tok_find_endpoints(
   }
 }
 
-void tok_set_ridders(
+void
+tok_set_ridders(
   struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *arc_ctx, double psi_curr,
   double arcL_curr, double *rclose, double *ridders_min, double *ridders_max
 )

@@ -52,7 +52,8 @@ typedef struct {
 // Need to be separated like this for GPU build
 
 // 2x2v
-GKYL_CU_DH static double ker_gk_anomalous_diffusion_vol_2x2v_ser_p1(
+GKYL_CU_DH static double
+ker_gk_anomalous_diffusion_vol_2x2v_ser_p1(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -145,7 +146,8 @@ GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list
 #define CKVOL(lst, pdim, poly_order) lst[pdim - 2].kernels[poly_order - 1]
 #define CKSURF(lst, pdim, poly_order) lst[pdim - 2].kernels[poly_order - 1]
 
-GKYL_CU_D static double surf(
+GKYL_CU_D static double
+surf(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC, const double *xcR,
   const double *dxL, const double *dxC, const double *dxR, const int *idxL, const int *idxC,
   const int *idxR, const double *qInL, const double *qInC, const double *qInR,
@@ -163,7 +165,8 @@ GKYL_CU_D static double surf(
   return 0.; // CFL frequency computed in volume term.
 }
 
-GKYL_CU_D static double boundary_surf(
+GKYL_CU_D static double
+boundary_surf(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
   const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
   const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut
@@ -187,7 +190,8 @@ GKYL_CU_D static double boundary_surf(
   return 0.; // CFL frequency computed in volume term.
 }
 
-GKYL_CU_D static double boundary_diag(
+GKYL_CU_D static double
+boundary_diag(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcSkin, const double *xcGhost,
   const double *dxSkin, const double *dxGhost, const int *idxSkin, const int *idxGhost,
   const int edge, const double *qInSkin, const double *qInGhost, double *GKYL_RESTRICT qRhsGhost

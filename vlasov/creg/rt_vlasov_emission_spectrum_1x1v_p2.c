@@ -56,12 +56,14 @@ struct sheath_ctx {
   int num_failures_max;
 };
 
-static inline double sq(double x)
+static inline double
+sq(double x)
 {
   return x * x;
 }
 
-void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
@@ -71,7 +73,8 @@ void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[0] = fv;
 }
 
-void evalDistFuncElcSource(
+void
+evalDistFuncElcSource(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -87,7 +90,8 @@ void evalDistFuncElcSource(
   }
 }
 
-void evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
@@ -97,7 +101,8 @@ void evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[0] = fv;
 }
 
-void evalDistFuncIonSource(
+void
+evalDistFuncIonSource(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -113,7 +118,8 @@ void evalDistFuncIonSource(
   }
 }
 
-void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double x = xn[0];
@@ -127,7 +133,8 @@ void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-struct sheath_ctx create_ctx(void)
+struct sheath_ctx
+create_ctx(void)
 {
   double massElc = 9.109e-31;
   double q0 = 1.602e-19;
@@ -182,12 +189,13 @@ struct sheath_ctx create_ctx(void)
     .t_end = 10.0 / ctx.omega_pe,
     .num_frames = 1,
     .dt_failure_tol = 1.0e-4,
-    .num_failures_max = 20
+    .num_failures_max = 20,
   };
   return ctx;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
 {
   gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
@@ -203,7 +211,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -317,19 +326,23 @@ int main(int argc, char **argv)
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncElc, .ctx_func = &ctx},
 
     .source =
-      {.source_id = GKYL_BFLUX_SOURCE,
-       .source_length = ctx.Ls,
-       .source_species = "ion",
-       .num_sources = 1,
-       .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncElcSource, .ctx_func = &ctx}
+      {
+        .source_id = GKYL_BFLUX_SOURCE,
+        .source_length = ctx.Ls,
+        .source_species = "ion",
+        .num_sources = 1,
+        .projection[0] =
+          {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncElcSource, .ctx_func = &ctx},
       },
 
     .bcx =
-      {.lower = {.type = GKYL_SPECIES_REFLECT},
-       .upper = {.type = GKYL_SPECIES_EMISSION, .aux_ctx = bc_ctx}},
+      {
+        .lower = {.type = GKYL_SPECIES_REFLECT},
+        .upper = {.type = GKYL_SPECIES_EMISSION, .aux_ctx = bc_ctx},
+      },
 
     .num_diag_moments = 3,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2}
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
   };
 
   // ions
@@ -345,17 +358,19 @@ int main(int argc, char **argv)
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncIon, .ctx_func = &ctx},
 
     .source =
-      {.source_id = GKYL_BFLUX_SOURCE,
-       .source_length = ctx.Ls,
-       .source_species = "ion",
-       .num_sources = 1,
-       .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncIonSource, .ctx_func = &ctx}
+      {
+        .source_id = GKYL_BFLUX_SOURCE,
+        .source_length = ctx.Ls,
+        .source_species = "ion",
+        .num_sources = 1,
+        .projection[0] =
+          {.proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncIonSource, .ctx_func = &ctx},
       },
 
     .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_ABSORB}},
 
     .num_diag_moments = 3,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2}
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
   };
 
   // field
@@ -368,7 +383,7 @@ int main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFieldFunc,
 
-    .bcx = {GKYL_FIELD_SYM_WALL, GKYL_FIELD_PEC_WALL}
+    .bcx = {GKYL_FIELD_SYM_WALL, GKYL_FIELD_PEC_WALL},
   };
 
   // VM app
@@ -389,7 +404,7 @@ int main(int argc, char **argv)
     .species = {elc, ion},
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Create app object.

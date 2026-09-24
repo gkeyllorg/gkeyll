@@ -54,8 +54,9 @@ void gkyl_dg_updater_diffusion_gen_advance(
  * @param diffusion Updater object
  * @return timers
  */
-struct gkyl_dg_updater_diffusion_gen_tm
-gkyl_dg_updater_diffusion_gen_get_tm(const struct gkyl_dg_updater_diffusion_gen *up);
+struct gkyl_dg_updater_diffusion_gen_tm gkyl_dg_updater_diffusion_gen_get_tm(
+  const struct gkyl_dg_updater_diffusion_gen *up
+);
 
 /**
  * Delete updater.

@@ -8,7 +8,8 @@
 #include <gkyl_gk_anomalous_diffusion_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_gk_anomalous_diffusion_free(const struct gkyl_ref_count *ref)
+void
+gkyl_gk_anomalous_diffusion_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -22,7 +23,8 @@ void gkyl_gk_anomalous_diffusion_free(const struct gkyl_ref_count *ref)
   gkyl_free(diffusion);
 }
 
-void gkyl_gk_anomalous_diffusion_set_auxfields(
+void
+gkyl_gk_anomalous_diffusion_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_gk_anomalous_diffusion_auxfields auxin
 )
 {
@@ -38,7 +40,8 @@ void gkyl_gk_anomalous_diffusion_set_auxfields(
   diffusion->auxfields.jacobgeo_inv = auxin.jacobgeo_inv;
 }
 
-struct gkyl_dg_eqn *gkyl_gk_anomalous_diffusion_new(
+struct gkyl_dg_eqn *
+gkyl_gk_anomalous_diffusion_new(
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
   const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower,
   enum gkyl_gyrokinetic_bc_type bc_x_upper, bool use_gpu
@@ -78,50 +81,50 @@ struct gkyl_dg_eqn *gkyl_gk_anomalous_diffusion_new(
   // ELSE:       local       local       yes
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surfx_kernels = ser_gyrokinetic_surfx_kernels;
-    if ((bc_x_lower == GKYL_BC_GK_SKIP) || (bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC)) {
-      // Boundary surf and diag kernels not used.
-      boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
-      boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
-    } else if (bc_x_lower == GKYL_BC_GK_SPECIES_ZERO_FLUX) {
-      boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
-      // Boundary diag kernel not used.
-      boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
-    } else if ((bc_x_lower == GKYL_BC_GK_SPECIES_ABSORB) ||
-               (bc_x_lower == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
-      // Boundary surf kernel not used.
-      boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
-      boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
-    } else {
-      boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_boundlocal_kernels;
-      boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels;
-    }
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surfx_kernels = ser_gyrokinetic_surfx_kernels;
+      if ((bc_x_lower == GKYL_BC_GK_SKIP) || (bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC)) {
+        // Boundary surf and diag kernels not used.
+        boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
+        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
+      } else if (bc_x_lower == GKYL_BC_GK_SPECIES_ZERO_FLUX) {
+        boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
+        // Boundary diag kernel not used.
+        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
+      } else if ((bc_x_lower == GKYL_BC_GK_SPECIES_ABSORB) ||
+                 (bc_x_lower == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
+        // Boundary surf kernel not used.
+        boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
+        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
+      } else {
+        boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_boundlocal_kernels;
+        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels;
+      }
 
-    if ((bc_x_upper == GKYL_BC_GK_SKIP) || (bc_x_upper == GKYL_BC_GK_SPECIES_PERIODIC)) {
-      // Boundary surf and diag kernels not used.
-      boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
-      boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
-    } else if (bc_x_upper == GKYL_BC_GK_SPECIES_ZERO_FLUX) {
-      boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
-      // Boundary diag kernel not used.
-      boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
-    } else if ((bc_x_upper == GKYL_BC_GK_SPECIES_ABSORB) ||
-               (bc_x_upper == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
-      // Boundary surf kernel not used.
-      boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
-      boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
-    } else {
-      boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_boundlocal_kernels;
-      boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundlocal_kernels;
-    }
+      if ((bc_x_upper == GKYL_BC_GK_SKIP) || (bc_x_upper == GKYL_BC_GK_SPECIES_PERIODIC)) {
+        // Boundary surf and diag kernels not used.
+        boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
+        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
+      } else if (bc_x_upper == GKYL_BC_GK_SPECIES_ZERO_FLUX) {
+        boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
+        // Boundary diag kernel not used.
+        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
+      } else if ((bc_x_upper == GKYL_BC_GK_SPECIES_ABSORB) ||
+                 (bc_x_upper == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
+        // Boundary surf kernel not used.
+        boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
+        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
+      } else {
+        boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_boundlocal_kernels;
+        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundlocal_kernels;
+      }
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   diffusion->eqn.num_equations = 1;

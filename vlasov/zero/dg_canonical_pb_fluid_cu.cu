@@ -20,7 +20,8 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_canonical_pb_fluid_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_canonical_pb_fluid_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *phi, const struct gkyl_array *alpha_surf,
   const struct gkyl_array *sgn_alpha_surf, const struct gkyl_array *const_sgn_alpha
 )
@@ -32,7 +33,8 @@ __global__ static void gkyl_canonical_pb_fluid_set_auxfields_cu_kernel(
   can_pb_fluid->auxfields.const_sgn_alpha = const_sgn_alpha;
 }
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_canonical_pb_fluid_set_auxfields_cu(
+void
+gkyl_canonical_pb_fluid_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_fluid_auxfields auxin
 )
 {
@@ -44,7 +46,8 @@ void gkyl_canonical_pb_fluid_set_auxfields_cu(
 
 // CUDA kernel to set device pointers to range object and canonical_pb_fluid kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_canonical_pb_fluid_set_cu_dev_ptrs(
+__global__ static void
+dg_canonical_pb_fluid_set_cu_dev_ptrs(
   struct dg_canonical_pb_fluid *can_pb_fluid, enum gkyl_basis_type b_type, int cdim, int poly_order,
   int num_equations
 )
@@ -60,33 +63,33 @@ __global__ static void dg_canonical_pb_fluid_set_cu_dev_ptrs(
   const gkyl_dg_canonical_pb_fluid_surf_kern_list *surf_x_kernels, *surf_y_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    if (num_equations == 2) {
-      vol_kernels = ser_two_fluid_vol_kernels;
-      surf_x_kernels = ser_two_fluid_surf_x_kernels;
-      surf_y_kernels = ser_two_fluid_surf_y_kernels;
-    } else {
-      vol_kernels = ser_vol_kernels;
-      surf_x_kernels = ser_surf_x_kernels;
-      surf_y_kernels = ser_surf_y_kernels;
-    }
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      if (num_equations == 2) {
+        vol_kernels = ser_two_fluid_vol_kernels;
+        surf_x_kernels = ser_two_fluid_surf_x_kernels;
+        surf_y_kernels = ser_two_fluid_surf_y_kernels;
+      } else {
+        vol_kernels = ser_vol_kernels;
+        surf_x_kernels = ser_surf_x_kernels;
+        surf_y_kernels = ser_surf_y_kernels;
+      }
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    if (num_equations == 2) {
-      vol_kernels = tensor_two_fluid_vol_kernels;
-      surf_x_kernels = tensor_two_fluid_surf_x_kernels;
-      surf_y_kernels = tensor_two_fluid_surf_y_kernels;
-    } else {
-      vol_kernels = tensor_vol_kernels;
-      surf_x_kernels = tensor_surf_x_kernels;
-      surf_y_kernels = tensor_surf_y_kernels;
-    }
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (num_equations == 2) {
+        vol_kernels = tensor_two_fluid_vol_kernels;
+        surf_x_kernels = tensor_two_fluid_surf_x_kernels;
+        surf_y_kernels = tensor_two_fluid_surf_y_kernels;
+      } else {
+        vol_kernels = tensor_vol_kernels;
+        surf_x_kernels = tensor_surf_x_kernels;
+        surf_y_kernels = tensor_surf_y_kernels;
+      }
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   can_pb_fluid->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
@@ -95,7 +98,8 @@ __global__ static void dg_canonical_pb_fluid_set_cu_dev_ptrs(
   can_pb_fluid->surf[1] = CK(surf_y_kernels, cdim, poly_order);
 }
 
-struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_canonical_pb_fluid_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
   const struct gkyl_wv_eqn *wv_eqn
 )

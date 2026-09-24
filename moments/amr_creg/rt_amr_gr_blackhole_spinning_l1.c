@@ -54,7 +54,8 @@ struct amr_gr_blackhole_spinning_ctx {
   double r_outer; // Ring outer radius.
 };
 
-struct amr_gr_blackhole_spinning_ctx create_ctx(void)
+struct amr_gr_blackhole_spinning_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -135,13 +136,14 @@ struct amr_gr_blackhole_spinning_ctx create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
     .r_inner = r_inner,
-    .r_outer = r_outer
+    .r_outer = r_outer,
   };
 
   return ctx;
 }
 
-void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_gr_blackhole_spinning_ctx new_ctx =
@@ -295,7 +297,8 @@ void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   gkyl_free(vel);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct amr_gr_blackhole_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
 
@@ -332,7 +335,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max
+    .num_failures_max = ctx.num_failures_max,
   };
 
   gr_euler2d_run_single(argc, argv, &init);

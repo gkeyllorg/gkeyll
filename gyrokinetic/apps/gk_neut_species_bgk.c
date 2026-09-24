@@ -2,7 +2,8 @@
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_const.h>
 
-static void gkbgk_moms_disabled(
+static void
+gkbgk_moms_disabled(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin
 )
@@ -10,7 +11,8 @@ static void gkbgk_moms_disabled(
   // Empty method.
 }
 
-static void gkbgk_moms_enabled(
+static void
+gkbgk_moms_enabled(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin
 )
@@ -30,14 +32,16 @@ static void gkbgk_moms_enabled(
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gkbgk_self_nu_calc_constNu(
+static void
+gkbgk_self_nu_calc_constNu(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk
 )
 {
   // Empty method.
 }
 
-static void gkbgk_rhs_disabled(
+static void
+gkbgk_rhs_disabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin, double dt, struct gkyl_array *rhs
 )
@@ -45,7 +49,8 @@ static void gkbgk_rhs_disabled(
   // Empty method.
 }
 
-static void gkbgk_rhs_enabled(
+static void
+gkbgk_rhs_enabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin, double dt, struct gkyl_array *rhs
 )
@@ -76,14 +81,16 @@ static void gkbgk_rhs_enabled(
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gkbgk_write_mom_disabled(
+static void
+gkbgk_write_mom_disabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, double tm, int frame
 )
 {
   // Empty method.
 }
 
-static void gkbgk_write_mom_enabled(
+static void
+gkbgk_write_mom_enabled(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, double tm, int frame
 )
 {
@@ -91,11 +98,11 @@ static void gkbgk_write_mom_enabled(
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
-  struct gkyl_msgpack_map_elem desc[] = {
-    {.key = "Description",
-     .elem_type = GKYL_MP_STRING,
-     .cval = "Sum of collision frequencies for BGK collisions."}
-  };
+  struct gkyl_msgpack_map_elem desc[] = {{
+    .key = "Description",
+    .elem_type = GKYL_MP_STRING,
+    .cval = "Sum of collision frequencies for BGK collisions.",
+  }};
   int io_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc
@@ -121,7 +128,8 @@ static void gkbgk_write_mom_enabled(
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
-void gk_neut_species_bgk_init(
+void
+gk_neut_species_bgk_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk
 )
 {
@@ -205,13 +213,15 @@ void gk_neut_species_bgk_init(
   }
 }
 
-void gk_neut_species_bgk_cross_init(
+void
+gk_neut_species_bgk_cross_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk
 )
 {
 }
 
-void gk_neut_species_bgk_moms(
+void
+gk_neut_species_bgk_moms(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin
 )
@@ -219,7 +229,8 @@ void gk_neut_species_bgk_moms(
   bgk->moms_func_neut(app, gkns, bgk, fin);
 }
 
-void gk_neut_species_bgk_moms_implicit(
+void
+gk_neut_species_bgk_moms_implicit(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin
 )
@@ -227,7 +238,8 @@ void gk_neut_species_bgk_moms_implicit(
   bgk->moms_func_implicit_neut(app, gkns, bgk, fin);
 }
 
-void gk_neut_species_bgk_cross_moms(
+void
+gk_neut_species_bgk_cross_moms(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin
 )
@@ -235,7 +247,8 @@ void gk_neut_species_bgk_cross_moms(
   // Compute this in bgk_rhs
 }
 
-void gk_neut_species_bgk_cross_moms_implicit(
+void
+gk_neut_species_bgk_cross_moms_implicit(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin
 )
@@ -243,7 +256,8 @@ void gk_neut_species_bgk_cross_moms_implicit(
   // Compute this in bgk_rhs
 }
 
-void gk_neut_species_bgk_rhs(
+void
+gk_neut_species_bgk_rhs(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -251,7 +265,8 @@ void gk_neut_species_bgk_rhs(
   bgk->rhs_func_neut(app, gkns, bgk, fin, 0.0, rhs);
 }
 
-void gk_neut_species_bgk_rhs_implicit(
+void
+gk_neut_species_bgk_rhs_implicit(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin, double dt, struct gkyl_array *rhs
 )
@@ -259,14 +274,16 @@ void gk_neut_species_bgk_rhs_implicit(
   bgk->rhs_func_implicit_neut(app, gkns, bgk, fin, dt, rhs);
 }
 
-void gk_neut_species_bgk_write_mom(
+void
+gk_neut_species_bgk_write_mom(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, double tm, int frame
 )
 {
   gkns->bgk.write_mom_func_neut(app, gkns, tm, frame);
 }
 
-void gk_neut_species_bgk_release(
+void
+gk_neut_species_bgk_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_bgk_collisions *bgk
 )
 {

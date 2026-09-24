@@ -8,7 +8,8 @@
 #include <gkyl_mom_type.h>
 #include <gkyl_mom_vlasov.h>
 
-void test_mom_1x1v()
+void
+test_mom_1x1v()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   int poly_order = 2;
@@ -44,7 +45,8 @@ void test_mom_1x1v()
   gkyl_mom_type_release(m3ijk);
 }
 
-void test_mom_1x2v()
+void
+test_mom_1x2v()
 {
   int cdim = 1, vdim = 2, pdim = cdim + vdim;
   int poly_order = 2;
@@ -68,7 +70,8 @@ void test_mom_1x2v()
   gkyl_mom_type_release(m3ijk);
 }
 
-void test_mom_1x3v()
+void
+test_mom_1x3v()
 {
   int cdim = 1, vdim = 3, pdim = cdim + vdim;
   int poly_order = 2;
@@ -92,7 +95,8 @@ void test_mom_1x3v()
   gkyl_mom_type_release(m3ijk);
 }
 
-void test_int_mom()
+void
+test_int_mom()
 {
   int cdim = 1, vdim = 2, pdim = cdim + vdim;
   int poly_order = 2;

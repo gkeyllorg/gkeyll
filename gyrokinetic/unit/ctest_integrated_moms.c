@@ -23,7 +23,8 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -34,38 +35,44 @@ static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
-void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 1.0;
 }
 
-void eval_density(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_density(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 3.0e19;
 }
 
-void eval_upar(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_upar(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void eval_vthsq(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_vthsq(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double eV = GKYL_ELEMENTARY_CHARGE;
   double mi = 2.014 * GKYL_PROTON_MASS; // D ion mass
   fout[0] = 150 * eV / mi;
 }
 
-void test_2x_option(bool use_gpu)
+void
+test_2x_option(bool use_gpu)
 {
   int poly_order = 1;
   double eps0 = GKYL_EPSILON0;
@@ -150,7 +157,7 @@ void test_2x_option(bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
+    .basis = confBasis,
   };
 
   int geo_ghost[3] = {1};
@@ -215,7 +222,7 @@ void test_2x_option(bool use_gpu)
     .vel_map = gvm,
     .mass = mi,
     .bimaxwellian = false,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
@@ -304,14 +311,16 @@ void test_2x_option(bool use_gpu)
   gkyl_position_map_release(pmap);
 }
 
-void test_integrated_moms_2x_ho()
+void
+test_integrated_moms_2x_ho()
 {
   test_2x_option(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 
-void test_integrated_moms_2x_dev()
+void
+test_integrated_moms_2x_dev()
 {
   test_2x_option(true);
 }

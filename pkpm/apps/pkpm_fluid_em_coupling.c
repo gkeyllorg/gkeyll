@@ -8,7 +8,8 @@
 #include <gkyl_pkpm_priv.h>
 
 // initialize implicit fluid-EM coupling object for PKPM system
-struct pkpm_fluid_em_coupling *pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app *app)
+struct pkpm_fluid_em_coupling *
+pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app *app)
 {
   struct pkpm_fluid_em_coupling *pkpm_em = gkyl_malloc(sizeof(struct pkpm_fluid_em_coupling));
 
@@ -28,7 +29,8 @@ struct pkpm_fluid_em_coupling *pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app 
   return pkpm_em;
 }
 
-void pkpm_fluid_em_coupling_update(
+void
+pkpm_fluid_em_coupling_update(
   struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em, double tcurr, double dt
 )
 {
@@ -82,9 +84,8 @@ void pkpm_fluid_em_coupling_update(
   pkpm_field_apply_bc(app, app->field, app->field->em);
 }
 
-void pkpm_fluid_em_coupling_release(
-  struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em
-)
+void
+pkpm_fluid_em_coupling_release(struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em)
 {
   gkyl_dg_calc_pkpm_em_coupling_release(pkpm_em->slvr);
   gkyl_free(pkpm_em);

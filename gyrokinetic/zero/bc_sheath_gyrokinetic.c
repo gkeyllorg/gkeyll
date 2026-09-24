@@ -3,7 +3,8 @@
 #include <gkyl_alloc.h>
 #include <assert.h>
 
-struct gkyl_bc_sheath_gyrokinetic *gkyl_bc_sheath_gyrokinetic_new(
+struct gkyl_bc_sheath_gyrokinetic *
+gkyl_bc_sheath_gyrokinetic_new(
   int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
   const struct gkyl_range *ghost_r, const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm,
   bool use_gpu
@@ -44,7 +45,8 @@ struct gkyl_bc_sheath_gyrokinetic *gkyl_bc_sheath_gyrokinetic_new(
 }
 
 /* Modeled after gkyl_array_flip_copy_to_buffer_fn */
-void gkyl_bc_sheath_gyrokinetic_advance(
+void
+gkyl_bc_sheath_gyrokinetic_advance(
   const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r
 )
@@ -100,7 +102,8 @@ void gkyl_bc_sheath_gyrokinetic_advance(
   }
 }
 
-void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
+void
+gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
 {
   // Release memory associated with this updater.
 #ifdef GKYL_HAVE_CUDA

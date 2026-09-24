@@ -16,7 +16,8 @@ calcq(double gas_gamma, double rho, double u, double v, double w, double pr, dou
   q[4] = pr / (gas_gamma - 1.0) + 0.5 * rho * (u * u + v * v + w * w);
 }
 
-void test_euler_extra_basic()
+void
+test_euler_extra_basic()
 {
   double gas_gamma = 1.4;
   struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(gas_gamma, false);
@@ -29,7 +30,8 @@ void test_euler_extra_basic()
 }
 
 // Pressure recovered from conserved variables matches the input pressure.
-void test_euler_extra_pressure()
+void
+test_euler_extra_pressure()
 {
   double gas_gamma = 1.4;
   double rho = 2.0, u = 1.0, v = -0.5, w = 0.3, pr = 3.0;
@@ -40,7 +42,8 @@ void test_euler_extra_pressure()
 }
 
 // Primitive-variable extraction is the exact inverse of calcq.
-void test_euler_extra_prim_vars()
+void
+test_euler_extra_prim_vars()
 {
   double gas_gamma = 5.0 / 3.0;
   double rho = 1.3, u = 0.7, v = 0.2, w = -0.9, pr = 2.5;
@@ -57,7 +60,8 @@ void test_euler_extra_prim_vars()
 }
 
 // Max abs speed = |velocity| + sound speed.
-void test_euler_extra_max_speed()
+void
+test_euler_extra_max_speed()
 {
   double gas_gamma = 1.4;
   double rho = 1.0, u = 2.0, v = 0.0, w = 0.0, pr = 1.0;
@@ -74,7 +78,8 @@ void test_euler_extra_max_speed()
 }
 
 // Euler flux in the local (x) frame.
-void test_euler_extra_flux()
+void
+test_euler_extra_flux()
 {
   double gas_gamma = 1.4;
   double rho = 1.5, u = 0.8, v = -0.3, w = 0.4, pr = 2.0;
@@ -95,7 +100,8 @@ void test_euler_extra_flux()
 // Rotating the state to each axis frame, computing the local flux, and rotating
 // back must reproduce the directional flux. The directional flux differs from
 // the x-flux only by which momentum component carries the pressure.
-void test_euler_extra_flux_rotation()
+void
+test_euler_extra_flux_rotation()
 {
   double gas_gamma = 1.4;
   double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, pr = 1.5;
@@ -129,7 +135,8 @@ void test_euler_extra_flux_rotation()
 }
 
 // Rotation round-trip recovers the state, and density/energy are invariant.
-void test_euler_extra_rotate_roundtrip()
+void
+test_euler_extra_rotate_roundtrip()
 {
   double gas_gamma = 1.4;
   double q[5];
@@ -162,7 +169,8 @@ void test_euler_extra_rotate_roundtrip()
 }
 
 // Flux jump equals F(qr) - F(ql).
-void test_euler_extra_flux_jump()
+void
+test_euler_extra_flux_jump()
 {
   double gas_gamma = 1.4;
   double ql[5], qr[5];
@@ -185,7 +193,8 @@ void test_euler_extra_flux_jump()
 }
 
 // check_inv: positive density and pressure -> valid; negative pressure invalid.
-void test_euler_extra_check_inv()
+void
+test_euler_extra_check_inv()
 {
   double gas_gamma = 1.4;
   struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(gas_gamma, false);
@@ -204,7 +213,8 @@ void test_euler_extra_check_inv()
 
 // High-order Roe waves must sum to reconstruct the full jump delta. This is a
 // fundamental property of any wave-propagation flux: sum_p W^p = qr - ql.
-void test_euler_extra_wave_sum()
+void
+test_euler_extra_wave_sum()
 {
   double gas_gamma = 1.4;
   double ql[5], qr[5];
@@ -236,15 +246,19 @@ void test_euler_extra_wave_sum()
 
 // Low-order (Lax) flux fluctuation conservation: amdq + apdq = F(qr) - F(ql).
 // The Lax-Friedrichs splitting is exactly conservative by construction.
-void test_euler_extra_waves_conservation_lax()
+void
+test_euler_extra_waves_conservation_lax()
 {
   double gas_gamma = 1.4;
   double ql[5], qr[5];
   calcq(gas_gamma, 1.0, 0.0, 0.0, 0.0, 1.0, ql);
   calcq(gas_gamma, 0.8, 0.1, 0.05, 0.0, 0.9, qr);
 
-  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp
-  ){.gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_LAX, .use_gpu = false});
+  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
+    .gas_gamma = gas_gamma,
+    .rp_type = WV_EULER_RP_LAX,
+    .use_gpu = false,
+  });
 
   double delta[5];
   for (int i = 0; i < 5; ++i) {

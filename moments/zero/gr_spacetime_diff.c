@@ -5,7 +5,8 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_gr_spacetime_diff.h>
 
-void gkyl_gr_spatial_metric_tensor_diff(
+void
+gkyl_gr_spatial_metric_tensor_diff(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
   double ****spatial_metric_tensor_diff
@@ -78,7 +79,8 @@ void gkyl_gr_spatial_metric_tensor_diff(
   gkyl_free(spatial_metric_z_backward);
 }
 
-void gkyl_gr_spacetime_metric_tensor_diff(
+void
+gkyl_gr_spacetime_metric_tensor_diff(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double ****spacetime_metric_tensor_diff
@@ -167,7 +169,8 @@ void gkyl_gr_spacetime_metric_tensor_diff(
   gkyl_free(spacetime_metric_z_backward);
 }
 
-void gkyl_gr_lapse_function_diff(
+void
+gkyl_gr_lapse_function_diff(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double **lapse_function_diff
 )
@@ -193,7 +196,8 @@ void gkyl_gr_lapse_function_diff(
   (*lapse_function_diff)[2] = (1.0 / dz) * (lapse_function_z_forward - lapse_function_z_backward);
 }
 
-void gkyl_gr_shift_vector_diff(
+void
+gkyl_gr_shift_vector_diff(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double ***shift_vector_diff
 )
@@ -232,7 +236,8 @@ void gkyl_gr_shift_vector_diff(
   gkyl_free(shift_vector_z_backward);
 }
 
-void gkyl_gr_spatial_christoffel_fd(
+void
+gkyl_gr_spatial_christoffel_fd(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double ****spatial_christoffel
 )
@@ -287,7 +292,8 @@ void gkyl_gr_spatial_christoffel_fd(
   gkyl_free(spatial_metric_der);
 }
 
-void gkyl_gr_spacetime_christoffel_fd(
+void
+gkyl_gr_spacetime_christoffel_fd(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double ****spacetime_christoffel
@@ -345,7 +351,8 @@ void gkyl_gr_spacetime_christoffel_fd(
   gkyl_free(spacetime_metric_der);
 }
 
-void gkyl_gr_spatial_riemann_tensor_fd(
+void
+gkyl_gr_spatial_riemann_tensor_fd(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
   double *****spatial_riemann_tensor
@@ -486,7 +493,8 @@ void gkyl_gr_spatial_riemann_tensor_fd(
   gkyl_free(spatial_christoffel_z_backward);
 }
 
-void gkyl_gr_spacetime_riemann_tensor_fd(
+void
+gkyl_gr_spacetime_riemann_tensor_fd(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double *****spacetime_riemann_tensor
@@ -650,7 +658,8 @@ void gkyl_gr_spacetime_riemann_tensor_fd(
   gkyl_free(spacetime_christoffel_z_backward);
 }
 
-void gkyl_gr_spatial_ricci_tensor_fd(
+void
+gkyl_gr_spatial_ricci_tensor_fd(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double ***spatial_ricci_tensor
 )
@@ -695,7 +704,8 @@ void gkyl_gr_spatial_ricci_tensor_fd(
   gkyl_free(spatial_riemann_tensor);
 }
 
-void gkyl_gr_spacetime_ricci_tensor_fd(
+void
+gkyl_gr_spacetime_ricci_tensor_fd(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double ***spacetime_ricci_tensor
@@ -743,7 +753,8 @@ void gkyl_gr_spacetime_ricci_tensor_fd(
   gkyl_free(spacetime_riemann_tensor);
 }
 
-void gkyl_gr_spatial_ricci_scalar_fd(
+void
+gkyl_gr_spatial_ricci_scalar_fd(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double *spatial_ricci_scalar
 )
@@ -776,7 +787,8 @@ void gkyl_gr_spatial_ricci_scalar_fd(
   gkyl_free(spatial_ricci_tensor);
 }
 
-void gkyl_gr_spacetime_ricci_scalar_fd(
+void
+gkyl_gr_spacetime_ricci_scalar_fd(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double *spacetime_ricci_scalar
@@ -812,7 +824,8 @@ void gkyl_gr_spacetime_ricci_scalar_fd(
   gkyl_free(spacetime_ricci_tensor);
 }
 
-void gkyl_gr_spatial_weyl_tensor_fd(
+void
+gkyl_gr_spatial_weyl_tensor_fd(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double *****spatial_weyl_tensor
 )
@@ -905,7 +918,8 @@ void gkyl_gr_spatial_weyl_tensor_fd(
   gkyl_free(spatial_ricci_tensor);
 }
 
-void gkyl_gr_spacetime_weyl_tensor_fd(
+void
+gkyl_gr_spacetime_weyl_tensor_fd(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double *****spacetime_weyl_tensor
@@ -1005,7 +1019,8 @@ void gkyl_gr_spacetime_weyl_tensor_fd(
   gkyl_free(spacetime_ricci_tensor);
 }
 
-void gkyl_gr_conformal_factor_diff(
+void
+gkyl_gr_conformal_factor_diff(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double **conformal_factor_diff
 )
@@ -1034,7 +1049,8 @@ void gkyl_gr_conformal_factor_diff(
     (1.0 / dz) * (conformal_factor_z_forward - conformal_factor_z_backward);
 }
 
-void gkyl_gr_bssn_conformal_factor_diff(
+void
+gkyl_gr_bssn_conformal_factor_diff(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
   double **bssn_conformal_factor_diff
@@ -1076,7 +1092,8 @@ void gkyl_gr_bssn_conformal_factor_diff(
     (1.0 / dz) * (bssn_conformal_factor_z_forward - bssn_conformal_factor_z_backward);
 }
 
-void gkyl_gr_conformal_factor_diff2(
+void
+gkyl_gr_conformal_factor_diff2(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
   double ***conformal_factor_diff2
@@ -1128,7 +1145,8 @@ void gkyl_gr_conformal_factor_diff2(
   gkyl_free(conformal_factor_der_z_backward);
 }
 
-void gkyl_gr_bssn_conformal_factor_diff2(
+void
+gkyl_gr_bssn_conformal_factor_diff2(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
   double ***bssn_conformal_factor_diff2

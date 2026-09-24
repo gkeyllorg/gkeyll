@@ -2,11 +2,13 @@
 #include <gkyl_fem_poisson_priv.h>
 #include <gkyl_array_reduce.h>
 
-static void fem_poisson_bias_src_disabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
+static void
+fem_poisson_bias_src_disabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
 }
 
-static void fem_poisson_bias_src_enabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
+static void
+fem_poisson_bias_src_enabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -45,7 +47,8 @@ static void fem_poisson_bias_src_enabled(gkyl_fem_poisson *up, struct gkyl_array
   }
 }
 
-struct gkyl_fem_poisson *gkyl_fem_poisson_new(
+struct gkyl_fem_poisson *
+gkyl_fem_poisson_new(
   const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
   const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
   struct gkyl_poisson_bias_plane_list *bias_planes, struct gkyl_array *epsilon,
@@ -351,7 +354,8 @@ struct gkyl_fem_poisson *gkyl_fem_poisson_new(
   return up;
 }
 
-void gkyl_fem_poisson_set_rhs(
+void
+gkyl_fem_poisson_set_rhs(
   gkyl_fem_poisson *up, struct gkyl_array *rhsin, const struct gkyl_array *phibc
 )
 {
@@ -415,7 +419,8 @@ void gkyl_fem_poisson_set_rhs(
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 }
 
-void gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
+void
+gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -446,7 +451,8 @@ void gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
   }
 }
 
-void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
+void
+gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 {
   if (up->isdomperiodic) {
     gkyl_array_release(up->rhs_cellavg);

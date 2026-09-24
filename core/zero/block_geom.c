@@ -13,7 +13,8 @@ struct gkyl_block_geom {
   struct gkyl_ref_count ref_count;
 };
 
-static void block_geom_free(const struct gkyl_ref_count *ref)
+static void
+block_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_block_geom *bgeom = container_of(ref, struct gkyl_block_geom, ref_count);
   gkyl_free(bgeom->blocks);
@@ -21,7 +22,8 @@ static void block_geom_free(const struct gkyl_ref_count *ref)
   gkyl_free(bgeom);
 }
 
-struct gkyl_block_geom *gkyl_block_geom_new(int ndim, int nblocks)
+struct gkyl_block_geom *
+gkyl_block_geom_new(int ndim, int nblocks)
 {
   struct gkyl_block_geom *bgeom = gkyl_malloc(sizeof(struct gkyl_block_geom));
   bgeom->ndim = ndim;
@@ -35,17 +37,20 @@ struct gkyl_block_geom *gkyl_block_geom_new(int ndim, int nblocks)
   return bgeom;
 }
 
-int gkyl_block_geom_ndim(const struct gkyl_block_geom *bgeom)
+int
+gkyl_block_geom_ndim(const struct gkyl_block_geom *bgeom)
 {
   return bgeom->ndim;
 }
 
-int gkyl_block_geom_num_blocks(const struct gkyl_block_geom *bgeom)
+int
+gkyl_block_geom_num_blocks(const struct gkyl_block_geom *bgeom)
 {
   return bgeom->num_blocks;
 }
 
-void gkyl_block_geom_set_block(
+void
+gkyl_block_geom_set_block(
   struct gkyl_block_geom *bgeom, int bidx, const struct gkyl_block_geom_info *info
 )
 {
@@ -63,7 +68,8 @@ void gkyl_block_geom_set_block(
   }
 }
 
-void gkyl_block_geom_reset_block_extents(
+void
+gkyl_block_geom_reset_block_extents(
   struct gkyl_block_geom *bgeom, int bidx, double *lower, double *upper
 )
 {
@@ -80,24 +86,28 @@ gkyl_block_geom_get_block(const struct gkyl_block_geom *bgeom, int bidx)
   return &bgeom->blocks[bidx];
 }
 
-int gkyl_block_geom_check_consistency(const struct gkyl_block_geom *bgeom)
+int
+gkyl_block_geom_check_consistency(const struct gkyl_block_geom *bgeom)
 {
   // MORE TESTS ARE NEEDED HERE
   return gkyl_block_topo_check_consistency(bgeom->btopo);
 }
 
-struct gkyl_block_geom *gkyl_block_geom_acquire(const struct gkyl_block_geom *bgeom)
+struct gkyl_block_geom *
+gkyl_block_geom_acquire(const struct gkyl_block_geom *bgeom)
 {
   gkyl_ref_count_inc(&bgeom->ref_count);
   return (struct gkyl_block_geom *)bgeom;
 }
 
-struct gkyl_block_topo *gkyl_block_geom_topo(const struct gkyl_block_geom *bgeom)
+struct gkyl_block_topo *
+gkyl_block_geom_topo(const struct gkyl_block_geom *bgeom)
 {
   return gkyl_block_topo_acquire(bgeom->btopo);
 }
 
-void gkyl_block_geom_release(struct gkyl_block_geom *bgeom)
+void
+gkyl_block_geom_release(struct gkyl_block_geom *bgeom)
 {
   gkyl_ref_count_dec(&bgeom->ref_count);
 }

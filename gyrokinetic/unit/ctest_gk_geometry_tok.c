@@ -25,7 +25,8 @@
 #include <gkyl_tok_geo.h>
 #include <gkyl_util.h>
 
-void write_geometry(
+void
+write_geometry(
   gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local, const char *name
 )
 {
@@ -96,17 +97,19 @@ void write_geometry(
   gkyl_array_release(mc2p_nodal);
 }
 
-void test_tok_elliptical_ho()
+void
+test_tok_elliptical_ho()
 {
   clock_t start, end;
   double cpu_time_used;
   start = clock();
 
-  struct gkyl_efit_inp efit_inp = {// psiRZ and related inputs
-                                   .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
-                                   .rz_poly_order = 2,
-                                   .flux_poly_order = 1,
-                                   .reflect = true
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect = true,
   };
 
   double psisep = -4.0;
@@ -133,7 +136,7 @@ void test_tok_elliptical_ho()
     .rright = 6.0,
     .rleft = 0.0,
     .zmin = -3.0,
-    .zmax = 3.0
+    .zmax = 3.0,
   };
 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -152,7 +155,7 @@ void test_tok_elliptical_ho()
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis
+    .geo_basis = cbasis,
   };
 
   struct gk_geometry *up = gkyl_gk_geometry_tok_new(&geometry_inp);
@@ -164,7 +167,8 @@ void test_tok_elliptical_ho()
 }
 
 // Functions for test_3x_straight_cylinder
-void mapc2p(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+mapc2p(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   fout[0] = sqrt(psi * 4); // Function fed is psi = 0.5/2 * R^2 from the efit file
@@ -174,7 +178,8 @@ void mapc2p(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
   fout[2] = alpha; // There is a minus due to conventions
 }
 
-void exact_gij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_gij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = xn[0], theta = xn[1], phi = xn[2];
   double psi = r * r / 4;
@@ -186,7 +191,8 @@ void exact_gij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx
   fout[5] = 1 / (M_PI * M_PI); // g_33
 }
 
-void exact_g_contra_ij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_g_contra_ij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = xn[0], theta = xn[1], phi = xn[2];
   double psi = r * r / 4;
@@ -198,7 +204,8 @@ void exact_g_contra_ij(double t, const double *xn, double *GKYL_RESTRICT fout, v
   fout[5] = (M_PI * M_PI); // g_33
 }
 
-void exact_dual_magnitude(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_dual_magnitude(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = xn[0], theta = xn[1], phi = xn[2];
   double psi = r * r / 4;
@@ -207,7 +214,8 @@ void exact_dual_magnitude(double t, const double *xn, double *GKYL_RESTRICT fout
   fout[2] = M_PI;
 }
 
-void exact_normals(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_normals(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   // Remember cylindrical angle = - alpha
@@ -222,12 +230,14 @@ void exact_normals(double t, const double *xn, double *GKYL_RESTRICT fout, void 
   fout[8] = 1.0;
 }
 
-void bmag_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+bmag_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.5;
 }
 
-void test_tok_3x_p1_straight_cylinder_ho()
+void
+test_tok_3x_p1_straight_cylinder_ho()
 {
   // Very similar to the unit test in ctest_gk_geometry.c
   // The geometry is created to extend from Z = -1 to 1, R = (0.001, 1) in units meters
@@ -256,14 +266,20 @@ void test_tok_3x_p1_straight_cylinder_ho()
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
-  struct gkyl_efit_inp inp = {// psiRZ and related inputs
-                              .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
-                              .rz_poly_order = 2,
-                              .flux_poly_order = 1,
-                              .reflect = true
+  struct gkyl_efit_inp inp = {
+    // psiRZ and related inputs
+    .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect = true,
   };
   struct gkyl_tok_geo_grid_inp ginp = {
-    .rclose = 0.5, .zmin = -1., .zmax = 1., .rleft = 0.001, .rmax = 1.0, .rright = 1.0
+    .rclose = 0.5,
+    .zmin = -1.,
+    .zmax = 1.,
+    .rleft = 0.001,
+    .rmax = 1.0,
+    .rright = 1.0,
   };
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
@@ -282,7 +298,7 @@ void test_tok_3x_p1_straight_cylinder_ho()
     .geo_local_ext = ext_range,
     .geo_global = range,
     .geo_global_ext = ext_range,
-    .geo_basis = basis
+    .geo_basis = basis,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_input);
@@ -709,7 +725,8 @@ void test_tok_3x_p1_straight_cylinder_ho()
   gkyl_gk_geometry_release(gk_geom);
 }
 
-void test_tok_asdex_qprofile_core_ho()
+void
+test_tok_asdex_qprofile_core_ho()
 {
   double clower[] = {-0.09, -0.01, -M_PI + 1e-14};
   double cupper[] = {0.14975, 0.01, M_PI - 1e-14};
@@ -724,10 +741,11 @@ void test_tok_asdex_qprofile_core_ho()
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_efit_inp efit_inp = {// psiRZ and related inputs
-                                   .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
-                                   .rz_poly_order = 2,
-                                   .flux_poly_order = 1
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
   };
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
@@ -739,7 +757,7 @@ void test_tok_asdex_qprofile_core_ho()
     .zmin = -1.3,
     .zmax = 1.0,
     .zmin_left = -1.2,
-    .zmin_right = -1.0
+    .zmin_right = -1.0,
   };
   // Initialize geometry
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
@@ -760,7 +778,7 @@ void test_tok_asdex_qprofile_core_ho()
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis
+    .geo_basis = cbasis,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_input);
@@ -783,7 +801,8 @@ void test_tok_asdex_qprofile_core_ho()
   gkyl_position_map_release(pmap);
 }
 
-void test_tok_asdex_qprofile_sol_ho()
+void
+test_tok_asdex_qprofile_sol_ho()
 {
   double clower[] = {0.16, -0.01, -M_PI + 1e-14};
   double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
@@ -798,10 +817,11 @@ void test_tok_asdex_qprofile_sol_ho()
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_efit_inp efit_inp = {// psiRZ and related inputs
-                                   .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
-                                   .rz_poly_order = 2,
-                                   .flux_poly_order = 1
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
   };
 
   struct gkyl_tok_geo_grid_inp ginp = {
@@ -814,7 +834,7 @@ void test_tok_asdex_qprofile_sol_ho()
     .zmin = -1.3,
     .zmax = 1.0,
     .zmin_left = -1.2,
-    .zmin_right = -1.0
+    .zmin_right = -1.0,
   };
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
@@ -835,7 +855,7 @@ void test_tok_asdex_qprofile_sol_ho()
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis
+    .geo_basis = cbasis,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_inp);

@@ -32,8 +32,9 @@ struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_new(
  * Create new Euler equation object arallel-kinetic-perpendicular-moment (pkpm) model the lives on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_dg_eqn *
-gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range);
+struct gkyl_dg_eqn *gkyl_dg_euler_pkpm_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range
+);
 
 /**
  * Set the auxiliary fields (e.g. velocity u = rho*u/rho) needed in updating Euler equation for parallel-kinetic-perpendicular-moment (pkpm) model.

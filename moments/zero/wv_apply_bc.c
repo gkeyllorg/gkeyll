@@ -22,7 +22,8 @@ struct gkyl_wv_apply_bc {
   struct gkyl_range skin, ghost; // skin and ghost ranges
 };
 
-gkyl_wv_apply_bc *gkyl_wv_apply_bc_new(
+gkyl_wv_apply_bc *
+gkyl_wv_apply_bc_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_wv_eqn *eqn,
   const struct gkyl_wave_geom *geom, int dir, enum gkyl_edge_loc edge, const int *nghost,
   wv_bc_func_t bcfunc, void *ctx
@@ -49,7 +50,8 @@ gkyl_wv_apply_bc *gkyl_wv_apply_bc_new(
   return up;
 }
 
-void gkyl_wv_apply_bc_advance(
+void
+gkyl_wv_apply_bc_advance(
   const gkyl_wv_apply_bc *bc, double tm, const struct gkyl_range *update_rng, struct gkyl_array *out
 )
 {
@@ -123,7 +125,8 @@ void gkyl_wv_apply_bc_advance(
   }
 }
 
-void gkyl_wv_apply_bc_to_buff(
+void
+gkyl_wv_apply_bc_to_buff(
   const gkyl_wv_apply_bc *bc, double tm, const struct gkyl_range *update_rng,
   const struct gkyl_array *inp, double *buffer
 )
@@ -198,7 +201,8 @@ void gkyl_wv_apply_bc_to_buff(
   }
 }
 
-void gkyl_wv_apply_bc_release(gkyl_wv_apply_bc *bc)
+void
+gkyl_wv_apply_bc_release(gkyl_wv_apply_bc *bc)
 {
   gkyl_wv_eqn_release(bc->eqn);
   gkyl_wave_geom_release(bc->geom);

@@ -2,7 +2,8 @@
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_iso_euler_priv.h>
 
-void calcq(const double pv[4], double q[4])
+void
+calcq(const double pv[4], double q[4])
 {
   double rho = pv[0], u = pv[1], v = pv[2], w = pv[3];
   q[0] = rho;
@@ -11,7 +12,8 @@ void calcq(const double pv[4], double q[4])
   q[3] = rho * w;
 }
 
-void test_iso_euler_basic_ho()
+void
+test_iso_euler_basic_ho()
 {
   double vt = 1.0;
   struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);
@@ -85,7 +87,8 @@ void test_iso_euler_basic_ho()
   gkyl_wv_eqn_release(iso_euler);
 }
 
-void test_iso_euler_waves_ho()
+void
+test_iso_euler_waves_ho()
 {
   double vt = 1.0;
   struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);
@@ -148,7 +151,8 @@ void test_iso_euler_waves_ho()
   gkyl_wv_eqn_release(iso_euler);
 }
 
-void test_iso_euler_waves_2_ho()
+void
+test_iso_euler_waves_2_ho()
 {
   double vt = 10.0;
   struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);

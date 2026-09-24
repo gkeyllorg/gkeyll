@@ -13,7 +13,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void gkyl_dg_calc_pkpm_em_coupling_set_one_fluid_cu_kernel(
+__global__ static void
+gkyl_dg_calc_pkpm_em_coupling_set_one_fluid_cu_kernel(
   gkyl_dg_calc_pkpm_em_coupling *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_range conf_range, double dt, const struct gkyl_array *app_accel,
   const struct gkyl_array *ext_em, const struct gkyl_array *app_current,
@@ -51,7 +52,8 @@ __global__ static void gkyl_dg_calc_pkpm_em_coupling_set_one_fluid_cu_kernel(
   }
 }
 
-__global__ static void gkyl_dg_calc_pkpm_em_coupling_copy_one_fluid_cu_kernel(
+__global__ static void
+gkyl_dg_calc_pkpm_em_coupling_copy_one_fluid_cu_kernel(
   gkyl_dg_calc_pkpm_em_coupling *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *pkpm_u,
   struct gkyl_array *euler_pkpm, struct gkyl_array *em
@@ -84,7 +86,8 @@ __global__ static void gkyl_dg_calc_pkpm_em_coupling_copy_one_fluid_cu_kernel(
   }
 }
 
-__global__ static void gkyl_dg_calc_pkpm_em_coupling_set_two_fluids_cu_kernel(
+__global__ static void
+gkyl_dg_calc_pkpm_em_coupling_set_two_fluids_cu_kernel(
   gkyl_dg_calc_pkpm_em_coupling *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_range conf_range, double dt, const struct gkyl_array *app_accel_1,
   const struct gkyl_array *app_accel_2, const struct gkyl_array *ext_em,
@@ -127,7 +130,8 @@ __global__ static void gkyl_dg_calc_pkpm_em_coupling_set_two_fluids_cu_kernel(
   }
 }
 
-__global__ static void gkyl_dg_calc_pkpm_em_coupling_copy_two_fluids_cu_kernel(
+__global__ static void
+gkyl_dg_calc_pkpm_em_coupling_copy_two_fluids_cu_kernel(
   gkyl_dg_calc_pkpm_em_coupling *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array *vlasov_pkpm_moms_1, const struct gkyl_array *vlasov_pkpm_moms_2,
   const struct gkyl_array *pkpm_u_1, const struct gkyl_array *pkpm_u_2,
@@ -165,7 +169,8 @@ __global__ static void gkyl_dg_calc_pkpm_em_coupling_copy_two_fluids_cu_kernel(
 }
 
 // Host-side wrapper for primitive variable calculation
-void gkyl_dg_calc_pkpm_em_coupling_advance_cu(
+void
+gkyl_dg_calc_pkpm_em_coupling_advance_cu(
   struct gkyl_dg_calc_pkpm_em_coupling *up, double dt,
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
   const struct gkyl_array *app_current, const struct gkyl_array *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
@@ -213,7 +218,8 @@ void gkyl_dg_calc_pkpm_em_coupling_advance_cu(
 
 // CUDA kernel to set device pointers to pkpm-em coupling kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_calc_pkpm_em_coupling_set_cu_dev_ptrs(
+__global__ static void
+dg_calc_pkpm_em_coupling_set_cu_dev_ptrs(
   struct gkyl_dg_calc_pkpm_em_coupling *up, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
@@ -221,7 +227,8 @@ __global__ static void dg_calc_pkpm_em_coupling_set_cu_dev_ptrs(
   up->pkpm_em_coupling_copy = choose_pkpm_em_coupling_copy_kern(b_type, cdim, poly_order);
 }
 
-gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(
+gkyl_dg_calc_pkpm_em_coupling *
+gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, int num_species,
   double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static
 )

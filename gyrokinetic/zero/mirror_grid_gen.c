@@ -18,12 +18,14 @@ struct psirz_ctx {
   double psi; // psi to match
 };
 
-static inline double floor_sqrt(double x)
+static inline double
+floor_sqrt(double x)
 {
   return sqrt(fmax(x, 1e-14));
 }
 
-static double psirz(double R, void *ctx)
+static double
+psirz(double R, void *ctx)
 {
   struct psirz_ctx *rctx = ctx;
   double Z = rctx->Z;
@@ -33,7 +35,8 @@ static double psirz(double R, void *ctx)
   return fout[0] - rctx->psi;
 }
 
-static double calc_running_coord(double coord_lo, int i, double dx)
+static double
+calc_running_coord(double coord_lo, int i, double dx)
 {
   double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
   double coord = coord_lo;
@@ -43,7 +46,8 @@ static double calc_running_coord(double coord_lo, int i, double dx)
   return coord;
 }
 
-static void curlbhat_func(
+static void
+curlbhat_func(
   double r_curr, double Z, double phi, struct gkyl_basis_ops_evalf *evcub,
   struct gkyl_vec3 *curlbhat
 )
@@ -85,7 +89,8 @@ static void curlbhat_func(
   curlbhat->x[2] = 0.0;
 }
 
-struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
+struct gkyl_mirror_grid_gen *
+gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 {
   struct gkyl_mirror_grid_gen *geo = gkyl_malloc(sizeof *geo);
   geo->gg_x = gkyl_malloc(sizeof *geo->gg_x);
@@ -846,7 +851,8 @@ cleanup:
   return geo;
 }
 
-bool gkyl_mirror_grid_gen_is_include_axis(const struct gkyl_mirror_grid_gen *geom)
+bool
+gkyl_mirror_grid_gen_is_include_axis(const struct gkyl_mirror_grid_gen *geom)
 {
   return geom->gg_x->include_axis;
 }
@@ -857,7 +863,8 @@ gkyl_mirror_grid_gen_fl_coord(const struct gkyl_mirror_grid_gen *geom)
   return geom->gg_x->fl_coord;
 }
 
-void gkyl_mirror_grid_gen_release(struct gkyl_mirror_grid_gen *geom)
+void
+gkyl_mirror_grid_gen_release(struct gkyl_mirror_grid_gen *geom)
 {
   gkyl_array_release(geom->nodes_rza);
   gkyl_array_release(geom->nodes_psi);

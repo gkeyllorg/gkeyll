@@ -25,7 +25,8 @@
 #include <math.h>
 #include <assert.h>
 
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -36,12 +37,14 @@ static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
-void mapc2p_1x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p_1x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
 }
 
-void bfield_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0];
   fout[0] = 0.0;
@@ -49,13 +52,15 @@ void bfield_func_1x(double t, const double *xc, double *GKYL_RESTRICT fout, void
   fout[2] = 1.0;
 }
 
-void mapc2p_2x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p_2x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
 }
 
-void bfield_func_2x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func_2x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1];
   fout[0] = 0.0;
@@ -63,45 +68,52 @@ void bfield_func_2x(double t, const double *xc, double *GKYL_RESTRICT fout, void
   fout[2] = 1.0;
 }
 
-void mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 1.0;
 }
 
-void eval_density(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_density(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double *arr = ctx;
   double ne = arr[1];
   fout[0] = ne * 1.1;
 }
 
-void eval_cdensity(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_cdensity(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 1e19;
 }
 
-void eval_upar(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_upar(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void eval_vthsq(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_vthsq(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double *arr = ctx;
   double te = arr[0];
   fout[0] = te * GKYL_ELEMENTARY_CHARGE / GKYL_ELECTRON_MASS;
 }
 
-void test_1x(
+void
+test_1x(
   int poly_order, bool use_gpu, double te, int atomic_z, int charge_state, int num_ne[1],
   int ne_interval
 )
@@ -186,7 +198,7 @@ void test_1x(
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
+    .basis = confBasis,
   };
 
   int geo_ghost[3] = {1};
@@ -323,7 +335,7 @@ void test_1x(
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
@@ -353,7 +365,10 @@ void test_1x(
   // initialize solver
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = {
-    .nvnu_surf = nvnu_surf, .nvnu = nvnu, .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu
+    .nvnu_surf = nvnu_surf,
+    .nvnu = nvnu,
+    .nvsqnu_surf = nvsqnu_surf,
+    .nvsqnu = nvsqnu,
   };
   slvr = gkyl_dg_updater_rad_gyrokinetic_new(
     &grid, &confBasis, &basis, &local, &confLocal, gvm, &drag_inp, use_gpu
@@ -452,7 +467,8 @@ void test_1x(
   gkyl_gk_geometry_release(gk_geom);
 }
 
-void test_2x(int poly_order, bool use_gpu, double te)
+void
+test_2x(int poly_order, bool use_gpu, double te)
 {
   double mass = GKYL_ELECTRON_MASS;
   double charge = -1.0 * GKYL_ELEMENTARY_CHARGE;
@@ -534,7 +550,7 @@ void test_2x(int poly_order, bool use_gpu, double te)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
+    .basis = confBasis,
   };
 
   int geo_ghost[3] = {1};
@@ -673,7 +689,7 @@ void test_2x(int poly_order, bool use_gpu, double te)
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
@@ -703,7 +719,10 @@ void test_2x(int poly_order, bool use_gpu, double te)
   // initialize solver
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = {
-    .nvnu_surf = nvnu_surf, .nvnu = nvnu, .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu
+    .nvnu_surf = nvnu_surf,
+    .nvnu = nvnu,
+    .nvsqnu_surf = nvsqnu_surf,
+    .nvsqnu = nvsqnu,
   };
   slvr = gkyl_dg_updater_rad_gyrokinetic_new(
     &grid, &confBasis, &basis, &local, &confLocal, gvm, &drag_inp, use_gpu
@@ -808,63 +827,77 @@ void test_2x(int poly_order, bool use_gpu, double te)
 
 static int num_ne[1] = {1};
 static int num_ne2[1] = {20};
-void test_1x2v_p1_10eV()
+void
+test_1x2v_p1_10eV()
 {
   test_1x(1, false, 10.0, 3, 0, num_ne, 1);
 }
-void test_rad_gk_1x2v_p1_30eV_ho()
+void
+test_rad_gk_1x2v_p1_30eV_ho()
 {
   test_1x(1, false, 30.0, 3, 0, num_ne, 1);
 }
-void test_rad_gk_1x2v_p1_H_ho()
+void
+test_rad_gk_1x2v_p1_H_ho()
 {
   test_1x(1, false, 30.0, 1, 0, num_ne, 1);
 }
-void test_1x2v_p1_100eV()
+void
+test_1x2v_p1_100eV()
 {
   test_1x(1, false, 100.0, 3, 0, num_ne, 1);
 }
-void test_1x2v_p1_500eV()
+void
+test_1x2v_p1_500eV()
 {
   test_1x(1, false, 500.0, 3, 0, num_ne, 1);
 }
-void test_1x2v_p1_1000eV()
+void
+test_1x2v_p1_1000eV()
 {
   test_1x(1, false, 1000.0, 3, 0, num_ne, 1);
 }
-void test_rad_gk_1x2v_p1_5000eV_ho()
+void
+test_rad_gk_1x2v_p1_5000eV_ho()
 {
   test_1x(1, false, 5000.0, 3, 0, num_ne, 1);
 }
-void test_1x2v_p1_10000eV()
+void
+test_1x2v_p1_10000eV()
 {
   test_1x(1, false, 10000.0, 3, 0, num_ne, 1);
 }
-void test_rad_gk_2x2v_p1_ho()
+void
+test_rad_gk_2x2v_p1_ho()
 {
   test_2x(1, false, 30.0);
 }
 
-void test_rad_gk_1x2v_p1_Li1_lowNe_ho()
+void
+test_rad_gk_1x2v_p1_Li1_lowNe_ho()
 {
   test_1x(1, false, 30.0, 3, 1, num_ne2, 1);
 }
-void test_rad_gk_1x2v_p1_Li1_midNe_ho()
+void
+test_rad_gk_1x2v_p1_Li1_midNe_ho()
 {
   test_1x(1, false, 30.0, 3, 1, num_ne2, 6);
 }
-void test_rad_gk_1x2v_p1_Li1_highNe_ho()
+void
+test_rad_gk_1x2v_p1_Li1_highNe_ho()
 {
   test_1x(1, false, 30.0, 3, 1, num_ne2, 13);
 }
 
 #ifdef GKYL_HAVE_CUDA
 
-void test_rad_gk_1x2v_p1_dev()
+void
+test_rad_gk_1x2v_p1_dev()
 {
   test_1x(1, true, 30.0, 3, 0, num_ne, 1);
 }
-void test_rad_gk_1x2v_p1_L1_midNe_dev()
+void
+test_rad_gk_1x2v_p1_L1_midNe_dev()
 {
   test_1x(1, true, 30.0, 3, 1, num_ne2, 6);
 }

@@ -59,7 +59,8 @@ test_bc_twistshift_array_meta_new(struct test_bc_twistshift_output_meta meta)
   return mt;
 }
 
-static void test_bc_twistshift_array_meta_release(struct gkyl_msgpack_data *mt)
+static void
+test_bc_twistshift_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) {
     return;
@@ -77,7 +78,8 @@ struct skin_ghost_ranges {
 };
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(
+static void
+skin_ghost_ranges_init(
   struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost
 )
 {
@@ -93,7 +95,8 @@ static void skin_ghost_ranges_init(
   }
 }
 // Apply periodic BCs along parallel direction
-void apply_periodic_bc(
+void
+apply_periodic_bc(
   struct gkyl_array *buff, struct gkyl_array *fld, const int dir, const struct skin_ghost_ranges sgr
 )
 {
@@ -104,7 +107,8 @@ void apply_periodic_bc(
   gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.lower_ghost[dir]));
 }
 
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -124,14 +128,16 @@ struct test_bc_twistshift_ctx {
   enum gkyl_edge_loc edge;
 };
 
-void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void eval_bfield_3x(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+eval_bfield_3x(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
 
@@ -143,7 +149,8 @@ void eval_bfield_3x(double t, const double *xn, double *GKYL_RESTRICT fout, void
   fout[2] = B0;
 }
 
-void shift1_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+shift1_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct test_bc_twistshift_ctx *pars = ctx;
   double Lx[2] = {pars->upper[0] - pars->lower[0], pars->upper[1] - pars->lower[1]};
@@ -152,24 +159,28 @@ void shift1_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *c
   fout[0] = 4.0 * dx[1];
 }
 
-void shift1m_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+shift1m_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   shift1_fig6(t, xn, fout, ctx);
   fout[0] *= -1.0;
 }
 
-void shift2_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+shift2_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 1.1;
 }
 
-void shift2m_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+shift2m_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   shift2_fig6(t, xn, fout, ctx);
   fout[0] *= -1.0;
 }
 
-void init_donor_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+init_donor_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double y = xn[1];
 
@@ -179,7 +190,8 @@ void init_donor_fig6(double t, const double *xn, double *GKYL_RESTRICT fout, voi
   fout[0] = (1.0 / sqrt(2.0 * M_PI * pow(sigma, 2))) * exp(-pow(y - mu, 2) / (2.0 * pow(sigma, 2)));
 }
 
-void shift_fig9(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+shift_fig9(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct test_bc_twistshift_ctx *pars = ctx;
   double Lx[2] = {pars->upper[0] - pars->lower[0], pars->upper[1] - pars->lower[1]};
@@ -188,13 +200,15 @@ void shift_fig9(double t, const double *xn, double *GKYL_RESTRICT fout, void *ct
   fout[0] = dx[1] / 2.0;
 }
 
-void shiftm_fig9(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+shiftm_fig9(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   shift_fig9(t, xn, fout, ctx);
   fout[0] *= -1.0;
 }
 
-void init_donor_fig9(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+init_donor_fig9(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double y = xn[1];
 
@@ -208,7 +222,8 @@ void init_donor_fig9(double t, const double *xn, double *GKYL_RESTRICT fout, voi
   }
 }
 
-void test_bc_twistshift_3x_fig6_wcells(
+void
+test_bc_twistshift_3x_fig6_wcells(
   const int *cells, enum gkyl_edge_loc edge, bool check_distf, bool use_gpu, bool write_f
 )
 {
@@ -285,20 +300,21 @@ void test_bc_twistshift_3x_fig6_wcells(
     .cells = {cells[0], cells[1], cells[2]},
     .B0 = B0,
     .vt = vt,
-    .mass = mass
+    .mass = mass,
   };
 
   // Initialize the distribution
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) :
                                           gkyl_array_acquire(distf);
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-  ){.grid = &grid,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &grid,
     .basis = &basis,
     .num_ret_vals = 1,
     .eval = init_donor_fig6,
     //      .eval = init_donor_fig9,
-    .ctx = &proj_ctx});
+    .ctx = &proj_ctx,
+  });
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
   struct gkyl_msgpack_data *mt = test_bc_twistshift_array_meta_new(
@@ -333,7 +349,7 @@ void test_bc_twistshift_3x_fig6_wcells(
     .shift_func = shift1_fig6,
     //    .shift_func = shift_fig9,
     .shift_func_ctx = &proj_ctx,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
 
   struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
@@ -435,7 +451,8 @@ void test_bc_twistshift_3x_fig6_wcells(
   gkyl_array_release(distf_ho);
   gkyl_array_release(distf);
 }
-void test_bc_twistshift_3x2v_fig6_wcells(
+void
+test_bc_twistshift_3x2v_fig6_wcells(
   const int *cells, enum gkyl_edge_loc edge, bool check_distf, bool use_gpu, bool write_f
 )
 {
@@ -535,20 +552,21 @@ void test_bc_twistshift_3x2v_fig6_wcells(
     .cells = {cells[0], cells[1], cells[2], cells[3], cells[4]},
     .B0 = B0,
     .vt = vt,
-    .mass = mass
+    .mass = mass,
   };
 
   // Initialize the distribution
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) :
                                           gkyl_array_acquire(distf);
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-  ){.grid = &grid,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &grid,
     .basis = &basis,
     .num_ret_vals = 1,
     .eval = init_donor_fig6,
     //      .eval = init_donor_fig9,
-    .ctx = &proj_ctx});
+    .ctx = &proj_ctx,
+  });
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
   struct gkyl_msgpack_data *mt = test_bc_twistshift_array_meta_new(
@@ -583,7 +601,7 @@ void test_bc_twistshift_3x2v_fig6_wcells(
     .shift_func = shift1_fig6,
     //    .shift_func = shift_fig9,
     .shift_func_ctx = &proj_ctx,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
 
   struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
@@ -637,7 +655,7 @@ void test_bc_twistshift_3x2v_fig6_wcells(
     .geo_local_ext = local_ext_conf,
     .geo_global = local_conf,
     .geo_global_ext = local_ext_conf,
-    .geo_basis = basis_conf
+    .geo_basis = basis_conf,
   };
   struct gk_geometry *gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);
   struct gk_geometry *gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
@@ -811,7 +829,8 @@ void test_bc_twistshift_3x2v_fig6_wcells(
   gkyl_array_release(distf);
 }
 
-void shift_fig11(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+shift_fig11(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
 
@@ -822,7 +841,8 @@ void shift_fig11(double t, const double *xn, double *GKYL_RESTRICT fout, void *c
   fout[0] = 0.6 * x + 1.8;
 }
 
-void init_donor_3x_fig11(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+init_donor_3x_fig11(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
 
@@ -843,7 +863,8 @@ void init_donor_3x_fig11(double t, const double *xn, double *GKYL_RESTRICT fout,
                                               );
 }
 
-void init_donor_3x2v_fig11(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+init_donor_3x2v_fig11(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2], vpar = xn[3], mu = xn[4];
 
@@ -857,7 +878,8 @@ void init_donor_3x2v_fig11(double t, const double *xn, double *GKYL_RESTRICT fou
   fout[0] *= exp(-(pow(vpar, 2) + 2.0 * mu * B0 / mass) / (2.0 * vtsq));
 }
 
-void test_bc_twistshift_3x_fig11_wcells(
+void
+test_bc_twistshift_3x_fig11_wcells(
   const int *cells, enum gkyl_edge_loc edge, int apply_in_half_x, bool check_distf, bool use_gpu,
   bool write_f
 )
@@ -935,15 +957,19 @@ void test_bc_twistshift_3x_fig11_wcells(
     .cells = {cells[0], cells[1], cells[2]},
     .B0 = B0,
     .vt = vt,
-    .mass = mass
+    .mass = mass,
   };
 
   // Initialize the distribution
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) :
                                           gkyl_array_acquire(distf);
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-  ){.grid = &grid, .basis = &basis, .num_ret_vals = 1, .eval = init_donor_3x_fig11, .ctx = &proj_ctx
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &grid,
+    .basis = &basis,
+    .num_ret_vals = 1,
+    .eval = init_donor_3x_fig11,
+    .ctx = &proj_ctx,
   });
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
@@ -988,7 +1014,7 @@ void test_bc_twistshift_3x_fig11_wcells(
     .grid = &grid,
     .shift_func = shift_fig11,
     .shift_func_ctx = &proj_ctx,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
 
   struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
@@ -1148,7 +1174,8 @@ void test_bc_twistshift_3x_fig11_wcells(
   gkyl_array_release(distf);
 }
 
-void init_donor_3x_fig14(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+init_donor_3x_fig14(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
 
@@ -1173,7 +1200,8 @@ void init_donor_3x_fig14(double t, const double *xn, double *GKYL_RESTRICT fout,
   }
 }
 
-void shift_fig14(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+shift_fig14(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
 
@@ -1192,7 +1220,8 @@ void shift_fig14(double t, const double *xn, double *GKYL_RESTRICT fout, void *c
   }
 }
 
-void test_bc_twistshift_3x_fig14_wcells(
+void
+test_bc_twistshift_3x_fig14_wcells(
   const int *cells, enum gkyl_edge_loc edge, int apply_in_half_x, bool check_distf, bool use_gpu,
   bool write_f
 )
@@ -1271,15 +1300,19 @@ void test_bc_twistshift_3x_fig14_wcells(
     .B0 = B0,
     .vt = vt,
     .mass = mass,
-    .edge = edge
+    .edge = edge,
   };
 
   // Initialize the distribution
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) :
                                           gkyl_array_acquire(distf);
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-  ){.grid = &grid, .basis = &basis, .num_ret_vals = 1, .eval = init_donor_3x_fig14, .ctx = &proj_ctx
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &grid,
+    .basis = &basis,
+    .num_ret_vals = 1,
+    .eval = init_donor_3x_fig14,
+    .ctx = &proj_ctx,
   });
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
@@ -1324,7 +1357,7 @@ void test_bc_twistshift_3x_fig14_wcells(
     .grid = &grid,
     .shift_func = shift_fig14,
     .shift_func_ctx = &proj_ctx,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
 
   struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
@@ -1599,7 +1632,8 @@ void test_bc_twistshift_3x_fig14_wcells(
   gkyl_array_release(distf);
 }
 
-void test_bc_twistshift_3x2v_fig11_wcells(
+void
+test_bc_twistshift_3x2v_fig11_wcells(
   const int *cells, enum gkyl_edge_loc edge, int apply_in_half_x, bool check_distf, bool use_gpu,
   bool write_f
 )
@@ -1700,19 +1734,20 @@ void test_bc_twistshift_3x2v_fig11_wcells(
     .cells = {cells[0], cells[1], cells[2], cells[3], cells[4]},
     .B0 = B0,
     .vt = vt,
-    .mass = mass
+    .mass = mass,
   };
 
   // Initialize the distribution
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) :
                                           gkyl_array_acquire(distf);
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-  ){.grid = &grid,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &grid,
     .basis = &basis,
     .num_ret_vals = 1,
     .eval = init_donor_3x2v_fig11,
-    .ctx = &proj_ctx});
+    .ctx = &proj_ctx,
+  });
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
   struct gkyl_msgpack_data *mt = test_bc_twistshift_array_meta_new(
@@ -1755,7 +1790,7 @@ void test_bc_twistshift_3x2v_fig11_wcells(
     .grid = &grid,
     .shift_func = shift_fig11,
     .shift_func_ctx = &proj_ctx,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
 
   struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
@@ -1809,7 +1844,7 @@ void test_bc_twistshift_3x2v_fig11_wcells(
     .geo_local_ext = local_ext_conf,
     .geo_global = local_conf,
     .geo_global_ext = local_ext_conf,
-    .geo_basis = basis_conf
+    .geo_basis = basis_conf,
   };
   struct gk_geometry *gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);
   struct gk_geometry *gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
@@ -2021,7 +2056,8 @@ void test_bc_twistshift_3x2v_fig11_wcells(
 
 // CBC geometry (see rt_gk_cbc_passive_3x2v_p1.c)
 
-static double interp_1x_lut_cbc(double x, double *lut_grid, double *lut_val, int N)
+static double
+interp_1x_lut_cbc(double x, double *lut_grid, double *lut_val, int N)
 {
   double x_min = lut_grid[0];
   double x_max = lut_grid[N - 1];
@@ -2058,66 +2094,77 @@ struct integrand_cbc_ctx {
   double theta;
 };
 
-static double r_x_cbc(double x, double r0)
+static double
+r_x_cbc(double x, double r0)
 {
   return x + r0;
 }
 
-static double qprofile_cbc(double r, double a_mid, double qaxis, double qlcfs)
+static double
+qprofile_cbc(double r, double a_mid, double qaxis, double qlcfs)
 {
   return 1.0 + 2.78 * pow(r / a_mid, 2.8);
 }
 
-static double R_rtheta_cbc(double r, double theta, void *ctx)
+static double
+R_rtheta_cbc(double r, double theta, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   return app->R_axis - app->a_shift * r * r / (2. * app->R_axis) +
          r * cos(theta + asin(app->delta) * sin(theta));
 }
 
-static double dRdr_cbc(double r, double theta, void *ctx)
+static double
+dRdr_cbc(double r, double theta, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   return -app->a_shift * r / app->R_axis + cos(theta + asin(app->delta) * sin(theta));
 }
 
-static double dRdtheta_cbc(double r, double theta, void *ctx)
+static double
+dRdtheta_cbc(double r, double theta, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   return -r * sin(theta + asin(app->delta) * sin(theta)) * (1. + asin(app->delta) * cos(theta));
 }
 
-static double dZdr_cbc(double r, double theta, void *ctx)
+static double
+dZdr_cbc(double r, double theta, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   return app->kappa * sin(theta);
 }
 
-static double dZdtheta_cbc(double r, double theta, void *ctx)
+static double
+dZdtheta_cbc(double r, double theta, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   return app->kappa * r * cos(theta);
 }
 
-static double Jr_cbc(double r, double theta, void *ctx)
+static double
+Jr_cbc(double r, double theta, void *ctx)
 {
   return R_rtheta_cbc(r, theta, ctx) * (dRdr_cbc(r, theta, ctx) * dZdtheta_cbc(r, theta, ctx) -
                                         dRdtheta_cbc(r, theta, ctx) * dZdr_cbc(r, theta, ctx));
 }
 
-static double Bphi_cbc(double R, void *ctx)
+static double
+Bphi_cbc(double R, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   return app->B0 * app->R0 / R;
 }
 
-static double integrand_JoRsq_cbc(double t, void *int_ctx)
+static double
+integrand_JoRsq_cbc(double t, void *int_ctx)
 {
   struct integrand_cbc_ctx *inctx = int_ctx;
   return Jr_cbc(inctx->r, t, inctx->app_ctx) / pow(R_rtheta_cbc(inctx->r, t, inctx->app_ctx), 2);
 }
 
-static double intdPsidr_cbc(double r, void *ctx)
+static double
+intdPsidr_cbc(double r, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   struct integrand_cbc_ctx tmp_ctx = {.app_ctx = app, .r = r};
@@ -2126,7 +2173,8 @@ static double intdPsidr_cbc(double r, void *ctx)
   return integral.res;
 }
 
-static double dPsidr_cbc(double r, double theta, void *ctx)
+static double
+dPsidr_cbc(double r, double theta, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   double integral_val = interp_1x_lut_cbc(r, app->r_lut, app->dPsidr_int_lut, app->psi_lut_size);
@@ -2136,7 +2184,8 @@ static double dPsidr_cbc(double r, double theta, void *ctx)
          integral_val;
 }
 
-static double compute_alpha_integral_cbc(double r, double twrap, void *ctx)
+static double
+compute_alpha_integral_cbc(double r, double twrap, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   struct integrand_cbc_ctx tmp_ctx = {.app_ctx = app, .r = r};
@@ -2153,7 +2202,8 @@ static double compute_alpha_integral_cbc(double r, double twrap, void *ctx)
   }
 }
 
-static double alpha_cbc(double r, double theta, double phi, void *ctx)
+static double
+alpha_cbc(double r, double theta, double phi, void *ctx)
 {
   double twrap = theta;
   while (twrap < -M_PI) {
@@ -2168,21 +2218,24 @@ static double alpha_cbc(double r, double theta, double phi, void *ctx)
   return phi - R * Bt * integral_val / dPsidr_cbc(r, theta, ctx);
 }
 
-void bc_shift_func_lo_cbc(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bc_shift_func_lo_cbc(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   double r = r_x_cbc(xc[0], app->r0);
   fout[0] = app->Cy * (alpha_cbc(r, app->z_min, 0.0, ctx) - alpha_cbc(r, app->z_max, 0.0, ctx));
 }
 
-void bc_shift_func_up_cbc(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bc_shift_func_up_cbc(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   double r = r_x_cbc(xc[0], app->r0);
   fout[0] = -app->Cy * (alpha_cbc(r, app->z_min, 0.0, ctx) - alpha_cbc(r, app->z_max, 0.0, ctx));
 }
 
-void init_donor_3x_cbc(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+init_donor_3x_cbc(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_cbc_app_ctx *app = ctx;
   double x = xn[0], y = xn[1], z = xn[2];
@@ -2194,7 +2247,8 @@ void init_donor_3x_cbc(double t, const double *xn, double *GKYL_RESTRICT fout, v
   );
 }
 
-void test_bc_twistshift_3x_cbc_wcells(
+void
+test_bc_twistshift_3x_cbc_wcells(
   const int *cells, enum gkyl_edge_loc edge, bool check_distf, bool use_gpu, bool write_f
 )
 {
@@ -2254,7 +2308,7 @@ void test_bc_twistshift_3x_cbc_wcells(
     .y_max = Ly / 2.,
     .z_min = -Lz / 2.,
     .z_max = Lz / 2.,
-    .psi_lut_size = psi_lut_size
+    .psi_lut_size = psi_lut_size,
   };
 
   // Populate lookup tables (avoids redundant integration in geometry evaluations).
@@ -2320,8 +2374,13 @@ void test_bc_twistshift_3x_cbc_wcells(
   struct gkyl_array *distf_ho = use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) :
                                           gkyl_array_acquire(distf);
 
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-  ){.grid = &grid, .basis = &basis, .num_ret_vals = 1, .eval = init_donor_3x_cbc, .ctx = &app_ctx});
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &grid,
+    .basis = &basis,
+    .num_ret_vals = 1,
+    .eval = init_donor_3x_cbc,
+    .ctx = &app_ctx,
+  });
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
@@ -2356,7 +2415,7 @@ void test_bc_twistshift_3x_cbc_wcells(
     .grid = &grid,
     .shift_func = (edge == GKYL_LOWER_EDGE) ? bc_shift_func_lo_cbc : bc_shift_func_up_cbc,
     .shift_func_ctx = &app_ctx,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
 
   struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
@@ -3522,7 +3581,8 @@ void test_bc_twistshift_3x_cbc_wcells(
   gkyl_array_release(distf);
 }
 
-void test_bc_twistshift_3x_cbc(bool use_gpu)
+void
+test_bc_twistshift_3x_cbc(bool use_gpu)
 {
   const int cells0[] = {32, 16, 4};
 
@@ -3530,7 +3590,8 @@ void test_bc_twistshift_3x_cbc(bool use_gpu)
   test_bc_twistshift_3x_cbc_wcells(cells0, GKYL_UPPER_EDGE, true, use_gpu, false);
 }
 
-void test_bc_twistshift_3x_fig6(bool use_gpu)
+void
+test_bc_twistshift_3x_fig6(bool use_gpu)
 {
   const int cells0[] = {1, 10, 4};
 
@@ -3538,7 +3599,8 @@ void test_bc_twistshift_3x_fig6(bool use_gpu)
   test_bc_twistshift_3x_fig6_wcells(cells0, edgelo, true, use_gpu, false);
 }
 
-void test_bc_twistshift_3x2v_fig6(bool use_gpu)
+void
+test_bc_twistshift_3x2v_fig6(bool use_gpu)
 {
   const int cells0[] = {1, 10, 4, 2, 1};
 
@@ -3546,7 +3608,8 @@ void test_bc_twistshift_3x2v_fig6(bool use_gpu)
   test_bc_twistshift_3x2v_fig6_wcells(cells0, edgelo, true, use_gpu, false);
 }
 
-void test_bc_twistshift_3x_fig11(bool use_gpu)
+void
+test_bc_twistshift_3x_fig11(bool use_gpu)
 {
   const int cells0[] = {10, 5, 4};
   const int cells1[] = {20, 10, 4};
@@ -3576,7 +3639,8 @@ void test_bc_twistshift_3x_fig11(bool use_gpu)
   test_bc_twistshift_3x_fig11_wcells(cells2, edgelo, 1, false, use_gpu, false);
 }
 
-void test_bc_twistshift_3x_fig14(bool use_gpu)
+void
+test_bc_twistshift_3x_fig14(bool use_gpu)
 {
   const int cells0[] = {8, 8, 4};
   const int cells1[] = {16, 16, 4};
@@ -3596,7 +3660,8 @@ void test_bc_twistshift_3x_fig14(bool use_gpu)
   test_bc_twistshift_3x_fig14_wcells(cells3, edgeup, 0, false, use_gpu, false);
 }
 
-void test_bc_twistshift_3x2v_fig11(bool use_gpu)
+void
+test_bc_twistshift_3x2v_fig11(bool use_gpu)
 {
   const int cells0[] = {10, 5, 4, 2, 1};
   const int cells1[] = {20, 10, 4, 2, 1};
@@ -3626,55 +3691,67 @@ void test_bc_twistshift_3x2v_fig11(bool use_gpu)
   test_bc_twistshift_3x2v_fig11_wcells(cells2, edgelo, 1, false, use_gpu, false);
 }
 
-void test_bc_twistshift_3x_fig6_ho()
+void
+test_bc_twistshift_3x_fig6_ho()
 {
   test_bc_twistshift_3x_fig6(false);
 }
-void test_bc_twistshift_3x_fig11_ho()
+void
+test_bc_twistshift_3x_fig11_ho()
 {
   test_bc_twistshift_3x_fig11(false);
 }
-void test_bc_twistshift_3x_fig14_ho()
+void
+test_bc_twistshift_3x_fig14_ho()
 {
   test_bc_twistshift_3x_fig14(false);
 }
-void test_bc_twistshift_3x_cbc_ho()
+void
+test_bc_twistshift_3x_cbc_ho()
 {
   test_bc_twistshift_3x_cbc(false);
 }
 
-void test_bc_twistshift_3x2v_fig6_ho()
+void
+test_bc_twistshift_3x2v_fig6_ho()
 {
   test_bc_twistshift_3x2v_fig6(false);
 }
-void test_bc_twistshift_3x2v_fig11_ho()
+void
+test_bc_twistshift_3x2v_fig11_ho()
 {
   test_bc_twistshift_3x2v_fig11(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_bc_twistshift_3x_fig6_dev()
+void
+test_bc_twistshift_3x_fig6_dev()
 {
   test_bc_twistshift_3x_fig6(true);
 }
-void test_bc_twistshift_3x_fig11_dev()
+void
+test_bc_twistshift_3x_fig11_dev()
 {
   test_bc_twistshift_3x_fig11(true);
 }
-void test_bc_twistshift_3x_fig14_dev()
+void
+test_bc_twistshift_3x_fig14_dev()
 {
   test_bc_twistshift_3x_fig14(true);
 }
-void test_bc_twistshift_3x_cbc_dev()
+void
+test_bc_twistshift_3x_cbc_dev()
 {
   test_bc_twistshift_3x_cbc(true);
 }
 
-void test_bc_twistshift_3x2v_fig6_dev()
+void
+test_bc_twistshift_3x2v_fig6_dev()
 {
   test_bc_twistshift_3x2v_fig6(true);
 }
-void test_bc_twistshift_3x2v_fig11_dev()
+void
+test_bc_twistshift_3x2v_fig11_dev()
 {
   test_bc_twistshift_3x2v_fig11(true);
 }

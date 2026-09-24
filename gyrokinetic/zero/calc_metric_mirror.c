@@ -9,7 +9,8 @@
 #include <gkyl_math.h>
 #include <gkyl_dg_bin_ops.h>
 
-gkyl_calc_metric_mirror *gkyl_calc_metric_mirror_new(
+gkyl_calc_metric_mirror *
+gkyl_calc_metric_mirror_new(
   const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
   const struct gkyl_range *local, const struct gkyl_range *local_ext, bool use_gpu
 )
@@ -29,7 +30,8 @@ gkyl_calc_metric_mirror *gkyl_calc_metric_mirror_new(
   return up;
 }
 
-static inline double calc_metric(double dxdz[3][3], int i, int j)
+static inline double
+calc_metric(double dxdz[3][3], int i, int j)
 {
   double sum = 0;
   for (int k = 0; k < 3; ++k) {
@@ -39,14 +41,16 @@ static inline double calc_metric(double dxdz[3][3], int i, int j)
 }
 
 // Calculates e^1 = e_2 x e_3 /J
-static inline void calc_dual(double J, const double e_2[3], const double e_3[3], double e1[3])
+static inline void
+calc_dual(double J, const double e_2[3], const double e_3[3], double e1[3])
 {
   e1[0] = (e_2[1] * e_3[2] - e_2[2] * e_3[1]) / J;
   e1[1] = -(e_2[0] * e_3[2] - e_2[2] * e_3[0]) / J;
   e1[2] = (e_2[0] * e_3[1] - e_2[1] * e_3[0]) / J;
 }
 
-void gkyl_calc_metric_mirror_advance(
+void
+gkyl_calc_metric_mirror_advance(
   gkyl_calc_metric_mirror *up, struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid
 )
 {
@@ -116,7 +120,8 @@ void gkyl_calc_metric_mirror_advance(
   );
 }
 
-void gkyl_calc_metric_mirror_advance_interior(
+void
+gkyl_calc_metric_mirror_advance_interior(
   gkyl_calc_metric_mirror *up, struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid
 )
 {
@@ -352,7 +357,8 @@ void gkyl_calc_metric_mirror_advance_interior(
   );
 }
 
-void gkyl_calc_metric_mirror_advance_surface(
+void
+gkyl_calc_metric_mirror_advance_surface(
   gkyl_calc_metric_mirror *up, int dir, struct gk_geometry *gk_geom,
   struct gkyl_mirror_grid_gen *mirror_grid
 )
@@ -532,7 +538,8 @@ void gkyl_calc_metric_mirror_advance_surface(
   }
 }
 
-void gkyl_calc_metric_mirror_release(gkyl_calc_metric_mirror *up)
+void
+gkyl_calc_metric_mirror_release(gkyl_calc_metric_mirror *up)
 {
   gkyl_nodal_ops_release(up->n2m);
   gkyl_free(up);

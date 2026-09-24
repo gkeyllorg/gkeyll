@@ -8,7 +8,8 @@ extern "C" {
 #include <gkyl_array_average.h>
 }
 
-__global__ void gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
+__global__ void
+gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
 {
   int ndim = up->basis.ndim, poly_order = up->basis.poly_order;
 
@@ -20,7 +21,8 @@ __global__ void gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
   up->kernel = gkyl_array_average_ker_list[ndim - 1].list[op].kernels[poly_order - 1];
 }
 
-struct gkyl_array_average *gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
+struct gkyl_array_average *
+gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
 {
   struct gkyl_array *weight_ho;
   if (up->isweighted) {
@@ -47,7 +49,8 @@ struct gkyl_array_average *gkyl_array_average_cu_dev_new(struct gkyl_array_avera
   return up;
 }
 
-__global__ void gkyl_array_average_advance_cu_ker(
+__global__ void
+gkyl_array_average_advance_cu_ker(
   const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout
 )
 {
@@ -87,7 +90,8 @@ __global__ void gkyl_array_average_advance_cu_ker(
   }
 }
 
-void gkyl_array_average_advance_cu(
+void
+gkyl_array_average_advance_cu(
   const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout
 )
 {

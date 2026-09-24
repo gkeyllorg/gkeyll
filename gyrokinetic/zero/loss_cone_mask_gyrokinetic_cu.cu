@@ -84,7 +84,8 @@ __global__ static void gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker(
   }
 }
 
-void gkyl_loss_cone_mask_gyrokinetic_advance_cu(
+void
+gkyl_loss_cone_mask_gyrokinetic_advance_cu(
   gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
