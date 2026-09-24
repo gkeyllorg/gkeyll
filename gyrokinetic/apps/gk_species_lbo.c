@@ -140,7 +140,8 @@ gklbo_cross_moms_disabled(
 
 // Compute unscaled cross primitive moments (u_par_sr, vtsq_sr) for cross-collision species coll_idx.
 // Result is written into lbo->nu_boundary_corrections, which is used as scratch.
-static void gklbo_calc_cross_prim_moms(
+static void
+gklbo_calc_cross_prim_moms(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo,
   int coll_idx
 )
@@ -179,7 +180,8 @@ static void gklbo_calc_cross_prim_moms(
   );
 }
 
-static void gklbo_cross_moms_enabled(
+static void
+gklbo_cross_moms_enabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo
 )
 {
@@ -263,13 +265,12 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, doubl
     sizeof(io_meta_nu_prim_len) / sizeof(int), io_meta_nu_prim_len, io_meta_nu_prim
   );
 
-  struct gkyl_msgpack_map_elem desc_nu_cross[] = {
-    {.key = "Description",
-     .elem_type = GKYL_MP_STRING,
-     .cval =
-       "Cross-species drift velocity and thermal speed squared, or cross-species collision frequency."
-    }
-  };
+  struct gkyl_msgpack_map_elem desc_nu_cross[] = {{
+    .key = "Description",
+    .elem_type = GKYL_MP_STRING,
+    .cval =
+      "Cross-species drift velocity and thermal speed squared, or cross-species collision frequency.",
+  }};
   int io_meta_nu_cross_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta_nu_cross[] = {
     app->io_meta_dg, app->gk_geom->io_meta_basic, desc_nu_cross
@@ -315,11 +316,11 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, doubl
     } else {
       prim_moms_io = gks->lbo.prim_moms;
     }
-    struct gkyl_msgpack_map_elem desc_prim[] = {
-      {.key = "Description",
-       .elem_type = GKYL_MP_STRING,
-       .cval = "Self drift velocity and thermal speed squared, before cross-species contributions."}
-    };
+    struct gkyl_msgpack_map_elem desc_prim[] = {{
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Self drift velocity and thermal speed squared, before cross-species contributions.",
+    }};
     int io_meta_prim_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta_prim[] = {
       app->io_meta_dg, app->gk_geom->io_meta_basic, desc_prim
