@@ -41,10 +41,10 @@ gk_species_fdot_multiplier_write_enabled(
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
   // Write out the combined multiplier.
-  const char *fmt = "%s-%s_fdot_multiplier_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
+  const char *fmt = "%s-%s_%s_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, fdot_mult->diag_name, frame);
   char fileNm[sz + 1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, fdot_mult->diag_name, frame);
 
   // Copy data from device to host before writing it out.
   if (app->use_gpu) {
@@ -240,6 +240,12 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_factor_user_specified(
 )
 {
   double omega_max = compute_global_array_max(app, fdmul, cflrate);
+  // A disabled or stationary collisionless operator has no CFL constraint to relax.
+  // Avoid 0/0 in the clamp, including in ghost cells.
+  if (omega_max == 0.0) {
+    gkyl_array_scale(combined_multiplier, fdmul->time_dilation_scale_const);
+    return;
+  }
   omega_max = fdmul->cfl_factor_times_omega_max * omega_max;
   clamp_cflrate_by_omega_max(fdmul, omega_max, cflrate, combined_multiplier);
 }
@@ -510,10 +516,14 @@ gk_species_fdot_multiplier_init_comp(
 
 void
 gk_species_fdot_multiplier_init(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult,
+  const struct gkyl_gyrokinetic_fdot_multiplier *fdot_mult_inp, const char *diag_name
 )
 {
-  fdot_mult->num_multipliers = gks->info.time_rate_multiplier.num_multipliers;
+  assert(fdot_mult_inp->num_multipliers >= 0 && fdot_mult_inp->num_multipliers <= GKYL_MAX_FDOT_MUL);
+  *fdot_mult = (struct gk_fdot_multiplier){};
+  fdot_mult->num_multipliers = fdot_mult_inp->num_multipliers;
+  fdot_mult->diag_name = diag_name;
   fdot_mult->write_func = gk_species_fdot_multiplier_write_disabled;
   fdot_mult->advance_times_cfl_func = gk_fdot_multiplier_advance_times_cfl_disabled;
   fdot_mult->advance_times_rate_func = gk_fdot_multiplier_advance_times_rate_disabled;
@@ -526,9 +536,9 @@ gk_species_fdot_multiplier_init(
   fdot_mult->write_diagnostics = false;
   for (int i = 0; i < fdot_mult->num_multipliers; ++i) {
     gk_species_fdot_multiplier_init_comp(
-      app, gks, &fdot_mult->comp[i], &gks->info.time_rate_multiplier.multiplier[i]
+      app, gks, &fdot_mult->comp[i], &fdot_mult_inp->multiplier[i]
     );
-    if (gks->info.time_rate_multiplier.multiplier[i].write_diagnostics) {
+    if (fdot_mult_inp->multiplier[i].write_diagnostics) {
       fdot_mult->write_diagnostics = true;
     }
   }
@@ -665,5 +675,7 @@ gk_species_fdot_multiplier_reset(
 
   gks->info.time_rate_multiplier = fdot_mult_inp;
 
-  gk_species_fdot_multiplier_init(app, gks, fdot_mult);
+  gk_species_fdot_multiplier_init(
+    app, gks, fdot_mult, &gks->info.time_rate_multiplier, "fdot_multiplier"
+  );
 }

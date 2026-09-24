@@ -69,7 +69,8 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
     m0_max[0] *= 1.0 / pow(sqrt(2.0), app->cdim);
 
     double time_dilation_scale_const =
-      gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult);
+      gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult) *
+      gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->collisionless.fdot_mult);
 
     double omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
                     app->omegaH_gf * time_dilation_scale_const;
@@ -1762,7 +1763,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gk_species_damping_init(app, gks, &gks->damping);
 
   // Function multiplying df/dt.
-  gk_species_fdot_multiplier_init(app, gks, &gks->fdot_mult);
+  gk_species_fdot_multiplier_init(
+    app, gks, &gks->fdot_mult, &gks->info.time_rate_multiplier, "fdot_multiplier"
+  );
 
   // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;

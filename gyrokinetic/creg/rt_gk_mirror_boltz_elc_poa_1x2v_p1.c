@@ -779,6 +779,19 @@ run_phase(
   struct gkyl_gyrokinetic_collisionless collisionless_inp = {
     .type = GKYL_GK_COLLISIONLESS_ES,
     .scale_factor = pparams->alpha,
+    // OAP: cap the collisionless CFL frequency at 1/10 of its maximum.
+    // The loss-cone mask below still applies to the total RHS, including collisions.
+    .time_rate_multiplier =
+      {
+        .num_multipliers = pparams->phase == GK_POA_OAP ? 1 : 0,
+        .multiplier[0] =
+          {
+            .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX,
+            .cellwise_const = true,
+            .cfl_factor_times_omega_max = 0.1,
+            .write_diagnostics = true,
+          },
+      },
   };
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp = {
     .num_multipliers = 1,

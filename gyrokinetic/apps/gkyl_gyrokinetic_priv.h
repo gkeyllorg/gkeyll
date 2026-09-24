@@ -298,74 +298,6 @@ struct gk_rad_drag {
   void (*write_integrated_mom_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks);
 };
 
-struct gk_collisionless {
-  enum gkyl_gk_collisionless_type collisionless_id; // Type of collisionless terms.
-  bool write_diagnostics; // Whether to write diagnostics out.
-  double scale_fac; // Factor multiplying collisionless terms.
-
-  // Organization of the different equation objects and the required data and solvers
-  union {
-    // Charged (gyrokinetic) species ............................................ //
-    struct {
-      struct gkyl_array *flux_surf; // Array for surface phase space flux
-      struct gkyl_array *flux_surf_ho; // Host array for surface phase space flux
-      struct gkyl_array *apar; // A_parallel.
-      struct gkyl_array *apardot; // d/dt A_parallel.
-
-      struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes (GK/EM cases).
-      gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver (GK/EM cases).
-
-      // Passive advection (only for GKYL_GK_COLLISIONLESS_PASSIVE).
-      struct gkyl_array *passive_speeds; // Conf-space passive speeds.
-      struct gkyl_array *passive_speeds_ho; // Host copy of passive_speeds.
-      struct gkyl_gk_collisionless_passive_flux *passive_surf_flux_op; // Passive flux updater.
-      gkyl_dg_updater_gyrokinetic_passive *passive_slvr; // Passive collisionless solver.
-
-      // Methods chosen at runtime.
-      void (*flux_func)(
-        gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_collisionless *gkcls,
-        const struct gkyl_array *fin
-      );
-    };
-    // Neutral (Vlasov) species ............................................ //
-    struct {
-      struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
-      struct gkyl_array
-        *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
-      // utilized for numerical flux function
-      // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
-      struct gkyl_array
-        *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
-      // if true, numerical flux function inside kernels simplifies to
-      // F = alpha_surf*f^- (if sign_alpha_surf = 1),
-      // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
-
-      gkyl_dg_updater_vlasov *vlasov_slvr; // Vlasov solver.
-    };
-  };
-  void (*rhs_func)(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls,
-    const struct gkyl_array *fin, struct gkyl_array *rhs
-  );
-  void (*fdot_scaling)(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls,
-    struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng
-  );
-  void (*write_diags_func)(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls, double tm,
-    int frame
-  );
-  // Methods for neutral species.
-  void (*rhs_func_neut)(
-    gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
-    const struct gkyl_array *fin, struct gkyl_array *rhs
-  );
-  void (*write_diags_func_neut)(
-    gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
-    double tm, int frame
-  );
-};
-
 struct gk_lbo_collisions {
   enum gkyl_collision_id collision_id; // type of collisions
   bool write_diagnostics; // Whether to write diagnostics out.
@@ -1080,6 +1012,7 @@ struct gk_fdot_multiplier_comp {
 
 struct gk_fdot_multiplier {
   int num_multipliers; // Number of df/dt multipliers in chain.
+  const char *diag_name; // Diagnostic suffix, distinguishing total and collisionless multipliers.
   struct gk_fdot_multiplier_comp comp[GKYL_MAX_FDOT_MUL]; // Array of df/dt multiplier components.
   struct gkyl_array *multiplier; // Combined product of all component multipliers.
   struct gkyl_array *multiplier_host; // Host copy for I/O and projecting.
@@ -1096,6 +1029,75 @@ struct gk_fdot_multiplier {
   void (*advance_times_rate_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult,
     const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *rhs
+  );
+};
+
+struct gk_collisionless {
+  enum gkyl_gk_collisionless_type collisionless_id; // Type of collisionless terms.
+  bool write_diagnostics; // Whether to write diagnostics out.
+  double scale_fac; // Factor multiplying collisionless terms.
+  struct gk_fdot_multiplier fdot_mult; // Gyrokinetic collisionless RHS and CFL multiplier.
+
+  // Organization of the different equation objects and the required data and solvers
+  union {
+    // Charged (gyrokinetic) species ............................................ //
+    struct {
+      struct gkyl_array *flux_surf; // Array for surface phase space flux
+      struct gkyl_array *flux_surf_ho; // Host array for surface phase space flux
+      struct gkyl_array *apar; // A_parallel.
+      struct gkyl_array *apardot; // d/dt A_parallel.
+
+      struct gkyl_gk_collisionless_flux *surf_flux_op; // Collisionless fluxes (GK/EM cases).
+      gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver (GK/EM cases).
+
+      // Passive advection (only for GKYL_GK_COLLISIONLESS_PASSIVE).
+      struct gkyl_array *passive_speeds; // Conf-space passive speeds.
+      struct gkyl_array *passive_speeds_ho; // Host copy of passive_speeds.
+      struct gkyl_gk_collisionless_passive_flux *passive_surf_flux_op; // Passive flux updater.
+      gkyl_dg_updater_gyrokinetic_passive *passive_slvr; // Passive collisionless solver.
+
+      // Methods chosen at runtime.
+      void (*flux_func)(
+        gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_collisionless *gkcls,
+        const struct gkyl_array *fin
+      );
+    };
+    // Neutral (Vlasov) species ............................................ //
+    struct {
+      struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
+      struct gkyl_array
+        *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
+      // utilized for numerical flux function
+      // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
+      struct gkyl_array
+        *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
+      // if true, numerical flux function inside kernels simplifies to
+      // F = alpha_surf*f^- (if sign_alpha_surf = 1),
+      // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
+
+      gkyl_dg_updater_vlasov *vlasov_slvr; // Vlasov solver.
+    };
+  };
+  void (*rhs_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls,
+    const struct gkyl_array *fin, struct gkyl_array *rhs
+  );
+  void (*fdot_scaling)(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls,
+    struct gkyl_array *rhs, struct gkyl_array *cflrate, struct gkyl_range *rng
+  );
+  void (*write_diags_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls, double tm,
+    int frame
+  );
+  // Methods for neutral species.
+  void (*rhs_func_neut)(
+    gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
+    const struct gkyl_array *fin, struct gkyl_array *rhs
+  );
+  void (*write_diags_func_neut)(
+    gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
+    double tm, int frame
   );
 };
 
@@ -3389,9 +3391,12 @@ void gk_species_damping_release(
  * @param app gyrokinetic app object.
  * @param s Species object.
  * @param fdmul Species df/dt multiplier object.
+ * @param fdot_mult_inp Multiplier chain input parameters.
+ * @param diag_name Diagnostic suffix (must remain valid for the lifetime of the object).
  */
 void gk_species_fdot_multiplier_init(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult,
+  const struct gkyl_gyrokinetic_fdot_multiplier *fdot_mult_inp, const char *diag_name
 );
 
 /**
