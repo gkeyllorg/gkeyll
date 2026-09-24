@@ -178,7 +178,6 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect, false);
 
   struct gkyl_vlasov_fluid_species fluid = {
-    .name = "q",
     .equation = advect,
     .advection = {
       .velocity = evalAdvectVel,
@@ -280,11 +279,12 @@ for (int d = 0; d < cdim; d++) {
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 0,
-    .species = { },
+    .num_species = 1,
+    .species = {
+      { .name = "q",
+        .type = GKYL_SPECIES_FLUID, .fluid = fluid },
+    },
     
-    .num_fluid_species = 1,
-    .fluid_species = { fluid },
 
     .skip_field = true,
 

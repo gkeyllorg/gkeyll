@@ -211,13 +211,19 @@ vm_geom_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_
   if ( (vm_app_inp->skip_field == false) && ( vm_app_inp->field.field_id == GKYL_FIELD_GR_D_B ) ) {
     vmg->has_gr_fields = true;
   }
-  // (GR only) All coupled species are required to be either triad / triad_gr
-  vmg->has_gr_em_triad_coupling = vmg->has_gr_fields && vm_app_inp->num_species > 0;
+  // (GR only) All coupled kinetic species are required to be either triad /
+  // triad_gr. The species list mixes kinetic and fluid entries; only the
+  // kinetic block carries a model_id, so scan the kinetic species and require at
+  // least one.
+  int num_kinetic = 0;
+  bool all_triad = true;
   for (int i=0; i<vm_app_inp->num_species; ++i) {
-    enum gkyl_model_id model_id = vm_app_inp->species[i].model_id;
-    vmg->has_gr_em_triad_coupling = vmg->has_gr_em_triad_coupling &&
-      (model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR);
+    if (vm_app_inp->species[i].type == GKYL_SPECIES_FLUID) continue;
+    enum gkyl_model_id model_id = vm_app_inp->species[i].kinetic.model_id;
+    all_triad = all_triad && (model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR);
+    num_kinetic += 1;
   }
+  vmg->has_gr_em_triad_coupling = vmg->has_gr_fields && num_kinetic > 0 && all_triad;
 
   // If the fields are included, and are GR, then build the gr maxwell geometry
   if ( vmg->has_gr_fields ) {

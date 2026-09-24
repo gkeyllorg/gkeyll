@@ -53,9 +53,6 @@ main(int argc, char **argv)
 
   // f
   struct gkyl_vlasov_fluid_species f = {
-    .name = "f",
-    .charge = 0.0,
-    .mass = 1.0,
 
     .init = eval_fun,
     .equation = advect,
@@ -80,11 +77,12 @@ main(int argc, char **argv)
     .num_periodic_dir = 2,
     .periodic_dirs = {0, 1},
 
-    .num_species = 0,
-    .species = {},
+    .num_species = 1,
+    .species = {
+      { .name = "f", .charge = 0.0, .mass = 1.0,
+        .type = GKYL_SPECIES_FLUID, .fluid = f },
+    },
     
-    .num_fluid_species = 1,
-    .fluid_species = {f},
 
     .skip_field = true,
 

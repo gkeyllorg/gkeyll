@@ -319,10 +319,8 @@ main(int argc, char **argv)
   }
 
   // Top hat species.
-  struct gkyl_vlasov_species square = {
-    .name = "square",
+  struct gkyl_vlasov_kinetic_species square = {
     .model_id = GKYL_MODEL_SR,
-    .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vx_max },
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
@@ -344,10 +342,8 @@ main(int argc, char **argv)
   };
 
   // Bump species.
-  struct gkyl_vlasov_species bump = {
-    .name = "bump",
+  struct gkyl_vlasov_kinetic_species bump = {
     .model_id = GKYL_MODEL_SR,
-    .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vx_max },
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
@@ -384,7 +380,12 @@ main(int argc, char **argv)
     .periodic_dirs = { 0 },
 
     .num_species = 2,
-    .species = { square, bump },
+    .species = {
+      { .name = "square", .charge = ctx.charge, .mass = ctx.mass,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = square },
+      { .name = "bump", .charge = ctx.charge, .mass = ctx.mass,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = bump },
+    },
 
     .skip_field = true,
 

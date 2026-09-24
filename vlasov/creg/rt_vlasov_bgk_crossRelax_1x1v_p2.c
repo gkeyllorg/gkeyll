@@ -367,9 +367,7 @@ main(int argc, char **argv)
   }
 
   // First neutral species.
-  struct gkyl_vlasov_species neut1 = {
-    .name = "neut1",
-    .charge = ctx.charge_neut1, .mass = ctx.mass_neut1,
+  struct gkyl_vlasov_kinetic_species neut1 = {
     .lower = { -ctx.vx_max_neut1 },
     .upper = { ctx.vx_max_neut1 }, 
     .cells = { NVX },
@@ -405,9 +403,7 @@ main(int argc, char **argv)
   };
 
   // Second neutral species.
-  struct gkyl_vlasov_species neut2 = {
-    .name = "neut2",
-    .charge = ctx.charge_neut2, .mass = ctx.mass_neut2,
+  struct gkyl_vlasov_kinetic_species neut2 = {
     .lower = { -ctx.vx_max_neut2 },
     .upper = { ctx.vx_max_neut2 }, 
     .cells = { NVX },
@@ -459,7 +455,12 @@ main(int argc, char **argv)
     .periodic_dirs = { 0 },
 
     .num_species = 2,
-    .species = { neut1, neut2 },
+    .species = {
+      { .name = "neut1", .charge = ctx.charge_neut1, .mass = ctx.mass_neut1,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = neut1 },
+      { .name = "neut2", .charge = ctx.charge_neut2, .mass = ctx.mass_neut2,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = neut2 },
+    },
 
     .skip_field = true,
 
@@ -516,7 +517,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
 
   write_data(&io_trig, app, t_curr, false);
 

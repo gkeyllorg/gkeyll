@@ -14,10 +14,10 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
   if (vms->source_id == GKYL_BFLUX_SOURCE) {
     src->calc_bflux = true;
     assert(vms->info.source.source_length);
-    assert(vms->info.source.source_species);
     src->source_length = vms->info.source.source_length;
+    // source_species must name an existing kinetic species.
     src->source_species = vm_find_species(app, vms->info.source.source_species);
-    src->source_species_idx = vm_find_species_idx(app, vms->info.source.source_species);
+    assert(src->source_species);
     if (app->use_gpu) {
       src->scale_ptr = gkyl_cu_malloc((vdim+2)*sizeof(double));
     }
@@ -38,10 +38,27 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       .hamil_id = vms->mom_hamil_id,
       .use_gpu = app->use_gpu,
     };
-    src->num_cross_source = vms->info.source.num_cross_source; 
+    src->num_cross_source = vms->info.source.num_cross_source;
     for (int i=0; i<src->num_cross_source; i++) {
       src->adapt_source_species[i] = vm_find_species(app, vms->info.source.source_with[i]);
-      src->adapt_source_species_idx[i] = vm_find_species_idx(app, vms->info.source.source_with[i]);
+      // source_with must name an existing *kinetic* species (a typo, or a fluid
+      // species, returns NULL and would segfault in the adapt phase otherwise).
+      assert(src->adapt_source_species[i]);
+      // Cross-species adaptive sourcing is reciprocal: the adapt phase reads the
+      // partner's scale_m0 at the slot where the partner lists this species, so
+      // the partner must itself be adaptive and must include us in its
+      // source_with. (Read from info, not the partner's src: source objects are
+      // initialized one species at a time, and the partner's may not exist yet.)
+      const struct vm_species *other = src->adapt_source_species[i];
+      assert(other->info.source.source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE);
+      src->adapt_source_slot[i] = -1;
+      for (int j=0; j<other->info.source.num_cross_source; ++j) {
+        if (0 == strcmp(vms->name, other->info.source.source_with[j])) {
+          src->adapt_source_slot[i] = j;
+          break;
+        }
+      }
+      assert(src->adapt_source_slot[i] >= 0);
       // Threshold velocity for integration of moments over a subset of the domain. 
       // Also set threshold for whether we accumulate moment over subset of the domain. 
       inp_mom.v_thresh = vms->info.source.source_with_v_thresh[i];
@@ -158,22 +175,22 @@ vm_species_source_adapt_moms(gkyl_vlasov_app *app, const struct vm_species *vms,
 }
 
 void
-vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *vms, 
+vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *vms,
   struct vm_source *src)
 {
-  int species_idx;
-  species_idx = vm_find_species_idx(app, vms->info.name);  
   if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
     gkyl_array_clear(src->source, 0.0);
     for (int i=0; i<src->num_cross_source; i++) {
-      // First compute the adaptive source from self-sourcing. 
-      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &vms->basis, src->source, 
-        1.0, src->scale_m0[i], src->adapt_source[i], &app->local, &vms->local); 
+      // First compute the adaptive source from self-sourcing.
+      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &vms->basis, src->source,
+        1.0, src->scale_m0[i], src->adapt_source[i], &app->local, &vms->local);
 
-      // Next compute the adaptive source from the cross species. 
-      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &vms->basis, src->source, 
-        1.0, src->adapt_source_species[i]->src.scale_m0[i], src->adapt_source[i], &app->local, &vms->local); 
-    } 
+      // Next compute the adaptive source from the cross species, reading the
+      // partner's scale_m0 at the slot where the partner lists this species.
+      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &vms->basis, src->source,
+        1.0, src->adapt_source_species[i]->src.scale_m0[src->adapt_source_slot[i]],
+        src->adapt_source[i], &app->local, &vms->local);
+    }
   }
 }
 
@@ -183,7 +200,7 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *vms,
   struct vm_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
 {
   int species_idx;
-  species_idx = vm_find_species_idx(app, vms->info.name);
+  species_idx = vm_find_species_idx(app, vms->name);
   // use boundary fluxes to scale source profile
   if (src->calc_bflux) {
     src->scale_factor = 0.0;
@@ -256,9 +273,9 @@ vm_species_source_write(gkyl_vlasov_app* app,
     }
   );
   const char *fmt = "%s-%s_source_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // Ensures no buffer overflow.
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
   
   // Calculate adaptive source before I/O if source is adaptive. 
   vm_species_source_adapt(app, vms, src); 
@@ -312,10 +329,10 @@ vm_species_source_write_mom(gkyl_vlasov_app* app,
     }
 
     const char *fmt = "%s-%s_source_%s_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name,
+    int sz = gkyl_calc_strlen(fmt, app->name, vms->name,
       gkyl_distribution_moments_strs[vms->info.diag_moments[m]], frame);
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name,
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name,
       gkyl_distribution_moments_strs[vms->info.diag_moments[m]], frame);
     
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
@@ -330,9 +347,9 @@ vm_species_source_write_mom(gkyl_vlasov_app* app,
     vm_species_source_adapt_moms(app, vms, src, vms->f); 
 
     const char *fmt_source_M0 = "%s-%s_source_M0_adapt_%d.gkyl";
-    int sz_source_M0 = gkyl_calc_strlen(fmt_source_M0, app->name, vms->info.name, frame);
+    int sz_source_M0 = gkyl_calc_strlen(fmt_source_M0, app->name, vms->name, frame);
     char fileNm_source_M0[sz_source_M0+1]; // ensures no buffer overflow
-    snprintf(fileNm_source_M0, sizeof fileNm_source_M0, fmt_source_M0, app->name, vms->info.name, frame);
+    snprintf(fileNm_source_M0, sizeof fileNm_source_M0, fmt_source_M0, app->name, vms->name, frame);
     if (app->use_gpu) {
       gkyl_array_copy(src->scale_m0_host[0], src->scale_m0[0]);
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->scale_m0_host[0], fileNm_source_M0);
@@ -358,9 +375,9 @@ vm_species_source_write_integrated_mom(gkyl_vlasov_app* app,
   if (rank == 0) {
     // Write integrated diagnostic moments.
     const char *fmt = "%s-%s-source-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, "imom");
+    int sz = gkyl_calc_strlen(fmt, app->name, vms->name, "imom");
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, "imom");
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, "imom");
     
     if (src->is_first_integ_write_call) {
       gkyl_dynvec_write(src->integ_diag, fileNm);
@@ -398,7 +415,9 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
       gkyl_array_release(src->scale_m0_host[i]);
       gkyl_array_release(src->adapt_source[i]);
     }
-    gkyl_dg_gaussian_filter_release(src->gauss_filter);
+    if (src->filter) {
+      gkyl_dg_gaussian_filter_release(src->gauss_filter);
+    }
   }
 
   for (int k=0; k<src->num_sources; k++) {

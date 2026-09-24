@@ -26,7 +26,7 @@ vlasov_array_meta_new(struct vlasov_output_meta meta)
 
   // add some data to mpack
   mpack_build_map(&writer);
-  
+
   mpack_write_cstr(&writer, "time");
   mpack_write_double(&writer, meta.stime);
 
@@ -100,12 +100,13 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
 
+  int ntot = vm->num_species;
+
   int cdim = app->cdim = vm->cdim;
   int vdim = app->vdim = vm->vdim;
   int pdim = cdim+vdim;
   int poly_order = app->poly_order = vm->poly_order;
-  int ns = app->num_species = vm->num_species;
-  int nsf = app->num_fluid_species = vm->num_fluid_species;
+  app->num_species = ntot;
 
   double cfl_frac = vm->cfl_frac == 0 ? 1.0 : vm->cfl_frac;
   app->cfl = cfl_frac;
@@ -160,13 +161,13 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   if (vm->parallelism.comm == 0) {
     int cuts[3] = { 1, 1, 1 };
     app->decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
-    
+
     app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = app->decomp,
         .use_gpu = app->use_gpu
       }
     );
-    
+
     // Global and local ranges are same, and so just copy them.
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
     memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
@@ -186,13 +187,13 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // local skin and ghost ranges for configuration space fields
   for (int dir=0; dir<cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost); 
+    gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost);
     gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
   }
 
   // Configuration space geometry initialization
   // Note: *only* uses a p=1 DG representation of the geometry (JJ: 11/24/23)
-  app->c2p_ctx = app->mapc2p = 0;  
+  app->c2p_ctx = app->mapc2p = 0;
   app->has_mapc2p = vm->mapc2p ? true : false;
 
   if (app->has_mapc2p) {
@@ -258,88 +259,53 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   vm_geom_init(vm, app, app->vm_geom);
 
   app->has_field = !vm->skip_field; // note inversion of truth value
-  // A field object is always created: a real Maxwell/Poisson field if present,
-  // otherwise a no-op null field (GKYL_FIELD_NULL). The constructor sets the
-  // field's dispatch methods; callers use the vlasov_field_* wrappers.
+  // A field object is always created: the null field when no field is present.
   app->field = vlasov_field_new(vm, app);
 
-  // allocate space to store species objects
-  app->species = ns>0 ? gkyl_malloc(sizeof(struct vm_species[ns])) : 0;
-  for (int i=0; i<ns; ++i)
-    app->species[i] = (struct vm_species) { };
+  app->species = ntot>0 ? gkyl_malloc(sizeof(struct vlasov_species[ntot])) : 0;
 
-  // set info for each species: this needs to be done here as we need
-  // to access species name from vm_species_init
-  for (int i=0; i<ns; ++i)
-    app->species[i].info = vm->species[i];
+  // Construct each species container (allocates its aspect, stores the input,
+  // and sets its methods); the aspects are initialized below, once all
+  // containers exist, since the initializations look species up by name.
+  for (int i=0; i<ntot; ++i)
+    vlasov_species_init(app, &vm->species[i], &app->species[i]);
 
-  // allocate space to store fluid species objects
-  app->fluid_species = nsf>0 ? gkyl_malloc(sizeof(struct vm_fluid_species[nsf])) : 0;
+  // Species initialization runs in three phases: kinetic aspects, then the
+  // links between them (emission, cross collisions, sources), then the fluid
+  // aspects, some of which couple to kinetic species.
+  vlasov_species_init_kinetic_aspects(vm, app);
+  vlasov_species_link_kinetic_aspects(app);
+  vlasov_species_init_fluid_aspects(vm, app);
 
-  // set info for each fluid species: this needs to be done here as we
-  // need to access species name from vm_fluid_species_init
-  for (int i=0; i<nsf; ++i)
-    app->fluid_species[i].info = vm->fluid_species[i];
-
-  // initialize each species
-  for (int i=0; i<ns; ++i) 
-    vm_species_init(vm, app, &app->species[i]);
-
-  // initialize species wall emission terms: these rely
-  // on other species which must be allocated in the previous step
-  for (int i=0; i<ns; ++i) {
-    if (app->species[i].emit_lo)
-      vm_species_emission_cross_init(app, &app->species[i], &app->species[i].bc_emission_lo);
-    if (app->species[i].emit_up)
-      vm_species_emission_cross_init(app, &app->species[i], &app->species[i].bc_emission_up);
-  }
-  
-  // initialize each species cross-species terms: this has to be done here
-  // as need pointers to colliding species' collision objects
-  // allocated in the previous step
-  for (int i=0; i<ns; ++i) {
-    vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
-    vm_species_bgk_cross_init(app, &app->species[i], &app->species[i].bgk);
-  }
-
-  // initialize each species source terms: this has to be done here
-  // as they may initialize a bflux updater for their source species.
-
-  // initialize each species source terms
-  for (int i=0; i<ns; ++i)
-    if (app->species[i].source_id)
-      vm_species_source_init(app, &app->species[i], &app->species[i].src);
-
-  // initialize each fluid species
-  // Fluid species must be initialized after kinetic species, as some fluid species couple
-  // to kinetic species and pointers are allocated by the kinetic species objects
-  for (int i=0; i<nsf; ++i)
-    vm_fluid_species_init(vm, app, &app->fluid_species[i]);
-
-  for (int i=0; i<nsf; ++i)
-    if (app->fluid_species[i].source_id)
-      vm_fluid_species_source_init(app, &app->fluid_species[i], &app->fluid_species[i].src);
-
-  // Check if there are both any fluid species and an EM field. 
-  // If there are, initialize the implicit fluid-EM coupling solver.
+  // Implicit fluid-EM coupling: supported for momentum-carrying fluid species
+  // (Euler) under the standard Maxwell field. Scalar
+  // advection and canonical-PB fluids carry no current and are never coupled;
+  // a momentum-carrying fluid under any other field type has no coupling
+  // formulation and is rejected.
+  int num_coupled_fluids = 0;
+  for (int i=0; i<ntot; ++i)
+    if (app->species[i].fluid && vm_fluid_em_coupling_supported(app->species[i].fluid))
+      num_coupled_fluids += 1;
   app->has_fluid_em_coupling = false;
-  if (nsf > 0 && app->has_field) {
+  if (num_coupled_fluids > 0 && app->has_field) {
+    if (app->field->field_id != GKYL_FIELD_E_B)
+      gkyl_exit("gkyl_vlasov_app_new: fluid-EM coupling is only supported with the standard Maxwell field (E_B).");
     app->has_fluid_em_coupling = true;
-    app->fl_em = vm_fluid_em_coupling_init(app);
+    app->fl_em = vm_fluid_em_coupling_new(app);
   }
 
-  // Use implicit BGK collisions if specified
+  // Use implicit BGK collisions if any species requests them.
   app->has_implicit_coll_scheme = false;
-  for (int i=0; i<ns; ++i){
-    if (vm->species[i].collisions.is_implicit){
+  for (int i=0; i<ntot; ++i){
+    if (app->species[i].kinetic && app->species[i].kinetic->info.collisions.is_implicit){
       app->has_implicit_coll_scheme = true;
     }
   }
 
   // Set the appropriate update function for taking a single time step
-  // If we have implicit fluid-EM coupling or implicit BGK collisions, 
+  // If we have implicit fluid-EM coupling or implicit BGK collisions,
   // we perform a first-order operator split and treat those terms implicitly.
-  // Otherwise, we default to an SSP-RK3 method. 
+  // Otherwise, we default to an SSP-RK3 method.
   if (app->has_implicit_coll_scheme || app->has_fluid_em_coupling) {
     app->update_func = vlasov_update_op_split;
   }
@@ -357,64 +323,39 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   return app;
 }
 
+int
+vlasov_find_species_idx(const gkyl_vlasov_app *app, const char *nm)
+{
+  for (int i=0; i<app->num_species; ++i)
+    if (strcmp(nm, app->species[i].name) == 0)
+      return i;
+  return -1;
+}
+
 struct vm_species *
 vm_find_species(const gkyl_vlasov_app *app, const char *nm)
 {
-  for (int i=0; i<app->num_species; ++i)
-    if (strcmp(nm, app->species[i].info.name) == 0)
-      return &app->species[i];
-  return 0;
+  int i = vm_find_species_idx(app, nm);
+  return i >= 0 ? app->species[i].kinetic : 0;
 }
 
 int
 vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm)
 {
-  for (int i=0; i<app->num_species; ++i)
-    if (strcmp(nm, app->species[i].info.name) == 0)
-      return i;
-  return -1;
-}
-
-struct vm_fluid_species *
-vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm)
-{
-  for (int i=0; i<app->num_fluid_species; ++i)
-    if (strcmp(nm, app->fluid_species[i].info.name) == 0)
-      return &app->fluid_species[i];
-  return 0;
-}
-
-int
-vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm)
-{
-  for (int i=0; i<app->num_fluid_species; ++i)
-    if (strcmp(nm, app->fluid_species[i].info.name) == 0)
-      return i;
-  return -1;
+  int i = vlasov_find_species_idx(app, nm);
+  return (i >= 0 && app->species[i].kinetic) ? i : -1;
 }
 
 void
 vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
   struct gkyl_array *distf[], struct gkyl_array *fluid[], struct gkyl_array *emfield)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    vm_species_apply_bc(app, &app->species[i], distf[i], tcurr);
-  }
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    vm_fluid_species_apply_bc(app, &app->fluid_species[i], fluid[i]);
-  }
+  // distf[] and fluid[] are indexed over the overall species count.
+  int num_species = app->num_species;
+  for (int i=0; i<num_species; ++i)
+    vlasov_species_apply_bc(app, &app->species[i], distf[i], fluid[i], tcurr);
   // No-op for Vlasov-Poisson and the null field (no EM boundary conditions).
   vlasov_field_apply_bc(app, emfield);
-}
-
-void
-vp_calc_field(gkyl_vlasov_app* app, double tcurr, const struct gkyl_array *fin[])
-{
-  // Compute electrostatic potential from Poisson's equation.
-  vp_field_accumulate_charge_dens(app, app->field, fin);
-
-  // Solve the field equation.
-  vp_field_solve(app, app->field);
 }
 
 void
@@ -422,20 +363,15 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
   for (int i=0; i<app->num_species; ++i)
-    gkyl_vlasov_app_apply_ic_species(app, i, t0);
-
-  for (int i=0; i<app->num_fluid_species; ++i)
-    gkyl_vlasov_app_apply_ic_fluid_species(app, i, t0);
+    vlasov_species_apply_ic(app, &app->species[i], t0);
 
   gkyl_vlasov_app_apply_ic_field(app, t0); // no-op for the null field
 
-  struct gkyl_array *distf[app->num_species];
-  struct gkyl_array *fluid[app->num_fluid_species];
-  for (int i=0; i<app->num_species; ++i)
-    distf[i] = app->species[i].f;
-  for (int i=0; i<app->num_fluid_species; ++i)
-    fluid[i] = app->fluid_species[i].fluid;
   // BCs must be done after all species initialize for emission BCs to work.
+  int num_species = app->num_species;
+  struct gkyl_array *distf[num_species];
+  struct gkyl_array *fluid[num_species];
+  vlasov_species_gather_state(app, distf, fluid);
   vm_apply_bc(app, t0, distf, fluid, app->field->em);
 }
 
@@ -445,17 +381,10 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
 
-  if (app->field->field_id != GKYL_FIELD_NULL) {
-    struct gkyl_array *distf[app->num_species];
-    for (int i=0; i<app->num_species; ++i)
-      distf[i] = app->species[i].f;
-
-    // Dispatches to the Maxwell or Poisson IC; the distribution fin is used only
-    // by Vlasov-Poisson (to form the charge density), ignored by Vlasov-Maxwell.
-    // MF 2024/09/27/: Need the cast here for consistency. Fixing
-    // this may require removing 'const' from a lot of places.
-    vlasov_field_apply_ic(app, (const struct gkyl_array **) distf, t0);
-  }
+  // Dispatches to the Maxwell or Poisson IC (no-op for the null field).
+  const struct gkyl_array *fin[app->num_species];
+  vlasov_species_gather_dist(app, fin);
+  vlasov_field_apply_ic(app, fin, t0);
 
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
 }
@@ -464,145 +393,80 @@ void
 gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
 {
   assert(sidx < app->num_species);
-
-  app->tcurr = t0;
-  struct timespec wtm = gkyl_wall_clock();
-  vm_species_apply_ic(app, &app->species[sidx], t0);
-  app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
+  vlasov_species_apply_ic(app, &app->species[sidx], t0);
 }
 
-void
-gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, double t0)
+int
+gkyl_vlasov_app_find_species(const gkyl_vlasov_app* app, const char *nm)
 {
-  assert(sidx < app->num_fluid_species);
-
-  app->tcurr = t0;
-  struct timespec wtm = gkyl_wall_clock();
-  vm_fluid_species_apply_ic(app, &app->fluid_species[sidx], t0);
-  app->stat.init_fluid_species_tm += gkyl_time_diff_now_sec(wtm);
+  return vlasov_find_species_idx(app, nm);
 }
 
 void
 gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = &app->species[i];
-    vm_species_calc_integrated_mom(app, vms, tm); 
-
-    if (vms->src.write_source) {
-      vm_species_source_calc_integrated_mom(app, vms, &vms->src, tm); 
-    }
-  }
-
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    struct vm_fluid_species *f = &app->fluid_species[i];
-    vm_fluid_species_calc_integrated_mom(app, f, tm); 
-  }
+  for (int i=0; i<app->num_species; ++i)
+    vlasov_species_calc_integrated_mom(app, &app->species[i], tm);
 }
 
 void
 gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = &app->species[i];
-    vm_species_calc_L2(app, vms, tm); 
-  }
+  for (int i=0; i<app->num_species; ++i)
+    vlasov_species_calc_integrated_L2_f(app, &app->species[i], tm);
 }
 
 void
 gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
 {
-  vlasov_field_calc_energy(app, tm); // no-op for the null field
+  // The distributions let Vlasov-Poisson solve for the potential at time tm.
+  const struct gkyl_array *fin[app->num_species];
+  vlasov_species_gather_dist(app, fin);
+  vlasov_field_calc_energy(app, tm, fin); // no-op for the null field
 }
 
 void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
   gkyl_vlasov_app_write_field(app, tm, frame); // no-op for the null field
-  for (int i=0; i<app->num_species; ++i) {
-    gkyl_vlasov_app_write_species(app, i, tm, frame);
-  }
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
-  }
+  for (int i=0; i<app->num_species; ++i)
+    vlasov_species_write(app, &app->species[i], tm, frame);
 }
 
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
-  vlasov_field_write(app, tm, frame);
+  // The distributions let Vlasov-Poisson solve for the potential at time tm.
+  const struct gkyl_array *fin[app->num_species];
+  vlasov_species_gather_dist(app, fin);
+  vlasov_field_write(app, tm, frame, fin);
 }
 
 void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-{  
-  struct vm_species *vms = &app->species[sidx];
-  vm_species_write(app, vms, tm, frame); 
-
-  if (vms->src.write_source) {
-    vm_species_source_write(app, vms, &vms->src, tm, frame); 
-  }
-
-  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = vms->basis.id
-    }
-  );
-
-  if (app->species[sidx].emit_lo) {
-    vm_species_emission_write(app, vms, &vms->bc_emission_lo, mt, frame);
-  }
-  if (app->species[sidx].emit_up) {
-    vm_species_emission_write(app, vms, &vms->bc_emission_up, mt, frame);
-  }
-  vlasov_array_meta_release(mt);  
-}
-
-void
-gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  struct vm_fluid_species *vm_fs = &app->fluid_species[sidx];
-  vm_fluid_species_write(app, vm_fs, tm, frame);    
+  vlasov_species_write(app, &app->species[sidx], tm, frame);
 }
 
 void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
-{  
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = &app->species[i];
-    vm_species_write_mom(app, vms, tm, frame); 
-    if (vms->src.write_source) {
-      vm_species_source_write_mom(app, vms, &vms->src, tm, frame); 
-    }
-  }
+{
+  for (int i=0; i<app->num_species; ++i)
+    vlasov_species_write_mom(app, &app->species[i], tm, frame);
 }
 
 void
 gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = &app->species[i];
-    vm_species_write_integrated_mom(app, vms); 
-    if (vms->src.write_source) {
-      vm_species_source_write_integrated_mom(app, vms, &vms->src); 
-    }
-  }
-
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    struct vm_fluid_species *f = &app->fluid_species[i];
-    vm_fluid_species_write_integrated_mom(app, f); 
-  }  
+  for (int i=0; i<app->num_species; ++i)
+    vlasov_species_write_integrated_mom(app, &app->species[i]);
 }
 
 void
 gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app* app)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = &app->species[i];
-    vm_species_write_L2(app, vms); 
-  }
+  for (int i=0; i<app->num_species; ++i)
+    vlasov_species_write_integrated_L2_f(app, &app->species[i]);
 }
 
 void
@@ -614,10 +478,8 @@ gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app* app)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = &app->species[i];
-    vm_species_lte_write_max_corr_status(app, vms); 
-  } 
+  for (int i=0; i<app->num_species; ++i)
+    vlasov_species_write_lte_corr_status(app, &app->species[i]);
 }
 
 struct gkyl_update_status
@@ -681,7 +543,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   global->nup = l_red_global[NUP];
   global->nfeuler = l_red_global[NFEULER];
   global->nstage_2_fail = l_red_global[NSTAGE_2_FAIL];
-  global->nstage_3_fail = l_red_global[NSTAGE_3_FAIL];  
+  global->nstage_3_fail = l_red_global[NSTAGE_3_FAIL];
 
   int64_t l_red_n_iter_corr[app->num_species];
   int64_t l_red_num_corr[app->num_species];
@@ -692,9 +554,9 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
 
   int64_t l_red_global_n_iter_corr[app->num_species];
   int64_t l_red_global_num_corr[app->num_species];
-  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, app->num_species, 
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, app->num_species,
     l_red_n_iter_corr, l_red_global_n_iter_corr);
-  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, app->num_species, 
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, app->num_species,
     l_red_num_corr, l_red_global_num_corr);
 
   for (int s=0; s<app->num_species; ++s) {
@@ -703,15 +565,15 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   }
 
   enum {
-    TOTAL_TM, RK3_TM, FL_EM_TM, 
-    INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM, 
-    SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, FLUID_SPECIES_VARS_TM, 
-    SPECIES_COLL_MOM_TM, SPECIES_COL_TM, SPECIES_RAD_TM, SPECIES_LTE_TM, 
+    TOTAL_TM, RK3_TM, FL_EM_TM,
+    INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM,
+    SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, FLUID_SPECIES_VARS_TM,
+    SPECIES_COLL_MOM_TM, SPECIES_COL_TM, SPECIES_RAD_TM, SPECIES_LTE_TM,
     FIELD_RHS_TM, CURRENT_TM,
-    SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, 
+    SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM,
     SPECIES_BC_TM, FLUID_SPECIES_BC_TM, FIELD_BC_TM,
-    SPECIES_IO_TM, SPECIES_DIAG_CALC_TM, SPECIES_DIAG_IO_TM, 
-    FIELD_IO_TM, FIELD_DIAG_CALC_TM, FIELD_DIAG_IO_TM, 
+    SPECIES_IO_TM, SPECIES_DIAG_CALC_TM, SPECIES_DIAG_IO_TM,
+    FIELD_IO_TM, FIELD_DIAG_CALC_TM, FIELD_DIAG_IO_TM,
     D_END
   };
 
@@ -721,7 +583,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     [FL_EM_TM] = local->fl_em_tm,
     [INIT_SPECIES_TM] = local->init_species_tm,
     [INIT_FLUID_SPECIES_TM] = local->init_fluid_species_tm,
-    [INIT_FIELD_TM] = local->field_rhs_tm,
+    [INIT_FIELD_TM] = local->init_field_tm,
     [SPECIES_RHS_TM] = local->species_rhs_tm,
     [FLUID_SPECIES_RHS_TM] = local->fluid_species_rhs_tm,
     [FLUID_SPECIES_VARS_TM] = local->fluid_species_vars_tm,
@@ -735,7 +597,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     [FIELD_OMEGA_CFL_TM] = local->field_omega_cfl_tm,
     [SPECIES_BC_TM] = local->species_bc_tm,
     [FLUID_SPECIES_BC_TM] = local->fluid_species_bc_tm,
-    [FIELD_BC_TM] = local->field_bc_tm, 
+    [FIELD_BC_TM] = local->field_bc_tm,
     [SPECIES_IO_TM] = local->species_io_tm,
     [SPECIES_DIAG_CALC_TM] = local->species_diag_calc_tm,
     [SPECIES_DIAG_IO_TM] = local->species_diag_io_tm,
@@ -746,13 +608,13 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
 
   double d_red_global[D_END];
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
-  
+
   global->total_tm = d_red_global[TOTAL_TM];
   global->rk3_tm = d_red_global[RK3_TM];
   global->fl_em_tm = d_red_global[FL_EM_TM];
   global->init_species_tm = d_red_global[INIT_SPECIES_TM];
   global->init_fluid_species_tm = d_red_global[INIT_FLUID_SPECIES_TM];
-  global->field_rhs_tm = d_red_global[INIT_FIELD_TM];
+  global->init_field_tm = d_red_global[INIT_FIELD_TM];
   global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
   global->fluid_species_rhs_tm = d_red_global[FLUID_SPECIES_RHS_TM];
   global->fluid_species_vars_tm = d_red_global[FLUID_SPECIES_VARS_TM];
@@ -806,7 +668,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 
   struct gkyl_vlasov_stat stat = { };
   comm_reduce_app_stat(app, &app->stat, &stat);
-  
+
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
   // append to existing file so we have a history of different runs
@@ -819,11 +681,12 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
     gkyl_vlasov_app_cout(app, fp, " date : %s,\n", buff);
 
   gkyl_vlasov_app_cout(app, fp, " use_gpu : %d,\n", stat.use_gpu);
-  gkyl_vlasov_app_cout(app, fp, " num_ranks : %d,\n", num_ranks); 
-  
+  gkyl_vlasov_app_cout(app, fp, " num_ranks : %d,\n", num_ranks);
+
   for (int s=0; s<app->num_species; ++s)
-    range_stat_write(app, app->species[s].info.name, &app->species[s].global, fp);
-  
+    if (app->species[s].kinetic)
+      range_stat_write(app, app->species[s].kinetic->name, &app->species[s].kinetic->global, fp);
+
   gkyl_vlasov_app_cout(app, fp, " nup : %ld,\n", stat.nup);
   gkyl_vlasov_app_cout(app, fp, " nfeuler : %ld,\n", stat.nfeuler);
   gkyl_vlasov_app_cout(app, fp, " nstage_2_fail : %ld,\n", stat.nstage_2_fail);
@@ -840,14 +703,14 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   gkyl_vlasov_app_cout(app, fp, " init_species_tm : %lg,\n", stat.init_species_tm);
   if (app->has_field)
     gkyl_vlasov_app_cout(app, fp, " init_field_tm : %lg,\n", stat.init_field_tm);
-  
+
   gkyl_vlasov_app_cout(app, fp, " species_rhs_tm : %lg,\n", stat.species_rhs_tm);
 
   for (int s=0; s<app->num_species; ++s) {
-    gkyl_vlasov_app_cout(app, fp, " n_iter_corr[%d] : %ld,\n", s, 
+    gkyl_vlasov_app_cout(app, fp, " n_iter_corr[%d] : %ld,\n", s,
       stat.n_iter_corr[s]);
-    gkyl_vlasov_app_cout(app, fp, " num_corr[%d] : %ld,\n", s, 
-      stat.num_corr[s]);   
+    gkyl_vlasov_app_cout(app, fp, " num_corr[%d] : %ld,\n", s,
+      stat.num_corr[s]);
     gkyl_vlasov_app_cout(app, fp, " species_coll_drag_tm[%d] : %lg,\n", s,
       stat.species_lbo_coll_drag_tm[s]);
     gkyl_vlasov_app_cout(app, fp, " species_coll_diff_tm[%d] : %lg,\n", s,
@@ -861,7 +724,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   gkyl_vlasov_app_cout(app, fp, " species_lte_tm : %lg,\n", stat.species_lte_tm);
 
   gkyl_vlasov_app_cout(app, fp, " species_bc_tm : %lg,\n", stat.species_bc_tm);
-  
+
   gkyl_vlasov_app_cout(app, fp, " fluid_species_rhs_tm : %lg,\n", stat.fluid_species_rhs_tm);
 
   gkyl_vlasov_app_cout(app, fp, " fluid_species_bc_tm : %lg,\n", stat.fluid_species_bc_tm);
@@ -869,12 +732,12 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   if (app->has_field) {
     gkyl_vlasov_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
     gkyl_vlasov_app_cout(app, fp, " field_bc_tm : %lg,\n", stat.field_bc_tm);
-    
+
     gkyl_vlasov_app_cout(app, fp, " current_tm : %lg,\n", stat.current_tm);
   }
 
   gkyl_vlasov_app_cout(app, fp, " species_omega_cfl_tm : %lg\n", stat.species_omega_cfl_tm);
-  gkyl_vlasov_app_cout(app, fp, " field_omega_cfl_tm : %lg\n", stat.field_omega_cfl_tm);  
+  gkyl_vlasov_app_cout(app, fp, " field_omega_cfl_tm : %lg\n", stat.field_omega_cfl_tm);
   gkyl_vlasov_app_cout(app, fp, " species_io_tm : %lg\n", stat.species_io_tm);
   gkyl_vlasov_app_cout(app, fp, " species_diag_tm : %lg\n", stat.species_diag_calc_tm);
   gkyl_vlasov_app_cout(app, fp, " species_diag_io_tm : %lg\n", stat.species_diag_io_tm);
@@ -887,23 +750,23 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   gkyl_vlasov_app_cout(app, fp, " n_mom : %ld,\n", stat.n_mom);
   gkyl_vlasov_app_cout(app, fp, " n_diag : %ld,\n", stat.n_diag);
   gkyl_vlasov_app_cout(app, fp, " n_io : %ld,\n", stat.n_io);
-  gkyl_vlasov_app_cout(app, fp, " n_diag_io : %ld,\n", stat.n_diag_io);  
+  gkyl_vlasov_app_cout(app, fp, " n_diag_io : %ld,\n", stat.n_diag_io);
   gkyl_vlasov_app_cout(app, fp, " n_field_diag : %ld,\n", stat.n_field_diag);
   gkyl_vlasov_app_cout(app, fp, " n_field_io : %ld,\n", stat.n_field_io);
-  gkyl_vlasov_app_cout(app, fp, " n_field_diag_io : %ld,\n", stat.n_field_diag_io);  
+  gkyl_vlasov_app_cout(app, fp, " n_field_diag_io : %ld,\n", stat.n_field_diag_io);
 
   gkyl_vlasov_app_cout(app, fp, "}\n");
 
   if (rank == 0)
-    fclose(fp);  
+    fclose(fp);
 
 }
 
-static struct gkyl_app_restart_status
-header_from_file(gkyl_vlasov_app *app, const char *fname)
+struct gkyl_app_restart_status
+vlasov_header_from_file(gkyl_vlasov_app *app, const char *fname)
 {
   struct gkyl_app_restart_status rstat = { .io_status = 0 };
-  
+
   FILE *fp = 0;
   with_file(fp, fname, "r") {
     struct gkyl_rect_grid grid;
@@ -927,216 +790,55 @@ header_from_file(gkyl_vlasov_app *app, const char *fname)
 
     gkyl_grid_sub_array_header_release(&hdr);
   }
-  
+
   return rstat;
 }
 
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
 {
-  // Only Vlasov-Maxwell stores the EM field in the restart file; the Vlasov-
-  // Poisson potential (re-solved from the distribution) and the null field have
-  // nothing to read here.
-  if (app->field->field_id != GKYL_FIELD_E_B && app->field->field_id != GKYL_FIELD_GR_D_B)
-    return (struct gkyl_app_restart_status) {
-      .io_status = GKYL_ARRAY_RIO_SUCCESS,
-      .frame = 0,
-      .stime = 0.0
-    };
-
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
-
-  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    // Fixed-function field BCs are frozen from the initial conditions, so seed
-    // those buffers before the local solution is overwritten by restart data.
-    gkyl_vlasov_app_apply_ic_field(app, 0.0);
-
-    rstat.io_status =
-      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->em_host, fname);
-    if (app->use_gpu)
-      gkyl_array_copy(app->field->em, app->field->em_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-
-      // For GR, rescale the primitive fields to the evolved quantities by multiplying
-      // by Jc
-      if (app->field->field_id == GKYL_FIELD_GR_D_B) {
-        gkyl_array_copy(app->field->em_no_J, app->field->em_host);
-        gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
-          app->field->em_no_J, app->field->em, app->use_gpu);
-      }
-      else if (app->field->weight_by_pos_jacob) {
-        // Restart files hold the physical E, B; rescale to the evolved J*E, J*B on
-        // the interior (BCs re-fill the ghost cells below).
-        gkyl_array_copy(app->field->em_no_J, app->field->em_host);
-        gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local,
-          app->field->em_no_J, app->field->em);
-      }
-
-      vm_field_apply_bc(app, app->field, app->field->em);
-    }
-  }
-
-  // Compute external EM field and applied current if present
-  // Computation necessary in case external EM field or applied current
-  // are time-independent and not computed in the time-stepping loop
-  // since they are not read-in as part of restarts. 
-  vm_field_calc_ext_em(app, app->field, rstat.stime);
-  vm_field_calc_app_current(app, app->field, rstat.stime);  
-
-  return rstat;
+  return vlasov_field_from_file(app, fname);
 }
 
-struct gkyl_app_restart_status 
+struct gkyl_app_restart_status
 gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
   const char *fname)
 {
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
-
-  struct vm_species *vms = &app->species[sidx];
-  
-  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status =
-      gkyl_comm_array_read(vms->comm, &vms->grid, &vms->local, vms->f_host, fname);
-    if (app->use_gpu) {
-      gkyl_array_copy(vms->f, vms->f_host);
-    }
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      // Rescale distribution function by velocity-space Jacobian if present
-      // since output distribution function does not include velocity-space Jacobian. 
-      // Need to do this before applying boundary conditions since we only know f on
-      // the local range for the rescaling. 
-      gkyl_vlasov_velocity_map_rescale_jacobvel(vms->vel_map, &app->basis, &vms->basis,
-        &vms->local, vms->f, vms->f_no_J);
-      gkyl_array_copy(vms->f, vms->f_no_J);
-      // Also rescale by the configuration-space Jacobian since the output
-      // distribution does not include it either (stored f is J_x*J_v*f).
-      gkyl_vlasov_position_map_rescale_jacobpos(vms->pos_map, &vms->basis,
-        &vms->local, vms->f, vms->f_no_J);
-      gkyl_array_copy(vms->f, vms->f_no_J);
-
-      if (vms->calc_bflux) {
-        vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f);
-      }
-      vm_species_apply_bc(app, vms, vms->f, rstat.stime);
-      if (vms->source_id) {
-        vm_species_source_calc(app, vms, &vms->src, 0.0);
-      }
-    }
-  }
-
-  // Compute applied acceleration if present.
-  // Computation necessary in case applied acceleration
-  // is time-independent and not computed in the time-stepping loop
-  // since it is not read-in as part of restarts. 
-  vm_species_collisionless_app_accel(app, &vms->collisionless, rstat.stime);
-
-  return rstat;
-}
-
-struct gkyl_app_restart_status 
-gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
-  const char *fname)
-{
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
-
-  struct vm_fluid_species *vm_fs = &app->fluid_species[sidx];
-  
-  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status =
-      gkyl_comm_array_read(app->comm, &app->grid, &app->local, vm_fs->fluid_host, fname);
-    if (app->use_gpu) {
-      gkyl_array_copy(vm_fs->fluid, vm_fs->fluid_host);
-    }
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      vm_fluid_species_apply_bc(app, vm_fs, vm_fs->fluid);
-      if (vm_fs->source_id) {
-        vm_fluid_species_source_calc(app, vm_fs, 0.0);
-      }
-    }
-  }
-
-  // Compute applied acceleration if present.
-  // Computation necessary in case applied acceleration
-  // is time-independent and not computed in the time-stepping loop
-  // since it is not read-in as part of restarts. 
-  vm_fluid_species_calc_app_accel(app, vm_fs, rstat.stime);
-
-  return rstat;
+  return vlasov_species_from_file(app, &app->species[sidx], fname);
 }
 
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
 {
-  // The field's read method handles whatever this field type needs from the
-  // restart (Vlasov-Maxwell reads the EM field; no-op for Vlasov-Poisson, which
-  // is re-solved from the restarted distribution, and for the null field).
-  struct gkyl_app_restart_status rstat = vlasov_field_read_from_frame(app, frame);
-
-  app->field->is_first_energy_write_call = false; // append to existing diagnostic
-  
-  return rstat;
+  return vlasov_field_read_from_frame(app, frame);
 }
 
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame)
 {
-  // First call the apply_ic function; the interior cells will be overwritten by the read,
-  // but we need to fill quantities such as the fixed function boundary conditions with the
-  // data from the *initial* conditions. 
-  gkyl_vlasov_app_apply_ic_species(app, sidx, 0.0);
-
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].info.name, frame);
-  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_species(app, sidx, fileNm.str);
-  app->species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
-  app->species[sidx].is_first_integ_L2_write_call = false; // append to existing diagnostic
-  cstr_drop(&fileNm);
-  
-  return rstat;
-}
-
-struct gkyl_app_restart_status
-gkyl_vlasov_app_from_frame_fluid_species(gkyl_vlasov_app *app, int sidx, int frame)
-{
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->fluid_species[sidx].info.name, frame);
-  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_fluid_species(app, sidx, fileNm.str);
-  app->fluid_species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
-  cstr_drop(&fileNm);
-  
-  return rstat;
+  return vlasov_species_read_from_frame(app, &app->species[sidx], frame);
 }
 
 struct gkyl_app_restart_status
 gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
 {
-  struct gkyl_app_restart_status rstat;
-
-  // Field always exists; from_frame_field sorts by field type (no-op for null).
-  rstat = gkyl_vlasov_app_from_frame_field(app, frame);
-
+  // Species are read first: they set the app clock from their files, and the
+  // field then rebuilds its time-dependent inputs at that time (the Poisson
+  // field has no file of its own and evaluates its external potentials at the
+  // app clock; the potential itself is solved from the distribution whenever it
+  // is needed). The first failure is reported; otherwise the status carries the
+  // frame and time read from the species files, or from the field file when
+  // there are no species.
+  struct gkyl_app_restart_status rstat = { .io_status = GKYL_ARRAY_RIO_SUCCESS };
   for (int i = 0; i < app->num_species; i++) {
-    rstat = gkyl_vlasov_app_from_frame_species(app, i, frame);
-  }
-  for (int i = 0; i < app->num_fluid_species; i++) {
-    rstat = gkyl_vlasov_app_from_frame_fluid_species(app, i, frame);
+    rstat = vlasov_species_read_from_frame(app, &app->species[i], frame);
+    if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS)
+      return rstat;
   }
 
-  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    // Compute the fields and apply BCs.
-    if ((app->field->field_id != GKYL_FIELD_E_B) && (app->field->field_id != GKYL_FIELD_GR_D_B) 
-      && (app->field->field_id != GKYL_FIELD_NULL)) {
-      struct gkyl_array *distf[app->num_species];
-      for (int i=0; i<app->num_species; ++i)
-        distf[i] = app->species[i].f;
-
-      // MF 2024/09/27/: Need the cast here for consistency. Fixing
-      // this may require removing 'const' from a lot of places.
-      vp_field_apply_ic(app, app->field, (const struct gkyl_array **) distf, rstat.stime);
-      // Apply boundary conditions.
-      for (int i=0; i<app->num_species; ++i) {
-        vm_species_apply_bc(app, &app->species[i], distf[i], rstat.stime);
-      }
-    }
-  }
+  struct gkyl_app_restart_status fstat = gkyl_vlasov_app_from_frame_field(app, frame);
+  if (fstat.io_status != GKYL_ARRAY_RIO_SUCCESS || app->num_species == 0)
+    return fstat;
 
   return rstat;
 }
@@ -1168,13 +870,10 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   vm_geom_release(app, app->vm_geom);
   gkyl_free(app->vm_geom);
   for (int i=0; i<app->num_species; ++i)
-    vm_species_release(app, &app->species[i]);
-  for (int i=0; i<app->num_fluid_species; ++i)
-    vm_fluid_species_release(app, &app->fluid_species[i]);
-  if (app->num_species > 0)
+    vlasov_species_release(app, &app->species[i]);
+  if (app->species)
     gkyl_free(app->species);
-  if (app->num_fluid_species > 0)
-    gkyl_free(app->fluid_species);
+  // A field object always exists (the null field when no field is present).
   vlasov_field_release(app);
   if (app->has_fluid_em_coupling)
     vm_fluid_em_coupling_release(app, app->fl_em);

@@ -91,8 +91,6 @@ vlasovApp = Vlasov.App.new {
     upper = { vx_max },
     cells = { Nvx },
 
-    outputfLTE = false,
-
     -- Initial conditions.
     numInit = 1,
     projections = {

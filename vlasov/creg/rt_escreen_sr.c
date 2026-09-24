@@ -325,10 +325,8 @@ main(int argc, char **argv)
   }
 
   // electrons
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
+  struct gkyl_vlasov_kinetic_species elc = {
     .model_id = GKYL_MODEL_SR,
-    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { -ctx.px_max },
     .upper = { ctx.px_max }, 
     .cells = { NPX },
@@ -368,10 +366,8 @@ main(int argc, char **argv)
   };
 
   // positrons
-  struct gkyl_vlasov_species pos = {
-    .name = "pos",
+  struct gkyl_vlasov_kinetic_species pos = {
     .model_id = GKYL_MODEL_SR,
-    .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { -ctx.px_max },
     .upper = { ctx.px_max }, 
     .cells = { NPX },
@@ -434,7 +430,12 @@ main(int argc, char **argv)
     .periodic_dirs = { 0 },
 
     .num_species = 2,
-    .species = { elc, pos },
+    .species = {
+      { .name = "elc", .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = elc },
+      { .name = "pos", .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = pos },
+    },
 
     .field = field,
 

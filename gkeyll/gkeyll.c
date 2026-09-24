@@ -551,9 +551,13 @@ main(int argc, char **argv)
     gkyl_free(str);
   } while (0);
 
+  // Exit status: nonzero if any Lua chunk fails (or nothing is run), so
+  // scripts driving the executable can rely on it.
+  int status = 0;
+
   // run Lua code (if it exists) before running input file
   if (app_args->echunk)
-    glua_run_lua(L, app_args->echunk, strlen(app_args->echunk), 0);
+    status |= glua_run_lua(L, app_args->echunk, strlen(app_args->echunk), stderr);
 
   int rank = 0;
 #ifdef GKYL_HAVE_MPI
@@ -586,7 +590,7 @@ main(int argc, char **argv)
       
       int64_t sz = 0;
       char *buff = gkyl_load_file(inp_name, &sz);
-      glua_run_lua(L, buff, sz, stderr);
+      status |= glua_run_lua(L, buff, sz, stderr);
       gkyl_free(buff);
       something_run = true;
     }
@@ -601,15 +605,17 @@ main(int argc, char **argv)
         
         int64_t sz = 0;
         char *buff = gkyl_load_file(tool_name, &sz);
-        glua_run_lua(L, buff, sz, stderr);
+        status |= glua_run_lua(L, buff, sz, stderr);
         gkyl_free(buff);
         
         gkyl_free(tool_name);
         something_run = true;
       }
     }
-    if (!something_run)
+    if (!something_run) {
       fprintf(stderr, "No Lua code was run!\n");
+      status = 1;
+    }
   }
   
   lua_close(L);  
@@ -620,7 +626,8 @@ main(int argc, char **argv)
 #endif
 
   release_opt_args(app_args);
-  
+
+  return status;
 }
 
 #else
@@ -631,7 +638,7 @@ int
 main(int argc, char **argv)
 {
   fprintf(stderr, "Gkeyll built without Lua support!\n");
-  return 0;
+  return 1;
 }
 
 #endif

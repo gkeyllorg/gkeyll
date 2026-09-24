@@ -393,9 +393,7 @@ main(int argc, char **argv)
   }
 
   // Electrons.
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
-    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+  struct gkyl_vlasov_kinetic_species elc = {
     .lower = { -ctx.vx_max },
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
@@ -430,9 +428,7 @@ main(int argc, char **argv)
   };
 
   // Ions.
-  struct gkyl_vlasov_species ion = {
-    .name = "ion",
-    .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+  struct gkyl_vlasov_kinetic_species ion = {
     .lower = { -ctx.vx_max },
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
@@ -495,7 +491,12 @@ main(int argc, char **argv)
     .periodic_dirs = { },
 
     .num_species = 2,
-    .species = { elc, ion },
+    .species = {
+      { .name = "elc", .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = elc },
+      { .name = "ion", .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = ion },
+    },
 
     .field = field,
 
@@ -554,7 +555,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
 
   write_data(&io_trig, app, t_curr, false);
 

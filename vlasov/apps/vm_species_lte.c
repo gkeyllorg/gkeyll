@@ -37,8 +37,9 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
   lte->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
   lte->correct_all_moms = corr_inp.correct_all_moms;
-  int max_iter = corr_inp.max_iter > 0 ? vms->info.correct.max_iter : 100;
-  double iter_eps = corr_inp.iter_eps > 0 ? vms->info.correct.iter_eps  : 1e-12;
+  // corr_inp arrives with defaults already applied by the caller (vm_species_init).
+  int max_iter = corr_inp.max_iter;
+  double iter_eps = corr_inp.iter_eps;
   bool use_last_converged = corr_inp.use_last_converged;
   
   if (lte->correct_all_moms) {
@@ -136,9 +137,9 @@ vm_species_lte_write_max_corr_status(gkyl_vlasov_app* app, struct vm_species *vm
     if (rank == 0) {
       // Write out correction status.
       const char *fmt = "%s-%s-%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, "corr-max-stat");
+      int sz = gkyl_calc_strlen(fmt, app->name, vms->name, "corr-max-stat");
       char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, "corr-max-stat");
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, "corr-max-stat");
 
       if (vms->lte.is_first_corr_status_write_call) {
         // Write to a new file (this ensure previous output is removed).

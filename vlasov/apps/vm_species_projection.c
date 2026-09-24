@@ -171,7 +171,7 @@ vm_species_projection_calc(gkyl_vlasov_app *app, const struct vm_species *vms,
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 
     gkyl_proj_on_basis_advance(proj->proj_V_drift, tm, &app->local_ext, proj->V_drift);
     gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local_ext, proj->T_over_m);
-    gkyl_array_scale(proj->T_over_m, 1.0/vms->info.mass);
+    gkyl_array_scale(proj->T_over_m, 1.0/vms->mass);
 
     // Projection routines expect the LTE moments as a single array.
     gkyl_array_set_offset(proj->vlasov_lte_moms_host, 1.0, proj->dens, 0*app->basis.num_basis);

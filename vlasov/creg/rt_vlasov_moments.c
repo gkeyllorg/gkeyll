@@ -238,9 +238,7 @@ main(int argc, char **argv)
   printf("nloop = %d\n", inp.nloop);
   
   // electrons
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
-    .charge = -1.0, .mass = 1.0,
+  struct gkyl_vlasov_kinetic_species elc = {
     .lower = { -6.0, -6.0, -6.0 },
     .upper = { 6.0, 6.0, 6.0 }, 
     .cells = { inp.vcells[0], inp.vcells[1], inp.vcells[2] },
@@ -271,7 +269,10 @@ main(int argc, char **argv)
     .poly_order = inp.poly_order,
 
     .num_species = 1,
-    .species = { elc },
+    .species = {
+      { .name = "elc", .charge = -1.0, .mass = 1.0,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = elc },
+    },
     .field = field,
 
     .parallelism = {

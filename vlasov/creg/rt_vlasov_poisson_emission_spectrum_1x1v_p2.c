@@ -270,9 +270,7 @@ main(int argc, char **argv)
   /* struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(ctx.num_emission_species, 0.0, true, spectrum_model, yield_model, elastic_model, in_species); */
 
   // electrons
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
-    .charge = ctx.chargeElc, .mass = ctx.massElc,
+  struct gkyl_vlasov_kinetic_species elc = {
     .lower = { -4.0*ctx.vte},
     .upper = { 4.0*ctx.vte}, 
     .cells = { cells_v[0] },
@@ -307,9 +305,7 @@ main(int argc, char **argv)
   };
 
   // ions
-  struct gkyl_vlasov_species ion = {
-    .name = "ion",
-    .charge = ctx.chargeIon, .mass = ctx.massIon,
+  struct gkyl_vlasov_kinetic_species ion = {
     .lower = { -4.0*ctx.vti},
     .upper = { 4.0*ctx.vti}, 
     .cells = { cells_v[0] },
@@ -366,7 +362,12 @@ main(int argc, char **argv)
     .periodic_dirs = { },
 
     .num_species = 2,
-    .species = { elc, ion },
+    .species = {
+      { .name = "elc", .charge = ctx.chargeElc, .mass = ctx.massElc,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = elc },
+      { .name = "ion", .charge = ctx.chargeIon, .mass = ctx.massIon,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = ion },
+    },
     .field = field,
     .is_electrostatic = true,
 

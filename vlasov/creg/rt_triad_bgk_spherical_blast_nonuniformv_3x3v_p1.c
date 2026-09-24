@@ -565,10 +565,8 @@ main(int argc, char **argv)
   struct vel_map_ctx vmap_ctx_theta = { .vmax = ctx.vtheta_max, .s = 1.5 };
   struct vel_map_ctx vmap_ctx_phi = { .vmax = ctx.vphi_max, .s = 1.5 };
 
-  struct gkyl_vlasov_species neut = {
-    .name = "neut",
+  struct gkyl_vlasov_kinetic_species neut = {
     .model_id = GKYL_MODEL_TRIAD,
-    .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vr_max, -ctx.vtheta_max, -ctx.vphi_max,},
     .upper = { ctx.vr_max, ctx.vtheta_max, ctx.vphi_max },
     .cells = { NVR, NVTHETA, NVPHI },
@@ -648,7 +646,10 @@ main(int argc, char **argv)
    .periodic_dirs = { },
 
    .num_species = 1,
-   .species = { neut },
+   .species = {
+     { .name = "neut", .charge = ctx.charge, .mass = ctx.mass,
+       .type = GKYL_SPECIES_VLASOV, .kinetic = neut },
+   },
 
    .skip_field = true,
 
@@ -705,7 +706,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
 
   write_data(&io_trig, app, t_curr, false);
 

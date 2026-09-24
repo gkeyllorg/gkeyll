@@ -117,12 +117,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[6]));
   }
 
-  // Duplicate copy of EM data in case time step fails.
-  // Needed because of implicit source split which modifies solution and 
-  // is always successful, so if a time step fails due to the SSP RK3 
-  // we must restore the old solution before restarting the time step
-  f->em_dup = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
-
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_energy_write_call = true;
 
@@ -400,7 +394,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->calc_energy_func = vm_field_calc_energy;
   f->write_func = vm_field_write;
   f->write_energy_func = vm_field_write_energy;
-  f->read_func = vm_field_read_from_frame;
+  f->from_file_func = vm_field_from_file;
   f->release_func = vm_field_release;
 
   return f;
@@ -410,9 +404,7 @@ void
 vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *fin[], double t0)
 {
-  // fin is unused for Vlasov-Maxwell (its IC comes from the field init function);
-  // the signature matches the unified apply_ic_func dispatch.
-  (void) fin;
+  (void) fin; // unused: the Vlasov-Maxwell IC comes from the field init function.
   if (!app->has_field) return;
 
   int poly_order = app->poly_order;
@@ -444,14 +436,11 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
     gkyl_array_copy(field->em_no_J, field->em_host);
     gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
       field->em_no_J, field->em, app->use_gpu);
-    // On a mapped conf mesh the evolved fields also carry the (cell-constant)
-    // position-map Jacobian: J_pos*J_c*(D,B). em_no_J stays J_pos-weighted
-    // (the surface kernels un-weight the normal direction per side).
+    // On a mapped conf mesh the evolved field also carries the (cell-constant)
+    // position-map Jacobian: J_pos*J_c*(D,B).
     if (!app->pos_map->is_identity) {
       gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local_ext,
         field->em, field->em);
-      gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local_ext,
-        field->em_no_J, field->em_no_J);
     }
   }
   else if (field->weight_by_pos_jacob) {
@@ -506,49 +495,19 @@ vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double t
 }
 
 void
-vm_field_accumulate_current(gkyl_vlasov_app *app, 
-  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], 
+vm_field_accumulate_current(gkyl_vlasov_app *app,
+  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[],
   struct gkyl_array *emout)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = &app->species[i];
-    double qbyeps = s->info.charge/app->field->info.epsilon0; 
+  // Each species owns its explicit contribution (kinetic species accumulate
+  // -q/eps0 * m1i; implicitly-coupled fluid species are a no-op); the field
+  // only owns this loop and the applied current below.
+  int num_species = app->num_species;
+  for (int i=0; i<num_species; ++i)
+    vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], fluidin[i], emout);
 
-    vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
-
-    // GR specific current deposition
-    if (s->collisionless.has_gr_em_triad_coupling) {
-      vm_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-      // The GR kernel forms q/eps0*(rho*beta - alpha*e^i_a*Jhat^a).
-      gkyl_dg_gr_maxwell_current_deposition_advance(s->collisionless.calc_current_dep,
-        &app->local, qbyeps, app->field->geom->lapse, app->field->geom->shift,
-        app->field->geom->vierb_con, s->m0.marr, s->m1i.marr, emout);
-    }
-    else {
-      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
-    }
-
-    if (app->field->use_ghost_current) {
-      double avals_ghost_current[1], avals_ghost_current_global[1]; 
-      // First set the scalar ghost current array to the cell average 
-      // current/(epsilon0*nx) where nx is the number of x cells. 
-      gkyl_array_set_range(app->field->ghost_current, qbyeps/app->grid.cells[0], s->m1i.marr, &app->local); 
-      // Integrate the current over the whole domain to find the globally averaged ghost current. 
-      if (app->use_gpu) {
-        gkyl_array_reduce_range(app->field->red_ghost_current, app->field->ghost_current, GKYL_SUM, &app->local);
-        gkyl_cu_memcpy(avals_ghost_current, app->field->red_ghost_current, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-      }
-      else { 
-        gkyl_array_reduce_range(avals_ghost_current, app->field->ghost_current, GKYL_SUM, &app->local);
-      }
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_ghost_current, avals_ghost_current_global);
-      // Set the scalar ghost current array to the global average current and accumulate to the electric field. 
-      gkyl_array_clear(app->field->ghost_current, avals_ghost_current_global[0]);
-      gkyl_array_accumulate_range(emout, 1.0, app->field->ghost_current, &app->local);   
-    }    
-  } 
   // Accumulate applied current to electric field terms.
-  // *Only* accumulate applied currents if num_fluid_species = 0 and there is no fluid-EM coupling.
+  // *Only* accumulate applied currents if there is no fluid-EM coupling.
   // If there are fluid species, then applied current coupling handled by implicit fluid-EM coupling
   // See vm_fluid_em_coupling.c
   if (app->field->has_app_current && !app->has_fluid_em_coupling) {
@@ -586,7 +545,7 @@ vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array
 // Combine the RK stages of the field state (out = c1*arr1 + c2*arr2). The field
 // is part of the RK state vector only for Vlasov-Maxwell (E_B/GR_D_B); for
 // Vlasov-Poisson the potential is re-solved from the charge density each stage
-// (see vp_calc_field), so this is a no-op. Note: for Vlasov-Poisson the em/em1/
+// (see vp_field_solve), so this is a no-op. Note: for Vlasov-Poisson the em/em1/
 // emnew pointers alias the Poisson scratch arrays via the vm_field union, so
 // skipping the combine here also avoids scribbling on them.
 void
@@ -655,10 +614,10 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
     gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local, app->vm_geom->det_h,
        em, field->em_no_J, app->use_gpu); 
 
-    // Apply BCs after dividing out J so ghost cells are populated
-    // for conf_flux_surf which references the ghost cells for the flux
+    // Apply BCs after dividing out J so ghost cells are populated for
+    // conf_flux_surf, which references the ghost cells for the flux. The input
+    // em already has its BCs applied by the caller.
     vm_field_apply_bc(app, field, field->em_no_J);
-    vm_field_apply_bc(app, field, em);
 
     // Compute the surface expansion of the phase space flux in configuration space. 
     gkyl_dg_gr_maxwell_conf_flux_surf_advance(field->calc_conf_flux, &app->local, &app->local_ext, 
@@ -763,7 +722,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
 }
 
 void 
-vm_field_write(gkyl_vlasov_app* app, double tm, int frame)
+vm_field_write(gkyl_vlasov_app* app, double tm, int frame, const struct gkyl_array *fin[])
 {
   struct timespec wst = gkyl_wall_clock();  
 
@@ -850,7 +809,8 @@ vm_field_write(gkyl_vlasov_app* app, double tm, int frame)
 }
 
 void
-vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
+vm_field_calc_energy(gkyl_vlasov_app *app, double tm, struct vm_field *field,
+  const struct gkyl_array *fin[])
 {
   struct timespec wst = gkyl_wall_clock();  
 
@@ -916,13 +876,52 @@ vm_field_write_energy(gkyl_vlasov_app *app)
   app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
-// Read the Vlasov-Maxwell EM field from its restart file for the given frame.
 struct gkyl_app_restart_status
-vm_field_read_from_frame(gkyl_vlasov_app *app, struct vm_field *field, int frame)
+vm_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fname)
 {
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_field(app, fileNm.str);
-  cstr_drop(&fileNm);
+  struct gkyl_app_restart_status rstat = vlasov_header_from_file(app, fname);
+
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    // Fixed-function field BCs are frozen from the initial conditions, so seed
+    // those buffers before the local solution is overwritten by restart data.
+    vm_field_apply_ic(app, field, 0, 0.0);
+
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, field->em_host, fname);
+    if (app->use_gpu)
+      gkyl_array_copy(field->em, field->em_host);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      // For GR, rescale the primitive fields to the evolved quantities by
+      // multiplying by Jc.
+      if (field->field_id == GKYL_FIELD_GR_D_B) {
+        gkyl_array_copy(field->em_no_J, field->em_host);
+        gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
+          field->em_no_J, field->em, app->use_gpu);
+        // On a mapped conf mesh the evolved field also carries the position-map
+        // Jacobian; the file holds the physical fields.
+        if (!app->pos_map->is_identity) {
+          gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local,
+            field->em, field->em);
+        }
+      }
+      else if (field->weight_by_pos_jacob) {
+        // Restart files hold the physical E, B; rescale to the evolved J*E, J*B on
+        // the interior (BCs re-fill the ghost cells below).
+        gkyl_array_copy(field->em_no_J, field->em_host);
+        gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local,
+          field->em_no_J, field->em);
+      }
+
+      vm_field_apply_bc(app, field, field->em);
+    }
+  }
+
+  // Recompute the external EM field and applied current: they are not part of
+  // the restart file, and the time-stepping loop only recomputes them when they
+  // are time dependent.
+  vm_field_calc_ext_em(app, field, rstat.stime);
+  vm_field_calc_app_current(app, field, rstat.stime);
+
   return rstat;
 }
 
@@ -948,7 +947,6 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
     }
   }
   gkyl_array_release(f->em_host);
-  gkyl_array_release(f->em_dup);
   
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);

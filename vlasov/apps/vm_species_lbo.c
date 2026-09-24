@@ -15,6 +15,12 @@ vmlbo_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
+  // Compute LTE moments (n, V_drift, T/m) if a computed (Spitzer) collision
+  // frequency needs them: this species' own self/cross nu, or a partner's
+  // computed cross nu, which reads this species' LTE moments (see cross_init).
+  if (lbo->needs_lte_moms)
+    vm_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+
   // Compute M0, M1i, M2 moments .
   vm_species_moment_calc(&lbo->moms, species->local, app->local, fin);
   
@@ -42,20 +48,23 @@ vmlbo_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *species,
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
+// Every stage rebuilds nu_sum = self_nu + sum_r cross_nu_sr: the self method
+// (const or computed) resets it and each cross method accumulates onto it, so
+// the four self/cross mode combinations compose correctly.
 static void
 vmlbo_self_nu_calc_constNu(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
-  // Empty method.
+  // self_nu is static (projected at init); reset nu_sum from it so the cross
+  // methods accumulate onto a fresh sum each stage.
+  gkyl_array_set(lbo->nu_sum, 1.0, lbo->self_nu);
 }
 
 static void
 vmlbo_self_nu_calc_normNu(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
-  // Calculate nu_ss(x,t).
-  vm_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
-
+  // Calculate nu_ss(x,t) (LTE moments are staged by vmlbo_moms_enabled).
   gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, species->lte.moms.marr, lbo->vtsq_min,
     species->lte.moms.marr, lbo->vtsq_min, lbo->norm_nu_fac_self, lbo->self_nu);
 
@@ -66,7 +75,8 @@ static void
 vmlbo_cross_nu_calc_constNu(gkyl_vlasov_app *app, const struct vm_species *s,
   struct vm_lbo_collisions *lbo, int coll_idx)
 {
-  // Empty method.
+  // cross_nu is static (projected at init); accumulate onto the freshly-reset nu_sum.
+  gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[coll_idx]);
 }
 
 static void
@@ -129,7 +139,7 @@ vmlbo_cross_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *vms,
     // Recycle the boundary_corrections array because we don't need those anymore.
     struct gkyl_array *cross_prim_moms = lbo->nu_boundary_corrections;
     gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E, 
-      vms->info.mass, lbo->nu_moms, lbo->prim_moms,
+      vms->mass, lbo->nu_moms, lbo->prim_moms,
       lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
       lbo->nu_boundary_corrections, lbo->cross_nu[i], cross_prim_moms);
 
@@ -183,14 +193,14 @@ vmlbo_write_mom_enabled(gkyl_vlasov_app* app, struct vm_species *vms, double tm,
 
   // Write out nu_sum and nu_prim_moms.
   const char *fmt = "%s-%s_lbo_nu_sum_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
   
   const char *fmt_nu_prim = "%s-%s_lbo_nu_prim_moms_%d.gkyl";
-  int sz_nu_prim = gkyl_calc_strlen(fmt_nu_prim, app->name, vms->info.name, frame);
+  int sz_nu_prim = gkyl_calc_strlen(fmt_nu_prim, app->name, vms->name, frame);
   char fileNm_nu_prim[sz_nu_prim+1]; // ensures no buffer overflow
-  snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, vms->info.name, frame);
+  snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, vms->name, frame);
   
   // Copy data from device to host before writing it out.
   if (app->use_gpu) {
@@ -231,7 +241,26 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
     lbo->nu_sum = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   
     double nu_frac = vms->info.collisions.nu_frac ? vms->info.collisions.nu_frac : 1.0;
-  
+
+    // The Spitzer collision-frequency updater (and the vtsq_min floor it needs)
+    // is required whenever any collision frequency is computed in time: a computed
+    // self_nu, or a computed cross_nu (cross collisions for which no explicit
+    // cross_nu was provided). It is independent of the self_nu mode, so a species
+    // may use an explicit self_nu together with a computed cross_nu.
+    bool computed_cross = vms->info.collisions.num_cross_collisions > 0
+      && !vms->info.collisions.cross_nu[0];
+    if (!vms->info.collisions.self_nu || computed_cross) {
+      // Compute a minimum representable temperature based on the smallest dv in the grid.
+      double vtsq_min = 0.0;
+      for (int d=0; d<vdim; ++d) {
+        vtsq_min += (1.0/6.0)*pow(vms->grid.dx[cdim+d],2);
+      }
+      lbo->vtsq_min = vtsq_min/vdim;
+
+      lbo->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->basis, app->poly_order+1,
+        1.0, 1.0, 1.0, app->use_gpu);
+    }
+
     if (vms->info.collisions.self_nu) {
       // Project user's self-species collision frequency.
       lbo->norm_nu_self = false;
@@ -259,29 +288,21 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
       double eV = vms->info.collisions.eV ? vms->info.collisions.eV : GKYL_ELEMENTARY_CHARGE;
       // Vlasov does not use reference magnetic field for cyclotron frequency contribution to log(Lambda)
       double bmag_ref = 0.0;
-  
-      // Compute a minimum representable temperature based on the smallest dv in the grid.
-      double vtsq_min = 0.0;
-      for (int d=0; d<vdim; ++d) {
-        vtsq_min += (1.0/6.0)*pow(vms->grid.dx[cdim+d],2);
-      }
-      lbo->vtsq_min = vtsq_min/vdim;
-  
-      lbo->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->basis, app->poly_order+1,
-        1.0, 1.0, 1.0, app->use_gpu);
+      // vtsq_min and spitzer_calc are set up above (needed for any computed frequency).
 
-      // We define nu_ss = nu_sr(r=s) = alpha_E/((delta_ss * (1+beta))*n_s), with delta_ss = 2, 
+      // We define nu_ss = nu_sr(r=s) = alpha_E/((delta_ss * (1+beta))*n_s), with delta_ss = 2,
       // beta = 0. This gives a nu_ss that is arguably 2X smaller than it should be, but it's
       // cheaper and yields an electron isotropization rate that agrees better with the FPO's.
       lbo->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
         vms->info.collisions.den_ref, vms->info.collisions.den_ref, 
-        vms->info.mass, vms->info.mass, vms->info.charge, vms->info.charge,
+        vms->mass, vms->mass, vms->charge, vms->charge,
         vms->info.collisions.temp_ref, vms->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV);
   
       // Set pointers to functions chosen at runtime.
       lbo->self_nu_func = vmlbo_self_nu_calc_normNu;
+      lbo->needs_lte_moms = true; // Spitzer self nu reads this species' LTE moments.
     }
-  
+
     // Create moment calculator to get M0, M1, M2 for primitive moments.
     vm_species_moment_init(app, vms, &lbo->moms, GKYL_F_MOMENT_M0M1M2, false);
     lbo->nu_moms = mkarr(app->use_gpu, lbo->moms.marr->ncomp, lbo->moms.marr->size);
@@ -345,13 +366,20 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
       int my_idx_in_other[GKYL_MAX_SPECIES];
       for (int i=0; i<lbo->num_cross_collisions; ++i) {
         lbo->collide_with[i] = vm_find_species(app, vms->info.collisions.collide_with[i]);
+        // collide_with must name an existing *kinetic* species (a typo, or a
+        // fluid species, returns NULL and would segfault below without a message).
+        assert(lbo->collide_with[i]);
         my_idx_in_other[i] = -1;
         for (int j=0; j<lbo->collide_with[i]->lbo.num_cross_collisions; ++j) {
-          if (0 == strcmp(vms->info.name, lbo->collide_with[i]->info.collisions.collide_with[j])) {
+          if (0 == strcmp(vms->name, lbo->collide_with[i]->info.collisions.collide_with[j])) {
             my_idx_in_other[i] = j;
             break;
           }
         }
+        // Cross collisions must be specified symmetrically: the partner must
+        // list this species in its own collide_with (my_idx_in_other indexes the
+        // partner's cross arrays below).
+        assert(my_idx_in_other[i] >= 0);
       }
 
       // Morse's alpha_E.
@@ -359,7 +387,7 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
       for (int i=0; i<lbo->num_cross_collisions; ++i) {
         // Cross-species collision frequency, nu_sr.
         lbo->cross_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-        lbo->other_m[i] = lbo->collide_with[i]->info.mass;
+        lbo->other_m[i] = lbo->collide_with[i]->mass;
         lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
       }
 
@@ -373,11 +401,11 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
         double eV = vms->info.collisions.eV ? vms->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
         // Vlasov does not use reference magnetic field for cyclotron frequency contribution to log(Lambda)
         double bmag_ref = 0.0;
-        double mass_self = vms->info.mass, mass_other = lbo->collide_with[i]->info.mass;
+        double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
 
         alpha_E_norm[i] = nu_frac * gkyl_calc_Morse_alpha_E_const(
           vms->info.collisions.den_ref, lbo->collide_with[i]->info.collisions.den_ref,
-          mass_self, mass_other, vms->info.charge, lbo->collide_with[i]->info.charge,
+          mass_self, mass_other, vms->charge, lbo->collide_with[i]->charge,
           vms->info.collisions.temp_ref, lbo->collide_with[i]->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV);
       }
 
@@ -385,9 +413,11 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
         // Project user's cross-species collision frequency.
         lbo->norm_nu_cross = false;
 
-        // Ensure the other species this collides with also provided self_nu and cross_nu.
+        // Cross-collision frequency must be specified symmetrically: if this
+        // species provides an explicit cross_nu, its partner must too. The self
+        // collision frequency mode is independent (a species may use explicit
+        // self_nu with explicit or computed cross_nu), so it is not checked here.
         for (int i=0; i<lbo->num_cross_collisions; ++i) {
-          assert(lbo->collide_with[i]->info.collisions.self_nu);
           assert(lbo->collide_with[i]->info.collisions.cross_nu[my_idx_in_other[i]]);
         }
 
@@ -407,7 +437,7 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
           assert(lbo->collide_with[i]->info.collisions.den_ref);
           assert(vms->info.collisions.temp_ref);
           assert(lbo->collide_with[i]->info.collisions.temp_ref);
-          double mass_self = vms->info.mass, mass_other = lbo->collide_with[i]->info.mass;
+          double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
           double den_s = vms->info.collisions.den_ref;
           double den_r = lbo->collide_with[i]->info.collisions.den_ref;
           double vtsq_s = vms->info.collisions.temp_ref/mass_self;
@@ -425,14 +455,16 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
         // Cross-collision frequency computed in time.
         lbo->norm_nu_cross = true;
 
-        // Ensure the other species this collides with didn't provide self_nu nor cross_nu.
+        // Cross-collision frequency must be specified symmetrically: if this
+        // species uses a computed (Spitzer) cross_nu, its partner must too (i.e.
+        // the partner must not provide an explicit cross_nu). The self collision
+        // frequency mode is independent and is not checked here.
         for (int i=0; i<lbo->num_cross_collisions; ++i) {
-          assert(!(lbo->collide_with[i]->info.collisions.self_nu));
           assert(!(lbo->collide_with[i]->info.collisions.cross_nu[my_idx_in_other[i]]));
         }
 
         for (int i=0; i<lbo->num_cross_collisions; ++i) {
-          double mass_self = vms->info.mass, mass_other = lbo->collide_with[i]->info.mass;
+          double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
 
           lbo->norm_nu_fac_cross[i] = alpha_E_norm[i]
             * (mass_self+mass_other)/(lbo->delta_sr*lbo->betaGreenep1*mass_self);
@@ -443,6 +475,14 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
         // Set pointers to functions chosen at runtime.
         lbo->cross_nu_func = vmlbo_cross_nu_calc_normNu;
         lbo->alpha_E_func = vmlbo_alpha_E_normNu;
+
+        // The Spitzer cross nu reads both this species' and each partner's LTE
+        // moments, so mark both for the per-stage LTE moment calculation in
+        // vmlbo_moms_enabled. (Safe here: all lbo_init calls complete before
+        // any cross_init runs, and flags are only ever set, never cleared.)
+        lbo->needs_lte_moms = true;
+        for (int i=0; i<lbo->num_cross_collisions; ++i)
+          lbo->collide_with[i]->lbo.needs_lte_moms = true;
       }
 
       // Cross-primitive moment calculator.
@@ -516,7 +556,8 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
     gkyl_array_release(lbo->nu_moms);
     vm_species_moment_release(app, &lbo->moms);
 
-    if (lbo->norm_nu_self)
+    // spitzer_calc was allocated if any frequency is computed (self or cross).
+    if (lbo->norm_nu_self || lbo->norm_nu_cross)
       gkyl_spitzer_coll_freq_release(lbo->spitzer_calc);
 
     gkyl_array_release(lbo->nu_sum);

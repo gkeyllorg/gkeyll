@@ -1,21 +1,18 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
+// Assemble the forces acting on the species: q/m*(E, B) in qmem (applied
+// acceleration, external EM field, and the Maxwell or GR-Maxwell field) and the
+// total potentials q/m*(phi + phi_ext, A_ext) in pot_tot for Vlasov-Poisson.
 static void
-vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vms,
-  struct vm_collisionless *cls, const struct gkyl_array *fin, const struct gkyl_array *em, 
-  struct gkyl_array *rhs)
+vm_species_collisionless_calc_force(gkyl_vlasov_app *app, struct vm_species *vms,
+  struct vm_collisionless *cls, const struct gkyl_array *em)
 {
-  struct timespec wst = gkyl_wall_clock();
-
-  // Set values of q/m*EM and the total potentials based on field and external forces configuration. 
-  gkyl_array_clear(cls->qmem, 0.0); 
+  gkyl_array_clear(cls->qmem, 0.0);
   if (cls->has_app_accel) {
     gkyl_array_accumulate_range(cls->qmem, 1.0, cls->app_accel, &app->local);
   }
 
-  // A field object always exists; for the null field (GKYL_FIELD_NULL) none of
-  // these force terms fire (has_ext_em is false and the field type matches none).
   if (app->field->has_ext_em) {
     gkyl_array_accumulate_range(cls->qmem, cls->qbym, app->field->ext_em, &app->local);
   }
@@ -42,6 +39,16 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
       gkyl_array_accumulate_offset(cls->pot_tot, cls->qbym, app->field->ext_pot, 0);
     }
   }
+}
+
+static void
+vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vms,
+  struct vm_collisionless *cls, const struct gkyl_array *fin, const struct gkyl_array *em, 
+  struct gkyl_array *rhs)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  vm_species_collisionless_calc_force(app, vms, cls, em);
 
   // Divide out velocity-space Jacobian.
   gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
@@ -71,6 +78,14 @@ vm_species_collisionless_rhs_disabled(gkyl_vlasov_app *app, struct vm_species *v
   // Do nothing.
 }
 
+bool
+vm_species_has_gr_em_triad_coupling(const struct gkyl_vlasov_app *app,
+  enum gkyl_field_id field_id, enum gkyl_model_id model_id)
+{
+  return app->vm_geom->has_gr_em_triad_coupling && (field_id == GKYL_FIELD_GR_D_B) &&
+    (model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR);
+}
+
 void 
 vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vms, 
   struct vm_collisionless *cls)
@@ -82,10 +97,8 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   // Allocate array to store q/m*(E,B) or potentials (q/m*phi + m*phi_g, q/m*A) depending on equation system. 
   // Note: the potentials are the total potentials and thus can include both (or either) gravitational
   // or electrostatic interactions. 
-  cls->qbym = vms->info.charge/vms->info.mass;
-  cls->has_gr_em_triad_coupling = app->vm_geom->has_gr_em_triad_coupling &&
-    (vms->field_id == GKYL_FIELD_GR_D_B) &&
-    (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR);
+  cls->qbym = vms->charge/vms->mass;
+  cls->has_gr_em_triad_coupling = vm_species_has_gr_em_triad_coupling(app, vms->field_id, vms->model_id);
   cls->qmem = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
   cls->calc_lorentz = 0;
   cls->calc_current_dep = 0;

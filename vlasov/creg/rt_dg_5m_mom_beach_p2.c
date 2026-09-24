@@ -267,8 +267,6 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
   struct gkyl_vlasov_fluid_species elc = {
-    .name = "elc",
-    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_euler,
     .init = evalElcInit,
     .ctx = &ctx,
@@ -372,11 +370,12 @@ main(int argc, char **argv)
     .num_periodic_dir = 0,
     .periodic_dirs = { },
 
-    .num_species = 0,
-    .species = { },
+    .num_species = 1,
+    .species = {
+      { .name = "elc", .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+        .type = GKYL_SPECIES_FLUID, .fluid = elc },
+    },
 
-    .num_fluid_species = 1,
-    .fluid_species = { elc },
 
     .field = field,
 

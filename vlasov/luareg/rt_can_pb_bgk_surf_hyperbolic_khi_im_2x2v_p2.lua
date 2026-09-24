@@ -120,8 +120,6 @@ vlasovApp = Vlasov.App.new {
     upper = { vtheta_max, vz_max },
     cells = { Nvtheta, Nvz },
 
-    outputfLTE = true,
-
     -- Initial conditions.
     numInit = 1,
     projections = {
@@ -206,6 +204,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     correct = {
+      outputfLTE = true,
       correctAllMoments = true,
       iterationEpsilon = 1e-12,
       maxIterations = 100,

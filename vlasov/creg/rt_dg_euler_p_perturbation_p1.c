@@ -179,7 +179,6 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
   struct gkyl_vlasov_fluid_species fluid = {
-    .name = "euler",
     .equation = euler,
     .init = evalEulerInit,
     .ctx = &ctx,
@@ -276,11 +275,12 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 0,
-    .species = { },
+    .num_species = 1,
+    .species = {
+      { .name = "euler",
+        .type = GKYL_SPECIES_FLUID, .fluid = fluid },
+    },
 
-    .num_fluid_species = 1,
-    .fluid_species = { fluid },
 
     .skip_field = true,
 

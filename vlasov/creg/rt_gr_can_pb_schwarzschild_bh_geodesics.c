@@ -415,10 +415,8 @@ main(int argc, char **argv)
   }
 
   // Neutral species.
-  struct gkyl_vlasov_species neut = {
-    .name = "neut",
+  struct gkyl_vlasov_kinetic_species neut = {
     .model_id = GKYL_MODEL_CANONICAL_PB_GR,
-    .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.v_r_max, -ctx.v_theta_max - 2.0 },
     .upper = { ctx.v_r_max, ctx.v_theta_max - 2.0 },
     .cells = { Nvr, Nvtheta },
@@ -468,7 +466,10 @@ main(int argc, char **argv)
    .periodic_dirs = { 1 },
 
    .num_species = 1,
-   .species = { neut },
+    .species = {
+      { .name = "neut", .charge = ctx.charge, .mass = ctx.mass,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = neut },
+    },
 
    .skip_field = true,
 

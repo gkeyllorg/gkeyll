@@ -60,10 +60,7 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
   
   struct gkyl_vlasov_fluid_species f = {
-    .name = "f",
 
-    .charge = 0.0,
-    .mass = 1.0,
 
     .ctx = &ctx,
     .init = evalInit,
@@ -89,10 +86,11 @@ main(int argc, char **argv)
     .num_periodic_dir = 3,
     .periodic_dirs = { 0, 1, 2 },
 
-    .num_species = 0,
-    .species = { },
-    .num_fluid_species = 1,
-    .fluid_species = { f },
+    .num_species = 1,
+    .species = {
+      { .name = "f", .charge = 0.0, .mass = 1.0,
+        .type = GKYL_SPECIES_FLUID, .fluid = f },
+    },
 
     .skip_field = true,
 

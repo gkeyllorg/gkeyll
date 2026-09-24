@@ -423,10 +423,8 @@ main(int argc, char **argv)
   }
 
   // Electrons.
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
+  struct gkyl_vlasov_kinetic_species elc = {
     .model_id = GKYL_MODEL_SR,
-    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { -ctx.vx_max, -ctx.vy_max, -ctx.vz_max, },
     .upper = { ctx.vx_max, ctx.vy_max, ctx.vz_max }, 
     .cells = { NVX, NVY, NVZ },
@@ -487,7 +485,10 @@ main(int argc, char **argv)
     .periodic_dirs = { 0 },
 
     .num_species = 1,
-    .species = { elc },
+    .species = {
+      { .name = "elc", .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = elc },
+    },
 
     .field = field,
 

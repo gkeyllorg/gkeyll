@@ -72,9 +72,9 @@ vm_fluid_species_euler_write(gkyl_vlasov_app *app, struct vm_fluid_species *f,
   );
 
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, f->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->name, frame);
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
@@ -86,13 +86,13 @@ vm_fluid_species_euler_write(gkyl_vlasov_app *app, struct vm_fluid_species *f,
   // Also write out the primitive variables (u, p)
   vm_fluid_species_prim_vars(app, f, f->fluid);
   const char *fmt_prim = "%s-%s_prim_vars_%d.gkyl";
-  int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, f->info.name, frame);
+  int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, f->name, frame);
   char fileNm_prim[sz_prim+1]; // ensures no buffer overflow
-  snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, f->info.name, frame);
+  snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, f->name, frame);
 
   // copy data to single array and then from device to host (if on GPUs) before writing it out
-  gkyl_array_set(f->prim_vars, 1.0, f->u); 
-  gkyl_array_set_offset(f->prim_vars, 1.0, f->p, 3*app->basis.num_basis); 
+  gkyl_array_set_offset(f->prim_vars, 1.0, f->u, 0);
+  gkyl_array_set_offset(f->prim_vars, 1.0, f->p, 3*app->basis.num_basis);
   if (app->use_gpu) {
     gkyl_array_copy(f->prim_vars_host, f->prim_vars);
   }
@@ -242,9 +242,9 @@ vm_fluid_species_advect_write(gkyl_vlasov_app *app, struct vm_fluid_species *f,
   );
 
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, f->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->name, frame);
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
@@ -256,9 +256,9 @@ vm_fluid_species_advect_write(gkyl_vlasov_app *app, struct vm_fluid_species *f,
   // If frame = 0, as part of initial conditions also write out the applied advection. 
   if (frame == 0) {
     const char *fmt_advect = "%s-%s_advect_%d.gkyl";
-    int sz_advect = gkyl_calc_strlen(fmt_advect, app->name, f->info.name, frame);
+    int sz_advect = gkyl_calc_strlen(fmt_advect, app->name, f->name, frame);
     char fileNm_advect[sz_advect+1]; // ensures no buffer overflow
-    snprintf(fileNm_advect, sizeof fileNm_advect, fmt_advect, app->name, f->info.name, frame);
+    snprintf(fileNm_advect, sizeof fileNm_advect, fmt_advect, app->name, f->name, frame);
 
     // copy data from device to host before writing it out
     if (app->use_gpu) {
@@ -414,9 +414,9 @@ vm_fluid_species_can_pb_fluid_write(gkyl_vlasov_app *app, struct vm_fluid_specie
   );
 
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, f->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->name, frame);
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
@@ -602,16 +602,134 @@ vm_fluid_species_can_pb_fluid_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *a
   f->release_func = vm_fluid_species_can_pb_fluid_release; 
 }
 
+// Time-stepping methods for an evolving fluid species, assigned in
+// vm_fluid_species_init.
+static void
+vm_fluid_species_apply_ic_enabled(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0)
+{
+  int poly_order = app->poly_order;
+
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
+    poly_order+1, fluid_species->num_equations, fluid_species->info.init, fluid_species->info.ctx);
+
+  // run updater
+  gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, fluid_species->fluid_host);
+  gkyl_proj_on_basis_release(proj);
+
+  if (app->use_gpu) {
+    gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
+  }
+  // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
+  vm_fluid_species_limiter(app, fluid_species, fluid_species->fluid);
+
+  // Pre-compute applied acceleration in case it's time-independent
+  vm_fluid_species_calc_app_accel(app, fluid_species, t0);
+
+  // we are pre-computing source for now as it is time-independent
+  vm_fluid_species_source_calc(app, fluid_species, t0);
+}
+// Compute the RHS for fluid species update, returning maximum stable
+// time-step.
+static double
+vm_fluid_species_rhs_enabled(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
+  const struct gkyl_array *fluid, const struct gkyl_array *em, struct gkyl_array *rhs)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  double omegaCfl = 1/DBL_MAX;
+
+  gkyl_array_clear(fluid_species->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  // If we are solving a Poisson equation, need to compute 
+  // surface characteristics from potential and source update.
+  if (fluid_species->has_poisson) {
+    struct timespec tm = gkyl_wall_clock();
+
+    // Compute the surface characteristics from the potential. 
+    gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(fluid_species->calc_can_pb_fluid_vars, 
+      &app->local, &app->local_ext, fluid_species->phi, 
+      fluid_species->alpha_surf, fluid_species->sgn_alpha_surf, fluid_species->const_sgn_alpha); 
+
+    // Increment the source contribution for certain canonical PB fluids onto the RHS. 
+    gkyl_canonical_pb_fluid_vars_source(fluid_species->calc_can_pb_fluid_vars, 
+      &app->local, fluid_species->phi, fluid_species->can_pb_n0, fluid, rhs); 
+
+    app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm); 
+  }
+
+  gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
+    &app->local, fluid, fluid_species->cflrate, rhs);
+
+  // Accumulate explicit source contribution, e.g., external forces
+  // Only done if there are external forces and no EM fields, as fluid-EM coupling
+  // is handled by implicit source solve, see vm_fluid_em_coupling.c. 
+  if (fluid_species->has_app_accel && !app->has_field) {
+    gkyl_dg_calc_fluid_vars_source(fluid_species->calc_fluid_vars, &app->local, 
+      fluid_species->app_accel, fluid, rhs); 
+  }
+
+  if (fluid_species->has_diffusion) {
+    if (fluid_species->info.diffusion.Dij) {
+      gkyl_dg_updater_diffusion_gen_advance(fluid_species->diff_slvr_gen,
+        &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
+    }
+    else if (fluid_species->info.diffusion.D) {
+      gkyl_dg_updater_diffusion_fluid_advance(fluid_species->diff_slvr,
+        &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
+    }
+  }
+
+  gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, &app->local);
+
+  double omegaCfl_ho[1];
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(omegaCfl_ho, fluid_species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    omegaCfl_ho[0] = fluid_species->omegaCfl_ptr[0];
+  }
+  omegaCfl = omegaCfl_ho[0];
+
+  app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(wst);
+
+  return app->cfl/omegaCfl;
+}
+// Forward-Euler accumulate for the fluid state (out = dt*out + inp).
+static void
+vm_fluid_species_step_f_enabled(struct gkyl_array* out, double dt, const struct gkyl_array* inp)
+{
+  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
+}
+// Combine fluid RK stages (out = c1*arr1 + c2*arr2 over rng).
+static void
+vm_fluid_species_combine_enabled(struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng), c2, arr2, rng);
+}
+// Copy the fluid state (out = inp over range).
+static void
+vm_fluid_species_copy_range_enabled(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  gkyl_array_copy_range(out, inp, range);
+}
+
 // initialize fluid species object
 void
 vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
 {
   int cdim = app->cdim;
-  // The fluid species array is allocated with gkyl_malloc, so flags that are only
-  // set on one initialization path must be given a definite default here.
+  // Only the canonical-PB initialization sets has_poisson; default it here.
   f->has_poisson = false;
   // Setup equation-specific memory and equation type/number of equations based on input table
   f->eqn_type = f->info.equation->type;
+  // The fluid DG updater has no isothermal Euler solver yet (it would fall
+  // through to the canonical-PB branch); reject it until one exists.
+  if (f->eqn_type == GKYL_EQN_ISO_EULER)
+    gkyl_exit("vm_fluid_species: isothermal Euler fluid species are not supported yet.");
   f->num_equations = f->info.equation->num_equations;
   f->equation = gkyl_wv_eqn_acquire(f->info.equation);
   if (f->eqn_type == GKYL_EQN_ADVECTION) {
@@ -622,9 +740,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   }
   else {
     // Equation type is a Canonical Poisson Bracket (PB) fluid such as
-    // incompressible Euler, Hasegawa-Mima, or Hasegawa-Wakatani. 
+    // incompressible Euler, Hasegawa-Mima, or Hasegawa-Wakatani.
     vm_fluid_species_can_pb_fluid_init(vm, app, f);
   }
+
+  // Time-stepping methods are common to all Vlasov fluid equation types (the
+  // variant inits above set the equation-specific prim_vars/write/etc.).
+  f->apply_ic_func = vm_fluid_species_apply_ic_enabled;
+  f->rhs_func = vm_fluid_species_rhs_enabled;
+  f->step_f_func = vm_fluid_species_step_f_enabled;
+  f->combine_func = vm_fluid_species_combine_enabled;
+  f->copy_func = vm_fluid_species_copy_range_enabled;
 
   // allocate fluid arrays
   f->fluid = mkarr(app->use_gpu, f->num_equations*app->basis.num_basis, app->local_ext.volume);
@@ -635,12 +761,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   if (app->use_gpu) {
     f->fluid_host = mkarr(false, f->num_equations*app->basis.num_basis, app->local_ext.volume);
   }
-
-  // Duplicate copy of fluid data in case time step fails.
-  // Needed because of implicit source split which modifies solution and 
-  // is always successful, so if a time step fails due to the SSP RK3 
-  // we must restore the old solution before restarting the time step
-  f->fluid_dup = mkarr(app->use_gpu, f->num_equations*app->basis.num_basis, app->local_ext.volume);
 
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
@@ -810,26 +930,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 void
 vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0)
 {
-  int poly_order = app->poly_order;
-
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-    poly_order+1, fluid_species->num_equations, fluid_species->info.init, fluid_species->info.ctx);
-
-  // run updater
-  gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, fluid_species->fluid_host);
-  gkyl_proj_on_basis_release(proj);
-
-  if (app->use_gpu) {
-    gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
-  }
-  // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
-  vm_fluid_species_limiter(app, fluid_species, fluid_species->fluid);
-
-  // Pre-compute applied acceleration in case it's time-independent
-  vm_fluid_species_calc_app_accel(app, fluid_species, t0);
-
-  // we are pre-computing source for now as it is time-independent
-  vm_fluid_species_source_calc(app, fluid_species, t0);
+  fluid_species->apply_ic_func(app, fluid_species, t0);
 }
 
 void
@@ -868,72 +969,33 @@ vm_fluid_species_limiter(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_sp
   }
 }
 
-// Compute the RHS for fluid species update, returning maximum stable
-// time-step.
 double
 vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
   const struct gkyl_array *fluid, const struct gkyl_array *em, struct gkyl_array *rhs)
 {
-  struct timespec wst = gkyl_wall_clock();
+  return fluid_species->rhs_func(app, fluid_species, fluid, em, rhs);
+}
 
-  double omegaCfl = 1/DBL_MAX;
+void
+vm_fluid_species_step_f(struct vm_fluid_species *fluid_species,
+  struct gkyl_array *out, double dt, const struct gkyl_array *inp)
+{
+  fluid_species->step_f_func(out, dt, inp);
+}
 
-  gkyl_array_clear(fluid_species->cflrate, 0.0);
-  gkyl_array_clear(rhs, 0.0);
+void
+vm_fluid_species_combine(struct vm_fluid_species *fluid_species,
+  struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
+  double c2, const struct gkyl_array *arr2, const struct gkyl_range *rng)
+{
+  fluid_species->combine_func(out, c1, arr1, c2, arr2, rng);
+}
 
-  // If we are solving a Poisson equation, need to compute 
-  // surface characteristics from potential and source update.
-  if (fluid_species->has_poisson) {
-    struct timespec tm = gkyl_wall_clock();
-
-    // Compute the surface characteristics from the potential. 
-    gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(fluid_species->calc_can_pb_fluid_vars, 
-      &app->local, &app->local_ext, fluid_species->phi, 
-      fluid_species->alpha_surf, fluid_species->sgn_alpha_surf, fluid_species->const_sgn_alpha); 
-
-    // Increment the source contribution for certain canonical PB fluids onto the RHS. 
-    gkyl_canonical_pb_fluid_vars_source(fluid_species->calc_can_pb_fluid_vars, 
-      &app->local, fluid_species->phi, fluid_species->can_pb_n0, fluid, rhs); 
-
-    app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm); 
-  }
-
-  gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
-    &app->local, fluid, fluid_species->cflrate, rhs);
-
-  // Accumulate explicit source contribution, e.g., external forces
-  // Only done if there are external forces and no EM fields, as fluid-EM coupling
-  // is handled by implicit source solve, see vm_fluid_em_coupling.c. 
-  if (fluid_species->has_app_accel && !app->has_field) {
-    gkyl_dg_calc_fluid_vars_source(fluid_species->calc_fluid_vars, &app->local, 
-      fluid_species->app_accel, fluid, rhs); 
-  }
-
-  if (fluid_species->has_diffusion) {
-    if (fluid_species->info.diffusion.Dij) {
-      gkyl_dg_updater_diffusion_gen_advance(fluid_species->diff_slvr_gen,
-        &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
-    }
-    else if (fluid_species->info.diffusion.D) {
-      gkyl_dg_updater_diffusion_fluid_advance(fluid_species->diff_slvr,
-        &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
-    }
-  }
-
-  gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, &app->local);
-
-  double omegaCfl_ho[1];
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(omegaCfl_ho, fluid_species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
-    omegaCfl_ho[0] = fluid_species->omegaCfl_ptr[0];
-  }
-  omegaCfl = omegaCfl_ho[0];
-
-  app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(wst);
-
-  return app->cfl/omegaCfl;
+void
+vm_fluid_species_copy_range(struct vm_fluid_species *fluid_species,
+  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  fluid_species->copy_func(out, inp, range);
 }
 
 // Determine which directions are periodic and which directions are not periodic,
@@ -1014,9 +1076,9 @@ vm_fluid_species_write_integrated_mom(gkyl_vlasov_app *app, struct vm_fluid_spec
   if (rank == 0) {
     // write out integrated diagnostic moments
     const char *fmt = "%s-%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, "imom");
+    int sz = gkyl_calc_strlen(fmt, app->name, f->name, "imom");
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, f->info.name, "imom");
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, f->name, "imom");
 
     if (f->is_first_integ_write_call) {
       gkyl_dynvec_write(f->integ_diag, fileNm);
@@ -1045,7 +1107,6 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_array_release(f->fluidnew);
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
-  gkyl_array_release(f->fluid_dup);
 
   if (f->has_diffusion) {
     gkyl_array_release(f->diffD);

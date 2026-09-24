@@ -158,9 +158,7 @@ main(int argc, char **argv)
   int NVX = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nvx);
 
   // Electron species.
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
-    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+  struct gkyl_vlasov_kinetic_species elc = {
     .lower = { -0.5 * ctx.Lvx },
     .upper = { 0.5 * ctx.Lvx }, 
     .cells = { NVX },
@@ -283,7 +281,10 @@ main(int argc, char **argv)
     .periodic_dirs = { 0 },
 
     .num_species = 1,
-    .species = { elc },
+    .species = {
+      { .name = "elc", .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = elc },
+    },
 
     .field = field,
 

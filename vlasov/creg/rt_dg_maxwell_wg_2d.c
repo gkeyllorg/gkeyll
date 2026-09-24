@@ -293,7 +293,9 @@ main(int argc, char **argv)
     .periodic_dirs = { },
 
     .num_species = 0,
-    .species = {  },
+    .species = {
+
+    },
 
     .field = field,
  

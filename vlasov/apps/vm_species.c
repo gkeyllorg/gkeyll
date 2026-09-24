@@ -62,7 +62,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->hamil_id = gkyl_hamil_id_from_model_id(vms->model_id);
     vms->mom_hamil_id = vms->hamil_id;
 
-    // Hamiltonain for computing the moments is only a function of velocity space.
+    // Hamiltonian for computing the moments is only a function of velocity space.
     vms->mom_hamil_range = vms->local_vel;
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
@@ -90,7 +90,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->hamil_id = GKYL_HAMIL_VEL_SPARSE;
     vms->mom_hamil_id = GKYL_HAMIL_VEL_SPARSE;
 
-    // Hamiltonain is only a function of velocity space, non-relativistic only using the
+    // Hamiltonian is only a function of velocity space, non-relativistic only using the
     // same infrastructure as GKYL_MODEL_DEFAULT
     vms->mom_hamil_range = vms->local_vel; 
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
@@ -166,7 +166,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->mom_hamil_id = GKYL_HAMIL_VEL_DENSE;
 
     // 1. Build a velocity space only hamiltonian for moments.
-    // Hamiltonain is only a function of velocity space, non-relativistic only using the
+    // Hamiltonian is only a function of velocity space, non-relativistic only using the
     // same infrastructure as GKYL_MODEL_DEFAULT
     vms->mom_hamil_range = vms->local_vel;
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
@@ -660,9 +660,9 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
     }
   );
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // Ensures no buffer overflow.
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
   
   // Divide out the velocity space Jacobian if present
   // We do the division before I/O to increase the accuracy since we know
@@ -709,9 +709,9 @@ vm_species_write_cfl_enabled(gkyl_vlasov_app* app, struct vm_species *vms, doubl
   );
 
   const char *fmt = "%s-%s-cflrate_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
   gkyl_array_copy(vms->cflrate_host, vms->cflrate);
   gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt,
     vms->cflrate_host, fileNm);
@@ -741,9 +741,9 @@ vm_species_write_cell_avg_enabled(gkyl_vlasov_app* app, struct vm_species *vms, 
   );
 
   const char *fmt = "%s-%s_avg_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
 
   // Divide out the velocity space Jacobian if present
   // We do the division before I/O to increase the accuracy since we know
@@ -784,9 +784,9 @@ vm_species_write_lte_enabled(gkyl_vlasov_app* app, struct vm_species *vms, doubl
   );
 
   const char *fmt = "%s-%s_%d_lte.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
 
   vm_species_lte(app, vms, &vms->lte, vms->f);
   
@@ -858,10 +858,10 @@ vm_species_write_mom_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, doubl
     }
 
     const char *fmt = "%s-%s_%s_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name,
+    int sz = gkyl_calc_strlen(fmt, app->name, vms->name,
       gkyl_distribution_moments_strs[vms->info.diag_moments[m]], frame);
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name,
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name,
       gkyl_distribution_moments_strs[vms->info.diag_moments[m]], frame);
     
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
@@ -870,7 +870,12 @@ vm_species_write_mom_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, doubl
     app->stat.n_diag_io += 1;
   }
   
-  vlasov_array_meta_release(mt); 
+  vlasov_array_meta_release(mt);
+
+  // Collision diagnostics (nu_sum, nu_prim_moms), no-ops unless the species
+  // has collisions with write_coll_diagnostics set.
+  vm_species_lbo_write_mom(app, vms, tm, frame);
+  vm_species_bgk_write_mom(app, vms, tm, frame);
 
   app->stat.n_diag += 1;
 }
@@ -922,9 +927,9 @@ vm_species_write_integrated_mom_dynamic(gkyl_vlasov_app *app, struct vm_species 
   if (rank == 0) {
     // Write integrated diagnostic moments.
     const char *fmt = "%s-%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, "imom");
+    int sz = gkyl_calc_strlen(fmt, app->name, vms->name, "imom");
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, "imom");
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, "imom");
     
     if (vms->is_first_integ_write_call) {
       gkyl_dynvec_write(vms->integ_diag, fileNm);
@@ -995,9 +1000,9 @@ vm_species_write_L2_dynamic(gkyl_vlasov_app* app, struct vm_species *vms)
   if (rank == 0) {
     // Write the L2 norm.
     const char *fmt = "%s-%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, "L2");
+    int sz = gkyl_calc_strlen(fmt, app->name, vms->name, "L2");
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, "L2");
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, "L2");
 
     if (vms->is_first_integ_L2_write_call) {
       gkyl_dynvec_write(vms->integ_L2_f, fileNm);
@@ -1420,7 +1425,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   // only with the first frame. Both the p=3 map and its p=0 cell average are
   // written, with metadata built from the map's I/O basis.
   gkyl_vlasov_velocity_map_write(vms->vel_map, vms->comm,
-    app->name, vms->info.name);
+    app->name, vms->name);
 
   // Configuration-space mapping object. Created once on the app and shared by
   // all species (configuration space is common to every species); acquire a
@@ -1483,11 +1488,11 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   // Projection routine optionally corrects all the Maxwellian/LTE moments.
   // This routine is utilized by BGK collisions.
   vms->lte = (struct vm_lte) { };
-  struct correct_all_moms_inp corr_inp = { 
-    .correct_all_moms = vms->info.correct.correct_all_moms, 
-    .max_iter = vms->info.correct.max_iter > 0 ? vms->info.correct.max_iter : 50, 
-    .iter_eps = vms->info.correct.iter_eps > 0 ? vms->info.correct.iter_eps : 1e-10, 
-    .use_last_converged = vms->info.correct.use_last_converged, 
+  struct correct_all_moms_inp corr_inp = {
+    .correct_all_moms = vms->info.correct.correct_all_moms,
+    .max_iter = vms->info.correct.max_iter > 0 ? vms->info.correct.max_iter : 100,
+    .iter_eps = vms->info.correct.iter_eps > 0 ? vms->info.correct.iter_eps : 1e-12,
+    .use_last_converged = vms->info.correct.use_last_converged,
   };
   vm_species_lte_init(app, vms, &vms->lte, corr_inp);
 
@@ -1636,8 +1641,9 @@ void
 vm_species_n_iter_corr(gkyl_vlasov_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
-    app->stat.num_corr[i] = app->species[i].lte.num_corr;
-    app->stat.n_iter_corr[i] = app->species[i].lte.n_iter;
+    if (!app->species[i].kinetic) continue;
+    app->stat.num_corr[i] = app->species[i].kinetic->lte.num_corr;
+    app->stat.n_iter_corr[i] = app->species[i].kinetic->lte.n_iter;
   }
 }
 
