@@ -390,7 +390,8 @@ gk_neut_species_kinetic_init_static(
   s->report_n_iter_corr_func = gk_neut_species_n_iter_corr_disabled;
 }
 
-void gk_neut_species_kinetic_read_distf_from_file(
+void
+gk_neut_species_kinetic_read_distf_from_file(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
   struct gkyl_gyrokinetic_ic_import inp, struct gkyl_array *fout
 )
@@ -618,14 +619,16 @@ void gk_neut_species_kinetic_read_distf_from_file(
   gkyl_array_release(fdo_host);
 }
 
-void gk_neut_species_kinetic_file_import_init(
+void
+gk_neut_species_kinetic_file_import_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gkyl_gyrokinetic_ic_import inp
 )
 {
   gk_neut_species_kinetic_read_distf_from_file(app, s, inp, s->f);
 }
 
-static void gkyl_array_move_comp(
+static void
+gkyl_array_move_comp(
   struct gkyl_array *out, int cout, struct gkyl_array *in, int cin, struct gkyl_array *tmp
 )
 {

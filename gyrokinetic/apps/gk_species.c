@@ -1163,7 +1163,8 @@ gk_species_init_static(
   gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
 }
 
-void gk_species_read_distf_from_file(
+void
+gk_species_read_distf_from_file(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp,
   struct gkyl_array *fout
 )
@@ -1414,7 +1415,8 @@ void gk_species_read_distf_from_file(
   gkyl_array_release(fdo_host);
 }
 
-void gk_species_file_import_init(
+void
+gk_species_file_import_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp
 )
 {
