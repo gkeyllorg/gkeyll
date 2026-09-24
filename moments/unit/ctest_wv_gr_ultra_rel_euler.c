@@ -6,7 +6,8 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
-void test_gr_ultra_rel_euler_basic_minkowski_ho()
+void
+test_gr_ultra_rel_euler_basic_minkowski_ho()
 {
   double gas_gamma = 2.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
@@ -266,7 +267,8 @@ void test_gr_ultra_rel_euler_basic_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_ultra_rel_euler_basic_schwarzschild_ho()
+void
+test_gr_ultra_rel_euler_basic_schwarzschild_ho()
 {
   double gas_gamma = 2.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
@@ -541,7 +543,8 @@ void test_gr_ultra_rel_euler_basic_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_ultra_rel_euler_basic_kerr_ho()
+void
+test_gr_ultra_rel_euler_basic_kerr_ho()
 {
   double gas_gamma = 2.0;
   // Currently this test only passes for very low (a = 0.2) values of the black hole spin.
@@ -818,7 +821,8 @@ void test_gr_ultra_rel_euler_basic_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_ultra_rel_euler_waves_minkowski_ho()
+void
+test_gr_ultra_rel_euler_waves_minkowski_ho()
 {
   double gas_gamma = 2.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
@@ -1186,7 +1190,8 @@ void test_gr_ultra_rel_euler_waves_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_ultra_rel_euler_waves_schwarzschild_ho()
+void
+test_gr_ultra_rel_euler_waves_schwarzschild_ho()
 {
   double gas_gamma = 2.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
@@ -1559,7 +1564,8 @@ void test_gr_ultra_rel_euler_waves_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_ultra_rel_euler_waves_kerr_ho()
+void
+test_gr_ultra_rel_euler_waves_kerr_ho()
 {
   double gas_gamma = 2.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);

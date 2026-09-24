@@ -16,12 +16,14 @@ gkyl_dg_updater_moment_gyrokinetic_acquire_type(const gkyl_dg_updater_moment *mo
   return gkyl_mom_type_acquire(moment->type);
 }
 
-int gkyl_dg_updater_moment_gyrokinetic_num_mom(const gkyl_dg_updater_moment *moment)
+int
+gkyl_dg_updater_moment_gyrokinetic_num_mom(const gkyl_dg_updater_moment *moment)
 {
   return gkyl_mom_type_num_mom(moment->type);
 }
 
-struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_gyrokinetic_new(
+struct gkyl_dg_updater_moment *
+gkyl_dg_updater_moment_gyrokinetic_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range, double mass,
   double charge, const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
@@ -48,7 +50,8 @@ struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_gyrokinetic_new(
   return up;
 }
 
-void gkyl_dg_updater_moment_gyrokinetic_advance(
+void
+gkyl_dg_updater_moment_gyrokinetic_advance(
   struct gkyl_dg_updater_moment *moment, const struct gkyl_range *update_phase_rng,
   const struct gkyl_range *update_conf_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
   struct gkyl_array *GKYL_RESTRICT mout
@@ -69,7 +72,8 @@ gkyl_dg_updater_moment_gyrokinetic_get_tm(const gkyl_dg_updater_moment *moment)
   return (struct gkyl_dg_updater_moment_tm){.moment_tm = moment->moment_tm};
 }
 
-void gkyl_dg_updater_moment_gyrokinetic_release(gkyl_dg_updater_moment *moment)
+void
+gkyl_dg_updater_moment_gyrokinetic_release(gkyl_dg_updater_moment *moment)
 {
   gkyl_mom_type_release(moment->type);
   gkyl_mom_calc_release(moment->up_moment);

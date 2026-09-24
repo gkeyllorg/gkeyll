@@ -10,7 +10,8 @@
 #include <gkyl_dg_gyrokinetic_passive_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_gyrokinetic_passive_free(const struct gkyl_ref_count *ref)
+void
+gkyl_gyrokinetic_passive_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_gyrokinetic_passive *gkp = container_of(base, struct dg_gyrokinetic_passive, eqn);
@@ -27,7 +28,8 @@ void gkyl_gyrokinetic_passive_free(const struct gkyl_ref_count *ref)
   gkyl_free(gkp);
 }
 
-void gkyl_gyrokinetic_passive_set_auxfields(
+void
+gkyl_gyrokinetic_passive_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_passive_auxfields auxin
 )
 {
@@ -42,7 +44,8 @@ void gkyl_gyrokinetic_passive_set_auxfields(
   gkp->auxfields.speeds = auxin.speeds;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_passive_new(
+struct gkyl_dg_eqn *
+gkyl_dg_gyrokinetic_passive_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const double charge,
   const double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,

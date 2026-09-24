@@ -7,7 +7,8 @@
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_maxwell_priv.h>
 
-void test_maxwell_scaling()
+void
+test_maxwell_scaling()
 {
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, 2);
@@ -30,7 +31,8 @@ void test_maxwell_scaling()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_maxwell_2x()
+void
+test_maxwell_2x()
 {
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 2, 1);
@@ -47,7 +49,8 @@ void test_maxwell_2x()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_maxwell_3x()
+void
+test_maxwell_3x()
 {
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 3, 1);

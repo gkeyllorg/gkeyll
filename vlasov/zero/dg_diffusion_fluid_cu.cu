@@ -12,7 +12,8 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_dg_diffusion_fluid_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_dg_diffusion_fluid_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *D
 )
 {
@@ -21,7 +22,8 @@ __global__ static void gkyl_dg_diffusion_fluid_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_dg_diffusion_fluid_set_auxfields_cu(
+void
+gkyl_dg_diffusion_fluid_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_fluid_auxfields auxin
 )
 {
@@ -44,25 +46,25 @@ __global__ void static dg_diffusion_fluid_set_cu_dev_ptrs(
   const gkyl_dg_diffusion_fluid_boundary_surf_kern_list *boundary_surfz_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = diffusion->const_coeff ? ser_vol_kernels_constcoeff : ser_vol_kernels_varcoeff;
-    surfx_kernels = diffusion->const_coeff ? ser_surfx_kernels_constcoeff :
-                                             ser_surfx_kernels_varcoeff;
-    surfy_kernels = diffusion->const_coeff ? ser_surfy_kernels_constcoeff :
-                                             ser_surfy_kernels_varcoeff;
-    surfz_kernels = diffusion->const_coeff ? ser_surfz_kernels_constcoeff :
-                                             ser_surfz_kernels_varcoeff;
-    boundary_surfx_kernels = diffusion->const_coeff ? ser_boundary_surfx_kernels_constcoeff :
-                                                      ser_boundary_surfx_kernels_varcoeff;
-    boundary_surfy_kernels = diffusion->const_coeff ? ser_boundary_surfy_kernels_constcoeff :
-                                                      ser_boundary_surfy_kernels_varcoeff;
-    boundary_surfz_kernels = diffusion->const_coeff ? ser_boundary_surfz_kernels_constcoeff :
-                                                      ser_boundary_surfz_kernels_varcoeff;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = diffusion->const_coeff ? ser_vol_kernels_constcoeff : ser_vol_kernels_varcoeff;
+      surfx_kernels = diffusion->const_coeff ? ser_surfx_kernels_constcoeff :
+                                               ser_surfx_kernels_varcoeff;
+      surfy_kernels = diffusion->const_coeff ? ser_surfy_kernels_constcoeff :
+                                               ser_surfy_kernels_varcoeff;
+      surfz_kernels = diffusion->const_coeff ? ser_surfz_kernels_constcoeff :
+                                               ser_surfz_kernels_varcoeff;
+      boundary_surfx_kernels = diffusion->const_coeff ? ser_boundary_surfx_kernels_constcoeff :
+                                                        ser_boundary_surfx_kernels_varcoeff;
+      boundary_surfy_kernels = diffusion->const_coeff ? ser_boundary_surfy_kernels_constcoeff :
+                                                        ser_boundary_surfy_kernels_varcoeff;
+      boundary_surfz_kernels = diffusion->const_coeff ? ser_boundary_surfz_kernels_constcoeff :
+                                                        ser_boundary_surfz_kernels_varcoeff;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   diffusion->eqn.num_equations = diffusion->num_equations;
@@ -88,7 +90,8 @@ __global__ void static dg_diffusion_fluid_set_cu_dev_ptrs(
   }
 }
 
-struct gkyl_dg_eqn *gkyl_dg_diffusion_fluid_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_diffusion_fluid_cu_dev_new(
   const struct gkyl_basis *basis, bool is_diff_const, int num_equations, const bool *diff_in_dir,
   int diff_order, const struct gkyl_range *diff_range
 )

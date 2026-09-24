@@ -8,7 +8,8 @@
 #include <gkyl_mom_canonical_pb_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_mom_can_pb_free(const struct gkyl_ref_count *ref)
+void
+gkyl_mom_can_pb_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
   if (GKYL_IS_CU_ALLOC(momt->flags)) {
@@ -17,7 +18,8 @@ void gkyl_mom_can_pb_free(const struct gkyl_ref_count *ref)
   gkyl_free(momt);
 }
 
-void gkyl_mom_canonical_pb_set_auxfields(
+void
+gkyl_mom_canonical_pb_set_auxfields(
   const struct gkyl_mom_type *momt, struct gkyl_mom_canonical_pb_auxfields auxin
 )
 {
@@ -32,7 +34,8 @@ void gkyl_mom_canonical_pb_set_auxfields(
   mom_can_pb->auxfields.hamil = auxin.hamil;
 }
 
-struct gkyl_mom_type *gkyl_mom_canonical_pb_new(
+struct gkyl_mom_type *
+gkyl_mom_canonical_pb_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *phase_range, enum gkyl_distribution_moments mom_type, bool use_gpu
 )
@@ -59,28 +62,28 @@ struct gkyl_mom_type *gkyl_mom_canonical_pb_new(
   const gkyl_canonical_pb_mom_kern_list *m1i_from_h_kernels;
 
   switch (pbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    // Verify that the poly-order is 2 for ser case
-    assert(poly_order == 2);
-    menergy_kernels = ser_menergy_kernels;
-    m1i_from_h_kernels = ser_m1i_from_h_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      menergy_kernels = ser_menergy_kernels;
+      m1i_from_h_kernels = ser_m1i_from_h_kernels;
+      break;
 
-  case GKYL_BASIS_MODAL_HYBRID:
-    // Verify that the poly-order is 1 for hybrid case
-    assert(poly_order == 1);
-    menergy_kernels = ser_menergy_kernels;
-    m1i_from_h_kernels = ser_m1i_from_h_kernels;
-    break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      menergy_kernels = ser_menergy_kernels;
+      m1i_from_h_kernels = ser_m1i_from_h_kernels;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    menergy_kernels = tensor_menergy_kernels;
-    m1i_from_h_kernels = tensor_m1i_from_h_kernels;
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      menergy_kernels = tensor_menergy_kernels;
+      m1i_from_h_kernels = tensor_m1i_from_h_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   if (mom_type == GKYL_F_MOMENT_ENERGY) { // Energy int( f*H )
@@ -113,7 +116,8 @@ struct gkyl_mom_type *gkyl_mom_canonical_pb_new(
   return &mom_can_pb->momt;
 }
 
-struct gkyl_mom_type *gkyl_int_mom_canonical_pb_new(
+struct gkyl_mom_type *
+gkyl_int_mom_canonical_pb_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *phase_range, enum gkyl_distribution_moments mom_type, bool use_gpu
 )
@@ -141,25 +145,25 @@ struct gkyl_mom_type *gkyl_int_mom_canonical_pb_new(
 
   // Set kernel pointer.
   switch (pbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    // Verify that the poly-order is 2 for ser case.
-    assert(poly_order == 2);
-    int_five_moments_kernels = ser_int_five_moments_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case.
+      assert(poly_order == 2);
+      int_five_moments_kernels = ser_int_five_moments_kernels;
+      break;
 
-  case GKYL_BASIS_MODAL_HYBRID:
-    // Verify that the poly-order is 1 for hybrid case.
-    assert(poly_order == 1);
-    int_five_moments_kernels = ser_int_five_moments_kernels;
-    break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case.
+      assert(poly_order == 1);
+      int_five_moments_kernels = ser_int_five_moments_kernels;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    int_five_moments_kernels = tensor_int_five_moments_kernels;
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      int_five_moments_kernels = tensor_int_five_moments_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   assert(cv_index[cdim].vdim[vdim] != -1);

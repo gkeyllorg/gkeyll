@@ -16,7 +16,8 @@ extern "C" {
 #include <gkyl_mat_priv.h>
 }
 
-__global__ static void gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker(
+__global__ static void
+gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker(
   struct gkyl_range conf_range, const struct gkyl_array *basis_at_ords_conf,
   const struct gkyl_array *bmag, const double *bmag_max, struct gkyl_array *Dbmag_quad_d
 )
@@ -47,7 +48,8 @@ __global__ static void gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker(
   }
 }
 
-void gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(
+void
+gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(
   gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *bmag, const double *bmag_max
 )
@@ -58,7 +60,8 @@ void gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(
   );
 }
 
-static void gkyl_parallelize_components_kernel_launch_dims(
+static void
+gkyl_parallelize_components_kernel_launch_dims(
   dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp
 )
 {
@@ -70,7 +73,8 @@ static void gkyl_parallelize_components_kernel_launch_dims(
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
 }
 
-__global__ static void gkyl_loss_cone_mask_gyrokinetic_qDphiDbmag_quad_ker(
+__global__ static void
+gkyl_loss_cone_mask_gyrokinetic_qDphiDbmag_quad_ker(
   struct gkyl_range conf_range, const struct gkyl_array *basis_at_ords_conf, double charge,
   const struct gkyl_array *phi, const double *phi_m, const struct gkyl_array *Dbmag_quad,
   struct gkyl_array *qDphiDbmag_quad
@@ -109,7 +113,8 @@ __global__ static void gkyl_loss_cone_mask_gyrokinetic_qDphiDbmag_quad_ker(
   }
 }
 
-__global__ static void gkyl_loss_cone_mask_gyrokinetic_ker(
+__global__ static void
+gkyl_loss_cone_mask_gyrokinetic_ker(
   struct gkyl_rect_grid grid_phase, struct gkyl_range phase_range, struct gkyl_range conf_range,
   struct gkyl_range vel_range, double mass, const struct gkyl_array *phase_ordinates,
   const double *bmag_max_loc, const struct gkyl_array *qDphiDbmag_quad,
@@ -184,7 +189,8 @@ __global__ static void gkyl_loss_cone_mask_gyrokinetic_ker(
   }
 }
 
-__global__ static void gkyl_loss_cone_mask_gyrokinetic_quad_ker(
+__global__ static void
+gkyl_loss_cone_mask_gyrokinetic_quad_ker(
   struct gkyl_rect_grid grid_phase, struct gkyl_range phase_range, struct gkyl_range conf_range,
   struct gkyl_range vel_range, double mass, double norm_fac,
   const struct gkyl_array *phase_ordinates, const double *bmag_max_loc,
@@ -259,7 +265,8 @@ __global__ static void gkyl_loss_cone_mask_gyrokinetic_quad_ker(
   }
 }
 
-void gkyl_loss_cone_mask_gyrokinetic_advance_cu(
+void
+gkyl_loss_cone_mask_gyrokinetic_advance_cu(
   gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *phi, const double *phi_m,
   struct gkyl_array *mask_out

@@ -13,7 +13,8 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // Required because the equation object lives on the device and its members
 // cannot be modified without a __global__ kernel.
-__global__ static void gkyl_gyrokinetic_passive_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_gyrokinetic_passive_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *flux_surf, const struct gkyl_array *speeds
 )
 {
@@ -23,7 +24,8 @@ __global__ static void gkyl_gyrokinetic_passive_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for gkyl_gyrokinetic_passive_set_auxfields_cu_kernel.
-void gkyl_gyrokinetic_passive_set_auxfields_cu(
+void
+gkyl_gyrokinetic_passive_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_passive_auxfields auxin
 )
 {
@@ -34,7 +36,8 @@ void gkyl_gyrokinetic_passive_set_auxfields_cu(
 
 // CUDA kernel to set device function pointers and zero auxfields.
 // Doing function-pointer work here avoids troublesome cudaMemcpyFromSymbol.
-__global__ static void dg_gyrokinetic_passive_set_cu_dev_ptrs(
+__global__ static void
+dg_gyrokinetic_passive_set_cu_dev_ptrs(
   struct dg_gyrokinetic_passive *gkp, enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim,
   int poly_order
 )
@@ -55,19 +58,19 @@ __global__ static void dg_gyrokinetic_passive_set_cu_dev_ptrs(
   const gkyl_dg_gyrokinetic_passive_boundary_surf_kern_list *boundary_surf_z_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_passive_vol_kernels;
-    surf_x_kernels = ser_passive_surf_x_kernels;
-    surf_y_kernels = ser_passive_surf_y_kernels;
-    surf_z_kernels = ser_passive_surf_z_kernels;
-    boundary_surf_x_kernels = ser_passive_boundary_surf_x_kernels;
-    boundary_surf_y_kernels = ser_passive_boundary_surf_y_kernels;
-    boundary_surf_z_kernels = ser_passive_boundary_surf_z_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_passive_vol_kernels;
+      surf_x_kernels = ser_passive_surf_x_kernels;
+      surf_y_kernels = ser_passive_surf_y_kernels;
+      surf_z_kernels = ser_passive_surf_z_kernels;
+      boundary_surf_x_kernels = ser_passive_boundary_surf_x_kernels;
+      boundary_surf_y_kernels = ser_passive_boundary_surf_y_kernels;
+      boundary_surf_z_kernels = ser_passive_boundary_surf_z_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   gkp->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order - 1];
@@ -84,7 +87,8 @@ __global__ static void dg_gyrokinetic_passive_set_cu_dev_ptrs(
   }
 }
 
-struct gkyl_dg_eqn *gkyl_dg_gyrokinetic_passive_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_gyrokinetic_passive_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const double charge,
   const double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map

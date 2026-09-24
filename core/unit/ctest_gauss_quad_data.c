@@ -5,7 +5,8 @@
 #include <math.h>
 
 // Integrate x^p over [-1,1] using N-point Gauss-Legendre quadrature.
-static double quad_int_monomial(int N, int p)
+static double
+quad_int_monomial(int N, int p)
 {
   const double *x = gkyl_gauss_ordinates[N];
   const double *w = gkyl_gauss_weights[N];
@@ -16,7 +17,8 @@ static double quad_int_monomial(int N, int p)
   return sum;
 }
 
-void test_gauss_weights_sum()
+void
+test_gauss_weights_sum()
 {
   // Sum of weights = integral of 1 over [-1,1] = 2, for every N.
   for (int N = 1; N <= gkyl_gauss_max; ++N) {
@@ -30,7 +32,8 @@ void test_gauss_weights_sum()
   }
 }
 
-void test_gauss_ordinates_symmetric()
+void
+test_gauss_ordinates_symmetric()
 {
   // Ordinates are symmetric about 0; reversed list = negated list.
   for (int N = 1; N <= gkyl_gauss_max; ++N) {
@@ -41,7 +44,8 @@ void test_gauss_ordinates_symmetric()
   }
 }
 
-void test_gauss_ordinates_in_range()
+void
+test_gauss_ordinates_in_range()
 {
   // All ordinates lie strictly inside (-1,1).
   for (int N = 1; N <= gkyl_gauss_max; ++N) {
@@ -52,7 +56,8 @@ void test_gauss_ordinates_in_range()
   }
 }
 
-void test_gauss_exactness()
+void
+test_gauss_exactness()
 {
   // N-point Gauss-Legendre integrates polynomials up to degree 2N-1 exactly.
   // Integral of x^p over [-1,1] = 0 (odd p) or 2/(p+1) (even p).
@@ -67,7 +72,8 @@ void test_gauss_exactness()
   }
 }
 
-void test_gauss_specific_values()
+void
+test_gauss_specific_values()
 {
   // 2-point Gauss: ordinates +/- 1/sqrt(3), weights 1,1.
   const double *x2 = gkyl_gauss_ordinates[2];

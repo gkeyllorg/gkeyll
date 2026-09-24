@@ -41,8 +41,9 @@ struct gkyl_vlasov_lte_moments_inp {
  * @param inp Input parameters defined in gkyl_vlasov_lte_moments_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_vlasov_lte_moments *
-gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp);
+struct gkyl_vlasov_lte_moments *gkyl_vlasov_lte_moments_inew(
+  const struct gkyl_vlasov_lte_moments_inp *inp
+);
 
 /**
  * Compute the density moments of an arbitrary distribution function for the equivalent 

@@ -58,7 +58,8 @@ struct friction_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct friction_ctx create_ctx(void)
+struct friction_ctx
+create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
@@ -129,13 +130,14 @@ struct friction_ctx create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct friction_ctx *app = ctx;
@@ -154,7 +156,8 @@ void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[4] = E_elc;
 }
 
-void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct friction_ctx *app = ctx;
@@ -173,7 +176,8 @@ void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[4] = E_ion;
 }
 
-void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   // Set electric field.
   fout[0] = 0.0, fout[1] = 0.0;
@@ -186,7 +190,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -198,7 +203,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -234,7 +240,7 @@ int main(int argc, char **argv)
     .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
     .friction_T_elc = ctx.friction_T_elc,
-    .friction_Lambda_ee = ctx.friction_Lambda_ee
+    .friction_Lambda_ee = ctx.friction_Lambda_ee,
   };
 
   struct gkyl_moment_species ion = {
@@ -250,7 +256,7 @@ int main(int argc, char **argv)
     .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
     .friction_T_elc = ctx.friction_T_elc,
-    .friction_Lambda_ee = ctx.friction_Lambda_ee
+    .friction_Lambda_ee = ctx.friction_Lambda_ee,
   };
 
   // Field.
@@ -261,7 +267,7 @@ int main(int argc, char **argv)
 
     .is_static = true,
     .init = evalFieldInit,
-    .ctx = &ctx
+    .ctx = &ctx,
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -335,7 +341,7 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Create app object.

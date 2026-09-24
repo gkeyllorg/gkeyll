@@ -19,7 +19,8 @@ struct app_skin_ghost_ranges {
 };
 
 // allocate double array (filled with zeros)
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -30,7 +31,8 @@ static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 // allocate integer array (filled with zeros)
-static struct gkyl_array *mk_int_arr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mk_int_arr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -42,7 +44,8 @@ static struct gkyl_array *mk_int_arr(bool on_gpu, long nc, long size)
 }
 
 // Compute out = c1*arr1 + c2*arr2
-static inline struct gkyl_array *array_combine(
+static inline struct gkyl_array *
+array_combine(
   struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2,
   const struct gkyl_array *arr2, const struct gkyl_range *rng
 )
@@ -51,7 +54,8 @@ static inline struct gkyl_array *array_combine(
 }
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(
+static void
+skin_ghost_ranges_init(
   struct app_skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost
 )
 {

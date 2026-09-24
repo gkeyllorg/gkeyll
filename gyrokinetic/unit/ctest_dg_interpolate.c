@@ -16,7 +16,8 @@
 #include <acutest.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -40,7 +41,8 @@ struct test_ctx {
   double upper[GKYL_MAX_DIM]; // Grid upper limit in each direction.
 };
 
-static void calc_int_moms(
+static void
+calc_int_moms(
   int num_mom, struct gkyl_rect_grid *confGrid, struct gkyl_basis *confBasis,
   struct gkyl_range *confLocal, bool use_gpu, struct gkyl_array *moms, double *int_moms
 )
@@ -68,7 +70,8 @@ static void calc_int_moms(
   gkyl_array_integrate_release(integ_op);
 }
 
-void eval_fdonor_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_fdonor_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
 
@@ -86,7 +89,8 @@ void eval_fdonor_1x(double t, const double *xn, double *restrict fout, void *ctx
   fout[0] = n0 * (1.0 + 0.5 * sin((2.0 * M_PI / Lx[0]) * x));
 }
 
-void test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void
+test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   double lower[] = {0.0}, upper[] = {1.0};
   double mass = 1.0;
@@ -101,7 +105,7 @@ void test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gp
     .mass = mass, // Particle mass.
     .cdim = ndim, // Number of position space dimensions.
     .lower = {lower[0]}, // Lower extents of the grid.
-    .upper = {upper[0]} // Upper extents of the grid.
+    .upper = {upper[0]}, // Upper extents of the grid.
   };
 
   // Grid.
@@ -192,7 +196,8 @@ void test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void eval_fdonor_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_fdonor_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
 
@@ -211,7 +216,8 @@ void eval_fdonor_2x(double t, const double *xn, double *restrict fout, void *ctx
     n0 * (1.0 + 0.5 * sin((2.0 * M_PI / Lx[0]) * x)) * exp(-pow(y, 2) / (2.0 * pow(M_PI / 3.0, 2)));
 }
 
-void test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void
+test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   double lower[] = {0.0, -M_PI}, upper[] = {1.0, M_PI};
   double mass = 1.0;
@@ -226,7 +232,7 @@ void test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gp
     .mass = mass, // Particle mass.
     .cdim = ndim, // Number of position space dimensions.
     .lower = {lower[0], lower[1]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1]} // Upper extents of the grid.
+    .upper = {upper[0], upper[1]}, // Upper extents of the grid.
   };
 
   // Grid.
@@ -317,7 +323,8 @@ void test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void eval_distf_1x1v_vlasov(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_distf_1x1v_vlasov(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1];
 
@@ -345,7 +352,8 @@ void eval_distf_1x1v_vlasov(double t, const double *xn, double *restrict fout, v
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) * exp(-(pow(vx - ux, 2)) / (2.0 * vtsq));
 }
 
-static void calc_moms_vlasov(
+static void
+calc_moms_vlasov(
   struct gkyl_rect_grid *grid, struct gkyl_basis *confBasis, struct gkyl_basis *basis,
   struct gkyl_range *confLocal, struct gkyl_range *local, bool use_gpu, struct gkyl_array *distf,
   struct gkyl_array *moms
@@ -358,7 +366,8 @@ static void calc_moms_vlasov(
   gkyl_dg_updater_moment_release(mom_op);
 }
 
-void test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void
+test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double x_min = 0.0;
@@ -379,7 +388,7 @@ void test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bo
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
     .lower = {lower[0], lower[1]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1]} // Upper extents of the grid.
+    .upper = {upper[0], upper[1]}, // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -582,7 +591,8 @@ void test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bo
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void eval_distf_1x2v_vlasov(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_distf_1x2v_vlasov(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2];
 
@@ -613,7 +623,8 @@ void eval_distf_1x2v_vlasov(double t, const double *xn, double *restrict fout, v
             exp(-(pow(vx - ux, 2) + pow(vy - uy, 2)) / (2.0 * vtsq));
 }
 
-void test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void
+test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double x_min = 0.0;
@@ -637,7 +648,7 @@ void test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bo
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
     .lower = {lower[0], lower[1], lower[2]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1], upper[2]} // Upper extents of the grid.
+    .upper = {upper[0], upper[1], upper[2]}, // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -838,14 +849,16 @@ void test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bo
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void eval_bfield_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_bfield_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
 
@@ -857,7 +870,8 @@ void eval_bfield_1x(double t, const double *xn, double *restrict fout, void *ctx
   fout[2] = B0;
 }
 
-void eval_bfield_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_bfield_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
 
@@ -869,7 +883,8 @@ void eval_bfield_2x(double t, const double *xn, double *restrict fout, void *ctx
   fout[2] = B0;
 }
 
-void eval_bfield_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_bfield_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
 
@@ -886,28 +901,32 @@ void eval_bfield_3x(double t, const double *xn, double *restrict fout, void *ctx
 // (which takes |B| = sqrt(B.B)). When |B| is needed as a scalar field (e.g. for
 // projection with num_ret_vals=1, or inside the distribution functions), use these
 // wrappers so we don't write past a single-component output buffer.
-void eval_bmag_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_bmag_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double B[3] = {0.0};
   eval_bfield_1x(t, xn, B, ctx);
   fout[0] = sqrt(B[0] * B[0] + B[1] * B[1] + B[2] * B[2]);
 }
 
-void eval_bmag_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_bmag_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double B[3] = {0.0};
   eval_bfield_2x(t, xn, B, ctx);
   fout[0] = sqrt(B[0] * B[0] + B[1] * B[1] + B[2] * B[2]);
 }
 
-void eval_bmag_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_bmag_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double B[3] = {0.0};
   eval_bfield_3x(t, xn, B, ctx);
   fout[0] = sqrt(B[0] * B[0] + B[1] * B[1] + B[2] * B[2]);
 }
 
-void eval_distf_1x1v_gk(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_distf_1x1v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1];
 
@@ -935,7 +954,8 @@ void eval_distf_1x1v_gk(double t, const double *xn, double *restrict fout, void 
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) * exp(-(pow(vpar - upar, 2)) / (2.0 * vtsq));
 }
 
-static struct gk_geometry *init_gk_geo(
+static struct gk_geometry *
+init_gk_geo(
   int poly_order, struct gkyl_rect_grid confGrid, struct gkyl_basis confBasis,
   struct gkyl_range confLocal, struct gkyl_range confLocal_ext, void *bfield_ctx, bool use_gpu
 )
@@ -954,7 +974,7 @@ static struct gk_geometry *init_gk_geo(
     .local = confLocal,
     .local_ext = confLocal_ext,
     .global = confLocal,
-    .global_ext = confLocal_ext
+    .global_ext = confLocal_ext,
   };
   int geo_ghost[3] = {1, 1, 1};
   if (cdim < 3) {
@@ -993,7 +1013,8 @@ static struct gk_geometry *init_gk_geo(
   return gk_geom;
 }
 
-static void calc_moms_gk(
+static void
+calc_moms_gk(
   struct gkyl_rect_grid *grid, struct gkyl_basis *confBasis, struct gkyl_basis *basis,
   struct gkyl_range *confLocal, struct gkyl_range *local, double mass, double charge,
   struct gkyl_velocity_map *gvm, struct gk_geometry *gk_geom, bool use_gpu,
@@ -1008,7 +1029,8 @@ static void calc_moms_gk(
   gkyl_dg_updater_moment_gyrokinetic_release(mom_op);
 }
 
-void test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void
+test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double x_min = 0.0;
@@ -1031,7 +1053,7 @@ void test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool u
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
     .lower = {lower[0], lower[1]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1]} // Upper extents of the grid.
+    .upper = {upper[0], upper[1]}, // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -1272,7 +1294,8 @@ void test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool u
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void eval_distf_1x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_distf_1x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1], mu = xn[2];
 
@@ -1304,7 +1327,8 @@ void eval_distf_1x2v_gk(double t, const double *xn, double *restrict fout, void 
             exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag[0] / mass) / (2.0 * vtsq));
 }
 
-void test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void
+test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double x_min = 0.0;
@@ -1328,7 +1352,7 @@ void test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool u
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
     .lower = {lower[0], lower[1], lower[2]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1], upper[2]} // Upper extents of the grid.
+    .upper = {upper[0], upper[1], upper[2]}, // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -1567,7 +1591,8 @@ void test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool u
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void eval_distf_2x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_distf_2x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vpar = xn[2], mu = xn[3];
 
@@ -1599,7 +1624,8 @@ void eval_distf_2x2v_gk(double t, const double *xn, double *restrict fout, void 
             exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag[0] / mass) / (2.0 * vtsq));
 }
 
-void test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void
+test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 2;
   //  double x_min = 0.0;
@@ -1632,7 +1658,7 @@ void test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool u
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
     .lower = {lower[0], lower[1], lower[2], lower[3]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1], upper[2], upper[3]} // Upper extents of the grid.
+    .upper = {upper[0], upper[1], upper[2], upper[3]}, // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -1871,7 +1897,8 @@ void test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool u
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void eval_distf_3x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_distf_3x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2], vpar = xn[3], mu = xn[4];
 
@@ -1903,7 +1930,8 @@ void eval_distf_3x2v_gk(double t, const double *xn, double *restrict fout, void 
             exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag[0] / mass) / (2.0 * vtsq));
 }
 
-void test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void
+test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 3;
   //  double x_min = 0.0;
@@ -1950,7 +1978,7 @@ void test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool u
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
     .lower = {lower[0], lower[1], lower[2], lower[3], lower[4]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1], upper[2], upper[3], upper[4]} // Upper extents of the grid.
+    .upper = {upper[0], upper[1], upper[2], upper[3], upper[4]}, // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -2192,7 +2220,8 @@ void test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool u
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void test_1x_hodev(bool use_gpu)
+void
+test_1x_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = {6};
@@ -2207,7 +2236,8 @@ void test_1x_hodev(bool use_gpu)
   test_1x(cells_do1, cells_tar1, 2, use_gpu);
 }
 
-void test_2x_hodev(bool use_gpu)
+void
+test_2x_hodev(bool use_gpu)
 {
   // Refine along x.
   //  int cells_do0[] = {6, 8};
@@ -2246,7 +2276,8 @@ void test_2x_hodev(bool use_gpu)
   //  test_2x(cells_do5, cells_tar5, 2, use_gpu);
 }
 
-void test_1x1v_vlasov_hodev(bool use_gpu)
+void
+test_1x1v_vlasov_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = {6, 8};
@@ -2285,7 +2316,8 @@ void test_1x1v_vlasov_hodev(bool use_gpu)
   test_1x1v_vlasov(cells_do5, cells_tar5, 2, use_gpu);
 }
 
-void test_1x2v_vlasov_hodev(bool use_gpu)
+void
+test_1x2v_vlasov_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = {6, 8, 4};
@@ -2360,7 +2392,8 @@ void test_1x2v_vlasov_hodev(bool use_gpu)
   test_1x2v_vlasov(cells_do11, cells_tar11, 2, use_gpu);
 }
 
-void test_1x1v_gk_hodev(bool use_gpu)
+void
+test_1x1v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = {6, 8};
@@ -2393,7 +2426,8 @@ void test_1x1v_gk_hodev(bool use_gpu)
   test_1x1v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
-void test_1x2v_gk_hodev(bool use_gpu)
+void
+test_1x2v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = {6, 8, 4};
@@ -2456,7 +2490,8 @@ void test_1x2v_gk_hodev(bool use_gpu)
   test_1x2v_gk(cells_do11, cells_tar11, 1, use_gpu);
 }
 
-void test_2x2v_gk_hodev(bool use_gpu)
+void
+test_2x2v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = {6, 6, 8, 4};
@@ -2489,7 +2524,8 @@ void test_2x2v_gk_hodev(bool use_gpu)
   test_2x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
-void test_3x2v_gk_hodev(bool use_gpu)
+void
+test_3x2v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = {6, 6, 8, 8, 4};
@@ -2522,83 +2558,99 @@ void test_3x2v_gk_hodev(bool use_gpu)
   test_3x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
-void test_dg_interpolate_1x_ho()
+void
+test_dg_interpolate_1x_ho()
 {
   test_1x_hodev(false);
 }
 
-void test_dg_interpolate_2x_ho()
+void
+test_dg_interpolate_2x_ho()
 {
   test_2x_hodev(false);
 }
 
-void test_dg_interpolate_1x1v_vlasov_ho()
+void
+test_dg_interpolate_1x1v_vlasov_ho()
 {
   test_1x1v_vlasov_hodev(false);
 }
 
-void test_dg_interpolate_1x2v_vlasov_ho()
+void
+test_dg_interpolate_1x2v_vlasov_ho()
 {
   test_1x2v_vlasov_hodev(false);
 }
 
-void test_dg_interpolate_1x1v_gk_ho()
+void
+test_dg_interpolate_1x1v_gk_ho()
 {
   test_1x1v_gk_hodev(false);
 }
 
-void test_dg_interpolate_1x2v_gk_ho()
+void
+test_dg_interpolate_1x2v_gk_ho()
 {
   test_1x2v_gk_hodev(false);
 }
 
-void test_dg_interpolate_2x2v_gk_ho()
+void
+test_dg_interpolate_2x2v_gk_ho()
 {
   test_2x2v_gk_hodev(false);
 }
 
-void test_dg_interpolate_3x2v_gk_ho()
+void
+test_dg_interpolate_3x2v_gk_ho()
 {
   test_3x2v_gk_hodev(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_dg_interpolate_1x_dev()
+void
+test_dg_interpolate_1x_dev()
 {
   test_1x_hodev(true);
 }
 
-void test_dg_interpolate_2x_dev()
+void
+test_dg_interpolate_2x_dev()
 {
   test_2x_hodev(true);
 }
 
-void test_dg_interpolate_1x1v_vlasov_dev()
+void
+test_dg_interpolate_1x1v_vlasov_dev()
 {
   test_1x1v_vlasov_hodev(true);
 }
 
-void test_dg_interpolate_1x2v_vlasov_dev()
+void
+test_dg_interpolate_1x2v_vlasov_dev()
 {
   test_1x2v_vlasov_hodev(true);
 }
 
-void test_dg_interpolate_1x1v_gk_dev()
+void
+test_dg_interpolate_1x1v_gk_dev()
 {
   test_1x1v_gk_hodev(true);
 }
 
-void test_dg_interpolate_1x2v_gk_dev()
+void
+test_dg_interpolate_1x2v_gk_dev()
 {
   test_1x2v_gk_hodev(true);
 }
 
-void test_dg_interpolate_2x2v_gk_dev()
+void
+test_dg_interpolate_2x2v_gk_dev()
 {
   test_2x2v_gk_hodev(true);
 }
 
-void test_dg_interpolate_3x2v_gk_dev()
+void
+test_dg_interpolate_3x2v_gk_dev()
 {
   test_3x2v_gk_hodev(true);
 }

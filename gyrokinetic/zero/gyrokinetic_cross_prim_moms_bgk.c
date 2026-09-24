@@ -4,7 +4,8 @@
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk.h>
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk_priv.h>
 
-gkyl_gyrokinetic_cross_prim_moms_bgk *gkyl_gyrokinetic_cross_prim_moms_bgk_new(
+gkyl_gyrokinetic_cross_prim_moms_bgk *
+gkyl_gyrokinetic_cross_prim_moms_bgk_new(
   const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, bool use_gpu
 )
 {
@@ -25,7 +26,8 @@ gkyl_gyrokinetic_cross_prim_moms_bgk *gkyl_gyrokinetic_cross_prim_moms_bgk_new(
   return up;
 }
 
-void gkyl_gyrokinetic_cross_prim_moms_bgk_advance(
+void
+gkyl_gyrokinetic_cross_prim_moms_bgk_advance(
   gkyl_gyrokinetic_cross_prim_moms_bgk *up, const struct gkyl_range *conf_rng, double delta_sr,
   double betap1, double m_self, const struct gkyl_array *prim_moms_self, double m_other,
   const struct gkyl_array *prim_moms_other, struct gkyl_array *prim_moms_cross
@@ -55,7 +57,8 @@ void gkyl_gyrokinetic_cross_prim_moms_bgk_advance(
   }
 }
 
-void gkyl_gyrokinetic_cross_prim_moms_bgk_release(gkyl_gyrokinetic_cross_prim_moms_bgk *up)
+void
+gkyl_gyrokinetic_cross_prim_moms_bgk_release(gkyl_gyrokinetic_cross_prim_moms_bgk *up)
 {
   if (up->use_gpu) {
     gkyl_cu_free(up->on_dev);

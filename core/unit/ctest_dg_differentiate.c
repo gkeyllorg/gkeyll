@@ -11,7 +11,8 @@
 #include <gkyl_util.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -26,7 +27,8 @@ struct fin_ctx {
   double exp_c[20]; // Expansion coefficients in test function.
 };
 
-void fin_1x_func(double t, const double *xn, double *restrict fout, void *ctx)
+void
+fin_1x_func(double t, const double *xn, double *restrict fout, void *ctx)
 {
   struct fin_ctx *params = ctx;
   const double *a = params->exp_c;
@@ -35,7 +37,8 @@ void fin_1x_func(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = a[0] + a[1] * x;
 }
 
-void test_dg_differentiate_1x(int poly_order, bool use_gpu)
+void
+test_dg_differentiate_1x(int poly_order, bool use_gpu)
 {
   double lower[] = {-M_PI}, upper[] = {M_PI};
   int cells[] = {6};
@@ -112,7 +115,8 @@ void test_dg_differentiate_1x(int poly_order, bool use_gpu)
   gkyl_array_release(fin_ho);
 }
 
-void fin_2x_func(double t, const double *xn, double *restrict fout, void *ctx)
+void
+fin_2x_func(double t, const double *xn, double *restrict fout, void *ctx)
 {
   struct fin_ctx *params = ctx;
   const double *a = params->exp_c;
@@ -121,7 +125,8 @@ void fin_2x_func(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = a[0] + a[1] * x + a[2] * y + a[3] * x * y;
 }
 
-void test_dg_differentiate_2x(int poly_order, bool use_gpu)
+void
+test_dg_differentiate_2x(int poly_order, bool use_gpu)
 {
   double lower[] = {-M_PI, -2.0}, upper[] = {M_PI, 2.0};
   int cells[] = {6, 4};
@@ -277,7 +282,8 @@ void test_dg_differentiate_2x(int poly_order, bool use_gpu)
   gkyl_array_release(fin_ho);
 }
 
-void fin_3x_func(double t, const double *xn, double *restrict fout, void *ctx)
+void
+fin_3x_func(double t, const double *xn, double *restrict fout, void *ctx)
 {
   struct fin_ctx *params = ctx;
   const double *a = params->exp_c;
@@ -287,7 +293,8 @@ void fin_3x_func(double t, const double *xn, double *restrict fout, void *ctx)
             a[7] * x * y * z;
 }
 
-void test_dg_differentiate_3x(int poly_order, bool use_gpu)
+void
+test_dg_differentiate_3x(int poly_order, bool use_gpu)
 {
   double lower[] = {-M_PI, -2.0, 1.0}, upper[] = {M_PI, 2.0, 3.5};
   int cells[] = {6, 4, 4};
@@ -469,33 +476,39 @@ void test_dg_differentiate_3x(int poly_order, bool use_gpu)
   gkyl_array_release(fin_ho);
 }
 
-void test_dg_differentiate_1x_p1_ho()
+void
+test_dg_differentiate_1x_p1_ho()
 {
   test_dg_differentiate_1x(1, false);
 }
 
-void test_dg_differentiate_2x_p1_ho()
+void
+test_dg_differentiate_2x_p1_ho()
 {
   test_dg_differentiate_2x(1, false);
 }
 
-void test_dg_differentiate_3x_p1_ho()
+void
+test_dg_differentiate_3x_p1_ho()
 {
   test_dg_differentiate_3x(1, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_dg_differentiate_1x_p1_dev()
+void
+test_dg_differentiate_1x_p1_dev()
 {
   test_dg_differentiate_1x(1, true);
 }
 
-void test_dg_differentiate_2x_p1_dev()
+void
+test_dg_differentiate_2x_p1_dev()
 {
   test_dg_differentiate_2x(1, true);
 }
 
-void test_dg_differentiate_3x_p1_dev()
+void
+test_dg_differentiate_3x_p1_dev()
 {
   test_dg_differentiate_3x(1, true);
 }

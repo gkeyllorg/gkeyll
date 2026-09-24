@@ -9,7 +9,8 @@
 #include <gkyl_wv_canonical_pb_fluid.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_canonical_pb_fluid_vars *gkyl_dg_calc_canonical_pb_fluid_vars_new(
+gkyl_dg_calc_canonical_pb_fluid_vars *
+gkyl_dg_calc_canonical_pb_fluid_vars_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_ext_range,
   const struct gkyl_wv_eqn *wv_eqn, bool use_gpu
@@ -68,7 +69,7 @@ gkyl_dg_calc_canonical_pb_fluid_vars *gkyl_dg_calc_canonical_pb_fluid_vars_new(
         .local_avg_ext = &up->x_local_ext,
         .weight = NULL,
         .avg_dim = int_dim_y,
-        .use_gpu = use_gpu
+        .use_gpu = use_gpu,
       };
       up->int_y = gkyl_array_average_inew(&inp_int_y);
       up->phi_zonal = gkyl_array_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
@@ -97,7 +98,8 @@ gkyl_dg_calc_canonical_pb_fluid_vars *gkyl_dg_calc_canonical_pb_fluid_vars_new(
   return up;
 }
 
-void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(
+void
+gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_array *phi,
   struct gkyl_array *alpha_surf, struct gkyl_array *sgn_alpha_surf,
@@ -155,7 +157,8 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(
   }
 }
 
-void gkyl_canonical_pb_fluid_vars_source(
+void
+gkyl_canonical_pb_fluid_vars_source(
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *phi, const struct gkyl_array *n0, const struct gkyl_array *fluid,
   struct gkyl_array *rhs
@@ -220,7 +223,8 @@ void gkyl_canonical_pb_fluid_vars_source(
   }
 }
 
-void gkyl_dg_calc_canonical_pb_fluid_vars_release(gkyl_dg_calc_canonical_pb_fluid_vars *up)
+void
+gkyl_dg_calc_canonical_pb_fluid_vars_release(gkyl_dg_calc_canonical_pb_fluid_vars *up)
 {
   // If alpha was specified, we were solving Hasegawa-Wakatani
   // and need to free specific Hasegawa-Wakatani allocated memory.

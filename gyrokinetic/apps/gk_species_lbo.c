@@ -2,7 +2,8 @@
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_const.h>
 
-static void gklbo_moms_disabled(
+static void
+gklbo_moms_disabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -10,7 +11,8 @@ static void gklbo_moms_disabled(
   // Empty method.
 }
 
-static void gklbo_moms_enabled(
+static void
+gklbo_moms_enabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -55,7 +57,8 @@ static void gklbo_moms_enabled(
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gklbo_self_nu_calc_constNu(
+static void
+gklbo_self_nu_calc_constNu(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -63,7 +66,8 @@ static void gklbo_self_nu_calc_constNu(
   // Empty method.
 }
 
-static void gklbo_self_nu_calc_normNu(
+static void
+gklbo_self_nu_calc_normNu(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -83,14 +87,16 @@ static void gklbo_self_nu_calc_normNu(
   gkyl_array_set(lbo->nu_sum, 1.0, lbo->self_nu);
 }
 
-static void gklbo_cross_nu_calc_constNu(
+static void
+gklbo_cross_nu_calc_constNu(
   gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_lbo_collisions *lbo, int coll_idx
 )
 {
   // Empty method.
 }
 
-static void gklbo_cross_nu_calc_normNu(
+static void
+gklbo_cross_nu_calc_normNu(
   gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_lbo_collisions *lbo, int coll_idx
 )
 {
@@ -104,7 +110,8 @@ static void gklbo_cross_nu_calc_normNu(
   gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[coll_idx]);
 }
 
-static void gklbo_alpha_E_constNu(
+static void
+gklbo_alpha_E_constNu(
   gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_lbo_collisions *lbo, int coll_idx
 )
 {
@@ -112,7 +119,8 @@ static void gklbo_alpha_E_constNu(
   gkyl_array_shiftc(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], 0);
 }
 
-static void gklbo_alpha_E_normNu(
+static void
+gklbo_alpha_E_normNu(
   gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_lbo_collisions *lbo, int coll_idx
 )
 {
@@ -122,7 +130,8 @@ static void gklbo_alpha_E_normNu(
   gkyl_array_scale_range(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], &app->local);
 }
 
-static void gklbo_cross_moms_disabled(
+static void
+gklbo_cross_moms_disabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo
 )
 {
@@ -193,7 +202,8 @@ static void gklbo_cross_moms_enabled(
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void gklbo_rhs_disabled(
+static void
+gklbo_rhs_disabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -201,7 +211,8 @@ static void gklbo_rhs_disabled(
   // Empty method.
 }
 
-static void gklbo_rhs_enabled(
+static void
+gklbo_rhs_enabled(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -238,12 +249,12 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, doubl
     sizeof(io_meta_nu_sum_len) / sizeof(int), io_meta_nu_sum_len, io_meta_nu_sum
   );
 
-  struct gkyl_msgpack_map_elem desc_nu_prim[] = {
-    {.key = "Description",
-     .elem_type = GKYL_MP_STRING,
-     .cval = "Drift velocity and thermal speed squared, times collision frequency, summed over "
-             "colliding species."}
-  };
+  struct gkyl_msgpack_map_elem desc_nu_prim[] = {{
+    .key = "Description",
+    .elem_type = GKYL_MP_STRING,
+    .cval = "Drift velocity and thermal speed squared, times collision frequency, summed over "
+            "colliding species.",
+  }};
   int io_meta_nu_prim_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta_nu_prim[] = {
     gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_nu_prim
@@ -365,7 +376,8 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, doubl
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
-void gk_species_lbo_init(
+void
+gk_species_lbo_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_lbo_collisions *lbo
 )
 {
@@ -484,10 +496,14 @@ void gk_species_lbo_init(
 
     // LBO updater.
     struct gkyl_dg_lbo_gyrokinetic_drag_auxfields drag_inp = {
-      .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self
+      .nuSum = lbo->nu_sum,
+      .nuPrimMomsSum = lbo->nu_prim_moms,
+      .m2self = lbo->m2self,
     };
     struct gkyl_dg_lbo_gyrokinetic_diff_auxfields diff_inp = {
-      .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self
+      .nuSum = lbo->nu_sum,
+      .nuPrimMomsSum = lbo->nu_prim_moms,
+      .m2self = lbo->m2self,
     };
     lbo->coll_slvr = gkyl_dg_updater_lbo_gyrokinetic_new(
       &gks->grid, &app->basis, &gks->basis, &app->local, &drag_inp, &diff_inp, gks->info.mass,
@@ -506,7 +522,8 @@ void gk_species_lbo_init(
   }
 }
 
-void gk_species_lbo_cross_init(
+void
+gk_species_lbo_cross_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_lbo_collisions *lbo
 )
 {
@@ -648,7 +665,8 @@ void gk_species_lbo_cross_init(
   }
 }
 
-void gk_species_lbo_moms(
+void
+gk_species_lbo_moms(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -656,7 +674,8 @@ void gk_species_lbo_moms(
   lbo->moms_func(app, species, lbo, fin);
 }
 
-void gk_species_lbo_cross_moms(
+void
+gk_species_lbo_cross_moms(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -664,7 +683,8 @@ void gk_species_lbo_cross_moms(
   lbo->cross_moms_func(app, species, lbo);
 }
 
-void gk_species_lbo_rhs(
+void
+gk_species_lbo_rhs(
   gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -672,16 +692,14 @@ void gk_species_lbo_rhs(
   lbo->rhs_func(app, gks, lbo, fin, rhs);
 }
 
-void gk_species_lbo_write_mom(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
-)
+void
+gk_species_lbo_write_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   gks->lbo.write_mom_func(app, gks, tm, frame);
 }
 
-void gk_species_lbo_release(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_lbo_collisions *lbo
-)
+void
+gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lbo_collisions *lbo)
 {
   if (lbo->collision_id == GKYL_LBO_COLLISIONS) {
     if (lbo->num_cross_collisions) {

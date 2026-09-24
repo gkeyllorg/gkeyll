@@ -12,7 +12,8 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void gkyl_canonical_pb_fluid_free(const struct gkyl_ref_count *ref)
+void
+gkyl_canonical_pb_fluid_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -28,7 +29,8 @@ void gkyl_canonical_pb_fluid_free(const struct gkyl_ref_count *ref)
   gkyl_free(can_pb_fluid);
 }
 
-void gkyl_canonical_pb_fluid_set_auxfields(
+void
+gkyl_canonical_pb_fluid_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_fluid_auxfields auxin
 )
 {
@@ -46,7 +48,8 @@ void gkyl_canonical_pb_fluid_set_auxfields(
   can_pb_fluid->auxfields.const_sgn_alpha = auxin.const_sgn_alpha;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_new(
+struct gkyl_dg_eqn *
+gkyl_dg_canonical_pb_fluid_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
   const struct gkyl_wv_eqn *wv_eqn, bool use_gpu
 )
@@ -71,33 +74,33 @@ struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_new(
   const gkyl_dg_canonical_pb_fluid_surf_kern_list *surf_x_kernels, *surf_y_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    if (can_pb_fluid->eqn.num_equations == 2) {
-      vol_kernels = ser_two_fluid_vol_kernels;
-      surf_x_kernels = ser_two_fluid_surf_x_kernels;
-      surf_y_kernels = ser_two_fluid_surf_y_kernels;
-    } else {
-      vol_kernels = ser_vol_kernels;
-      surf_x_kernels = ser_surf_x_kernels;
-      surf_y_kernels = ser_surf_y_kernels;
-    }
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      if (can_pb_fluid->eqn.num_equations == 2) {
+        vol_kernels = ser_two_fluid_vol_kernels;
+        surf_x_kernels = ser_two_fluid_surf_x_kernels;
+        surf_y_kernels = ser_two_fluid_surf_y_kernels;
+      } else {
+        vol_kernels = ser_vol_kernels;
+        surf_x_kernels = ser_surf_x_kernels;
+        surf_y_kernels = ser_surf_y_kernels;
+      }
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    if (can_pb_fluid->eqn.num_equations == 2) {
-      vol_kernels = tensor_two_fluid_vol_kernels;
-      surf_x_kernels = tensor_two_fluid_surf_x_kernels;
-      surf_y_kernels = tensor_two_fluid_surf_y_kernels;
-    } else {
-      vol_kernels = tensor_vol_kernels;
-      surf_x_kernels = tensor_surf_x_kernels;
-      surf_y_kernels = tensor_surf_y_kernels;
-    }
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (can_pb_fluid->eqn.num_equations == 2) {
+        vol_kernels = tensor_two_fluid_vol_kernels;
+        surf_x_kernels = tensor_two_fluid_surf_x_kernels;
+        surf_y_kernels = tensor_two_fluid_surf_y_kernels;
+      } else {
+        vol_kernels = tensor_vol_kernels;
+        surf_x_kernels = tensor_surf_x_kernels;
+        surf_y_kernels = tensor_surf_y_kernels;
+      }
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   can_pb_fluid->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
@@ -126,7 +129,8 @@ struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_canonical_pb_fluid_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
   const struct gkyl_wv_eqn *wv_eqn
 )

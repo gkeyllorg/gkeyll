@@ -15,7 +15,8 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static struct gkyl_dg_eqn *make_diffusion_eqn(struct gkyl_range *diff_range)
+static struct gkyl_dg_eqn *
+make_diffusion_eqn(struct gkyl_range *diff_range)
 {
   int cdim = 1, vdim = 1, poly_order = 1;
   struct gkyl_basis basis, cbasis;
@@ -27,7 +28,8 @@ static struct gkyl_dg_eqn *make_diffusion_eqn(struct gkyl_range *diff_range)
   return gkyl_dg_diffusion_gyrokinetic_new(&basis, &cbasis, true, dir, 2, diff_range, false);
 }
 
-static void check_boundary_flux(int dir, enum gkyl_edge_loc edge)
+static void
+check_boundary_flux(int dir, enum gkyl_edge_loc edge)
 {
   // Phase-space grid: 1x1v.
   int cells[] = {8, 8};
@@ -68,11 +70,13 @@ static void check_boundary_flux(int dir, enum gkyl_edge_loc edge)
   gkyl_boundary_flux_release(bf);
 }
 
-void test_boundary_flux_lower()
+void
+test_boundary_flux_lower()
 {
   check_boundary_flux(0, GKYL_LOWER_EDGE);
 }
-void test_boundary_flux_upper()
+void
+test_boundary_flux_upper()
 {
   check_boundary_flux(0, GKYL_UPPER_EDGE);
 }

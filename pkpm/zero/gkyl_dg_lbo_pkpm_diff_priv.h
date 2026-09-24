@@ -38,7 +38,8 @@ struct dg_lbo_pkpm_diff {
   int num_cbasis;
 };
 
-GKYL_CU_DH static inline bool checkPrimMomCross(
+GKYL_CU_DH static inline bool
+checkPrimMomCross(
   struct dg_lbo_pkpm_diff *lbo_pkpm_diff, const double *nuSum_p, const double *nuVtSqSum_p
 )
 {
@@ -53,7 +54,8 @@ GKYL_CU_DH static inline bool checkPrimMomCross(
 // Need to be separated like this for GPU build
 //
 
-GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_1x1v_ser_p1(
+GKYL_CU_DH static double
+kernel_lbo_pkpm_diff_vol_1x1v_ser_p1(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -73,7 +75,8 @@ GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_1x1v_ser_p1(
   }
 }
 
-GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_1x1v_ser_p2(
+GKYL_CU_DH static double
+kernel_lbo_pkpm_diff_vol_1x1v_ser_p2(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -93,7 +96,8 @@ GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_1x1v_ser_p2(
   }
 }
 
-GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_1x1v_tensor_p2(
+GKYL_CU_DH static double
+kernel_lbo_pkpm_diff_vol_1x1v_tensor_p2(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -113,7 +117,8 @@ GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_1x1v_tensor_p2(
   }
 }
 
-GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_2x1v_ser_p1(
+GKYL_CU_DH static double
+kernel_lbo_pkpm_diff_vol_2x1v_ser_p1(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -133,7 +138,8 @@ GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_2x1v_ser_p1(
   }
 }
 
-GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_2x1v_tensor_p2(
+GKYL_CU_DH static double
+kernel_lbo_pkpm_diff_vol_2x1v_tensor_p2(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -153,7 +159,8 @@ GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_2x1v_tensor_p2(
   }
 }
 
-GKYL_CU_DH static double kernel_lbo_pkpm_diff_vol_3x1v_ser_p1(
+GKYL_CU_DH static double
+kernel_lbo_pkpm_diff_vol_3x1v_ser_p1(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
 )
@@ -240,7 +247,8 @@ GKYL_CU_D static const gkyl_dg_lbo_pkpm_diff_boundary_surf_kern_list
 
 void gkyl_lbo_pkpm_diff_free(const struct gkyl_ref_count *ref);
 
-GKYL_CU_D static double surf(
+GKYL_CU_D static double
+surf(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC, const double *xcR,
   const double *dxL, const double *dxC, const double *dxR, const int *idxL, const int *idxC,
   const int *idxR, const double *qInL, const double *qInC, const double *qInR,
@@ -261,7 +269,8 @@ GKYL_CU_D static double surf(
   return 0.;
 }
 
-GKYL_CU_D static double boundary_surf(
+GKYL_CU_D static double
+boundary_surf(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
   const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
   const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut

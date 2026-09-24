@@ -29,7 +29,8 @@ struct wv_ten_moment {
  */
 void gkyl_ten_moment_free(const struct gkyl_ref_count *ref);
 
-GKYL_CU_DH static inline double sq(double x)
+GKYL_CU_DH static inline double
+sq(double x)
 {
   return x * x;
 }
@@ -74,7 +75,8 @@ mulByPhiPrime(double p0, double u1, double u2, double u3, const double w[10], do
  * @param q Conserved variables
  * @param out Primitive variables
  */
-GKYL_CU_DH static inline void gkyl_ten_moment_primitive(const double q[10], double out[10])
+GKYL_CU_DH static inline void
+gkyl_ten_moment_primitive(const double q[10], double out[10])
 {
   out[0] = q[0];
   out[1] = q[1] / q[0];
@@ -94,7 +96,8 @@ GKYL_CU_DH static inline void gkyl_ten_moment_primitive(const double q[10], doub
  * @param q Conserved variables
  * @param out [Pxx, Pyy, Pzz]
  */
-GKYL_CU_DH static inline void gkyl_ten_moment_diag_pressure(const double q[10], double out[3])
+GKYL_CU_DH static inline void
+gkyl_ten_moment_diag_pressure(const double q[10], double out[3])
 {
   out[0] = q[4] - (q[1] * q[1]) / q[0]; // pxx
   out[1] = q[7] - (q[2] * q[2]) / q[0]; // pyy
@@ -108,7 +111,8 @@ GKYL_CU_DH static inline void gkyl_ten_moment_diag_pressure(const double q[10], 
  * @param q Conserved variables
  * @return Maximum absolute speed for given q
  */
-GKYL_CU_DH static inline double gkyl_ten_moment_max_abs_speed(const double q[10])
+GKYL_CU_DH static inline double
+gkyl_ten_moment_max_abs_speed(const double q[10])
 {
   double u = q[1] / q[0];
   double p11 = q[4] - q[0] * u * u;
@@ -122,7 +126,8 @@ GKYL_CU_DH static inline double gkyl_ten_moment_max_abs_speed(const double q[10]
  * @param Conserved variables
  * @param flux On output, the flux in direction 'dir'
  */
-GKYL_CU_DH static inline void gkyl_ten_moment_flux(const double q[10], double flux[10])
+GKYL_CU_DH static inline void
+gkyl_ten_moment_flux(const double q[10], double flux[10])
 {
   double v[10];
   gkyl_ten_moment_primitive(q, v);
@@ -145,7 +150,8 @@ GKYL_CU_DH static inline void gkyl_ten_moment_flux(const double q[10], double fl
 }
 
 // Ten moment perfectly reflecting wall
-GKYL_CU_DH static void ten_moment_wall(
+GKYL_CU_DH static void
+ten_moment_wall(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -167,7 +173,8 @@ GKYL_CU_DH static void ten_moment_wall(
   ghost[5] = -skin[5];
 }
 
-GKYL_CU_DH static inline void rot_to_local(
+GKYL_CU_DH static inline void
+rot_to_local(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
 )
@@ -215,7 +222,8 @@ GKYL_CU_DH static inline void rot_to_local(
   qlocal[9] = v3[2];
 }
 
-GKYL_CU_DH static inline void rot_to_global(
+GKYL_CU_DH static inline void
+rot_to_global(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
 )
@@ -265,7 +273,8 @@ GKYL_CU_DH static inline void rot_to_global(
 }
 
 // Waves and speeds using Roe averaging
-GKYL_CU_DH static double wave_roe(
+GKYL_CU_DH static double
+wave_roe(
   const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
   double *waves, double *s
 )
@@ -431,7 +440,8 @@ GKYL_CU_DH static double wave_roe(
   return fabs(u1) + sqrt(3 * p11 / p0);
 }
 
-GKYL_CU_DH static void qfluct_roe(
+GKYL_CU_DH static void
+qfluct_roe(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -449,7 +459,8 @@ GKYL_CU_DH static void qfluct_roe(
   }
 }
 
-GKYL_CU_DH static void wave_embed_absorb(const double *q, double *qphi, double *delta, void *ctx)
+GKYL_CU_DH static void
+wave_embed_absorb(const double *q, double *qphi, double *delta, void *ctx)
 {
   qphi[0] = 0.0;
   qphi[1] = 0.0;
@@ -463,7 +474,8 @@ GKYL_CU_DH static void wave_embed_absorb(const double *q, double *qphi, double *
   qphi[9] = 0.0;
 }
 
-GKYL_CU_DH static void wave_embed_reflect(const double *q, double *qphi, double *delta, void *ctx)
+GKYL_CU_DH static void
+wave_embed_reflect(const double *q, double *qphi, double *delta, void *ctx)
 {
   qphi[0] = q[0];
   qphi[1] = -q[1];
@@ -477,7 +489,8 @@ GKYL_CU_DH static void wave_embed_reflect(const double *q, double *qphi, double 
   qphi[9] = q[9];
 }
 
-GKYL_CU_DH static double wave_embedded(
+GKYL_CU_DH static double
+wave_embedded(
   const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
   const double phil, const double phir, double *waves, double *s
 )
@@ -525,7 +538,8 @@ GKYL_CU_DH static double wave_embedded(
 }
 
 // Waves and speeds using Lax fluxes
-GKYL_CU_DH static double wave_lax(
+GKYL_CU_DH static double
+wave_lax(
   const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
   double *waves, double *s
 )
@@ -550,7 +564,8 @@ GKYL_CU_DH static double wave_lax(
   return s[1];
 }
 
-GKYL_CU_DH static void qfluct_lax(
+GKYL_CU_DH static void
+qfluct_lax(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -565,7 +580,8 @@ GKYL_CU_DH static void qfluct_lax(
   }
 }
 
-GKYL_CU_DH static double wave(
+GKYL_CU_DH static double
+wave(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -593,7 +609,8 @@ GKYL_CU_DH static double wave(
   return 0.0; // can't happen
 }
 
-GKYL_CU_DH static void qfluct(
+GKYL_CU_DH static void
+qfluct(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -606,7 +623,8 @@ GKYL_CU_DH static void qfluct(
   }
 }
 
-GKYL_CU_DH static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+GKYL_CU_DH static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   if (q[0] < 0.0) {
     return false;
@@ -621,7 +639,8 @@ GKYL_CU_DH static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   return true;
 }
 
-GKYL_CU_DH static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+GKYL_CU_DH static double
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   return gkyl_ten_moment_max_abs_speed(q);
 }

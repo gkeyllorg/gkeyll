@@ -6,7 +6,8 @@ extern "C" {
 }
 
 // CUDA kernel to set device pointers to the kernel that transfers ghost cell values to skin cells.
-__global__ static void skin_surf_from_ghost_set_cu_ker_ptrs(
+__global__ static void
+skin_surf_from_ghost_set_cu_ker_ptrs(
   const struct gkyl_basis basis, enum gkyl_edge_loc edge, int dir,
   struct gkyl_skin_surf_from_ghost_kernels *kers
 )
@@ -18,19 +19,20 @@ __global__ static void skin_surf_from_ghost_set_cu_ker_ptrs(
 
   // Select the appropriate kernel based on the basis type and edge location.
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    // Set the ghost_to_skin kernel for the chosen basis and dimensionality.
-    kers->ghost_to_skin =
-      ser_skin_surf_from_ghost_list[edge].edgedlist[dim - 1].dirlist[dir].kernels[poly_order - 1];
-    break;
-  default:
-    // If an unsupported basis type is encountered, assert failure.
-    assert(false);
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Set the ghost_to_skin kernel for the chosen basis and dimensionality.
+      kers->ghost_to_skin =
+        ser_skin_surf_from_ghost_list[edge].edgedlist[dim - 1].dirlist[dir].kernels[poly_order - 1];
+      break;
+    default:
+      // If an unsupported basis type is encountered, assert failure.
+      assert(false);
   }
 };
 
 // Function to launch a CUDA kernel that selects the appropriate kernel on the GPU.
-void skin_surf_from_ghost_choose_kernel_cu(
+void
+skin_surf_from_ghost_choose_kernel_cu(
   const struct gkyl_basis basis, enum gkyl_edge_loc edge, int dir,
   struct gkyl_skin_surf_from_ghost_kernels *kers
 )
@@ -40,7 +42,8 @@ void skin_surf_from_ghost_choose_kernel_cu(
 }
 
 // CUDA kernel to copy ghost cell values to the adjacent skin (boundary) cells on the GPU.
-__global__ static void skin_surf_from_ghost_advance_cu_ker(
+__global__ static void
+skin_surf_from_ghost_advance_cu_ker(
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range skin_r, const struct gkyl_range ghost_r,
   struct gkyl_array *field, struct gkyl_skin_surf_from_ghost_kernels *kers
 )
@@ -75,9 +78,8 @@ __global__ static void skin_surf_from_ghost_advance_cu_ker(
 }
 
 // Function to launch the CUDA kernel that performs the ghost-to-skin value transfer on the GPU.
-void skin_surf_from_ghost_advance_cu(
-  const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field
-)
+void
+skin_surf_from_ghost_advance_cu(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field)
 {
   // Only proceed if the skin range has a non-zero volume (i.e., there are skin cells to update).
   if (up->skin_r->volume > 0) {

@@ -6,7 +6,8 @@
 #include <gkyl_wv_gr_mhd_tetrad.h>
 #include <gkyl_wv_gr_mhd_tetrad_priv.h>
 
-void gkyl_gr_mhd_tetrad_flux(
+void
+gkyl_gr_mhd_tetrad_flux(
   double gas_gamma, double light_speed, double b_fact, const double q[75], double flux[75]
 )
 {
@@ -70,7 +71,8 @@ void gkyl_gr_mhd_tetrad_flux(
   }
 }
 
-void gkyl_gr_mhd_tetrad_flux_correction(
+void
+gkyl_gr_mhd_tetrad_flux_correction(
   double gas_gamma, double light_speed, double b_fact, const double q[75], const double flux_sr[75],
   double flux_gr[75]
 )
@@ -286,7 +288,8 @@ void gkyl_gr_mhd_tetrad_flux_correction(
   }
 }
 
-void gkyl_gr_mhd_tetrad_prim_vars(double gas_gamma, const double q[75], double v[75])
+void
+gkyl_gr_mhd_tetrad_prim_vars(double gas_gamma, const double q[75], double v[75])
 {
   double lapse = q[9];
   double shift_x = q[10];
@@ -586,7 +589,8 @@ void gkyl_gr_mhd_tetrad_prim_vars(double gas_gamma, const double q[75], double v
   gkyl_free(inv_spatial_metric);
 }
 
-void gkyl_gr_mhd_tetrad_inv_spatial_metric(const double q[75], double ***inv_spatial_metric)
+void
+gkyl_gr_mhd_tetrad_inv_spatial_metric(const double q[75], double ***inv_spatial_metric)
 {
   double spatial_metric[3][3];
   spatial_metric[0][0] = q[13];
@@ -651,7 +655,8 @@ void gkyl_gr_mhd_tetrad_inv_spatial_metric(const double q[75], double ***inv_spa
   }
 }
 
-void gkyl_gr_mhd_tetrad_stress_energy_tensor(
+void
+gkyl_gr_mhd_tetrad_stress_energy_tensor(
   double gas_gamma, const double q[75], double ***stress_energy
 )
 {
@@ -816,7 +821,8 @@ void gkyl_gr_mhd_tetrad_stress_energy_tensor(
   gkyl_free(inv_spatial_metric);
 }
 
-static inline double gkyl_gr_mhd_tetrad_max_abs_speed(double gas_gamma, const double q[75])
+static inline double
+gkyl_gr_mhd_tetrad_max_abs_speed(double gas_gamma, const double q[75])
 {
   double v[75] = {0.0};
   gkyl_gr_mhd_tetrad_prim_vars(gas_gamma, q, v);
@@ -1011,7 +1017,8 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *
   }
 }
 
-static void gr_mhd_tetrad_wall(
+static void
+gr_mhd_tetrad_wall(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -1023,7 +1030,8 @@ static void gr_mhd_tetrad_wall(
   ghost[1] = -ghost[1];
 }
 
-static void gr_mhd_tetrad_no_slip(
+static void
+gr_mhd_tetrad_no_slip(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -1040,7 +1048,8 @@ static void gr_mhd_tetrad_no_slip(
   }
 }
 
-static inline void rot_to_local(
+static inline void
+rot_to_local(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
 )
@@ -1318,7 +1327,8 @@ static inline void rot_to_local(
   qlocal[74] = (qglobal[72] * tau2[0]) + (qglobal[73] * tau2[1]) + (qglobal[74] * tau2[2]);
 }
 
-static inline void rot_to_global(
+static inline void
+rot_to_global(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
 )
@@ -1596,7 +1606,8 @@ static inline void rot_to_global(
   qglobal[74] = (qlocal[72] * norm[2]) + (qlocal[73] * tau1[2]) + (qlocal[74] * tau2[2]);
 }
 
-static double wave_lax(
+static double
+wave_lax(
   const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
   double *waves, double *s
 )
@@ -1647,7 +1658,8 @@ static double wave_lax(
   return s[1];
 }
 
-static void qfluct_lax(
+static void
+qfluct_lax(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -1662,7 +1674,8 @@ static void qfluct_lax(
   }
 }
 
-static double wave_lax_l(
+static double
+wave_lax_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -1670,7 +1683,8 @@ static double wave_lax_l(
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void qfluct_lax_l(
+static void
+qfluct_lax_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -1679,7 +1693,8 @@ static void qfluct_lax_l(
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double wave_hll(
+static double
+wave_hll(
   const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
   double *waves, double *s
 )
@@ -1996,7 +2011,8 @@ static double wave_hll(
   return fmax(fabs(sl), fabs(sr));
 }
 
-static void qfluct_hll(
+static void
+qfluct_hll(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -2011,7 +2027,8 @@ static void qfluct_hll(
   }
 }
 
-static double wave_hll_l(
+static double
+wave_hll_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -2025,7 +2042,8 @@ static double wave_hll_l(
   return 0.0; // Unreachable code.
 }
 
-static void qfluct_hll_l(
+static void
+qfluct_hll_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -2080,7 +2098,8 @@ flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, dou
   return fmax(amaxl, amaxr);
 }
 
-static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_gr_mhd_tetrad *gr_mhd_tetrad = container_of(eqn, struct wv_gr_mhd_tetrad, eqn);
   double gas_gamma = gr_mhd_tetrad->gas_gamma;
@@ -2095,7 +2114,8 @@ static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   }
 }
 
-static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_gr_mhd_tetrad *gr_mhd_tetrad = container_of(eqn, struct wv_gr_mhd_tetrad, eqn);
   double gas_gamma = gr_mhd_tetrad->gas_gamma;
@@ -2355,7 +2375,8 @@ gr_mhd_tetrad_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *s
   gkyl_free(stress_energy);
 }
 
-void gkyl_gr_mhd_tetrad_free(const struct gkyl_ref_count *ref)
+void
+gkyl_gr_mhd_tetrad_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
 
@@ -2370,23 +2391,26 @@ void gkyl_gr_mhd_tetrad_free(const struct gkyl_ref_count *ref)
   gkyl_free(gr_mhd_tetrad);
 }
 
-struct gkyl_wv_eqn *gkyl_wv_gr_mhd_tetrad_new(
+struct gkyl_wv_eqn *
+gkyl_wv_gr_mhd_tetrad_new(
   double gas_gamma, double light_speed, double b_fact, enum gkyl_spacetime_gauge spacetime_gauge,
   int reinit_freq, struct gkyl_gr_spacetime *spacetime, bool use_gpu
 )
 {
-  return gkyl_wv_gr_mhd_tetrad_inew(&(struct gkyl_wv_gr_mhd_tetrad_inp
-  ){.gas_gamma = gas_gamma,
+  return gkyl_wv_gr_mhd_tetrad_inew(&(struct gkyl_wv_gr_mhd_tetrad_inp){
+    .gas_gamma = gas_gamma,
     .light_speed = light_speed,
     .b_fact = b_fact,
     .spacetime_gauge = spacetime_gauge,
     .reinit_freq = reinit_freq,
     .spacetime = spacetime,
     .rp_type = WV_GR_MHD_TETRAD_RP_HLL,
-    .use_gpu = use_gpu});
+    .use_gpu = use_gpu,
+  });
 }
 
-struct gkyl_wv_eqn *gkyl_wv_gr_mhd_tetrad_inew(const struct gkyl_wv_gr_mhd_tetrad_inp *inp)
+struct gkyl_wv_eqn *
+gkyl_wv_gr_mhd_tetrad_inew(const struct gkyl_wv_gr_mhd_tetrad_inp *inp)
 {
   struct wv_gr_mhd_tetrad *gr_mhd_tetrad = gkyl_malloc(sizeof(struct wv_gr_mhd_tetrad));
 
@@ -2438,7 +2462,8 @@ struct gkyl_wv_eqn *gkyl_wv_gr_mhd_tetrad_inew(const struct gkyl_wv_gr_mhd_tetra
   return &gr_mhd_tetrad->eqn;
 }
 
-double gkyl_wv_gr_mhd_tetrad_gas_gamma(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_mhd_tetrad_gas_gamma(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_mhd_tetrad *gr_mhd_tetrad = container_of(eqn, struct wv_gr_mhd_tetrad, eqn);
   double gas_gamma = gr_mhd_tetrad->gas_gamma;
@@ -2446,7 +2471,8 @@ double gkyl_wv_gr_mhd_tetrad_gas_gamma(const struct gkyl_wv_eqn *eqn)
   return gas_gamma;
 }
 
-double gkyl_wv_gr_mhd_tetrad_light_speed(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_mhd_tetrad_light_speed(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_mhd_tetrad *gr_mhd_tetrad = container_of(eqn, struct wv_gr_mhd_tetrad, eqn);
   double light_speed = gr_mhd_tetrad->light_speed;
@@ -2454,7 +2480,8 @@ double gkyl_wv_gr_mhd_tetrad_light_speed(const struct gkyl_wv_eqn *eqn)
   return light_speed;
 }
 
-double gkyl_wv_gr_mhd_tetrad_b_fact(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_mhd_tetrad_b_fact(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_mhd_tetrad *gr_mhd_tetrad = container_of(eqn, struct wv_gr_mhd_tetrad, eqn);
   double b_fact = gr_mhd_tetrad->b_fact;
@@ -2462,7 +2489,8 @@ double gkyl_wv_gr_mhd_tetrad_b_fact(const struct gkyl_wv_eqn *eqn)
   return b_fact;
 }
 
-enum gkyl_spacetime_gauge gkyl_wv_gr_mhd_tetrad_spacetime_gauge(const struct gkyl_wv_eqn *eqn)
+enum gkyl_spacetime_gauge
+gkyl_wv_gr_mhd_tetrad_spacetime_gauge(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_mhd_tetrad *gr_mhd_tetrad = container_of(eqn, struct wv_gr_mhd_tetrad, eqn);
   enum gkyl_spacetime_gauge spacetime_gauge = gr_mhd_tetrad->spacetime_gauge;
@@ -2470,7 +2498,8 @@ enum gkyl_spacetime_gauge gkyl_wv_gr_mhd_tetrad_spacetime_gauge(const struct gky
   return spacetime_gauge;
 }
 
-int gkyl_wv_gr_mhd_tetrad_reinit_freq(const struct gkyl_wv_eqn *eqn)
+int
+gkyl_wv_gr_mhd_tetrad_reinit_freq(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_mhd_tetrad *gr_mhd_tetrad = container_of(eqn, struct wv_gr_mhd_tetrad, eqn);
   int reinit_freq = gr_mhd_tetrad->reinit_freq;
@@ -2478,7 +2507,8 @@ int gkyl_wv_gr_mhd_tetrad_reinit_freq(const struct gkyl_wv_eqn *eqn)
   return reinit_freq;
 }
 
-struct gkyl_gr_spacetime *gkyl_wv_gr_mhd_tetrad_spacetime(const struct gkyl_wv_eqn *eqn)
+struct gkyl_gr_spacetime *
+gkyl_wv_gr_mhd_tetrad_spacetime(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_mhd_tetrad *gr_mhd_tetrad = container_of(eqn, struct wv_gr_mhd_tetrad, eqn);
   struct gkyl_gr_spacetime *spacetime = gr_mhd_tetrad->spacetime;

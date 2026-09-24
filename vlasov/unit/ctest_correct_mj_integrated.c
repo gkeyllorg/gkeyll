@@ -17,39 +17,45 @@
 #include <math.h>
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-void eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
 }
 
-void eval_M2(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M2(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
   double x = xn[0];
   fout[0] = T;
 }
 
-void eval_M1i_1v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M1i_1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
 }
 
-void eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
   fout[1] = 0.5;
 }
 
-void eval_M1i_3v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M1i_3v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.5;
@@ -57,26 +63,30 @@ void eval_M1i_3v(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = 0.5;
 }
 
-void eval_M0_x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M0_x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.1 + sin(xn[0]);
 }
 
-void eval_M1i_1v_x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M1i_1v_x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 0.5 * (sin(xn[0])); // 0.5;
 }
 
-void eval_M2_x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_M2_x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
   double x = xn[0];
   fout[0] = T * (1.1 + sin(xn[0]));
 }
 
-void test_1x1v(int poly_order)
+void
+test_1x1v(int poly_order)
 {
   double lower[] = {0.1, -10.0}, upper[] = {1.0, 10.0};
   int cells[] = {2, 32};
@@ -174,7 +184,7 @@ void test_1x1v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
@@ -196,7 +206,7 @@ void test_1x1v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
     .max_iter = 100,
-    .eps = 1e-12
+    .eps = 1e-12,
   };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew(&inp_corr);
   // Correct the other moments (V_drift, T/m)
@@ -222,7 +232,7 @@ void test_1x1v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -263,7 +273,8 @@ void test_1x1v(int poly_order)
   gkyl_array_release(gamma_inv);
 }
 
-void test_1x1v_spatially_varied(int poly_order)
+void
+test_1x1v_spatially_varied(int poly_order)
 {
   double lower[] = {0.0, -10.0}, upper[] = {10.0, 10.0};
   int cells[] = {10, 32}; // 1001
@@ -361,7 +372,7 @@ void test_1x1v_spatially_varied(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
@@ -383,7 +394,7 @@ void test_1x1v_spatially_varied(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
     .max_iter = 100,
-    .eps = 1e-12
+    .eps = 1e-12,
   };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew(&inp_corr);
   // Correct the other moments (V_drift, T/m)
@@ -409,7 +420,7 @@ void test_1x1v_spatially_varied(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -470,7 +481,8 @@ void test_1x1v_spatially_varied(int poly_order)
   gkyl_array_release(gamma_inv);
 }
 
-void test_1x2v(int poly_order)
+void
+test_1x2v(int poly_order)
 {
   double lower[] = {0.1, -10.0, -10.0}, upper[] = {1.0, 10.0, 10.0};
   int cells[] = {2, 32, 32};
@@ -568,7 +580,7 @@ void test_1x2v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
@@ -590,7 +602,7 @@ void test_1x2v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
     .max_iter = 100,
-    .eps = 1e-12
+    .eps = 1e-12,
   };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew(&inp_corr);
   // Correct the other moments (V_drift, T/m)
@@ -611,7 +623,7 @@ void test_1x2v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -661,7 +673,8 @@ void test_1x2v(int poly_order)
   gkyl_array_release(gamma_inv);
 }
 
-void test_1x3v(int poly_order)
+void
+test_1x3v(int poly_order)
 {
   double lower[] = {0.1, -10.0, -10.0, -10.0}, upper[] = {1.0, 10.0, 10.0, 10.0};
   int cells[] = {2, 16, 16, 16};
@@ -759,7 +772,7 @@ void test_1x3v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
@@ -781,7 +794,7 @@ void test_1x3v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_gpu = false,
     .max_iter = 100,
-    .eps = 1e-12
+    .eps = 1e-12,
   };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew(&inp_corr);
   // Correct the other moments (V_drift, T/m)
@@ -802,7 +815,7 @@ void test_1x3v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false
+    .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -862,19 +875,23 @@ void test_1x3v(int poly_order)
 }
 
 // special note, the p1 basis does not function
-void test_correct_mj_integrated_1x1v_p2_ho()
+void
+test_correct_mj_integrated_1x1v_p2_ho()
 {
   test_1x1v(2);
 }
-void test_correct_mj_integrated_1x1v_p2_spatially_varied_ho()
+void
+test_correct_mj_integrated_1x1v_p2_spatially_varied_ho()
 {
   test_1x1v_spatially_varied(2);
 }
-void test_correct_mj_integrated_1x2v_p2_ho()
+void
+test_correct_mj_integrated_1x2v_p2_ho()
 {
   test_1x2v(2);
 }
-void test_correct_mj_integrated_1x3v_p2_ho()
+void
+test_correct_mj_integrated_1x3v_p2_ho()
 {
   test_1x3v(2);
 }

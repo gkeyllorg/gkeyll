@@ -6,7 +6,8 @@
  * @param gas_gamma Gas adiabatic constant
  * @param q Conserved variables
  */
-static inline double gkyl_mhd_pressure(double gas_gamma, const double q[8])
+static inline double
+gkyl_mhd_pressure(double gas_gamma, const double q[8])
 {
   return (gas_gamma - 1) * (q[4] - 0.5 * (q[1] * q[1] + q[2] * q[2] + q[3] * q[3]) / q[0] -
                             0.5 * (q[5] * q[5] + q[6] * q[6] + q[7] * q[7]));

@@ -10,7 +10,8 @@ extern "C" {
 // CUDA kernel to set device pointers to l2g kernel function.
 // Doing function pointer stuff in here avoids troublesome
 // cudaMemcpyFromSymbol.
-__global__ static void fem_poisson_perp_set_cu_l2gker_ptrs(
+__global__ static void
+fem_poisson_perp_set_cu_l2gker_ptrs(
   struct gkyl_fem_poisson_perp_kernels *kers, int ndim, enum gkyl_basis_type b_type, int poly_order,
   const int *bckey
 )
@@ -22,13 +23,13 @@ __global__ static void fem_poisson_perp_set_cu_l2gker_ptrs(
   const local2global_kern_bcx_list_3x *local2global_3x_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    local2global_2x_kernels = ser_loc2glob_list_2x;
-    local2global_3x_kernels = ser_loc2glob_list_3x;
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      local2global_2x_kernels = ser_loc2glob_list_2x;
+      local2global_3x_kernels = ser_loc2glob_list_3x;
+      break;
+    default:
+      assert(false);
+      break;
   }
 
   for (int k = 0; k < GKYL_IPOW(2, ndim_perp); k++) {
@@ -38,7 +39,8 @@ __global__ static void fem_poisson_perp_set_cu_l2gker_ptrs(
 }
 
 // CUDA kernel to set device pointers to RHS src and solution kernels.
-__global__ static void fem_poisson_perp_set_cu_ker_ptrs(
+__global__ static void
+fem_poisson_perp_set_cu_ker_ptrs(
   struct gkyl_fem_poisson_perp_kernels *kers, enum gkyl_basis_type b_type, int ndim, int poly_order,
   const int *bckey
 )
@@ -46,17 +48,18 @@ __global__ static void fem_poisson_perp_set_cu_ker_ptrs(
   int ndim_perp = ndim - 1;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++) {
-      kers->lhsker[k] = ndim == 2 ? CK2x(ser_lhsstencil_list_2x, poly_order, k, bckey[0]) :
-                                    CK3x(ser_lhsstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
-    }
-    break;
-    //    case GKYL_BASIS_MODAL_TENSOR:
-    //      break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++) {
+        kers->lhsker[k] = ndim == 2 ?
+                            CK2x(ser_lhsstencil_list_2x, poly_order, k, bckey[0]) :
+                            CK3x(ser_lhsstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
+      }
+      break;
+      //    case GKYL_BASIS_MODAL_TENSOR:
+      //      break;
+    default:
+      assert(false);
+      break;
   }
 
   // Set RHS stencil kernels.
@@ -64,14 +67,14 @@ __global__ static void fem_poisson_perp_set_cu_ker_ptrs(
   const srcstencil_kern_bcx_list_3x *srcstencil_3x_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    srcstencil_2x_kernels = ser_srcstencil_list_2x;
-    srcstencil_3x_kernels = ser_srcstencil_list_3x;
-    break;
-    //    case GKYL_BASIS_MODAL_TENSOR:
-    //      break;
-  default:
-    assert(false);
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      srcstencil_2x_kernels = ser_srcstencil_list_2x;
+      srcstencil_3x_kernels = ser_srcstencil_list_3x;
+      break;
+      //    case GKYL_BASIS_MODAL_TENSOR:
+      //      break;
+    default:
+      assert(false);
   }
 
   for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++) {
@@ -83,19 +86,20 @@ __global__ static void fem_poisson_perp_set_cu_ker_ptrs(
   const solstencil_kern_list *solstencil_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    solstencil_kernels = ser_solstencil_list;
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    break;
-  default:
-    assert(false);
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      solstencil_kernels = ser_solstencil_list;
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      break;
+    default:
+      assert(false);
   }
 
   kers->solker = solstencil_kernels[ndim].kernels[poly_order];
 }
 
-__global__ static void fem_poisson_perp_set_cu_biasker_ptrs(
+__global__ static void
+fem_poisson_perp_set_cu_biasker_ptrs(
   struct gkyl_fem_poisson_perp_kernels *kers, int ndim, enum gkyl_basis_type b_type, int poly_order,
   const int *bckey
 )
@@ -106,13 +110,13 @@ __global__ static void fem_poisson_perp_set_cu_biasker_ptrs(
   const bias_src_kern_bcx_list_3x *bias_plane_3x_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    bias_plane_2x_kernels = ser_bias_src_list_2x;
-    bias_plane_3x_kernels = ser_bias_src_list_3x;
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      bias_plane_2x_kernels = ser_bias_src_list_2x;
+      bias_plane_3x_kernels = ser_bias_src_list_3x;
+      break;
+    default:
+      assert(false);
+      break;
   }
 
   for (int k = 0; k < (int)(pow(2, ndim_perp) + 0.5); k++) {
@@ -124,7 +128,8 @@ __global__ static void fem_poisson_perp_set_cu_biasker_ptrs(
   }
 }
 
-void fem_poisson_perp_choose_kernels_cu(
+void
+fem_poisson_perp_choose_kernels_cu(
   const struct gkyl_basis *basis, const struct gkyl_poisson_bc *bcs, const bool *isdirperiodic,
   struct gkyl_fem_poisson_perp_kernels *kers
 )
@@ -168,7 +173,8 @@ void fem_poisson_perp_choose_kernels_cu(
   gkyl_cu_free(bckey_d);
 }
 
-__global__ void gkyl_fem_poisson_perp_set_rhs_kernel(
+__global__ void
+gkyl_fem_poisson_perp_set_rhs_kernel(
   struct gkyl_array *epsilon, const double *dx, double *rhs_global, struct gkyl_array *rhs_local,
   const struct gkyl_range range, struct gkyl_range par_range1d, const double *bcvals,
   struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global
@@ -216,7 +222,8 @@ __global__ void gkyl_fem_poisson_perp_set_rhs_kernel(
   }
 }
 
-void gkyl_fem_poisson_perp_set_rhs_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
+void
+gkyl_fem_poisson_perp_set_rhs_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
 {
   gkyl_culinsolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
@@ -230,7 +237,8 @@ void gkyl_fem_poisson_perp_set_rhs_cu(gkyl_fem_poisson_perp *up, struct gkyl_arr
   up->bias_line_src(up, rhsin);
 }
 
-__global__ void gkyl_fem_poisson_perp_bias_src_kernel(
+__global__ void
+gkyl_fem_poisson_perp_bias_src_kernel(
   double *rhs_global, struct gkyl_rect_grid grid, const struct gkyl_range range,
   struct gkyl_range par_range1d, struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global,
   int num_bias_line, struct gkyl_poisson_bias_line *bias_lines
@@ -292,7 +300,8 @@ __global__ void gkyl_fem_poisson_perp_bias_src_kernel(
   }
 }
 
-void gkyl_fem_poisson_perp_bias_src_enabled_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
+void
+gkyl_fem_poisson_perp_bias_src_enabled_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
   gkyl_fem_poisson_perp_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(
@@ -301,7 +310,8 @@ void gkyl_fem_poisson_perp_bias_src_enabled_cu(gkyl_fem_poisson_perp *up, struct
   );
 }
 
-__global__ void gkyl_fem_poisson_perp_get_sol_kernel(
+__global__ void
+gkyl_fem_poisson_perp_get_sol_kernel(
   struct gkyl_array *x_local, const double *x_global, struct gkyl_range range,
   struct gkyl_range par_range1d, struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global
 )
@@ -346,7 +356,8 @@ __global__ void gkyl_fem_poisson_perp_get_sol_kernel(
   }
 }
 
-void gkyl_fem_poisson_perp_solve_cu(struct gkyl_fem_poisson_perp *up, struct gkyl_array *phiout)
+void
+gkyl_fem_poisson_perp_solve_cu(struct gkyl_fem_poisson_perp *up, struct gkyl_array *phiout)
 {
   gkyl_culinsolver_solve(up->prob_cu);
   double *x_cu = gkyl_culinsolver_get_sol_ptr(up->prob_cu, 0);
@@ -356,7 +367,8 @@ void gkyl_fem_poisson_perp_solve_cu(struct gkyl_fem_poisson_perp *up, struct gky
   );
 }
 
-__global__ void gkyl_fem_poisson_perp_update_lhs_kernel(
+__global__ void
+gkyl_fem_poisson_perp_update_lhs_kernel(
   bool is_helmholtz, const double *dx, const double *bcvals, const struct gkyl_range range,
   struct gkyl_range par_range1d, struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global,
   struct gkyl_array *csr_val_idx, struct gkyl_array *epsilon, struct gkyl_array *kSq,
@@ -409,7 +421,8 @@ __global__ void gkyl_fem_poisson_perp_update_lhs_kernel(
   }
 }
 
-void gkyl_fem_poisson_perp_update_lhs_cu(
+void
+gkyl_fem_poisson_perp_update_lhs_cu(
   gkyl_fem_poisson_perp *up, struct gkyl_array *epsilon, struct gkyl_array *kSq
 )
 {

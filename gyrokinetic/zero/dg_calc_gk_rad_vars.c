@@ -9,7 +9,8 @@
 #include <gkyl_dg_calc_gk_rad_vars_priv.h>
 #include <gkyl_util.h>
 
-struct gkyl_gk_rad_drag *gkyl_dg_calc_gk_rad_vars_drag_new(
+struct gkyl_gk_rad_drag *
+gkyl_dg_calc_gk_rad_vars_drag_new(
   int num_collisions, const int *num_densities, int ncomp, long sz, bool use_gpu
 )
 {
@@ -68,7 +69,8 @@ struct gkyl_gk_rad_drag *gkyl_dg_calc_gk_rad_vars_drag_new(
   return drag_s;
 }
 
-void gkyl_dg_calc_gk_rad_vars_drag_release(
+void
+gkyl_dg_calc_gk_rad_vars_drag_release(
   struct gkyl_gk_rad_drag *drag_s, int num_collisions, bool use_gpu
 )
 {
@@ -91,7 +93,8 @@ void gkyl_dg_calc_gk_rad_vars_drag_release(
   gkyl_free(drag_s);
 }
 
-gkyl_dg_calc_gk_rad_vars *gkyl_dg_calc_gk_rad_vars_new(
+gkyl_dg_calc_gk_rad_vars *
+gkyl_dg_calc_gk_rad_vars_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, double charge, double mass,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu
@@ -131,7 +134,8 @@ gkyl_dg_calc_gk_rad_vars *gkyl_dg_calc_gk_rad_vars_new(
   return up;
 }
 
-void gkyl_dg_calc_gk_rad_vars_nu_advance(
+void
+gkyl_dg_calc_gk_rad_vars_nu_advance(
   const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, double a, double alpha, double beta, double gamma,
   double v0, struct gkyl_array *vnu_surf, struct gkyl_array *vnu, struct gkyl_array *vsqnu_surf,
@@ -180,7 +184,8 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(
   }
 }
 
-void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
+void
+gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
   const struct gkyl_dg_calc_gk_rad_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_gk_rad_drag *vnu_surf,
   const struct gkyl_gk_rad_drag *vnu, const struct gkyl_gk_rad_drag *vsqnu_surf,
@@ -235,7 +240,8 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
   }
 }
 
-void gkyl_dg_calc_gk_rad_vars_release(gkyl_dg_calc_gk_rad_vars *up)
+void
+gkyl_dg_calc_gk_rad_vars_release(gkyl_dg_calc_gk_rad_vars *up)
 {
   gkyl_gk_geometry_release(up->gk_geom);
   gkyl_velocity_map_release(up->vel_map);

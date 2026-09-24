@@ -397,8 +397,10 @@ pre-commit install
 ```
 
 After that, `git commit` automatically reformats any staged C/C++/CUDA file that
-isn't already formatted (excluding `ker/` and `core/minus/`). CI
-(`.github/workflows/format-check.yml`) re-checks the same thing on push/PR as a backstop.
+isn't already formatted (excluding `ker/` and `core/minus/`), by running
+`ci/format.py` on it. CI (`.github/workflows/format-check.yml`) re-checks the
+same thing on push/PR as a backstop. If the hook reformats something, the commit
+stops; `git add` the reformatted files and commit again.
 
 clang-format's output differs slightly across versions, so `pre-commit` and CI both
 pin `clang-format` `18.1.8` (see the `rev:` in `.pre-commit-config.yaml`). To run
@@ -412,15 +414,24 @@ pip install clang-format==18.1.8
 To format everything by hand (e.g. after pulling changes), run `ci/format-all.sh`,
 or `ci/format-all.sh --check` to only check without modifying files.
 
-clang-format expands every element of a braced initializer list onto its own
-line whenever the list already ends with a trailing comma, regardless of
-column limit -- so the same struct/array literal formats differently
-depending on whether its last author happened to add one. `ci/strip-trailing-commas.py`
-removes any comma directly before a closing `}` before clang-format ever runs,
-so don't rely on a trailing comma to keep an initializer list multi-line; that's
-clang-format's call once the comma's gone. This runs automatically as part of
-the same pre-commit hook and CI check as clang-format (and as part of
-`ci/format-all.sh`), so you shouldn't need to run it by hand.
+`ci/format.py` is clang-format plus one rule clang-format can't express on its
+own: a designated initializer (`{.a = 1, .b = 2}`) that fits on one line stays
+on one line, and one that doesn't gets one member per line, with the first
+member on the line below the `{` and the closing `}` on its own line:
+
+```c
+  app->comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+    .decomp = app->decomp,
+    .use_gpu = app->use_gpu,
+  });
+```
+
+It does this by stripping every trailing comma before a closing `}`, running
+clang-format, adding a trailing comma to each designated list that didn't fit,
+and running clang-format again (a trailing comma is clang-format's signal for
+one-per-line). So the result doesn't depend on whether you typed a trailing
+comma; the script decides. Don't run bare `clang-format -i` on Gkeyll sources,
+since it will pack those lists back; use `ci/format.py FILE...` or the hook.
 
 Since the repo's history includes a single large reformatting commit, run:
 

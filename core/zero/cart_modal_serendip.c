@@ -5,7 +5,8 @@
 
 #include <gkyl_cart_modal_serendip_priv.h>
 
-void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order)
+void
+gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order)
 {
   assert(ndim > 0 && ndim <= 6);
   assert(ev_list[ndim].ev[poly_order]);
@@ -39,7 +40,8 @@ void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order
   basis->modal_to_quad_nodal = m2qn_list[ndim].n2m[poly_order];
 }
 
-struct gkyl_basis *gkyl_cart_modal_serendip_new(int ndim, int poly_order)
+struct gkyl_basis *
+gkyl_cart_modal_serendip_new(int ndim, int poly_order)
 {
   struct gkyl_basis *basis = gkyl_malloc(sizeof(struct gkyl_basis));
   gkyl_cart_modal_serendip(basis, ndim, poly_order);
@@ -47,12 +49,14 @@ struct gkyl_basis *gkyl_cart_modal_serendip_new(int ndim, int poly_order)
 }
 
 #ifndef GKYL_HAVE_CUDA
-void gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim, int poly_order)
+void
+gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim, int poly_order)
 {
   assert(false);
 }
 
-struct gkyl_basis *gkyl_cart_modal_serendip_cu_dev_new(int ndim, int poly_order)
+struct gkyl_basis *
+gkyl_cart_modal_serendip_cu_dev_new(int ndim, int poly_order)
 {
   assert(false);
 }

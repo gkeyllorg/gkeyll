@@ -15,7 +15,8 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 
-void mpi_read(int nrank, int cuts[2])
+void
+mpi_read(int nrank, int cuts[2])
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -89,15 +90,18 @@ void mpi_read(int nrank, int cuts[2])
   gkyl_array_release(p_arr);
 }
 
-void mpi_n1_read_ho()
+void
+mpi_n1_read_ho()
 {
   mpi_read(1, (int[]){1, 1});
 }
-void mpi_n2_read_ho()
+void
+mpi_n2_read_ho()
 {
   mpi_read(2, (int[]){2, 1});
 }
-void mpi_n4_read_ho()
+void
+mpi_n4_read_ho()
 {
   mpi_read(4, (int[]){2, 2});
 }

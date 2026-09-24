@@ -6,7 +6,8 @@
 
 // State layout: q[0..7] = {Ex, Ey, Ez, Bx, By, Bz, phi, psi}.
 
-void test_maxwell_extra_basic()
+void
+test_maxwell_extra_basic()
 {
   double c = 1.0, e_fact = 1.0, b_fact = 1.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_new(c, e_fact, b_fact, false);
@@ -20,7 +21,8 @@ void test_maxwell_extra_basic()
 }
 
 // Explicit flux for the perfectly hyperbolic Maxwell system.
-void test_maxwell_extra_flux()
+void
+test_maxwell_extra_flux()
 {
   double c = 2.0, e_fact = 1.5, b_fact = 1.2;
   double q[8] = {0.3, -0.4, 0.5, 0.6, -0.7, 0.8, 0.9, -1.0};
@@ -38,7 +40,8 @@ void test_maxwell_extra_flux()
 }
 
 // Max speed: with unit correction factors it is just the speed of light.
-void test_maxwell_extra_max_speed()
+void
+test_maxwell_extra_max_speed()
 {
   double c = 3.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_new(c, 1.0, 1.0, false);
@@ -54,7 +57,8 @@ void test_maxwell_extra_max_speed()
 }
 
 // Diagnostics are the squared components of the first 6 (field) variables.
-void test_maxwell_extra_cons_to_diag()
+void
+test_maxwell_extra_cons_to_diag()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_new(1.0, 1.0, 1.0, false);
   double q[8] = {1.0, -2.0, 3.0, -4.0, 5.0, -6.0, 7.0, 8.0};
@@ -67,7 +71,8 @@ void test_maxwell_extra_cons_to_diag()
 }
 
 // Rotation round-trip across a non-axis-aligned orthonormal frame recovers q.
-void test_maxwell_extra_rotate_roundtrip()
+void
+test_maxwell_extra_rotate_roundtrip()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_new(1.0, 1.0, 1.0, false);
 
@@ -103,7 +108,8 @@ void test_maxwell_extra_rotate_roundtrip()
 }
 
 // Flux jump equals F(qr) - F(ql) computed directly from the flux function.
-void test_maxwell_extra_flux_jump()
+void
+test_maxwell_extra_flux_jump()
 {
   double c = 1.5, e_fact = 1.0, b_fact = 1.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_new(c, e_fact, b_fact, false);
@@ -126,7 +132,8 @@ void test_maxwell_extra_flux_jump()
 }
 
 // Roe solver q-fluctuation conservation: amdq + apdq = F(qr) - F(ql).
-void test_maxwell_extra_waves_conservation()
+void
+test_maxwell_extra_waves_conservation()
 {
   double c = 1.0, e_fact = 1.0, b_fact = 1.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_new(c, e_fact, b_fact, false);
@@ -157,7 +164,8 @@ void test_maxwell_extra_waves_conservation()
 }
 
 // The sum of all Roe waves must reconstruct the full jump delta.
-void test_maxwell_extra_wave_sum()
+void
+test_maxwell_extra_wave_sum()
 {
   double c = 1.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_new(c, 1.0, 1.0, false);
@@ -184,11 +192,17 @@ void test_maxwell_extra_wave_sum()
 }
 
 // Lax solver: structural check and conservation of fluctuations.
-void test_maxwell_extra_waves_lax()
+void
+test_maxwell_extra_waves_lax()
 {
   double c = 1.0;
-  struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp
-  ){.c = c, .e_fact = 1.0, .b_fact = 1.0, .rp_type = WV_MAXWELL_RP_LAX, .use_gpu = false});
+  struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp){
+    .c = c,
+    .e_fact = 1.0,
+    .b_fact = 1.0,
+    .rp_type = WV_MAXWELL_RP_LAX,
+    .use_gpu = false,
+  });
 
   TEST_CHECK(eqn->num_waves == 2);
 

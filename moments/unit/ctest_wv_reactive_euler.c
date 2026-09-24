@@ -4,7 +4,8 @@
 #include <gkyl_wv_reactive_euler.h>
 #include <gkyl_wv_reactive_euler_priv.h>
 
-void test_reactive_euler_basic_ho()
+void
+test_reactive_euler_basic_ho()
 {
   double gas_gamma = 1.4;
   double specific_heat_capacity = 2.5;
@@ -89,7 +90,8 @@ void test_reactive_euler_basic_ho()
   gkyl_wv_eqn_release(reactive_euler);
 }
 
-void test_reactive_euler_waves_ho()
+void
+test_reactive_euler_waves_ho()
 {
   double gas_gamma = 1.4;
   double specific_heat_capacity = 2.5;
@@ -178,7 +180,8 @@ void test_reactive_euler_waves_ho()
   gkyl_wv_eqn_release(reactive_euler);
 }
 
-void test_reactive_euler_waves_2_ho()
+void
+test_reactive_euler_waves_2_ho()
 {
   double gas_gamma = 1.4;
   double specific_heat_capacity = 25.0;

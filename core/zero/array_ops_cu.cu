@@ -32,7 +32,8 @@ gkyl_get_array_range_kernel_launch_dims(dim3 *dimGrid, dim3 *dimBlock, gkyl_rang
   dimGrid->x = gkyl_int_div_up(range.volume, ac1 * dimBlock->x);
 }
 
-__global__ void gkyl_array_clear_cu_kernel(struct gkyl_array *out, double val)
+__global__ void
+gkyl_array_clear_cu_kernel(struct gkyl_array *out, double val)
 {
   double *out_d = (double *)out->data;
   for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x * gridDim.x) {
@@ -50,7 +51,8 @@ gkyl_array_accumulate_cu_kernel(struct gkyl_array *out, double a, const struct g
   }
 }
 
-__global__ void gkyl_array_accumulate_offset_cu_kernel(
+__global__ void
+gkyl_array_accumulate_offset_cu_kernel(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
 )
 {
@@ -81,7 +83,8 @@ gkyl_array_set_cu_kernel(struct gkyl_array *out, double a, const struct gkyl_arr
   }
 }
 
-__global__ void gkyl_array_set_offset_cu_kernel(
+__global__ void
+gkyl_array_set_offset_cu_kernel(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
 )
 {
@@ -132,7 +135,8 @@ gkyl_array_invert_by_cell_cu_kernel(struct gkyl_array *out, const struct gkyl_ar
   }
 }
 
-__global__ void gkyl_array_shiftc_cu_kernel(struct gkyl_array *out, double a, unsigned k)
+__global__ void
+gkyl_array_shiftc_cu_kernel(struct gkyl_array *out, double a, unsigned k)
 {
   double *out_d = (double *)out->data;
   for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x * gridDim.x) {
@@ -151,17 +155,20 @@ gkyl_array_min_by_cell_cu_kernel(struct gkyl_array *out, const struct gkyl_array
 }
 
 // Host-side wrappers for array operations
-void gkyl_array_clear_cu(struct gkyl_array *out, double val)
+void
+gkyl_array_clear_cu(struct gkyl_array *out, double val)
 {
   gkyl_array_clear_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, val);
 }
 
-void gkyl_array_accumulate_cu(struct gkyl_array *out, double a, const struct gkyl_array *inp)
+void
+gkyl_array_accumulate_cu(struct gkyl_array *out, double a, const struct gkyl_array *inp)
 {
   gkyl_array_accumulate_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev);
 }
 
-void gkyl_array_accumulate_offset_cu(
+void
+gkyl_array_accumulate_offset_cu(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
 )
 {
@@ -171,45 +178,51 @@ void gkyl_array_accumulate_offset_cu(
   );
 }
 
-void gkyl_array_set_cu(struct gkyl_array *out, double a, const struct gkyl_array *inp)
+void
+gkyl_array_set_cu(struct gkyl_array *out, double a, const struct gkyl_array *inp)
 {
   gkyl_array_set_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev);
 }
 
-void gkyl_array_set_offset_cu(
-  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
-)
+void
+gkyl_array_set_offset_cu(struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff)
 {
   int nblocks = gkyl_int_div_up(out->size, out->nthreads);
   gkyl_array_set_offset_cu_kernel<<<nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev, coff);
 }
 
-void gkyl_array_scale_cu(struct gkyl_array *out, double a)
+void
+gkyl_array_scale_cu(struct gkyl_array *out, double a)
 {
   gkyl_array_set_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, out->on_dev);
 }
 
-void gkyl_array_scale_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *a)
+void
+gkyl_array_scale_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *a)
 {
   gkyl_array_scale_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a->on_dev);
 }
 
-void gkyl_array_divide_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *a)
+void
+gkyl_array_divide_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *a)
 {
   gkyl_array_divide_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a->on_dev);
 }
 
-void gkyl_array_invert_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *inp)
+void
+gkyl_array_invert_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *inp)
 {
   gkyl_array_invert_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, inp->on_dev);
 }
 
-void gkyl_array_shiftc_cu(struct gkyl_array *out, double a, unsigned k)
+void
+gkyl_array_shiftc_cu(struct gkyl_array *out, double a, unsigned k)
 {
   gkyl_array_shiftc_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, k);
 }
 
-void gkyl_array_min_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *inp, double a)
+void
+gkyl_array_min_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *inp, double a)
 {
   gkyl_array_min_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, inp->on_dev, a);
 }
@@ -253,7 +266,8 @@ gkyl_array_clear_range_cu_kernel(struct gkyl_array *out, double val, struct gkyl
   }
 }
 
-__global__ void gkyl_array_accumulate_range_cu_kernel(
+__global__ void
+gkyl_array_accumulate_range_cu_kernel(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, struct gkyl_range range
 )
 {
@@ -294,7 +308,8 @@ __global__ void gkyl_array_accumulate_range_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_accumulate_offset_range_cu_kernel(
+__global__ void
+gkyl_array_accumulate_offset_range_cu_kernel(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff, struct gkyl_range range
 )
 {
@@ -345,7 +360,8 @@ __global__ void gkyl_array_accumulate_offset_range_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_set_range_cu_kernel(
+__global__ void
+gkyl_array_set_range_cu_kernel(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, struct gkyl_range out_range,
   struct gkyl_range inp_range
 )
@@ -389,7 +405,8 @@ __global__ void gkyl_array_set_range_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_set_offset_range_cu_kernel(
+__global__ void
+gkyl_array_set_offset_range_cu_kernel(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff, struct gkyl_range range
 )
 {
@@ -440,7 +457,8 @@ __global__ void gkyl_array_set_offset_range_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_shiftc_range_cu_kernel(
+__global__ void
+gkyl_array_shiftc_range_cu_kernel(
   struct gkyl_array *out, double a, unsigned k, struct gkyl_range range
 )
 {
@@ -472,7 +490,8 @@ __global__ void gkyl_array_shiftc_range_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_min_by_cell_range_cu_kernel(
+__global__ void
+gkyl_array_min_by_cell_range_cu_kernel(
   struct gkyl_array *out, const struct gkyl_array *inp, double a, struct gkyl_range range
 )
 {
@@ -505,7 +524,8 @@ __global__ void gkyl_array_min_by_cell_range_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_copy_range_cu_kernel(
+__global__ void
+gkyl_array_copy_range_cu_kernel(
   struct gkyl_array *out, const struct gkyl_array *inp, struct gkyl_range out_range,
   struct gkyl_range inp_range
 )
@@ -542,7 +562,8 @@ __global__ void gkyl_array_copy_range_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_copy_to_buffer_cu_kernel(
+__global__ void
+gkyl_array_copy_to_buffer_cu_kernel(
   void *data, const struct gkyl_array *arr, struct gkyl_range range
 )
 {
@@ -575,7 +596,8 @@ __global__ void gkyl_array_copy_to_buffer_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_copy_from_buffer_cu_kernel(
+__global__ void
+gkyl_array_copy_from_buffer_cu_kernel(
   struct gkyl_array *arr, const void *data, struct gkyl_range range
 )
 {
@@ -596,7 +618,8 @@ __global__ void gkyl_array_copy_from_buffer_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_copy_to_buffer_fn_cu_kernel(
+__global__ void
+gkyl_array_copy_to_buffer_fn_cu_kernel(
   void *data, const struct gkyl_array *arr, struct gkyl_range range, struct gkyl_array_copy_func *cf
 )
 {
@@ -618,7 +641,8 @@ __global__ void gkyl_array_copy_to_buffer_fn_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_flip_copy_to_buffer_fn_cu_kernel(
+__global__ void
+gkyl_array_flip_copy_to_buffer_fn_cu_kernel(
   void *data, const struct gkyl_array *arr, int dir, struct gkyl_range range,
   struct gkyl_range buff_range, struct gkyl_array_copy_func *cf
 )
@@ -649,7 +673,8 @@ __global__ void gkyl_array_flip_copy_to_buffer_fn_cu_kernel(
   }
 }
 
-__global__ void gkyl_array_max_by_cell_per_cell_avg_range_cu_kernel(
+__global__ void
+gkyl_array_max_by_cell_per_cell_avg_range_cu_kernel(
   struct gkyl_array *out, const struct gkyl_array *inp, struct gkyl_range range
 )
 {
@@ -702,7 +727,8 @@ __global__ void gkyl_array_max_by_cell_per_cell_avg_range_cu_kernel(
 }
 
 // Host-side wrappers for range-based array operations
-void gkyl_array_clear_range_cu(struct gkyl_array *out, double val, const struct gkyl_range *range)
+void
+gkyl_array_clear_range_cu(struct gkyl_array *out, double val, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, out->ncomp);
@@ -710,7 +736,8 @@ void gkyl_array_clear_range_cu(struct gkyl_array *out, double val, const struct 
   gkyl_array_clear_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, val, *range);
 }
 
-void gkyl_array_accumulate_range_cu(
+void
+gkyl_array_accumulate_range_cu(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, const struct gkyl_range *range
 )
 {
@@ -720,7 +747,8 @@ void gkyl_array_accumulate_range_cu(
   gkyl_array_accumulate_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, inp->on_dev, *range);
 }
 
-void gkyl_array_accumulate_offset_range_cu(
+void
+gkyl_array_accumulate_offset_range_cu(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff,
   const struct gkyl_range *range
 )
@@ -733,7 +761,8 @@ void gkyl_array_accumulate_offset_range_cu(
   );
 }
 
-void gkyl_array_set_range_cu(
+void
+gkyl_array_set_range_cu(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, const struct gkyl_range *range
 )
 {
@@ -743,7 +772,8 @@ void gkyl_array_set_range_cu(
   gkyl_array_set_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, inp->on_dev, *range, *range);
 }
 
-void gkyl_array_set_range_to_range_cu(
+void
+gkyl_array_set_range_to_range_cu(
   struct gkyl_array *out, double a, const struct gkyl_array *inp,
   const struct gkyl_range *out_range, const struct gkyl_range *inp_range
 )
@@ -760,7 +790,8 @@ void gkyl_array_set_range_to_range_cu(
   }
 }
 
-void gkyl_array_set_offset_range_cu(
+void
+gkyl_array_set_offset_range_cu(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff,
   const struct gkyl_range *range
 )
@@ -773,7 +804,8 @@ void gkyl_array_set_offset_range_cu(
   );
 }
 
-void gkyl_array_scale_range_cu(struct gkyl_array *out, double a, const struct gkyl_range *range)
+void
+gkyl_array_scale_range_cu(struct gkyl_array *out, double a, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, out->ncomp);
@@ -781,7 +813,8 @@ void gkyl_array_scale_range_cu(struct gkyl_array *out, double a, const struct gk
   gkyl_array_set_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, out->on_dev, *range, *range);
 }
 
-void gkyl_array_shiftc_range_cu(
+void
+gkyl_array_shiftc_range_cu(
   struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range
 )
 {
@@ -791,7 +824,8 @@ void gkyl_array_shiftc_range_cu(
   gkyl_array_shiftc_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, k, *range);
 }
 
-void gkyl_array_min_by_cell_range_cu(
+void
+gkyl_array_min_by_cell_range_cu(
   struct gkyl_array *out, const struct gkyl_array *inp, double a, const struct gkyl_range *range
 )
 {
@@ -801,7 +835,8 @@ void gkyl_array_min_by_cell_range_cu(
   gkyl_array_min_by_cell_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, inp->on_dev, a, *range);
 }
 
-void gkyl_array_copy_range_cu(
+void
+gkyl_array_copy_range_cu(
   struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
 )
 {
@@ -811,7 +846,8 @@ void gkyl_array_copy_range_cu(
   gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, inp->on_dev, *range, *range);
 }
 
-void gkyl_array_copy_range_to_range_cu(
+void
+gkyl_array_copy_range_to_range_cu(
   struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *out_range,
   const struct gkyl_range *inp_range
 )
@@ -826,7 +862,8 @@ void gkyl_array_copy_range_to_range_cu(
   }
 }
 
-void gkyl_array_copy_to_buffer_cu(
+void
+gkyl_array_copy_to_buffer_cu(
   void *data, const struct gkyl_array *arr, const struct gkyl_range *range
 )
 {
@@ -836,7 +873,8 @@ void gkyl_array_copy_to_buffer_cu(
   gkyl_array_copy_to_buffer_cu_kernel<<<dimGrid, dimBlock>>>(data, arr->on_dev, *range);
 }
 
-void gkyl_array_copy_from_buffer_cu(
+void
+gkyl_array_copy_from_buffer_cu(
   struct gkyl_array *arr, const void *data, const struct gkyl_range *range
 )
 {
@@ -846,7 +884,8 @@ void gkyl_array_copy_from_buffer_cu(
   gkyl_array_copy_from_buffer_cu_kernel<<<nblocks, nthreads>>>(arr->on_dev, data, *range);
 }
 
-void gkyl_array_copy_to_buffer_fn_cu(
+void
+gkyl_array_copy_to_buffer_fn_cu(
   void *data, const struct gkyl_array *arr, const struct gkyl_range *range,
   struct gkyl_array_copy_func *cf
 )
@@ -859,7 +898,8 @@ void gkyl_array_copy_to_buffer_fn_cu(
   }
 }
 
-void gkyl_array_flip_copy_to_buffer_fn_cu(
+void
+gkyl_array_flip_copy_to_buffer_fn_cu(
   void *data, const struct gkyl_array *arr, int dir, const struct gkyl_range *range,
   struct gkyl_array_copy_func *cf
 )
@@ -877,7 +917,8 @@ void gkyl_array_flip_copy_to_buffer_fn_cu(
   }
 }
 
-void gkyl_array_max_by_cell_per_cell_avg_range_cu(
+void
+gkyl_array_max_by_cell_per_cell_avg_range_cu(
   struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
 )
 {

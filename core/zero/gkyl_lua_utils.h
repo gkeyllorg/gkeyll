@@ -49,7 +49,8 @@
  *
  * @return Length of object on top of stack.
  */
-static inline size_t glua_objlen(lua_State *L)
+static inline size_t
+glua_objlen(lua_State *L)
 {
   return lua_objlen(L, -1);
 }

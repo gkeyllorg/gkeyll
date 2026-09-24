@@ -8,7 +8,8 @@
 #include <gkyl_mom_bcorr_lbo_gyrokinetic_priv.h>
 #include <gkyl_util.h>
 
-void gk_mom_free(const struct gkyl_ref_count *ref)
+void
+gk_mom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
 
@@ -22,7 +23,8 @@ void gk_mom_free(const struct gkyl_ref_count *ref)
   gkyl_free(momt);
 }
 
-struct gkyl_mom_type *gkyl_mom_bcorr_lbo_gyrokinetic_new(
+struct gkyl_mom_type *
+gkyl_mom_bcorr_lbo_gyrokinetic_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass,
   const struct gkyl_velocity_map *vel_map, bool use_gpu
 )
@@ -50,17 +52,17 @@ struct gkyl_mom_type *gkyl_mom_bcorr_lbo_gyrokinetic_new(
   const gkyl_mom_bcorr_lbo_gyrokinetic_kern_list *mom_bcorr_lbo_gyrokinetic_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    mom_bcorr_lbo_gyrokinetic_kernels = ser_mom_bcorr_lbo_gyrokinetic_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mom_bcorr_lbo_gyrokinetic_kernels = ser_mom_bcorr_lbo_gyrokinetic_kernels;
+      break;
 
-    /* case GKYL_BASIS_MODAL_TENSOR: */
-    /*   mom_bcorr_lbo_gyrokinetic_kernels = ten_mom_bcorr_lbo_gyrokinetic_kernels; */
-    /*   break; */
+      /* case GKYL_BASIS_MODAL_TENSOR: */
+      /*   mom_bcorr_lbo_gyrokinetic_kernels = ten_mom_bcorr_lbo_gyrokinetic_kernels; */
+      /*   break; */
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   assert(cv_index[cdim].vdim[vdim] != -1);
   assert(NULL != mom_bcorr_lbo_gyrokinetic_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);

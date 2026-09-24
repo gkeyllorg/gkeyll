@@ -93,7 +93,8 @@ gkyl_gk_maxwellian_moments_inew(const struct gkyl_gk_maxwellian_moments_inp *inp
   return up;
 }
 
-void gkyl_gk_maxwellian_density_moment_advance(
+void
+gkyl_gk_maxwellian_density_moment_advance(
   struct gkyl_gk_maxwellian_moments *up, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *fin, struct gkyl_array *density_out
 )
@@ -111,7 +112,8 @@ void gkyl_gk_maxwellian_density_moment_advance(
   }
 }
 
-void gkyl_gk_maxwellian_moments_advance(
+void
+gkyl_gk_maxwellian_moments_advance(
   struct gkyl_gk_maxwellian_moments *up, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *fin, struct gkyl_array *moms_out
 )
@@ -153,7 +155,8 @@ void gkyl_gk_maxwellian_moments_advance(
   gkyl_array_set_offset_range(moms_out, 1.0, up->temperature, 2 * num_conf_basis, conf_range);
 }
 
-void gkyl_gk_bimaxwellian_moments_advance(
+void
+gkyl_gk_bimaxwellian_moments_advance(
   struct gkyl_gk_maxwellian_moments *up, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *fin, struct gkyl_array *moms_out
 )
@@ -203,7 +206,8 @@ void gkyl_gk_bimaxwellian_moments_advance(
   gkyl_array_set_offset_range(moms_out, 1.0, up->t_perp, 3 * num_conf_basis, conf_range);
 }
 
-void gkyl_gk_maxwellian_moments_release(gkyl_gk_maxwellian_moments *up)
+void
+gkyl_gk_maxwellian_moments_release(gkyl_gk_maxwellian_moments *up)
 {
   gkyl_gk_geometry_release(up->gk_geom);
   gkyl_array_release(up->M0);

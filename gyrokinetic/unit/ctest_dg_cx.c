@@ -11,7 +11,8 @@
 #include <stdio.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -29,23 +30,27 @@ double d_ion_mass = GKYL_PROTON_MASS * 2.01410177811;
 double B0 = 0.5;
 double check_fac = 1.0e10;
 
-void eval_n(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_n(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0e19;
 }
-void eval_T_over_m_ion(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_T_over_m_ion(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 40. * echarge / d_ion_mass;
 }
-void eval_T_over_m_neut(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_T_over_m_neut(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 4. * echarge / d_ion_mass;
 }
 
-static inline void proj_on_basis_copy(
+static inline void
+proj_on_basis_copy(
   const struct gkyl_proj_on_basis *proj_op, double tm, struct gkyl_range *rng,
   struct gkyl_array *arr, bool use_gpu
 )
@@ -58,7 +63,8 @@ static inline void proj_on_basis_copy(
 }
 
 // test 2x2v / 2x3v
-void test_coll_cx_d(bool use_gpu)
+void
+test_coll_cx_d(bool use_gpu)
 {
   int charge_state = 0;
   int poly_order = 1;
@@ -93,7 +99,7 @@ void test_coll_cx_d(bool use_gpu)
     .conf_rng = &confRange,
     .vt_sq_ion_min = vt_sq_ion_min,
     .vt_sq_neut_min = vt_sq_neut_min,
-    .type_ion = GKYL_ION_D
+    .type_ion = GKYL_ION_D,
   };
 
   // Coll struct.
@@ -168,13 +174,15 @@ void test_coll_cx_d(bool use_gpu)
   gkyl_dg_cx_release(coll_cx_up);
 }
 
-void coll_cx_d_ho()
+void
+coll_cx_d_ho()
 {
   test_coll_cx_d(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void coll_cx_d_dev()
+void
+coll_cx_d_dev()
 {
   test_coll_cx_d(true);
 }

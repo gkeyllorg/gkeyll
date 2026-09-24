@@ -18,7 +18,8 @@
 #include <gkyl_dg_bin_ops.h>
 //#include <gkyl_fem_parproj.h>
 
-static double error_L2norm(
+static double
+error_L2norm(
   struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis,
   struct gkyl_array *field1, struct gkyl_array *field2
 )
@@ -43,7 +44,8 @@ static double error_L2norm(
   return sqrt(l2[0]);
 }
 
-static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool use_gpu, long nc, long size)
 {
   // allocate array (filled with zeros)
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
@@ -51,14 +53,16 @@ static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
   return a;
 }
 
-double poly_test_func_1x(double x, double a, double *c)
+double
+poly_test_func_1x(double x, double a, double *c)
 {
   // Function that can be used to produce homogeneous Dirichlet or Neumann
   // boundary values depending on the choice of a and c. It assumes x \in [0,1].
   return pow(x, 2) / 2. - a * pow(x, 4) / 12. + c[0] * x + c[1];
 }
 
-void evalFunc_consteps_periodicx_sol_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_consteps_periodicx_sol_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
@@ -77,7 +81,8 @@ void evalFunc_consteps_periodicx_sol_2x(double t, const double *xn, double *rest
   fout[0] *= (1. + kz * z);
   //  fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
-void evalFunc_consteps_periodicx_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_consteps_periodicx_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
@@ -97,9 +102,8 @@ void evalFunc_consteps_periodicx_2x(double t, const double *xn, double *restrict
   //  fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
 
-void evalFunc_consteps_dirichletx_sol_2x(
-  double t, const double *xn, double *restrict fout, void *ctx
-)
+void
+evalFunc_consteps_dirichletx_sol_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   double a = 2.;
@@ -111,7 +115,8 @@ void evalFunc_consteps_dirichletx_sol_2x(
             * (1. + kz * z);
   //           *(1.+kz*z+0.5*pow(z,2));
 }
-void evalFunc_consteps_dirichletx_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc_consteps_dirichletx_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   double a = 2.;
@@ -124,7 +129,8 @@ void evalFunc_consteps_dirichletx_2x(double t, const double *xn, double *restric
   //              *(1.+kz*z+0.5*pow(z,2));
 }
 
-void evalFunc_consteps_neumannx_dirichletx_sol_2x(
+void
+evalFunc_consteps_neumannx_dirichletx_sol_2x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -136,7 +142,8 @@ void evalFunc_consteps_neumannx_dirichletx_sol_2x(
   double kz = 1.;
   fout[0] *= (1. + kz * z);
 }
-void evalFunc_consteps_neumannx_dirichletx_2x(
+void
+evalFunc_consteps_neumannx_dirichletx_2x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -149,7 +156,8 @@ void evalFunc_consteps_neumannx_dirichletx_2x(
   fout[0] *= (1. + kz * z);
 }
 
-void evalFunc_consteps_dirichletx_neumannx_sol_2x(
+void
+evalFunc_consteps_dirichletx_neumannx_sol_2x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -161,7 +169,8 @@ void evalFunc_consteps_dirichletx_neumannx_sol_2x(
   double kz = 1.;
   fout[0] *= (1. + kz * z);
 }
-void evalFunc_consteps_dirichletx_neumannx_2x(
+void
+evalFunc_consteps_dirichletx_neumannx_2x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -187,7 +196,8 @@ struct fem_poisson_perp_consteps_objs {
   struct gkyl_basis basis;
 };
 
-void fem_poisson_perp_consteps_objs_release(struct fem_poisson_perp_consteps_objs *objs)
+void
+fem_poisson_perp_consteps_objs_release(struct fem_poisson_perp_consteps_objs *objs)
 {
   gkyl_fem_poisson_perp_release(objs->poisson);
   gkyl_array_release(objs->eps);
@@ -205,7 +215,8 @@ void fem_poisson_perp_consteps_objs_release(struct fem_poisson_perp_consteps_obj
 // Solution; checked convergence but note that p=2 serendipity doesn't
 // converge as p+1. One must use tensor basis and a RHS in the space of
 // the basis for that.
-static void check_sol(
+static void
+check_sol(
   const struct gkyl_range *range, const struct gkyl_array *phi_ho, int num_basis, const double *sol,
   double scale_fac, int filter_dim, int filter_idx, double tol
 )
@@ -262,7 +273,8 @@ static const double *get_sol_3x_bias_p2_NxDx_PyPy(void);
 static const double *get_sol_3x_biasB_p1_DxDx_DyDy(void);
 static const double *get_sol_3x_biasB_p1_DxDx_PyPy(void);
 
-void fem_poisson_perp_consteps_2x_check(
+void
+fem_poisson_perp_consteps_2x_check(
   struct fem_poisson_perp_consteps_objs *objs, int poly_order, struct gkyl_poisson_bc bcs,
   double scale_fac
 )
@@ -298,7 +310,8 @@ void fem_poisson_perp_consteps_2x_check(
   }
 }
 
-struct fem_poisson_perp_consteps_objs *test_fem_poisson_perp_consteps_2x_objs(
+struct fem_poisson_perp_consteps_objs *
+test_fem_poisson_perp_consteps_2x_objs(
   int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu
 )
 {
@@ -460,7 +473,8 @@ struct fem_poisson_perp_consteps_objs *test_fem_poisson_perp_consteps_2x_objs(
   return objs;
 }
 
-void test_fem_poisson_perp_consteps_2x(
+void
+test_fem_poisson_perp_consteps_2x(
   int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu
 )
 {
@@ -469,7 +483,8 @@ void test_fem_poisson_perp_consteps_2x(
   fem_poisson_perp_consteps_objs_release(objs);
 }
 
-void test_fem_poisson_perp_consteps_2x_update(
+void
+test_fem_poisson_perp_consteps_2x_update(
   int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu
 )
 {
@@ -502,7 +517,8 @@ void test_fem_poisson_perp_consteps_2x_update(
   fem_poisson_perp_consteps_objs_release(objs);
 }
 
-void test_fem_poisson_perp_consteps_2x_bias(
+void
+test_fem_poisson_perp_consteps_2x_bias(
   int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu
 )
 {
@@ -588,11 +604,11 @@ void test_fem_poisson_perp_consteps_2x_bias(
   struct gkyl_poisson_bias_line bias = {
     .perp_dirs = {0, 1},
     .perp_coords = {0.5, -M_PI}, // Location of the plane in the 'dir' dimension.
-    .val = 0. // Biasing value.
+    .val = 0., // Biasing value.
   };
   struct gkyl_poisson_bias_line_list bll = {
     .num_bias_line = 1, // Number of bias lines.
-    .bl = &bias
+    .bl = &bias,
   };
 
   // FEM poisson solver.
@@ -652,7 +668,8 @@ void test_fem_poisson_perp_consteps_2x_bias(
   gkyl_array_release(phi_ho);
 }
 
-void evalFunc_consteps_periodicx_periodicy_sol_3x(
+void
+evalFunc_consteps_periodicx_periodicy_sol_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -675,7 +692,8 @@ void evalFunc_consteps_periodicx_periodicy_sol_3x(
   fout[0] *= (1. + kz * z);
   //  fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
-void evalFunc_consteps_periodicx_periodicy_3x(
+void
+evalFunc_consteps_periodicx_periodicy_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -701,7 +719,8 @@ void evalFunc_consteps_periodicx_periodicy_3x(
   //  fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
 
-void evalFunc_consteps_dirichletx_dirichlety_sol_3x(
+void
+evalFunc_consteps_dirichletx_dirichlety_sol_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -718,7 +737,8 @@ void evalFunc_consteps_dirichletx_dirichlety_sol_3x(
             * (1. + kz * z);
   //           *(1.+kz*z+0.5*pow(z,2));
 }
-void evalFunc_consteps_dirichletx_dirichlety_3x(
+void
+evalFunc_consteps_dirichletx_dirichlety_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -736,7 +756,8 @@ void evalFunc_consteps_dirichletx_dirichlety_3x(
   //              *(1.+kz*z+0.5*pow(z,2));
 }
 
-void evalFunc_consteps_dirichletx_periodicy_sol_3x(
+void
+evalFunc_consteps_dirichletx_periodicy_sol_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -749,7 +770,8 @@ void evalFunc_consteps_dirichletx_periodicy_sol_3x(
   double kz = 1.;
   fout[0] *= (1. + kz * z);
 }
-void evalFunc_consteps_dirichletx_periodicy_3x(
+void
+evalFunc_consteps_dirichletx_periodicy_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -764,7 +786,8 @@ void evalFunc_consteps_dirichletx_periodicy_3x(
   fout[0] *= (1. + kz * z);
 }
 
-void evalFunc_consteps_periodicx_dirichlety_sol_3x(
+void
+evalFunc_consteps_periodicx_dirichlety_sol_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -777,7 +800,8 @@ void evalFunc_consteps_periodicx_dirichlety_sol_3x(
   double kz = 1.;
   fout[0] *= (1. + kz * z);
 }
-void evalFunc_consteps_periodicx_dirichlety_3x(
+void
+evalFunc_consteps_periodicx_dirichlety_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -792,7 +816,8 @@ void evalFunc_consteps_periodicx_dirichlety_3x(
   fout[0] *= (1. + kz * z);
 }
 
-void evalFunc_consteps_dirichletx_neumanny_dirichlety_sol_3x(
+void
+evalFunc_consteps_dirichletx_neumanny_dirichlety_sol_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -806,7 +831,8 @@ void evalFunc_consteps_dirichletx_neumanny_dirichlety_sol_3x(
   double kz = 1.;
   fout[0] *= (1. + kz * z);
 }
-void evalFunc_consteps_dirichletx_neumanny_dirichlety_3x(
+void
+evalFunc_consteps_dirichletx_neumanny_dirichlety_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -823,7 +849,8 @@ void evalFunc_consteps_dirichletx_neumanny_dirichlety_3x(
   fout[0] *= (1. + kz * z);
 }
 
-void evalFunc_consteps_dirichletx_dirichlety_neumanny_sol_3x(
+void
+evalFunc_consteps_dirichletx_dirichlety_neumanny_sol_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -837,7 +864,8 @@ void evalFunc_consteps_dirichletx_dirichlety_neumanny_sol_3x(
   double kz = 1.;
   fout[0] *= (1. + kz * z);
 }
-void evalFunc_consteps_dirichletx_dirichlety_neumanny_3x(
+void
+evalFunc_consteps_dirichletx_dirichlety_neumanny_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -854,7 +882,8 @@ void evalFunc_consteps_dirichletx_dirichlety_neumanny_3x(
   fout[0] *= (1. + kz * z);
 }
 
-void evalFunc_consteps_neumannx_dirichletx_dirichlety_sol_3x(
+void
+evalFunc_consteps_neumannx_dirichletx_dirichlety_sol_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -868,7 +897,8 @@ void evalFunc_consteps_neumannx_dirichletx_dirichlety_sol_3x(
   double kz = 1.;
   fout[0] *= (1. + kz * z);
 }
-void evalFunc_consteps_neumannx_dirichletx_dirichlety_3x(
+void
+evalFunc_consteps_neumannx_dirichletx_dirichlety_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -885,7 +915,8 @@ void evalFunc_consteps_neumannx_dirichletx_dirichlety_3x(
   fout[0] *= (1. + kz * z);
 }
 
-void evalFunc_consteps_dirichletx_neumannx_dirichlety_sol_3x(
+void
+evalFunc_consteps_dirichletx_neumannx_dirichlety_sol_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -899,7 +930,8 @@ void evalFunc_consteps_dirichletx_neumannx_dirichlety_sol_3x(
   double kz = 1.;
   fout[0] *= (1. + kz * z);
 }
-void evalFunc_consteps_dirichletx_neumannx_dirichlety_3x(
+void
+evalFunc_consteps_dirichletx_neumannx_dirichlety_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -916,7 +948,8 @@ void evalFunc_consteps_dirichletx_neumannx_dirichlety_3x(
   fout[0] *= (1. + kz * z);
 }
 
-void evalFunc_consteps_neumannx_dirichletx_periodicy_sol_3x(
+void
+evalFunc_consteps_neumannx_dirichletx_periodicy_sol_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -929,7 +962,8 @@ void evalFunc_consteps_neumannx_dirichletx_periodicy_sol_3x(
   double kz = 1.;
   fout[0] *= (1. + kz * z);
 }
-void evalFunc_consteps_neumannx_dirichletx_periodicy_3x(
+void
+evalFunc_consteps_neumannx_dirichletx_periodicy_3x(
   double t, const double *xn, double *restrict fout, void *ctx
 )
 {
@@ -944,7 +978,8 @@ void evalFunc_consteps_neumannx_dirichletx_periodicy_3x(
   fout[0] *= (1. + kz * z);
 }
 
-void test_fem_poisson_perp_consteps_3x(
+void
+test_fem_poisson_perp_consteps_3x(
   int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu
 )
 {
@@ -1323,7 +1358,8 @@ void test_fem_poisson_perp_consteps_3x(
   gkyl_array_release(phi_ho);
 }
 
-void test_fem_poisson_perp_consteps_3x_bias(
+void
+test_fem_poisson_perp_consteps_3x_bias(
   int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu
 )
 {
@@ -1414,11 +1450,11 @@ void test_fem_poisson_perp_consteps_3x_bias(
   struct gkyl_poisson_bias_line bias = {
     .perp_dirs = {0, 2},
     .perp_coords = {0.5, -M_PI}, // Location of the plane in the 'dir' dimension.
-    .val = 0. // Biasing value.
+    .val = 0., // Biasing value.
   };
   struct gkyl_poisson_bias_line_list bll = {
     .num_bias_line = 1, // Number of bias lines.
-    .bl = &bias
+    .bl = &bias,
   };
 
   // FEM poisson solver.
@@ -1486,7 +1522,8 @@ void test_fem_poisson_perp_consteps_3x_bias(
   gkyl_array_release(phi_ho);
 }
 
-void test_fem_poisson_perp_2x_p1_periodic_consteps_ho()
+void
+test_fem_poisson_perp_2x_p1_periodic_consteps_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1495,7 +1532,8 @@ void test_fem_poisson_perp_2x_p1_periodic_consteps_ho()
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_2x_p1_dirichletx_consteps_ho()
+void
+test_fem_poisson_perp_2x_p1_dirichletx_consteps_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1506,7 +1544,8 @@ void test_fem_poisson_perp_2x_p1_dirichletx_consteps_ho()
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_ho()
+void
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1517,7 +1556,8 @@ void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_ho()
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_ho()
+void
+test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1528,7 +1568,8 @@ void test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_ho()
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_update_ho()
+void
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_update_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1539,7 +1580,8 @@ void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_update_ho()
   test_fem_poisson_perp_consteps_2x_update(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_2x_p1_dirichletx_consteps_bias_ho()
+void
+test_fem_poisson_perp_2x_p1_dirichletx_consteps_bias_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1550,7 +1592,8 @@ void test_fem_poisson_perp_2x_p1_dirichletx_consteps_bias_ho()
   test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_bias_ho()
+void
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_bias_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1561,7 +1604,8 @@ void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_bias_ho()
   test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_bias_ho()
+void
+test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_bias_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1572,7 +1616,8 @@ void test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_bias_ho()
   test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_periodicx_periodicy_consteps_ho()
+void
+test_fem_poisson_perp_3x_p1_periodicx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1583,7 +1628,8 @@ void test_fem_poisson_perp_3x_p1_periodicx_periodicy_consteps_ho()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_ho()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1598,7 +1644,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_ho()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_ho()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1611,7 +1658,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_ho()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_periodicx_dirichlety_consteps_ho()
+void
+test_fem_poisson_perp_3x_p1_periodicx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1624,7 +1672,8 @@ void test_fem_poisson_perp_3x_p1_periodicx_dirichlety_consteps_ho()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_consteps_ho()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1639,7 +1688,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_consteps_ho()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_consteps_ho()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1654,7 +1704,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_consteps_ho()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_consteps_ho()
+void
+test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1669,7 +1720,8 @@ void test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_consteps_ho()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_consteps_ho()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1684,7 +1736,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_consteps_ho()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_consteps_ho()
+void
+test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1699,7 +1752,8 @@ void test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_consteps_ho()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_bias_ho()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_bias_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1714,7 +1768,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_bias_ho()
   test_fem_poisson_perp_consteps_3x_bias(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_bias_ho()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_bias_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1727,7 +1782,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_bias_ho()
   test_fem_poisson_perp_consteps_3x_bias(1, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p2_periodicx_periodicy_consteps_ho()
+void
+test_fem_poisson_perp_3x_p2_periodicx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1738,7 +1794,8 @@ void test_fem_poisson_perp_3x_p2_periodicx_periodicy_consteps_ho()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_consteps_ho()
+void
+test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1753,7 +1810,8 @@ void test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_consteps_ho()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p2_dirichletx_periodicy_consteps_ho()
+void
+test_fem_poisson_perp_3x_p2_dirichletx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1766,7 +1824,8 @@ void test_fem_poisson_perp_3x_p2_dirichletx_periodicy_consteps_ho()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p2_periodicx_dirichlety_consteps_ho()
+void
+test_fem_poisson_perp_3x_p2_periodicx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1779,7 +1838,8 @@ void test_fem_poisson_perp_3x_p2_periodicx_dirichlety_consteps_ho()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_consteps_ho()
+void
+test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1794,7 +1854,8 @@ void test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_consteps_ho()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_consteps_ho()
+void
+test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1809,7 +1870,8 @@ void test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_consteps_ho()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_consteps_ho()
+void
+test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1824,7 +1886,8 @@ void test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_consteps_ho()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_consteps_ho()
+void
+test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1839,7 +1902,8 @@ void test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_consteps_ho()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_consteps_ho()
+void
+test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1855,7 +1919,8 @@ void test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_consteps_ho()
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_fem_poisson_perp_2x_p1_periodic_consteps_dev()
+void
+test_fem_poisson_perp_2x_p1_periodic_consteps_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1864,7 +1929,8 @@ void test_fem_poisson_perp_2x_p1_periodic_consteps_dev()
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_2x_p1_dirichletx_consteps_dev()
+void
+test_fem_poisson_perp_2x_p1_dirichletx_consteps_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1875,7 +1941,8 @@ void test_fem_poisson_perp_2x_p1_dirichletx_consteps_dev()
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_dev()
+void
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1886,7 +1953,8 @@ void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_dev()
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_dev()
+void
+test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1897,7 +1965,8 @@ void test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_dev()
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_update_dev()
+void
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_update_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1908,7 +1977,8 @@ void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_update_dev()
   test_fem_poisson_perp_consteps_2x_update(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_2x_p1_dirichletx_consteps_bias_dev()
+void
+test_fem_poisson_perp_2x_p1_dirichletx_consteps_bias_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1919,7 +1989,8 @@ void test_fem_poisson_perp_2x_p1_dirichletx_consteps_bias_dev()
   test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_bias_dev()
+void
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_bias_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1930,7 +2001,8 @@ void test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_bias_dev()
   test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_bias_dev()
+void
+test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_bias_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1941,7 +2013,8 @@ void test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_bias_dev()
   test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_periodicx_periodicy_consteps_dev()
+void
+test_fem_poisson_perp_3x_p1_periodicx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1952,7 +2025,8 @@ void test_fem_poisson_perp_3x_p1_periodicx_periodicy_consteps_dev()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_dev()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1967,7 +2041,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_dev()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_dev()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1980,7 +2055,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_dev()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_periodicx_dirichlety_consteps_dev()
+void
+test_fem_poisson_perp_3x_p1_periodicx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1993,7 +2069,8 @@ void test_fem_poisson_perp_3x_p1_periodicx_dirichlety_consteps_dev()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_consteps_dev()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2008,7 +2085,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_consteps_dev()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_consteps_dev()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2023,7 +2101,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_consteps_dev()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_consteps_dev()
+void
+test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2038,7 +2117,8 @@ void test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_consteps_dev()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_consteps_dev()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2053,7 +2133,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_consteps_dev()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_consteps_dev()
+void
+test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2068,7 +2149,8 @@ void test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_consteps_dev()
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_bias_dev()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_bias_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2083,7 +2165,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_bias_dev()
   test_fem_poisson_perp_consteps_3x_bias(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_bias_dev()
+void
+test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_bias_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2096,7 +2179,8 @@ void test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_bias_dev()
   test_fem_poisson_perp_consteps_3x_bias(1, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p2_periodicx_periodicy_consteps_dev()
+void
+test_fem_poisson_perp_3x_p2_periodicx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2107,7 +2191,8 @@ void test_fem_poisson_perp_3x_p2_periodicx_periodicy_consteps_dev()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_consteps_dev()
+void
+test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2122,7 +2207,8 @@ void test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_consteps_dev()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p2_dirichletx_periodicy_consteps_dev()
+void
+test_fem_poisson_perp_3x_p2_dirichletx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2135,7 +2221,8 @@ void test_fem_poisson_perp_3x_p2_dirichletx_periodicy_consteps_dev()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p2_periodicx_dirichlety_consteps_dev()
+void
+test_fem_poisson_perp_3x_p2_periodicx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2148,7 +2235,8 @@ void test_fem_poisson_perp_3x_p2_periodicx_dirichlety_consteps_dev()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_consteps_dev()
+void
+test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2163,7 +2251,8 @@ void test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_consteps_dev()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_consteps_dev()
+void
+test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2178,7 +2267,8 @@ void test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_consteps_dev()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_consteps_dev()
+void
+test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2193,7 +2283,8 @@ void test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_consteps_dev()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_consteps_dev()
+void
+test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2208,7 +2299,8 @@ void test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_consteps_dev()
   test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_consteps_dev()
+void
+test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2328,7 +2420,8 @@ TEST_LIST = {
 // Solution array definitions (forward-declared above).
 // ============================================================
 
-static const double *get_sol_2x_p1_DxDx(void)
+static const double *
+get_sol_2x_p1_DxDx(void)
 {
   static const double sol[256] = {
     0.0592784971266791,  0.0342244562732445,  -0.0076848087077185, -0.004436826376072,
@@ -2406,7 +2499,8 @@ static const double *get_sol_2x_p1_DxDx(void)
   return sol;
 }
 
-static const double *get_sol_2x_p1_NxDx(void)
+static const double *
+get_sol_2x_p1_NxDx(void)
 {
   static const double sol[256] = {
     0.2779969376054874,  -0.0077857556587993, -0.0360392619648285, 0.00100933805314,
@@ -2484,7 +2578,8 @@ static const double *get_sol_2x_p1_NxDx(void)
   return sol;
 }
 
-static const double *get_sol_2x_p1_DxNx(void)
+static const double *
+get_sol_2x_p1_DxNx(void)
 {
   static const double sol[256] = {
     -0.0966033131446173, -0.0557739488486548, 0.012523562809997,   0.0072304823595651,
@@ -2562,7 +2657,8 @@ static const double *get_sol_2x_p1_DxNx(void)
   return sol;
 }
 
-static const double *get_sol_2x_bias_p1_DxDx(void)
+static const double *
+get_sol_2x_bias_p1_DxDx(void)
 {
   static const double sol[256] = {
     0.0523071668741079,  0.0301995568753129,  0.0043898894860765,  0.0025345038764989,
@@ -2640,7 +2736,8 @@ static const double *get_sol_2x_bias_p1_DxDx(void)
   return sol;
 }
 
-static const double *get_sol_2x_bias_p1_NxDx(void)
+static const double *
+get_sol_2x_bias_p1_NxDx(void)
 {
   static const double sol[256] = {
     0.2947281302116576,  -0.0077857556587993, -0.0650185376299358, 0.00100933805314,
@@ -2718,7 +2815,8 @@ static const double *get_sol_2x_bias_p1_NxDx(void)
   return sol;
 }
 
-static const double *get_sol_2x_bias_p1_DxNx(void)
+static const double *
+get_sol_2x_bias_p1_DxNx(void)
 {
   static const double sol[256] = {
     -0.0945119140688464, -0.0545664790292753, 0.0089011533518588,  0.0051390832837939,
@@ -2796,7 +2894,8 @@ static const double *get_sol_2x_bias_p1_DxNx(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p1_DxDx_DyDy(void)
+static const double *
+get_sol_3x_bias_p1_DxDx_DyDy(void)
 {
   static const double sol[512] = {
     -1.4857902425065184e-04, -8.5782139646996372e-05, -8.5782139646865672e-05,
@@ -2974,7 +3073,8 @@ static const double *get_sol_3x_bias_p1_DxDx_DyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p1_DxDx_PyPy(void)
+static const double *
+get_sol_3x_bias_p1_DxDx_PyPy(void)
 {
   static const double sol[512] = {
     5.0226946551362277e-03,  2.8998541112002828e-03,  2.8998541112001328e-03,
@@ -3152,7 +3252,8 @@ static const double *get_sol_3x_bias_p1_DxDx_PyPy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p1_PxPx_DyDy(void)
+static const double *
+get_sol_3x_bias_p1_PxPx_DyDy(void)
 {
   static const double sol[512] = {
     5.0226946551374047e-03,  2.8998541112002477e-03,  2.8998541112002247e-03,
@@ -3330,7 +3431,8 @@ static const double *get_sol_3x_bias_p1_PxPx_DyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p1_DxDx_NyDy(void)
+static const double *
+get_sol_3x_bias_p1_DxDx_NyDy(void)
 {
   static const double sol[512] = {
     -6.9079330390629801e-04, -3.9882969996476189e-04, 1.9369084511113992e-05,
@@ -3508,7 +3610,8 @@ static const double *get_sol_3x_bias_p1_DxDx_NyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p1_DxDx_DyNy(void)
+static const double *
+get_sol_3x_bias_p1_DxDx_DyNy(void)
 {
   static const double sol[512] = {
     2.4528129331630134e-04,  1.4161322072330483e-04,  1.4161322072328683e-04,
@@ -3686,7 +3789,8 @@ static const double *get_sol_3x_bias_p1_DxDx_DyNy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p1_NxDx_DyDy(void)
+static const double *
+get_sol_3x_bias_p1_NxDx_DyDy(void)
 {
   static const double sol[512] = {
     -6.9079330390640719e-04, 1.9369084511107887e-05,  -3.9882969996474807e-04,
@@ -3864,7 +3968,8 @@ static const double *get_sol_3x_bias_p1_NxDx_DyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p1_DxNx_DyDy(void)
+static const double *
+get_sol_3x_bias_p1_DxNx_DyDy(void)
 {
   static const double sol[512] = {
     2.4528129331641009e-04,  1.4161322072339013e-04,  1.4161322072323059e-04,
@@ -4042,7 +4147,8 @@ static const double *get_sol_3x_bias_p1_DxNx_DyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p1_NxDx_PyPy(void)
+static const double *
+get_sol_3x_bias_p1_NxDx_PyPy(void)
 {
   static const double sol[512] = {
     2.3004015067766781e-02,  -6.5620995429994662e-04, 1.3281374291817376e-02,
@@ -4220,7 +4326,8 @@ static const double *get_sol_3x_bias_p1_NxDx_PyPy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p2_PxPx_PyPy(void)
+static const double *
+get_sol_3x_bias_p2_PxPx_PyPy(void)
 {
   static const double sol[640] = {
     5.4502158943918211e+00,  1.4782758980221811e+00,  -1.0143961216287423e+00,
@@ -4441,7 +4548,8 @@ static const double *get_sol_3x_bias_p2_PxPx_PyPy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p2_DxDx_DyDy(void)
+static const double *
+get_sol_3x_bias_p2_DxDx_DyDy(void)
 {
   static const double sol[640] = {
     -1.6736386918814842e-04, -8.9993566755474939e-05, -8.9993566755553327e-05,
@@ -4662,7 +4770,8 @@ static const double *get_sol_3x_bias_p2_DxDx_DyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p2_DxDx_PyPy(void)
+static const double *
+get_sol_3x_bias_p2_DxDx_PyPy(void)
 {
   static const double sol[640] = {
     5.8616184533469527e-03,  3.1565760734898127e-03,  2.7094777984668392e-03,
@@ -4883,7 +4992,8 @@ static const double *get_sol_3x_bias_p2_DxDx_PyPy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p2_PxPx_DyDy(void)
+static const double *
+get_sol_3x_bias_p2_PxPx_DyDy(void)
 {
   static const double sol[640] = {
     5.8616184533438415e-03,  2.7094777984664276e-03,  3.1565760734900668e-03,
@@ -5104,7 +5214,8 @@ static const double *get_sol_3x_bias_p2_PxPx_DyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p2_DxDx_NyDy(void)
+static const double *
+get_sol_3x_bias_p2_DxDx_NyDy(void)
 {
   static const double sol[640] = {
     -7.4185325279775777e-04, -3.9802597843886317e-04, 2.0456784067311337e-05,
@@ -5325,7 +5436,8 @@ static const double *get_sol_3x_bias_p2_DxDx_NyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p2_DxDx_DyNy(void)
+static const double *
+get_sol_3x_bias_p2_DxDx_DyNy(void)
 {
   static const double sol[640] = {
     2.9366410440246786e-04,  1.5833417110396627e-04,  1.4679523967276470e-04,
@@ -5546,7 +5658,8 @@ static const double *get_sol_3x_bias_p2_DxDx_DyNy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p2_NxDx_DyDy(void)
+static const double *
+get_sol_3x_bias_p2_NxDx_DyDy(void)
 {
   static const double sol[640] = {
     -7.4185325279800725e-04, 2.0456784067503705e-05,  -3.9802597843864769e-04,
@@ -5767,7 +5880,8 @@ static const double *get_sol_3x_bias_p2_NxDx_DyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p2_DxNx_DyDy(void)
+static const double *
+get_sol_3x_bias_p2_DxNx_DyDy(void)
 {
   static const double sol[640] = {
     2.9366410440283302e-04,  1.4679523967220964e-04,  1.5833417110396145e-04,
@@ -5988,7 +6102,8 @@ static const double *get_sol_3x_bias_p2_DxNx_DyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_bias_p2_NxDx_PyPy(void)
+static const double *
+get_sol_3x_bias_p2_NxDx_PyPy(void)
 {
   static const double sol[640] = {
     2.6007376622747585e-02,  -7.1800944496270788e-04, 1.1848784811247477e-02,
@@ -6209,7 +6324,8 @@ static const double *get_sol_3x_bias_p2_NxDx_PyPy(void)
   return sol;
 }
 
-static const double *get_sol_3x_biasB_p1_DxDx_DyDy(void)
+static const double *
+get_sol_3x_biasB_p1_DxDx_DyDy(void)
 {
   static const double sol[512] = {
     -4.4041922402994508e-03, -2.5427615754988948e-03, -1.0665671304152860e-04,
@@ -6399,7 +6515,8 @@ static const double *get_sol_3x_biasB_p1_DxDx_DyDy(void)
   return sol;
 }
 
-static const double *get_sol_3x_biasB_p1_DxDx_PyPy(void)
+static const double *
+get_sol_3x_biasB_p1_DxDx_PyPy(void)
 {
   static const double sol[512] = {
     -4.4584195633810733e-02, -2.5740697350783534e-02, -2.5740697350783579e-02,

@@ -47,7 +47,8 @@ struct amr_shock_bubble_ctx {
   double bub_rad; // Bubble radius.
 };
 
-struct amr_shock_bubble_ctx create_ctx(void)
+struct amr_shock_bubble_ctx
+create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma1 = 1.4; // First species adiabatic index.
@@ -126,15 +127,14 @@ struct amr_shock_bubble_ctx create_ctx(void)
     .x_loc = x_loc,
     .bub_loc_x = bub_loc_x,
     .bub_loc_y = bub_loc_y,
-    .bub_rad = bub_rad
+    .bub_rad = bub_rad,
   };
 
   return ctx;
 }
 
-void evalEulerMixtureInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalEulerMixtureInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_shock_bubble_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -223,7 +223,8 @@ void evalEulerMixtureInit(
   fout[7] = (1.0 - alpha1) * rho2;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct amr_shock_bubble_ctx ctx = create_ctx(); // Context for initialization functions.
 
@@ -270,7 +271,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max
+    .num_failures_max = ctx.num_failures_max,
   };
 
   euler_mixture2d_run_double(argc, argv, &init);

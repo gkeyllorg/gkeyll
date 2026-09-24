@@ -10,7 +10,8 @@ extern "C" {
 
 // CUDA kernel to set device pointer to interpolating kernel.
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_interp_choose_kernel_ptrs_cu(
+__global__ static void
+dg_interp_choose_kernel_ptrs_cu(
   struct gkyl_dg_interpolate_kernels *kernels, int cdim, struct gkyl_basis basis, int dir,
   double dxRat
 )
@@ -25,7 +26,8 @@ __global__ static void dg_interp_choose_kernel_ptrs_cu(
   }
 }
 
-void dg_interp_choose_kernel_cu(
+void
+dg_interp_choose_kernel_cu(
   struct gkyl_dg_interpolate_kernels *kernels, int cdim, struct gkyl_basis basis, int dir,
   double dxRat
 )
@@ -33,7 +35,8 @@ void dg_interp_choose_kernel_cu(
   dg_interp_choose_kernel_ptrs_cu<<<1, 1>>>(kernels, cdim, basis, dir, dxRat);
 }
 
-__global__ static void gkyl_dg_interpolate_advance_1x_cu_ker(
+__global__ static void
+gkyl_dg_interpolate_advance_1x_cu_ker(
   struct gkyl_dg_interpolate_kernels *kernels, int dir, double dxRat, int *offset_upper,
   struct gkyl_rect_grid grid_do, struct gkyl_rect_grid grid_tar, struct gkyl_range range_do,
   struct gkyl_range range_tar, const struct gkyl_array *GKYL_RESTRICT fdo,
@@ -82,7 +85,8 @@ __global__ static void gkyl_dg_interpolate_advance_1x_cu_ker(
   }
 }
 
-void gkyl_dg_interpolate_advance_1x_cu(
+void
+gkyl_dg_interpolate_advance_1x_cu(
   gkyl_dg_interpolate *up, const struct gkyl_range *range_do, const struct gkyl_range *range_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar
 )

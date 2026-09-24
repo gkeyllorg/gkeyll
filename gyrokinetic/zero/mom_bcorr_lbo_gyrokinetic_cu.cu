@@ -10,7 +10,8 @@ extern "C" {
 #include <gkyl_mom_bcorr_lbo_gyrokinetic_priv.h>
 }
 
-__global__ static void gkyl_mom_bcorr_lbo_gyrokinetic_set_cu_dev_ptrs(
+__global__ static void
+gkyl_mom_bcorr_lbo_gyrokinetic_set_cu_dev_ptrs(
   struct mom_type_bcorr_lbo_gyrokinetic *mom_bcorr, enum gkyl_basis_type b_type, int vdim,
   int poly_order, int tblidx
 )
@@ -21,23 +22,24 @@ __global__ static void gkyl_mom_bcorr_lbo_gyrokinetic_set_cu_dev_ptrs(
   const gkyl_mom_bcorr_lbo_gyrokinetic_kern_list *mom_bcorr_lbo_gyrokinetic_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    mom_bcorr_lbo_gyrokinetic_kernels = ser_mom_bcorr_lbo_gyrokinetic_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mom_bcorr_lbo_gyrokinetic_kernels = ser_mom_bcorr_lbo_gyrokinetic_kernels;
+      break;
 
-    // case GKYL_BASIS_MODAL_TENSOR:
-    //   mom_bcorr_lbo_gyrokinetic_kernels = ten_mom_bcorr_lbo_gyrokinetic_kernels;
-    //   break;
+      // case GKYL_BASIS_MODAL_TENSOR:
+      //   mom_bcorr_lbo_gyrokinetic_kernels = ten_mom_bcorr_lbo_gyrokinetic_kernels;
+      //   break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   mom_bcorr->kernel = mom_bcorr_lbo_gyrokinetic_kernels[tblidx].kernels[poly_order];
   mom_bcorr->momt.num_mom = 2;
 }
 
-struct gkyl_mom_type *gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(
+struct gkyl_mom_type *
+gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass,
   const struct gkyl_velocity_map *vel_map
 )

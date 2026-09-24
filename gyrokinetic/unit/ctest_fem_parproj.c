@@ -15,7 +15,8 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_bc_basic_gyrokinetic.h>
 
-static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool use_gpu, long nc, long size)
 {
   // Allocate array (filled with zeros)
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
@@ -31,7 +32,8 @@ struct skin_ghost_ranges {
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 };
 
-static void skin_ghost_ranges_init(
+static void
+skin_ghost_ranges_init(
   struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost
 )
 {
@@ -48,7 +50,8 @@ static void skin_ghost_ranges_init(
   }
 }
 
-void apply_periodic_bc(
+void
+apply_periodic_bc(
   struct gkyl_array *buff, struct gkyl_array *fld, const int dir, const struct skin_ghost_ranges sgr
 )
 {
@@ -185,7 +188,8 @@ check_continuity_perp(struct gkyl_range range, struct gkyl_basis basis, struct g
   gkyl_array_release(nodes);
 }
 
-void check_dirichlet_bc(
+void
+check_dirichlet_bc(
   struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_basis basis,
   enum gkyl_fem_parproj_bc_type bctype, struct gkyl_array *field_dg, struct gkyl_array *field_fem
 )
@@ -280,7 +284,8 @@ void check_dirichlet_bc(
   gkyl_array_release(nodes);
 }
 
-void check_dirichlet_bc_bias(
+void
+check_dirichlet_bc_bias(
   struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_range local_ext,
   struct gkyl_basis basis, enum gkyl_fem_parproj_bc_type bctype,
   struct gkyl_poisson_bias_line_list *bls, struct gkyl_array *field_dg, struct gkyl_array *field_fem
@@ -414,20 +419,23 @@ void check_dirichlet_bc_bias(
   gkyl_array_release(nodes);
 }
 
-void evalFunc1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = sin(2. * M_PI * x);
 }
 
-void evalFunc1x_dirichlet(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc1x_dirichlet(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   // Test Dirichlet BCs with something that's not 0 at the boundary.
   fout[0] = cos(2. * M_PI * x);
 }
 
-void ghost_from_skin_surf(
+void
+ghost_from_skin_surf(
   bool use_gpu, int dim, struct skin_ghost_ranges *sgr, struct gkyl_basis *basis,
   struct gkyl_array *rho
 )
@@ -452,7 +460,8 @@ void ghost_from_skin_surf(
   gkyl_array_release(bc_buffer);
 }
 
-void test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
+void
+test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
   double lower[] = {-0.5}, upper[] = {0.5};
   int cells[] = {4};
@@ -643,7 +652,8 @@ void test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   gkyl_array_release(phi_ho);
 }
 
-void evalFunc2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double mu = .2;
@@ -651,7 +661,8 @@ void evalFunc2x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = exp(-(pow(x - mu, 2)) / (2.0 * sig * sig)) * sin(2. * M_PI * y);
 }
 
-void evalFunc2x_xcont(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc2x_xcont(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double mu = .2;
@@ -659,19 +670,22 @@ void evalFunc2x_xcont(double t, const double *xn, double *restrict fout, void *c
   fout[0] = exp(-(pow(x - mu, 2)) / (2.0 * sig * sig));
 }
 
-void evalFunc2x_ydiscont(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc2x_ydiscont(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   fout[0] = 2.0 + sin(2. * M_PI * y);
 }
 
-void evalFunc2x_dirichlet(double t, const double *xn, double *fout, void *ctx)
+void
+evalFunc2x_dirichlet(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   fout[0] = cos(x) * cos(5 * z);
 }
 
-void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
+void
+test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
   double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
   int cells[] = {3, 4};
@@ -1062,7 +1076,8 @@ void test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   gkyl_array_release(phi_ho);
 }
 
-void test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
+void
+test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
   double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
   int cells[] = {3, 4};
@@ -1115,16 +1130,20 @@ void test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use
 
   // Specify the bias:
   struct gkyl_poisson_bias_line bias[] = {
-    {.perp_dirs = {0, 1},
-     .perp_coords = {-2., -0.5}, // Location of the plane in the 'dir' dimension.
-     .val = 0.}, // Biasing value.
-    {.perp_dirs = {0, 1},
-     .perp_coords = {-2 + 2 * 4.0 / 3.0, 0.5}, // Location of the plane in the 'dir' dimension.
-     .val = 0.} // Biasing value.
+    {
+      .perp_dirs = {0, 1},
+      .perp_coords = {-2., -0.5}, // Location of the plane in the 'dir' dimension.
+      .val = 0.,
+    }, // Biasing value.
+    {
+      .perp_dirs = {0, 1},
+      .perp_coords = {-2 + 2 * 4.0 / 3.0, 0.5}, // Location of the plane in the 'dir' dimension.
+      .val = 0.,
+    } // Biasing value.
   };
   struct gkyl_poisson_bias_line_list bll = {
     .num_bias_line = sizeof(bias) / sizeof(bias[0]), // Number of bias lines.
-    .bl = bias
+    .bl = bias,
   };
 
   // Parallel FEM projection method.
@@ -1161,7 +1180,8 @@ void test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use
   gkyl_array_release(phi_ho);
 }
 
-void evalWeight2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalWeight2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double mu = 0.0;
@@ -1176,7 +1196,8 @@ void evalWeight2x(double t, const double *xn, double *restrict fout, void *ctx)
   }
 }
 
-void test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
+void
+test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
   double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
   int cells[] = {3, 4};
@@ -1272,14 +1293,16 @@ void test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool
   gkyl_array_release(jac_ho);
 }
 
-void evalFunc2x_selfadjoint(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc2x_selfadjoint(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double mu = .2;
   double sig = 0.3;
   fout[0] = exp(-(pow(x - mu, 2)) / (2.0 * sig * sig)) * (2.0 + cos(2. * M_PI * y));
 }
-void evalGunc2x_selfadjoint(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalGunc2x_selfadjoint(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double mu = .1;
@@ -1287,7 +1310,8 @@ void evalGunc2x_selfadjoint(double t, const double *xn, double *restrict fout, v
   fout[0] = exp(-(pow(x - mu, 2)) / (2.0 * sig * sig)) * (2.0 + y * y);
 }
 
-void test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
+void
+test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
   // Check that the operator is self-adjoint.
   double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
@@ -1391,7 +1415,8 @@ void test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, b
   gkyl_array_release(phi_ho);
 }
 
-void evalFunc3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double mu[2] = {.2, 0.2};
@@ -1399,7 +1424,8 @@ void evalFunc3x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = exp(-(pow(x - mu[0], 2) + pow(y - mu[1], 2)) / (2.0 * sig * sig)) * sin(2. * M_PI * z);
 }
 
-void evalFunc3x_dirichlet(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc3x_dirichlet(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double mu[2] = {.2, 0.2};
@@ -1407,7 +1433,8 @@ void evalFunc3x_dirichlet(double t, const double *xn, double *restrict fout, voi
   fout[0] = exp(-(pow(x - mu[0], 2) + pow(y - mu[1], 2)) / (2.0 * sig * sig)) * cos(2. * M_PI * z);
 }
 
-void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
+void
+test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
   double lower[] = {-2., -2., -0.5}, upper[] = {2., 2., 0.5};
   int cells[] = {3, 3, 4};
@@ -1914,7 +1941,8 @@ void test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
   gkyl_array_release(phi_ho);
 }
 
-void test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
+void
+test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
   double lower[] = {-2., -2., -0.5}, upper[] = {2., 2., 0.5};
   int cells[] = {3, 3, 4};
@@ -1967,16 +1995,20 @@ void test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bo
 
   // Specify the bias:
   struct gkyl_poisson_bias_line bias[] = {
-    {.perp_dirs = {0, 2},
-     .perp_coords = {-2., -0.5}, // Location of the plane in the 'dir' dimension.
-     .val = 0.}, // Biasing value.
-    {.perp_dirs = {0, 2},
-     .perp_coords = {-2 + 2 * 4.0 / 3.0, 0.5}, // Location of the plane in the 'dir' dimension.
-     .val = 0.} // Biasing value.
+    {
+      .perp_dirs = {0, 2},
+      .perp_coords = {-2., -0.5}, // Location of the plane in the 'dir' dimension.
+      .val = 0.,
+    }, // Biasing value.
+    {
+      .perp_dirs = {0, 2},
+      .perp_coords = {-2 + 2 * 4.0 / 3.0, 0.5}, // Location of the plane in the 'dir' dimension.
+      .val = 0.,
+    } // Biasing value.
   };
   struct gkyl_poisson_bias_line_list bll = {
     .num_bias_line = sizeof(bias) / sizeof(bias[0]), // Number of bias lines.
-    .bl = bias
+    .bl = bias,
   };
 
   // parallel FEM projection method.
@@ -2013,209 +2045,253 @@ void test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bo
   gkyl_array_release(phi_ho);
 }
 
-void test_fem_parproj_1x_p1_bcnone_ho()
+void
+test_fem_parproj_1x_p1_bcnone_ho()
 {
   test_1x(1, GKYL_FEM_PARPROJ_NONE, false);
 }
-void test_fem_parproj_1x_p1_bcdirichlet_ho()
+void
+test_fem_parproj_1x_p1_bcdirichlet_ho()
 {
   test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_fem_parproj_1x_p1_bcperiodic_ho()
+void
+test_fem_parproj_1x_p1_bcperiodic_ho()
 {
   test_1x(1, GKYL_FEM_PARPROJ_PERIODIC, false);
 }
 
-void test_fem_parproj_1x_p2_bcnone_ho()
+void
+test_fem_parproj_1x_p2_bcnone_ho()
 {
   test_1x(2, GKYL_FEM_PARPROJ_NONE, false);
 }
-void test_fem_parproj_1x_p2_bcdirichlet_ho()
+void
+test_fem_parproj_1x_p2_bcdirichlet_ho()
 {
   test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_fem_parproj_1x_p2_bcperiodic_ho()
+void
+test_fem_parproj_1x_p2_bcperiodic_ho()
 {
   test_1x(2, GKYL_FEM_PARPROJ_PERIODIC, false);
 }
 
-void test_fem_parproj_2x_p1_bcnone_ho()
+void
+test_fem_parproj_2x_p1_bcnone_ho()
 {
   test_2x(1, GKYL_FEM_PARPROJ_NONE, false);
 }
-void test_fem_parproj_2x_p1_bcdirichlet_ho()
+void
+test_fem_parproj_2x_p1_bcdirichlet_ho()
 {
   test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_fem_parproj_2x_p1_bcperiodic_ho()
+void
+test_fem_parproj_2x_p1_bcperiodic_ho()
 {
   test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, false);
 }
-void test_fem_parproj_2x_p1_weighted_ho()
+void
+test_fem_parproj_2x_p1_weighted_ho()
 {
   test_2x_weighted(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_2x_weighted(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_fem_parproj_2x_p1_selfadjoint_ho()
+void
+test_fem_parproj_2x_p1_selfadjoint_ho()
 {
   test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, false);
 }
-void test_fem_parproj_2x_p1_bcdirichlet_bias_ho()
+void
+test_fem_parproj_2x_p1_bcdirichlet_bias_ho()
 {
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
 
-void test_fem_parproj_2x_p2_bcnone_ho()
+void
+test_fem_parproj_2x_p2_bcnone_ho()
 {
   test_2x(2, GKYL_FEM_PARPROJ_NONE, false);
 }
-void test_fem_parproj_2x_p2_bcdirichlet_ho()
+void
+test_fem_parproj_2x_p2_bcdirichlet_ho()
 {
   test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_fem_parproj_2x_p2_bcperiodic_ho()
+void
+test_fem_parproj_2x_p2_bcperiodic_ho()
 {
   test_2x(2, GKYL_FEM_PARPROJ_PERIODIC, false);
 }
 
-void test_fem_parproj_3x_p1_bcnone_ho()
+void
+test_fem_parproj_3x_p1_bcnone_ho()
 {
   test_3x(1, GKYL_FEM_PARPROJ_NONE, false);
 }
-void test_fem_parproj_3x_p1_bcdirichlet_ho()
+void
+test_fem_parproj_3x_p1_bcdirichlet_ho()
 {
   test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_fem_parproj_3x_p1_bcperiodic_ho()
+void
+test_fem_parproj_3x_p1_bcperiodic_ho()
 {
   test_3x(1, GKYL_FEM_PARPROJ_PERIODIC, false);
 }
-void test_fem_parproj_3x_p1_bcdirichlet_bias_ho()
+void
+test_fem_parproj_3x_p1_bcdirichlet_bias_ho()
 {
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
 
-void test_fem_parproj_3x_p2_bcnone_ho()
+void
+test_fem_parproj_3x_p2_bcnone_ho()
 {
   test_3x(2, GKYL_FEM_PARPROJ_NONE, false);
 }
-void test_fem_parproj_3x_p2_bcdirichlet_ho()
+void
+test_fem_parproj_3x_p2_bcdirichlet_ho()
 {
   test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
-void test_fem_parproj_3x_p2_bcperiodic_ho()
+void
+test_fem_parproj_3x_p2_bcperiodic_ho()
 {
   test_3x(2, GKYL_FEM_PARPROJ_PERIODIC, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 // ......... GPU tests ............ //
-void test_fem_parproj_1x_p1_bcnone_dev()
+void
+test_fem_parproj_1x_p1_bcnone_dev()
 {
   test_1x(1, GKYL_FEM_PARPROJ_NONE, true);
 }
-void test_fem_parproj_1x_p1_bcdirichlet_dev()
+void
+test_fem_parproj_1x_p1_bcdirichlet_dev()
 {
   test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_1x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_fem_parproj_1x_p1_bcperiodic_dev()
+void
+test_fem_parproj_1x_p1_bcperiodic_dev()
 {
   test_1x(1, GKYL_FEM_PARPROJ_PERIODIC, true);
 }
 
-void test_fem_parproj_1x_p2_bcnone_dev()
+void
+test_fem_parproj_1x_p2_bcnone_dev()
 {
   test_1x(2, GKYL_FEM_PARPROJ_NONE, true);
 }
-void test_fem_parproj_1x_p2_bcdirichlet_dev()
+void
+test_fem_parproj_1x_p2_bcdirichlet_dev()
 {
   test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_1x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_fem_parproj_1x_p2_bcperiodic_dev()
+void
+test_fem_parproj_1x_p2_bcperiodic_dev()
 {
   test_1x(2, GKYL_FEM_PARPROJ_PERIODIC, true);
 }
 
-void test_fem_parproj_2x_p1_bcnone_dev()
+void
+test_fem_parproj_2x_p1_bcnone_dev()
 {
   test_2x(1, GKYL_FEM_PARPROJ_NONE, true);
 }
-void test_fem_parproj_2x_p1_bcdirichlet_dev()
+void
+test_fem_parproj_2x_p1_bcdirichlet_dev()
 {
   test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_fem_parproj_2x_p1_bcperiodic_dev()
+void
+test_fem_parproj_2x_p1_bcperiodic_dev()
 {
   test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, true);
 }
-void test_fem_parproj_2x_p1_weighted_dev()
+void
+test_fem_parproj_2x_p1_weighted_dev()
 {
   test_2x_weighted(1, GKYL_FEM_PARPROJ_NONE, true);
 }
-void test_fem_parproj_2x_p1_selfadjoint_dev()
+void
+test_fem_parproj_2x_p1_selfadjoint_dev()
 {
   test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, true);
 }
-void test_fem_parproj_2x_p1_bcdirichlet_bias_dev()
+void
+test_fem_parproj_2x_p1_bcdirichlet_bias_dev()
 {
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
 
-void test_fem_parproj_2x_p2_bcnone_dev()
+void
+test_fem_parproj_2x_p2_bcnone_dev()
 {
   test_2x(2, GKYL_FEM_PARPROJ_NONE, true);
 }
-void test_fem_parproj_2x_p2_bcdirichlet_dev()
+void
+test_fem_parproj_2x_p2_bcdirichlet_dev()
 {
   test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_fem_parproj_2x_p2_bcperiodic_dev()
+void
+test_fem_parproj_2x_p2_bcperiodic_dev()
 {
   test_2x(2, GKYL_FEM_PARPROJ_PERIODIC, true);
 }
 
-void test_fem_parproj_3x_p1_bcnone_dev()
+void
+test_fem_parproj_3x_p1_bcnone_dev()
 {
   test_3x(1, GKYL_FEM_PARPROJ_NONE, true);
 }
-void test_fem_parproj_3x_p1_bcdirichlet_dev()
+void
+test_fem_parproj_3x_p1_bcdirichlet_dev()
 {
   test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_3x(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_fem_parproj_3x_p1_bcperiodic_dev()
+void
+test_fem_parproj_3x_p1_bcperiodic_dev()
 {
   test_3x(1, GKYL_FEM_PARPROJ_PERIODIC, true);
 }
-void test_fem_parproj_3x_p1_bcdirichlet_bias_dev()
+void
+test_fem_parproj_3x_p1_bcdirichlet_bias_dev()
 {
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
 
-void test_fem_parproj_3x_p2_bcnone_dev()
+void
+test_fem_parproj_3x_p2_bcnone_dev()
 {
   test_3x(2, GKYL_FEM_PARPROJ_NONE, true);
 }
-void test_fem_parproj_3x_p2_bcdirichlet_dev()
+void
+test_fem_parproj_3x_p2_bcdirichlet_dev()
 {
   test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_3x(2, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
-void test_fem_parproj_3x_p2_bcperiodic_dev()
+void
+test_fem_parproj_3x_p2_bcperiodic_dev()
 {
   test_3x(2, GKYL_FEM_PARPROJ_PERIODIC, true);
 }

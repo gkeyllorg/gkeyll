@@ -195,12 +195,12 @@ GKYL_CU_D static gk_nf_udrift_set_prob_t
 choose_udrift_set_prob_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_gk_nf_prim_vars_udrift_set_prob_kernels[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_udrift_set_prob_kernels[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
@@ -209,12 +209,12 @@ GKYL_CU_D static gk_nf_udrift_get_sol_t
 choose_udrift_get_sol_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_gk_nf_prim_vars_udrift_get_sol_kernels[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_udrift_get_sol_kernels[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
@@ -223,12 +223,12 @@ GKYL_CU_D static gk_nf_pressure_t
 choose_pressure_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_gk_nf_prim_vars_pressure_kernels[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_pressure_kernels[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
@@ -237,12 +237,12 @@ GKYL_CU_D static gk_nf_temp_set_prob_t
 choose_temp_set_prob_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_gk_nf_prim_vars_temp_set_prob_kernels[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_temp_set_prob_kernels[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
@@ -251,12 +251,12 @@ GKYL_CU_D static gk_nf_temp_get_sol_t
 choose_temp_get_sol_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_gk_nf_prim_vars_temp_get_sol_kernels[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_temp_get_sol_kernels[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
@@ -265,12 +265,12 @@ GKYL_CU_D static gk_nf_udrift_temp_set_prob_t
 choose_udrift_temp_set_prob_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_gk_nf_prim_vars_udrift_temp_set_prob_kernels[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_udrift_temp_set_prob_kernels[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
@@ -279,12 +279,12 @@ GKYL_CU_D static gk_nf_udrift_temp_get_sol_t
 choose_udrift_temp_get_sol_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_gk_nf_prim_vars_udrift_temp_get_sol_kernels[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_udrift_temp_get_sol_kernels[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
@@ -293,12 +293,12 @@ GKYL_CU_D static gk_nf_flowE_set_prob_t
 choose_flowE_set_prob_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_gk_nf_prim_vars_flowE_set_prob_kernels[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_flowE_set_prob_kernels[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
@@ -307,12 +307,12 @@ GKYL_CU_D static gk_nf_flowE_get_sol_t
 choose_flowE_get_sol_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_gk_nf_prim_vars_flowE_get_sol_kernels[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_flowE_get_sol_kernels[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }

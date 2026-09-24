@@ -10,7 +10,8 @@
  * @param n length of a
  * return number of unique elements in a
  */
-static int count_distinct(int a[], int n)
+static int
+count_distinct(int a[], int n)
 {
   int i, j, count = 1;
   for (i = 1; i < n; i++) { // Check if a[i] is a new element
@@ -34,7 +35,8 @@ static int count_distinct(int a[], int n)
  * @param unique_array on output contains the unique elements in a
  * return number of unique elements in a
  */
-static int get_unique(int *a, int n, int *unique_array)
+static int
+get_unique(int *a, int n, int *unique_array)
 {
   unique_array[0] = a[0]; // The first element of a is the first unique element
   int i, j, count = 1;
@@ -57,7 +59,8 @@ static int get_unique(int *a, int n, int *unique_array)
  * @param n number of values in arr before insertion
  * @param new val value to insert
 */
-static void insert_below(int *arr, int n, int new_val)
+static void
+insert_below(int *arr, int n, int new_val)
 {
   int temp_arr[GKYL_MAX_BLOCKS] = {-1};
   for (int i = 0; i < n; i++) {
@@ -75,7 +78,8 @@ static void insert_below(int *arr, int n, int new_val)
  * @param n number of values in arr before insertion
  * @param new val value to insert
 */
-static void insert_above(int *arr, int n, int new_val)
+static void
+insert_above(int *arr, int n, int new_val)
 {
   arr[n] = new_val;
 }
@@ -89,7 +93,8 @@ static void insert_above(int *arr, int n, int new_val)
  * @param neighbor_idxs on output indices of neighboring blocks
  * return number of neighbors
  */
-int get_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighbor_idxs)
+int
+get_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighbor_idxs)
 {
   struct gkyl_block_connections conn = block_topo->conn[bidx];
   int neighbor_num = 0;
@@ -110,7 +115,8 @@ int get_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir, int *ne
  * @param direction
  * return number of neighbors
  */
-int get_num_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir)
+int
+get_num_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
   int neighbor_idxs[1000] = {-1};
   int neighbor_num = get_neighbors(block_topo, bidx, dir, neighbor_idxs);
@@ -126,7 +132,8 @@ int get_num_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir)
  * @param neighbor_idxs on output index of neighboring block below
  * return number of neighbors below (0 or 1)
 */
-int get_below(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighbor_idxs)
+int
+get_below(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighbor_idxs)
 {
   struct gkyl_block_connections conn = block_topo->conn[bidx];
   int neighbor_num = 0;
@@ -146,7 +153,8 @@ int get_below(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighb
  * @param direction
  * return number of neighbors
  */
-int get_num_below(struct gkyl_block_topo *block_topo, int bidx, int dir)
+int
+get_num_below(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
   int neighbor_idxs[1000] = {-1};
   int neighbor_num = get_neighbors(block_topo, bidx, dir, neighbor_idxs);
@@ -162,7 +170,8 @@ int get_num_below(struct gkyl_block_topo *block_topo, int bidx, int dir)
  * @param neighbor_idxs on output index of neighboring block above
  * return number of neighbors above (0 or 1)
 */
-int get_above(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighbor_idxs)
+int
+get_above(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighbor_idxs)
 {
   struct gkyl_block_connections conn = block_topo->conn[bidx];
   int neighbor_num = 0;
@@ -182,7 +191,8 @@ int get_above(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighb
  * @param direction
  * return number of neighbors
  */
-int get_num_above(struct gkyl_block_topo *block_topo, int bidx, int dir)
+int
+get_num_above(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
   int neighbor_idxs[1000] = {-1};
   int neighbor_num = get_neighbors(block_topo, bidx, dir, neighbor_idxs);
@@ -198,7 +208,8 @@ int get_num_above(struct gkyl_block_topo *block_topo, int bidx, int dir)
  * @param block_list ordered indices of connected blocks including self
  * return number of connected blocks 
  */
-int get_connected(struct gkyl_block_topo *block_topo, int bidx, int dir, int *block_list)
+int
+get_connected(struct gkyl_block_topo *block_topo, int bidx, int dir, int *block_list)
 {
   struct gkyl_block_connections conn;
   block_list[0] = bidx;
@@ -244,7 +255,8 @@ int get_connected(struct gkyl_block_topo *block_topo, int bidx, int dir, int *bl
  * @param direction
  * return number of connected blocks 
  */
-int get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir)
+int
+get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
   int block_list[1000] = {-1};
   int num_blocks = get_connected(block_topo, bidx, dir, block_list);
@@ -257,7 +269,8 @@ int get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir)
  * @param bidx block index
  * @param edges list of edges (0 for lower, 1 for upper)
 */
-int check_corner(struct gkyl_block_topo *block_topo, int bidx, int *edges)
+int
+check_corner(struct gkyl_block_topo *block_topo, int bidx, int *edges)
 {
   struct gkyl_block_connections conn = block_topo->conn[bidx];
   int ndim = block_topo->ndim;
@@ -278,7 +291,8 @@ int check_corner(struct gkyl_block_topo *block_topo, int bidx, int *edges)
  * @param edges list of edges of length ndim (0 for lower, 1 for upper)
  * @param block list on output a list of block indices that touch the corner
 */
-int get_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int *edges, int *block_list)
+int
+get_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int *edges, int *block_list)
 {
   int ndim = block_topo->ndim;
   int num_corner_connected = 0;
@@ -321,14 +335,16 @@ int get_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int *edge
  * @param edges list of edges of length ndim (0 for lower, 1 for upper)
  * return number of blocks touching this corner
 */
-int get_num_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int *edges)
+int
+get_num_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int *edges)
 {
   int block_list[1000] = {-1};
   int num_corner_connected = get_corner_connected(block_topo, bidx, edges, block_list);
   return num_corner_connected;
 }
 
-int gkyl_multib_conn_get_connection(
+int
+gkyl_multib_conn_get_connection(
   struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id,
   int *block_list
 )
@@ -359,7 +375,8 @@ int gkyl_multib_conn_get_connection(
   return num_connected;
 }
 
-int gkyl_multib_conn_get_num_connected(
+int
+gkyl_multib_conn_get_num_connected(
   struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id
 )
 {

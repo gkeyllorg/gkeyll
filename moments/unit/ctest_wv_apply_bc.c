@@ -12,7 +12,8 @@
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>
 
-static void nomapc2p(double t, const double *xc, double *xp, void *ctx)
+static void
+nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {
   int *ndim = ctx;
   for (int i = 0; i < (*ndim); ++i) {
@@ -20,14 +21,16 @@ static void nomapc2p(double t, const double *xc, double *xp, void *ctx)
   }
 }
 
-static void rtheta_map(double t, const double *xc, double *xp, void *ctx)
+static void
+rtheta_map(double t, const double *xc, double *xp, void *ctx)
 {
   double r = xc[0], th = xc[1];
   xp[0] = r * cos(th);
   xp[1] = r * sin(th);
 }
 
-static void bc_copy(
+static void
+bc_copy(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *restrict ghost,
   void *ctx
 )
@@ -37,7 +40,8 @@ static void bc_copy(
   }
 }
 
-void test_apply_bc_1_ho()
+void
+test_apply_bc_1_ho()
 {
   int ndim = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -87,7 +91,8 @@ void test_apply_bc_1_ho()
   gkyl_array_release(distf);
 }
 
-void test_apply_bc_2_ho()
+void
+test_apply_bc_2_ho()
 {
   int ndim = 2;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -158,7 +163,8 @@ void test_apply_bc_2_ho()
   gkyl_array_release(distf);
 }
 
-void test_apply_bc_3_ho()
+void
+test_apply_bc_3_ho()
 {
   int ndim = 2;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -291,7 +297,8 @@ struct skin_ghost_ranges {
 };
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(
+static void
+skin_ghost_ranges_init(
   struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost
 )
 {
@@ -307,7 +314,8 @@ static void skin_ghost_ranges_init(
   }
 }
 
-void test_apply_bc_buff_rtheta_ho()
+void
+test_apply_bc_buff_rtheta_ho()
 {
   int ndim = 2;
   double lower[] = {0.25, 0.0}, upper[] = {1.25, 2 * M_PI / 4};

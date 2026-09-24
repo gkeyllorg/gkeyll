@@ -11,7 +11,8 @@
 // "Choose Kernel" based on cdim and polynomial order
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count *ref)
+void
+gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -26,7 +27,8 @@ void gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count *ref)
   gkyl_free(fpo_vlasov_diff);
 }
 
-void gkyl_fpo_vlasov_diff_set_auxfields(
+void
+gkyl_fpo_vlasov_diff_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_diff_auxfields auxin
 )
 {
@@ -41,7 +43,8 @@ void gkyl_fpo_vlasov_diff_set_auxfields(
   fpo_vlasov_diff->auxfields.g = auxin.g;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_new(
+struct gkyl_dg_eqn *
+gkyl_dg_fpo_vlasov_diff_new(
   const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu
 )
 {
@@ -86,32 +89,32 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_new(
   const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list *boundary_surf_zz_kernels;
 
   switch (pbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_xx_kernels = ser_surf_xx_kernels;
-    surf_xy_kernels = ser_surf_xy_kernels;
-    surf_xz_kernels = ser_surf_xz_kernels;
-    surf_yx_kernels = ser_surf_yx_kernels;
-    surf_yy_kernels = ser_surf_yy_kernels;
-    surf_yz_kernels = ser_surf_yz_kernels;
-    surf_zx_kernels = ser_surf_zx_kernels;
-    surf_zy_kernels = ser_surf_zy_kernels;
-    surf_zz_kernels = ser_surf_zz_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_xx_kernels = ser_surf_xx_kernels;
+      surf_xy_kernels = ser_surf_xy_kernels;
+      surf_xz_kernels = ser_surf_xz_kernels;
+      surf_yx_kernels = ser_surf_yx_kernels;
+      surf_yy_kernels = ser_surf_yy_kernels;
+      surf_yz_kernels = ser_surf_yz_kernels;
+      surf_zx_kernels = ser_surf_zx_kernels;
+      surf_zy_kernels = ser_surf_zy_kernels;
+      surf_zz_kernels = ser_surf_zz_kernels;
 
-    boundary_surf_xx_kernels = ser_boundary_surf_xx_kernels;
-    boundary_surf_xy_kernels = ser_boundary_surf_xy_kernels;
-    boundary_surf_xz_kernels = ser_boundary_surf_xz_kernels;
-    boundary_surf_yx_kernels = ser_boundary_surf_yx_kernels;
-    boundary_surf_yy_kernels = ser_boundary_surf_yy_kernels;
-    boundary_surf_yz_kernels = ser_boundary_surf_yz_kernels;
-    boundary_surf_zx_kernels = ser_boundary_surf_zx_kernels;
-    boundary_surf_zy_kernels = ser_boundary_surf_zy_kernels;
-    boundary_surf_zz_kernels = ser_boundary_surf_zz_kernels;
-    break;
+      boundary_surf_xx_kernels = ser_boundary_surf_xx_kernels;
+      boundary_surf_xy_kernels = ser_boundary_surf_xy_kernels;
+      boundary_surf_xz_kernels = ser_boundary_surf_xz_kernels;
+      boundary_surf_yx_kernels = ser_boundary_surf_yx_kernels;
+      boundary_surf_yy_kernels = ser_boundary_surf_yy_kernels;
+      boundary_surf_yz_kernels = ser_boundary_surf_yz_kernels;
+      boundary_surf_zx_kernels = ser_boundary_surf_zx_kernels;
+      boundary_surf_zy_kernels = ser_boundary_surf_zy_kernels;
+      boundary_surf_zz_kernels = ser_boundary_surf_zz_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   fpo_vlasov_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
@@ -162,7 +165,8 @@ struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_fpo_vlasov_diff_cu_dev_new(
   const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range
 )
 {

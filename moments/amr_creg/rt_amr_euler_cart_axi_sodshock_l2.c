@@ -42,7 +42,8 @@ struct amr_euler_cart_axi_sodshock_ctx {
   double rloc; // Fluid boundary (radial coordinate).
 };
 
-struct amr_euler_cart_axi_sodshock_ctx create_ctx(void)
+struct amr_euler_cart_axi_sodshock_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -102,13 +103,14 @@ struct amr_euler_cart_axi_sodshock_ctx create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .rloc = rloc
+    .rloc = rloc,
   };
 
   return ctx;
 }
 
-void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_euler_cart_axi_sodshock_ctx new_ctx =
@@ -153,7 +155,8 @@ void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct amr_euler_cart_axi_sodshock_ctx ctx =
     create_ctx(); // Context for initialization functions.
@@ -196,7 +199,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max
+    .num_failures_max = ctx.num_failures_max,
   };
 
   euler2d_run_double(argc, argv, &init);

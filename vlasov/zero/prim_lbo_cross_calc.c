@@ -8,7 +8,8 @@
 #include <gkyl_mat.h>
 #include <assert.h>
 
-struct gkyl_prim_lbo_cross_calc *gkyl_prim_lbo_cross_calc_new(
+struct gkyl_prim_lbo_cross_calc *
+gkyl_prim_lbo_cross_calc_new(
   const struct gkyl_rect_grid *grid, struct gkyl_prim_lbo_type *prim, bool use_gpu
 )
 {
@@ -32,7 +33,8 @@ struct gkyl_prim_lbo_cross_calc *gkyl_prim_lbo_cross_calc_new(
   return up;
 }
 
-void gkyl_prim_lbo_cross_calc_advance(
+void
+gkyl_prim_lbo_cross_calc_advance(
   struct gkyl_prim_lbo_cross_calc *calc, const struct gkyl_range *conf_rng,
   const struct gkyl_array *alpha_E, double self_m, const struct gkyl_array *self_moms,
   const struct gkyl_array *self_prim_moms, double other_m, const struct gkyl_array *other_moms,
@@ -106,7 +108,8 @@ gkyl_prim_lbo_cross_calc_get_prim(struct gkyl_prim_lbo_cross_calc *calc)
   return calc->prim;
 }
 
-void gkyl_prim_lbo_cross_calc_release(struct gkyl_prim_lbo_cross_calc *up)
+void
+gkyl_prim_lbo_cross_calc_release(struct gkyl_prim_lbo_cross_calc *up)
 {
   gkyl_prim_lbo_type_release(up->prim);
 

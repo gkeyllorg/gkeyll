@@ -10,7 +10,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void gkyl_mom_calc_advance_cu_ker(
+__global__ static void
+gkyl_mom_calc_advance_cu_ker(
   const gkyl_mom_calc *mcalc, const struct gkyl_range phase_range,
   const struct gkyl_range conf_range, const struct gkyl_array *GKYL_RESTRICT fin,
   struct gkyl_array *GKYL_RESTRICT mout
@@ -47,7 +48,8 @@ __global__ static void gkyl_mom_calc_advance_cu_ker(
   }
 }
 
-void gkyl_mom_calc_advance_cu(
+void
+gkyl_mom_calc_advance_cu(
   const gkyl_mom_calc *mcalc, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *GKYL_RESTRICT fin,
   struct gkyl_array *GKYL_RESTRICT mout

@@ -16,7 +16,8 @@ extern "C" {
 #include <gkyl_mat_priv.h>
 }
 
-__global__ static void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker(
+__global__ static void
+gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker(
   struct gkyl_range conf_range, const struct gkyl_array *conf_basis_at_ords,
   const struct gkyl_array *bmag, const struct gkyl_array *jacobtot, struct gkyl_array *bmag_quad_d,
   struct gkyl_array *jacobtot_quad_d
@@ -49,7 +50,8 @@ __global__ static void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker(
   }
 }
 
-void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(
+void
+gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(
   gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *bmag, const struct gkyl_array *jacobtot
 )
@@ -61,7 +63,8 @@ void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(
   );
 }
 
-static void gkyl_parallelize_components_kernel_launch_dims(
+static void
+gkyl_parallelize_components_kernel_launch_dims(
   dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp
 )
 {
@@ -73,7 +76,8 @@ static void gkyl_parallelize_components_kernel_launch_dims(
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
 }
 
-__global__ static void gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker(
+__global__ static void
+gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker(
   struct gkyl_range conf_range, int vdim_phys, int num_comp, bool bimaxwellian, bool use_jacobtot,
   const struct gkyl_array *conf_basis_at_ords, const struct gkyl_array *moms_maxwellian,
   const struct gkyl_array *bmag_quad, const struct gkyl_array *jacobtot_quad,
@@ -138,7 +142,8 @@ __global__ static void gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker(
   }
 }
 
-__global__ static void gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(
+__global__ static void
+gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(
   struct gkyl_rect_grid phase_grid, struct gkyl_range phase_range, struct gkyl_range conf_range,
   struct gkyl_range vel_range, bool bimaxwellian, double mass,
   const struct gkyl_array *conf_basis_at_ords, const struct gkyl_array *phase_ordinates,
@@ -216,7 +221,8 @@ __global__ static void gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(
   }
 }
 
-void gkyl_gk_maxwellian_proj_on_basis_advance_cu(
+void
+gkyl_gk_maxwellian_proj_on_basis_advance_cu(
   gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_range, const struct gkyl_array *moms_maxwellian, bool use_jacobtot,
   struct gkyl_array *f_maxwellian
