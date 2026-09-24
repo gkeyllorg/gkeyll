@@ -10,7 +10,7 @@
 #include <gkyl_wave_geom_priv.h>
 
 static bool
-wave_geom_is_cu_dev(const struct gkyl_wave_geom* wg)
+wave_geom_is_cu_dev(const struct gkyl_wave_geom *wg)
 {
   return GKYL_IS_CU_ALLOC(wg->flags);
 }
@@ -20,21 +20,24 @@ gkyl_wave_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wave_geom *wg = container_of(ref, struct gkyl_wave_geom, ref_count);
   gkyl_array_release(wg->geom);
-  if (wave_geom_is_cu_dev(wg)) 
-    gkyl_cu_free(wg->on_dev); 
+  if (wave_geom_is_cu_dev(wg)) {
+    gkyl_cu_free(wg->on_dev);
+  }
 
   gkyl_free(wg);
 }
 
-struct gkyl_wave_geom*
-gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
-  evalf_t mapc2p, void *ctx, bool use_gpu)
+struct gkyl_wave_geom *
+gkyl_wave_geom_new(
+  const struct gkyl_rect_grid *grid, struct gkyl_range *range, evalf_t mapc2p, void *ctx,
+  bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_wave_geom_cu_dev_new(grid, range, mapc2p, ctx);
-  } 
-#endif 
+  }
+#endif
 
   struct gkyl_wave_geom *wg = gkyl_malloc(sizeof(struct gkyl_wave_geom));
 
@@ -46,7 +49,6 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
   while (gkyl_range_iter_next(&iter)) {
-
     gkyl_rect_grid_cell_center(grid, iter.idx, xc);
 
     struct gkyl_wave_cell_geom *geo = gkyl_array_fetch(wg->geom, gkyl_range_idx(range, iter.idx));
@@ -75,11 +77,11 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
   return wg;
 }
 
-struct gkyl_wave_geom*
-gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg)
+struct gkyl_wave_geom *
+gkyl_wave_geom_acquire(const struct gkyl_wave_geom *wg)
 {
   gkyl_ref_count_inc(&wg->ref_count);
-  return (struct gkyl_wave_geom*) wg;
+  return (struct gkyl_wave_geom *)wg;
 }
 
 void
