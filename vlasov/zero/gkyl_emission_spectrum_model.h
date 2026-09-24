@@ -56,7 +56,8 @@ struct gkyl_emission_spectrum_maxwellian {
  */
 bool gkyl_emission_spectrum_model_is_cu_dev(const struct gkyl_emission_spectrum_model *model);
 
-static void gkyl_emission_spectrum_chung_everhart_free(const struct gkyl_ref_count *ref)
+static void
+gkyl_emission_spectrum_chung_everhart_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_spectrum_model *spectrum =
     container_of(ref, struct gkyl_emission_spectrum_model, ref_count);
@@ -72,7 +73,8 @@ static void gkyl_emission_spectrum_chung_everhart_free(const struct gkyl_ref_cou
   gkyl_free(model);
 }
 
-static void gkyl_emission_spectrum_gaussian_free(const struct gkyl_ref_count *ref)
+static void
+gkyl_emission_spectrum_gaussian_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_spectrum_model *spectrum =
     container_of(ref, struct gkyl_emission_spectrum_model, ref_count);
@@ -88,7 +90,8 @@ static void gkyl_emission_spectrum_gaussian_free(const struct gkyl_ref_count *re
   gkyl_free(model);
 }
 
-static void gkyl_emission_spectrum_maxwellian_free(const struct gkyl_ref_count *ref)
+static void
+gkyl_emission_spectrum_maxwellian_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_spectrum_model *spectrum =
     container_of(ref, struct gkyl_emission_spectrum_model, ref_count);
@@ -170,7 +173,8 @@ gkyl_emission_spectrum_maxwellian_dist(double t, const double *xn, double *fout,
 }
 
 // Chung-Everhart normalization factor
-GKYL_CU_D static void gkyl_emission_spectrum_chung_everhart_norm(
+GKYL_CU_D static void
+gkyl_emission_spectrum_chung_everhart_norm(
   double *out, struct gkyl_emission_spectrum_model *spectrum, const double *flux,
   double effective_delta
 )
@@ -185,7 +189,8 @@ GKYL_CU_D static void gkyl_emission_spectrum_chung_everhart_norm(
 }
 
 // Gaussian normalization factor
-GKYL_CU_D static void gkyl_emission_spectrum_gaussian_norm(
+GKYL_CU_D static void
+gkyl_emission_spectrum_gaussian_norm(
   double *out, struct gkyl_emission_spectrum_model *spectrum, const double *flux,
   double effective_delta
 )
@@ -202,7 +207,8 @@ GKYL_CU_D static void gkyl_emission_spectrum_gaussian_norm(
 }
 
 // Maxwellian normalization factor */
-GKYL_CU_D static void gkyl_emission_spectrum_maxwellian_norm(
+GKYL_CU_D static void
+gkyl_emission_spectrum_maxwellian_norm(
   double *out, struct gkyl_emission_spectrum_model *spectrum, const double *flux,
   double effective_delta
 )
@@ -223,8 +229,9 @@ GKYL_CU_D static void gkyl_emission_spectrum_maxwellian_norm(
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_spectrum_model *
-gkyl_emission_spectrum_chung_everhart_new(double charge, double phi, bool use_gpu);
+struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_chung_everhart_new(
+  double charge, double phi, bool use_gpu
+);
 
 /**
  * Create the emission spectrum model using the logarithmic Gaussian distribution
@@ -235,8 +242,9 @@ gkyl_emission_spectrum_chung_everhart_new(double charge, double phi, bool use_gp
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_spectrum_model *
-gkyl_emission_spectrum_gaussian_new(double charge, double E_0, double tau, bool use_gpu);
+struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_gaussian_new(
+  double charge, double E_0, double tau, bool use_gpu
+);
 
 /**
  * Create the emission spectrum model using the Maxwellian distribution
@@ -246,8 +254,9 @@ gkyl_emission_spectrum_gaussian_new(double charge, double E_0, double tau, bool 
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_spectrum_model *
-gkyl_emission_spectrum_maxwellian_new(double charge, double vt, bool use_gpu);
+struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_maxwellian_new(
+  double charge, double vt, bool use_gpu
+);
 
 /**
  * Acquire pointer to model object. Delete using the release()
@@ -256,8 +265,9 @@ gkyl_emission_spectrum_maxwellian_new(double charge, double vt, bool use_gpu);
  * @param model Model object.
  * @return Acquired model obj pointer
  */
-struct gkyl_emission_spectrum_model *
-gkyl_emission_spectrum_model_acquire(const struct gkyl_emission_spectrum_model *model);
+struct gkyl_emission_spectrum_model *gkyl_emission_spectrum_model_acquire(
+  const struct gkyl_emission_spectrum_model *model
+);
 
 /**
  * Delete model object

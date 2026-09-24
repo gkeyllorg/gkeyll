@@ -6,7 +6,8 @@
 #include <gkyl_deflate_geo.h>
 #include <gkyl_deflate_geo_priv.h>
 
-struct gkyl_deflate_geo *gkyl_deflate_geo_new(
+struct gkyl_deflate_geo *
+gkyl_deflate_geo_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *deflated_cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *deflated_grid,
   const int *rem_dirs, bool use_gpu
@@ -28,7 +29,8 @@ struct gkyl_deflate_geo *gkyl_deflate_geo_new(
   return up;
 }
 
-struct gkyl_deflate_geo_surf *gkyl_deflate_geo_surf_new(
+struct gkyl_deflate_geo_surf *
+gkyl_deflate_geo_surf_new(
   const struct gkyl_basis *cbasis, int deflated_num_basis, const struct gkyl_rect_grid *grid,
   const struct gkyl_rect_grid *deflated_grid, const int *rem_dirs, int dir, bool use_gpu
 )
@@ -50,7 +52,8 @@ struct gkyl_deflate_geo_surf *gkyl_deflate_geo_surf_new(
   return up;
 }
 
-void gkyl_deflate_geo_advance(
+void
+gkyl_deflate_geo_advance(
   const gkyl_deflate_geo *up, const struct gkyl_range *range,
   const struct gkyl_range *deflated_range, const struct gkyl_array *field,
   struct gkyl_array *deflated_field, int ncomp
@@ -96,7 +99,8 @@ void gkyl_deflate_geo_advance(
   }
 }
 
-void gkyl_deflate_geo_advance_nodal(
+void
+gkyl_deflate_geo_advance_nodal(
   const gkyl_deflate_geo *up, const struct gkyl_range *nrange,
   const struct gkyl_range *deflated_nrange, const struct gkyl_array *field,
   struct gkyl_array *deflated_field, int ncomp
@@ -142,7 +146,8 @@ void gkyl_deflate_geo_advance_nodal(
   }
 }
 
-void gkyl_deflate_geo_surf_advance(
+void
+gkyl_deflate_geo_surf_advance(
   const struct gkyl_deflate_geo_surf *up, const struct gkyl_range *range,
   const struct gkyl_range *deflated_range, const struct gkyl_array *field,
   struct gkyl_array *deflated_field, int ncomp
@@ -188,7 +193,8 @@ void gkyl_deflate_geo_surf_advance(
   }
 }
 
-void gkyl_deflate_geo_surf_advance_nodal(
+void
+gkyl_deflate_geo_surf_advance_nodal(
   const struct gkyl_deflate_geo_surf *up, const struct gkyl_range *nrange,
   const struct gkyl_range *deflated_nrange, const struct gkyl_array *field,
   struct gkyl_array *deflated_field, int ncomp
@@ -234,13 +240,15 @@ void gkyl_deflate_geo_surf_advance_nodal(
   }
 }
 
-void gkyl_deflate_geo_release(gkyl_deflate_geo *up)
+void
+gkyl_deflate_geo_release(gkyl_deflate_geo *up)
 {
   gkyl_free(up->rem_dirs);
   gkyl_free(up);
 }
 
-void gkyl_deflate_geo_surf_release(struct gkyl_deflate_geo_surf *up)
+void
+gkyl_deflate_geo_surf_release(struct gkyl_deflate_geo_surf *up)
 {
   gkyl_free(up->rem_dirs);
   gkyl_free(up);

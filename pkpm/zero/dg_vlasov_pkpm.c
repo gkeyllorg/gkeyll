@@ -12,7 +12,8 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void gkyl_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
+void
+gkyl_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -26,7 +27,8 @@ void gkyl_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
   gkyl_free(vlasov_pkpm);
 }
 
-void gkyl_vlasov_pkpm_set_auxfields(
+void
+gkyl_vlasov_pkpm_set_auxfields(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin
 )
 {
@@ -49,7 +51,8 @@ void gkyl_vlasov_pkpm_set_auxfields(
   vlasov_pkpm->auxfields.g_dist_source = auxin.g_dist_source;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_new(
+struct gkyl_dg_eqn *
+gkyl_dg_vlasov_pkpm_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, bool use_gpu
 )
@@ -78,29 +81,29 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_new(
   const gkyl_dg_vlasov_pkpm_accel_boundary_surf_kern_list *accel_boundary_surf_vpar_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    stream_surf_x_kernels = ser_stream_surf_x_kernels;
-    stream_surf_y_kernels = ser_stream_surf_y_kernels;
-    stream_surf_z_kernels = ser_stream_surf_z_kernels;
-    accel_surf_vpar_kernels = ser_accel_surf_vpar_kernels;
-    accel_boundary_surf_vpar_kernels = ser_accel_boundary_surf_vpar_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      stream_surf_x_kernels = ser_stream_surf_x_kernels;
+      stream_surf_y_kernels = ser_stream_surf_y_kernels;
+      stream_surf_z_kernels = ser_stream_surf_z_kernels;
+      accel_surf_vpar_kernels = ser_accel_surf_vpar_kernels;
+      accel_boundary_surf_vpar_kernels = ser_accel_boundary_surf_vpar_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    vol_kernels = ten_vol_kernels;
-    stream_surf_x_kernels = ten_stream_surf_x_kernels;
-    stream_surf_y_kernels = ten_stream_surf_y_kernels;
-    stream_surf_z_kernels = ten_stream_surf_z_kernels;
-    accel_surf_vpar_kernels = ten_accel_surf_vpar_kernels;
-    accel_boundary_surf_vpar_kernels = ten_accel_boundary_surf_vpar_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      stream_surf_x_kernels = ten_stream_surf_x_kernels;
+      stream_surf_y_kernels = ten_stream_surf_y_kernels;
+      stream_surf_z_kernels = ten_stream_surf_z_kernels;
+      accel_surf_vpar_kernels = ten_accel_surf_vpar_kernels;
+      accel_boundary_surf_vpar_kernels = ten_accel_boundary_surf_vpar_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   vlasov_pkpm->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
@@ -147,7 +150,8 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_vlasov_pkpm_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range
 )

@@ -6,7 +6,8 @@
 #include <assert.h>
 #include <math.h>
 
-void gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+void
+gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   assert(app->cdim > 1);
   f->invert_flr = gk_field_invert_flr;
@@ -73,18 +74,19 @@ void gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   );
 }
 
-void gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
+void
+gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
 {
   gkyl_deflated_fem_poisson_advance(field->flr_op, phi, phi, phi);
 }
 
-void gk_field_invert_flr_none(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi
-)
+void
+gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
 {
 }
 
-void gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+void
+gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->flr_rhoSq_sum);
   gkyl_array_release(f->flr_kSq);

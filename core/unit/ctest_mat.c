@@ -4,7 +4,8 @@
 #include <gkyl_mat_priv.h>
 #include <gkyl_util.h>
 
-void test_mat_base_ho()
+void
+test_mat_base_ho()
 {
   struct gkyl_mat *m = gkyl_mat_new(10, 20, 0.25);
 
@@ -73,7 +74,8 @@ void test_mat_base_ho()
   gkyl_mat_release(m2);
 }
 
-void test_mat_mm_op_ho()
+void
+test_mat_mm_op_ho()
 {
   struct gkyl_mat *A = gkyl_mat_new(2, 3, 0.0);
   struct gkyl_mat *B = gkyl_mat_new(3, 2, 0.0);
@@ -129,7 +131,8 @@ void test_mat_mm_op_ho()
   gkyl_mat_release(D);
 }
 
-void test_mat_linsolve_ho()
+void
+test_mat_linsolve_ho()
 {
   struct gkyl_mat *A = gkyl_mat_new(3, 3, 0.0);
   struct gkyl_mat *x = gkyl_mat_new(3, 1, 0.0);
@@ -187,7 +190,8 @@ void test_mat_linsolve_ho()
   gkyl_mem_buff_release(ipiv);
 }
 
-void test_nmat_base_ho()
+void
+test_nmat_base_ho()
 {
   // 5 matrices with shape 10x20
   struct gkyl_nmat *nmat = gkyl_nmat_new(5, 10, 20);
@@ -252,7 +256,8 @@ void test_nmat_base_ho()
   gkyl_nmat_release(ncpy);
 }
 
-void test_nmat_linsolve_(bool pre_alloc)
+void
+test_nmat_linsolve_(bool pre_alloc)
 {
   struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3);
   struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1);
@@ -305,18 +310,21 @@ void test_nmat_linsolve_(bool pre_alloc)
   gkyl_nmat_release(xs);
 }
 
-void test_nmat_linsolve_ho()
+void
+test_nmat_linsolve_ho()
 {
   test_nmat_linsolve_(false);
 }
-void test_nmat_linsolve_pa_ho()
+void
+test_nmat_linsolve_pa_ho()
 {
   test_nmat_linsolve_(true);
 }
 
 #ifdef GKYL_HAVE_CUDA
 
-void test_nmat_base_dev()
+void
+test_nmat_base_dev()
 {
   // 5 matrices with shape 10x20
   struct gkyl_nmat *nmat = gkyl_nmat_cu_dev_new(5, 10, 20);
@@ -363,7 +371,8 @@ void test_nmat_base_dev()
   gkyl_nmat_release(h2);
 }
 
-void test_cu_nmat_linsolve_(bool pre_alloc)
+void
+test_cu_nmat_linsolve_(bool pre_alloc)
 {
   struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3);
   struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1);
@@ -427,18 +436,21 @@ void test_cu_nmat_linsolve_(bool pre_alloc)
   gkyl_nmat_release(xs_d);
 }
 
-void test_nmat_linsolve_dev()
+void
+test_nmat_linsolve_dev()
 {
   test_cu_nmat_linsolve_(false);
 }
-void test_nmat_linsolve_pa_dev()
+void
+test_nmat_linsolve_pa_dev()
 {
   test_cu_nmat_linsolve_(true);
 }
 
 #endif
 
-void test_mat_mv_ho()
+void
+test_mat_mv_ho()
 {
   struct gkyl_mat *A = gkyl_mat_new(4, 4, 1);
   struct gkyl_mat *x = gkyl_mat_new(4, 1, 2);
@@ -456,7 +468,8 @@ void test_mat_mv_ho()
   gkyl_mat_release(y);
 }
 
-void test_nmat_mv_ho()
+void
+test_nmat_mv_ho()
 {
   // n_do matrices with shape 4x4
   int n_do = 3;
@@ -516,7 +529,8 @@ void test_nmat_mv_ho()
   gkyl_nmat_release(nmat_y);
 }
 
-void test_nmat_mm_ho()
+void
+test_nmat_mm_ho()
 {
   int n_do = 3;
   struct gkyl_nmat *nmat_A = gkyl_nmat_new(n_do, 4, 3);
@@ -576,7 +590,8 @@ void test_nmat_mm_ho()
   gkyl_nmat_release(nmat_y);
 }
 
-void test_mat_mm_arrays_ho()
+void
+test_mat_mm_arrays_ho()
 {
   struct gkyl_mat_mm_array_mem *ctest_prob_mem;
   ctest_prob_mem = gkyl_mat_mm_array_mem_new(4, 3, 1.0, 0.0, GKYL_NO_TRANS, GKYL_NO_TRANS, false);
@@ -633,7 +648,8 @@ void test_mat_mm_arrays_ho()
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_nmat_mv_dev()
+void
+test_nmat_mv_dev()
 {
   // n_do matrices with shape 4x4
   int n_do = 3;
@@ -711,7 +727,8 @@ void test_nmat_mv_dev()
   gkyl_nmat_release(nmat_ycu);
 }
 
-void test_mat_mm_dev()
+void
+test_mat_mm_dev()
 {
   struct gkyl_mat *mat_A = gkyl_mat_new(4, 3, 0);
   struct gkyl_mat *mat_x = gkyl_mat_new(3, 2, 0);
@@ -775,7 +792,8 @@ void test_mat_mm_dev()
   gkyl_mat_release(mat_ycu);
 }
 
-void test_nmat_mm_dev()
+void
+test_nmat_mm_dev()
 {
   int n_do = 3;
   struct gkyl_nmat *nmat_A = gkyl_nmat_new(n_do, 4, 3);
@@ -851,7 +869,8 @@ void test_nmat_mm_dev()
   gkyl_nmat_release(nmat_ycu);
 }
 
-void test_mat_mm_arrays_dev()
+void
+test_mat_mm_arrays_dev()
 {
   struct gkyl_mat_mm_array_mem *ctest_prob_mem_ho, *ctest_prob_mem_cu;
   ctest_prob_mem_ho =
@@ -926,7 +945,8 @@ void test_mat_mm_arrays_dev()
 
 #endif
 
-void test_mat_new_set_get()
+void
+test_mat_new_set_get()
 {
   struct gkyl_mat *m = gkyl_mat_new(3, 2, 7.0);
   TEST_CHECK(m->nr == 3);
@@ -948,7 +968,8 @@ void test_mat_new_set_get()
   gkyl_mat_release(m);
 }
 
-void test_mat_clear()
+void
+test_mat_clear()
 {
   struct gkyl_mat *m = gkyl_mat_new(4, 4, 1.0);
   gkyl_mat_clear(m, 0.0);
@@ -960,7 +981,8 @@ void test_mat_clear()
   gkyl_mat_release(m);
 }
 
-void test_mat_diag()
+void
+test_mat_diag()
 {
   struct gkyl_mat *m = gkyl_mat_new(3, 3, 9.0);
   gkyl_mat_diag(m, 2.0);
@@ -972,7 +994,8 @@ void test_mat_diag()
   gkyl_mat_release(m);
 }
 
-void test_mat_mm_identity()
+void
+test_mat_mm_identity()
 {
   // A * I == A
   struct gkyl_mat *A = gkyl_mat_new(2, 2, 0.0);
@@ -998,7 +1021,8 @@ void test_mat_mm_identity()
   gkyl_mat_release(C);
 }
 
-void test_mat_mm_known()
+void
+test_mat_mm_known()
 {
   // [1 2; 3 4] * [5 6; 7 8] = [19 22; 43 50]
   struct gkyl_mat *A = gkyl_mat_new(2, 2, 0.0);
@@ -1033,7 +1057,8 @@ void test_mat_mm_known()
   gkyl_mat_release(C2);
 }
 
-void test_mat_mm_transpose()
+void
+test_mat_mm_transpose()
 {
   // A^T with A = [1 2; 3 4] is [1 3; 2 4]; (A^T)*I checks transpose handling
   struct gkyl_mat *A = gkyl_mat_new(2, 2, 0.0);
@@ -1058,7 +1083,8 @@ void test_mat_mm_transpose()
   gkyl_mat_release(C);
 }
 
-void test_nmat_new()
+void
+test_nmat_new()
 {
   // Batched matrices: 3 matrices each 2x2.
   struct gkyl_nmat *nm = gkyl_nmat_new(3, 2, 2);

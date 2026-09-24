@@ -59,8 +59,9 @@ void gkyl_dg_updater_lbo_pkpm_advance(
  * @param lbo Updater object
  * @return timers
  */
-struct gkyl_dg_updater_lbo_pkpm_tm
-gkyl_dg_updater_lbo_pkpm_get_tm(const struct gkyl_dg_updater_collisions *coll);
+struct gkyl_dg_updater_lbo_pkpm_tm gkyl_dg_updater_lbo_pkpm_get_tm(
+  const struct gkyl_dg_updater_collisions *coll
+);
 
 /**
  * Delete updater.

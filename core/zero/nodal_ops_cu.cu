@@ -10,7 +10,8 @@ extern "C" {
 #include <gkyl_nodal_ops.h>
 }
 
-__global__ static void gkyl_nodal_ops_n2m_cu_kernel(
+__global__ static void
+gkyl_nodal_ops_n2m_cu_kernel(
   const struct gkyl_basis *cbasis, struct gkyl_rect_grid grid, struct gkyl_range nrange,
   struct gkyl_range update_range, const struct gkyl_array *nodes, int num_comp,
   const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld
@@ -72,7 +73,8 @@ __global__ static void gkyl_nodal_ops_n2m_cu_kernel(
   }
 }
 
-void gkyl_nodal_ops_n2m_cu(
+void
+gkyl_nodal_ops_n2m_cu(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, const struct gkyl_array *nodal_fld,
@@ -88,7 +90,8 @@ void gkyl_nodal_ops_n2m_cu(
   );
 }
 
-__global__ static void gkyl_nodal_ops_m2n_cu_kernel(
+__global__ static void
+gkyl_nodal_ops_m2n_cu_kernel(
   const struct gkyl_basis *cbasis, struct gkyl_rect_grid grid, struct gkyl_range nrange,
   struct gkyl_range update_range, const struct gkyl_array *nodes, int num_comp,
   struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld
@@ -127,7 +130,8 @@ __global__ static void gkyl_nodal_ops_m2n_cu_kernel(
   }
 }
 
-void gkyl_nodal_ops_m2n_cu(
+void
+gkyl_nodal_ops_m2n_cu(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange,
   const struct gkyl_range *update_range, int num_comp, struct gkyl_array *nodal_fld,
@@ -143,7 +147,8 @@ void gkyl_nodal_ops_m2n_cu(
   );
 }
 
-__global__ static void gkyl_nodal_ops_m2n_deflated_cu_kernel(
+__global__ static void
+gkyl_nodal_ops_m2n_deflated_cu_kernel(
   const struct gkyl_basis *deflated_cbasis, struct gkyl_rect_grid deflated_grid,
   struct gkyl_range nrange, struct gkyl_range def_nrange, struct gkyl_range deflated_update_range,
   const struct gkyl_array *nodes, int num_comp, struct gkyl_array *nodal_fld,
@@ -184,7 +189,8 @@ __global__ static void gkyl_nodal_ops_m2n_deflated_cu_kernel(
   }
 }
 
-void gkyl_nodal_ops_m2n_deflated_cu(
+void
+gkyl_nodal_ops_m2n_deflated_cu(
   const struct gkyl_nodal_ops *nodal_ops, const struct gkyl_basis *deflated_cbasis,
   const struct gkyl_rect_grid *deflated_grid, const struct gkyl_range *nrange,
   const struct gkyl_range *deflated_nrange, const struct gkyl_range *deflated_update_range,

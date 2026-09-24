@@ -36,52 +36,73 @@ typedef struct {
 
 // Serendipity local-to-global kernels.
 GKYL_CU_D static const local2global_kern_bcx_list_2x ser_loc2glob_list_2x[] = { // periodicx
-  {.list =
-     {{NULL, NULL},
-      {fem_poisson_perp_local_to_global_2x_ser_p1_inx_periodicx,
-       fem_poisson_perp_local_to_global_2x_ser_p1_upx_periodicx},
-      {NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL},
+       {fem_poisson_perp_local_to_global_2x_ser_p1_inx_periodicx,
+        fem_poisson_perp_local_to_global_2x_ser_p1_upx_periodicx},
+       {NULL, NULL}},
+  },
   // nonperiodicx
-  {.list =
-     {{NULL, NULL},
-      {fem_poisson_perp_local_to_global_2x_ser_p1_inx_nonperiodicx,
-       fem_poisson_perp_local_to_global_2x_ser_p1_upx_nonperiodicx},
-      {NULL, NULL}}}
+  {
+    .list =
+      {{NULL, NULL},
+       {fem_poisson_perp_local_to_global_2x_ser_p1_inx_nonperiodicx,
+        fem_poisson_perp_local_to_global_2x_ser_p1_upx_nonperiodicx},
+       {NULL, NULL}},
+  }
 };
 
-GKYL_CU_D static const local2global_kern_bcx_list_3x
-  ser_loc2glob_list_3x[] =
-    { // periodicx
-      {.list =
-         {// periodicy
-          {.list =
-             {{NULL, NULL, NULL, NULL},
-              {fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_iny_periodicy,
-               fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_iny_periodicy,
-               fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_upy_periodicy,
-               fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_upy_periodicy},
-              {NULL, NULL, NULL, NULL}}},
-          // nonperiodicy
-          {.list =
-             {{NULL, NULL, NULL, NULL},
-              {fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_iny_nonperiodicy,
-               fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_iny_nonperiodicy,
-               fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_upy_nonperiodicy,
-               fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
-              {NULL, NULL, NULL, NULL}}}
-         }},
-      // nonperiodicx
-      {
-        .list =
-          {// periodicy
-           {.list =
-              {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_iny_periodicy, fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_iny_periodicy, fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_upy_periodicy, fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_upy_periodicy}, {NULL, NULL, NULL, NULL}}
-           },
-           // nonperiodicy
-           {.list = {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_iny_nonperiodicy, fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_iny_nonperiodicy, fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_upy_nonperiodicy, fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy}, {NULL, NULL, NULL, NULL}}
-           }
-          }
-      }
+GKYL_CU_D static const local2global_kern_bcx_list_3x ser_loc2glob_list_3x[] = { // periodicx
+  {
+    .list =
+      {// periodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_iny_periodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_iny_periodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_upy_periodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_upy_periodicy},
+            {NULL, NULL, NULL, NULL}},
+       },
+       // nonperiodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_iny_nonperiodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_iny_nonperiodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_upy_nonperiodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
+            {NULL, NULL, NULL, NULL}},
+       }
+      },
+  },
+  // nonperiodicx
+  {
+    .list =
+      {// periodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_iny_periodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_iny_periodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_upy_periodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_upy_periodicy},
+            {NULL, NULL, NULL, NULL}},
+       },
+       // nonperiodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_iny_nonperiodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_iny_nonperiodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_inx_nonperiodicx_upy_nonperiodicy,
+             fem_poisson_perp_local_to_global_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
+            {NULL, NULL, NULL, NULL}},
+       }
+      },
+  }
 };
 
 // Function pointer type for lhs kernels.
@@ -110,234 +131,289 @@ typedef struct {
 
 // Serendipity lhs kernels.
 GKYL_CU_D static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = { // periodicx
-  {.list =
-     {{NULL, NULL, NULL},
-      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
-       fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_periodicx,
-       fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_periodicx},
-      {NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL, NULL},
+       {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
+        fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_periodicx,
+        fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_periodicx},
+       {NULL, NULL, NULL}},
+  },
   // dirichletx-dirichletx
-  {.list =
-     {{NULL, NULL, NULL},
-      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
-       fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx,
-       fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_dirichletx},
-      {NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL, NULL},
+       {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
+        fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx,
+        fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_dirichletx},
+       {NULL, NULL, NULL}},
+  },
   // dirichletx-neumannx
-  {.list =
-     {{NULL, NULL, NULL},
-      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
-       fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx,
-       fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_neumannx},
-      {NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL, NULL},
+       {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
+        fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx,
+        fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_neumannx},
+       {NULL, NULL, NULL}},
+  },
   // neumannx-dirichletx
-  {.list =
-     {{NULL, NULL, NULL},
-      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
-       fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_neumannx,
-       fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_dirichletx},
-      {NULL, NULL, NULL}}}
+  {
+    .list =
+      {{NULL, NULL, NULL},
+       {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx,
+        fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_neumannx,
+        fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_dirichletx},
+       {NULL, NULL, NULL}},
+  }
 };
 
-GKYL_CU_D static const lhsstencil_kern_bcx_list_3x ser_lhsstencil_list_3x[] = { // periodicx
-  {.list =
-      {// periodicy
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_loy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_upy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_loy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_upy_periodicy},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-neumanny
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_upy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_upy_neumanny},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // neumanny-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_loy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_loy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}},
-  // dirichletx-dirichletx
-  {.list =
-      {// periodicy
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_periodicy},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-neumanny
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_neumanny},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // neumanny-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}},
-  // dirichletx-neumannx
-  {.list =
-      {// periodicy
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_loy_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_upy_periodicy},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-neumanny
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_loy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_upy_neumanny},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // neumanny-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_loy_neumanny,
-             fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}},
-  // neumannx-dirichletx
-  {.list = {// periodicy
-     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_loy_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_upy_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_periodicy},
-        {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-     // dirichlety-dirichlety
-     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_loy_dirichlety,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_upy_dirichlety,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
-        {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-     // dirichlety-neumanny
-     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_loy_dirichlety,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_upy_neumanny,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_neumanny},
-        {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-     // neumanny-dirichlety
-     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_loy_neumanny,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_upy_dirichlety,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_neumanny,
-          fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
-        {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}}};
+GKYL_CU_D static const lhsstencil_kern_bcx_list_3x
+  ser_lhsstencil_list_3x[] =
+    { // periodicx
+      {
+        .list =
+          {// periodicy
+           {
+             .list =
+               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_loy_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_upy_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_loy_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_upy_periodicy},
+                {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+           },
+           // dirichlety-dirichlety
+           {
+             .list =
+               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_loy_dirichlety,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_upy_dirichlety,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_loy_dirichlety,
+                 fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_upy_dirichlety},
+                {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+           },
+           // dirichlety-neumanny
+           {
+             .list =
+               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety, fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_neumanny, fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_loy_dirichlety, fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_upy_neumanny, fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_loy_dirichlety, fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_upy_neumanny}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+           },
+           // neumanny-dirichlety
+           {
+             .list =
+               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_neumanny, fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_loy_neumanny, fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_periodicx_upy_dirichlety, fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_loy_neumanny, fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_periodicx_upy_dirichlety}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+           }
+          },
+      },
+      // dirichletx-dirichletx
+      {
+        .list =
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_periodicy},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_neumanny},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            }
+          },
+      },
+      // dirichletx-neumannx
+      {
+        .list =
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_loy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_upy_periodicy},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_upy_neumanny},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_loy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_loy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_neumannx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            }
+          },
+      },
+      // neumannx-dirichletx
+      {
+        .list =
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_loy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_upy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_periodicy},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_upy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_neumanny},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_loy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_lox_neumannx_upy_dirichlety,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_loy_neumanny,
+                  fem_poisson_perp_lhs_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            }
+          },
+      }
+};
 
 // Function pointer type for rhs source kernels.
 typedef void (*srcstencil_t)(
@@ -365,234 +441,289 @@ typedef struct {
 
 // Serendipity src kernels.
 GKYL_CU_D static const srcstencil_kern_bcx_list_2x ser_srcstencil_list_2x[] = { // periodicx
-  {.list =
-     {{NULL, NULL, NULL},
-      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
-       fem_poisson_perp_src_stencil_2x_ser_p1_lox_periodicx,
-       fem_poisson_perp_src_stencil_2x_ser_p1_upx_periodicx},
-      {NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL, NULL},
+       {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
+        fem_poisson_perp_src_stencil_2x_ser_p1_lox_periodicx,
+        fem_poisson_perp_src_stencil_2x_ser_p1_upx_periodicx},
+       {NULL, NULL, NULL}},
+  },
   // dirichletx-dirichletx
-  {.list =
-     {{NULL, NULL, NULL},
-      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
-       fem_poisson_perp_src_stencil_2x_ser_p1_lox_dirichletx,
-       fem_poisson_perp_src_stencil_2x_ser_p1_upx_dirichletx},
-      {NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL, NULL},
+       {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
+        fem_poisson_perp_src_stencil_2x_ser_p1_lox_dirichletx,
+        fem_poisson_perp_src_stencil_2x_ser_p1_upx_dirichletx},
+       {NULL, NULL, NULL}},
+  },
   // dirichletx-neumannx
-  {.list =
-     {{NULL, NULL, NULL},
-      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
-       fem_poisson_perp_src_stencil_2x_ser_p1_lox_dirichletx,
-       fem_poisson_perp_src_stencil_2x_ser_p1_upx_neumannx},
-      {NULL, NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL, NULL},
+       {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
+        fem_poisson_perp_src_stencil_2x_ser_p1_lox_dirichletx,
+        fem_poisson_perp_src_stencil_2x_ser_p1_upx_neumannx},
+       {NULL, NULL, NULL}},
+  },
   // neumannx-dirichletx
-  {.list =
-     {{NULL, NULL, NULL},
-      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
-       fem_poisson_perp_src_stencil_2x_ser_p1_lox_neumannx,
-       fem_poisson_perp_src_stencil_2x_ser_p1_upx_dirichletx},
-      {NULL, NULL, NULL}}}
+  {
+    .list =
+      {{NULL, NULL, NULL},
+       {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx,
+        fem_poisson_perp_src_stencil_2x_ser_p1_lox_neumannx,
+        fem_poisson_perp_src_stencil_2x_ser_p1_upx_dirichletx},
+       {NULL, NULL, NULL}},
+  }
 };
 
-GKYL_CU_D static const srcstencil_kern_bcx_list_3x ser_srcstencil_list_3x[] = { // periodicx
-  {.list =
-      {// periodicy
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_loy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_upy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_loy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_upy_periodicy},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-neumanny
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_upy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_upy_neumanny},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // neumanny-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_loy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_loy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}},
-  // dirichletx-dirichletx
-  {.list =
-      {// periodicy
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_periodicy},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-neumanny
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_neumanny},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // neumanny-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}},
-  // dirichletx-neumannx
-  {.list =
-      {// periodicy
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_loy_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_upy_periodicy},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // dirichlety-neumanny
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_loy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_upy_neumanny},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-        // neumanny-dirichlety
-        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-           {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_loy_neumanny,
-             fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_upy_dirichlety},
-           {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}},
-  // neumannx-dirichletx
-  {.list = {// periodicy
-     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_loy_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_upy_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_periodicy},
-        {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-     // dirichlety-dirichlety
-     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-          fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_loy_dirichlety,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_upy_dirichlety,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
-        {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-     // dirichlety-neumanny
-     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
-          fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_loy_dirichlety,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_upy_neumanny,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_neumanny},
-        {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
-     // neumanny-dirichlety
-     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-        {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
-          fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
-          fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_loy_neumanny,
-          fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_upy_dirichlety,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_neumanny,
-          fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
-        {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}}};
+GKYL_CU_D static const srcstencil_kern_bcx_list_3x
+  ser_srcstencil_list_3x[] =
+    { // periodicx
+      {
+        .list =
+          {// periodicy
+           {
+             .list =
+               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_loy_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_upy_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_loy_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_upy_periodicy},
+                {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+           },
+           // dirichlety-dirichlety
+           {
+             .list =
+               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_iny_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_iny_periodicy,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_loy_dirichlety,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_upy_dirichlety,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_loy_dirichlety,
+                 fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_upy_dirichlety},
+                {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+           },
+           // dirichlety-neumanny
+           {
+             .list =
+               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety, fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_neumanny, fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_loy_dirichlety, fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_upy_neumanny, fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_loy_dirichlety, fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_upy_neumanny}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+           },
+           // neumanny-dirichlety
+           {
+             .list =
+               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_neumanny, fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_loy_neumanny, fem_poisson_perp_src_stencil_3x_ser_p1_lox_periodicx_upy_dirichlety, fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_loy_neumanny, fem_poisson_perp_src_stencil_3x_ser_p1_upx_periodicx_upy_dirichlety}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+           }
+          },
+      },
+      // dirichletx-dirichletx
+      {
+        .list =
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_periodicy},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_neumanny},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            }
+          },
+      },
+      // dirichletx-neumannx
+      {
+        .list =
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_loy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_upy_periodicy},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_upy_neumanny},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_loy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_loy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_neumannx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            }
+          },
+      },
+      // neumannx-dirichletx
+      {
+        .list =
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_loy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_upy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_periodicy},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_upy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_neumanny},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+                 {fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_loy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_lox_neumannx_upy_dirichlety,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_loy_neumanny,
+                  fem_poisson_perp_src_stencil_3x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+            }
+          },
+      }
+};
 
 // Function pointer type for sol kernels.
 typedef void (*solstencil_t)(
@@ -638,52 +769,73 @@ typedef struct {
 
 // Serendipity bias_lhs kernels.
 static const bias_lhs_kern_bcx_list_2x ser_bias_lhs_list_2x[] = { // periodicx
-  {.list =
-     {{NULL, NULL},
-      {fem_poisson_perp_bias_line_lhs_2x_ser_p1_inx,
-       fem_poisson_perp_bias_line_lhs_2x_ser_p1_upx_periodicx},
-      {NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL},
+       {fem_poisson_perp_bias_line_lhs_2x_ser_p1_inx,
+        fem_poisson_perp_bias_line_lhs_2x_ser_p1_upx_periodicx},
+       {NULL, NULL}},
+  },
   // nonperiodicx
-  {.list =
-     {{NULL, NULL},
-      {fem_poisson_perp_bias_line_lhs_2x_ser_p1_inx,
-       fem_poisson_perp_bias_line_lhs_2x_ser_p1_upx_nonperiodicx},
-      {NULL, NULL}}}
+  {
+    .list =
+      {{NULL, NULL},
+       {fem_poisson_perp_bias_line_lhs_2x_ser_p1_inx,
+        fem_poisson_perp_bias_line_lhs_2x_ser_p1_upx_nonperiodicx},
+       {NULL, NULL}},
+  }
 };
 
-static const bias_lhs_kern_bcx_list_3x
-  ser_bias_lhs_list_3x[] =
-    { // periodicx
-      {.list =
-         {// periodicy
-          {.list =
-             {{NULL, NULL, NULL, NULL},
-              {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
-               fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_iny,
-               fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_periodicy,
-               fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_upy_periodicy},
-              {NULL, NULL, NULL, NULL}}},
-          // nonperiodicy
-          {.list =
-             {{NULL, NULL, NULL, NULL},
-              {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
-               fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_iny,
-               fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_nonperiodicy,
-               fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
-              {NULL, NULL, NULL, NULL}}}
-         }},
-      // nonperiodicx
-      {
-        .list =
-          {// periodicy
-           {.list =
-              {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_upy_periodicy}, {NULL, NULL, NULL, NULL}}
-           },
-           // nonperiodicy
-           {.list = {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy}, {NULL, NULL, NULL, NULL}}
-           }
-          }
-      }
+static const bias_lhs_kern_bcx_list_3x ser_bias_lhs_list_3x[] = { // periodicx
+  {
+    .list =
+      {// periodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_iny,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_periodicy,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_upy_periodicy},
+            {NULL, NULL, NULL, NULL}},
+       },
+       // nonperiodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_iny,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_nonperiodicy,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
+            {NULL, NULL, NULL, NULL}},
+       }
+      },
+  },
+  // nonperiodicx
+  {
+    .list =
+      {// periodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_iny,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_periodicy,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_upy_periodicy},
+            {NULL, NULL, NULL, NULL}},
+       },
+       // nonperiodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_iny,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_iny,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_inx_upy_nonperiodicy,
+             fem_poisson_perp_bias_line_lhs_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
+            {NULL, NULL, NULL, NULL}},
+       }
+      },
+  }
 };
 
 // Function pointer type for kernels that enforce biasing in RHS source.
@@ -712,52 +864,73 @@ typedef struct {
 
 // Serendipity bias_src kernels.
 GKYL_CU_D static const bias_src_kern_bcx_list_2x ser_bias_src_list_2x[] = { // periodicx
-  {.list =
-     {{NULL, NULL},
-      {fem_poisson_perp_bias_line_src_2x_ser_p1_inx,
-       fem_poisson_perp_bias_line_src_2x_ser_p1_upx_periodicx},
-      {NULL, NULL}}},
+  {
+    .list =
+      {{NULL, NULL},
+       {fem_poisson_perp_bias_line_src_2x_ser_p1_inx,
+        fem_poisson_perp_bias_line_src_2x_ser_p1_upx_periodicx},
+       {NULL, NULL}},
+  },
   // nonperiodicx
-  {.list =
-     {{NULL, NULL},
-      {fem_poisson_perp_bias_line_src_2x_ser_p1_inx,
-       fem_poisson_perp_bias_line_src_2x_ser_p1_upx_nonperiodicx},
-      {NULL, NULL}}}
+  {
+    .list =
+      {{NULL, NULL},
+       {fem_poisson_perp_bias_line_src_2x_ser_p1_inx,
+        fem_poisson_perp_bias_line_src_2x_ser_p1_upx_nonperiodicx},
+       {NULL, NULL}},
+  }
 };
 
-GKYL_CU_D static const bias_src_kern_bcx_list_3x
-  ser_bias_src_list_3x[] =
-    { // periodicx
-      {.list =
-         {// periodicy
-          {.list =
-             {{NULL, NULL, NULL, NULL},
-              {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
-               fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_iny,
-               fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_periodicy,
-               fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_upy_periodicy},
-              {NULL, NULL, NULL, NULL}}},
-          // nonperiodicy
-          {.list =
-             {{NULL, NULL, NULL, NULL},
-              {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
-               fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_iny,
-               fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_nonperiodicy,
-               fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
-              {NULL, NULL, NULL, NULL}}}
-         }},
-      // nonperiodicx
-      {
-        .list =
-          {// periodicy
-           {.list =
-              {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_periodicy, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_upy_periodicy}, {NULL, NULL, NULL, NULL}}
-           },
-           // nonperiodicy
-           {.list = {{NULL, NULL, NULL, NULL}, {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_iny, fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_nonperiodicy, fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy}, {NULL, NULL, NULL, NULL}}
-           }
-          }
-      }
+GKYL_CU_D static const bias_src_kern_bcx_list_3x ser_bias_src_list_3x[] = { // periodicx
+  {
+    .list =
+      {// periodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_iny,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_periodicy,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_upy_periodicy},
+            {NULL, NULL, NULL, NULL}},
+       },
+       // nonperiodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_iny,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_nonperiodicy,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_periodicx_upy_nonperiodicy},
+            {NULL, NULL, NULL, NULL}},
+       }
+      },
+  },
+  // nonperiodicx
+  {
+    .list =
+      {// periodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_iny,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_periodicy,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_upy_periodicy},
+            {NULL, NULL, NULL, NULL}},
+       },
+       // nonperiodicy
+       {
+         .list =
+           {{NULL, NULL, NULL, NULL},
+            {fem_poisson_perp_bias_line_src_3x_ser_p1_inx_iny,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_iny,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_inx_upy_nonperiodicy,
+             fem_poisson_perp_bias_line_src_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
+            {NULL, NULL, NULL, NULL}},
+       }
+      },
+  }
 };
 
 // "Choose Kernel" based on polyorder, stencil location and BCs.
@@ -858,7 +1031,8 @@ void fem_poisson_perp_choose_kernels_cu(
   struct gkyl_fem_poisson_perp_kernels *kers
 );
 
-static long gkyl_fem_poisson_perp_global_num_nodes(
+static long
+gkyl_fem_poisson_perp_global_num_nodes(
   int ndim, int poly_order, int basis_type, const int *num_cells, bool *isdirperiodic
 )
 {
@@ -887,7 +1061,8 @@ static long gkyl_fem_poisson_perp_global_num_nodes(
   return -1;
 }
 
-GKYL_CU_D static void fem_poisson_perp_choose_local2global_kernels(
+GKYL_CU_D static void
+fem_poisson_perp_choose_local2global_kernels(
   const struct gkyl_basis *basis, const bool *isdirperiodic, local2global_t *l2gout
 )
 {
@@ -901,21 +1076,22 @@ GKYL_CU_D static void fem_poisson_perp_choose_local2global_kernels(
   }
 
   switch (basis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    for (int k = 0; k < GKYL_IPOW(2, ndim_perp); k++) {
-      l2gout[k] = ndim == 2 ? CK2x(ser_loc2glob_list_2x, poly_order, k, bckey[0]) :
-                              CK3x(ser_loc2glob_list_3x, poly_order, k, bckey[0], bckey[1]);
-    }
-    break;
-    //    case GKYL_BASIS_MODAL_TENSOR:
-    //      break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k = 0; k < GKYL_IPOW(2, ndim_perp); k++) {
+        l2gout[k] = ndim == 2 ? CK2x(ser_loc2glob_list_2x, poly_order, k, bckey[0]) :
+                                CK3x(ser_loc2glob_list_3x, poly_order, k, bckey[0], bckey[1]);
+      }
+      break;
+      //    case GKYL_BASIS_MODAL_TENSOR:
+      //      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
-GKYL_CU_D static void fem_poisson_perp_choose_lhs_kernels(
+GKYL_CU_D static void
+fem_poisson_perp_choose_lhs_kernels(
   const struct gkyl_basis *basis, const struct gkyl_poisson_bc *bcs, lhsstencil_t *lhsout
 )
 {
@@ -942,21 +1118,22 @@ GKYL_CU_D static void fem_poisson_perp_choose_lhs_kernels(
   };
 
   switch (basis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++) {
-      lhsout[k] = ndim == 2 ? CK2x(ser_lhsstencil_list_2x, poly_order, k, bckey[0]) :
-                              CK3x(ser_lhsstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
-    }
-    break;
-    //    case GKYL_BASIS_MODAL_TENSOR:
-    //      break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++) {
+        lhsout[k] = ndim == 2 ? CK2x(ser_lhsstencil_list_2x, poly_order, k, bckey[0]) :
+                                CK3x(ser_lhsstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
+      }
+      break;
+      //    case GKYL_BASIS_MODAL_TENSOR:
+      //      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
-GKYL_CU_D static void fem_poisson_perp_choose_src_kernels(
+GKYL_CU_D static void
+fem_poisson_perp_choose_src_kernels(
   const struct gkyl_basis *basis, const struct gkyl_poisson_bc *bcs, srcstencil_t *srcout
 )
 {
@@ -983,40 +1160,42 @@ GKYL_CU_D static void fem_poisson_perp_choose_src_kernels(
   };
 
   switch (basis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++) {
-      srcout[k] = ndim == 2 ? CK2x(ser_srcstencil_list_2x, poly_order, k, bckey[0]) :
-                              CK3x(ser_srcstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
-    }
-    break;
-    //    case GKYL_BASIS_MODAL_TENSOR:
-    //      break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k = 0; k < GKYL_IPOW(3, ndim_perp); k++) {
+        srcout[k] = ndim == 2 ? CK2x(ser_srcstencil_list_2x, poly_order, k, bckey[0]) :
+                                CK3x(ser_srcstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
+      }
+      break;
+      //    case GKYL_BASIS_MODAL_TENSOR:
+      //      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
-GKYL_CU_D static solstencil_t fem_poisson_perp_choose_sol_kernels(const struct gkyl_basis *basis)
+GKYL_CU_D static solstencil_t
+fem_poisson_perp_choose_sol_kernels(const struct gkyl_basis *basis)
 {
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
 
   switch (basis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_solstencil_list[dim].kernels[poly_order];
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_solstencil_list[dim].kernels[poly_order];
 
-    break;
-    //    case GKYL_BASIS_MODAL_TENSOR:
-    //      break;
-  default:
-    assert(false);
-    break;
+      break;
+      //    case GKYL_BASIS_MODAL_TENSOR:
+      //      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
 
-GKYL_CU_D static void fem_poisson_perp_choose_bias_lhs_kernels(
+GKYL_CU_D static void
+fem_poisson_perp_choose_bias_lhs_kernels(
   const struct gkyl_basis *basis, const bool *isdirperiodic, bias_lhs_t *blhs_out
 )
 {
@@ -1030,24 +1209,25 @@ GKYL_CU_D static void fem_poisson_perp_choose_bias_lhs_kernels(
   }
 
   switch (basis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    for (int k = 0; k < (int)(pow(2, ndim_perp) + 0.5); k++) {
-      if (ndim == 2) {
-        blhs_out[k] = CK2x(ser_bias_lhs_list_2x, poly_order, k, bckey[0]);
-      } else if (ndim == 3) {
-        blhs_out[k] = CK3x(ser_bias_lhs_list_3x, poly_order, k, bckey[0], bckey[1]);
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k = 0; k < (int)(pow(2, ndim_perp) + 0.5); k++) {
+        if (ndim == 2) {
+          blhs_out[k] = CK2x(ser_bias_lhs_list_2x, poly_order, k, bckey[0]);
+        } else if (ndim == 3) {
+          blhs_out[k] = CK3x(ser_bias_lhs_list_3x, poly_order, k, bckey[0], bckey[1]);
+        }
       }
-    }
-    break;
-    //    case GKYL_BASIS_MODAL_TENSOR:
-    //      break;
-  default:
-    assert(false);
-    break;
+      break;
+      //    case GKYL_BASIS_MODAL_TENSOR:
+      //      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
-GKYL_CU_D static void fem_poisson_perp_choose_bias_src_kernels(
+GKYL_CU_D static void
+fem_poisson_perp_choose_bias_src_kernels(
   const struct gkyl_basis *basis, const bool *isdirperiodic, bias_src_t *bsrc_out
 )
 {
@@ -1061,24 +1241,25 @@ GKYL_CU_D static void fem_poisson_perp_choose_bias_src_kernels(
   }
 
   switch (basis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    for (int k = 0; k < (int)(pow(2, ndim_perp) + 0.5); k++) {
-      if (ndim == 2) {
-        bsrc_out[k] = CK2x(ser_bias_src_list_2x, poly_order, k, bckey[0]);
-      } else if (ndim == 3) {
-        bsrc_out[k] = CK3x(ser_bias_src_list_3x, poly_order, k, bckey[0], bckey[1]);
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k = 0; k < (int)(pow(2, ndim_perp) + 0.5); k++) {
+        if (ndim == 2) {
+          bsrc_out[k] = CK2x(ser_bias_src_list_2x, poly_order, k, bckey[0]);
+        } else if (ndim == 3) {
+          bsrc_out[k] = CK3x(ser_bias_src_list_3x, poly_order, k, bckey[0], bckey[1]);
+        }
       }
-    }
-    break;
-    //    case GKYL_BASIS_MODAL_TENSOR:
-    //      break;
-  default:
-    assert(false);
-    break;
+      break;
+      //    case GKYL_BASIS_MODAL_TENSOR:
+      //      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
-GKYL_CU_DH static inline int idx_to_inup_ker(const int dim, const int *num_cells, const int *idx)
+GKYL_CU_DH static inline int
+idx_to_inup_ker(const int dim, const int *num_cells, const int *idx)
 {
   // Return the index of the kernel (in the array of kernels) needed given the grid index.
   // This function is for kernels that differentiate between upper cells and
@@ -1092,7 +1273,8 @@ GKYL_CU_DH static inline int idx_to_inup_ker(const int dim, const int *num_cells
   return iout;
 }
 
-GKYL_CU_DH static inline int idx_to_inloup_ker(const int dim, const int *num_cells, const int *idx)
+GKYL_CU_DH static inline int
+idx_to_inloup_ker(const int dim, const int *num_cells, const int *idx)
 {
   // Return the index of the kernel (in the array of kernels) needed given the grid index.
   // This function is for kernels that differentiate between lower, interior

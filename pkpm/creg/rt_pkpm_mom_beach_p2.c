@@ -64,7 +64,8 @@ struct mom_beach_ctx {
   double omega_drive; // Drive current angular frequency.
 };
 
-struct mom_beach_ctx create_ctx(void)
+struct mom_beach_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -136,19 +137,21 @@ struct mom_beach_ctx create_ctx(void)
     .deltaT = deltaT,
     .factor = factor,
     .omega_drive = omega_drive,
-    .init_dt = init_dt
+    .init_dt = init_dt,
   };
 
   return ctx;
 }
 
-static inline double maxwellian(double n, double v, double vth)
+static inline double
+maxwellian(double n, double v, double vth)
 {
   double v2 = v * v;
   return n / sqrt(2 * M_PI * vth * vth) * exp(-v2 / (2 * vth * vth));
 }
 
-void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], v = xn[1];
   struct mom_beach_ctx *app = ctx;
@@ -176,7 +179,8 @@ void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[1] = vt_elc * vt_elc * maxwellian(ne, v, vt_elc);
 }
 
-void evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   // no initial flow
@@ -185,7 +189,8 @@ void evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   fout[2] = 0.0;
 }
 
-void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   // Set electric field.
   fout[0] = 0.0, fout[1] = 0.0;
@@ -198,7 +203,8 @@ void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-void evalExtEmFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalExtEmFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct mom_beach_ctx *app = ctx;
   double x = xn[0];
@@ -211,7 +217,8 @@ void evalExtEmFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[5] = 0.0;
 }
 
-void evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct mom_beach_ctx *app = ctx;
@@ -236,13 +243,15 @@ void evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTR
   }
 }
 
-void evalNuElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalNuElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct mom_beach_ctx *app = ctx;
   fout[0] = app->nu_elc;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -254,7 +263,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, 
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -289,11 +299,13 @@ int main(int argc, char **argv)
     .init_fluid = evalFluidElc,
 
     .collisions =
-      {.collision_id = GKYL_LBO_COLLISIONS,
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
 
-       .ctx = &ctx,
-       .self_nu = evalNuElc},
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY}
+        .ctx = &ctx,
+        .self_nu = evalNuElc,
+      },
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
   };
 
   // field
@@ -311,7 +323,7 @@ int main(int argc, char **argv)
     .app_current = evalAppCurrent,
     .app_current_ctx = &ctx,
     .app_current_evolve = true,
-    .bcx = {GKYL_FIELD_COPY, GKYL_FIELD_COPY}
+    .bcx = {GKYL_FIELD_COPY, GKYL_FIELD_COPY},
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -378,7 +390,7 @@ int main(int argc, char **argv)
     .species = {elc},
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // create app object

@@ -9,7 +9,8 @@
 //   q = {rho, rho u, rho v, rho w,
 //        Pxx + rho u^2, Pxy + rho u v, Pxz + rho u w,
 //        Pyy + rho v^2, Pyz + rho v w, Pzz + rho w^2}
-static void calcq(
+static void
+calcq(
   double rho, double u, double v, double w, double pxx, double pxy, double pxz, double pyy,
   double pyz, double pzz, double q[10]
 )
@@ -27,7 +28,8 @@ static void calcq(
 }
 
 // Structural properties and accessor parameters.
-void test_ten_moment_struct()
+void
+test_ten_moment_struct()
 {
   double k0 = 5.0;
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(k0, false, false, 1, 0, false);
@@ -47,16 +49,18 @@ void test_ten_moment_struct()
 }
 
 // Gradient-based closure flag and distinct k0/poly_order via inew.
-void test_ten_moment_grad_closure()
+void
+test_ten_moment_grad_closure()
 {
-  struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_inew(&(struct gkyl_wv_ten_moment_inp
-  ){.k0 = 2.5,
+  struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_inew(&(struct gkyl_wv_ten_moment_inp){
+    .k0 = 2.5,
     .use_grad_closure = true,
     .use_nn_closure = false,
     .poly_order = 3,
     .ann = 0,
     .embed_geo = 0,
-    .use_gpu = false});
+    .use_gpu = false,
+  });
 
   TEST_CHECK(gkyl_compare(gkyl_wv_ten_moment_k0(eqn), 2.5, 1e-15));
   TEST_CHECK(gkyl_wv_ten_moment_use_grad_closure(eqn) == true);
@@ -67,7 +71,8 @@ void test_ten_moment_grad_closure()
 }
 
 // Max speed = |u| + sqrt(3 Pxx / rho).
-void test_ten_moment_max_speed()
+void
+test_ten_moment_max_speed()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(0.0, false, false, 1, 0, false);
 
@@ -82,7 +87,8 @@ void test_ten_moment_max_speed()
 }
 
 // check_inv: requires positive density and positive diagonal pressures.
-void test_ten_moment_check_inv()
+void
+test_ten_moment_check_inv()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(0.0, false, false, 1, 0, false);
 
@@ -105,7 +111,8 @@ void test_ten_moment_check_inv()
 }
 
 // Default cons_to_diag copies all 10 conserved components.
-void test_ten_moment_cons_to_diag()
+void
+test_ten_moment_cons_to_diag()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(0.0, false, false, 1, 0, false);
 
@@ -121,7 +128,8 @@ void test_ten_moment_cons_to_diag()
 }
 
 // Rotation round-trip recovers the full 10-component state, and density is invariant.
-void test_ten_moment_rotate_roundtrip()
+void
+test_ten_moment_rotate_roundtrip()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(0.0, false, false, 1, 0, false);
 
@@ -145,7 +153,8 @@ void test_ten_moment_rotate_roundtrip()
 }
 
 // Riemann round-trip recovers conserved state (identity transform).
-void test_ten_moment_riem_roundtrip()
+void
+test_ten_moment_riem_roundtrip()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(0.0, false, false, 1, 0, false);
 
@@ -165,7 +174,8 @@ void test_ten_moment_riem_roundtrip()
 }
 
 // Roe solver: equal states => zero jump => zero fluctuations on both sides.
-void test_ten_moment_waves_zero_jump()
+void
+test_ten_moment_waves_zero_jump()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(0.0, false, false, 1, 0, false);
 

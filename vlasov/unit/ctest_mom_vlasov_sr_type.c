@@ -8,7 +8,8 @@
 #include <gkyl_range.h>
 #include <gkyl_mom_vlasov_sr.h>
 
-void test_mom_sr_1x3v()
+void
+test_mom_sr_1x3v()
 {
   int cdim = 1, vdim = 3, pdim = cdim + vdim;
   int poly_order = 2;
@@ -56,7 +57,8 @@ void test_mom_sr_1x3v()
   gkyl_mom_type_release(tij);
 }
 
-void test_int_mom_sr_1x3v()
+void
+test_int_mom_sr_1x3v()
 {
   int cdim = 1, vdim = 3, pdim = cdim + vdim;
   int poly_order = 2;

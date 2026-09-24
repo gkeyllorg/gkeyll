@@ -57,12 +57,12 @@ GKYL_CU_D static hamil_t
 choose_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_TENSOR:
-    return tensor_gk_neut_hamil_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return tensor_gk_neut_hamil_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }

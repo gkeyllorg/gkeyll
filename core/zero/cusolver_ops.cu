@@ -56,7 +56,8 @@ struct gkyl_culinsolver_prob {
   double **csrvalApointers_cu; // array of pointers to LHS A matrices.
 };
 
-gkyl_culinsolver_prob *gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
+gkyl_culinsolver_prob *
+gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
 {
   assert((nprob == 1) || (nrhs == 1));
 
@@ -119,9 +120,8 @@ gkyl_culinsolver_prob *gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, 
   return prob;
 }
 
-void gkyl_culinsolver_amat_from_triples(
-  struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri
-)
+void
+gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri)
 {
   prob->nnz = gkyl_mat_triples_size(tri[0]);
   for (size_t k = 0; k < prob->nprob; k++) {
@@ -465,7 +465,8 @@ void gkyl_culinsolver_amat_from_triples(
   }
 }
 
-void gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl_mat_triples *tri)
+void
+gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl_mat_triples *tri)
 {
   long nnz_rhs = gkyl_mat_triples_size(tri); // number of non-zero entries in RHS matrix B
 
@@ -483,7 +484,8 @@ void gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl
   );
 }
 
-void gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
+void
+gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
 {
   // MF 2023/05/25: the 1 below is nrhs, and cuSolver docs say only 1 is supported. To me it is not
   // clear whether this means one can only solve 1 system, or whether we can solve multiple systems
@@ -500,7 +502,8 @@ void gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
   }
 }
 
-void gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
+void
+gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
   gkyl_cu_memcpy(
@@ -508,32 +511,38 @@ void gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
   );
 }
 
-void gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val)
+void
+gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val)
 {
   gkyl_cu_memset(prob->rhs_cu, val, prob->mrow * prob->nrhs * sizeof(double));
 }
 
-double *gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc)
+double *
+gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs_cu + loc;
 }
 
-double *gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc)
+double *
+gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs_cu + loc;
 }
 
-double gkyl_culinsolver_get_sol_ij(struct gkyl_culinsolver_prob *prob, long ielement, long jprob)
+double
+gkyl_culinsolver_get_sol_ij(struct gkyl_culinsolver_prob *prob, long ielement, long jprob)
 {
   return prob->rhs[jprob * prob->mrow + ielement];
 }
 
-double gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc)
+double
+gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs[loc];
 }
 
-void gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
+void
+gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
 {
   gkyl_cu_free(prob->rhs_cu);
   gkyl_cu_free(prob->csrcolindA_cu);

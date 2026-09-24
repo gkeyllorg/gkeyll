@@ -10,7 +10,8 @@
 #include <gkyl_wv_euler.h>
 #include <gkyl_wave_geom.h>
 
-static struct gkyl_wave_geom *mk_geom(
+static struct gkyl_wave_geom *
+mk_geom(
   struct gkyl_rect_grid *grid, struct gkyl_range *range, int ndim, const double *lower,
   const double *upper, const int *cells
 )
@@ -21,7 +22,8 @@ static struct gkyl_wave_geom *mk_geom(
   return gkyl_wave_geom_new(grid, range, NULL, NULL, false);
 }
 
-void test_euler_1x_p1()
+void
+test_euler_1x_p1()
 {
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 1);
@@ -62,7 +64,8 @@ void test_euler_1x_p1()
   gkyl_wave_geom_release(geom);
 }
 
-void test_euler_2x_p1()
+void
+test_euler_2x_p1()
 {
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 2, 1);
@@ -92,7 +95,8 @@ void test_euler_2x_p1()
   gkyl_wave_geom_release(geom);
 }
 
-void test_euler_3x_p1()
+void
+test_euler_3x_p1()
 {
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, 1);

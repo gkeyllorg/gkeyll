@@ -45,24 +45,26 @@ struct gkyl_dg_cx {
   struct gkyl_dg_cx *on_dev; // pointer to itself or device data
 };
 
-GKYL_CU_D static dg_cx_react_ratef_t choose_kern(struct gkyl_basis cbasis)
+GKYL_CU_D static dg_cx_react_ratef_t
+choose_kern(struct gkyl_basis cbasis)
 {
   int cdim = cbasis.ndim;
   int poly_order = cbasis.poly_order;
   enum gkyl_basis_type b_type = cbasis.b_type;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    return ser_cx_react_rate_kernels[cdim - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_cx_react_rate_kernels[cdim - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   return 0;
 }
 
-static void fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
+static void
+fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
 {
   // These values are from E. Meier's PhD Thesis
   if (type_ion == GKYL_ION_H) {

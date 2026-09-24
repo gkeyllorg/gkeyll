@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-void gk_neut_species_source_init(
+void
+gk_neut_species_source_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_source *src
 )
 {
@@ -46,7 +47,8 @@ void gk_neut_species_source_init(
   }
 }
 
-void gk_neut_species_source_calc(
+void
+gk_neut_species_source_calc(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_source *src,
   struct gkyl_array *f_buffer, double tm
 )
@@ -60,7 +62,8 @@ void gk_neut_species_source_calc(
 }
 
 // Compute rhs of the source
-void gk_neut_species_source_rhs(
+void
+gk_neut_species_source_rhs(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_source *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -73,7 +76,8 @@ void gk_neut_species_source_rhs(
 }
 
 // Write functions
-void gk_neut_species_source_write(
+void
+gk_neut_species_source_write(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, double tm, int frame
 )
 {
@@ -114,7 +118,8 @@ void gk_neut_species_source_write(
   }
 }
 
-void gk_neut_species_source_write_mom(
+void
+gk_neut_species_source_write_mom(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, double tm, int frame
 )
 {
@@ -122,11 +127,11 @@ void gk_neut_species_source_write_mom(
     // Package metadata.
     gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
     gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
-    struct gkyl_msgpack_map_elem desc_src_mom[] = {
-      {.key = "Description",
-       .elem_type = GKYL_MP_STRING,
-       .cval = "Velocity-space moment of the neutral species source."}
-    };
+    struct gkyl_msgpack_map_elem desc_src_mom[] = {{
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Velocity-space moment of the neutral species source.",
+    }};
     int io_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta[] = {
       gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc_src_mom
@@ -173,7 +178,8 @@ void gk_neut_species_source_write_mom(
   }
 }
 
-void gk_neut_species_source_calc_integrated_mom(
+void
+gk_neut_species_source_calc_integrated_mom(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, double tm
 )
 {
@@ -208,9 +214,8 @@ void gk_neut_species_source_calc_integrated_mom(
   }
 }
 
-void gk_neut_species_source_write_integrated_mom(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns
-)
+void
+gk_neut_species_source_write_integrated_mom(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns)
 {
   if (gkns->src.source_id && gkns->src.evolve) {
     struct timespec wst = gkyl_wall_clock();
@@ -225,11 +230,11 @@ void gk_neut_species_source_write_integrated_mom(
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, "integrated_moms");
 
       if (gkns->src.is_first_integ_write_call) {
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {
-          {.key = "Description",
-           .elem_type = GKYL_MP_STRING,
-           .cval = "Volume integrated moments of the neutral source."}
-        };
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {{
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Volume integrated moments of the neutral source.",
+        }};
         int io_meta_len[] = {gkns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
           gkns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -252,9 +257,8 @@ void gk_neut_species_source_write_integrated_mom(
 }
 
 // Release function
-void gk_neut_species_source_release(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_source *src
-)
+void
+gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source *src)
 {
   if (src->source_id) {
     gkyl_array_release(src->source);

@@ -6,7 +6,8 @@
 #include <gkyl_wv_gr_twofluid.h>
 #include <gkyl_wv_gr_twofluid_priv.h>
 
-void gkyl_gr_twofluid_flux(
+void
+gkyl_gr_twofluid_flux(
   double gas_gamma_elc, double gas_gamma_ion, double light_speed, double e_fact, double b_fact,
   const double q[84], double flux[84]
 )
@@ -149,7 +150,8 @@ void gkyl_gr_twofluid_flux(
   }
 }
 
-void gkyl_gr_twofluid_prim_vars(
+void
+gkyl_gr_twofluid_prim_vars(
   double gas_gamma_elc, double gas_gamma_ion, const double q[84], double v[84]
 )
 {
@@ -489,7 +491,8 @@ void gkyl_gr_twofluid_prim_vars(
   }
 }
 
-void gkyl_gr_twofluid_inv_spatial_metric(const double q[84], double ***inv_spatial_metric)
+void
+gkyl_gr_twofluid_inv_spatial_metric(const double q[84], double ***inv_spatial_metric)
 {
   double spatial_metric[3][3];
   spatial_metric[0][0] = q[22];
@@ -554,7 +557,8 @@ void gkyl_gr_twofluid_inv_spatial_metric(const double q[84], double ***inv_spati
   }
 }
 
-void gkyl_gr_twofluid_stress_energy_tensor_elc(
+void
+gkyl_gr_twofluid_stress_energy_tensor_elc(
   double gas_gamma_elc, double gas_gamma_ion, const double q[84], double ***stress_energy_elc
 )
 {
@@ -659,7 +663,8 @@ void gkyl_gr_twofluid_stress_energy_tensor_elc(
   gkyl_free(inv_spatial_metric);
 }
 
-void gkyl_gr_twofluid_stress_energy_tensor_ion(
+void
+gkyl_gr_twofluid_stress_energy_tensor_ion(
   double gas_gamma_elc, double gas_gamma_ion, const double q[84], double ***stress_energy_ion
 )
 {
@@ -764,7 +769,8 @@ void gkyl_gr_twofluid_stress_energy_tensor_ion(
   gkyl_free(inv_spatial_metric);
 }
 
-static inline double gkyl_gr_twofluid_max_abs_speed(
+static inline double
+gkyl_gr_twofluid_max_abs_speed(
   double gas_gamma_elc, double gas_gamma_ion, double light_speed, const double q[84]
 )
 {
@@ -1029,7 +1035,8 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *
   }
 }
 
-static void gr_twofluid_wall(
+static void
+gr_twofluid_wall(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -1042,7 +1049,8 @@ static void gr_twofluid_wall(
   ghost[6] = -ghost[6];
 }
 
-static void gr_twofluid_no_slip(
+static void
+gr_twofluid_no_slip(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -1066,7 +1074,8 @@ static void gr_twofluid_no_slip(
   }
 }
 
-static inline void rot_to_local(
+static inline void
+rot_to_local(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
 )
@@ -1356,7 +1365,8 @@ static inline void rot_to_local(
   qlocal[83] = (qglobal[81] * tau2[0]) + (qglobal[82] * tau2[1]) + (qglobal[83] * tau2[2]);
 }
 
-static inline void rot_to_global(
+static inline void
+rot_to_global(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
 )
@@ -1646,7 +1656,8 @@ static inline void rot_to_global(
   qglobal[83] = (qlocal[81] * norm[2]) + (qlocal[82] * tau1[2]) + (qlocal[83] * tau2[2]);
 }
 
-static double wave_lax(
+static double
+wave_lax(
   const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
   double *waves, double *s
 )
@@ -1695,7 +1706,8 @@ static double wave_lax(
   return s[1];
 }
 
-static void qfluct_lax(
+static void
+qfluct_lax(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -1710,7 +1722,8 @@ static void qfluct_lax(
   }
 }
 
-static double wave_lax_l(
+static double
+wave_lax_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -1718,7 +1731,8 @@ static double wave_lax_l(
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void qfluct_lax_l(
+static void
+qfluct_lax_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -1727,7 +1741,8 @@ static void qfluct_lax_l(
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double wave_hll(
+static double
+wave_hll(
   const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
   double *waves, double *s
 )
@@ -2221,7 +2236,8 @@ static double wave_hll(
   );
 }
 
-static void qfluct_hll(
+static void
+qfluct_hll(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -2241,7 +2257,8 @@ static void qfluct_hll(
   }
 }
 
-static double wave_hll_l(
+static double
+wave_hll_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -2255,7 +2272,8 @@ static double wave_hll_l(
   return 0.0; // Unreachable code.
 }
 
-static void qfluct_hll_l(
+static void
+qfluct_hll_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -2308,7 +2326,8 @@ flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, dou
   return fmax(amaxl, amaxr);
 }
 
-static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double gas_gamma_elc = gr_twofluid->gas_gamma_elc;
@@ -2324,7 +2343,8 @@ static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   }
 }
 
-static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double gas_gamma_elc = gr_twofluid->gas_gamma_elc;
@@ -2350,7 +2370,8 @@ gr_twofluid_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sou
   }
 }
 
-void gkyl_gr_twofluid_free(const struct gkyl_ref_count *ref)
+void
+gkyl_gr_twofluid_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
 
@@ -2364,15 +2385,16 @@ void gkyl_gr_twofluid_free(const struct gkyl_ref_count *ref)
   gkyl_free(gr_twofluid);
 }
 
-struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_new(
+struct gkyl_wv_eqn *
+gkyl_wv_gr_twofluid_new(
   double mass_elc, double mass_ion, double charge_elc, double charge_ion, double gas_gamma_elc,
   double gas_gamma_ion, double light_speed, double e_fact, double b_fact,
   enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
   bool use_gpu
 )
 {
-  return gkyl_wv_gr_twofluid_inew(&(struct gkyl_wv_gr_twofluid_inp
-  ){.mass_elc = mass_elc,
+  return gkyl_wv_gr_twofluid_inew(&(struct gkyl_wv_gr_twofluid_inp){
+    .mass_elc = mass_elc,
     .mass_ion = mass_ion,
     .charge_elc = charge_elc,
     .charge_ion = charge_ion,
@@ -2385,10 +2407,12 @@ struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_new(
     .reinit_freq = reinit_freq,
     .spacetime = spacetime,
     .rp_type = WV_GR_TWOFLUID_RP_HLL,
-    .use_gpu = use_gpu});
+    .use_gpu = use_gpu,
+  });
 }
 
-struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_inew(const struct gkyl_wv_gr_twofluid_inp *inp)
+struct gkyl_wv_eqn *
+gkyl_wv_gr_twofluid_inew(const struct gkyl_wv_gr_twofluid_inp *inp)
 {
   struct wv_gr_twofluid *gr_twofluid = gkyl_malloc(sizeof(struct wv_gr_twofluid));
 
@@ -2446,7 +2470,8 @@ struct gkyl_wv_eqn *gkyl_wv_gr_twofluid_inew(const struct gkyl_wv_gr_twofluid_in
   return &gr_twofluid->eqn;
 }
 
-double gkyl_wv_gr_twofluid_mass_elc(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_twofluid_mass_elc(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double mass_elc = gr_twofluid->mass_elc;
@@ -2454,7 +2479,8 @@ double gkyl_wv_gr_twofluid_mass_elc(const struct gkyl_wv_eqn *eqn)
   return mass_elc;
 }
 
-double gkyl_wv_gr_twofluid_mass_ion(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_twofluid_mass_ion(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double mass_ion = gr_twofluid->mass_ion;
@@ -2462,7 +2488,8 @@ double gkyl_wv_gr_twofluid_mass_ion(const struct gkyl_wv_eqn *eqn)
   return mass_ion;
 }
 
-double gkyl_wv_gr_twofluid_charge_elc(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_twofluid_charge_elc(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double charge_elc = gr_twofluid->charge_elc;
@@ -2470,7 +2497,8 @@ double gkyl_wv_gr_twofluid_charge_elc(const struct gkyl_wv_eqn *eqn)
   return charge_elc;
 }
 
-double gkyl_wv_gr_twofluid_charge_ion(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_twofluid_charge_ion(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double charge_ion = gr_twofluid->charge_ion;
@@ -2478,7 +2506,8 @@ double gkyl_wv_gr_twofluid_charge_ion(const struct gkyl_wv_eqn *eqn)
   return charge_ion;
 }
 
-double gkyl_wv_gr_twofluid_gas_gamma_elc(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_twofluid_gas_gamma_elc(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double gas_gamma_elc = gr_twofluid->gas_gamma_elc;
@@ -2486,7 +2515,8 @@ double gkyl_wv_gr_twofluid_gas_gamma_elc(const struct gkyl_wv_eqn *eqn)
   return gas_gamma_elc;
 }
 
-double gkyl_wv_gr_twofluid_gas_gamma_ion(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_twofluid_gas_gamma_ion(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double gas_gamma_ion = gr_twofluid->gas_gamma_ion;
@@ -2494,7 +2524,8 @@ double gkyl_wv_gr_twofluid_gas_gamma_ion(const struct gkyl_wv_eqn *eqn)
   return gas_gamma_ion;
 }
 
-double gkyl_wv_gr_twofluid_light_speed(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_twofluid_light_speed(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double light_speed = gr_twofluid->light_speed;
@@ -2502,7 +2533,8 @@ double gkyl_wv_gr_twofluid_light_speed(const struct gkyl_wv_eqn *eqn)
   return light_speed;
 }
 
-double gkyl_wv_gr_twofluid_e_fact(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_twofluid_e_fact(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double e_fact = gr_twofluid->e_fact;
@@ -2510,7 +2542,8 @@ double gkyl_wv_gr_twofluid_e_fact(const struct gkyl_wv_eqn *eqn)
   return e_fact;
 }
 
-double gkyl_wv_gr_twofluid_b_fact(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_gr_twofluid_b_fact(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   double b_fact = gr_twofluid->b_fact;
@@ -2518,7 +2551,8 @@ double gkyl_wv_gr_twofluid_b_fact(const struct gkyl_wv_eqn *eqn)
   return b_fact;
 }
 
-enum gkyl_spacetime_gauge gkyl_wv_gr_twofluid_spacetime_gauge(const struct gkyl_wv_eqn *eqn)
+enum gkyl_spacetime_gauge
+gkyl_wv_gr_twofluid_spacetime_gauge(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   enum gkyl_spacetime_gauge spacetime_gauge = gr_twofluid->spacetime_gauge;
@@ -2526,7 +2560,8 @@ enum gkyl_spacetime_gauge gkyl_wv_gr_twofluid_spacetime_gauge(const struct gkyl_
   return spacetime_gauge;
 }
 
-int gkyl_wv_gr_twofluid_reinit_freq(const struct gkyl_wv_eqn *eqn)
+int
+gkyl_wv_gr_twofluid_reinit_freq(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   int reinit_freq = gr_twofluid->reinit_freq;
@@ -2534,7 +2569,8 @@ int gkyl_wv_gr_twofluid_reinit_freq(const struct gkyl_wv_eqn *eqn)
   return reinit_freq;
 }
 
-struct gkyl_gr_spacetime *gkyl_wv_gr_twofluid_spacetime(const struct gkyl_wv_eqn *eqn)
+struct gkyl_gr_spacetime *
+gkyl_wv_gr_twofluid_spacetime(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_twofluid *gr_twofluid = container_of(eqn, struct wv_gr_twofluid, eqn);
   struct gkyl_gr_spacetime *spacetime = gr_twofluid->spacetime;

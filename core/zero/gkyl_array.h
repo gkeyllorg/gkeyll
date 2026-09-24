@@ -54,8 +54,9 @@ struct gkyl_array *gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
  * @param buff Buffer to use for array data
  * @return Pointer to newly allocated array.
  */
-struct gkyl_array *
-gkyl_array_new_from_buff(enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff);
+struct gkyl_array *gkyl_array_new_from_buff(
+  enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff
+);
 
 /**
  * Create new array with data on NV-GPU. Delete using
@@ -136,13 +137,15 @@ struct gkyl_array *gkyl_array_clone(const struct gkyl_array *arr);
  * @return Element at location 'loc'
  */
 
-GKYL_CU_DH static inline void *gkyl_array_fetch(struct gkyl_array *arr, long loc)
+GKYL_CU_DH static inline void *
+gkyl_array_fetch(struct gkyl_array *arr, long loc)
 {
   return ((char *)arr->data) + loc * arr->esznc;
 }
 
 /** Same as above, except fetches a constant pointer */
-GKYL_CU_DH static inline const void *gkyl_array_cfetch(const struct gkyl_array *arr, long loc)
+GKYL_CU_DH static inline const void *
+gkyl_array_cfetch(const struct gkyl_array *arr, long loc)
 {
   return ((const char *)arr->data) + loc * arr->esznc;
 }

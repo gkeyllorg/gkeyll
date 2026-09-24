@@ -18,7 +18,8 @@
 #include <gkyl_calc_bmag.h>
 #include <assert.h>
 
-struct gk_geometry *gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
+struct gk_geometry *
+gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_calloc(1, sizeof(struct gk_geometry));
   up->geometry_id = geometry_inp->geometry_id;
@@ -120,9 +121,11 @@ struct gk_geometry *gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_i
   get_filename_from_path(geo->efit->filepath, geqdsk_file_name, sizeof(geqdsk_file_name));
   struct gkyl_msgpack_map_elem io_meta_basic[] = {
     {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
-    {.key = "geqdsk_sign_convention",
-     .elem_type = GKYL_MP_UNSIGNED_INT,
-     .uval = up->geqdsk_sign_convention},
+    {
+      .key = "geqdsk_sign_convention",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = up->geqdsk_sign_convention,
+    },
     {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
     {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain}
   };
@@ -139,7 +142,8 @@ struct gk_geometry *gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_i
   return up;
 }
 
-struct gk_geometry *gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
+struct gk_geometry *
+gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *gk_geom_3d;
   struct gk_geometry *gk_geom;
@@ -147,54 +151,54 @@ struct gk_geometry *gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geomet
   if (geometry_inp->position_map->id == GKYL_PMAP_XPT_COMPRESSION) {
     double zcenter, zcut, len;
     switch (geometry_inp->tok_grid_info.ftype) {
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
-      len = geometry_inp->tok_grid_info.half_domain ?
-              2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
-              geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-      zcut = len / 2.0;
-      zcenter = 0.0;
-      break;
-    case GKYL_GEOMETRY_TOKAMAK_CORE_R:
-    case GKYL_GEOMETRY_TOKAMAK_CORE:
-    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID:
-      len = geometry_inp->tok_grid_info.half_domain ?
-              2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
-              geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-      zcenter = geometry_inp->geo_grid.lower[2] + len / 2.0;
-      zcut = len / 2.0;
-      break;
-    case GKYL_GEOMETRY_TOKAMAK_CORE_L:
-      len = geometry_inp->tok_grid_info.half_domain ?
-              2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
-              geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-      zcenter = geometry_inp->geo_grid.upper[2] - len / 2.0;
-      zcut = len / 2.0;
-      break;
-    case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
-    case GKYL_GEOMETRY_TOKAMAK_PF_UP_L:
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP:
-    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO:
-      len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-      zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ?
-                  geometry_inp->geo_grid.lower[2] + len / 2.0 :
-                  geometry_inp->geo_grid.lower[2];
-      zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len / 2.0 : len;
-      break;
-    case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
-    case GKYL_GEOMETRY_TOKAMAK_PF_UP_R:
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP:
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
-    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP:
-      len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-      zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ?
-                  geometry_inp->geo_grid.upper[2] - len / 2.0 :
-                  geometry_inp->geo_grid.upper[2];
-      zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len / 2.0 : len;
-      break;
-    default:
-      break;
+      case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
+      case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
+        len = geometry_inp->tok_grid_info.half_domain ?
+                2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
+                geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+        zcut = len / 2.0;
+        zcenter = 0.0;
+        break;
+      case GKYL_GEOMETRY_TOKAMAK_CORE_R:
+      case GKYL_GEOMETRY_TOKAMAK_CORE:
+      case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID:
+        len = geometry_inp->tok_grid_info.half_domain ?
+                2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
+                geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+        zcenter = geometry_inp->geo_grid.lower[2] + len / 2.0;
+        zcut = len / 2.0;
+        break;
+      case GKYL_GEOMETRY_TOKAMAK_CORE_L:
+        len = geometry_inp->tok_grid_info.half_domain ?
+                2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
+                geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+        zcenter = geometry_inp->geo_grid.upper[2] - len / 2.0;
+        zcut = len / 2.0;
+        break;
+      case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
+      case GKYL_GEOMETRY_TOKAMAK_PF_UP_L:
+      case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
+      case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP:
+      case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO:
+        len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+        zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ?
+                    geometry_inp->geo_grid.lower[2] + len / 2.0 :
+                    geometry_inp->geo_grid.lower[2];
+        zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len / 2.0 : len;
+        break;
+      case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
+      case GKYL_GEOMETRY_TOKAMAK_PF_UP_R:
+      case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP:
+      case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
+      case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP:
+        len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+        zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ?
+                    geometry_inp->geo_grid.upper[2] - len / 2.0 :
+                    geometry_inp->geo_grid.upper[2];
+        zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len / 2.0 : len;
+        break;
+      default:
+        break;
     }
 
     double w = geometry_inp->geo_grid.upper[0] - geometry_inp->geo_grid.lower[0];
@@ -226,7 +230,8 @@ struct gk_geometry *gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geomet
   return gk_geom_3d;
 }
 
-void gkyl_gk_geometry_tok_set_grid_extents(
+void
+gkyl_gk_geometry_tok_set_grid_extents(
   struct gkyl_efit_inp efit_info, struct gkyl_tok_geo_grid_inp grid_info, double *theta_lo,
   double *theta_up
 )

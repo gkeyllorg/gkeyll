@@ -2,7 +2,8 @@
 #include <math.h>
 #include <gkyl_alloc.h>
 
-struct gkyl_emission_elastic_model *gkyl_emission_elastic_furman_pivi_new(
+struct gkyl_emission_elastic_model *
+gkyl_emission_elastic_furman_pivi_new(
   double charge, double P1_inf, double P1_hat, double E_hat, double W, double p, bool use_gpu
 )
 {
@@ -60,7 +61,8 @@ gkyl_emission_elastic_model_acquire(const struct gkyl_emission_elastic_model *mo
   return (struct gkyl_emission_elastic_model *)model;
 }
 
-void gkyl_emission_elastic_model_release(const struct gkyl_emission_elastic_model *model)
+void
+gkyl_emission_elastic_model_release(const struct gkyl_emission_elastic_model *model)
 {
   gkyl_ref_count_dec(&model->ref_count);
 }

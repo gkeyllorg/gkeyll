@@ -17,7 +17,8 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu) {
@@ -28,14 +29,16 @@ static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
-void mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
   fout[0] = 0.0;
@@ -43,18 +46,21 @@ void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void
   fout[2] = 0.5;
 }
 
-void eval_n(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_n(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0e19 * (1.0 + 0.5 * cos(x));
 }
-void eval_vtsq(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsq(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double vtsq = (10.0 * 1.602e-19 / 9.1e-31) * exp(-x * x / (M_PI));
   fout[0] = vtsq;
 }
-void eval_upar(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_upar(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
 
@@ -65,19 +71,22 @@ void eval_upar(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = vt;
 }
 
-void eval_n_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_n_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   fout[0] = 1.0e19 * (1.0 + 0.5 * cos(x) * sin(z));
 }
-void eval_vtsq_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsq_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   // in 2D, just initialize a constant temperature
   double x = xn[0], z = xn[1];
   double vtsq = (10.0 * 1.602e-19 / 9.1e-31); //*exp(-x*x/(M_PI))*exp(-z*z/(M_PI));
   fout[0] = vtsq;
 }
-void eval_upar_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_upar_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double vtsq[1];
   eval_vtsq_2x(t, xn, vtsq, ctx);
@@ -86,7 +95,8 @@ void eval_upar_2x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = vt;
 }
 
-void test_1x1v(int poly_order, bool use_gpu)
+void
+test_1x1v(int poly_order, bool use_gpu)
 {
   double mass = 9.1e-31;
   double err_max = 1.0e-10, iter_max = 50;
@@ -162,7 +172,7 @@ void test_1x1v(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
+    .basis = confBasis,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(
@@ -243,7 +253,7 @@ void test_1x1v(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
@@ -268,7 +278,7 @@ void test_1x1v(int poly_order, bool use_gpu)
     .gk_geom = gk_geom,
     .vel_map = gvm,
     .divide_jacobgeo = true,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
   // Correct all the moments
@@ -293,7 +303,7 @@ void test_1x1v(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .divide_jacobgeo = true,
     .mass = mass,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew(&inp_mom);
   // (2) calculate the moments and copy from host to device
@@ -355,7 +365,8 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_gk_maxwellian_moments_release(max_moms);
 }
 
-void test_1x2v(int poly_order, bool use_gpu)
+void
+test_1x2v(int poly_order, bool use_gpu)
 {
   double mass = 9.1e-31;
   double err_max = 1.0e-10, iter_max = 50;
@@ -431,7 +442,7 @@ void test_1x2v(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
+    .basis = confBasis,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(
@@ -512,7 +523,7 @@ void test_1x2v(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
@@ -537,7 +548,7 @@ void test_1x2v(int poly_order, bool use_gpu)
     .gk_geom = gk_geom,
     .vel_map = gvm,
     .divide_jacobgeo = true,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
   // Correct all the moments
@@ -562,7 +573,7 @@ void test_1x2v(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .divide_jacobgeo = true,
     .mass = mass,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew(&inp_mom);
   // (2) calculate the moments and copy from host to device
@@ -624,7 +635,8 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_gk_maxwellian_moments_release(max_moms);
 }
 
-void test_2x2v(int poly_order, bool use_gpu)
+void
+test_2x2v(int poly_order, bool use_gpu)
 {
   double mass = 9.1e-31;
   double err_max = 1.0e-10, iter_max = 50;
@@ -701,7 +713,7 @@ void test_2x2v(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis
+    .basis = confBasis,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(
@@ -782,7 +794,7 @@ void test_2x2v(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
@@ -807,7 +819,7 @@ void test_2x2v(int poly_order, bool use_gpu)
     .gk_geom = gk_geom,
     .vel_map = gvm,
     .divide_jacobgeo = true,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
   // Correct all the moments
@@ -832,7 +844,7 @@ void test_2x2v(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .divide_jacobgeo = true,
     .mass = mass,
-    .use_gpu = use_gpu
+    .use_gpu = use_gpu,
   };
   gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew(&inp_mom);
   // (2) calculate the moments and copy from host to device
@@ -897,29 +909,35 @@ void test_2x2v(int poly_order, bool use_gpu)
 }
 
 // Run the test
-void test_correct_maxwellian_1x1v_p1_ho()
+void
+test_correct_maxwellian_1x1v_p1_ho()
 {
   test_1x1v(1, false);
 }
-void test_correct_maxwellian_1x2v_p1_ho()
+void
+test_correct_maxwellian_1x2v_p1_ho()
 {
   test_1x2v(1, false);
 }
-void test_correct_maxwellian_2x2v_p1_ho()
+void
+test_correct_maxwellian_2x2v_p1_ho()
 {
   test_2x2v(1, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_correct_maxwellian_1x1v_p1_dev()
+void
+test_correct_maxwellian_1x1v_p1_dev()
 {
   test_1x1v(1, true);
 }
-void test_correct_maxwellian_1x2v_p1_dev()
+void
+test_correct_maxwellian_1x2v_p1_dev()
 {
   test_1x2v(1, true);
 }
-void test_correct_maxwellian_2x2v_p1_dev()
+void
+test_correct_maxwellian_2x2v_p1_dev()
 {
   test_2x2v(1, true);
 }

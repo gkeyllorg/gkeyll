@@ -4,7 +4,8 @@
 #include <gkyl_tensor_field.h>
 #include <gkyl_util.h>
 
-void test_tensor_field_ho()
+void
+test_tensor_field_ho()
 {
   // Tensor field size
   int rank = 2;
@@ -22,7 +23,8 @@ void test_tensor_field_ho()
   gkyl_tensor_field_release(tfld);
 }
 
-void test_tensor_field_base_ho()
+void
+test_tensor_field_base_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -74,7 +76,8 @@ void test_tensor_field_base_ho()
   gkyl_tensor_field_release(tfld);
 }
 
-void test_tensor_field_fetch_ho()
+void
+test_tensor_field_fetch_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -118,7 +121,8 @@ void test_tensor_field_fetch_ho()
   gkyl_tensor_field_release(tfld);
 }
 
-void test_tensor_field_set_ho()
+void
+test_tensor_field_set_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -194,7 +198,8 @@ void test_tensor_field_set_ho()
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_tensor_field_base_dev()
+void
+test_tensor_field_base_dev()
 {
   int rank = 2;
   int ndim = 3;

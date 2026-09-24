@@ -72,7 +72,7 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
     .gk_geom = inp->gk_geom,
     .vel_map = inp->vel_map,
     .divide_jacobgeo = inp->divide_jacobgeo,
-    .use_gpu = inp->use_gpu
+    .use_gpu = inp->use_gpu,
   };
   up->moments_up = gkyl_gk_maxwellian_moments_inew(&inp_mom);
 
@@ -89,14 +89,15 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
     .mass = inp->mass,
     .bimaxwellian = inp->bimaxwellian,
     .divide_jacobgeo = inp->divide_jacobgeo,
-    .use_gpu = inp->use_gpu
+    .use_gpu = inp->use_gpu,
   };
   up->proj_max = gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
   return up;
 }
 
-struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
+struct gkyl_gk_maxwellian_correct_status
+gkyl_gk_maxwellian_correct_all_moments(
   gkyl_gk_maxwellian_correct *up, struct gkyl_array *f_max, const struct gkyl_array *moms_target,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range
 )
@@ -322,7 +323,8 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
   return status;
 }
 
-void gkyl_gk_maxwellian_correct_release(gkyl_gk_maxwellian_correct *up)
+void
+gkyl_gk_maxwellian_correct_release(gkyl_gk_maxwellian_correct *up)
 {
   gkyl_array_release(up->moms_iter);
   gkyl_array_release(up->d_moms);
@@ -341,7 +343,8 @@ void gkyl_gk_maxwellian_correct_release(gkyl_gk_maxwellian_correct *up)
 
 #ifndef GKYL_HAVE_CUDA
 
-void gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(
+void
+gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(
   const struct gkyl_range *conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
   const struct gkyl_array *moms_iter, struct gkyl_array *moms_abs_diff
 )

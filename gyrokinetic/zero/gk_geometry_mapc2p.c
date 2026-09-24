@@ -17,7 +17,8 @@
 #include <gkyl_dg_bin_ops.h>
 #include <assert.h>
 
-static void gk_geometry_mapc2p_advance(
+static void
+gk_geometry_mapc2p_advance(
   struct gk_geometry *up, struct gkyl_range *nrange, double dzc[3], evalf_t mapc2p_func,
   void *mapc2p_ctx, evalf_t bfield_func, void *bfield_ctx, struct gkyl_position_map *position_map
 )
@@ -96,7 +97,8 @@ static void gk_geometry_mapc2p_advance(
   gkyl_dg_inv_op_range(&up->basis, 0, up->geo_corn.bmag_inv, 0, up->geo_corn.bmag, &up->local);
 }
 
-static void gk_geometry_mapc2p_advance_interior(
+static void
+gk_geometry_mapc2p_advance_interior(
   struct gk_geometry *up, struct gkyl_range *nrange, double dzc[3], evalf_t mapc2p_func,
   void *mapc2p_ctx, evalf_t bfield_func, void *bfield_ctx, struct gkyl_position_map *position_map
 )
@@ -244,7 +246,8 @@ static void gk_geometry_mapc2p_advance_interior(
   gkyl_calc_metric_release(mcalc);
 }
 
-void gk_geometry_mapc2p_advance_surface(
+void
+gk_geometry_mapc2p_advance_surface(
   struct gk_geometry *up, int dir, struct gkyl_range *nrange, double dzc[3], evalf_t mapc2p_func,
   void *mapc2p_ctx, evalf_t bfield_func, void *bfield_ctx, struct gkyl_position_map *position_map
 )
@@ -415,7 +418,8 @@ void gk_geometry_mapc2p_advance_surface(
   gk_geometry_surf_calc_expansions(up, dir, *nrange);
 }
 
-struct gk_geometry *gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
+struct gk_geometry *
+gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->geometry_id = geometry_inp->geometry_id;
@@ -507,7 +511,8 @@ struct gk_geometry *gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometr
   return up;
 }
 
-struct gk_geometry *gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
+struct gk_geometry *
+gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *gk_geom_3d;
   struct gk_geometry *gk_geom;

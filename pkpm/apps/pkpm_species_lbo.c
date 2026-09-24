@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_pkpm_priv.h>
 
-void pkpm_species_lbo_init(
+void
+pkpm_species_lbo_init(
   struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_lbo_collisions *lbo
 )
 {
@@ -71,17 +72,20 @@ void pkpm_species_lbo_init(
 
   // LBO updater
   struct gkyl_dg_lbo_pkpm_drag_auxfields drag_inp = {
-    .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms
+    .nuSum = lbo->nu_sum,
+    .nuPrimMomsSum = lbo->nu_prim_moms,
   };
   struct gkyl_dg_lbo_pkpm_diff_auxfields diff_inp = {
-    .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms
+    .nuSum = lbo->nu_sum,
+    .nuPrimMomsSum = lbo->nu_prim_moms,
   };
   lbo->coll_slvr = gkyl_dg_updater_lbo_pkpm_new(
     &s->grid, &app->confBasis, &app->basis, &app->local, &drag_inp, &diff_inp, app->use_gpu
   );
 }
 
-void pkpm_species_lbo_cross_init(
+void
+pkpm_species_lbo_cross_init(
   struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_lbo_collisions *lbo
 )
 {
@@ -141,7 +145,8 @@ void pkpm_species_lbo_cross_init(
 }
 
 // computes moments, boundary corrections, and primitive moments
-void pkpm_species_lbo_moms(
+void
+pkpm_species_lbo_moms(
   gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -209,7 +214,8 @@ void pkpm_species_lbo_moms(
 }
 
 // computes moments from cross-species collisions
-void pkpm_species_lbo_cross_moms(
+void
+pkpm_species_lbo_cross_moms(
   gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -260,7 +266,8 @@ void pkpm_species_lbo_cross_moms(
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void pkpm_species_lbo_rhs(
+void
+pkpm_species_lbo_rhs(
   gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -273,7 +280,8 @@ void pkpm_species_lbo_rhs(
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void pkpm_species_lbo_release(const struct gkyl_pkpm_app *app, const struct pkpm_lbo_collisions *lbo)
+void
+pkpm_species_lbo_release(const struct gkyl_pkpm_app *app, const struct pkpm_lbo_collisions *lbo)
 {
   gkyl_array_release(lbo->boundary_corrections);
   gkyl_array_release(lbo->prim_moms);

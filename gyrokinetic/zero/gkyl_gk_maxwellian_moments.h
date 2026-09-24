@@ -35,8 +35,9 @@ struct gkyl_gk_maxwellian_moments_inp {
  * @param inp Input parameters defined in gkyl_gk_maxwellian_moments_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_gk_maxwellian_moments *
-gkyl_gk_maxwellian_moments_inew(const struct gkyl_gk_maxwellian_moments_inp *inp);
+struct gkyl_gk_maxwellian_moments *gkyl_gk_maxwellian_moments_inew(
+  const struct gkyl_gk_maxwellian_moments_inp *inp
+);
 
 /**
  * Compute the density moments of an arbitrary distribution function for the equivalent 

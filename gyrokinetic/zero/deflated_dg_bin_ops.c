@@ -5,7 +5,8 @@
 
 #include <gkyl_array_rio.h>
 
-struct gkyl_deflated_dg_bin_ops *gkyl_deflated_dg_bin_ops_new(
+struct gkyl_deflated_dg_bin_ops *
+gkyl_deflated_dg_bin_ops_new(
   struct gkyl_rect_grid grid, struct gkyl_basis *basis_on_dev, struct gkyl_basis basis,
   struct gkyl_range local, bool use_gpu
 )
@@ -125,7 +126,8 @@ struct gkyl_deflated_dg_bin_ops *gkyl_deflated_dg_bin_ops_new(
   return up;
 }
 
-void deflated_dg_bin_ops_advance(
+void
+deflated_dg_bin_ops_advance(
   enum deflated_dg_bin_ops_type op_type, struct gkyl_deflated_dg_bin_ops *up, int c_oop,
   struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array *rop
 )
@@ -206,7 +208,8 @@ void deflated_dg_bin_ops_advance(
   );
 }
 
-void gkyl_deflated_dg_bin_ops_mul(
+void
+gkyl_deflated_dg_bin_ops_mul(
   struct gkyl_deflated_dg_bin_ops *up, int c_oop, struct gkyl_array *out, int c_lop,
   struct gkyl_array *lop, int c_rop, struct gkyl_array *rop
 )
@@ -214,7 +217,8 @@ void gkyl_deflated_dg_bin_ops_mul(
   deflated_dg_bin_ops_advance(GKYL_DEFLATED_MUL, up, c_oop, out, c_lop, lop, c_rop, rop);
 }
 
-void gkyl_deflated_dg_bin_ops_div(
+void
+gkyl_deflated_dg_bin_ops_div(
   struct gkyl_deflated_dg_bin_ops *up, int c_oop, struct gkyl_array *out, int c_lop,
   struct gkyl_array *lop, int c_rop, struct gkyl_array *rop
 )
@@ -222,7 +226,8 @@ void gkyl_deflated_dg_bin_ops_div(
   deflated_dg_bin_ops_advance(GKYL_DEFLATED_DIV, up, c_oop, out, c_lop, lop, c_rop, rop);
 }
 
-void gkyl_deflated_dg_bin_ops_release(struct gkyl_deflated_dg_bin_ops *up)
+void
+gkyl_deflated_dg_bin_ops_release(struct gkyl_deflated_dg_bin_ops *up)
 {
   gkyl_array_release(up->nodal_fld);
   gkyl_nodal_ops_release(up->n2m);

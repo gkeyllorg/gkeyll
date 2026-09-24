@@ -12,7 +12,8 @@ extern "C" {
 
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-__global__ static void gkyl_mom_bcorr_lbo_pkpm_set_cu_dev_ptrs(
+__global__ static void
+gkyl_mom_bcorr_lbo_pkpm_set_cu_dev_ptrs(
   struct mom_type_bcorr_lbo_pkpm *mom_bcorr, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
@@ -20,24 +21,25 @@ __global__ static void gkyl_mom_bcorr_lbo_pkpm_set_cu_dev_ptrs(
   const gkyl_mom_bcorr_lbo_pkpm_kern_list *mom_bcorr_lbo_pkpm_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    mom_bcorr_lbo_pkpm_kernels = ser_mom_bcorr_lbo_pkpm_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mom_bcorr_lbo_pkpm_kernels = ser_mom_bcorr_lbo_pkpm_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    mom_bcorr_lbo_pkpm_kernels = ten_mom_bcorr_lbo_pkpm_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      mom_bcorr_lbo_pkpm_kernels = ten_mom_bcorr_lbo_pkpm_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   mom_bcorr->momt.kernel = CK(mom_bcorr_lbo_pkpm_kernels, cdim, poly_order);
 }
 
-struct gkyl_mom_type *gkyl_mom_bcorr_lbo_pkpm_cu_dev_new(
+struct gkyl_mom_type *
+gkyl_mom_bcorr_lbo_pkpm_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const double *vBoundary,
   double mass
 )

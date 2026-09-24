@@ -6,7 +6,8 @@
 #include <gkyl_gr_blackhole_isotropic.h>
 #include <gkyl_gr_spacetime_diff.h>
 
-static void blackhole_isotropic_spatial_metric_tensor(
+static void
+blackhole_isotropic_spatial_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, double ***spatial_metric_tensor
 )
@@ -60,7 +61,8 @@ static void blackhole_isotropic_spatial_metric_tensor(
     (((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
 }
 
-static void blackhole_isotropic_spacetime_metric_tensor(
+static void
+blackhole_isotropic_spacetime_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, double ***spacetime_metric_tensor
 )
@@ -105,7 +107,8 @@ static void blackhole_isotropic_spacetime_metric_tensor(
   gkyl_free(shift_vector);
 }
 
-static void blackhole_isotropic_spatial_inv_metric_tensor(
+static void
+blackhole_isotropic_spatial_inv_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, double ***spatial_inv_metric_tensor
 )
@@ -187,7 +190,8 @@ static void blackhole_isotropic_spatial_inv_metric_tensor(
   gkyl_free(euclidean_metric);
 }
 
-static void blackhole_isotropic_spacetime_inv_metric_tensor(
+static void
+blackhole_isotropic_spacetime_inv_metric_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, double ***spacetime_inv_metric_tensor
 )
@@ -229,7 +233,8 @@ static void blackhole_isotropic_spacetime_inv_metric_tensor(
   gkyl_free(shift_vector);
 }
 
-static void blackhole_isotropic_spatial_metric_det(
+static void
+blackhole_isotropic_spatial_metric_det(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, double *spatial_metric_det
 )
@@ -254,7 +259,8 @@ static void blackhole_isotropic_spatial_metric_det(
   gkyl_free(spatial_metric);
 }
 
-static void blackhole_isotropic_spacetime_metric_det(
+static void
+blackhole_isotropic_spacetime_metric_det(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, double *spacetime_metric_det
 )
@@ -267,7 +273,8 @@ static void blackhole_isotropic_spacetime_metric_det(
   *spacetime_metric_det = -(lapse_function * lapse_function) * spatial_metric_det;
 }
 
-static void blackhole_isotropic_spatial_metric_tensor_der(
+static void
+blackhole_isotropic_spatial_metric_tensor_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
   double ****spatial_metric_tensor_der
@@ -276,7 +283,8 @@ static void blackhole_isotropic_spatial_metric_tensor_der(
   gkyl_gr_spatial_metric_tensor_diff(spacetime, t, x, y, z, dx, dy, dz, spatial_metric_tensor_der);
 }
 
-static void blackhole_isotropic_spacetime_metric_tensor_der(
+static void
+blackhole_isotropic_spacetime_metric_tensor_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double ****spacetime_metric_tensor_der
@@ -287,7 +295,8 @@ static void blackhole_isotropic_spacetime_metric_tensor_der(
   );
 }
 
-static void blackhole_isotropic_lapse_function(
+static void
+blackhole_isotropic_lapse_function(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, double *lapse_function
 )
@@ -320,7 +329,8 @@ static void blackhole_isotropic_lapse_function(
   *lapse_function = sqrt((sigma * delta) / A_BL);
 }
 
-static void blackhole_isotropic_shift_vector(
+static void
+blackhole_isotropic_shift_vector(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, double **shift_vector
 )
@@ -355,7 +365,8 @@ static void blackhole_isotropic_shift_vector(
   (*shift_vector)[2] = 0.0;
 }
 
-static void blackhole_isotropic_lapse_function_der(
+static void
+blackhole_isotropic_lapse_function_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double **lapse_function_der
 )
@@ -363,7 +374,8 @@ static void blackhole_isotropic_lapse_function_der(
   gkyl_gr_lapse_function_diff(spacetime, t, x, y, z, dx, dy, dz, lapse_function_der);
 }
 
-static void blackhole_isotropic_shift_vector_der(
+static void
+blackhole_isotropic_shift_vector_der(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double ***shift_vector_der
 )
@@ -371,7 +383,8 @@ static void blackhole_isotropic_shift_vector_der(
   gkyl_gr_shift_vector_diff(spacetime, t, x, y, z, dx, dy, dz, shift_vector_der);
 }
 
-static void blackhole_isotropic_spatial_christoffel(
+static void
+blackhole_isotropic_spatial_christoffel(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double ****spatial_christoffel
 )
@@ -379,7 +392,8 @@ static void blackhole_isotropic_spatial_christoffel(
   gkyl_gr_spatial_christoffel_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_christoffel);
 }
 
-static void blackhole_isotropic_spacetime_christoffel(
+static void
+blackhole_isotropic_spacetime_christoffel(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double ****spacetime_christoffel
@@ -388,7 +402,8 @@ static void blackhole_isotropic_spacetime_christoffel(
   gkyl_gr_spacetime_christoffel_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_christoffel);
 }
 
-static void blackhole_isotropic_spatial_riemann_tensor(
+static void
+blackhole_isotropic_spatial_riemann_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
   double *****spatial_riemann_tensor
@@ -397,7 +412,8 @@ static void blackhole_isotropic_spatial_riemann_tensor(
   gkyl_gr_spatial_riemann_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_riemann_tensor);
 }
 
-static void blackhole_isotropic_spacetime_riemann_tensor(
+static void
+blackhole_isotropic_spacetime_riemann_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double *****spacetime_riemann_tensor
@@ -408,7 +424,8 @@ static void blackhole_isotropic_spacetime_riemann_tensor(
   );
 }
 
-static void blackhole_isotropic_spatial_ricci_tensor(
+static void
+blackhole_isotropic_spatial_ricci_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double ***spatial_ricci_tensor
 )
@@ -416,7 +433,8 @@ static void blackhole_isotropic_spatial_ricci_tensor(
   gkyl_gr_spatial_ricci_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_tensor);
 }
 
-static void blackhole_isotropic_spacetime_ricci_tensor(
+static void
+blackhole_isotropic_spacetime_ricci_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double ***spacetime_ricci_tensor
@@ -425,7 +443,8 @@ static void blackhole_isotropic_spacetime_ricci_tensor(
   gkyl_gr_spacetime_ricci_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_tensor);
 }
 
-static void blackhole_isotropic_spatial_ricci_scalar(
+static void
+blackhole_isotropic_spatial_ricci_scalar(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double *spatial_ricci_scalar
 )
@@ -433,7 +452,8 @@ static void blackhole_isotropic_spatial_ricci_scalar(
   gkyl_gr_spatial_ricci_scalar_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_scalar);
 }
 
-static void blackhole_isotropic_spacetime_ricci_scalar(
+static void
+blackhole_isotropic_spacetime_ricci_scalar(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double *spacetime_ricci_scalar
@@ -442,7 +462,8 @@ static void blackhole_isotropic_spacetime_ricci_scalar(
   gkyl_gr_spacetime_ricci_scalar_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_scalar);
 }
 
-static void blackhole_isotropic_spatial_weyl_tensor(
+static void
+blackhole_isotropic_spatial_weyl_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double *****spatial_weyl_tensor
 )
@@ -450,7 +471,8 @@ static void blackhole_isotropic_spatial_weyl_tensor(
   gkyl_gr_spatial_weyl_tensor_fd(spacetime, t, x, y, z, dx, dy, dx, spatial_weyl_tensor);
 }
 
-static void blackhole_isotropic_spacetime_weyl_tensor(
+static void
+blackhole_isotropic_spacetime_weyl_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz,
   double *****spacetime_weyl_tensor
@@ -459,7 +481,8 @@ static void blackhole_isotropic_spacetime_weyl_tensor(
   gkyl_gr_spacetime_weyl_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_weyl_tensor);
 }
 
-static void blackhole_isotropic_extrinsic_curvature_tensor(
+static void
+blackhole_isotropic_extrinsic_curvature_tensor(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz,
   double ***extrinsic_curvature_tensor
@@ -540,7 +563,8 @@ static void blackhole_isotropic_extrinsic_curvature_tensor(
   gkyl_free(spatial_christoffel);
 }
 
-static void blackhole_isotropic_excision_region(
+static void
+blackhole_isotropic_excision_region(
   const struct gkyl_gr_spacetime *spacetime, const double t, const double x, const double y,
   const double z, bool *in_excision_region
 )
@@ -564,7 +588,8 @@ static void blackhole_isotropic_excision_region(
   }
 }
 
-void gkyl_gr_blackhole_isotropic_free(const struct gkyl_ref_count *ref)
+void
+gkyl_gr_blackhole_isotropic_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_gr_spacetime *base = container_of(ref, struct gkyl_gr_spacetime, ref_count);
 
@@ -580,13 +605,19 @@ void gkyl_gr_blackhole_isotropic_free(const struct gkyl_ref_count *ref)
   gkyl_free(gr_blackhole_isotropic);
 }
 
-struct gkyl_gr_spacetime *gkyl_gr_blackhole_isotropic_new(
+struct gkyl_gr_spacetime *
+gkyl_gr_blackhole_isotropic_new(
   bool use_gpu, double mass, double spin, double pos_x, double pos_y, double pos_z
 )
 {
-  return gkyl_gr_blackhole_isotropic_inew(&(struct gkyl_gr_blackhole_isotropic_inp
-  ){.use_gpu = use_gpu, .mass = mass, .spin = spin, .pos_x = pos_x, .pos_y = pos_y, .pos_z = pos_z}
-  );
+  return gkyl_gr_blackhole_isotropic_inew(&(struct gkyl_gr_blackhole_isotropic_inp){
+    .use_gpu = use_gpu,
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
+  });
 }
 
 struct gkyl_gr_spacetime *

@@ -7,7 +7,8 @@
 #include <math.h>
 
 // Increment an int vector by fact*del[d] in each direction d.
-static inline void incr_int_array(
+static inline void
+incr_int_array(
   int ndim, int fact, const int *GKYL_RESTRICT del, const int *GKYL_RESTRICT inp,
   int *GKYL_RESTRICT out
 )
@@ -20,7 +21,8 @@ static inline void incr_int_array(
 // KB - Number of cells in the positive and negative directions
 // is assumed to be the same symmetrically, half of the cells in that dimension. Need to
 // do this more rigorously.
-void gkyl_bc_emission_flux_ranges(
+void
+gkyl_bc_emission_flux_ranges(
   struct gkyl_range *flux_r, int dir, const struct gkyl_range *parent, const int *nghost,
   enum gkyl_edge_loc edge
 )
@@ -47,7 +49,8 @@ void gkyl_bc_emission_flux_ranges(
   }
 }
 
-void gkyl_bc_emission_spectrum_sey_calc(
+void
+gkyl_bc_emission_spectrum_sey_calc(
   const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid,
   const struct gkyl_range *impact_buff_r
 )
@@ -70,7 +73,8 @@ void gkyl_bc_emission_spectrum_sey_calc(
   }
 }
 
-struct gkyl_bc_emission_spectrum *gkyl_bc_emission_spectrum_new(
+struct gkyl_bc_emission_spectrum *
+gkyl_bc_emission_spectrum_new(
   struct gkyl_emission_spectrum_model *spectrum_model,
   struct gkyl_emission_yield_model *yield_model, struct gkyl_array *yield,
   struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in,
@@ -128,7 +132,8 @@ struct gkyl_bc_emission_spectrum *gkyl_bc_emission_spectrum_new(
   return up;
 }
 
-static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
+static inline void
+copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 {
   for (int i = 0; i < cdim; ++i) {
     out[i] = cidx[i];
@@ -138,7 +143,8 @@ static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const in
   }
 }
 
-void gkyl_bc_emission_spectrum_advance(
+void
+gkyl_bc_emission_spectrum_advance(
   const struct gkyl_bc_emission_spectrum *up, struct gkyl_range *impact_buff_r,
   struct gkyl_range *impact_cbuff_r, struct gkyl_range *emit_buff_r, struct gkyl_array *bflux,
   struct gkyl_array *f_emit, struct gkyl_array *yield, struct gkyl_array *spectrum,
@@ -193,7 +199,8 @@ void gkyl_bc_emission_spectrum_advance(
   }
 }
 
-void gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up)
+void
+gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up)
 {
   gkyl_emission_spectrum_model_release(up->spectrum_model);
   gkyl_emission_yield_model_release(up->yield_model);

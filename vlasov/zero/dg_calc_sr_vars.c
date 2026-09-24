@@ -8,7 +8,8 @@
 #include <gkyl_dg_calc_sr_vars_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_new(
+gkyl_dg_calc_sr_vars *
+gkyl_dg_calc_sr_vars_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
   const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, bool use_gpu
@@ -60,7 +61,8 @@ gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_new(
   return up;
 }
 
-void gkyl_calc_sr_vars_init_p_vars(
+void
+gkyl_calc_sr_vars_init_p_vars(
   struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma, struct gkyl_array *gamma_inv
 )
 {
@@ -84,7 +86,8 @@ void gkyl_calc_sr_vars_init_p_vars(
   }
 }
 
-void gkyl_dg_calc_sr_vars_n(
+void
+gkyl_dg_calc_sr_vars_n(
   struct gkyl_dg_calc_sr_vars *up, const struct gkyl_array *M0, const struct gkyl_array *M1i,
   struct gkyl_array *n
 )
@@ -131,7 +134,8 @@ void gkyl_dg_calc_sr_vars_n(
   }
 }
 
-void gkyl_dg_calc_sr_vars_GammaV(
+void
+gkyl_dg_calc_sr_vars_GammaV(
   struct gkyl_dg_calc_sr_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *u_i, struct gkyl_array *u_i_sq, struct gkyl_array *GammaV,
   struct gkyl_array *GammaV_sq
@@ -157,7 +161,8 @@ void gkyl_dg_calc_sr_vars_GammaV(
   }
 }
 
-void gkyl_dg_calc_sr_vars_pressure(
+void
+gkyl_dg_calc_sr_vars_pressure(
   struct gkyl_dg_calc_sr_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *gamma,
   const struct gkyl_array *gamma_inv, const struct gkyl_array *u_i, const struct gkyl_array *u_i_sq,
@@ -209,7 +214,8 @@ void gkyl_dg_calc_sr_vars_pressure(
   }
 }
 
-void gkyl_dg_calc_sr_vars_release(gkyl_dg_calc_sr_vars *up)
+void
+gkyl_dg_calc_sr_vars_release(gkyl_dg_calc_sr_vars *up)
 {
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);

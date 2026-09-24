@@ -9,7 +9,8 @@ struct wv_sr_euler {
   double gas_gamma; // gas adiabatic constant
 };
 
-static void sr_euler_free(const struct gkyl_ref_count *ref)
+static void
+sr_euler_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_sr_euler *sr_euler = container_of(base, struct wv_sr_euler, eqn);
@@ -33,7 +34,8 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *
   }
 }
 
-static inline void rot_to_local(
+static inline void
+rot_to_local(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
 )
@@ -47,7 +49,8 @@ static inline void rot_to_local(
   qlocal[4] = qglobal[2] * tau2[0] + qglobal[3] * tau2[1] + qglobal[4] * tau2[2];
 }
 
-static inline void rot_to_global(
+static inline void
+rot_to_global(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
 )
@@ -62,7 +65,8 @@ static inline void rot_to_global(
 }
 
 // Waves and speeds using Roe averaging
-static double wave_roe(
+static double
+wave_roe(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -149,7 +153,8 @@ static double wave_roe(
          ((1. - gas_gamma * v4) * v0 * v0 + s2);
 }
 
-static void qfluct_roe(
+static void
+qfluct_roe(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -165,25 +170,29 @@ static void qfluct_roe(
   }
 }
 
-static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   return true; // TODO
 }
 
-static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
   return gkyl_sr_euler_max_abs_speed(sr_euler->gas_gamma, q);
 }
 
-static inline void sr_euler_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
+static inline void
+sr_euler_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   for (int i = 0; i < 5; i++) {
     sout[i] = 0.0;
   }
 }
 
-struct gkyl_wv_eqn *gkyl_wv_sr_euler_new(double gas_gamma)
+struct gkyl_wv_eqn *
+gkyl_wv_sr_euler_new(double gas_gamma)
 {
   struct wv_sr_euler *sr_euler = gkyl_malloc(sizeof(struct wv_sr_euler));
 
@@ -213,7 +222,8 @@ struct gkyl_wv_eqn *gkyl_wv_sr_euler_new(double gas_gamma)
   return &sr_euler->eqn;
 }
 
-double gkyl_wv_sr_euler_gas_gamma(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_sr_euler_gas_gamma(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
   return sr_euler->gas_gamma;

@@ -10,7 +10,8 @@ extern "C" {
 // Compute size of 'arr'
 #define NSIZE(arr) (arr->size)
 
-__global__ void gkyl_dg_differentiate_op_local_cu_kernel(
+__global__ void
+gkyl_dg_differentiate_op_local_cu_kernel(
   struct gkyl_basis basis, int dir, int diff_order, double dx, int c_oop, struct gkyl_array *out,
   int c_iop, const struct gkyl_array *inp
 )
@@ -21,14 +22,14 @@ __global__ void gkyl_dg_differentiate_op_local_cu_kernel(
 
   differentiate_op_t diff_op;
   switch (basis.b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    diff_op = choose_ser_differentiate_kern(ndim, dir, poly_order, diff_order);
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    diff_op = choose_ten_differentiate_kern(ndim, dir, poly_order, diff_order);
-    break;
-  default:
-    return;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      diff_op = choose_ser_differentiate_kern(ndim, dir, poly_order, diff_order);
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      diff_op = choose_ten_differentiate_kern(ndim, dir, poly_order, diff_order);
+      break;
+    default:
+      return;
   }
 
   for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x * gridDim.x) {
@@ -38,7 +39,8 @@ __global__ void gkyl_dg_differentiate_op_local_cu_kernel(
   }
 }
 
-void gkyl_dg_differentiate_op_local_cu(
+void
+gkyl_dg_differentiate_op_local_cu(
   const struct gkyl_basis *basis, int dir, int diff_order, double dx, int c_oop,
   struct gkyl_array *out, int c_iop, const struct gkyl_array *inp
 )
@@ -48,7 +50,8 @@ void gkyl_dg_differentiate_op_local_cu(
   );
 }
 
-__global__ void gkyl_dg_differentiate_op_local_range_cu_kernel(
+__global__ void
+gkyl_dg_differentiate_op_local_range_cu_kernel(
   struct gkyl_basis basis, int dir, int diff_order, double dx, int c_oop, struct gkyl_array *out,
   int c_iop, const struct gkyl_array *inp, struct gkyl_range range
 )
@@ -59,14 +62,14 @@ __global__ void gkyl_dg_differentiate_op_local_range_cu_kernel(
 
   differentiate_op_t diff_op;
   switch (basis.b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    diff_op = choose_ser_differentiate_kern(ndim, dir, poly_order, diff_order);
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    diff_op = choose_ten_differentiate_kern(ndim, dir, poly_order, diff_order);
-    break;
-  default:
-    return;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      diff_op = choose_ser_differentiate_kern(ndim, dir, poly_order, diff_order);
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      diff_op = choose_ten_differentiate_kern(ndim, dir, poly_order, diff_order);
+      break;
+    default:
+      return;
   }
 
   int idx[GKYL_MAX_DIM];
@@ -87,7 +90,8 @@ __global__ void gkyl_dg_differentiate_op_local_range_cu_kernel(
   }
 }
 
-void gkyl_dg_differentiate_op_local_range_cu(
+void
+gkyl_dg_differentiate_op_local_range_cu(
   const struct gkyl_basis *basis, int dir, int diff_order, double dx, int c_oop,
   struct gkyl_array *out, int c_iop, const struct gkyl_array *inp, const struct gkyl_range *range
 )

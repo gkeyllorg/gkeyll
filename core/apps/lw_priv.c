@@ -53,22 +53,26 @@ static const struct gkyl_str_int_pair field_bcs[] = {
   {"bcFunc", GKYL_FIELD_FUNC},           {0, 0}
 };
 
-void gkyl_register_distribution_moment_types(lua_State *L)
+void
+gkyl_register_distribution_moment_types(lua_State *L)
 {
   register_types(L, distribution_moms, "Moment");
 }
 
-void gkyl_register_species_bc_types(lua_State *L)
+void
+gkyl_register_species_bc_types(lua_State *L)
 {
   register_types(L, species_bcs, "SpeciesBc");
 }
 
-void gkyl_register_field_bc_types(lua_State *L)
+void
+gkyl_register_field_bc_types(lua_State *L)
 {
   register_types(L, field_bcs, "FieldBc");
 }
 
-void gkyl_lw_eval_cb(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+gkyl_lw_eval_cb(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct lua_func_ctx *fr = ctx;
   lua_State *L = fr->L;

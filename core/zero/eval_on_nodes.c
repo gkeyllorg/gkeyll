@@ -23,7 +23,8 @@ struct gkyl_eval_on_nodes {
 };
 
 // Identity comp to phys coord mapping, for when user doesn't provide a map.
-static inline void c2p_identity(const double *xcomp, double *xphys, void *ctx)
+static inline void
+c2p_identity(const double *xcomp, double *xphys, void *ctx)
 {
   struct gkyl_rect_grid *grid = ctx;
   int ndim = grid->ndim;
@@ -32,22 +33,25 @@ static inline void c2p_identity(const double *xcomp, double *xphys, void *ctx)
   }
 }
 
-struct gkyl_eval_on_nodes *gkyl_eval_on_nodes_new(
+struct gkyl_eval_on_nodes *
+gkyl_eval_on_nodes_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_ret_vals, evalf_t eval,
   void *ctx
 )
 {
-  return gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp
-  ){.grid = grid,
+  return gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
+    .grid = grid,
     .basis = basis,
     .num_ret_vals = num_ret_vals,
     .eval = eval,
     .ctx = ctx,
     .c2p_func = 0,
-    .c2p_func_ctx = NULL});
+    .c2p_func_ctx = NULL,
+  });
 }
 
-struct gkyl_eval_on_nodes *gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp *inp)
+struct gkyl_eval_on_nodes *
+gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp *inp)
 {
   struct gkyl_eval_on_nodes *up = gkyl_malloc(sizeof(struct gkyl_eval_on_nodes));
 
@@ -73,7 +77,8 @@ struct gkyl_eval_on_nodes *gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nod
   return up;
 }
 
-static inline void log_to_comp(
+static inline void
+log_to_comp(
   int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
   double *GKYL_RESTRICT xout
 )
@@ -91,12 +96,14 @@ copy_double_arr(int n, const double *GKYL_RESTRICT inp, double *GKYL_RESTRICT ou
   }
 }
 
-double *gkyl_eval_on_nodes_fetch_node(const struct gkyl_eval_on_nodes *up, long node)
+double *
+gkyl_eval_on_nodes_fetch_node(const struct gkyl_eval_on_nodes *up, long node)
 {
   return gkyl_array_fetch(up->nodes, node);
 }
 
-void gkyl_eval_on_nodes_nod2mod(
+void
+gkyl_eval_on_nodes_nod2mod(
   const struct gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f
 )
 {
@@ -117,7 +124,8 @@ void gkyl_eval_on_nodes_nod2mod(
   }
 }
 
-void gkyl_eval_on_nodes_advance(
+void
+gkyl_eval_on_nodes_advance(
   const struct gkyl_eval_on_nodes *up, double tm, const struct gkyl_range *update_range,
   struct gkyl_array *arr
 )
@@ -153,7 +161,8 @@ void gkyl_eval_on_nodes_advance(
   gkyl_array_release(fun_at_nodes);
 }
 
-void gkyl_eval_on_nodes_release(struct gkyl_eval_on_nodes *up)
+void
+gkyl_eval_on_nodes_release(struct gkyl_eval_on_nodes *up)
 {
   gkyl_array_release(up->nodes);
   gkyl_free(up);

@@ -5,7 +5,8 @@
 #include <gkyl_dg_eval_at_coord_proj_priv.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_eval_at_coord_proj *gkyl_dg_eval_at_coord_proj_new(
+struct gkyl_dg_eval_at_coord_proj *
+gkyl_dg_eval_at_coord_proj_new(
   int cdim_do, const struct gkyl_basis *basis_do, int num_eval_dirs, const int *eval_dirs,
   bool use_gpu
 )
@@ -44,7 +45,8 @@ struct gkyl_dg_eval_at_coord_proj *gkyl_dg_eval_at_coord_proj_new(
   return up;
 }
 
-void gkyl_dg_eval_at_coord_proj_advance(
+void
+gkyl_dg_eval_at_coord_proj_advance(
   struct gkyl_dg_eval_at_coord_proj *up, const double *eval_coords,
   const struct gkyl_rect_grid *grid, const bool *pick_lower, const int *known_index,
   const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar, const struct gkyl_array *fdo,
@@ -111,7 +113,8 @@ void gkyl_dg_eval_at_coord_proj_advance(
   }
 }
 
-void gkyl_dg_eval_at_coord_proj_target_basis(
+void
+gkyl_dg_eval_at_coord_proj_target_basis(
   struct gkyl_dg_eval_at_coord_proj *up, int *cdim, int *ndim, enum gkyl_basis_type *btype,
   int *poly_order, int *num_basis
 )
@@ -119,7 +122,8 @@ void gkyl_dg_eval_at_coord_proj_target_basis(
   up->kers->basis_ker(cdim, ndim, btype, poly_order, num_basis);
 }
 
-void gkyl_dg_eval_at_coord_proj_release(struct gkyl_dg_eval_at_coord_proj *up)
+void
+gkyl_dg_eval_at_coord_proj_release(struct gkyl_dg_eval_at_coord_proj *up)
 {
   if (!up->use_gpu) {
     gkyl_free(up->kers);

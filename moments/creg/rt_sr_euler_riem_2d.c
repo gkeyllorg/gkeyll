@@ -13,7 +13,8 @@ struct sr_euler_ctx {
   double gas_gamma; // gas constant
 };
 
-void evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sr_euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
@@ -77,19 +78,22 @@ void evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[4] = 0.;
 }
 
-struct sr_euler_ctx sr_euler_ctx(void)
+struct sr_euler_ctx
+sr_euler_ctx(void)
 {
   return (struct sr_euler_ctx){.gas_gamma = 4. / 3.};
 }
 
-void write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
+void
+write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
     gkyl_moment_app_write(app, tcurr, iot->curr - 1);
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -115,7 +119,7 @@ int main(int argc, char **argv)
 
     .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
     .bcy = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-    .limiter = GKYL_MIN_MOD
+    .limiter = GKYL_MIN_MOD,
   };
 
   // VM app
@@ -129,7 +133,7 @@ int main(int argc, char **argv)
     .cfl_frac = 0.9,
 
     .num_species = 1,
-    .species = {fluid}
+    .species = {fluid},
   };
 
   // create app object

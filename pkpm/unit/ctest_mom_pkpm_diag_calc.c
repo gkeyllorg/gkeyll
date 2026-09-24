@@ -27,18 +27,21 @@
 static const double AVAL = 1.25;
 static const double BVAL = 0.60;
 
-static void eval_distf(double t, const double *xn, double *restrict fout, void *ctx)
+static void
+eval_distf(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = AVAL;
   fout[1] = BVAL;
 }
 
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-void test_mom_pkpm_diag_calc_1x1v_p1()
+void
+test_mom_pkpm_diag_calc_1x1v_p1()
 {
   int poly_order = 1;
   double mass = 2.0;

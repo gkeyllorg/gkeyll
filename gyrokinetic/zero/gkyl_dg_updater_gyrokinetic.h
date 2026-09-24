@@ -75,8 +75,9 @@ void gkyl_dg_updater_gyrokinetic_advance(
  * @param gyrokinetic Updater object
  * @return timers
  */
-struct gkyl_dg_updater_gyrokinetic_tm
-gkyl_dg_updater_gyrokinetic_get_tm(const gkyl_dg_updater_gyrokinetic *gyrokinetic);
+struct gkyl_dg_updater_gyrokinetic_tm gkyl_dg_updater_gyrokinetic_get_tm(
+  const gkyl_dg_updater_gyrokinetic *gyrokinetic
+);
 
 /**
  * Delete updater.

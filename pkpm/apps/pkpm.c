@@ -14,7 +14,8 @@
 #include <mpack.h>
 
 // returned gkyl_array_meta must be freed using pkpm_array_meta_release
-static struct gkyl_msgpack_data *pkpm_array_meta_new(struct pkpm_output_meta meta)
+static struct gkyl_msgpack_data *
+pkpm_array_meta_new(struct pkpm_output_meta meta)
 {
   struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
 
@@ -50,7 +51,8 @@ static struct gkyl_msgpack_data *pkpm_array_meta_new(struct pkpm_output_meta met
   return mt;
 }
 
-static void pkpm_array_meta_release(struct gkyl_msgpack_data *mt)
+static void
+pkpm_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) {
     return;
@@ -59,7 +61,8 @@ static void pkpm_array_meta_release(struct gkyl_msgpack_data *mt)
   gkyl_free(mt);
 }
 
-static struct pkpm_output_meta pkpm_meta_from_mpack(struct gkyl_msgpack_data *mt)
+static struct pkpm_output_meta
+pkpm_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
   struct pkpm_output_meta meta = {.frame = 0, .stime = 0.0};
 
@@ -89,7 +92,8 @@ static struct pkpm_output_meta pkpm_meta_from_mpack(struct gkyl_msgpack_data *mt
   return meta;
 }
 
-gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
+gkyl_pkpm_app *
+gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
 {
   disable_denorm_float();
 
@@ -131,43 +135,43 @@ gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
 
   // basis functions
   switch (pkpm->basis_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-    if (poly_order > 1) {
-      gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-      if (vdim > 0) {
-        gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
-      }
-    } else if (poly_order == 1) {
-      /* Force hybrid basis (p=2 in velocity space). */
-      gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
-      if (vdim > 0) {
-        gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
-      }
-    }
-
-    if (app->use_gpu) {
-      gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
       if (poly_order > 1) {
-        gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
+        gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
+        if (vdim > 0) {
+          gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
+        }
       } else if (poly_order == 1) {
         /* Force hybrid basis (p=2 in velocity space). */
-        gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim);
+        gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
+        if (vdim > 0) {
+          gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
+        }
       }
-    }
-    break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
-    gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-    if (vdim > 0) {
-      gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
-    }
-    break;
+      if (app->use_gpu) {
+        gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
+        if (poly_order > 1) {
+          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
+        } else if (poly_order == 1) {
+          /* Force hybrid basis (p=2 in velocity space). */
+          gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim);
+        }
+      }
+      break;
 
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
+      gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
+      if (vdim > 0) {
+        gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
+      }
+      break;
+
+    default:
+      assert(false);
+      break;
   }
 
   gkyl_rect_grid_init(&app->grid, cdim, pkpm->lower, pkpm->upper, pkpm->cells);
@@ -179,8 +183,10 @@ gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     int cuts[3] = {1, 1, 1};
     app->decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
 
-    app->comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp
-    ){.decomp = app->decomp, .use_gpu = app->use_gpu});
+    app->comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+      .decomp = app->decomp,
+      .use_gpu = app->use_gpu,
+    });
 
     // Global and local ranges are same, and so just copy them.
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
@@ -282,13 +288,17 @@ gkyl_pkpm_app *gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   }
 
   // initialize stat object
-  app->stat = (struct gkyl_pkpm_stat
-  ){.use_gpu = app->use_gpu, .stage_2_dt_diff = {DBL_MAX, 0.0}, .stage_3_dt_diff = {DBL_MAX, 0.0}};
+  app->stat = (struct gkyl_pkpm_stat){
+    .use_gpu = app->use_gpu,
+    .stage_2_dt_diff = {DBL_MAX, 0.0},
+    .stage_3_dt_diff = {DBL_MAX, 0.0},
+  };
 
   return app;
 }
 
-struct pkpm_species *pkpm_find_species(const gkyl_pkpm_app *app, const char *nm)
+struct pkpm_species *
+pkpm_find_species(const gkyl_pkpm_app *app, const char *nm)
 {
   for (int i = 0; i < app->num_species; ++i) {
     if (strcmp(nm, app->species[i].info.name) == 0) {
@@ -298,7 +308,8 @@ struct pkpm_species *pkpm_find_species(const gkyl_pkpm_app *app, const char *nm)
   return 0;
 }
 
-int pkpm_find_species_idx(const gkyl_pkpm_app *app, const char *nm)
+int
+pkpm_find_species_idx(const gkyl_pkpm_app *app, const char *nm)
 {
   for (int i = 0; i < app->num_species; ++i) {
     if (strcmp(nm, app->species[i].info.name) == 0) {
@@ -308,7 +319,8 @@ int pkpm_find_species_idx(const gkyl_pkpm_app *app, const char *nm)
   return -1;
 }
 
-void gkyl_pkpm_app_apply_ic(gkyl_pkpm_app *app, double t0)
+void
+gkyl_pkpm_app_apply_ic(gkyl_pkpm_app *app, double t0)
 {
   app->tcurr = t0;
   gkyl_pkpm_app_apply_ic_field(app, t0);
@@ -317,7 +329,8 @@ void gkyl_pkpm_app_apply_ic(gkyl_pkpm_app *app, double t0)
   }
 }
 
-void gkyl_pkpm_app_apply_ic_field(gkyl_pkpm_app *app, double t0)
+void
+gkyl_pkpm_app_apply_ic_field(gkyl_pkpm_app *app, double t0)
 {
   app->tcurr = t0;
 
@@ -333,7 +346,8 @@ void gkyl_pkpm_app_apply_ic_field(gkyl_pkpm_app *app, double t0)
   pkpm_field_calc_bvar(app, app->field, app->field->em);
 }
 
-void gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app *app, int sidx, double t0)
+void
+gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app *app, int sidx, double t0)
 {
   assert(sidx < app->num_species);
 
@@ -346,7 +360,8 @@ void gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app *app, int sidx, double t0)
   pkpm_fluid_species_apply_bc(app, &app->species[sidx], app->species[sidx].fluid);
 }
 
-void gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
+void
+gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
 {
   double avals[9], avals_global[9];
 
@@ -376,7 +391,8 @@ void gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
   app->stat.n_diag += app->num_species;
 }
 
-void gkyl_pkpm_app_calc_integrated_L2_f(gkyl_pkpm_app *app, double tm)
+void
+gkyl_pkpm_app_calc_integrated_L2_f(gkyl_pkpm_app *app, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
   for (int i = 0; i < app->num_species; ++i) {
@@ -387,7 +403,8 @@ void gkyl_pkpm_app_calc_integrated_L2_f(gkyl_pkpm_app *app, double tm)
   app->stat.n_diag += app->num_species;
 }
 
-void gkyl_pkpm_app_calc_field_energy(gkyl_pkpm_app *app, double tm)
+void
+gkyl_pkpm_app_calc_field_energy(gkyl_pkpm_app *app, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
   pkpm_field_calc_energy(app, tm, app->field);
@@ -395,7 +412,8 @@ void gkyl_pkpm_app_calc_field_energy(gkyl_pkpm_app *app, double tm)
   app->stat.n_diag += 1;
 }
 
-void gkyl_pkpm_app_write(gkyl_pkpm_app *app, double tm, int frame)
+void
+gkyl_pkpm_app_write(gkyl_pkpm_app *app, double tm, int frame)
 {
   app->stat.n_io += 1;
   struct timespec wtm = gkyl_wall_clock();
@@ -409,10 +427,15 @@ void gkyl_pkpm_app_write(gkyl_pkpm_app *app, double tm, int frame)
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
-void gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
+void
+gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta
-  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .poly_order = app->poly_order,
+    .basis_type = app->confBasis.id,
+  });
 
   const char *fmt = "%s-field_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, frame);
@@ -460,10 +483,15 @@ void gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
   pkpm_array_meta_release(mt);
 }
 
-void gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
+void
+gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta
-  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->basis.id});
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .poly_order = app->poly_order,
+    .basis_type = app->basis.id,
+  });
 
   struct pkpm_species *s = &app->species[sidx];
 
@@ -481,10 +509,15 @@ void gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int fr
   pkpm_array_meta_release(mt);
 }
 
-void gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
+void
+gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta
-  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .poly_order = app->poly_order,
+    .basis_type = app->confBasis.id,
+  });
 
   struct pkpm_species *s = &app->species[sidx];
 
@@ -530,7 +563,8 @@ void gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   pkpm_array_meta_release(mt);
 }
 
-void gkyl_pkpm_app_write_integrated_mom(gkyl_pkpm_app *app)
+void
+gkyl_pkpm_app_write_integrated_mom(gkyl_pkpm_app *app)
 {
   for (int i = 0; i < app->num_species; ++i) {
     int rank;
@@ -553,7 +587,8 @@ void gkyl_pkpm_app_write_integrated_mom(gkyl_pkpm_app *app)
   }
 }
 
-void gkyl_pkpm_app_write_integrated_L2_f(gkyl_pkpm_app *app)
+void
+gkyl_pkpm_app_write_integrated_L2_f(gkyl_pkpm_app *app)
 {
   for (int i = 0; i < app->num_species; ++i) {
     int rank;
@@ -578,7 +613,8 @@ void gkyl_pkpm_app_write_integrated_L2_f(gkyl_pkpm_app *app)
   }
 }
 
-void gkyl_pkpm_app_write_field_energy(gkyl_pkpm_app *app)
+void
+gkyl_pkpm_app_write_field_energy(gkyl_pkpm_app *app)
 {
   // write out diagnostic moments
   const char *fmt = "%s-field-energy.gkyl";
@@ -602,7 +638,8 @@ void gkyl_pkpm_app_write_field_energy(gkyl_pkpm_app *app)
   gkyl_dynvec_clear(app->field->integ_energy);
 }
 
-void gkyl_pkpm_app_train(
+void
+gkyl_pkpm_app_train(
   gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann, int num_input_moms,
   int *input_moms, int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data,
   struct gkyl_kn_vec *output_data
@@ -616,7 +653,8 @@ void gkyl_pkpm_app_train(
   }
 }
 
-void gkyl_pkpm_app_train_mom(
+void
+gkyl_pkpm_app_train_mom(
   gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann,
   int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
   struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
@@ -688,7 +726,7 @@ void gkyl_pkpm_app_train_mom(
     .mini_size = 64,
     .max_epoch = 50,
     .max_drop_streak = 10,
-    .frac_val = 0.1f
+    .frac_val = 0.1f,
   };
 
   if (gkyl_kann_net_is_cu_dev(ann[sidx])) {
@@ -707,14 +745,16 @@ void gkyl_pkpm_app_train_mom(
   }
 }
 
-void gkyl_pkpm_app_write_nn(gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann)
+void
+gkyl_pkpm_app_write_nn(gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann)
 {
   for (int i = 0; i < app->num_species; i++) {
     gkyl_pkpm_app_write_nn_mom(app, i, tm, frame, ann);
   }
 }
 
-void gkyl_pkpm_app_write_nn_mom(
+void
+gkyl_pkpm_app_write_nn_mom(
   gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann
 )
 {
@@ -728,7 +768,8 @@ void gkyl_pkpm_app_write_nn_mom(
   gkyl_kann_net_save(ann[sidx], fileNm);
 }
 
-void gkyl_pkpm_app_test(
+void
+gkyl_pkpm_app_test(
   gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann, int num_input_moms,
   int *input_moms, int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data_real,
   struct gkyl_kn_vec *output_data_real, struct gkyl_kn_vec *output_data_predicted
@@ -742,15 +783,20 @@ void gkyl_pkpm_app_test(
   }
 }
 
-void gkyl_pkpm_app_test_mom(
+void
+gkyl_pkpm_app_test_mom(
   gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann,
   int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
   struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
   struct gkyl_kn_vec *output_data_predicted
 )
 {
-  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta
-  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .poly_order = app->poly_order,
+    .basis_type = app->confBasis.id,
+  });
 
   struct pkpm_species *s = &app->species[sidx];
   pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
@@ -919,7 +965,8 @@ void gkyl_pkpm_app_test_mom(
   }
 }
 
-struct gkyl_update_status gkyl_pkpm_update(gkyl_pkpm_app *app, double dt)
+struct gkyl_update_status
+gkyl_pkpm_update(gkyl_pkpm_app *app, double dt)
 {
   app->stat.nup += 1;
 
@@ -936,7 +983,8 @@ struct gkyl_update_status gkyl_pkpm_update(gkyl_pkpm_app *app, double dt)
   return status;
 }
 
-struct gkyl_pkpm_stat gkyl_pkpm_app_stat(gkyl_pkpm_app *app)
+struct gkyl_pkpm_stat
+gkyl_pkpm_app_stat(gkyl_pkpm_app *app)
 {
   pkpm_species_tm(app);
   pkpm_species_coll_tm(app);
@@ -954,7 +1002,8 @@ range_stat_write(gkyl_pkpm_app *app, const char *nm, const struct gkyl_range *r,
 }
 
 // ensure stats across processors are made consistent
-static void comm_reduce_app_stat(
+static void
+comm_reduce_app_stat(
   const gkyl_pkpm_app *app, const struct gkyl_pkpm_stat *local, struct gkyl_pkpm_stat *global
 )
 {
@@ -972,7 +1021,7 @@ static void comm_reduce_app_stat(
     [NUP] = local->nup,
     [NFEULER] = local->nfeuler,
     [NSTAGE_2_FAIL] = local->nstage_2_fail,
-    [NSTAGE_3_FAIL] = local->nstage_3_fail
+    [NSTAGE_3_FAIL] = local->nstage_3_fail,
   };
 
   int64_t l_red_global[L_END];
@@ -1029,7 +1078,7 @@ static void comm_reduce_app_stat(
     [IO_TM] = local->io_tm,
     [SPECIES_BC_TM] = local->species_bc_tm,
     [FLUID_SPECIES_BC_TM] = local->fluid_species_bc_tm,
-    [FIELD_BC_TM] = local->field_bc_tm
+    [FIELD_BC_TM] = local->field_bc_tm,
   };
 
   double d_red_global[D_END];
@@ -1076,7 +1125,8 @@ static void comm_reduce_app_stat(
   );
 }
 
-void gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
+void
+gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
 {
   const char *fmt = "%s-%s";
   int sz = gkyl_calc_strlen(fmt, app->name, "stat.json");
@@ -1181,7 +1231,8 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
   }
 }
 
-static struct gkyl_app_restart_status header_from_file(gkyl_pkpm_app *app, const char *fname)
+static struct gkyl_app_restart_status
+header_from_file(gkyl_pkpm_app *app, const char *fname)
 {
   struct gkyl_app_restart_status rstat = {.io_status = 0};
 
@@ -1210,7 +1261,8 @@ static struct gkyl_app_restart_status header_from_file(gkyl_pkpm_app *app, const
   return rstat;
 }
 
-struct gkyl_app_restart_status gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
 {
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 
@@ -1285,7 +1337,8 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx, const char *
   return rstat;
 }
 
-struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app, int frame)
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app, int frame)
 {
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
   struct gkyl_app_restart_status rstat = gkyl_pkpm_app_from_file_field(app, fileNm.str);
@@ -1314,7 +1367,8 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
   return rstat;
 }
 
-struct gkyl_app_restart_status gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame)
+struct gkyl_app_restart_status
+gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
 
@@ -1328,7 +1382,8 @@ struct gkyl_app_restart_status gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app,
 }
 
 // private function to handle variable argument list for printing
-static void v_pkpm_app_cout(const gkyl_pkpm_app *app, FILE *fp, const char *fmt, va_list argp)
+static void
+v_pkpm_app_cout(const gkyl_pkpm_app *app, FILE *fp, const char *fmt, va_list argp)
 {
   int rank, r = 0;
   gkyl_comm_get_rank(app->comm, &rank);
@@ -1338,7 +1393,8 @@ static void v_pkpm_app_cout(const gkyl_pkpm_app *app, FILE *fp, const char *fmt,
   }
 }
 
-void gkyl_pkpm_app_cout(const gkyl_pkpm_app *app, FILE *fp, const char *fmt, ...)
+void
+gkyl_pkpm_app_cout(const gkyl_pkpm_app *app, FILE *fp, const char *fmt, ...)
 {
   va_list argp;
   va_start(argp, fmt);
@@ -1346,7 +1402,8 @@ void gkyl_pkpm_app_cout(const gkyl_pkpm_app *app, FILE *fp, const char *fmt, ...
   va_end(argp);
 }
 
-void gkyl_pkpm_app_release(gkyl_pkpm_app *app)
+void
+gkyl_pkpm_app_release(gkyl_pkpm_app *app)
 {
   for (int i = 0; i < app->num_species; ++i) {
     pkpm_species_release(app, &app->species[i]);

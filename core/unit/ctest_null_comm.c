@@ -5,7 +5,8 @@
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_null_comm.h>
 
-void test_null_comm_1d_ho()
+void
+test_null_comm_1d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 1, (int[]){1}, (int[]){100});
@@ -81,7 +82,8 @@ void test_null_comm_1d_ho()
   gkyl_array_release(arr);
 }
 
-void test_null_comm_allgather_1d_ho()
+void
+test_null_comm_allgather_1d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 1, (int[]){1}, (int[]){100});
@@ -139,7 +141,8 @@ void test_null_comm_allgather_1d_ho()
   gkyl_array_release(arr_recv);
 }
 
-void test_null_comm_bcast_1d_ho()
+void
+test_null_comm_bcast_1d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 1, (int[]){1}, (int[]){100});
@@ -197,7 +200,8 @@ void test_null_comm_bcast_1d_ho()
   gkyl_array_release(arr_recv);
 }
 
-void test_null_comm_2d_ho()
+void
+test_null_comm_2d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]){1, 1}, (int[]){4, 4});
@@ -269,7 +273,8 @@ void test_null_comm_2d_ho()
   gkyl_array_release(arr);
 }
 
-void test_null_comm_bcast_2d_ho()
+void
+test_null_comm_bcast_2d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]){1, 1}, (int[]){4, 4});
@@ -330,7 +335,8 @@ void test_null_comm_bcast_2d_ho()
   gkyl_array_release(arr_recv);
 }
 
-void test_null_comm_allgather_2d_ho()
+void
+test_null_comm_allgather_2d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]){1, 1}, (int[]){4, 4});
@@ -392,7 +398,8 @@ void test_null_comm_allgather_2d_ho()
   gkyl_array_release(arr_recv);
 }
 
-void test_null_comm_io_2d_ho()
+void
+test_null_comm_io_2d_ho()
 {
   int cells[] = {32, 32};
   struct gkyl_range range;
@@ -452,7 +459,8 @@ void test_null_comm_io_2d_ho()
   gkyl_array_release(arr_rw);
 }
 
-void test_null_comm_io_p1_p4_ho(void)
+void
+test_null_comm_io_p1_p4_ho(void)
 {
   struct gkyl_rect_grid grid;
   struct gkyl_array_header_info hdr;

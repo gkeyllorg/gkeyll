@@ -8,7 +8,8 @@
 #include <gkyl_dg_lbo_vlasov_drag.h>
 #include <gkyl_dg_lbo_vlasov_drag_priv.h>
 
-void test_lbo_drag_1x1v()
+void
+test_lbo_drag_1x1v()
 {
   int cdim = 1, vdim = 1, pdim = cdim + vdim;
   int poly_order = 2;
@@ -48,7 +49,8 @@ void test_lbo_drag_1x1v()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_lbo_drag_1x2v()
+void
+test_lbo_drag_1x2v()
 {
   int cdim = 1, vdim = 2, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;
@@ -79,7 +81,8 @@ void test_lbo_drag_1x2v()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_lbo_drag_2x2v()
+void
+test_lbo_drag_2x2v()
 {
   int cdim = 2, vdim = 2, pdim = cdim + vdim;
   struct gkyl_basis cbasis, pbasis;

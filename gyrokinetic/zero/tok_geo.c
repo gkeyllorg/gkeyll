@@ -16,7 +16,8 @@
 #include <math.h>
 #include <string.h>
 
-double tok_plate_psi_func(double s, void *ctx)
+double
+tok_plate_psi_func(double s, void *ctx)
 {
   // uses a pointer to the plate function to get R(s), Z(s)
   // Then calculates psi(R, Z)
@@ -65,7 +66,8 @@ double tok_plate_psi_func(double s, void *ctx)
 }
 
 // Function to pass to root-finder to find Z location for given arc-length
-static inline double arc_length_func(double Z, void *ctx)
+static inline double
+arc_length_func(double Z, void *ctx)
 {
   struct arc_length_ctx *actx = ctx;
   double *arc_memo;
@@ -186,7 +188,8 @@ static inline double arc_length_func(double Z, void *ctx)
 }
 
 // Function to calculate phi given alpha
-double phi_func(double alpha_curr, double Z, void *ctx)
+double
+phi_func(double alpha_curr, double Z, void *ctx)
 {
   struct arc_length_ctx *actx = ctx;
   double *arc_memo = actx->arc_memo;
@@ -388,7 +391,8 @@ double phi_func(double alpha_curr, double Z, void *ctx)
   return alpha_curr + ival + phi_ref;
 }
 
-double qprofile_func(void *ctx)
+double
+qprofile_func(void *ctx)
 {
   // Function to calculate the flux surface averaged q profile.
 
@@ -479,7 +483,8 @@ double qprofile_func(void *ctx)
   return qout;
 }
 
-static double dphidtheta_func(double Z, void *ctx)
+static double
+dphidtheta_func(double Z, void *ctx)
 {
   struct arc_length_ctx *actx = ctx;
   double *arc_memo = actx->arc_memo;
@@ -518,7 +523,8 @@ static double dphidtheta_func(double Z, void *ctx)
   return integrand;
 }
 
-static double bmag_func(double r_curr, double Z, void *ctx)
+static double
+bmag_func(double r_curr, double Z, void *ctx)
 {
   struct arc_length_ctx *actx = ctx;
   double *arc_memo = actx->arc_memo;
@@ -771,14 +777,16 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
   return geo;
 }
 
-double gkyl_tok_geo_integrate_psi_contour(
+double
+gkyl_tok_geo_integrate_psi_contour(
   const struct gkyl_tok_geo *geo, double psi, double zmin, double zmax, double rclose
 )
 {
   return integrate_psi_contour_memo(geo, psi, zmin, zmax, rclose, false, false, 0);
 }
 
-int gkyl_tok_geo_R_psiZ(
+int
+gkyl_tok_geo_R_psiZ(
   const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots, double *R, double *dRdZ,
   double *dR, double *dZ
 )
@@ -790,7 +798,8 @@ int gkyl_tok_geo_R_psiZ(
   }
 }
 
-void gkyl_tok_geo_calc(
+void
+gkyl_tok_geo_calc(
   struct gk_geometry *up, struct gkyl_range *nrange, struct gkyl_tok_geo *geo,
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map
 )
@@ -826,7 +835,7 @@ void gkyl_tok_geo_calc(
     .arc_memo_right = arc_memo_right,
     .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
-    .zmaxis = geo->zmaxis
+    .zmaxis = geo->zmaxis,
   };
   struct plate_ctx pctx = {.geo = geo};
 
@@ -1088,7 +1097,8 @@ void gkyl_tok_geo_calc(
   gkyl_free(arc_memo_right);
 }
 
-void gkyl_tok_geo_calc_interior(
+void
+gkyl_tok_geo_calc_interior(
   struct gk_geometry *up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo,
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map
 )
@@ -1136,7 +1146,7 @@ void gkyl_tok_geo_calc_interior(
     .arc_memo_right = arc_memo_right,
     .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
-    .zmaxis = geo->zmaxis
+    .zmaxis = geo->zmaxis,
   };
   struct plate_ctx pctx = {.geo = geo};
 
@@ -1393,7 +1403,8 @@ void gkyl_tok_geo_calc_interior(
   gkyl_free(arc_memo_right);
 }
 
-void gkyl_tok_geo_calc_surface(
+void
+gkyl_tok_geo_calc_surface(
   struct gk_geometry *up, int dir, struct gkyl_range *nrange, double dzc[3],
   struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp,
   struct gkyl_position_map *position_map
@@ -1442,7 +1453,7 @@ void gkyl_tok_geo_calc_surface(
     .arc_memo_right = arc_memo_right,
     .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
-    .zmaxis = geo->zmaxis
+    .zmaxis = geo->zmaxis,
   };
   struct plate_ctx pctx = {.geo = geo};
 
@@ -1710,19 +1721,22 @@ void gkyl_tok_geo_calc_surface(
   gkyl_free(arc_memo_right);
 }
 
-void gkyl_tok_geo_set_extent(
+void
+gkyl_tok_geo_set_extent(
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up
 )
 {
   tok_geo_set_extent(inp, geo, theta_lo, theta_up);
 }
 
-struct gkyl_tok_geo_stat gkyl_tok_geo_get_stat(const struct gkyl_tok_geo *geo)
+struct gkyl_tok_geo_stat
+gkyl_tok_geo_get_stat(const struct gkyl_tok_geo *geo)
 {
   return geo->stat;
 }
 
-void gkyl_tok_geo_release(struct gkyl_tok_geo *geo)
+void
+gkyl_tok_geo_release(struct gkyl_tok_geo *geo)
 {
   gkyl_array_release(geo->psiRZ);
   gkyl_array_release(geo->psiRZ_cubic);

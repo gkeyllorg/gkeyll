@@ -59,8 +59,9 @@ void gkyl_dg_updater_rad_gyrokinetic_advance(
  * @param rad Updater object
  * @return timers
  */
-struct gkyl_dg_updater_rad_gyrokinetic_tm
-gkyl_dg_updater_rad_gyrokinetic_get_tm(const struct gkyl_dg_updater_collisions *coll);
+struct gkyl_dg_updater_rad_gyrokinetic_tm gkyl_dg_updater_rad_gyrokinetic_get_tm(
+  const struct gkyl_dg_updater_collisions *coll
+);
 
 /**
  * Delete updater.

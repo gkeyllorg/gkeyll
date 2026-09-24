@@ -11,7 +11,8 @@
 #include <gkyl_wv_eqn.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_new(
+gkyl_dg_calc_pkpm_vars *
+gkyl_dg_calc_pkpm_vars_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
   const struct gkyl_range *mem_range, const struct gkyl_wv_eqn *wv_eqn,
   const struct gkyl_wave_geom *geom, double limiter_fac, bool use_gpu
@@ -89,7 +90,8 @@ gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_new(
   return up;
 }
 
-void gkyl_dg_calc_pkpm_vars_advance(
+void
+gkyl_dg_calc_pkpm_vars_advance(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_array *vlasov_pkpm_moms,
   const struct gkyl_array *euler_pkpm, const struct gkyl_array *p_ij,
   const struct gkyl_array *pkpm_div_ppar, struct gkyl_array *cell_avg_prim, struct gkyl_array *prim,
@@ -144,7 +146,8 @@ void gkyl_dg_calc_pkpm_vars_advance(
   }
 }
 
-void gkyl_dg_calc_pkpm_vars_u(
+void
+gkyl_dg_calc_pkpm_vars_u(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_array *vlasov_pkpm_moms,
   const struct gkyl_array *euler_pkpm, struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u
 )
@@ -191,7 +194,8 @@ void gkyl_dg_calc_pkpm_vars_u(
   }
 }
 
-void gkyl_dg_calc_pkpm_vars_pressure(
+void
+gkyl_dg_calc_pkpm_vars_pressure(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *bvar, const struct gkyl_array *vlasov_pkpm_moms, struct gkyl_array *p_ij
 )
@@ -216,7 +220,8 @@ void gkyl_dg_calc_pkpm_vars_pressure(
   }
 }
 
-void gkyl_dg_calc_pkpm_vars_accel(
+void
+gkyl_dg_calc_pkpm_vars_accel(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *prim_surf, const struct gkyl_array *prim, const struct gkyl_array *bvar,
   const struct gkyl_array *div_b, const struct gkyl_array *nu, struct gkyl_array *pkpm_accel
@@ -271,7 +276,8 @@ void gkyl_dg_calc_pkpm_vars_accel(
   }
 }
 
-void gkyl_dg_calc_pkpm_vars_penalization(
+void
+gkyl_dg_calc_pkpm_vars_penalization(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *conf_range_ext, const struct gkyl_array *vlasov_pkpm_moms,
   const struct gkyl_array *p_ij, const struct gkyl_array *prim, const struct gkyl_array *euler_pkpm,
@@ -354,7 +360,8 @@ void gkyl_dg_calc_pkpm_vars_penalization(
   }
 }
 
-void gkyl_dg_calc_pkpm_integrated_vars(
+void
+gkyl_dg_calc_pkpm_integrated_vars(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
   const struct gkyl_array *prim, struct gkyl_array *pkpm_int_vars
@@ -384,7 +391,8 @@ void gkyl_dg_calc_pkpm_integrated_vars(
   }
 }
 
-void gkyl_dg_calc_pkpm_vars_source(
+void
+gkyl_dg_calc_pkpm_vars_source(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *qmem, const struct gkyl_array *vlasov_pkpm_moms,
   const struct gkyl_array *euler_pkpm, struct gkyl_array *rhs
@@ -410,7 +418,8 @@ void gkyl_dg_calc_pkpm_vars_source(
   }
 }
 
-void gkyl_dg_calc_pkpm_vars_io(
+void
+gkyl_dg_calc_pkpm_vars_io(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
   const struct gkyl_array *p_ij, const struct gkyl_array *prim, const struct gkyl_array *pkpm_accel,
@@ -446,7 +455,8 @@ void gkyl_dg_calc_pkpm_vars_io(
   }
 }
 
-void gkyl_dg_calc_pkpm_vars_limiter(
+void
+gkyl_dg_calc_pkpm_vars_limiter(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *prim, const struct gkyl_array *vlasov_pkpm_moms,
   const struct gkyl_array *p_ij, struct gkyl_array *fluid
@@ -498,7 +508,8 @@ void gkyl_dg_calc_pkpm_vars_limiter(
   }
 }
 
-void gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
+void
+gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
 {
   gkyl_wv_eqn_release(up->wv_eqn);
   gkyl_wave_geom_release(up->geom);

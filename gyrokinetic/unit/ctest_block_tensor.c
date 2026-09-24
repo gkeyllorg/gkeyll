@@ -16,7 +16,8 @@
 #include <gkyl_bc_block_tensor.h>
 #include <gkyl_bc_block_tensor_priv.h>
 
-void proj_one(double t, const double *xn, double *fout, void *ctx)
+void
+proj_one(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = 1;
   fout[1] = 0;
@@ -29,7 +30,8 @@ void proj_one(double t, const double *xn, double *fout, void *ctx)
   fout[8] = 1;
 }
 
-void proj_cyl(double t, const double *xn, double *fout, void *ctx)
+void
+proj_cyl(double t, const double *xn, double *fout, void *ctx)
 {
   double r = xn[0];
   double theta = xn[1];
@@ -47,7 +49,8 @@ void proj_cyl(double t, const double *xn, double *fout, void *ctx)
   fout[8] = r * cos(theta);
 }
 
-void test_cartesian_2x_onecell()
+void
+test_cartesian_2x_onecell()
 {
   double lower[] = {-1, -1}, upper[] = {1, 1};
   int cells[] = {8, 16};
@@ -106,7 +109,8 @@ void test_cartesian_2x_onecell()
   gkyl_bc_block_tensor_release(bt);
 }
 
-void test_block_tensor_cartesian_2x_z_ho()
+void
+test_block_tensor_cartesian_2x_z_ho()
 {
   // Block 2 grid
   double lower2[] = {-1.0, 0.0}, upper2[] = {1.0, 1.0};
@@ -158,7 +162,8 @@ void test_block_tensor_cartesian_2x_z_ho()
   gkyl_bc_block_tensor_release(bt);
 }
 
-void test_block_tensor_cartesian_2x_x_ho()
+void
+test_block_tensor_cartesian_2x_x_ho()
 {
   // Block 2 grid
   double lower2[] = {-1.0, 0.0}, upper2[] = {1.0, 1.0};
@@ -212,7 +217,8 @@ void test_block_tensor_cartesian_2x_x_ho()
 
 // Block 2 cartesian and block 1 is cylindrical
 // Make it such that the blocks line up
-void test_block_tensor_cyl_cart_2x_z_ho()
+void
+test_block_tensor_cyl_cart_2x_z_ho()
 {
   // Block 2 grid
   double lower2[] = {0.5, -1.0}, upper2[] = {1.0, 0.0};
@@ -264,7 +270,8 @@ void test_block_tensor_cyl_cart_2x_z_ho()
   gkyl_bc_block_tensor_release(bt);
 }
 
-void test_cartesian_3x_onecell()
+void
+test_cartesian_3x_onecell()
 {
   double lower[] = {-1, -1, -1}, upper[] = {1, 1, 1};
   int cells[] = {8, 16, 4};

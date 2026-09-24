@@ -95,8 +95,9 @@ void gkyl_gk_block_geom_reset_block_extents(
  * @return Geometry info for block @a bidx
  *
  */
-const struct gkyl_gk_block_geom_info *
-gkyl_gk_block_geom_get_block(const struct gkyl_gk_block_geom *bgeom, int bidx);
+const struct gkyl_gk_block_geom_info *gkyl_gk_block_geom_get_block(
+  const struct gkyl_gk_block_geom *bgeom, int bidx
+);
 
 /**
  * Check consistency of block geometry: the geometry typically has

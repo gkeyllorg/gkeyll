@@ -12,7 +12,8 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-void test_mom_vlasov_ho()
+void
+test_mom_vlasov_ho()
 {
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
@@ -35,19 +36,22 @@ void test_mom_vlasov_ho()
   gkyl_mom_type_release(m3ijk);
 }
 
-void evalFunc(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1];
   fout[0] = (x * x) * (vx - 0.5) * (vx - 0.5);
 }
 
-void evalFuncSimple(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFuncSimple(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1];
   fout[0] = 1. / (2.0 - (-2.0));
 }
 
-void evalFunc4d(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc4d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double vx = xn[2], vy = xn[3];
@@ -55,13 +59,15 @@ void evalFunc4d(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 // allocate cu_dev array
-static struct gkyl_array *mkarr_cu(long nc, long size)
+static struct gkyl_array *
+mkarr_cu(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
   return a;
@@ -76,7 +82,8 @@ struct skin_ghost_ranges {
 };
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(
+static void
+skin_ghost_ranges_init(
   struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost
 )
 {
@@ -92,7 +99,8 @@ static void skin_ghost_ranges_init(
   }
 }
 
-void test_mom_vlasov_1x1v_p1_ho()
+void
+test_mom_vlasov_1x1v_p1_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
@@ -247,7 +255,8 @@ void test_mom_vlasov_1x1v_p1_ho()
   gkyl_array_release(distf);
 }
 
-void test_mom_vlasov_1x2v_p1_ho()
+void
+test_mom_vlasov_1x2v_p1_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
@@ -362,7 +371,8 @@ void test_mom_vlasov_1x2v_p1_ho()
   gkyl_array_release(distf);
 }
 
-void test_mom_vlasov_2x2v_p1_ho()
+void
+test_mom_vlasov_2x2v_p1_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
@@ -483,7 +493,8 @@ void test_mom_vlasov_2x2v_p1_ho()
   gkyl_array_release(distf);
 }
 
-void test_mom_vlasov_big_2x2v_p2_ho()
+void
+test_mom_vlasov_big_2x2v_p2_ho()
 {
   int poly_order = 2;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
@@ -604,7 +615,8 @@ void test_mom_vlasov_big_2x2v_p2_ho()
   gkyl_array_release(distf);
 }
 
-void test_mom_vlasov_2x3v_p1_ho()
+void
+test_mom_vlasov_2x3v_p1_ho()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0, 2.0};
@@ -728,7 +740,8 @@ void test_mom_vlasov_2x3v_p1_ho()
 #ifdef GKYL_HAVE_CUDA
 int cu_mom_vlasov_test(const struct gkyl_mom_type *mom);
 
-void test_mom_vlasov_dev()
+void
+test_mom_vlasov_dev()
 {
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
@@ -745,7 +758,8 @@ void test_mom_vlasov_dev()
   gkyl_cu_free(m2ij);
 }
 
-void test_mom_vlasov_1x1v_p1_dev()
+void
+test_mom_vlasov_1x1v_p1_dev()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
@@ -884,7 +898,8 @@ void test_mom_vlasov_1x1v_p1_dev()
   gkyl_proj_on_basis_release(projDistf);
 }
 
-void test_mom_vlasov_1x2v_p1_dev()
+void
+test_mom_vlasov_1x2v_p1_dev()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
@@ -1014,7 +1029,8 @@ void test_mom_vlasov_1x2v_p1_dev()
   gkyl_proj_on_basis_release(projDistf);
 }
 
-void test_mom_vlasov_2x2v_p1_dev()
+void
+test_mom_vlasov_2x2v_p1_dev()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
@@ -1150,7 +1166,8 @@ void test_mom_vlasov_2x2v_p1_dev()
   gkyl_proj_on_basis_release(projDistf);
 }
 
-void test_mom_vlasov_2x3v_p1_dev()
+void
+test_mom_vlasov_2x3v_p1_dev()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0, 2.0};
@@ -1286,7 +1303,8 @@ void test_mom_vlasov_2x3v_p1_dev()
   gkyl_proj_on_basis_release(projDistf);
 }
 
-void test_mom_vlasov_big_2x2v_p2_dev()
+void
+test_mom_vlasov_big_2x2v_p2_dev()
 {
   int poly_order = 2;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};

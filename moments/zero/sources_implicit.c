@@ -6,7 +6,8 @@
 #include <gkyl_sources_explicit_priv.h>
 #include <gkyl_sources_implicit_priv.h>
 
-void pressure_tensor_rotate(
+void
+pressure_tensor_rotate(
   double q_over_m, double dt, const double *em, const double *ext_em, double p_tensor_old[6],
   double p_tensor_rhs[6], double p_tensor_new[6]
 )
@@ -224,7 +225,8 @@ void pressure_tensor_rotate(
     p_tensor_old[5];
 }
 
-void implicit_em_source_update(
+void
+implicit_em_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
   double fluid_rhs_s[GKYL_MAX_SPECIES][4], double *fluid_s[GKYL_MAX_SPECIES],
   const double *app_accel_s[GKYL_MAX_SPECIES], double *em, const double *app_current,
@@ -388,7 +390,8 @@ void implicit_em_source_update(
   }
 }
 
-void implicit_neut_source_update(
+void
+implicit_neut_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
   double fluid_rhs_s[GKYL_MAX_SPECIES][4], double *fluid_s[GKYL_MAX_SPECIES],
   const double *app_accel_s[GKYL_MAX_SPECIES], const double *p_rhs_s[GKYL_MAX_SPECIES]
@@ -456,7 +459,8 @@ void implicit_neut_source_update(
   }
 }
 
-void implicit_collision_source_update(
+void
+implicit_collision_source_update(
   const gkyl_moment_em_coupling *mom_em, double dt, double *fluid_s[GKYL_MAX_SPECIES]
 )
 {
@@ -627,7 +631,8 @@ void implicit_collision_source_update(
   gkyl_mat_release(rhs_T_mat);
 }
 
-void implicit_frictional_source_update_half(
+void
+implicit_frictional_source_update_half(
   const gkyl_moment_em_coupling *mom_em, const double Z, const double T_elc, const double Lambda_ee,
   double t_curr, const double dt, double *f_elc_old, double *f_ion_old, double *f_elc_new,
   double *f_ion_new, const double *app_accel_s[GKYL_MAX_SPECIES], double *em_old, double *em_new,
@@ -744,7 +749,8 @@ void implicit_frictional_source_update_half(
   }
 }
 
-void implicit_frictional_source_update(
+void
+implicit_frictional_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES], const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
   const double *app_current, const double *ext_em
@@ -794,7 +800,8 @@ void implicit_frictional_source_update(
   }
 }
 
-void implicit_source_coupling_update(
+void
+implicit_source_coupling_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
   double *fluid_s[GKYL_MAX_SPECIES], const double *app_accel_s[GKYL_MAX_SPECIES],
   const double *p_rhs_s[GKYL_MAX_SPECIES], double *em, const double *app_current,

@@ -19,25 +19,25 @@ __global__ void static dg_maxwell_set_cu_dev_ptrs(
   const gkyl_dg_maxwell_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_x_kernels = ser_surf_x_kernels;
-    surf_y_kernels = ser_surf_y_kernels;
-    surf_z_kernels = ser_surf_z_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_x_kernels = ser_surf_x_kernels;
+      surf_y_kernels = ser_surf_y_kernels;
+      surf_z_kernels = ser_surf_z_kernels;
 
-    break;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    vol_kernels = ten_vol_kernels;
-    surf_x_kernels = ten_surf_x_kernels;
-    surf_y_kernels = ten_surf_y_kernels;
-    surf_z_kernels = ten_surf_z_kernels;
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_x_kernels = ten_surf_x_kernels;
+      surf_y_kernels = ten_surf_y_kernels;
+      surf_z_kernels = ten_surf_z_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   maxwell->eqn.surf_term = surf;
@@ -54,7 +54,8 @@ __global__ void static dg_maxwell_set_cu_dev_ptrs(
   }
 }
 
-struct gkyl_dg_eqn *gkyl_dg_maxwell_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_maxwell_cu_dev_new(
   const struct gkyl_basis *cbasis, double lightSpeed, double elcErrorSpeedFactor,
   double mgnErrorSpeedFactor
 )

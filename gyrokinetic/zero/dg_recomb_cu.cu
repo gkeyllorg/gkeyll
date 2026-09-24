@@ -12,7 +12,8 @@ extern "C" {
 #include <gkyl_const.h>
 }
 
-__global__ static void gkyl_recomb_react_rate_cu_ker(
+__global__ static void
+gkyl_recomb_react_rate_cu_ker(
   const struct gkyl_dg_recomb *up, const struct gkyl_range conf_rng,
   const struct gkyl_range adas_rng, const struct gkyl_basis *adas_basis,
   const struct gkyl_array *prim_vars_elc, struct gkyl_array *coef_recomb,
@@ -79,7 +80,8 @@ __global__ static void gkyl_recomb_react_rate_cu_ker(
   }
 }
 
-void gkyl_dg_recomb_coll_cu(
+void
+gkyl_dg_recomb_coll_cu(
   const struct gkyl_dg_recomb *up, const struct gkyl_array *prim_vars_elc,
   struct gkyl_array *coef_recomb, struct gkyl_array *cflrate
 )

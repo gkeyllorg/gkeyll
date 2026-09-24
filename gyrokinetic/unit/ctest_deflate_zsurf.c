@@ -16,21 +16,24 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_fem_poisson.h>
 
-void proj_func(double t, const double *xn, double *fout, void *ctx)
+void
+proj_func(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
   fout[0] = z * cos(x);
 }
 
-void proj_func2(double t, const double *xn, double *fout, void *ctx)
+void
+proj_func2(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
   fout[0] = sin((2. * M_PI / (2. * M_PI)) * x);
 }
 
-void evalFunc1x_neumannx_dirichletx(double t, const double *xn, double *restrict fout, void *ctx)
+void
+evalFunc1x_neumannx_dirichletx(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double a = 5.0;
@@ -39,7 +42,8 @@ void evalFunc1x_neumannx_dirichletx(double t, const double *xn, double *restrict
   fout[0] = -(1. - a * pow(x, 2));
 }
 
-void check_same(
+void
+check_same(
   struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
   struct gkyl_array *field2
 )
@@ -56,7 +60,8 @@ void check_same(
   }
 }
 
-void test_deflate_inflate(bool use_gpu)
+void
+test_deflate_inflate(bool use_gpu)
 {
   // Create the 2d field.
   // Create xz grid.
@@ -216,7 +221,8 @@ void test_deflate_inflate(bool use_gpu)
   gkyl_deflate_zsurf_release(deflator_up);
 }
 
-void test_deflate_zsurf_poisson_slices_ho()
+void
+test_deflate_zsurf_poisson_slices_ho()
 {
   // Create the 2d field.
   // Create xz grid.
@@ -391,11 +397,13 @@ void test_deflate_zsurf_poisson_slices_ho()
   gkyl_fem_poisson_release(fem_poisson);
 }
 
-void test_deflate_zsurf_inflate_ho(void)
+void
+test_deflate_zsurf_inflate_ho(void)
 {
   test_deflate_inflate(false);
 }
-void test_deflate_zsurf_inflate_dev(void)
+void
+test_deflate_zsurf_inflate_dev(void)
 {
   test_deflate_inflate(true);
 }

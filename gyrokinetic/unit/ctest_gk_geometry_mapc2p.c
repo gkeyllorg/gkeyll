@@ -22,7 +22,8 @@
 
 #include <gkyl_comm.h>
 
-void write_geometry(
+void
+write_geometry(
   gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local, const char *name
 )
 {
@@ -90,7 +91,8 @@ void write_geometry(
 }
 
 // Functions for this test
-void mapc2p(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+mapc2p(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = xn[0], theta = xn[1], z = xn[2];
   fout[0] = r * cos(theta);
@@ -98,7 +100,8 @@ void mapc2p(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
   fout[2] = z;
 }
 
-void exact_gij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+exact_gij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = xn[0], theta = xn[1], phi = xn[2];
   fout[0] = 1.0;
@@ -109,14 +112,16 @@ void exact_gij(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx
   fout[5] = 1.0;
 }
 
-void bfield_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0398;
 }
 
-void test_mapc2p_3x_p1_ho()
+void
+test_mapc2p_3x_p1_ho()
 {
   struct gkyl_basis basis;
   int poly_order = 1;
@@ -159,7 +164,7 @@ void test_mapc2p_3x_p1_ho()
     .geo_local_ext = ext_range,
     .geo_global = range,
     .geo_global_ext = ext_range,
-    .geo_basis = basis
+    .geo_basis = basis,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
@@ -372,7 +377,8 @@ void test_mapc2p_3x_p1_ho()
   gkyl_gk_geometry_release(gk_geom);
 }
 
-void mapz(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+mapz(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double Lz = 1.8049e+01;
   double a = -Lz / 2;
@@ -380,14 +386,16 @@ void mapz(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
   fout[0] = 0.5 * (-1 / (2 * a) * pow(a - xn[0], 2) + a) + 0.5 * xn[0];
 }
 
-void dmapz_dz(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+dmapz_dz(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double Lz = 1.8049e+01;
   double a = -Lz / 2;
   fout[0] = 1 - 0.5 * xn[0] / a;
 }
 
-void test_mapc2p_3x_p1_pmap_ho()
+void
+test_mapc2p_3x_p1_pmap_ho()
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   struct gkyl_basis basis;
@@ -436,7 +444,7 @@ void test_mapc2p_3x_p1_pmap_ho()
     .geo_global = range,
     .geo_global_ext = ext_range,
     .geo_basis = basis,
-    .position_map = pos_map
+    .position_map = pos_map,
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);

@@ -18,7 +18,8 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_euler_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_euler_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *u, const struct gkyl_array *u_surf,
   const struct gkyl_array *p, const struct gkyl_array *p_surf
 )
@@ -31,7 +32,8 @@ __global__ static void gkyl_euler_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_euler_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin)
+void
+gkyl_euler_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin)
 {
   gkyl_euler_set_auxfields_cu_kernel<<<1, 1>>>(
     eqn, auxin.u->on_dev, auxin.u_surf->on_dev, auxin.p->on_dev, auxin.p_surf->on_dev
@@ -51,23 +53,23 @@ __global__ void static dg_euler_set_cu_dev_ptrs(
   const gkyl_dg_euler_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_x_kernels = ser_surf_x_kernels;
-    surf_y_kernels = ser_surf_y_kernels;
-    surf_z_kernels = ser_surf_z_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_x_kernels = ser_surf_x_kernels;
+      surf_y_kernels = ser_surf_y_kernels;
+      surf_z_kernels = ser_surf_z_kernels;
+      break;
 
-  case GKYL_BASIS_MODAL_TENSOR:
-    vol_kernels = ten_vol_kernels;
-    surf_x_kernels = ten_surf_x_kernels;
-    surf_y_kernels = ten_surf_y_kernels;
-    surf_z_kernels = ten_surf_z_kernels;
-    break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_x_kernels = ten_surf_x_kernels;
+      surf_y_kernels = ten_surf_y_kernels;
+      surf_z_kernels = ten_surf_z_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   euler->eqn.surf_term = surf;
@@ -84,7 +86,8 @@ __global__ void static dg_euler_set_cu_dev_ptrs(
   }
 }
 
-struct gkyl_dg_eqn *gkyl_dg_euler_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_euler_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
   const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *wg
 )

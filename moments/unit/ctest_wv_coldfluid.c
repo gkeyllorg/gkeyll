@@ -4,7 +4,8 @@
 #include <gkyl_wv_coldfluid.h>
 
 // Build conserved state {rho, rho*u, rho*v, rho*w} from primitives.
-static void calcq(double rho, double u, double v, double w, double q[4])
+static void
+calcq(double rho, double u, double v, double w, double q[4])
 {
   q[0] = rho;
   q[1] = rho * u;
@@ -13,7 +14,8 @@ static void calcq(double rho, double u, double v, double w, double q[4])
 }
 
 // Structural properties of the cold-fluid equation object.
-void test_coldfluid_basic()
+void
+test_coldfluid_basic()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
 
@@ -26,7 +28,8 @@ void test_coldfluid_basic()
 }
 
 // Max speed = |u| = |rho*u / rho|.
-void test_coldfluid_max_speed()
+void
+test_coldfluid_max_speed()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
 
@@ -38,7 +41,8 @@ void test_coldfluid_max_speed()
 }
 
 // check_inv: valid iff density positive.
-void test_coldfluid_check_inv()
+void
+test_coldfluid_check_inv()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
 
@@ -53,7 +57,8 @@ void test_coldfluid_check_inv()
 }
 
 // Source term is zero (homogeneous).
-void test_coldfluid_source()
+void
+test_coldfluid_source()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
   double q[4];
@@ -68,7 +73,8 @@ void test_coldfluid_source()
 
 // Diagnostics: first 4 are conserved vars, 5th is kinetic energy density
 // KE = 0.5*(|rho*v|^2)/rho.
-void test_coldfluid_cons_to_diag()
+void
+test_coldfluid_cons_to_diag()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
 
@@ -90,7 +96,8 @@ void test_coldfluid_cons_to_diag()
 }
 
 // Rotation round-trip recovers the global state for the 3-vector momentum.
-void test_coldfluid_rotate_roundtrip()
+void
+test_coldfluid_rotate_roundtrip()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
 
@@ -119,7 +126,8 @@ void test_coldfluid_rotate_roundtrip()
 }
 
 // Riemann round-trip recovers conserved state (identity transform here).
-void test_coldfluid_riem_roundtrip()
+void
+test_coldfluid_riem_roundtrip()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
 
@@ -140,7 +148,8 @@ void test_coldfluid_riem_roundtrip()
 }
 
 // Flux jump in x: F = {rho*u, rho*u*u, rho*v*u, rho*w*u}.
-void test_coldfluid_flux_jump()
+void
+test_coldfluid_flux_jump()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
 
@@ -165,7 +174,8 @@ void test_coldfluid_flux_jump()
 
 // Roe solver: for identical states the jump is zero, so all fluctuations vanish
 // and the wave speed equals the common flow speed u.
-void test_coldfluid_waves_zero_jump()
+void
+test_coldfluid_waves_zero_jump()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
 
@@ -195,7 +205,8 @@ void test_coldfluid_waves_zero_jump()
 // Roe solver, both speeds positive: all fluctuation right-going and equal to the
 // flux jump (conservation). Use states with the same positive velocity so the
 // Roe average is exactly that velocity and waves carry the full delta.
-void test_coldfluid_waves_conservation()
+void
+test_coldfluid_waves_conservation()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
 
@@ -227,7 +238,8 @@ void test_coldfluid_waves_conservation()
 }
 
 // f-fluctuations: amdq + apdq must equal the total f-wave content (sum of waves).
-void test_coldfluid_ffluct_conservation()
+void
+test_coldfluid_ffluct_conservation()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_coldfluid_new();
 

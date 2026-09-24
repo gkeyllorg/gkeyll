@@ -3,7 +3,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_util.h>
 
-static inline double dot_product(const double *v1, const double *v2)
+static inline double
+dot_product(const double *v1, const double *v2)
 {
   double out = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -12,7 +13,8 @@ static inline double dot_product(const double *v1, const double *v2)
   return out;
 }
 
-struct bc_block_tensor *gkyl_bc_block_tensor_new(
+struct bc_block_tensor *
+gkyl_bc_block_tensor_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_range *range_ext, const struct gkyl_basis *basis, bool use_gpu
 )
@@ -34,7 +36,8 @@ struct bc_block_tensor *gkyl_bc_block_tensor_new(
   return up;
 }
 
-void calc_tensor(
+void
+calc_tensor(
   struct bc_block_tensor *up, int dir, int edge1, int edge2, const double *ej, const double *e_i,
   double *tj_i
 )
@@ -83,7 +86,8 @@ void calc_tensor(
   }
 }
 
-void gkyl_bc_block_tensor_advance(
+void
+gkyl_bc_block_tensor_advance(
   struct bc_block_tensor *up, int dir, int edge1, int edge2, struct gkyl_array *dxdz1,
   struct gkyl_array *dzdx2, struct gkyl_range *range1, struct gkyl_range *range2
 )
@@ -125,7 +129,8 @@ void gkyl_bc_block_tensor_advance(
     calc_tensor(up, dir, edge1, edge2, ej, e_i, tj_i);
   }
 }
-void gkyl_bc_block_tensor_release(struct bc_block_tensor *up)
+void
+gkyl_bc_block_tensor_release(struct bc_block_tensor *up)
 {
   gkyl_array_release(up->tensor);
   gkyl_free(up);

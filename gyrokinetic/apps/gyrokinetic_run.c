@@ -36,7 +36,8 @@ typedef void (*write_message_post_update_singleb_t)(const struct gkyl_gyrokineti
 
 // Write log message to console.
 // Verbose output functions for single-block
-static void write_message_pre_update_verbose_singleb(
+static void
+write_message_pre_update_verbose_singleb(
   const struct gkyl_gyrokinetic_app *app, long step, double t_curr, struct message_trigs *trigs
 )
 {
@@ -45,7 +46,8 @@ static void write_message_pre_update_verbose_singleb(
   }
 }
 
-static void write_message_post_update_verbose_singleb(
+static void
+write_message_post_update_verbose_singleb(
   const struct gkyl_gyrokinetic_app *app, long step, double t_curr, double dt_actual,
   struct message_trigs *trigs
 )
@@ -81,14 +83,16 @@ static void write_message_post_update_verbose_singleb(
   }
 }
 
-static void write_message_pre_update_nonverbose_singleb(
+static void
+write_message_pre_update_nonverbose_singleb(
   const struct gkyl_gyrokinetic_app *app, long step, double t_curr, struct message_trigs *trigs
 )
 {
   // No output before update in non-verbose mode
 }
 
-static void write_message_post_update_nonverbose_singleb(
+static void
+write_message_post_update_nonverbose_singleb(
   const struct gkyl_gyrokinetic_app *app, long step, double t_curr, double dt_actual,
   struct message_trigs *trigs
 )
@@ -111,7 +115,8 @@ static void write_message_post_update_nonverbose_singleb(
   }
 }
 
-void calc_integrated_diagnostics_singleb(
+void
+calc_integrated_diagnostics_singleb(
   struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double t_curr, bool is_restart_IC,
   bool force_calc, double dt
 )
@@ -125,7 +130,8 @@ void calc_integrated_diagnostics_singleb(
   }
 }
 
-void write_data_singleb(
+void
+write_data_singleb(
   struct gkyl_tm_trigger *iot_conf, struct gkyl_tm_trigger *iot_phase, gkyl_gyrokinetic_app *app,
   double t_curr, bool is_restart_IC, bool force_write
 )
@@ -147,7 +153,8 @@ void write_data_singleb(
   }
 }
 
-void gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp *inp)
+void
+gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp *inp)
 {
   struct gkyl_gyrokinetic_time_stepping_inp time_stepping = inp->time_stepping;
   struct gkyl_gyrokinetic_run_verbosity_inp verbose = inp->print_verbosity;
@@ -191,15 +198,19 @@ void gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp *inp)
   // the same nominal time works for trig_write_conf and trig_write_phase.
   int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
   struct gkyl_tm_trigger trig_write_conf = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+    .dt = t_end / num_frames,
+    .tcurr = frame_curr * (t_end / num_frames),
+    .curr = frame_curr,
   };
   struct gkyl_tm_trigger trig_write_phase = {
     .dt = t_end / (time_stepping.write_phase_freq * num_frames),
     .tcurr = frame_curr * (t_end / num_frames),
-    .curr = frame_curr
+    .curr = frame_curr,
   };
   struct gkyl_tm_trigger trig_calc_intdiag = {
-    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc),
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   // Write out ICs (if restart, it overwrites the restart frame).
@@ -234,7 +245,7 @@ void gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp *inp)
     .t_end = t_end,
     .estimate_completion_time = verbose.estimate_completion_time,
     .tm_loop_start = gkyl_wall_clock(),
-    .t_loop_start = t_curr
+    .t_loop_start = t_curr,
   };
 
   write_message_pre_update_singleb_t write_message_pre_update;
@@ -341,7 +352,8 @@ typedef void (*write_message_pre_update_multib_t)(const struct gkyl_gyrokinetic_
 typedef void (*write_message_post_update_multib_t)(const struct gkyl_gyrokinetic_multib_app *, long, double, double, struct message_trigs *);
 
 // Verbose output functions for multi-block
-static void write_message_pre_update_verbose_multib(
+static void
+write_message_pre_update_verbose_multib(
   const struct gkyl_gyrokinetic_multib_app *app, long step, double t_curr,
   struct message_trigs *trigs
 )
@@ -353,7 +365,8 @@ static void write_message_pre_update_verbose_multib(
   }
 }
 
-static void write_message_post_update_verbose_multib(
+static void
+write_message_post_update_verbose_multib(
   const struct gkyl_gyrokinetic_multib_app *app, long step, double t_curr, double dt_actual,
   struct message_trigs *trigs
 )
@@ -389,7 +402,8 @@ static void write_message_post_update_verbose_multib(
   }
 }
 
-static void write_message_pre_update_nonverbose_multib(
+static void
+write_message_pre_update_nonverbose_multib(
   const struct gkyl_gyrokinetic_multib_app *app, long step, double t_curr,
   struct message_trigs *trigs
 )
@@ -397,7 +411,8 @@ static void write_message_pre_update_nonverbose_multib(
   // No output before update in non-verbose mode
 }
 
-static void write_message_post_update_nonverbose_multib(
+static void
+write_message_post_update_nonverbose_multib(
   const struct gkyl_gyrokinetic_multib_app *app, long step, double t_curr, double dt_actual,
   struct message_trigs *trigs
 )
@@ -420,7 +435,8 @@ static void write_message_post_update_nonverbose_multib(
   }
 }
 
-void calc_integrated_diagnostics_multib(
+void
+calc_integrated_diagnostics_multib(
   struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_multib_app *app, double t_curr, bool is_restart_IC,
   bool force_calc, double dt
 )
@@ -434,7 +450,8 @@ void calc_integrated_diagnostics_multib(
   }
 }
 
-void write_data_multib(
+void
+write_data_multib(
   struct gkyl_tm_trigger *iot_conf, struct gkyl_tm_trigger *iot_phase,
   gkyl_gyrokinetic_multib_app *app, double t_curr, bool is_restart_IC, bool force_write
 )
@@ -456,7 +473,8 @@ void write_data_multib(
   }
 }
 
-void gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp *inp)
+void
+gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp *inp)
 {
   struct gkyl_gyrokinetic_time_stepping_inp time_stepping = inp->time_stepping;
   struct gkyl_gyrokinetic_run_verbosity_inp verbose = inp->print_verbosity;
@@ -500,15 +518,19 @@ void gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp *inp)
   // the same nominal time works for trig_write_conf and trig_write_phase.
   int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
   struct gkyl_tm_trigger trig_write_conf = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+    .dt = t_end / num_frames,
+    .tcurr = frame_curr * (t_end / num_frames),
+    .curr = frame_curr,
   };
   struct gkyl_tm_trigger trig_write_phase = {
     .dt = t_end / (time_stepping.write_phase_freq * num_frames),
     .tcurr = frame_curr * (t_end / num_frames),
-    .curr = frame_curr
+    .curr = frame_curr,
   };
   struct gkyl_tm_trigger trig_calc_intdiag = {
-    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc),
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   // Write out ICs (if restart, it overwrites the restart frame).
@@ -543,7 +565,7 @@ void gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp *inp)
     .t_end = t_end,
     .estimate_completion_time = verbose.estimate_completion_time,
     .tm_loop_start = gkyl_wall_clock(),
-    .t_loop_start = t_curr
+    .t_loop_start = t_curr,
   };
 
   write_message_pre_update_multib_t write_message_pre_update;
@@ -644,7 +666,8 @@ freeresources:
   gkyl_gyrokinetic_multib_app_release(app);
 }
 
-void gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp *inp)
+void
+gkyl_gyrokinetic_run_simulation(struct gkyl_gyrokinetic_run_inp *inp)
 {
   if (inp->print_verbosity.frequency == 0.0) {
     inp->print_verbosity.frequency = 0.1; // Default to logging every 10 steps.

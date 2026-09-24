@@ -15,7 +15,8 @@
 #include <float.h>
 #include <ctype.h>
 
-struct gk_geometry *gkyl_gk_geometry_new(
+struct gk_geometry *
+gkyl_gk_geometry_new(
   struct gk_geometry *geo_host, struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu
 )
 {
@@ -80,9 +81,11 @@ struct gk_geometry *gkyl_gk_geometry_new(
   if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
     struct gkyl_msgpack_map_elem io_meta_basic[] = {
       {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
-      {.key = "geqdsk_sign_convention",
-       .elem_type = GKYL_MP_UNSIGNED_INT,
-       .uval = up->geqdsk_sign_convention},
+      {
+        .key = "geqdsk_sign_convention",
+        .elem_type = GKYL_MP_UNSIGNED_INT,
+        .uval = up->geqdsk_sign_convention,
+      },
       {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain}
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
@@ -90,9 +93,11 @@ struct gk_geometry *gkyl_gk_geometry_new(
   } else if (up->geometry_id == GKYL_GEOMETRY_MIRROR) {
     struct gkyl_msgpack_map_elem io_meta_basic[] = {
       {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
-      {.key = "geqdsk_sign_convention",
-       .elem_type = GKYL_MP_UNSIGNED_INT,
-       .uval = up->geqdsk_sign_convention}
+      {
+        .key = "geqdsk_sign_convention",
+        .elem_type = GKYL_MP_UNSIGNED_INT,
+        .uval = up->geqdsk_sign_convention,
+      }
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
     up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
@@ -112,7 +117,8 @@ struct gk_geometry *gkyl_gk_geometry_new(
   return up;
 }
 
-void gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
+void
+gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
 {
   gkyl_msgpack_map_elem_set_uint(
     up->io_meta_basic_len, up->io_meta_basic, "geometry_type", up->geometry_id
@@ -129,11 +135,11 @@ void gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
       );
     } else {
       // Element list doesn't have this key. Create a new list with it.
-      struct gkyl_msgpack_map_elem io_meta_basic_new[] = {
-        {.key = "geqdsk_sign_convention",
-         .elem_type = GKYL_MP_UNSIGNED_INT,
-         .uval = up->geqdsk_sign_convention}
-      };
+      struct gkyl_msgpack_map_elem io_meta_basic_new[] = {{
+        .key = "geqdsk_sign_convention",
+        .elem_type = GKYL_MP_UNSIGNED_INT,
+        .uval = up->geqdsk_sign_convention,
+      }};
       int io_meta_basic_new_len = sizeof(io_meta_basic_new) / sizeof(io_meta_basic_new[0]);
 
       struct gkyl_msgpack_map_elem *io_meta_basic_buffer =
@@ -186,7 +192,8 @@ void gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
   }
 }
 
-void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
+void
+gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
 {
   // Populate nodal arrays for vpar surface terms
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&gk_geom->basis, &gk_geom->grid, false);
@@ -277,7 +284,8 @@ void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
   gkyl_nodal_ops_release(n2m);
 }
 
-bool gkyl_gk_geometry_is_cu_dev(const struct gk_geometry *up)
+bool
+gkyl_gk_geometry_is_cu_dev(const struct gk_geometry *up)
 {
   return GKYL_IS_CU_ALLOC(up->flags);
 }
@@ -322,7 +330,8 @@ gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gk_geometr
   return augmented_grid;
 }
 
-void gkyl_gk_geometry_augment_local(
+void
+gkyl_gk_geometry_augment_local(
   const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range,
   struct gkyl_range *range
 )
@@ -372,7 +381,8 @@ void gkyl_gk_geometry_augment_local(
   }
 }
 
-double gkyl_gk_geometry_reduce_bmag(struct gk_geometry *up, enum gkyl_array_op op)
+double
+gkyl_gk_geometry_reduce_bmag(struct gk_geometry *up, enum gkyl_array_op op)
 {
   int cdim = up->grid.ndim;
   double b_m;
@@ -414,7 +424,8 @@ double gkyl_gk_geometry_reduce_bmag(struct gk_geometry *up, enum gkyl_array_op o
   return b_m;
 }
 
-static inline void log_to_comp(
+static inline void
+log_to_comp(
   int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
   double *GKYL_RESTRICT xout
 )
@@ -489,7 +500,8 @@ gkyl_gk_geometry_reduce_arg_bmag(struct gk_geometry *up, enum gkyl_array_op op, 
   return b_m;
 }
 
-void gkyl_gk_geometry_init_nodal_range(
+void
+gkyl_gk_geometry_init_nodal_range(
   struct gkyl_range *nrange, struct gkyl_range *range, int poly_order
 )
 {
@@ -507,7 +519,8 @@ void gkyl_gk_geometry_init_nodal_range(
   gkyl_range_init_from_shape(nrange, range->ndim, nodes);
 }
 
-void gkyl_gk_geometry_init_nodal_grid(
+void
+gkyl_gk_geometry_init_nodal_grid(
   struct gkyl_rect_grid *ngrid, struct gkyl_rect_grid *grid, struct gkyl_range *nrange
 )
 {
@@ -850,7 +863,8 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
   return up;
 }
 
-void gkyl_gk_geometry_write_efit(
+void
+gkyl_gk_geometry_write_efit(
   struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem *io_meta_basic_basic,
   int io_meta_basic_basic_len
 )
@@ -892,7 +906,8 @@ void gkyl_gk_geometry_write_efit(
   gkyl_msgpack_data_release(mt);
 }
 
-void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
+void
+gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 {
   struct gk_geometry *up = container_of(ref, struct gk_geometry, ref_count);
   gkyl_array_release(up->geo_corn.mc2p);
@@ -963,13 +978,15 @@ void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_free(up);
 }
 
-struct gk_geometry *gkyl_gk_geometry_acquire(const struct gk_geometry *up)
+struct gk_geometry *
+gkyl_gk_geometry_acquire(const struct gk_geometry *up)
 {
   gkyl_ref_count_inc(&up->ref_count);
   return (struct gk_geometry *)up;
 }
 
-void gkyl_gk_geometry_release(const struct gk_geometry *up)
+void
+gkyl_gk_geometry_release(const struct gk_geometry *up)
 {
   gkyl_ref_count_dec(&up->ref_count);
 }

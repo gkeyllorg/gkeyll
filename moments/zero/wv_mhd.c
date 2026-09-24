@@ -53,7 +53,8 @@ riem_to_cons_9(const struct gkyl_wv_eqn *eqn, const double *qstate, const double
   }
 }
 
-static inline void rot_to_local_rect(
+static inline void
+rot_to_local_rect(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
 )
@@ -72,7 +73,8 @@ static inline void rot_to_local_rect(
   qlocal[7] = qglobal[5] * tau2[0] + qglobal[6] * tau2[1] + qglobal[7] * tau2[2];
 }
 
-static inline void rot_to_global_rect(
+static inline void
+rot_to_global_rect(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
 )
@@ -91,7 +93,8 @@ static inline void rot_to_global_rect(
   qglobal[7] = qlocal[5] * norm[2] + qlocal[6] * tau1[2] + qlocal[7] * tau2[2];
 }
 
-static inline void rot_to_local_rect_glm(
+static inline void
+rot_to_local_rect_glm(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
 )
@@ -100,7 +103,8 @@ static inline void rot_to_local_rect_glm(
   qlocal[8] = qglobal[8];
 }
 
-static inline void rot_to_global_rect_glm(
+static inline void
+rot_to_global_rect_glm(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
 )
@@ -117,7 +121,8 @@ struct wv_mhd {
   double glm_alpha; // Mignone & Tzeferacos, JCP (2010) 229, 2117, Eq (27).
 };
 
-static void mhd_free(const struct gkyl_ref_count *ref)
+static void
+mhd_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_mhd *mhd = container_of(base, struct wv_mhd, eqn);
@@ -128,7 +133,8 @@ static void mhd_free(const struct gkyl_ref_count *ref)
 // Following Cargo & Gallice 1997 section 4.2.
 // FIXME: is CG97 linearization consistent with the flux difference when the jump
 // in Bx is nonzero?
-static double wave_roe(
+static double
+wave_roe(
   const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql, const double *qr,
   double *waves, double *ev
 )
@@ -407,7 +413,8 @@ static double wave_roe(
   return max_speed;
 }
 
-static void qfluct_roe(
+static void
+qfluct_roe(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -424,7 +431,8 @@ static void qfluct_roe(
 }
 
 // Computing waves and waves speeds from Lax fluxes
-static double wave_lax(
+static double
+wave_lax(
   const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql, const double *qr,
   double *waves, double *ev
 )
@@ -462,7 +470,8 @@ static double wave_lax(
   return ev[1];
 }
 
-static void qfluct_lax(
+static void
+qfluct_lax(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -479,7 +488,8 @@ static void qfluct_lax(
 }
 
 // HLLD, Miyoshi & Kusano (2005), JCP, 208(1), 315-344
-static double wave_hlld(
+static double
+wave_hlld(
   const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql, const double *qr,
   double *waves, double *speeds
 )
@@ -699,7 +709,8 @@ static double wave_hlld(
   return max_speed;
 }
 
-static void qfluct_hlld(
+static void
+qfluct_hlld(
   const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
   const double *s, double *amdq, double *apdq
 )
@@ -716,7 +727,8 @@ static void qfluct_hlld(
   }
 }
 
-static double wave_roe_l(
+static double
+wave_roe_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -730,7 +742,8 @@ static double wave_roe_l(
   return 0.0; // can't happen
 }
 
-static void qfluct_roe_l(
+static void
+qfluct_roe_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -743,7 +756,8 @@ static void qfluct_roe_l(
   }
 }
 
-static double wave_hlld_l(
+static double
+wave_hlld_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -757,7 +771,8 @@ static double wave_hlld_l(
   return 0.0; // can't happen
 }
 
-static void qfluct_hlld_l(
+static void
+qfluct_hlld_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -770,7 +785,8 @@ static void qfluct_hlld_l(
   }
 }
 
-static double wave_lax_l(
+static double
+wave_lax_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -778,7 +794,8 @@ static double wave_lax_l(
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void qfluct_lax_l(
+static void
+qfluct_lax_l(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -787,7 +804,8 @@ static void qfluct_lax_l(
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
 
@@ -803,20 +821,23 @@ static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   return true;
 }
 
-static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return gkyl_mhd_max_abs_speed(mhd->gas_gamma, q);
 }
 
-static inline void mhd_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
+static inline void
+mhd_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   for (int i = 0; i < 8; i++) {
     sout[i] = 0.0;
   }
 }
 
-struct gkyl_wv_eqn *gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
+struct gkyl_wv_eqn *
+gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 {
   struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
 
@@ -824,26 +845,26 @@ struct gkyl_wv_eqn *gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
   mhd->gas_gamma = inp->gas_gamma;
 
   switch (inp->rp_type) {
-  case WV_MHD_RP_ROE:
-    mhd->eqn.num_equations = 8;
-    mhd->eqn.num_waves = 7;
-    mhd->eqn.waves_func = wave_roe_l;
-    mhd->eqn.qfluct_func = qfluct_roe_l;
-    break;
+    case WV_MHD_RP_ROE:
+      mhd->eqn.num_equations = 8;
+      mhd->eqn.num_waves = 7;
+      mhd->eqn.waves_func = wave_roe_l;
+      mhd->eqn.qfluct_func = qfluct_roe_l;
+      break;
 
-  case WV_MHD_RP_HLLD:
-    mhd->eqn.num_equations = 8;
-    mhd->eqn.num_waves = 5;
-    mhd->eqn.waves_func = wave_hlld_l;
-    mhd->eqn.qfluct_func = qfluct_hlld_l;
-    break;
+    case WV_MHD_RP_HLLD:
+      mhd->eqn.num_equations = 8;
+      mhd->eqn.num_waves = 5;
+      mhd->eqn.waves_func = wave_hlld_l;
+      mhd->eqn.qfluct_func = qfluct_hlld_l;
+      break;
 
-  case WV_MHD_RP_LAX:
-    mhd->eqn.num_equations = 8;
-    mhd->eqn.num_waves = 2;
-    mhd->eqn.waves_func = wave_lax_l;
-    mhd->eqn.qfluct_func = qfluct_lax_l;
-    break;
+    case WV_MHD_RP_LAX:
+      mhd->eqn.num_equations = 8;
+      mhd->eqn.num_waves = 2;
+      mhd->eqn.waves_func = wave_lax_l;
+      mhd->eqn.qfluct_func = qfluct_lax_l;
+      break;
   }
 
   mhd->eqn.check_inv_func = check_inv;
@@ -856,27 +877,27 @@ struct gkyl_wv_eqn *gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 
   mhd->divergence_constraint = inp->divergence_constraint;
   switch (inp->divergence_constraint) {
-  case GKYL_MHD_DIVB_NONE:
-    break;
+    case GKYL_MHD_DIVB_NONE:
+      break;
 
-  case GKYL_MHD_DIVB_EIGHT_WAVES:
-    if (inp->rp_type != WV_MHD_RP_LAX) {
-      mhd->eqn.num_waves += 1;
-    }
-    break;
+    case GKYL_MHD_DIVB_EIGHT_WAVES:
+      if (inp->rp_type != WV_MHD_RP_LAX) {
+        mhd->eqn.num_waves += 1;
+      }
+      break;
 
-  case GKYL_MHD_DIVB_GLM:
-    mhd->eqn.num_equations += 1;
-    if (inp->rp_type != WV_MHD_RP_LAX) {
-      mhd->eqn.num_waves += 2;
-    }
-    mhd->eqn.cons_to_riem = cons_to_riem_9;
-    mhd->eqn.riem_to_cons = riem_to_cons_9;
-    mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
-    mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
-    mhd->glm_ch = inp->glm_ch;
-    mhd->glm_alpha = inp->glm_alpha;
-    break;
+    case GKYL_MHD_DIVB_GLM:
+      mhd->eqn.num_equations += 1;
+      if (inp->rp_type != WV_MHD_RP_LAX) {
+        mhd->eqn.num_waves += 2;
+      }
+      mhd->eqn.cons_to_riem = cons_to_riem_9;
+      mhd->eqn.riem_to_cons = riem_to_cons_9;
+      mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
+      mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
+      mhd->glm_ch = inp->glm_ch;
+      mhd->glm_alpha = inp->glm_alpha;
+      break;
   }
 
   mhd->eqn.num_diag = mhd->eqn.num_equations;
@@ -896,31 +917,36 @@ struct gkyl_wv_eqn *gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 // member getters and setters //
 ////////////////////////////////
 
-double gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return mhd->gas_gamma;
 }
 
-double gkyl_wv_mhd_divergence_constraint(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_mhd_divergence_constraint(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return mhd->divergence_constraint;
 }
 
-double gkyl_wv_mhd_glm_ch(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_mhd_glm_ch(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return mhd->glm_ch;
 }
 
-double gkyl_wv_mhd_glm_alpha(const struct gkyl_wv_eqn *eqn)
+double
+gkyl_wv_mhd_glm_alpha(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return mhd->glm_alpha;
 }
 
-void gkyl_wv_mhd_set_glm_ch(struct gkyl_wv_eqn *eqn, const double glm_ch)
+void
+gkyl_wv_mhd_set_glm_ch(struct gkyl_wv_eqn *eqn, const double glm_ch)
 {
   struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   mhd->glm_ch = glm_ch;

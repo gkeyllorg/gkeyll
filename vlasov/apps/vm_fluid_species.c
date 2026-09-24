@@ -13,7 +13,8 @@
 // including computing the flow velocity, u, from rhou and rho with weak division, and
 // p, the pressure, from the energy in Euler (and just vth*rho in isothermal Euler),
 // and also write method, release method, and method for calculating integrated quantities.
-static void vm_fluid_species_euler_prim_vars(
+static void
+vm_fluid_species_euler_prim_vars(
   gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid
 )
 {
@@ -36,7 +37,8 @@ static void vm_fluid_species_euler_prim_vars(
   app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
-static void vm_fluid_species_euler_calc_integrated(
+static void
+vm_fluid_species_euler_calc_integrated(
   struct gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm
 )
 {
@@ -63,8 +65,12 @@ static void vm_fluid_species_euler_calc_integrated(
 static void
 vm_fluid_species_euler_write(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta
-  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .poly_order = app->poly_order,
+    .basis_type = app->confBasis.id,
+  });
 
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
@@ -95,7 +101,8 @@ vm_fluid_species_euler_write(gkyl_vlasov_app *app, struct vm_fluid_species *f, d
   vlasov_array_meta_release(mt);
 }
 
-static void vm_fluid_species_euler_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
+static void
+vm_fluid_species_euler_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
 {
   gkyl_array_release(f->u);
   gkyl_array_release(f->p);
@@ -111,7 +118,8 @@ static void vm_fluid_species_euler_release(const gkyl_vlasov_app *app, struct vm
 }
 
 // Initialize the necessary pieces to solve Euler's or isothermal Euler's equations with DG.
-static void vm_fluid_species_euler_init(
+static void
+vm_fluid_species_euler_init(
   struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f
 )
 {
@@ -161,7 +169,10 @@ static void vm_fluid_species_euler_init(
   );
 
   struct gkyl_dg_euler_auxfields aux_inp = {
-    .u = f->u, .p = f->p, .u_surf = f->u_surf, .p_surf = f->p_surf
+    .u = f->u,
+    .p = f->p,
+    .u_surf = f->u_surf,
+    .p_surf = f->p_surf,
   };
   f->advect_slvr = gkyl_dg_updater_fluid_new(
     &app->grid, &app->confBasis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu
@@ -185,14 +196,16 @@ static void vm_fluid_species_euler_init(
 
 // Advection function pointers for primitive/auxiliary variables,
 // and also write method, release method, and method for calculating integrated quantities.
-static void vm_fluid_species_advect_prim_vars(
+static void
+vm_fluid_species_advect_prim_vars(
   gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid
 )
 {
   // No primitive variables in advection equation.
 }
 
-static void vm_fluid_species_advect_calc_integrated(
+static void
+vm_fluid_species_advect_calc_integrated(
   struct gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm
 )
 {
@@ -232,8 +245,12 @@ static void vm_fluid_species_advect_calc_integrated(
 static void
 vm_fluid_species_advect_write(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta
-  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .poly_order = app->poly_order,
+    .basis_type = app->confBasis.id,
+  });
 
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
@@ -263,7 +280,8 @@ vm_fluid_species_advect_write(gkyl_vlasov_app *app, struct vm_fluid_species *f, 
   vlasov_array_meta_release(mt);
 }
 
-static void vm_fluid_species_advect_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
+static void
+vm_fluid_species_advect_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
 {
   gkyl_array_release(f->app_advect);
   if (app->use_gpu) {
@@ -272,7 +290,8 @@ static void vm_fluid_species_advect_release(const gkyl_vlasov_app *app, struct v
 }
 
 // Initialize the necessary pieces to solve an advection equation with DG.
-static void vm_fluid_species_advect_init(
+static void
+vm_fluid_species_advect_init(
   struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f
 )
 {
@@ -319,7 +338,8 @@ static void vm_fluid_species_advect_init(
 // including computing grad^2 phi = f, where f is (one of) the evolved quantities by
 // the canonical Poisson bracket system such as vorticity in incompressible Euler,
 // and also write method, release method, and method for calculating integrated quantities.
-static void vm_fluid_species_can_pb_fluid_prim_vars(
+static void
+vm_fluid_species_can_pb_fluid_prim_vars(
   gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid
 )
 {
@@ -338,7 +358,8 @@ static void vm_fluid_species_can_pb_fluid_prim_vars(
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
-static void vm_fluid_species_can_pb_fluid_calc_integrated(
+static void
+vm_fluid_species_can_pb_fluid_calc_integrated(
   struct gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm
 )
 {
@@ -396,12 +417,17 @@ static void vm_fluid_species_can_pb_fluid_calc_integrated(
   gkyl_dynvec_append(f->integ_diag, tm, can_pb_int);
 }
 
-static void vm_fluid_species_can_pb_fluid_write(
+static void
+vm_fluid_species_can_pb_fluid_write(
   gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame
 )
 {
-  struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta
-  ){.frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .poly_order = app->poly_order,
+    .basis_type = app->confBasis.id,
+  });
 
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
@@ -463,7 +489,8 @@ vm_fluid_species_can_pb_fluid_release(const gkyl_vlasov_app *app, struct vm_flui
 
 // Initialize the necessary pieces to solve an canonical Poisson bracket fluid system with DG
 // such as incompressible Euler, Hasegawa-Mima, and (modified) Hasegawa-Wakatani.
-static void vm_fluid_species_can_pb_fluid_init(
+static void
+vm_fluid_species_can_pb_fluid_init(
   struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f
 )
 {
@@ -514,7 +541,7 @@ static void vm_fluid_species_can_pb_fluid_init(
   // Create Poisson solver. Only supports periodic boundary conditions for now.
   struct gkyl_poisson_bc poisson_bcs = {
     .lo_type = {GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC},
-    .up_type = {GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC}
+    .up_type = {GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC},
   };
   if (f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
     // If Hasegawa-Mima, we solve a Helmholtz equations (grad^2 - 1)phi = zeta
@@ -567,7 +594,7 @@ static void vm_fluid_species_can_pb_fluid_init(
     .phi = f->phi,
     .alpha_surf = f->alpha_surf,
     .sgn_alpha_surf = f->sgn_alpha_surf,
-    .const_sgn_alpha = f->const_sgn_alpha
+    .const_sgn_alpha = f->const_sgn_alpha,
   };
   f->advect_slvr = gkyl_dg_updater_fluid_new(
     &app->grid, &app->confBasis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu
@@ -605,9 +632,8 @@ static void vm_fluid_species_can_pb_fluid_init(
 }
 
 // initialize fluid species object
-void vm_fluid_species_init(
-  struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f
-)
+void
+vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
 {
   int cdim = app->cdim;
   // Setup equation-specific memory and equation type/number of equations based on input table
@@ -668,14 +694,15 @@ void vm_fluid_species_init(
       diffD_host = mkarr(false, szD * app->confBasis.num_basis, app->local_ext.volume);
     }
 
-    gkyl_proj_on_basis *diff_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp
-    ){.grid = &app->grid,
+    gkyl_proj_on_basis *diff_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
       .basis = &app->confBasis,
       .qtype = GKYL_GAUSS_LOBATTO_QUAD,
       .num_quad = 8,
       .num_ret_vals = szD,
       .eval = f->info.diffusion.Dij,
-      .ctx = f->info.diffusion.Dij_ctx});
+      .ctx = f->info.diffusion.Dij_ctx,
+    });
     gkyl_proj_on_basis_advance(diff_proj, 0.0, &app->local_ext, diffD_host);
     if (app->use_gpu) { // note: diffD_host is same as diffD when not on GPUs
       gkyl_array_copy(f->diffD, diffD_host);
@@ -814,9 +841,8 @@ void vm_fluid_species_init(
   }
 }
 
-void vm_fluid_species_apply_ic(
-  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0
-)
+void
+vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0)
 {
   int poly_order = app->poly_order;
 
@@ -842,7 +868,8 @@ void vm_fluid_species_apply_ic(
   vm_fluid_species_source_calc(app, fluid_species, t0);
 }
 
-void vm_fluid_species_calc_app_accel(
+void
+vm_fluid_species_calc_app_accel(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm
 )
 {
@@ -857,14 +884,16 @@ void vm_fluid_species_calc_app_accel(
   }
 }
 
-void vm_fluid_species_prim_vars(
+void
+vm_fluid_species_prim_vars(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid
 )
 {
   fluid_species->prim_vars_func(app, fluid_species, fluid);
 }
 
-void vm_fluid_species_limiter(
+void
+vm_fluid_species_limiter(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, struct gkyl_array *fluid
 )
 {
@@ -883,7 +912,8 @@ void vm_fluid_species_limiter(
 
 // Compute the RHS for fluid species update, returning maximum stable
 // time-step.
-double vm_fluid_species_rhs(
+double
+vm_fluid_species_rhs(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid,
   const struct gkyl_array *em, struct gkyl_array *rhs
 )
@@ -961,7 +991,8 @@ double vm_fluid_species_rhs(
 
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for fluid species
-void vm_fluid_species_apply_bc(
+void
+vm_fluid_species_apply_bc(
   gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f
 )
 {
@@ -980,33 +1011,33 @@ void vm_fluid_species_apply_bc(
   for (int d = 0; d < cdim; ++d) {
     if (is_np_bc[d]) {
       switch (fluid_species->lower_bc[d]) {
-      case GKYL_SPECIES_COPY:
-      case GKYL_SPECIES_ABSORB:
-      case GKYL_SPECIES_REFLECT:
-      case GKYL_SPECIES_NO_SLIP:
-        gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer, f);
-        break;
-      case GKYL_SPECIES_WEDGE:
-      case GKYL_SPECIES_FIXED_FUNC:
-        assert(false);
-        break;
-      default:
-        break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_ABSORB:
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_NO_SLIP:
+          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_WEDGE:
+        case GKYL_SPECIES_FIXED_FUNC:
+          assert(false);
+          break;
+        default:
+          break;
       }
 
       switch (fluid_species->upper_bc[d]) {
-      case GKYL_SPECIES_COPY:
-      case GKYL_SPECIES_ABSORB:
-      case GKYL_SPECIES_REFLECT:
-      case GKYL_SPECIES_NO_SLIP:
-        gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer, f);
-        break;
-      case GKYL_SPECIES_WEDGE:
-      case GKYL_SPECIES_FIXED_FUNC:
-        assert(false);
-        break;
-      default:
-        break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_ABSORB:
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_NO_SLIP:
+          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_WEDGE:
+        case GKYL_SPECIES_FIXED_FUNC:
+          assert(false);
+          break;
+        default:
+          break;
       }
     }
   }
@@ -1017,21 +1048,22 @@ void vm_fluid_species_apply_bc(
 }
 
 // Integrated quantities calculator for different fluid equations.
-void vm_fluid_species_calc_integrated_mom(
-  gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm
-)
+void
+vm_fluid_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm)
 {
   f->calc_integrated_mom_func(app, f, tm);
 }
 
 // Write method for different fluid equations.
-void vm_fluid_species_write(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame)
+void
+vm_fluid_species_write(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame)
 {
   f->write_func(app, f, tm, frame);
 }
 
 // Release resources for fluid species.
-void vm_fluid_species_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
+void
+vm_fluid_species_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
 {
   // Release acquired equation object pointer
   // along with other equation specific data.

@@ -76,13 +76,15 @@ static struct tool_description tool_list[] = {
   {0, 0}
 };
 
-static int max2(int a, int b)
+static int
+max2(int a, int b)
 {
   return a > b ? a : b;
 }
 
 // Show list of available Tools
-static void show_tool_list(void)
+static void
+show_tool_list(void)
 {
   fprintf(stdout, "Following tools are available. Query tool help for more information.\n\n");
 
@@ -100,7 +102,8 @@ static void show_tool_list(void)
 
 // Returns tool Lua script name given tool name. Returns 0 if Tool
 // does no exist
-static const char *get_tool_from_name(const char *nm)
+static const char *
+get_tool_from_name(const char *nm)
 {
   for (int i = 0; tool_list[i].tool_name != 0; ++i) {
     if (strcmp(tool_list[i].tool_name, nm) == 0) {
@@ -110,7 +113,8 @@ static const char *get_tool_from_name(const char *nm)
   return 0;
 }
 
-static char *find_exec_path(void)
+static char *
+find_exec_path(void)
 {
   int len = wai_getExecutablePath(NULL, 0, NULL);
   char *path = gkyl_malloc(len + 1);
@@ -120,23 +124,27 @@ static char *find_exec_path(void)
   return path;
 }
 
-static int calc_output_prefix_len(const char *fn)
+static int
+calc_output_prefix_len(const char *fn)
 {
   const char *suff = strrchr(fn, '.');
   return strlen(fn) - (suff ? strlen(suff) : 0);
 }
 
-static const char *get_fname(const char *fn)
+static const char *
+get_fname(const char *fn)
 {
   return strrchr(fn, '/');
 }
 
-static const char *get_fname_with_dir(const char *fn)
+static const char *
+get_fname_with_dir(const char *fn)
 {
   return fn;
 }
 
-static void show_banner(FILE *fp)
+static void
+show_banner(FILE *fp)
 {
   if (fp) {
     fprintf(fp, "Gkeyll built with Git changeset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
@@ -182,7 +190,8 @@ static void show_banner(FILE *fp)
 }
 
 // show usage
-static void show_usage()
+static void
+show_usage()
 {
   fprintf(stdout, "This is the Gkeyll code. See gkeyll.rtfd.io for details.\n");
   fprintf(stdout, "Type 'gkeyll man' for help.\n\n");
@@ -210,7 +219,8 @@ static void show_usage()
   );
 }
 
-static void show_version()
+static void
+show_version()
 {
   fprintf(stdout, "This is the Gkeyll code. See gkeyll.rtfd.io for details.\n");
   fprintf(stdout, "Type 'gkyl -h' for help.\n\n");
@@ -249,7 +259,8 @@ struct app_args {
   char *exec_path; // location of executable
 };
 
-static void release_opt_args(struct app_args *args)
+static void
+release_opt_args(struct app_args *args)
 {
   for (int i = 0; i < args->num_opt_args; ++i) {
     gkyl_free(args->opt_args[i]);
@@ -264,7 +275,8 @@ static void release_opt_args(struct app_args *args)
   gkyl_free(args);
 }
 
-static struct app_args *parse_app_args(int argc, char **argv)
+static struct app_args *
+parse_app_args(int argc, char **argv)
 {
   struct app_args *args = gkyl_malloc(sizeof(*args));
 
@@ -291,48 +303,48 @@ static struct app_args *parse_app_args(int argc, char **argv)
   int c;
   while ((c = getopt(argc, argv, "+hvtmdSe:gV")) != -1) {
     switch (c) {
-    case 'h':
-      show_usage();
-      exit(-1);
-      break;
+      case 'h':
+        show_usage();
+        exit(-1);
+        break;
 
-    case 'v':
-      show_version();
-      exit(-1);
-      break;
+      case 'v':
+        show_version();
+        exit(-1);
+        break;
 
-    case 't':
-      show_tool_list();
-      exit(1);
-      break;
+      case 't':
+        show_tool_list();
+        exit(1);
+        break;
 
-    case 'e':
-      args->echunk = gkyl_malloc(strlen(optarg) + 1);
-      strcpy(args->echunk, optarg);
-      break;
+      case 'e':
+        args->echunk = gkyl_malloc(strlen(optarg) + 1);
+        strcpy(args->echunk, optarg);
+        break;
 
-    case 'g':
-      args->use_gpu = true;
-      break;
+      case 'g':
+        args->use_gpu = true;
+        break;
 
-    case 'd':
-      args->use_dir_path = true;
-      break;
+      case 'd':
+        args->use_dir_path = true;
+        break;
 
-    case 'S':
-      args->use_mpi = false;
-      break;
+      case 'S':
+        args->use_mpi = false;
+        break;
 
-    case 'm':
-      args->trace_mem = true;
-      break;
+      case 'm':
+        args->trace_mem = true;
+        break;
 
-    case 'V':
-      args->use_verbose = true;
-      break;
+      case 'V':
+        args->use_verbose = true;
+        break;
 
-    case '?':
-      break;
+      case '?':
+        break;
     }
   }
 
@@ -353,7 +365,8 @@ static struct app_args *parse_app_args(int argc, char **argv)
   return args;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct app_args *app_args = parse_app_args(argc, argv);
 
@@ -631,7 +644,8 @@ int main(int argc, char **argv)
 
 #include <stdio.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   fprintf(stderr, "Gkeyll built without Lua support!\n");
   return 0;

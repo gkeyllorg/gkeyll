@@ -13,7 +13,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void gkyl_ghost_surf_calc_advance_cu_ker(
+__global__ static void
+gkyl_ghost_surf_calc_advance_cu_ker(
   const struct gkyl_ghost_surf_calc *gcalc, int dir, int edge, struct gkyl_range edge_rng,
   const struct gkyl_array *fIn, struct gkyl_array *rhs
 )
@@ -43,7 +44,8 @@ __global__ static void gkyl_ghost_surf_calc_advance_cu_ker(
   }
 }
 
-void gkyl_ghost_surf_calc_advance_cu(
+void
+gkyl_ghost_surf_calc_advance_cu(
   struct gkyl_ghost_surf_calc *gcalc, const struct gkyl_range *phase_rng,
   const struct gkyl_array *fIn, struct gkyl_array *rhs
 )
@@ -86,7 +88,8 @@ void gkyl_ghost_surf_calc_advance_cu(
   }
 }
 
-struct gkyl_ghost_surf_calc *gkyl_ghost_surf_calc_cu_dev_new(
+struct gkyl_ghost_surf_calc *
+gkyl_ghost_surf_calc_cu_dev_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_dg_eqn *equation, int cdim
 )
 {

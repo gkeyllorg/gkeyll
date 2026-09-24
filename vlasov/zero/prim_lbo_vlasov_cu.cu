@@ -10,7 +10,8 @@ extern "C" {
 #include <gkyl_prim_lbo_vlasov_priv.h>
 }
 
-__global__ static void gkyl_prim_lbo_vlasov_set_cu_dev_ptrs(
+__global__ static void
+gkyl_prim_lbo_vlasov_set_cu_dev_ptrs(
   struct prim_lbo_type_vlasov *prim_vlasov, int cdim, int vdim, int poly_order,
   enum gkyl_basis_type b_type, int tblidx
 )
@@ -23,14 +24,14 @@ __global__ static void gkyl_prim_lbo_vlasov_set_cu_dev_ptrs(
   const gkyl_prim_lbo_vlasov_cross_kern_list *cross_prim_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    self_prim_kernels = ser_self_prim_kernels;
-    cross_prim_kernels = ser_cross_prim_kernels;
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      self_prim_kernels = ser_self_prim_kernels;
+      cross_prim_kernels = ser_cross_prim_kernels;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   prim_vlasov->self_prim = self_prim_kernels[tblidx].kernels[poly_order];

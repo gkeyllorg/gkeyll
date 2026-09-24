@@ -7,7 +7,8 @@
 #include <gkyl_dg_diffusion_fluid.h>
 #include <gkyl_dg_diffusion_fluid_priv.h>
 
-void test_diffusion_fluid_1x_scalar()
+void
+test_diffusion_fluid_1x_scalar()
 {
   int cdim = 1;
   int poly_order = 2;
@@ -41,7 +42,8 @@ void test_diffusion_fluid_1x_scalar()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_diffusion_fluid_2x_system()
+void
+test_diffusion_fluid_2x_system()
 {
   int cdim = 2;
   int poly_order = 1;
@@ -69,7 +71,8 @@ void test_diffusion_fluid_2x_system()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_diffusion_fluid_1x_varcoeff()
+void
+test_diffusion_fluid_1x_varcoeff()
 {
   int cdim = 1;
   int poly_order = 2;

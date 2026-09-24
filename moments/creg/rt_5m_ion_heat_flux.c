@@ -59,7 +59,8 @@ struct ion_heat_flux_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct ion_heat_flux_ctx create_ctx(void)
+struct ion_heat_flux_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -130,13 +131,14 @@ struct ion_heat_flux_ctx create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct ion_heat_flux_ctx *app = ctx;
 
@@ -153,7 +155,8 @@ void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[4] = E_elc;
 }
 
-void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct ion_heat_flux_ctx *app = ctx;
@@ -181,7 +184,8 @@ void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[4] = E_ion;
 }
 
-void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   // Set electric field.
   fout[0] = 0.0, fout[1] = 0.0;
@@ -194,7 +198,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-void evalIonLowerBC(
+void
+evalIonLowerBC(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -214,7 +219,8 @@ void evalIonLowerBC(
   ghost[4] = E_ion_lower;
 }
 
-void evalIonUpperBC(
+void
+evalIonUpperBC(
   const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
   void *ctx
 )
@@ -234,7 +240,8 @@ void evalIonUpperBC(
   ghost[4] = E_ion_upper;
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -246,7 +253,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -278,7 +286,7 @@ int main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
 
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY}
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
   };
 
   struct gkyl_moment_species ion = {
@@ -293,7 +301,7 @@ int main(int argc, char **argv)
     .type_brag = GKYL_BRAG_UNMAG_FULL,
 
     .bcx = {GKYL_SPECIES_FUNC, GKYL_SPECIES_FUNC},
-    .bcx_func = {evalIonLowerBC, evalIonUpperBC}
+    .bcx_func = {evalIonLowerBC, evalIonUpperBC},
   };
 
   // Field.
@@ -304,7 +312,7 @@ int main(int argc, char **argv)
 
     .is_static = true,
     .init = evalFieldInit,
-    .ctx = &ctx
+    .ctx = &ctx,
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -345,12 +353,16 @@ int main(int argc, char **argv)
     comm =
       gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD, .decomp = decomp});
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp
-    ){.decomp = decomp, .use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+      .decomp = decomp,
+      .use_gpu = app_args.use_gpu,
+    });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp
-  ){.decomp = decomp, .use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+    .decomp = decomp,
+    .use_gpu = app_args.use_gpu,
+  });
 #endif
 
   int my_rank;
@@ -390,7 +402,7 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Create app object.

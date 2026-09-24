@@ -181,8 +181,9 @@ struct gkyl_tok_geo_grid_inp {
  * @param efit_inp Input parameters related to EFIT data
  * @param grid_inp Input parameters related to computational grid
  */
-struct gkyl_tok_geo *
-gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *grid_inp);
+struct gkyl_tok_geo *gkyl_tok_geo_new(
+  const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *grid_inp
+);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may

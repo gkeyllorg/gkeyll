@@ -47,8 +47,9 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
  * @param inp Input parameters defined in gkyl_vlasov_lte_proj_on_basis_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_vlasov_lte_proj_on_basis *
-gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_inp *inp);
+struct gkyl_vlasov_lte_proj_on_basis *gkyl_vlasov_lte_proj_on_basis_inew(
+  const struct gkyl_vlasov_lte_proj_on_basis_inp *inp
+);
 
 /**
  * Compute projection of LTE (local thermodynamic equilibrium) distribution on basis. 

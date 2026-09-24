@@ -10,7 +10,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_range conf_range, const struct gkyl_array *moms
 )
@@ -36,7 +37,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel(
   }
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_copy_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_udrift_copy_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   struct gkyl_array *out, int out_coff
 )
@@ -71,7 +73,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_copy_cu_kernel(
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(
+void
+gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(
   struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
   int out_coff
 )
@@ -92,7 +95,8 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(
   );
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array *moms, struct gkyl_array *out, int out_coff
 )
@@ -132,7 +136,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel(
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(
+void
+gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(
   struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
   int out_coff
 )
@@ -153,7 +158,8 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(
   );
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_temp_set_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_temp_set_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_range conf_range, const struct gkyl_array *moms
 )
@@ -179,7 +185,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_temp_set_cu_kernel(
   }
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_temp_copy_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_temp_copy_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array *moms, struct gkyl_array *out, int out_coff
 )
@@ -212,7 +219,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_temp_copy_cu_kernel(
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(
+void
+gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(
   struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
   int out_coff
 )
@@ -233,7 +241,8 @@ void gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(
   );
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_copy_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_udrift_pressure_copy_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array *moms, struct gkyl_array *out, int out_coff
 )
@@ -273,7 +282,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_copy_cu_kern
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(
+void
+gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(
   struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
   int out_coff
 )
@@ -295,7 +305,8 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(
   );
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_range conf_range, const struct gkyl_array *moms
 )
@@ -321,7 +332,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel(
   }
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_temp_copy_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_udrift_temp_copy_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array *moms, struct gkyl_array *out, int out_coff
 )
@@ -357,7 +369,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_temp_copy_cu_kernel(
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(
+void
+gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(
   struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
   int out_coff
 )
@@ -378,7 +391,8 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(
   );
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array *moms, struct gkyl_array *out, int out_coff
 )
@@ -422,7 +436,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel(
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_lte_advance_cu(
+void
+gkyl_gk_neut_fluid_prim_vars_lte_advance_cu(
   struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
   int out_coff
 )
@@ -443,7 +458,8 @@ void gkyl_gk_neut_fluid_prim_vars_lte_advance_cu(
   );
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_range conf_range, const struct gkyl_array *moms
 )
@@ -469,7 +485,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel(
   }
 }
 
-__global__ static void gkyl_gk_neut_fluid_prim_vars_flow_energy_copy_cu_kernel(
+__global__ static void
+gkyl_gk_neut_fluid_prim_vars_flow_energy_copy_cu_kernel(
   gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array *moms, struct gkyl_array *out, int out_coff
 )
@@ -503,7 +520,8 @@ __global__ static void gkyl_gk_neut_fluid_prim_vars_flow_energy_copy_cu_kernel(
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance_cu(
+void
+gkyl_gk_neut_fluid_prim_vars_flow_energy_advance_cu(
   struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
   int out_coff
 )
@@ -571,7 +589,8 @@ gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_copy_cu_kernel(
   }
 }
 
-void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance_cu(
+void
+gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance_cu(
   struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
   int out_coff
 )
@@ -595,7 +614,8 @@ void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance_cu(
 
 // CUDA kernel to set device pointers to fluid vars kernel functions.
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol.
-__global__ static void gk_neut_fluid_prim_vars_set_cu_dev_ptrs(
+__global__ static void
+gk_neut_fluid_prim_vars_set_cu_dev_ptrs(
   struct gkyl_gk_neut_fluid_prim_vars *up, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
@@ -610,7 +630,8 @@ __global__ static void gk_neut_fluid_prim_vars_set_cu_dev_ptrs(
   up->flowE_get_sol_ker = choose_flowE_get_sol_ker(b_type, cdim, poly_order);
 }
 
-gkyl_gk_neut_fluid_prim_vars *gkyl_gk_neut_fluid_prim_vars_cu_dev_new(
+gkyl_gk_neut_fluid_prim_vars *
+gkyl_gk_neut_fluid_prim_vars_cu_dev_new(
   double gas_gamma, double mass, const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid,
   const struct gkyl_range *mem_range, enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type,
   bool is_integrated

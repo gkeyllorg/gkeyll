@@ -13,7 +13,8 @@ struct wv_coldfluid {
   struct gkyl_wv_eqn eqn; // base object
 };
 
-static void coldfluid_flux(const double q[4], double flux[4])
+static void
+coldfluid_flux(const double q[4], double flux[4])
 {
   double u = q[RHOU] / q[0];
   flux[0] = q[RHOU]; // rho*u
@@ -33,7 +34,8 @@ coldfluid_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double 
   diag[4] = ke;
 }
 
-static void coldfluid_free(const struct gkyl_ref_count *ref)
+static void
+coldfluid_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_coldfluid *coldfluid = container_of(base, struct wv_coldfluid, eqn);
@@ -57,7 +59,8 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *
   }
 }
 
-static inline void rot_to_local(
+static inline void
+rot_to_local(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
 )
@@ -68,7 +71,8 @@ static inline void rot_to_local(
   qlocal[3] = qglobal[1] * tau2[0] + qglobal[2] * tau2[1] + qglobal[3] * tau2[2];
 }
 
-static inline void rot_to_global(
+static inline void
+rot_to_global(
   const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
 )
@@ -80,7 +84,8 @@ static inline void rot_to_global(
 }
 
 // Waves and speeds using Roe averaging
-static double wave_roe(
+static double
+wave_roe(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s
 )
@@ -139,7 +144,8 @@ static double wave_roe(
   return fmax(fabs(s[0]), fabs(s[1]));
 }
 
-static void qfluct_roe(
+static void
+qfluct_roe(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -163,7 +169,8 @@ static void qfluct_roe(
   }
 }
 
-static void ffluct_roe(
+static void
+ffluct_roe(
   const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
   const double phil, const double phir, const double *waves, const double *s, double *amdq,
   double *apdq
@@ -207,25 +214,29 @@ flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, dou
   return fmax(amaxl, amaxr);
 }
 
-static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   return q[0] > 0.0;
 }
 
-static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_coldfluid *coldfluid = container_of(eqn, struct wv_coldfluid, eqn);
   return fabs(q[RHOU] / q[0]);
 }
 
-static inline void coldfluid_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
+static inline void
+coldfluid_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   for (int i = 0; i < 4; i++) {
     sout[i] = 0.0;
   }
 }
 
-struct gkyl_wv_eqn *gkyl_wv_coldfluid_new(void)
+struct gkyl_wv_eqn *
+gkyl_wv_coldfluid_new(void)
 {
   struct wv_coldfluid *coldfluid = gkyl_malloc(sizeof(struct wv_coldfluid));
 

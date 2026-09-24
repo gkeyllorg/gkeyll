@@ -57,7 +57,8 @@ struct kh_2d_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct kh_2d_ctx create_ctx(void)
+struct kh_2d_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -107,13 +108,14 @@ struct kh_2d_ctx create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct kh_2d_ctx *app = ctx;
@@ -171,7 +173,8 @@ void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * (vx * vx + vy * vy);
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -186,7 +189,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -210,7 +214,10 @@ int main(int argc, char **argv)
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
   struct gkyl_vlasov_fluid_species fluid = {
-    .name = "euler", .equation = euler, .init = evalEulerInit, .ctx = &ctx
+    .name = "euler",
+    .equation = euler,
+    .init = evalEulerInit,
+    .ctx = &ctx,
   };
 
   int nrank = 1; // Number of processors in simulation.
@@ -299,7 +306,7 @@ int main(int argc, char **argv)
     .skip_field = true,
 
     .parallelism =
-      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm}
+      {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},
   };
 
   // Create app object.
