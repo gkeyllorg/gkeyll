@@ -22,6 +22,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_basis.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
+#include <gkyl_bc_sheath_gyrokinetic_priv.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_const.h>
@@ -33,6 +34,12 @@
 // Set to NULL (or set surr_test_enabled = false) to skip surrogate tests.
 static const char *surr_model_path = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann";
 static const bool surr_test_enabled = true;
+
+static bool
+use_surr_test(void)
+{
+  return surr_test_enabled && surr_model_path;
+}
 
 static struct gkyl_array *
 mkarr(bool use_gpu, long nc, long size)
@@ -71,34 +78,29 @@ struct test_sheath_ctx {
 };
 
 void
-surr_interpf(const float *vcut, const double *mu_new, int n, double mu_ref, double *out)
+surr_interpf(const float *vcut, const float *mu_grid, int ng, double mu, double mu_ref, double *out)
 {
-  const double mu_grid[20] = {0.00, 0.02, 0.08, 0.18, 0.32, 0.50, 0.72, 0.98, 1.28, 1.62,
-                              2.00, 2.42, 2.88, 3.38, 3.92, 4.50, 5.12, 5.78, 6.48, 7.22};
-  const int ng = 20;
-  for (int i = 0; i < n; i++) {
-    double mu = mu_new[i] / mu_ref;
-    if (mu <= mu_grid[0]) {
-      out[i] = vcut[0];
-      continue;
-    }
-    if (mu >= mu_grid[ng - 1]) {
-      out[i] = vcut[ng - 1];
-      continue;
-    }
-    // binary search for the bracketing interval
-    int lo = 0, hi = ng - 1;
-    while (hi - lo > 1) {
-      int mid = (lo + hi) >> 1;
-      if (mu_grid[mid] <= mu) {
-        lo = mid;
-      } else {
-        hi = mid;
-      }
-    }
-    double t = (mu - mu_grid[lo]) / (mu_grid[hi] - mu_grid[lo]);
-    out[i] = vcut[lo] + t * (vcut[hi] - vcut[lo]);
+  double mu_n = mu / mu_ref;
+  if (mu_n <= mu_grid[0]) {
+    *out = vcut[0];
+    return;
   }
+  if (mu_n >= mu_grid[ng - 1]) {
+    *out = vcut[ng - 1];
+    return;
+  }
+  // binary search for the bracketing interval
+  int lo = 0, hi = ng - 1;
+  while (hi - lo > 1) {
+    int mid = (lo + hi) >> 1;
+    if (mu_grid[mid] <= mu_n) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  double t = (mu_n - mu_grid[lo]) / (mu_grid[hi] - mu_grid[lo]);
+  *out = vcut[lo] + t * (vcut[hi] - vcut[lo]);
 }
 
 void
@@ -110,18 +112,20 @@ eval_func_vcutsq(double t, const double *xn, double *GKYL_RESTRICT fout, void *c
   if (pars->model) {
     float alphadeg = pars->impact_angle * 180.0 / GKYL_PI;
     float gamma = sqrt(pars->mass * fmax(pars->dens, 0.0) / GKYL_EPSILON0) / pars->B0;
-    float phi = -pars->charge * (pars->phi_mpe - pars->phi_wall) / pars->temp;
+    float phi = fmax(0.0, -pars->charge * (pars->phi_mpe - pars->phi_wall) / pars->temp);
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(1, 3);
     inp->vals[0][0] = alphadeg;
     inp->vals[0][1] = gamma;
     inp->vals[0][2] = phi;
-    struct gkyl_kn_vec *out = gkyl_kn_vec_new(1, 20);
+    int dim_out = gkyl_kann_net_dim_out(pars->model);
+    struct gkyl_kn_vec *out = gkyl_kn_vec_new(1, dim_out);
     gkyl_kann_net_apply(pars->model, inp, out);
 
     // Interp the output of the surrogate to get vcutsq corresponding to input mu.
+    // The first half of the output is vcut, the second half the mu grid it lives on.
     double mu_ref = pars->temp / pars->B0; // Normalization for mu used in surrogate training.
     double vcut_norm = 0.0;
-    surr_interpf(out->data, &mu, 1, mu_ref, &vcut_norm);
+    surr_interpf(out->data, out->data + dim_out / 2, dim_out / 2, mu, mu_ref, &vcut_norm);
 
     double vt_sq = pars->temp / pars->mass;
     fout[0] = (vcut_norm * vcut_norm) * vt_sq;
@@ -131,16 +135,9 @@ eval_func_vcutsq(double t, const double *xn, double *GKYL_RESTRICT fout, void *c
     gkyl_kn_vec_release(out);
 
   } else {
-    // Physical analytical calculation of vcutsq = 2 * q * delta_phi / m
+    // Conducting sheath: vcutsq = -2 * q * delta_phi / m, independent of mu.
     double delta_phi = pars->phi_mpe - pars->phi_wall;
-    double vcutsq_0 = fmax(0.0, -2.0 * pars->charge * delta_phi / pars->mass);
-    double Lmu = pars->temp / pars->B0;
-    if (Lmu == 0.0) {
-      Lmu = 1.0;
-    }
-
-    // Smooth mu variation to test mu-dependent evaluation machinery
-    fout[0] = vcutsq_0 * (1.0 + 0.1 * exp(-mu / Lmu));
+    fout[0] = fmax(0.0, -2.0 * pars->charge * delta_phi / pars->mass);
   }
 }
 
@@ -190,6 +187,50 @@ eval_func_3x2v(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx
 
   double envelope = 1;
   fout[0] = exp(-(m * pow(vpar - upar, 2) / 2.0 + mu * B0) / T) * envelope;
+}
+
+// Checks the vcutsq computed by the updater against the reference at the
+// Gauss-Legendre nodes, where the updater evaluates it before projecting.
+void
+check_vcutsq(
+  struct test_sheath_ctx *pars, const struct gkyl_bc_sheath_gyrokinetic *bcsheath,
+  struct gkyl_rect_grid grid
+)
+{
+  int cdim = pars->cdim;
+  int mu_dir = grid.ndim - 1;
+  const struct gkyl_basis *vcutsq_basis = &bcsheath->vcutsq_basis;
+  int ndim = vcutsq_basis->ndim; // Perpendicular conf-space directions + mu.
+
+  struct gkyl_array *vcutsq_ho = mkarr(false, bcsheath->vcutsq->ncomp, bcsheath->vcutsq->size);
+  gkyl_array_copy(vcutsq_ho, bcsheath->vcutsq);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &bcsheath->vcutsq_local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&bcsheath->vcutsq_local, iter.idx);
+    const double *vcutsq_c = gkyl_array_cfetch(vcutsq_ho, loc);
+    double mu_c = grid.lower[mu_dir] + (iter.idx[ndim - 1] - 0.5) * grid.dx[mu_dir];
+
+    for (int n = 0; n < (1 << ndim); n++) {
+      double eta[GKYL_MAX_DIM];
+      for (int d = 0; d < ndim; d++) {
+        eta[d] = ((n >> d) & 1 ? 1.0 : -1.0) / sqrt(3.0);
+      }
+      // Inputs are uniform in the perpendicular directions, so only mu matters.
+      double xn[GKYL_MAX_DIM] = {0.0};
+      xn[cdim - 1] = mu_c + 0.5 * grid.dx[mu_dir] * eta[ndim - 1];
+      double vcutsq_ref;
+      eval_func_vcutsq(0.0, xn, &vcutsq_ref, pars);
+
+      // A negative vcutsq (no reflection) is equivalent to zero.
+      double vcutsq_val = fmax(0.0, vcutsq_basis->eval_expand(eta, vcutsq_c));
+      TEST_CHECK(gkyl_compare(vcutsq_val, vcutsq_ref, 1e-5));
+      TEST_MSG("Expected %.9e | Got: %.9e at mu=%.9e\n", vcutsq_ref, vcutsq_val, xn[cdim - 1]);
+    }
+  }
+
+  gkyl_array_release(vcutsq_ho);
 }
 
 // Checks that the distribution function values in the ghost cells are set to
@@ -457,96 +498,64 @@ test_bc_sheath_gyrokinetic_1x2v(
   gkyl_array_shiftc(phiw_ho, phi_wall * dgnormc, 0 * basis_conf.num_basis);
   gkyl_array_copy(phiw, phiw_ho);
 
+  enum gkyl_gyrokinetic_bc_type bc_type = use_surrogate ? GKYL_BC_GK_SPECIES_SHEATH_SURROGATE :
+                                                          GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING;
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(
-    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * qs / ms, use_surrogate,
-    pars->surrogate_model_path, NULL, NULL, use_gpu
+    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * qs / ms, bc_type,
+    use_surrogate ? pars->surrogate_model_path : NULL, NULL, NULL, poly_order, use_gpu
   ); // No vcutsq diagnostic output in this test.
 
+  // Sheath entrance quantities, only needed by the surrogate.
+  struct gkyl_array *density = NULL, *temperature = NULL, *bmag = NULL, *bimpact_angle = NULL;
   if (use_surrogate) {
+    // Host copy of the model, used to compute the reference vcutsq in check_function.
     pars->model = gkyl_kann_net_load(pars->surrogate_model_path, false);
-  }
 
-  int vcutsq_dim = cdim - 1 + vdim - 1;
-  struct gkyl_basis vcutsq_basis;
-  gkyl_cart_modal_serendip(&vcutsq_basis, vcutsq_dim, poly_order);
-  struct gkyl_range vcutsq_local;
-  int nc_lower[vcutsq_dim], nc_upper[vcutsq_dim];
-  for (int d = 0; d < cdim - 1; d++) {
-    nc_lower[d] = skin_r.lower[d];
-    nc_upper[d] = skin_r.upper[d];
-  }
-  nc_lower[vcutsq_dim - 1] = skin_r.lower[skin_r.ndim - 1];
-  nc_upper[vcutsq_dim - 1] = skin_r.upper[skin_r.ndim - 1];
-  gkyl_range_init(&vcutsq_local, vcutsq_basis.ndim, nc_lower, nc_upper);
-  struct gkyl_array *vcutsq = mkarr(use_gpu, vcutsq_basis.num_basis, vcutsq_local.volume);
-  struct gkyl_array *vcutsq_ho = use_gpu ? mkarr(false, vcutsq->ncomp, vcutsq->size) :
-                                           gkyl_array_acquire(vcutsq);
-
-  struct gkyl_rect_grid vcut_grid;
-  double vcut_lower[cdim], vcut_upper[cdim];
-  for (int d = 0; d < cdim - 1; d++) {
-    vcut_lower[d] = lower[d];
-    vcut_upper[d] = upper[d];
-  }
-  vcut_lower[cdim - 1] = lower[cdim + vdim - 1];
-  vcut_upper[cdim - 1] = upper[cdim + vdim - 1];
-  gkyl_rect_grid_init(&vcut_grid, cdim, vcut_lower, vcut_upper, pars->cells);
-  gkyl_proj_on_basis *projVcut = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-    .grid = &vcut_grid,
-    .basis = &vcutsq_basis,
-    .num_ret_vals = 1,
-    .eval = eval_func_vcutsq,
-    .ctx = pars,
-  });
-  gkyl_proj_on_basis_advance(projVcut, 0.0, &vcutsq_local, vcutsq_ho);
-  gkyl_array_copy(vcutsq, vcutsq_ho);
-
-  gkyl_bc_sheath_gyrokinetic_set_vcutsq(bcsheath, vcutsq);
-
-  if (use_surrogate) {
-    struct gkyl_array *density = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    density = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *density_ho = use_gpu ? mkarr(false, density->ncomp, density->size) :
                                               gkyl_array_acquire(density);
     gkyl_array_shiftc(density_ho, ns * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(density, density_ho);
 
-    struct gkyl_array *temperature = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    temperature = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *temperature_ho = use_gpu ?
                                           mkarr(false, temperature->ncomp, temperature->size) :
                                           gkyl_array_acquire(temperature);
     gkyl_array_shiftc(temperature_ho, Ts * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(temperature, temperature_ho);
 
-    struct gkyl_array *bmag = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    bmag = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *bmag_ho = use_gpu ? mkarr(false, bmag->ncomp, bmag->size) :
                                            gkyl_array_acquire(bmag);
     gkyl_array_shiftc(bmag_ho, B0 * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bmag, bmag_ho);
 
-    struct gkyl_array *bimpact_angle = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    // The impact angle is a surface quantity, expanded in a (cdim-1)-dimensional basis.
+    double dgnormc_surf = pow(sqrt(2.0), cdim - 1);
+    bimpact_angle = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *bimpact_angle_ho =
       use_gpu ? mkarr(false, bimpact_angle->ncomp, bimpact_angle->size) :
                 gkyl_array_acquire(bimpact_angle);
-    gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc_surf, 0 * basis_conf.num_basis);
     gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
 
-    gkyl_bc_sheath_gyrokinetic_update_vcutsq(
-      bcsheath, phi, phiw, density, temperature, bmag, bimpact_angle, &local_conf
-    );
-
-    gkyl_array_release(density);
     gkyl_array_release(density_ho);
-    gkyl_array_release(temperature);
     gkyl_array_release(temperature_ho);
-    gkyl_array_release(bmag);
     gkyl_array_release(bmag_ho);
-    gkyl_array_release(bimpact_angle);
     gkyl_array_release(bimpact_angle_ho);
   }
 
-  gkyl_bc_sheath_gyrokinetic_advance(bcsheath, distf, &local_conf);
+  gkyl_bc_sheath_gyrokinetic_advance(
+    bcsheath, phi, phiw, density, temperature, bmag, bimpact_angle, distf, &local_conf
+  );
+
+  gkyl_array_release(density);
+  gkyl_array_release(temperature);
+  gkyl_array_release(bmag);
+  gkyl_array_release(bimpact_angle);
   gkyl_array_copy(distf_ho, distf);
 
+  check_vcutsq(pars, bcsheath, grid);
   check_function(pars, distf_ho, grid, ghost_r, edge);
 
   if (write_fields) {
@@ -572,9 +581,6 @@ test_bc_sheath_gyrokinetic_1x2v(
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
-  gkyl_proj_on_basis_release(projVcut);
-  gkyl_array_release(vcutsq);
-  gkyl_array_release(vcutsq_ho);
 
   if (pars->model) {
     gkyl_kann_net_release(pars->model);
@@ -702,96 +708,64 @@ test_bc_sheath_gyrokinetic_2x2v(
   gkyl_array_shiftc(phiw_ho, phi_wall * dgnormc, 0 * basis_conf.num_basis);
   gkyl_array_copy(phiw, phiw_ho);
 
+  enum gkyl_gyrokinetic_bc_type bc_type = use_surrogate ? GKYL_BC_GK_SPECIES_SHEATH_SURROGATE :
+                                                          GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING;
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(
-    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * qs / ms, use_surrogate,
-    pars->surrogate_model_path, NULL, NULL, use_gpu
+    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * qs / ms, bc_type,
+    use_surrogate ? pars->surrogate_model_path : NULL, NULL, NULL, poly_order, use_gpu
   ); // No vcutsq diagnostic output in this test.
 
+  // Sheath entrance quantities, only needed by the surrogate.
+  struct gkyl_array *density = NULL, *temperature = NULL, *bmag = NULL, *bimpact_angle = NULL;
   if (use_surrogate) {
+    // Host copy of the model, used to compute the reference vcutsq in check_function.
     pars->model = gkyl_kann_net_load(pars->surrogate_model_path, false);
-  }
 
-  int vcutsq_dim = cdim - 1 + vdim - 1;
-  struct gkyl_basis vcutsq_basis;
-  gkyl_cart_modal_serendip(&vcutsq_basis, vcutsq_dim, poly_order);
-  struct gkyl_range vcutsq_local;
-  int nc_lower[vcutsq_dim], nc_upper[vcutsq_dim];
-  for (int d = 0; d < cdim - 1; d++) {
-    nc_lower[d] = skin_r.lower[d];
-    nc_upper[d] = skin_r.upper[d];
-  }
-  nc_lower[vcutsq_dim - 1] = skin_r.lower[skin_r.ndim - 1];
-  nc_upper[vcutsq_dim - 1] = skin_r.upper[skin_r.ndim - 1];
-  gkyl_range_init(&vcutsq_local, vcutsq_basis.ndim, nc_lower, nc_upper);
-  struct gkyl_array *vcutsq = mkarr(use_gpu, vcutsq_basis.num_basis, vcutsq_local.volume);
-  struct gkyl_array *vcutsq_ho = use_gpu ? mkarr(false, vcutsq->ncomp, vcutsq->size) :
-                                           gkyl_array_acquire(vcutsq);
-
-  struct gkyl_rect_grid vcut_grid;
-  double vcut_lower[cdim], vcut_upper[cdim];
-  for (int d = 0; d < cdim - 1; d++) {
-    vcut_lower[d] = lower[d];
-    vcut_upper[d] = upper[d];
-  }
-  vcut_lower[cdim - 1] = lower[cdim + vdim - 1];
-  vcut_upper[cdim - 1] = upper[cdim + vdim - 1];
-  gkyl_rect_grid_init(&vcut_grid, cdim, vcut_lower, vcut_upper, pars->cells);
-  gkyl_proj_on_basis *projVcut = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-    .grid = &vcut_grid,
-    .basis = &vcutsq_basis,
-    .num_ret_vals = 1,
-    .eval = eval_func_vcutsq,
-    .ctx = pars,
-  });
-  gkyl_proj_on_basis_advance(projVcut, 0.0, &vcutsq_local, vcutsq_ho);
-  gkyl_array_copy(vcutsq, vcutsq_ho);
-
-  gkyl_bc_sheath_gyrokinetic_set_vcutsq(bcsheath, vcutsq);
-
-  if (use_surrogate) {
-    struct gkyl_array *density = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    density = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *density_ho = use_gpu ? mkarr(false, density->ncomp, density->size) :
                                               gkyl_array_acquire(density);
     gkyl_array_shiftc(density_ho, ns * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(density, density_ho);
 
-    struct gkyl_array *temperature = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    temperature = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *temperature_ho = use_gpu ?
                                           mkarr(false, temperature->ncomp, temperature->size) :
                                           gkyl_array_acquire(temperature);
     gkyl_array_shiftc(temperature_ho, Ts * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(temperature, temperature_ho);
 
-    struct gkyl_array *bmag = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    bmag = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *bmag_ho = use_gpu ? mkarr(false, bmag->ncomp, bmag->size) :
                                            gkyl_array_acquire(bmag);
     gkyl_array_shiftc(bmag_ho, B0 * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bmag, bmag_ho);
 
-    struct gkyl_array *bimpact_angle = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    // The impact angle is a surface quantity, expanded in a (cdim-1)-dimensional basis.
+    double dgnormc_surf = pow(sqrt(2.0), cdim - 1);
+    bimpact_angle = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *bimpact_angle_ho =
       use_gpu ? mkarr(false, bimpact_angle->ncomp, bimpact_angle->size) :
                 gkyl_array_acquire(bimpact_angle);
-    gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc_surf, 0 * basis_conf.num_basis);
     gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
 
-    gkyl_bc_sheath_gyrokinetic_update_vcutsq(
-      bcsheath, phi, phiw, density, temperature, bmag, bimpact_angle, &local_conf
-    );
-
-    gkyl_array_release(density);
     gkyl_array_release(density_ho);
-    gkyl_array_release(temperature);
     gkyl_array_release(temperature_ho);
-    gkyl_array_release(bmag);
     gkyl_array_release(bmag_ho);
-    gkyl_array_release(bimpact_angle);
     gkyl_array_release(bimpact_angle_ho);
   }
 
-  gkyl_bc_sheath_gyrokinetic_advance(bcsheath, distf, &local_conf);
+  gkyl_bc_sheath_gyrokinetic_advance(
+    bcsheath, phi, phiw, density, temperature, bmag, bimpact_angle, distf, &local_conf
+  );
+
+  gkyl_array_release(density);
+  gkyl_array_release(temperature);
+  gkyl_array_release(bmag);
+  gkyl_array_release(bimpact_angle);
   gkyl_array_copy(distf_ho, distf);
 
+  check_vcutsq(pars, bcsheath, grid);
   check_function(pars, distf_ho, grid, ghost_r, edge);
 
   if (write_fields) {
@@ -816,9 +790,6 @@ test_bc_sheath_gyrokinetic_2x2v(
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
-  gkyl_proj_on_basis_release(projVcut);
-  gkyl_array_release(vcutsq);
-  gkyl_array_release(vcutsq_ho);
 
   if (pars->model) {
     gkyl_kann_net_release(pars->model);
@@ -946,96 +917,64 @@ test_bc_sheath_gyrokinetic_3x2v(
   gkyl_array_shiftc(phiw_ho, phi_wall * dgnormc, 0 * basis_conf.num_basis);
   gkyl_array_copy(phiw, phiw_ho);
 
+  enum gkyl_gyrokinetic_bc_type bc_type = use_surrogate ? GKYL_BC_GK_SPECIES_SHEATH_SURROGATE :
+                                                          GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING;
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(
-    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * qs / ms, use_surrogate,
-    pars->surrogate_model_path, NULL, NULL, use_gpu
+    dir, edge, basis, &skin_r, &ghost_r, gvm, cdim, 2. * qs / ms, bc_type,
+    use_surrogate ? pars->surrogate_model_path : NULL, NULL, NULL, poly_order, use_gpu
   ); // No vcutsq diagnostic output in this test.
 
+  // Sheath entrance quantities, only needed by the surrogate.
+  struct gkyl_array *density = NULL, *temperature = NULL, *bmag = NULL, *bimpact_angle = NULL;
   if (use_surrogate) {
+    // Host copy of the model, used to compute the reference vcutsq in check_function.
     pars->model = gkyl_kann_net_load(pars->surrogate_model_path, false);
-  }
 
-  int vcutsq_dim = cdim - 1 + vdim - 1;
-  struct gkyl_basis vcutsq_basis;
-  gkyl_cart_modal_serendip(&vcutsq_basis, vcutsq_dim, poly_order);
-  struct gkyl_range vcutsq_local;
-  int nc_lower[vcutsq_dim], nc_upper[vcutsq_dim];
-  for (int d = 0; d < cdim - 1; d++) {
-    nc_lower[d] = skin_r.lower[d];
-    nc_upper[d] = skin_r.upper[d];
-  }
-  nc_lower[vcutsq_dim - 1] = skin_r.lower[skin_r.ndim - 1];
-  nc_upper[vcutsq_dim - 1] = skin_r.upper[skin_r.ndim - 1];
-  gkyl_range_init(&vcutsq_local, vcutsq_basis.ndim, nc_lower, nc_upper);
-  struct gkyl_array *vcutsq = mkarr(use_gpu, vcutsq_basis.num_basis, vcutsq_local.volume);
-  struct gkyl_array *vcutsq_ho = use_gpu ? mkarr(false, vcutsq->ncomp, vcutsq->size) :
-                                           gkyl_array_acquire(vcutsq);
-
-  struct gkyl_rect_grid vcut_grid;
-  double vcut_lower[cdim], vcut_upper[cdim];
-  for (int d = 0; d < cdim - 1; d++) {
-    vcut_lower[d] = lower[d];
-    vcut_upper[d] = upper[d];
-  }
-  vcut_lower[cdim - 1] = lower[cdim + vdim - 1];
-  vcut_upper[cdim - 1] = upper[cdim + vdim - 1];
-  gkyl_rect_grid_init(&vcut_grid, cdim, vcut_lower, vcut_upper, pars->cells);
-  gkyl_proj_on_basis *projVcut = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-    .grid = &vcut_grid,
-    .basis = &vcutsq_basis,
-    .num_ret_vals = 1,
-    .eval = eval_func_vcutsq,
-    .ctx = pars,
-  });
-  gkyl_proj_on_basis_advance(projVcut, 0.0, &vcutsq_local, vcutsq_ho);
-  gkyl_array_copy(vcutsq, vcutsq_ho);
-
-  gkyl_bc_sheath_gyrokinetic_set_vcutsq(bcsheath, vcutsq);
-
-  if (use_surrogate) {
-    struct gkyl_array *density = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    density = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *density_ho = use_gpu ? mkarr(false, density->ncomp, density->size) :
                                               gkyl_array_acquire(density);
     gkyl_array_shiftc(density_ho, ns * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(density, density_ho);
 
-    struct gkyl_array *temperature = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    temperature = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *temperature_ho = use_gpu ?
                                           mkarr(false, temperature->ncomp, temperature->size) :
                                           gkyl_array_acquire(temperature);
     gkyl_array_shiftc(temperature_ho, Ts * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(temperature, temperature_ho);
 
-    struct gkyl_array *bmag = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    bmag = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *bmag_ho = use_gpu ? mkarr(false, bmag->ncomp, bmag->size) :
                                            gkyl_array_acquire(bmag);
     gkyl_array_shiftc(bmag_ho, B0 * dgnormc, 0 * basis_conf.num_basis);
     gkyl_array_copy(bmag, bmag_ho);
 
-    struct gkyl_array *bimpact_angle = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
+    // The impact angle is a surface quantity, expanded in a (cdim-1)-dimensional basis.
+    double dgnormc_surf = pow(sqrt(2.0), cdim - 1);
+    bimpact_angle = mkarr(use_gpu, basis_conf.num_basis, local_conf_ext.volume);
     struct gkyl_array *bimpact_angle_ho =
       use_gpu ? mkarr(false, bimpact_angle->ncomp, bimpact_angle->size) :
                 gkyl_array_acquire(bimpact_angle);
-    gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc, 0 * basis_conf.num_basis);
+    gkyl_array_shiftc(bimpact_angle_ho, impact_angle * dgnormc_surf, 0 * basis_conf.num_basis);
     gkyl_array_copy(bimpact_angle, bimpact_angle_ho);
 
-    gkyl_bc_sheath_gyrokinetic_update_vcutsq(
-      bcsheath, phi, phiw, density, temperature, bmag, bimpact_angle, &local_conf
-    );
-
-    gkyl_array_release(density);
     gkyl_array_release(density_ho);
-    gkyl_array_release(temperature);
     gkyl_array_release(temperature_ho);
-    gkyl_array_release(bmag);
     gkyl_array_release(bmag_ho);
-    gkyl_array_release(bimpact_angle);
     gkyl_array_release(bimpact_angle_ho);
   }
 
-  gkyl_bc_sheath_gyrokinetic_advance(bcsheath, distf, &local_conf);
+  gkyl_bc_sheath_gyrokinetic_advance(
+    bcsheath, phi, phiw, density, temperature, bmag, bimpact_angle, distf, &local_conf
+  );
+
+  gkyl_array_release(density);
+  gkyl_array_release(temperature);
+  gkyl_array_release(bmag);
+  gkyl_array_release(bimpact_angle);
   gkyl_array_copy(distf_ho, distf);
 
+  check_vcutsq(pars, bcsheath, grid);
   check_function(pars, distf_ho, grid, ghost_r, edge);
 
   if (write_fields) {
@@ -1060,9 +999,6 @@ test_bc_sheath_gyrokinetic_3x2v(
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
-  gkyl_proj_on_basis_release(projVcut);
-  gkyl_array_release(vcutsq);
-  gkyl_array_release(vcutsq_ho);
 
   if (pars->model) {
     gkyl_kann_net_release(pars->model);
@@ -1073,9 +1009,6 @@ test_bc_sheath_gyrokinetic_3x2v(
 void
 test_bc_sheath_gk_1x2v_ho()
 {
-  if (!surr_test_enabled || !surr_model_path) {
-    return;
-  }
   bool write_fields;
 
   struct test_sheath_ctx pars = {
@@ -1097,7 +1030,7 @@ test_bc_sheath_gk_1x2v_ho()
   };
 
   write_fields = false;
-  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, true, write_fields, false);
+  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, use_surr_test(), write_fields, false);
   test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, false, write_fields, false);
 
   write_fields = false;
@@ -1143,7 +1076,7 @@ test_bc_sheath_gk_2x2v_ho()
   };
 
   write_fields = false;
-  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, true, write_fields, false);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, use_surr_test(), write_fields, false);
   test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, false, write_fields, false);
 
   pars.phi_mpe *= -1.0;
@@ -1166,9 +1099,6 @@ test_bc_sheath_gk_2x2v_ho()
 void
 test_bc_sheath_gk_3x2v_ho()
 {
-  if (!surr_test_enabled || !surr_model_path) {
-    return;
-  }
   bool write_fields;
 
   struct test_sheath_ctx pars = {
@@ -1194,7 +1124,7 @@ test_bc_sheath_gk_3x2v_ho()
   };
 
   write_fields = false;
-  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, true, write_fields, false);
+  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, use_surr_test(), write_fields, false);
   test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, false, write_fields, false);
 
   write_fields = false;
@@ -1239,7 +1169,7 @@ test_bc_sheath_gk_1x2v_dev()
   };
 
   write_fields = false;
-  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, true, write_fields, true);
+  test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_LOWER_EDGE, use_surr_test(), write_fields, true);
   test_bc_sheath_gyrokinetic_1x2v(&pars, GKYL_UPPER_EDGE, false, write_fields, true);
 
   pars.phi_mpe *= -1.0;
@@ -1285,7 +1215,7 @@ test_bc_sheath_gk_2x2v_dev()
   };
 
   write_fields = false;
-  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, true, write_fields, true);
+  test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_LOWER_EDGE, use_surr_test(), write_fields, true);
   test_bc_sheath_gyrokinetic_2x2v(&pars, GKYL_UPPER_EDGE, false, write_fields, true);
 
   pars.phi_mpe *= -1.0;
@@ -1333,7 +1263,7 @@ test_bc_sheath_gk_3x2v_dev()
   };
 
   write_fields = false;
-  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, true, write_fields, true);
+  test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_LOWER_EDGE, use_surr_test(), write_fields, true);
   test_bc_sheath_gyrokinetic_3x2v(&pars, GKYL_UPPER_EDGE, false, write_fields, true);
 
   pars.phi_mpe *= -1.0;

@@ -400,14 +400,6 @@ gkyl_bc_sheath_gyrokinetic_advance(
 }
 
 void
-gkyl_bc_sheath_gyrokinetic_set_vcutsq(
-  const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *vcutsq
-)
-{
-  gkyl_array_copy_range(up->vcutsq, vcutsq, &up->vcutsq_local);
-}
-
-void
 gkyl_bc_sheath_gyrokinetic_write_vcutsq(
   struct gkyl_bc_sheath_gyrokinetic *up, struct gkyl_msgpack_data *meta, const char *fname
 )
